@@ -3,7 +3,7 @@ import { PoolMap } from "../components/pool-map";
 import { PoolStandings } from "../components/pool-standings";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingPageHeader } from "../components/sporting-page-header";
-import { PagedTabs } from "../../../shared/components/paged-tabs";
+import { SportingTabs, SportingScrollView } from "../components/sporting-tabs";
 import { ResourceText } from "../components/resource-text";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
@@ -65,7 +65,13 @@ function PoolPage({
       subtitle={[data.pool.competitionName, data.pool.phaseName]
         .filter(Boolean)
         .join(" · ")}
-    />
+    >
+      {renderFollow?.(
+        data.pool.pool,
+        data.pool.season,
+        data.pool.classification.division?.color,
+      )}
+    </SportingIdentity>
   ) : undefined;
   const tabs = [
     { id: "standings", label: "Classement" },
@@ -89,30 +95,24 @@ function PoolPage({
           </PageScrollView>
         </>
       ) : (
-        <PagedTabs
+        <SportingTabs
           selected={tab}
           onSelect={setTab}
           header={
             data && (
-              <>
-                <SportingPageHeader
-                  action={
-                    <SportingSupportAction
-                      target={{ type: "pool", id: poolId }}
-                    />
-                  }
-                  identity={data.pool.pool}
-                  division={data.pool.classification.division}
-                  kind="pool"
-                />
-                {renderFollow?.(
-                  data.pool.pool,
-                  data.pool.season,
-                  data.pool.classification.division?.color,
-                )}
-              </>
+              <SportingPageHeader
+                action={
+                  <SportingSupportAction
+                    target={{ type: "pool", id: poolId }}
+                  />
+                }
+                identity={data.pool.pool}
+                division={data.pool.classification.division}
+                kind="pool"
+              />
             )
           }
+          identity={<PageContent>{identity}</PageContent>}
           tabs={tabs.map(({ id: value, label }) => ({
             id: value,
             label,
@@ -121,21 +121,14 @@ function PoolPage({
                 <SportingCalendar
                   selection={{ poolId, category: value }}
                   active={tab === value}
-                >
-                  {identity}
-                </SportingCalendar>
+                />
               ) : value === "standings" && data && !renderStandings ? (
-                <PoolStandings pool={data.pool} active={tab === value}>
-                  {identity}
-                </PoolStandings>
+                <PoolStandings pool={data.pool} active={tab === value} />
               ) : value === "map" && data && !renderMap ? (
-                <PoolMap pool={data.pool} active={tab === value}>
-                  {identity}
-                </PoolMap>
+                <PoolMap pool={data.pool} active={tab === value} />
               ) : (
-                <PageScrollView alwaysBounceVertical>
+                <SportingScrollView alwaysBounceVertical>
                   <PageContent>
-                    {identity}
                     {data &&
                       (value === "standings"
                         ? (renderStandings?.(data.pool) ?? (
@@ -149,7 +142,7 @@ function PoolPage({
                             </ResourceText>
                           )))}
                   </PageContent>
-                </PageScrollView>
+                </SportingScrollView>
               ),
           }))}
         />

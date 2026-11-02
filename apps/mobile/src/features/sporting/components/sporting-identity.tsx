@@ -192,6 +192,9 @@ export function SportingLink({
           kind={kind === "pool" ? "division" : kind}
         />
       )}
+      {!identity && kind === "pool" && (
+        <SportingMedia identity={{ name: label }} kind="division" />
+      )}
       <Text style={[styles.linkLabel, { color: colors.text }]}>{label}</Text>
       <ChevronRight
         accessible={false}

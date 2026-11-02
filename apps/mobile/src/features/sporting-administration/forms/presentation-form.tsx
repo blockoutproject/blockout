@@ -6,7 +6,7 @@ import { ImageValidationError } from "../../../shared/images/image-validation-er
 import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { Image } from "expo-image";
-import { ImageOff } from "lucide-react-native";
+import { ImageFallback } from "../../../shared/components/image-fallback";
 import { useDivisionActivity } from "../api/classification";
 import { DivisionColorFields } from "../components/division-color-fields";
 import { useRouter } from "expo-router";
@@ -320,18 +320,15 @@ export function PresentationForm({
           style={isDivision ? styles.divisionLogo : styles.contextLogo}
         />
       )}
-      {isDivision && !uri && (
+      {!uri && (
         <View
           style={[
-            styles.divisionPlaceholder,
+            isDivision ? styles.divisionPlaceholder : styles.contextLogo,
+            styles.imagePlaceholder,
             { backgroundColor: colors.mediaPlaceholder },
           ]}
         >
-          <ImageOff
-            accessible={false}
-            size={tokens.size.icon.lg}
-            color={colors.icon}
-          />
+          <ImageFallback size={tokens.size.icon.lg} color={colors.icon} />
         </View>
       )}
       <View style={styles.contextName}>
@@ -421,7 +418,6 @@ export function PresentationForm({
                     replaceLabel="Changer le logo"
                     removeLabel="Rétablir le logo automatique"
                     error={fieldState.error?.message}
-                    placeholderIcon={isDivision ? ImageOff : undefined}
                     onRemove={
                       !isDivision ||
                       currentLogo?.manualUrl != null ||
@@ -564,6 +560,7 @@ export function PresentationForm({
   );
 }
 const styles = StyleSheet.create({
+  imagePlaceholder: { alignItems: "center", justifyContent: "center" },
   form: { gap: tokens.layout.form.gap },
   context: {
     flexDirection: "row",

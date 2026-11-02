@@ -9,7 +9,8 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { PageContent, PageScrollView } from "../../../shared/components/page";
+import { PageContent } from "../../../shared/components/page";
+import { SportingScrollView } from "./sporting-tabs";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { EmptyState, ErrorState } from "../../../shared/components/state-card";
@@ -76,7 +77,7 @@ export function PoolStandings({
     ) : undefined;
   if (!hasRows)
     return (
-      <PageScrollView refreshControl={refreshControl}>
+      <SportingScrollView refreshControl={refreshControl}>
         {children && <PageContent>{children}</PageContent>}
         <ScreenState>
           {!data ? (
@@ -96,10 +97,10 @@ export function PoolStandings({
             />
           )}
         </ScreenState>
-      </PageScrollView>
+      </SportingScrollView>
     );
   return (
-    <PageScrollView alwaysBounceVertical refreshControl={refreshControl}>
+    <SportingScrollView alwaysBounceVertical refreshControl={refreshControl}>
       <PageContent>
         {children}
         <View>
@@ -153,7 +154,7 @@ export function PoolStandings({
           )}
         </View>
       </PageContent>
-    </PageScrollView>
+    </SportingScrollView>
   );
 }
 

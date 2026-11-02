@@ -127,9 +127,9 @@ export function PagedTabs({
         }
       >
         {tabs.map((tab) => (
-          <Scene key={tab.id} active={selected === tab.id}>
+          <PagedTabScene key={tab.id} active={selected === tab.id}>
             {tab.content}
-          </Scene>
+          </PagedTabScene>
         ))}
       </PagerView>
     </View>
@@ -137,7 +137,13 @@ export function PagedTabs({
 }
 
 /** First selection mounts the scene once; retained children own their native position and resource lifetime. */
-function Scene({ active, children }: { active: boolean; children: ReactNode }) {
+export function PagedTabScene({
+  active,
+  children,
+}: {
+  active: boolean;
+  children: ReactNode;
+}) {
   const [visited, setVisited] = useState(active);
   if (active && !visited) setVisited(true);
   return (

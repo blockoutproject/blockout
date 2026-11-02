@@ -1,5 +1,5 @@
 import { Image } from "expo-image";
-import { ImageOff } from "lucide-react-native";
+import { ImageFallback } from "../../../shared/components/image-fallback";
 import { useState, type ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { SportingIdentityResponse } from "../../../../.generated/schemas/index.zod";
@@ -21,7 +21,7 @@ export interface SportingMediaProps {
   renderWithAtmosphere?: (logo: ReactNode, atmosphere: ReactNode) => ReactNode;
 }
 
-/** White logo plate in both themes, with supplied monograms only and one accessible native image state. */
+/** White logo plate in both themes, with the neutral image fallback and one accessible native image state. */
 export function SportingMedia({
   identity,
   uri,
@@ -36,7 +36,6 @@ export function SportingMedia({
   const [failedUri, setFailedUri] = useState<string>();
   const failed = !!uri && failedUri === uri;
   const available = !!uri && !failed;
-  const missing = !available && !loading && !error && !failed;
   const notice =
     error || failed
       ? available
@@ -96,19 +95,8 @@ export function SportingMedia({
           />
         ) : loading ? (
           <LoadingIndicator color={colors.logoInk} />
-        ) : missing && identity.shortName ? (
-          <Text
-            // The supplied monogram is artwork in a fixed logo slot; the adjacent identity and notice still scale.
-            allowFontScaling={false}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            style={[styles.monogram, { color: colors.logoInk }]}
-          >
-            {identity.shortName}
-          </Text>
         ) : (
-          <ImageOff
-            accessible={false}
+          <ImageFallback
             color={colors.logoInk}
             size={
               presentation === "entity"
@@ -210,7 +198,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     overflow: "hidden",
   },
-  monogram: tokens.typography.strong,
   notice: {
     ...tokens.typography.metadata,
     textAlign: "center",

@@ -1,11 +1,7 @@
 import { Image } from "expo-image";
 import type { ImageSelection } from "../images/use-image-selection";
-import {
-  Image as ImageIcon,
-  ImageOff,
-  X,
-  type LucideIcon,
-} from "lucide-react-native";
+import { X } from "lucide-react-native";
+import { ImageFallback } from "./image-fallback";
 import { useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -49,8 +45,6 @@ export interface ImageFieldProps {
   removeLabel?: string;
   helper?: string;
   error?: string;
-  /** Owner-selected Lucide empty-state glyph; error and selection/preview behavior stay shared. */
-  placeholderIcon?: LucideIcon;
 }
 
 /** Renders the caller-owned selection lifecycle and a local full-screen preview. */
@@ -68,7 +62,6 @@ export function ImageField({
   removeLabel = "Supprimer l’image",
   helper,
   error,
-  placeholderIcon: PlaceholderIcon = ImageIcon,
 }: ImageFieldProps) {
   const { colors } = useTheme();
   const [previewId, setPreviewId] = useState<string>();
@@ -191,18 +184,8 @@ export function ImageField({
           >
             {busy ? (
               <LoadingIndicator color={colors.icon} />
-            ) : error ? (
-              <ImageOff
-                accessible={false}
-                size={tokens.size.icon.lg}
-                color={colors.icon}
-              />
             ) : (
-              <PlaceholderIcon
-                accessible={false}
-                size={tokens.size.icon.lg}
-                color={colors.icon}
-              />
+              <ImageFallback size={tokens.size.icon.lg} color={colors.icon} />
             )}
           </View>
           <Text style={[styles.label, { color: colors.text }]}>

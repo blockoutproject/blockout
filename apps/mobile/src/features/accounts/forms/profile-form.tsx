@@ -4,7 +4,6 @@ import type { File } from "expo-file-system";
 import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
 import { useImageSelection } from "../../../shared/images/use-image-selection";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { UserRound } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
@@ -226,7 +225,6 @@ export function ProfileForm({
                     <ImageField
                       images={images}
                       selection={selection}
-                      placeholderIcon={UserRound}
                       disabled={disabled || busy}
                       chooseLabel="Choisir une photo de profil"
                       helper="Facultatif. PNG/JPEG, jusqu’à 5 Mio."
