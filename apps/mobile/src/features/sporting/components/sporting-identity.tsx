@@ -152,7 +152,7 @@ export function SportingIdentity({
                 {label}
               </Text>
             ))}
-          {clubId && <ClubBadge clubId={clubId} />}
+          {clubId && <ClubBadge key={clubId} clubId={clubId} />}
         </View>
         {children}
       </View>
