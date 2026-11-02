@@ -236,7 +236,10 @@ function StandingEntry({
           />
         )}
         <View style={styles.copy}>
-          <Text style={[tokens.typography.strong, { color: colors.text }]}>
+          <Text
+            numberOfLines={1}
+            style={[tokens.typography.strong, { color: colors.text }]}
+          >
             {row.sourceName}
           </Text>
           <View style={styles.statistics}>
@@ -320,9 +323,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
-    paddingVertical: tokens.spacing.md,
+    paddingVertical: tokens.spacing.compact,
     borderBottomWidth: tokens.border.thin,
-    minHeight: tokens.sporting.teamMinHeight,
+    minHeight: tokens.sporting.standingsRowMinHeight,
   },
   marker: {
     position: "absolute",

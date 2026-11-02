@@ -231,12 +231,13 @@ export const tokens = {
     coverOpacity: 0.32,
     coverVeilOpacity: 0.28,
     // Product Design compact official standings row 4502:39958.
+    standingsRowMinHeight: 68,
     standingsRankWidth: 28,
     standingsRankHeight: 32,
     standingsMarkerWidth: 3,
     standingsMarkerHeight: 40,
     standingsPointsWidth: 34,
-    // Product Design Standing Card 4280:10033 / Standings Block 4510:28651.
+    // Product Design Standing Card 4280:10033 / Standings Block 7758:11084.
     standingsCard: {
       firstMinHeight: 288,
       secondMinHeight: 264,

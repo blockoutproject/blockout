@@ -1,7 +1,4 @@
-import {
-  SportingPresentationAction,
-  SportingSupportAction,
-} from "../components/sporting-actions";
+import { SportingSupportAction } from "../components/sporting-actions";
 import { PoolMap } from "../components/pool-map";
 import { PoolStandings } from "../components/pool-standings";
 import { SportingCalendar } from "../components/sporting-calendar";
@@ -69,7 +66,6 @@ function PoolPage({
         .filter(Boolean)
         .join(" · ")}
     >
-      <SportingPresentationAction target={{ kind: "pool", id: poolId }} />
       {renderFollow?.(
         data.pool.pool,
         data.pool.season,

@@ -1064,7 +1064,9 @@ it("enters the real protected route with only the presentation grant and confirm
   await openRoutes();
 
   // When
-  await user.press(await screen.findByText("Modifier la présentation"));
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier l’équipe" }),
+  );
 
   // Then
   await screen.findByDisplayValue("Current name");
@@ -1103,7 +1105,7 @@ it("enters the real protected route with only the presentation grant and confirm
   await act(async () => nativeAlertAction("Abandonner")());
 
   // Then
-  await screen.findByText("Modifier la présentation");
+  await screen.findByRole("button", { name: "Modifier l’équipe" });
   expect(mockFile.delete).toHaveBeenCalledTimes(1);
   expect(mockPickedFile.delete).toHaveBeenCalledTimes(1);
   expect(
@@ -1115,7 +1117,9 @@ it("drops the draft and releases its logo when revoked grants remove the protect
   // Given
   const user = userEvent.setup();
   await openRoutes();
-  await user.press(await screen.findByText("Modifier la présentation"));
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier l’équipe" }),
+  );
   await screen.findByDisplayValue("Current name");
   await user.clear(screen.getByLabelText("Nom complet personnalisé"));
   await user.type(
@@ -1150,7 +1154,9 @@ it("drops the draft and releases its logo when revoked grants remove the protect
   await user.press(
     await screen.findByRole("button", { name: "Relire les permissions" }),
   );
-  await user.press(await screen.findByText("Modifier la présentation"));
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier l’équipe" }),
+  );
 
   // Then
   expect(
@@ -1902,7 +1908,9 @@ it("keeps a fresh editor usable when an abandoned save fails later", async () =>
   );
   jest.spyOn(Alert, "alert");
   await openRoutes();
-  await user.press(await screen.findByText("Modifier la présentation"));
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier l’équipe" }),
+  );
   await screen.findByDisplayValue("Current name");
   await user.clear(screen.getByLabelText("Nom complet personnalisé"));
   await user.type(
@@ -1915,7 +1923,9 @@ it("keeps a fresh editor usable when an abandoned save fails later", async () =>
   // When
   await act(async () => router.back());
   await act(async () => nativeAlertAction("Abandonner")());
-  await user.press(await screen.findByText("Modifier la présentation"));
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier l’équipe" }),
+  );
   await screen.findByDisplayValue("Current name");
   await user.clear(screen.getByLabelText("Nom complet personnalisé"));
   await user.type(

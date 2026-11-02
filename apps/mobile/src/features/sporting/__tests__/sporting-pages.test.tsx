@@ -300,6 +300,11 @@ it.each(["club", "team", "pool"] as const)(
       permissions: { ...account.permissions, manageSportingPresentation: true },
     });
     const user = userEvent.setup();
+    const editLabel = {
+      team: "Modifier l’équipe",
+      club: "Modifier le club",
+      pool: "Modifier la poule",
+    }[kind];
     mockRouting = true;
     await renderPage(
       {
@@ -315,9 +320,7 @@ it.each(["club", "team", "pool"] as const)(
     expect(screen.getByTestId("native-tabs-pager")).toBeOnTheScreen();
 
     // When
-    await user.press(
-      await screen.findByRole("link", { name: "Modifier la présentation" }),
-    );
+    await user.press(await screen.findByRole("button", { name: editLabel }));
 
     // Then
     expect(
@@ -341,9 +344,9 @@ it.each(["club", "team", "pool"] as const)(
 
     // When: the current account read removes the grant while the public page remains mounted.
     await act(async () => router.back());
-    // Router remounts the public page; native layout precedes access to its Club information scene.
+    // Router remounts the public page; settle its native pager before checking the fixed-header action.
     await layoutNativeTabs();
-    await screen.findByRole("link", { name: "Modifier la présentation" });
+    await screen.findByRole("button", { name: editLabel });
     account = accountResponse();
     await act(async () =>
       client.refetchQueries({ queryKey: ["/accounts/me"], exact: true }),
@@ -352,7 +355,7 @@ it.each(["club", "team", "pool"] as const)(
     // Then
     await waitFor(() =>
       expect(
-        screen.queryByRole("link", { name: "Modifier la présentation" }),
+        screen.queryByRole("button", { name: editLabel }),
       ).not.toBeOnTheScreen(),
     );
     expect(
@@ -415,7 +418,7 @@ it("keeps public team/count available while credential restoration is unresolved
     mockFetch.mock.calls.some(([url]) => String(url).includes("/accounts/")),
   ).toBe(false);
   expect(
-    screen.queryByRole("link", { name: "Modifier la présentation" }),
+    screen.queryByRole("button", { name: "Modifier l’équipe" }),
   ).not.toBeOnTheScreen();
   await act(async () => credentials.resolve(false));
 });
@@ -428,7 +431,7 @@ it("retires authorized editing on sign-out while keeping guest follow and public
   });
   const user = userEvent.setup();
   await renderPage(<TeamRoute />);
-  await screen.findByRole("link", { name: "Modifier la présentation" });
+  await screen.findByRole("button", { name: "Modifier l’équipe" });
 
   // When
   await act(async () => session.signOut());
@@ -437,7 +440,7 @@ it("retires authorized editing on sign-out while keeping guest follow and public
 
   // Then
   expect(
-    screen.queryByRole("link", { name: "Modifier la présentation" }),
+    screen.queryByRole("button", { name: "Modifier l’équipe" }),
   ).not.toBeOnTheScreen();
   expect(screen.getByText(team.team.team.name)).toBeOnTheScreen();
   expect(mockPush).toHaveBeenCalledWith({

@@ -8,6 +8,7 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { SportingLogo } from "./sporting-identity";
 import type { ReactNode } from "react";
+import { SportingPresentationAction } from "./sporting-actions";
 
 /** Fixed navigation retains the canonical identity independently of each scrolling scene. */
 export interface SportingPageHeaderProps {
@@ -18,7 +19,7 @@ export interface SportingPageHeaderProps {
   action?: ReactNode;
 }
 
-/** Composes the opaque shared navigation with its approved 28-point identity and exact public name. */
+/** Composes the fixed identity with a permission-gated edit icon and the independent support action. */
 export function SportingPageHeader({
   identity,
   kind,
@@ -27,7 +28,15 @@ export function SportingPageHeader({
 }: SportingPageHeaderProps) {
   const { colors } = useTheme();
   return (
-    <PageHeader title={identity.name} action={action}>
+    <PageHeader
+      title={identity.name}
+      action={
+        <>
+          <SportingPresentationAction target={{ kind, id: identity.id }} />
+          {action}
+        </>
+      }
+    >
       <View
         pointerEvents="none"
         accessibilityElementsHidden

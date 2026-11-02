@@ -9,13 +9,13 @@ import { IconButton } from "./icon-button";
 /** Ordinary back navigation with an optional centered identity; direct entry returns home. */
 export interface PageHeaderProps {
   title?: string;
-  /** A composed compact identity may replace the plain title while preserving the balanced rails. */
+  /** A composed compact identity may replace the plain title between the navigation rails. */
   children?: ReactNode;
   /** An owner-supplied action remains available independently of the detail read. */
   action?: ReactNode;
 }
 
-/** UI Library Top Bar: equal control rails keep the title centered as native text grows. */
+/** Compact navigation rails leave the remaining width to the identity as text or owner actions grow. */
 export function PageHeader({ title, children, action }: PageHeaderProps) {
   const router = useRouter();
   const { colors } = useTheme();
@@ -57,7 +57,7 @@ export function PageHeader({ title, children, action }: PageHeaderProps) {
       ) : (
         <View style={styles.title} />
       )}
-      <View style={styles.rail}>{action}</View>
+      <View style={styles.actions}>{action}</View>
     </View>
   );
 }
@@ -70,6 +70,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.lg,
   },
   rail: { width: tokens.size.control.default, alignItems: "center" },
+  actions: {
+    minWidth: tokens.size.control.default,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+  },
   middle: { flex: 1, minWidth: 0, alignItems: "center" },
   title: { ...tokens.typography.navigation, flex: 1, textAlign: "center" },
 });
