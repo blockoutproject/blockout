@@ -58,11 +58,14 @@ With Testcontainers PostgreSQL and the real schema, qualify repeated true/false,
 
 T016 combines the durable boundary above with the real generated Orval consumers against a loopback
 backend and migrated disposable PostgreSQL. Synthetic signed JWTs pass the production signature,
-issuer, audience and client checks; only native Auth0 RPC and establishment-provider evidence are
-controlled. Team/pool repeats, removal/recreation and current F02 hiding/correction preserve the
+issuer, audience and client checks. React execution replaces Expo Fetch's native I/O with a Node HTTP
+bridge, alongside controlled native Auth0 RPC and establishment-provider evidence. The bridge does
+not forward AbortSignal and qualifies neither native waiting bounds nor cancellation. Team/pool
+repeats, removal/recreation and current F02 hiding/correction preserve the
 SQL identity rules. The actual F03 Team route, F05 session/admission owners and F06 control perform
 follow/removal against that server. Dropping a committed response leaves ordinary action feedback,
-one bounded generated member observation and no second PUT. Holding a real response across sign-out
+one generated member observation and no second PUT; the waiting/cancellation bounds retain their
+focused transport/component evidence under [mobile journeys](#mobile-journeys). Holding a real response across sign-out
 or a different subject leaves the new private client unchanged while the original relation remains
 with its owner. Actual DELETE and generated explicit establishment create a new account UUID with
 no follows; an old UUID-targeted PUT returns 404. Native networking observations are recorded under
