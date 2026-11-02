@@ -821,3 +821,52 @@ it.each(["preparing", "active"] as const)(
     ).toBe(true);
   },
 );
+
+it("shows the newly created control after the first source launch without leaving its route", async () => {
+  // Given: the real route/query owners start with a successful empty control read.
+  const serve = responses({ manageCollection: true });
+  const firstControl = control({ family: "lnv", seasonId, enabled: false });
+  let launched = false;
+  mockFetch.mockImplementation((url, options) => {
+    const path = new URL(String(url)).pathname;
+    if (options?.method === "POST") {
+      launched = true;
+      return Promise.resolve(Response.json({ ...season, revision: 6 }));
+    }
+    if (path.endsWith("/collection-controls"))
+      return Promise.resolve(
+        Response.json({ items: launched ? [firstControl] : [] }),
+      );
+    if (path.endsWith(`/collection-controls/${firstControl.id}`))
+      return Promise.resolve(Response.json(firstControl));
+    if (path.endsWith("/source-bindings"))
+      return Promise.resolve(
+        Response.json({ items: [{ ...source, launched, locked: launched }] }),
+      );
+    return serve(url);
+  });
+  const user = userEvent.setup();
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+  await act(async () => router.push(`/collection/${seasonId}/controls/lnv`));
+
+  // When
+  await user.press(
+    await screen.findByRole("button", { name: "Lancer les sources prêtes" }),
+  );
+  await act(async () => nativeAlertAction("Lancer")());
+
+  // Then: the same destination reveals the real paused-control projection, without another navigation.
+  expect(
+    await screen.findByRole("button", { name: "Reprendre" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Route courante")).toHaveTextContent(
+    `/collection/${seasonId}/controls/lnv`,
+  );
+  expect(
+    screen.queryByRole("button", { name: "Lancer les sources prêtes" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+  ).toHaveLength(1);
+});
