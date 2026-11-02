@@ -3,7 +3,7 @@ import { ImageFallback } from "../../../shared/components/image-fallback";
 import { useState, type ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { SportingIdentityResponse } from "../../../../.generated/schemas/index.zod";
-import { LoadingIndicator } from "../../../shared/components/loading-indicator";
+import { Skeleton } from "../../../shared/components/skeleton";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
@@ -16,7 +16,7 @@ export interface SportingMediaProps {
   kind: "club" | "team" | "division";
   /** The owning composition sizes the slot; Media/Logo and Entity Card retain their approved shapes. */
   size?: number;
-  presentation?: "logo" | "entity";
+  presentation?: "logo" | "entity" | "identity";
   /** The owner places both layers; a decoding failure removes the foreground and atmosphere together. */
   renderWithAtmosphere?: (logo: ReactNode, atmosphere: ReactNode) => ReactNode;
 }
@@ -52,7 +52,11 @@ export function SportingMedia({
         ? "Logo indisponible"
         : "Logo absent";
   const borderRadius =
-    presentation === "entity" ? tokens.radius.media : tokens.radius.sm;
+    presentation === "identity"
+      ? tokens.radius.panelInset
+      : presentation === "entity"
+        ? tokens.radius.media
+        : tokens.radius.sm;
   const logo = (
     <View
       style={[
@@ -89,24 +93,30 @@ export function SportingMedia({
             contentFit="contain"
             onError={() => setFailedUri(uri)}
             style={{
-              width: kind === "division" ? size : size * (5 / 6),
-              height: kind === "division" ? size : size * (5 / 6),
+              width:
+                kind === "division" || presentation === "identity"
+                  ? size
+                  : size * (5 / 6),
+              height:
+                kind === "division" || presentation === "identity"
+                  ? size
+                  : size * (5 / 6),
             }}
           />
         ) : loading ? (
-          <LoadingIndicator color={colors.logoInk} />
+          <Skeleton width={size} height={size} shape="rectangle" />
         ) : (
           <ImageFallback
             color={colors.logoInk}
             size={
-              presentation === "entity"
+              presentation !== "logo"
                 ? tokens.size.icon.lg
                 : tokens.size.icon.md
             }
           />
         )}
       </View>
-      {notice && (
+      {notice && presentation !== "identity" && (
         <Text
           accessible={false}
           style={[styles.notice, { color: colors.logoInk }]}
@@ -127,12 +137,21 @@ export function SportingMedia({
             source={{ uri }}
             cachePolicy="none"
             recyclingKey={uri}
-            contentFit="contain"
-            blurRadius={tokens.sporting.coverBlur}
+            contentFit={presentation === "identity" ? "cover" : "contain"}
+            blurRadius={
+              presentation === "identity"
+                ? tokens.media.identityAtmosphere.blur
+                : tokens.sporting.coverBlur
+            }
             onError={() => setFailedUri(uri)}
             style={[
               StyleSheet.absoluteFill,
-              { opacity: tokens.sporting.standingsCard.atmosphereOpacity },
+              {
+                opacity:
+                  presentation === "identity"
+                    ? tokens.media.identityAtmosphere.opacity
+                    : tokens.sporting.standingsCard.atmosphereOpacity,
+              },
             ]}
           />
         ) : null,

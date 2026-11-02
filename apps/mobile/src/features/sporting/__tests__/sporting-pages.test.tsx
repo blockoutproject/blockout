@@ -1351,7 +1351,9 @@ it("keeps a team readable when its native public logo fails", async () => {
   });
 
   // Then
-  await screen.findByText("Logo indisponible");
+  await screen.findByRole("image", {
+    name: `Logo indisponible : ${team.team.team.name}`,
+  });
   expect(screen.getByText(team.team.team.name)).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("/logo")),
@@ -1401,7 +1403,9 @@ it("shows a new native logo source after the previously published source failed"
     "error",
     { nativeEvent: { error: "Native decode failed" } },
   );
-  await screen.findByText("Logo indisponible");
+  await screen.findByRole("image", {
+    name: `Logo indisponible : ${team.team.team.name}`,
+  });
 
   // When
   team = {
@@ -1430,7 +1434,11 @@ it("shows a new native logo source after the previously published source failed"
       },
     ]),
   );
-  expect(screen.queryByText("Logo indisponible")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("image", {
+      name: `Logo indisponible : ${team.team.team.name}`,
+    }),
+  ).not.toBeOnTheScreen();
 });
 it("retains the club teams when returning to a visited tab without an implicit reread", async () => {
   // Given

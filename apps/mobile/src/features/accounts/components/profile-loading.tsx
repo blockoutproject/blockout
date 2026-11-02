@@ -54,13 +54,13 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: "row",
     alignItems: "center",
-    height: 156 + tokens.border.thin * 2,
+    height: tokens.layout.identity.minHeight,
     gap: tokens.spacing.md,
     paddingRight: tokens.spacing.md,
     borderWidth: tokens.border.thin,
     borderRadius: tokens.radius.panel,
     overflow: "hidden",
   },
-  artwork: { width: 84, alignSelf: "stretch" },
+  artwork: { width: tokens.layout.identity.railWidth, alignSelf: "stretch" },
   identity: { flex: 1, minWidth: 0, gap: tokens.spacing.md },
 });

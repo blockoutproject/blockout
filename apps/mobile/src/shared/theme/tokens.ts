@@ -198,13 +198,19 @@ export const tokens = {
     section: { gap: spacing["2xl"] },
     surface: { inset: spacing.lg },
     collection: { toolbarMinHeight: touch.minimum },
+    // UI Library Core layout/identity/rail-width and min-height; public card dimensions include its border.
+    identity: { railWidth: 84, minHeight: 136 },
   },
   radius,
-  media: { radius: { preview: radius.lg } },
+  media: {
+    radius: { preview: radius.lg },
+    // Product identity patterns repeat the same accepted image behind the foreground slot.
+    identityAtmosphere: { blur: 40, opacity: 0.23 },
+  },
   size: {
     control: { default: 48, compact: 36 },
     icon: { sm: 16, md: 20, lg: 24 },
-    media: { row: 40, entity: 48, match: 32 },
+    media: { row: 40, entity: 48, match: 32, profile: 64 },
   },
   touch,
   border: { thin: 1, subtle: 1.5 },

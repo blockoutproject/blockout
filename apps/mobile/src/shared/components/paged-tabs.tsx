@@ -14,6 +14,7 @@ import {
   Tab,
   useCollapsingTabsContext,
   useHeaderMeasurements,
+  useActiveTabScrollY,
   type CollapsingTabsRef,
 } from "react-native-collapsible-tab";
 import {
@@ -186,6 +187,7 @@ function PagerHeader({
 }) {
   const { tabBarHeight } = useCollapsingTabsContext();
   const { top } = useHeaderMeasurements();
+  const scrollOffset = useActiveTabScrollY();
   // The identity's clipping edge stays below fixed navigation while the library
   // translates its content. Otherwise a folded logo/card would cover the status bar.
   const clip = useAnimatedStyle(() => ({
@@ -196,7 +198,11 @@ function PagerHeader({
   }));
   return (
     <View style={{ paddingTop: inset }}>
-      <NavigationBackdrop target={target} style={{ bottom: -tabBarHeight }} />
+      <NavigationBackdrop
+        target={target}
+        scrollOffset={scrollOffset}
+        style={{ bottom: -tabBarHeight }}
+      />
       <Animated.View style={[styles.clip, clip]}>
         <Animated.View style={content}>{children}</Animated.View>
       </Animated.View>

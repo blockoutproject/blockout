@@ -19,6 +19,7 @@ import {
   TextInput,
 } from "react-native";
 import { Button } from "../../components/button";
+import { DisclosureChevron } from "../../components/disclosure-chevron";
 import { ThemeProvider, useTheme } from "../theme-provider";
 
 jest.unmock("react-native/Libraries/Utilities/useColorScheme");
@@ -227,9 +228,11 @@ it.each([true, false])(
       .mockResolvedValue(!reducedMotion);
     const subscribe = jest.spyOn(AccessibilityInfo, "addEventListener");
     const user = userEvent.setup();
+    // Pending controls are static skeletons; the disclosure owns a real native-motion subscription.
     await render(
       <ThemeProvider proAccent>
         <ThemeConsumer />
+        <DisclosureChevron expanded />
         <Button label="Enregistrement" loading onPress={jest.fn()} />
       </ThemeProvider>,
     );

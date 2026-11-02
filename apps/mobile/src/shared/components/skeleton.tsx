@@ -7,10 +7,13 @@ export function Skeleton({
   width = "100%",
   height = 16,
   shape = "text",
+  color,
 }: {
   width?: DimensionValue;
   height?: number;
   shape?: "text" | "rectangle";
+  /** Compact pending controls may retain their current foreground contrast. */
+  color?: string;
 }) {
   const { colors } = useTheme();
   return (
@@ -24,7 +27,7 @@ export function Skeleton({
         height,
         borderRadius:
           shape === "text" ? tokens.radius.sm : tokens.radius.control,
-        backgroundColor: colors.skeleton,
+        backgroundColor: color ?? colors.skeleton,
       }}
     />
   );

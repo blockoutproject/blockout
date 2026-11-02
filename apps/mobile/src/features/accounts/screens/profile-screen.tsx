@@ -8,6 +8,8 @@ import { ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { useRouter } from "expo-router";
 import Constants from "expo-constants";
+import { SquarePen } from "lucide-react-native";
+import { IconButton } from "../../../shared/components/icon-button";
 import { useState, type ReactNode } from "react";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import { isAccessDenied } from "../../../shared/api/access-denied";
@@ -105,81 +107,77 @@ export function ProfileScreen({
       />
     </ScreenState>
   ) : undefined;
-  return (
-    <Page
-      header={
-        <PageHeader title="Mon profil" action={<ProfileSupportAction />} />
-      }
-    >
-      {blockingContent ? (
+  if (blockingContent)
+    return (
+      <Page header={<ProfileHeader />}>
         <PageScrollView>{blockingContent}</PageScrollView>
-      ) : (
-        <ProfileContent
-          key={`${session.subject}:${account.data?.accountId ?? "guest"}`}
-          refreshControl={
-            connected ? (
-              <DataRefreshControl
-                enabled={!saving}
-                refreshing={refreshing}
-                onRefresh={() => void refresh()}
-              />
-            ) : undefined
-          }
-          account={connected ? account.data : undefined}
-          disabled={!account.isSuccess}
-          membershipStatus={membershipStatus}
-          onRetryRead={() => void account.refetch()}
-          retryingRead={account.isFetching}
-          onEdit={() => router.push("/profile/edit")}
-          onSignIn={() => router.push("/sign-in")}
+      </Page>
+    );
+  return (
+    <ProfileContent
+      key={`${session.subject}:${account.data?.accountId ?? "guest"}`}
+      refreshControl={
+        connected ? (
+          <DataRefreshControl
+            enabled={!saving}
+            refreshing={refreshing}
+            onRefresh={() => void refresh()}
+          />
+        ) : undefined
+      }
+      account={connected ? account.data : undefined}
+      disabled={!account.isSuccess}
+      membershipStatus={membershipStatus}
+      onRetryRead={() => void account.refetch()}
+      retryingRead={account.isFetching}
+      onEdit={() => router.push("/profile/edit")}
+      onSignIn={() => router.push("/sign-in")}
+    >
+      {connected &&
+        account.isSuccess &&
+        account.data.principalCreatedAt === null && <AccountAgeRetry />}
+      <AdministrationEntry />
+      <View style={styles.group}>
+        <Text
+          accessibilityRole="header"
+          style={[tokens.typography.label, { color: colors.secondaryText }]}
         >
-          {connected &&
-            account.isSuccess &&
-            account.data.principalCreatedAt === null && <AccountAgeRetry />}
-          <AdministrationEntry />
-          <View style={styles.group}>
-            <Text
-              accessibilityRole="header"
-              style={[tokens.typography.label, { color: colors.secondaryText }]}
-            >
-              Informations légales
-            </Text>
-            <ProfileLegalLinks />
-          </View>
-          <View style={styles.group}>
-            <Text
-              accessibilityRole="header"
-              style={[tokens.typography.label, { color: colors.secondaryText }]}
-            >
-              Mon compte
-            </Text>
-            {proEntry}
-            {privacyEntry}
-          </View>
-          {connected && (
-            <Button
-              label="Se déconnecter"
-              variant="secondary"
-              fullWidth
-              onPress={() => void signOut()}
-              loading={session.operation === "signing-out"}
-            />
-          )}
-          {connected && (
-            <Button
-              label="Supprimer mon compte"
-              variant="secondary"
-              fullWidth
-              disabled={!account.isSuccess}
-              onPress={() => router.push("/profile/erase")}
-            />
-          )}
-          <Text style={[styles.version, { color: colors.secondaryText }]}>
-            Version {Constants.expoConfig?.version}
-          </Text>
-        </ProfileContent>
+          Informations légales
+        </Text>
+        <ProfileLegalLinks />
+      </View>
+      <View style={styles.group}>
+        <Text
+          accessibilityRole="header"
+          style={[tokens.typography.label, { color: colors.secondaryText }]}
+        >
+          Mon compte
+        </Text>
+        {proEntry}
+        {privacyEntry}
+      </View>
+      {connected && (
+        <Button
+          label="Se déconnecter"
+          variant="secondary"
+          fullWidth
+          onPress={() => void signOut()}
+          loading={session.operation === "signing-out"}
+        />
       )}
-    </Page>
+      {connected && (
+        <Button
+          label="Supprimer mon compte"
+          variant="secondary"
+          fullWidth
+          disabled={!account.isSuccess}
+          onPress={() => router.push("/profile/erase")}
+        />
+      )}
+      <Text style={[styles.version, { color: colors.secondaryText }]}>
+        Version {Constants.expoConfig?.version}
+      </Text>
+    </ProfileContent>
   );
 }
 
@@ -213,39 +211,80 @@ function ProfileContent({
   const [admitted, setAdmitted] = useState(available);
   if (!admitted && available) setAdmitted(true);
   return (
-    <PageScrollView
-      refreshControl={admitted || available ? refreshControl : undefined}
+    <Page
+      header={
+        <ProfileHeader
+          onEdit={account && (admitted || available) ? onEdit : undefined}
+          disabled={disabled}
+        />
+      }
     >
-      {!admitted && !available ? (
-        photo.isError || disabled ? (
-          <ScreenState>
-            <ErrorState
-              onRetry={disabled ? onRetryRead : () => void photo.refetch()}
-              retrying={retryingRead || photo.isFetching}
-            />
-          </ScreenState>
+      <PageScrollView
+        refreshControl={admitted || available ? refreshControl : undefined}
+      >
+        {!admitted && !available ? (
+          photo.isError || disabled ? (
+            <ScreenState>
+              <ErrorState
+                onRetry={disabled ? onRetryRead : () => void photo.refetch()}
+                retrying={retryingRead || photo.isFetching}
+              />
+            </ScreenState>
+          ) : (
+            <PageContent>
+              <ProfileLoading />
+            </PageContent>
+          )
         ) : (
           <PageContent>
-            <ProfileLoading />
+            {account ? (
+              <ProfileIdentity
+                account={account}
+                photo={photo}
+                membershipStatus={membershipStatus}
+              />
+            ) : (
+              <ProfileSignIn onSignIn={onSignIn} />
+            )}
+            {children}
           </PageContent>
-        )
-      ) : (
-        <PageContent>
-          {account ? (
-            <ProfileIdentity
-              account={account}
+        )}
+      </PageScrollView>
+    </Page>
+  );
+}
+
+/** Shared profile chrome keeps editing beside support only after the existing account/photo admission. */
+function ProfileHeader({
+  onEdit,
+  disabled = false,
+}: {
+  onEdit?: () => void;
+  disabled?: boolean;
+}) {
+  const { colors } = useTheme();
+  return (
+    <PageHeader
+      title="Mon profil"
+      action={
+        <>
+          {onEdit && (
+            <IconButton
+              label="Modifier mon profil"
+              onPress={onEdit}
               disabled={disabled}
-              photo={photo}
-              membershipStatus={membershipStatus}
-              onEdit={onEdit}
-            />
-          ) : (
-            <ProfileSignIn onSignIn={onSignIn} />
+            >
+              <SquarePen
+                accessible={false}
+                size={tokens.size.icon.lg}
+                color={colors.icon}
+              />
+            </IconButton>
           )}
-          {children}
-        </PageContent>
-      )}
-    </PageScrollView>
+          <ProfileSupportAction />
+        </>
+      }
+    />
   );
 }
 

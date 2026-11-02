@@ -1,10 +1,9 @@
 import { Image } from "expo-image";
-import { RefreshCw, SquarePen } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text } from "react-native";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
-import { IconButton } from "../../../shared/components/icon-button";
-import { LoadingIndicator } from "../../../shared/components/loading-indicator";
+import { IdentityCard } from "../../../shared/components/identity-card";
+import { Skeleton } from "../../../shared/components/skeleton";
 import { ImageFallback } from "../../../shared/components/image-fallback";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -13,19 +12,15 @@ import type { useProfilePhoto } from "../api/use-profile-editing";
 /** Accepted current identity only; the route supplies membership presentation and the independent edit destination. */
 export interface ProfileIdentityProps {
   account: AccountResponse;
-  disabled: boolean;
   photo: ReturnType<typeof useProfilePhoto>;
   membershipStatus?: ReactNode;
-  onEdit: () => void;
 }
 
 /** Product Design identity card; missing photos use the neutral image fallback within the current account lifetime. */
 export function ProfileIdentity({
   account,
-  disabled,
   membershipStatus,
   photo,
-  onEdit,
 }: ProfileIdentityProps) {
   const { colors } = useTheme();
   const [failedPhoto, setFailedPhoto] = useState<{
@@ -35,139 +30,78 @@ export function ProfileIdentity({
   const uri = photo.data;
   const failed =
     failedPhoto?.uri === uri && failedPhoto?.readAt === photo.dataUpdatedAt;
+  const available = account.hasPhoto && !!uri && !failed;
+  /** Both representations belong to the same accepted photo read, including same-byte rereads. */
+  const rejectImage = () => {
+    if (uri) setFailedPhoto({ uri, readAt: photo.dataUpdatedAt });
+  };
   return (
-    <View
-      style={[
-        styles.card,
-        { backgroundColor: colors.raised, borderColor: colors.border },
-      ]}
+    <IdentityCard
+      artworkBackgroundColor={colors.mediaPlaceholder}
+      atmosphere={
+        available ? (
+          <Image
+            accessible={false}
+            testID="profile-photo-atmosphere"
+            source={{ uri }}
+            style={styles.atmosphere}
+            contentFit="cover"
+            enforceEarlyResizing
+            blurRadius={tokens.media.identityAtmosphere.blur}
+            onError={rejectImage}
+          />
+        ) : undefined
+      }
+      artwork={
+        available ? (
+          <Image
+            accessible
+            accessibilityRole="image"
+            accessibilityLabel="Photo de profil"
+            source={{ uri }}
+            style={styles.avatar}
+            contentFit="cover"
+            onError={rejectImage}
+          />
+        ) : account.hasPhoto && photo.isFetching ? (
+          <Skeleton
+            width={tokens.size.media.profile}
+            height={tokens.size.media.profile}
+            shape="rectangle"
+          />
+        ) : (
+          <ImageFallback
+            label={
+              account.hasPhoto
+                ? "Photo de profil indisponible"
+                : "Photo de profil absente"
+            }
+          />
+        )
+      }
     >
-      <View style={[styles.rail, { backgroundColor: colors.subtle }]}>
-        <Image
-          accessible={false}
-          source={require("../../../../assets/accounts/profile-backdrop.png")}
-          style={[
-            styles.backdrop,
-            { backgroundColor: colors.mediaPlaceholder },
-          ]}
-          contentFit="contain"
-          enforceEarlyResizing
-          blurRadius={8}
-        />
-        <View
-          style={[styles.avatar, { backgroundColor: colors.mediaPlaceholder }]}
-        >
-          {account.hasPhoto && uri && !failed ? (
-            <Image
-              accessible
-              accessibilityRole="image"
-              accessibilityLabel="Photo de profil"
-              source={{ uri }}
-              style={styles.avatar}
-              contentFit="cover"
-              onError={() =>
-                setFailedPhoto({ uri, readAt: photo.dataUpdatedAt })
-              }
-            />
-          ) : account.hasPhoto && photo.isFetching ? (
-            <LoadingIndicator color={colors.icon} />
-          ) : account.hasPhoto && photo.isError ? (
-            <IconButton
-              label="Réessayer la photo de profil"
-              onPress={() => void photo.refetch()}
-              disabled={disabled}
-            >
-              <RefreshCw
-                accessible={false}
-                size={tokens.size.icon.md}
-                color={colors.icon}
-              />
-            </IconButton>
-          ) : (
-            <ImageFallback
-              label={
-                account.hasPhoto
-                  ? "Photo de profil indisponible"
-                  : "Photo de profil absente"
-              }
-            />
-          )}
-        </View>
-      </View>
-      <View style={styles.identity}>
-        <View style={styles.actions}>
-          {membershipStatus}
-          <View style={styles.edit}>
-            <IconButton
-              label="Modifier mon profil"
-              onPress={onEdit}
-              disabled={disabled}
-            >
-              <SquarePen
-                accessible={false}
-                size={tokens.size.icon.lg}
-                color={colors.icon}
-              />
-            </IconButton>
-          </View>
-        </View>
-        <Text style={[tokens.typography.title, { color: colors.text }]}>
-          {account.username}
-        </Text>
-        <Text
-          style={[tokens.typography.label, { color: colors.secondaryText }]}
-        >
-          {account.email}
-        </Text>
-      </View>
-    </View>
+      {membershipStatus}
+      <Text style={[tokens.typography.title, { color: colors.text }]}>
+        {account.username}
+      </Text>
+      <Text style={[tokens.typography.label, { color: colors.secondaryText }]}>
+        {account.email}
+      </Text>
+    </IdentityCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    flexDirection: "row",
-    minHeight: 162,
-    borderWidth: tokens.border.thin,
-    borderRadius: tokens.radius.panel,
-    overflow: "hidden",
-  },
-  rail: {
-    width: 84,
-    minHeight: 160,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  backdrop: {
-    position: "absolute",
-    width: 140,
-    height: 140,
-    top: 10,
-    left: -28,
-    opacity: 0.09,
-    borderRadius: tokens.radius.panelInset,
+  atmosphere: {
+    ...StyleSheet.absoluteFill,
+    opacity: tokens.media.identityAtmosphere.opacity,
   },
   avatar: {
-    width: 64,
-    height: 64,
+    width: tokens.size.media.profile,
+    height: tokens.size.media.profile,
     borderRadius: tokens.radius.panelInset,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
   },
-  identity: {
-    flex: 1,
-    minWidth: 0,
-    justifyContent: "center",
-    padding: tokens.spacing.compact,
-    gap: tokens.spacing.sm,
-  },
-  actions: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    gap: tokens.spacing.xs,
-  },
-  edit: { marginLeft: "auto" },
 });

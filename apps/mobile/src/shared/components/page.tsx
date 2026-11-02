@@ -2,11 +2,13 @@ import {
   PageViewport,
   useNavigationInset,
   NavigationSafeAreaContext,
+  NavigationScrollOffsetContext,
 } from "./navigation-backdrop";
 import { hiddenScrollIndicators } from "../native/scroll-indicators";
 import {
   cloneElement,
   useContext,
+  useImperativeHandle,
   type PropsWithChildren,
   type Ref,
   type ReactNode,
@@ -20,7 +22,10 @@ import {
   type ScrollViewProps,
   type ViewProps,
 } from "react-native";
-import Animated from "react-native-reanimated";
+import Animated, {
+  useAnimatedRef,
+  useScrollOffset,
+} from "react-native-reanimated";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -94,13 +99,15 @@ export function Page({
           ownsTop && overlay ? Math.max(safeArea.top, tokens.spacing.sm) : 0
         }
       >
-        <BottomContentInsetContext value={inset}>
-          {header ? (
-            <PageViewport header={header}>{children}</PageViewport>
-          ) : (
-            children
-          )}
-        </BottomContentInsetContext>
+        <NavigationScrollOffsetContext value={null}>
+          <BottomContentInsetContext value={inset}>
+            {header ? (
+              <PageViewport header={header}>{children}</PageViewport>
+            ) : (
+              children
+            )}
+          </BottomContentInsetContext>
+        </NavigationScrollOffsetContext>
       </NavigationSafeAreaContext>
     </SafeAreaView>
   );
@@ -134,10 +141,20 @@ export interface PageScrollViewProps extends ScrollViewProps {
 export function PageScrollView({
   children,
   contentContainerStyle,
+  ref,
   ...props
 }: PageScrollViewProps) {
   const inset = useNavigationInset();
   const tab = useContext(PagedTabContext);
+  const offset = useContext(NavigationScrollOffsetContext);
+  const scroll = useAnimatedRef<ScrollViewInstance>();
+  // Observe native events without replacing the caller's onScroll or RNCT's adapter handler.
+  useScrollOffset(!tab && offset ? scroll : null, offset ?? undefined);
+  useImperativeHandle<ScrollViewInstance | null, ScrollViewInstance | null>(
+    tab ? undefined : ref,
+    () => scroll.current,
+    [scroll],
+  );
   const content = StyleSheet.flatten(contentContainerStyle);
   const padding =
     content?.paddingTop ?? content?.paddingVertical ?? content?.padding;
@@ -153,6 +170,7 @@ export function PageScrollView({
     return (
       <TabScrollView
         {...props}
+        ref={ref}
         {...hiddenScrollIndicators}
         contentContainerStyle={[styles.scrollContent, contentContainerStyle]}
         refreshControl={refreshControl}
@@ -166,6 +184,8 @@ export function PageScrollView({
     <Animated.ScrollView
       alwaysBounceVertical={!!props.refreshControl}
       {...props}
+      ref={scroll}
+      scrollEventThrottle={props.scrollEventThrottle ?? 16}
       refreshControl={refreshControl}
       {...hiddenScrollIndicators}
       contentContainerStyle={[

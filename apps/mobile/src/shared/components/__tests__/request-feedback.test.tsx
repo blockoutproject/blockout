@@ -3,7 +3,7 @@ import { render, screen, userEvent } from "@testing-library/react-native";
 import { ThemeProvider } from "../../theme/theme-provider";
 import { RequestLoading } from "../request-feedback";
 
-it("names a busy request without relying on its decorative animation", async () => {
+it("announces a busy read without visible loading copy", async () => {
   // Given
   await render(
     <ThemeProvider>
@@ -19,6 +19,7 @@ it("names a busy request without relying on its decorative animation", async () 
 
   // Then
   expect(loading).toBeOnTheScreen();
+  expect(screen.queryByText("Chargement en cours")).not.toBeOnTheScreen();
   expect(screen.queryByRole("button")).not.toBeOnTheScreen();
 });
 

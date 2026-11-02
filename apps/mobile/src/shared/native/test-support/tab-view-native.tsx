@@ -11,7 +11,7 @@ import type { PagerViewProps } from "react-native-pager-view";
 // Native handlers and animation keep their supported upstream Jest boundaries.
 import "react-native-gesture-handler/jestSetup";
 jest.mock("react-native-reanimated", () => {
-  const upstream = jest.requireActual<typeof import("react-native-reanimated")>(
+  const upstream = jest.requireMock<typeof import("react-native-reanimated")>(
     "react-native-reanimated/mock",
   );
   // The upstream imperative mutable stub is a scalar; RNCT needs the same writable value contract as useSharedValue.

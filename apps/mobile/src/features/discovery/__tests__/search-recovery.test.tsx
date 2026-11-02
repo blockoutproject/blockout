@@ -71,6 +71,8 @@ jest.mock("react-native-keyboard-controller", () =>
 jest.mock("expo/fetch", () => ({
   fetch: (...args: unknown[]) => mockFetch(...args),
 }));
+// Telemetry is a native boundary here; the real SDK starts unrelated tracing timers at import.
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
 const mockFetch = jest.fn();
 const environment = { ...process.env };
@@ -80,7 +82,7 @@ const season = { id: firstId, label: "2026/2027", startYear: 2026 };
 let client: QueryClient;
 let publicClient = createQueryClient();
 
-/** Only HTTP is controlled: generated transport, Query, admission, session, shared paging and Router stay real. */
+/** Controlled HTTP preserves generated transport, Query, admission, session, shared paging and Router; native SDKs are doubled above. */
 function publicReads(url: string): Promise<Response> {
   const parsed = new URL(url);
   if (parsed.pathname.endsWith("/application-access"))

@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { ChevronLeft } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import { useTheme } from "../theme/theme-provider";
@@ -15,13 +15,14 @@ export interface PageHeaderProps {
   action?: ReactNode;
 }
 
-/** Compact navigation rails leave the remaining width to the identity as text or owner actions grow. */
+/** Native action layout reserves equal side rails so the one-line identity stays centered without overlapping actions. */
 export function PageHeader({ title, children, action }: PageHeaderProps) {
   const router = useRouter();
   const { colors } = useTheme();
+  const [actionWidth, setActionWidth] = useState(tokens.size.control.default);
   return (
     <View style={styles.header}>
-      <View style={styles.rail}>
+      <View style={[styles.rail, { width: actionWidth }]}>
         <IconButton
           label="Retour"
           onPress={() =>
@@ -57,7 +58,12 @@ export function PageHeader({ title, children, action }: PageHeaderProps) {
       ) : (
         <View style={styles.title} />
       )}
-      <View style={styles.actions}>{action}</View>
+      <View
+        style={styles.actions}
+        onLayout={({ nativeEvent }) => setActionWidth(nativeEvent.layout.width)}
+      >
+        {action}
+      </View>
     </View>
   );
 }
@@ -69,7 +75,7 @@ const styles = StyleSheet.create({
     minHeight: tokens.layout.header,
     paddingHorizontal: tokens.spacing.lg,
   },
-  rail: { width: tokens.size.control.default, alignItems: "center" },
+  rail: { alignItems: "flex-start" },
   actions: {
     minWidth: tokens.size.control.default,
     flexDirection: "row",

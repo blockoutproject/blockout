@@ -1,9 +1,28 @@
-import { useNavigationInset } from "./navigation-backdrop";
-import { cloneElement, useContext } from "react";
+import {
+  NavigationScrollOffsetContext,
+  useNavigationInset,
+} from "./navigation-backdrop";
+import { cloneElement, useCallback, useContext, type RefCallback } from "react";
+import {
+  useCollapsingTabsContext,
+  useRegisterTabList,
+  useRestoreTabOffset,
+  useTabContentStyle,
+  useTabPageContext,
+  useTabScrollLifecycle,
+} from "react-native-collapsible-tab";
 import { PagedTabContext } from "./paged-tab-context";
 import { hiddenScrollIndicators } from "../native/scroll-indicators";
-import { Platform, StyleSheet, type ScrollViewProps } from "react-native";
-import Animated from "react-native-reanimated";
+import {
+  Platform,
+  StyleSheet,
+  type ScrollViewInstance,
+  type ScrollViewProps,
+} from "react-native";
+import Animated, {
+  useAnimatedRef,
+  useScrollOffset,
+} from "react-native-reanimated";
 import {
   KeyboardAwareScrollView,
   KeyboardProvider,
@@ -14,6 +33,7 @@ import { BottomContentSpacer } from "./bottom-content-inset";
 export type FormScrollViewProps = Pick<
   ScrollViewProps,
   | "children"
+  | "accessibilityLabel"
   | "contentContainerStyle"
   | "refreshControl"
   | "onScroll"
@@ -29,14 +49,6 @@ export function FormScrollView({
 }: FormScrollViewProps) {
   const inset = useNavigationInset();
   const tab = useContext(PagedTabContext);
-  const content = StyleSheet.flatten(contentContainerStyle);
-  const padding =
-    content?.paddingTop ?? content?.paddingVertical ?? content?.padding;
-  const insets = {
-    paddingTop:
-      (tab?.contentInset ?? inset) +
-      (typeof padding === "number" ? padding : 0),
-  };
   const refreshControl = props.refreshControl
     ? cloneElement(props.refreshControl, {
         progressViewOffset:
@@ -45,12 +57,108 @@ export function FormScrollView({
           inset,
       })
     : undefined;
+  return tab ? (
+    <TabbedFormScrollView
+      {...props}
+      refreshControl={refreshControl}
+      contentContainerStyle={contentContainerStyle}
+    >
+      {children}
+    </TabbedFormScrollView>
+  ) : (
+    <OrdinaryFormScrollView
+      {...props}
+      refreshControl={refreshControl}
+      contentContainerStyle={contentContainerStyle}
+    >
+      {children}
+    </OrdinaryFormScrollView>
+  );
+}
+
+/** Ordinary forms observe their page material without taking over caller scroll events. */
+function OrdinaryFormScrollView({
+  contentContainerStyle,
+  ...props
+}: FormScrollViewProps) {
+  const inset = useNavigationInset();
+  const offset = useContext(NavigationScrollOffsetContext);
+  const scroll = useAnimatedRef<ScrollViewInstance>();
+  useScrollOffset(offset ? scroll : null, offset ?? undefined);
+  // The keyboard component forwards the native ScrollView; discard the animated ref's return value.
+  const bindScroll = useCallback(
+    (node: ScrollViewInstance | null) => {
+      scroll(node);
+    },
+    [scroll],
+  );
+  const content = StyleSheet.flatten(contentContainerStyle);
+  const padding =
+    content?.paddingTop ?? content?.paddingVertical ?? content?.padding;
+  const insets = {
+    paddingTop: inset + (typeof padding === "number" ? padding : 0),
+  };
+  return (
+    <NativeFormScrollView
+      {...props}
+      nativeRef={bindScroll}
+      contentContainerStyle={[styles.content, contentContainerStyle, insets]}
+    />
+  );
+}
+
+/** Public RNCT adapter hooks retain native keyboard handling and caller events while publishing the scene offset. */
+function TabbedFormScrollView({
+  contentContainerStyle,
+  ...props
+}: FormScrollViewProps) {
+  const { offsets } = useCollapsingTabsContext();
+  const { index, scrollRef } = useTabPageContext();
+  useScrollOffset(scrollRef, offsets[index]);
+  const bindScroll = useCallback(
+    (node: ScrollViewInstance | null) => {
+      scrollRef(node);
+    },
+    [scrollRef],
+  );
+  /** Container commands always reach the current native form rather than retaining a former node. */
+  function scrollToOffset(offset: number, animated = false) {
+    scrollRef.current?.scrollTo({ y: offset, animated });
+  }
+  useRegisterTabList({
+    scrollToOffset: ({ offset, animated }) => scrollToOffset(offset, animated),
+  });
+  useRestoreTabOffset(scrollToOffset);
+  const content = useTabContentStyle([styles.content, contentContainerStyle]);
+  const lifecycle = useTabScrollLifecycle({});
+  return (
+    <NativeFormScrollView
+      {...props}
+      {...lifecycle}
+      nativeRef={bindScroll}
+      contentContainerStyle={content}
+    />
+  );
+}
+
+/** One native form primitive keeps keyboard handling and trailing clearance identical in both page compositions. */
+function NativeFormScrollView({
+  children,
+  nativeRef,
+  ...props
+}: FormScrollViewProps &
+  Pick<
+    ScrollViewProps,
+    "onScrollBeginDrag" | "onScrollEndDrag" | "onMomentumScrollEnd"
+  > & {
+    nativeRef: RefCallback<ScrollViewInstance>;
+  }) {
   return Platform.OS === "ios" ? (
     <Animated.ScrollView
       {...props}
-      refreshControl={refreshControl}
+      ref={nativeRef}
+      scrollEventThrottle={props.scrollEventThrottle ?? 16}
       {...hiddenScrollIndicators}
-      contentContainerStyle={[styles.content, contentContainerStyle, insets]}
       alwaysBounceVertical={!!props.refreshControl}
       automaticallyAdjustKeyboardInsets
       keyboardShouldPersistTaps="handled"
@@ -62,9 +170,8 @@ export function FormScrollView({
     <KeyboardProvider>
       <KeyboardAwareScrollView
         {...props}
-        refreshControl={refreshControl}
+        ref={nativeRef}
         {...hiddenScrollIndicators}
-        contentContainerStyle={[styles.content, contentContainerStyle, insets]}
         alwaysBounceVertical={!!props.refreshControl}
         keyboardShouldPersistTaps="handled"
       >
