@@ -1,6 +1,7 @@
 import { Image } from "expo-image";
 import type { LucideIcon } from "lucide-react-native";
 import {
+  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
@@ -35,6 +36,8 @@ export interface ButtonProps {
   onPress: PressableProps["onPress"];
   disabled?: boolean;
   loading?: boolean;
+  /** Selects native circular progress or the existing shared skeleton loading slot. */
+  loadingIndicator?: "skeleton" | "spinner";
   fullWidth?: boolean;
   /** Compact visuals retain a separate, non-overlapping native touch target. UI Library 3386:697. */
   size?: "regular" | "compact";
@@ -65,6 +68,7 @@ export function Button({
   onPress,
   disabled = false,
   loading = false,
+  loadingIndicator = "skeleton",
   fullWidth = false,
   size = "regular",
   selected,
@@ -100,10 +104,16 @@ export function Button({
             ? colors.onInverse
             : colors.text;
   const Icon = LeadingIcon ?? TrailingIcon;
+  const progress =
+    loadingIndicator === "spinner" ? (
+      <ActivityIndicator size="small" color={foreground} accessible={false} />
+    ) : (
+      <LoadingIndicator color={foreground} />
+    );
   const icon =
     Icon &&
     (loading ? (
-      <LoadingIndicator color={foreground} />
+      progress
     ) : (
       <Icon accessible={false} size={tokens.size.icon.md} color={foreground} />
     ));
@@ -190,7 +200,7 @@ export function Button({
             />
           )}
           {LeadingIcon && icon}
-          {loading && !Icon && <LoadingIndicator color={foreground} />}
+          {loading && !Icon && progress}
           <Text
             style={[styles.label, { color: foreground }]}
             numberOfLines={2}

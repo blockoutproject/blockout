@@ -30,7 +30,7 @@ export interface MaintenanceFormProps {
   editing: ReturnType<typeof useMaintenanceSettings>;
   disabled?: boolean;
 }
-/** Owns one route-local draft, separating content and activation with explicit conflict/uncertainty reconciliation. */
+/** Owns one route-local content draft and independent activation, preserving typed input across refusals. */
 export function MaintenanceForm({
   settings,
   editing,
@@ -63,11 +63,14 @@ export function MaintenanceForm({
   }, []);
   const imageUrl = useWatch({ control, name: "imageUrl" });
   const busy =
-    disabled || editing.content.isPending || editing.query.isFetching;
+    disabled ||
+    editing.content.isPending ||
+    editing.activation.isPending ||
+    editing.query.isFetching;
   const rereadRequired = Math.max(settings.revision, 0) > baseline.revision;
   const validPreview =
     imageUrl !== "" && maintenanceImageSchema.safeParse(imageUrl).success;
-  /** Keeps a failed draft intact; only ambiguous outcomes and conflicts block further writes. */
+  /** Reports ordinary failures while newer revisions retain their separate reread prompt. */
   function failed(error: unknown) {
     if (!mounted.current) return;
     if (!(error instanceof ApiError && error.status === 409))
@@ -128,7 +131,7 @@ export function MaintenanceForm({
       failed(error);
     }
   }
-  /** Rereads the actual outcome without replay; dirty fields remain until an explicit new submit. */
+  /** Adopts explicitly reread settings while preserving dirty fields for a later submission. */
   async function reread() {
     actionFeedback.clear();
     const result = await (() => editing.query.refetch())();

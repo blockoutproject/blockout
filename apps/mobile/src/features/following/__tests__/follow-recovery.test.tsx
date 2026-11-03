@@ -12,6 +12,7 @@ import {
 } from "../../accounts/test-support/native-auth0";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import { followingFixture } from "../test-support/following-fixture";
 import { FollowerCount } from "../components/follower-count";
 import { TeamScreen } from "../../sporting/screens/team-screen";
@@ -96,9 +97,8 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-it("reports an uncertain write and permits only a later explicit attempt", async () => {
+it("reports a failed write through shared feedback while preserving the ordinary follow action", async () => {
   // Given
-  let saved = false;
   let writes = 0;
   mockFetch.mockImplementation((url, request) => {
     if (request?.method === "PUT") {
@@ -106,7 +106,7 @@ it("reports an uncertain write and permits only a later explicit attempt", async
       return Promise.reject(new TypeError("response lost"));
     }
     if (url.includes("/team-follows/"))
-      return Promise.resolve(Response.json({ following: saved }));
+      return Promise.resolve(Response.json({ following: false }));
     return transport(url, request);
   });
   const user = userEvent.setup();
@@ -118,12 +118,12 @@ it("reports an uncertain write and permits only a later explicit attempt", async
   // When
   await user.press(screen.getByRole("button", { name: "Suivre" }));
   await waitFor(() => expect(fixture.client.isMutating()).toBe(0));
-  saved = true; // The server records the original write after the bounded observation.
 
   // Then
+  expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
   expect(
     screen.getByRole("button", {
-      name: "Réessayer le suivi",
+      name: "Suivre",
       selected: false,
       busy: false,
     }),
@@ -138,53 +138,75 @@ it("reports an uncertain write and permits only a later explicit attempt", async
   expect(screen.queryByText(/annulé/)).not.toBeOnTheScreen();
 });
 
-it("preserves confirmed state when actual count and private dependent rereads fail", async () => {
-  // Given
-  let saved = false;
-  mockFetch.mockImplementation((url, request) => {
-    if (request?.method === "PUT") {
-      saved = true;
-      return Promise.resolve(Response.json({ following: true }));
-    }
-    if (url.includes("/team-follows/"))
-      return Promise.resolve(Response.json({ following: saved }));
-    if (
-      saved &&
-      (url.endsWith("/follower-count") || url.endsWith("/accounts/me"))
-    )
-      return Promise.reject(new TypeError("dependent read failed"));
-    return transport(url, request);
-  });
-  const user = userEvent.setup();
-  await fixture.render(<SportingActions target={team} season={season} />);
-  await screen.findByLabelText("2 abonnés");
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
-  );
+it.each([true, false])(
+  "shows confirmed following=%s after a delayed success even when member and counter rereads fail",
+  async (following) => {
+    // Given
+    const response = Promise.withResolvers<Response>();
+    let accepted = false;
+    mockFetch.mockImplementation((url, request) => {
+      if (request?.method === "PUT") return response.promise;
+      if (
+        accepted &&
+        (url.includes("/team-follows/") || url.endsWith("/follower-count"))
+      )
+        return Promise.reject(new TypeError("dependent read failed"));
+      if (url.includes("/team-follows/"))
+        return Promise.resolve(Response.json({ following: !following }));
+      return transport(url, request);
+    });
+    const user = userEvent.setup();
+    await fixture.render(<SportingActions target={team} season={season} />);
+    await screen.findByLabelText("2 abonnés");
+    const label = following ? "Suivre" : "Suivi";
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: label })).toBeEnabled(),
+    );
+    const owner = {
+      ...fixture.session,
+      accountId: accountResponse().accountId,
+    };
 
-  // When
-  await user.press(screen.getByRole("button", { name: "Suivre" }));
-  await act(() =>
-    fixture.client.invalidateQueries({
-      predicate: (query) => query.queryKey.includes("/accounts/me"),
-    }),
-  );
+    // When
+    await user.press(screen.getByRole("button", { name: label }));
 
-  // Then
-  expect(
-    await screen.findByRole("button", {
-      name: "Suivi",
-      selected: true,
-      busy: false,
-    }),
-  ).toBeOnTheScreen();
-  expect(
-    await screen.findByLabelText("2 abonnés, actualisation indisponible"),
-  ).toBeOnTheScreen();
-  expect(
-    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
-  ).toHaveLength(1);
-});
+    // Then
+    expect(
+      await screen.findByRole("button", {
+        name: label,
+        selected: !following,
+        busy: true,
+      }),
+    ).toBeDisabled();
+    expect(fixture.client.getQueryData(followStateKey(owner, team))).toEqual({
+      following: !following,
+    });
+
+    // When
+    accepted = true;
+    await act(async () => response.resolve(Response.json({ following })));
+
+    // Then
+    expect(
+      await screen.findByRole("button", {
+        name: following ? "Suivi" : "Suivre",
+        selected: following,
+        busy: false,
+      }),
+    ).toBeDisabled();
+    expect(fixture.client.getQueryData(followStateKey(owner, team))).toEqual({
+      following,
+    });
+    expect(
+      await screen.findByLabelText("2 abonnés, actualisation indisponible"),
+    ).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls
+        .filter(([, request]) => request?.method === "PUT")
+        .map(([, request]) => JSON.parse(String(request?.body))),
+    ).toEqual([{ following }]);
+  },
+);
 
 it.each(["guest", "other"])(
   "rejects an old observation after A to %s to A",

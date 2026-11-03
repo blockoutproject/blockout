@@ -41,9 +41,9 @@ export async function restrictFollowTarget(
   await withdrawRefusedFollowingQuery(client, queryKey, error);
 }
 /**
- * Uses an ordinary replacement mutation. Confirmed changes reset personal traversal while retaining
- * the component-owned season/category; uncertain failures use ordinary invalidation. Dependent read
- * failures remain separate from the mutation result on this captured private QueryClient.
+ * Accepts a confirmed replacement into the captured private cache and resets personal traversal,
+ * retaining the component-owned season/category. Known refusals stay withdrawn until a successful
+ * member read; ordinary invalidation and dependent read failures do not change the mutation result.
  */
 export function useFollowMutation(
   target: FollowingTarget,
@@ -76,6 +76,11 @@ export function useFollowMutation(
             { following },
             options,
           );
+    },
+    onSuccess: (state) => {
+      client.setQueryData(stateKey, (current) =>
+        current === undefined ? undefined : state,
+      );
     },
     onError: async (error) => {
       if (
