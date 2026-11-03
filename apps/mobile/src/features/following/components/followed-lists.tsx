@@ -134,8 +134,8 @@ function useFollowedList(
     const result = await query.fetchNextPage();
     if (result.isError && current.current === identity) feedback.error();
   }
-  /** An unchanged-context pull replaces one page only on success and keeps authorized rows on failure. */
-  async function refresh() {
+  /** Retains authorized pages on failure; a grouped gesture supplies its sole notice owner, while a local retry keeps this owner. */
+  async function refresh(onFailure: () => void = feedback.error) {
     if (!active || !query.data || query.isFetching) return;
     feedback.clear();
     await client.cancelQueries({ queryKey: options.queryKey, exact: true });
@@ -143,7 +143,7 @@ function useFollowedList(
       await client.infiniteQuery({ ...options, staleTime: 0, pages: 1 });
     } catch {
       if (current.current === identity && client.getQueryData(options.queryKey))
-        feedback.error();
+        onFailure();
     }
   }
   return { query, items: followedItems(query.data?.pages), append, refresh };
@@ -156,6 +156,20 @@ export function FollowedLists(props: FollowedListsProps) {
   const lists = { team: teams, pool: pools };
   const { colors } = useTheme();
   const sporting = useSportingNavigation(props.active);
+  const feedback = useActionFeedback();
+  /** One pull shares an interaction-local notice callback; each collection retains its own current-context guard. */
+  function refresh() {
+    feedback.clear();
+    let reported = false;
+    /** Publishes at most one error for this gesture, without changing either read's independent outcome. */
+    function reportFailure() {
+      if (reported) return;
+      reported = true;
+      feedback.error();
+    }
+    void teams.refresh(reportFailure);
+    void pools.refresh(reportFailure);
+  }
   const rows: FollowedRow[] = (["team", "pool"] as const).flatMap(
     (resource) => [
       { key: `${resource}-heading`, kind: "heading" as const, resource },
@@ -184,10 +198,7 @@ export function FollowedLists(props: FollowedListsProps) {
       refreshing={[teams, pools].some(
         (list) => list.query.isRefetching && !list.query.isFetchingNextPage,
       )}
-      onRefresh={() => {
-        void teams.refresh();
-        void pools.refresh();
-      }}
+      onRefresh={refresh}
     />
   ) : undefined;
   if (

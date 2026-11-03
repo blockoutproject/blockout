@@ -19,12 +19,14 @@ import { PageHeader } from "../../../shared/components/page-header";
 import { ContributionReportLoading } from "../components/contribution-loading";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
+import { ErrorState } from "../../../shared/components/state-card";
 
 import { Surface } from "../../../shared/components/surface";
 import { TextField } from "../../../shared/components/text-field";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import { AccountSessionFeedback } from "../../accounts/current-account";
 import {
   MatchSummary,
   useConsultationQueries,
@@ -42,7 +44,7 @@ export interface ReportContributionScreenProps {
 const reasonSchema = z.object({
   reason: z.string().trim().min(1, "Indiquez le motif du signalement."),
 });
-/** Ordinary native report route; F05 invitation carries no continuation and F10 support stays separate. */
+/** Ordinary report route; F05 owns session recovery before private reads, with no deferred report or F10 support payload. */
 export function ReportContributionScreen({
   matchId,
   contributionId,
@@ -52,11 +54,17 @@ export function ReportContributionScreen({
   const match = useQuery(useConsultationQueries().match(matchId));
   const router = useRouter();
   const authenticated = reporting.session.status === "authenticated";
+  const sessionPending =
+    reporting.session.status === "restoring" || !!reporting.session.operation;
   const pending =
     reporting.session.status !== "guest" &&
-    (!authenticated || !reporting.profile.data
-      ? reporting.profile.isPending
-      : !reporting.query.data && reporting.query.isPending);
+    (!authenticated
+      ? sessionPending
+      : !reporting.profile.data
+        ? reporting.profile.isLoading
+        : reporting.usable &&
+          !reporting.query.data &&
+          reporting.query.isLoading);
   const FeedbackLayout = pending ? PageContent : ScreenState;
   return (
     <Page header={<PageHeader title="Lien de diffusion" />}>
@@ -73,11 +81,24 @@ export function ReportContributionScreen({
               }
             />
           </FeedbackLayout>
-        ) : !authenticated || !reporting.profile.data ? (
+        ) : !authenticated ? (
+          <FeedbackLayout>
+            <AccountSessionFeedback
+              loadingContent={<ContributionReportLoading />}
+            />
+          </FeedbackLayout>
+        ) : !reporting.profile.data ? (
           <FeedbackLayout>
             <ReadFeedback
               query={reporting.profile}
               loadingContent={<ContributionReportLoading />}
+            />
+          </FeedbackLayout>
+        ) : !reporting.usable && !reporting.query.data ? (
+          <FeedbackLayout>
+            <ErrorState
+              onRetry={() => void reporting.profile.refetch()}
+              retrying={reporting.profile.isFetching}
             />
           </FeedbackLayout>
         ) : !reporting.query.data ? (

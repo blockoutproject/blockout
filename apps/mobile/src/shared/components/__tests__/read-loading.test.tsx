@@ -6,6 +6,32 @@ import { Skeleton } from "../skeleton";
 import { ReadFeedback } from "../read-feedback";
 import { ListContinuation } from "../list-continuation";
 
+it("does not announce a disabled or idle pending read as loading", async () => {
+  // Given
+  const refetch = jest.fn();
+  await render(
+    <ThemeProvider>
+      <ReadFeedback
+        query={{ isPending: true, isError: false, isFetching: false, refetch }}
+        loadingContent={
+          <LoadingGroup label="Chargement des matchs">
+            <Skeleton />
+          </LoadingGroup>
+        }
+      />
+    </ThemeProvider>,
+  );
+
+  // When
+  const loading = screen.queryByRole("progressbar");
+
+  // Then
+  expect(loading).not.toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(screen.queryByRole("button")).not.toBeOnTheScreen();
+  expect(refetch).not.toHaveBeenCalled();
+});
+
 it("announces the caller's known pending content once and leaves retry with the failed read", async () => {
   // Given
   const refetch = jest.fn();

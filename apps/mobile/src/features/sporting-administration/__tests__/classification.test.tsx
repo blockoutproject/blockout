@@ -19,7 +19,7 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { Alert, Pressable, Text } from "react-native";
+import { AccessibilityInfo, Alert, Pressable, Text } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { ComponentType, PropsWithChildren } from "react";
@@ -618,6 +618,59 @@ it("keeps dirty choices through a failed ordinary refresh without retrying the w
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
   ).toHaveLength(1);
+});
+
+it("reports one grouped classification refresh failure after both reads settle and preserves dirty choices", async () => {
+  // Given
+  stored.setting = classification;
+  const classificationRead = Promise.withResolvers<Response>();
+  const divisionsRead = Promise.withResolvers<Response>();
+  const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility");
+  const user = userEvent.setup();
+  await renderEditor();
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/classification")
+      ? classificationRead.promise
+      : String(url).includes("/divisions?")
+        ? divisionsRead.promise
+        : respond(url, options),
+  );
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await act(async () =>
+    classificationRead.reject(new TypeError("Unavailable")),
+  );
+
+  // Then
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({
+    text: "4 × 4",
+  });
+
+  // When
+  await act(async () => divisionsRead.reject(new TypeError("Unavailable")));
+
+  // Then
+  expect(
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
+  expect(announce).toHaveBeenCalledTimes(1);
+  expect(
+    screen.getByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({
+    text: "4 × 4",
+  });
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
+  ).toBe(false);
 });
 
 it("refreshes saved activity after a failed deactivation response before explicit reactivation", async () => {

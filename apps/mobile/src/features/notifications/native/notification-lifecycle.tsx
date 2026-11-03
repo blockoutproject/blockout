@@ -59,6 +59,7 @@ export function NotificationLifecycle({
     registration.reset({ subject, accountId });
     return () => registration.reset({ subject: null, accountId: null });
   }, [registration, subject, accountId]);
+  /** Current registration credentials stay with the original inbox owner and existing push boundary. */
   const register = useEffectEvent(
     (devicePushToken?: Notifications.DevicePushToken) => {
       if (!available || !queries || typeof projectId !== "string" || !projectId)
@@ -72,6 +73,7 @@ export function NotificationLifecycle({
       );
     },
   );
+  /** Receipt rereads are silent and refresh only an already-observed inbox plus its whole summary. */
   const refresh = useEffectEvent(() => {
     if (!queries) return;
     void Promise.allSettled([
@@ -81,6 +83,7 @@ export function NotificationLifecycle({
       refreshNotificationSummary(client, queries),
     ]);
   });
+  /** Consumes each remembered response once; reading and navigation stay independent under one tap's feedback. */
   const open = useEffectEvent(
     (response: Notifications.NotificationResponse) => {
       if (response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER)
@@ -94,6 +97,13 @@ export function NotificationLifecycle({
       // Consume remembered tap context without inspecting or dismissing presented notifications.
       Notifications.clearLastNotificationResponse();
       if (!data.success) return;
+      let reported = false;
+      /** The consumed native tap owns both outcomes; its second failure never repeats the same notice. */
+      function reportFailure() {
+        if (reported) return;
+        reported = true;
+        feedback.error();
+      }
       if (queries && data.data.ownerAccountId === owner.accountId) {
         const observer = new MutationObserver(client, {
           ...createReadNotificationOptions(client, owner, queries),
@@ -101,9 +111,7 @@ export function NotificationLifecycle({
         });
         void observer
           .mutate(data.data.notificationId)
-          .catch(() => {
-            feedback.error();
-          })
+          .catch(reportFailure)
           .finally(() => observer.reset());
       }
       void transition.open({
@@ -114,7 +122,7 @@ export function NotificationLifecycle({
             pathname: "/matches/[matchId]",
             params: { matchId: data.data.matchId },
           }),
-        onFailure: () => feedback.error(),
+        onFailure: reportFailure,
       });
     },
   );

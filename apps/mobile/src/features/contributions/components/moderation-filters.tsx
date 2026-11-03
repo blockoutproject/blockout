@@ -15,6 +15,7 @@ import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ModerationFiltersLoading } from "./moderation-loading";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
+import { AccountSessionFeedback } from "../../accounts/current-account";
 import {
   useModerationQueue,
   type ModerationFilters as Filters,
@@ -28,7 +29,7 @@ import {
 export interface ModerationFiltersProps {
   initial: Filters;
 }
-/** Selects canonical private seasons, platform and exact state with existing F13 controls. */
+/** Selects private criteria with existing F13 controls; F05 recovers the session before private choices load. */
 export function ModerationFilters({ initial }: ModerationFiltersProps) {
   const router = useRouter();
   const { colors } = useTheme();
@@ -104,13 +105,17 @@ export function ModerationFilters({ initial }: ModerationFiltersProps) {
       onClose={() => (choice ? setChoice(undefined) : router.back())}
     >
       <SheetContent>
-        {!reading.canRetain && reading.profile.isSuccess ? (
+        {reading.session.status !== "authenticated" ? (
+          <AccountSessionFeedback
+            loadingContent={<ModerationFiltersLoading />}
+          />
+        ) : !reading.canRetain && reading.profile.isSuccess ? (
           <Text style={[tokens.typography.body, { color: colors.text }]}>
             La modération des liens vidéo n’est pas autorisée.
           </Text>
         ) : !reading.allowed || !reading.query.data ? (
-          reading.profile.isPending ||
-          (reading.allowed && reading.query.isPending) ? (
+          reading.profile.isLoading ||
+          (reading.allowed && reading.query.isLoading) ? (
             <ModerationFiltersLoading />
           ) : (
             <ReadFeedback

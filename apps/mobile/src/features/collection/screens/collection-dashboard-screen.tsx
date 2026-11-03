@@ -1,4 +1,5 @@
 import { PageFlatList } from "../../../shared/components/page-list";
+import type { QueryObserverResult } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
 import { CalendarDays, MapPin, Users } from "lucide-react-native";
 import { useState } from "react";
@@ -228,12 +229,7 @@ function SeasonControlScope({
       season={season.data}
       seasonUnavailable={season.isError || season.isFetching}
       seasonFetching={season.isFetching}
-      rereadSeason={async () => {
-        const read = await season.refetch({ cancelRefetch: false });
-        if (read.isError && read.data && !isAccessDenied(read.error))
-          feedback.error();
-        return !read.isError && !!read.data;
-      }}
+      rereadSeason={() => season.refetch({ cancelRefetch: false })}
     />
   );
 }
@@ -249,7 +245,7 @@ function ControlScope({
   season?: CollectionSeasonResponse;
   seasonUnavailable?: boolean;
   seasonFetching?: boolean;
-  rereadSeason?: () => Promise<boolean>;
+  rereadSeason?: () => Promise<QueryObserverResult<CollectionSeasonResponse>>;
 }) {
   const { authority, query } = useCollectionControls(season?.id);
   const feedback = useActionFeedback();
@@ -336,7 +332,7 @@ function ControlDashboard({
   season?: CollectionSeasonResponse;
   seasonUnavailable: boolean;
   seasonFetching: boolean;
-  rereadSeason?: () => Promise<boolean>;
+  rereadSeason?: () => Promise<QueryObserverResult<CollectionSeasonResponse>>;
 }) {
   const editing = useCollectionControl(controlId, season?.id);
   const { authority, query, results } = editing;
@@ -359,7 +355,7 @@ function ControlDashboard({
     isAccessDenied(query.error) || isAccessDenied(results.error)
       ? []
       : (results.data?.pages.flatMap((page) => page.items) ?? []);
-  /** Refreshes the displayed projections without resubmitting a mutation. */
+  /** Refreshes all displayed projections without resubmitting a mutation, reporting their failures once. */
   async function refresh() {
     if (
       editing.activity.isPending ||
@@ -369,18 +365,16 @@ function ControlDashboard({
       seasonFetching
     )
       return;
-    const [controlRead, resultRead] = await Promise.all([
+    feedback.clear();
+    const reads = await Promise.all([
       query.refetch({ cancelRefetch: false }),
       results.refetch({ cancelRefetch: false }),
       rereadSeason?.(),
     ]);
     if (
-      (controlRead.isError &&
-        controlRead.data &&
-        !isAccessDenied(controlRead.error)) ||
-      (resultRead.isError &&
-        resultRead.data &&
-        !isAccessDenied(resultRead.error))
+      reads.some(
+        (read) => read?.isError && read.data && !isAccessDenied(read.error),
+      )
     )
       feedback.error();
   }

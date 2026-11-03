@@ -29,6 +29,20 @@ export function SourcePreparationScreen({
     current && season.data && current.seasonId === seasonId,
   );
   const feedback = useActionFeedback();
+  /** Refreshes the admitted source and season together; one event reports their retained-draft failure. */
+  async function refresh() {
+    if (editing.candidate.isPending) return;
+    feedback.clear();
+    const results = await Promise.all(
+      !authority.enabled
+        ? [authority.account.refetch({ cancelRefetch: false })]
+        : [
+            source.refetch({ cancelRefetch: false }),
+            season.refetch({ cancelRefetch: false }),
+          ],
+    );
+    if (retained && results.some((result) => result.isError)) feedback.error();
+  }
   const pending =
     !retained &&
     (!authority.enabled
@@ -71,27 +85,7 @@ export function SourcePreparationScreen({
                 authority.account.isRefetching
               }
               enabled={!editing.candidate.isPending}
-              onRefresh={() => {
-                if (editing.candidate.isPending) return;
-                if (!authority.enabled)
-                  void authority.account
-                    .refetch({ cancelRefetch: false })
-                    .then((result) => {
-                      if (result.isError && retained) feedback.error();
-                    });
-                else {
-                  void source
-                    .refetch({ cancelRefetch: false })
-                    .then((result) => {
-                      if (result.isError && retained) feedback.error();
-                    });
-                  void season
-                    .refetch({ cancelRefetch: false })
-                    .then((result) => {
-                      if (result.isError && retained) feedback.error();
-                    });
-                }
-              }}
+              onRefresh={() => void refresh()}
             />
           ) : undefined
         }

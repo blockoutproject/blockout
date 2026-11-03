@@ -34,11 +34,19 @@ import { createReadNotificationOptions } from "../api/inbox-mutations";
 import { notificationExpiry } from "../state/inbox-expiry";
 import { NotificationItem } from "../components/notification-item";
 import { NotificationLoading } from "../components/notification-loading";
+import { AccountSessionFeedback } from "../../accounts/current-account";
 import { useSportingNavigation } from "../../sporting/navigation";
 /** Current F05/F12 admission precedes private inbox observers, including direct guest entry. */
 export function NotificationsScreen() {
   const authority = useInboxQueries();
-  const { account } = authority;
+  const { account, session } = authority;
+  const authenticated = session.status === "authenticated";
+  const pending =
+    session.status === "restoring" ||
+    session.status === "authenticating" ||
+    session.status === "signing-out" ||
+    (authenticated && account.isLoading);
+  const FeedbackLayout = pending ? PageContent : ScreenState;
   if (!authority.queries)
     return (
       <Page
@@ -46,18 +54,20 @@ export function NotificationsScreen() {
         header={<PageHeader title="Notifications" />}
       >
         <PageScrollView>
-          {account.isPending ? (
-            <PageContent>
+          <FeedbackLayout>
+            {!authenticated ? (
+              <AccountSessionFeedback
+                loadingContent={<NotificationLoading />}
+              />
+            ) : pending ? (
               <NotificationLoading />
-            </PageContent>
-          ) : (
-            <ScreenState>
+            ) : (
               <ErrorState
                 onRetry={() => void account.refetch()}
                 retrying={account.isFetching}
               />
-            </ScreenState>
-          )}
+            )}
+          </FeedbackLayout>
         </PageScrollView>
       </Page>
     );
@@ -149,6 +159,19 @@ function Inbox({
     )
       feedback.error();
   }
+  /** Starts both independent intents once; this tap owns their first safe failure feedback. */
+  function openNotification(id: string, matchId: string) {
+    feedback.clear();
+    let reported = false;
+    /** Later failure of this same tap neither replaces its toast nor reannounces it. */
+    function reportFailure() {
+      if (reported) return;
+      reported = true;
+      feedback.error();
+    }
+    command.mutate(id, { onError: reportFailure });
+    void sporting.navigate("match", matchId, reportFailure);
+  }
   return (
     <Page
       edges={["top", "left", "right"]}
@@ -231,15 +254,7 @@ function Inbox({
           <NotificationItem
             notification={item}
             pending={command.isPending && command.variables === item.id}
-            onPress={() => {
-              // Both intents start on tap; either can fail without reversing the other.
-              command.mutate(item.id, {
-                onError: () => {
-                  feedback.error();
-                },
-              });
-              void sporting.navigate("match", item.match.id);
-            }}
+            onPress={() => openNotification(item.id, item.match.id)}
           />
         )}
       />

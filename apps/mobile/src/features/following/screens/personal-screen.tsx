@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from "react-native";
 import {
   useAccountSession,
   useCurrentAccount,
+  AccountSessionFeedback,
 } from "../../accounts/current-account";
 import {
   Page,
@@ -38,6 +39,13 @@ export function PersonalScreen() {
   const profile = useCurrentAccount();
   const router = useRouter();
   const scope = usePersonalSeasonScope();
+  const authenticated = session.status === "authenticated";
+  const pending =
+    session.status === "restoring" ||
+    session.status === "authenticating" ||
+    session.status === "signing-out" ||
+    (authenticated && profile.isLoading);
+  const FeedbackLayout = pending ? PageContent : ScreenState;
   return session.status === "guest" ? (
     <Page header={<PersonalHeader />}>
       <PageScrollView>
@@ -54,25 +62,27 @@ export function PersonalScreen() {
         </ScreenState>
       </PageScrollView>
     </Page>
-  ) : scope ? (
+  ) : authenticated && scope ? (
     <PersonalSpace key={scope.owner.subject} scope={scope} />
   ) : (
     <Page header={<PersonalHeader />}>
       <PageScrollView>
-        {profile.isPending ? (
-          <PageContent>
-            <CalendarLoading label="Chargement de l'accueil" />
-          </PageContent>
-        ) : (
-          <ScreenState>
+        <FeedbackLayout>
+          {authenticated ? (
             <ReadFeedback
               query={profile}
               loadingContent={
                 <CalendarLoading label="Chargement de l'accueil" />
               }
             />
-          </ScreenState>
-        )}
+          ) : (
+            <AccountSessionFeedback
+              loadingContent={
+                <CalendarLoading label="Chargement de l'accueil" />
+              }
+            />
+          )}
+        </FeedbackLayout>
       </PageScrollView>
     </Page>
   );

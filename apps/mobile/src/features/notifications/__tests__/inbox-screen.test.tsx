@@ -8,7 +8,12 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { AppState, Text, type AppStateStatus } from "react-native";
+import {
+  AccessibilityInfo,
+  AppState,
+  Text,
+  type AppStateStatus,
+} from "react-native";
 import { NotificationsScreen } from "../screens/notifications-screen";
 import { NotificationState } from "../state/notification-state";
 import { createQueryClient } from "../../../shared/query/query-client";
@@ -275,6 +280,43 @@ it("refreshes read state after a lost response even when navigation fails", asyn
     mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
   ).toHaveLength(1);
   await waitFor(() => expect(setBadgeCountAsync).toHaveBeenLastCalledWith(6));
+});
+
+it("reports a tap failure once when navigation and its independent read command fail at different times", async () => {
+  // Given
+  const reading = Promise.withResolvers<Response>();
+  const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility");
+  mockFetch.mockImplementation((url: string, init: RequestInit) =>
+    init.method === "PATCH" ? reading.promise : response(url, init),
+  );
+  mockPush.mockImplementation(() => {
+    throw new Error("Native navigation unavailable");
+  });
+  await showInbox();
+  const user = userEvent.setup();
+
+  // When
+  await user.press(await screen.findByRole("link", { name: /non lue$/ }));
+  await waitFor(() => expect(announce).toHaveBeenCalledTimes(1));
+
+  // Then
+  expect(mockPush).toHaveBeenCalledTimes(1);
+  expect(
+    mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
+  ).toHaveLength(1);
+
+  // When
+  await act(async () =>
+    reading.reject(new TypeError("Read acknowledgement unavailable")),
+  );
+  await waitFor(() => expect(privateClient.isMutating()).toBe(0));
+
+  // Then
+  expect(announce).toHaveBeenCalledTimes(1);
+  expect(
+    mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
+  ).toHaveLength(1);
+  expect(screen.getByRole("link", { name: /non lue$/ })).toBeOnTheScreen();
 });
 
 it("revalidates cached cards on focus without pulling, and shows progress only for a manual pull", async () => {

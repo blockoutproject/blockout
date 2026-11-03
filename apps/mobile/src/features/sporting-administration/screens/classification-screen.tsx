@@ -29,6 +29,18 @@ export function ClassificationScreen({ target }: ClassificationScreenProps) {
       ? editing.query.data
       : undefined;
   const feedback = useActionFeedback();
+  /** One explicit refresh owns both reads and reports their retained-data failure once. */
+  async function refresh() {
+    if (editing.save.isPending) return;
+    feedback.clear();
+    const results = await Promise.all(
+      !authority.enabled
+        ? [authority.account.refetch()]
+        : [editing.query.refetch(), divisions.query.refetch()],
+    );
+    if (results.some((result) => result.isError && result.data))
+      feedback.error();
+  }
   const FeedbackLayout =
     !current &&
     (!authority.enabled
@@ -79,21 +91,7 @@ export function ClassificationScreen({ target }: ClassificationScreenProps) {
                 divisions.query.isRefetching ||
                 authority.account.isRefetching
               }
-              onRefresh={() => {
-                if (editing.save.isPending) return;
-                if (!authority.enabled) {
-                  void authority.account.refetch().then((result) => {
-                    if (result.isError && result.data) feedback.error();
-                  });
-                  return;
-                }
-                void editing.query.refetch().then((result) => {
-                  if (result.isError && result.data) feedback.error();
-                });
-                void divisions.query.refetch().then((result) => {
-                  if (result.isError && result.data) feedback.error();
-                });
-              }}
+              onRefresh={() => void refresh()}
             />
           ) : undefined
         }

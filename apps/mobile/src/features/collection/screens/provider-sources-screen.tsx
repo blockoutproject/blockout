@@ -28,6 +28,20 @@ export function ProviderSourcesScreen({
     authority.sessionStatus === "authenticated" ? season.data : undefined;
   const retained = Boolean(current && sources.data);
   const feedback = useActionFeedback();
+  /** Refreshes this provider's season and source catalogue together, reporting one retained-draft failure. */
+  async function refresh() {
+    if (editing.create.isPending) return;
+    feedback.clear();
+    const results = await Promise.all(
+      !authority.enabled
+        ? [authority.account.refetch({ cancelRefetch: false })]
+        : [
+            season.refetch({ cancelRefetch: false }),
+            sources.refetch({ cancelRefetch: false }),
+          ],
+    );
+    if (retained && results.some((result) => result.isError)) feedback.error();
+  }
   const pending =
     !retained &&
     (!authority.enabled
@@ -66,27 +80,7 @@ export function ProviderSourcesScreen({
                 authority.account.isRefetching
               }
               enabled={!editing.create.isPending}
-              onRefresh={() => {
-                if (editing.create.isPending) return;
-                if (!authority.enabled)
-                  void authority.account
-                    .refetch({ cancelRefetch: false })
-                    .then((result) => {
-                      if (result.isError && retained) feedback.error();
-                    });
-                else {
-                  void season
-                    .refetch({ cancelRefetch: false })
-                    .then((result) => {
-                      if (result.isError && retained) feedback.error();
-                    });
-                  void sources
-                    .refetch({ cancelRefetch: false })
-                    .then((result) => {
-                      if (result.isError && retained) feedback.error();
-                    });
-                }
-              }}
+              onRefresh={() => void refresh()}
             />
           ) : undefined
         }

@@ -8,7 +8,7 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { Alert } from "react-native";
+import { AccessibilityInfo, Alert } from "react-native";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import {
   credentialsFor,
@@ -820,6 +820,59 @@ it.each([
     ).not.toBeOnTheScreen();
   },
 );
+
+it("reports a grouped season and control refresh failure once after every displayed read settles", async () => {
+  // Given
+  peer.results = [result()];
+  const seasonRead = Promise.withResolvers<Response>();
+  const controlRead = Promise.withResolvers<Response>();
+  const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility");
+  await renderCollection(
+    <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
+  await screen.findByText("Nationale 2 · Poule A · Calendrier");
+  mockFetch.mockImplementation((url, options) => {
+    const path = new URL(String(url)).pathname;
+    return path.endsWith(`/collection-seasons/${seasonId}`)
+      ? seasonRead.promise
+      : path.endsWith(`/collection-controls/${control().id}`)
+        ? controlRead.promise
+        : peer.reads(url, options);
+  });
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await act(async () => seasonRead.reject(new TypeError("Unavailable")));
+
+  // Then
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(
+    screen.getByText("Nationale 2 · Poule A · Calendrier"),
+  ).toBeOnTheScreen();
+
+  // When
+  await act(async () => controlRead.reject(new TypeError("Unavailable")));
+
+  // Then
+  expect(
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
+  expect(announce).toHaveBeenCalledTimes(1);
+  expect(
+    screen.getByText("Nationale 2 · Poule A · Calendrier"),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.every(
+      ([, options]) => !options?.method || options.method === "GET",
+    ),
+  ).toBe(true);
+});
 
 it("rejects a malformed acknowledgement without inventing success and shows a failed ordinary refresh", async () => {
   // Given

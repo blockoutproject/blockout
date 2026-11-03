@@ -11,7 +11,7 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { Alert, Pressable, Text } from "react-native";
+import { AccessibilityInfo, Alert, Pressable, Text } from "react-native";
 import type {
   CollectionSeasonResponse,
   SourceBindingResponse,
@@ -1301,6 +1301,64 @@ it("keeps every provider blocked when an acknowledged source invalidates a seaso
     mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
   ).toHaveLength(1);
 });
+
+it.each(["source", "provider"] as const)(
+  "reports one grouped %s preparation refresh failure after both reads settle and preserves its draft",
+  async (kind) => {
+    // Given
+    const seasonRead = Promise.withResolvers<Response>();
+    const sourceRead = Promise.withResolvers<Response>();
+    const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility");
+    const user = userEvent.setup();
+    await renderPreparation(
+      kind === "source" ? (
+        <SourcePreparationScreen seasonId={seasonId} sourceId={sourceId} />
+      ) : (
+        <ProviderSourcesScreen seasonId={seasonId} provider="lnv" />
+      ),
+    );
+    await user.press(
+      await screen.findByRole("button", {
+        name: kind === "source" ? "Modifier le lien" : "Ajouter une source",
+      }),
+    );
+    await user.clear(screen.getByLabelText("URL officielle"));
+    await user.type(screen.getByLabelText("URL officielle"), draftUrl);
+    mockFetch.mockClear().mockImplementation((url) => {
+      const path = new URL(String(url)).pathname;
+      return path.endsWith(`/collection-seasons/${seasonId}`)
+        ? seasonRead.promise
+        : path.includes("/source-bindings")
+          ? sourceRead.promise
+          : reads(url);
+    });
+
+    // When
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await act(async () => seasonRead.reject(new TypeError("Unavailable")));
+
+    // Then
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+    expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
+
+    // When
+    await act(async () => sourceRead.reject(new TypeError("Unavailable")));
+
+    // Then
+    expect(
+      await screen.findByRole("alert", {
+        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      }),
+    ).toBeOnTheScreen();
+    expect(announce).toHaveBeenCalledTimes(1);
+    expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.every(
+        ([, options]) => !options?.method || options.method === "GET",
+      ),
+    ).toBe(true);
+  },
+);
 
 it("preserves an edited source URL when pull-to-refresh reads a newer source revision", async () => {
   // Given
