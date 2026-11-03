@@ -279,12 +279,7 @@ function ClubPage({ clubId }: ClubScreenProps) {
                     !data ||
                     (value === "teams" && season) ? (
                       <DataRefreshControl
-                        refreshing={
-                          value === "teams" && data
-                            ? teams.isRefetching
-                            : club.isRefetching
-                        }
-                        onRefresh={() => void refresh()}
+                        onRefresh={refresh}
                         enabled={tab === value}
                       />
                     ) : undefined

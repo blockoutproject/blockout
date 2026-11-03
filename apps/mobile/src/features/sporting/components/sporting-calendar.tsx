@@ -199,11 +199,7 @@ export function SportingCalendarView({
   }
   const refreshControl =
     rows.length > 0 ? (
-      <DataRefreshControl
-        refreshing={refreshing}
-        onRefresh={() => void refresh()}
-        enabled={active}
-      />
+      <DataRefreshControl onRefresh={refresh} enabled={active} />
     ) : undefined;
   if (rows.length === 0)
     return (

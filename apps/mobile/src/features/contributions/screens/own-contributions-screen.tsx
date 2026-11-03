@@ -196,8 +196,7 @@ export function OwnContributionsScreen({
           authorized && current ? (
             <DataRefreshControl
               enabled={!change.isPending && !submit.isPending}
-              refreshing={query.isRefetching || match.isRefetching}
-              onRefresh={() => void refresh()}
+              onRefresh={refresh}
             />
           ) : undefined
         }

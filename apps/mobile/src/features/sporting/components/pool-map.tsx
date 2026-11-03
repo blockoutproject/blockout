@@ -101,11 +101,7 @@ export function PoolMap({ pool, active = true, children }: PoolMapProps) {
 
   const refreshControl =
     data && hasLocations ? (
-      <DataRefreshControl
-        refreshing={participants.isRefetching || standings.isRefetching}
-        onRefresh={() => void refresh()}
-        enabled={active}
-      />
+      <DataRefreshControl onRefresh={refresh} enabled={active} />
     ) : undefined;
   if (!data || !hasLocations)
     return (

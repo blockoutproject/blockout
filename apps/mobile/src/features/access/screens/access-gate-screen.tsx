@@ -35,7 +35,7 @@ interface GateViewProps {
   updateMessage?: string | null;
   storeUrl?: string | null;
   checking?: boolean;
-  onRefresh?: () => void;
+  onRefresh?: () => Promise<unknown>;
   onAdministration?: () => void;
   /** Local presentation only; closing a preview never changes admission. */
   onClose?: () => void;
@@ -104,7 +104,7 @@ function GateView({
       <PageScrollView
         refreshControl={
           !onClose && onRefresh && !simple ? (
-            <DataRefreshControl refreshing={checking} onRefresh={onRefresh} />
+            <DataRefreshControl onRefresh={onRefresh} />
           ) : undefined
         }
       >
@@ -256,7 +256,7 @@ export function StartupAccessGate() {
       updateMessage={access.snapshot.versions?.message}
       storeUrl={presentation.versions?.storeUrl}
       checking={access.checking}
-      onRefresh={() => void access.retry()}
+      onRefresh={access.retry}
     />
   );
 }

@@ -157,6 +157,51 @@ it("rereads the current match when its route regains focus and applies accepted 
   ).toBe("2026-10-30T12:00:00Z");
 });
 
+it("shows pull progress only for the native gesture while a focus reread keeps the loaded match quiet", async () => {
+  // Given: real Query reads stay pending at the HTTP boundary so each progress state is observable.
+  const opened = await renderPage(
+    <MatchScreen matchId={sportingId} focused={false} />,
+  );
+  await screen.findByText("Home");
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  const focusRead = Promise.withResolvers<Response>();
+  const pullRead = Promise.withResolvers<Response>();
+  mockFetch.mockClear().mockImplementationOnce(() => focusRead.promise);
+
+  try {
+    // When
+    await opened.rerender(<MatchScreen matchId={sportingId} focused />);
+    await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+    // Then
+    expect(screen.getByText("Home")).toBeOnTheScreen();
+    expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+
+    // When: userEvent cannot perform a native RefreshControl gesture.
+    await act(() => focusRead.resolve(Response.json(detail)));
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+    mockFetch.mockImplementationOnce(() => pullRead.promise);
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+    // Then
+    expect(screen.getByLabelText("Actualiser les données")).toBeBusy();
+    expect(screen.getByText("Home")).toBeOnTheScreen();
+
+    // When
+    await act(() => pullRead.resolve(Response.json(detail)));
+
+    // Then
+    await waitFor(() =>
+      expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy(),
+    );
+  } finally {
+    await act(() => {
+      focusRead.resolve(Response.json(detail));
+      pullRead.resolve(Response.json(detail));
+    });
+  }
+});
+
 it("rereads on foreground only while focused, then applies result withdrawal on manual refresh", async () => {
   // Given
   const listeners: ((state: AppStateStatus) => void)[] = [];

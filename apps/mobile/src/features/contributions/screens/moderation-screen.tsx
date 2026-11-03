@@ -253,11 +253,7 @@ function QueueScene({
   }
   const refreshControl =
     current && rows.length > 0 ? (
-      <DataRefreshControl
-        refreshing={refreshing}
-        enabled={active}
-        onRefresh={() => void refresh()}
-      />
+      <DataRefreshControl enabled={active} onRefresh={refresh} />
     ) : undefined;
   if (
     !current &&

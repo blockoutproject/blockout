@@ -87,10 +87,7 @@ export function CollectionDashboardScreen() {
       <PageScrollView
         refreshControl={
           authority.enabled ? (
-            <DataRefreshControl
-              refreshing={query.isRefetching || authority.account.isRefetching}
-              onRefresh={() => void refresh()}
-            />
+            <DataRefreshControl onRefresh={refresh} />
           ) : undefined
         }
       >
@@ -520,8 +517,7 @@ function ControlDashboard({
                   !editing.request.isPending &&
                   !results.isFetchingNextPage
                 }
-                refreshing={refreshing}
-                onRefresh={() => void refresh()}
+                onRefresh={refresh}
               />
             ) : undefined
           }

@@ -82,8 +82,7 @@ export function SourceChildrenScreen({
           authority.enabled && !denied && items.length > 0 ? (
             <DataRefreshControl
               enabled={!query.isFetchingNextPage}
-              refreshing={query.isRefetching || authority.account.isRefetching}
-              onRefresh={() => void refresh()}
+              onRefresh={refresh}
             />
           ) : undefined
         }

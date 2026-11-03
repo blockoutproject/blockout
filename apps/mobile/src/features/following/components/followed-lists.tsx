@@ -157,8 +157,8 @@ export function FollowedLists(props: FollowedListsProps) {
   const { colors } = useTheme();
   const sporting = useSportingNavigation(props.active);
   const feedback = useActionFeedback();
-  /** One pull shares an interaction-local notice callback; each collection retains its own current-context guard. */
-  function refresh() {
+  /** One pull waits for both collections and shares one notice; each read retains its own current-context guard. */
+  async function refresh() {
     feedback.clear();
     let reported = false;
     /** Publishes at most one error for this gesture, without changing either read's independent outcome. */
@@ -167,8 +167,10 @@ export function FollowedLists(props: FollowedListsProps) {
       reported = true;
       feedback.error();
     }
-    void teams.refresh(reportFailure);
-    void pools.refresh(reportFailure);
+    await Promise.all([
+      teams.refresh(reportFailure),
+      pools.refresh(reportFailure),
+    ]);
   }
   const rows: FollowedRow[] = (["team", "pool"] as const).flatMap(
     (resource) => [
@@ -193,13 +195,7 @@ export function FollowedLists(props: FollowedListsProps) {
   const refreshControl = [teams, pools].some(
     (list) => list.items.length > 0,
   ) ? (
-    <DataRefreshControl
-      enabled={props.active}
-      refreshing={[teams, pools].some(
-        (list) => list.query.isRefetching && !list.query.isFetchingNextPage,
-      )}
-      onRefresh={refresh}
-    />
+    <DataRefreshControl enabled={props.active} onRefresh={refresh} />
   ) : undefined;
   if (
     teams.query.data &&

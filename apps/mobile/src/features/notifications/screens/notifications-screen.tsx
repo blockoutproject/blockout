@@ -101,7 +101,6 @@ function Inbox({
   const { colors } = useTheme();
   // Cached rows also pass the opening cutoff before the first render; the ordinary layout owns active/resume cleanup.
   const [openedAt] = useState(Date.now);
-  const [pulling, setPulling] = useState(false);
   const rows = [
     ...new Map(
       (query.data?.pages ?? [])
@@ -133,15 +132,6 @@ function Inbox({
       )
     )
       feedback.error();
-  }
-  /** Only an explicit native pull controls the spinner; focus reads never displace the list. */
-  async function pullToRefresh() {
-    setPulling(true);
-    try {
-      await refresh();
-    } finally {
-      setPulling(false);
-    }
   }
   /** The focused current owner may retry the failed cursor explicitly; native edge events never replay it. */
   async function loadMore() {
@@ -197,10 +187,7 @@ function Inbox({
         contentContainerStyle={rows.length ? pageContentStyle : styles.empty}
         refreshControl={
           rows.length > 0 ? (
-            <DataRefreshControl
-              refreshing={pulling}
-              onRefresh={() => void pullToRefresh()}
-            />
+            <DataRefreshControl onRefresh={refresh} />
           ) : undefined
         }
         ListEmptyComponent={

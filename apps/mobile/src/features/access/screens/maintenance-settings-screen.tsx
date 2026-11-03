@@ -84,8 +84,7 @@ export function MaintenanceSettingsScreen() {
           settings && sessionStatus === "authenticated" ? (
             <DataRefreshControl
               enabled={!editing.content.isPending}
-              refreshing={editing.query.isRefetching || account.isRefetching}
-              onRefresh={() => void refresh()}
+              onRefresh={refresh}
             />
           ) : undefined
         }

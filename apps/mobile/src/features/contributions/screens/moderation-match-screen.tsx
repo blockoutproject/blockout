@@ -212,21 +212,17 @@ function ActiveScene({
   onSuccess: () => void;
   confirmed: boolean;
 }) {
-  const [refreshing, setRefreshing] = useState(false);
   const form = useRef<ModerationPublicationFormHandle>(null);
   const { colors } = useTheme();
   const feedback = useActionFeedback();
   /** Refreshes published context and any open reports while retaining the mounted editor on outages. */
   async function refresh() {
-    if (refreshing || !active || busy) return;
+    if (!active || busy) return;
     feedback.clear();
-    setRefreshing(true);
     try {
       await (form.current ? form.current.refresh() : editing.refresh());
     } catch {
       feedback.error();
-    } finally {
-      setRefreshing(false);
     }
   }
   if (
@@ -288,11 +284,7 @@ function ActiveScene({
     <FormScrollView
       contentContainerStyle={pageContentStyle}
       refreshControl={
-        <DataRefreshControl
-          enabled={active && !busy}
-          refreshing={refreshing}
-          onRefresh={() => void refresh()}
-        />
+        <DataRefreshControl enabled={active && !busy} onRefresh={refresh} />
       }
     >
       <View style={styles.header}>
@@ -503,11 +495,7 @@ function VersionScene({
         if (!query.isError) void more();
       }}
       refreshControl={
-        <DataRefreshControl
-          enabled={active && !busy}
-          refreshing={refreshing}
-          onRefresh={() => void refresh()}
-        />
+        <DataRefreshControl enabled={active && !busy} onRefresh={refresh} />
       }
       ListHeaderComponent={
         <View style={styles.header}>
@@ -547,13 +535,13 @@ function VersionScene({
         />
       )}
       ListEmptyComponent={
-        <ScreenState style={styles.centered}>
+        <View style={styles.empty}>
           <Text
             style={[tokens.typography.body, { color: colors.secondaryText }]}
           >
             Aucune version dans cette sélection
           </Text>
-        </ScreenState>
+        </View>
       }
       ListFooterComponent={
         <>
@@ -570,6 +558,7 @@ function VersionScene({
   );
 }
 const styles = StyleSheet.create({
+  empty: { alignItems: "center" },
   centered: { justifyContent: "center" },
   header: {
     gap: tokens.layout.list.gap,

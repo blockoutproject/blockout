@@ -41,30 +41,22 @@ export function CloseSeasonScreen({ seasonId }: { seasonId: string }) {
       <ReadFeedback query={season} loadingContent={<CloseSeasonLoading />} />
     )
   ) : undefined;
+  /** Rereads the current authority or season without replaying closure or replacing the retained draft. */
+  async function refresh() {
+    if (editing.close.isPending) return;
+    const result = await (!authority.enabled
+      ? authority.account.refetch({ cancelRefetch: false })
+      : season.refetch({ cancelRefetch: false }));
+    if (result.isError && result.data) feedback.error();
+  }
   return (
     <Page header={<PageHeader title={"Clôturer la saison"} />}>
       <FormScrollView
         refreshControl={
           authority.sessionStatus === "authenticated" && !blockingState ? (
             <DataRefreshControl
-              refreshing={season.isRefetching || authority.account.isRefetching}
               enabled={!editing.close.isPending}
-              onRefresh={() => {
-                if (editing.close.isPending) return;
-                if (!authority.enabled)
-                  void authority.account
-                    .refetch({ cancelRefetch: false })
-                    .then((result) => {
-                      if (result.isError && result.data) feedback.error();
-                    });
-                else {
-                  void season
-                    .refetch({ cancelRefetch: false })
-                    .then((result) => {
-                      if (result.isError && result.data) feedback.error();
-                    });
-                }
-              }}
+              onRefresh={refresh}
             />
           ) : undefined
         }

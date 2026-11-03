@@ -32,7 +32,7 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
   const current = editing.query.data?.pages[0];
   const guest = editing.session.status === "guest";
   const authenticated = editing.session.status === "authenticated";
-  /** Pull-to-refresh observes displayed reads only; it cannot release command uncertainty. */
+  /** Rereads displayed context and proposals while a pending submission disables the gesture. */
   async function refresh() {
     if (editing.submit.isPending) return;
     feedback.clear();
@@ -58,8 +58,7 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
           authenticated && editing.usable && current ? (
             <DataRefreshControl
               enabled={!editing.submit.isPending}
-              refreshing={editing.query.isRefetching || match.isRefetching}
-              onRefresh={() => void refresh()}
+              onRefresh={refresh}
             />
           ) : undefined
         }
