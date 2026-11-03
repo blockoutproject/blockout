@@ -16,6 +16,7 @@ import { Button } from "../../../shared/components/button";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { Page, PageContent } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
+import { ContributionReportLoading } from "../components/contribution-loading";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 
@@ -51,12 +52,17 @@ export function ReportContributionScreen({
   const match = useQuery(useConsultationQueries().match(matchId));
   const router = useRouter();
   const authenticated = reporting.session.status === "authenticated";
+  const pending =
+    reporting.session.status !== "guest" &&
+    (!authenticated || !reporting.profile.data
+      ? reporting.profile.isPending
+      : !reporting.query.data && reporting.query.isPending);
+  const FeedbackLayout = pending ? PageContent : ScreenState;
   return (
-    <Page>
-      <PageHeader title="Lien de diffusion" />
+    <Page header={<PageHeader title="Lien de diffusion" />}>
       <FormScrollView>
         {reporting.session.status === "guest" ? (
-          <ScreenState>
+          <FeedbackLayout style={styles.centered}>
             <Button
               label="Se connecter"
               onPress={() =>
@@ -66,15 +72,21 @@ export function ReportContributionScreen({
                 })
               }
             />
-          </ScreenState>
+          </FeedbackLayout>
         ) : !authenticated || !reporting.profile.data ? (
-          <ScreenState>
-            <ReadFeedback query={reporting.profile} />
-          </ScreenState>
+          <FeedbackLayout>
+            <ReadFeedback
+              query={reporting.profile}
+              loadingContent={<ContributionReportLoading />}
+            />
+          </FeedbackLayout>
         ) : !reporting.query.data ? (
-          <ScreenState>
-            <ReadFeedback query={reporting.query} />
-          </ScreenState>
+          <FeedbackLayout>
+            <ReadFeedback
+              query={reporting.query}
+              loadingContent={<ContributionReportLoading />}
+            />
+          </FeedbackLayout>
         ) : (
           <PageContent>
             {match.data && (
@@ -225,4 +237,7 @@ function ReportForm({
     </Surface>
   );
 }
-const styles = StyleSheet.create({ form: { gap: tokens.layout.form.gap } });
+const styles = StyleSheet.create({
+  centered: { justifyContent: "center" },
+  form: { gap: tokens.layout.form.gap },
+});

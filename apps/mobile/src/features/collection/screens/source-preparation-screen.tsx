@@ -3,7 +3,7 @@ import { DataRefreshControl } from "../../../shared/components/data-refresh-cont
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { Page, PageContent } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
-import { RequestLoading } from "../../../shared/components/request-feedback";
+import { SourcePreparationLoading } from "../components/collection-loading";
 import { ScreenState } from "../../../shared/components/screen-state";
 
 import { ErrorState } from "../../../shared/components/state-card";
@@ -29,9 +29,22 @@ export function SourcePreparationScreen({
     current && season.data && current.seasonId === seasonId,
   );
   const feedback = useActionFeedback();
+  const pending =
+    !retained &&
+    (!authority.enabled
+      ? authority.sessionStatus === "restoring" ||
+        (authority.sessionStatus === "authenticated" &&
+          authority.account.isPending)
+      : !source.isError &&
+        !season.isError &&
+        !(current && current.seasonId !== seasonId));
+  const FeedbackLayout = pending ? PageContent : ScreenState;
   const blockingState = !retained ? (
     !authority.enabled ? (
-      <AccessFeedback {...authority} />
+      <AccessFeedback
+        {...authority}
+        loadingContent={<SourcePreparationLoading />}
+      />
     ) : source.isError ||
       season.isError ||
       (current && current.seasonId !== seasonId) ? (
@@ -43,12 +56,11 @@ export function SourcePreparationScreen({
         retrying={source.isFetching || season.isFetching}
       />
     ) : (
-      <RequestLoading />
+      <SourcePreparationLoading />
     )
   ) : undefined;
   return (
-    <Page>
-      <PageHeader title={current?.label ?? "Source"} />
+    <Page header={<PageHeader title={current?.label ?? "Source"} />}>
       <FormScrollView
         refreshControl={
           authority.sessionStatus === "authenticated" && !blockingState ? (
@@ -85,7 +97,7 @@ export function SourcePreparationScreen({
         }
       >
         {blockingState ? (
-          <ScreenState>{blockingState}</ScreenState>
+          <FeedbackLayout>{blockingState}</FeedbackLayout>
         ) : (
           <PageContent>
             {current && season.data && current.seasonId === seasonId && (

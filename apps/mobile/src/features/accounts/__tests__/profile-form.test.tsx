@@ -452,6 +452,7 @@ it("announces the initial profile read without exposing profile commands", async
   expect(
     await screen.findByRole("progressbar", { name: "Chargement du profil" }),
   ).toBeOnTheScreen();
+  expect(screen.getAllByRole("progressbar")).toHaveLength(1);
   expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
   expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
   expect(

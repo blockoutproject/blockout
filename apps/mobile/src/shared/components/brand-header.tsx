@@ -4,7 +4,7 @@ import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
 import { BrandMark } from "./brand-mark";
 
-/** Branded entry chrome; an optional trailing action remains owned by the entry journey. */
+/** Branded entry chrome with a fully named, one-line brand; an optional trailing action remains owned by the entry journey. */
 export interface BrandHeaderProps {
   children?: ReactNode;
 }
@@ -16,7 +16,11 @@ export function BrandHeader({ children }: BrandHeaderProps) {
     <View style={[styles.header, { borderColor: colors.border }]}>
       <View style={styles.brand} accessible accessibilityLabel="Blockout">
         <BrandMark />
-        <Text style={[tokens.typography.navigation, { color: colors.text }]}>
+        <Text
+          numberOfLines={1}
+          ellipsizeMode="tail"
+          style={[styles.name, { color: colors.text }]}
+        >
           BLOCKOUT
         </Text>
       </View>
@@ -38,6 +42,14 @@ const styles = StyleSheet.create({
     paddingBottom: tokens.spacing.lg,
     borderBottomWidth: tokens.border.thin,
   },
-  brand: { flexDirection: "row", gap: 9, alignItems: "center" },
+  brand: {
+    flexDirection: "row",
+    gap: 9,
+    alignItems: "center",
+    maxWidth: "100%",
+    minWidth: 0,
+    flexShrink: 1,
+  },
+  name: { ...tokens.typography.navigation, minWidth: 0, flexShrink: 1 },
   action: { marginLeft: "auto", maxWidth: "100%" },
 });

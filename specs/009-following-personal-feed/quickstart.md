@@ -347,8 +347,9 @@ validation, session/admission/Query owners and the observed native pager/LegendL
 Observed cases include system light/dark, missing/provisional results, native season selection and
 Search, complete-day continuation, retained page failure and same-cursor explicit retry, retained
 rows after a failed ordinary pull, and cross-category withdrawal after successful no-follow evidence.
-On iOS, the enlarged empty card requires scrolling; the Search action was reached above the floating
-navigation and activated at accessibility-medium. This is scoped rendering/gesture evidence, not
+The recorded iOS enlarged Empty observation required scrolling to reach Search above the floating
+navigation at accessibility-medium. That observation does not qualify the current [F13 full-content
+State Card contract](../003-shared-quality/spec.md#functional-requirements); the shared owner records its bounded current Pool-card and Home-brand observations in [native qualification limits](../003-shared-quality/quickstart.md#native-qualification-limits). These do not establish every F06 Empty composition or enlarged-text journey. This is scoped rendering/gesture evidence, not
 complete screen-reader, minimum-runtime, live backend/provider, account-erasure or F11 qualification.
 
 The shared F03 calendar row now opens its exact match through the installation's single F11

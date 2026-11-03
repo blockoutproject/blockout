@@ -594,12 +594,34 @@ it("explicitly retries a failed offer on Pro and then opens the official compone
   );
   await screen.findByText(/Une erreur est survenue/);
   expect(mockRouter.navigate).toHaveBeenCalledWith("/pro");
-  // When
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
-  // Then
-  expect(await screen.findByText("Native paywall double")).toBeOnTheScreen();
-  expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(2);
-  expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
+  const retry = Promise.withResolvers<PurchasesOfferings>();
+  mockPurchases.getOfferings.mockReturnValueOnce(retry.promise);
+  try {
+    // When
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    await screen.findByRole("progressbar", {
+      name: "Chargement des offres Pro",
+      busy: true,
+    });
+    expect(screen.getAllByRole("progressbar")).toHaveLength(1);
+    expect(screen.queryByText("Native paywall double")).not.toBeOnTheScreen();
+
+    // When
+    await act(() =>
+      retry.resolve({ current: v2Offering, all: { v2: v2Offering } }),
+    );
+
+    // Then
+    expect(await screen.findByText("Native paywall double")).toBeOnTheScreen();
+    expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(2);
+    expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
+  } finally {
+    await act(() =>
+      retry.resolve({ current: v2Offering, all: { v2: v2Offering } }),
+    );
+  }
 });
 it("does not reopen a cached paywall when a new destination offering read fails", async () => {
   // Given
@@ -676,7 +698,7 @@ it("retains a successful empty catalogue when its explicit destination retry fai
   await screen.findByRole("header", { name: "Aucune offre Pro disponible" });
   mockPurchases.getOfferings.mockRejectedValueOnce(new Error("unavailable"));
   // When
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
   // Then
   expect(
     await screen.findByRole("alert", {
@@ -934,7 +956,7 @@ it("ignores a retired offering retry after opening native management", async () 
   const retry = Promise.withResolvers<PurchasesOfferings>();
   mockPurchases.getOfferings.mockReturnValueOnce(retry.promise);
   try {
-    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    await user.press(screen.getByRole("button", { name: "Actualiser" }));
     await waitFor(() =>
       expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(2),
     );

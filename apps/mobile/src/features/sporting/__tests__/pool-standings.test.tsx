@@ -59,6 +59,9 @@ jest.mock("react-native-auth0", () => {
 });
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
+  // This isolated panel controls the native navigation boundary; motion is qualified on device.
+  useFocusEffect: (effect: () => void | (() => void)) =>
+    jest.requireActual("react").useEffect(effect, [effect]),
   useRouter: () => ({ push: mockPush, back: jest.fn(), canGoBack: () => true }),
   useNavigation: () => ({ isFocused: () => true }),
 }));
@@ -103,15 +106,15 @@ beforeEach(() => {
     availability: "available",
     observedAt: "2026-10-20T12:00:00Z",
     lastAttemptFailed: false,
-    columns: ["Ratio", "Pts"],
+    columns: ["Jou.", "Pts"],
     rows: [
       {
         sourceName: "Official Z",
         position: 7,
         team: { id: sportingId, name: "Effective Z" },
-        statistics: { Ratio: "∞", Pts: "18" },
+        statistics: { "Jou.": "4", Pts: "18" },
       },
-      { sourceName: "Unmatched", statistics: { Ratio: "—" } },
+      { sourceName: "Unmatched", statistics: { "Jou.": "—" } },
       {
         sourceName: "Official A",
         position: 2,
@@ -231,7 +234,7 @@ it("preserves official labels positions and missing values without guessed links
     params: { teamId: sportingId },
   });
   expect(screen.getByText("7")).toBeOnTheScreen();
-  expect(screen.getByText("∞")).toBeOnTheScreen();
+  expect(screen.getByText("4")).toBeOnTheScreen();
   expect(screen.getByText("Unmatched")).toBeOnTheScreen();
   expect(screen.queryByRole("link", { name: /Unmatched/ })).toBeNull();
   expect(screen.queryByText("1")).toBeNull();
@@ -274,9 +277,21 @@ it.each([
     expect(screen.queryByRole("button", { name: "Réessayer" }) !== null).toBe(
       availability === "unavailable",
     );
-    expect(screen.queryByLabelText("Actualiser les données") !== null).toBe(
-      availability !== "unavailable",
-    );
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+    if (availability !== "unavailable") {
+      mockFetch.mockClear();
+
+      // When: an empty table reloads through its card, without a refresh gesture or a new selection.
+      await userEvent.press(screen.getByRole("button", { name: "Actualiser" }));
+
+      // Then
+      await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+      expect(new URL(mockFetch.mock.calls[0][0]).pathname).toBe(
+        `/pools/${pool.pool.id}/standings`,
+      );
+      await screen.findByRole("button", { name: "Actualiser", busy: false });
+      expect(screen.getByRole(role, { name: message })).toBeOnTheScreen();
+    }
   },
 );
 
@@ -338,7 +353,8 @@ it("loads team participation standings lazily and preserves them through calenda
   // When
   await user.press(screen.getByRole("tab", { name: "À venir" }));
   await screen.findByText("Aucun match pour cette sélection");
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
   await user.press(screen.getByRole("tab", { name: pool.pool.name }));
 
   // Then
@@ -385,7 +401,7 @@ it("switches to the approved cards without another read or team emphasis", async
     screen.getByRole("radio", { name: "Afficher en cartes", checked: true }),
   ).toBeOnTheScreen();
   expect(
-    screen.getByRole("link", { name: /Official Z.*Ratio : ∞/ }),
+    screen.getByRole("link", { name: /Official Z.*Jou\. : 4/ }),
   ).toBeOnTheScreen();
   expect(screen.getByText("Unmatched")).toBeOnTheScreen();
   expect(screen.queryByRole("link", { name: /Unmatched/ })).toBeNull();
@@ -528,7 +544,7 @@ it.each(["unavailable", "not-published"] as const)(
     // Query can finish before React commits its notified read state; wait for the actual recovery control.
     if (availability === "unavailable")
       await screen.findByRole("button", { name: "Réessayer" });
-    else await screen.findByLabelText("Actualiser les données");
+    else await screen.findByRole("button", { name: "Actualiser" });
     failed = true;
     mockFetch.mockClear();
 
@@ -537,10 +553,7 @@ it.each(["unavailable", "not-published"] as const)(
       expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
       await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
     } else
-      await fireEvent(
-        screen.getByLabelText("Actualiser les données"),
-        "refresh",
-      );
+      await userEvent.press(screen.getByRole("button", { name: "Actualiser" }));
 
     // Then
     expect(
@@ -564,5 +577,58 @@ it.each(["unavailable", "not-published"] as const)(
     expect(
       screen.queryByText(/Dernière actualisation|conservées restent affichées/),
     ).toBeNull();
+  },
+);
+
+it.each(["list", "cards"] as const)(
+  "limits %s standings and accessible labels to Pts and J/G/P",
+  async (layout) => {
+    // Given
+    const user = userEvent.setup();
+    table.columns = [
+      "Points",
+      "Matchs / Joués",
+      "Matchs / Gagnés",
+      "Matchs / Perdus",
+      "Résultats / 3-0",
+      "Ratio sets",
+    ];
+    table.rows = [
+      {
+        sourceName: "Official compact team",
+        position: 1,
+        team: { id: sportingId, name: "Effective team" },
+        statistics: {
+          Points: "18",
+          "Matchs / Joués": "9",
+          "Matchs / Gagnés": "6",
+          "Matchs / Perdus": "3",
+          "Résultats / 3-0": "999",
+          "Ratio sets": "888",
+        },
+      },
+    ];
+    await open(panel());
+    await screen.findByRole("link", { name: /Official compact team/ });
+
+    // When
+    if (layout === "cards")
+      await user.press(
+        screen.getByRole("radio", { name: "Afficher en cartes" }),
+      );
+
+    // Then
+    expect(screen.getByText("Pts")).toBeOnTheScreen();
+    for (const label of ["J", "G", "P"])
+      expect(screen.getByText(label)).toBeOnTheScreen();
+    for (const value of ["18", "9", "6", "3"])
+      expect(screen.getByText(value)).toBeOnTheScreen();
+    expect(screen.queryByText("999")).not.toBeOnTheScreen();
+    expect(table.rows[0].statistics["Résultats / 3-0"]).toBe("999");
+    expect(table.columns).toContain("Ratio sets");
+    expect(screen.queryByText("888")).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: /Résultats \/ 3-0|Ratio sets/ }),
+    ).not.toBeOnTheScreen();
   },
 );

@@ -499,7 +499,11 @@ it("keeps the selected search tab when an editor save completes in the backgroun
   }
 });
 
-it.each(["removed", "decode-failed"] as const)(
+it.each([
+  "removed",
+  "foreground-decode-failed",
+  "atmosphere-decode-failed",
+] as const)(
   "uses a basic profile image fallback when the photo is %s",
   async (outcome) => {
     // Given
@@ -507,7 +511,7 @@ it.each(["removed", "decode-failed"] as const)(
       globalThis,
       "FileReader",
     );
-    /** Controls only native image decoding; current account and binary-photo reads retain their real Query caches. */
+    /** Controls binary preview conversion; current account and photo reads retain their real Query caches. */
     class PhotoReader {
       result = "data:image/png;base64,accepted";
       onload?: () => void;
@@ -529,6 +533,10 @@ it.each(["removed", "decode-failed"] as const)(
     try {
       await openProfile();
       await screen.findByRole("image", { name: "Photo de profil" });
+      expect(screen.getByTestId("profile-photo-atmosphere")).toHaveProp(
+        "source",
+        { uri: "data:image/png;base64,accepted", cache: "reload" },
+      );
       if (outcome === "removed")
         mockFetch.mockImplementation(async () =>
           Response.json({ ...account, hasPhoto: false }),
@@ -542,7 +550,9 @@ it.each(["removed", "decode-failed"] as const)(
         );
       else
         await fireEvent(
-          screen.getByRole("image", { name: "Photo de profil" }),
+          outcome === "foreground-decode-failed"
+            ? screen.getByRole("image", { name: "Photo de profil" })
+            : screen.getByTestId("profile-photo-atmosphere"),
           "error",
           { nativeEvent: { error: "Native image decoding failed" } },
         );
@@ -563,15 +573,34 @@ it.each(["removed", "decode-failed"] as const)(
       ).toBeOnTheScreen();
       expect(screen.getByText(account.username)).toBeOnTheScreen();
       expect(
+        screen.queryByTestId("profile-photo-atmosphere"),
+      ).not.toBeOnTheScreen();
+      expect(
         screen.getByRole("button", { name: "Modifier mon profil" }),
       ).toBeEnabled();
-      if (outcome === "decode-failed") {
+      if (outcome !== "removed") {
+        // A failed account refresh keeps the original photo decode withdrawn.
+        mockFetch.mockRejectedValueOnce(new TypeError("Network unavailable"));
+        await fireEvent(
+          screen.getByLabelText("Actualiser les données"),
+          "refresh",
+        );
+        await screen.findByText(TECHNICAL_ERROR);
+        expect(
+          screen.queryByRole("image", { name: "Photo de profil" }),
+        ).not.toBeOnTheScreen();
+        expect(
+          screen.queryByTestId("profile-photo-atmosphere"),
+        ).not.toBeOnTheScreen();
         // A successful explicit reread of identical bytes permits a fresh native decode attempt.
         await fireEvent(
           screen.getByLabelText("Actualiser les données"),
           "refresh",
         );
         await screen.findByRole("image", { name: "Photo de profil" });
+        expect(
+          screen.getByTestId("profile-photo-atmosphere"),
+        ).toBeOnTheScreen();
         expect(
           mockFetch.mock.calls.filter(([url]) =>
             String(url).endsWith("/photo"),
@@ -650,6 +679,7 @@ it("withholds all overview groups while the initial account is pending", async (
     await waitFor(() => expect(mockFetch).toHaveBeenCalled());
 
     // Then
+    expect(screen.getAllByRole("progressbar")).toHaveLength(1);
     expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
     expect(
       screen.queryByRole("header", { name: "Informations légales" }),

@@ -198,17 +198,26 @@ export const tokens = {
     section: { gap: spacing["2xl"] },
     surface: { inset: spacing.lg },
     collection: { toolbarMinHeight: touch.minimum },
+    // UI Library Core layout/identity/rail-width and min-height; public card dimensions include its border.
+    identity: { railWidth: 84, minHeight: 136 },
   },
   radius,
-  media: { radius: { preview: radius.lg } },
+  media: {
+    radius: { preview: radius.lg },
+    // Product identity patterns repeat the same accepted image behind the foreground slot.
+    identityAtmosphere: { blur: 40, opacity: 0.23 },
+  },
   size: {
     control: { default: 48, compact: 36 },
     icon: { sm: 16, md: 20, lg: 24 },
-    media: { row: 40, entity: 48, match: 32 },
+    media: { row: 40, entity: 48, match: 32, profile: 64 },
   },
   touch,
   border: { thin: 1, subtle: 1.5 },
   opacity: { disabled: 0.45, pressed: 0.9 },
+  // The native material supplies its own tint; another 70% overlay would obscure the blurred colors.
+  // Expo Android maps intensity/reduction to radius: 90 / 2.8125 = the UI Library's 32-point blur.
+  blur: { navigation: { intensity: 90, androidReduction: 2.8125 } },
   elevation: { offsetX: 0, offsetY: 4, blur: 10 },
   motion: {
     slow: 480,
@@ -231,12 +240,13 @@ export const tokens = {
     coverOpacity: 0.32,
     coverVeilOpacity: 0.28,
     // Product Design compact official standings row 4502:39958.
+    standingsRowMinHeight: 68,
     standingsRankWidth: 28,
     standingsRankHeight: 32,
     standingsMarkerWidth: 3,
     standingsMarkerHeight: 40,
     standingsPointsWidth: 34,
-    // Product Design Standing Card 4280:10033 / Standings Block 4510:28651.
+    // Product Design Standing Card 4280:10033 / Standings Block 7758:11084.
     standingsCard: {
       firstMinHeight: 288,
       secondMinHeight: 264,

@@ -277,7 +277,7 @@ it("keeps the root loading gate during an explicit installation-read retry", asy
 
   // Then
   expect(
-    screen.getByRole("progressbar", { name: "Chargement en cours" }),
+    screen.getByRole("progressbar", { name: "Vérification de l’accès" }),
   ).toBeOnTheScreen();
   expect(screen.queryByRole("button", { name: "Passer" })).toBeNull();
 

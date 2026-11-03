@@ -31,4 +31,5 @@
 
 ## Notes
 
+- FR-038 selects normal State Card placement below controls with the common content inset, native scrolling/header collapse/overflow retained and no pull-to-refresh. Existing safe/contextual card actions and local/retained-content exceptions remain explicit; no clarification is pending.
 - Reviewed: data and images share the 30-minute/30-day backup policy, with one initial isolated restore and no backup notifications or recurring verification. Application alert closure is distinct from business recovery; ordinary mobile retries are explicit. Owner/consumer consistency and the applicable [F05](../../005-accounts-identity/spec.md) and [F12](../../013-administration-app-configuration/spec.md) design prerequisites were checked. This checklist establishes neither runtime qualification nor delivered software.

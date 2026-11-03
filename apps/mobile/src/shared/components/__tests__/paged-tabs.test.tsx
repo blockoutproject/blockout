@@ -1,4 +1,8 @@
-import "../../native/test-support/tab-view-native";
+import {
+  layoutNativeTabs,
+  mockPagerCommands,
+} from "../../native/test-support/tab-view-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useState } from "react";
 import { AccessibilityInfo, Platform, Text, TextInput } from "react-native";
 import {
@@ -23,37 +27,72 @@ function Draft() {
 }
 
 /** Feature selection is real React state; only the native pager/animation boundary is controlled. */
-function Example() {
+function Example({ resetKey }: { resetKey?: string }) {
   const [selected, setSelected] = useState("one");
   return (
-    <ThemeProvider>
-      <PagedTabs
-        selected={selected}
-        onSelect={setSelected}
-        tabs={[
-          { id: "one", label: "Premier", content: <Text>Scène initiale</Text> },
-          { id: "two", label: "Deuxième", content: <Draft /> },
-          {
-            id: "three",
-            label: "Troisième",
-            content: <Text>Dernière scène</Text>,
-          },
-        ]}
-      />
-    </ThemeProvider>
+    <GestureHandlerRootView>
+      <ThemeProvider>
+        <PagedTabs
+          selected={selected}
+          onSelect={setSelected}
+          tabs={[
+            {
+              id: "one",
+              label: "Premier",
+              content: <Text>Scène initiale</Text>,
+            },
+            { id: "two", label: "Deuxième", content: <Draft />, resetKey },
+            {
+              id: "three",
+              label: "Troisième",
+              content: <Text>Dernière scène</Text>,
+            },
+          ]}
+        />
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
 
 afterEach(() => jest.restoreAllMocks());
 
-it("admits an iOS scene at the terminal idle instead of its early selected event", async () => {
+it.each([false, true])(
+  "requests native tab animation according to reduced motion (%s) while retaining destination content",
+  async (reducedMotion) => {
+    // Given
+    jest
+      .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
+      .mockResolvedValue(reducedMotion);
+    mockPagerCommands.animated.mockClear();
+    mockPagerCommands.immediate.mockClear();
+    await render(<Example />);
+    await layoutNativeTabs();
+    const user = userEvent.setup();
+
+    // When
+    await user.press(screen.getByRole("tab", { name: "Deuxième" }));
+
+    // Then: this native command contract proves no animation geometry or frame rate.
+    expect(screen.getByLabelText("Note retenue")).toBeOnTheScreen();
+    expect(
+      reducedMotion ? mockPagerCommands.immediate : mockPagerCommands.animated,
+    ).toHaveBeenCalledWith(1);
+    expect(
+      reducedMotion ? mockPagerCommands.animated : mockPagerCommands.immediate,
+    ).not.toHaveBeenCalled();
+  },
+);
+
+it("keeps neighboring feature reads unmounted during a partial swipe and admits the library's selected page", async () => {
   // Given
-  jest.replaceProperty(Platform, "OS", "ios");
   await render(<Example />);
+  await layoutNativeTabs();
   const pager = screen.getByTestId("native-tabs-pager");
 
   // When
-  await fireEvent(pager, "pageSelected", { nativeEvent: { position: 1 } });
+  await fireEvent(pager, "pageScroll", {
+    nativeEvent: { position: 0, offset: 0.5 },
+  });
 
   // Then
   expect(
@@ -64,12 +103,7 @@ it("admits an iOS scene at the terminal idle instead of its early selected event
   ).toBeNull();
 
   // When
-  await fireEvent(pager, "pageScroll", {
-    nativeEvent: { position: 1, offset: 0 },
-  });
-  await fireEvent(pager, "pageScrollStateChanged", {
-    nativeEvent: { pageScrollState: "idle" },
-  });
+  await fireEvent(pager, "pageSelected", { nativeEvent: { position: 1 } });
 
   // Then
   expect(
@@ -78,48 +112,38 @@ it("admits an iOS scene at the terminal idle instead of its early selected event
   expect(screen.getByLabelText("Note retenue")).toBeOnTheScreen();
 });
 
-it("keeps the terminal iOS page when interrupted commands report another candidate", async () => {
+it("replaces only an invalidated scene and does not revive its earlier reading context", async () => {
   // Given
-  jest.replaceProperty(Platform, "OS", "ios");
-  await render(<Example />);
-  const pager = screen.getByTestId("native-tabs-pager");
+  const view = await render(<Example resetKey="criteria-a" />);
+  await layoutNativeTabs();
+  const user = userEvent.setup();
+  await user.press(screen.getByRole("tab", { name: "Deuxième" }));
+  await user.type(screen.getByLabelText("Note retenue"), "Ancienne lecture");
+  await user.press(screen.getByRole("tab", { name: "Premier" }));
 
   // When
-  await fireEvent(pager, "pageSelected", { nativeEvent: { position: 1 } });
-  await fireEvent(pager, "pageScroll", {
-    nativeEvent: { position: 0, offset: 0 },
-  });
-  await fireEvent(pager, "pageScrollStateChanged", {
-    nativeEvent: { pageScrollState: "idle" },
-  });
+  await view.rerender(<Example resetKey="criteria-b" />);
+  await user.press(screen.getByRole("tab", { name: "Deuxième" }));
+
+  // Then
+  expect(screen.getByLabelText("Note retenue")).toHaveDisplayValue("");
+
+  // When
+  await user.type(screen.getByLabelText("Note retenue"), "Nouvelle lecture");
+  await view.rerender(<Example resetKey="criteria-a" />);
 
   // Then
   expect(
-    screen.getByRole("tab", { name: "Premier", selected: true }),
+    screen.getByRole("tab", { name: "Deuxième", selected: true }),
   ).toBeOnTheScreen();
-
-  // When
-  await fireEvent(pager, "pageSelected", { nativeEvent: { position: 2 } });
-  await fireEvent(pager, "pageScroll", {
-    nativeEvent: { position: 2, offset: 0 },
-  });
-  await fireEvent(pager, "pageScrollStateChanged", {
-    nativeEvent: { pageScrollState: "idle" },
-  });
-
-  // Then
-  expect(
-    screen.getByRole("tab", { name: "Troisième", selected: true }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.queryByLabelText("Note retenue", { includeHiddenElements: true }),
-  ).toBeNull();
+  expect(screen.getByLabelText("Note retenue")).toHaveDisplayValue("");
 });
 
 it("accepts Android settlement even when idle precedes its selected event", async () => {
   // Given
   jest.replaceProperty(Platform, "OS", "android");
   await render(<Example />);
+  await layoutNativeTabs();
   const pager = screen.getByTestId("native-tabs-pager");
 
   // When
@@ -142,6 +166,7 @@ it("uses nonanimated confirmation and preserves a visited draft while hiding the
     .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
     .mockResolvedValue(true);
   await render(<Example />);
+  await layoutNativeTabs();
   const user = userEvent.setup();
   await user.press(screen.getByRole("tab", { name: "Deuxième" }));
   await user.type(screen.getByLabelText("Note retenue"), "Brouillon conservé");

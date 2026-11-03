@@ -86,6 +86,11 @@ jest.mock("react-native-auth0", () => {
 });
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
+  // Isolated pages control the native navigation boundary; real route scenarios retain Router focus.
+  useFocusEffect: (effect: () => void | (() => void)) =>
+    mockRouting
+      ? jest.requireActual("expo-router").useFocusEffect(effect)
+      : jest.requireActual("react").useEffect(effect, [effect]),
   useRouter: () =>
     mockRouting
       ? jest.requireActual("expo-router").useRouter()
@@ -300,6 +305,11 @@ it.each(["club", "team", "pool"] as const)(
       permissions: { ...account.permissions, manageSportingPresentation: true },
     });
     const user = userEvent.setup();
+    const editLabel = {
+      team: "Modifier l’équipe",
+      club: "Modifier le club",
+      pool: "Modifier la poule",
+    }[kind];
     mockRouting = true;
     await renderPage(
       {
@@ -315,9 +325,7 @@ it.each(["club", "team", "pool"] as const)(
     expect(screen.getByTestId("native-tabs-pager")).toBeOnTheScreen();
 
     // When
-    await user.press(
-      await screen.findByRole("link", { name: "Modifier la présentation" }),
-    );
+    await user.press(await screen.findByRole("button", { name: editLabel }));
 
     // Then
     expect(
@@ -341,9 +349,9 @@ it.each(["club", "team", "pool"] as const)(
 
     // When: the current account read removes the grant while the public page remains mounted.
     await act(async () => router.back());
-    // Router remounts the public page; native layout precedes access to its Club information scene.
+    // Router remounts the public page; settle its native pager before checking the fixed-header action.
     await layoutNativeTabs();
-    await screen.findByRole("link", { name: "Modifier la présentation" });
+    await screen.findByRole("button", { name: editLabel });
     account = accountResponse();
     await act(async () =>
       client.refetchQueries({ queryKey: ["/accounts/me"], exact: true }),
@@ -352,7 +360,7 @@ it.each(["club", "team", "pool"] as const)(
     // Then
     await waitFor(() =>
       expect(
-        screen.queryByRole("link", { name: "Modifier la présentation" }),
+        screen.queryByRole("button", { name: editLabel }),
       ).not.toBeOnTheScreen(),
     );
     expect(
@@ -415,7 +423,7 @@ it("keeps public team/count available while credential restoration is unresolved
     mockFetch.mock.calls.some(([url]) => String(url).includes("/accounts/")),
   ).toBe(false);
   expect(
-    screen.queryByRole("link", { name: "Modifier la présentation" }),
+    screen.queryByRole("button", { name: "Modifier l’équipe" }),
   ).not.toBeOnTheScreen();
   await act(async () => credentials.resolve(false));
 });
@@ -428,7 +436,7 @@ it("retires authorized editing on sign-out while keeping guest follow and public
   });
   const user = userEvent.setup();
   await renderPage(<TeamRoute />);
-  await screen.findByRole("link", { name: "Modifier la présentation" });
+  await screen.findByRole("button", { name: "Modifier l’équipe" });
 
   // When
   await act(async () => session.signOut());
@@ -437,7 +445,7 @@ it("retires authorized editing on sign-out while keeping guest follow and public
 
   // Then
   expect(
-    screen.queryByRole("link", { name: "Modifier la présentation" }),
+    screen.queryByRole("button", { name: "Modifier l’équipe" }),
   ).not.toBeOnTheScreen();
   expect(screen.getByText(team.team.team.name)).toBeOnTheScreen();
   expect(mockPush).toHaveBeenCalledWith({
@@ -949,8 +957,10 @@ it.each(["Équipes", "À venir", "Terminés"])(
     expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
     expect(mockFetch).not.toHaveBeenCalled();
 
-    // When: the accepted empty club is explicitly refreshed.
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+
+    // When: the accepted empty club is explicitly refreshed through its card.
+    await user.press(screen.getByRole("button", { name: "Actualiser" }));
 
     // Then: no Teams or calendar request can be made without a season.
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
@@ -958,7 +968,7 @@ it.each(["Équipes", "À venir", "Terminés"])(
       `/clubs/${sportingId}`,
     );
     await waitFor(() =>
-      expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy(),
+      expect(screen.getByRole("button", { name: "Actualiser" })).not.toBeBusy(),
     );
     expect(screen.getByText("Aucune saison disponible")).toBeOnTheScreen();
 
@@ -1005,7 +1015,10 @@ it("keeps match identities and independent missing sections without a zero score
   // Given
   const user = userEvent.setup();
   await renderPage(<MatchScreen matchId={sportingId} />);
-  expect(screen.getByRole("header", { name: "Le match" })).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Retour" })).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Signaler un problème" }),
+  ).toBeOnTheScreen();
 
   // When
   await user.press(
@@ -1240,10 +1253,11 @@ it("distinguishes an empty club season from a failed team read", async () => {
   expect(
     await screen.findByText("Aucune équipe pour cette saison"),
   ).toBeOnTheScreen();
-  expect(screen.getByLabelText("Actualiser les données")).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("/teams?")),
-  ).toHaveLength(2);
+  ).toHaveLength(3);
 });
 
 it("retains a club season's teams after failed pull-to-refresh and retries only that bounded catalogue on another pull", async () => {
@@ -1343,7 +1357,9 @@ it("keeps a team readable when its native public logo fails", async () => {
   });
 
   // Then
-  await screen.findByText("Logo indisponible");
+  await screen.findByRole("image", {
+    name: `Logo indisponible : ${team.team.team.name}`,
+  });
   expect(screen.getByText(team.team.team.name)).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("/logo")),
@@ -1393,7 +1409,9 @@ it("shows a new native logo source after the previously published source failed"
     "error",
     { nativeEvent: { error: "Native decode failed" } },
   );
-  await screen.findByText("Logo indisponible");
+  await screen.findByRole("image", {
+    name: `Logo indisponible : ${team.team.team.name}`,
+  });
 
   // When
   team = {
@@ -1422,7 +1440,11 @@ it("shows a new native logo source after the previously published source failed"
       },
     ]),
   );
-  expect(screen.queryByText("Logo indisponible")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("image", {
+      name: `Logo indisponible : ${team.team.team.name}`,
+    }),
+  ).not.toBeOnTheScreen();
 });
 it("retains the club teams when returning to a visited tab without an implicit reread", async () => {
   // Given
@@ -1595,7 +1617,8 @@ it("opens the generated club-season calendar with its own explicit refresh", asy
 
   // Then
   await screen.findByText("Aucun match pour cette sélection");
-  expect(screen.getByLabelText("Actualiser les données")).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(screen.getByRole("button", { name: "Actualiser" })).toBeOnTheScreen();
   const request = mockFetch.mock.calls
     .map(([url]) => new URL(url))
     .find((url) => url.pathname === "/matches");

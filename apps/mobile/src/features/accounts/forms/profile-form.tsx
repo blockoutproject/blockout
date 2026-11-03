@@ -225,6 +225,7 @@ export function ProfileForm({
                     <ImageField
                       images={images}
                       selection={selection}
+                      size="compact"
                       disabled={disabled || busy}
                       chooseLabel="Choisir une photo de profil"
                       helper="Facultatif. PNG/JPEG, jusqu’à 5 Mio."

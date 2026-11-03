@@ -191,7 +191,7 @@ it("starts the public request while F14 initialization has not completed", async
     );
     expect(mockAuth0.getCredentials).not.toHaveBeenCalled();
     expect(
-      screen.getByRole("progressbar", { name: "Chargement en cours" }),
+      screen.getByRole("progressbar", { name: "Vérification de l’accès" }),
     ).toBeOnTheScreen();
     expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
     expect(screen.queryByText("Illustration à définir")).toBeNull();

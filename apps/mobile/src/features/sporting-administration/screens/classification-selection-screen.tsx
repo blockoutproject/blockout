@@ -3,7 +3,9 @@ import { type UseFormReturn, useWatch } from "react-hook-form";
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
+import { Button } from "../../../shared/components/button";
 import { EntryGroup } from "../../../shared/components/entry-group";
+import { ListLoading } from "../../../shared/components/list-loading";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { SelectionRow } from "../../../shared/components/selection-row";
 import { Sheet, SheetContent } from "../../../shared/components/sheet";
@@ -95,6 +97,13 @@ function Selection({
     divisions.authority.permissions?.manageSportingClassification !== true ||
     denied ||
     !classification.query.isSuccess;
+  /** Rereads the current remote choice owner while preserving static choices and the parent draft. */
+  async function refresh() {
+    const result = divisions.authority.enabled
+      ? await divisions.query.refetch()
+      : await divisions.authority.account.refetch();
+    if (result.isError && result.data) feedback.error();
+  }
   return (
     <Sheet
       title={label}
@@ -102,23 +111,14 @@ function Selection({
       refreshControl={
         field === "divisionId" &&
         catalog &&
-        (divisions.authority.enabled || choices.length > 0) &&
+        choices.length > 0 &&
         divisions.authority.sessionStatus === "authenticated" ? (
           <DataRefreshControl
             refreshing={
               divisions.query.isRefetching ||
               divisions.authority.account.isRefetching
             }
-            onRefresh={() => {
-              if (divisions.authority.enabled)
-                void divisions.query.refetch().then((result) => {
-                  if (result.isError && result.data) feedback.error();
-                });
-              else
-                void divisions.authority.account.refetch().then((result) => {
-                  if (result.isError && result.data) feedback.error();
-                });
-            }}
+            onRefresh={() => void refresh()}
           />
         ) : undefined
       }
@@ -127,12 +127,18 @@ function Selection({
         field === "divisionId" &&
         choices.length === 0 && (
           <SheetContent>
-            <AccessFeedback {...divisions.authority} />
+            <AccessFeedback
+              {...divisions.authority}
+              loadingContent={<ListLoading label="Chargement des divisions" />}
+            />
           </SheetContent>
         )}
       {divisions.authority.enabled && field === "divisionId" && !catalog && (
         <SheetContent>
-          <ReadFeedback query={divisions.query} />
+          <ReadFeedback
+            query={divisions.query}
+            loadingContent={<ListLoading label="Chargement des divisions" />}
+          />
         </SheetContent>
       )}
       {divisions.authority.enabled &&
@@ -140,7 +146,13 @@ function Selection({
         catalog &&
         choices.length === 0 && (
           <SheetContent>
-            <EmptyState title="Aucune division active" />
+            <EmptyState title="Aucune division active">
+              <Button
+                label="Actualiser"
+                onPress={() => void refresh()}
+                loading={divisions.query.isFetching}
+              />
+            </EmptyState>
           </SheetContent>
         )}
       {choices.length > 0 && (

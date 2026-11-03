@@ -6,7 +6,7 @@ import {
   PropsWithChildren,
 } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SearchVisitProvider } from "../forms/search-visit";
@@ -218,6 +218,7 @@ async function renderSearch(proAccent = false) {
       <SearchOwners proAccent={proAccent}>{children}</SearchOwners>
     ),
   });
+  await layoutNativeTabs();
   return result;
 }
 
@@ -532,7 +533,10 @@ it("distinguishes initial waiting, retryable failure and established no matches 
 
   // Then
   expect(
-    await screen.findByRole("progressbar", { name: "Chargement en cours" }),
+    await screen.findByRole("progressbar", {
+      name: "Chargement des résultats",
+      busy: true,
+    }),
   ).toBeOnTheScreen();
   expect(
     screen.queryByText("Aucun résultat pour ces critères"),
@@ -560,6 +564,47 @@ it("distinguishes initial waiting, retryable failure and established no matches 
   expect(
     await screen.findByText("Aucun résultat pour ces critères"),
   ).toBeOnTheScreen();
+});
+
+it("clears empty search criteria from the card and keeps its focus action free of reads", async () => {
+  // Given
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname.endsWith("/clubs")
+      ? Promise.resolve(Response.json({ clubs: [] }))
+      : publicReads(url),
+  );
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await user.paste(
+    await screen.findByPlaceholderText("Rechercher un club…"),
+    "Volley",
+  );
+  await screen.findByRole("button", { name: "Effacer les critères" });
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Effacer les critères" }),
+  );
+
+  // Then
+  expect(screen.getByPlaceholderText("Rechercher un club…")).toHaveDisplayValue(
+    "",
+  );
+  expect(
+    screen.getByRole("tab", { name: "Clubs", selected: true }),
+  ).toBeOnTheScreen();
+  expect(
+    await screen.findByRole("button", { name: "Rechercher" }),
+  ).toBeEnabled();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+
+  // When: the existing RHF input ref owns focus; this action must not start a query.
+  mockFetch.mockClear();
+  await user.press(screen.getByRole("button", { name: "Rechercher" }));
+
+  // Then
+  expect(mockFetch).not.toHaveBeenCalled();
 });
 
 it("keeps clearing available without pull-to-refresh through replacement reads and preserves the selected tab", async () => {
@@ -870,7 +915,10 @@ it("shares one pending cursor read across repeated native end events", async () 
     distanceFromEnd: 0,
   });
   expect(
-    await screen.findByRole("progressbar", { name: "Chargement en cours" }),
+    await screen.findByRole("progressbar", {
+      name: "Chargement de la suite…",
+      busy: true,
+    }),
   ).toBeOnTheScreen();
   await fireEvent(screen.getByText("Volley Lyon"), "endReached", {
     distanceFromEnd: 0,
@@ -951,7 +999,10 @@ it("retains loaded rows with failure toast and retries only the same cursor", as
 
   // Then: the same continuation becomes pending while already loaded rows stay readable.
   expect(
-    await screen.findByRole("progressbar", { name: "Chargement en cours" }),
+    await screen.findByRole("progressbar", {
+      name: "Chargement de la suite…",
+      busy: true,
+    }),
   ).toBeOnTheScreen();
   expect(screen.getByText("Volley Lyon")).toBeOnTheScreen();
   expect(

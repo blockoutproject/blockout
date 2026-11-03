@@ -1,3 +1,4 @@
+import { PageFlatList } from "../../../shared/components/page-list";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import {
   useInfiniteQuery,
@@ -6,7 +7,7 @@ import {
 } from "@tanstack/react-query";
 import { useNavigation, useIsFocused } from "expo-router";
 import { useEffect, useEffectEvent, useState } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import {
   Page,
@@ -18,11 +19,10 @@ import { PageHeader } from "../../../shared/components/page-header";
 
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { ListContinuation } from "../../../shared/components/list-continuation";
+import { Button } from "../../../shared/components/button";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { EmptyState, ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
-import { RequestLoading } from "../../../shared/components/request-feedback";
-import { Skeleton } from "../../../shared/components/skeleton";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { isAccessDenied } from "../../../shared/api/access-denied";
@@ -33,6 +33,7 @@ import { refreshInbox, refreshNotificationSummary } from "../api/inbox-queries";
 import { createReadNotificationOptions } from "../api/inbox-mutations";
 import { notificationExpiry } from "../state/inbox-expiry";
 import { NotificationItem } from "../components/notification-item";
+import { NotificationLoading } from "../components/notification-loading";
 import { useSportingNavigation } from "../../sporting/navigation";
 /** Current F05/F12 admission precedes private inbox observers, including direct guest entry. */
 export function NotificationsScreen() {
@@ -40,19 +41,23 @@ export function NotificationsScreen() {
   const { account } = authority;
   if (!authority.queries)
     return (
-      <Page edges={["top", "left", "right"]}>
-        <PageHeader title="Notifications" />
+      <Page
+        edges={["top", "left", "right"]}
+        header={<PageHeader title="Notifications" />}
+      >
         <PageScrollView>
-          <ScreenState>
-            {account.isPending ? (
-              <RequestLoading />
-            ) : (
+          {account.isPending ? (
+            <PageContent>
+              <NotificationLoading />
+            </PageContent>
+          ) : (
+            <ScreenState>
               <ErrorState
                 onRetry={() => void account.refetch()}
                 retrying={account.isFetching}
               />
-            )}
-          </ScreenState>
+            </ScreenState>
+          )}
         </PageScrollView>
       </Page>
     );
@@ -64,7 +69,7 @@ export function NotificationsScreen() {
     />
   );
 }
-/** Native growing list; read and match navigation settle independently in their existing owners. */
+/** Native growing list with a fully named, one-line page title; read and match navigation settle independently in their existing owners. */
 function Inbox({
   owner,
   queries,
@@ -145,18 +150,25 @@ function Inbox({
       feedback.error();
   }
   return (
-    <Page edges={["top", "left", "right"]}>
-      <View style={styles.header}>
-        <Text
-          accessibilityRole="header"
-          style={[tokens.typography.navigation, { color: colors.text }]}
-        >
-          Notifications
-        </Text>
-      </View>
-      <FlatList
+    <Page
+      edges={["top", "left", "right"]}
+      header={
+        <View style={styles.header}>
+          <Text
+            accessibilityRole="header"
+            accessibilityLabel="Notifications"
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            style={[tokens.typography.navigation, { color: colors.text }]}
+          >
+            Notifications
+          </Text>
+        </View>
+      }
+    >
+      <PageFlatList
         {...hiddenScrollIndicators}
-        alwaysBounceVertical={!!query.data}
+        alwaysBounceVertical={rows.length > 0}
         data={rows}
         onEndReached={() => {
           if (!query.isError) void loadMore();
@@ -165,7 +177,7 @@ function Inbox({
         ItemSeparatorComponent={ListSeparator}
         contentContainerStyle={rows.length ? pageContentStyle : styles.empty}
         refreshControl={
-          query.data ? (
+          rows.length > 0 ? (
             <DataRefreshControl
               refreshing={pulling}
               onRefresh={() => void pullToRefresh()}
@@ -185,20 +197,33 @@ function Inbox({
               <EmptyState
                 title="Aucune notification pour le moment"
                 description="Les nouvelles de vos équipes et poules suivies apparaîtront ici."
-              />
+              >
+                <Button
+                  label="Actualiser"
+                  onPress={() => void refresh()}
+                  loading={query.isFetching}
+                />
+              </EmptyState>
             </ScreenState>
           ) : (
-            <NotificationLoading />
+            <PageContent>
+              <NotificationLoading />
+            </PageContent>
           )
         }
         ListFooterComponent={
           <>
-            <ListContinuation
-              loading={query.isFetchingNextPage}
-              failed={!!query.data && query.isFetchNextPageError}
-              disabled={query.isFetching}
-              onRetry={() => void loadMore()}
-            />
+            {(query.isFetchingNextPage ||
+              (!!query.data && query.isFetchNextPageError)) && (
+              <View style={rows.length ? styles.continuation : undefined}>
+                <ListContinuation
+                  loading={query.isFetchingNextPage}
+                  failed={!!query.data && query.isFetchNextPageError}
+                  disabled={query.isFetching}
+                  onRetry={() => void loadMore()}
+                />
+              </View>
+            )}
             <BottomContentSpacer />
           </>
         }
@@ -221,28 +246,6 @@ function Inbox({
     </Page>
   );
 }
-/** Approved notification skeleton slots use shared reduced-motion-independent primitives. */
-function NotificationLoading() {
-  return (
-    <PageContent>
-      <View
-        accessible
-        accessibilityRole="progressbar"
-        accessibilityLabel="Chargement des notifications"
-        style={styles.skeletons}
-      >
-        {[0, 1, 2].map((key) => (
-          <View key={key} style={styles.skeleton}>
-            <Skeleton height={64} shape="rectangle" />
-            <Skeleton width="80%" />
-            <Skeleton width="65%" />
-            <Skeleton width="65%" />
-          </View>
-        ))}
-      </View>
-    </PageContent>
-  );
-}
 const styles = StyleSheet.create({
   header: {
     minHeight: tokens.layout.header,
@@ -250,6 +253,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   empty: { flexGrow: 1 },
-  skeletons: { gap: tokens.layout.list.gap },
-  skeleton: { gap: tokens.spacing.md, paddingBottom: tokens.spacing.md },
+  continuation: { paddingTop: tokens.layout.list.gap },
 });

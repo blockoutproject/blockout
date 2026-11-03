@@ -1,4 +1,8 @@
-import { Page, PageScrollView } from "../../../shared/components/page";
+import {
+  Page,
+  PageScrollView,
+  PageContent,
+} from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
 import { applicationUpdateMessage } from "../application-update-message";
 import { Image } from "expo-image";
@@ -12,7 +16,8 @@ import type { PublicMaintenanceResponse } from "../../../../.generated/schemas/i
 import { IconButton } from "../../../shared/components/icon-button";
 import { Button } from "../../../shared/components/button";
 import { BrandMark } from "../../../shared/components/brand-mark";
-import { RequestLoading } from "../../../shared/components/request-feedback";
+import { LoadingGroup } from "../../../shared/components/loading-group";
+import { Skeleton } from "../../../shared/components/skeleton";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -36,7 +41,7 @@ interface GateViewProps {
   onClose?: () => void;
 }
 
-/** Simple admission feedback shares the useful-area placement; maintenance and update retain their domain stage. */
+/** Admission feedback retains its domain stage and responsive actions; the one-line brand keeps its complete accessible name. */
 function GateView({
   gate,
   maintenance,
@@ -69,7 +74,14 @@ function GateView({
       <View style={[styles.header, { borderColor: colors.border }]}>
         <View style={styles.identity}>
           <BrandMark />
-          <Text style={[styles.brand, { color: colors.text }]}>BLOCKOUT</Text>
+          <Text
+            accessibilityLabel="BLOCKOUT"
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            style={[styles.brand, { color: colors.text }]}
+          >
+            BLOCKOUT
+          </Text>
         </View>
         <Text
           style={[
@@ -97,13 +109,25 @@ function GateView({
         }
       >
         {simple ? (
-          <ScreenState>
-            {gate === "checking" ? (
-              <RequestLoading />
-            ) : (
+          gate === "checking" ? (
+            <PageContent>
+              <LoadingGroup
+                label="Vérification de l’accès"
+                style={styles.pending}
+              >
+                <Skeleton
+                  width="62%"
+                  height={tokens.typography.title.lineHeight}
+                />
+                <Skeleton width="90%" />
+                <Skeleton width="72%" />
+              </LoadingGroup>
+            </PageContent>
+          ) : (
+            <ScreenState>
               <ErrorState onRetry={onRefresh} retrying={checking} />
-            )}
-          </ScreenState>
+            </ScreenState>
+          )
         ) : (
           <>
             <View style={styles.stage}>
@@ -256,6 +280,7 @@ export function AccessGateScreen() {
   );
 }
 const styles = StyleSheet.create({
+  pending: { gap: tokens.spacing.md },
   // Admission status and preview actions retain their approved compact header, distinct from the discovery brand header.
   header: {
     marginHorizontal: tokens.spacing["2xl"],
@@ -272,8 +297,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
+    maxWidth: "100%",
+    minWidth: 0,
+    flexShrink: 1,
   },
-  brand: tokens.typography.navigation,
+  brand: { ...tokens.typography.navigation, minWidth: 0, flexShrink: 1 },
   badge: {
     ...tokens.typography.metadata,
     borderWidth: tokens.border.thin,

@@ -29,6 +29,7 @@ import { useOperationalVersionAdmission } from "../../access/operational-version
 import { useAccountSession } from "../../accounts/current-account";
 import { createCollectionQueries } from "./collection-queries";
 import {
+  invalidateCollectionControls,
   invalidateCollectionSeasons,
   invalidateSeasonPreparation,
 } from "./invalidate-collection-reads";
@@ -74,11 +75,12 @@ export function useSeasonPreparation(seasonId: string) {
   function acceptCreatedSource() {
     invalidateSeasonPreparation(client, seasonId);
   }
-  /** Refreshes the season and sources after the launch attempt settles. */
+  /** Refreshes source/season decisions and controls that a first launch can create. */
   function acceptLaunchedSources() {
     void client.invalidateQueries({ queryKey: seasonKey, exact: true });
     void client.invalidateQueries({ queryKey: sourcesKey, exact: true });
     invalidateCollectionSeasons(client);
+    invalidateCollectionControls(client, seasonId);
   }
   const create = useMutation({
     retry: false,

@@ -1,7 +1,12 @@
-import { Pressable, StyleSheet, Text } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
-import { RequestLoading } from "./request-feedback";
 
 /** Feature owners retain the cursor, data, request guards and retry; this footer only presents their state. */
 export interface ListContinuationProps {
@@ -11,7 +16,7 @@ export interface ListContinuationProps {
   onRetry: () => void;
 }
 
-/** Keeps pending progress and explicit retry at the list edge; the read owner reports failure through its toast. */
+/** Presents one compact continuation line; the read owner retains its rows, cursor, event toast and explicit retry. */
 export function ListContinuation({
   loading,
   failed,
@@ -19,40 +24,94 @@ export function ListContinuation({
   onRetry,
 }: ListContinuationProps) {
   const { colors } = useTheme();
-  if (loading) return <RequestLoading />;
+  if (loading)
+    return (
+      <View
+        accessible
+        accessibilityRole="progressbar"
+        accessibilityLabel="Chargement de la suite…"
+        accessibilityState={{ busy: true }}
+        accessibilityLiveRegion="polite"
+        style={styles.row}
+      >
+        <ActivityIndicator
+          accessible={false}
+          size="small"
+          color={colors.secondaryText}
+        />
+        <Text
+          numberOfLines={1}
+          ellipsizeMode="tail"
+          style={[
+            tokens.typography.metadata,
+            styles.message,
+            { color: colors.secondaryText },
+          ]}
+        >
+          Chargement de la suite…
+        </Text>
+      </View>
+    );
   if (!failed) return null;
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLiveRegion="polite"
-      accessibilityState={{ disabled: !!disabled }}
-      disabled={disabled}
-      onPress={onRetry}
-      style={({ pressed }) => [
-        styles.retry,
-        {
-          opacity: disabled
-            ? tokens.opacity.disabled
-            : pressed
-              ? tokens.opacity.pressed
-              : 1,
-        },
-      ]}
-    >
+    <View style={styles.row}>
       <Text
+        accessibilityLabel="Une erreur est survenue."
+        numberOfLines={1}
+        ellipsizeMode="tail"
         style={[
           tokens.typography.metadata,
-          styles.action,
-          { color: colors.text },
+          styles.message,
+          { color: colors.secondaryText },
         ]}
       >
-        Réessayer
+        Une erreur est survenue.
       </Text>
-    </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLiveRegion="polite"
+        accessibilityState={{ disabled: !!disabled }}
+        disabled={disabled}
+        onPress={onRetry}
+        style={({ pressed }) => [
+          styles.retry,
+          {
+            opacity: disabled
+              ? tokens.opacity.disabled
+              : pressed
+                ? tokens.opacity.pressed
+                : 1,
+          },
+        ]}
+      >
+        <Text
+          numberOfLines={1}
+          style={[
+            tokens.typography.metadata,
+            styles.action,
+            { color: colors.text },
+          ]}
+        >
+          Réessayer
+        </Text>
+      </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  retry: { minHeight: tokens.touch.minimum, justifyContent: "center" },
+  row: {
+    minHeight: tokens.touch.minimum,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+  },
+  message: { flexShrink: 1, minWidth: 0 },
+  retry: {
+    flexShrink: 0,
+    minHeight: tokens.touch.minimum,
+    minWidth: tokens.touch.minimum,
+    justifyContent: "center",
+  },
   action: { textDecorationLine: "underline" },
 });

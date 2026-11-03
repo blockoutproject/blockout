@@ -1,3 +1,4 @@
+import { PageFlatList } from "../../../shared/components/page-list";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { AccessFeedback } from "../../access/components/access-feedback";
@@ -7,6 +8,7 @@ import { BottomContentSpacer } from "../../../shared/components/bottom-content-i
 import {
   Page,
   PageScrollView,
+  PageContent,
   pageContentStyle,
 } from "../../../shared/components/page";
 import { isAccessDenied } from "../../../shared/api/access-denied";
@@ -18,11 +20,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { useRouter } from "expo-router";
 import { ChevronRight, Plus } from "lucide-react-native";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { DivisionResponse } from "../../../../.generated/schemas/index.zod";
 import { IconButton } from "../../../shared/components/icon-button";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
+import { Button } from "../../../shared/components/button";
 import { SearchField } from "../../../shared/components/search-field";
 
 import { DivisionsLoading } from "../components/divisions-loading";
@@ -66,39 +69,41 @@ export function DivisionsScreen() {
         ) ?? [])
       : [];
   const feedback = useActionFeedback();
+  const FeedbackLayout =
+    authority.sessionStatus === "restoring" ||
+    (authority.sessionStatus === "authenticated" && authority.account.isPending)
+      ? PageContent
+      : ScreenState;
   const blockingState = !authority.enabled ? (
-    <AccessFeedback {...authority} />
+    <AccessFeedback {...authority} loadingContent={<DivisionsLoading />} />
   ) : undefined;
+  /** Rereads the current catalogue without changing its activity/search context or replaying commands. */
+  async function refresh() {
+    const result = await query.refetch();
+    if (result.isError && result.data && !isAccessDenied(result.error))
+      feedback.error();
+  }
   return (
-    <Page>
-      <PageHeader title="Divisions" />
+    <Page header={<PageHeader title="Divisions" />}>
       {blockingState ? (
         <PageScrollView>
-          <ScreenState>{blockingState}</ScreenState>
+          <FeedbackLayout>{blockingState}</FeedbackLayout>
         </PageScrollView>
       ) : (
         <>
-          <FlatList
+          <PageFlatList
             {...hiddenScrollIndicators}
-            alwaysBounceVertical={!!query.data && !denied}
+            alwaysBounceVertical={items.length > 0 && !denied}
             refreshControl={
               query.data &&
+              items.length > 0 &&
               !denied &&
               authority.sessionStatus === "authenticated" ? (
                 <DataRefreshControl
                   refreshing={
                     query.isRefetching || authority.account.isRefetching
                   }
-                  onRefresh={() => {
-                    void query.refetch().then((result) => {
-                      if (
-                        result.isError &&
-                        result.data &&
-                        !isAccessDenied(result.error)
-                      )
-                        feedback.error();
-                    });
-                  }}
+                  onRefresh={() => void refresh()}
                 />
               ) : undefined
             }
@@ -113,7 +118,7 @@ export function DivisionsScreen() {
             ListFooterComponent={BottomContentSpacer}
             ListHeaderComponent={
               <View
-                style={[!items.length && pageContentStyle, styles.controls]}
+                style={[styles.controls, !items.length && styles.emptyControls]}
               >
                 <View style={styles.toolbar}>
                   <View style={styles.search}>
@@ -228,16 +233,7 @@ export function DivisionsScreen() {
                     />
                   ) : query.isError && !query.data ? (
                     <ErrorState
-                      onRetry={() =>
-                        void query.refetch().then((result) => {
-                          if (
-                            result.isError &&
-                            result.data &&
-                            !isAccessDenied(result.error)
-                          )
-                            feedback.error();
-                        })
-                      }
+                      onRetry={() => void refresh()}
                       retrying={query.isFetching}
                     />
                   ) : (
@@ -249,7 +245,13 @@ export function DivisionsScreen() {
                             ? "Aucune division active"
                             : "Aucune division inactive"
                       }
-                    />
+                    >
+                      <Button
+                        label="Actualiser"
+                        onPress={() => void refresh()}
+                        loading={query.isFetching}
+                      />
+                    </EmptyState>
                   )}
                 </ScreenState>
               )
@@ -344,6 +346,12 @@ function DivisionCard({
 const styles = StyleSheet.create({
   list: { flexGrow: 1 },
   controls: { gap: tokens.spacing.lg, marginBottom: tokens.spacing["2xl"] },
+  // Empty feedback owns its own content inset; controls must not add another trailing reserve.
+  emptyControls: {
+    paddingHorizontal: tokens.spacing.screen,
+    paddingTop: tokens.layout.content.start,
+    marginBottom: 0,
+  },
   toolbar: { flexDirection: "row", gap: tokens.spacing.sm },
   search: { flex: 1, minWidth: 0 },
   add: {

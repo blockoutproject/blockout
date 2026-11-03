@@ -9,10 +9,11 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { useSearchVisit } from "../forms/search-visit";
 import { reconcileSearchFilters } from "../model/search-filters";
-import { Page, PageContent } from "../../../shared/components/page";
+import { Page } from "../../../shared/components/page";
 import { PagedTabs } from "../../../shared/components/paged-tabs";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { ListContinuation } from "../../../shared/components/list-continuation";
+import { Button } from "../../../shared/components/button";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -40,7 +41,11 @@ import {
   useDiscoveryQuery,
   useSearchExamplesQuery,
 } from "../api/use-discovery-query";
-import { SearchHeading, SearchResults } from "../components/search-results";
+import {
+  SearchHeading,
+  SearchResults,
+  SearchResultsContent,
+} from "../components/search-results";
 import { SearchLoading } from "../components/search-loading";
 import { uniqueSearchResults, type SearchResult } from "../model/search-result";
 
@@ -71,7 +76,7 @@ export function SearchScreen() {
     tokens.typography.body.lineHeight * fontScale + tokens.spacing.md * 2,
   );
   const [resource, setResource] = useState<DiscoveryResource>("team");
-  const { control, reset } = useForm<SearchValues>({
+  const { control, reset, setFocus } = useForm<SearchValues>({
     defaultValues: searchValues(),
     resolver: zodResolver(searchSchema),
     mode: "onChange",
@@ -147,7 +152,7 @@ export function SearchScreen() {
       selection.apply(reconcileSearchFilters(undefined, selection.query.data));
   }
   return (
-    <Page>
+    <Page fullBleed>
       <PagedTabs
         selected={resource}
         onSelect={(id) => {
@@ -156,6 +161,10 @@ export function SearchScreen() {
         tabs={searchTabs.map(({ id, label }) => ({
           id,
           label,
+          resetKey: hashKey([
+            textKey,
+            id === "club" ? undefined : visit[id].filters,
+          ]),
           content: (
             <SearchScene
               resource={id}
@@ -169,6 +178,14 @@ export function SearchScreen() {
               exampleQuery={exampleQueries[id]}
               examples={examples}
               items={items[id]}
+              emptyActionLabel={
+                !examples || changed ? "Effacer les critères" : "Rechercher"
+              }
+              onEmptyAction={
+                !examples || changed
+                  ? () => clearCriteria(id)
+                  : () => setFocus("q")
+              }
             />
           ),
         }))}
@@ -297,6 +314,8 @@ function SearchScene({
   exampleQuery,
   examples,
   items: textItems,
+  emptyActionLabel,
+  onEmptyAction,
 }: {
   resource: DiscoveryResource;
   criteria: string;
@@ -306,6 +325,8 @@ function SearchScene({
   exampleQuery: ReturnType<typeof useSearchExamplesQuery>;
   examples: boolean;
   items: readonly SearchResult[];
+  emptyActionLabel: string;
+  onEmptyAction: () => void;
 }) {
   const visit = useSearchVisit();
   const query = examples ? exampleQuery : textQuery;
@@ -359,6 +380,13 @@ function SearchScene({
         retrying={query.isFetching}
       />
     ) : undefined;
+  const filtersPending =
+    !!sporting && (sporting.query.isPending || sporting.query.isFetching);
+  const initialLoading = (
+    <SearchResultsContent>
+      <SearchLoading />
+    </SearchResultsContent>
+  );
   return (
     <SearchResults
       key={criteria}
@@ -373,26 +401,27 @@ function SearchScene({
       }}
       emptyComponent={
         !searchable && !examples ? null : sporting && !filters ? (
-          <ScreenState>
-            <ReadFeedback
-              query={{
-                ...sporting.query,
-                isPending:
-                  sporting.query.isPending || sporting.query.isFetching,
-              }}
-            />
-          </ScreenState>
+          filtersPending ? (
+            initialLoading
+          ) : (
+            <ScreenState>
+              <ReadFeedback
+                query={{ ...sporting.query, isPending: filtersPending }}
+                loadingContent={<SearchLoading />}
+              />
+            </ScreenState>
+          )
         ) : query.isPending ? (
-          <PageContent>
-            <SearchLoading />
-          </PageContent>
+          initialLoading
         ) : (
           <ScreenState>
             {error ?? (
               <EmptyState
                 title="Aucun résultat pour ces critères"
                 description="Essayez un autre nom."
-              />
+              >
+                <Button label={emptyActionLabel} onPress={onEmptyAction} />
+              </EmptyState>
             )}
           </ScreenState>
         )
@@ -423,7 +452,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
-    paddingHorizontal: tokens.spacing.screen,
+    paddingRight: tokens.spacing.screen,
   },
   tabs: { flex: 1, minWidth: 0 },
   toolbar: {
@@ -451,10 +480,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  // One search composition owns equal spacing from tabs to input and from input to its heading.
+  // SearchHeading owns the same compact row and touch clearance in every state.
   controls: {
     paddingHorizontal: tokens.spacing.screen,
     paddingTop: tokens.spacing.sm,
-    gap: tokens.spacing.sm,
   },
 });

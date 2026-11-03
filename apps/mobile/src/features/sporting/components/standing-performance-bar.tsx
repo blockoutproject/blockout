@@ -2,8 +2,9 @@ import { StyleSheet, View } from "react-native";
 import type { StandingRowResponse } from "../../../../.generated/schemas/index.zod";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import { standingColumnLabel } from "../model/standing-columns";
 
-/** An optional decorative ratio requires exact published G/P counts; it never supplies missing numbers. */
+/** An optional decorative bar uses published match-count aliases; it never supplies missing numbers. */
 export function StandingPerformanceBar({
   row,
   columns,
@@ -11,11 +12,16 @@ export function StandingPerformanceBar({
   row: StandingRowResponse;
   columns: readonly string[];
 }) {
-  const won = row.statistics.G;
-  const lost = row.statistics.P;
+  const wonColumn = columns.find(
+    (column) => standingColumnLabel(column) === "G",
+  );
+  const lostColumn = columns.find(
+    (column) => standingColumnLabel(column) === "P",
+  );
+  const won = wonColumn === undefined ? undefined : row.statistics[wonColumn];
+  const lost =
+    lostColumn === undefined ? undefined : row.statistics[lostColumn];
   if (
-    !columns.includes("G") ||
-    !columns.includes("P") ||
     won === undefined ||
     lost === undefined ||
     !/^\d+$/.test(won) ||

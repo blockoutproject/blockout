@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from "react";
 import { StyleSheet, View } from "react-native";
+import { LoadingGroup } from "../../../shared/components/loading-group";
 import { Skeleton } from "../../../shared/components/skeleton";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -7,46 +8,40 @@ import { tokens } from "../../../shared/theme/tokens";
 /** F12 control and content placeholders, Product Design 6019:46584 and 6019:46595. */
 export function MaintenanceLoading() {
   return (
-    <View
-      accessible
-      accessibilityRole="progressbar"
-      accessibilityLabel="Chargement des réglages de maintenance"
-      accessibilityState={{ busy: true }}
-      accessibilityLiveRegion="polite"
-      pointerEvents="none"
+    <LoadingGroup
+      label="Chargement des réglages de maintenance"
       style={styles.stack}
     >
       <SettingsCard>
         <View style={styles.controlHeading}>
-          <Skeleton width={34} height={34} shape="rectangle" />
+          <Skeleton
+            width={tokens.size.icon.lg}
+            height={tokens.size.icon.lg}
+            shape="rectangle"
+          />
           <View style={styles.controlTitle}>
             <Skeleton />
           </View>
           <Skeleton width={48} height={24} shape="rectangle" />
         </View>
-        <Skeleton height={44} shape="rectangle" />
+        <Skeleton height={tokens.size.control.default} shape="rectangle" />
       </SettingsCard>
       <SettingsCard>
         <Skeleton width={160} height={20} />
         <Skeleton width={90} height={14} />
         <Skeleton height={96} shape="rectangle" />
         <Skeleton width={110} height={14} />
-        <Skeleton height={48} shape="rectangle" />
+        <Skeleton height={tokens.size.control.default} shape="rectangle" />
       </SettingsCard>
-    </View>
+    </LoadingGroup>
   );
 }
 
 /** F12 platform summaries followed by the shared editor, Product Design 6053:46877 and 6019:46606. */
 export function ApplicationVersionsLoading() {
   return (
-    <View
-      accessible
-      accessibilityRole="progressbar"
-      accessibilityLabel="Chargement des réglages de versions"
-      accessibilityState={{ busy: true }}
-      accessibilityLiveRegion="polite"
-      pointerEvents="none"
+    <LoadingGroup
+      label="Chargement des réglages de versions"
       style={styles.stack}
     >
       <View style={styles.platforms}>
@@ -61,9 +56,9 @@ export function ApplicationVersionsLoading() {
         <Skeleton width={160} height={20} />
         <Skeleton width={90} height={14} />
         <Skeleton height={96} shape="rectangle" />
-        <Skeleton height={48} shape="rectangle" />
+        <Skeleton height={tokens.size.control.default} shape="rectangle" />
       </SettingsCard>
-    </View>
+    </LoadingGroup>
   );
 }
 

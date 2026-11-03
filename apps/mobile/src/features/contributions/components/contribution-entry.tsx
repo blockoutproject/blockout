@@ -1,5 +1,6 @@
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text } from "react-native";
+import { ContributionEntryLoading } from "./contribution-loading";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { Button, type ButtonProps } from "../../../shared/components/button";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -139,7 +140,10 @@ export function ContributionEntry({
     ) : null;
   if (entry.publicOwnershipUnknown)
     return entry.ownershipRead ? (
-      <ReadFeedback query={entry.ownershipRead} />
+      <ReadFeedback
+        query={entry.ownershipRead}
+        loadingContent={<ContributionEntryLoading />}
+      />
     ) : null;
   if (!entry.ownsPublic && !entry.canPropose) return null;
   return (

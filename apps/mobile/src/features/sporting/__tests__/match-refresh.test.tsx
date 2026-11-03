@@ -47,6 +47,9 @@ jest.mock("react-native-auth0", () => {
 });
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
+  // These isolated features control native focus; route integration suites keep Router itself.
+  useFocusEffect: (effect: () => void | (() => void)) =>
+    jest.requireActual("react").useEffect(effect, [effect]),
   useRouter: () => ({ back: mockBack, push: mockPush, canGoBack: () => true }),
   useNavigation: () => ({ isFocused: () => true }),
 }));
@@ -354,9 +357,10 @@ it("refreshes only the active club tab while preserving common information and s
   await screen.findByText("Aucun match pour cette sélection");
   await waitFor(() => expect(client.isFetching()).toBe(0));
   mockFetch.mockClear();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
 
-  // When
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  // When: the empty active calendar owns refresh on its card, not through a native gesture.
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
   await waitFor(() => expect(mockFetch).toHaveBeenCalled());
   await waitFor(() => expect(client.isFetching()).toBe(0));
 

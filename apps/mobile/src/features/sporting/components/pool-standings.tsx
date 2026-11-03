@@ -1,6 +1,8 @@
+import { PageScrollView, PageContent } from "../../../shared/components/page";
 import {
   standingColumnLabel,
   standingPointsColumn,
+  standingVisibleColumns,
 } from "../model/standing-columns";
 import { useQuery } from "@tanstack/react-query";
 import { useSportingNavigation } from "../navigation";
@@ -13,8 +15,8 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { PageContent } from "../../../shared/components/page";
-import { SportingScrollView } from "./sporting-tabs";
+import { Button } from "../../../shared/components/button";
+
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { EmptyState, ErrorState } from "../../../shared/components/state-card";
@@ -24,6 +26,7 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 import { SportingLogo } from "./sporting-identity";
 import { StandingCards } from "./standing-cards";
+import { StandingsLoading } from "./standings-loading";
 
 /** One exact pool's independently retained table; team emphasis uses identity alone, never rank. */
 export interface PoolStandingsProps {
@@ -31,11 +34,11 @@ export interface PoolStandingsProps {
   highlightTeamId?: string;
   /** Retained inactive panels cannot refresh or release an old sporting opening. */
   active?: boolean;
-  /** Optional phase navigation belongs above this table in a team participation panel. */
+  /** Optional exact pool entry shares the compact row with the layout controls. */
   children?: ReactNode;
 }
 
-/** Reads the admitted scene through the generated client and retains its ordinary native scroller. */
+/** Retains the native scroller; empty tables reload on their card and populated tables keep native refresh. */
 export function PoolStandings({
   pool,
   highlightTeamId,
@@ -52,7 +55,7 @@ export function PoolStandings({
     currentActive.current = active;
   }, [active]);
   const data = standings.data;
-  const columns = data?.columns ?? [];
+  const columns = standingVisibleColumns(data?.columns ?? []);
 
   /** Refetches only this table; ordinary failure preserves its original supplier attribution. */
   async function refresh() {
@@ -71,72 +74,102 @@ export function PoolStandings({
 
   const hasRows = data?.availability === "available" && data.rows.length > 0;
 
-  const refreshControl =
-    data && data.availability !== "unavailable" ? (
-      <DataRefreshControl
-        refreshing={standings.isRefetching}
-        onRefresh={() => void refresh()}
-        enabled={active}
-      />
-    ) : undefined;
+  const refreshControl = hasRows ? (
+    <DataRefreshControl
+      refreshing={standings.isRefetching}
+      onRefresh={() => void refresh()}
+      enabled={active}
+    />
+  ) : undefined;
+  const headerRow = (
+    <View style={styles.headerRow}>
+      {children && <View style={styles.participation}>{children}</View>}
+      <View
+        style={styles.toolbar}
+        accessibilityRole="radiogroup"
+        accessibilityLabel="Présentation du classement"
+      >
+        {(
+          [
+            ["cards", "Afficher en cartes", Columns3],
+            ["list", "Afficher en liste", List],
+          ] as const
+        ).map(([value, label, Icon]) => (
+          <Pressable
+            key={value}
+            accessibilityRole="radio"
+            accessibilityLabel={label}
+            accessibilityState={{ checked: layout === value }}
+            onPress={() => setLayout(value)}
+            style={styles.layoutAction}
+          >
+            <View
+              style={[
+                styles.layoutVisual,
+                {
+                  backgroundColor: layout === value ? colors.subtle : undefined,
+                },
+              ]}
+            >
+              <Icon size={tokens.size.icon.md} color={colors.icon} />
+            </View>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
   if (!hasRows)
     return (
-      <SportingScrollView refreshControl={refreshControl}>
-        {children && <PageContent>{children}</PageContent>}
-        <ScreenState>
-          {!data ? (
-            <ReadFeedback query={standings} />
-          ) : data.availability === "unavailable" ? (
-            <ErrorState
-              onRetry={() => void refresh()}
-              retrying={standings.isFetching}
-            />
-          ) : (
-            <EmptyState
-              title={
-                data.availability === "not-published"
-                  ? "Pas de classement pour cette phase"
-                  : "Aucune équipe dans ce classement"
-              }
-            />
-          )}
-        </ScreenState>
-      </SportingScrollView>
+      <PageScrollView refreshControl={refreshControl}>
+        {standings.isPending ? (
+          <PageContent style={styles.content}>
+            <View style={styles.standings}>
+              {headerRow}
+              <StandingsLoading layout={layout} />
+            </View>
+          </PageContent>
+        ) : (
+          <>
+            {children && (
+              <PageContent style={styles.stateControls}>{children}</PageContent>
+            )}
+            <ScreenState>
+              {!data ? (
+                <ReadFeedback
+                  query={standings}
+                  loadingContent={<StandingsLoading layout={layout} />}
+                />
+              ) : data.availability === "unavailable" ? (
+                <ErrorState
+                  onRetry={() => void refresh()}
+                  retrying={standings.isFetching}
+                />
+              ) : (
+                <EmptyState
+                  title={
+                    data.availability === "not-published"
+                      ? "Pas de classement pour cette phase"
+                      : "Aucune équipe dans ce classement"
+                  }
+                >
+                  <Button
+                    label="Actualiser"
+                    onPress={() => void refresh()}
+                    loading={standings.isFetching}
+                    disabled={!active}
+                  />
+                </EmptyState>
+              )}
+            </ScreenState>
+          </>
+        )}
+      </PageScrollView>
     );
   return (
-    <SportingScrollView alwaysBounceVertical refreshControl={refreshControl}>
-      <PageContent>
-        {children}
-        <View>
-          <View
-            style={styles.toolbar}
-            accessibilityRole="radiogroup"
-            accessibilityLabel="Présentation du classement"
-          >
-            {(
-              [
-                ["cards", "Afficher en cartes", Columns3],
-                ["list", "Afficher en liste", List],
-              ] as const
-            ).map(([value, label, Icon]) => (
-              <Pressable
-                key={value}
-                accessibilityRole="radio"
-                accessibilityLabel={label}
-                accessibilityState={{ checked: layout === value }}
-                onPress={() => setLayout(value)}
-                style={[
-                  styles.layoutAction,
-                  {
-                    backgroundColor:
-                      layout === value ? colors.subtle : undefined,
-                  },
-                ]}
-              >
-                <Icon size={tokens.size.icon.md} color={colors.icon} />
-              </Pressable>
-            ))}
-          </View>
+    <PageScrollView alwaysBounceVertical refreshControl={refreshControl}>
+      <PageContent style={styles.content}>
+        <View style={styles.standings}>
+          {headerRow}
           {layout === "cards" ? (
             <StandingCards rows={data.rows} columns={columns} active={active} />
           ) : (
@@ -158,7 +191,7 @@ export function PoolStandings({
           )}
         </View>
       </PageContent>
-    </SportingScrollView>
+    </PageScrollView>
   );
 }
 
@@ -235,7 +268,10 @@ function StandingEntry({
           />
         )}
         <View style={styles.copy}>
-          <Text style={[tokens.typography.strong, { color: colors.text }]}>
+          <Text
+            numberOfLines={1}
+            style={[tokens.typography.strong, { color: colors.text }]}
+          >
             {row.sourceName}
           </Text>
           <View style={styles.statistics}>
@@ -272,7 +308,7 @@ function StandingEntry({
               { color: colors.secondaryText },
             ]}
           >
-            {points}
+            {standingColumnLabel(points)}
           </Text>
         </View>
       )}
@@ -303,7 +339,18 @@ function StandingEntry({
 }
 
 const styles = StyleSheet.create({
+  stateControls: { paddingBottom: 0 },
+  content: { paddingTop: tokens.spacing.lg },
+  standings: { gap: tokens.spacing.lg },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: tokens.spacing.sm,
+  },
+  participation: { flex: 1, minWidth: 0 },
   toolbar: {
+    flexShrink: 0,
     flexDirection: "row",
     justifyContent: "flex-end",
     gap: tokens.spacing.xs,
@@ -313,15 +360,21 @@ const styles = StyleSheet.create({
     minHeight: tokens.touch.minimum,
     alignItems: "center",
     justifyContent: "center",
+  },
+  layoutVisual: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: tokens.radius.control,
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
-    paddingVertical: tokens.spacing.md,
+    paddingVertical: tokens.spacing.compact,
     borderBottomWidth: tokens.border.thin,
-    minHeight: tokens.sporting.teamMinHeight,
+    minHeight: tokens.sporting.standingsRowMinHeight,
   },
   marker: {
     position: "absolute",

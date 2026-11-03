@@ -332,11 +332,16 @@ it("announces pending collection navigation without inventing a season destinati
   await renderPreparation(<CollectionDashboardScreen />);
 
   // Then
-  expect(
-    await screen.findByRole("progressbar", {
-      name: "Chargement des collectes",
-    }),
-  ).toBeOnTheScreen();
+  // Admission and the held season read share the same announcement; assert its current host after either transition.
+  await waitFor(() =>
+    expect(
+      screen.getByRole("progressbar", {
+        name: "Chargement des collectes",
+        busy: true,
+      }),
+    ).toBeOnTheScreen(),
+  );
+  expect(screen.getAllByRole("progressbar")).toHaveLength(1);
   expect(
     screen.queryByRole("link", { name: "2026/2027, Active" }),
   ).not.toBeOnTheScreen();
@@ -813,6 +818,46 @@ it("launches an initial-import-locked qualified binding unchanged", async () => 
     revision: 5,
     sourceBindingIds: [sourceId],
   });
+});
+
+it("reloads empty source groups from their card and enables native refresh only after rows return", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderPreparation(
+    <SourceChildrenScreen seasonId={seasonId} sourceId={sourceId} />,
+  );
+  await screen.findByRole("header", { name: "Aucun groupe découvert" });
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  mockFetch.mockImplementation((url) =>
+    String(url).includes("/children")
+      ? Promise.resolve(
+          json({
+            items: [
+              {
+                id: "00000000-0000-4000-8000-000000000182",
+                label: "Phase régulière",
+                kind: "pool",
+              },
+            ],
+            page: 0,
+            hasNext: false,
+          }),
+        )
+      : reads(url),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
+
+  // Then
+  expect(await screen.findByText("Phase régulière")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
+  expect(screen.queryByRole("button", { name: "Actualiser" })).toBeNull();
+  expect(
+    mockFetch.mock.calls.every(
+      ([, options]) => !options?.method || options.method === "GET",
+    ),
+  ).toBe(true);
 });
 
 it("loads the next child page only from the visible idle list and retains bounded rows without an invented total", async () => {
@@ -1351,7 +1396,8 @@ it("hides retained source groups when the current catalog read is refused", asyn
 
   // Then
   expect(await screen.findByText("Aucun groupe découvert")).toBeOnTheScreen();
-  expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(screen.getByRole("button", { name: "Actualiser" })).toBeEnabled();
   expect(mockFetch).toHaveBeenCalledTimes(1);
 });
 
@@ -1463,6 +1509,52 @@ it("keeps refused season navigation hidden through a failed reread until a succe
     }),
   ).toBeEnabled();
   expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+});
+
+it("keeps discovered pools read-only even when the collector operator can classify sporting data", async () => {
+  // Given
+  permissions = { manageCollection: true, manageSportingClassification: true };
+  const packId = "00000000-0000-4000-8000-000000001181";
+  mockFetch.mockImplementation((url) =>
+    new URL(String(url)).pathname.endsWith("/children")
+      ? Promise.resolve(
+          json({
+            items: [
+              {
+                id: "00000000-0000-4000-8000-000000001182",
+                kind: "pool",
+                label: "E.Fém.A",
+                parentId: packId,
+              },
+            ],
+            page: 0,
+            hasNext: false,
+          }),
+        )
+      : reads(url),
+  );
+
+  // When
+  await renderPreparation(
+    <SourceChildrenScreen
+      seasonId={seasonId}
+      sourceId={sourceId}
+      parentId={packId}
+    />,
+  );
+
+  // Then
+  expect(await screen.findByText("E.Fém.A")).toBeOnTheScreen();
+  expect(screen.queryByText(/classification|mapping/i)).not.toBeOnTheScreen();
+  const read = mockFetch.mock.calls.find(([url]) =>
+    String(url).includes("/children"),
+  );
+  expect(new URL(String(read?.[0])).searchParams.get("parentId")).toBe(packId);
+  expect(
+    mockFetch.mock.calls.some(([url]) =>
+      String(url).includes("/classification"),
+    ),
+  ).toBe(false);
 });
 
 /** Captures the identity-owned private cache while retaining the public cache for fixture cleanup. */

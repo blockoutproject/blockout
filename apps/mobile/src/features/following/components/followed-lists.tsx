@@ -1,3 +1,4 @@
+import { PageList } from "../../../shared/components/page-list";
 import { useRef, useLayoutEffect, useState } from "react";
 import {
   hashKey,
@@ -8,7 +9,6 @@ import { useRouter } from "expo-router";
 import { Search } from "lucide-react-native";
 import { DisclosureChevron } from "../../../shared/components/disclosure-chevron";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { LegendList } from "@legendapp/list/react-native";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { PageScrollView } from "../../../shared/components/page";
 import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
@@ -24,6 +24,7 @@ import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import {
   SportingEntityCard,
+  SportingEntityCardLoading,
   type SportingEntityCardProps,
 } from "../../sporting/entity-card";
 import { useSportingNavigation } from "../../sporting/navigation";
@@ -175,7 +176,9 @@ export function FollowedLists(props: FollowedListsProps) {
         : []),
     ],
   );
-  const refreshControl = [teams, pools].some((list) => list.query.data) ? (
+  const refreshControl = [teams, pools].some(
+    (list) => list.items.length > 0,
+  ) ? (
     <DataRefreshControl
       enabled={props.active}
       refreshing={[teams, pools].some(
@@ -203,7 +206,7 @@ export function FollowedLists(props: FollowedListsProps) {
       </PageScrollView>
     );
   return (
-    <LegendList
+    <PageList
       {...hiddenScrollIndicators}
       accessibilityRole="list"
       accessibilityLabel="Équipes et poules suivies"
@@ -264,7 +267,20 @@ export function FollowedLists(props: FollowedListsProps) {
         return (
           <View style={styles.feedback}>
             {!list.query.data ? (
-              <ReadFeedback query={list.query} />
+              <ReadFeedback
+                query={list.query}
+                loadingContent={
+                  <View style={styles.card}>
+                    <SportingEntityCardLoading
+                      label={
+                        row.resource === "team"
+                          ? "Chargement des équipes suivies"
+                          : "Chargement des poules suivies"
+                      }
+                    />
+                  </View>
+                }
+              />
             ) : !list.items.length && !list.query.hasNextPage ? (
               <NoAvailableFollows />
             ) : (

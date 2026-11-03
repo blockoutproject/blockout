@@ -217,6 +217,7 @@ async function open(content = panel(), settleReads = true) {
       </GestureHandlerRootView>
     ),
   });
+  await layoutNativeTabs();
   if (settleReads) {
     await waitFor(() => expect(client.isFetching()).toBe(0));
     await layoutNativeTabs();
@@ -374,6 +375,22 @@ it("distinguishes no usable locations from no participating teams", async () => 
       .filter((node) => node.props.coordinate !== undefined),
   ).toHaveLength(0);
   expect(screen.queryByText(/Aucune équipe/)).toBeNull();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  mockFetch.mockClear();
+
+  // When: missing geography is reloaded through the existing map read action.
+  await userEvent.press(screen.getByRole("button", { name: "Actualiser" }));
+
+  // Then: participant and optional record owners remain independent and no map is invented.
+  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
+  expect(
+    mockFetch.mock.calls.map(([url]) => new URL(url).pathname).sort(),
+  ).toEqual([
+    `/pools/${pool.pool.id}/participants`,
+    `/pools/${pool.pool.id}/standings`,
+  ]);
+  await screen.findByRole("button", { name: "Actualiser", busy: false });
+  expect(screen.getByText("Aucune localisation disponible")).toBeOnTheScreen();
 });
 
 it("matches optional standings by exact team UUID without borrowing a source-name match", async () => {

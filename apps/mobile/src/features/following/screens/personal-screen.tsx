@@ -1,3 +1,4 @@
+import { PageViewport } from "../../../shared/components/navigation-backdrop";
 import { useState, type ReactNode } from "react";
 import { useRouter, useIsFocused } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
@@ -5,7 +6,11 @@ import {
   useAccountSession,
   useCurrentAccount,
 } from "../../accounts/current-account";
-import { Page, PageScrollView } from "../../../shared/components/page";
+import {
+  Page,
+  PageContent,
+  PageScrollView,
+} from "../../../shared/components/page";
 import { BrandMark } from "../../../shared/components/brand-mark";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { PagedTabs } from "../../../shared/components/paged-tabs";
@@ -14,6 +19,8 @@ import { FollowedLists } from "../components/followed-lists";
 import { Tabs } from "../../../shared/components/tabs";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { CalendarLoading } from "../../sporting/calendar";
+import { SportingEntityCardLoading } from "../../sporting/entity-card";
 import { Button } from "../../../shared/components/button";
 import { tokens } from "../../../shared/theme/tokens";
 import {
@@ -32,10 +39,9 @@ export function PersonalScreen() {
   const router = useRouter();
   const scope = usePersonalSeasonScope();
   return session.status === "guest" ? (
-    <Page>
-      <PersonalHeader />
+    <Page header={<PersonalHeader />}>
       <PageScrollView>
-        <ScreenState>
+        <ScreenState style={styles.guest}>
           <Button
             label="Se connecter"
             onPress={() =>
@@ -51,23 +57,35 @@ export function PersonalScreen() {
   ) : scope ? (
     <PersonalSpace key={scope.owner.subject} scope={scope} />
   ) : (
-    <Page>
-      <PersonalHeader />
+    <Page header={<PersonalHeader />}>
       <PageScrollView>
-        <ScreenState>
-          <ReadFeedback query={profile} />
-        </ScreenState>
+        {profile.isPending ? (
+          <PageContent>
+            <CalendarLoading label="Chargement de l'accueil" />
+          </PageContent>
+        ) : (
+          <ScreenState>
+            <ReadFeedback
+              query={profile}
+              loadingContent={
+                <CalendarLoading label="Chargement de l'accueil" />
+              }
+            />
+          </ScreenState>
+        )}
       </PageScrollView>
     </Page>
   );
 }
-/** The branded heading stays above the opaque personal controls and independent scenes. */
+/** Keeps fully named, one-line Home branding in ordinary chrome and the pager's collapsible header. */
 function PersonalHeader() {
   const { colors } = useTheme();
   return (
     <View style={styles.header} accessible accessibilityLabel="Blockout">
       <BrandMark />
       <Text
+        numberOfLines={1}
+        ellipsizeMode="tail"
         style={[
           tokens.typography.headingXl,
           { color: colors.text, flexShrink: 1 },
@@ -85,6 +103,13 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
   const [tab, setTab] = useState("upcoming");
   const focused = useIsFocused();
   const ready = usable && !!season.options.data && !blocked;
+  const blockingQuery = !usable ? profile : season.options;
+  const loadingContent =
+    tab === "following" ? (
+      <SportingEntityCardLoading label="Chargement des suivis" />
+    ) : (
+      <CalendarLoading />
+    );
   /** Composes the native pager bar or non-paged admission choices beside the same season owner. */
   function controls(tabBar: ReactNode) {
     return (
@@ -100,12 +125,14 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
     );
   }
   return (
-    <Page>
+    <Page fullBleed>
       {ready ? (
         <PagedTabs
+          resetKey={season.seasonId ?? "all-seasons"}
           selected={tab}
           onSelect={setTab}
-          header={<PersonalHeader />}
+          collapsibleHeader={<PersonalHeader />}
+          fadeHeaderOnScroll
           renderTabBar={controls}
           tabs={tabs.map(({ id, label }) => ({
             id,
@@ -134,22 +161,34 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
           }))}
         />
       ) : (
-        <>
-          <PersonalHeader />
-          {controls(
-            <Tabs
-              size="compact"
-              items={tabs}
-              selected={tab}
-              onSelect={setTab}
-            />,
-          )}
+        <PageViewport
+          header={
+            <>
+              <PersonalHeader />
+              {controls(
+                <Tabs
+                  size="compact"
+                  items={tabs}
+                  selected={tab}
+                  onSelect={setTab}
+                />,
+              )}
+            </>
+          }
+        >
           <PageScrollView>
-            <ScreenState>
-              <ReadFeedback query={!usable ? profile : season.options} />
-            </ScreenState>
+            {blockingQuery.isPending ? (
+              <PageContent>{loadingContent}</PageContent>
+            ) : (
+              <ScreenState>
+                <ReadFeedback
+                  query={blockingQuery}
+                  loadingContent={loadingContent}
+                />
+              </ScreenState>
+            )}
           </PageScrollView>
-        </>
+        </PageViewport>
       )}
     </Page>
   );
@@ -160,6 +199,7 @@ const tabs = [
   { id: "following", label: "Suivis" },
 ] as const;
 const styles = StyleSheet.create({
+  guest: { justifyContent: "center" },
   header: {
     minHeight: tokens.layout.header,
     marginHorizontal: tokens.spacing.lg,
@@ -168,10 +208,11 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.sm,
   },
   controls: {
+    paddingTop: tokens.spacing.sm,
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
-    paddingHorizontal: tokens.spacing.lg,
+    paddingRight: tokens.spacing.screen,
   },
   tabs: { flex: 1, minWidth: 0 },
 });

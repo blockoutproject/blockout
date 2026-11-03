@@ -1,16 +1,20 @@
-import type { PropsWithChildren } from "react";
 import { StyleSheet, View } from "react-native";
+import { LoadingGroup } from "../../../shared/components/loading-group";
 import { Skeleton } from "../../../shared/components/skeleton";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
-/** Decorative queue cards occupy the same list region as the eventual private sporting summaries. */
+/** Two decorative match cards reserve the first read of the moderation queue. */
 export function ModerationQueueLoading() {
   return (
-    <LoadingState label="Chargement de la file de modération">
-      <MatchPlaceholder />
-      <MatchPlaceholder />
-    </LoadingState>
+    <LoadingGroup
+      label="Chargement de la file de modération"
+      style={styles.stack}
+    >
+      {Array.from({ length: 2 }, (_, index) => (
+        <MatchPlaceholder key={index} />
+      ))}
+    </LoadingGroup>
   );
 }
 
@@ -21,39 +25,39 @@ export function ModerationMatchLoading({
   editor?: boolean;
 }) {
   return (
-    <LoadingState label="Chargement des liens du match">
+    <LoadingGroup label="Chargement des liens du match" style={styles.stack}>
       <MatchPlaceholder />
       <VersionPlaceholder editor={editor} />
       {!editor && <VersionPlaceholder />}
-    </LoadingState>
+    </LoadingGroup>
   );
 }
 
 /** A related exact member has no sporting header and uses the same version placeholder. */
 export function ModerationVersionLoading() {
   return (
-    <LoadingState label="Chargement de la version du lien">
+    <LoadingGroup label="Chargement de la version du lien" style={styles.stack}>
       <VersionPlaceholder />
-    </LoadingState>
+    </LoadingGroup>
   );
 }
 
 /** Bounded reason rows stay inside their report section while its first read is pending. */
 export function ModerationReportsLoading() {
   return (
-    <LoadingState label="Chargement des signalements">
+    <LoadingGroup label="Chargement des signalements" style={styles.stack}>
       <Skeleton width="42%" height={tokens.typography.metadata.lineHeight} />
       <Skeleton width="90%" />
       <Skeleton width="38%" height={tokens.typography.metadata.lineHeight} />
       <Skeleton width="75%" />
-    </LoadingState>
+    </LoadingGroup>
   );
 }
 
 /** Canonical filter metadata loads with the field/action shape used by the existing search filter sheet. */
 export function ModerationFiltersLoading() {
   return (
-    <LoadingState label="Chargement des filtres des liens">
+    <LoadingGroup label="Chargement des filtres des liens" style={styles.stack}>
       {["season", "platform", "state"].map((field) => (
         <View key={field} style={styles.stack}>
           <Skeleton
@@ -64,27 +68,7 @@ export function ModerationFiltersLoading() {
         </View>
       ))}
       <Skeleton height={tokens.size.control.default} shape="rectangle" />
-    </LoadingState>
-  );
-}
-
-/** One native announcement owns the pending state; all child shapes remain decorative and noninteractive. */
-function LoadingState({
-  label,
-  children,
-}: PropsWithChildren<{ label: string }>) {
-  return (
-    <View
-      accessible
-      accessibilityRole="progressbar"
-      accessibilityLabel={label}
-      accessibilityState={{ busy: true }}
-      accessibilityLiveRegion="polite"
-      pointerEvents="none"
-      style={styles.stack}
-    >
-      {children}
-    </View>
+    </LoadingGroup>
   );
 }
 

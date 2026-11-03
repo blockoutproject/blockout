@@ -1,27 +1,58 @@
 import { useRouter } from "expo-router";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { ChevronLeft } from "lucide-react-native";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import Animated, {
+  useAnimatedProps,
+  useAnimatedStyle,
+  useDerivedValue,
+  type SharedValue,
+} from "react-native-reanimated";
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
 import { IconButton } from "./icon-button";
+import { useReducedMotion } from "../theme/use-reduced-motion";
 
 /** Ordinary back navigation with an optional centered identity; direct entry returns home. */
 export interface PageHeaderProps {
   title?: string;
-  /** A composed compact identity may replace the plain title while preserving the balanced rails. */
+  /** A composed compact identity may replace the plain title between the navigation rails. */
   children?: ReactNode;
   /** An owner-supplied action remains available independently of the detail read. */
   action?: ReactNode;
+  /** Native normalized reveal affects only the center; navigation and actions remain available. */
+  revealProgress?: SharedValue<number>;
 }
 
-/** UI Library Top Bar: equal control rails keep the title centered as native text grows. */
-export function PageHeader({ title, children, action }: PageHeaderProps) {
+/** Native action layout reserves equal side rails so the one-line identity stays centered without overlapping actions. */
+export function PageHeader({
+  title,
+  children,
+  action,
+  revealProgress,
+}: PageHeaderProps) {
   const router = useRouter();
   const { colors } = useTheme();
+  const [actionWidth, setActionWidth] = useState(tokens.size.control.default);
+  const reducedMotion = useReducedMotion();
+  const visibility = useDerivedValue(() => {
+    const progress = revealProgress?.get() ?? 1;
+    return reducedMotion ? (progress >= 1 ? 1 : 0) : progress;
+  });
+  const center = useAnimatedStyle(() => ({ opacity: visibility.get() }));
+  const accessibility = useAnimatedProps(() => {
+    const hidden = visibility.get() <= 0;
+    return {
+      accessible: !hidden && Boolean(title),
+      accessibilityElementsHidden: hidden,
+      importantForAccessibility: hidden
+        ? ("no-hide-descendants" as const)
+        : ("auto" as const),
+    };
+  });
   return (
     <View style={styles.header}>
-      <View style={styles.rail}>
+      <View style={[styles.rail, { width: actionWidth }]}>
         <IconButton
           label="Retour"
           onPress={() =>
@@ -36,28 +67,35 @@ export function PageHeader({ title, children, action }: PageHeaderProps) {
         </IconButton>
       </View>
       {children ? (
-        <View
+        <Animated.View
           accessible={Boolean(title)}
           accessibilityRole="header"
           accessibilityLabel={title}
-          style={styles.middle}
+          animatedProps={accessibility}
+          style={[styles.middle, center]}
         >
           {children}
-        </View>
+        </Animated.View>
       ) : title ? (
-        <Text
+        <Animated.Text
           accessibilityRole="header"
           accessibilityLabel={title}
           numberOfLines={1}
           ellipsizeMode="tail"
-          style={[styles.title, { color: colors.text }]}
+          animatedProps={accessibility}
+          style={[styles.title, { color: colors.text }, center]}
         >
           {title}
-        </Text>
+        </Animated.Text>
       ) : (
         <View style={styles.title} />
       )}
-      <View style={styles.rail}>{action}</View>
+      <View
+        style={styles.actions}
+        onLayout={({ nativeEvent }) => setActionWidth(nativeEvent.layout.width)}
+      >
+        {action}
+      </View>
     </View>
   );
 }
@@ -69,7 +107,13 @@ const styles = StyleSheet.create({
     minHeight: tokens.layout.header,
     paddingHorizontal: tokens.spacing.lg,
   },
-  rail: { width: tokens.size.control.default, alignItems: "center" },
+  rail: { alignItems: "flex-start" },
+  actions: {
+    minWidth: tokens.size.control.default,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+  },
   middle: { flex: 1, minWidth: 0, alignItems: "center" },
   title: { ...tokens.typography.navigation, flex: 1, textAlign: "center" },
 });

@@ -1,13 +1,14 @@
+import { PageList } from "../../../shared/components/page-list";
 import {
   PageScrollView,
+  PageContent,
   pageContentStyle,
 } from "../../../shared/components/page";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import type { ReactElement, ReactNode } from "react";
-import { LegendList } from "@legendapp/list/react-native";
+import type { PropsWithChildren, ReactElement, ReactNode } from "react";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { SearchResultCard } from "./search-result-card";
@@ -24,6 +25,11 @@ export interface SearchResultsProps {
   onOpen(item: SearchResult): void;
 }
 
+/** Pending cards use the same content edge as the list beneath the fixed Examples/Results heading. */
+export function SearchResultsContent({ children }: PropsWithChildren) {
+  return <PageContent style={styles.cards}>{children}</PageContent>;
+}
+
 /** Native rows and ordinary feedback share the viewport below the fixed Search controls. */
 export function SearchResults({
   items,
@@ -36,7 +42,7 @@ export function SearchResults({
   if (items.length === 0)
     return <PageScrollView>{emptyComponent}</PageScrollView>;
   return (
-    <LegendList
+    <PageList
       {...hiddenScrollIndicators}
       accessibilityRole="list"
       accessibilityLabel={examples ? "Exemples" : "Résultats de recherche"}

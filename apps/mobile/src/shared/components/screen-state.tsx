@@ -2,8 +2,9 @@ import { StyleSheet, View, type ViewProps } from "react-native";
 import { tokens } from "../theme/tokens";
 
 /**
- * Centers blocking feedback in the space left by the screen's chrome.
- * Owns symmetric state insets; the parent supplies safe areas and a flex-growing scroll container.
+ * Places full-content Error/Empty feedback at the normal content start below chrome and controls.
+ * Owns symmetric state insets; the parent supplies safe areas and the existing native scroll container.
+ * Other local compositions may override alignment through the ordinary View style.
  * Native lists inject layout measurement and styles into their empty component; these reach its root view.
  */
 export function ScreenState({ children, style, ...props }: ViewProps) {
@@ -18,7 +19,6 @@ const styles = StyleSheet.create({
   area: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
     minWidth: 0,
     padding: tokens.spacing.screen,
   },

@@ -19,8 +19,7 @@ export function SupportScreen() {
   const { colors } = useTheme();
   const { mutation, send } = useSupportSubmission();
   return (
-    <Page>
-      <SupportHeader />
+    <Page header={<SupportHeader />}>
       <FormScrollView>
         <PageContent>
           {!mutation.isSuccess && context.screen && (
@@ -57,7 +56,7 @@ export function SupportScreen() {
   );
 }
 
-/** Preserves the approved left-aligned support title and shared close action; dirty removal uses the form guard. */
+/** Keeps the left-aligned title on one visual line with its complete accessible name; the close action retains the dirty-form guard. */
 function SupportHeader() {
   const router = useRouter();
   const { colors } = useTheme();
@@ -65,6 +64,9 @@ function SupportHeader() {
     <View style={styles.header}>
       <Text
         accessibilityRole="header"
+        accessibilityLabel="Assistance et suggestions"
+        numberOfLines={1}
+        ellipsizeMode="tail"
         style={[styles.title, { color: colors.text }]}
       >
         Assistance et suggestions

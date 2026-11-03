@@ -225,7 +225,10 @@ export function ContributionHistory({
                   reports.isPending ? (
                     <ModerationReportsLoading />
                   ) : (
-                    <ReadFeedback query={reports} />
+                    <ReadFeedback
+                      query={reports}
+                      loadingContent={<ModerationReportsLoading />}
+                    />
                   )
                 ) : (
                   <>

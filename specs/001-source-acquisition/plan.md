@@ -67,6 +67,8 @@ apps/mobile/        # existing administration journeys
 contracts/http/     # authoritative mobile and ingestion OpenAPI sources
 ```
 
+A discovered season/provider may have source candidates before launch or reconstruction creates its family control. A successful empty control read opens the existing provider preparation screen, including within an ACTIVE season. Failed or denied reads retain their ordinary error/admission boundary; this navigation creates no control, activates no source and supplies no classification.
+
 Use feature-owned packages within these applications. Provider adapters own FFVB, LNV and IGN interpretation; do not introduce an adapter registry, generic scraping language or service per collection family. Maven/npm/Nx responsibilities and generation remain under F13.
 
 ## Acquisition and scheduling

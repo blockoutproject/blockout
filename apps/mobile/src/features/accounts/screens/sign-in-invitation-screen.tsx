@@ -1,9 +1,11 @@
 import { ErrorState } from "../../../shared/components/state-card";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
-import { RequestLoading } from "../../../shared/components/request-feedback";
 import { Sheet, SheetContent } from "../../../shared/components/sheet";
-import { SignInInvitation } from "../components/sign-in-invitation";
+import {
+  SignInInvitation,
+  SignInInvitationLoading,
+} from "../components/sign-in-invitation";
 import { useAccountSession } from "../session/account-session-provider";
 
 /** F12 owns admission; the originating feature supplies contextual copy, never a deferred command or destination. */
@@ -47,7 +49,7 @@ export function SignInInvitationScreen({
     return (
       <Sheet title="Connexion" onClose={close}>
         <SheetContent>
-          <RequestLoading />
+          <SignInInvitationLoading />
         </SheetContent>
       </Sheet>
     );

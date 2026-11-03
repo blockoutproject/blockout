@@ -9,7 +9,7 @@ import {
   QueryClientProvider,
   type InfiniteData,
 } from "@tanstack/react-query";
-import "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { FlatList } from "react-native";
@@ -348,6 +348,7 @@ async function renderSearch() {
       ),
     },
   );
+  await layoutNativeTabs();
   return result;
 }
 
@@ -399,7 +400,10 @@ it.each(["network", "schema", "http"])(
 
     // Then
     expect(
-      await screen.findByRole("progressbar", { name: "Chargement en cours" }),
+      await screen.findByRole("progressbar", {
+        name: "Chargement de la suite…",
+        busy: true,
+      }),
     ).toBeOnTheScreen();
     expect(screen.getByText("Niort")).toBeOnTheScreen();
     expect(
@@ -524,7 +528,10 @@ it.each(["criteria", "tab"])(
       screen.getByLabelText("Résultats de recherche"),
       "endReached",
     );
-    await screen.findByRole("progressbar", { name: "Chargement en cours" });
+    await screen.findByRole("progressbar", {
+      name: "Chargement de la suite…",
+      busy: true,
+    });
 
     // When
     if (change === "criteria") {

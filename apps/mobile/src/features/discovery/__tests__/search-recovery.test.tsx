@@ -13,7 +13,7 @@ import {
   onlineManager,
   type InfiniteData,
 } from "@tanstack/react-query";
-import "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { router, Stack } from "expo-router";
@@ -71,6 +71,8 @@ jest.mock("react-native-keyboard-controller", () =>
 jest.mock("expo/fetch", () => ({
   fetch: (...args: unknown[]) => mockFetch(...args),
 }));
+// Telemetry is a native boundary here; the real SDK starts unrelated tracing timers at import.
+jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
 const mockFetch = jest.fn();
 const environment = { ...process.env };
@@ -80,7 +82,7 @@ const season = { id: firstId, label: "2026/2027", startYear: 2026 };
 let client: QueryClient;
 let publicClient = createQueryClient();
 
-/** Only HTTP is controlled: generated transport, Query, admission, session, shared paging and Router stay real. */
+/** Controlled HTTP preserves generated transport, Query, admission, session, shared paging and Router; native SDKs are doubled above. */
 function publicReads(url: string): Promise<Response> {
   const parsed = new URL(url);
   if (parsed.pathname.endsWith("/application-access"))
@@ -229,6 +231,7 @@ async function renderSearch() {
       ),
     },
   );
+  await layoutNativeTabs();
   return result;
 }
 
@@ -281,7 +284,7 @@ it.each([401, 403, 404, "network"] as const)(
     await screen.findByRole("alert");
     await act(async () => router.back());
 
-    // Then: refusal removes only its UUID; a network failure preserves the still-permitted result.
+    // Then: detail failures preserve the accepted collection and its current criteria.
     expect(screen.getByText("Lyon")).toBeOnTheScreen();
     expect(screen.getByText("Niort")).toBeOnTheScreen();
     expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
@@ -464,7 +467,10 @@ it("does not present a retained empty response as certain absence after a failed
   const user = userEvent.setup();
   await renderSearch();
   await user.press(screen.getByRole("tab", { name: "Clubs" }));
-  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+  await user.paste(
+    screen.getByPlaceholderText("Rechercher un club…"),
+    "Volley",
+  );
   await screen.findByText("Aucun résultat pour ces critères");
   mockFetch.mockImplementation((url: string) =>
     new URL(url).pathname.endsWith("/clubs")

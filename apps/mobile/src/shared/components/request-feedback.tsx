@@ -1,35 +1,26 @@
-import { StyleSheet, Text, View } from "react-native";
-import { useTheme } from "../theme/theme-provider";
+import { StyleSheet } from "react-native";
 import { tokens } from "../theme/tokens";
-import { LoadingIndicator } from "./loading-indicator";
+import { Skeleton } from "./skeleton";
+import { Surface } from "./surface";
+import { LoadingGroup } from "./loading-group";
 
-// Loading is content-sized; ScreenState owns blocking placement and existing skeletons remain feature-owned.
-
-/** Announces indeterminate waiting independently of the shared reduced-motion-aware glyph. */
+/** Neutral structural read skeleton; known content uses its feature shape and the caller owns blocking placement. */
 export function RequestLoading() {
-  const { colors, context } = useTheme();
   return (
-    <View
-      accessible
-      accessibilityRole="progressbar"
-      accessibilityLabel="Chargement en cours"
-      accessibilityState={{ busy: true }}
-      accessibilityLiveRegion="polite"
-      style={styles.loading}
-    >
-      <LoadingIndicator color={context.primary} />
-      <Text style={[styles.message, { color: colors.text }]}>
-        Chargement en cours
-      </Text>
-    </View>
+    <LoadingGroup label="Chargement en cours" style={styles.loading}>
+      <Surface style={styles.content}>
+        <Skeleton width="62%" height={16} />
+        <Skeleton height={11} />
+        <Skeleton width="54%" height={11} />
+      </Surface>
+    </LoadingGroup>
   );
 }
 
 const styles = StyleSheet.create({
   loading: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
+    width: "100%",
+    maxWidth: tokens.layout.width.compact,
   },
-  message: { ...tokens.typography.body, flexShrink: 1 },
+  content: { gap: tokens.spacing.compact },
 });

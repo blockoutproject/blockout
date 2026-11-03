@@ -1,3 +1,4 @@
+import { SportingMatchLoading } from "../components/sporting-loading";
 import { ContributionReportEntry } from "../../contributions/entry";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
@@ -21,6 +22,7 @@ import {
   useMatchContributionAction,
 } from "../components/sporting-actions";
 import { MatchSummary } from "../components/match-summary";
+import { MatchPageHeader } from "../components/match-page-header";
 import { MatchSetScores } from "../components/match-set-scores";
 import { MatchInformation } from "../components/match-information";
 import type { MatchDocumentKindEnum } from "../../../../.generated/schemas/index.zod";
@@ -95,15 +97,29 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
     )
       feedback.error();
   }
-  const blockingState = !data ? <ReadFeedback query={match} /> : undefined;
+  const blockingState = !data ? (
+    <ReadFeedback query={match} loadingContent={<SportingMatchLoading />} />
+  ) : undefined;
   return (
-    <Page>
-      <PageHeader
-        title="Le match"
-        action={
-          <SportingSupportAction target={{ type: "match", id: matchId }} />
-        }
-      />
+    <Page
+      header={
+        data ? (
+          <MatchPageHeader
+            match={data.match}
+            action={
+              <SportingSupportAction target={{ type: "match", id: matchId }} />
+            }
+          />
+        ) : (
+          <PageHeader
+            title="Le match"
+            action={
+              <SportingSupportAction target={{ type: "match", id: matchId }} />
+            }
+          />
+        )
+      }
+    >
       <PageScrollView
         refreshControl={
           data ? (
@@ -115,7 +131,11 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
         }
       >
         {blockingState ? (
-          <ScreenState>{blockingState}</ScreenState>
+          match.isPending ? (
+            <PageContent>{blockingState}</PageContent>
+          ) : (
+            <ScreenState>{blockingState}</ScreenState>
+          )
         ) : (
           <PageContent>
             {data && (

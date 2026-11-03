@@ -5,7 +5,7 @@ import {
   type PropsWithChildren as QueryFixtureProps,
 } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { router, Stack } from "expo-router";
@@ -209,6 +209,7 @@ async function renderSearch() {
       ),
     },
   );
+  await layoutNativeTabs();
   return result;
 }
 
@@ -427,6 +428,7 @@ it("reads current choices for a new visit and accepts All seasons without fallba
 
   // When
   await act(() => router.push("/search"));
+  await layoutNativeTabs();
   await openFilters();
 
   // Then
@@ -535,6 +537,7 @@ it("reads options again on a new visit after an initial failure without data", a
 
   // When: a new visit reads current choices without pressing a retry or filter control.
   await act(() => router.push("/search"));
+  await layoutNativeTabs();
   await user.paste(screen.getByLabelText("Rechercher"), "Volley");
 
   // Then

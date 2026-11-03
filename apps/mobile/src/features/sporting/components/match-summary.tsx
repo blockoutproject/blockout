@@ -9,6 +9,7 @@ import { formatSportingSchedule } from "../model/sporting-time";
 import { MatchSurface } from "./match-surface";
 import { SportingArtwork, SportingLogo } from "./sporting-identity";
 import { DivisionPaint } from "./division-paint";
+import { matchStatusLabel } from "../model/match-presentation";
 
 /** Accepted identity/result facts; display zone changes text without changing calendar groups. */
 export interface MatchSummaryProps {
@@ -16,14 +17,6 @@ export interface MatchSummaryProps {
   displayTimeZone?: string;
   /** Contribution context keeps identities/time and known scores informational; summary retains sporting navigation. */
   presentation?: "summary" | "context";
-}
-
-/** Maps accepted result precision to approved summary statuses without inventing a live state. */
-function statusLabel(match: MatchSummaryResponse): string {
-  if (match.result?.state === "final") return "Terminé";
-  if (match.result?.state === "provisional") return "Score provisoire";
-  if (match.result?.state === "unconfirmed") return "Résultat non confirmé";
-  return match.category === "completed" ? "Résultat indisponible" : "À venir";
 }
 
 /** Figma Match Summary shares its pool/teams between full consultation and compact informational contribution context. */
@@ -86,7 +79,7 @@ export function MatchSummary({
               style={[styles.dot, { backgroundColor: accent }]}
             />
             <Text style={[styles.metadataText, { color: colors.text }]}>
-              {statusLabel(match)}
+              {matchStatusLabel(match)}
             </Text>
           </View>
           <View style={styles.date}>

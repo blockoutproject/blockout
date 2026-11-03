@@ -23,6 +23,8 @@ import {
   PageScrollView,
 } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
+import { LoadingGroup } from "../../../shared/components/loading-group";
+import { Skeleton } from "../../../shared/components/skeleton";
 
 import { ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
@@ -30,7 +32,6 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useOrdinaryRequest } from "../../access/ordinary-request";
 import { useCurrentAccount } from "../api/use-current-account";
-import { ProfileLoading } from "../components/profile-loading";
 import { useAccountSession } from "../session/account-session-provider";
 
 const confirmationSchema = z.object({ confirmed: z.boolean().refine(Boolean) });
@@ -50,8 +51,7 @@ export function EraseAccountScreen({ admitted }: EraseAccountScreenProps) {
   if (!originalAccountId && account.isSuccess)
     setOriginalAccountId(account.data.accountId);
   return (
-    <Page>
-      <PageHeader title="Supprimer mon compte ?" />
+    <Page header={<PageHeader title="Supprimer mon compte ?" />}>
       <PageScrollView>
         {!admitted ? (
           <ScreenState>
@@ -71,7 +71,7 @@ export function EraseAccountScreen({ admitted }: EraseAccountScreenProps) {
           session.status === "signing-out" ||
           (session.status === "authenticated" && account.isPending) ? (
           <PageContent>
-            <ProfileLoading />
+            <ErasureLoading />
           </PageContent>
         ) : (
           <ScreenState>
@@ -93,6 +93,30 @@ export function EraseAccountScreen({ admitted }: EraseAccountScreenProps) {
         )}
       </PageScrollView>
     </Page>
+  );
+}
+
+/** Reserves the existing warning, confirmation and action without exposing a destructive control before account admission. */
+function ErasureLoading() {
+  return (
+    <LoadingGroup
+      label="Chargement de la suppression du compte"
+      style={styles.content}
+    >
+      <Skeleton />
+      <Skeleton width="75%" />
+      <Skeleton />
+      <Skeleton width="85%" />
+      <View style={styles.confirmation}>
+        <Skeleton
+          width={tokens.size.icon.md}
+          height={tokens.size.icon.md}
+          shape="rectangle"
+        />
+        <Skeleton width="75%" />
+      </View>
+      <Skeleton height={tokens.size.control.default} shape="rectangle" />
+    </LoadingGroup>
   );
 }
 

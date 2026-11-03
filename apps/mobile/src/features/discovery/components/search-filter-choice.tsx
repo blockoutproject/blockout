@@ -6,6 +6,7 @@ import {
 } from "../../../../.generated/schemas/index.zod";
 import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { ListLoading } from "../../../shared/components/list-loading";
 import { ErrorState } from "../../../shared/components/state-card";
 import { EntryGroup } from "../../../shared/components/entry-group";
 import { SelectionRow } from "../../../shared/components/selection-row";
@@ -75,6 +76,11 @@ export function SearchFilterChoice() {
         <SheetContent>
           <ReadFeedback
             query={{ ...query, isPending: query.isPending || query.isFetching }}
+            loadingContent={
+              <EntryGroup>
+                <ListLoading label="Chargement des choix" />
+              </EntryGroup>
+            }
           />
         </SheetContent>
       )}

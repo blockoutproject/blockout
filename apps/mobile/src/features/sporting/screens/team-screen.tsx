@@ -1,11 +1,11 @@
-import {
-  SportingPresentationAction,
-  SportingSupportAction,
-} from "../components/sporting-actions";
+import { SportingCalendarPageLoading } from "../components/sporting-loading";
+import { PageViewport } from "../../../shared/components/navigation-backdrop";
+import { SportingSupportAction } from "../components/sporting-actions";
+import { PoolParticipationLink } from "../components/pool-participation-link";
 import { PoolStandings } from "../components/pool-standings";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingPageHeader } from "../components/sporting-page-header";
-import { SportingTabs, SportingScrollView } from "../components/sporting-tabs";
+import { SportingTabs } from "../components/sporting-tabs";
 import { ResourceText } from "../components/resource-text";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
@@ -15,7 +15,6 @@ import {
   PageScrollView,
   PageContent,
 } from "../../../shared/components/page";
-import { Surface } from "../../../shared/components/surface";
 import { hashKey, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import type {
@@ -24,10 +23,7 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 
-import {
-  SportingIdentity,
-  SportingLink,
-} from "../components/sporting-identity";
+import { SportingIdentity } from "../components/sporting-identity";
 import { poolLabel, type RenderStandings } from "../model/resource-sections";
 
 /** Route-owned F06 and optional standings compositions receive stable public identities. */
@@ -75,7 +71,6 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
       season={data.team.season}
       clubId={data.team.club?.id}
     >
-      <SportingPresentationAction target={{ kind: "team", id: teamId }} />
       {renderFollow?.(
         data.team.team,
         data.team.season,
@@ -83,21 +78,35 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
       )}
     </SportingIdentity>
   ) : undefined;
-  const blockingState = !data ? <ReadFeedback query={team} /> : undefined;
+  const blockingState = !data ? (
+    <ReadFeedback
+      query={team}
+      loadingContent={
+        <SportingCalendarPageLoading label="Chargement de l’équipe" />
+      }
+    />
+  ) : undefined;
   return (
-    <Page>
+    <Page fullBleed>
       {blockingState ? (
-        <>
-          <PageHeader
-            title="Équipe"
-            action={
-              <SportingSupportAction target={{ type: "team", id: teamId }} />
-            }
-          />
+        <PageViewport
+          header={
+            <PageHeader
+              title="Équipe"
+              action={
+                <SportingSupportAction target={{ type: "team", id: teamId }} />
+              }
+            />
+          }
+        >
           <PageScrollView>
-            <ScreenState>{blockingState}</ScreenState>
+            {team.isPending ? (
+              <PageContent>{blockingState}</PageContent>
+            ) : (
+              <ScreenState>{blockingState}</ScreenState>
+            )}
           </PageScrollView>
-        </>
+        </PageViewport>
       ) : (
         <SportingTabs
           selected={tab ?? "upcoming"}
@@ -138,32 +147,20 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
                   highlightTeamId={teamId}
                   active={tab === item.id}
                 >
-                  <Surface>
-                    <SportingLink
-                      key={participation.pool.id}
-                      kind="pool"
-                      active={tab === item.id}
-                      id={participation.pool.id}
-                      label={poolLabel(participation)}
-                      identity={participation.classification.division}
-                    />
-                  </Surface>
+                  <PoolParticipationLink
+                    pool={participation}
+                    active={tab === item.id}
+                  />
                 </PoolStandings>
               ) : (
-                <SportingScrollView alwaysBounceVertical>
+                <PageScrollView alwaysBounceVertical>
                   <PageContent>
                     {participation && (
                       <>
-                        <Surface>
-                          <SportingLink
-                            key={participation.pool.id}
-                            kind="pool"
-                            active={tab === item.id}
-                            id={participation.pool.id}
-                            label={poolLabel(participation)}
-                            identity={participation.classification.division}
-                          />
-                        </Surface>
+                        <PoolParticipationLink
+                          pool={participation}
+                          active={tab === item.id}
+                        />
                         {renderStandings?.(participation) ?? (
                           <ResourceText>
                             Classement indisponible pour le moment
@@ -172,7 +169,7 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
                       </>
                     )}
                   </PageContent>
-                </SportingScrollView>
+                </PageScrollView>
               ),
             };
           })}

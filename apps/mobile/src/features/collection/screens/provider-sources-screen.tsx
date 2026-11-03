@@ -4,7 +4,7 @@ import { DataRefreshControl } from "../../../shared/components/data-refresh-cont
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { Page, PageContent } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
-import { RequestLoading } from "../../../shared/components/request-feedback";
+import { ProviderPreparationLoading } from "../components/collection-loading";
 import { ScreenState } from "../../../shared/components/screen-state";
 
 import { ErrorState } from "../../../shared/components/state-card";
@@ -28,9 +28,20 @@ export function ProviderSourcesScreen({
     authority.sessionStatus === "authenticated" ? season.data : undefined;
   const retained = Boolean(current && sources.data);
   const feedback = useActionFeedback();
+  const pending =
+    !retained &&
+    (!authority.enabled
+      ? authority.sessionStatus === "restoring" ||
+        (authority.sessionStatus === "authenticated" &&
+          authority.account.isPending)
+      : !season.isError && !sources.isError);
+  const FeedbackLayout = pending ? PageContent : ScreenState;
   const blockingState = !retained ? (
     !authority.enabled ? (
-      <AccessFeedback {...authority} />
+      <AccessFeedback
+        {...authority}
+        loadingContent={<ProviderPreparationLoading />}
+      />
     ) : season.isError || sources.isError ? (
       <ErrorState
         onRetry={() => {
@@ -40,12 +51,11 @@ export function ProviderSourcesScreen({
         retrying={season.isFetching || sources.isFetching}
       />
     ) : (
-      <RequestLoading />
+      <ProviderPreparationLoading />
     )
   ) : undefined;
   return (
-    <Page>
-      <PageHeader title={provider === "lnv" ? "LNV" : "FFVB"} />
+    <Page header={<PageHeader title={provider === "lnv" ? "LNV" : "FFVB"} />}>
       <FormScrollView
         refreshControl={
           authority.sessionStatus === "authenticated" && !blockingState ? (
@@ -82,7 +92,7 @@ export function ProviderSourcesScreen({
         }
       >
         {blockingState ? (
-          <ScreenState>{blockingState}</ScreenState>
+          <FeedbackLayout>{blockingState}</FeedbackLayout>
         ) : (
           <PageContent>
             {current && sources.data && (

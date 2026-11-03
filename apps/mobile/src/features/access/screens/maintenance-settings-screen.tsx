@@ -6,7 +6,6 @@ import { isAccessDenied } from "../../../shared/api/access-denied";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { PageHeader } from "../../../shared/components/page-header";
-import { RequestLoading } from "../../../shared/components/request-feedback";
 import { useAccountSession } from "../../accounts/current-account";
 import { useAdministrationCapabilities } from "../api/use-administration-capabilities";
 import { useMaintenanceSettings } from "../api/use-maintenance-settings";
@@ -67,6 +66,9 @@ export function MaintenanceSettingsScreen() {
   } else if (!accessError) {
     settingsContent = <MaintenanceLoading />;
   }
+  const pendingAccess =
+    sessionStatus === "restoring" ||
+    (sessionStatus === "authenticated" && account.isPending);
   const loadingSettings =
     sessionStatus === "authenticated" &&
     !account.isPending &&
@@ -74,8 +76,7 @@ export function MaintenanceSettingsScreen() {
     !settings &&
     editing.query.isPending;
   return (
-    <Page>
-      <PageHeader title="Administration technique" />
+    <Page header={<PageHeader title="Administration technique" />}>
       <FormScrollView
         refreshControl={
           settings && sessionStatus === "authenticated" ? (
@@ -87,17 +88,16 @@ export function MaintenanceSettingsScreen() {
           ) : undefined
         }
       >
-        {settings || loadingSettings ? (
-          <PageContent>{settingsContent}</PageContent>
-        ) : (
-          <ScreenState>
-            {sessionStatus === "restoring" ||
-            (sessionStatus === "authenticated" && account.isPending) ? (
-              <RequestLoading />
+        {settings || loadingSettings || pendingAccess ? (
+          <PageContent>
+            {!settings && pendingAccess ? (
+              <MaintenanceLoading />
             ) : (
-              (accessError ?? settingsContent)
+              settingsContent
             )}
-          </ScreenState>
+          </PageContent>
+        ) : (
+          <ScreenState>{accessError ?? settingsContent}</ScreenState>
         )}
       </FormScrollView>
     </Page>

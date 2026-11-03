@@ -1,4 +1,4 @@
-import "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   act,
@@ -231,7 +231,11 @@ it("establishes a fresh profile and honest empty follows/inbox without choosing 
       <PersonalScreen />
     </Consumers>,
   );
-  await screen.findByRole("tab", { name: "Suivis" });
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
+  await layoutNativeTabs();
   await user.press(screen.getByRole("tab", { name: "Suivis" }));
 
   // Then

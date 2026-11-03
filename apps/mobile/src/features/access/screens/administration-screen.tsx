@@ -6,7 +6,7 @@ import {
 import { ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 
-import { RequestLoading } from "../../../shared/components/request-feedback";
+import { ListLoading } from "../../../shared/components/list-loading";
 
 import { Button } from "../../../shared/components/button";
 import { PageHeader } from "../../../shared/components/page-header";
@@ -39,7 +39,7 @@ export function AdministrationScreen({
     sessionStatus === "restoring" ||
     (sessionStatus === "authenticated" && account.isPending)
   ) {
-    content = <RequestLoading />;
+    content = <ListLoading label="Chargement de l’administration" />;
   } else if (sessionStatus === "authenticated" && account.isError) {
     content = (
       <ErrorState
@@ -80,6 +80,10 @@ export function AdministrationScreen({
       </>
     );
   }
+  const pending =
+    admitted &&
+    (sessionStatus === "restoring" ||
+      (sessionStatus === "authenticated" && account.isPending));
   const blocked =
     !admitted ||
     sessionStatus === "restoring" ||
@@ -87,8 +91,7 @@ export function AdministrationScreen({
       (account.isPending || account.isError)) ||
     (!hasCommands && !onBypass);
   return (
-    <Page>
-      <PageHeader title="Administration technique" />
+    <Page header={<PageHeader title="Administration technique" />}>
       <PageScrollView
         refreshControl={
           !blocked && sessionStatus === "authenticated" ? (
@@ -99,7 +102,7 @@ export function AdministrationScreen({
           ) : undefined
         }
       >
-        {blocked ? (
+        {blocked && !pending ? (
           <ScreenState>{content}</ScreenState>
         ) : (
           <PageContent>{content}</PageContent>

@@ -277,6 +277,16 @@ it("returns to privacy after persisted age correction while native consent remai
   expect(
     screen.queryByRole("header", { name: "Corriger mon âge" }),
   ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("progressbar", {
+      name: "Chargement des choix publicitaires",
+      busy: true,
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getAllByRole("progressbar")).toHaveLength(1);
+  expect(
+    screen.getByRole("button", { name: "Corriger mon âge" }),
+  ).toBeDisabled();
   // When
   await act(() =>
     consent.resolve({

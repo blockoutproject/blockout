@@ -12,6 +12,8 @@ import type {
 import { useSportingLogo } from "../api/use-sporting-logo";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import { LoadingGroup } from "../../../shared/components/loading-group";
+import { Skeleton } from "../../../shared/components/skeleton";
 
 /** Entity Card metadata uses a 24-point badge minimum; its loading representation shares this owner. */
 export const entityBadgeSize = 24;
@@ -163,6 +165,49 @@ export function SportingEntityCard({
   );
 }
 
+/** Three neutral copies of this exact card reserve initial discovery, followed-entity and club-team reads. */
+export function SportingEntityCardLoading({ label }: { label: string }) {
+  return (
+    <LoadingGroup label={label} style={styles.loadingCards}>
+      {Array.from({ length: 3 }, (_, index) => (
+        <EntityCardSkeleton key={index} />
+      ))}
+    </LoadingGroup>
+  );
+}
+
+/** Uses the ready card's header, metadata and overlay border, without admitting fictional identities. */
+function EntityCardSkeleton() {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.card, { backgroundColor: colors.surface }]}>
+      <View style={styles.identity}>
+        <Skeleton
+          width={tokens.size.media.entity}
+          height={tokens.size.media.entity}
+        />
+        <View style={styles.name}>
+          <Skeleton />
+          <Skeleton width="75%" height={12} />
+        </View>
+        <Skeleton width={tokens.size.icon.sm} height={tokens.size.icon.sm} />
+      </View>
+      <View style={styles.metadata}>
+        <Skeleton width={96} height={entityBadgeSize} />
+        <Skeleton width={76} height={entityBadgeSize} />
+        <Skeleton width={52} height={entityBadgeSize} />
+      </View>
+      <View
+        style={[
+          StyleSheet.absoluteFill,
+          styles.edge,
+          { borderColor: colors.border },
+        ]}
+      />
+    </View>
+  );
+}
+
 /** Native public artwork and credentialed bypass share the same exact resource withdrawal guard. */
 function EntityArtwork({
   identity,
@@ -197,6 +242,7 @@ function EntityArtwork({
 }
 
 const styles = StyleSheet.create({
+  loadingCards: { gap: tokens.layout.list.gap },
   card: {
     borderRadius: tokens.radius.panel,
     overflow: "hidden",

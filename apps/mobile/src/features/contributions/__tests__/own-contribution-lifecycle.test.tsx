@@ -399,7 +399,9 @@ it("keeps the proposals heading without inventing zero during initial loading or
 
   // When
   await mount();
-  await screen.findByRole("progressbar", { name: "Chargement en cours" });
+  await screen.findByRole("progressbar", {
+    name: "Chargement des propositions",
+  });
 
   // Then
   expect(
@@ -1063,7 +1065,7 @@ it.each([
   // Then
   expect(mockPush).toHaveBeenCalledWith("/sign-in");
   expect(
-    screen.queryByRole("progressbar", { name: "Chargement en cours" }),
+    screen.queryByRole("progressbar", { name: "Chargement des propositions" }),
   ).not.toBeOnTheScreen();
   expect(pages).toEqual([]);
   expect(patches).toEqual([]);

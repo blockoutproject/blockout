@@ -116,6 +116,8 @@ jest.mock("expo/fetch", () => ({
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
+  useFocusEffect: (effect: () => void | (() => void)) =>
+    jest.requireActual("react").useEffect(effect, [effect]),
   useIsFocused: () => true,
   useRouter: () => ({
     ...jest.requireActual("expo-router").router,
@@ -510,7 +512,10 @@ it("shares actual Search, personal calendar, followed cards and F03 openings wit
       <Entries consumer="personal" detail={detail} />
     </Owners>,
   );
-  await screen.findByRole("tab", { name: "À venir" });
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
   await layoutNativeTabs();
   await user.press(
     await screen.findByRole("link", { name: /Ouvrir le match/ }),
@@ -613,7 +618,10 @@ it.each(["À venir", "Terminés", "Suivis"])(
     // Given
     mockAuth0.hasValidCredentials.mockResolvedValue(true);
     await mount({ consumer: "personal" });
-    await screen.findByRole("tab", { name: "À venir" });
+    await screen.findByRole("button", {
+      name: "Saison des suivis",
+      disabled: false,
+    });
     await layoutNativeTabs();
     const user = userEvent.setup();
     for (let index = 0; index < 9; index++)

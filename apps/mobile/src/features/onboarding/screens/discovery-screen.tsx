@@ -93,17 +93,20 @@ export function DiscoveryScreen() {
   }, [step, discovery.saving]);
 
   return (
-    <Page>
-      <BrandHeader>
-        {discovery.error !== "read" && step < 4 && (
-          <Button
-            label="Passer"
-            variant="secondary"
-            onPress={() => void discovery.finish()}
-            loading={discovery.saving}
-          />
-        )}
-      </BrandHeader>
+    <Page
+      header={
+        <BrandHeader>
+          {discovery.error !== "read" && step < 4 && (
+            <Button
+              label="Passer"
+              variant="secondary"
+              onPress={() => void discovery.finish()}
+              loading={discovery.saving}
+            />
+          )}
+        </BrandHeader>
+      }
+    >
       <PageScrollView ref={scroll}>
         {discovery.error === "read" ? (
           <ScreenState>
