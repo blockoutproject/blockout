@@ -26,8 +26,6 @@ export function FollowButton({ target, season }: FollowButtonProps) {
   const feedback = useActionFeedback();
   const { colors } = useTheme();
   const { query, profile, usable, admitted, sessionStatus } = context;
-  const latest = action;
-  const failed = latest?.status === "error";
   const guest = sessionStatus === "guest";
   const loadingContent = (
     <Button
@@ -53,11 +51,11 @@ export function FollowButton({ target, season }: FollowButtonProps) {
   if (!guest && query.data === undefined)
     return <ReadFeedback query={query} loadingContent={loadingContent} />;
   const provisional =
-    action.isPending && typeof latest?.variables === "boolean"
-      ? latest.variables
+    action.isPending && typeof action.variables === "boolean"
+      ? action.variables
       : undefined;
   const following = provisional ?? query.data?.following;
-  const uncertain = failed && isUncertainMutationFailure(latest.error);
+  const uncertain = action.isError && isUncertainMutationFailure(action.error);
   // An explicit retry uses the same desired boolean; the server owns replacement idempotence.
   const canRepeatUncertain = uncertain && query.data !== undefined;
   return (
@@ -93,8 +91,8 @@ export function FollowButton({ target, season }: FollowButtonProps) {
             feedback.clear();
             try {
               await action.mutateAsync(
-                canRepeatUncertain && typeof latest.variables === "boolean"
-                  ? latest.variables
+                canRepeatUncertain && typeof action.variables === "boolean"
+                  ? action.variables
                   : !following,
               );
             } catch (error) {

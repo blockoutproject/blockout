@@ -96,34 +96,20 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
     <PresentationLoading kind={target.kind} />
   ) : sessionStatus === "authenticated" &&
     (account.isError || account.isPending) ? (
-    <ErrorState
-      onRetry={() =>
-        void account.refetch().then((result) => {
-          if (result.isError && result.data) feedback.error();
-        })
-      }
-      retrying={account.isFetching}
+    <ReadFeedback
+      query={account}
+      loadingContent={<PresentationLoading kind={target.kind} />}
     />
   ) : !canRead ? (
     <ErrorState />
   ) : undefined;
   const blockingState = !presentation
-    ? (accessState ??
-      (editing.query.isError ? (
-        <ErrorState
-          onRetry={() =>
-            void editing.query.refetch().then((result) => {
-              if (result.isError && result.data) feedback.error();
-            })
-          }
-          retrying={editing.query.isFetching}
-        />
-      ) : (
+    ? (accessState ?? (
         <ReadFeedback
           query={editing.query}
           loadingContent={<PresentationLoading kind={target.kind} />}
         />
-      )))
+      ))
     : undefined;
   const FeedbackLayout =
     !presentation && (pending || (!accessState && editing.query.isLoading))

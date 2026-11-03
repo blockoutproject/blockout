@@ -7,7 +7,6 @@ import { ClassificationLoading } from "../components/sporting-editor-loading";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 
-import { ErrorState } from "../../../shared/components/state-card";
 import { AccessFeedback } from "../../access/components/access-feedback";
 import {
   useClassification,
@@ -56,15 +55,6 @@ export function ClassificationScreen({ target }: ClassificationScreenProps) {
       <AccessFeedback
         {...authority}
         loadingContent={<ClassificationLoading />}
-      />
-    ) : editing.query.isError ? (
-      <ErrorState
-        onRetry={() =>
-          void editing.query.refetch().then((result) => {
-            if (result.isError && result.data) feedback.error();
-          })
-        }
-        retrying={editing.query.isFetching}
       />
     ) : (
       <ReadFeedback

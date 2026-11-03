@@ -425,10 +425,19 @@ it("retains the current choice when an ordinary choices refresh fails", async ()
   ).toHaveAccessibilityValue({ text: older.label });
 });
 
-it.each([403, 404])(
-  "withdraws refused %i options through a transient error and a remount of the same cache until success",
-  async (status) => {
+it.each([
+  { status: 403, retries: false, transientBeforeUnmount: true },
+  { status: 404, retries: false, transientBeforeUnmount: true },
+  { status: 403, retries: 3, transientBeforeUnmount: false },
+  { status: 403, retries: 3, transientBeforeUnmount: true },
+] as const)(
+  "withdraws refused $status options with retries=$retries and transientBeforeUnmount=$transientBeforeUnmount until successful remount",
+  async ({ status, retries, transientBeforeUnmount }) => {
     // Given
+    client.setQueryDefaults(followOptionsKey(owner), {
+      retry: retries,
+      retryDelay: 60_000,
+    });
     const user = userEvent.setup();
     const first = await mount();
     await screen.findByText("Loaded");
@@ -454,6 +463,7 @@ it.each([403, 404])(
     );
 
     // Then
+    expect(optionReads()).toBe(2);
     expect(client.getQueryData(followOptionsKey(owner))).toBeUndefined();
     expect(client.getQueryData(followOptionsKey(owner, true))).toEqual(
       bypassOptions,
@@ -464,13 +474,21 @@ it.each([403, 404])(
     ).toBeDisabled();
 
     // When
-    mockFetch.mockRejectedValue(new TypeError("Synthetic options outage"));
-    await user.press(screen.getByRole("button", { name: "Reload options" }));
-    await screen.findByRole("button", {
-      name: "Saison des suivis",
-      disabled: true,
-    });
+    if (transientBeforeUnmount) {
+      mockFetch.mockRejectedValue(new TypeError("Synthetic options outage"));
+      await user.press(screen.getByRole("button", { name: "Reload options" }));
+      await screen.findByRole("button", {
+        name: "Saison des suivis",
+        disabled: true,
+      });
+    }
     await first.unmount();
+
+    // Then: cancelling a configured retry cannot restore the data from before the refusal.
+    expect(client.getQueryData(followOptionsKey(owner))).toBeUndefined();
+    expect(client.getQueryState(followOptionsKey(owner))?.status).toBe("error");
+
+    // When
     const current = Promise.withResolvers<Response>();
     mockFetch.mockImplementation((url) =>
       url.includes("follow-options")
@@ -520,59 +538,6 @@ it("recalculates a new opening's default from fresh options even when Query reta
   // When
   await mount();
   await waitFor(() => expect(optionReads()).toBe(2));
-  // Then
-  await waitFor(() =>
-    expect(
-      screen.getByRole("button", { name: "Saison des suivis" }),
-    ).toHaveAccessibilityValue({ text: newer.label }),
-  );
-});
-
-it("never restores refused options when an opening closes with native retries configured", async () => {
-  // Given
-  client.setQueryDefaults(followOptionsKey(owner), {
-    retry: 3,
-    retryDelay: 60_000,
-  });
-  const user = userEvent.setup();
-  const first = await mount();
-  await screen.findByText("Loaded");
-  mockFetch.mockResolvedValue(new Response(null, { status: 403 }));
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Reload options" }));
-  await waitFor(() =>
-    expect(client.getQueryData(followOptionsKey(owner))).toBeUndefined(),
-  );
-  await first.unmount();
-
-  // Then
-  expect(client.getQueryData(followOptionsKey(owner))).toBeUndefined();
-  expect(client.getQueryState(followOptionsKey(owner))?.status).toBe("error");
-  expect(optionReads()).toBe(2);
-
-  // When
-  const response = Promise.withResolvers<Response>();
-  mockFetch.mockImplementation((url) =>
-    url.includes("follow-options")
-      ? response.promise
-      : Promise.resolve(Response.json({ items: [] })),
-  );
-  await mount();
-
-  // Then
-  expect(
-    screen.getByRole("button", { name: "Saison des suivis" }),
-  ).toBeDisabled();
-  expect(client.getQueryData(followOptionsKey(owner))).toBeUndefined();
-
-  // When
-  await act(async () => {
-    response.resolve(
-      Response.json({ seasons: [newer], defaultSeasonId: newer.id }),
-    );
-  });
-
   // Then
   await waitFor(() =>
     expect(

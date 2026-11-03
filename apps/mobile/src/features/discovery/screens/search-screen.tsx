@@ -15,7 +15,7 @@ import { ListContinuation } from "../../../shared/components/list-continuation";
 import { Button } from "../../../shared/components/button";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import {
   Keyboard,
@@ -176,13 +176,20 @@ export function SearchScreen() {
               exampleQuery={exampleQueries[id]}
               examples={examples}
               items={items[id]}
-              emptyActionLabel={
-                !examples || changed ? "Effacer les critères" : "Rechercher"
-              }
-              onEmptyAction={
-                !examples || changed
-                  ? () => clearCriteria(id)
-                  : () => setFocus("q")
+              emptyAction={
+                !examples || changed ? (
+                  <Button
+                    label="Effacer les critères"
+                    leadingIcon={Eraser}
+                    onPress={() => clearCriteria(id)}
+                  />
+                ) : (
+                  <Button
+                    label="Rechercher"
+                    leadingIcon={Search}
+                    onPress={() => setFocus("q")}
+                  />
+                )
               }
             />
           ),
@@ -312,8 +319,7 @@ function SearchScene({
   exampleQuery,
   examples,
   items: textItems,
-  emptyActionLabel,
-  onEmptyAction,
+  emptyAction,
 }: {
   resource: DiscoveryResource;
   criteria: string;
@@ -323,8 +329,7 @@ function SearchScene({
   exampleQuery: ReturnType<typeof useSearchExamplesQuery>;
   examples: boolean;
   items: readonly SearchResult[];
-  emptyActionLabel: string;
-  onEmptyAction: () => void;
+  emptyAction: ReactNode;
 }) {
   const visit = useSearchVisit();
   const query = examples ? exampleQuery : textQuery;
@@ -411,13 +416,7 @@ function SearchScene({
                 title="Aucun résultat pour ces critères"
                 description="Essayez un autre nom."
               >
-                <Button
-                  label={emptyActionLabel}
-                  leadingIcon={
-                    emptyActionLabel === "Rechercher" ? Search : Eraser
-                  }
-                  onPress={onEmptyAction}
-                />
+                {emptyAction}
               </EmptyState>
             )}
           </ScreenState>

@@ -60,13 +60,6 @@ export function ApplicationVersionsSettingsScreen() {
         disabled={!canManage || denied}
       />
     );
-  } else if (!accessError && editing.query.isError) {
-    settingsContent = (
-      <ErrorState
-        onRetry={() => void editing.query.refetch()}
-        retrying={editing.query.isFetching}
-      />
-    );
   } else if (!accessError) {
     settingsContent = (
       <ReadFeedback
