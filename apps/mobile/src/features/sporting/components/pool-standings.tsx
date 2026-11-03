@@ -76,11 +76,7 @@ export function PoolStandings({
   const hasRows = data?.availability === "available" && data.rows.length > 0;
 
   const refreshControl = hasRows ? (
-    <DataRefreshControl
-      refreshing={standings.isRefetching}
-      onRefresh={() => void refresh()}
-      enabled={active}
-    />
+    <DataRefreshControl onRefresh={refresh} enabled={active} />
   ) : undefined;
   const headerRow = (
     <View style={styles.headerRow}>

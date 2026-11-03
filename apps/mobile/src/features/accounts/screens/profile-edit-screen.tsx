@@ -23,13 +23,13 @@ export interface ProfileEditScreenProps {
   admitted: boolean;
 }
 
-/** Separate editor retains its original account draft through read failures and uncertain saves. */
+/** Separate editor retains its original account draft through read failures and ordinary save errors. */
 export function ProfileEditScreen({ admitted }: ProfileEditScreenProps) {
   const session = useAccountSession();
   const account = useCurrentAccount();
   const router = useRouter();
   const navigation = useNavigation();
-  const { saving, refreshing, refresh } = useProfileRefresh(account, true);
+  const { saving, refresh } = useProfileRefresh(account, true);
   const missing =
     account.error instanceof ApiError && account.error.status === 404;
 
@@ -51,11 +51,7 @@ export function ProfileEditScreen({ admitted }: ProfileEditScreenProps) {
         <ProfileForm
           key={`${session.subject}:${account.data.accountId}`}
           refreshControl={
-            <DataRefreshControl
-              enabled={!saving}
-              refreshing={refreshing}
-              onRefresh={() => void refresh()}
-            />
+            <DataRefreshControl enabled={!saving} onRefresh={refresh} />
           }
           account={account.data}
           disabled={!account.isSuccess}

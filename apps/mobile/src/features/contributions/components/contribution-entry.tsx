@@ -81,7 +81,6 @@ export function useContributionEntry(
           },
         });
     },
-    refreshing: query.isRefetching || profile.isRefetching,
     /** Reobserves the existing owner on match refresh; a recovered profile enables its dependent query. */
     refresh() {
       if (!available || session.status !== "authenticated")

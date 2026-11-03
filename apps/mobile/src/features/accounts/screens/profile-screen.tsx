@@ -66,7 +66,7 @@ export function ProfileScreen({
     }
   }
   const { colors } = useTheme();
-  const { saving, refreshing, refresh } = useProfileRefresh(account);
+  const { saving, refresh } = useProfileRefresh(account);
   const connected = session.status === "authenticated";
   const missing =
     account.error instanceof ApiError && account.error.status === 404;
@@ -132,11 +132,7 @@ export function ProfileScreen({
       key={`${session.subject}:${account.data?.accountId ?? "guest"}`}
       refreshControl={
         connected ? (
-          <DataRefreshControl
-            enabled={!saving}
-            refreshing={refreshing}
-            onRefresh={() => void refresh()}
-          />
+          <DataRefreshControl enabled={!saving} onRefresh={refresh} />
         ) : undefined
       }
       account={connected ? account.data : undefined}

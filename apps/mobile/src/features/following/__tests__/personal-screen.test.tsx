@@ -1894,6 +1894,7 @@ it.each(["team", "pool"] as const)(
         screen.getByLabelText("Actualiser les données"),
         "refresh",
       );
+      expect(screen.getByLabelText("Actualiser les données")).toBeBusy();
       await act(async () =>
         (first === "team" ? teamRead : poolRead).reject(
           new TypeError("Unavailable"),
@@ -1902,6 +1903,8 @@ it.each(["team", "pool"] as const)(
       await screen.findByRole("alert", {
         name: "Une erreur est survenue. Veuillez réessayer plus tard.",
       });
+      // The other collection still belongs to this one pull even after the first failure.
+      expect(screen.getByLabelText("Actualiser les données")).toBeBusy();
       await act(async () =>
         (first === "team" ? poolRead : teamRead).reject(
           new TypeError("Unavailable"),
@@ -1911,6 +1914,7 @@ it.each(["team", "pool"] as const)(
 
       // Then
       expect(announce).toHaveBeenCalledTimes(1);
+      expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
       expect(screen.getByRole("link", { name: /Étoile/ })).toBeOnTheScreen();
       expect(screen.getByRole("link", { name: /Poule A/ })).toBeOnTheScreen();
       expect(

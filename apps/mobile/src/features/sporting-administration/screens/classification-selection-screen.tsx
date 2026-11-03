@@ -114,13 +114,7 @@ function Selection({
         catalog &&
         choices.length > 0 &&
         divisions.authority.sessionStatus === "authenticated" ? (
-          <DataRefreshControl
-            refreshing={
-              divisions.query.isRefetching ||
-              divisions.authority.account.isRefetching
-            }
-            onRefresh={() => void refresh()}
-          />
+          <DataRefreshControl onRefresh={refresh} />
         ) : undefined
       }
     >

@@ -80,12 +80,7 @@ export function ClassificationScreen({ target }: ClassificationScreenProps) {
           !blockingState && authority.sessionStatus === "authenticated" ? (
             <DataRefreshControl
               enabled={!editing.save.isPending}
-              refreshing={
-                editing.query.isRefetching ||
-                divisions.query.isRefetching ||
-                authority.account.isRefetching
-              }
-              onRefresh={() => void refresh()}
+              onRefresh={refresh}
             />
           ) : undefined
         }

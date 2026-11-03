@@ -117,12 +117,7 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
     >
       <PageScrollView
         refreshControl={
-          data ? (
-            <DataRefreshControl
-              refreshing={match.isRefetching || contribution.refreshing}
-              onRefresh={() => void refresh()}
-            />
-          ) : undefined
+          data ? <DataRefreshControl onRefresh={refresh} /> : undefined
         }
       >
         {blockingState ? (

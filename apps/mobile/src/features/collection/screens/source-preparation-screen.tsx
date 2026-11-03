@@ -84,13 +84,8 @@ export function SourcePreparationScreen({
         refreshControl={
           authority.sessionStatus === "authenticated" && !blockingState ? (
             <DataRefreshControl
-              refreshing={
-                source.isRefetching ||
-                season.isRefetching ||
-                authority.account.isRefetching
-              }
               enabled={!editing.candidate.isPending}
-              onRefresh={() => void refresh()}
+              onRefresh={refresh}
             />
           ) : undefined
         }

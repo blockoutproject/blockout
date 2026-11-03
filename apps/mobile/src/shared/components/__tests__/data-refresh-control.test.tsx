@@ -1,4 +1,5 @@
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -23,15 +24,11 @@ function Draft() {
 
 it("forwards the native scroll child and preserves it while refresh is disabled", async () => {
   // Given: Android ScrollView supplies this native child and layout to its refresh element.
-  const refresh = jest.fn();
+  const refresh = jest.fn(async () => undefined);
   const user = userEvent.setup();
   const view = (enabled: boolean) => (
     <ThemeProvider>
-      <DataRefreshControl
-        refreshing={false}
-        onRefresh={refresh}
-        enabled={enabled}
-      >
+      <DataRefreshControl onRefresh={refresh} enabled={enabled}>
         <Draft />
       </DataRefreshControl>
     </ThemeProvider>
@@ -59,4 +56,38 @@ it("forwards the native scroll child and preserves it while refresh is disabled"
   // Then
   expect(screen.getByDisplayValue("Retained")).toBeOnTheScreen();
   expect(refresh).toHaveBeenCalledTimes(1);
+});
+
+it("keeps native pull progress and the Android child until the explicit read completes", async () => {
+  // Given: the owner controls its read promise while the actual refresh control owns gesture progress.
+  const response = Promise.withResolvers<void>();
+  const refresh = jest.fn(() => response.promise);
+  const user = userEvent.setup();
+  await render(
+    <ThemeProvider>
+      <DataRefreshControl onRefresh={refresh}>
+        <Draft />
+      </DataRefreshControl>
+    </ThemeProvider>,
+  );
+  await user.type(screen.getByLabelText("Draft"), "Retained");
+
+  try {
+    // When: userEvent cannot express the native pull-to-refresh event.
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+    // Then
+    expect(screen.getByLabelText("Actualiser les données")).toBeBusy();
+    expect(screen.getByDisplayValue("Retained")).toBeOnTheScreen();
+    expect(refresh).toHaveBeenCalledTimes(1);
+
+    // When
+    await act(() => response.resolve());
+
+    // Then
+    expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+    expect(screen.getByDisplayValue("Retained")).toBeOnTheScreen();
+  } finally {
+    await act(() => response.resolve());
+  }
 });

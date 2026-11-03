@@ -98,10 +98,7 @@ export function AdministrationScreen({
       <PageScrollView
         refreshControl={
           !blocked && sessionStatus === "authenticated" ? (
-            <DataRefreshControl
-              refreshing={account.isRefetching}
-              onRefresh={() => void account.refetch()}
-            />
+            <DataRefreshControl onRefresh={() => account.refetch()} />
           ) : undefined
         }
       >

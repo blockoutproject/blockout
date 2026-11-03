@@ -90,13 +90,8 @@ export function ProviderSourcesScreen({
         refreshControl={
           authority.sessionStatus === "authenticated" && !blockingState ? (
             <DataRefreshControl
-              refreshing={
-                season.isRefetching ||
-                sources.isRefetching ||
-                authority.account.isRefetching
-              }
               enabled={!editing.create.isPending}
-              onRefresh={() => void refresh()}
+              onRefresh={refresh}
             />
           ) : undefined
         }

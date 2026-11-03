@@ -58,12 +58,13 @@ function useAdmission() {
       snapshot.maintenance?.active === true,
     /** Public checking and existing-session identification retry independently, without establishment or interactive login. */
     retry() {
-      void access.retry();
+      const checking = access.retry();
       if (session.status === "authenticated") void account.refetch();
       else if (session.status === "authentication-error")
         session.retryAuthentication();
       else if (session.status === "initialization-error")
         session.retryInitialization();
+      return checking;
     },
     /** Records personal intent only from current grants, a complete check and the satisfied minimum. */
     bypassMaintenance() {

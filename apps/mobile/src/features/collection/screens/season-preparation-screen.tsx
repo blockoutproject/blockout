@@ -62,10 +62,7 @@ export function SeasonPreparationScreen({ seasonId }: { seasonId: string }) {
       <PageScrollView
         refreshControl={
           authority.sessionStatus === "authenticated" && !blockingState ? (
-            <DataRefreshControl
-              refreshing={season.isRefetching || authority.account.isRefetching}
-              onRefresh={() => void refresh()}
-            />
+            <DataRefreshControl onRefresh={refresh} />
           ) : undefined
         }
       >

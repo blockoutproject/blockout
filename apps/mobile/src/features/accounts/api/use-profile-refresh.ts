@@ -1,8 +1,4 @@
-import {
-  useIsFetching,
-  useIsMutating,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useIsMutating, useQueryClient } from "@tanstack/react-query";
 import {
   getChangeAccountProfileMutationKey,
   getGetAccountPhotoQueryKey,
@@ -20,13 +16,7 @@ export function useProfileRefresh(
   const feedback = useActionFeedback();
   const mutationKey = getChangeAccountProfileMutationKey();
   const saving = useIsMutating({ mutationKey }) > 0;
-  const photoKey = getGetAccountPhotoQueryKey(account.data?.accountId ?? "");
-  const photoFetching = useIsFetching({ queryKey: photoKey, exact: true }) > 0;
-  const refreshing =
-    account.isRefetching ||
-    (photoFetching && client.getQueryData(photoKey) !== undefined);
-
-  /** Refreshes the accepted current account then its displayed photo; an unavailable current scope never publishes late feedback. */
+  /** Refreshes the current account then its active photo; retained-data failures use the existing action feedback. */
   async function refresh() {
     if (client.isMutating({ mutationKey })) return;
     feedback.clear();
@@ -47,5 +37,5 @@ export function useProfileRefresh(
     if (photo?.status === "error" && photo.dataUpdatedAt > 0) feedback.error();
   }
 
-  return { saving, refreshing, refresh };
+  return { saving, refresh };
 }

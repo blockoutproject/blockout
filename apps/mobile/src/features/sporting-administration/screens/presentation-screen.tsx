@@ -1,4 +1,4 @@
-import { useIsFetching, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetClubLogoQueryKey,
   getGetDivisionLogoQueryKey,
@@ -37,11 +37,6 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
         : target.kind === "division"
           ? getGetDivisionLogoQueryKey(target.id)
           : ["presentation-logo-unavailable", target.kind];
-  const logoRefreshing =
-    useIsFetching({
-      queryKey: logoKey,
-      predicate: ({ state }) => state.data !== undefined,
-    }) > 0;
   const canManage =
     target.kind === "division-creation"
       ? permissions?.manageDivisionLifecycle === true
@@ -124,12 +119,7 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
           target.kind !== "division-creation" ? (
             <DataRefreshControl
               enabled={!editing.save.isPending}
-              refreshing={
-                editing.query.isRefetching ||
-                account.isRefetching ||
-                logoRefreshing
-              }
-              onRefresh={() => void refresh()}
+              onRefresh={refresh}
             />
           ) : undefined
         }
