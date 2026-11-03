@@ -31,5 +31,5 @@
 
 ## Notes
 
-- FR-038 selects normal State Card placement below controls with the common content inset, native scrolling/header collapse/overflow retained and no pull-to-refresh. Existing safe/contextual card actions and local/retained-content exceptions remain explicit; no clarification is pending.
+- The reviewed markers retain their existing specification-quality scope. The current [FR-036–FR-038 convention](../spec.md#functional-requirements) owns principal useful-area centering, inline sections, intrinsic sheets, successful-Empty pull, cached-empty failure and local-only pagination feedback. Its [prototype and separate Figma approvals](../spec.md#evidence-scope) and affected native qualification remain pending; this checklist does not certify them.
 - Reviewed: data and images share the 30-minute/30-day backup policy, with one initial isolated restore and no backup notifications or recurring verification. Application alert closure is distinct from business recovery; ordinary mobile retries are explicit. Owner/consumer consistency and the applicable [F05](../../005-accounts-identity/spec.md) and [F12](../../013-administration-app-configuration/spec.md) design prerequisites were checked. This checklist establishes neither runtime qualification nor delivered software.
