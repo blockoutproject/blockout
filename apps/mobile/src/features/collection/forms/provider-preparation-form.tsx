@@ -6,7 +6,7 @@ import { useActionConfirmation } from "../../../shared/forms/use-action-confirma
 import { useFormState } from "react-hook-form";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { useRouter } from "expo-router";
-import { ChevronRight, Globe, Trophy } from "lucide-react-native";
+import { ChevronRight, Globe, RefreshCw, Trophy } from "lucide-react-native";
 import { useEffect, useRef } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type {
@@ -192,7 +192,15 @@ export function ProviderPreparationForm({
                 ? "Aucun championnat découvert"
                 : "Aucune source découverte"
             }
-          />
+          >
+            <Button
+              label="Actualiser"
+              leadingIcon={RefreshCw}
+              onPress={() => void editing.sources.refetch()}
+              loading={editing.sources.isFetching}
+              disabled={busy}
+            />
+          </EmptyState>
         ))}
       {sources.map((source) => (
         <Surface key={source.id}>

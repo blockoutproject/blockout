@@ -597,6 +597,11 @@ it("clears empty search criteria from the card and keeps its focus action free o
   expect(
     await screen.findByRole("button", { name: "Rechercher" }),
   ).toBeEnabled();
+  expect(screen.getByText("Aucun exemple disponible")).toBeOnTheScreen();
+  expect(
+    screen.getByText("Saisissez un nom pour lancer une recherche."),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Essayez un autre nom.")).not.toBeOnTheScreen();
   expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
 
   // When: the existing RHF input ref owns focus; this action must not start a query.

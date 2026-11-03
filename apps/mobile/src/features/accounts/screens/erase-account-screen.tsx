@@ -4,7 +4,7 @@ import { useNavigation, usePreventRemove, useRouter } from "expo-router";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Check } from "lucide-react-native";
+import { Check, LogIn } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
   eraseAccount,
@@ -47,6 +47,11 @@ export function EraseAccountScreen({ admitted }: EraseAccountScreenProps) {
   const account = useCurrentAccount();
   const router = useRouter();
   const [originalAccountId, setOriginalAccountId] = useState<string>();
+  const needsSignIn =
+    session.status !== "initialization-error" &&
+    session.status !== "authentication-error" &&
+    (session.status !== "authenticated" ||
+      (account.error instanceof ApiError && account.error.status === 404));
   // This route's target survives an ordinary current-account refresh, including absence or replacement.
   if (!originalAccountId && account.isSuccess)
     setOriginalAccountId(account.data.accountId);
@@ -81,14 +86,20 @@ export function EraseAccountScreen({ admitted }: EraseAccountScreenProps) {
                   ? session.retryInitialization
                   : session.status === "authentication-error"
                     ? session.retryAuthentication
-                    : session.status !== "authenticated" ||
-                        (account.error instanceof ApiError &&
-                          account.error.status === 404)
-                      ? () => router.replace("/sign-in")
+                    : needsSignIn
+                      ? undefined
                       : () => void account.refetch()
               }
               retrying={account.isFetching}
-            />
+            >
+              {needsSignIn && (
+                <Button
+                  label="Se connecter"
+                  leadingIcon={LogIn}
+                  onPress={() => router.replace("/sign-in")}
+                />
+              )}
+            </ErrorState>
           </ScreenState>
         )}
       </PageScrollView>

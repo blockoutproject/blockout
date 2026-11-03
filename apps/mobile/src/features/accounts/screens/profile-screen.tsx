@@ -8,7 +8,7 @@ import { ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { useRouter } from "expo-router";
 import Constants from "expo-constants";
-import { SquarePen } from "lucide-react-native";
+import { LogIn, SquarePen } from "lucide-react-native";
 import { IconButton } from "../../../shared/components/icon-button";
 import { useState, type ReactNode } from "react";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
@@ -91,20 +91,34 @@ export function ProfileScreen({
             ? session.retryInitialization
             : session.status === "authentication-error"
               ? session.retryAuthentication
-              : () => router.push("/sign-in")
+              : undefined
         }
-      />
+      >
+        {session.status === "reauthentication-required" && (
+          <Button
+            label="Se connecter"
+            leadingIcon={LogIn}
+            onPress={() => router.push("/sign-in")}
+          />
+        )}
+      </ErrorState>
     </ScreenState>
   ) : connected &&
     account.isError &&
     (!account.data || isAccessDenied(account.error)) ? (
     <ScreenState>
       <ErrorState
-        onRetry={
-          missing ? () => router.push("/sign-in") : () => void account.refetch()
-        }
+        onRetry={missing ? undefined : () => void account.refetch()}
         retrying={account.isFetching}
-      />
+      >
+        {missing && (
+          <Button
+            label="Se connecter"
+            leadingIcon={LogIn}
+            onPress={() => router.push("/sign-in")}
+          />
+        )}
+      </ErrorState>
     </ScreenState>
   ) : undefined;
   if (blockingContent)

@@ -358,7 +358,7 @@ it("refreshes classification data without replacing dirty choices or accepting a
   ).toBe(true);
 });
 
-it("reloads an empty division catalogue from its card without changing its search or activity filter", async () => {
+it("reloads an empty division catalogue without a search from its card while keeping its activity filter", async () => {
   // Given
   let listed = false;
   mockFetch.mockImplementation((url, options) =>
@@ -371,7 +371,6 @@ it("reloads an empty division catalogue from its card without changing its searc
   const user = userEvent.setup();
   await renderEditor("divisions");
   await screen.findByText("Aucune division active");
-  await user.type(screen.getByLabelText("Rechercher une division"), "National");
   await user.press(screen.getByRole("tab", { name: "Inactives" }));
   listed = true;
 
@@ -383,7 +382,9 @@ it("reloads an empty division catalogue from its card without changing its searc
   expect(
     await screen.findByRole("link", { name: "National 2" }),
   ).toBeOnTheScreen();
-  expect(screen.getByDisplayValue("National")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Rechercher une division")).toHaveDisplayValue(
+    "",
+  );
   expect(
     screen.getByRole("tab", { name: "Inactives", selected: true }),
   ).toBeOnTheScreen();
@@ -1069,7 +1070,7 @@ it("filters division names within the selected activity catalogue without exposi
   ).toBe(false);
 });
 
-it("clears the division search without resetting the selected activity catalogue", async () => {
+it("clears the division search from its empty card without resetting the selected activity catalogue or reading the catalogue again", async () => {
   // Given
   const user = userEvent.setup();
   await renderEditor("divisions");
@@ -1077,11 +1078,14 @@ it("clears the division search without resetting the selected activity catalogue
   await user.type(screen.getByLabelText("Rechercher une division"), "national");
   await user.press(screen.getByRole("tab", { name: "Inactives" }));
   await screen.findByText("Aucune division ne correspond à votre recherche.");
+  mockFetch.mockClear();
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Effacer la recherche" }),
-  );
+  const [, cardClear] = screen.getAllByRole("button", {
+    name: "Effacer la recherche",
+  });
+  expect(cardClear).toBeOnTheScreen();
+  await user.press(cardClear);
 
   // Then
   expect(screen.getByLabelText("Rechercher une division")).toHaveDisplayValue(
@@ -1096,6 +1100,12 @@ it("clears the division search without resetting the selected activity catalogue
   expect(
     screen.queryByRole("link", { name: "National 2" }),
   ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) => String(url).includes("/divisions?")),
+  ).toHaveLength(0);
+  expect(
+    mockFetch.mock.calls.every(([, options]) => options?.method === "GET"),
+  ).toBe(true);
 });
 
 it("opens division creation from the catalogue for a lifecycle-only operator", async () => {

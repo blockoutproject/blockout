@@ -2,6 +2,7 @@ import { Page, PageContent } from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { useNavigation, useRouter } from "expo-router";
+import { LogIn } from "lucide-react-native";
 import { StyleSheet } from "react-native";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 
@@ -86,9 +87,17 @@ export function ProfileEditScreen({ admitted }: ProfileEditScreenProps) {
                     ? session.retryInitialization
                     : session.status === "authentication-error"
                       ? session.retryAuthentication
-                      : () => router.replace("/sign-in")
+                      : undefined
                 }
-              />
+              >
+                {session.status === "reauthentication-required" && (
+                  <Button
+                    label="Se connecter"
+                    leadingIcon={LogIn}
+                    onPress={() => router.replace("/sign-in")}
+                  />
+                )}
+              </ErrorState>
             </ScreenState>
           ) : session.status !== "authenticated" ? (
             <ScreenState style={styles.centered}>
@@ -101,13 +110,17 @@ export function ProfileEditScreen({ admitted }: ProfileEditScreenProps) {
           ) : account.isError ? (
             <ScreenState>
               <ErrorState
-                onRetry={
-                  missing
-                    ? () => router.replace("/sign-in")
-                    : () => void account.refetch()
-                }
+                onRetry={missing ? undefined : () => void account.refetch()}
                 retrying={account.isFetching}
-              />
+              >
+                {missing && (
+                  <Button
+                    label="Se connecter"
+                    leadingIcon={LogIn}
+                    onPress={() => router.replace("/sign-in")}
+                  />
+                )}
+              </ErrorState>
             </ScreenState>
           ) : null}
         </FormScrollView>

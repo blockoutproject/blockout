@@ -19,7 +19,7 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { useRouter } from "expo-router";
-import { ChevronRight, Plus, RefreshCw } from "lucide-react-native";
+import { ChevronRight, Eraser, Plus, RefreshCw } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { DivisionResponse } from "../../../../.generated/schemas/index.zod";
@@ -246,12 +246,20 @@ export function DivisionsScreen() {
                             : "Aucune division inactive"
                       }
                     >
-                      <Button
-                        label="Actualiser"
-                        leadingIcon={RefreshCw}
-                        onPress={() => void refresh()}
-                        loading={query.isFetching}
-                      />
+                      {search.trim() ? (
+                        <Button
+                          label="Effacer la recherche"
+                          leadingIcon={Eraser}
+                          onPress={() => reset(divisionSearchValues())}
+                        />
+                      ) : (
+                        <Button
+                          label="Actualiser"
+                          leadingIcon={RefreshCw}
+                          onPress={() => void refresh()}
+                          loading={query.isFetching}
+                        />
+                      )}
                     </EmptyState>
                   )}
                 </ScreenState>
