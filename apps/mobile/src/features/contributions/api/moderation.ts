@@ -333,14 +333,14 @@ export function useModerationMatch(
   return { ...reading, publish, change, reactivate, refresh };
 }
 
-/** Paged reports remain bound to one exact version, including a historical reactivation source. */
+/** Paged reports retain their exact version; exposed authority keeps recovery with the profile while reads are disabled. */
 export function useModerationReports(
   matchId: string,
   versionId: string,
   enabled: boolean,
 ) {
   const authority = useModerationAuthority();
-  return useInfiniteQuery({
+  const query = useInfiniteQuery({
     queryKey: getListStreamReportsQueryKey(matchId, versionId),
     enabled: authority.allowed && enabled,
     gcTime: 0,
@@ -361,4 +361,5 @@ export function useModerationReports(
     },
     getNextPageParam: (page) => page.nextPage,
   });
+  return { ...authority, query };
 }

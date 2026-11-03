@@ -1,3 +1,5 @@
+import { RefreshCw } from "lucide-react-native";
+import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { PageFlatList } from "../../../shared/components/page-list";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import {
@@ -124,6 +126,7 @@ function Inbox({
       refreshNotificationSummary(client, queries),
     ]);
     if (
+      rows.length > 0 &&
       outcomes.some(
         (result) =>
           result.status === "rejected" && !isAccessDenied(result.reason),
@@ -150,14 +153,7 @@ function Inbox({
     )
       return;
     feedback.clear();
-    const result = await query.fetchNextPage({ cancelRefetch: false });
-    if (
-      result.isFetchNextPageError &&
-      result.data &&
-      !isAccessDenied(result.error) &&
-      navigation.isFocused()
-    )
-      feedback.error();
+    await query.fetchNextPage({ cancelRefetch: false });
   }
   /** Starts both independent intents once; this tap owns their first safe failure feedback. */
   function openNotification(id: string, matchId: string) {
@@ -208,7 +204,11 @@ function Inbox({
           ) : undefined
         }
         ListEmptyComponent={
-          query.isError && !query.data ? (
+          query.isLoading ? (
+            <PageContent>
+              <NotificationLoading />
+            </PageContent>
+          ) : query.isError ? (
             <ScreenState>
               <ErrorState
                 onRetry={() => void refresh()}
@@ -223,15 +223,19 @@ function Inbox({
               >
                 <Button
                   label="Actualiser"
+                  leadingIcon={RefreshCw}
                   onPress={() => void refresh()}
                   loading={query.isFetching}
                 />
               </EmptyState>
             </ScreenState>
           ) : (
-            <PageContent>
-              <NotificationLoading />
-            </PageContent>
+            <ScreenState>
+              <ReadFeedback
+                query={query}
+                loadingContent={<NotificationLoading />}
+              />
+            </ScreenState>
           )
         }
         ListFooterComponent={

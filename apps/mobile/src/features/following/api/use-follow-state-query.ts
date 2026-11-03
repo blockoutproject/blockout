@@ -27,7 +27,7 @@ export function useFollowStateQuery(target: FollowingTarget) {
   const bypass = Boolean(admission.bypass);
   /** Prepares each captured-owner request after native credentials so F12 rechecks current intent. */
   async function request(signal?: AbortSignal) {
-    if (!owner) throw new ApiError("cancelled");
+    if (!owner || !admission.admitted) throw new ApiError("cancelled");
     const credentials = await getCredentials();
     if (!credentials) throw new ApiError("http", 401);
     return admission.request({
@@ -44,6 +44,7 @@ export function useFollowStateQuery(target: FollowingTarget) {
     query,
     owner,
     usable,
+    admitted: admission.admitted,
     request,
     options,
     bypass,

@@ -19,7 +19,7 @@ import { DataRefreshControl } from "../../../shared/components/data-refresh-cont
 import { ListContinuation } from "../../../shared/components/list-continuation";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
-import { EmptyState } from "../../../shared/components/state-card";
+import { EmptyState, ErrorState } from "../../../shared/components/state-card";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import {
@@ -93,14 +93,13 @@ function followedItems(
     ).values(),
   ];
 }
-/** Native Query owns retained pages and reset semantics; explicit events alone publish read feedback. */
+/** Query owns retained pages and reset semantics; only an explicit grouped refresh may publish gesture feedback. */
 function useFollowedList(
   props: FollowedListsProps,
   type: FollowingTarget["type"],
   expanded: boolean,
 ) {
   const client = useQueryClient();
-  const feedback = useActionFeedback();
   const options = createFollowListOptions(
     props.owner,
     props.request,
@@ -130,20 +129,21 @@ function useFollowedList(
       (query.isError && !retry)
     )
       return;
-    feedback.clear();
-    const result = await query.fetchNextPage();
-    if (result.isError && current.current === identity) feedback.error();
+    await query.fetchNextPage({ cancelRefetch: false });
   }
-  /** Retains authorized pages on failure; a grouped gesture supplies its sole notice owner, while a local retry keeps this owner. */
-  async function refresh(onFailure: () => void = feedback.error) {
+  /** Retains authorized pages on failure; footer retries stay silent and a grouped gesture supplies its sole notice callback. */
+  async function refresh(onFailure?: () => void) {
     if (!active || !query.data || query.isFetching) return;
-    feedback.clear();
     await client.cancelQueries({ queryKey: options.queryKey, exact: true });
     try {
       await client.infiniteQuery({ ...options, staleTime: 0, pages: 1 });
     } catch {
-      if (current.current === identity && client.getQueryData(options.queryKey))
-        onFailure();
+      const retained = client.getQueryData(options.queryKey);
+      if (
+        current.current === identity &&
+        followedItems(retained?.pages).length > 0
+      )
+        onFailure?.();
     }
   }
   return { query, items: followedItems(query.data?.pages), append, refresh };
@@ -204,6 +204,8 @@ export function FollowedLists(props: FollowedListsProps) {
   if (
     teams.query.data &&
     pools.query.data &&
+    !teams.query.isError &&
+    !pools.query.isError &&
     !teams.items.length &&
     !pools.items.length &&
     !teams.query.hasNextPage &&
@@ -277,7 +279,19 @@ export function FollowedLists(props: FollowedListsProps) {
           );
         return (
           <View style={styles.feedback}>
-            {!list.query.data ? (
+            {!list.items.length && list.query.isError ? (
+              <ErrorState
+                onRetry={
+                  props.active && expanded[row.resource]
+                    ? () => {
+                        if (props.active && expanded[row.resource])
+                          void list.query.refetch();
+                      }
+                    : undefined
+                }
+                retrying={list.query.isFetching}
+              />
+            ) : !list.query.data ? (
               <ReadFeedback
                 query={list.query}
                 loadingContent={

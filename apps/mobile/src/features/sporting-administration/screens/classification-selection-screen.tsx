@@ -1,3 +1,4 @@
+import { RefreshCw } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { type UseFormReturn, useWatch } from "react-hook-form";
 import { isAccessDenied } from "../../../shared/api/access-denied";
@@ -102,7 +103,7 @@ function Selection({
     const result = divisions.authority.enabled
       ? await divisions.query.refetch()
       : await divisions.authority.account.refetch();
-    if (result.isError && result.data) feedback.error();
+    if (result.isError && choices.length > 0) feedback.error();
   }
   return (
     <Sheet
@@ -146,13 +147,21 @@ function Selection({
         catalog &&
         choices.length === 0 && (
           <SheetContent>
-            <EmptyState title="Aucune division active">
-              <Button
-                label="Actualiser"
-                onPress={() => void refresh()}
-                loading={divisions.query.isFetching}
+            {divisions.query.isError ? (
+              <ErrorState
+                onRetry={() => void refresh()}
+                retrying={divisions.query.isFetching}
               />
-            </EmptyState>
+            ) : (
+              <EmptyState title="Aucune division active">
+                <Button
+                  label="Actualiser"
+                  leadingIcon={RefreshCw}
+                  onPress={() => void refresh()}
+                  loading={divisions.query.isFetching}
+                />
+              </EmptyState>
+            )}
           </SheetContent>
         )}
       {choices.length > 0 && (

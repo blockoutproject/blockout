@@ -13,6 +13,7 @@ import {
   type UseInfiniteQueryResult,
 } from "@tanstack/react-query";
 import { useNavigation } from "expo-router";
+import { RefreshCw } from "lucide-react-native";
 import {
   useEffect,
   useLayoutEffect,
@@ -115,7 +116,10 @@ export interface SportingCalendarViewProps {
     | "isFetchingNextPage"
     | "hasNextPage"
     | "fetchNextPage"
-  >;
+  > & {
+    /** Native Query admission, when supplied; a disabled observer cannot start recovery from this view. */
+    isEnabled?: boolean;
+  };
   active?: boolean;
   onRefresh: (timeZone: string) => Promise<unknown>;
   emptyState?: ReactNode;
@@ -156,9 +160,9 @@ export function SportingCalendarView({
     });
     return () => subscription.remove();
   }, []);
-  /** A zone change selects its native loading/error state; same-zone refresh may retain prior data and reports failure. */
+  /** A zone change selects its native read state; same-zone failure reports feedback only when usable rows survive. */
   async function refresh() {
-    if (refreshing || !active) return;
+    if (refreshing || !active || calendar.isEnabled === false) return;
     feedback.clear();
     setRefreshing(true);
     const nextZone = currentSportingTimeZone();
@@ -169,7 +173,7 @@ export function SportingCalendarView({
       if (
         currentActive.current &&
         navigation.isFocused() &&
-        calendar.data &&
+        rows.length > 0 &&
         !resourceUnavailable(error) &&
         !isCancelledError(error) &&
         !(error instanceof ApiError && error.kind === "cancelled")
@@ -191,15 +195,7 @@ export function SportingCalendarView({
     )
       return;
     feedback.clear();
-    const result = await calendar.fetchNextPage({ cancelRefetch: false });
-    if (
-      result.isFetchNextPageError &&
-      result.data &&
-      !resourceUnavailable(result.error) &&
-      navigation.isFocused() &&
-      currentActive.current
-    )
-      feedback.error();
+    await calendar.fetchNextPage({ cancelRefetch: false });
   }
   const refreshControl =
     rows.length > 0 ? (
@@ -212,7 +208,9 @@ export function SportingCalendarView({
   if (rows.length === 0)
     return (
       <PageScrollView refreshControl={refreshControl}>
-        {calendar.isPending ? (
+        {calendar.isPending &&
+        calendar.isFetching &&
+        calendar.isEnabled !== false ? (
           <PageContent>
             {children}
             <CalendarLoading columns={columns} stacked={stacked} />
@@ -223,9 +221,13 @@ export function SportingCalendarView({
               <PageContent style={styles.stateControls}>{children}</PageContent>
             )}
             <ScreenState>
-              {calendar.isError && !calendar.data ? (
+              {calendar.isError || calendar.isPending ? (
                 <ErrorState
-                  onRetry={() => void refresh()}
+                  onRetry={
+                    active && calendar.isEnabled !== false
+                      ? () => void refresh()
+                      : undefined
+                  }
                   retrying={calendar.isFetching}
                 />
               ) : (
@@ -233,6 +235,7 @@ export function SportingCalendarView({
                   <EmptyState title="Aucun match pour cette sélection">
                     <Button
                       label="Actualiser"
+                      leadingIcon={RefreshCw}
                       onPress={() => void refresh()}
                       loading={refreshing || calendar.isFetching}
                       disabled={!active}

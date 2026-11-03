@@ -441,8 +441,53 @@ it("removes known expired content while active offline without restoring it afte
   // Then
   expect(screen.queryByRole("link", { name: /non lue$/ })).toBeNull();
   expect(
-    await screen.findByText("Aucune notification pour le moment"),
+    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
   ).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Aucune notification pour le moment"),
+  ).not.toBeOnTheScreen();
+});
+
+it("uses local read recovery after a cached empty inbox fails and restores accepted notifications", async () => {
+  // Given
+  rows = [];
+  await showInbox();
+  await screen.findByText("Aucune notification pour le moment");
+  mockFetch.mockImplementation((url: string, init: RequestInit) =>
+    new URL(url).pathname.endsWith("/notifications")
+      ? Promise.reject(new TypeError("Synthetic read failure"))
+      : response(url, init),
+  );
+
+  // When
+  await userEvent.press(screen.getByRole("button", { name: "Actualiser" }));
+
+  // Then
+  expect(
+    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Aucune notification pour le moment"),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      includeHiddenElements: true,
+    }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  rows = [row];
+  mockFetch.mockImplementation(response);
+  await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: /^Le résultat.*non lue$/ }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
 });
 
 it("reloads an accepted empty inbox only from its card and restores pull-to-refresh when rows return", async () => {
@@ -597,7 +642,7 @@ it("clears the app badge on session invalidation and excludes guest private read
   ).toBe(false);
 });
 
-it("loads only the focused inbox and retains rows while its toast reports failure and the footer retries the same cursor", async () => {
+it("loads only the focused inbox and retains rows while its local footer retries the same cursor", async () => {
   // Given
   const second = {
     ...row,
@@ -655,11 +700,8 @@ it("loads only the focused inbox and retains rows while its toast reports failur
   expect(
     screen.getByRole("link", { name: /^Le résultat.*non lue$/ }),
   ).toBeOnTheScreen();
-  expect(
-    await screen.findByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-    }),
-  ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(screen.getByText("Une erreur est survenue.")).toBeOnTheScreen();
 
   // When
   failNext = false;

@@ -1366,7 +1366,7 @@ it.each([200, 403, 503])(
   },
 );
 
-it("retains an empty division selector after its card reload fails and preserves the parent draft", async () => {
+it("replaces an empty division selector with its read error after a failed reload and preserves the parent draft", async () => {
   // Given
   stored.setting = classification;
   mockFetch.mockImplementation((url, options) =>
@@ -1394,15 +1394,13 @@ it("retains an empty division selector after its card reload fails and preserves
   // Then
   expect(
     await screen.findByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      name: "Une erreur est survenue",
     }),
   ).toBeOnTheScreen();
   expect(
-    screen.getByRole("header", { name: "Aucune division active" }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.queryByRole("button", { name: "Réessayer" }),
+    screen.queryByRole("header", { name: "Aucune division active" }),
   ).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
 
   // When
   await user.press(screen.getByRole("button", { name: "Fermer" }));

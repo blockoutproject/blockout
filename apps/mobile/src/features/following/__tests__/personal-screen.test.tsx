@@ -25,6 +25,7 @@ import {
 } from "react";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { createQueryClient } from "../../../shared/query/query-client";
+import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import {
@@ -48,6 +49,7 @@ import {
 } from "../../sporting/test-support/consultation-data";
 import { PersonalScreen } from "../screens/personal-screen";
 import { FollowButton } from "../components/follow-button";
+import { followListKey } from "../api/following-keys";
 import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 import * as proSessionModule from "../../pro/pro-session";
 import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
@@ -1520,6 +1522,71 @@ it.each(
   },
 );
 
+it.each([false, true])(
+  "keeps a failed previously empty team list recoverable when the pool list is empty=%s",
+  async (emptyPools) => {
+    // Given
+    let failed = false;
+    mockFetch.mockImplementation((url, request) => {
+      const pathname = new URL(url).pathname;
+      if (pathname === `/accounts/${accountId}/team-follows`)
+        return failed
+          ? Promise.reject(new TypeError("Synthetic empty-list outage"))
+          : Promise.resolve(Response.json({ items: [] }));
+      if (emptyPools && pathname === `/accounts/${accountId}/pool-follows`)
+        return Promise.resolve(Response.json({ items: [] }));
+      return transport(url, request);
+    });
+    await mount();
+    await screen.findByRole("button", {
+      name: "Saison des suivis",
+      disabled: false,
+    });
+    await layoutNativeTabs();
+    await userEvent.press(screen.getByRole("tab", { name: "Suivis" }));
+    await screen.findByText("Aucun suivi à afficher");
+
+    // When
+    failed = true;
+    if (emptyPools)
+      await act(async () => {
+        await client.invalidateQueries({
+          queryKey: followListKey(
+            { accountId, subject: session.subject },
+            "team",
+            { seasonId: older.id },
+          ),
+          exact: true,
+        });
+      });
+    else
+      await fireEvent(
+        screen.getByLabelText("Actualiser les données"),
+        "refresh",
+      );
+
+    // Then
+    await screen.findByRole("button", { name: "Réessayer" });
+    expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
+    if (!emptyPools) {
+      expect(screen.getByRole("link", { name: /Poule A/ })).toBeOnTheScreen();
+      expect(
+        screen.queryByText("Aucun suivi à afficher"),
+      ).not.toBeOnTheScreen();
+    }
+
+    // When
+    failed = false;
+    await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    await screen.findByText("Aucun suivi à afficher");
+    expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+    if (!emptyPools)
+      expect(screen.getByRole("link", { name: /Poule A/ })).toBeOnTheScreen();
+  },
+);
+
 it("retains pages on append failure, deduplicates UUIDs and keeps homonyms distinguishable", async () => {
   // Given
   let failAppend = true;
@@ -1566,6 +1633,7 @@ it("retains pages on append failure, deduplicates UUIDs and keeps homonyms disti
   // Then
   expect(screen.getAllByRole("link", { name: /Étoile/ })).toHaveLength(1);
   expect(screen.queryByText("Aucun suivi à afficher")).not.toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 
   // When
   failAppend = false;
@@ -1767,6 +1835,7 @@ it.each(["team", "pool"] as const)(
 it("keeps an explicit read retry at the list edge after a failed first-page refresh", async () => {
   // Given
   let unavailable = false;
+  const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility");
   mockFetch.mockImplementation(async (url, request) => {
     if (new URL(url).pathname !== `/accounts/${accountId}/team-follows`)
       return transport(url, request);
@@ -1790,6 +1859,17 @@ it("keeps an explicit read retry at the list edge after a failed first-page refr
 
   // Then
   expect(screen.getByRole("link", { name: /Étoile/ })).toBeOnTheScreen();
+  await waitFor(() => expect(announce).toHaveBeenCalledTimes(1));
+
+  // When: a failed footer retry stays local instead of publishing another refresh toast.
+  announce.mockClear();
+  await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+
+  // Then
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: /Étoile/ })).toBeOnTheScreen();
+  expect(announce).not.toHaveBeenCalled();
 
   // When: retry belongs to the failed refresh; successful recovery reopens native continuation.
   unavailable = false;

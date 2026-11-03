@@ -956,7 +956,7 @@ it("loads the next child page only from the visible idle list and retains bounde
   ).not.toBeOnTheScreen();
 });
 
-it("retains child rows and retries the failed page after a toast while retaining explicit continuation", async () => {
+it("retains child rows and retries the failed page without a toast while retaining explicit continuation", async () => {
   // Given
   const user = userEvent.setup();
   let fails = true;
@@ -999,10 +999,10 @@ it("retains child rows and retries the failed page after a toast while retaining
   // Then
   expect(screen.getByText("Phase régulière")).toBeOnTheScreen();
   expect(
-    screen.getByRole("alert", {
+    screen.queryByRole("alert", {
       name: "Une erreur est survenue. Veuillez réessayer plus tard.",
     }),
-  ).toBeOnTheScreen();
+  ).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(
       ([url]) =>

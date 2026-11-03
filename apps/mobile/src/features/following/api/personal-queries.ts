@@ -31,6 +31,7 @@ import {
   type FollowingTarget,
   type FollowingOwner,
 } from "./following-keys";
+import { withdrawRefusedFollowingQuery } from "./follow-queries";
 
 /** Canonical F03 summaries remain inside their generated F06 collection envelopes. */
 export type FollowListPage = ListTeamFollows200 | ListPoolFollows200;
@@ -85,7 +86,7 @@ export function createFollowListOptions(
     networkMode: "always",
   });
 }
-/** One validated options cache for the original session; failure never means no seasons. */
+/** One validated options cache for the original session; refusals withdraw only forbidden options, never infer no seasons. */
 export function createFollowOptionsQueryOptions(
   owner: FollowingOwner,
   request: (signal?: AbortSignal) => Promise<ApiFetchOptions>,
@@ -95,18 +96,28 @@ export function createFollowOptionsQueryOptions(
     queryKey: followOptionsKey(owner, bypass),
     refetchOnMount: "always",
     retryOnMount: true,
-    queryFn: async ({ signal, client }) => {
-      const options = await request(signal);
-      const result = await getFollowOptions(owner.accountId, options);
-      if (signal.aborted || options.signal?.aborted)
-        throw new ApiError("cancelled");
-      for (const seasonId of retainedSeasonIds(client, owner, bypass)) {
-        if (result.seasons.some((season) => season.id === seasonId)) continue;
-        await withdrawUnavailableFollows(client, owner, bypass, seasonId);
+    queryFn: async ({ signal, client, queryKey }) => {
+      try {
+        const options = await request(signal);
+        const result = await getFollowOptions(owner.accountId, options);
         if (signal.aborted || options.signal?.aborted)
           throw new ApiError("cancelled");
+        for (const seasonId of retainedSeasonIds(client, owner, bypass)) {
+          if (result.seasons.some((season) => season.id === seasonId)) continue;
+          await withdrawUnavailableFollows(client, owner, bypass, seasonId);
+          if (signal.aborted || options.signal?.aborted)
+            throw new ApiError("cancelled");
+        }
+        return result;
+      } catch (error) {
+        if (
+          !signal.aborted &&
+          error instanceof ApiError &&
+          (isAccessDenied(error) || error.status === 404)
+        )
+          await withdrawRefusedFollowingQuery(client, queryKey, error);
+        throw error;
       }
-      return result;
     },
   });
 }

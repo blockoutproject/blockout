@@ -4,7 +4,11 @@ import {
   type PropsWithChildren as QueryFixtureProps,
   PropsWithChildren,
 } from "react";
-import { useQueryClient, type QueryClient } from "@tanstack/react-query";
+import {
+  onlineManager,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -130,6 +134,7 @@ afterEach(async () => {
   publicClient.clear();
   jest.restoreAllMocks();
   process.env = { ...environment };
+  onlineManager.setOnline(true);
 });
 
 /** Actual theme, access, session and cache; only native identity and HTTP are controlled. */
@@ -363,6 +368,102 @@ it("reloads an empty calendar through its card and restores native refresh only 
   expect(screen.queryByRole("button", { name: "Actualiser" })).toBeNull();
 });
 
+it("replaces a cached empty calendar with a retryable error after its next read fails", async () => {
+  // Given
+  calendar = { ...calendar, days: [] };
+  await render(
+    <CalendarTab>
+      <SportingCalendar
+        selection={{ teamId: sportingId, category: "upcoming" }}
+      />
+    </CalendarTab>,
+    { wrapper: Providers },
+  );
+  await layoutNativeTabs();
+  await screen.findByText("Aucun match pour cette sélection");
+  mockFetch.mockRejectedValue(new TypeError("offline"));
+
+  // When
+  await userEvent.press(screen.getByRole("button", { name: "Actualiser" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Aucun match pour cette sélection")).toBeNull();
+  expect(screen.getAllByRole("alert")).toHaveLength(1);
+  mockFetch.mockResolvedValue(Response.json(calendar));
+
+  // When
+  await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByText("Aucun match pour cette sélection"),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
+it("does not announce a paused new calendar as loading or successfully empty", async () => {
+  // Given
+  const opened = await render(
+    <CalendarTab>
+      <SportingCalendar
+        selection={{ teamId: sportingId, category: "upcoming" }}
+      />
+    </CalendarTab>,
+    { wrapper: Providers },
+  );
+  await layoutNativeTabs();
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await act(async () => onlineManager.setOnline(false));
+  mockFetch.mockClear();
+
+  // When
+  await opened.rerender(
+    <CalendarTab>
+      <SportingCalendar
+        selection={{ teamId: sportingId, category: "completed" }}
+      />
+    </CalendarTab>,
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer", busy: false }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).toBeNull();
+  expect(screen.queryByText("Aucun match pour cette sélection")).toBeNull();
+  expect(mockFetch).not.toHaveBeenCalled();
+});
+
+it("keeps a disabled calendar idle without a loading announcement or an admitted retry", async () => {
+  // Given
+  await render(
+    <CalendarTab>
+      <SportingCalendar
+        selection={{ teamId: sportingId, category: "upcoming" }}
+        active={false}
+      />
+    </CalendarTab>,
+    { wrapper: Providers },
+  );
+
+  // When: the native scene mounts while its read scope remains inactive.
+  await layoutNativeTabs();
+  await screen.findByRole("alert");
+
+  // Then
+  expect(
+    screen.queryByRole("progressbar", { name: "Chargement des matchs" }),
+  ).toBeNull();
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+  expect(screen.queryByText("Aucun match pour cette sélection")).toBeNull();
+  expect(
+    mockFetch.mock.calls.some(([url]) => new URL(url).pathname === "/matches"),
+  ).toBe(false);
+});
+
 it("retains calendar rows with one toast after refresh failure and replaces them only after a successful pull", async () => {
   // Given
   await render(
@@ -574,16 +675,16 @@ it("reports a failed active cursor and retries the same boundary from its footer
     "endReached",
   );
 
-  // Then: the toast reports the failure while rows and explicit retry remain; no automatic retry runs.
+  // Then: only the local footer reports failure; rows/cursor remain and no automatic retry runs.
   expect(mockFetch).toHaveBeenCalledTimes(1);
   expect(
     screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
   ).toBeOnTheScreen();
   expect(
-    await screen.findByRole("alert", {
+    screen.queryByRole("alert", {
       name: "Une erreur est survenue. Veuillez réessayer plus tard.",
     }),
-  ).toBeOnTheScreen();
+  ).toBeNull();
 
   // When
   failNext = false;

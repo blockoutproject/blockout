@@ -1,5 +1,3 @@
-import { ErrorState } from "../../../shared/components/state-card";
-import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useRouter } from "expo-router";
 import { Check, Plus } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
@@ -7,13 +5,12 @@ import type { SportingSeasonResponse } from "../../../../.generated/schemas/inde
 import { isUncertainMutationFailure } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
+import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { useFollowStateQuery } from "../api/use-follow-state-query";
-import {
-  useFollowMutation,
-  isFollowRestriction,
-} from "../api/follow-mutations";
+import { useFollowMutation } from "../api/follow-mutations";
+import { AccountSessionFeedback } from "../../accounts/current-account";
 import type { FollowingTarget } from "../api/following-keys";
 
 /** Exact viewable target and its season; confirmation never changes a personal-space filter. */
@@ -21,30 +18,40 @@ export interface FollowButtonProps {
   target: FollowingTarget;
   season: SportingSeasonResponse;
 }
-/** Uses the borderless compact inverse action and F05 invitation without a Pro gate or extra success panel. */
+/** Query owns confirmed availability and read recovery; the native mutation alone owns provisional writes and explicit replay. */
 export function FollowButton({ target, season }: FollowButtonProps) {
   const context = useFollowStateQuery(target);
   const action = useFollowMutation(target, context);
   const router = useRouter();
   const feedback = useActionFeedback();
   const { colors } = useTheme();
-  const { query, profile, usable, sessionStatus } = context;
+  const { query, profile, usable, admitted, sessionStatus } = context;
   const latest = action;
   const failed = latest?.status === "error";
-  const restriction = [query.error, latest?.error].find(
-    (error) => isAccessDenied(error) || isFollowRestriction(error),
+  const guest = sessionStatus === "guest";
+  const loadingContent = (
+    <Button
+      label="Suivre"
+      size="compact"
+      variant="inverse"
+      bordered={false}
+      leadingIcon={Plus}
+      onPress={undefined}
+      loading
+      disabled
+    />
   );
-  const unavailable = restriction !== undefined;
-  /** A fresh read releases only the existing availability guard; it never repeats a write. */
-  async function reread() {
-    feedback.clear();
-    const result = await query.refetch();
-    if (result.isError && result.data) feedback.error();
-  }
-  if (query.isError && query.data === undefined)
+  if (!guest && sessionStatus !== "authenticated")
+    return <AccountSessionFeedback loadingContent={loadingContent} />;
+  if (!guest && admitted && !usable)
     return (
-      <ErrorState onRetry={() => void reread()} retrying={query.isFetching} />
+      <ReadFeedback
+        query={{ ...profile, isEnabled: admitted && profile.isEnabled }}
+        loadingContent={loadingContent}
+      />
     );
+  if (!guest && query.data === undefined)
+    return <ReadFeedback query={query} loadingContent={loadingContent} />;
   const provisional =
     action.isPending && typeof latest?.variables === "boolean"
       ? latest.variables
@@ -53,7 +60,6 @@ export function FollowButton({ target, season }: FollowButtonProps) {
   const uncertain = failed && isUncertainMutationFailure(latest.error);
   // An explicit retry uses the same desired boolean; the server owns replacement idempotence.
   const canRepeatUncertain = uncertain && query.data !== undefined;
-  const guest = sessionStatus === "guest";
   return (
     <View style={styles.control}>
       <Button
@@ -70,14 +76,10 @@ export function FollowButton({ target, season }: FollowButtonProps) {
             ? `Saison ${season.label}. Retrouvez ce suivi dans cette saison ou Toutes les saisons.`
             : `Saison ${season.label}.`
         }
-        loading={
-          action.isPending ||
-          (!guest && usable && query.isPending && !query.isError)
-        }
+        loading={action.isPending}
         disabled={
           !guest &&
-          (unavailable ||
-            !usable ||
+          (!usable ||
             following === undefined ||
             (query.isError && !canRepeatUncertain))
         }
@@ -91,7 +93,7 @@ export function FollowButton({ target, season }: FollowButtonProps) {
             feedback.clear();
             try {
               await action.mutateAsync(
-                failed && typeof latest.variables === "boolean"
+                canRepeatUncertain && typeof latest.variables === "boolean"
                   ? latest.variables
                   : !following,
               );
@@ -101,17 +103,8 @@ export function FollowButton({ target, season }: FollowButtonProps) {
           }
         }}
       />
-      {profile.isError && !profile.data ? (
-        <ErrorState
-          onRetry={() => void profile.refetch()}
-          retrying={profile.isFetching}
-        />
-      ) : query.isError && !canRepeatUncertain ? (
-        <Button
-          label="Réessayer"
-          onPress={() => void reread()}
-          loading={query.isFetching}
-        />
+      {query.isError && !canRepeatUncertain ? (
+        <ReadFeedback query={query} loadingContent={loadingContent} />
       ) : uncertain ? (
         <Text
           accessibilityLiveRegion="polite"

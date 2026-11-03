@@ -56,7 +56,7 @@ async function request(signal?: AbortSignal) {
   return { signal };
 }
 
-/** Future tab/list consumers observe one scoped choice; no future list/calendar UI is simulated as production. */
+/** Shares the real choice and query boundary through selection controls; full list/calendar integration is tested with Home. */
 function PersonalProbe({ enabled = true }: { enabled?: boolean }) {
   const season = usePersonalSeason(owner, request, enabled);
   const [tab, setTab] = useState("upcoming");
@@ -425,6 +425,85 @@ it("retains the current choice when an ordinary choices refresh fails", async ()
   ).toHaveAccessibilityValue({ text: older.label });
 });
 
+it.each([403, 404])(
+  "withdraws refused %i options through a transient error and a remount of the same cache until success",
+  async (status) => {
+    // Given
+    const user = userEvent.setup();
+    const first = await mount();
+    await screen.findByText("Loaded");
+    const bypassOptions = {
+      seasons: [newer],
+      defaultSeasonId: newer.id,
+    };
+    client.setQueryData(followOptionsKey(owner, true), bypassOptions);
+    const retainedList = createFollowListOptions(
+      owner,
+      request,
+      "team",
+      older.id,
+    ).queryKey;
+    mockFetch.mockImplementation(async () => new Response(null, { status }));
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Reload options" }));
+    await waitFor(() =>
+      expect(client.getQueryState(followOptionsKey(owner))?.status).toBe(
+        "error",
+      ),
+    );
+
+    // Then
+    expect(client.getQueryData(followOptionsKey(owner))).toBeUndefined();
+    expect(client.getQueryData(followOptionsKey(owner, true))).toEqual(
+      bypassOptions,
+    );
+    expect(client.getQueryData(retainedList)).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: "Saison des suivis" }),
+    ).toBeDisabled();
+
+    // When
+    mockFetch.mockRejectedValue(new TypeError("Synthetic options outage"));
+    await user.press(screen.getByRole("button", { name: "Reload options" }));
+    await screen.findByRole("button", {
+      name: "Saison des suivis",
+      disabled: true,
+    });
+    await first.unmount();
+    const current = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url) =>
+      url.includes("follow-options")
+        ? current.promise
+        : Promise.resolve(Response.json({ items: [] })),
+    );
+    await mount();
+
+    // Then
+    expect(
+      screen.getByRole("button", { name: "Saison des suivis" }),
+    ).toBeDisabled();
+    expect(client.getQueryData(followOptionsKey(owner))).toBeUndefined();
+
+    // When
+    await act(async () => {
+      current.resolve(
+        Response.json({ seasons: [newer], defaultSeasonId: newer.id }),
+      );
+    });
+
+    // Then
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Saison des suivis" }),
+      ).toHaveAccessibilityValue({ text: newer.label }),
+    );
+    expect(
+      screen.getByRole("button", { name: "Saison des suivis" }),
+    ).toBeEnabled();
+  },
+);
+
 it("recalculates a new opening's default from fresh options even when Query retains an older successful read", async () => {
   // Given
   const first = await mount();
@@ -441,6 +520,59 @@ it("recalculates a new opening's default from fresh options even when Query reta
   // When
   await mount();
   await waitFor(() => expect(optionReads()).toBe(2));
+  // Then
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Saison des suivis" }),
+    ).toHaveAccessibilityValue({ text: newer.label }),
+  );
+});
+
+it("never restores refused options when an opening closes with native retries configured", async () => {
+  // Given
+  client.setQueryDefaults(followOptionsKey(owner), {
+    retry: 3,
+    retryDelay: 60_000,
+  });
+  const user = userEvent.setup();
+  const first = await mount();
+  await screen.findByText("Loaded");
+  mockFetch.mockResolvedValue(new Response(null, { status: 403 }));
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Reload options" }));
+  await waitFor(() =>
+    expect(client.getQueryData(followOptionsKey(owner))).toBeUndefined(),
+  );
+  await first.unmount();
+
+  // Then
+  expect(client.getQueryData(followOptionsKey(owner))).toBeUndefined();
+  expect(client.getQueryState(followOptionsKey(owner))?.status).toBe("error");
+  expect(optionReads()).toBe(2);
+
+  // When
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url) =>
+    url.includes("follow-options")
+      ? response.promise
+      : Promise.resolve(Response.json({ items: [] })),
+  );
+  await mount();
+
+  // Then
+  expect(
+    screen.getByRole("button", { name: "Saison des suivis" }),
+  ).toBeDisabled();
+  expect(client.getQueryData(followOptionsKey(owner))).toBeUndefined();
+
+  // When
+  await act(async () => {
+    response.resolve(
+      Response.json({ seasons: [newer], defaultSeasonId: newer.id }),
+    );
+  });
+
   // Then
   await waitFor(() =>
     expect(

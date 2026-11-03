@@ -326,6 +326,38 @@ it("retains source metadata silently after a failed explicit refresh", async () 
   ).toEqual(table);
 });
 
+it.each(["available", "not-published"] as const)(
+  "replaces a cached %s empty table with a retryable read error",
+  async (availability) => {
+    // Given
+    table = { ...table, availability, rows: [] };
+    await open(panel());
+    await screen.findByRole("button", { name: "Actualiser" });
+    failed = true;
+
+    // When
+    await userEvent.press(screen.getByRole("button", { name: "Actualiser" }));
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: "Réessayer" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText("Aucune équipe dans ce classement")).toBeNull();
+    expect(screen.queryByText("Pas de classement pour cette phase")).toBeNull();
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+    failed = false;
+
+    // When
+    await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: "Actualiser", busy: false }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).toBeNull();
+  },
+);
+
 it("keeps acquisition diagnostics out of the usable table presentation", async () => {
   // Given
   table.lastAttemptFailed = true;
@@ -558,17 +590,12 @@ it.each(["unavailable", "not-published"] as const)(
     // Then
     expect(
       await screen.findByRole("alert", {
-        name:
-          availability === "unavailable"
-            ? TECHNICAL_ERROR_TITLE
-            : TECHNICAL_ERROR,
+        name: TECHNICAL_ERROR_TITLE,
       }),
     ).toBeOnTheScreen();
     await waitFor(() => expect(client.isFetching()).toBe(0));
-    if (availability === "unavailable") {
-      await screen.findByRole("button", { name: "Réessayer", busy: false });
-      expect(screen.queryByRole("alert", { name: TECHNICAL_ERROR })).toBeNull();
-    }
+    await screen.findByRole("button", { name: "Réessayer", busy: false });
+    expect(screen.queryByRole("alert", { name: TECHNICAL_ERROR })).toBeNull();
     expect(
       mockFetch.mock.calls.filter(([url]) =>
         new URL(String(url)).pathname.endsWith("/standings"),

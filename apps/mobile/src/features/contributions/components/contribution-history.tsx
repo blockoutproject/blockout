@@ -6,10 +6,11 @@ import type {
   ModeratedStreamContributionResponse,
   StreamModerationActionEnum,
 } from "../../../../.generated/schemas/index.zod";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { EntryRow } from "../../../shared/components/entry-row";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { ListContinuation } from "../../../shared/components/list-continuation";
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useNativeHandoff } from "../../../shared/native/use-native-handoff";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -49,28 +50,31 @@ export function ContributionHistory({
   const { colors } = useTheme();
   const router = useRouter();
   const handoff = useNativeHandoff(version.url);
-  const feedback = useActionFeedback();
   const [expanded, setExpanded] = useState(!historical);
   const [reportsOpen, setReportsOpen] = useState(false);
   const [reportPage, setReportPage] = useState(0);
-  const reports = useModerationReports(
+  const reading = useModerationReports(
     matchId,
     version.id,
     reportsOpen && expanded,
   );
-  const reportContent = reports.data?.pages[reportPage];
+  const { query: reports } = reading;
+  const reportContent =
+    reading.canRetain && !isAccessDenied(reports.error)
+      ? reports.data?.pages[reportPage]
+      : undefined;
   const platform = streamPlatformLabels[version.platform];
   const state = contributionStateLabels[version.state];
   /** Failed continuation retains the current twenty-row page; only a later explicit action retries it. */
   async function nextReports() {
-    if (reports.isFetching) return;
+    if (!reading.canRetain || reports.isFetching) return;
     if (reportPage + 1 < (reports.data?.pages.length ?? 0)) {
       setReportPage(reportPage + 1);
       return;
     }
+    if (!reading.allowed) return;
     const next = await reports.fetchNextPage({ cancelRefetch: false });
-    if (next.isFetchNextPageError) feedback.error();
-    else setReportPage(reportPage + 1);
+    if (!next.isFetchNextPageError) setReportPage(reportPage + 1);
   }
   /** Opens the exact related HTTP member, including a source outside the loaded history page. */
   function openRelated(versionId: string, relation: "source" | "replacement") {
@@ -222,14 +226,10 @@ export function ContributionHistory({
             {reportsOpen && (
               <View style={styles.reportContent}>
                 {!reportContent ? (
-                  reports.isPending ? (
-                    <ModerationReportsLoading />
-                  ) : (
-                    <ReadFeedback
-                      query={reports}
-                      loadingContent={<ModerationReportsLoading />}
-                    />
-                  )
+                  <ReadFeedback
+                    query={!reading.allowed ? reading.profile : reports}
+                    loadingContent={<ModerationReportsLoading />}
+                  />
                 ) : (
                   <>
                     {reportContent.items.length === 0 && (
@@ -270,14 +270,27 @@ export function ContributionHistory({
                         onPress={() => setReportPage(reportPage - 1)}
                       />
                     )}
-                    {reportContent.nextPage !== undefined && (
-                      <Button
-                        label="Signalements suivants"
-                        variant="secondary"
-                        fullWidth
+                    {reports.isFetchNextPageError ? (
+                      <ListContinuation
                         loading={reports.isFetchingNextPage}
-                        onPress={() => void nextReports()}
+                        failed
+                        disabled={!reading.allowed || reports.isFetching}
+                        onRetry={() => void nextReports()}
                       />
+                    ) : (
+                      reportContent.nextPage !== undefined && (
+                        <Button
+                          label="Signalements suivants"
+                          variant="secondary"
+                          fullWidth
+                          loading={reports.isFetchingNextPage}
+                          disabled={
+                            !reading.allowed &&
+                            reportPage + 1 >= (reports.data?.pages.length ?? 0)
+                          }
+                          onPress={() => void nextReports()}
+                        />
+                      )
                     )}
                   </>
                 )}

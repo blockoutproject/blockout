@@ -11,6 +11,7 @@ import { useAdministrationCapabilities } from "../api/use-administration-capabil
 import { useApplicationVersionsSettings } from "../api/use-application-versions-settings";
 import { ApplicationVersionsForm } from "../forms/application-versions-form";
 import { ApplicationVersionsLoading } from "../components/settings-loading";
+import { ReadFeedback } from "../../../shared/components/read-feedback";
 /** Loads only with current grants and retains an existing draft read-only when they become unavailable. */
 export function ApplicationVersionsSettingsScreen() {
   const { permissions, account, sessionStatus } =
@@ -36,7 +37,10 @@ export function ApplicationVersionsSettingsScreen() {
     if (result.isError && result.data) feedback.error();
   }
   let accessError = null;
-  if (account.isError) {
+  if (
+    sessionStatus === "authenticated" &&
+    (account.isError || (account.isPending && !account.isFetching))
+  ) {
     accessError = (
       <ErrorState
         onRetry={() => void account.refetch()}
@@ -64,17 +68,22 @@ export function ApplicationVersionsSettingsScreen() {
       />
     );
   } else if (!accessError) {
-    settingsContent = <ApplicationVersionsLoading />;
+    settingsContent = (
+      <ReadFeedback
+        query={editing.query}
+        loadingContent={<ApplicationVersionsLoading />}
+      />
+    );
   }
   const pendingAccess =
     sessionStatus === "restoring" ||
-    (sessionStatus === "authenticated" && account.isPending);
+    (sessionStatus === "authenticated" && account.isLoading);
   const loadingSettings =
     sessionStatus === "authenticated" &&
-    !account.isPending &&
+    !account.isLoading &&
     !accessError &&
     !settings &&
-    editing.query.isPending;
+    editing.query.isLoading;
   return (
     <Page header={<PageHeader title="Administration technique" />}>
       <FormScrollView

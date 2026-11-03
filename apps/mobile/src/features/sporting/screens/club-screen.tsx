@@ -20,12 +20,12 @@ import {
   pageContentStyle,
 } from "../../../shared/components/page";
 import { isAccessDenied } from "../../../shared/api/access-denied";
-import { EmptyState } from "../../../shared/components/state-card";
+import { EmptyState, ErrorState } from "../../../shared/components/state-card";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Surface } from "../../../shared/components/surface";
 import { hashKey, useQuery } from "@tanstack/react-query";
 import { useLayoutEffect, useRef, useState } from "react";
-import { Globe, Mail, MapPin, Phone } from "lucide-react-native";
+import { Globe, Mail, MapPin, Phone, RefreshCw } from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
 import { tokens } from "../../../shared/theme/tokens";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
@@ -98,7 +98,7 @@ function ClubPage({ clubId }: ClubScreenProps) {
       if (
         currentScope.current === attemptedScope &&
         result.isError &&
-        result.data &&
+        result.data?.items.length &&
         !isAccessDenied(result.error)
       )
         feedback.error();
@@ -109,6 +109,7 @@ function ClubPage({ clubId }: ClubScreenProps) {
       currentScope.current === attemptedScope &&
       result.isError &&
       result.data &&
+      (tab === "info" || result.data.seasons.length > 0) &&
       !isAccessDenied(result.error)
     )
       feedback.error();
@@ -199,14 +200,22 @@ function ClubPage({ clubId }: ClubScreenProps) {
               value !== "info" && !season ? (
                 <PageScrollView>
                   <ScreenState>
-                    <EmptyState title="Aucune saison disponible">
-                      <Button
-                        label="Actualiser"
-                        onPress={() => void refresh()}
-                        loading={club.isFetching}
-                        disabled={tab !== value}
+                    {club.isError ? (
+                      <ReadFeedback
+                        query={club}
+                        loadingContent={<SportingClubLoading />}
                       />
-                    </EmptyState>
+                    ) : (
+                      <EmptyState title="Aucune saison disponible">
+                        <Button
+                          label="Actualiser"
+                          leadingIcon={RefreshCw}
+                          onPress={() => void refresh()}
+                          loading={club.isFetching}
+                          disabled={tab !== value}
+                        />
+                      </EmptyState>
+                    )}
                   </ScreenState>
                 </PageScrollView>
               ) : (value === "upcoming" || value === "completed") && season ? (
@@ -218,7 +227,7 @@ function ClubPage({ clubId }: ClubScreenProps) {
                 </SportingCalendar>
               ) : value === "teams" && season && !teamData?.items.length ? (
                 <PageScrollView>
-                  {teams.isPending ? (
+                  {teams.isLoading ? (
                     <PageContent>
                       {seasonControls}
                       <SportingEntityCardLoading label="Chargement des équipes du club" />
@@ -229,7 +238,16 @@ function ClubPage({ clubId }: ClubScreenProps) {
                         {seasonControls}
                       </PageContent>
                       <ScreenState>
-                        {!teamData ? (
+                        {teams.isError ? (
+                          <ErrorState
+                            onRetry={
+                              tab === "teams"
+                                ? () => void teams.refetch()
+                                : undefined
+                            }
+                            retrying={teams.isFetching}
+                          />
+                        ) : !teamData ? (
                           <ReadFeedback
                             query={teams}
                             loadingContent={
@@ -240,6 +258,7 @@ function ClubPage({ clubId }: ClubScreenProps) {
                           <EmptyState title="Aucune équipe pour cette saison">
                             <Button
                               label="Actualiser"
+                              leadingIcon={RefreshCw}
                               onPress={() => void refresh()}
                               loading={teams.isFetching}
                               disabled={tab !== value}

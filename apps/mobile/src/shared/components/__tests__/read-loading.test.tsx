@@ -1,18 +1,32 @@
 import { Text } from "react-native";
-import { render, screen, userEvent } from "@testing-library/react-native";
+import { act, render, screen, userEvent } from "@testing-library/react-native";
+import {
+  onlineManager,
+  QueryClient,
+  QueryClientProvider,
+  useQuery,
+} from "@tanstack/react-query";
 import { ThemeProvider } from "../../theme/theme-provider";
 import { LoadingGroup } from "../loading-group";
 import { Skeleton } from "../skeleton";
 import { ReadFeedback } from "../read-feedback";
 import { ListContinuation } from "../list-continuation";
 
-it("does not announce a disabled or idle pending read as loading", async () => {
+it.each([
+  { isPending: true, isError: false, isFetching: false },
+  { isPending: true, isError: false, isFetching: true },
+  { isPending: false, isError: true, isFetching: false },
+])("does not load or retry a disabled read: %j", async (state) => {
   // Given
   const refetch = jest.fn();
   await render(
     <ThemeProvider>
       <ReadFeedback
-        query={{ isPending: true, isError: false, isFetching: false, refetch }}
+        query={{
+          ...state,
+          isEnabled: false,
+          refetch,
+        }}
         loadingContent={
           <LoadingGroup label="Chargement des matchs">
             <Skeleton />
@@ -27,9 +41,67 @@ it("does not announce a disabled or idle pending read as loading", async () => {
 
   // Then
   expect(loading).not.toBeOnTheScreen();
-  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(!!screen.queryByRole("alert")).toBe(state.isError);
   expect(screen.queryByRole("button")).not.toBeOnTheScreen();
   expect(refetch).not.toHaveBeenCalled();
+});
+
+/** Real Query state drives read feedback; the controlled boundary is never executed while paused. */
+function PausedRead({ read }: { read: () => Promise<string> }) {
+  const query = useQuery({ queryKey: ["paused-read"], queryFn: read });
+  return query.data ? (
+    <Text>{query.data}</Text>
+  ) : (
+    <ReadFeedback
+      query={query}
+      loadingContent={
+        <LoadingGroup label="Chargement des matchs">
+          <Skeleton />
+        </LoadingGroup>
+      }
+    />
+  );
+}
+
+it("offers non-busy recovery for a suspended read and admits its result after native Query resumes", async () => {
+  // Given
+  const client = new QueryClient({
+    defaultOptions: { queries: { gcTime: Infinity, retry: false } },
+  });
+  const read = jest.fn().mockResolvedValue("Match accepté");
+  onlineManager.setOnline(false);
+  try {
+    await render(
+      <ThemeProvider>
+        <QueryClientProvider client={client}>
+          <PausedRead read={read} />
+        </QueryClientProvider>
+      </ThemeProvider>,
+    );
+
+    // When
+    await userEvent.press(
+      screen.getByRole("button", { name: "Réessayer", busy: false }),
+    );
+
+    // Then
+    expect(
+      screen.getByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+    expect(read).not.toHaveBeenCalled();
+
+    // When
+    await act(() => onlineManager.setOnline(true));
+
+    // Then
+    expect(await screen.findByText("Match accepté")).toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+    expect(read).toHaveBeenCalledTimes(1);
+  } finally {
+    onlineManager.setOnline(true);
+    client.clear();
+  }
 });
 
 it("announces the caller's known pending content once and leaves retry with the failed read", async () => {

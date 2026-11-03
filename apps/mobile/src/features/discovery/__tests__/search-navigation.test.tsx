@@ -433,10 +433,11 @@ it.each(["network", "schema", "http"])(
       name: "Réessayer",
     });
     expect(
-      await screen.findByRole("alert", {
+      screen.queryByRole("alert", {
         name: "Une erreur est survenue. Veuillez réessayer plus tard.",
       }),
-    ).toBeOnTheScreen();
+    ).toBeNull();
+    expect(screen.getByText("Une erreur est survenue.")).toBeOnTheScreen();
     const attempts = mockFetch.mock.calls.length;
     await fireEvent(
       screen.getByLabelText("Résultats de recherche"),

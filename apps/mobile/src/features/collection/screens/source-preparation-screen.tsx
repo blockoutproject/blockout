@@ -5,6 +5,7 @@ import { Page, PageContent } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
 import { SourcePreparationLoading } from "../components/collection-loading";
 import { ScreenState } from "../../../shared/components/screen-state";
+import { ReadFeedback } from "../../../shared/components/read-feedback";
 
 import { ErrorState } from "../../../shared/components/state-card";
 import { AccessFeedback } from "../../access/components/access-feedback";
@@ -48,9 +49,10 @@ export function SourcePreparationScreen({
     (!authority.enabled
       ? authority.sessionStatus === "restoring" ||
         (authority.sessionStatus === "authenticated" &&
-          authority.account.isPending)
+          authority.account.isLoading)
       : !source.isError &&
         !season.isError &&
+        (source.isLoading || season.isLoading) &&
         !(current && current.seasonId !== seasonId));
   const FeedbackLayout = pending ? PageContent : ScreenState;
   const blockingState = !retained ? (
@@ -70,7 +72,10 @@ export function SourcePreparationScreen({
         retrying={source.isFetching || season.isFetching}
       />
     ) : (
-      <SourcePreparationLoading />
+      <ReadFeedback
+        query={!season.data ? season : source}
+        loadingContent={<SourcePreparationLoading />}
+      />
     )
   ) : undefined;
   return (

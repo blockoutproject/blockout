@@ -12,6 +12,7 @@ import {
   getGetFollowOptionsQueryKey,
 } from "../../../../.generated/mobile";
 import { ApiError } from "../../../shared/api/api-fetch";
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import {
   followMutationKey,
   followStateKey,
@@ -20,6 +21,7 @@ import {
   type FollowingTarget,
 } from "./following-keys";
 import type { useFollowStateQuery } from "./use-follow-state-query";
+import { withdrawRefusedFollowingQuery } from "./follow-queries";
 
 /** A current permission/visibility refusal suspends the personal control until a successful member read. */
 export function isFollowRestriction(error: unknown): error is ApiError {
@@ -27,7 +29,7 @@ export function isFollowRestriction(error: unknown): error is ApiError {
 }
 /**
  * Applies a known current restriction to the shared member Query after cancelling older reads.
- * Public target absence and member refusals reuse this guard; neither deletes the persisted relation.
+ * Refused member data is withdrawn; a later technical failure cannot restore it. The persisted relation is unchanged.
  */
 export async function restrictFollowTarget(
   client: QueryClient,
@@ -36,12 +38,7 @@ export async function restrictFollowTarget(
   error: ApiError,
 ) {
   const queryKey = followStateKey(owner, target);
-  await client.cancelQueries({ queryKey, exact: true });
-  client.getQueryCache().find({ queryKey, exact: true })?.setState({
-    status: "error",
-    error,
-    errorUpdatedAt: Date.now(),
-  });
+  await withdrawRefusedFollowingQuery(client, queryKey, error);
 }
 /**
  * Uses an ordinary replacement mutation. Confirmed changes reset personal traversal while retaining
@@ -79,6 +76,14 @@ export function useFollowMutation(
             { following },
             options,
           );
+    },
+    onError: async (error) => {
+      if (
+        owner &&
+        error instanceof ApiError &&
+        (isAccessDenied(error) || isFollowRestriction(error))
+      )
+        await restrictFollowTarget(client, owner, target, error);
     },
     onSettled: (_data, error) => {
       if (!owner) return;

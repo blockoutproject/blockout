@@ -498,6 +498,70 @@ it("does not present a retained empty response as certain absence after a failed
   expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
 });
 
+it("offers safe recovery without a loading announcement for a paused new search key", async () => {
+  // Given: admission and current catalogues settle before the network pauses.
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await screen.findByText("Niort");
+  await act(async () => onlineManager.setOnline(false));
+  mockFetch.mockClear();
+
+  // When
+  await user.paste(
+    screen.getByPlaceholderText("Rechercher un club…"),
+    "Paused context",
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer", busy: false }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).toBeNull();
+  expect(screen.queryByText("Aucun résultat pour ces critères")).toBeNull();
+  expect(mockFetch).not.toHaveBeenCalled();
+
+  // When: native Query reconnection resumes this admitted read.
+  await act(async () => onlineManager.setOnline(true));
+
+  // Then
+  expect(await screen.findByText("Niort")).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+});
+
+it("keeps cached choices unavailable to a new visit while its current catalogue read is paused", async () => {
+  // Given: a prior visit leaves valid catalogues in the same principal's Query cache.
+  const user = userEvent.setup();
+  await renderSearch();
+  await screen.findByText("Club public");
+  await act(async () => router.replace(`/clubs/${secondId}`));
+  await screen.findByText("Volley Niort");
+  await act(async () => onlineManager.setOnline(false));
+
+  // When
+  await act(async () => router.replace("/search"));
+  await layoutNativeTabs();
+  await user.press(screen.getByRole("button", { name: "Filtres" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer", busy: false }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "Appliquer les filtres" }),
+  ).toBeNull();
+
+  // When: the current catalogue, rather than its retained copy, becomes available.
+  await act(async () => onlineManager.setOnline(true));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Appliquer les filtres" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+});
+
 it("retries a failed initial read through its card without losing criteria", async () => {
   // Given
   mockFetch.mockImplementation((url: string) =>

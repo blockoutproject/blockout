@@ -5,6 +5,7 @@ import { Page, PageContent } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
 import { ClassificationLoading } from "../components/sporting-editor-loading";
 import { ScreenState } from "../../../shared/components/screen-state";
+import { ReadFeedback } from "../../../shared/components/read-feedback";
 
 import { ErrorState } from "../../../shared/components/state-card";
 import { AccessFeedback } from "../../access/components/access-feedback";
@@ -46,8 +47,8 @@ export function ClassificationScreen({ target }: ClassificationScreenProps) {
     (!authority.enabled
       ? authority.sessionStatus === "restoring" ||
         (authority.sessionStatus === "authenticated" &&
-          authority.account.isPending)
-      : !editing.query.isError)
+          authority.account.isLoading)
+      : editing.query.isLoading)
       ? PageContent
       : ScreenState;
   const blockingState = !current ? (
@@ -66,7 +67,10 @@ export function ClassificationScreen({ target }: ClassificationScreenProps) {
         retrying={editing.query.isFetching}
       />
     ) : (
-      <ClassificationLoading />
+      <ReadFeedback
+        query={editing.query}
+        loadingContent={<ClassificationLoading />}
+      />
     )
   ) : undefined;
   return (

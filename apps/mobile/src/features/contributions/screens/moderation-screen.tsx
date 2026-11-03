@@ -1,3 +1,4 @@
+import { RefreshCw } from "lucide-react-native";
 import { PageList } from "../../../shared/components/page-list";
 import { Controller, useForm } from "react-hook-form";
 import { hashKey } from "@tanstack/react-query";
@@ -224,7 +225,11 @@ function QueueScene({
     try {
       await editing.refresh();
     } catch {
-      if (currentScene.current === identity && navigation.isFocused())
+      if (
+        rows.length > 0 &&
+        currentScene.current === identity &&
+        navigation.isFocused()
+      )
         feedback.error();
     } finally {
       setRefreshing(false);
@@ -244,13 +249,7 @@ function QueueScene({
     )
       return;
     feedback.clear();
-    const result = await query.fetchNextPage({ cancelRefetch: false });
-    if (
-      result.isFetchNextPageError &&
-      navigation.isFocused() &&
-      currentScene.current === identity
-    )
-      feedback.error();
+    await query.fetchNextPage({ cancelRefetch: false });
   }
   const refreshControl =
     current && rows.length > 0 ? (
@@ -303,7 +302,7 @@ function QueueScene({
             <Text style={[tokens.typography.body, { color: colors.text }]}>
               La modération des liens vidéo n’est pas autorisée.
             </Text>
-          ) : !current ? (
+          ) : !current || query.isError ? (
             <ReadFeedback
               loadingContent={<ModerationQueueLoading />}
               query={
@@ -319,6 +318,7 @@ function QueueScene({
             >
               <Button
                 label="Actualiser"
+                leadingIcon={RefreshCw}
                 onPress={() => void refresh()}
                 loading={refreshing}
               />

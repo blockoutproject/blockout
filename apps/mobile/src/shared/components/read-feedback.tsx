@@ -9,16 +9,19 @@ export interface ReadFeedbackProps {
   query: Pick<
     UseQueryResult,
     "isPending" | "isError" | "refetch" | "isFetching"
-  >;
+  > &
+    Partial<Pick<UseQueryResult, "isEnabled">>;
 }
 
 /**
  * Presents only an actively fetching initial read or its safe retry.
- * Pending observations without a fetch remain silent; admission failures stay with their feature owner.
+ * An admitted pending read without an active fetch uses the existing unavailable card.
+ * Disabled observations never start recovery here; their prerequisite belongs to the feature owner.
  */
 export function ReadFeedback({ query, loadingContent }: ReadFeedbackProps) {
+  if (query.isEnabled === false) return query.isError ? <ErrorState /> : null;
   if (query.isPending && query.isFetching) return loadingContent;
-  if (!query.isError) return null;
+  if (!query.isError && !query.isPending) return null;
   return (
     <ErrorState
       onRetry={() => void query.refetch()}

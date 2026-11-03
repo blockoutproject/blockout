@@ -10,6 +10,7 @@ import {
   PageContent,
 } from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
+import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useRouter } from "expo-router";
 import { Globe, Trophy } from "lucide-react-native";
@@ -36,8 +37,8 @@ export function SeasonPreparationScreen({ seasonId }: { seasonId: string }) {
   const pending = !authority.enabled
     ? authority.sessionStatus === "restoring" ||
       (authority.sessionStatus === "authenticated" &&
-        authority.account.isPending)
-    : !season.data && !season.isError;
+        authority.account.isLoading)
+    : !season.data && season.isLoading;
   const FeedbackLayout = pending ? PageContent : ScreenState;
   const blockingState = !authority.enabled ? (
     <AccessFeedback {...authority} loadingContent={<CollectionLoading />} />
@@ -53,7 +54,7 @@ export function SeasonPreparationScreen({ seasonId }: { seasonId: string }) {
         retrying={season.isFetching}
       />
     ) : (
-      <CollectionLoading />
+      <ReadFeedback query={season} loadingContent={<CollectionLoading />} />
     )
   ) : undefined;
   return (

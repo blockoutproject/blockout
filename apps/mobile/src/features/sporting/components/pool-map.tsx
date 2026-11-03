@@ -1,7 +1,7 @@
 import { PageScrollView, PageContent } from "../../../shared/components/page";
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
-import { ChevronRight, Minus, Plus, X } from "lucide-react-native";
+import { ChevronRight, Minus, Plus, RefreshCw, X } from "lucide-react-native";
 import {
   useEffect,
   useEffectEvent,
@@ -91,7 +91,7 @@ export function PoolMap({ pool, active = true, children }: PoolMapProps) {
     ]);
     if (
       currentActive.current &&
-      currentParticipants.data &&
+      currentParticipants.data?.items.some((item) => item.location) &&
       [currentParticipants, currentStandings].some(
         (result) => result.isError && !resourceUnavailable(result.error),
       )
@@ -110,7 +110,7 @@ export function PoolMap({ pool, active = true, children }: PoolMapProps) {
   if (!data || !hasLocations)
     return (
       <PageScrollView refreshControl={refreshControl}>
-        {participants.isPending ? (
+        {participants.isLoading ? (
           <PageContent>
             {children}
             <MapLoading />
@@ -121,7 +121,7 @@ export function PoolMap({ pool, active = true, children }: PoolMapProps) {
               <PageContent style={styles.stateControls}>{children}</PageContent>
             )}
             <ScreenState>
-              {!data ? (
+              {!data || participants.isError ? (
                 <ReadFeedback
                   query={participants}
                   loadingContent={<MapLoading />}
@@ -133,6 +133,7 @@ export function PoolMap({ pool, active = true, children }: PoolMapProps) {
                 >
                   <Button
                     label="Actualiser"
+                    leadingIcon={RefreshCw}
                     onPress={() => void refresh()}
                     loading={participants.isFetching || standings.isFetching}
                     disabled={!active}

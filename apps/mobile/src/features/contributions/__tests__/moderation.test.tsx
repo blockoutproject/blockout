@@ -514,6 +514,127 @@ it("keeps an unsuccessful queue read distinct from an empty successful selection
   expect(screen.queryByText("Aucun lien à traiter")).toBeNull();
 });
 
+it("recovers the profile before starting disabled report reads without a false loading state", async () => {
+  // Given: the authorized version stays visible through a technical profile refresh failure.
+  detail.items = [
+    version({
+      state: "hidden",
+      reportCount: 1,
+      canApprove: false,
+      canReject: false,
+    }),
+  ];
+  reportReason = "Controlled report reason";
+  const user = userEvent.setup();
+  await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  await user.press(await screen.findByRole("tab", { name: "Historique" }));
+  await user.press(
+    await screen.findByRole("button", { name: /Twitch, Masqué/ }),
+  );
+  profileFails = true;
+  await act(() =>
+    client.refetchQueries({ queryKey: getGetMyAccountQueryKey(), exact: true }),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Signalements (1)" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer", busy: false }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("progressbar", { name: "Chargement des signalements" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([url]) => String(url).includes("/reports?")),
+  ).toBe(false);
+
+  // When
+  profileFails = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByText("Controlled report reason")).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) => String(url).includes("/reports?")),
+  ).toHaveLength(1);
+});
+
+it("shows a read error instead of a stale empty queue after a failed explicit refresh", async () => {
+  // Given
+  queueEmpty = true;
+  const user = userEvent.setup();
+  await mount(<ModerationScreen filters={{}} />);
+  await screen.findByRole("header", { name: "Aucun lien à traiter" });
+
+  // When
+  failRead = true;
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("header", { name: "Aucun lien à traiter" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).not.toBeOnTheScreen();
+});
+
+it("keeps already loaded report pages usable while an unavailable profile disables further reads", async () => {
+  // Given
+  reportsPaged = true;
+  reportReason = "First authorized page";
+  detail.items = [
+    version({
+      state: "hidden",
+      reportCount: 21,
+      canApprove: false,
+      canReject: false,
+    }),
+  ];
+  const user = userEvent.setup();
+  await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  await user.press(await screen.findByRole("tab", { name: "Historique" }));
+  await user.press(
+    await screen.findByRole("button", { name: /Twitch, Masqué/ }),
+  );
+  await user.press(screen.getByRole("button", { name: "Signalements (21)" }));
+  await user.press(
+    await screen.findByRole("button", { name: "Signalements suivants" }),
+  );
+  await screen.findByText("Historique de la seconde page");
+  const requests = mockFetch.mock.calls.filter(([url]) =>
+    String(url).includes("/reports?"),
+  ).length;
+  profileFails = true;
+  await act(() =>
+    client.refetchQueries({ queryKey: getGetMyAccountQueryKey(), exact: true }),
+  );
+
+  // When: moving through already admitted pages needs no new authorization read.
+  await user.press(
+    screen.getByRole("button", { name: "Signalements précédents" }),
+  );
+  await screen.findByText("First authorized page");
+  await user.press(
+    screen.getByRole("button", { name: "Signalements suivants" }),
+  );
+
+  // Then
+  expect(
+    await screen.findByText("Historique de la seconde page"),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) => String(url).includes("/reports?")),
+  ).toHaveLength(requests);
+});
+
 it("reloads an empty queue from its card and restores native refresh only when rows return", async () => {
   // Given
   queueEmpty = true;
@@ -811,7 +932,7 @@ it.each(["queue", "versions", "reports"] as const)(
         screen.getByRole("button", { name: "Signalements suivants" }),
       );
     else
-      fireEvent(
+      await fireEvent(
         await screen.findByLabelText(
           kind === "queue"
             ? "File de modération des liens"
@@ -821,10 +942,11 @@ it.each(["queue", "versions", "reports"] as const)(
       );
 
     // Then
-    expect(await screen.findByRole("alert")).toBeOnTheScreen();
+    await screen.findByRole("button", { name: "Réessayer" });
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
     expect(
       screen.getByRole("button", {
-        name: kind === "reports" ? "Signalements suivants" : "Réessayer",
+        name: "Réessayer",
       }),
     ).toBeOnTheScreen();
     if (kind === "queue")

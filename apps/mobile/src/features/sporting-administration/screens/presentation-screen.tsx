@@ -11,6 +11,7 @@ import { Page, PageContent } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
 import { PresentationLoading } from "../components/sporting-editor-loading";
 import { ScreenState } from "../../../shared/components/screen-state";
+import { ReadFeedback } from "../../../shared/components/read-feedback";
 
 import { ErrorState } from "../../../shared/components/state-card";
 import { useAdministrationCapabilities } from "../../access/api/use-administration-capabilities";
@@ -54,7 +55,7 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
     sessionStatus === "authenticated" ? editing.query.data : undefined;
   const pending =
     sessionStatus === "restoring" ||
-    (sessionStatus === "authenticated" && account.isPending);
+    (sessionStatus === "authenticated" && account.isLoading);
   const title =
     target.kind === "division-creation"
       ? "Créer une division"
@@ -93,7 +94,8 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
   }
   const accessState = pending ? (
     <PresentationLoading kind={target.kind} />
-  ) : account.isError ? (
+  ) : sessionStatus === "authenticated" &&
+    (account.isError || account.isPending) ? (
     <ErrorState
       onRetry={() =>
         void account.refetch().then((result) => {
@@ -117,11 +119,14 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
           retrying={editing.query.isFetching}
         />
       ) : (
-        <PresentationLoading kind={target.kind} />
+        <ReadFeedback
+          query={editing.query}
+          loadingContent={<PresentationLoading kind={target.kind} />}
+        />
       )))
     : undefined;
   const FeedbackLayout =
-    !presentation && (pending || (!accessState && !editing.query.isError))
+    !presentation && (pending || (!accessState && editing.query.isLoading))
       ? PageContent
       : ScreenState;
   return (

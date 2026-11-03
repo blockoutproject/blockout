@@ -6,6 +6,8 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { useCurrentAccount } from "../../accounts/current-account";
+import { onlineManager, QueryObserver } from "@tanstack/react-query";
+import { getGetTeamQueryOptions } from "../../../../.generated/mobile";
 import { accountResponse } from "../../accounts/test-support/account-response";
 import {
   mockAuth0,
@@ -75,6 +77,7 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await cleanup();
+  onlineManager.setOnline(true);
   fixture.dispose();
   // Await pending Query batches before restoring the test's real timer environment.
   await act(async () => jest.runOnlyPendingTimersAsync());
@@ -132,6 +135,91 @@ it("shows a real zero for a guest without resolving a private account", async ()
     mockFetch.mock.calls.some(([url]) => url.endsWith("/accounts/me")),
   ).toBe(false);
   expect(mockAuth0.getCredentials).not.toHaveBeenCalled();
+});
+
+it("does not announce a loading count or offer a count retry before admission", async () => {
+  // Given
+  const admission = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, request) =>
+    url.endsWith("/application-access")
+      ? admission.promise
+      : transport(url, request),
+  );
+
+  // When
+  await fixture.render(<FollowerCount target={team} />);
+
+  // Then
+  expect(
+    screen.getByRole("text", {
+      name: "Nombre d’abonnés indisponible",
+      busy: false,
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Chargement du nombre d’abonnés"),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer le nombre d’abonnés" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([url]) => url.endsWith("/follower-count")),
+  ).toBe(false);
+
+  // When
+  await act(async () => {
+    admission.resolve(Response.json(applicationAccessResponse()));
+  });
+
+  // Then
+  expect(await screen.findByLabelText("2 abonnés")).toBeOnTheScreen();
+});
+
+it("keeps a paused initial count idle and retryable without inventing a result", async () => {
+  // Given
+  const user = userEvent.setup();
+  const rendered = await fixture.render(<PrivateProfile />);
+  await waitFor(() => expect(fixture.session.accountId).not.toBeNull());
+  await act(async () => onlineManager.setOnline(false));
+
+  // When
+  await rendered.rerender(
+    <>
+      <PrivateProfile />
+      <FollowerCount target={team} />
+    </>,
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("text", {
+      name: "Nombre d’abonnés indisponible",
+      busy: false,
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", {
+      name: "Réessayer le nombre d’abonnés",
+      busy: false,
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByLabelText("0 abonné")).not.toBeOnTheScreen();
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Réessayer le nombre d’abonnés" }),
+  );
+
+  // Then
+  expect(
+    mockFetch.mock.calls.some(([url]) => url.endsWith("/follower-count")),
+  ).toBe(false);
+
+  // When
+  await act(async () => onlineManager.setOnline(true));
+
+  // Then
+  expect(await screen.findByLabelText("2 abonnés")).toBeOnTheScreen();
 });
 
 it.each([{}, { count: -1 }, { count: 9007199254740992 }])(
@@ -306,3 +394,107 @@ it("isolates deliberate maintenance bypass from the anonymous public count", asy
     count: 2,
   });
 });
+
+it.each([7, "transient"] as const)(
+  "preserves the reopened count outcome %s after a cancelled old refusal and dependent detail recovery",
+  async (reopened) => {
+    // Given: the active generated detail query makes the old refusal's dependent invalidation observable.
+    const detail = {
+      team: {
+        team: { id: team.id, name: "Current team" },
+        season: {
+          id: pool.id,
+          label: "2026/2027",
+          startYear: 2026,
+        },
+        classification: {},
+        professional: true,
+      },
+      participations: [],
+    };
+    const detailRecovery = Promise.withResolvers<Response>();
+    let detailReads = 0;
+    let count: number | "refused" | "transient" = 2;
+    mockFetch.mockImplementation((url, request) => {
+      if (url.endsWith(`/teams/${team.id}`)) {
+        detailReads += 1;
+        return detailReads === 1
+          ? Promise.resolve(Response.json(detail))
+          : detailRecovery.promise;
+      }
+      if (url.endsWith("/follower-count")) {
+        if (count === "transient")
+          return Promise.reject(
+            new TypeError("Synthetic reopened count outage"),
+          );
+        return Promise.resolve(
+          count === "refused"
+            ? new Response(null, { status: 404 })
+            : Response.json({ count }),
+        );
+      }
+      return transport(url, request);
+    });
+    const rendered = await fixture.render(
+      <>
+        <PrivateProfile />
+        <FollowerCount target={team} />
+      </>,
+    );
+    await screen.findByLabelText("2 abonnés");
+    const observer = new QueryObserver(
+      fixture.client,
+      getGetTeamQueryOptions(team.id),
+    );
+    const stop = observer.subscribe(() => {});
+    await waitFor(() =>
+      expect(observer.getCurrentResult().isSuccess).toBe(true),
+    );
+
+    try {
+      // When
+      count = "refused";
+      let refusal: Promise<void> | undefined;
+      await act(async () => {
+        refusal = fixture.client.invalidateQueries({
+          queryKey: followerCountKey(team),
+          exact: true,
+        });
+      });
+      await waitFor(() => expect(detailReads).toBe(2));
+      await rendered.rerender(<PrivateProfile />);
+      count = reopened;
+      await rendered.rerender(
+        <>
+          <PrivateProfile />
+          <FollowerCount target={team} />
+        </>,
+      );
+      if (reopened === "transient")
+        await screen.findByRole("button", {
+          name: "Réessayer le nombre d’abonnés",
+          busy: false,
+        });
+      else await screen.findByLabelText("7 abonnés");
+      await act(async () => {
+        detailRecovery.resolve(Response.json(detail));
+        await refusal;
+      });
+
+      // Then
+      if (reopened === "transient") {
+        expect(
+          fixture.client.getQueryData(followerCountKey(team)),
+        ).toBeUndefined();
+        expect(screen.queryByLabelText(/^2 abonnés/)).not.toBeOnTheScreen();
+      } else {
+        expect(screen.getByLabelText("7 abonnés")).toBeOnTheScreen();
+        expect(fixture.client.getQueryData(followerCountKey(team))).toEqual({
+          count: 7,
+        });
+      }
+    } finally {
+      stop();
+    }
+  },
+);

@@ -15,7 +15,7 @@ export interface AccessFeedbackProps {
   enabled: boolean;
 }
 
-/** Initial authority feedback stays opaque; retained-editor failures belong to their action's toast. */
+/** Only an active initial account fetch shows loading; an authenticated paused read offers safe profile retry. */
 export function AccessFeedback({
   sessionStatus,
   account,
@@ -24,10 +24,15 @@ export function AccessFeedback({
 }: AccessFeedbackProps) {
   if (
     sessionStatus === "restoring" ||
-    (sessionStatus === "authenticated" && account.isPending)
+    (sessionStatus === "authenticated" &&
+      account.isPending &&
+      account.isFetching)
   )
     return loadingContent;
-  if (account.isError)
+  if (
+    sessionStatus === "authenticated" &&
+    (account.isError || account.isPending)
+  )
     return (
       <ErrorState
         onRetry={() => void account.refetch()}

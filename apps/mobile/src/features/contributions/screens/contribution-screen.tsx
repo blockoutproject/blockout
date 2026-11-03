@@ -48,8 +48,8 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
     (!authenticated
       ? editing.session.status === "restoring" || !!editing.session.operation
       : !editing.profile.data
-        ? editing.profile.isPending
-        : editing.usable && !current && editing.query.isPending);
+        ? editing.profile.isLoading
+        : editing.usable && !current && editing.query.isLoading);
   const FeedbackLayout = pending ? PageContent : ScreenState;
   return (
     <Page header={<PageHeader title="Lien de diffusion" />}>

@@ -11,6 +11,7 @@ import { useAdministrationCapabilities } from "../api/use-administration-capabil
 import { useMaintenanceSettings } from "../api/use-maintenance-settings";
 import { MaintenanceForm } from "../forms/maintenance-form";
 import { MaintenanceLoading } from "../components/settings-loading";
+import { ReadFeedback } from "../../../shared/components/read-feedback";
 /** Loads only with current grants and retains an existing draft read-only when they become unavailable. */
 export function MaintenanceSettingsScreen() {
   const { permissions, account, sessionStatus } =
@@ -36,7 +37,10 @@ export function MaintenanceSettingsScreen() {
     if (result.isError && result.data) feedback.error();
   }
   let accessError = null;
-  if (account.isError) {
+  if (
+    sessionStatus === "authenticated" &&
+    (account.isError || (account.isPending && !account.isFetching))
+  ) {
     accessError = (
       <ErrorState
         onRetry={() => void account.refetch()}
@@ -64,17 +68,22 @@ export function MaintenanceSettingsScreen() {
       />
     );
   } else if (!accessError) {
-    settingsContent = <MaintenanceLoading />;
+    settingsContent = (
+      <ReadFeedback
+        query={editing.query}
+        loadingContent={<MaintenanceLoading />}
+      />
+    );
   }
   const pendingAccess =
     sessionStatus === "restoring" ||
-    (sessionStatus === "authenticated" && account.isPending);
+    (sessionStatus === "authenticated" && account.isLoading);
   const loadingSettings =
     sessionStatus === "authenticated" &&
-    !account.isPending &&
+    !account.isLoading &&
     !accessError &&
     !settings &&
-    editing.query.isPending;
+    editing.query.isLoading;
   return (
     <Page header={<PageHeader title="Administration technique" />}>
       <FormScrollView
