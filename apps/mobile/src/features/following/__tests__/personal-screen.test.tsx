@@ -11,6 +11,7 @@ import {
   within,
 } from "@testing-library/react-native";
 import { AccessibilityInfo, View } from "react-native";
+import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
 import type { PersonalMatchCalendarResponse } from "../../../../.generated/schemas/index.zod";
 import { renderRouter } from "expo-router/testing-library";
 import { PersonalSeasonProvider } from "../components/personal-season-provider";
@@ -490,6 +491,98 @@ it("keeps current choices after a failed explicit refresh and offers the next op
   );
 });
 
+it("retains the personal calendar, tab and season after a technical profile refetch failure", async () => {
+  // Given: Home and Query are real; only the profile HTTP response changes.
+  const user = userEvent.setup();
+  await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
+  await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
+  await user.press(await screen.findByRole("radio", { name: newer.label }));
+  await layoutNativeTabs();
+  await user.press(screen.getByRole("tab", { name: "Terminés" }));
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  mockFetch.mockImplementation((url, request) =>
+    url.endsWith("/accounts/me")
+      ? Promise.resolve(new Response(null, { status: 503 }))
+      : transport(url, request),
+  );
+
+  // When
+  await act(() =>
+    client.refetchQueries({
+      queryKey: getGetMyAccountQueryKey(),
+      exact: true,
+    }),
+  );
+
+  await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
+
+  // Then
+  expect(
+    await screen.findByRole("radio", { name: newer.label, checked: true }),
+  ).toBeOnTheScreen();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+
+  // Then: retained data remains readable without replacing the current view.
+  expect(
+    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("tab", { name: "Terminés", selected: true }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Saison des suivis", disabled: false }),
+  ).toHaveAccessibilityValue({ text: newer.label });
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+});
+
+it.each([401, 403, 404])(
+  "withdraws the personal calendar and open season sheet after a profile %i refusal",
+  async (status) => {
+    // Given
+    const user = userEvent.setup();
+    await mount();
+    await screen.findByRole("button", {
+      name: "Saison des suivis",
+      disabled: false,
+    });
+    await layoutNativeTabs();
+    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+    await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
+    await screen.findByRole("radio", { name: older.label, checked: true });
+    mockFetch.mockImplementation((url, request) =>
+      url.endsWith("/accounts/me")
+        ? Promise.resolve(new Response(null, { status }))
+        : transport(url, request),
+    );
+
+    // When
+    await act(() =>
+      client.refetchQueries({
+        queryKey: getGetMyAccountQueryKey(),
+        exact: true,
+      }),
+    );
+
+    // Then
+    await waitFor(() => expect(screen).toHavePathname("/"));
+    expect(
+      screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Saison des suivis" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("radio", { name: older.label }),
+    ).not.toBeOnTheScreen();
+  },
+);
+
 it("removes the personal selector when its actual session signs out and uses the shared invitation", async () => {
   // Given
   const user = userEvent.setup();
@@ -499,6 +592,8 @@ it("removes the personal selector when its actual session signs out and uses the
       screen.getByRole("button", { name: "Saison des suivis" }),
     ).toHaveAccessibilityValue({ text: older.label }),
   );
+  await layoutNativeTabs();
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
 
   const originalClient = client;
 
@@ -509,6 +604,9 @@ it("removes the personal selector when its actual session signs out and uses the
   // Then
   expect(
     screen.queryByRole("button", { name: "Saison des suivis" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
   ).not.toBeOnTheScreen();
   expect(mockPush).toHaveBeenCalledWith({
     pathname: "/sign-in-invitation",
