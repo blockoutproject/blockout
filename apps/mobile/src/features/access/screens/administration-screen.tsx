@@ -37,10 +37,13 @@ export function AdministrationScreen({
     content = <ErrorState />;
   } else if (
     sessionStatus === "restoring" ||
-    (sessionStatus === "authenticated" && account.isPending)
+    (sessionStatus === "authenticated" && account.isLoading)
   ) {
     content = <ListLoading label="Chargement de l’administration" />;
-  } else if (sessionStatus === "authenticated" && account.isError) {
+  } else if (
+    sessionStatus === "authenticated" &&
+    (account.isError || account.isPending)
+  ) {
     content = (
       <ErrorState
         onRetry={() => void account.refetch()}
@@ -83,7 +86,7 @@ export function AdministrationScreen({
   const pending =
     admitted &&
     (sessionStatus === "restoring" ||
-      (sessionStatus === "authenticated" && account.isPending));
+      (sessionStatus === "authenticated" && account.isLoading));
   const blocked =
     !admitted ||
     sessionStatus === "restoring" ||

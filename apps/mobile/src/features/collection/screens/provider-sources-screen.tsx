@@ -6,6 +6,7 @@ import { Page, PageContent } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
 import { ProviderPreparationLoading } from "../components/collection-loading";
 import { ScreenState } from "../../../shared/components/screen-state";
+import { ReadFeedback } from "../../../shared/components/read-feedback";
 
 import { ErrorState } from "../../../shared/components/state-card";
 import { AccessFeedback } from "../../access/components/access-feedback";
@@ -28,7 +29,7 @@ export function ProviderSourcesScreen({
     authority.sessionStatus === "authenticated" ? season.data : undefined;
   const retained = Boolean(current && sources.data);
   const feedback = useActionFeedback();
-  /** Refreshes this provider's season and source catalogue together, reporting one retained-draft failure. */
+  /** Refreshes the provider's context; an empty source failure belongs to its card rather than a duplicate toast. */
   async function refresh() {
     if (editing.create.isPending) return;
     feedback.clear();
@@ -40,15 +41,27 @@ export function ProviderSourcesScreen({
             sources.refetch({ cancelRefetch: false }),
           ],
     );
-    if (retained && results.some((result) => result.isError)) feedback.error();
+    if (
+      retained &&
+      results.some(
+        (result, index) =>
+          result.isError &&
+          (!authority.enabled ||
+            index === 0 ||
+            sources.data?.items.some((source) => source.provider === provider)),
+      )
+    )
+      feedback.error();
   }
   const pending =
     !retained &&
     (!authority.enabled
       ? authority.sessionStatus === "restoring" ||
         (authority.sessionStatus === "authenticated" &&
-          authority.account.isPending)
-      : !season.isError && !sources.isError);
+          authority.account.isLoading)
+      : !season.isError &&
+        !sources.isError &&
+        (season.isLoading || sources.isLoading));
   const FeedbackLayout = pending ? PageContent : ScreenState;
   const blockingState = !retained ? (
     !authority.enabled ? (
@@ -65,7 +78,10 @@ export function ProviderSourcesScreen({
         retrying={season.isFetching || sources.isFetching}
       />
     ) : (
-      <ProviderPreparationLoading />
+      <ReadFeedback
+        query={!season.data ? season : sources}
+        loadingContent={<ProviderPreparationLoading />}
+      />
     )
   ) : undefined;
   return (

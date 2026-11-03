@@ -294,7 +294,8 @@ it("suspends the action after profile retrieval fails while public content remai
 
   // Then
   expect(screen.getByText("Public sport")).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Suivre" })).toBeDisabled();
+  expect(screen.queryByRole("button", { name: "Suivre" })).toBeNull();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
   expect(
     mockFetch.mock.calls.filter(([url]) => url.includes("team-follows")),
   ).toHaveLength(0);
@@ -581,7 +582,7 @@ it("resets owned selections and invalidates options/count without touching anoth
   expect(client.getQueryState(countKey)?.isInvalidated).toBe(true);
 });
 
-it("preserves a confirmed write when the subsequent profile read fails", async () => {
+it("preserves a confirmed write and recovers its failed profile prerequisite on the existing read card", async () => {
   // Given
   const user = userEvent.setup();
   await renderFollowing(<FollowButton target={team} season={season} />);
@@ -607,13 +608,23 @@ it("preserves a confirmed write when the subsequent profile read fails", async (
   });
 
   // Then
-  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Suivi" })).toBeDisabled(),
-  );
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(screen.queryByRole("button", { name: "Suivi" })).toBeNull();
   expect(client.getQueryData(followStateKey(owner, team))).toEqual({
     following: true,
   });
+
+  // When
+  mockFetch.mockImplementation(transport);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled(),
+  );
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toHaveLength(1);
 });
 
 it.each([true, false])(
@@ -709,6 +720,124 @@ it("refreshes current state after a lost write response while retaining ordinary
         url.includes("team-follows") && request?.method !== "PUT",
     ),
   ).toHaveLength(2);
+});
+
+it.each([403, 404])(
+  "restores the follow action after a refused %i write and a successful member read without replay",
+  async (status) => {
+    // Given
+    let writes = 0;
+    let current = false;
+    mockFetch.mockImplementation((url, request) => {
+      if (request?.method === "PUT") {
+        writes += 1;
+        if (writes === 1) {
+          // Another control established the relationship while this request was refused.
+          current = true;
+          return Promise.resolve(new Response(null, { status }));
+        }
+        current = JSON.parse(String(request.body)).following;
+        return Promise.resolve(Response.json({ following: current }));
+      }
+      if (url.includes("team-follows"))
+        return Promise.resolve(Response.json({ following: current }));
+      return transport(url, request);
+    });
+    const user = userEvent.setup();
+    await renderFollowing(<FollowButton target={team} season={season} />);
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+    );
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Suivre" }));
+
+    // Then
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled(),
+    );
+    expect(writes).toBe(1);
+    expect(
+      mockFetch.mock.calls.filter(
+        ([url, request]) =>
+          url.includes("team-follows") && request?.method !== "PUT",
+      ),
+    ).toHaveLength(2);
+
+    // When: a new gesture acts on the current confirmed state, not the refused desired value.
+    await user.press(screen.getByRole("button", { name: "Suivi" }));
+
+    // Then
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+    );
+    expect(writes).toBe(2);
+    expect(
+      JSON.parse(
+        String(
+          mockFetch.mock.calls.filter(
+            ([, request]) => request?.method === "PUT",
+          )[1][1]?.body,
+        ),
+      ),
+    ).toEqual({ following: false });
+  },
+);
+
+it("keeps an uncertain follow refused through a failed read and a remount until a successful member retry", async () => {
+  // Given
+  let member: "available" | "refused" | "transient" = "available";
+  mockFetch.mockImplementation((url, request) => {
+    if (request?.method === "PUT") {
+      member = "refused";
+      return Promise.reject(new TypeError("Synthetic lost acknowledgement"));
+    }
+    if (url.includes("team-follows")) {
+      if (member === "refused")
+        return Promise.resolve(new Response(null, { status: 403 }));
+      if (member === "transient")
+        return Promise.reject(new TypeError("Synthetic member outage"));
+    }
+    return transport(url, request);
+  });
+  const user = userEvent.setup();
+  const rendered = await renderFollowing(
+    <FollowButton target={team} season={season} />,
+  );
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Suivre" }));
+  await screen.findByRole("button", { name: "Réessayer" });
+  member = "transient";
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await screen.findByRole("button", { name: "Réessayer", busy: false });
+  await rendered.rerender(<Text>Another page</Text>);
+  await rendered.rerender(<FollowButton target={team} season={season} />);
+
+  // Then
+  await screen.findByRole("button", { name: "Réessayer", busy: false });
+  expect(screen.queryByRole("button", { name: "Suivre" })).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer le suivi" }),
+  ).toBeNull();
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toHaveLength(1);
+
+  // When
+  member = "available";
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toHaveLength(1);
 });
 
 it("shares an uncertain-write observation with an explicit member reread and cancels both through Query", async () => {

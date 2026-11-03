@@ -19,7 +19,7 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { useRouter } from "expo-router";
-import { ChevronRight, Plus } from "lucide-react-native";
+import { ChevronRight, Plus, RefreshCw } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { DivisionResponse } from "../../../../.generated/schemas/index.zod";
@@ -71,7 +71,7 @@ export function DivisionsScreen() {
   const feedback = useActionFeedback();
   const FeedbackLayout =
     authority.sessionStatus === "restoring" ||
-    (authority.sessionStatus === "authenticated" && authority.account.isPending)
+    (authority.sessionStatus === "authenticated" && authority.account.isLoading)
       ? PageContent
       : ScreenState;
   const blockingState = !authority.enabled ? (
@@ -80,7 +80,7 @@ export function DivisionsScreen() {
   /** Rereads the current catalogue without changing its activity/search context or replaying commands. */
   async function refresh() {
     const result = await query.refetch();
-    if (result.isError && result.data && !isAccessDenied(result.error))
+    if (result.isError && items.length > 0 && !isAccessDenied(result.error))
       feedback.error();
   }
   return (
@@ -220,7 +220,7 @@ export function DivisionsScreen() {
               </View>
             }
             ListEmptyComponent={
-              query.isPending && !denied ? (
+              query.isLoading && !denied ? (
                 <View style={pageContentStyle}>
                   <DivisionsLoading />
                 </View>
@@ -231,7 +231,7 @@ export function DivisionsScreen() {
                       onRetry={() => void query.refetch()}
                       retrying={query.isFetching}
                     />
-                  ) : query.isError && !query.data ? (
+                  ) : query.isError || query.isPending ? (
                     <ErrorState
                       onRetry={() => void refresh()}
                       retrying={query.isFetching}
@@ -248,6 +248,7 @@ export function DivisionsScreen() {
                     >
                       <Button
                         label="Actualiser"
+                        leadingIcon={RefreshCw}
                         onPress={() => void refresh()}
                         loading={query.isFetching}
                       />

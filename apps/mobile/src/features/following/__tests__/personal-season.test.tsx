@@ -56,7 +56,7 @@ async function request(signal?: AbortSignal) {
   return { signal };
 }
 
-/** Future tab/list consumers observe one scoped choice; no future list/calendar UI is simulated as production. */
+/** Shares the real choice and query boundary through selection controls; full list/calendar integration is tested with Home. */
 function PersonalProbe({ enabled = true }: { enabled?: boolean }) {
   const season = usePersonalSeason(owner, request, enabled);
   const [tab, setTab] = useState("upcoming");
@@ -424,6 +424,103 @@ it("retains the current choice when an ordinary choices refresh fails", async ()
     screen.getByRole("button", { name: "Saison des suivis" }),
   ).toHaveAccessibilityValue({ text: older.label });
 });
+
+it.each([
+  { status: 403, retries: false, transientBeforeUnmount: true },
+  { status: 404, retries: false, transientBeforeUnmount: true },
+  { status: 403, retries: 3, transientBeforeUnmount: false },
+  { status: 403, retries: 3, transientBeforeUnmount: true },
+] as const)(
+  "withdraws refused $status options with retries=$retries and transientBeforeUnmount=$transientBeforeUnmount until successful remount",
+  async ({ status, retries, transientBeforeUnmount }) => {
+    // Given
+    client.setQueryDefaults(followOptionsKey(owner), {
+      retry: retries,
+      retryDelay: 60_000,
+    });
+    const user = userEvent.setup();
+    const first = await mount();
+    await screen.findByText("Loaded");
+    const bypassOptions = {
+      seasons: [newer],
+      defaultSeasonId: newer.id,
+    };
+    client.setQueryData(followOptionsKey(owner, true), bypassOptions);
+    const retainedList = createFollowListOptions(
+      owner,
+      request,
+      "team",
+      older.id,
+    ).queryKey;
+    mockFetch.mockImplementation(async () => new Response(null, { status }));
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Reload options" }));
+    await waitFor(() =>
+      expect(client.getQueryState(followOptionsKey(owner))?.status).toBe(
+        "error",
+      ),
+    );
+
+    // Then
+    expect(optionReads()).toBe(2);
+    expect(client.getQueryData(followOptionsKey(owner))).toBeUndefined();
+    expect(client.getQueryData(followOptionsKey(owner, true))).toEqual(
+      bypassOptions,
+    );
+    expect(client.getQueryData(retainedList)).toBeDefined();
+    expect(
+      screen.getByRole("button", { name: "Saison des suivis" }),
+    ).toBeDisabled();
+
+    // When
+    if (transientBeforeUnmount) {
+      mockFetch.mockRejectedValue(new TypeError("Synthetic options outage"));
+      await user.press(screen.getByRole("button", { name: "Reload options" }));
+      await screen.findByRole("button", {
+        name: "Saison des suivis",
+        disabled: true,
+      });
+    }
+    await first.unmount();
+
+    // Then: cancelling a configured retry cannot restore the data from before the refusal.
+    expect(client.getQueryData(followOptionsKey(owner))).toBeUndefined();
+    expect(client.getQueryState(followOptionsKey(owner))?.status).toBe("error");
+
+    // When
+    const current = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url) =>
+      url.includes("follow-options")
+        ? current.promise
+        : Promise.resolve(Response.json({ items: [] })),
+    );
+    await mount();
+
+    // Then
+    expect(
+      screen.getByRole("button", { name: "Saison des suivis" }),
+    ).toBeDisabled();
+    expect(client.getQueryData(followOptionsKey(owner))).toBeUndefined();
+
+    // When
+    await act(async () => {
+      current.resolve(
+        Response.json({ seasons: [newer], defaultSeasonId: newer.id }),
+      );
+    });
+
+    // Then
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Saison des suivis" }),
+      ).toHaveAccessibilityValue({ text: newer.label }),
+    );
+    expect(
+      screen.getByRole("button", { name: "Saison des suivis" }),
+    ).toBeEnabled();
+  },
+);
 
 it("recalculates a new opening's default from fresh options even when Query retains an older successful read", async () => {
   // Given

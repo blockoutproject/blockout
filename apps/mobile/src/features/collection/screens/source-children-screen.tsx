@@ -17,7 +17,7 @@ import { PageHeader } from "../../../shared/components/page-header";
 
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { useNavigation, useRouter } from "expo-router";
-import { Layers } from "lucide-react-native";
+import { Layers, RefreshCw } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
@@ -45,8 +45,8 @@ export function SourceChildrenScreen({
   const pending = !authority.enabled
     ? authority.sessionStatus === "restoring" ||
       (authority.sessionStatus === "authenticated" &&
-        authority.account.isPending)
-    : !isAccessDenied(query.error) && query.isPending;
+        authority.account.isLoading)
+    : !isAccessDenied(query.error) && query.isLoading;
   const FeedbackLayout = pending ? PageContent : ScreenState;
   const denied = isAccessDenied(query.error);
   const items = denied
@@ -56,7 +56,7 @@ export function SourceChildrenScreen({
   async function refresh() {
     if (query.isFetching) return;
     const result = await query.refetch({ cancelRefetch: false });
-    if (result.isError && result.data && !isAccessDenied(result.error))
+    if (result.isError && items.length > 0 && !isAccessDenied(result.error))
       feedback.error();
   }
   /** Shared continuation command keeps traversal and scope; automatic edges separately exclude failed reads. */
@@ -70,14 +70,7 @@ export function SourceChildrenScreen({
     )
       return;
     feedback.clear();
-    const result = await query.fetchNextPage({ cancelRefetch: false });
-    if (
-      result.isFetchNextPageError &&
-      result.data &&
-      !isAccessDenied(result.error) &&
-      navigation.isFocused()
-    )
-      feedback.error();
+    await query.fetchNextPage({ cancelRefetch: false });
   }
   return (
     <Page header={<PageHeader title="Groupes découverts" />}>
@@ -137,9 +130,9 @@ export function SourceChildrenScreen({
                 onRetry={() => void query.refetch({ cancelRefetch: false })}
                 retrying={query.isFetching}
               />
-            ) : query.isPending ? (
+            ) : query.isLoading ? (
               <ListLoading label="Chargement des groupes découverts" />
-            ) : query.isError && !query.data ? (
+            ) : query.isError || query.isPending ? (
               <ErrorState
                 onRetry={() => void query.refetch({ cancelRefetch: false })}
                 retrying={query.isFetching}
@@ -148,6 +141,7 @@ export function SourceChildrenScreen({
               <EmptyState title="Aucun groupe découvert">
                 <Button
                   label="Actualiser"
+                  leadingIcon={RefreshCw}
                   onPress={() => void refresh()}
                   loading={query.isFetching}
                 />

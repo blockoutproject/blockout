@@ -1,9 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  type PropsWithChildren,
-} from "react";
+import { createContext, useContext, type PropsWithChildren } from "react";
 import {
   useAccountSession,
   useCurrentAccount,
@@ -23,6 +18,7 @@ export interface PersonalSeasonScope {
   profile: ReturnType<typeof useCurrentAccount>;
   season: ReturnType<typeof usePersonalSeason>;
   request: (signal?: AbortSignal) => Promise<ApiFetchOptions>;
+  admitted: boolean;
   usable: boolean;
   blocked: boolean;
   bypass: boolean;
@@ -45,7 +41,7 @@ export function PersonalSeasonProvider({ children }: PropsWithChildren) {
 export function usePersonalSeasonScope() {
   return useContext(PersonalSeasonContext);
 }
-/** Keeps native credentials, current admission and retained-refusal rules around the unchanged season hook. */
+/** Keeps native credentials and admission around the sole choice; Query withdraws refused options across remounts. */
 function SeasonScope({
   owner,
   profile,
@@ -63,6 +59,7 @@ function SeasonScope({
   const bypass = Boolean(admission.bypass);
   /** Prepares only a current original-owner request after native credentials and current F12 admission. */
   async function request(signal?: AbortSignal) {
+    if (!admission.admitted) throw new ApiError("cancelled");
     const credentials = await getCredentials();
     if (!credentials) throw new ApiError("http", 401);
     return admission.request({
@@ -71,18 +68,23 @@ function SeasonScope({
     });
   }
   const season = usePersonalSeason(owner, request, usable, bypass);
-  const [optionsRefused, setOptionsRefused] = useState(false);
   const refused =
     isAccessDenied(season.options.error) ||
     (season.options.error instanceof ApiError &&
       season.options.error.status === 404);
-  // A later transient error cannot release a known restriction on retained private options.
-  if (refused && !optionsRefused) setOptionsRefused(true);
-  else if (optionsRefused && season.options.isSuccess) setOptionsRefused(false);
-  const blocked = isAccessDenied(profile.error) || refused || optionsRefused;
+  const blocked = isAccessDenied(profile.error) || refused;
   return (
     <PersonalSeasonContext
-      value={{ owner, profile, season, request, usable, blocked, bypass }}
+      value={{
+        owner,
+        profile,
+        season,
+        request,
+        admitted: admission.admitted,
+        usable,
+        blocked,
+        bypass,
+      }}
     >
       {children}
     </PersonalSeasonContext>

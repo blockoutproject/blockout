@@ -5,7 +5,7 @@ import { StyleSheet, View } from "react-native";
 import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { SelectField } from "../../../shared/components/select-field";
 import { Button } from "../../../shared/components/button";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { ErrorState } from "../../../shared/components/state-card";
 import { LoadingGroup } from "../../../shared/components/loading-group";
 import { FieldSkeleton } from "../../../shared/components/form-loading";
 import { Skeleton } from "../../../shared/components/skeleton";
@@ -49,10 +49,14 @@ export function SearchFilters() {
     >
       {!options || !filters ? (
         <SheetContent>
-          <ReadFeedback
-            query={{ ...query, isPending: query.isPending || query.isFetching }}
-            loadingContent={<SearchFiltersLoading />}
-          />
+          {query.isFetching && !query.isError ? (
+            <SearchFiltersLoading />
+          ) : (
+            <ErrorState
+              onRetry={query.isEnabled ? () => void query.refetch() : undefined}
+              retrying={query.isFetching}
+            />
+          )}
         </SheetContent>
       ) : (
         <SheetContent>

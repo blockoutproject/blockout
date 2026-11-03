@@ -373,7 +373,7 @@ it("refreshes only the active club tab while preserving common information and s
   );
 });
 
-it("uses only transient feedback for a failed focus reread while keeping accepted match facts", async () => {
+it("keeps accepted match facts without action feedback after a failed focus reread", async () => {
   // Given
   const opened = await renderPage(
     <MatchScreen matchId={sportingId} focused={false} />,
@@ -389,16 +389,46 @@ it("uses only transient feedback for a failed focus reread while keeping accepte
   await opened.rerender(<MatchScreen matchId={sportingId} focused />);
 
   // Then
-  expect(
-    await screen.findByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-    }),
-  ).toBeOnTheScreen();
-  expect(screen.getAllByRole("alert")).toHaveLength(1);
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(screen.queryByRole("alert")).toBeNull();
   expect(screen.getByText("Home")).toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "Réessayer" }),
   ).not.toBeOnTheScreen();
+});
+
+it("does not retain a successful empty club-team state after its explicit read fails", async () => {
+  // Given
+  await renderPage(<ClubScreen clubId={sportingId} />);
+  await screen.findByText("Club des Rives");
+  await userEvent.press(screen.getByRole("tab", { name: "Équipes" }));
+  await screen.findByText("Aucune équipe pour cette saison");
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname.endsWith("/teams")
+      ? Promise.reject(new TypeError("offline"))
+      : reads(url),
+  );
+
+  // When
+  await userEvent.press(screen.getByRole("button", { name: "Actualiser" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Aucune équipe pour cette saison")).toBeNull();
+  expect(screen.getAllByRole("alert")).toHaveLength(1);
+  expect(screen.getByText("Club des Rives")).toBeOnTheScreen();
+  mockFetch.mockImplementation(reads);
+
+  // When
+  await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByText("Aucune équipe pour cette saison"),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).toBeNull();
 });
 
 it("retains permitted facts after failed refresh and reconnect, then accepts an explicit current reread without issuing a business command", async () => {

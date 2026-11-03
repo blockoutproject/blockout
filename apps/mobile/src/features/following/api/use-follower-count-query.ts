@@ -17,6 +17,7 @@ import {
   captureFollowingOwner,
   type FollowingTarget,
 } from "./following-keys";
+import { withdrawRefusedFollowingQuery } from "./follow-queries";
 
 /**
  * Reads only the generated public count. Ordinary access needs no profile, credentials or Pro;
@@ -35,6 +36,8 @@ export function useFollowerCountQuery(target: FollowingTarget) {
     retryOnMount: true,
     queryFn: async (context) => {
       const { signal, client, queryKey } = context;
+      if (!admission.admitted || (admission.bypass && !owner))
+        throw new ApiError("cancelled");
       try {
         let headers: Record<string, string> | undefined;
         if (admission.bypass) {
@@ -52,9 +55,21 @@ export function useFollowerCountQuery(target: FollowingTarget) {
       } catch (error) {
         if (
           !signal.aborted &&
+          error instanceof ApiError &&
           (isAccessDenied(error) || isFollowRestriction(error))
         ) {
-          if (error instanceof ApiError && error.status === 404) {
+          // Start detail invalidation while its source signal is valid, then withdraw the count
+          // before dependent reads can unmount it. No count write follows the awaited cleanup.
+          const targetRejection =
+            error.status === 404
+              ? rejectTarget(context, target.type, target.id, error)
+              : undefined;
+          const countWithdrawal = withdrawRefusedFollowingQuery(
+            client,
+            queryKey,
+            error,
+          );
+          if (error.status === 404) {
             const account = client.getQueryData<AccountResponse>(
               getGetMyAccountQueryKey(),
             );
@@ -71,14 +86,8 @@ export function useFollowerCountQuery(target: FollowingTarget) {
                 target,
               );
             }
-            await rejectTarget(context, target.type, target.id, error);
           }
-          // Withdrawal may unmount this counter and cancel its read; clear after native reversion.
-          // A later network error must not resurrect a count whose current read was refused.
-          client.getQueryCache().find({ queryKey, exact: true })?.setState({
-            data: undefined,
-            dataUpdatedAt: 0,
-          });
+          await Promise.all([countWithdrawal, targetRejection]);
         }
         throw error;
       }

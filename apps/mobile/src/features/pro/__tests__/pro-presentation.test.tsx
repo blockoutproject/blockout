@@ -682,7 +682,7 @@ it("allows B's explicit entry while A's abandoned offering read is still pending
   expect(mockRouter.navigate).toHaveBeenCalledTimes(2);
   expect(screen.getByText("Pro: inactive")).toBeOnTheScreen();
 });
-it("retains a successful empty catalogue when its explicit destination retry fails", async () => {
+it("replaces a stale empty catalogue with the local error card and recovers without a toast", async () => {
   // Given
   const user = userEvent.setup();
   mockPurchases.getOfferings.mockResolvedValueOnce({ current: null, all: {} });
@@ -701,19 +701,28 @@ it("retains a successful empty catalogue when its explicit destination retry fai
   await user.press(screen.getByRole("button", { name: "Actualiser" }));
   // Then
   expect(
-    await screen.findByRole("alert", {
+    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("header", { name: "Aucune offre Pro disponible" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("alert", {
       name: TECHNICAL_ERROR,
       includeHiddenElements: true,
     }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.getByRole("header", { name: "Aucune offre Pro disponible" }),
-  ).toBeOnTheScreen();
-  expect(screen.queryByText("Une erreur est survenue")).not.toBeOnTheScreen();
+  ).not.toBeOnTheScreen();
   expect(
     screen.getByRole("button", { name: "Gérer ou restaurer mes achats" }),
   ).toBeOnTheScreen();
   expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(2);
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByText("Native paywall double")).toBeOnTheScreen();
+  expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(3);
 });
 it("keeps unknown rights on Pro with retry and support rather than hiding the profile entry", async () => {
   // Given

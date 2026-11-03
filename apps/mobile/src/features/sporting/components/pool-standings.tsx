@@ -6,7 +6,7 @@ import {
 } from "../model/standing-columns";
 import { useQuery } from "@tanstack/react-query";
 import { useSportingNavigation } from "../navigation";
-import { Columns3, List } from "lucide-react-native";
+import { Columns3, List, RefreshCw } from "lucide-react-native";
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type {
@@ -66,7 +66,8 @@ export function PoolStandings({
       result.isError &&
       currentActive.current &&
       result.data &&
-      result.data.availability !== "unavailable" &&
+      result.data.availability === "available" &&
+      result.data.rows.length > 0 &&
       !resourceUnavailable(result.error)
     )
       feedback.error();
@@ -121,7 +122,7 @@ export function PoolStandings({
   if (!hasRows)
     return (
       <PageScrollView refreshControl={refreshControl}>
-        {standings.isPending ? (
+        {standings.isLoading ? (
           <PageContent style={styles.content}>
             <View style={styles.standings}>
               {headerRow}
@@ -139,7 +140,7 @@ export function PoolStandings({
                   query={standings}
                   loadingContent={<StandingsLoading layout={layout} />}
                 />
-              ) : data.availability === "unavailable" ? (
+              ) : standings.isError || data.availability === "unavailable" ? (
                 <ErrorState
                   onRetry={() => void refresh()}
                   retrying={standings.isFetching}
@@ -154,6 +155,7 @@ export function PoolStandings({
                 >
                   <Button
                     label="Actualiser"
+                    leadingIcon={RefreshCw}
                     onPress={() => void refresh()}
                     loading={standings.isFetching}
                     disabled={!active}

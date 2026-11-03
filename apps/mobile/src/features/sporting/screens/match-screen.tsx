@@ -12,7 +12,7 @@ import {
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useEffectEvent, useState } from "react";
+import { useEffect, useState } from "react";
 import { AppState } from "react-native";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 
@@ -47,14 +47,9 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
   const match = useQuery(queries.match(matchId));
   const { refetch } = match;
   const feedback = useActionFeedback();
-  // Effect-owned rereads use the latest feedback owner without making it a request dependency.
-  const reread = useEffectEvent(async () => {
-    const result = await refetch({ cancelRefetch: false });
-    if (result.isError && result.data && !isAccessDenied(result.error))
-      feedback.error();
-  });
+  // Focus/foreground rereads retain Query state without publishing action feedback.
   useEffect(() => {
-    if (focused) void reread();
+    if (focused) void refetch({ cancelRefetch: false });
   }, [focused, matchId, refetch]);
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
@@ -63,7 +58,7 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
         setPresentation({
           timeZone: currentSportingTimeZone(),
         });
-        if (focused) void reread();
+        if (focused) void refetch({ cancelRefetch: false });
       }
     });
     return () => subscription.remove();

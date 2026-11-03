@@ -1,5 +1,10 @@
 import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
 import { createQueryClient } from "../../../shared/query/query-client";
+import { onlineManager } from "@tanstack/react-query";
+import {
+  getGetMyAccountQueryKey,
+  getListCollectionSeasonsQueryKey,
+} from "../../../../.generated/mobile";
 import {
   cleanup,
   act,
@@ -83,6 +88,7 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await cleanup();
+  onlineManager.setOnline(true);
   client.clear();
   privateClient?.clear();
   // Await pending native/Query batches before restoring the test's real timer environment.
@@ -90,6 +96,86 @@ afterEach(async () => {
   jest.useRealTimers();
   process.env = { ...environment };
   jest.restoreAllMocks();
+});
+
+it("presents a paused first collection read as retryable without loading or an empty success", async () => {
+  // Given: identity is already usable before the ordinary list is opened offline.
+  const view = await renderCollection(<AccountActions />, client, (cache) => {
+    privateClient = cache;
+  });
+  await screen.findByText("Session : authenticated");
+  await waitFor(() =>
+    expect(privateClient.getQueryData(getGetMyAccountQueryKey())).toBeDefined(),
+  );
+  await act(() => onlineManager.setOnline(false));
+
+  // When
+  await view.rerender(<CollectionDashboardScreen />);
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer", busy: false }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+  expect(screen.queryByText("Aucune saison découverte")).not.toBeOnTheScreen();
+  expect(
+    privateClient.getQueryState(getListCollectionSeasonsQueryKey())
+      ?.fetchStatus,
+  ).toBe("paused");
+  expect(
+    mockFetch.mock.calls.some(([url]) =>
+      new URL(String(url)).pathname.endsWith("/collection-seasons"),
+    ),
+  ).toBe(false);
+
+  // When
+  await act(() => onlineManager.setOnline(true));
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: /2026\/2027/ }),
+  ).toBeOnTheScreen();
+});
+
+it("replaces an empty collection season result with its failed refresh and recovers without losing the cached envelope", async () => {
+  // Given
+  let failed = false;
+  mockFetch.mockImplementation((url, options) =>
+    new URL(String(url)).pathname.endsWith("/collection-seasons")
+      ? Promise.resolve(failed ? refused(503) : json({ items: [] }))
+      : peer.reads(url, options),
+  );
+  await renderCollection(<CollectionDashboardScreen />, client, (cache) => {
+    privateClient = cache;
+  });
+  await screen.findByText("Aucune saison découverte");
+
+  // When
+  failed = true;
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Aucune saison découverte")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).not.toBeOnTheScreen();
+  expect(
+    privateClient.getQueryData(getListCollectionSeasonsQueryKey()),
+  ).toEqual({ items: [] });
+
+  // When
+  failed = false;
+  await userEvent
+    .setup()
+    .press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByText("Aucune saison découverte")).toBeOnTheScreen();
 });
 
 it("separates competition seasons from the two seasonless controls", async () => {
@@ -739,10 +825,10 @@ it("retains result rows and retries the failed page locally without replaying au
     screen.getByText("Nationale 2 · Poule A · Calendrier"),
   ).toBeOnTheScreen();
   expect(
-    screen.getByRole("alert", {
+    screen.queryByRole("alert", {
       name: "Une erreur est survenue. Veuillez réessayer plus tard.",
     }),
-  ).toBeOnTheScreen();
+  ).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("page=1")),
   ).toHaveLength(1);

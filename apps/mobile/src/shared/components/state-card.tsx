@@ -1,4 +1,5 @@
 import { Image } from "expo-image";
+import { RotateCcw } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useTheme } from "../theme/theme-provider";
@@ -49,7 +50,12 @@ export function ErrorState({ onRetry, retrying = false }: ErrorStateProps) {
       description={TECHNICAL_ERROR_HELP}
     >
       {onRetry && (
-        <Button label="Réessayer" onPress={onRetry} loading={retrying} />
+        <Button
+          label="Réessayer"
+          leadingIcon={RotateCcw}
+          onPress={onRetry}
+          loading={retrying}
+        />
       )}
     </StateCard>
   );

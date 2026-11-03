@@ -417,7 +417,7 @@ function VersionScene({
       setRefreshing(false);
     }
   }
-  /** Only the current scene may report a late continuation failure; its footer retries the original cursor. */
+  /** Only the current scene continues; its footer owns failures and retries the original cursor. */
   async function more() {
     if (
       !active ||
@@ -432,13 +432,7 @@ function VersionScene({
     )
       return;
     feedback.clear();
-    const result = await query.fetchNextPage({ cancelRefetch: false });
-    if (
-      result.isFetchNextPageError &&
-      navigation.isFocused() &&
-      currentScene.current === identity
-    )
-      feedback.error();
+    await query.fetchNextPage({ cancelRefetch: false });
   }
   if (
     !current &&

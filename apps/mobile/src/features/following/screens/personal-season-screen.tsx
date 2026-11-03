@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { isCancelledError } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
@@ -15,11 +16,14 @@ export function PersonalSeasonScreen() {
   const opening = useRef(scope);
   useEffect(() => {
     const current = opening.current;
-    if (!current) return;
+    if (!current?.usable || current.blocked) return;
     void current.season.options
       .refetch({ cancelRefetch: false, throwOnError: true })
       .catch((error: unknown) => {
-        if (!(error instanceof ApiError && error.kind === "cancelled"))
+        if (
+          !isCancelledError(error) &&
+          !(error instanceof ApiError && error.kind === "cancelled")
+        )
           feedback.error();
       });
     // This route's mount is the opening event. Query/feedback rerenders must not start another read.

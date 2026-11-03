@@ -158,25 +158,18 @@ export function OwnContributionsScreen({
     )
       return;
     feedback.clear();
-    const result = await query.fetchNextPage({ cancelRefetch: false });
-    if (
-      mounted.current &&
-      result.isError &&
-      navigation.isFocused() &&
-      AppState.currentState === "active"
-    )
-      feedback.error();
+    await query.fetchNextPage({ cancelRefetch: false });
   }
   const pending =
     session.status !== "guest" &&
     (session.status !== "authenticated"
       ? session.status === "restoring" || !!session.operation
       : !editing.profile.data
-        ? editing.profile.isPending
+        ? editing.profile.isLoading
         : editing.canRetain &&
           (!current || !authorized) &&
           !isOwnContributionAccessDenied(match.error) &&
-          query.isPending);
+          query.isLoading);
   const FeedbackLayout = pending ? View : ScreenState;
   const content = (
     <Page

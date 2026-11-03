@@ -947,7 +947,7 @@ it("shares one pending cursor read across repeated native end events", async () 
   expect(screen.queryByRole("button", { name: "Charger la suite" })).toBeNull();
 });
 
-it("retains loaded rows with failure toast and retries only the same cursor", async () => {
+it("retains loaded rows with local failure feedback and retries only the same cursor", async () => {
   // Given
   const user = userEvent.setup();
   const retry = Promise.withResolvers<Response>();
@@ -980,10 +980,11 @@ it("retains loaded rows with failure toast and retries only the same cursor", as
     screen.getByRole("header", { name: "1 résultat chargé" }),
   ).toBeOnTheScreen();
   expect(
-    await screen.findByRole("alert", {
+    screen.queryByRole("alert", {
       name: "Une erreur est survenue. Veuillez réessayer plus tard.",
     }),
-  ).toBeOnTheScreen();
+  ).toBeNull();
+  expect(screen.getByText("Une erreur est survenue.")).toBeOnTheScreen();
   expect(
     screen.queryByLabelText("Actualiser les données"),
   ).not.toBeOnTheScreen();

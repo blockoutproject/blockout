@@ -17,12 +17,14 @@ export function FollowerCount({ target }: FollowerCountProps) {
   const query = useFollowerCountQuery(target);
   const { colors } = useTheme();
   const count = query.data?.count;
+  const initialLoading = query.isPending && query.isFetching;
+  const unavailable = query.isError || query.isPaused;
   const label =
     count === undefined
-      ? query.isError
-        ? "Nombre d’abonnés indisponible"
-        : "Chargement du nombre d’abonnés"
-      : `${count.toLocaleString("fr-FR")} abonné${count > 1 ? "s" : ""}${query.isError ? ", actualisation indisponible" : ""}`;
+      ? initialLoading
+        ? "Chargement du nombre d’abonnés"
+        : "Nombre d’abonnés indisponible"
+      : `${count.toLocaleString("fr-FR")} abonné${count > 1 ? "s" : ""}${unavailable ? ", actualisation indisponible" : ""}`;
   return (
     <View style={styles.count}>
       <View
@@ -37,7 +39,7 @@ export function FollowerCount({ target }: FollowerCountProps) {
           size={tokens.size.icon.sm}
           color={colors.icon}
         />
-        {query.isPending ? (
+        {initialLoading ? (
           <LoadingIndicator color={colors.icon} />
         ) : (
           <Text style={[tokens.typography.body, { color: colors.icon }]}>
@@ -45,19 +47,22 @@ export function FollowerCount({ target }: FollowerCountProps) {
           </Text>
         )}
       </View>
-      {query.isError && (
-        <IconButton
-          label="Réessayer le nombre d’abonnés"
-          loading={query.isFetching}
-          onPress={() => void query.refetch()}
-        >
-          <RotateCcw
-            accessible={false}
-            size={tokens.size.icon.sm}
-            color={colors.icon}
-          />
-        </IconButton>
-      )}
+      {(unavailable || (query.isPending && !query.isFetching)) &&
+        query.isEnabled && (
+          <IconButton
+            label="Réessayer le nombre d’abonnés"
+            loading={query.isFetching}
+            onPress={() => {
+              if (query.isEnabled) void query.refetch();
+            }}
+          >
+            <RotateCcw
+              accessible={false}
+              size={tokens.size.icon.sm}
+              color={colors.icon}
+            />
+          </IconButton>
+        )}
     </View>
   );
 }

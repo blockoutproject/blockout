@@ -14,7 +14,7 @@ import type {
   CollectionSeasonResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { Button } from "../../../shared/components/button";
-import { EmptyState } from "../../../shared/components/state-card";
+import { EmptyState, ErrorState } from "../../../shared/components/state-card";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import type { useSeasonPreparation } from "../api/use-source-preparation";
@@ -171,15 +171,29 @@ export function ProviderPreparationForm({
           Saison clôturée
         </Text>
       )}
-      {sources.length === 0 && (
-        <EmptyState
-          title={
-            provider === "lnv"
-              ? "Aucun championnat découvert"
-              : "Aucune source découverte"
-          }
-        />
-      )}
+      {sources.length === 0 &&
+        (editing.sources.isError ? (
+          <ErrorState
+            onRetry={
+              authority.enabled
+                ? () => void editing.sources.refetch()
+                : authority.sessionStatus === "authenticated"
+                  ? () => void authority.account.refetch()
+                  : undefined
+            }
+            retrying={
+              editing.sources.isFetching || authority.account.isFetching
+            }
+          />
+        ) : (
+          <EmptyState
+            title={
+              provider === "lnv"
+                ? "Aucun championnat découvert"
+                : "Aucune source découverte"
+            }
+          />
+        ))}
       {sources.map((source) => (
         <Surface key={source.id}>
           <Pressable

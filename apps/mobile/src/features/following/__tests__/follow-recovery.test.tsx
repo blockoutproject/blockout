@@ -448,6 +448,72 @@ it("keeps public sporting content when the private opaque member read returns 40
   expect(screen.getByText("Public team remains viewable")).toBeOnTheScreen();
 });
 
+it("keeps a refused count withdrawn when its detail removes the control and the reopened count fails technically", async () => {
+  // Given: the real detail owner unmounts its follow region after the dependent detail refusal.
+  let outcome: "available" | "refused" | "transient" = "available";
+  mockFetch.mockImplementation((url, request) => {
+    if (url.endsWith(`/teams/${team.id}`))
+      return Promise.resolve(
+        outcome === "refused"
+          ? new Response(null, { status: 404 })
+          : Response.json({
+              team: {
+                team: { id: team.id, name: "Counter recovery team" },
+                season,
+                classification: {},
+                professional: true,
+              },
+              participations: [],
+            }),
+      );
+    if (url.endsWith("/follower-count")) {
+      if (outcome === "refused")
+        return Promise.resolve(new Response(null, { status: 404 }));
+      if (outcome === "transient")
+        return Promise.reject(new TypeError("Synthetic reopened count outage"));
+      return Promise.resolve(Response.json({ count: 2 }));
+    }
+    if (url.includes("/matches?"))
+      return Promise.resolve(Response.json({ days: [] }));
+    return transport(url, request);
+  });
+  const user = userEvent.setup();
+  await fixture.render(
+    <TeamScreen
+      teamId={team.id}
+      renderFollow={() => <FollowerCount target={team} />}
+    />,
+  );
+  await screen.findByLabelText("2 abonnés");
+
+  // When
+  outcome = "refused";
+  await act(async () => {
+    await fixture.client.invalidateQueries({
+      queryKey: followerCountKey(team),
+      exact: true,
+    });
+  });
+  await screen.findByRole("button", { name: "Réessayer" });
+
+  // Then
+  expect(screen.queryByText("Counter recovery team")).not.toBeOnTheScreen();
+  expect(fixture.client.getQueryData(followerCountKey(team))).toBeUndefined();
+
+  // When
+  outcome = "transient";
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  await screen.findByRole("button", {
+    name: "Réessayer le nombre d’abonnés",
+    busy: false,
+  });
+  expect(screen.getByText("Counter recovery team")).toBeOnTheScreen();
+  expect(screen.queryByLabelText("2 abonnés")).not.toBeOnTheScreen();
+  expect(fixture.client.getQueryData(followerCountKey(team))).toBeUndefined();
+});
+
 it("applies public absence to an account established while the first counter is pending", async () => {
   // Given
   const profile = Promise.withResolvers<Response>();

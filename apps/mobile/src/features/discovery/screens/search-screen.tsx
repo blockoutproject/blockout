@@ -1,12 +1,11 @@
 import { hashKey } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
-import { Flag } from "lucide-react-native";
+import { Eraser, Flag, Search } from "lucide-react-native";
 import { IconButton } from "../../../shared/components/icon-button";
 import { supportHref } from "../../support";
 import { useSportingNavigation } from "../../sporting/navigation";
 import { Image } from "expo-image";
 import { useTheme } from "../../../shared/theme/theme-provider";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { useSearchVisit } from "../forms/search-visit";
 import { reconcileSearchFilters } from "../model/search-filters";
 import { Page } from "../../../shared/components/page";
@@ -14,10 +13,9 @@ import { PagedTabs } from "../../../shared/components/paged-tabs";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { ListContinuation } from "../../../shared/components/list-continuation";
 import { Button } from "../../../shared/components/button";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import {
   Keyboard,
@@ -59,9 +57,9 @@ const searchTabs = [
  * Public discovery with shared text and retained examples per tab/filter visit context.
  * Filters retain one selection per sporting tab; empty/whitespace reads explicitly present examples.
  * Native end events continue the selected focused context. Initial errors use the shared card;
- * failed continuation reports a toast, retains accepted pages and offers retry at the list edge.
+ * failed continuation retains accepted pages and offers retry only at the list edge.
  * Owner-authorized reread failures retain usable rows with explicit retry; an old empty response
- * cannot establish current absence. There is no refresh gesture or automatic replay.
+ * cannot establish current absence. There is no refresh gesture or additional background read trigger.
  * Generated Unicode validation rejects over-limit text without truncating the user's draft.
  * The existing F10 route receives only Search provenance; RHF text and visit criteria stay local.
  * Voluntary card selection uses F03's UUID navigation and the single F11 transition owner.
@@ -178,13 +176,20 @@ export function SearchScreen() {
               exampleQuery={exampleQueries[id]}
               examples={examples}
               items={items[id]}
-              emptyActionLabel={
-                !examples || changed ? "Effacer les critères" : "Rechercher"
-              }
-              onEmptyAction={
-                !examples || changed
-                  ? () => clearCriteria(id)
-                  : () => setFocus("q")
+              emptyAction={
+                !examples || changed ? (
+                  <Button
+                    label="Effacer les critères"
+                    leadingIcon={Eraser}
+                    onPress={() => clearCriteria(id)}
+                  />
+                ) : (
+                  <Button
+                    label="Rechercher"
+                    leadingIcon={Search}
+                    onPress={() => setFocus("q")}
+                  />
+                )
               }
             />
           ),
@@ -314,8 +319,7 @@ function SearchScene({
   exampleQuery,
   examples,
   items: textItems,
-  emptyActionLabel,
-  onEmptyAction,
+  emptyAction,
 }: {
   resource: DiscoveryResource;
   criteria: string;
@@ -325,8 +329,7 @@ function SearchScene({
   exampleQuery: ReturnType<typeof useSearchExamplesQuery>;
   examples: boolean;
   items: readonly SearchResult[];
-  emptyActionLabel: string;
-  onEmptyAction: () => void;
+  emptyAction: ReactNode;
 }) {
   const visit = useSearchVisit();
   const query = examples ? exampleQuery : textQuery;
@@ -335,14 +338,6 @@ function SearchScene({
     : textItems;
   const navigation = useNavigation();
   const sportingNavigation = useSportingNavigation(active);
-  const feedback = useActionFeedback();
-  const current = useRef<string | undefined>(undefined);
-  useLayoutEffect(() => {
-    current.current = active ? criteria : undefined;
-    return () => {
-      current.current = undefined;
-    };
-  }, [active, criteria]);
   const sporting = resource === "club" ? undefined : visit[resource];
   const filters = sporting?.filters;
   const resultsReady = (searchable || examples) && (!sporting || !!filters);
@@ -357,15 +352,7 @@ function SearchScene({
       query.isFetching
     )
       return;
-    feedback.clear();
-    const result = await textQuery.fetchNextPage({ cancelRefetch: false });
-    if (
-      result.isFetchNextPageError &&
-      result.data &&
-      navigation.isFocused() &&
-      current.current === criteria
-    )
-      feedback.error();
+    await textQuery.fetchNextPage({ cancelRefetch: false });
   }
   // An unfinished empty traversal retains its existing explicit continuation action.
   const continueEmpty =
@@ -374,14 +361,20 @@ function SearchScene({
     textQuery.hasNextPage &&
     (!query.isError || textQuery.isFetchNextPageError);
   const error =
-    (query.isError || continueEmpty) && items.length === 0 ? (
+    (query.isError || query.isPending || continueEmpty) &&
+    items.length === 0 ? (
       <ErrorState
-        onRetry={continueEmpty ? loadMore : () => void query.refetch()}
+        onRetry={
+          active && query.isEnabled
+            ? continueEmpty
+              ? loadMore
+              : () => void query.refetch()
+            : undefined
+        }
         retrying={query.isFetching}
       />
     ) : undefined;
-  const filtersPending =
-    !!sporting && (sporting.query.isPending || sporting.query.isFetching);
+  const filtersPending = !!sporting && sporting.query.isFetching;
   const initialLoading = (
     <SearchResultsContent>
       <SearchLoading />
@@ -405,13 +398,16 @@ function SearchScene({
             initialLoading
           ) : (
             <ScreenState>
-              <ReadFeedback
-                query={{ ...sporting.query, isPending: filtersPending }}
-                loadingContent={<SearchLoading />}
+              <ErrorState
+                onRetry={
+                  sporting.query.isEnabled
+                    ? () => void sporting.query.refetch()
+                    : undefined
+                }
               />
             </ScreenState>
           )
-        ) : query.isPending ? (
+        ) : query.isPending && query.isFetching ? (
           initialLoading
         ) : (
           <ScreenState>
@@ -420,7 +416,7 @@ function SearchScene({
                 title="Aucun résultat pour ces critères"
                 description="Essayez un autre nom."
               >
-                <Button label={emptyActionLabel} onPress={onEmptyAction} />
+                {emptyAction}
               </EmptyState>
             )}
           </ScreenState>

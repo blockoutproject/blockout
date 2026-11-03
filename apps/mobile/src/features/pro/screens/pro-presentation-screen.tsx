@@ -1,3 +1,4 @@
+import { RefreshCw } from "lucide-react-native";
 import { useMutation } from "@tanstack/react-query";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
@@ -88,7 +89,6 @@ export function ProPresentationScreen({
   const closed = useRef(false);
   const restoreStarted = useRef(false);
   const paywallFinished = useRef(false);
-  const offeringAttempt = useRef<symbol | null>(null);
   /** Reads the live F05 snapshot, including business UUID establishment for the native principal. */
   function isCurrentPresentation() {
     return (
@@ -115,26 +115,16 @@ export function ProPresentationScreen({
         ["purchasing", "restoring"].includes(state.operation)));
   const offering = useProOffering(admitted && current && showPaywall);
   const { refetch: readOffering } = offering;
-  /** Retains a known empty catalogue on failure, but abandons its feedback when another destination view takes over. */
+  /** A safe catalogue retry leaves failure in Query and never repeats a purchase or publishes a toast. */
   async function retryOffering() {
+    if (
+      closed.current ||
+      !isCurrentPresentation() ||
+      !canPurchasePro(getState())
+    )
+      return;
     feedback.clear();
-    const attempt = Symbol();
-    offeringAttempt.current = attempt;
-    const retainedEmpty = offering.data === null;
-    try {
-      const result = await readOffering();
-      if (
-        result.isError &&
-        retainedEmpty &&
-        offeringAttempt.current === attempt &&
-        !closed.current &&
-        isCurrentPresentation() &&
-        canPurchasePro(getState())
-      )
-        feedback.error();
-    } finally {
-      if (offeringAttempt.current === attempt) offeringAttempt.current = null;
-    }
+    await readOffering();
   }
   /** Observes a provider-owned explicit restoration; the native UI owns store execution. */
   function startRestore() {
@@ -163,14 +153,12 @@ export function ProPresentationScreen({
   /** The fallback remains independent of offers; the existing owner gates native execution. */
   function restoreExplicitly() {
     if (closed.current || !isCurrentPresentation()) return;
-    offeringAttempt.current = null;
     setView("outcome");
     restoration.mutate();
   }
   /** Removes the route once, even when native dismissal follows a completion callback. */
   const close = useCallback(() => {
     if (closed.current) return false;
-    offeringAttempt.current = null;
     closed.current = true;
     if (router.canGoBack()) router.back();
     else router.replace("/profile");
@@ -179,7 +167,6 @@ export function ProPresentationScreen({
   useEffect(() => {
     closed.current = false;
     return () => {
-      offeringAttempt.current = null;
       closed.current = true;
     };
   }, []);
@@ -305,8 +292,8 @@ export function ProPresentationScreen({
       />
     );
   const loadingOffer =
-    !offering.isFetchedAfterMount ||
-    (offering.isFetching && offering.data !== null);
+    offering.isFetching &&
+    (!offering.isFetchedAfterMount || offering.data !== null);
   const Content = (
     showPaywall
       ? loadingOffer
@@ -326,8 +313,13 @@ export function ProPresentationScreen({
           {showPaywall ? (
             loadingOffer ? (
               <ProReadLoading label="Chargement des offres Pro" />
-            ) : offering.isError && offering.data !== null ? (
-              <ErrorState onRetry={() => void retryOffering()} />
+            ) : offering.isError ||
+              !offering.isFetchedAfterMount ||
+              offering.data === undefined ? (
+              <ErrorState
+                onRetry={() => void retryOffering()}
+                retrying={offering.isFetching}
+              />
             ) : (
               <EmptyState
                 title="Aucune offre Pro disponible"
@@ -335,6 +327,7 @@ export function ProPresentationScreen({
               >
                 <Button
                   label="Actualiser"
+                  leadingIcon={RefreshCw}
                   onPress={() => void retryOffering()}
                   loading={offering.isFetching}
                 />
@@ -364,7 +357,6 @@ export function ProPresentationScreen({
               label="Gérer ou restaurer mes achats"
               onPress={() => {
                 if (!closed.current && isCurrentPresentation()) {
-                  offeringAttempt.current = null;
                   setView("management");
                 }
               }}

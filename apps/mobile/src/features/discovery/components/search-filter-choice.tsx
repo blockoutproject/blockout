@@ -5,7 +5,6 @@ import {
   SportGenderEnum,
 } from "../../../../.generated/schemas/index.zod";
 import { Sheet, SheetContent } from "../../../shared/components/sheet";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ListLoading } from "../../../shared/components/list-loading";
 import { ErrorState } from "../../../shared/components/state-card";
 import { EntryGroup } from "../../../shared/components/entry-group";
@@ -74,14 +73,16 @@ export function SearchFilterChoice() {
     <Sheet title={title} onClose={() => router.back()}>
       {!options && (
         <SheetContent>
-          <ReadFeedback
-            query={{ ...query, isPending: query.isPending || query.isFetching }}
-            loadingContent={
-              <EntryGroup>
-                <ListLoading label="Chargement des choix" />
-              </EntryGroup>
-            }
-          />
+          {query.isFetching && !query.isError ? (
+            <EntryGroup>
+              <ListLoading label="Chargement des choix" />
+            </EntryGroup>
+          ) : (
+            <ErrorState
+              onRetry={query.isEnabled ? () => void query.refetch() : undefined}
+              retrying={query.isFetching}
+            />
+          )}
         </SheetContent>
       )}
       {options && (

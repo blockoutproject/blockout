@@ -108,7 +108,8 @@ function PersonalHeader() {
 }
 /** Keeps the choice and selected tab mounted while ordinary sporting routes cover Home. */
 function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
-  const { owner, profile, season, request, usable, blocked, bypass } = scope;
+  const { owner, profile, season, request, admitted, usable, blocked, bypass } =
+    scope;
   const router = useRouter();
   const [tab, setTab] = useState("upcoming");
   const focused = useIsFocused();
@@ -187,12 +188,15 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
           }
         >
           <PageScrollView>
-            {blockingQuery.isPending ? (
+            {blockingQuery.isPending && blockingQuery.isFetching ? (
               <PageContent>{loadingContent}</PageContent>
             ) : (
               <ScreenState>
                 <ReadFeedback
-                  query={blockingQuery}
+                  query={{
+                    ...blockingQuery,
+                    isEnabled: admitted && blockingQuery.isEnabled,
+                  }}
                   loadingContent={loadingContent}
                 />
               </ScreenState>

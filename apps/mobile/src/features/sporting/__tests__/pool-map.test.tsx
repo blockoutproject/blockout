@@ -891,6 +891,33 @@ it("retries an initial participant failure without announcing empty geography", 
   ]);
 });
 
+it("replaces cached empty geography with a read error and restores it only after a successful retry", async () => {
+  // Given
+  await open();
+  await screen.findByText("Aucune localisation disponible");
+  participantsFailure = 503;
+
+  // When
+  await userEvent.press(screen.getByRole("button", { name: "Actualiser" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Aucune localisation disponible")).toBeNull();
+  expect(screen.getAllByRole("alert")).toHaveLength(1);
+  participantsFailure = undefined;
+
+  // When
+  await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByText("Aucune localisation disponible"),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
 it.each([
   ["ready-first", 1],
   ["layout-first", 1],
