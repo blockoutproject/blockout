@@ -59,6 +59,12 @@ it.each([
   { disabled: false, loading: true, trailingIcon: undefined },
   { disabled: true, loading: false, trailingIcon: ChevronRight },
   { disabled: false, loading: true, trailingIcon: ChevronRight },
+  {
+    disabled: false,
+    loading: true,
+    loadingIndicator: "spinner" as const,
+    trailingIcon: Check,
+  },
 ])("prevents activation while unavailable: %j", async (state) => {
   // Given
   const onPress = jest.fn();

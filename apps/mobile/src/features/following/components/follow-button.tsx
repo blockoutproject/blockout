@@ -16,7 +16,7 @@ export interface FollowButtonProps {
   target: FollowingTarget;
   season: SportingSeasonResponse;
 }
-/** Query owns confirmed availability; native mutation state drives provisional progress and shared failure feedback. */
+/** Query keeps the confirmed follow state visible; native mutation state owns progress and shared failure feedback. */
 export function FollowButton({ target, season }: FollowButtonProps) {
   const context = useFollowStateQuery(target);
   const action = useFollowMutation(target, context);
@@ -47,11 +47,7 @@ export function FollowButton({ target, season }: FollowButtonProps) {
     );
   if (!guest && query.data === undefined)
     return <ReadFeedback query={query} loadingContent={loadingContent} />;
-  const provisional =
-    action.isPending && typeof action.variables === "boolean"
-      ? action.variables
-      : undefined;
-  const following = provisional ?? query.data?.following;
+  const following = query.data?.following;
   return (
     <View style={styles.control}>
       <Button
@@ -67,6 +63,7 @@ export function FollowButton({ target, season }: FollowButtonProps) {
             : `Saison ${season.label}.`
         }
         loading={action.isPending}
+        loadingIndicator="spinner"
         disabled={
           !guest && (!usable || following === undefined || query.isError)
         }

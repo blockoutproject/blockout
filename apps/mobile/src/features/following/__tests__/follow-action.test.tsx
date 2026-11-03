@@ -188,7 +188,7 @@ afterEach(async () => {
   jest.useRealTimers();
 });
 
-it("owns pending UI per control and refreshes other controls from the server", async () => {
+it("keeps the confirmed state visible while each control owns its pending action", async () => {
   // Given
   const response = Promise.withResolvers<void>();
   mockFetch.mockImplementation((url, request) =>
@@ -212,20 +212,33 @@ it("owns pending UI per control and refreshes other controls from the server", a
       screen.getAllByRole("button", { name: "Suivre", disabled: false }),
     ).toHaveLength(3),
   );
+
   // When
   await user.press(screen.getAllByRole("button", { name: "Suivre" })[0]);
+
   // Then
-  await waitFor(() =>
-    expect(
-      screen.getAllByRole("button", { name: "Suivi", busy: true }),
-    ).toHaveLength(1),
-  );
+  expect(
+    await screen.findByRole("button", {
+      name: "Suivre",
+      selected: false,
+      busy: true,
+    }),
+  ).toBeDisabled();
   expect(
     screen.getAllByRole("button", { name: "Suivre", disabled: false }),
   ).toHaveLength(2);
+  expect(
+    client.getQueryData(followStateKey({ ...session, accountId }, team)),
+  ).toEqual({
+    following: false,
+  });
+
   // When
-  await user.press(screen.getAllByRole("button", { name: "Suivre" })[0]);
+  await user.press(
+    screen.getAllByRole("button", { name: "Suivre", disabled: false })[0],
+  );
   await act(async () => response.resolve());
+
   // Then
   await waitFor(() =>
     expect(
@@ -631,16 +644,14 @@ it.each([true, false])(
   "keeps the prior state after a definite refusal of following=%s and repeats only on explicit press",
   async (following) => {
     // Given
+    const refusal = Promise.withResolvers<Response>();
     let writes = 0;
     let saved = !following;
     mockFetch.mockImplementation((url, request) => {
       if (request?.method === "PUT") {
-        if (writes > 0) saved = following;
-        return Promise.resolve(
-          ++writes === 1
-            ? new Response(null, { status: 400 })
-            : Response.json({ following }),
-        );
+        if (++writes === 1) return refusal.promise;
+        saved = following;
+        return Promise.resolve(Response.json({ following }));
       }
       return url.includes("team-follows")
         ? Promise.resolve(Response.json({ following: saved }))
@@ -656,13 +667,33 @@ it.each([true, false])(
 
     // When
     await user.press(screen.getByRole("button", { name: label }));
+
+    // Then
+    expect(
+      await screen.findByRole("button", {
+        name: label,
+        selected: !following,
+        busy: true,
+      }),
+    ).toBeDisabled();
+    expect(
+      client.getQueryData(followStateKey({ ...session, accountId }, team)),
+    ).toEqual({
+      following: !following,
+    });
+    expect(writes).toBe(1);
+
+    // When
+    await act(async () => refusal.resolve(new Response(null, { status: 400 })));
     await screen.findByText(TECHNICAL_ERROR);
 
     // Then
     expect(writes).toBe(1);
     expect(screen.getByRole("button", { name: label })).toBeEnabled();
+
     // When
     await user.press(screen.getByRole("button", { name: label }));
+
     // Then
     await screen.findByRole("button", {
       name: following ? "Suivi" : "Suivre",
@@ -804,6 +835,70 @@ it.each([403, 404])(
     ).toEqual({ following: false });
   },
 );
+
+it("keeps a refused member withdrawn after a delayed successful write until an ordinary read succeeds", async () => {
+  // Given
+  const response = Promise.withResolvers<Response>();
+  let member: "available" | "refused" | "transient" = "available";
+  let following = false;
+  mockFetch.mockImplementation((url, request) => {
+    if (request?.method === "PUT") return response.promise;
+    if (url.includes("team-follows")) {
+      if (member === "refused")
+        return Promise.resolve(new Response(null, { status: 403 }));
+      if (member === "transient")
+        return Promise.reject(new TypeError("member read failed"));
+      return Promise.resolve(Response.json({ following }));
+    }
+    return transport(url, request);
+  });
+  const user = userEvent.setup();
+  await renderFollowing(<FollowButton target={team} season={season} />);
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+  const key = followStateKey({ ...session, accountId }, team);
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Suivre" }));
+  member = "refused";
+  await act(() => client.invalidateQueries({ queryKey: key, exact: true }));
+
+  // Then
+  await screen.findByRole("button", { name: "Réessayer", busy: false });
+  expect(client.getQueryData(key)).toBeUndefined();
+
+  // When
+  member = "transient";
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  await waitFor(() =>
+    expect(client.getQueryState(key)?.error).toMatchObject({ kind: "network" }),
+  );
+  expect(client.getQueryData(key)).toBeUndefined();
+
+  // When
+  following = true;
+  await act(async () => response.resolve(Response.json({ following })));
+
+  // Then
+  await screen.findByRole("button", { name: "Réessayer", busy: false });
+  expect(client.getQueryData(key)).toBeUndefined();
+  expect(screen.queryByRole("button", { name: "Suivi" })).toBeNull();
+
+  // When
+  member = "available";
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Suivi", selected: true }),
+  ).toBeEnabled();
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toHaveLength(1);
+});
 
 it("keeps an uncertain follow refused through a failed read and a remount until a successful member retry", async () => {
   // Given
