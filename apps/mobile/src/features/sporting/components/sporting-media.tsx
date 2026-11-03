@@ -7,7 +7,7 @@ import { Skeleton } from "../../../shared/components/skeleton";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
-/** Native sports media accepts public backend URIs or admitted authenticated previews and their fallback state. */
+/** Native sports media keeps a shared skeleton until a public URI or admitted authenticated preview is displayed. */
 export interface SportingMediaProps {
   identity: Pick<SportingIdentityResponse, "name" | "shortName">;
   uri?: string;
@@ -21,7 +21,13 @@ export interface SportingMediaProps {
   renderWithAtmosphere?: (logo: ReactNode, atmosphere: ReactNode) => ReactNode;
 }
 
-/** White logo plate in both themes, with the neutral image fallback and one accessible native image state. */
+/** The source identity survives status changes and rejects queued events from a replaced native image. */
+interface NativeLogoState {
+  source: { uri?: string };
+  status: "pending" | "displayed" | "failed";
+}
+
+/** Keeps native media beneath its skeleton without remounting the caller's card; either layer's error withdraws both. */
 export function SportingMedia({
   identity,
   uri,
@@ -33,9 +39,25 @@ export function SportingMedia({
   renderWithAtmosphere,
 }: SportingMediaProps) {
   const { colors } = useTheme();
-  const [failedUri, setFailedUri] = useState<string>();
-  const failed = !!uri && failedUri === uri;
+  const [image, setImage] = useState<NativeLogoState>(() => ({
+    source: { uri },
+    status: "pending",
+  }));
+  // Reset only image state before rendering a changed URI, preserving caller-owned card content.
+  if (image.source.uri !== uri)
+    setImage({ source: { uri }, status: "pending" });
+  const source = image.source;
+  /** Only this native source may settle; an error remains terminal even after a queued display event. */
+  function settleImage(status: "displayed" | "failed") {
+    setImage((current) =>
+      current.source !== source || current.status === "failed"
+        ? current
+        : { ...current, status },
+    );
+  }
+  const failed = image.status === "failed";
   const available = !!uri && !failed;
+  const pending = available && image.status === "pending";
   const notice =
     error || failed
       ? available
@@ -84,14 +106,17 @@ export function SportingMedia({
       >
         {available ? (
           <Image
+            key={uri}
             accessible
             accessibilityRole="image"
             accessibilityLabel={`${label} : ${identity.name}`}
+            accessibilityState={{ busy: pending }}
             source={{ uri }}
             cachePolicy="none"
             recyclingKey={uri}
             contentFit="contain"
-            onError={() => setFailedUri(uri)}
+            onDisplay={() => settleImage("displayed")}
+            onError={() => settleImage("failed")}
             style={{
               width:
                 kind === "division" || presentation === "identity"
@@ -115,6 +140,11 @@ export function SportingMedia({
             }
           />
         )}
+        {pending && (
+          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+            <Skeleton width={size} height={size} shape="rectangle" />
+          </View>
+        )}
       </View>
       {notice && presentation !== "identity" && (
         <Text
@@ -131,6 +161,7 @@ export function SportingMedia({
         logo,
         available ? (
           <Image
+            key={uri}
             accessible={false}
             testID="sporting-logo-atmosphere"
             pointerEvents="none"
@@ -143,7 +174,7 @@ export function SportingMedia({
                 ? tokens.media.identityAtmosphere.blur
                 : tokens.sporting.coverBlur
             }
-            onError={() => setFailedUri(uri)}
+            onError={() => settleImage("failed")}
             style={[
               StyleSheet.absoluteFill,
               {
