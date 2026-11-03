@@ -330,6 +330,93 @@ it("sends the desired active state independently of dirty content", async () => 
     active: true,
   });
 });
+it("locks content editing during activation and retains the draft after an ordinary failure", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Mon brouillon",
+  );
+  const imageUrl = "https://assets.example.invalid/draft.png";
+  await user.type(screen.getByLabelText("URL de l’image"), imageUrl);
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation(async (url, options) =>
+    options?.method === "PUT"
+      ? response.promise
+      : json(String(url).endsWith("/accounts/me") ? account : stored),
+  );
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Activer la maintenance" }),
+  );
+  await act(async () => nativeAlertAction("Activer")());
+
+  try {
+    // Then
+    expect(
+      await screen.findByRole("button", {
+        name: "Activer la maintenance",
+        busy: true,
+      }),
+    ).toBeDisabled();
+    expect(screen.getByLabelText("Message de maintenance")).toBeDisabled();
+    expect(screen.getByLabelText("URL de l’image")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+    // Then
+    expect(Alert.alert).toHaveBeenCalledTimes(1);
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+    ).toHaveLength(0);
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+    ).toHaveLength(1);
+  } finally {
+    // When
+    await act(async () =>
+      response.resolve(
+        json(
+          {
+            type: "urn:blockout:problem:unprocessable-content",
+            title: "Refused",
+            status: 422,
+          },
+          422,
+        ),
+      ),
+    );
+  }
+
+  // Then
+  expect(
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+  );
+  expect(
+    screen.getByRole("button", {
+      name: "Activer la maintenance",
+      busy: false,
+    }),
+  ).toBeEnabled();
+  expect(screen.getByLabelText("Message de maintenance")).toBeEnabled();
+  expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(
+    "Mon brouillon",
+  );
+  expect(screen.getByLabelText("URL de l’image")).toBeEnabled();
+  expect(screen.getByLabelText("URL de l’image")).toHaveDisplayValue(imageUrl);
+  expect(screen.getByLabelText("Maintenance inactive")).toBeOnTheScreen();
+});
 it("preserves a dirty draft after a newer background response", async () => {
   // Given
   const user = userEvent.setup();

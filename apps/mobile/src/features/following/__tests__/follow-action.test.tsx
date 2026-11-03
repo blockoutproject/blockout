@@ -678,13 +678,16 @@ it.each([true, false])(
   },
 );
 
-it("refreshes current state after a lost write response while retaining ordinary failure feedback", async () => {
+it("uses ordinary failure feedback and the displayed state for a new action after a lost response", async () => {
   // Given
   let saved = false;
+  let writes = 0;
   mockFetch.mockImplementation((url, request) => {
     if (request?.method === "PUT") {
-      saved = true;
-      return Promise.reject(new TypeError("response lost"));
+      saved = JSON.parse(String(request.body)).following;
+      return ++writes === 1
+        ? Promise.reject(new TypeError("response lost"))
+        : Promise.resolve(Response.json({ following: saved }));
     }
     return url.includes("team-follows")
       ? Promise.resolve(Response.json({ following: saved }))
@@ -701,9 +704,10 @@ it("refreshes current state after a lost write response while retaining ordinary
   await user.press(screen.getByRole("button", { name: "Suivre" }));
 
   // Then
+  expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
   expect(
     await screen.findByRole("button", {
-      name: "Réessayer le suivi",
+      name: "Suivi",
       selected: true,
       busy: false,
     }),
@@ -720,6 +724,23 @@ it("refreshes current state after a lost write response while retaining ordinary
         url.includes("team-follows") && request?.method !== "PUT",
     ),
   ).toHaveLength(2);
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Suivi" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", {
+      name: "Suivre",
+      selected: false,
+      busy: false,
+    }),
+  ).toBeEnabled();
+  expect(
+    mockFetch.mock.calls
+      .filter(([, request]) => request?.method === "PUT")
+      .map(([, request]) => JSON.parse(String(request?.body))),
+  ).toEqual([{ following: true }, { following: false }]);
 });
 
 it.each([403, 404])(
@@ -821,9 +842,6 @@ it("keeps an uncertain follow refused through a failed read and a remount until 
   await screen.findByRole("button", { name: "Réessayer", busy: false });
   expect(screen.queryByRole("button", { name: "Suivre" })).toBeNull();
   expect(
-    screen.queryByRole("button", { name: "Réessayer le suivi" }),
-  ).toBeNull();
-  expect(
     mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
   ).toHaveLength(1);
 
@@ -840,7 +858,7 @@ it("keeps an uncertain follow refused through a failed read and a remount until 
   ).toHaveLength(1);
 });
 
-it("shares an uncertain-write observation with an explicit member reread and cancels both through Query", async () => {
+it("retains ordinary failure feedback when the refreshed member read is cancelled", async () => {
   // Given
   const observation = Promise.withResolvers<Response>();
   let attempted = false;
@@ -886,11 +904,7 @@ it("shares an uncertain-write observation with an explicit member reread and can
   expect(reads).toHaveLength(2);
   expect(reads[1][1]?.signal?.aborted).toBe(true);
   expect(client.getQueryData(key)).toEqual({ following: false });
-  expect(
-    await screen.findByText(
-      "Le résultat du suivi n’a pas pu être confirmé. Vous pouvez réessayer la même demande.",
-    ),
-  ).toBeOnTheScreen();
+  expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
   ).toHaveLength(1);

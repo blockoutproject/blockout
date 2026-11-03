@@ -12,6 +12,7 @@ import {
 } from "../../accounts/test-support/native-auth0";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import { followingFixture } from "../test-support/following-fixture";
 import { FollowerCount } from "../components/follower-count";
 import { TeamScreen } from "../../sporting/screens/team-screen";
@@ -96,9 +97,8 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-it("reports an uncertain write and permits only a later explicit attempt", async () => {
+it("reports a failed write through shared feedback while preserving the ordinary follow action", async () => {
   // Given
-  let saved = false;
   let writes = 0;
   mockFetch.mockImplementation((url, request) => {
     if (request?.method === "PUT") {
@@ -106,7 +106,7 @@ it("reports an uncertain write and permits only a later explicit attempt", async
       return Promise.reject(new TypeError("response lost"));
     }
     if (url.includes("/team-follows/"))
-      return Promise.resolve(Response.json({ following: saved }));
+      return Promise.resolve(Response.json({ following: false }));
     return transport(url, request);
   });
   const user = userEvent.setup();
@@ -118,12 +118,12 @@ it("reports an uncertain write and permits only a later explicit attempt", async
   // When
   await user.press(screen.getByRole("button", { name: "Suivre" }));
   await waitFor(() => expect(fixture.client.isMutating()).toBe(0));
-  saved = true; // The server records the original write after the bounded observation.
 
   // Then
+  expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
   expect(
     screen.getByRole("button", {
-      name: "Réessayer le suivi",
+      name: "Suivre",
       selected: false,
       busy: false,
     }),

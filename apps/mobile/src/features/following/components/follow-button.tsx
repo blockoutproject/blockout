@@ -1,30 +1,27 @@
 import { useRouter } from "expo-router";
 import { Check, Plus } from "lucide-react-native";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import type { SportingSeasonResponse } from "../../../../.generated/schemas/index.zod";
-import { isUncertainMutationFailure } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
 import { useFollowStateQuery } from "../api/use-follow-state-query";
 import { useFollowMutation } from "../api/follow-mutations";
 import { AccountSessionFeedback } from "../../accounts/current-account";
 import type { FollowingTarget } from "../api/following-keys";
 
-/** Exact viewable target and its season; confirmation never changes a personal-space filter. */
+/** Exact viewable target and its season; a deliberate press changes only its desired follow state. */
 export interface FollowButtonProps {
   target: FollowingTarget;
   season: SportingSeasonResponse;
 }
-/** Query owns confirmed availability and read recovery; the native mutation alone owns provisional writes and explicit replay. */
+/** Query owns confirmed availability; native mutation state drives provisional progress and shared failure feedback. */
 export function FollowButton({ target, season }: FollowButtonProps) {
   const context = useFollowStateQuery(target);
   const action = useFollowMutation(target, context);
   const router = useRouter();
   const feedback = useActionFeedback();
-  const { colors } = useTheme();
   const { query, profile, usable, admitted, sessionStatus } = context;
   const guest = sessionStatus === "guest";
   const loadingContent = (
@@ -55,15 +52,10 @@ export function FollowButton({ target, season }: FollowButtonProps) {
       ? action.variables
       : undefined;
   const following = provisional ?? query.data?.following;
-  const uncertain = action.isError && isUncertainMutationFailure(action.error);
-  // An explicit retry uses the same desired boolean; the server owns replacement idempotence.
-  const canRepeatUncertain = uncertain && query.data !== undefined;
   return (
     <View style={styles.control}>
       <Button
-        label={
-          uncertain ? "Réessayer le suivi" : following ? "Suivi" : "Suivre"
-        }
+        label={following ? "Suivi" : "Suivre"}
         size="compact"
         variant="inverse"
         bordered={false}
@@ -76,10 +68,7 @@ export function FollowButton({ target, season }: FollowButtonProps) {
         }
         loading={action.isPending}
         disabled={
-          !guest &&
-          (!usable ||
-            following === undefined ||
-            (query.isError && !canRepeatUncertain))
+          !guest && (!usable || following === undefined || query.isError)
         }
         onPress={async () => {
           if (guest)
@@ -90,27 +79,15 @@ export function FollowButton({ target, season }: FollowButtonProps) {
           else {
             feedback.clear();
             try {
-              await action.mutateAsync(
-                canRepeatUncertain && typeof action.variables === "boolean"
-                  ? action.variables
-                  : !following,
-              );
-            } catch (error) {
-              if (!isUncertainMutationFailure(error)) feedback.error();
+              await action.mutateAsync(!following);
+            } catch {
+              feedback.error();
             }
           }
         }}
       />
-      {query.isError && !canRepeatUncertain ? (
+      {query.isError ? (
         <ReadFeedback query={query} loadingContent={loadingContent} />
-      ) : uncertain ? (
-        <Text
-          accessibilityLiveRegion="polite"
-          style={[tokens.typography.body, { color: colors.text }]}
-        >
-          Le résultat du suivi n’a pas pu être confirmé. Vous pouvez réessayer
-          la même demande.
-        </Text>
       ) : null}
     </View>
   );
