@@ -1,4 +1,7 @@
-import { layoutNativeTabs } from "../../native/test-support/tab-view-native";
+import {
+  layoutNativeTabs,
+  mockPagerCommands,
+} from "../../native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useState } from "react";
 import { AccessibilityInfo, Platform, Text, TextInput } from "react-native";
@@ -52,6 +55,33 @@ function Example({ resetKey }: { resetKey?: string }) {
 }
 
 afterEach(() => jest.restoreAllMocks());
+
+it.each([false, true])(
+  "requests native tab animation according to reduced motion (%s) while retaining destination content",
+  async (reducedMotion) => {
+    // Given
+    jest
+      .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
+      .mockResolvedValue(reducedMotion);
+    mockPagerCommands.animated.mockClear();
+    mockPagerCommands.immediate.mockClear();
+    await render(<Example />);
+    await layoutNativeTabs();
+    const user = userEvent.setup();
+
+    // When
+    await user.press(screen.getByRole("tab", { name: "Deuxième" }));
+
+    // Then: this native command contract proves no animation geometry or frame rate.
+    expect(screen.getByLabelText("Note retenue")).toBeOnTheScreen();
+    expect(
+      reducedMotion ? mockPagerCommands.immediate : mockPagerCommands.animated,
+    ).toHaveBeenCalledWith(1);
+    expect(
+      reducedMotion ? mockPagerCommands.animated : mockPagerCommands.immediate,
+    ).not.toHaveBeenCalled();
+  },
+);
 
 it("keeps neighboring feature reads unmounted during a partial swipe and admits the library's selected page", async () => {
   // Given

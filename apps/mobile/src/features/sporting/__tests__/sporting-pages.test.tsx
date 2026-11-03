@@ -957,8 +957,10 @@ it.each(["Équipes", "À venir", "Terminés"])(
     expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
     expect(mockFetch).not.toHaveBeenCalled();
 
-    // When: the accepted empty club is explicitly refreshed.
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+
+    // When: the accepted empty club is explicitly refreshed through its card.
+    await user.press(screen.getByRole("button", { name: "Actualiser" }));
 
     // Then: no Teams or calendar request can be made without a season.
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
@@ -966,7 +968,7 @@ it.each(["Équipes", "À venir", "Terminés"])(
       `/clubs/${sportingId}`,
     );
     await waitFor(() =>
-      expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy(),
+      expect(screen.getByRole("button", { name: "Actualiser" })).not.toBeBusy(),
     );
     expect(screen.getByText("Aucune saison disponible")).toBeOnTheScreen();
 
@@ -1013,7 +1015,10 @@ it("keeps match identities and independent missing sections without a zero score
   // Given
   const user = userEvent.setup();
   await renderPage(<MatchScreen matchId={sportingId} />);
-  expect(screen.getByRole("header", { name: "Le match" })).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Retour" })).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Signaler un problème" }),
+  ).toBeOnTheScreen();
 
   // When
   await user.press(
@@ -1248,10 +1253,11 @@ it("distinguishes an empty club season from a failed team read", async () => {
   expect(
     await screen.findByText("Aucune équipe pour cette saison"),
   ).toBeOnTheScreen();
-  expect(screen.getByLabelText("Actualiser les données")).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("/teams?")),
-  ).toHaveLength(2);
+  ).toHaveLength(3);
 });
 
 it("retains a club season's teams after failed pull-to-refresh and retries only that bounded catalogue on another pull", async () => {
@@ -1611,7 +1617,8 @@ it("opens the generated club-season calendar with its own explicit refresh", asy
 
   // Then
   await screen.findByText("Aucun match pour cette sélection");
-  expect(screen.getByLabelText("Actualiser les données")).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(screen.getByRole("button", { name: "Actualiser" })).toBeOnTheScreen();
   const request = mockFetch.mock.calls
     .map(([url]) => new URL(url))
     .find((url) => url.pathname === "/matches");

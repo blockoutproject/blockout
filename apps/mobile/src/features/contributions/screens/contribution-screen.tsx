@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
+import { StyleSheet } from "react-native";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
@@ -7,7 +8,7 @@ import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { Page, PageContent } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
-import { RequestLoading } from "../../../shared/components/request-feedback";
+import { ContributionFormLoading } from "../components/contribution-loading";
 import { ScreenState } from "../../../shared/components/screen-state";
 
 import { ErrorState } from "../../../shared/components/state-card";
@@ -42,6 +43,14 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
     if (results.some((result) => result.status === "rejected"))
       feedback.error();
   }
+  const pending =
+    !guest &&
+    (!authenticated
+      ? editing.session.status === "restoring" || !!editing.session.operation
+      : !editing.profile.data
+        ? editing.profile.isPending
+        : editing.usable && !current && editing.query.isPending);
+  const FeedbackLayout = pending ? PageContent : ScreenState;
   return (
     <Page header={<PageHeader title="Lien de diffusion" />}>
       <FormScrollView
@@ -56,7 +65,7 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
         }
       >
         {guest ? (
-          <ScreenState>
+          <FeedbackLayout style={styles.centered}>
             <Button
               label="Se connecter"
               onPress={() =>
@@ -66,34 +75,40 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
                 })
               }
             />
-          </ScreenState>
+          </FeedbackLayout>
         ) : !authenticated ? (
-          <ScreenState>
+          <FeedbackLayout style={pending ? undefined : styles.centered}>
             {editing.session.status === "restoring" ||
             editing.session.operation ? (
-              <RequestLoading />
+              <ContributionFormLoading />
             ) : (
               <Button
                 label="Se connecter"
                 onPress={() => router.push("/sign-in")}
               />
             )}
-          </ScreenState>
+          </FeedbackLayout>
         ) : !editing.profile.data ? (
-          <ScreenState>
-            <ReadFeedback query={editing.profile} />
-          </ScreenState>
+          <FeedbackLayout>
+            <ReadFeedback
+              query={editing.profile}
+              loadingContent={<ContributionFormLoading />}
+            />
+          </FeedbackLayout>
         ) : !editing.usable && !current ? (
-          <ScreenState>
+          <FeedbackLayout>
             <ErrorState
               onRetry={() => void editing.profile.refetch()}
               retrying={editing.profile.isFetching}
             />
-          </ScreenState>
+          </FeedbackLayout>
         ) : !current ? (
-          <ScreenState>
-            <ReadFeedback query={editing.query} />
-          </ScreenState>
+          <FeedbackLayout>
+            <ReadFeedback
+              query={editing.query}
+              loadingContent={<ContributionFormLoading />}
+            />
+          </FeedbackLayout>
         ) : (
           <PageContent>
             {match.data && (
@@ -118,3 +133,4 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
     </Page>
   );
 }
+const styles = StyleSheet.create({ centered: { justifyContent: "center" } });

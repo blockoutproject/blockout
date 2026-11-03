@@ -24,13 +24,18 @@ import {
 import { useProOffering } from "../api/use-pro-offering";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
-import { Page, PageScrollView } from "../../../shared/components/page";
+import {
+  Page,
+  PageContent,
+  PageScrollView,
+} from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { EmptyState, ErrorState } from "../../../shared/components/state-card";
-import { RequestLoading } from "../../../shared/components/request-feedback";
+import { ProReadLoading } from "../components/pro-read-loading";
 import {
   hasUnsettledProOperation,
+  isProVerificationLoading,
   ProVerification,
 } from "../components/pro-verification";
 /** F12 admission, explicit management intent and the existing F10 navigation destination. */
@@ -53,6 +58,8 @@ export function ProPresentationScreen({
   const feedback = useActionFeedback({ retainOnUnmount: true });
   const {
     state,
+    refreshing,
+    verificationFailed,
     getState,
     refresh,
     beginPurchase,
@@ -297,28 +304,41 @@ export function ProPresentationScreen({
         }
       />
     );
+  const loadingOffer =
+    !offering.isFetchedAfterMount ||
+    (offering.isFetching && offering.data !== null);
+  const Content = (
+    showPaywall
+      ? loadingOffer
+      : isProVerificationLoading(state, refreshing, verificationFailed)
+  )
+    ? PageContent
+    : ScreenState;
+  const contextualOutcome =
+    !showPaywall &&
+    (state.status !== "unavailable" ||
+      hasUnsettledProOperation(state) ||
+      operation === "restored");
   return (
     <Page accessibilityViewIsModal header={<PageHeader title="Blockout Pro" />}>
       <PageScrollView>
-        <ScreenState>
+        <Content style={contextualOutcome ? styles.centered : undefined}>
           {showPaywall ? (
-            !offering.isFetchedAfterMount ||
-            (offering.isFetching && offering.data !== null) ? (
-              <RequestLoading />
+            loadingOffer ? (
+              <ProReadLoading label="Chargement des offres Pro" />
             ) : offering.isError && offering.data !== null ? (
               <ErrorState onRetry={() => void retryOffering()} />
             ) : (
-              <>
-                <EmptyState
-                  title="Aucune offre Pro disponible"
-                  description="Réessayez plus tard."
-                />
+              <EmptyState
+                title="Aucune offre Pro disponible"
+                description="Réessayez plus tard."
+              >
                 <Button
-                  label="Réessayer"
+                  label="Actualiser"
                   onPress={() => void retryOffering()}
                   loading={offering.isFetching}
                 />
-              </>
+              </EmptyState>
             )
           ) : (
             <ProVerification />
@@ -358,9 +378,12 @@ export function ProPresentationScreen({
               }}
             />
           )}
-        </ScreenState>
+        </Content>
       </PageScrollView>
     </Page>
   );
 }
-const styles = StyleSheet.create({ provider: { flex: 1 } });
+const styles = StyleSheet.create({
+  provider: { flex: 1 },
+  centered: { justifyContent: "center" },
+});

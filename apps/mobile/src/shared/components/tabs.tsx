@@ -29,7 +29,7 @@ export interface TabsProps {
   size?: "regular" | "compact";
 }
 
-/** Shared content tabs decorate settled selection without tracking the native page trajectory. */
+/** Shared content tabs retain their rest inset inside scrolling content and decorate settled selection. */
 export function Tabs({
   items,
   selected,
@@ -42,7 +42,10 @@ export function Tabs({
   const target = layouts[selected];
   useEffect(() => {
     if (target)
-      rail.current?.scrollTo({ x: target.x, animated: !reducedMotion });
+      rail.current?.scrollTo({
+        x: Math.max(0, target.x - tokens.spacing.screen),
+        animated: !reducedMotion,
+      });
   }, [target, reducedMotion]);
   return (
     <ScrollView
@@ -151,7 +154,11 @@ function StandaloneTab({
 }
 
 const styles = StyleSheet.create({
-  tabs: { flexDirection: "row", gap: tokens.spacing.md },
+  tabs: {
+    flexDirection: "row",
+    gap: tokens.spacing.sm,
+    paddingHorizontal: tokens.spacing.screen,
+  },
   target: { minHeight: tokens.touch.minimum, justifyContent: "center" },
   pill: {
     justifyContent: "center",

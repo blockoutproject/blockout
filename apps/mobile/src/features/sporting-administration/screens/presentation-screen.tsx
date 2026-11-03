@@ -9,7 +9,7 @@ import { DataRefreshControl } from "../../../shared/components/data-refresh-cont
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { Page, PageContent } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
-import { RequestLoading } from "../../../shared/components/request-feedback";
+import { PresentationLoading } from "../components/sporting-editor-loading";
 import { ScreenState } from "../../../shared/components/screen-state";
 
 import { ErrorState } from "../../../shared/components/state-card";
@@ -92,7 +92,7 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
     if (retainedFailure) feedback.error();
   }
   const accessState = pending ? (
-    <RequestLoading />
+    <PresentationLoading kind={target.kind} />
   ) : account.isError ? (
     <ErrorState
       onRetry={() =>
@@ -117,9 +117,13 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
           retrying={editing.query.isFetching}
         />
       ) : (
-        <RequestLoading />
+        <PresentationLoading kind={target.kind} />
       )))
     : undefined;
+  const FeedbackLayout =
+    !presentation && (pending || (!accessState && !editing.query.isError))
+      ? PageContent
+      : ScreenState;
   return (
     <Page header={<PageHeader title={title} />}>
       <FormScrollView
@@ -140,7 +144,7 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
         }
       >
         {blockingState ? (
-          <ScreenState>{blockingState}</ScreenState>
+          <FeedbackLayout>{blockingState}</FeedbackLayout>
         ) : (
           <PageContent>
             {presentation && (

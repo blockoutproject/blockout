@@ -129,31 +129,35 @@ const pages = [
     kind: "club",
     path: `/clubs/${sportingId}`,
     label: "Club des Rives",
+    loadingLabel: "Chargement du club",
     element: <ClubScreen clubId={sportingId} />,
   },
   {
     kind: "team",
     path: `/teams/${sportingId}`,
     label: "Équipe des Rives",
+    loadingLabel: "Chargement de l’équipe",
     element: <TeamScreen teamId={sportingId} />,
   },
   {
     kind: "pool",
     path: `/pools/${sportingId}`,
     label: "Pool",
+    loadingLabel: "Chargement de la poule",
     element: <PoolScreen poolId={sportingId} />,
   },
   {
     kind: "match",
     path: `/matches/${sportingId}`,
     label: "Home",
+    loadingLabel: "Chargement du match",
     element: <MatchScreen matchId={sportingId} />,
   },
 ];
 
 it.each(pages)(
   "distinguishes waiting and initial failure on $kind, then explicitly retries",
-  async ({ path, element, label }) => {
+  async ({ path, element, label, loadingLabel }) => {
     // Given
     const response = Promise.withResolvers<Response>();
     mockFetch.mockImplementation((url: string) =>
@@ -161,7 +165,7 @@ it.each(pages)(
     );
     await renderPage(element);
     expect(
-      await screen.findByRole("progressbar", { name: "Chargement en cours" }),
+      await screen.findByRole("progressbar", { name: loadingLabel }),
     ).toBeOnTheScreen();
     expect(screen.queryByText(label)).not.toBeOnTheScreen();
 
@@ -175,7 +179,7 @@ it.each(pages)(
       await screen.findByRole("alert", { name: "Une erreur est survenue" }),
     ).toBeOnTheScreen();
     expect(
-      screen.queryByRole("progressbar", { name: "Chargement en cours" }),
+      screen.queryByRole("progressbar", { name: loadingLabel }),
     ).not.toBeOnTheScreen();
     expect(
       screen.queryByText(/Aucune équipe|Aucun match/),
@@ -412,7 +416,7 @@ it("never lets a delayed resource response replace the newly selected match", as
         : reads(url),
   );
   const rendered = await renderPage(<MatchScreen matchId={sportingId} />);
-  await screen.findByRole("progressbar", { name: "Chargement en cours" });
+  await screen.findByRole("progressbar", { name: "Chargement du match" });
 
   // When
   await rendered.rerender(<MatchScreen matchId={otherId} />);
@@ -448,7 +452,9 @@ it("keeps season selection when an earlier teams request completes after a new s
   await screen.findByText("Club des Rives");
   await screen.findByText("Coordonnées");
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
-  await screen.findByRole("progressbar", { name: "Chargement en cours" });
+  await screen.findByRole("progressbar", {
+    name: "Chargement des équipes du club",
+  });
 
   // When
   await user.press(
@@ -611,7 +617,7 @@ it.each(["current", "former"] as const)(
     await user.press(
       screen.getByRole("button", { name: "Use maintenance bypass" }),
     );
-    await screen.findByRole("progressbar", { name: "Chargement en cours" });
+    await screen.findByRole("progressbar", { name: "Chargement du club" });
     await act(() =>
       bypass.resolve(
         Response.json({

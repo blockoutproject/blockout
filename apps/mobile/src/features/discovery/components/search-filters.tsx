@@ -6,6 +6,9 @@ import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { SelectField } from "../../../shared/components/select-field";
 import { Button } from "../../../shared/components/button";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { LoadingGroup } from "../../../shared/components/loading-group";
+import { FieldSkeleton } from "../../../shared/components/form-loading";
+import { Skeleton } from "../../../shared/components/skeleton";
 import { tokens } from "../../../shared/theme/tokens";
 import {
   formatLabel,
@@ -48,6 +51,7 @@ export function SearchFilters() {
         <SheetContent>
           <ReadFeedback
             query={{ ...query, isPending: query.isPending || query.isFetching }}
+            loadingContent={<SearchFiltersLoading />}
           />
         </SheetContent>
       ) : (
@@ -106,6 +110,23 @@ export function SearchFilters() {
     </Sheet>
   );
 }
+
+/** The waiting sheet reserves its four selectors and two actions without exposing draft controls early. */
+function SearchFiltersLoading() {
+  return (
+    <LoadingGroup label="Chargement des filtres" style={styles.form}>
+      <FieldSkeleton />
+      <FieldSkeleton />
+      <FieldSkeleton />
+      <FieldSkeleton />
+      <View style={styles.actions}>
+        <Skeleton height={tokens.size.control.default} shape="rectangle" />
+        <Skeleton height={tokens.size.control.default} shape="rectangle" />
+      </View>
+    </LoadingGroup>
+  );
+}
+
 const styles = StyleSheet.create({
   form: { gap: tokens.spacing.lg },
   actions: { gap: tokens.spacing.sm },

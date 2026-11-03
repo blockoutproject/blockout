@@ -31,6 +31,7 @@ import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { SearchField } from "../../../shared/components/search-field";
 import { EmptyState } from "../../../shared/components/state-card";
+import { Button } from "../../../shared/components/button";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -97,7 +98,7 @@ export function ModerationScreen({ filters }: ModerationScreenProps) {
         }))}
         renderTabBar={(tabBar) => (
           <>
-            <View style={styles.tabs}>{tabBar}</View>
+            {tabBar}
             <View style={styles.toolbar}>
               <View style={styles.searchInput}>
                 <Controller
@@ -250,13 +251,14 @@ function QueueScene({
     )
       feedback.error();
   }
-  const refreshControl = current ? (
-    <DataRefreshControl
-      refreshing={refreshing}
-      enabled={active}
-      onRefresh={() => void refresh()}
-    />
-  ) : undefined;
+  const refreshControl =
+    current && rows.length > 0 ? (
+      <DataRefreshControl
+        refreshing={refreshing}
+        enabled={active}
+        onRefresh={() => void refresh()}
+      />
+    ) : undefined;
   if (
     !current &&
     (editing.profile.isPending || (editing.allowed && query.isPending))
@@ -280,13 +282,20 @@ function QueueScene({
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
-        <ScreenState>
+        <ScreenState
+          style={
+            !editing.canRetain && editing.profile.isSuccess
+              ? styles.centered
+              : undefined
+          }
+        >
           {!editing.canRetain && editing.profile.isSuccess ? (
             <Text style={[tokens.typography.body, { color: colors.text }]}>
               La modération des liens vidéo n’est pas autorisée.
             </Text>
           ) : !current ? (
             <ReadFeedback
+              loadingContent={<ModerationQueueLoading />}
               query={
                 editing.profile.isError || editing.profile.isPending
                   ? editing.profile
@@ -297,7 +306,13 @@ function QueueScene({
             <EmptyState
               title="Aucun lien à traiter"
               description="Aucun match ne correspond à cette sélection."
-            />
+            >
+              <Button
+                label="Actualiser"
+                onPress={() => void refresh()}
+                loading={refreshing}
+              />
+            </EmptyState>
           )}
         </ScreenState>
       </PageScrollView>
@@ -384,7 +399,7 @@ function ModerationQueueRow({ item }: { item: StreamModerationItemResponse }) {
   );
 }
 const styles = StyleSheet.create({
-  tabs: { paddingHorizontal: tokens.spacing.screen },
+  centered: { justifyContent: "center" },
   toolbar: {
     flexDirection: "row",
     alignItems: "flex-start",

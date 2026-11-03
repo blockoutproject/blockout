@@ -6,7 +6,11 @@ import {
   useAccountSession,
   useCurrentAccount,
 } from "../../accounts/current-account";
-import { Page, PageScrollView } from "../../../shared/components/page";
+import {
+  Page,
+  PageContent,
+  PageScrollView,
+} from "../../../shared/components/page";
 import { BrandMark } from "../../../shared/components/brand-mark";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { PagedTabs } from "../../../shared/components/paged-tabs";
@@ -15,6 +19,8 @@ import { FollowedLists } from "../components/followed-lists";
 import { Tabs } from "../../../shared/components/tabs";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { CalendarLoading } from "../../sporting/calendar";
+import { SportingEntityCardLoading } from "../../sporting/entity-card";
 import { Button } from "../../../shared/components/button";
 import { tokens } from "../../../shared/theme/tokens";
 import {
@@ -35,7 +41,7 @@ export function PersonalScreen() {
   return session.status === "guest" ? (
     <Page header={<PersonalHeader />}>
       <PageScrollView>
-        <ScreenState>
+        <ScreenState style={styles.guest}>
           <Button
             label="Se connecter"
             onPress={() =>
@@ -53,9 +59,20 @@ export function PersonalScreen() {
   ) : (
     <Page header={<PersonalHeader />}>
       <PageScrollView>
-        <ScreenState>
-          <ReadFeedback query={profile} />
-        </ScreenState>
+        {profile.isPending ? (
+          <PageContent>
+            <CalendarLoading label="Chargement de l'accueil" />
+          </PageContent>
+        ) : (
+          <ScreenState>
+            <ReadFeedback
+              query={profile}
+              loadingContent={
+                <CalendarLoading label="Chargement de l'accueil" />
+              }
+            />
+          </ScreenState>
+        )}
       </PageScrollView>
     </Page>
   );
@@ -86,6 +103,13 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
   const [tab, setTab] = useState("upcoming");
   const focused = useIsFocused();
   const ready = usable && !!season.options.data && !blocked;
+  const blockingQuery = !usable ? profile : season.options;
+  const loadingContent =
+    tab === "following" ? (
+      <SportingEntityCardLoading label="Chargement des suivis" />
+    ) : (
+      <CalendarLoading />
+    );
   /** Composes the native pager bar or non-paged admission choices beside the same season owner. */
   function controls(tabBar: ReactNode) {
     return (
@@ -108,6 +132,7 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
           selected={tab}
           onSelect={setTab}
           collapsibleHeader={<PersonalHeader />}
+          fadeHeaderOnScroll
           renderTabBar={controls}
           tabs={tabs.map(({ id, label }) => ({
             id,
@@ -152,9 +177,16 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
           }
         >
           <PageScrollView>
-            <ScreenState>
-              <ReadFeedback query={!usable ? profile : season.options} />
-            </ScreenState>
+            {blockingQuery.isPending ? (
+              <PageContent>{loadingContent}</PageContent>
+            ) : (
+              <ScreenState>
+                <ReadFeedback
+                  query={blockingQuery}
+                  loadingContent={loadingContent}
+                />
+              </ScreenState>
+            )}
           </PageScrollView>
         </PageViewport>
       )}
@@ -167,6 +199,7 @@ const tabs = [
   { id: "following", label: "Suivis" },
 ] as const;
 const styles = StyleSheet.create({
+  guest: { justifyContent: "center" },
   header: {
     minHeight: tokens.layout.header,
     marginHorizontal: tokens.spacing.lg,
@@ -179,7 +212,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
-    paddingHorizontal: tokens.spacing.lg,
+    paddingRight: tokens.spacing.screen,
   },
   tabs: { flex: 1, minWidth: 0 },
 });

@@ -400,7 +400,10 @@ it.each(["network", "schema", "http"])(
 
     // Then
     expect(
-      await screen.findByRole("progressbar", { name: "Chargement en cours" }),
+      await screen.findByRole("progressbar", {
+        name: "Chargement de la suite…",
+        busy: true,
+      }),
     ).toBeOnTheScreen();
     expect(screen.getByText("Niort")).toBeOnTheScreen();
     expect(
@@ -525,7 +528,10 @@ it.each(["criteria", "tab"])(
       screen.getByLabelText("Résultats de recherche"),
       "endReached",
     );
-    await screen.findByRole("progressbar", { name: "Chargement en cours" });
+    await screen.findByRole("progressbar", {
+      name: "Chargement de la suite…",
+      busy: true,
+    });
 
     // When
     if (change === "criteria") {

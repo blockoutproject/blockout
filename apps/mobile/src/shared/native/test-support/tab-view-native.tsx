@@ -10,6 +10,13 @@ import type { PagerViewProps } from "react-native-pager-view";
 
 // Native handlers and animation keep their supported upstream Jest boundaries.
 import "react-native-gesture-handler/jestSetup";
+
+/** Observes only the native animation commands; the real RNCT owner still selects and retains scenes. */
+export const mockPagerCommands = {
+  animated: jest.fn<void, [index: number]>(),
+  immediate: jest.fn<void, [index: number]>(),
+};
+
 jest.mock("react-native-reanimated", () => {
   const upstream = jest.requireMock<typeof import("react-native-reanimated")>(
     "react-native-reanimated/mock",
@@ -54,8 +61,14 @@ jest.mock("react-native-pager-view", () => {
     }
     React.useImperativeHandle(ref, () => ({
       getScrollableNode: () => host.current,
-      setPage: (position) => settle(position, true),
-      setPageWithoutAnimation: (position) => settle(position, false),
+      setPage: (position) => {
+        mockPagerCommands.animated(position);
+        settle(position, true);
+      },
+      setPageWithoutAnimation: (position) => {
+        mockPagerCommands.immediate(position);
+        settle(position, false);
+      },
     }));
     // Production Scene owns inactive accessibility and first mounting, not the native double.
     return (

@@ -1,4 +1,4 @@
-import type { StyleProp, ViewInstance, ViewStyle } from "react-native";
+import type { ViewInstance } from "react-native";
 import { BlurTargetView, BlurView } from "expo-blur";
 import {
   createContext,
@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
   type RefObject,
+  type ComponentProps,
 } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
@@ -23,7 +24,7 @@ export const NavigationInsetContext = createContext(0);
 /** Page publishes the native top inset when its chrome extends behind the status bar. */
 export const NavigationSafeAreaContext = createContext(0);
 
-/** Only the current ordinary page's native scroller publishes into its own material offset. */
+/** The current ordinary page's native scroller owns this offset; material and compact navigation only observe it. */
 export const NavigationScrollOffsetContext =
   createContext<SharedValue<number> | null>(null);
 
@@ -40,8 +41,8 @@ export function NavigationBackdrop({
 }: {
   target: RefObject<ViewInstance | null>;
   scrollOffset: SharedValue<number>;
-  /** A pager extends this single material over its measured tab rail. */
-  style?: StyleProp<ViewStyle>;
+  /** Pagers size their material to the library's visible header and tab rail. */
+  style?: ComponentProps<typeof Animated.View>["style"];
 }) {
   const { scheme } = useTheme();
   const reveal = useAnimatedStyle(() => ({
@@ -89,17 +90,17 @@ export function PageViewport({
           <BlurTargetView ref={target} style={styles.fill}>
             {children}
           </BlurTargetView>
+          <View
+            style={[styles.header, { paddingTop: top }]}
+            onLayout={({ nativeEvent }) => setHeight(nativeEvent.layout.height)}
+          >
+            {backdrop && (
+              <NavigationBackdrop target={target} scrollOffset={scrollOffset} />
+            )}
+            {header}
+          </View>
         </NavigationScrollOffsetContext>
       </NavigationInsetContext>
-      <View
-        style={[styles.header, { paddingTop: top }]}
-        onLayout={({ nativeEvent }) => setHeight(nativeEvent.layout.height)}
-      >
-        {backdrop && (
-          <NavigationBackdrop target={target} scrollOffset={scrollOffset} />
-        )}
-        {header}
-      </View>
     </View>
   );
 }

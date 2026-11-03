@@ -259,8 +259,10 @@ it("announces the pending division catalogue without inventing editable rows", a
   expect(
     await screen.findByRole("progressbar", {
       name: "Chargement des divisions",
+      busy: true,
     }),
   ).toBeOnTheScreen();
+  expect(screen.getAllByRole("progressbar")).toHaveLength(1);
   expect(
     screen.queryByRole("link", { name: division.name }),
   ).not.toBeOnTheScreen();
@@ -356,7 +358,7 @@ it("refreshes classification data without replacing dirty choices or accepting a
   ).toBe(true);
 });
 
-it("refreshes an empty division catalogue without changing its search or activity filter", async () => {
+it("reloads an empty division catalogue from its card without changing its search or activity filter", async () => {
   // Given
   let listed = false;
   mockFetch.mockImplementation((url, options) =>
@@ -374,7 +376,8 @@ it("refreshes an empty division catalogue without changing its search or activit
   listed = true;
 
   // When
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
 
   // Then
   expect(
@@ -1241,7 +1244,7 @@ it.each([
 );
 
 it.each([200, 403, 503])(
-  "removes refresh from an accepted empty division selector after account response %s blocks its authority",
+  "removes the empty division selector's card action after account response %s blocks its authority",
   async (accountStatus) => {
     // Given
     stored.setting = classification;
@@ -1257,7 +1260,8 @@ it.each([200, 403, 503])(
     await screen.findByRole("button", { name: "Format" });
     await user.press(screen.getByRole("button", { name: "Division" }));
     await screen.findByRole("header", { name: "Aucune division active" });
-    expect(screen.getByLabelText("Actualiser les données")).toBeOnTheScreen();
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+    expect(screen.getByRole("button", { name: "Actualiser" })).toBeEnabled();
 
     // When
     permissions = {};
@@ -1284,6 +1288,7 @@ it.each([200, 403, 503])(
       await screen.findByRole("alert", { name: "Une erreur est survenue" }),
     ).toBeOnTheScreen();
     expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Actualiser" })).toBeNull();
     expect(
       screen.queryByRole("header", { name: "Aucune division active" }),
     ).toBeNull();
@@ -1308,7 +1313,7 @@ it.each([200, 403, 503])(
   },
 );
 
-it("retains an empty division selector and reports an ordinary refresh failure through a toast", async () => {
+it("retains an empty division selector after its card reload fails and preserves the parent draft", async () => {
   // Given
   stored.setting = classification;
   mockFetch.mockImplementation((url, options) =>
@@ -1330,7 +1335,8 @@ it("retains an empty division selector and reports an ordinary refresh failure t
   );
 
   // When
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
 
   // Then
   expect(

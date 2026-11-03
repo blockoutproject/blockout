@@ -1,10 +1,17 @@
 import { useRouter } from "expo-router";
 import { useState, type ReactNode } from "react";
 import { ChevronLeft } from "lucide-react-native";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import Animated, {
+  useAnimatedProps,
+  useAnimatedStyle,
+  useDerivedValue,
+  type SharedValue,
+} from "react-native-reanimated";
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
 import { IconButton } from "./icon-button";
+import { useReducedMotion } from "../theme/use-reduced-motion";
 
 /** Ordinary back navigation with an optional centered identity; direct entry returns home. */
 export interface PageHeaderProps {
@@ -13,13 +20,36 @@ export interface PageHeaderProps {
   children?: ReactNode;
   /** An owner-supplied action remains available independently of the detail read. */
   action?: ReactNode;
+  /** Native normalized reveal affects only the center; navigation and actions remain available. */
+  revealProgress?: SharedValue<number>;
 }
 
 /** Native action layout reserves equal side rails so the one-line identity stays centered without overlapping actions. */
-export function PageHeader({ title, children, action }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  children,
+  action,
+  revealProgress,
+}: PageHeaderProps) {
   const router = useRouter();
   const { colors } = useTheme();
   const [actionWidth, setActionWidth] = useState(tokens.size.control.default);
+  const reducedMotion = useReducedMotion();
+  const visibility = useDerivedValue(() => {
+    const progress = revealProgress?.get() ?? 1;
+    return reducedMotion ? (progress >= 1 ? 1 : 0) : progress;
+  });
+  const center = useAnimatedStyle(() => ({ opacity: visibility.get() }));
+  const accessibility = useAnimatedProps(() => {
+    const hidden = visibility.get() <= 0;
+    return {
+      accessible: !hidden && Boolean(title),
+      accessibilityElementsHidden: hidden,
+      importantForAccessibility: hidden
+        ? ("no-hide-descendants" as const)
+        : ("auto" as const),
+    };
+  });
   return (
     <View style={styles.header}>
       <View style={[styles.rail, { width: actionWidth }]}>
@@ -37,24 +67,26 @@ export function PageHeader({ title, children, action }: PageHeaderProps) {
         </IconButton>
       </View>
       {children ? (
-        <View
+        <Animated.View
           accessible={Boolean(title)}
           accessibilityRole="header"
           accessibilityLabel={title}
-          style={styles.middle}
+          animatedProps={accessibility}
+          style={[styles.middle, center]}
         >
           {children}
-        </View>
+        </Animated.View>
       ) : title ? (
-        <Text
+        <Animated.Text
           accessibilityRole="header"
           accessibilityLabel={title}
           numberOfLines={1}
           ellipsizeMode="tail"
-          style={[styles.title, { color: colors.text }]}
+          animatedProps={accessibility}
+          style={[styles.title, { color: colors.text }, center]}
         >
           {title}
-        </Text>
+        </Animated.Text>
       ) : (
         <View style={styles.title} />
       )}

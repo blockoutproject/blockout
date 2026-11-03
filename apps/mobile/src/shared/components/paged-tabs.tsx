@@ -1,5 +1,5 @@
 import {
-  useCallback,
+  useContext,
   useEffect,
   useRef,
   useState,
@@ -8,23 +8,29 @@ import {
 } from "react";
 import { StyleSheet, View, type ViewInstance } from "react-native";
 import { BlurTargetView } from "expo-blur";
-import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import Animated, {
+  useAnimatedProps,
+  useAnimatedStyle,
+  useDerivedValue,
+} from "react-native-reanimated";
 import {
   Container,
   Tab,
   useCollapsingTabsContext,
   useHeaderMeasurements,
-  useActiveTabScrollY,
+  useCurrentTabScrollY,
+  useCollapseProgress,
   type CollapsingTabsRef,
 } from "react-native-collapsible-tab";
 import {
   NavigationBackdrop,
-  PageViewport,
+  NavigationInsetContext,
+  NavigationSafeAreaContext,
   useNavigationInset,
 } from "./navigation-backdrop";
 import { NavigationTabBar } from "./navigation-tab-bar";
 import { PagedTabContext } from "./paged-tab-context";
-import { tokens } from "../theme/tokens";
+import { useReducedMotion } from "../theme/use-reduced-motion";
 
 /** Stable feature identities and their explicitly composed scenes; data remains feature-owned. */
 export interface PagedTab {
@@ -46,30 +52,27 @@ export interface PagedTabsProps {
   header?: ReactNode;
   /** Home branding or sporting identity folds as a scene scrolls. */
   collapsibleHeader?: ReactNode;
+  /** Home branding follows the native collapse with an unclipped fade; sporting cards keep their fixed-navigation clip. */
+  fadeHeaderOnScroll?: boolean;
   /** Composes feature controls beside or below the library's tab bar. */
   renderTabBar?: (tabBar: ReactNode) => ReactNode;
 }
 
-/** One shared composition supports fixed controls and an optional collapsible identity. */
-export function PagedTabs({ header, ...props }: PagedTabsProps) {
-  return (
-    <PageViewport header={header} backdrop={false}>
-      <PagedTabsViewport {...props} />
-    </PageViewport>
-  );
-}
-
 /** Supported native container APIs own scene offsets and gestures; overlays sample only scene content. */
-function PagedTabsViewport({
+export function PagedTabs({
   tabs,
   selected,
   onSelect,
   resetKey,
+  header,
   collapsibleHeader,
+  fadeHeaderOnScroll = false,
   renderTabBar,
 }: PagedTabsProps) {
   const pager = useRef<CollapsingTabsRef>(null);
-  const inset = useNavigationInset();
+  const reducedMotion = useReducedMotion();
+  const topInset = useContext(NavigationSafeAreaContext);
+  const [inset, setInset] = useState(topInset);
   const [visited, setVisited] = useState(() => new Set([selected]));
   if (!visited.has(selected)) setVisited(new Set([...visited, selected]));
   const [identities, setIdentities] = useState(() =>
@@ -99,95 +102,103 @@ function PagedTabsViewport({
   if (changed) setIdentities(scenes);
   const names = scenes.map(({ id, generation }) => `${id}:${generation}`);
   const selectedName = names[tabs.findIndex((tab) => tab.id === selected)];
-  const targetKey = JSON.stringify([resetKey, selectedName]);
-  const [target, setTarget] = useState<{
-    key: string;
-    node: ViewInstance | null;
-  } | null>(null);
-  const updateTarget = useCallback(
-    (node: ViewInstance | null) => {
-      setTarget({ key: targetKey, node });
-    },
-    [targetKey],
-  );
-  // A replaced native scene must never expose its detached handle to a new BlurView.
-  const blurTarget = useMemo(
-    () => ({
-      current: target?.key === targetKey ? target.node : null,
-    }),
-    [target, targetKey],
-  );
   useEffect(() => {
     if (selectedName && pager.current?.getFocusedTab() !== selectedName)
-      pager.current?.jumpToTab(selectedName, false);
-  }, [selectedName, tabs]);
+      pager.current?.jumpToTab(selectedName, !reducedMotion);
+  }, [selectedName, tabs, reducedMotion]);
   return (
-    <Container
-      key={resetKey}
-      ref={pager}
-      initialTabName={selectedName}
-      lazy={false}
-      pagerProps={{
-        testID: "native-tabs-pager",
-        keyboardDismissMode: "on-drag",
-      }}
-      minHeaderHeight={inset}
-      headerBackgroundColor="transparent"
-      renderHeader={() => (
-        <PagerHeader target={blurTarget} inset={inset}>
-          {collapsibleHeader}
-        </PagerHeader>
-      )}
-      renderTabBar={(props) => {
-        const bar = (
-          <NavigationTabBar
-            {...props}
-            onTabPress={(id) => pager.current?.jumpToTab(id, false)}
-          />
-        );
-        return (
-          <View>
-            {renderTabBar ? (
-              renderTabBar(bar)
-            ) : (
-              <View style={styles.rail}>{bar}</View>
-            )}
-          </View>
-        );
-      }}
-      onTabChange={({ tabName }) => {
-        const tab = tabs[names.indexOf(tabName)];
-        if (tab) onSelect(tab.id);
-      }}
-    >
-      {tabs.map((tab, index) => (
-        <Tab key={names[index]} name={names[index]} label={tab.label}>
-          <TabScene
-            active={selected === tab.id}
-            visited={selected === tab.id || visited.has(tab.id)}
-            onTarget={updateTarget}
+    <NavigationInsetContext value={inset}>
+      <Container
+        key={resetKey}
+        ref={pager}
+        initialTabName={selectedName}
+        lazy={false}
+        pagerProps={{
+          testID: "native-tabs-pager",
+          keyboardDismissMode: "on-drag",
+        }}
+        minHeaderHeight={inset}
+        headerBackgroundColor="transparent"
+        renderHeader={() => (
+          <PagerHeader
+            inset={inset}
+            topInset={topInset}
+            onInsetChange={setInset}
+            header={header}
+            fadeOnScroll={fadeHeaderOnScroll}
+            reducedMotion={reducedMotion}
           >
-            {tab.content}
-          </TabScene>
-        </Tab>
-      ))}
-    </Container>
+            {collapsibleHeader}
+          </PagerHeader>
+        )}
+        renderTabBar={(props) => {
+          const bar = (
+            <NavigationTabBar
+              {...props}
+              reducedMotion={reducedMotion}
+              onTabPress={
+                reducedMotion
+                  ? (id) => pager.current?.jumpToTab(id, false)
+                  : props.onTabPress
+              }
+            />
+          );
+          return <View>{renderTabBar ? renderTabBar(bar) : bar}</View>;
+        }}
+        onTabChange={({ tabName }) => {
+          const tab = tabs[names.indexOf(tabName)];
+          if (tab) onSelect(tab.id);
+        }}
+      >
+        {tabs.map((tab, index) => (
+          <Tab key={names[index]} name={names[index]} label={tab.label}>
+            <TabScene
+              active={selected === tab.id}
+              visited={selected === tab.id || visited.has(tab.id)}
+            >
+              {tab.content}
+            </TabScene>
+          </Tab>
+        ))}
+      </Container>
+    </NavigationInsetContext>
   );
 }
 
-/** The library moves one continuous material behind the status area, fixed navigation and tab rail. */
+/** Pins measured navigation while sporting cards clip below it and Home branding fades along the native collapse. */
 function PagerHeader({
-  target,
   inset,
+  topInset,
+  onInsetChange,
+  header,
+  fadeOnScroll,
+  reducedMotion,
   children,
 }: {
-  target: { current: ViewInstance | null };
   inset: number;
+  topInset: number;
+  onInsetChange: (height: number) => void;
+  header: ReactNode;
+  fadeOnScroll: boolean;
+  reducedMotion: boolean;
   children: ReactNode;
 }) {
-  const { tabBarHeight } = useCollapsingTabsContext();
   const { top } = useHeaderMeasurements();
-  const scrollOffset = useActiveTabScrollY();
+  const collapse = useCollapseProgress();
+  const visibility = useDerivedValue(() => {
+    const progress = collapse.get();
+    return reducedMotion ? (progress >= 1 ? 0 : 1) : 1 - progress;
+  });
+  const brand = useAnimatedStyle(() => ({ opacity: visibility.get() }));
+  const accessibility = useAnimatedProps(() => {
+    const hidden = visibility.get() <= 0;
+    return {
+      accessibilityElementsHidden: hidden,
+      importantForAccessibility: hidden
+        ? ("no-hide-descendants" as const)
+        : ("auto" as const),
+    };
+  });
   // The identity's clipping edge stays below fixed navigation while the library
   // translates its content. Otherwise a folded logo/card would cover the status bar.
   const clip = useAnimatedStyle(() => ({
@@ -196,46 +207,73 @@ function PagerHeader({
   const content = useAnimatedStyle(() => ({
     transform: [{ translateY: top.get() }],
   }));
+  const pinned = useAnimatedStyle(() => ({
+    transform: [{ translateY: -top.get() }],
+  }));
   return (
     <View style={{ paddingTop: inset }}>
-      <NavigationBackdrop
-        target={target}
-        scrollOffset={scrollOffset}
-        style={{ bottom: -tabBarHeight }}
-      />
-      <Animated.View style={[styles.clip, clip]}>
-        <Animated.View style={content}>{children}</Animated.View>
+      {fadeOnScroll ? (
+        <Animated.View animatedProps={accessibility} style={brand}>
+          {children}
+        </Animated.View>
+      ) : (
+        <Animated.View style={[styles.clip, clip]}>
+          <Animated.View style={content}>{children}</Animated.View>
+        </Animated.View>
+      )}
+      <Animated.View pointerEvents="box-none" style={[styles.header, pinned]}>
+        <View
+          style={{ paddingTop: topInset }}
+          onLayout={({ nativeEvent }) =>
+            onInsetChange(nativeEvent.layout.height)
+          }
+        >
+          {header}
+        </View>
       </Animated.View>
     </View>
   );
 }
 
-/** Publishes the library's measured content and sticky clearances to native scroll adapters. */
+/** Each stable blur target and its sibling material travel with the native page, without a selection-time target switch. */
 function TabScene({
   active,
   visited,
-  onTarget,
   children,
 }: {
   active: boolean;
   visited: boolean;
-  onTarget: (target: ViewInstance | null) => void;
   children: ReactNode;
 }) {
   const inset = useNavigationInset();
-  const { paddingTop, tabBarHeight } = useCollapsingTabsContext();
+  const target = useRef<ViewInstance>(null);
+  const { paddingTop, tabBarHeight, headerHeight } = useCollapsingTabsContext();
+  const { top } = useHeaderMeasurements();
+  const scrollOffset = useCurrentTabScrollY();
+  const material = useAnimatedStyle(() => ({
+    height: Math.max(0, headerHeight + tabBarHeight + top.get()),
+  }));
   const layout = useMemo(
     () => ({ contentInset: paddingTop, stickyInset: inset + tabBarHeight }),
     [paddingTop, inset, tabBarHeight],
   );
   return (
-    <BlurTargetView ref={active ? onTarget : undefined} style={styles.fill}>
-      <PagedTabContext value={layout}>
-        <PagedTabScene active={active} visited={visited}>
-          {children}
-        </PagedTabScene>
-      </PagedTabContext>
-    </BlurTargetView>
+    <View style={styles.fill}>
+      <BlurTargetView ref={target} style={styles.fill}>
+        <PagedTabContext value={layout}>
+          <PagedTabScene active={active} visited={visited}>
+            {children}
+          </PagedTabScene>
+        </PagedTabContext>
+      </BlurTargetView>
+      {visited && (
+        <NavigationBackdrop
+          target={target}
+          scrollOffset={scrollOffset}
+          style={[styles.sceneMaterial, material]}
+        />
+      )}
+    </View>
   );
 }
 
@@ -265,6 +303,7 @@ export function PagedTabScene({
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   clip: { overflow: "hidden" },
+  header: { position: "absolute", top: 0, left: 0, right: 0 },
   scene: { width: "100%", height: "100%" },
-  rail: { paddingHorizontal: tokens.spacing.screen },
+  sceneMaterial: { bottom: "auto" },
 });

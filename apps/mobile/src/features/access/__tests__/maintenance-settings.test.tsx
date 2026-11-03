@@ -175,8 +175,10 @@ it("shows loading before any known state can be saved", async () => {
   expect(
     screen.getByRole("progressbar", {
       name: "Chargement des réglages de maintenance",
+      busy: true,
     }),
   ).toBeOnTheScreen();
+  expect(screen.getAllByRole("progressbar")).toHaveLength(1);
   expect(
     screen.queryByRole("button", { name: "Enregistrer" }),
   ).not.toBeOnTheScreen();

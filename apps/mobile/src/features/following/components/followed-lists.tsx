@@ -24,6 +24,7 @@ import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import {
   SportingEntityCard,
+  SportingEntityCardLoading,
   type SportingEntityCardProps,
 } from "../../sporting/entity-card";
 import { useSportingNavigation } from "../../sporting/navigation";
@@ -175,7 +176,9 @@ export function FollowedLists(props: FollowedListsProps) {
         : []),
     ],
   );
-  const refreshControl = [teams, pools].some((list) => list.query.data) ? (
+  const refreshControl = [teams, pools].some(
+    (list) => list.items.length > 0,
+  ) ? (
     <DataRefreshControl
       enabled={props.active}
       refreshing={[teams, pools].some(
@@ -264,7 +267,20 @@ export function FollowedLists(props: FollowedListsProps) {
         return (
           <View style={styles.feedback}>
             {!list.query.data ? (
-              <ReadFeedback query={list.query} />
+              <ReadFeedback
+                query={list.query}
+                loadingContent={
+                  <View style={styles.card}>
+                    <SportingEntityCardLoading
+                      label={
+                        row.resource === "team"
+                          ? "Chargement des équipes suivies"
+                          : "Chargement des poules suivies"
+                      }
+                    />
+                  </View>
+                }
+              />
             ) : !list.items.length && !list.query.hasNextPage ? (
               <NoAvailableFollows />
             ) : (

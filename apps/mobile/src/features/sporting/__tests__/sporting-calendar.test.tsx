@@ -315,6 +315,54 @@ it("retains loaded calendar data and its active context through native font-size
   }
 });
 
+it("reloads an empty calendar through its card and restores native refresh only with matches", async () => {
+  // Given: the same selected calendar is successfully empty, with no native refresh control.
+  const populated = calendar;
+  calendar = { ...calendar, days: [] };
+  await render(
+    <CalendarTab>
+      <SportingCalendar
+        selection={{ teamId: sportingId, category: "upcoming" }}
+      />
+    </CalendarTab>,
+    { wrapper: Providers },
+  );
+  await layoutNativeTabs();
+  await screen.findByText("Aucun match pour cette sélection");
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  const pending = Promise.withResolvers<Response>();
+  mockFetch
+    .mockClear()
+    .mockImplementation((url: string) =>
+      new URL(url).pathname === "/matches"
+        ? pending.promise
+        : Promise.resolve(Response.json(applicationAccessResponse())),
+    );
+  const user = userEvent.setup();
+
+  // When: the card repeats only this read and prevents another activation while it is pending.
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
+  await user.press(
+    screen.getByRole("button", {
+      name: "Actualiser",
+      busy: true,
+      disabled: true,
+    }),
+  );
+
+  // Then
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  const request = new URL(mockFetch.mock.calls[0][0]);
+  expect(request.pathname).toBe("/matches");
+  expect(request.searchParams.get("teamId")).toBe(sportingId);
+  expect(request.searchParams.get("category")).toBe("upcoming");
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  await act(async () => pending.resolve(Response.json(populated)));
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  expect(screen.getByLabelText("Actualiser les données")).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Actualiser" })).toBeNull();
+});
+
 it("retains calendar rows with one toast after refresh failure and replaces them only after a successful pull", async () => {
   // Given
   await render(
@@ -435,8 +483,12 @@ it("selects normal new-zone loading and error before an explicit retry", async (
     screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
   ).not.toBeOnTheScreen();
   expect(
-    screen.getByRole("progressbar", { name: "Chargement en cours" }),
+    screen.getByRole("progressbar", {
+      name: "Chargement des matchs",
+      busy: true,
+    }),
   ).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
 
   // When
   await act(async () => pending.resolve(Response.json({}, { status: 500 })));
@@ -639,6 +691,18 @@ it("keeps a delayed cursor failure in its original scene after departure", async
     "endReached",
   );
   await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+
+  // Then: continuation keeps the accepted match beside its compact generic progress line.
+  expect(
+    await screen.findByRole("progressbar", {
+      name: "Chargement de la suite…",
+      busy: true,
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("Chargement de la suite…")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).toBeOnTheScreen();
 
   // When: the scene remains mounted but loses selection before its request fails.
   await view.rerender(

@@ -10,7 +10,7 @@ export function Skeleton({
   color,
 }: {
   width?: DimensionValue;
-  height?: number;
+  height?: DimensionValue;
   shape?: "text" | "rectangle";
   /** Compact pending controls may retain their current foreground contrast. */
   color?: string;

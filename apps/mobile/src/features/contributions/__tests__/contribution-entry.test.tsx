@@ -588,7 +588,9 @@ it.each(["own", "other", "failure"] as const)(
         await screen.findByRole("button", { name: "Réessayer" }),
       ).toBeOnTheScreen();
       expect(
-        screen.queryByRole("progressbar", { name: "Chargement en cours" }),
+        screen.queryByRole("progressbar", {
+          name: "Chargement de l’action du lien",
+        }),
       ).not.toBeOnTheScreen();
       expect(
         screen.queryByRole("link", { name: "Ouvrir le lien" }),

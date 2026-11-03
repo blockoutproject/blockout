@@ -126,6 +126,49 @@ it("separates competition seasons from the two seasonless controls", async () =>
   ).toBe(true);
 });
 
+it("announces the pending results section without inventing observed evidence", async () => {
+  // Given
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    new URL(String(url)).pathname.endsWith("/results")
+      ? response.promise
+      : peer.reads(url, options),
+  );
+
+  // When
+  await renderCollection(
+    <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("progressbar", {
+      name: "Chargement des résultats de collecte",
+      busy: true,
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getAllByRole("progressbar")).toHaveLength(1);
+  expect(screen.queryByText("Aucun résultat observé")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByText("Nationale 2 · Poule A · Calendrier"),
+  ).not.toBeOnTheScreen();
+
+  // When
+  await act(() =>
+    response.resolve(json({ items: [result()], page: 0, hasNext: false })),
+  );
+
+  // Then
+  expect(
+    await screen.findByText("Nationale 2 · Poule A · Calendrier"),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+});
+
 it("retains authorized seasons after a failed overview refresh with discreet feedback and no refresh button", async () => {
   // Given
   let unavailable = false;

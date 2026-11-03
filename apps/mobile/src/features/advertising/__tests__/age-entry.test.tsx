@@ -536,6 +536,49 @@ it("guards a signed-in free account’s home independently of its account identi
   ).toBeNull();
   expect(await readAgeDeclaration()).toBeNull();
 });
+it("announces one declaration read without exposing a default age or confirmation", async () => {
+  // Given
+  await completeDiscovery();
+  const read = Promise.withResolvers<string | null>();
+  const readItem = jest.mocked(AsyncStorage.getItem).getMockImplementation();
+  jest
+    .spyOn(AsyncStorage, "getItem")
+    .mockImplementation((key) =>
+      key === "blockout:advertising-age"
+        ? read.promise
+        : Promise.resolve(
+            key === "blockout:v2-discovery-complete" ? "true" : null,
+          ),
+    );
+
+  try {
+    // When
+    await openEntry("/age-declaration");
+
+    // Then
+    await screen.findByRole("progressbar", {
+      name: "Chargement de la déclaration d’âge",
+      busy: true,
+    });
+    expect(screen.getAllByRole("progressbar")).toHaveLength(1);
+    expect(screen.queryByRole("adjustable")).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Continuer" }),
+    ).not.toBeOnTheScreen();
+
+    // When
+    await act(() => read.resolve(null));
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: "Continuer" }),
+    ).toBeDisabled();
+  } finally {
+    await act(() => read.resolve(null));
+    jest.mocked(AsyncStorage.getItem).mockImplementation(readItem);
+  }
+});
+
 it("keeps public legal navigation available while local age storage is pending", async () => {
   // Given
   await completeDiscovery();

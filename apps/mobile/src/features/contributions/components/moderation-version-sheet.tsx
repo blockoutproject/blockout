@@ -57,6 +57,7 @@ export function ModerationVersionSheet({
           </Text>
         ) : (
           <ReadFeedback
+            loadingContent={<ModerationVersionLoading />}
             query={
               reading.profile.isError || reading.profile.isPending
                 ? reading.profile

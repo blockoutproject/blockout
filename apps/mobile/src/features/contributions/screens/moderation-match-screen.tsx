@@ -248,13 +248,20 @@ function ActiveScene({
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
-        <ScreenState>
+        <ScreenState
+          style={
+            !editing.canRetain && editing.profile.isSuccess
+              ? styles.centered
+              : undefined
+          }
+        >
           {!editing.canRetain && editing.profile.isSuccess ? (
             <Text style={[tokens.typography.body, { color: colors.text }]}>
               La modération des liens vidéo n’est pas autorisée.
             </Text>
           ) : (
             <ReadFeedback
+              loadingContent={<ModerationMatchLoading />}
               query={
                 editing.profile.isError || editing.profile.isPending
                   ? editing.profile
@@ -442,13 +449,20 @@ function VersionScene({
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
-        <ScreenState>
+        <ScreenState
+          style={
+            !reading.canRetain && reading.profile.isSuccess
+              ? styles.centered
+              : undefined
+          }
+        >
           {!reading.canRetain && reading.profile.isSuccess ? (
             <Text style={[tokens.typography.body, { color: colors.text }]}>
               La modération des liens vidéo n’est pas autorisée.
             </Text>
           ) : (
             <ReadFeedback
+              loadingContent={<ModerationMatchLoading />}
               query={
                 reading.profile.isError || reading.profile.isPending
                   ? reading.profile
@@ -519,7 +533,7 @@ function VersionScene({
         />
       )}
       ListEmptyComponent={
-        <ScreenState>
+        <ScreenState style={styles.centered}>
           <Text
             style={[tokens.typography.body, { color: colors.secondaryText }]}
           >
@@ -542,6 +556,7 @@ function VersionScene({
   );
 }
 const styles = StyleSheet.create({
+  centered: { justifyContent: "center" },
   header: {
     gap: tokens.layout.list.gap,
     paddingBottom: tokens.layout.list.gap,

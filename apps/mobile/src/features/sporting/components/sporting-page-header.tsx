@@ -9,8 +9,9 @@ import { tokens } from "../../../shared/theme/tokens";
 import { SportingLogo } from "./sporting-identity";
 import type { ReactNode } from "react";
 import { SportingPresentationAction } from "./sporting-actions";
+import { useCollapseProgress } from "react-native-collapsible-tab";
 
-/** Fixed navigation retains the canonical identity independently of each scrolling scene. */
+/** Pinned navigation reveals canonical identity only as the shared sporting card collapses. */
 export interface SportingPageHeaderProps {
   identity: SportingIdentityResponse;
   kind: "team" | "pool" | "club";
@@ -19,7 +20,7 @@ export interface SportingPageHeaderProps {
   action?: ReactNode;
 }
 
-/** Composes the fixed identity with a permission-gated edit icon and the independent support action. */
+/** Native collapse reveals only the compact identity; permission-gated editing and support remain independent. */
 export function SportingPageHeader({
   identity,
   kind,
@@ -27,9 +28,11 @@ export function SportingPageHeader({
   action,
 }: SportingPageHeaderProps) {
   const { colors } = useTheme();
+  const progress = useCollapseProgress();
   return (
     <PageHeader
       title={identity.name}
+      revealProgress={progress}
       action={
         <>
           <SportingPresentationAction target={{ kind, id: identity.id }} />

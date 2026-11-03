@@ -1,7 +1,11 @@
 import { PageFlatList } from "../../../shared/components/page-list";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { ListSeparator } from "../../../shared/components/list-separator";
-import { Page, pageContentStyle } from "../../../shared/components/page";
+import {
+  Page,
+  PageContent,
+  pageContentStyle,
+} from "../../../shared/components/page";
 import { PreparationLink } from "../components/preparation-link";
 import { AccessFeedback } from "../../access/components/access-feedback";
 import { isAccessDenied } from "../../../shared/api/access-denied";
@@ -17,7 +21,8 @@ import { Layers } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { RequestLoading } from "../../../shared/components/request-feedback";
+import { Button } from "../../../shared/components/button";
+import { ListLoading } from "../../../shared/components/list-loading";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { useSourceChildren } from "../api/use-source-preparation";
@@ -37,6 +42,12 @@ export function SourceChildrenScreen({
   const router = useRouter();
   const navigation = useNavigation();
   const feedback = useActionFeedback();
+  const pending = !authority.enabled
+    ? authority.sessionStatus === "restoring" ||
+      (authority.sessionStatus === "authenticated" &&
+        authority.account.isPending)
+    : !isAccessDenied(query.error) && query.isPending;
+  const FeedbackLayout = pending ? PageContent : ScreenState;
   const denied = isAccessDenied(query.error);
   const items = denied
     ? []
@@ -73,9 +84,9 @@ export function SourceChildrenScreen({
       <PageFlatList
         {...hiddenScrollIndicators}
         testID="collection-source-children-list"
-        alwaysBounceVertical={authority.enabled && !denied && !!query.data}
+        alwaysBounceVertical={authority.enabled && !denied && items.length > 0}
         refreshControl={
-          authority.enabled && !denied && query.data ? (
+          authority.enabled && !denied && items.length > 0 ? (
             <DataRefreshControl
               enabled={!query.isFetchingNextPage}
               refreshing={query.isRefetching || authority.account.isRefetching}
@@ -113,25 +124,36 @@ export function SourceChildrenScreen({
           )
         }
         ListEmptyComponent={
-          <ScreenState>
+          <FeedbackLayout>
             {!authority.enabled ? (
-              <AccessFeedback {...authority} />
+              <AccessFeedback
+                {...authority}
+                loadingContent={
+                  <ListLoading label="Chargement des groupes découverts" />
+                }
+              />
             ) : denied ? (
               <ErrorState
                 onRetry={() => void query.refetch({ cancelRefetch: false })}
                 retrying={query.isFetching}
               />
             ) : query.isPending ? (
-              <RequestLoading />
+              <ListLoading label="Chargement des groupes découverts" />
             ) : query.isError && !query.data ? (
               <ErrorState
                 onRetry={() => void query.refetch({ cancelRefetch: false })}
                 retrying={query.isFetching}
               />
             ) : (
-              <EmptyState title="Aucun groupe découvert" />
+              <EmptyState title="Aucun groupe découvert">
+                <Button
+                  label="Actualiser"
+                  onPress={() => void refresh()}
+                  loading={query.isFetching}
+                />
+              </EmptyState>
             )}
-          </ScreenState>
+          </FeedbackLayout>
         }
         ListFooterComponent={
           <>

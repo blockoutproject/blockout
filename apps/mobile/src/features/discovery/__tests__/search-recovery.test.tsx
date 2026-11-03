@@ -284,7 +284,7 @@ it.each([401, 403, 404, "network"] as const)(
     await screen.findByRole("alert");
     await act(async () => router.back());
 
-    // Then: refusal removes only its UUID; a network failure preserves the still-permitted result.
+    // Then: detail failures preserve the accepted collection and its current criteria.
     expect(screen.getByText("Lyon")).toBeOnTheScreen();
     expect(screen.getByText("Niort")).toBeOnTheScreen();
     expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
@@ -467,7 +467,10 @@ it("does not present a retained empty response as certain absence after a failed
   const user = userEvent.setup();
   await renderSearch();
   await user.press(screen.getByRole("tab", { name: "Clubs" }));
-  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+  await user.paste(
+    screen.getByPlaceholderText("Rechercher un club…"),
+    "Volley",
+  );
   await screen.findByText("Aucun résultat pour ces critères");
   mockFetch.mockImplementation((url: string) =>
     new URL(url).pathname.endsWith("/clubs")

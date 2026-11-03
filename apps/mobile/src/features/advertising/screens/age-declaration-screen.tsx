@@ -1,4 +1,8 @@
-import { Page, PageScrollView } from "../../../shared/components/page";
+import {
+  Page,
+  PageContent,
+  PageScrollView,
+} from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
 import { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -15,7 +19,8 @@ import {
 import { BrandHeader } from "../../../shared/components/brand-header";
 import { Surface } from "../../../shared/components/surface";
 import { ScreenState } from "../../../shared/components/screen-state";
-import { RequestLoading } from "../../../shared/components/request-feedback";
+import { LoadingGroup } from "../../../shared/components/loading-group";
+import { Skeleton } from "../../../shared/components/skeleton";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useReducedMotion } from "../../../shared/theme/use-reduced-motion";
@@ -53,7 +58,7 @@ function AgeBackdrop() {
 
 /**
  * Mandatory initial/renewal form; the router guards home and owns completion navigation.
- * Initial storage feedback shares the useful-area placement; only the ready form owns artwork.
+ * Initial storage loading reserves the known declaration in page flow; only the ready form owns artwork.
  */
 export function AgeDeclarationScreen() {
   const { colors } = useTheme();
@@ -61,13 +66,13 @@ export function AgeDeclarationScreen() {
   return (
     <Page header={<BrandHeader />}>
       <PageScrollView>
-        {age.loading || age.readFailed ? (
+        {age.loading ? (
+          <PageContent>
+            <AgeLoading />
+          </PageContent>
+        ) : age.readFailed ? (
           <ScreenState>
-            {age.loading ? (
-              <RequestLoading />
-            ) : (
-              <ErrorState onRetry={age.retryRead} />
-            )}
+            <ErrorState onRetry={age.retryRead} />
           </ScreenState>
         ) : (
           <View style={styles.stage}>
@@ -91,6 +96,44 @@ export function AgeDeclarationScreen() {
     </Page>
   );
 }
+
+/** Reserves the declaration's numeric choice, adjustment rail and action without selecting a default age. */
+function AgeLoading() {
+  return (
+    <Surface>
+      <LoadingGroup
+        label="Chargement de la déclaration d’âge"
+        style={styles.form}
+      >
+        <Skeleton width="80%" height={tokens.typography.headingXl.lineHeight} />
+        <Skeleton width="65%" />
+        <View style={styles.value}>
+          <Skeleton
+            width={72}
+            height={tokens.typography.displayAge.lineHeight}
+          />
+        </View>
+        <View style={styles.adjust}>
+          <Skeleton
+            width={tokens.touch.minimum}
+            height={tokens.touch.minimum}
+            shape="rectangle"
+          />
+          <View style={styles.rail}>
+            <Skeleton height={tokens.spacing.sm} />
+          </View>
+          <Skeleton
+            width={tokens.touch.minimum}
+            height={tokens.touch.minimum}
+            shape="rectangle"
+          />
+        </View>
+        <Skeleton height={tokens.size.control.default} shape="rectangle" />
+      </LoadingGroup>
+    </Surface>
+  );
+}
+
 const styles = StyleSheet.create({
   // Entry artwork shares discovery's centered stage and wider illustrative inset.
   stage: {
@@ -99,4 +142,11 @@ const styles = StyleSheet.create({
     padding: tokens.spacing["2xl"],
   },
   form: { gap: tokens.layout.form.gap },
+  value: { alignItems: "center" },
+  adjust: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.xs,
+  },
+  rail: { flex: 1 },
 });

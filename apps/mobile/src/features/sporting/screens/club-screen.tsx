@@ -1,3 +1,5 @@
+import { SportingEntityCardLoading } from "../entity-card";
+import { SportingClubLoading } from "../components/sporting-loading";
 import { PageList } from "../../../shared/components/page-list";
 import { PageViewport } from "../../../shared/components/navigation-backdrop";
 import { SportingSupportAction } from "../components/sporting-actions";
@@ -147,7 +149,9 @@ function ClubPage({ clubId }: ClubScreenProps) {
         ))}
     </View>
   ) : undefined;
-  const blockingState = !data ? <ReadFeedback query={club} /> : undefined;
+  const blockingState = !data ? (
+    <ReadFeedback query={club} loadingContent={<SportingClubLoading />} />
+  ) : undefined;
   return (
     <Page fullBleed>
       {blockingState ? (
@@ -162,7 +166,11 @@ function ClubPage({ clubId }: ClubScreenProps) {
           }
         >
           <PageScrollView>
-            <ScreenState>{blockingState}</ScreenState>
+            {club.isPending ? (
+              <PageContent>{blockingState}</PageContent>
+            ) : (
+              <ScreenState>{blockingState}</ScreenState>
+            )}
           </PageScrollView>
         </PageViewport>
       ) : (
@@ -189,18 +197,16 @@ function ClubPage({ clubId }: ClubScreenProps) {
             label,
             content:
               value !== "info" && !season ? (
-                <PageScrollView
-                  refreshControl={
-                    <DataRefreshControl
-                      refreshing={club.isRefetching}
-                      onRefresh={() => void refresh()}
-                      enabled={tab === value}
-                    />
-                  }
-                >
-                  <PageContent>{seasonControls}</PageContent>
+                <PageScrollView>
                   <ScreenState>
-                    <EmptyState title="Aucune saison disponible" />
+                    <EmptyState title="Aucune saison disponible">
+                      <Button
+                        label="Actualiser"
+                        onPress={() => void refresh()}
+                        loading={club.isFetching}
+                        disabled={tab !== value}
+                      />
+                    </EmptyState>
                   </ScreenState>
                 </PageScrollView>
               ) : (value === "upcoming" || value === "completed") && season ? (
@@ -211,25 +217,38 @@ function ClubPage({ clubId }: ClubScreenProps) {
                   {seasonControls}
                 </SportingCalendar>
               ) : value === "teams" && season && !teamData?.items.length ? (
-                <PageScrollView
-                  refreshControl={
-                    teamData ? (
-                      <DataRefreshControl
-                        refreshing={teams.isRefetching}
-                        onRefresh={() => void refresh()}
-                        enabled={tab === value}
-                      />
-                    ) : undefined
-                  }
-                >
-                  <PageContent>{seasonControls}</PageContent>
-                  <ScreenState>
-                    {!teamData ? (
-                      <ReadFeedback query={teams} />
-                    ) : (
-                      <EmptyState title="Aucune équipe pour cette saison" />
-                    )}
-                  </ScreenState>
+                <PageScrollView>
+                  {teams.isPending ? (
+                    <PageContent>
+                      {seasonControls}
+                      <SportingEntityCardLoading label="Chargement des équipes du club" />
+                    </PageContent>
+                  ) : (
+                    <>
+                      <PageContent style={styles.stateControls}>
+                        {seasonControls}
+                      </PageContent>
+                      <ScreenState>
+                        {!teamData ? (
+                          <ReadFeedback
+                            query={teams}
+                            loadingContent={
+                              <SportingEntityCardLoading label="Chargement des équipes du club" />
+                            }
+                          />
+                        ) : (
+                          <EmptyState title="Aucune équipe pour cette saison">
+                            <Button
+                              label="Actualiser"
+                              onPress={() => void refresh()}
+                              loading={teams.isFetching}
+                              disabled={tab !== value}
+                            />
+                          </EmptyState>
+                        )}
+                      </ScreenState>
+                    </>
+                  )}
                 </PageScrollView>
               ) : (
                 <PageList
@@ -348,6 +367,7 @@ function ClubPage({ clubId }: ClubScreenProps) {
 }
 
 const styles = StyleSheet.create({
+  stateControls: { paddingBottom: 0 },
   header: { gap: tokens.spacing.lg, marginBottom: tokens.layout.list.gap },
   season: {
     gap: tokens.spacing.sm,

@@ -114,6 +114,7 @@ export function ModerationFilters({ initial }: ModerationFiltersProps) {
             <ModerationFiltersLoading />
           ) : (
             <ReadFeedback
+              loadingContent={<ModerationFiltersLoading />}
               query={!reading.allowed ? reading.profile : reading.query}
             />
           )

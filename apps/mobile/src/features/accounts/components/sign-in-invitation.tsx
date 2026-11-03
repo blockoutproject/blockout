@@ -3,6 +3,8 @@ import { ChevronRight } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Button } from "../../../shared/components/button";
+import { LoadingGroup } from "../../../shared/components/loading-group";
+import { Skeleton } from "../../../shared/components/skeleton";
 import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -39,6 +41,27 @@ export function SignInInvitation({
         <SignInInvitationCard message={message} onSignIn={onSignIn} />
       </SheetContent>
     </Sheet>
+  );
+}
+
+/** Reserves the known invitation card while session restoration decides whether guest actions may be exposed. */
+export function SignInInvitationLoading() {
+  const { colors } = useTheme();
+  return (
+    <LoadingGroup
+      label="Chargement de la connexion"
+      style={[
+        styles.card,
+        { borderColor: colors.border, backgroundColor: colors.raised },
+      ]}
+    >
+      <Skeleton height={heroHeight} shape="rectangle" />
+      <View style={styles.content}>
+        <Skeleton />
+        <Skeleton width="70%" />
+        <Skeleton height={tokens.size.control.default} shape="rectangle" />
+      </View>
+    </LoadingGroup>
   );
 }
 

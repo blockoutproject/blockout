@@ -22,22 +22,17 @@ import {
   type PropsWithChildren,
   type ReactNode,
 } from "react";
-import {
-  AppState,
-  StyleSheet,
-  Text,
-  View,
-  useWindowDimensions,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AppState, StyleSheet, Text, View } from "react-native";
 import type {
   MatchCalendarResponse,
   MatchPoolGroupResponse,
   MatchSummaryResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
+import { Button } from "../../../shared/components/button";
 import { ErrorState, EmptyState } from "../../../shared/components/state-card";
-import { RequestLoading } from "../../../shared/components/request-feedback";
+import { CalendarLoading } from "./calendar-loading";
+import { useCalendarLayout } from "../hooks/use-calendar-layout";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { ListContinuation } from "../../../shared/components/list-continuation";
@@ -128,7 +123,7 @@ export interface SportingCalendarViewProps {
   children?: ReactNode;
 }
 
-/** Shares F03 complete-day rendering, gestures and exact sporting navigation with personal calendars. */
+/** Shares complete-day rendering and navigation; empty reads recover on their card, while populated calendars retain native refresh. */
 export function SportingCalendarView({
   calendar,
   active = true,
@@ -147,17 +142,8 @@ export function SportingCalendarView({
   }, [active]);
   const groupingZone =
     calendar.data?.pages[0]?.timeZone ?? currentSportingTimeZone();
-  const { fontScale, width } = useWindowDimensions();
-  const insets = useSafeAreaInsets();
   const [listWidth, setListWidth] = useState(0);
-  const stacked = fontScale >= 1.6;
-  // Every lateral grid column must retain the scaled 40-point rail before its inner optical gap.
-  const availableWidth =
-    (listWidth || width - insets.left - insets.right) -
-    2 * tokens.spacing.screen;
-  const columns = stacked
-    ? 1
-    : Math.max(2, Math.min(8, Math.floor(availableWidth / (40 * fontScale))));
+  const { stacked, columns } = useCalendarLayout(listWidth);
   const days = useMemo(() => calendarDays(calendar.data), [calendar.data]);
   const rows = useMemo(() => calendarRows(days, stacked), [days, stacked]);
   const stickyHeaderIndices = useMemo(
@@ -215,31 +201,48 @@ export function SportingCalendarView({
     )
       feedback.error();
   }
-  const refreshControl = calendar.data ? (
-    <DataRefreshControl
-      refreshing={refreshing}
-      onRefresh={() => void refresh()}
-      enabled={active}
-    />
-  ) : undefined;
+  const refreshControl =
+    rows.length > 0 ? (
+      <DataRefreshControl
+        refreshing={refreshing}
+        onRefresh={() => void refresh()}
+        enabled={active}
+      />
+    ) : undefined;
   if (rows.length === 0)
     return (
       <PageScrollView refreshControl={refreshControl}>
-        {children && <PageContent>{children}</PageContent>}
-        <ScreenState>
-          {calendar.isError && !calendar.data ? (
-            <ErrorState
-              onRetry={() => void refresh()}
-              retrying={calendar.isFetching}
-            />
-          ) : calendar.isPending ? (
-            <RequestLoading />
-          ) : (
-            (emptyState ?? (
-              <EmptyState title="Aucun match pour cette sélection" />
-            ))
-          )}
-        </ScreenState>
+        {calendar.isPending ? (
+          <PageContent>
+            {children}
+            <CalendarLoading columns={columns} stacked={stacked} />
+          </PageContent>
+        ) : (
+          <>
+            {children && (
+              <PageContent style={styles.stateControls}>{children}</PageContent>
+            )}
+            <ScreenState>
+              {calendar.isError && !calendar.data ? (
+                <ErrorState
+                  onRetry={() => void refresh()}
+                  retrying={calendar.isFetching}
+                />
+              ) : (
+                (emptyState ?? (
+                  <EmptyState title="Aucun match pour cette sélection">
+                    <Button
+                      label="Actualiser"
+                      onPress={() => void refresh()}
+                      loading={refreshing || calendar.isFetching}
+                      disabled={!active}
+                    />
+                  </EmptyState>
+                ))
+              )}
+            </ScreenState>
+          </>
+        )}
       </PageScrollView>
     );
   return (
@@ -438,6 +441,7 @@ const monthFormat = new Intl.DateTimeFormat("fr-FR", {
 });
 
 const styles = StyleSheet.create({
+  stateControls: { paddingBottom: 0 },
   sceneHeader: { gap: tokens.spacing.lg, marginBottom: tokens.spacing.lg },
   dateHeading: { gap: tokens.spacing.xs, paddingRight: tokens.spacing.xs },
   stackedDate: {

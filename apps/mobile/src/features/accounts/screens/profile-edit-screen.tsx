@@ -2,6 +2,7 @@ import { Page, PageContent } from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { useNavigation, useRouter } from "expo-router";
+import { StyleSheet } from "react-native";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 
 import { ApiError } from "../../../shared/api/api-fetch";
@@ -90,7 +91,7 @@ export function ProfileEditScreen({ admitted }: ProfileEditScreenProps) {
               />
             </ScreenState>
           ) : session.status !== "authenticated" ? (
-            <ScreenState>
+            <ScreenState style={styles.centered}>
               <Button
                 label="Se connecter"
                 fullWidth
@@ -114,3 +115,4 @@ export function ProfileEditScreen({ admitted }: ProfileEditScreenProps) {
     </Page>
   );
 }
+const styles = StyleSheet.create({ centered: { justifyContent: "center" } });

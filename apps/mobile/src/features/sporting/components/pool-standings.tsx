@@ -15,6 +15,7 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
+import { Button } from "../../../shared/components/button";
 
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
@@ -25,6 +26,7 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 import { SportingLogo } from "./sporting-identity";
 import { StandingCards } from "./standing-cards";
+import { StandingsLoading } from "./standings-loading";
 
 /** One exact pool's independently retained table; team emphasis uses identity alone, never rank. */
 export interface PoolStandingsProps {
@@ -36,7 +38,7 @@ export interface PoolStandingsProps {
   children?: ReactNode;
 }
 
-/** Reads the admitted scene through the generated client and retains its ordinary native scroller. */
+/** Retains the native scroller; empty tables reload on their card and populated tables keep native refresh. */
 export function PoolStandings({
   pool,
   highlightTeamId,
@@ -72,78 +74,102 @@ export function PoolStandings({
 
   const hasRows = data?.availability === "available" && data.rows.length > 0;
 
-  const refreshControl =
-    data && data.availability !== "unavailable" ? (
-      <DataRefreshControl
-        refreshing={standings.isRefetching}
-        onRefresh={() => void refresh()}
-        enabled={active}
-      />
-    ) : undefined;
+  const refreshControl = hasRows ? (
+    <DataRefreshControl
+      refreshing={standings.isRefetching}
+      onRefresh={() => void refresh()}
+      enabled={active}
+    />
+  ) : undefined;
+  const headerRow = (
+    <View style={styles.headerRow}>
+      {children && <View style={styles.participation}>{children}</View>}
+      <View
+        style={styles.toolbar}
+        accessibilityRole="radiogroup"
+        accessibilityLabel="Présentation du classement"
+      >
+        {(
+          [
+            ["cards", "Afficher en cartes", Columns3],
+            ["list", "Afficher en liste", List],
+          ] as const
+        ).map(([value, label, Icon]) => (
+          <Pressable
+            key={value}
+            accessibilityRole="radio"
+            accessibilityLabel={label}
+            accessibilityState={{ checked: layout === value }}
+            onPress={() => setLayout(value)}
+            style={styles.layoutAction}
+          >
+            <View
+              style={[
+                styles.layoutVisual,
+                {
+                  backgroundColor: layout === value ? colors.subtle : undefined,
+                },
+              ]}
+            >
+              <Icon size={tokens.size.icon.md} color={colors.icon} />
+            </View>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
   if (!hasRows)
     return (
       <PageScrollView refreshControl={refreshControl}>
-        {children && <PageContent>{children}</PageContent>}
-        <ScreenState>
-          {!data ? (
-            <ReadFeedback query={standings} />
-          ) : data.availability === "unavailable" ? (
-            <ErrorState
-              onRetry={() => void refresh()}
-              retrying={standings.isFetching}
-            />
-          ) : (
-            <EmptyState
-              title={
-                data.availability === "not-published"
-                  ? "Pas de classement pour cette phase"
-                  : "Aucune équipe dans ce classement"
-              }
-            />
-          )}
-        </ScreenState>
+        {standings.isPending ? (
+          <PageContent style={styles.content}>
+            <View style={styles.standings}>
+              {headerRow}
+              <StandingsLoading layout={layout} />
+            </View>
+          </PageContent>
+        ) : (
+          <>
+            {children && (
+              <PageContent style={styles.stateControls}>{children}</PageContent>
+            )}
+            <ScreenState>
+              {!data ? (
+                <ReadFeedback
+                  query={standings}
+                  loadingContent={<StandingsLoading layout={layout} />}
+                />
+              ) : data.availability === "unavailable" ? (
+                <ErrorState
+                  onRetry={() => void refresh()}
+                  retrying={standings.isFetching}
+                />
+              ) : (
+                <EmptyState
+                  title={
+                    data.availability === "not-published"
+                      ? "Pas de classement pour cette phase"
+                      : "Aucune équipe dans ce classement"
+                  }
+                >
+                  <Button
+                    label="Actualiser"
+                    onPress={() => void refresh()}
+                    loading={standings.isFetching}
+                    disabled={!active}
+                  />
+                </EmptyState>
+              )}
+            </ScreenState>
+          </>
+        )}
       </PageScrollView>
     );
   return (
     <PageScrollView alwaysBounceVertical refreshControl={refreshControl}>
       <PageContent style={styles.content}>
         <View style={styles.standings}>
-          <View style={styles.headerRow}>
-            {children && <View style={styles.participation}>{children}</View>}
-            <View
-              style={styles.toolbar}
-              accessibilityRole="radiogroup"
-              accessibilityLabel="Présentation du classement"
-            >
-              {(
-                [
-                  ["cards", "Afficher en cartes", Columns3],
-                  ["list", "Afficher en liste", List],
-                ] as const
-              ).map(([value, label, Icon]) => (
-                <Pressable
-                  key={value}
-                  accessibilityRole="radio"
-                  accessibilityLabel={label}
-                  accessibilityState={{ checked: layout === value }}
-                  onPress={() => setLayout(value)}
-                  style={styles.layoutAction}
-                >
-                  <View
-                    style={[
-                      styles.layoutVisual,
-                      {
-                        backgroundColor:
-                          layout === value ? colors.subtle : undefined,
-                      },
-                    ]}
-                  >
-                    <Icon size={tokens.size.icon.md} color={colors.icon} />
-                  </View>
-                </Pressable>
-              ))}
-            </View>
-          </View>
+          {headerRow}
           {layout === "cards" ? (
             <StandingCards rows={data.rows} columns={columns} active={active} />
           ) : (
@@ -313,6 +339,7 @@ function StandingEntry({
 }
 
 const styles = StyleSheet.create({
+  stateControls: { paddingBottom: 0 },
   content: { paddingTop: tokens.spacing.lg },
   standings: { gap: tokens.spacing.lg },
   headerRow: {

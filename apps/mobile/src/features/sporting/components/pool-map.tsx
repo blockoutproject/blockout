@@ -31,6 +31,7 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
+import { Button } from "../../../shared/components/button";
 import { IconButton } from "../../../shared/components/icon-button";
 
 import { ReadFeedback } from "../../../shared/components/read-feedback";
@@ -50,6 +51,11 @@ import {
 } from "../model/published-map-record";
 import { SportingLogo } from "./sporting-identity";
 import { WinLossBar } from "./standing-performance-bar";
+import { LoadingGroup } from "../../../shared/components/loading-group";
+import { Skeleton } from "../../../shared/components/skeleton";
+
+/** The bounded native map and its pending participant read reserve the same content height. */
+const mapHeight = 440;
 
 /** One pool's participant map; active controls the existing accepted-opening boundary. */
 export interface PoolMapProps {
@@ -59,7 +65,7 @@ export interface PoolMapProps {
   children?: ReactNode;
 }
 
-/** Reads participants and an optional official record independently; native providers own basemap loading. */
+/** Reads participants and an optional record independently; empty geography recovers on its card and native providers own basemap loading. */
 export function PoolMap({ pool, active = true, children }: PoolMapProps) {
   const queries = useConsultationQueries();
   const participants = useQuery({
@@ -93,27 +99,49 @@ export function PoolMap({ pool, active = true, children }: PoolMapProps) {
       feedback.error();
   }
 
-  const refreshControl = data ? (
-    <DataRefreshControl
-      refreshing={participants.isRefetching || standings.isRefetching}
-      onRefresh={() => void refresh()}
-      enabled={active}
-    />
-  ) : undefined;
+  const refreshControl =
+    data && hasLocations ? (
+      <DataRefreshControl
+        refreshing={participants.isRefetching || standings.isRefetching}
+        onRefresh={() => void refresh()}
+        enabled={active}
+      />
+    ) : undefined;
   if (!data || !hasLocations)
     return (
       <PageScrollView refreshControl={refreshControl}>
-        {children && <PageContent>{children}</PageContent>}
-        <ScreenState>
-          {!data ? (
-            <ReadFeedback query={participants} />
-          ) : (
-            <EmptyState
-              title="Aucune localisation disponible"
-              description="La localisation des équipes n’est pas renseignée."
-            />
-          )}
-        </ScreenState>
+        {participants.isPending ? (
+          <PageContent>
+            {children}
+            <MapLoading />
+          </PageContent>
+        ) : (
+          <>
+            {children && (
+              <PageContent style={styles.stateControls}>{children}</PageContent>
+            )}
+            <ScreenState>
+              {!data ? (
+                <ReadFeedback
+                  query={participants}
+                  loadingContent={<MapLoading />}
+                />
+              ) : (
+                <EmptyState
+                  title="Aucune localisation disponible"
+                  description="La localisation des équipes n’est pas renseignée."
+                >
+                  <Button
+                    label="Actualiser"
+                    onPress={() => void refresh()}
+                    loading={participants.isFetching || standings.isFetching}
+                    disabled={!active}
+                  />
+                </EmptyState>
+              )}
+            </ScreenState>
+          </>
+        )}
       </PageScrollView>
     );
   return (
@@ -127,6 +155,15 @@ export function PoolMap({ pool, active = true, children }: PoolMapProps) {
         />
       </PageContent>
     </PageScrollView>
+  );
+}
+
+/** A local participant read reserves the bounded map slot without mounting a native basemap prematurely. */
+function MapLoading() {
+  return (
+    <LoadingGroup label="Chargement des participants">
+      <Skeleton height={mapHeight} shape="rectangle" />
+    </LoadingGroup>
   );
 }
 
@@ -499,8 +536,9 @@ function ParticipantSummary({
 }
 
 const styles = StyleSheet.create({
+  stateControls: { paddingBottom: 0 },
   map: {
-    height: 440,
+    height: mapHeight,
     borderRadius: tokens.radius.panel,
     borderWidth: tokens.border.thin,
     overflow: "hidden",

@@ -22,7 +22,6 @@ import {
   pageContentStyle,
 } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
-import { RequestLoading } from "../../../shared/components/request-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 
 import { EmptyState, ErrorState } from "../../../shared/components/state-card";
@@ -39,7 +38,11 @@ import {
   useCollectionSeasons,
 } from "../api/use-source-preparation";
 import { CollectionControl } from "../components/collection-control";
-import { CollectionLoading } from "../components/collection-loading";
+import {
+  CollectionLoading,
+  CollectionControlLoading,
+  CollectionResultsLoading,
+} from "../components/collection-loading";
 import { CollectionResult } from "../components/collection-result";
 import { PreparationLink } from "../components/preparation-link";
 import { SeasonIdentity, seasonStatus } from "../components/source-summary";
@@ -65,8 +68,13 @@ export function CollectionDashboardScreen() {
     if (result.isError && result.data && !isAccessDenied(result.error))
       feedback.error();
   }
+  const FeedbackLayout =
+    authority.sessionStatus === "restoring" ||
+    (authority.sessionStatus === "authenticated" && authority.account.isPending)
+      ? PageContent
+      : ScreenState;
   const blockingState = !authority.enabled ? (
-    <AccessFeedback {...authority} />
+    <AccessFeedback {...authority} loadingContent={<CollectionLoading />} />
   ) : undefined;
   return (
     <Page header={<PageHeader title="Collectes" />}>
@@ -81,7 +89,7 @@ export function CollectionDashboardScreen() {
         }
       >
         {blockingState ? (
-          <ScreenState>{blockingState}</ScreenState>
+          <FeedbackLayout>{blockingState}</FeedbackLayout>
         ) : (
           <PageContent>
             {authority.enabled && (
@@ -174,13 +182,25 @@ function SeasonControlScope({
 }: Required<CollectionControlScreenProps>) {
   const { authority, season } = useCollectionSeason(seasonId);
   const feedback = useActionFeedback();
+  const FeedbackLayout = (
+    !authority.enabled
+      ? authority.sessionStatus === "restoring" ||
+        (authority.sessionStatus === "authenticated" &&
+          authority.account.isPending)
+      : !season.data && !season.isError
+  )
+    ? PageContent
+    : ScreenState;
   if (!authority.enabled || !season.data || isAccessDenied(season.error))
     return (
       <Page header={<PageHeader title={familyLabels[family]} />}>
         <PageScrollView>
-          <ScreenState>
+          <FeedbackLayout>
             {!authority.enabled ? (
-              <AccessFeedback {...authority} />
+              <AccessFeedback
+                {...authority}
+                loadingContent={<CollectionControlLoading />}
+              />
             ) : season.isError ? (
               <ErrorState
                 onRetry={() =>
@@ -196,9 +216,9 @@ function SeasonControlScope({
                 retrying={season.isFetching}
               />
             ) : (
-              <RequestLoading />
+              <CollectionControlLoading />
             )}
-          </ScreenState>
+          </FeedbackLayout>
         </PageScrollView>
       </Page>
     );
@@ -248,13 +268,25 @@ function ControlScope({
     !selected
   )
     return <ProviderSourcesScreen seasonId={season.id} provider={family} />;
+  const FeedbackLayout = (
+    !authority.enabled
+      ? authority.sessionStatus === "restoring" ||
+        (authority.sessionStatus === "authenticated" &&
+          authority.account.isPending)
+      : !query.isError && !query.data
+  )
+    ? PageContent
+    : ScreenState;
   if (!authority.enabled || !selected)
     return (
       <Page header={<PageHeader title={familyLabels[family]} />}>
         <PageScrollView>
-          <ScreenState>
+          <FeedbackLayout>
             {!authority.enabled ? (
-              <AccessFeedback {...authority} />
+              <AccessFeedback
+                {...authority}
+                loadingContent={<CollectionControlLoading />}
+              />
             ) : query.isError ? (
               <ErrorState
                 onRetry={() =>
@@ -272,9 +304,9 @@ function ControlScope({
             ) : query.data ? (
               <ErrorState />
             ) : (
-              <RequestLoading />
+              <CollectionControlLoading />
             )}
-          </ScreenState>
+          </FeedbackLayout>
         </PageScrollView>
       </Page>
     );
@@ -426,13 +458,25 @@ function ControlDashboard({
       />
     </View>
   );
+  const FeedbackLayout = (
+    !authority.enabled
+      ? authority.sessionStatus === "restoring" ||
+        (authority.sessionStatus === "authenticated" &&
+          authority.account.isPending)
+      : !current && !query.isError
+  )
+    ? PageContent
+    : ScreenState;
   return (
     <Page header={<PageHeader title={familyLabels[family]} />}>
       {!authority.enabled || !matches ? (
         <PageScrollView>
-          <ScreenState>
+          <FeedbackLayout>
             {!authority.enabled ? (
-              <AccessFeedback {...authority} />
+              <AccessFeedback
+                {...authority}
+                loadingContent={<CollectionControlLoading />}
+              />
             ) : query.isError ? (
               <ErrorState
                 onRetry={() => void query.refetch()}
@@ -441,9 +485,9 @@ function ControlDashboard({
             ) : current ? (
               <ErrorState />
             ) : (
-              <RequestLoading />
+              <CollectionControlLoading />
             )}
-          </ScreenState>
+          </FeedbackLayout>
         </PageScrollView>
       ) : (
         <PageFlatList
@@ -478,22 +522,28 @@ function ControlDashboard({
             <CollectionResult result={item} diagnostics={diagnostics} />
           )}
           ListEmptyComponent={
-            <ScreenState>
-              {isAccessDenied(results.error) ||
-              (results.isError && !results.data) ? (
-                <ErrorState
-                  onRetry={() => void results.refetch({ cancelRefetch: false })}
-                  retrying={results.isFetching}
-                />
-              ) : results.isPending ? (
-                <RequestLoading />
-              ) : (
-                <EmptyState
-                  title="Aucun résultat observé"
-                  description="Aucun succès ne peut être confirmé."
-                />
-              )}
-            </ScreenState>
+            results.isPending && !isAccessDenied(results.error) ? (
+              <PageContent>
+                <CollectionResultsLoading />
+              </PageContent>
+            ) : (
+              <ScreenState>
+                {isAccessDenied(results.error) ||
+                (results.isError && !results.data) ? (
+                  <ErrorState
+                    onRetry={() =>
+                      void results.refetch({ cancelRefetch: false })
+                    }
+                    retrying={results.isFetching}
+                  />
+                ) : (
+                  <EmptyState
+                    title="Aucun résultat observé"
+                    description="Aucun succès ne peut être confirmé."
+                  />
+                )}
+              </ScreenState>
+            )
           }
           ListFooterComponent={
             <>

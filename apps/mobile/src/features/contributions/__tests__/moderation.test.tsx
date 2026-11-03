@@ -435,7 +435,7 @@ it("keeps an unsuccessful queue read distinct from an empty successful selection
   expect(screen.queryByText("Aucun lien à traiter")).toBeNull();
 });
 
-it("presents a successful empty selection without a failed-read message", async () => {
+it("reloads an empty queue from its card and restores native refresh only when rows return", async () => {
   // Given
   queueEmpty = true;
 
@@ -445,6 +445,22 @@ it("presents a successful empty selection without a failed-read message", async 
   // Then
   expect(await screen.findByText("Aucun lien à traiter")).toBeOnTheScreen();
   expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+
+  // When
+  queueEmpty = false;
+  const user = userEvent.setup();
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
+
+  // Then
+  expect(
+    await screen.findByRole("link", {
+      name: `${detail.match.home.name} – ${detail.match.away.name}`,
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+  expect(screen.queryByRole("button", { name: "Actualiser" })).toBeNull();
+  expect(writes).toEqual([]);
 });
 
 it("retains literal filters on continuation and restarts native refresh at page zero", async () => {

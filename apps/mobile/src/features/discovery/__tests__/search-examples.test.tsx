@@ -345,7 +345,10 @@ it("retains usable data on failure and never refills a restricted selection redu
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
   await screen.findByText("Aucun résultat pour ces critères");
   const calls = collectionCalls("clubs").length;
-  await user.paste(screen.getByLabelText("Rechercher"), " \u2003");
+  await user.paste(
+    screen.getByPlaceholderText("Rechercher un club…"),
+    " \u2003",
+  );
   await user.press(screen.getByRole("tab", { name: "Poules" }));
   await screen.findByText("Poule A");
   await user.press(screen.getByRole("tab", { name: "Clubs" }));
@@ -501,7 +504,7 @@ it("starts a new selection on a new visit even with the previous query cache ret
 });
 
 it("allows a new visit to select an identity whose previous detail refusal is still cached", async () => {
-  // Given: the old visit removes Niort after the real F03 detail returns 404.
+  // Given: the old visit retains its accepted Niort row after the F03 detail returns 404.
   const user = userEvent.setup();
   await renderSearch();
   await user.press(screen.getByRole("tab", { name: "Clubs" }));

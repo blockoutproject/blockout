@@ -27,7 +27,7 @@ import { ListContinuation } from "../../../shared/components/list-continuation";
 import { Page, pageContentStyle } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
-import { RequestLoading } from "../../../shared/components/request-feedback";
+import { ContributionProposalsLoading } from "../components/contribution-loading";
 import { ScreenState } from "../../../shared/components/screen-state";
 
 import { ErrorState } from "../../../shared/components/state-card";
@@ -167,6 +167,17 @@ export function OwnContributionsScreen({
     )
       feedback.error();
   }
+  const pending =
+    session.status !== "guest" &&
+    (session.status !== "authenticated"
+      ? session.status === "restoring" || !!session.operation
+      : !editing.profile.data
+        ? editing.profile.isPending
+        : editing.canRetain &&
+          (!current || !authorized) &&
+          !isOwnContributionAccessDenied(match.error) &&
+          query.isPending);
+  const FeedbackLayout = pending ? View : ScreenState;
   const content = (
     <Page
       edges={["top", "left", "right"]}
@@ -181,7 +192,6 @@ export function OwnContributionsScreen({
           Platform.OS === "android" ? renderAndroidScroll : undefined
         }
         alwaysBounceVertical={authorized && !!current}
-
         contentContainerStyle={pageContentStyle}
         data={rows}
         keyExtractor={(item) => item.id}
@@ -204,7 +214,7 @@ export function OwnContributionsScreen({
               <MatchSummary match={match.data.match} presentation="context" />
             )}
             {session.status === "guest" ? (
-              <ScreenState>
+              <FeedbackLayout style={[styles.feedback, styles.centered]}>
                 <Button
                   label="Se connecter"
                   onPress={() =>
@@ -214,40 +224,48 @@ export function OwnContributionsScreen({
                     })
                   }
                 />
-              </ScreenState>
+              </FeedbackLayout>
             ) : session.status !== "authenticated" ? (
-              <ScreenState>
+              <FeedbackLayout
+                style={pending ? undefined : [styles.feedback, styles.centered]}
+              >
                 {session.status === "restoring" || session.operation ? (
-                  <RequestLoading />
+                  <ContributionProposalsLoading />
                 ) : (
                   <Button
                     label="Se connecter"
                     onPress={() => router.push("/sign-in")}
                   />
                 )}
-              </ScreenState>
+              </FeedbackLayout>
             ) : !editing.profile.data ? (
-              <ScreenState>
-                <ReadFeedback query={editing.profile} />
-              </ScreenState>
+              <FeedbackLayout style={pending ? undefined : styles.feedback}>
+                <ReadFeedback
+                  query={editing.profile}
+                  loadingContent={<ContributionProposalsLoading />}
+                />
+              </FeedbackLayout>
             ) : !editing.canRetain ? (
-              <ScreenState>
+              <FeedbackLayout style={styles.feedback}>
                 <ErrorState
                   onRetry={() => void editing.profile.refetch()}
                   retrying={editing.profile.isFetching}
                 />
-              </ScreenState>
+              </FeedbackLayout>
             ) : !current || !authorized ? (
-              <ScreenState>
+              <FeedbackLayout style={pending ? undefined : styles.feedback}>
                 {query.isError || isOwnContributionAccessDenied(match.error) ? (
                   <ErrorState
                     onRetry={() => void refresh()}
                     retrying={query.isFetching || match.isFetching}
                   />
                 ) : (
-                  <ReadFeedback query={query} />
+                  <ReadFeedback
+                    query={query}
+                    loadingContent={<ContributionProposalsLoading />}
+                  />
                 )}
-              </ScreenState>
+              </FeedbackLayout>
             ) : (
               <>
                 {editing.profile.isError && (
@@ -344,6 +362,9 @@ function ProposalRow({ item }: ProposalRowProps) {
   );
 }
 const styles = StyleSheet.create({
+  // The virtualized header already owns the shared horizontal inset and first eight points above feedback.
+  feedback: { padding: 0, paddingTop: tokens.spacing.sm },
+  centered: { justifyContent: "center" },
   header: {
     gap: tokens.layout.list.gap,
     paddingBottom: tokens.layout.list.gap,

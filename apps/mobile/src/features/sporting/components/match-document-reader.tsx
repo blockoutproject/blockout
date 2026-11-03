@@ -1,5 +1,5 @@
 import { useLayoutEffect, useState, useEffectEvent } from "react";
-import { Modal, StyleSheet, Text, View } from "react-native";
+import { Modal, ScrollView, StyleSheet, Text, View } from "react-native";
 import Pdf from "react-native-pdf";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { Flag, X } from "lucide-react-native";
@@ -13,8 +13,10 @@ import { ApiError } from "../../../shared/api/api-fetch";
 import { Page } from "../../../shared/components/page";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { ErrorState } from "../../../shared/components/state-card";
-import { RequestLoading } from "../../../shared/components/request-feedback";
+import { LoadingGroup } from "../../../shared/components/loading-group";
+import { Skeleton } from "../../../shared/components/skeleton";
 import { IconButton } from "../../../shared/components/icon-button";
+import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import {
@@ -102,7 +104,7 @@ export function MatchDocumentReader({
   );
 }
 
-/** Owns one transport/controller/file lifetime. Identity or admission replacement releases it before paint. */
+/** Owns one file attempt; failed reads retain native overflow for retry, and identity or admission replacement releases the file before paint. */
 function DocumentAttempt({
   matchId,
   kind,
@@ -154,25 +156,36 @@ function DocumentAttempt({
   }, [matchId, kind]);
   if (state.failed)
     return (
-      <ScreenState>
-        <ErrorState onRetry={onRetry} />
-      </ScreenState>
+      <ScrollView
+        {...hiddenScrollIndicators}
+        style={styles.pdf}
+        contentContainerStyle={styles.stateContent}
+      >
+        <ScreenState>
+          <ErrorState onRetry={onRetry} />
+        </ScreenState>
+      </ScrollView>
     );
-  if (!state.file)
-    return (
-      <ScreenState>
-        <RequestLoading />
-      </ScreenState>
-    );
+  if (!state.file) return <DocumentLoading />;
   return (
     <Pdf
       style={[styles.pdf, { backgroundColor: colors.canvas }]}
       source={{ uri: state.file.uri }}
+      renderActivityIndicator={() => <DocumentLoading />}
       onError={() => {
         if (state.file) releaseMatchDocument(state.file);
         setState({ failed: true });
       }}
     />
+  );
+}
+
+/** Both the owned download and the PDF peer's supported pending slot reserve the actual document viewport. */
+function DocumentLoading() {
+  return (
+    <LoadingGroup label="Chargement du document" style={styles.loading}>
+      <Skeleton height="100%" shape="rectangle" />
+    </LoadingGroup>
   );
 }
 
@@ -185,4 +198,6 @@ const styles = StyleSheet.create({
   },
   title: { ...tokens.typography.navigation, flex: 1, textAlign: "center" },
   pdf: { flex: 1 },
+  stateContent: { flexGrow: 1 },
+  loading: { flex: 1, width: "100%", padding: tokens.spacing.screen },
 });

@@ -403,7 +403,7 @@ it("removes known expired content while active offline without restoring it afte
   ).toBeOnTheScreen();
 });
 
-it("shows loading before an accepted empty inbox and offers no manual cleanup", async () => {
+it("reloads an accepted empty inbox only from its card and restores pull-to-refresh when rows return", async () => {
   // Given
   const pending = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url: string, init: RequestInit) =>
@@ -415,8 +415,14 @@ it("shows loading before an accepted empty inbox and offers no manual cleanup", 
   expect(
     await screen.findByRole("progressbar", {
       name: "Chargement des notifications",
+      busy: true,
     }),
   ).toBeOnTheScreen();
+  expect(screen.getAllByRole("progressbar")).toHaveLength(1);
+  expect(screen.queryByRole("link")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Actualiser les données"),
+  ).not.toBeOnTheScreen();
 
   // When
   await act(async () => pending.resolve(Response.json({ notifications: [] })));
@@ -425,9 +431,83 @@ it("shows loading before an accepted empty inbox and offers no manual cleanup", 
   expect(
     await screen.findByText("Aucune notification pour le moment"),
   ).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: /supprimer|archiver|restaurer/i }),
   ).toBeNull();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+
+  // When
+  mockFetch.mockImplementation(response);
+  const user = userEvent.setup();
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: /non lue$/ }),
+  ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+  expect(screen.queryByRole("button", { name: "Actualiser" })).toBeNull();
+  expect(mockFetch.mock.calls.every(([, init]) => init.method === "GET")).toBe(
+    true,
+  );
+});
+
+it("keeps accepted notification links while one appended page is pending and reveals its content without a write", async () => {
+  // Given: only the generated HTTP continuation is delayed; the real inbox and Query owner remain mounted.
+  const pending = Promise.withResolvers<Response>();
+  const second = {
+    ...row,
+    id: "00000000-0000-4000-8000-000000000240",
+    title: "Un lien de démonstration est disponible",
+  };
+  mockFetch.mockImplementation((url: string, init: RequestInit) => {
+    const target = new URL(url);
+    if (!target.pathname.endsWith("/notifications")) return response(url, init);
+    return target.searchParams.has("cursor")
+      ? pending.promise
+      : Response.json({ notifications: [row], nextCursor: "held-page" });
+  });
+  await showInbox();
+  const first = await screen.findByRole("link", {
+    name: /^Le résultat.*non lue$/,
+  });
+
+  // When
+  await fireEvent(first, "endReached");
+
+  // Then: progress is scoped to the continuation, with the accepted row still available.
+  expect(
+    await screen.findByRole("progressbar", {
+      name: "Chargement de la suite…",
+      busy: true,
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("Chargement de la suite…")).toBeOnTheScreen();
+  expect(first).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls
+      .filter(([url]) => new URL(url).searchParams.has("cursor"))
+      .map(([url]) => new URL(url).searchParams.get("cursor")),
+  ).toEqual(["held-page"]);
+
+  // When
+  await act(async () =>
+    pending.resolve(Response.json({ notifications: [second] })),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: /^Un lien de démonstration/ }),
+  ).toBeOnTheScreen();
+  expect(first).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+  expect(mockFetch.mock.calls.some(([, init]) => init.method === "PATCH")).toBe(
+    false,
+  );
 });
 
 it("expires an unloaded summary row while active offline and clears the exact badge without counting loaded rows", async () => {

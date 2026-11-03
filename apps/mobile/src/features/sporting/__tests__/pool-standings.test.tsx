@@ -277,9 +277,21 @@ it.each([
     expect(screen.queryByRole("button", { name: "Réessayer" }) !== null).toBe(
       availability === "unavailable",
     );
-    expect(screen.queryByLabelText("Actualiser les données") !== null).toBe(
-      availability !== "unavailable",
-    );
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+    if (availability !== "unavailable") {
+      mockFetch.mockClear();
+
+      // When: an empty table reloads through its card, without a refresh gesture or a new selection.
+      await userEvent.press(screen.getByRole("button", { name: "Actualiser" }));
+
+      // Then
+      await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
+      expect(new URL(mockFetch.mock.calls[0][0]).pathname).toBe(
+        `/pools/${pool.pool.id}/standings`,
+      );
+      await screen.findByRole("button", { name: "Actualiser", busy: false });
+      expect(screen.getByRole(role, { name: message })).toBeOnTheScreen();
+    }
   },
 );
 
@@ -341,7 +353,8 @@ it("loads team participation standings lazily and preserves them through calenda
   // When
   await user.press(screen.getByRole("tab", { name: "À venir" }));
   await screen.findByText("Aucun match pour cette sélection");
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
   await user.press(screen.getByRole("tab", { name: pool.pool.name }));
 
   // Then
@@ -531,7 +544,7 @@ it.each(["unavailable", "not-published"] as const)(
     // Query can finish before React commits its notified read state; wait for the actual recovery control.
     if (availability === "unavailable")
       await screen.findByRole("button", { name: "Réessayer" });
-    else await screen.findByLabelText("Actualiser les données");
+    else await screen.findByRole("button", { name: "Actualiser" });
     failed = true;
     mockFetch.mockClear();
 
@@ -540,10 +553,7 @@ it.each(["unavailable", "not-published"] as const)(
       expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
       await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
     } else
-      await fireEvent(
-        screen.getByLabelText("Actualiser les données"),
-        "refresh",
-      );
+      await userEvent.press(screen.getByRole("button", { name: "Actualiser" }));
 
     // Then
     expect(
@@ -599,6 +609,7 @@ it.each(["list", "cards"] as const)(
       },
     ];
     await open(panel());
+    await screen.findByRole("link", { name: /Official compact team/ });
 
     // When
     if (layout === "cards")

@@ -332,11 +332,16 @@ it("announces pending collection navigation without inventing a season destinati
   await renderPreparation(<CollectionDashboardScreen />);
 
   // Then
-  expect(
-    await screen.findByRole("progressbar", {
-      name: "Chargement des collectes",
-    }),
-  ).toBeOnTheScreen();
+  // Admission and the held season read share the same announcement; assert its current host after either transition.
+  await waitFor(() =>
+    expect(
+      screen.getByRole("progressbar", {
+        name: "Chargement des collectes",
+        busy: true,
+      }),
+    ).toBeOnTheScreen(),
+  );
+  expect(screen.getAllByRole("progressbar")).toHaveLength(1);
   expect(
     screen.queryByRole("link", { name: "2026/2027, Active" }),
   ).not.toBeOnTheScreen();
@@ -813,6 +818,46 @@ it("launches an initial-import-locked qualified binding unchanged", async () => 
     revision: 5,
     sourceBindingIds: [sourceId],
   });
+});
+
+it("reloads empty source groups from their card and enables native refresh only after rows return", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderPreparation(
+    <SourceChildrenScreen seasonId={seasonId} sourceId={sourceId} />,
+  );
+  await screen.findByRole("header", { name: "Aucun groupe découvert" });
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  mockFetch.mockImplementation((url) =>
+    String(url).includes("/children")
+      ? Promise.resolve(
+          json({
+            items: [
+              {
+                id: "00000000-0000-4000-8000-000000000182",
+                label: "Phase régulière",
+                kind: "pool",
+              },
+            ],
+            page: 0,
+            hasNext: false,
+          }),
+        )
+      : reads(url),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
+
+  // Then
+  expect(await screen.findByText("Phase régulière")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
+  expect(screen.queryByRole("button", { name: "Actualiser" })).toBeNull();
+  expect(
+    mockFetch.mock.calls.every(
+      ([, options]) => !options?.method || options.method === "GET",
+    ),
+  ).toBe(true);
 });
 
 it("loads the next child page only from the visible idle list and retains bounded rows without an invented total", async () => {
@@ -1351,7 +1396,8 @@ it("hides retained source groups when the current catalog read is refused", asyn
 
   // Then
   expect(await screen.findByText("Aucun groupe découvert")).toBeOnTheScreen();
-  expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(screen.getByRole("button", { name: "Actualiser" })).toBeEnabled();
   expect(mockFetch).toHaveBeenCalledTimes(1);
 });
 

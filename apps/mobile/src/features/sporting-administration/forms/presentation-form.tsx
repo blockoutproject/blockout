@@ -17,7 +17,8 @@ import { ApiError } from "../../../shared/api/api-fetch";
 import { DivisionActivityAction } from "../components/division-activity-action";
 import { Button } from "../../../shared/components/button";
 import { ImageField } from "../../../shared/components/image-field";
-import { RequestLoading } from "../../../shared/components/request-feedback";
+import { LoadingGroup } from "../../../shared/components/loading-group";
+import { Skeleton } from "../../../shared/components/skeleton";
 import { TextField } from "../../../shared/components/text-field";
 import { Surface } from "../../../shared/components/surface";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -309,6 +310,8 @@ export function PresentationForm({
   function restoreLogo() {
     editor.replaceLogo({ action: "automatic" });
   }
+  const logoPending =
+    draft.action !== "replace" && hasLogo && artwork.isLoading;
   const identity = (
     <>
       {uri && (
@@ -320,16 +323,29 @@ export function PresentationForm({
           style={isDivision ? styles.divisionLogo : styles.contextLogo}
         />
       )}
-      {!uri && (
-        <View
-          style={[
-            isDivision ? styles.divisionPlaceholder : styles.contextLogo,
-            styles.imagePlaceholder,
-            { backgroundColor: colors.mediaPlaceholder },
-          ]}
+      {!uri && logoPending ? (
+        <LoadingGroup
+          label="Chargement du logo"
+          style={isDivision ? styles.divisionPlaceholder : styles.contextLogo}
         >
-          <ImageFallback size={tokens.size.icon.lg} color={colors.icon} />
-        </View>
+          <Skeleton
+            width={isDivision ? 38 : 64}
+            height={isDivision ? 38 : 64}
+            shape="rectangle"
+          />
+        </LoadingGroup>
+      ) : (
+        !uri && (
+          <View
+            style={[
+              isDivision ? styles.divisionPlaceholder : styles.contextLogo,
+              styles.imagePlaceholder,
+              { backgroundColor: colors.mediaPlaceholder },
+            ]}
+          >
+            <ImageFallback size={tokens.size.icon.lg} color={colors.icon} />
+          </View>
+        )
       )}
       <View style={styles.contextName}>
         <Text style={[tokens.typography.strong, { color: colors.text }]}>
@@ -392,9 +408,6 @@ export function PresentationForm({
         <View style={styles.form}>
           {target.kind !== "pool" && (
             <>
-              {draft.action !== "replace" && hasLogo && artwork.isLoading && (
-                <RequestLoading />
-              )}
               {draft.action !== "replace" &&
                 hasLogo &&
                 artwork.isError &&

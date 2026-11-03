@@ -561,7 +561,10 @@ it("leaves the actual club-season and search-input owners unchanged", async () =
   await layoutNativeTabs();
   await user.press(clubTeams);
   await screen.findByRole("button", { name: `Saison ${older.label}` });
-  await user.type(screen.getByLabelText("Rechercher"), "Volleyball");
+  await user.type(
+    screen.getByPlaceholderText("Rechercher une équipe…"),
+    "Volleyball",
+  );
   await screen.findByText("Aucun résultat pour ces critères");
 
   // When
@@ -763,6 +766,7 @@ it.each([false, true])(
         ? "Aucun match pour cette sélection"
         : "Aucun suivi à afficher",
     );
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
     if (!hasAvailableFollows) {
       await userEvent.press(
         screen.getByRole("button", {
@@ -1690,6 +1694,7 @@ it("shares All seasons across both lists and offers Search only after successful
     reads.every(([url]) => !new URL(url).searchParams.has("seasonId")),
   ).toBe(true);
   expect(screen.queryByRole("button", { name: "Suivi" })).not.toBeOnTheScreen();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
 });
 
 it("keeps an explicit read retry at the list edge after a failed first-page refresh", async () => {

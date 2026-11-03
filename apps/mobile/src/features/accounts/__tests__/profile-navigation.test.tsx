@@ -679,6 +679,7 @@ it("withholds all overview groups while the initial account is pending", async (
     await waitFor(() => expect(mockFetch).toHaveBeenCalled());
 
     // Then
+    expect(screen.getAllByRole("progressbar")).toHaveLength(1);
     expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
     expect(
       screen.queryByRole("header", { name: "Informations légales" }),

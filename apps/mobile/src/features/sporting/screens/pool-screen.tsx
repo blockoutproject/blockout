@@ -1,3 +1,4 @@
+import { SportingPoolLoading } from "../components/sporting-loading";
 import { PageViewport } from "../../../shared/components/navigation-backdrop";
 import { SportingSupportAction } from "../components/sporting-actions";
 import { PoolMap } from "../components/pool-map";
@@ -80,7 +81,9 @@ function PoolPage({
     { id: "completed", label: "Terminés" },
     { id: "map", label: "Carte" },
   ] as const;
-  const blockingState = !data ? <ReadFeedback query={pool} /> : undefined;
+  const blockingState = !data ? (
+    <ReadFeedback query={pool} loadingContent={<SportingPoolLoading />} />
+  ) : undefined;
   return (
     <Page fullBleed>
       {blockingState ? (
@@ -95,7 +98,11 @@ function PoolPage({
           }
         >
           <PageScrollView>
-            <ScreenState>{blockingState}</ScreenState>
+            {pool.isPending ? (
+              <PageContent>{blockingState}</PageContent>
+            ) : (
+              <ScreenState>{blockingState}</ScreenState>
+            )}
           </PageScrollView>
         </PageViewport>
       ) : (

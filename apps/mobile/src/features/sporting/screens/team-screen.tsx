@@ -1,3 +1,4 @@
+import { SportingCalendarPageLoading } from "../components/sporting-loading";
 import { PageViewport } from "../../../shared/components/navigation-backdrop";
 import { SportingSupportAction } from "../components/sporting-actions";
 import { PoolParticipationLink } from "../components/pool-participation-link";
@@ -77,7 +78,14 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
       )}
     </SportingIdentity>
   ) : undefined;
-  const blockingState = !data ? <ReadFeedback query={team} /> : undefined;
+  const blockingState = !data ? (
+    <ReadFeedback
+      query={team}
+      loadingContent={
+        <SportingCalendarPageLoading label="Chargement de l’équipe" />
+      }
+    />
+  ) : undefined;
   return (
     <Page fullBleed>
       {blockingState ? (
@@ -92,7 +100,11 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
           }
         >
           <PageScrollView>
-            <ScreenState>{blockingState}</ScreenState>
+            {team.isPending ? (
+              <PageContent>{blockingState}</PageContent>
+            ) : (
+              <ScreenState>{blockingState}</ScreenState>
+            )}
           </PageScrollView>
         </PageViewport>
       ) : (

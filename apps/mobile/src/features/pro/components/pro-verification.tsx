@@ -1,7 +1,7 @@
 import { ErrorState } from "../../../shared/components/state-card";
 import { View, Text, StyleSheet } from "react-native";
 import { Button } from "../../../shared/components/button";
-import { RequestLoading } from "../../../shared/components/request-feedback";
+import { ProReadLoading } from "./pro-read-loading";
 import { tokens } from "../../../shared/theme/tokens";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -29,6 +29,19 @@ export interface ProVerificationProps {
   onSupport?: () => void;
 }
 
+/** Identifies initial association/rights loading only; known entitlements and uncertain operations keep their own feedback. */
+export function isProVerificationLoading(
+  state: ProState,
+  refreshing: boolean,
+  verificationFailed: boolean,
+): boolean {
+  return (
+    state.status === "unavailable" &&
+    (state.reason === "association-pending" ||
+      (refreshing && !verificationFailed))
+  );
+}
+
 /** Pro-owned verification/recovery; it never changes independent rights or public navigation. */
 export function ProVerification({ onSupport }: ProVerificationProps) {
   const { state, refreshing, verificationFailed, retry } = usePro();
@@ -50,10 +63,11 @@ export function ProVerification({ onSupport }: ProVerificationProps) {
     state.operation !== "restored"
   )
     return null;
-  const waiting =
-    state.status === "unavailable" &&
-    (state.reason === "association-pending" ||
-      (refreshing && !verificationFailed));
+  const waiting = isProVerificationLoading(
+    state,
+    refreshing,
+    verificationFailed,
+  );
   let message = "";
   if (state.operation === "restoring")
     message =
@@ -80,7 +94,7 @@ export function ProVerification({ onSupport }: ProVerificationProps) {
   return (
     <View style={styles.feedback}>
       {waiting ? (
-        <RequestLoading />
+        <ProReadLoading label="Vérification des droits Pro" />
       ) : uncertain || state.operation === "restored" ? (
         <>
           <Text

@@ -16,7 +16,7 @@ import { Globe, Trophy } from "lucide-react-native";
 import { Text } from "react-native";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
-import { RequestLoading } from "../../../shared/components/request-feedback";
+import { CollectionLoading } from "../components/collection-loading";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { useCollectionSeason } from "../api/use-source-preparation";
@@ -33,8 +33,14 @@ export function SeasonPreparationScreen({ seasonId }: { seasonId: string }) {
     if (result.isError && result.data && !isAccessDenied(result.error))
       feedback.error();
   }
+  const pending = !authority.enabled
+    ? authority.sessionStatus === "restoring" ||
+      (authority.sessionStatus === "authenticated" &&
+        authority.account.isPending)
+    : !season.data && !season.isError;
+  const FeedbackLayout = pending ? PageContent : ScreenState;
   const blockingState = !authority.enabled ? (
-    <AccessFeedback {...authority} />
+    <AccessFeedback {...authority} loadingContent={<CollectionLoading />} />
   ) : isAccessDenied(season.error) ? (
     <ErrorState
       onRetry={() => void season.refetch()}
@@ -47,7 +53,7 @@ export function SeasonPreparationScreen({ seasonId }: { seasonId: string }) {
         retrying={season.isFetching}
       />
     ) : (
-      <RequestLoading />
+      <CollectionLoading />
     )
   ) : undefined;
   return (
@@ -63,7 +69,7 @@ export function SeasonPreparationScreen({ seasonId }: { seasonId: string }) {
         }
       >
         {blockingState ? (
-          <ScreenState>{blockingState}</ScreenState>
+          <FeedbackLayout>{blockingState}</FeedbackLayout>
         ) : (
           <PageContent>
             {authority.enabled && season.data && (
