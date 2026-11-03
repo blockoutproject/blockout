@@ -1,5 +1,6 @@
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   act,
@@ -448,9 +449,10 @@ it("keeps list failures distinct from emptiness and retains the accepted persona
   expect(mockFetch).not.toHaveBeenCalled();
 });
 
-it("keeps current choices after a failed explicit refresh and offers the next opening as retry", async () => {
+it("keeps current choices silently after the opening read fails and retries on the next opening", async () => {
   // Given
   const user = userEvent.setup();
+  const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility");
   await mount();
   await waitFor(() =>
     expect(
@@ -468,7 +470,6 @@ it("keeps current choices after a failed explicit refresh and offers the next op
 
   // Then
   await screen.findByRole("radio", { name: older.label, checked: true });
-  await screen.findByRole("alert");
   await waitFor(() =>
     expect(
       mockFetch.mock.calls.filter(([url]) => url.includes("follow-options"))
@@ -476,6 +477,8 @@ it("keeps current choices after a failed explicit refresh and offers the next op
     ).toBe(2),
   );
   expect(screen.getByRole("radio", { name: newer.label })).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(announce).not.toHaveBeenCalled();
 
   // When
   await user.press(screen.getByRole("button", { name: "Fermer" }));
@@ -488,6 +491,101 @@ it("keeps current choices after a failed explicit refresh and offers the next op
         .length,
     ).toBe(3),
   );
+});
+
+it("keeps admitted Home content after a technical profile failure without permitting private actions or new reads", async () => {
+  // Given: Home and the adjacent follow control share the real current-account query.
+  await mount(<FollowButton target={team} season={older} />);
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
+  await layoutNativeTabs();
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await screen.findByRole("button", { name: "Suivre", disabled: false });
+  mockFetch.mockImplementation((url, request) =>
+    url.endsWith("/accounts/me")
+      ? Promise.resolve(new Response(null, { status: 503 }))
+      : transport(url, request),
+  );
+
+  // When
+  await act(async () => {
+    await client.refetchQueries({
+      queryKey: getGetMyAccountQueryKey(),
+      exact: true,
+    });
+  });
+
+  // Then: the profile error suspends commands without removing the accepted calendar or its selection.
+  expect(
+    await screen.findByRole("button", {
+      name: "Saison des suivis",
+      disabled: true,
+    }),
+  ).toHaveAccessibilityValue({ text: older.label });
+  expect(
+    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("tab", { name: "À venir", selected: true }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Suivre" }),
+  ).not.toBeOnTheScreen();
+  mockFetch.mockClear();
+
+  // When: a suspended refresh cannot issue another personal read.
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(mockFetch).not.toHaveBeenCalled();
+
+  // When
+  mockFetch.mockImplementation(transport);
+  await act(async () => {
+    await client.refetchQueries({
+      queryKey: getGetMyAccountQueryKey(),
+      exact: true,
+    });
+  });
+
+  // Then
+  expect(
+    await screen.findByRole("button", {
+      name: "Saison des suivis",
+      disabled: false,
+    }),
+  ).toHaveAccessibilityValue({ text: older.label });
+  expect(
+    await screen.findByRole("button", { name: "Suivre", disabled: false }),
+  ).toBeOnTheScreen();
+
+  // When: a current refusal replaces the transient outage.
+  mockFetch.mockImplementation((url, request) =>
+    url.endsWith("/accounts/me")
+      ? Promise.resolve(new Response(null, { status: 403 }))
+      : transport(url, request),
+  );
+  await act(async () => {
+    await client.refetchQueries({
+      queryKey: getGetMyAccountQueryKey(),
+      exact: true,
+    });
+  });
+
+  // Then: retained content never bypasses a current profile refusal.
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    ).not.toBeOnTheScreen(),
+  );
+  expect(
+    screen.queryByRole("button", {
+      name: "Saison des suivis",
+      disabled: false,
+    }),
+  ).not.toBeOnTheScreen();
 });
 
 it("removes the personal selector when its actual session signs out and uses the shared invitation", async () => {

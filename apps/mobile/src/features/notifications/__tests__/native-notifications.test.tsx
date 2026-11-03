@@ -427,6 +427,42 @@ it("reports a failed read action without cancelling its successful match navigat
   ).toHaveLength(1);
 });
 
+it.each([false, true])(
+  "keeps a refused native read silent while navigation failure=%s owns its own feedback",
+  async (navigationFails) => {
+    // Given
+    const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility");
+    const ordinary = mockFetch.getMockImplementation();
+    if (!ordinary) throw new Error("Synthetic HTTP boundary is required");
+    mockFetch.mockImplementation((url: string, init: RequestInit) =>
+      init.method === "PATCH"
+        ? Promise.resolve(new Response(null, { status: 403 }))
+        : ordinary(url, init),
+    );
+    if (navigationFails)
+      mockOpen.mockImplementation(() => {
+        throw new Error("Native navigation unavailable");
+      });
+    jest
+      .mocked(Notifications.getLastNotificationResponse)
+      .mockReturnValue(response());
+
+    // When
+    await render(<Root />);
+    await waitFor(() => expect(mockOpen).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(privateClient.isMutating()).toBe(0));
+
+    // Then
+    expect(announce).toHaveBeenCalledTimes(navigationFails ? 1 : 0);
+    expect(
+      mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
+    ).toHaveLength(1);
+    expect(Notifications.clearLastNotificationResponse).toHaveBeenCalledTimes(
+      1,
+    );
+  },
+);
+
 it("keeps a failed passive receive refresh discreet", async () => {
   // Given
   await render(<Root />);

@@ -12,6 +12,8 @@ import { applicationVersionsValues } from "./application-versions-values";
 interface DraftState {
   baseline: ApplicationVersionsResponse;
   feedback?: string;
+  /** A server-confirmed conflict outlives a failed automatic reread within this visit. */
+  requiresRead?: boolean;
 }
 /** Owns RHF fields and their coherent baseline for the mounted route only. */
 export function useApplicationVersionsDraft(

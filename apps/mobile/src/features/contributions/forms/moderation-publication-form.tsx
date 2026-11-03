@@ -21,6 +21,7 @@ import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import type { useModerationMatch } from "../api/moderation";
+import { moderationErrorMessage } from "../api/contribution-errors";
 import {
   contributionSchema,
   type ContributionValues,
@@ -134,11 +135,9 @@ export function ModerationPublicationForm({
         reset(contributionValues(result.contribution.url));
         onSuccess();
       }
-    } catch {
+    } catch (error) {
       if (mounted.current)
-        feedback.error(
-          "La publication n’a pas pu être confirmée. Votre saisie est conservée.",
-        );
+        feedback.error(moderationErrorMessage(error, "publication"));
     }
   }
   return (

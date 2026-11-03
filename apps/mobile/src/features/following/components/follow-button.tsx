@@ -3,13 +3,17 @@ import { Check, Plus } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import type { SportingSeasonResponse } from "../../../../.generated/schemas/index.zod";
 import { isUncertainMutationFailure } from "../../../shared/api/api-fetch";
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { useFollowStateQuery } from "../api/use-follow-state-query";
-import { useFollowMutation } from "../api/follow-mutations";
+import {
+  isFollowRestriction,
+  useFollowMutation,
+} from "../api/follow-mutations";
 import { AccountSessionFeedback } from "../../accounts/current-account";
 import type { FollowingTarget } from "../api/following-keys";
 
@@ -96,7 +100,12 @@ export function FollowButton({ target, season }: FollowButtonProps) {
                   : !following,
               );
             } catch (error) {
-              if (!isUncertainMutationFailure(error)) feedback.error();
+              if (
+                !isUncertainMutationFailure(error) &&
+                !isAccessDenied(error) &&
+                !isFollowRestriction(error)
+              )
+                feedback.error();
             }
           }
         }}

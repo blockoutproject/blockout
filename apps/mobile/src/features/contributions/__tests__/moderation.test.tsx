@@ -6,6 +6,7 @@ import {
   getListModeratedStreamContributionsQueryKey,
   getListStreamModerationQueryKey,
   getGetMyAccountQueryKey,
+  getListStreamReportsQueryKey,
 } from "../../../../.generated/mobile";
 import {
   useModerationQueue,
@@ -93,6 +94,7 @@ let writeStatus = 200;
 let failAfterWrite = false;
 let historyPaged = false;
 let reportsPaged = false;
+let reportsEmpty = false;
 let continuationFails = false;
 let profileFails = false;
 let reportReason: string | null = null;
@@ -132,6 +134,7 @@ beforeEach(() => {
   failAfterWrite = false;
   historyPaged = false;
   reportsPaged = false;
+  reportsEmpty = false;
   continuationFails = false;
   profileFails = false;
   reportReason = null;
@@ -242,17 +245,19 @@ beforeEach(() => {
     }
     if (path.endsWith("/reports"))
       return Response.json({
-        count: reportsPaged ? 21 : 1,
-        items: [
-          {
-            id: "00000000-0000-4000-8000-000000000010",
-            reportedAt: "2026-10-24T12:00:00Z",
-            reason:
-              reportsPaged && page === "1"
-                ? "Historique de la seconde page"
-                : reportReason,
-          },
-        ],
+        count: reportsEmpty ? 0 : reportsPaged ? 21 : 1,
+        items: reportsEmpty
+          ? []
+          : [
+              {
+                id: "00000000-0000-4000-8000-000000000010",
+                reportedAt: "2026-10-24T12:00:00Z",
+                reason:
+                  reportsPaged && page === "1"
+                    ? "Historique de la seconde page"
+                    : reportReason,
+              },
+            ],
         ...(reportsPaged && page !== "1" ? { nextPage: 1 } : {}),
       });
     return Response.json({
@@ -514,6 +519,254 @@ it("keeps an unsuccessful queue read distinct from an empty successful selection
   expect(screen.queryByText("Aucun lien à traiter")).toBeNull();
 });
 
+it.each([false, true])(
+  "keeps report rows only when usable content survives a failed section read (populated: %s)",
+  async (populated) => {
+    // Given
+    reportsEmpty = !populated;
+    reportReason = "Retained authorized reason";
+    const activeVersion = detail.activeContribution;
+    if (!activeVersion) throw new Error("Missing active version fixture");
+    const user = userEvent.setup();
+    await mount(<ModerationMatchScreen matchId={sporting.id} />);
+    await user.press(
+      await screen.findByRole("button", { name: "Signalements (0)" }),
+    );
+    await screen.findByText(populated ? reportReason : "Aucun signalement");
+
+    // When: an ordinary section read owns its local error and never emits a toast.
+    failRead = true;
+    await act(() =>
+      client.refetchQueries({
+        queryKey: getListStreamReportsQueryKey(sporting.id, activeVersion.id),
+        exact: true,
+      }),
+    );
+
+    // Then
+    if (populated) expect(screen.getByText(reportReason)).toBeOnTheScreen();
+    else {
+      expect(
+        await screen.findByRole("button", { name: "Réessayer" }),
+      ).toBeOnTheScreen();
+      expect(screen.queryByText("Aucun signalement")).not.toBeOnTheScreen();
+    }
+    expect(screen.getByLabelText("Adresse du lien")).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("alert", {
+        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      }),
+    ).not.toBeOnTheScreen();
+  },
+);
+
+it.each(["queue", "active", "pending"] as const)(
+  "keeps a refused %s refresh owned by the local error without a duplicate toast",
+  async (kind) => {
+    // Given
+    const user = userEvent.setup();
+    await mount(
+      kind === "queue" ? (
+        <ModerationScreen filters={{}} />
+      ) : (
+        <ModerationMatchScreen matchId={sporting.id} />
+      ),
+    );
+    if (kind === "pending")
+      await user.press(
+        await screen.findByRole("tab", { name: "Propositions (1)" }),
+      );
+    await screen.findByLabelText("Actualiser les données");
+    const ordinary = mockFetch.getMockImplementation();
+    if (!ordinary) throw new Error("Missing HTTP boundary");
+    mockFetch.mockImplementation((url, init) =>
+      String(url).includes("/administration/")
+        ? Promise.resolve(Response.json({ status: 403 }, { status: 403 }))
+        : ordinary(url, init),
+    );
+
+    // When: userEvent does not synthesize the native refresh event.
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await screen.findByRole("button", { name: "Réessayer" });
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+
+    // Then
+    expect(
+      screen.queryByRole("alert", {
+        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      }),
+    ).not.toBeOnTheScreen();
+    expect(writes).toEqual([]);
+  },
+);
+
+it.each([false, true])(
+  "keeps grouped report-refresh feedback at the section unless report rows remain (populated: %s)",
+  async (populated) => {
+    // Given
+    reportsEmpty = !populated;
+    reportReason = "Retained authorized reason";
+    const user = userEvent.setup();
+    await mount(<ModerationMatchScreen matchId={sporting.id} />);
+    await user.press(
+      await screen.findByRole("button", { name: "Signalements (0)" }),
+    );
+    await screen.findByText(populated ? reportReason : "Aucun signalement");
+    const ordinary = mockFetch.getMockImplementation();
+    if (!ordinary) throw new Error("Missing HTTP boundary");
+    mockFetch.mockImplementation((url, init) =>
+      new URL(String(url)).pathname.endsWith("/reports")
+        ? Promise.resolve(Response.json({ status: 503 }, { status: 503 }))
+        : ordinary(url, init),
+    );
+
+    // When: userEvent does not synthesize the native refresh event.
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+
+    // Then
+    if (populated) {
+      expect(screen.getByText(reportReason)).toBeOnTheScreen();
+      expect(
+        await screen.findByRole("alert", {
+          name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+        }),
+      ).toBeOnTheScreen();
+    } else {
+      expect(screen.queryByText("Aucun signalement")).not.toBeOnTheScreen();
+      expect(
+        await screen.findByRole("button", { name: "Réessayer" }),
+      ).toBeOnTheScreen();
+      expect(
+        screen.queryByRole("alert", {
+          name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+        }),
+      ).not.toBeOnTheScreen();
+    }
+    expect(screen.getByLabelText("Adresse du lien")).toBeOnTheScreen();
+    expect(writes).toEqual([]);
+  },
+);
+
+it("keeps hidden-tab report failures outside the active pull while retaining their feedback on the selected tab", async () => {
+  // Given
+  detail.items = [version({ reportCount: 1 })];
+  reportReason = "Scoped report reason";
+  const user = userEvent.setup();
+  await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  await user.press(
+    await screen.findByRole("tab", { name: "Propositions (1)" }),
+  );
+  await user.press(
+    await screen.findByRole("button", { name: "Signalements (1)" }),
+  );
+  await screen.findByText(reportReason);
+  const reportReads = mockFetch.mock.calls.filter(([url]) =>
+    new URL(String(url)).pathname.endsWith("/reports"),
+  ).length;
+  await user.press(screen.getByRole("tab", { name: "Actif" }));
+  const ordinary = mockFetch.getMockImplementation();
+  if (!ordinary) throw new Error("Missing HTTP boundary");
+  mockFetch.mockImplementation((url, init) =>
+    new URL(String(url)).pathname.endsWith("/reports")
+      ? Promise.resolve(Response.json({ status: 503 }, { status: 503 }))
+      : ordinary(url, init),
+  );
+
+  // When: userEvent does not synthesize the native refresh event.
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+
+  // Then
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(String(url)).pathname.endsWith("/reports"),
+    ),
+  ).toHaveLength(reportReads);
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+
+  // When: returning retains the reports; only the selected tab's explicit pull owns their failure notice.
+  await user.press(screen.getByRole("tab", { name: "Propositions (1)" }));
+  await screen.findByText(reportReason);
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText(reportReason)).toBeOnTheScreen();
+  expect(writes).toEqual([]);
+});
+
+it.each([
+  { status: 400, message: "La décision a été refusée." },
+  {
+    status: 409,
+    message:
+      "La contribution a changé. Vérifiez les données avant une nouvelle action.",
+  },
+  {
+    status: 503,
+    message:
+      "La décision n’a pas pu être confirmée. Actualisez avant une nouvelle décision.",
+  },
+])(
+  "distinguishes decision outcome after HTTP $status",
+  async ({ status, message }) => {
+    // Given
+    writeStatus = status;
+    const alert = jest.spyOn(Alert, "alert");
+    const user = userEvent.setup();
+    await mount(<ModerationMatchScreen matchId={sporting.id} />);
+    await user.press(await screen.findByRole("button", { name: "Retirer" }));
+
+    // When
+    await act(async () => {
+      alert.mock.calls
+        .at(-1)?.[2]
+        ?.find((button) => button.text === "Retirer")
+        ?.onPress?.();
+    });
+
+    // Then
+    expect(
+      await screen.findByRole("alert", { name: message }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText("Décision confirmée")).not.toBeOnTheScreen();
+    expect(writes).toHaveLength(1);
+  },
+);
+
+it("keeps a refused moderation decision on its withdrawn-content boundary without a duplicate toast", async () => {
+  // Given
+  writeStatus = 403;
+  const alert = jest.spyOn(Alert, "alert");
+  const user = userEvent.setup();
+  await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  await user.press(await screen.findByRole("button", { name: "Retirer" }));
+  failRead = true;
+
+  // When
+  await act(async () => {
+    alert.mock.calls
+      .at(-1)?.[2]
+      ?.find((button) => button.text === "Retirer")
+      ?.onPress?.();
+  });
+  await screen.findByRole("button", { name: "Réessayer" });
+
+  // Then
+  expect(screen.queryByLabelText("Adresse du lien")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByText("La décision a été refusée."),
+  ).not.toBeOnTheScreen();
+  expect(writes).toHaveLength(1);
+});
+
 it("recovers the profile before starting disabled report reads without a false loading state", async () => {
   // Given: the authorized version stays visible through a technical profile refresh failure.
   detail.items = [
@@ -752,9 +1005,59 @@ it("preserves a dirty moderator draft and its original revision across refetch a
     ]),
   );
   expect(screen.getByDisplayValue("https://youtu.be/dirty")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("alert", {
+      name: "La contribution a changé. Vérifiez les données avant une nouvelle action.",
+    }),
+  ).toBeOnTheScreen();
   await waitFor(() => expect(client.isMutating()).toBe(0));
   expect(writes).toHaveLength(1);
 });
+
+it.each([
+  {
+    status: 400,
+    message: "La publication a été refusée. Votre saisie est conservée.",
+  },
+  {
+    status: 503,
+    message:
+      "La publication n’a pas pu être confirmée. Votre saisie est conservée.",
+  },
+])(
+  "retains the publication draft with its HTTP $status outcome",
+  async ({ status, message }) => {
+    // Given
+    detail = { ...detail, canPublish: true };
+    writeStatus = status;
+    const alert = jest.spyOn(Alert, "alert");
+    const user = userEvent.setup();
+    await mount(<ModerationMatchScreen matchId={sporting.id} />);
+    await user.clear(await screen.findByLabelText("Adresse du lien"));
+    await user.type(
+      screen.getByLabelText("Adresse du lien"),
+      "https://youtu.be/retained-draft",
+    );
+    await user.press(screen.getByRole("button", { name: "Remplacer le lien" }));
+
+    // When
+    await act(async () => {
+      alert.mock.calls
+        .at(-1)?.[2]
+        ?.find((button) => button.text === "Remplacer le lien")
+        ?.onPress?.();
+    });
+
+    // Then
+    expect(
+      await screen.findByRole("alert", { name: message }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByDisplayValue("https://youtu.be/retained-draft"),
+    ).toBeOnTheScreen();
+    expect(writes).toHaveLength(1);
+  },
+);
 
 it("keeps acknowledged success when the dependent history read fails", async () => {
   // Given

@@ -319,6 +319,42 @@ it("reports a tap failure once when navigation and its independent read command 
   expect(screen.getByRole("link", { name: /non lue$/ })).toBeOnTheScreen();
 });
 
+it.each([403, 404])(
+  "leaves a refused %i read with its owning inbox recovery and no toast",
+  async (status) => {
+    // Given
+    const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility");
+    let refused = false;
+    mockFetch.mockImplementation((url: string, init: RequestInit) => {
+      if (init.method === "PATCH") {
+        refused = true;
+        return Promise.resolve(new Response(null, { status }));
+      }
+      if (refused && url.endsWith("/notifications"))
+        return Promise.resolve(new Response(null, { status: 403 }));
+      return response(url, init);
+    });
+    await showInbox();
+
+    // When
+    await userEvent.press(
+      await screen.findByRole("link", { name: /non lue$/ }),
+    );
+    await screen.findByRole("button", { name: "Réessayer" });
+    await waitFor(() => expect(privateClient.isMutating()).toBe(0));
+
+    // Then: independent public navigation still runs once, without a second error presentation.
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByRole("link", { name: /non lue$/ }),
+    ).not.toBeOnTheScreen();
+    expect(announce).not.toHaveBeenCalled();
+    expect(
+      mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
+    ).toHaveLength(1);
+  },
+);
+
 it("revalidates cached cards on focus without pulling, and shows progress only for a manual pull", async () => {
   // Given: automatic focus and the native pull use the same real Query read owner.
   const view = await showInbox();

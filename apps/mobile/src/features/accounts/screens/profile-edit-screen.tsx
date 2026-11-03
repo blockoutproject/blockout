@@ -72,7 +72,9 @@ export function ProfileEditScreen({ admitted }: ProfileEditScreenProps) {
           ) : session.status === "restoring" ||
             session.status === "authenticating" ||
             session.status === "signing-out" ||
-            (session.status === "authenticated" && account.isPending) ? (
+            (session.status === "authenticated" &&
+              account.isPending &&
+              account.isFetching) ? (
             <PageContent>
               <ProfileLoading editor />
             </PageContent>
@@ -98,7 +100,7 @@ export function ProfileEditScreen({ admitted }: ProfileEditScreenProps) {
                 onPress={() => router.replace("/sign-in")}
               />
             </ScreenState>
-          ) : account.isError ? (
+          ) : account.isError || account.isPending ? (
             <ScreenState>
               <ErrorState
                 onRetry={

@@ -3,6 +3,7 @@ import { createQueryClient } from "../../../shared/query/query-client";
 import { onlineManager } from "@tanstack/react-query";
 import {
   getGetMyAccountQueryKey,
+  getListCollectionControlsQueryKey,
   getListCollectionSeasonsQueryKey,
 } from "../../../../.generated/mobile";
 import {
@@ -176,6 +177,49 @@ it("replaces an empty collection season result with its failed refresh and recov
 
   // Then
   expect(await screen.findByText("Aucune saison découverte")).toBeOnTheScreen();
+});
+
+it("keeps a failed control-list retry local when its cached envelope contains no applicable control", async () => {
+  // Given: an empty control list is an accepted read, not retained usable control content.
+  peer.controls = [];
+  await renderCollection(
+    <CollectionControlScreen family="club-sheets" />,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
+  const key = getListCollectionControlsQueryKey();
+  await waitFor(() =>
+    expect(privateClient.getQueryData(key)).toEqual({ items: [] }),
+  );
+  mockFetch.mockImplementation((url, options) =>
+    new URL(String(url)).pathname.endsWith("/collection-controls")
+      ? Promise.resolve(refused(503))
+      : peer.reads(url, options),
+  );
+  await act(() => privateClient.refetchQueries({ queryKey: key, exact: true }));
+
+  // When
+  await userEvent.press(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  );
+
+  // Then
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Réessayer" }),
+    ).not.toBeDisabled(),
+  );
+  expect(privateClient.getQueryData(key)).toEqual({ items: [] });
+  expect(
+    screen.getByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).not.toBeOnTheScreen();
 });
 
 it("separates competition seasons from the two seasonless controls", async () => {

@@ -16,7 +16,10 @@ import {
   MatchSummary,
   useConsultationQueries,
 } from "../../sporting/match-consultation";
-import { useOwnContributions } from "../api/own-contributions";
+import {
+  isOwnContributionAccessDenied,
+  useOwnContributions,
+} from "../api/own-contributions";
 import { ContributionForm } from "../forms/contribution-form";
 
 /** Exact match route; F05/F12 and the generated owner read retain authority over submission. */
@@ -40,7 +43,15 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
       editing.refresh(),
       match.refetch({ throwOnError: true }),
     ]);
-    if (results.some((result) => result.status === "rejected"))
+    if (
+      current &&
+      !results.some(
+        (result) =>
+          result.status === "rejected" &&
+          isOwnContributionAccessDenied(result.reason),
+      ) &&
+      results.some((result) => result.status === "rejected")
+    )
       feedback.error();
   }
   const pending =

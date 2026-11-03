@@ -1,5 +1,9 @@
 import { useLayoutEffect, type PropsWithChildren } from "react";
-import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  onlineManager,
+  useQueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { accountResponse } from "../test-support/account-response";
 import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
@@ -150,6 +154,7 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await cleanup();
+  onlineManager.setOnline(true);
   client.clear();
   publicClient.clear();
   // Jest owns pending native/Query batching; restore real time only after unmounted work is drained.
@@ -469,6 +474,34 @@ it("announces the initial profile read without exposing profile commands", async
   expect(await screen.findByDisplayValue("Original")).toBeOnTheScreen();
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
 });
+
+it.each(["account", "photo"])(
+  "keeps the editor behind recovery while the initial %s read is paused",
+  async (resource) => {
+    // Given: the existing session is usable, but this initial resource cannot start offline.
+    if (resource === "account") onlineManager.setOnline(false);
+    else
+      mockFetch.mockImplementation(async () => {
+        onlineManager.setOnline(false);
+        return json({ ...account, hasPhoto: true });
+      });
+
+    // When
+    await mountProfile();
+
+    // Then
+    expect(
+      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("progressbar")).toBeNull();
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+    expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Enregistrer" }),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  },
+);
 
 it("withholds the whole editor until its initial existing photo is ready", async () => {
   // Given

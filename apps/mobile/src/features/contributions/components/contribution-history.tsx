@@ -28,6 +28,8 @@ import { ModerationReportsLoading } from "./moderation-loading";
 export interface ContributionHistoryProps {
   matchId: string;
   contribution: ModeratedStreamContributionResponse;
+  /** Retained pager scenes keep their report rows mounted but only the selected scene starts reads. */
+  active?: boolean;
   historical?: boolean;
   /** The active editor already supplies the provider/state heading and external opening. */
   detailsOnly?: boolean;
@@ -42,6 +44,7 @@ export interface ContributionHistoryProps {
 export function ContributionHistory({
   matchId,
   contribution: version,
+  active = true,
   historical = false,
   detailsOnly = false,
   busy,
@@ -56,7 +59,7 @@ export function ContributionHistory({
   const reading = useModerationReports(
     matchId,
     version.id,
-    reportsOpen && expanded,
+    active && reportsOpen && expanded,
   );
   const { query: reports } = reading;
   const reportContent =
@@ -225,7 +228,8 @@ export function ContributionHistory({
             />
             {reportsOpen && (
               <View style={styles.reportContent}>
-                {!reportContent ? (
+                {!reportContent ||
+                (reports.isError && reportContent.items.length === 0) ? (
                   <ReadFeedback
                     query={!reading.allowed ? reading.profile : reports}
                     loadingContent={<ModerationReportsLoading />}

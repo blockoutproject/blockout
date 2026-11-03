@@ -42,6 +42,7 @@ export function MaintenanceForm({
   const [state, setState] = useState<{
     baseline: MaintenanceSettingsResponse;
     feedback?: string;
+    requiresRead?: boolean;
   }>({ baseline: settings });
   const { baseline } = state;
   const feedback =
@@ -64,14 +65,22 @@ export function MaintenanceForm({
   const imageUrl = useWatch({ control, name: "imageUrl" });
   const busy =
     disabled || editing.content.isPending || editing.query.isFetching;
-  const rereadRequired = Math.max(settings.revision, 0) > baseline.revision;
+  const rereadRequired =
+    state.requiresRead === true ||
+    Math.max(settings.revision, 0) > baseline.revision;
   const validPreview =
     imageUrl !== "" && maintenanceImageSchema.safeParse(imageUrl).success;
-  /** Keeps a failed draft intact; only ambiguous outcomes and conflicts block further writes. */
+  /** A confirmed conflict requires the existing explicit reread even when background invalidation fails. */
   function failed(error: unknown) {
     if (!mounted.current) return;
-    if (!(error instanceof ApiError && error.status === 409))
-      actionFeedback.error();
+    if (error instanceof ApiError && error.status === 409)
+      setState((current) => ({
+        ...current,
+        requiresRead: true,
+        feedback:
+          "Les réglages ont changé. Relisez-les avant une nouvelle soumission.",
+      }));
+    else actionFeedback.error();
   }
   /** Submits supplied dirty content against its accepted editing revision, without activation. */
   async function submit(draft: MaintenanceValues) {

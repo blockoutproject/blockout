@@ -512,6 +512,47 @@ it("retains a dirty contribution after conflict and failed explicit refresh with
   expect(writes).toHaveLength(1);
 });
 
+it.each(
+  (["owner", "match"] as const).flatMap((resource) =>
+    [401, 403, 404].map((status) => ({ resource, status })),
+  ),
+)(
+  "keeps the $resource HTTP $status pull refusal on its error card without a toast",
+  async ({ resource, status }) => {
+    // Given
+    await render(<ContributionScreen matchId={match.match.id} />, {
+      wrapper: Wrapper,
+    });
+    await screen.findByLabelText("Adresse du lien");
+    const peer = mockFetch.getMockImplementation();
+    mockFetch.mockImplementation(async (url, init) => {
+      const path = new URL(String(url)).pathname;
+      if (
+        resource === "owner"
+          ? path.includes("/stream-contributions")
+          : path === `/matches/${match.match.id}`
+      )
+        return Response.json({ status }, { status });
+      if (!peer) throw new Error("Missing HTTP boundary");
+      return peer(url, init);
+    });
+
+    // When: userEvent does not synthesize the native refresh event.
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await screen.findByRole("button", { name: "Réessayer" });
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+
+    // Then
+    expect(screen.queryByLabelText("Adresse du lien")).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("alert", {
+        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      }),
+    ).not.toBeOnTheScreen();
+    expect(writes).toEqual([]);
+  },
+);
+
 it.each(["submit", "cancel", "withdraw"] as const)(
   "keeps confirmed %s separate from failed derivative reads",
   async (action) => {

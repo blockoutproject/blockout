@@ -32,7 +32,10 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useInboxQueries } from "../api/use-inbox-queries";
 import { refreshInbox, refreshNotificationSummary } from "../api/inbox-queries";
-import { createReadNotificationOptions } from "../api/inbox-mutations";
+import {
+  createReadNotificationOptions,
+  isNotificationReadRefusal,
+} from "../api/inbox-mutations";
 import { notificationExpiry } from "../state/inbox-expiry";
 import { NotificationItem } from "../components/notification-item";
 import { NotificationLoading } from "../components/notification-loading";
@@ -165,7 +168,11 @@ function Inbox({
       reported = true;
       feedback.error();
     }
-    command.mutate(id, { onError: reportFailure });
+    command.mutate(id, {
+      onError(error) {
+        if (!isNotificationReadRefusal(error)) reportFailure();
+      },
+    });
     void sporting.navigate("match", matchId, reportFailure);
   }
   return (

@@ -1,5 +1,9 @@
 import { useLayoutEffect, type PropsWithChildren } from "react";
-import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  onlineManager,
+  useQueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
 import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import { accountResponse } from "../test-support/account-response";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
@@ -85,6 +89,7 @@ beforeEach(() => {
 
 afterEach(async () => {
   await cleanup();
+  onlineManager.setOnline(true);
   client.clear();
   publicClient.clear();
   process.env = { ...previousEnvironment };
@@ -709,6 +714,37 @@ it("withholds all overview groups while the initial account is pending", async (
     await act(() => response.resolve(Response.json(account)));
   }
 });
+
+it.each(["account", "photo"])(
+  "presents recovery without a skeleton while the initial %s read is paused",
+  async (resource) => {
+    // Given: connectivity is unavailable before this resource can start its first read.
+    if (resource === "account") onlineManager.setOnline(false);
+    else
+      mockFetch.mockImplementation(async () => {
+        onlineManager.setOnline(false);
+        return Response.json({ ...account, hasPhoto: true });
+      });
+
+    // When
+    await openProfile();
+
+    // Then
+    expect(
+      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("progressbar")).toBeNull();
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+    expect(screen.queryByText(account.username)).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("header", { name: "Mon compte" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Modifier mon profil" }),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  },
+);
 
 it("treats a failed authentication restoration as a whole-page recovery rather than a guest", async () => {
   // Given

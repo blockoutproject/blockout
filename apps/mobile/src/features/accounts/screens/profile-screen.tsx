@@ -77,7 +77,7 @@ export function ProfileScreen({
   ) : session.status === "restoring" ||
     session.status === "authenticating" ||
     session.status === "signing-out" ||
-    (connected && account.isPending) ? (
+    (connected && account.isPending && account.isFetching) ? (
     <PageContent>
       <ProfileLoading />
     </PageContent>
@@ -96,7 +96,7 @@ export function ProfileScreen({
       />
     </ScreenState>
   ) : connected &&
-    account.isError &&
+    (account.isError || account.isPending) &&
     (!account.data || isAccessDenied(account.error)) ? (
     <ScreenState>
       <ErrorState
@@ -223,7 +223,7 @@ function ProfileContent({
         refreshControl={admitted || available ? refreshControl : undefined}
       >
         {!admitted && !available ? (
-          photo.isError || disabled ? (
+          photo.isError || disabled || !photo.isFetching ? (
             <ScreenState>
               <ErrorState
                 onRetry={disabled ? onRetryRead : () => void photo.refetch()}

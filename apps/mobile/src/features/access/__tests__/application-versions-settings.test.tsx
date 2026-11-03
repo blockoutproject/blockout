@@ -483,6 +483,69 @@ it.each([403, 422])(
     );
   },
 );
+it("keeps conflict feedback and the required reread when invalidation fails", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderSettings();
+  await user.clear(await screen.findByLabelText("Message commun"));
+  await user.type(screen.getByLabelText("Message commun"), "Mon brouillon");
+  let unavailable = true;
+  let writes = 0;
+  mockFetch.mockImplementation(async (url, options) => {
+    if (String(url).endsWith("/accounts/me")) return json(account);
+    if (options?.method === "PATCH") {
+      writes++;
+      return json(
+        {
+          type: "urn:blockout:problem:stale-revision",
+          title: "Conflict",
+          status: 409,
+        },
+        409,
+      );
+    }
+    return unavailable
+      ? json({ title: "Unavailable", status: 503 }, 503)
+      : json({ ...stored, revision: 3 });
+  });
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  await act(async () => nativeAlertAction("Appliquer")());
+
+  // Then
+  expect(
+    await screen.findByText(
+      "Les réglages ont changé. Relisez-les avant une nouvelle soumission.",
+    ),
+  ).toBeOnTheScreen();
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Relire les réglages" }),
+    ).toBeEnabled(),
+  );
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
+    "Mon brouillon",
+  );
+  expect(screen.queryByText(TECHNICAL_ERROR)).toBeNull();
+  expect(writes).toBe(1);
+
+  // When
+  unavailable = false;
+  await user.press(screen.getByRole("button", { name: "Relire les réglages" }));
+
+  // Then
+  await screen.findByText(
+    "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
+  );
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+  expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
+    "Mon brouillon",
+  );
+  expect(writes).toBe(1);
+});
+
 it.each(["conflict", "lost", "invalid-response"])(
   "rereads after %s and requires explicit resubmission without merging dirty fields",
   async (outcome) => {

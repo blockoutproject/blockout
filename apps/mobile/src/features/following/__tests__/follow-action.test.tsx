@@ -723,6 +723,41 @@ it("refreshes current state after a lost write response while retaining ordinary
 });
 
 it.each([403, 404])(
+  "keeps a refused %i follow write on its read card without a duplicate toast",
+  async (status) => {
+    // Given
+    let refused = false;
+    mockFetch.mockImplementation((url, request) => {
+      if (
+        url.includes("team-follows") &&
+        (refused || request?.method === "PUT")
+      ) {
+        refused = true;
+        return Promise.resolve(new Response(null, { status }));
+      }
+      return transport(url, request);
+    });
+    await renderFollowing(<FollowButton target={team} season={season} />);
+    await screen.findByRole("button", { name: "Suivre", disabled: false });
+
+    // When
+    await userEvent.press(screen.getByRole("button", { name: "Suivre" }));
+    await screen.findByRole("button", { name: "Réessayer" });
+    await waitFor(() => expect(client.isMutating()).toBe(0));
+
+    // Then
+    expect(screen.getByText("Une erreur est survenue")).toBeOnTheScreen();
+    expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Suivre" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+    ).toHaveLength(1);
+  },
+);
+
+it.each([403, 404])(
   "restores the follow action after a refused %i write and a successful member read without replay",
   async (status) => {
     // Given

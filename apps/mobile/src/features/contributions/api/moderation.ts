@@ -6,6 +6,7 @@ import {
   useQuery,
   type QueryFunctionContext,
   type InfiniteData,
+  type QueryFilters,
 } from "@tanstack/react-query";
 import { useEffect } from "react";
 import {
@@ -31,6 +32,7 @@ import {
   ListStreamModerationParams,
   StreamVersionFilterEnum,
   UpdateModeratedStreamContributionRequest,
+  type StreamReportsResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { isAccessDenied } from "../../../shared/api/access-denied";
@@ -314,20 +316,32 @@ export function useModerationMatch(
       ),
     onSettled: settled,
   });
-  /** Explicit match refresh also rereads open exact-version reports, including unchanged totals after erasure. */
+  /** Rereads match context and open reports; empty report failures stay local while retained reasons use the initiating pull feedback. */
   async function refresh() {
     const resource = getListModeratedStreamContributionsQueryKey(matchId)[0];
+    const reports: QueryFilters = {
+      predicate: (query) =>
+        typeof query.queryKey[0] === "string" &&
+        query.queryKey[0].startsWith(`${resource}/`) &&
+        query.queryKey[0].endsWith("/reports"),
+    };
     return Promise.all([
       reading.refresh(),
-      client.invalidateQueries(
-        {
-          predicate: (query) =>
-            typeof query.queryKey[0] === "string" &&
-            query.queryKey[0].startsWith(`${resource}/`) &&
-            query.queryKey[0].endsWith("/reports"),
-        },
-        { throwOnError: true },
-      ),
+      client.invalidateQueries(reports).then(() => {
+        const retainedFailure = client
+          .getQueryCache()
+          .findAll({ ...reports, type: "active" })
+          .find((query) => {
+            const data = client.getQueryData<
+              InfiniteData<StreamReportsResponse>
+            >(query.queryKey);
+            return (
+              query.state.status === "error" &&
+              data?.pages.some((page) => page.items.length > 0)
+            );
+          });
+        if (retainedFailure) throw retainedFailure.state.error;
+      }),
     ]);
   }
   return { ...reading, publish, change, reactivate, refresh };

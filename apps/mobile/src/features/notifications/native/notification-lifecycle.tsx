@@ -5,7 +5,10 @@ import { useRootNavigationState, useRouter } from "expo-router";
 import { useEffect, useEffectEvent, useLayoutEffect, useRef } from "react";
 import { AppState } from "react-native";
 import { z } from "zod";
-import { createReadNotificationOptions } from "../api/inbox-mutations";
+import {
+  createReadNotificationOptions,
+  isNotificationReadRefusal,
+} from "../api/inbox-mutations";
 import { refreshInbox, refreshNotificationSummary } from "../api/inbox-queries";
 import { useInboxQueries } from "../api/use-inbox-queries";
 import type { PushRegistration } from "./push-registration";
@@ -111,7 +114,9 @@ export function NotificationLifecycle({
         });
         void observer
           .mutate(data.data.notificationId)
-          .catch(reportFailure)
+          .catch((error: unknown) => {
+            if (!isNotificationReadRefusal(error)) reportFailure();
+          })
           .finally(() => observer.reset());
       }
       void transition.open({

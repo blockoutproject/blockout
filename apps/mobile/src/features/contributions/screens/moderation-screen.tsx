@@ -224,8 +224,9 @@ function QueueScene({
     setRefreshing(true);
     try {
       await editing.refresh();
-    } catch {
+    } catch (error) {
       if (
+        !isAccessDenied(error) &&
         rows.length > 0 &&
         currentScene.current === identity &&
         navigation.isFocused()

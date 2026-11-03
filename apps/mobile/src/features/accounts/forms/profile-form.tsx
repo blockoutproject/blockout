@@ -198,7 +198,7 @@ export function ProfileForm({
       refreshControl={admitted || photoReady ? refreshControl : undefined}
     >
       {!admitted && !photoReady ? (
-        photo.isError || disabled ? (
+        photo.isError || disabled || !photo.isFetching ? (
           <ScreenState>
             <ErrorState
               onRetry={disabled ? onRetryRead : () => void photo.refetch()}

@@ -95,7 +95,9 @@ export function ApplicationVersionsForm({
   const checked = acknowledged === storeChoice;
   const busy =
     disabled || editing.content.isPending || editing.query.isFetching;
-  const rereadRequired = Math.max(settings.revision, 0) > baseline.revision;
+  const rereadRequired =
+    state.requiresRead === true ||
+    Math.max(settings.revision, 0) > baseline.revision;
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -125,8 +127,15 @@ export function ApplicationVersionsForm({
       reset(applicationVersionsValues(accepted));
       if (mounted.current) setAcknowledged(undefined);
     } catch (error) {
-      if (!(error instanceof ApiError && error.status === 409))
-        actionFeedback.error();
+      if (!mounted.current) return;
+      if (error instanceof ApiError && error.status === 409)
+        editor.update({
+          ...editor.state,
+          requiresRead: true,
+          feedback:
+            "Les réglages ont changé. Relisez-les avant une nouvelle soumission.",
+        });
+      else actionFeedback.error();
     }
   }
   /** Reads the actual outcome and keeps dirty fields, without submitting or merging conflicting input. */

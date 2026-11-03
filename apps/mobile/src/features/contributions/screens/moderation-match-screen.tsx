@@ -31,6 +31,7 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { AccountSessionFeedback } from "../../accounts/current-account";
 import { useModerationMatch, useModerationVersions } from "../api/moderation";
+import { moderationErrorMessage } from "../api/contribution-errors";
 import { ContributionHistory } from "../components/contribution-history";
 import { ModerationMatchContext } from "../components/moderation-match-context";
 import { ModerationMatchLoading } from "../components/moderation-loading";
@@ -122,11 +123,9 @@ export function ModerationMatchScreen({ matchId }: ModerationMatchScreenProps) {
           body: { actorAccountId, revision, action },
         });
       if (mounted.current) setConfirmed(true);
-    } catch {
-      if (mounted.current)
-        feedback.error(
-          "La décision n’a pas pu être confirmée. Actualisez avant une nouvelle décision.",
-        );
+    } catch (error) {
+      if (mounted.current && !isAccessDenied(error))
+        feedback.error(moderationErrorMessage(error, "decision"));
     }
   }
   return (
@@ -223,8 +222,8 @@ function ActiveScene({
     setRefreshing(true);
     try {
       await (form.current ? form.current.refresh() : editing.refresh());
-    } catch {
-      feedback.error();
+    } catch (error) {
+      if (!isAccessDenied(error)) feedback.error();
     } finally {
       setRefreshing(false);
     }
@@ -335,6 +334,7 @@ function ActiveScene({
                 key={published.id}
                 matchId={matchId}
                 contribution={published}
+                active={active}
                 detailsOnly
                 busy={busy}
               />
@@ -410,6 +410,10 @@ function VersionScene({
       if (
         currentScene.current === identity &&
         navigation.isFocused() &&
+        !results.some(
+          (result) =>
+            result.status === "rejected" && isAccessDenied(result.reason),
+        ) &&
         results.some((result) => result.status === "rejected")
       )
         feedback.error();
@@ -534,6 +538,7 @@ function VersionScene({
           key={item.id}
           matchId={matchId}
           contribution={item}
+          active={active}
           historical={state === "historical"}
           busy={busy}
           onAction={(version, action) =>

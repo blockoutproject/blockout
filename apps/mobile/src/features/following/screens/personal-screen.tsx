@@ -106,14 +106,18 @@ function PersonalHeader() {
     </View>
   );
 }
-/** Keeps the choice and selected tab mounted while ordinary sporting routes cover Home. */
+/** Retains same-account content through technical profile failure; strict readiness still gates private actions and reads. */
 function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
   const { owner, profile, season, request, admitted, usable, blocked, bypass } =
     scope;
   const router = useRouter();
   const [tab, setTab] = useState("upcoming");
   const focused = useIsFocused();
-  const ready = usable && !!season.options.data && !blocked;
+  const ready =
+    admitted &&
+    profile.data?.accountId === owner.accountId &&
+    !!season.options.data &&
+    !blocked;
   const blockingQuery = !usable ? profile : season.options;
   const loadingContent =
     tab === "following" ? (
@@ -156,7 +160,7 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
                   request={request}
                   seasonId={season.seasonId}
                   category={id}
-                  active={focused && tab === id}
+                  active={usable && focused && tab === id}
                   bypass={bypass}
                 />
               ) : (
@@ -165,7 +169,7 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
                   owner={owner}
                   request={request}
                   seasonId={season.seasonId}
-                  active={focused && tab === id}
+                  active={usable && focused && tab === id}
                   bypass={bypass}
                 />
               ),

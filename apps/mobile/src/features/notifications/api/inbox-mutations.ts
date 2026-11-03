@@ -7,6 +7,16 @@ import {
   type InboxData,
   type createInboxQueries,
 } from "./inbox-queries";
+
+/** A current account or entry refusal belongs to read recovery rather than duplicate tap feedback. */
+export function isNotificationReadRefusal(error: unknown): boolean {
+  return (
+    error instanceof ApiError &&
+    error.kind === "http" &&
+    [401, 403, 404].includes(error.status ?? 0)
+  );
+}
+
 /** Sends true-only read intent; ordinary invalidation establishes the next server representation. */
 export function createReadNotificationOptions(
   client: QueryClient,

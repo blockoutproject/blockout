@@ -566,6 +566,45 @@ it("does not acquire an ownerless public contribution or offer actions for an em
   expect(patches).toHaveLength(0);
 });
 
+it("shows the read error after a failed refresh with only an empty personal history cache", async () => {
+  // Given
+  rows = [];
+  const user = userEvent.setup();
+  await mount();
+  await screen.findByRole("header", { name: "Mes propositions (0)" });
+
+  // When
+  failRead = true;
+  await user.pullToRefresh(screen.getByLabelText("Liste de mes propositions"));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("header", { name: "Mes propositions (0)" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "Mes propositions" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).not.toBeOnTheScreen();
+  expect(patches).toEqual([]);
+
+  // When
+  failRead = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByRole("header", { name: "Mes propositions (0)" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+});
+
 it("retains the private previous read after accepted withdrawal when its refresh fails", async () => {
   // Given
   const user = userEvent.setup();
@@ -1020,6 +1059,11 @@ it.each([401, 403, 404])(
       screen.queryByText("https://youtu.be/history-2"),
     ).not.toBeOnTheScreen();
     expect(
+      screen.queryByRole("alert", {
+        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      }),
+    ).not.toBeOnTheScreen();
+    expect(
       screen.queryByRole("button", { name: "Retirer" }),
     ).not.toBeOnTheScreen();
 
@@ -1244,6 +1288,11 @@ it.each([401, 403, 404])(
     await waitFor(() => expect(privateClient.isFetching()).toBe(0));
 
     // Then
+    expect(
+      screen.queryByRole("alert", {
+        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      }),
+    ).not.toBeOnTheScreen();
     expect(
       screen.queryByText("https://youtu.be/history-2"),
     ).not.toBeOnTheScreen();

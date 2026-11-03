@@ -263,7 +263,6 @@ function ControlScope({
   rereadSeason?: () => Promise<QueryObserverResult<CollectionSeasonResponse>>;
 }) {
   const { authority, query } = useCollectionControls(season?.id);
-  const feedback = useActionFeedback();
   const selected =
     !isAccessDenied(query.error) &&
     query.data?.items.find(
@@ -300,16 +299,7 @@ function ControlScope({
               />
             ) : query.isError ? (
               <ErrorState
-                onRetry={() =>
-                  void query.refetch().then((result) => {
-                    if (
-                      result.isError &&
-                      result.data &&
-                      !isAccessDenied(result.error)
-                    )
-                      feedback.error();
-                  })
-                }
+                onRetry={() => void query.refetch()}
                 retrying={query.isFetching}
               />
             ) : query.data ? (

@@ -130,6 +130,7 @@ export function OwnContributionsScreen({
       ]
     : [];
   const active = authorized ? current?.activeContribution : undefined;
+  const emptyReadFailed = query.isError && rows.length === 0 && !active;
   /** Rereads displayed context and personal history together; an ordinary failure preserves their authorized data. */
   async function refresh() {
     if (change.isPending || submit.isPending) return;
@@ -140,6 +141,13 @@ export function OwnContributionsScreen({
     ]);
     if (
       mounted.current &&
+      authorized &&
+      (rows.length > 0 || !!active) &&
+      !results.some(
+        (result) =>
+          result.status === "rejected" &&
+          isOwnContributionAccessDenied(result.reason),
+      ) &&
       results.some((result) => result.status === "rejected")
     )
       feedback.error();
@@ -193,7 +201,7 @@ export function OwnContributionsScreen({
         }}
         ItemSeparatorComponent={EntryGroupSeparator}
         refreshControl={
-          authorized && current ? (
+          authorized && current && !emptyReadFailed ? (
             <DataRefreshControl
               enabled={!change.isPending && !submit.isPending}
               refreshing={query.isRefetching || match.isRefetching}
@@ -245,7 +253,7 @@ export function OwnContributionsScreen({
                   retrying={editing.profile.isFetching}
                 />
               </FeedbackLayout>
-            ) : !current || !authorized ? (
+            ) : !current || !authorized || emptyReadFailed ? (
               <FeedbackLayout style={pending ? undefined : styles.feedback}>
                 {query.isError || isOwnContributionAccessDenied(match.error) ? (
                   <ErrorState
@@ -293,7 +301,7 @@ export function OwnContributionsScreen({
               accessibilityRole="header"
               style={[tokens.typography.heading, { color: colors.text }]}
             >
-              {authorized && current
+              {authorized && current && !emptyReadFailed
                 ? `Mes propositions (${current.proposalCount})`
                 : "Mes propositions"}
             </Text>
