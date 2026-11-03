@@ -1,9 +1,11 @@
 import { Image } from "expo-image";
+import { BlurredArtwork } from "../../../shared/components/blurred-artwork";
 import { ImageFallback } from "../../../shared/components/image-fallback";
 import { useState, type ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { SportingIdentityResponse } from "../../../../.generated/schemas/index.zod";
 import { Skeleton } from "../../../shared/components/skeleton";
+import { useNativeImageLifecycle } from "../../../shared/images/use-native-image-lifecycle";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
@@ -21,12 +23,6 @@ export interface SportingMediaProps {
   renderWithAtmosphere?: (logo: ReactNode, atmosphere: ReactNode) => ReactNode;
 }
 
-/** The source identity survives status changes and rejects queued events from a replaced native image. */
-interface NativeLogoState {
-  source: { uri?: string };
-  status: "pending" | "displayed" | "failed";
-}
-
 /** Keeps native media beneath its skeleton without remounting the caller's card; either layer's error withdraws both. */
 export function SportingMedia({
   identity,
@@ -39,22 +35,7 @@ export function SportingMedia({
   renderWithAtmosphere,
 }: SportingMediaProps) {
   const { colors } = useTheme();
-  const [image, setImage] = useState<NativeLogoState>(() => ({
-    source: { uri },
-    status: "pending",
-  }));
-  // Reset only image state before rendering a changed URI, preserving caller-owned card content.
-  if (image.source.uri !== uri)
-    setImage({ source: { uri }, status: "pending" });
-  const source = image.source;
-  /** Only this native source may settle; an error remains terminal even after a queued display event. */
-  function settleImage(status: "displayed" | "failed") {
-    setImage((current) =>
-      current.source !== source || current.status === "failed"
-        ? current
-        : { ...current, status },
-    );
-  }
+  const image = useNativeImageLifecycle(uri);
   const failed = image.status === "failed";
   const available = !!uri && !failed;
   const pending = available && image.status === "pending";
@@ -106,7 +87,7 @@ export function SportingMedia({
       >
         {available ? (
           <Image
-            key={uri}
+            key={image.attemptKey}
             accessible
             accessibilityRole="image"
             accessibilityLabel={`${label} : ${identity.name}`}
@@ -115,8 +96,8 @@ export function SportingMedia({
             cachePolicy="none"
             recyclingKey={uri}
             contentFit="contain"
-            onDisplay={() => settleImage("displayed")}
-            onError={() => settleImage("failed")}
+            onDisplay={image.onDisplay}
+            onError={image.onError}
             style={{
               width:
                 kind === "division" || presentation === "identity"
@@ -160,21 +141,17 @@ export function SportingMedia({
     ? renderWithAtmosphere(
         logo,
         available ? (
-          <Image
-            key={uri}
-            accessible={false}
+          <BlurredArtwork
+            key={image.attemptKey}
             testID="sporting-logo-atmosphere"
-            pointerEvents="none"
-            source={{ uri }}
-            cachePolicy="none"
-            recyclingKey={uri}
-            contentFit={presentation === "identity" ? "cover" : "contain"}
+            uri={uri}
+            resizeMode={presentation === "identity" ? "cover" : "contain"}
             blurRadius={
               presentation === "identity"
                 ? tokens.media.identityAtmosphere.blur
                 : tokens.sporting.coverBlur
             }
-            onError={() => settleImage("failed")}
+            onError={image.onError}
             style={[
               StyleSheet.absoluteFill,
               {
@@ -190,24 +167,21 @@ export function SportingMedia({
     : logo;
 }
 
-/** Decorative cover and its tint disappear together after native decoding fails; no fallback artwork is invented. */
-export function SportingCover({
-  uri,
-  primary,
-}: {
+/** Decorative cover inputs preserve the current source and its accepted tint without introducing fallback artwork. */
+export interface SportingCoverProps {
   uri: string;
   primary: string;
-}) {
+}
+
+/** Decorative cover and its tint disappear together after native decoding fails; no fallback artwork is invented. */
+export function SportingCover({ uri, primary }: SportingCoverProps) {
   const [failedUri, setFailedUri] = useState<string>();
   return failedUri === uri ? null : (
     <View pointerEvents="none" accessible={false} style={styles.artwork}>
-      <Image
-        accessible={false}
+      <BlurredArtwork
         testID="sporting-decorative-cover"
-        source={{ uri }}
-        cachePolicy="none"
-        recyclingKey={uri}
-        contentFit="contain"
+        uri={uri}
+        resizeMode="contain"
         blurRadius={tokens.sporting.coverBlur}
         onError={() => setFailedUri(uri)}
         style={styles.cover}

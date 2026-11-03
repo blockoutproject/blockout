@@ -535,7 +535,7 @@ it.each([
       await screen.findByRole("image", { name: "Photo de profil" });
       expect(screen.getByTestId("profile-photo-atmosphere")).toHaveProp(
         "source",
-        expect.arrayContaining([{ uri: "data:image/png;base64,accepted" }]),
+        { uri: "data:image/png;base64,accepted", cache: "reload" },
       );
       if (outcome === "removed")
         mockFetch.mockImplementation(async () =>

@@ -90,7 +90,7 @@ it("announces native logo loading until its foreground is displayed", async () =
       source: { url: "https://api.example.invalid/logos/team.png" },
     },
   });
-  await fireEvent(screen.getByTestId("sporting-logo-atmosphere"), "display");
+  await fireEvent(screen.getByTestId("sporting-logo-atmosphere"), "load");
 
   // Then
   expect(
@@ -149,6 +149,8 @@ it("retains caller content and ignores former events when an image source return
   // Native callbacks may already be queued when a former image view is detached.
   const staleDisplay = firstImage.props.onDisplay;
   const staleError = firstImage.props.onError;
+  const staleAtmosphereError = screen.getByTestId("sporting-logo-atmosphere")
+    .props.onError;
   await user.type(
     screen.getByLabelText("Brouillon de la carte"),
     "Texte conservé",
@@ -164,6 +166,9 @@ it("retains caller content and ignores former events when an image source return
   await act(() => {
     staleDisplay();
     staleError({ nativeEvent: { error: "Detached image failure" } });
+    staleAtmosphereError({
+      nativeEvent: { error: "Detached artwork failure" },
+    });
   });
 
   // Then
@@ -192,6 +197,10 @@ it("removes decorative artwork after a native decoding error event", async () =>
     />,
   );
   const cover = screen.getByTestId("sporting-decorative-cover");
+  expect(cover).toHaveProp("source", {
+    uri: "data:image/png;base64,bm90LWFuLWltYWdl",
+    cache: "reload",
+  });
 
   // When
   await fireEvent(cover, "error", {
@@ -236,7 +245,7 @@ it.each(["foreground", "atmosphere"] as const)(
     const atmosphere = screen.getByTestId("sporting-logo-atmosphere");
     const lateDisplay = foreground.props.onDisplay;
     expect(foreground).toHaveProp("source", expect.arrayContaining([{ uri }]));
-    expect(atmosphere).toHaveProp("source", expect.arrayContaining([{ uri }]));
+    expect(atmosphere).toHaveProp("source", { uri, cache: "reload" });
 
     // When
     await fireEvent(

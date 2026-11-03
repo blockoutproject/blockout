@@ -1,10 +1,12 @@
 import { Image } from "expo-image";
-import { useState, type ReactNode } from "react";
-import { StyleSheet, Text } from "react-native";
+import type { ReactNode } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
+import { BlurredArtwork } from "../../../shared/components/blurred-artwork";
 import { IdentityCard } from "../../../shared/components/identity-card";
 import { Skeleton } from "../../../shared/components/skeleton";
 import { ImageFallback } from "../../../shared/components/image-fallback";
+import { useNativeImageLifecycle } from "../../../shared/images/use-native-image-lifecycle";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import type { useProfilePhoto } from "../api/use-profile-editing";
@@ -12,57 +14,65 @@ import type { useProfilePhoto } from "../api/use-profile-editing";
 /** Accepted current identity only; the route supplies membership presentation and the independent edit destination. */
 export interface ProfileIdentityProps {
   account: AccountResponse;
-  photo: ReturnType<typeof useProfilePhoto>;
+  photo: Pick<
+    ReturnType<typeof useProfilePhoto>,
+    "data" | "dataUpdatedAt" | "isFetching"
+  >;
   membershipStatus?: ReactNode;
 }
 
-/** Product Design identity card; missing photos use the neutral image fallback within the current account lifetime. */
+/** Keeps admitted photos under their skeleton until native display; either layer's failure withdraws that read's media. */
 export function ProfileIdentity({
   account,
   membershipStatus,
   photo,
 }: ProfileIdentityProps) {
   const { colors } = useTheme();
-  const [failedPhoto, setFailedPhoto] = useState<{
-    uri: string;
-    readAt: number;
-  }>();
-  const uri = photo.data;
-  const failed =
-    failedPhoto?.uri === uri && failedPhoto?.readAt === photo.dataUpdatedAt;
-  const available = account.hasPhoto && !!uri && !failed;
-  /** Both representations belong to the same accepted photo read, including same-byte rereads. */
-  const rejectImage = () => {
-    if (uri) setFailedPhoto({ uri, readAt: photo.dataUpdatedAt });
-  };
+  const uri = account.hasPhoto ? (photo.data ?? undefined) : undefined;
+  const image = useNativeImageLifecycle(uri, photo.dataUpdatedAt);
+  const available = !!uri && image.status !== "failed";
+  const pending = available && image.status === "pending";
   return (
     <IdentityCard
       artworkBackgroundColor={colors.mediaPlaceholder}
       atmosphere={
         available ? (
-          <Image
-            accessible={false}
+          <BlurredArtwork
+            key={image.attemptKey}
             testID="profile-photo-atmosphere"
-            source={{ uri }}
+            uri={uri}
             style={styles.atmosphere}
-            contentFit="cover"
-            enforceEarlyResizing
+            resizeMode="cover"
             blurRadius={tokens.media.identityAtmosphere.blur}
-            onError={rejectImage}
+            onError={image.onError}
           />
         ) : undefined
       }
       artwork={
         available ? (
-          <Image
-            accessible
-            accessibilityRole="image"
-            accessibilityLabel="Photo de profil"
-            source={{ uri }}
-            style={styles.avatar}
-            contentFit="cover"
-            onError={rejectImage}
-          />
+          <View style={styles.avatar}>
+            <Image
+              key={image.attemptKey}
+              accessible
+              accessibilityRole="image"
+              accessibilityLabel="Photo de profil"
+              accessibilityState={{ busy: pending }}
+              source={{ uri }}
+              style={styles.avatar}
+              contentFit="cover"
+              onDisplay={image.onDisplay}
+              onError={image.onError}
+            />
+            {pending && (
+              <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                <Skeleton
+                  width={tokens.size.media.profile}
+                  height={tokens.size.media.profile}
+                  shape="rectangle"
+                />
+              </View>
+            )}
+          </View>
         ) : account.hasPhoto && photo.isFetching ? (
           <Skeleton
             width={tokens.size.media.profile}
