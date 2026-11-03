@@ -176,6 +176,13 @@ export function SearchScreen() {
               exampleQuery={exampleQueries[id]}
               examples={examples}
               items={items[id]}
+              emptyDescription={
+                examples
+                  ? changed
+                    ? "Effacez les critères pour élargir la recherche."
+                    : "Saisissez un nom pour lancer une recherche."
+                  : "Essayez un autre nom."
+              }
               emptyAction={
                 !examples || changed ? (
                   <Button
@@ -319,6 +326,7 @@ function SearchScene({
   exampleQuery,
   examples,
   items: textItems,
+  emptyDescription,
   emptyAction,
 }: {
   resource: DiscoveryResource;
@@ -329,6 +337,7 @@ function SearchScene({
   exampleQuery: ReturnType<typeof useSearchExamplesQuery>;
   examples: boolean;
   items: readonly SearchResult[];
+  emptyDescription: string;
   emptyAction: ReactNode;
 }) {
   const visit = useSearchVisit();
@@ -413,8 +422,12 @@ function SearchScene({
           <ScreenState>
             {error ?? (
               <EmptyState
-                title="Aucun résultat pour ces critères"
-                description="Essayez un autre nom."
+                title={
+                  examples
+                    ? "Aucun exemple disponible"
+                    : "Aucun résultat pour ces critères"
+                }
+                description={emptyDescription}
               >
                 {emptyAction}
               </EmptyState>

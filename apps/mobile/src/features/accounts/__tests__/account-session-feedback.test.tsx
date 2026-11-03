@@ -101,3 +101,45 @@ it.each([
     expect(mockPush).not.toHaveBeenCalled();
   },
 );
+
+it.each([
+  ["Home", PersonalScreen],
+  ["Inbox", NotificationsScreen],
+] as const)(
+  "%s offers sign-in navigation after confirmed native credential expiry",
+  async (_name, Consumer) => {
+    // Given: the real session rejects the unusable native credentials before any private read.
+    jest.mocked(initializeV2Installation).mockResolvedValue();
+    mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(true);
+    mockAuth0.getCredentials.mockReset().mockRejectedValue({
+      code: "invalid_grant",
+      message: "Credentials expired",
+    });
+    mockAuth0.webAuth.mockReset();
+    await render(
+      <QueryClientProvider client={publicClient}>
+        <ThemeProvider>
+          <ApplicationAccessProvider>
+            <AccountSessionProvider>
+              <Consumer />
+            </AccountSessionProvider>
+          </ApplicationAccessProvider>
+        </ThemeProvider>
+      </QueryClientProvider>,
+    );
+    const signIn = await screen.findByRole("button", { name: "Se connecter" });
+
+    // When
+    await userEvent.press(signIn);
+
+    // Then
+    expect(mockPush).toHaveBeenCalledWith("/sign-in");
+    expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+    expect(
+      mockFetch.mock.calls.every(([url]) =>
+        String(url).endsWith("/application-access"),
+      ),
+    ).toBe(true);
+  },
+);

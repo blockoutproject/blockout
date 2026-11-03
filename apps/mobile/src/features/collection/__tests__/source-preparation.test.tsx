@@ -693,9 +693,79 @@ it("rejects credential-bearing candidate input locally without losing it or send
   ).toBe(false);
 });
 
+it.each(["active", "closed"] as const)(
+  "reloads empty %s source coverage from its card without creating or launching a source",
+  async (state) => {
+    // Given
+    season = { ...season, state };
+    sources = [];
+    const user = userEvent.setup();
+    await renderPreparation(
+      <ProviderSourcesScreen seasonId={seasonId} provider="lnv" />,
+    );
+    await screen.findByText("Aucun championnat découvert");
+    expect(!!screen.queryByRole("button", { name: "Ajouter une source" })).toBe(
+      state !== "closed",
+    );
+    mockFetch.mockClear();
+
+    // When
+    sources = [binding()];
+    await user.press(screen.getByRole("button", { name: "Actualiser" }));
+
+    // Then
+    expect(
+      await screen.findByRole("link", { name: "Préparer D1 masculine" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText("Aucun championnat découvert")).toBeNull();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(String(mockFetch.mock.calls[0][0])).toMatch(/\/source-bindings$/);
+    expect(
+      mockFetch.mock.calls.every(
+        ([, options]) => !options?.method || options.method === "GET",
+      ),
+    ).toBe(true);
+    expect(!!screen.queryByRole("button", { name: "Ajouter une source" })).toBe(
+      state !== "closed",
+    );
+  },
+);
+
+it("disables empty-source refresh after the collection grant is withdrawn", async () => {
+  // Given
+  sources = [];
+  const user = userEvent.setup();
+  await renderPreparation(
+    <>
+      <AccountActions />
+      <ProviderSourcesScreen seasonId={seasonId} provider="lnv" />
+    </>,
+  );
+  await screen.findByText("Aucun championnat découvert");
+
+  // When
+  permissions = {};
+  await user.press(
+    screen.getByRole("button", { name: "Relire les permissions" }),
+  );
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Actualiser" })).toBeDisabled(),
+  );
+  mockFetch.mockClear();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
+
+  // Then
+  expect(mockFetch).not.toHaveBeenCalled();
+});
+
 it("adds only an unqualified candidate for the explicit provider and current season revision", async () => {
   // Given
   sources = [];
+  const created = Promise.withResolvers<Response>();
   const user = userEvent.setup();
   await renderPreparation(
     <ProviderSourcesScreen seasonId={seasonId} provider="lnv" />,
@@ -709,16 +779,29 @@ it("adds only an unqualified candidate for the explicit provider and current sea
   );
   await user.type(screen.getByLabelText("URL officielle"), candidateUrl);
   mockFetch.mockImplementation(async (url, options) => {
-    if (options?.method === "POST") {
-      sources = [binding()];
-      season.revision = 6;
-      return json(sources[0], 201);
-    }
+    if (options?.method === "POST") return created.promise;
     return reads(url);
   });
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Actualiser" })).toBeDisabled(),
+  );
+  const requests = mockFetch.mock.calls.length;
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
+
+  // Then
+  expect(mockFetch).toHaveBeenCalledTimes(requests);
+
+  // When
+  sources = [binding()];
+  season.revision = 6;
+  await act(() => created.resolve(json(sources[0], 201)));
 
   // Then
   await screen.findByText(

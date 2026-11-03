@@ -137,12 +137,17 @@ it("presents a paused first collection read as retryable without loading or an e
   ).toBeOnTheScreen();
 });
 
-it("replaces an empty collection season result with its failed refresh and recovers without losing the cached envelope", async () => {
+it("reloads empty seasons from their card and recovers a failed read without losing the cached envelope", async () => {
   // Given
   let failed = false;
+  let discovered = false;
   mockFetch.mockImplementation((url, options) =>
     new URL(String(url)).pathname.endsWith("/collection-seasons")
-      ? Promise.resolve(failed ? refused(503) : json({ items: [] }))
+      ? Promise.resolve(
+          failed
+            ? refused(503)
+            : json({ items: discovered ? [peer.season] : [] }),
+        )
       : peer.reads(url, options),
   );
   await renderCollection(<CollectionDashboardScreen />, client, (cache) => {
@@ -152,7 +157,9 @@ it("replaces an empty collection season result with its failed refresh and recov
 
   // When
   failed = true;
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await userEvent
+    .setup()
+    .press(screen.getByRole("button", { name: "Actualiser" }));
 
   // Then
   expect(
@@ -170,12 +177,70 @@ it("replaces an empty collection season result with its failed refresh and recov
 
   // When
   failed = false;
+  discovered = true;
   await userEvent
     .setup()
     .press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
-  expect(await screen.findByText("Aucune saison découverte")).toBeOnTheScreen();
+  expect(
+    await screen.findByRole("link", { name: /2026\/2027/ }),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.every(
+      ([, options]) => !options?.method || options.method === "GET",
+    ),
+  ).toBe(true);
+});
+
+it("reloads empty observed results without starting collection and retries a failed read", async () => {
+  // Given
+  const user = userEvent.setup();
+  let failed = false;
+  mockFetch.mockImplementation((url, options) =>
+    new URL(String(url)).pathname.endsWith("/results") && failed
+      ? Promise.resolve(refused(503))
+      : peer.reads(url, options),
+  );
+  await renderCollection(
+    <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
+  await screen.findByText("Aucun résultat observé");
+  expect(screen.queryByText("Aucun succès ne peut être confirmé.")).toBeNull();
+  mockFetch.mockClear();
+
+  // When
+  failed = true;
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Aucun résultat observé")).toBeNull();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(new URL(String(mockFetch.mock.calls[0][0])).pathname).toMatch(
+    /\/results$/,
+  );
+
+  // When
+  failed = false;
+  peer.results = [result()];
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByText("Nationale 2 · Poule A · Calendrier"),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.every(
+      ([, options]) => !options?.method || options.method === "GET",
+    ),
+  ).toBe(true);
 });
 
 it("separates competition seasons from the two seasonless controls", async () => {
@@ -1186,6 +1251,55 @@ it("keeps completion freshness already read at the same editing revision as a de
   // Then
   expect(screen.getByText("Dernier cycle terminé")).toBeOnTheScreen();
   expect(screen.queryByText("Collecte en cours")).toBeNull();
+});
+
+it("disables the empty-result refresh action while a collection command is awaiting acknowledgement", async () => {
+  // Given
+  const user = userEvent.setup();
+  const acknowledgement = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "POST"
+      ? acknowledgement.promise
+      : peer.reads(url, options),
+  );
+  await renderCollection(
+    <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
+  await screen.findByText("Aucun résultat observé");
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Relancer" }));
+  await act(async () => nativeAlertAction("Relancer")());
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Actualiser" })).toBeDisabled(),
+  );
+  mockFetch.mockClear();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
+
+  // Then
+  expect(mockFetch).not.toHaveBeenCalled();
+
+  // When
+  peer.controls = [
+    control({
+      revision: 4,
+      pendingRequestId: "00000000-0000-4000-8000-000000000192",
+    }),
+  ];
+  await act(() => acknowledgement.resolve(json(peer.controls[0], 202)));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Actualiser", disabled: false }),
+  ).toBeOnTheScreen();
 });
 
 it("blocks refresh and automatic paging while a collection command is awaiting acknowledgement", async () => {

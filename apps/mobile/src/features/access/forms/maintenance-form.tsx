@@ -303,11 +303,11 @@ export function MaintenanceForm({
     </View>
   );
 }
-/** A validated draft image owns feedback only for its current mounted decode attempt. */
+/** Retries only the current draft image's mounted decode attempt, leaving its URL and other fields untouched. */
 function MaintenanceImagePreview({ uri }: { uri: string }) {
   const [failed, setFailed] = useState(false);
   return failed ? (
-    <ErrorState />
+    <ErrorState onRetry={() => setFailed(false)} />
   ) : (
     <Image
       accessible

@@ -539,6 +539,39 @@ it("keeps text and actions usable when preview display fails", async () => {
   expect(screen.getByDisplayValue(initial.message)).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
 });
+it("retries the same maintenance image URL without changing the dirty draft or submitting it", async () => {
+  // Given
+  const user = userEvent.setup();
+  const imageUrl = "https://assets.example.invalid/maintenance.png";
+  stored = { ...initial, imageUrl };
+  await renderSettings();
+  await user.clear(await screen.findByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Texte conservé",
+  );
+  await fireEvent(
+    screen.getByLabelText("Aperçu de l’image de maintenance"),
+    "error",
+    { nativeEvent: { error: "Unavailable" } },
+  );
+  mockFetch.mockClear();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    screen.getByLabelText("Aperçu de l’image de maintenance"),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(screen.getByLabelText("URL de l’image")).toHaveDisplayValue(imageUrl);
+  expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(
+    "Texte conservé",
+  );
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+  expect(mockFetch).not.toHaveBeenCalled();
+});
 it("starts a fresh draft image preview when a previously failed URL returns", async () => {
   // Given
   const user = userEvent.setup();

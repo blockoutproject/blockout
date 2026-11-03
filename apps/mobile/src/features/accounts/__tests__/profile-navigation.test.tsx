@@ -27,6 +27,7 @@ import { initializeV2Installation } from "../../onboarding/initialize-v2-install
 import { AccountSessionProvider } from "../session/account-session-provider";
 import { ProfileScreen } from "../screens/profile-screen";
 import { ProfileEditScreen } from "../screens/profile-edit-screen";
+import { EraseAccountScreen } from "../screens/erase-account-screen";
 import { credentialsFor, mockAuth0 } from "../test-support/native-auth0";
 
 // Route history, account ownership and HTTP decoding remain real; only native/network I/O is controlled.
@@ -147,6 +148,7 @@ async function openProfile(initialUrl = "/profile") {
         <ProfileScreen admitted proEntry={null} privacyEntry={null} />
       ),
       "(tabs)/profile/edit": () => <ProfileEditScreen admitted />,
+      "(tabs)/profile/erase": () => <EraseAccountScreen admitted />,
       "(tabs)/search": () => <Text>Recherche ouverte</Text>,
       "sign-in": () => <Text>Connexion ouverte</Text>,
       support: SupportProbe,
@@ -742,6 +744,41 @@ it("treats a failed authentication restoration as a whole-page recovery rather t
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
   expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
 });
+
+it.each([
+  ["/profile", "missing account"],
+  ["/profile/edit", "missing account"],
+  ["/profile/erase", "missing account"],
+  ["/profile", "expired native session"],
+  ["/profile/edit", "expired native session"],
+  ["/profile/erase", "expired native session"],
+] as const)(
+  "%s names sign-in navigation explicitly after a %s",
+  async (initialUrl, reason) => {
+    // Given: account reads and session state remain real; only HTTP/native I/O fails.
+    if (reason === "missing account")
+      mockFetch.mockResolvedValue(new Response(null, { status: 404 }));
+    else
+      mockAuth0.getCredentials.mockRejectedValue({
+        code: "invalid_grant",
+        message: "Credentials expired",
+      });
+    const user = userEvent.setup();
+    await openProfile(initialUrl);
+    const signIn = await screen.findByRole("button", { name: "Se connecter" });
+    expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+    const reads = mockFetch.mock.calls.length;
+
+    // When
+    await user.press(signIn);
+
+    // Then: this action opens the existing route without retrying a read or starting hosted login.
+    expect(screen).toHavePathname("/sign-in");
+    expect(screen.getByText("Connexion ouverte")).toBeOnTheScreen();
+    expect(mockFetch).toHaveBeenCalledTimes(reads);
+    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+  },
+);
 
 it("waits for the initial existing photo before admitting the complete overview", async () => {
   // Given

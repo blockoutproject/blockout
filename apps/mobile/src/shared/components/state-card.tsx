@@ -35,27 +35,37 @@ export function EmptyState({
   );
 }
 
-/** Opaque failed-read presentation; only the owning read may offer and execute another attempt. */
+/** Opaque failure presentation; the owner supplies a safe retry or contextual action content. */
 export interface ErrorStateProps {
   onRetry?: () => void;
   retrying?: boolean;
+  children?: ReactNode;
 }
 
 /** Restores the approved illustrated card without exposing transport, permission or provider details. */
-export function ErrorState({ onRetry, retrying = false }: ErrorStateProps) {
+export function ErrorState({
+  onRetry,
+  retrying = false,
+  children,
+}: ErrorStateProps) {
   return (
     <StateCard
       kind="error"
       title={TECHNICAL_ERROR_TITLE}
       description={TECHNICAL_ERROR_HELP}
     >
-      {onRetry && (
-        <Button
-          label="Réessayer"
-          leadingIcon={RotateCcw}
-          onPress={onRetry}
-          loading={retrying}
-        />
+      {onRetry ? (
+        <>
+          <Button
+            label="Réessayer"
+            leadingIcon={RotateCcw}
+            onPress={onRetry}
+            loading={retrying}
+          />
+          {children}
+        </>
+      ) : (
+        children
       )}
     </StateCard>
   );

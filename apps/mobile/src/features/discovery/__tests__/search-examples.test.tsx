@@ -343,7 +343,7 @@ it("retains usable data on failure and never refills a restricted selection redu
 
   // When
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
-  await screen.findByText("Aucun résultat pour ces critères");
+  await screen.findByText("Aucun exemple disponible");
   const calls = collectionCalls("clubs").length;
   await user.paste(
     screen.getByPlaceholderText("Rechercher un club…"),
@@ -357,9 +357,7 @@ it("retains usable data on failure and never refills a restricted selection redu
   );
 
   // Then
-  expect(
-    screen.getByText("Aucun résultat pour ces critères"),
-  ).toBeOnTheScreen();
+  expect(screen.getByText("Aucun exemple disponible")).toBeOnTheScreen();
   expect(collectionCalls("clubs")).toHaveLength(calls);
   expect(
     new URL(collectionCalls("clubs").at(-1)![0]).searchParams.getAll(
@@ -402,6 +400,45 @@ it("selects again for changed filters and resets to the current default season",
   expect(reset.searchParams.has("exampleIds")).toBe(false);
 });
 
+it("explains empty filtered examples and clears their existing criteria", async () => {
+  // Given
+  mockFetch.mockImplementation((url: string) => {
+    const parsed = new URL(url);
+    return parsed.pathname.endsWith("/teams") &&
+      parsed.searchParams.get("gender") === "female"
+      ? Promise.resolve(Response.json({ teams: [] }))
+      : publicReads(url);
+  });
+  const user = userEvent.setup();
+  await renderSearch();
+  await screen.findByText("Club public");
+  await user.press(screen.getByRole("button", { name: "Filtres" }));
+  await user.press(await screen.findByRole("button", { name: "Genre" }));
+  await user.press(await screen.findByRole("radio", { name: "Féminin" }));
+  await user.press(
+    await screen.findByRole("button", { name: "Appliquer les filtres" }),
+  );
+  await screen.findByText("Aucun exemple disponible");
+  expect(
+    screen.getByText("Effacez les critères pour élargir la recherche."),
+  ).toBeOnTheScreen();
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Effacer les critères" }),
+  );
+
+  // Then
+  expect(await screen.findByText("Club public")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("tab", { name: "Équipes", selected: true }),
+  ).toBeOnTheScreen();
+  const reads = collectionCalls("teams");
+  expect(new URL(reads[reads.length - 1][0]).searchParams.has("gender")).toBe(
+    false,
+  );
+});
+
 it("retains benign example cards after a detail refusal until their own refresh", async () => {
   // Given
   const user = userEvent.setup();
@@ -433,7 +470,7 @@ it("retains benign example cards after a detail refusal until their own refresh"
   );
 
   // Then
-  await screen.findByText("Aucun résultat pour ces critères");
+  await screen.findByText("Aucun exemple disponible");
   expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
 });
 

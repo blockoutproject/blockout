@@ -402,7 +402,16 @@ it("keeps missing-email establishment unusable until an explicit retry without a
   expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
 
   // When
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(screen.getByRole("button", { name: "Se connecter" }));
+
+  // Then: Profile's action opens the existing retry destination without establishing an account.
+  expect(screen).toHavePathname("/sign-in");
+  expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+  ).toHaveLength(1);
+
+  // When
   mockFetch.mockImplementation(async (url, options) => {
     if (String(url).endsWith("/application-access"))
       return Response.json(applicationAccessResponse());

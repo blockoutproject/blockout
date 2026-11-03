@@ -1,5 +1,7 @@
 import { useRouter } from "expo-router";
+import { LogIn } from "lucide-react-native";
 import type { ReactNode } from "react";
+import { Button } from "../../../shared/components/button";
 import { ErrorState } from "../../../shared/components/state-card";
 import { useAccountSession } from "../session/account-session-provider";
 
@@ -28,8 +30,17 @@ export function AccountSessionFeedback({
           ? session.retryInitialization
           : session.status === "authentication-error"
             ? session.retryAuthentication
-            : () => router.push("/sign-in")
+            : undefined
       }
-    />
+    >
+      {session.status !== "initialization-error" &&
+        session.status !== "authentication-error" && (
+          <Button
+            label="Se connecter"
+            leadingIcon={LogIn}
+            onPress={() => router.push("/sign-in")}
+          />
+        )}
+    </ErrorState>
   );
 }

@@ -1,7 +1,7 @@
 import { PageFlatList } from "../../../shared/components/page-list";
 import type { QueryObserverResult } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
-import { CalendarDays, MapPin, Users } from "lucide-react-native";
+import { CalendarDays, MapPin, RefreshCw, Users } from "lucide-react-native";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -64,7 +64,7 @@ export function CollectionDashboardScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const denied = isAccessDenied(query.error);
-  /** Native refresh retains authorized data after a technical failure; an initial read still owns its error card. */
+  /** Rereads seasons without commands; failures retain authorized rows or use the empty section's error card. */
   async function refresh() {
     const result = await query.refetch({ cancelRefetch: false });
     if (
@@ -123,7 +123,14 @@ export function CollectionDashboardScreen() {
                 {!denied &&
                   !query.isError &&
                   query.data?.items.length === 0 && (
-                    <EmptyState title="Aucune saison découverte" />
+                    <EmptyState title="Aucune saison découverte">
+                      <Button
+                        label="Actualiser"
+                        leadingIcon={RefreshCw}
+                        onPress={() => void refresh()}
+                        loading={query.isFetching}
+                      />
+                    </EmptyState>
                   )}
                 {denied || (query.isError && !query.data?.items.length) ? (
                   <ErrorState
@@ -547,10 +554,22 @@ function ControlDashboard({
                     retrying={results.isFetching}
                   />
                 ) : (
-                  <EmptyState
-                    title="Aucun résultat observé"
-                    description="Aucun succès ne peut être confirmé."
-                  />
+                  <EmptyState title="Aucun résultat observé">
+                    <Button
+                      label="Actualiser"
+                      leadingIcon={RefreshCw}
+                      onPress={() =>
+                        void results.refetch({ cancelRefetch: false })
+                      }
+                      loading={results.isFetching}
+                      disabled={
+                        editing.activity.isPending ||
+                        editing.request.isPending ||
+                        query.isFetching ||
+                        seasonFetching
+                      }
+                    />
+                  </EmptyState>
                 )}
               </ScreenState>
             )
