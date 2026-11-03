@@ -19,6 +19,7 @@ export interface PersonalSeasonScope {
   season: ReturnType<typeof usePersonalSeason>;
   request: (signal?: AbortSignal) => Promise<ApiFetchOptions>;
   admitted: boolean;
+  /** Retained same-account reads stay usable after technical failures; follow commands own stricter prerequisites. */
   usable: boolean;
   blocked: boolean;
   bypass: boolean;
@@ -54,8 +55,8 @@ function SeasonScope({
   const admission = useOrdinaryRequest();
   const usable =
     admission.admitted &&
-    profile.isSuccess &&
-    profile.data.accountId === owner.accountId;
+    profile.data?.accountId === owner.accountId &&
+    !isAccessDenied(profile.error);
   const bypass = Boolean(admission.bypass);
   /** Prepares only a current original-owner request after native credentials and current F12 admission. */
   async function request(signal?: AbortSignal) {
