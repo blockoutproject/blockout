@@ -10,6 +10,7 @@ import {
 } from "@testing-library/react-native";
 import { Pressable, Text } from "react-native";
 import { createQueryClient } from "../../../shared/query/query-client";
+import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
@@ -373,6 +374,97 @@ it("invites a guest without a deferred report", async () => {
   expect(
     mockFetch.mock.calls.some(([url]) => String(url).endsWith("/report")),
   ).toBe(false);
+});
+
+it.each(["initialization", "restoration"] as const)(
+  "recovers a failed %s before admitting the disabled profile and report reads",
+  async (stage) => {
+    // Given
+    if (stage === "initialization")
+      jest
+        .mocked(initializeV2Installation)
+        .mockRejectedValueOnce(new Error("Unavailable"));
+    else
+      mockAuth0.getCredentials.mockRejectedValueOnce(new Error("Unavailable"));
+    const user = userEvent.setup();
+    await mount();
+
+    // When / Then
+    expect(
+      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.some(([url]) => String(url).endsWith("/report")),
+    ).toBe(false);
+    expect(posts).toHaveLength(0);
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(
+      await screen.findByLabelText("Motif du signalement"),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+    expect(posts).toHaveLength(0);
+  },
+);
+
+it("recovers a retained profile failure before admitting a report whose initial read is still pending", async () => {
+  // Given
+  const reportRead = Promise.withResolvers<Response>();
+  const peer = mockFetch.getMockImplementation();
+  let profileUnavailable = false;
+  mockFetch.mockImplementation(async (url, init) => {
+    if (String(url).endsWith("/report")) return reportRead.promise;
+    if (String(url).endsWith("/me") && profileUnavailable)
+      throw new TypeError("Unavailable");
+    if (!peer) throw new Error("Missing HTTP boundary");
+    return peer(url, init);
+  });
+  const user = userEvent.setup();
+  await mount();
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.some(([url]) => String(url).endsWith("/report")),
+    ).toBe(true),
+  );
+
+  try {
+    // When
+    profileUnavailable = true;
+    await act(() =>
+      client.refetchQueries({
+        queryKey: getGetMyAccountQueryKey(),
+        exact: true,
+      }),
+    );
+
+    // Then
+    expect(
+      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+    expect(
+      screen.queryByLabelText("Motif du signalement"),
+    ).not.toBeOnTheScreen();
+    expect(posts).toHaveLength(0);
+
+    // When
+    profileUnavailable = false;
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  } finally {
+    await act(async () =>
+      reportRead.resolve(Response.json({ reported: false })),
+    );
+  }
+
+  // Then
+  expect(
+    await screen.findByLabelText("Motif du signalement"),
+  ).toBeOnTheScreen();
+  expect(posts).toHaveLength(0);
 });
 
 it("cancels without sending a report", async () => {

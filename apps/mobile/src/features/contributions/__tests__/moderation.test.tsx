@@ -322,6 +322,85 @@ async function mount(children: React.ReactNode) {
   await layoutNativeTabs();
 }
 
+it.each(["queue", "active", "pending", "filters", "version"] as const)(
+  "recovers F05 initialization on the %s view without leaving disabled moderation reads in loading",
+  async (surface) => {
+    // Given
+    jest
+      .mocked(initializeV2Installation)
+      .mockRejectedValueOnce(new Error("Unavailable"));
+    if (surface === "version") {
+      const peer = mockFetch.getMockImplementation();
+      mockFetch.mockImplementation((url, init) => {
+        if (
+          new URL(String(url)).pathname.endsWith(
+            `/stream-contributions/${versionId}`,
+          )
+        )
+          return Promise.resolve(
+            Response.json({
+              revision: detail.revision,
+              contribution: version(),
+            }),
+          );
+        if (!peer) throw new Error("Missing HTTP boundary");
+        return peer(url, init);
+      });
+    }
+    const user = userEvent.setup();
+    await mount(
+      surface === "queue" ? (
+        <ModerationScreen filters={{}} />
+      ) : surface === "filters" ? (
+        <ModerationFilters initial={{}} />
+      ) : surface === "version" ? (
+        <ModerationVersionSheet matchId={sporting.id} versionId={versionId} />
+      ) : (
+        <ModerationMatchScreen matchId={sporting.id} />
+      ),
+    );
+    if (surface === "pending")
+      await user.press(screen.getByRole("tab", { name: /^Propositions/ }));
+
+    // When / Then
+    expect(
+      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.some(([url]) =>
+        /stream-moderation|stream-contributions/.test(String(url)),
+      ),
+    ).toBe(false);
+    expect(writes).toHaveLength(0);
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    // Initialization recovery remounts the native pager; its new instance needs native layout events again.
+    await layoutNativeTabs();
+    if (surface === "pending") {
+      await user.press(screen.getByRole("tab", { name: /^Propositions/ }));
+      await layoutNativeTabs();
+    }
+
+    // Then
+    if (surface === "filters")
+      expect(
+        await screen.findByRole("button", { name: "Saison" }),
+      ).toBeOnTheScreen();
+    else if (surface === "active")
+      expect(await screen.findByLabelText("Adresse du lien")).toBeOnTheScreen();
+    else if (surface === "queue")
+      expect(await screen.findByText(sporting.home.name)).toBeOnTheScreen();
+    else
+      expect(
+        await screen.findByText("https://twitch.tv/review_link"),
+      ).toBeOnTheScreen();
+    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+    expect(writes).toHaveLength(0);
+  },
+);
+
 it("requires the literal current moderation capability before private reads", async () => {
   // Given
   permission = false;

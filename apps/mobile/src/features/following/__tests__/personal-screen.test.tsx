@@ -10,7 +10,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react-native";
-import { View } from "react-native";
+import { AccessibilityInfo, View } from "react-native";
 import type { PersonalMatchCalendarResponse } from "../../../../.generated/schemas/index.zod";
 import { renderRouter } from "expo-router/testing-library";
 import { PersonalSeasonProvider } from "../components/personal-season-provider";
@@ -1696,6 +1696,73 @@ it("shares All seasons across both lists and offers Search only after successful
   expect(screen.queryByRole("button", { name: "Suivi" })).not.toBeOnTheScreen();
   expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
 });
+
+it.each(["team", "pool"] as const)(
+  "reports one Following refresh failure when the %s read fails before the other collection",
+  async (first) => {
+    // Given
+    const teamRead = Promise.withResolvers<Response>();
+    const poolRead = Promise.withResolvers<Response>();
+    const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility");
+    await mount();
+    await screen.findByRole("button", {
+      name: "Saison des suivis",
+      disabled: false,
+    });
+    await layoutNativeTabs();
+    await userEvent.press(screen.getByRole("tab", { name: "Suivis" }));
+    await screen.findByRole("link", { name: /Étoile/ });
+    await screen.findByRole("link", { name: /Poule A/ });
+    mockFetch.mockClear().mockImplementation((url, request) => {
+      const path = new URL(url).pathname;
+      return path.endsWith("/team-follows")
+        ? teamRead.promise
+        : path.endsWith("/pool-follows")
+          ? poolRead.promise
+          : transport(url, request);
+    });
+
+    try {
+      // When
+      await fireEvent(
+        screen.getByLabelText("Actualiser les données"),
+        "refresh",
+      );
+      await act(async () =>
+        (first === "team" ? teamRead : poolRead).reject(
+          new TypeError("Unavailable"),
+        ),
+      );
+      await screen.findByRole("alert", {
+        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      });
+      await act(async () =>
+        (first === "team" ? poolRead : teamRead).reject(
+          new TypeError("Unavailable"),
+        ),
+      );
+      await waitFor(() => expect(client.isFetching()).toBe(0));
+
+      // Then
+      expect(announce).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole("link", { name: /Étoile/ })).toBeOnTheScreen();
+      expect(screen.getByRole("link", { name: /Poule A/ })).toBeOnTheScreen();
+      expect(
+        screen.getByRole("button", { name: "Saison des suivis" }),
+      ).toHaveAccessibilityValue({ text: older.label });
+      expect(
+        mockFetch.mock.calls.every(
+          ([, request]) => !request?.method || request.method === "GET",
+        ),
+      ).toBe(true);
+    } finally {
+      await act(async () => {
+        teamRead.resolve(Response.json({ items: [] }));
+        poolRead.resolve(Response.json({ items: [] }));
+      });
+    }
+  },
+);
 
 it("keeps an explicit read retry at the list edge after a failed first-page refresh", async () => {
   // Given

@@ -12,9 +12,12 @@ export interface ReadFeedbackProps {
   >;
 }
 
-/** Presents native Query progress and a read-only retry without introducing a request state mirror. */
+/**
+ * Presents only an actively fetching initial read or its safe retry.
+ * Pending observations without a fetch remain silent; admission failures stay with their feature owner.
+ */
 export function ReadFeedback({ query, loadingContent }: ReadFeedbackProps) {
-  if (query.isPending) return loadingContent;
+  if (query.isPending && query.isFetching) return loadingContent;
   if (!query.isError) return null;
   return (
     <ErrorState

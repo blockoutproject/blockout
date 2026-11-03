@@ -35,6 +35,7 @@ import { Button } from "../../../shared/components/button";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import { AccountSessionFeedback } from "../../accounts/current-account";
 import { ModerationMatchContext } from "../components/moderation-match-context";
 import { useModerationQueue, type ModerationFilters } from "../api/moderation";
 import { ModerationQueueLoading } from "../components/moderation-loading";
@@ -175,7 +176,7 @@ export function ModerationScreen({ filters }: ModerationScreenProps) {
   );
 }
 
-/** One retained native page has one private Query traversal; inactive pages neither fetch nor continue. */
+/** One retained page owns its traversal; F05 recovery precedes disabled private reads and inactive pages never continue. */
 function QueueScene({
   active,
   filters,
@@ -261,7 +262,10 @@ function QueueScene({
     ) : undefined;
   if (
     !current &&
-    (editing.profile.isPending || (editing.allowed && query.isPending))
+    (editing.session.status === "restoring" ||
+      !!editing.session.operation ||
+      (editing.session.status === "authenticated" &&
+        (editing.profile.isLoading || (editing.allowed && query.isLoading))))
   )
     return (
       <PageScrollView
@@ -284,12 +288,18 @@ function QueueScene({
       >
         <ScreenState
           style={
-            !editing.canRetain && editing.profile.isSuccess
+            editing.session.status === "authenticated" &&
+            !editing.canRetain &&
+            editing.profile.isSuccess
               ? styles.centered
               : undefined
           }
         >
-          {!editing.canRetain && editing.profile.isSuccess ? (
+          {editing.session.status !== "authenticated" ? (
+            <AccountSessionFeedback
+              loadingContent={<ModerationQueueLoading />}
+            />
+          ) : !editing.canRetain && editing.profile.isSuccess ? (
             <Text style={[tokens.typography.body, { color: colors.text }]}>
               La modération des liens vidéo n’est pas autorisée.
             </Text>

@@ -9,6 +9,7 @@ import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { useLayoutEffect } from "react";
 import * as Notifications from "expo-notifications";
 import { PermissionStatus } from "expo";
+import { AccessibilityInfo } from "react-native";
 import { useAccessAdmission } from "../../access/queries/use-access-admission";
 import { NotificationLifecycle } from "../native/notification-lifecycle";
 import { createPushRegistration } from "../native/push-registration";
@@ -335,6 +336,50 @@ it("handles cold response and duplicate tap once, clears it, and reads even if n
   });
   expect(Notifications.clearLastNotificationResponse).toHaveBeenCalledTimes(1);
   expect(await screen.findByRole("alert")).toBeOnTheScreen();
+});
+
+it("reports one native tap failure when navigation and marking the same notification fail separately", async () => {
+  // Given
+  const reading = Promise.withResolvers<Response>();
+  const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility");
+  const peer = mockFetch.getMockImplementation();
+  mockFetch.mockImplementation((url: string, init: RequestInit) => {
+    if (init.method === "PATCH") return reading.promise;
+    if (!peer) throw new Error("Missing HTTP boundary");
+    return peer(url, init);
+  });
+  mockOpen.mockImplementation(() => {
+    throw new Error("Native navigation unavailable");
+  });
+  await render(<Root />);
+  await waitFor(() => expect(session.accountId).toBe(ownerId));
+  const tap = jest
+    .mocked(Notifications.addNotificationResponseReceivedListener)
+    .mock.calls.at(-1)?.[0];
+  if (!tap) throw new Error("Tap listener must be registered");
+
+  // When
+  await act(async () => tap(response()));
+  await waitFor(() => expect(announce).toHaveBeenCalledTimes(1));
+
+  // Then
+  expect(mockOpen).toHaveBeenCalledTimes(1);
+  expect(
+    mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
+  ).toHaveLength(1);
+
+  // When
+  await act(async () =>
+    reading.reject(new TypeError("Read acknowledgement unavailable")),
+  );
+  await waitFor(() => expect(privateClient.isMutating()).toBe(0));
+
+  // Then
+  expect(announce).toHaveBeenCalledTimes(1);
+  expect(
+    mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
+  ).toHaveLength(1);
+  expect(Notifications.clearLastNotificationResponse).toHaveBeenCalledTimes(1);
 });
 
 it("installs foreground silence before asynchronous installation initialization finishes", async () => {

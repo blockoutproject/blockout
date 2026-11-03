@@ -29,6 +29,7 @@ import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import { AccountSessionFeedback } from "../../accounts/current-account";
 import { useModerationMatch, useModerationVersions } from "../api/moderation";
 import { ContributionHistory } from "../components/contribution-history";
 import { ModerationMatchContext } from "../components/moderation-match-context";
@@ -191,7 +192,7 @@ export function ModerationMatchScreen({ matchId }: ModerationMatchScreenProps) {
   );
 }
 
-/** The stable active tab retains RHF input across native tab switches and ordinary read outages. */
+/** The stable active tab retains RHF input across tab switches/outages; F05 owns recovery before private reads. */
 function ActiveScene({
   matchId,
   active,
@@ -230,7 +231,11 @@ function ActiveScene({
   }
   if (
     !current &&
-    (editing.profile.isPending || (editing.allowed && editing.query.isPending))
+    (editing.session.status === "restoring" ||
+      !!editing.session.operation ||
+      (editing.session.status === "authenticated" &&
+        (editing.profile.isLoading ||
+          (editing.allowed && editing.query.isLoading))))
   )
     return (
       <PageScrollView
@@ -250,12 +255,18 @@ function ActiveScene({
       >
         <ScreenState
           style={
-            !editing.canRetain && editing.profile.isSuccess
+            editing.session.status === "authenticated" &&
+            !editing.canRetain &&
+            editing.profile.isSuccess
               ? styles.centered
               : undefined
           }
         >
-          {!editing.canRetain && editing.profile.isSuccess ? (
+          {editing.session.status !== "authenticated" ? (
+            <AccountSessionFeedback
+              loadingContent={<ModerationMatchLoading editor />}
+            />
+          ) : !editing.canRetain && editing.profile.isSuccess ? (
             <Text style={[tokens.typography.body, { color: colors.text }]}>
               La modération des liens vidéo n’est pas autorisée.
             </Text>
@@ -335,7 +346,7 @@ function ActiveScene({
   );
 }
 
-/** Each proposal/history scene retains its native list and explicit continuation footer independently. */
+/** Each history scene retains its list/footer independently; failed F05 sessions recover before disabled queries. */
 function VersionScene({
   matchId,
   state,
@@ -431,7 +442,10 @@ function VersionScene({
   }
   if (
     !current &&
-    (reading.profile.isPending || (reading.allowed && query.isPending))
+    (reading.session.status === "restoring" ||
+      !!reading.session.operation ||
+      (reading.session.status === "authenticated" &&
+        (reading.profile.isLoading || (reading.allowed && query.isLoading))))
   )
     return (
       <PageScrollView
@@ -451,12 +465,18 @@ function VersionScene({
       >
         <ScreenState
           style={
-            !reading.canRetain && reading.profile.isSuccess
+            reading.session.status === "authenticated" &&
+            !reading.canRetain &&
+            reading.profile.isSuccess
               ? styles.centered
               : undefined
           }
         >
-          {!reading.canRetain && reading.profile.isSuccess ? (
+          {reading.session.status !== "authenticated" ? (
+            <AccountSessionFeedback
+              loadingContent={<ModerationMatchLoading />}
+            />
+          ) : !reading.canRetain && reading.profile.isSuccess ? (
             <Text style={[tokens.typography.body, { color: colors.text }]}>
               La modération des liens vidéo n’est pas autorisée.
             </Text>
