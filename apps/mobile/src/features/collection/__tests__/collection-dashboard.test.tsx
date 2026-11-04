@@ -830,7 +830,7 @@ it("retains running evidence while pause cancels an unstarted request", async ()
   expect(screen.getByRole("button", { name: "En cours" })).toBeDisabled();
 });
 
-it("retains result rows and retries the failed page locally without replaying automatic edges", async () => {
+it("retries failed result pages locally and keeps overlapping results current in their first position", async () => {
   // Given
   const user = userEvent.setup();
   let pageAvailable = false;
@@ -840,13 +840,24 @@ it("retains result rows and retries the failed page locally without replaying au
       const page = Number(target.searchParams.get("page"));
       return Promise.resolve(
         page === 0
-          ? json({ items: [result()], page: 0, hasNext: true })
+          ? json({
+              items: [
+                result(),
+                result({
+                  scopeId: "00000000-0000-4000-8000-000000000194",
+                  scopeLabel: "Nationale 2 · Poule B",
+                }),
+              ],
+              page: 0,
+              hasNext: true,
+            })
           : pageAvailable
             ? json({
                 items: [
+                  result({ scopeLabel: "Nationale 2 · Poule A actualisée" }),
                   result({
-                    scopeId: "00000000-0000-4000-8000-000000000194",
-                    scopeLabel: "Nationale 2 · Poule B",
+                    scopeId: "00000000-0000-4000-8000-000000000195",
+                    scopeLabel: "Nationale 2 · Poule C",
                   }),
                 ],
                 page: 1,
@@ -902,12 +913,19 @@ it("retains result rows and retries the failed page locally without replaying au
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
+  await screen.findByRole("header", {
+    name: "Nationale 2 · Poule C · Calendrier",
+  });
+  const results = screen.getAllByRole("header", { name: /^Nationale 2/ });
+  expect(results).toHaveLength(3);
+  expect(results[0]).toHaveAccessibleName(
+    "Nationale 2 · Poule A actualisée · Calendrier",
+  );
+  expect(results[1]).toHaveAccessibleName("Nationale 2 · Poule B · Calendrier");
+  expect(results[2]).toHaveAccessibleName("Nationale 2 · Poule C · Calendrier");
   expect(
-    await screen.findByText("Nationale 2 · Poule B · Calendrier"),
-  ).toBeOnTheScreen();
-  expect(
-    screen.getByText("Nationale 2 · Poule A · Calendrier"),
-  ).toBeOnTheScreen();
+    screen.queryByText("Nationale 2 · Poule A · Calendrier"),
+  ).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("page=1")),
   ).toHaveLength(2);

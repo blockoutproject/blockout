@@ -943,7 +943,7 @@ it("reloads empty source groups from their card and enables native refresh only 
   ).toBe(true);
 });
 
-it("loads the next child page only from the visible idle list and retains bounded rows without an invented total", async () => {
+it("loads child pages only from the visible idle list and keeps overlapping children current in their first position", async () => {
   // Given
   const nextPage = Promise.withResolvers<Response>();
   mockFetch.mockImplementation(async (url) => {
@@ -954,9 +954,14 @@ it("loads the next child page only from the visible idle list and retains bounde
     return json({
       items: [
         {
-          id: `00000000-0000-4000-8000-00000000018${page + 2}`,
-          label: page === 0 ? "Phase régulière" : "Phase finale",
-          kind: "pool",
+          id: "00000000-0000-4000-8000-000000000182",
+          label: "Phase régulière",
+          kind: "pack",
+        },
+        {
+          id: "00000000-0000-4000-8000-000000000184",
+          label: "Phase intermédiaire",
+          kind: "pack",
         },
       ],
       page,
@@ -1000,9 +1005,14 @@ it("loads the next child page only from the visible idle list and retains bounde
       json({
         items: [
           {
+            id: "00000000-0000-4000-8000-000000000182",
+            label: "Phase régulière actualisée",
+            kind: "pack",
+          },
+          {
             id: "00000000-0000-4000-8000-000000000183",
             label: "Phase finale",
-            kind: "pool",
+            kind: "pack",
           },
         ],
         page: 1,
@@ -1012,8 +1022,13 @@ it("loads the next child page only from the visible idle list and retains bounde
   );
 
   // Then
-  expect(await screen.findByText("Phase finale")).toBeOnTheScreen();
-  expect(screen.getByText("Phase régulière")).toBeOnTheScreen();
+  await screen.findByRole("link", { name: "Phase finale" });
+  const children = screen.getAllByRole("link");
+  expect(children).toHaveLength(3);
+  expect(children[0]).toHaveAccessibleName("Phase régulière actualisée");
+  expect(children[1]).toHaveAccessibleName("Phase intermédiaire");
+  expect(children[2]).toHaveAccessibleName("Phase finale");
+  expect(screen.queryByText("Phase régulière")).not.toBeOnTheScreen();
 
   // When
   await fireEvent(
