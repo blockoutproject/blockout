@@ -440,7 +440,7 @@ function SearchScene({
         query.data &&
         ((!examples && textQuery.isFetchingNextPage) || query.isError) ? (
           <ListContinuation
-            loading={query.isFetching}
+            loading={!examples && textQuery.isFetchingNextPage}
             failed={query.isError}
             disabled={!active || query.isFetching}
             onRetry={

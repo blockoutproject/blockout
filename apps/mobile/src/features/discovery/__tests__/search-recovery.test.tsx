@@ -433,18 +433,33 @@ it("keeps both authorized pages after a failed reread and explicitly retries the
     "endReached",
   );
   expect(mockFetch).toHaveBeenCalledTimes(attempts);
+  const reread = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url: string) =>
     new URL(url).pathname.endsWith("/clubs")
-      ? Promise.resolve(
-          Response.json({
-            clubs: [{ club: { id: firstId, name: "Résultat actuel" } }],
-          }),
-        )
+      ? reread.promise
       : publicReads(url),
   );
 
   // When
   await user.press(retry);
+
+  // Then: an exhausted traversal's reread cannot announce another page.
+  expect(screen.getByText("Niort")).toBeOnTheScreen();
+  expect(screen.getByText("Dernier club")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeDisabled();
+  expect(
+    screen.queryByRole("progressbar", { name: "Chargement de la suite…" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByText("Chargement de la suite…")).not.toBeOnTheScreen();
+
+  // When
+  await act(async () =>
+    reread.resolve(
+      Response.json({
+        clubs: [{ club: { id: firstId, name: "Résultat actuel" } }],
+      }),
+    ),
+  );
 
   // Then: Query accepts a replacement that establishes exhaustion, without appending old pages.
   expect(await screen.findByText("Résultat actuel")).toBeOnTheScreen();
@@ -455,6 +470,72 @@ it("keeps both authorized pages after a failed reread and explicitly retries the
   const retriedUrl = new URL(mockFetch.mock.calls.at(-1)?.[0]);
   expect(retriedUrl.searchParams.get("q")).toBe("Volley");
   expect(retriedUrl.searchParams.has("cursor")).toBe(false);
+});
+
+it("retries retained examples without announcing a non-existent next page", async () => {
+  // Given: examples retain one non-paginated selection of public identities.
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname.endsWith("/clubs")
+      ? Promise.resolve(
+          Response.json({
+            clubs: [{ club: { id: firstId, name: "Club conservé" } }],
+          }),
+        )
+      : publicReads(url),
+  );
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await screen.findByText("Club conservé");
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname.endsWith("/clubs")
+      ? Promise.reject(new TypeError("offline"))
+      : publicReads(url),
+  );
+  await act(async () =>
+    client.refetchQueries({
+      predicate: ({ queryKey }) => queryKey.includes("/clubs"),
+      type: "active",
+    }),
+  );
+  const retry = await screen.findByRole("button", { name: "Réessayer" });
+  const reread = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname.endsWith("/clubs")
+      ? reread.promise
+      : publicReads(url),
+  );
+
+  // When
+  await user.press(retry);
+
+  // Then
+  expect(screen.getByText("Club conservé")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeDisabled();
+  expect(
+    screen.queryByRole("progressbar", { name: "Chargement de la suite…" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByText("Chargement de la suite…")).not.toBeOnTheScreen();
+  const retriedUrl = new URL(mockFetch.mock.calls.at(-1)?.[0]);
+  expect(retriedUrl.searchParams.has("cursor")).toBe(false);
+  expect(retriedUrl.searchParams.has("q")).toBe(false);
+  expect(retriedUrl.searchParams.getAll("exampleIds")).toEqual([firstId]);
+
+  // When
+  await act(async () =>
+    reread.resolve(
+      Response.json({
+        clubs: [{ club: { id: firstId, name: "Club actuel" } }],
+      }),
+    ),
+  );
+
+  // Then
+  expect(await screen.findByText("Club actuel")).toBeOnTheScreen();
+  expect(screen.queryByText("Club conservé")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
 });
 
 it("does not present a retained empty response as certain absence after a failed reread", async () => {
