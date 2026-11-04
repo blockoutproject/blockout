@@ -14,7 +14,7 @@ export interface IdentityArtworkProps {
   cachePolicy?: ImageProps["cachePolicy"];
 }
 
-/** Native image events keep the foreground covered until display; missing or failed media reveals only its local fallback. */
+/** A new keyed source starts covered until native display; missing or failed media reveals only its local fallback. */
 export function IdentityArtwork({
   uri,
   loading = false,
@@ -39,7 +39,6 @@ export function IdentityArtwork({
           style={StyleSheet.absoluteFill}
           contentFit={contentFit}
           cachePolicy={cachePolicy}
-          onLoadStart={() => setStatus("loading")}
           onDisplay={() => setStatus("displayed")}
           onError={() => setStatus("failed")}
         />
