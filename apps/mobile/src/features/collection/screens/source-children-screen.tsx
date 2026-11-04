@@ -49,9 +49,16 @@ export function SourceChildrenScreen({
     : !isAccessDenied(query.error) && query.isLoading;
   const FeedbackLayout = pending ? PageContent : ScreenState;
   const denied = isAccessDenied(query.error);
+  // Catalog changes can repeat a child across pages; retain its first position with its latest representation.
   const items = denied
     ? []
-    : (query.data?.pages.flatMap((page) => page.items) ?? []);
+    : [
+        ...new Map(
+          (query.data?.pages ?? [])
+            .flatMap((page) => page.items)
+            .map((item) => [item.id, item]),
+        ).values(),
+      ];
   /** Refreshes the admitted catalog; a failed technical reread retains authorized content and reports its outcome. */
   async function refresh() {
     if (query.isFetching) return;

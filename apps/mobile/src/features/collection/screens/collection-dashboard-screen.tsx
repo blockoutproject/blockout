@@ -373,10 +373,17 @@ function ControlDashboard({
     !isAccessDenied(query.error) &&
     current?.family === family &&
     current.seasonId === season?.id;
+  // Updated evidence may cross page boundaries; keep its latest value in the first observed position.
   const rows =
     isAccessDenied(query.error) || isAccessDenied(results.error)
       ? []
-      : (results.data?.pages.flatMap((page) => page.items) ?? []);
+      : [
+          ...new Map(
+            (results.data?.pages ?? [])
+              .flatMap((page) => page.items)
+              .map((row) => [`${row.scopeId}/${row.stage}/${row.phase}`, row]),
+          ).values(),
+        ];
   /** Refreshes all displayed projections without resubmitting a mutation, reporting their failures once. */
   async function refresh() {
     if (

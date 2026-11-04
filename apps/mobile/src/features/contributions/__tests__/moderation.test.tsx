@@ -38,8 +38,8 @@ import { initializeV2Installation } from "../../onboarding/initialize-v2-install
 import { matchDetail } from "../../sporting/test-support/consultation-data";
 import { ModerationScreen } from "../screens/moderation-screen";
 import { ModerationMatchScreen } from "../screens/moderation-match-screen";
+import { ModerationReportsScreen } from "../screens/moderation-reports-screen";
 import { ModerationFilters } from "../components/moderation-filters";
-import { ModerationVersionSheet } from "../components/moderation-version-sheet";
 import type {
   ModeratedStreamContributionsResponse,
   ModeratedStreamContributionResponse,
@@ -245,7 +245,10 @@ beforeEach(() => {
         count: reportsPaged ? 21 : 1,
         items: [
           {
-            id: "00000000-0000-4000-8000-000000000010",
+            id:
+              page === "1"
+                ? "00000000-0000-4000-8000-000000000011"
+                : "00000000-0000-4000-8000-000000000010",
             reportedAt: "2026-10-24T12:00:00Z",
             reason:
               reportsPaged && page === "1"
@@ -300,61 +303,48 @@ function PrivateQueries({ children }: PropsWithChildren) {
   }, [current]);
   return children;
 }
-/** Mounts the chosen real feature screen inside its required providers. */
-async function mount(children: React.ReactNode) {
-  await render(
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <QueryClientProvider client={publicClient}>
-          <ThemeProvider>
-            <ApplicationAccessProvider>
-              <AccountSessionProvider>
-                <PrivateQueries>
-                  <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
-                </PrivateQueries>
-              </AccountSessionProvider>
-            </ApplicationAccessProvider>
-          </ThemeProvider>
-        </QueryClientProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>,
-  );
+/** Mounts a real feature screen in its providers and permits rerendering an exact route context. */
+async function mount(children: React.ReactElement) {
+  const view = await render(children, {
+    wrapper: ({ children }) => (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <QueryClientProvider client={publicClient}>
+            <ThemeProvider>
+              <ApplicationAccessProvider>
+                <AccountSessionProvider>
+                  <PrivateQueries>
+                    <AccountFeedbackProvider>
+                      {children}
+                    </AccountFeedbackProvider>
+                  </PrivateQueries>
+                </AccountSessionProvider>
+              </ApplicationAccessProvider>
+            </ThemeProvider>
+          </QueryClientProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+    ),
+  });
   await layoutNativeTabs();
+  return view;
 }
 
-it.each(["queue", "active", "pending", "filters", "version"] as const)(
+it.each(["queue", "active", "pending", "filters", "reports"] as const)(
   "recovers F05 initialization on the %s view without leaving disabled moderation reads in loading",
   async (surface) => {
     // Given
     jest
       .mocked(initializeV2Installation)
       .mockRejectedValueOnce(new Error("Unavailable"));
-    if (surface === "version") {
-      const peer = mockFetch.getMockImplementation();
-      mockFetch.mockImplementation((url, init) => {
-        if (
-          new URL(String(url)).pathname.endsWith(
-            `/stream-contributions/${versionId}`,
-          )
-        )
-          return Promise.resolve(
-            Response.json({
-              revision: detail.revision,
-              contribution: version(),
-            }),
-          );
-        if (!peer) throw new Error("Missing HTTP boundary");
-        return peer(url, init);
-      });
-    }
     const user = userEvent.setup();
     await mount(
       surface === "queue" ? (
         <ModerationScreen filters={{}} />
       ) : surface === "filters" ? (
         <ModerationFilters initial={{}} />
-      ) : surface === "version" ? (
-        <ModerationVersionSheet matchId={sporting.id} versionId={versionId} />
+      ) : surface === "reports" ? (
+        <ModerationReportsScreen matchId={sporting.id} versionId={versionId} />
       ) : (
         <ModerationMatchScreen matchId={sporting.id} />
       ),
@@ -392,6 +382,8 @@ it.each(["queue", "active", "pending", "filters", "version"] as const)(
       expect(await screen.findByLabelText("Adresse du lien")).toBeOnTheScreen();
     else if (surface === "queue")
       expect(await screen.findByText(sporting.home.name)).toBeOnTheScreen();
+    else if (surface === "reports")
+      expect(await screen.findByText("Motif indisponible")).toBeOnTheScreen();
     else
       expect(
         await screen.findByText("https://twitch.tv/review_link"),
@@ -473,7 +465,7 @@ it("confirms the exact actor revision and version before rejecting", async () =>
   ).toBe(true);
 });
 
-it("retains historical reports and distinguishes erased reasons", async () => {
+it("opens historical reports without replacing the expanded version context", async () => {
   // Given
   detail.items = [
     version({
@@ -494,12 +486,20 @@ it("retains historical reports and distinguishes erased reasons", async () => {
     await screen.findByRole("button", { name: /Twitch, Masqué/ }),
   );
   await user.press(
-    await screen.findByRole("button", { name: "Signalements (1)" }),
+    await screen.findByRole("link", { name: "Signalements (1)" }),
   );
 
   // Then
-  expect(await screen.findByText("Motif indisponible")).toBeOnTheScreen();
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: "/administration/stream-links/reports",
+    params: { matchId: sporting.id, versionId },
+  });
   expect(screen.getByRole("button", { name: "Réactiver" })).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(String(url)).pathname.endsWith("/reports"),
+    ),
+  ).toHaveLength(0);
 });
 
 it("keeps an unsuccessful queue read distinct from an empty successful selection", async () => {
@@ -515,29 +515,21 @@ it("keeps an unsuccessful queue read distinct from an empty successful selection
 });
 
 it("recovers the profile before starting disabled report reads without a false loading state", async () => {
-  // Given: the authorized version stays visible through a technical profile refresh failure.
-  detail.items = [
-    version({
-      state: "hidden",
-      reportCount: 1,
-      canApprove: false,
-      canReject: false,
-    }),
-  ];
+  // Given: the original account is established before its current profile reread fails.
   reportReason = "Controlled report reason";
   const user = userEvent.setup();
-  await mount(<ModerationMatchScreen matchId={sporting.id} />);
-  await user.press(await screen.findByRole("tab", { name: "Historique" }));
-  await user.press(
-    await screen.findByRole("button", { name: /Twitch, Masqué/ }),
-  );
+  const view = await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  await screen.findByDisplayValue("https://youtu.be/retained");
   profileFails = true;
   await act(() =>
     client.refetchQueries({ queryKey: getGetMyAccountQueryKey(), exact: true }),
   );
+  await screen.findByRole("button", { name: "Réessayer le profil" });
 
   // When
-  await user.press(screen.getByRole("button", { name: "Signalements (1)" }));
+  await view.rerender(
+    <ModerationReportsScreen matchId={sporting.id} versionId={versionId} />,
+  );
 
   // Then
   expect(
@@ -586,29 +578,14 @@ it("shows a read error instead of a stale empty queue after a failed explicit re
   ).not.toBeOnTheScreen();
 });
 
-it("keeps already loaded report pages usable while an unavailable profile disables further reads", async () => {
+it("retains authorized reports while an unavailable profile disables further reads", async () => {
   // Given
   reportsPaged = true;
   reportReason = "First authorized page";
-  detail.items = [
-    version({
-      state: "hidden",
-      reportCount: 21,
-      canApprove: false,
-      canReject: false,
-    }),
-  ];
-  const user = userEvent.setup();
-  await mount(<ModerationMatchScreen matchId={sporting.id} />);
-  await user.press(await screen.findByRole("tab", { name: "Historique" }));
-  await user.press(
-    await screen.findByRole("button", { name: /Twitch, Masqué/ }),
+  await mount(
+    <ModerationReportsScreen matchId={sporting.id} versionId={versionId} />,
   );
-  await user.press(screen.getByRole("button", { name: "Signalements (21)" }));
-  await user.press(
-    await screen.findByRole("button", { name: "Signalements suivants" }),
-  );
-  await screen.findByText("Historique de la seconde page");
+  await screen.findByText("First authorized page");
   const requests = mockFetch.mock.calls.filter(([url]) =>
     String(url).includes("/reports?"),
   ).length;
@@ -616,20 +593,13 @@ it("keeps already loaded report pages usable while an unavailable profile disabl
   await act(() =>
     client.refetchQueries({ queryKey: getGetMyAccountQueryKey(), exact: true }),
   );
+  await screen.findByRole("button", { name: "Réessayer le profil" });
 
-  // When: moving through already admitted pages needs no new authorization read.
-  await user.press(
-    screen.getByRole("button", { name: "Signalements précédents" }),
-  );
-  await screen.findByText("First authorized page");
-  await user.press(
-    screen.getByRole("button", { name: "Signalements suivants" }),
-  );
+  // When
+  await fireEvent(screen.getByTestId("moderation-reports-list"), "endReached");
 
   // Then
-  expect(
-    await screen.findByText("Historique de la seconde page"),
-  ).toBeOnTheScreen();
+  expect(screen.getByText("First authorized page")).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("/reports?")),
   ).toHaveLength(requests);
@@ -889,13 +859,12 @@ it("keeps the mounted dirty publication editor across an uncached tab read", asy
   ).toBeOnTheScreen();
 });
 
-it.each(["queue", "versions", "reports"] as const)(
+it.each(["queue", "versions"] as const)(
   "keeps loaded %s content and presents a failed continuation",
   async (kind) => {
     // Given
     queuePaged = kind === "queue";
     historyPaged = kind === "versions";
-    reportsPaged = kind === "reports";
     continuationFails = true;
     if (kind !== "queue")
       detail.items = [
@@ -914,32 +883,18 @@ it.each(["queue", "versions", "reports"] as const)(
       ),
     );
     const user = userEvent.setup();
-    if (kind !== "queue") {
+    if (kind === "versions")
       await user.press(await screen.findByRole("tab", { name: "Historique" }));
-      if (kind === "reports") {
-        await user.press(
-          await screen.findByRole("button", { name: /Twitch, Masqué/ }),
-        );
-        await user.press(
-          await screen.findByRole("button", { name: "Signalements (21)" }),
-        );
-        await screen.findByText("Motif indisponible");
-      }
-    }
+
     // When
-    if (kind === "reports")
-      await user.press(
-        screen.getByRole("button", { name: "Signalements suivants" }),
-      );
-    else
-      await fireEvent(
-        await screen.findByLabelText(
-          kind === "queue"
-            ? "File de modération des liens"
-            : "Historique des liens",
-        ),
-        "endReached",
-      );
+    await fireEvent(
+      await screen.findByLabelText(
+        kind === "queue"
+          ? "File de modération des liens"
+          : "Historique des liens",
+      ),
+      "endReached",
+    );
 
     // Then
     await screen.findByRole("button", { name: "Réessayer" });
@@ -955,8 +910,6 @@ it.each(["queue", "versions", "reports"] as const)(
           name: `${detail.match.home.name} – ${detail.match.away.name}`,
         }),
       ).toBeOnTheScreen();
-    else if (kind === "reports")
-      expect(screen.getByText("Motif indisponible")).toBeOnTheScreen();
     else
       expect(
         screen.getByRole("button", { name: /Twitch, Masqué/ }),
@@ -1154,7 +1107,7 @@ it("continues historical versions without losing the loaded source page", async 
   ).toBe(true);
 });
 
-it("pages exact-version reports while rendering only the selected page", async () => {
+it("opens the exact active version's report page without loading reports in the editor", async () => {
   // Given
   reportsPaged = true;
   detail.activeContribution = version({
@@ -1166,25 +1119,412 @@ it("pages exact-version reports while rendering only the selected page", async (
   });
   await mount(<ModerationMatchScreen matchId={sporting.id} />);
   const user = userEvent.setup();
-  await user.press(
-    await screen.findByRole("button", { name: "Signalements (21)" }),
-  );
-  await screen.findByText("Motif indisponible");
 
   // When
   await user.press(
-    screen.getByRole("button", { name: "Signalements suivants" }),
+    await screen.findByRole("link", { name: "Signalements (21)" }),
+  );
+
+  // Then
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: "/administration/stream-links/reports",
+    params: { matchId: sporting.id, versionId },
+  });
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(String(url)).pathname.endsWith("/reports"),
+    ),
+  ).toHaveLength(0);
+});
+
+it("retains reports through failed continuation and retries only the exact next page before exhaustion", async () => {
+  // Given
+  reportsPaged = true;
+  reportReason = "First retained reason";
+  const user = userEvent.setup();
+  const ordinary = mockFetch.getMockImplementation()!;
+  const append = Promise.withResolvers<Response>();
+  let appendAvailable = false;
+  const reportPath = `/administration/matches/${sporting.id}/stream-contributions/${versionId}/reports`;
+  mockFetch.mockImplementation((url, init) => {
+    const address = new URL(String(url));
+    if (
+      address.pathname !== reportPath ||
+      address.searchParams.get("page") !== "1"
+    )
+      return ordinary(url, init);
+    return appendAvailable
+      ? Promise.resolve(
+          Response.json({
+            count: 21,
+            items: [
+              {
+                id: "00000000-0000-4000-8000-000000000010",
+                reportedAt: "2026-10-24T12:00:00Z",
+                reason: "Updated first retained reason",
+              },
+              {
+                id: "00000000-0000-4000-8000-000000000011",
+                reportedAt: "2026-10-24T11:00:00Z",
+                reason: "Historique de la seconde page",
+              },
+            ],
+          }),
+        )
+      : append.promise;
+  });
+  await mount(
+    <ModerationReportsScreen matchId={sporting.id} versionId={versionId} />,
+  );
+  await screen.findByText("First retained reason");
+  expect(
+    screen.getByRole("header", { name: "Signalements (21)" }),
+  ).toBeOnTheScreen();
+
+  // When
+  await fireEvent(screen.getByTestId("moderation-reports-list"), "endReached");
+  await fireEvent(screen.getByTestId("moderation-reports-list"), "endReached");
+
+  // Then
+  expect(
+    await screen.findByRole("progressbar", { name: "Chargement de la suite…" }),
+  ).toBeBusy();
+  expect(screen.getByText("First retained reason")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("progressbar", { name: "Chargement des signalements" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      String(url).endsWith(`${versionId}/reports?page=1`),
+    ),
+  ).toHaveLength(1);
+
+  // When
+  await act(() =>
+    append.resolve(
+      Response.json({ title: "Unavailable", status: 503 }, { status: 503 }),
+    ),
+  );
+  await screen.findByRole("button", { name: "Réessayer" });
+  await fireEvent(screen.getByTestId("moderation-reports-list"), "endReached");
+
+  // Then
+  expect(screen.getByText("First retained reason")).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      String(url).endsWith(`${versionId}/reports?page=1`),
+    ),
+  ).toHaveLength(1);
+
+  // When
+  appendAvailable = true;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await screen.findByText("Historique de la seconde page");
+  await fireEvent(screen.getByTestId("moderation-reports-list"), "endReached");
+
+  // Then
+  expect(screen.getByText("Updated first retained reason")).toBeOnTheScreen();
+  expect(screen.queryByText("First retained reason")).not.toBeOnTheScreen();
+  expect(screen.getAllByText("Historique de la seconde page")).toHaveLength(1);
+  const reasons = screen.getAllByText(
+    /Updated first retained reason|Historique de la seconde page/,
+  );
+  expect(reasons[0]).toHaveTextContent("Updated first retained reason");
+  expect(reasons[1]).toHaveTextContent("Historique de la seconde page");
+  expect(
+    screen.getByRole("header", { name: "Signalements (21)" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls
+      .filter(([url]) => new URL(String(url)).pathname === reportPath)
+      .map(([url]) => new URL(String(url)).searchParams.get("page")),
+  ).toEqual(["0", "1", "1"]);
+});
+
+it("retries a failed retained report refresh from page zero without appending the available next page", async () => {
+  // Given
+  reportsPaged = true;
+  reportReason = "Retained reason before refresh";
+  const user = userEvent.setup();
+  const ordinary = mockFetch.getMockImplementation()!;
+  const reportPath = `/administration/matches/${sporting.id}/stream-contributions/${versionId}/reports`;
+  let refreshFails = false;
+  mockFetch.mockImplementation((url, init) => {
+    const address = new URL(String(url));
+    return refreshFails &&
+      address.pathname === reportPath &&
+      address.searchParams.get("page") === "0"
+      ? Promise.resolve(
+          Response.json({ title: "Unavailable", status: 503 }, { status: 503 }),
+        )
+      : ordinary(url, init);
+  });
+  await mount(
+    <ModerationReportsScreen matchId={sporting.id} versionId={versionId} />,
+  );
+  await screen.findByText("Retained reason before refresh");
+
+  // When
+  refreshFails = true;
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await screen.findByRole("button", { name: "Réessayer" });
+  await fireEvent(screen.getByTestId("moderation-reports-list"), "endReached");
+
+  // Then
+  expect(screen.getByText("Retained reason before refresh")).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls
+      .filter(([url]) => new URL(String(url)).pathname === reportPath)
+      .map(([url]) => new URL(String(url)).searchParams.get("page")),
+  ).toEqual(["0", "0"]);
+
+  // When
+  refreshFails = false;
+  reportReason = "Refreshed retained reason";
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByText("Refreshed retained reason"),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Retained reason before refresh"),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls
+      .filter(([url]) => new URL(String(url)).pathname === reportPath)
+      .map(([url]) => new URL(String(url)).searchParams.get("page")),
+  ).toEqual(["0", "0", "0"]);
+});
+
+it("keeps a new exact-version report context separate from a late older continuation", async () => {
+  // Given
+  reportsPaged = true;
+  reportReason = "Old exact-version reason";
+  const replacementId = "00000000-0000-4000-8000-000000000602";
+  const ordinary = mockFetch.getMockImplementation()!;
+  const append = Promise.withResolvers<Response>();
+  let appendSignal: AbortSignal | undefined;
+  mockFetch.mockImplementation((url, init) => {
+    const address = new URL(String(url));
+    if (address.pathname.endsWith(`${replacementId}/reports`))
+      return Promise.resolve(
+        Response.json({
+          count: 1,
+          items: [
+            {
+              id: "00000000-0000-4000-8000-000000000012",
+              reportedAt: "2026-10-24T13:00:00Z",
+              reason: "New exact-version reason",
+            },
+          ],
+        }),
+      );
+    if (
+      address.pathname.endsWith(`${versionId}/reports`) &&
+      address.searchParams.get("page") === "1"
+    ) {
+      appendSignal = init?.signal ?? undefined;
+      return append.promise;
+    }
+    return ordinary(url, init);
+  });
+  const view = await mount(
+    <ModerationReportsScreen matchId={sporting.id} versionId={versionId} />,
+  );
+  await screen.findByText("Old exact-version reason");
+  await fireEvent(screen.getByTestId("moderation-reports-list"), "endReached");
+  await screen.findByRole("progressbar", { name: "Chargement de la suite…" });
+
+  // When
+  await view.rerender(
+    <ModerationReportsScreen matchId={sporting.id} versionId={replacementId} />,
+  );
+  await screen.findByText("New exact-version reason");
+  expect(appendSignal?.aborted).toBe(true);
+  await act(() =>
+    append.resolve(
+      Response.json({
+        count: 21,
+        items: [
+          {
+            id: "00000000-0000-4000-8000-000000000011",
+            reportedAt: "2026-10-24T12:00:00Z",
+            reason: "Late old-version reason",
+          },
+        ],
+      }),
+    ),
+  );
+
+  // Then
+  expect(screen.getByText("New exact-version reason")).toBeOnTheScreen();
+  expect(screen.queryByText("Old exact-version reason")).not.toBeOnTheScreen();
+  expect(screen.queryByText("Late old-version reason")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("progressbar", { name: "Chargement de la suite…" }),
+  ).not.toBeOnTheScreen();
+});
+
+it("requires current moderation permission before reading the exact report collection", async () => {
+  // Given
+  permission = false;
+
+  // When
+  await mount(
+    <ModerationReportsScreen matchId={sporting.id} versionId={versionId} />,
+  );
+
+  // Then
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(String(url)).pathname.endsWith("/reports"),
+    ),
+  ).toHaveLength(0);
+});
+
+it("withdraws retained report reasons when the current continuation is forbidden", async () => {
+  // Given
+  reportsPaged = true;
+  reportReason = "Private retained reason";
+  const ordinary = mockFetch.getMockImplementation()!;
+  mockFetch.mockImplementation((url, init) => {
+    const address = new URL(String(url));
+    return address.pathname.endsWith(`${versionId}/reports`) &&
+      address.searchParams.get("page") === "1"
+      ? Promise.resolve(
+          Response.json({ title: "Forbidden", status: 403 }, { status: 403 }),
+        )
+      : ordinary(url, init);
+  });
+  await mount(
+    <ModerationReportsScreen matchId={sporting.id} versionId={versionId} />,
+  );
+  await screen.findByText("Private retained reason");
+
+  // When
+  await fireEvent(screen.getByTestId("moderation-reports-list"), "endReached");
+
+  // Then
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
+  expect(screen.queryByText("Private retained reason")).not.toBeOnTheScreen();
+  expect(screen.queryByText("Aucun signalement")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).not.toBeOnTheScreen();
+});
+
+it("refreshes empty reports only from their card and restores Empty after a failed read's Retry", async () => {
+  // Given
+  const user = userEvent.setup();
+  let unavailable = false;
+  const ordinary = mockFetch.getMockImplementation()!;
+  mockFetch.mockImplementation((url, init) =>
+    new URL(String(url)).pathname.endsWith(`${versionId}/reports`)
+      ? Promise.resolve(
+          unavailable
+            ? Response.json(
+                { title: "Unavailable", status: 503 },
+                { status: 503 },
+              )
+            : Response.json({ count: 0, items: [] }),
+        )
+      : ordinary(url, init),
+  );
+  await mount(
+    <ModerationReportsScreen matchId={sporting.id} versionId={versionId} />,
+  );
+  await screen.findByText("Aucun signalement");
+  expect(
+    screen.queryByLabelText("Actualiser les données"),
+  ).not.toBeOnTheScreen();
+
+  // When
+  unavailable = true;
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Aucun signalement")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  unavailable = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByText("Aucun signalement")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+});
+
+it("prioritizes profile recovery over a retained empty report collection", async () => {
+  // Given
+  const user = userEvent.setup();
+  const ordinary = mockFetch.getMockImplementation()!;
+  mockFetch.mockImplementation((url, init) =>
+    new URL(String(url)).pathname.endsWith(`${versionId}/reports`)
+      ? Promise.resolve(Response.json({ count: 0, items: [] }))
+      : ordinary(url, init),
+  );
+  await mount(
+    <ModerationReportsScreen matchId={sporting.id} versionId={versionId} />,
+  );
+  await screen.findByText("Aucun signalement");
+  const reportReads = mockFetch.mock.calls.filter(([url]) =>
+    new URL(String(url)).pathname.endsWith("/reports"),
+  ).length;
+
+  // When
+  profileFails = true;
+  await act(() =>
+    client.refetchQueries({ queryKey: getGetMyAccountQueryKey(), exact: true }),
   );
 
   // Then
   expect(
-    await screen.findByText("Historique de la seconde page"),
+    await screen.findByRole("button", { name: "Réessayer", busy: false }),
   ).toBeOnTheScreen();
-  expect(screen.queryByText("Motif indisponible")).toBeNull();
-  await user.press(
-    screen.getByRole("button", { name: "Signalements précédents" }),
-  );
-  expect(await screen.findByText("Motif indisponible")).toBeOnTheScreen();
+  expect(screen.queryByText("Aucun signalement")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Actualiser" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Actualiser les données"),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(String(url)).pathname.endsWith("/reports"),
+    ),
+  ).toHaveLength(reportReads);
+
+  // When
+  profileFails = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByText("Aucun signalement")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Actualiser" })).toBeOnTheScreen();
 });
 
 it("does not poll the mounted private queue", async () => {
@@ -1290,33 +1630,22 @@ it("presents an explicit refusal on another already loaded moderation screen", a
   expect(screen.queryByText("Aucun lien à traiter")).toBeNull();
 });
 
-it("rereads open report reasons during the ordinary match refresh even when their total is unchanged", async () => {
+it("refreshes retained report reasons on their page even when the total is unchanged", async () => {
   // Given: the fictional HTTP erasure changes only the nullable reason, not its counted fact.
   reportReason = "Avant effacement";
-  detail.activeContribution = version({
-    state: "active",
-    reportCount: 1,
-    canApprove: false,
-    canReject: false,
-    canWithdraw: true,
-  });
-  await mount(<ModerationMatchScreen matchId={sporting.id} />);
-  const user = userEvent.setup();
-  await user.press(
-    await screen.findByRole("button", { name: "Signalements (1)" }),
+  await mount(
+    <ModerationReportsScreen matchId={sporting.id} versionId={versionId} />,
   );
   await screen.findByText("Avant effacement");
 
   // When
   reportReason = null;
-  fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
   expect(await screen.findByText("Motif indisponible")).toBeOnTheScreen();
   expect(screen.queryByText("Avant effacement")).toBeNull();
-  expect(
-    screen.getByRole("button", { name: "Signalements (1)" }),
-  ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 });
 
 it("accepts the same native pager settlement used by a swipe and retains the inactive editor", async () => {
@@ -1353,8 +1682,8 @@ it("accepts the same native pager settlement used by a swipe and retains the ina
   ).toBeOnTheScreen();
 });
 
-it("starts a replacement member's report disclosure on its own first page", async () => {
-  // Given: the outgoing active member has an open second report page.
+it("opens a newly accepted active member's own report destination", async () => {
+  // Given
   reportsPaged = true;
   detail.activeContribution = version({
     state: "active",
@@ -1363,22 +1692,16 @@ it("starts a replacement member's report disclosure on its own first page", asyn
     canReject: false,
     canWithdraw: true,
   });
-  const ordinary = mockFetch.getMockImplementation()!;
   const replacementId = "00000000-0000-4000-8000-000000000601";
-  mockFetch.mockImplementation((url, init) =>
-    String(url).includes(`/${replacementId}/reports`)
-      ? Promise.resolve(Response.json({ count: 0, items: [] }))
-      : ordinary(url, init),
-  );
   await mount(<ModerationMatchScreen matchId={sporting.id} />);
   const user = userEvent.setup();
   await user.press(
-    await screen.findByRole("button", { name: "Signalements (21)" }),
+    await screen.findByRole("link", { name: "Signalements (21)" }),
   );
-  await user.press(
-    await screen.findByRole("button", { name: "Signalements suivants" }),
-  );
-  await screen.findByText("Historique de la seconde page");
+  expect(mockPush).toHaveBeenLastCalledWith({
+    pathname: "/administration/stream-links/reports",
+    params: { matchId: sporting.id, versionId },
+  });
 
   // When: a subsequent authorized read selects a different exact active member.
   detail = {
@@ -1393,14 +1716,21 @@ it("starts a replacement member's report disclosure on its own first page", asyn
       canWithdraw: true,
     }),
   };
-  fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await user.press(
-    await screen.findByRole("button", { name: "Signalements (0)" }),
+    await screen.findByRole("link", { name: "Signalements (0)" }),
   );
 
   // Then
-  expect(await screen.findByText("Aucun signalement")).toBeOnTheScreen();
-  expect(screen.queryByText("Historique de la seconde page")).toBeNull();
+  expect(mockPush).toHaveBeenLastCalledWith({
+    pathname: "/administration/stream-links/reports",
+    params: { matchId: sporting.id, versionId: replacementId },
+  });
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(String(url)).pathname.endsWith("/reports"),
+    ),
+  ).toHaveLength(0);
 });
 
 it.each(["queue", "active", "pending"] as const)(
@@ -1591,103 +1921,52 @@ it("keeps a conflicted draft but adopts the current viewed address/revision afte
   ]);
 });
 
-it("opens each exact lineage member when retained versions share the same address", async () => {
-  // Given
-  const sourceId = "00000000-0000-4000-8000-000000000771";
-  const replacementId = "00000000-0000-4000-8000-000000000772";
-  detail.items = [
-    version({
-      state: "replaced",
-      sourceVersionId: sourceId,
-      replacedByVersionId: replacementId,
+it.each(["active", "historical"] as const)(
+  "opens exact %s reports without source or replacement shortcuts",
+  async (selection) => {
+    // Given: retained lineage metadata does not introduce another version-reading journey.
+    const retained = version({
+      state: selection === "active" ? "active" : "replaced",
+      sourceVersionId: "00000000-0000-4000-8000-000000000771",
+      replacedByVersionId: "00000000-0000-4000-8000-000000000772",
+      reportCount: 1,
       canApprove: false,
       canReject: false,
-    }),
-  ];
-  await mount(<ModerationMatchScreen matchId={sporting.id} />);
-  const user = userEvent.setup();
-  await user.press(await screen.findByRole("tab", { name: "Historique" }));
-  await user.press(
-    await screen.findByRole("button", { name: "Twitch, Lien remplacé" }),
-  );
+      canWithdraw: selection === "active",
+    });
+    if (selection === "active") detail.activeContribution = retained;
+    else detail.items = [retained];
+    await mount(<ModerationMatchScreen matchId={sporting.id} />);
+    const user = userEvent.setup();
 
-  // When
-  await user.press(screen.getByRole("button", { name: "Version d’origine" }));
-  await user.press(
-    screen.getByRole("button", { name: "Version de remplacement" }),
-  );
+    // When
+    if (selection === "historical") {
+      await user.press(await screen.findByRole("tab", { name: "Historique" }));
+      await user.press(
+        await screen.findByRole("button", { name: "Twitch, Lien remplacé" }),
+      );
+    }
+    await user.press(
+      await screen.findByRole("link", { name: "Signalements (1)" }),
+    );
 
-  // Then
-  expect(mockPush.mock.calls.map(([destination]) => destination)).toEqual([
-    {
-      pathname: "/administration/stream-links/version",
-      params: { matchId: sporting.id, versionId: sourceId, relation: "source" },
-    },
-    {
-      pathname: "/administration/stream-links/version",
-      params: {
-        matchId: sporting.id,
-        versionId: replacementId,
-        relation: "replacement",
-      },
-    },
-  ]);
-});
+    // Then
+    expect(screen.queryByText("Version d’origine")).not.toBeOnTheScreen();
+    expect(screen.queryByText("Version de remplacement")).not.toBeOnTheScreen();
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/administration/stream-links/reports",
+      params: { matchId: sporting.id, versionId },
+    });
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(String(url)).pathname.endsWith("/reports"),
+      ),
+    ).toHaveLength(0);
+  },
+);
 
-it("reads the exact off-page source and its reports in the read-only related-version sheet", async () => {
-  // Given: equal addresses do not identify a retained version.
-  const sourceId = "00000000-0000-4000-8000-000000000771";
-  const ordinary = mockFetch.getMockImplementation()!;
-  mockFetch.mockImplementation((url, init) =>
-    new URL(String(url)).pathname.endsWith(`/stream-contributions/${sourceId}`)
-      ? Promise.resolve(
-          Response.json({
-            revision: "current:2",
-            contribution: version({
-              id: sourceId,
-              state: "hidden",
-              authorName: "Source historique exacte",
-              reportCount: 1,
-              canApprove: false,
-              canReject: false,
-              canReactivate: true,
-            }),
-          }),
-        )
-      : ordinary(url, init),
-  );
-
-  // When
-  await mount(
-    <ModerationVersionSheet
-      matchId={sporting.id}
-      versionId={sourceId}
-      relation="source"
-    />,
-  );
-  await userEvent.press(
-    await screen.findByRole("button", { name: "Signalements (1)" }),
-  );
-
-  // Then
-  expect(await screen.findByText("Motif indisponible")).toBeOnTheScreen();
-  expect(screen.getByText("Source historique exacte")).toBeOnTheScreen();
-  expect(screen.queryByRole("button", { name: "Réactiver" })).toBeNull();
-  expect(
-    mockFetch.mock.calls.some(([url]) =>
-      String(url).endsWith(`/${sourceId}/reports?page=0`),
-    ),
-  ).toBe(true);
-});
-
-it.each([
-  "queue",
-  "active",
-  "pending",
-  "filters",
-  "version",
-  "reports",
-] as const)(
+it.each(["queue", "active", "pending", "filters", "reports"] as const)(
   "shows a content skeleton rather than loading text for the initial %s read",
   async (kind) => {
     // Given: only HTTP completion is held; the real providers, Query and screen rendering stay in place.
@@ -1705,16 +1984,11 @@ it.each([
           ? address.pathname.endsWith("/stream-moderation")
           : kind === "reports"
             ? address.pathname.endsWith("/reports")
-            : kind === "version"
-              ? address.pathname.endsWith(`/stream-contributions/${versionId}`)
-              : address.pathname.endsWith("/stream-contributions") &&
-                address.searchParams.get("state") === kind;
+            : address.pathname.endsWith("/stream-contributions") &&
+              address.searchParams.get("state") === kind;
       if (!target) return ordinary(url, init);
       requested = true;
-      response =
-        kind === "version"
-          ? Response.json({ revision: "viewed:1", contribution: version() })
-          : await ordinary(url, init);
+      response = await ordinary(url, init);
       return held;
     });
     const label =
@@ -1722,11 +1996,9 @@ it.each([
         ? "Chargement de la file de modération"
         : kind === "filters"
           ? "Chargement des filtres des liens"
-          : kind === "version"
-            ? "Chargement de la version du lien"
-            : kind === "reports"
-              ? "Chargement des signalements"
-              : "Chargement des liens du match";
+          : kind === "reports"
+            ? "Chargement des signalements"
+            : "Chargement des liens du match";
     try {
       // When
       await mount(
@@ -1734,8 +2006,11 @@ it.each([
           <ModerationScreen filters={{}} />
         ) : kind === "filters" ? (
           <ModerationFilters initial={{}} />
-        ) : kind === "version" ? (
-          <ModerationVersionSheet matchId={sporting.id} versionId={versionId} />
+        ) : kind === "reports" ? (
+          <ModerationReportsScreen
+            matchId={sporting.id}
+            versionId={versionId}
+          />
         ) : (
           <ModerationMatchScreen matchId={sporting.id} />
         ),
@@ -1744,10 +2019,6 @@ it.each([
       if (kind === "pending")
         await user.press(
           await screen.findByRole("tab", { name: "Propositions (1)" }),
-        );
-      if (kind === "reports")
-        await user.press(
-          await screen.findByRole("button", { name: "Signalements (0)" }),
         );
       await waitFor(() => expect(requested).toBe(true));
 
