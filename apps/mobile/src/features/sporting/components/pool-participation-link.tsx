@@ -77,7 +77,7 @@ export function PoolParticipationLink({
 const styles = StyleSheet.create({
   target: { minHeight: tokens.touch.minimum, justifyContent: "center" },
   entry: {
-    minHeight: 36,
+    minHeight: tokens.size.control.compact,
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
