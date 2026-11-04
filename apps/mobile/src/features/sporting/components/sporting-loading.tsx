@@ -53,8 +53,8 @@ export function SportingMatchLoading() {
   );
 }
 
-/** Consultation and moderation share the neutral summary's real bands, team cells and separators. */
-export function MatchSummarySkeleton() {
+/** The public consultation reserves its neutral summary bands, team cells and separators. */
+function MatchSummarySkeleton() {
   const { colors } = useTheme();
   const { fontScale } = useWindowDimensions();
   return (

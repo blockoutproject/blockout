@@ -1,8 +1,8 @@
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, useWindowDimensions } from "react-native";
 import { LoadingGroup } from "../../../shared/components/loading-group";
 import { Skeleton } from "../../../shared/components/skeleton";
 import { TextSkeleton } from "../../../shared/components/text-skeleton";
-import { MatchSummarySkeleton } from "../../sporting/match-consultation";
+import { MatchSurface } from "../../sporting/match-consultation";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
@@ -14,7 +14,7 @@ export function ModerationQueueLoading() {
       style={styles.stack}
     >
       {Array.from({ length: 2 }, (_, index) => (
-        <MatchPlaceholder key={index} />
+        <MatchPlaceholder key={index} queue />
       ))}
     </LoadingGroup>
   );
@@ -75,9 +75,58 @@ export function ModerationFiltersLoading() {
   );
 }
 
-/** Mirrors the retained match context's heading and two sporting identity rows. */
-function MatchPlaceholder() {
-  return <MatchSummarySkeleton />;
+/** Private moderation context retains its date inside the body; queue rows also reserve their count badges. */
+function MatchPlaceholder({ queue = false }: { queue?: boolean }) {
+  const { colors } = useTheme();
+  const { fontScale } = useWindowDimensions();
+  return (
+    <MatchSurface>
+      <View style={[styles.ribbon, { backgroundColor: colors.skeletonHeader }]}>
+        <Skeleton
+          width={tokens.size.media.row}
+          height={tokens.size.media.row}
+          shape="rectangle"
+        />
+        <View style={styles.copy}>
+          <TextSkeleton width="85%" />
+        </View>
+      </View>
+      <View style={styles.contextBody}>
+        <TextSkeleton role="metadata" width="64%" />
+        {[0, 1].map((index) => (
+          <View key={index} style={styles.row}>
+            <Skeleton
+              width={tokens.size.media.row}
+              height={tokens.size.media.row}
+              shape="rectangle"
+            />
+            <View style={styles.copy}>
+              <TextSkeleton width={index === 0 ? "85%" : "72%"} />
+            </View>
+            <TextSkeleton role="heading" width={12 * fontScale} />
+          </View>
+        ))}
+        <View>
+          <TextSkeleton role="metadata" width="85%" />
+          {fontScale >= 1.6 && <TextSkeleton role="metadata" width="60%" />}
+        </View>
+        {queue && (
+          <View style={[styles.badges, { borderColor: colors.border }]}>
+            <Skeleton
+              width={
+                64 * fontScale + 2 * (tokens.spacing.sm + tokens.border.thin)
+              }
+              height={
+                tokens.typography.metadata.lineHeight * fontScale +
+                2 * (tokens.spacing.xs + tokens.border.thin)
+              }
+              shape="rectangle"
+            />
+          </View>
+        )}
+      </View>
+    </MatchSurface>
+  );
 }
 
 /** Uses the approved soft version surface and, for an editor, the real control dimensions. */
@@ -112,5 +161,20 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.md,
   },
   row: { flexDirection: "row", alignItems: "center", gap: tokens.spacing.sm },
+  ribbon: {
+    padding: tokens.spacing.md,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.md,
+  },
+  contextBody: { padding: tokens.spacing.lg, gap: tokens.spacing.sm },
+  copy: { flex: 1, minWidth: 0 },
+  badges: {
+    borderTopWidth: tokens.border.thin,
+    paddingTop: tokens.spacing.sm,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: tokens.spacing.sm,
+  },
   report: { gap: tokens.spacing.xs, paddingVertical: tokens.spacing.xs },
 });
