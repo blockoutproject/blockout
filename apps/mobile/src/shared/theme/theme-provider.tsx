@@ -1,5 +1,11 @@
-import { createContext, useContext, type PropsWithChildren } from "react";
-import { useColorScheme } from "react-native";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  type PropsWithChildren,
+} from "react";
+import { Platform, useColorScheme } from "react-native";
+import * as SystemUI from "expo-system-ui";
 import {
   DarkTheme,
   DefaultTheme,
@@ -28,7 +34,7 @@ export interface ThemeProviderProps extends PropsWithChildren {
 
 const ThemeContext = createContext<Theme | null>(null);
 
-/** Supplies app and native navigation colors from one system appearance; absent schemes fall back to light. */
+/** Supplies app, navigation and Android window colors from one system appearance; absent schemes fall back to light. */
 export function ThemeProvider({
   children,
   context = neutralContext,
@@ -37,6 +43,11 @@ export function ThemeProvider({
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const colors = appearanceColors[scheme];
   const navigationTheme = scheme === "dark" ? DarkTheme : DefaultTheme;
+  useEffect(() => {
+    // Expo Blur samples this native background behind transparent target content.
+    if (Platform.OS === "android")
+      void SystemUI.setBackgroundColorAsync(colors.canvas);
+  }, [colors.canvas]);
   return (
     <ThemeContext
       value={{
