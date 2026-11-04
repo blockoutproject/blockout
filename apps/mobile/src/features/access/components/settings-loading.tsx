@@ -2,6 +2,7 @@ import type { PropsWithChildren } from "react";
 import { StyleSheet, View } from "react-native";
 import { LoadingGroup } from "../../../shared/components/loading-group";
 import { Skeleton } from "../../../shared/components/skeleton";
+import { TextSkeleton } from "../../../shared/components/text-skeleton";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
@@ -20,17 +21,17 @@ export function MaintenanceLoading() {
             shape="rectangle"
           />
           <View style={styles.controlTitle}>
-            <Skeleton />
+            <TextSkeleton />
           </View>
           <Skeleton width={48} height={24} shape="rectangle" />
         </View>
         <Skeleton height={tokens.size.control.default} shape="rectangle" />
       </SettingsCard>
       <SettingsCard>
-        <Skeleton width={160} height={20} />
-        <Skeleton width={90} height={14} />
+        <TextSkeleton width={160} />
+        <TextSkeleton role="label" width={90} />
         <Skeleton height={96} shape="rectangle" />
-        <Skeleton width={110} height={14} />
+        <TextSkeleton role="label" width={110} />
         <Skeleton height={tokens.size.control.default} shape="rectangle" />
       </SettingsCard>
     </LoadingGroup>
@@ -53,8 +54,8 @@ export function ApplicationVersionsLoading() {
         </View>
       </View>
       <SettingsCard>
-        <Skeleton width={160} height={20} />
-        <Skeleton width={90} height={14} />
+        <TextSkeleton width={160} />
+        <TextSkeleton role="label" width={90} />
         <Skeleton height={96} shape="rectangle" />
         <Skeleton height={tokens.size.control.default} shape="rectangle" />
       </SettingsCard>
@@ -66,10 +67,10 @@ export function ApplicationVersionsLoading() {
 function PlatformLoading() {
   return (
     <SettingsCard>
-      <Skeleton width={56} height={14} />
-      <Skeleton width={86} height={26} />
+      <TextSkeleton width={56} />
+      <TextSkeleton role="metadata" width={86} />
       <Skeleton width={108} height={12} shape="rectangle" />
-      <Skeleton width={58} height={20} />
+      <TextSkeleton width={58} />
     </SettingsCard>
   );
 }

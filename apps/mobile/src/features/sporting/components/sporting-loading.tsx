@@ -1,25 +1,26 @@
-import { StyleSheet, View } from "react-native";
+import { Fragment } from "react";
+import { StyleSheet, View, useWindowDimensions } from "react-native";
 import { LoadingGroup } from "../../../shared/components/loading-group";
 import { IdentityCardSkeleton } from "../../../shared/components/identity-card-loading";
 import { EntryRowSkeleton } from "../../../shared/components/list-loading";
 import { EntryGroup } from "../../../shared/components/entry-group";
 import { Skeleton } from "../../../shared/components/skeleton";
-import { Surface } from "../../../shared/components/surface";
+import { TextSkeleton } from "../../../shared/components/text-skeleton";
 import { tokens } from "../../../shared/theme/tokens";
-import { CalendarSkeleton } from "./calendar-loading";
+import { useTheme } from "../../../shared/theme/theme-provider";
+import { MatchSurface } from "./match-surface";
 import { StandingsSkeleton } from "./standings-loading";
 
-/** Team initial reads reserve their shared identity and dated content without starting a neighboring query. */
-export function SportingCalendarPageLoading({ label }: { label: string }) {
+/** An unknown team reserves only its identity; the admitted selected tab owns its own initial read. */
+export function SportingTeamLoading() {
   return (
-    <LoadingGroup label={label} style={styles.body}>
+    <LoadingGroup label="Chargement de l’équipe">
       <IdentityCardSkeleton />
-      <CalendarSkeleton />
     </LoadingGroup>
   );
 }
 
-/** A pool opens its standings tab; identity and the complete row block share one read announcement. */
+/** A pool opens its standings tab; identity and the row block share one read announcement. */
 export function SportingPoolLoading() {
   return (
     <LoadingGroup label="Chargement de la poule" style={styles.body}>
@@ -29,11 +30,11 @@ export function SportingPoolLoading() {
   );
 }
 
-/** A club initially opens its information tab, retaining the common identity and basic information rows. */
+/** A club's initial information tab retains its identity and basic information rows. */
 export function SportingClubLoading() {
   return (
     <LoadingGroup label="Chargement du club" style={styles.body}>
-      <IdentityCardSkeleton />
+      <IdentityCardSkeleton club />
       <EntryGroup>
         <EntryRowSkeleton />
         <EntryRowSkeleton />
@@ -43,49 +44,97 @@ export function SportingClubLoading() {
   );
 }
 
-/** Match detail keeps its pool heading and two ordered teams above its unavailable information sections. */
+/** One announcement surrounds the initial public match summary. */
 export function SportingMatchLoading() {
   return (
-    <LoadingGroup label="Chargement du match" style={styles.body}>
-      <Surface>
-        <View style={styles.body}>
-          <Skeleton width="65%" height={tokens.typography.title.lineHeight} />
-          <View style={styles.team}>
-            <Skeleton
-              width={tokens.size.media.match}
-              height={tokens.size.media.match}
-            />
-            <View style={styles.copy}>
-              <Skeleton width="85%" />
-            </View>
-          </View>
-          <View style={styles.team}>
-            <Skeleton
-              width={tokens.size.media.match}
-              height={tokens.size.media.match}
-            />
-            <View style={styles.copy}>
-              <Skeleton width="85%" />
-            </View>
-          </View>
-        </View>
-      </Surface>
-      <EntryGroup>
-        <EntryRowSkeleton />
-        <EntryRowSkeleton />
-        <EntryRowSkeleton />
-      </EntryGroup>
+    <LoadingGroup label="Chargement du match">
+      <MatchSummarySkeleton />
     </LoadingGroup>
+  );
+}
+
+/** Consultation and moderation share the neutral summary's real bands, team cells and separators. */
+export function MatchSummarySkeleton() {
+  const { colors } = useTheme();
+  const { fontScale } = useWindowDimensions();
+  return (
+    <MatchSurface>
+      <View style={[styles.pool, { backgroundColor: colors.skeletonHeader }]}>
+        <Skeleton
+          width={tokens.size.media.row}
+          height={tokens.size.media.row}
+        />
+        <View style={styles.copy}>
+          <TextSkeleton width="85%" />
+        </View>
+      </View>
+      <View style={styles.metadata}>
+        <TextSkeleton role="metadata" width={49 * fontScale} />
+        <TextSkeleton role="metadata" width={134 * fontScale} />
+      </View>
+      {[0, 1].map((index) => (
+        <Fragment key={index}>
+          {index > 0 && (
+            <View
+              style={[styles.separator, { backgroundColor: colors.border }]}
+            />
+          )}
+          <View style={styles.team}>
+            <Skeleton
+              width={tokens.size.media.row}
+              height={tokens.size.media.row}
+            />
+            <View style={styles.copy}>
+              <TextSkeleton role="navigation" width="85%" />
+            </View>
+            <View style={styles.score}>
+              <TextSkeleton role="heading" width={12 * fontScale} />
+            </View>
+          </View>
+        </Fragment>
+      ))}
+    </MatchSurface>
   );
 }
 
 const styles = StyleSheet.create({
   body: { gap: tokens.spacing.lg },
+  pool: {
+    flexDirection: "row",
+    alignItems: "center",
+    minHeight: tokens.sporting.headerMinHeight,
+    padding: tokens.spacing.md,
+    gap: tokens.spacing.md,
+  },
+  metadata: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "space-between",
+    columnGap: tokens.spacing.sm,
+    rowGap: tokens.spacing.xs,
+    paddingHorizontal: tokens.spacing.lg,
+    paddingVertical: tokens.spacing.sm,
+  },
   team: {
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.md,
     minHeight: tokens.sporting.teamMinHeight,
+    paddingHorizontal: tokens.spacing.lg,
+    paddingVertical: tokens.spacing.md,
   },
   copy: { flex: 1, minWidth: 0 },
+  score: {
+    minWidth: 40,
+    minHeight: 40,
+    paddingHorizontal: tokens.spacing.sm,
+    paddingVertical: tokens.spacing.tight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  separator: {
+    height: tokens.border.thin,
+    opacity: tokens.sporting.separatorOpacity,
+  },
 });

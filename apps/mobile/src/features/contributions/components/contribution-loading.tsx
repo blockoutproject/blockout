@@ -2,6 +2,7 @@ import { StyleSheet, View } from "react-native";
 import { FieldSkeleton } from "../../../shared/components/form-loading";
 import { LoadingGroup } from "../../../shared/components/loading-group";
 import { Skeleton } from "../../../shared/components/skeleton";
+import { TextSkeleton } from "../../../shared/components/text-skeleton";
 import { Surface } from "../../../shared/components/surface";
 import { tokens } from "../../../shared/theme/tokens";
 
@@ -10,7 +11,7 @@ export function ContributionFormLoading() {
   return (
     <LoadingGroup label="Chargement du lien de diffusion" style={styles.stack}>
       <Surface>
-        <Skeleton width="58%" height={tokens.typography.title.lineHeight} />
+        <TextSkeleton role="title" width="58%" />
         <FieldSkeleton labelWidth="38%" />
         <Skeleton height={tokens.size.control.default} shape="rectangle" />
       </Surface>
@@ -23,8 +24,8 @@ export function ContributionReportLoading() {
   return (
     <LoadingGroup label="Chargement du signalement" style={styles.stack}>
       <Surface>
-        <Skeleton width="58%" height={tokens.typography.title.lineHeight} />
-        <Skeleton width="85%" />
+        <TextSkeleton role="title" width="58%" />
+        <TextSkeleton width="85%" />
         <FieldSkeleton labelWidth="45%" height={120} />
         <Skeleton height={tokens.size.control.default} shape="rectangle" />
         <Skeleton height={tokens.size.control.default} shape="rectangle" />
@@ -39,11 +40,8 @@ export function ContributionProposalsLoading() {
     <LoadingGroup label="Chargement des propositions" style={styles.stack}>
       {Array.from({ length: 2 }, (_, index) => (
         <View key={index} style={styles.proposal}>
-          <Skeleton
-            width="30%"
-            height={tokens.typography.metadata.lineHeight}
-          />
-          <Skeleton width="85%" />
+          <TextSkeleton role="metadata" width="30%" />
+          <TextSkeleton width="85%" />
         </View>
       ))}
     </LoadingGroup>

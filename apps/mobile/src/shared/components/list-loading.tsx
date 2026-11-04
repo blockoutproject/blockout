@@ -2,6 +2,7 @@ import { Fragment } from "react";
 import { StyleSheet, View } from "react-native";
 import { LoadingGroup } from "./loading-group";
 import { Skeleton } from "./skeleton";
+import { TextSkeleton } from "./text-skeleton";
 import { EntryGroupSeparator } from "./entry-group";
 import { tokens } from "../theme/tokens";
 
@@ -20,12 +21,12 @@ export function ListLoading({ label }: { label: string }) {
 }
 
 /** Decorative basic-row anatomy, reusable inside an already announced EntryGroup or page skeleton. */
-export function EntryRowSkeleton() {
+export function EntryRowSkeleton({ inset = true }: { inset?: boolean }) {
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, inset && styles.inset]}>
       <Skeleton width={tokens.size.icon.lg} height={tokens.size.icon.lg} />
       <View style={styles.copy}>
-        <Skeleton width="65%" />
+        <TextSkeleton width="65%" />
       </View>
       <Skeleton width={tokens.size.icon.sm} height={tokens.size.icon.sm} />
     </View>
@@ -41,4 +42,5 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.md,
   },
   copy: { flex: 1, minWidth: 0 },
+  inset: { paddingHorizontal: tokens.spacing.sm },
 });

@@ -1,4 +1,4 @@
-import { SportingCalendarPageLoading } from "../components/sporting-loading";
+import { SportingTeamLoading } from "../components/sporting-loading";
 import { PageViewport } from "../../../shared/components/navigation-backdrop";
 import { SportingSupportAction } from "../components/sporting-actions";
 import { PoolParticipationLink } from "../components/pool-participation-link";
@@ -79,12 +79,7 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
     </SportingIdentity>
   ) : undefined;
   const blockingState = !data ? (
-    <ReadFeedback
-      query={team}
-      loadingContent={
-        <SportingCalendarPageLoading label="Chargement de l’équipe" />
-      }
-    />
+    <ReadFeedback query={team} loadingContent={<SportingTeamLoading />} />
   ) : undefined;
   return (
     <Page fullBleed>

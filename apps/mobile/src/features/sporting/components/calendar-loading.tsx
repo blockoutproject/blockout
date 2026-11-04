@@ -1,18 +1,19 @@
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, useWindowDimensions } from "react-native";
 import { LoadingGroup } from "../../../shared/components/loading-group";
 import { Skeleton } from "../../../shared/components/skeleton";
+import { TextSkeleton } from "../../../shared/components/text-skeleton";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { useCalendarLayout } from "../hooks/use-calendar-layout";
 
-/** Two initial dated groups; an existing calendar supplies its measured native geometry. */
+/** Two initial dated groups use the owning calendar's measured native geometry. */
 export interface CalendarLoadingProps {
   columns?: number;
   stacked?: boolean;
   label?: string;
 }
 
-/** Published calendar anatomy; admission uses the same viewport calculation until its native list exists. */
+/** One accessible announcement surrounds the decorative initial calendar. */
 export function CalendarLoading({
   label = "Chargement des matchs",
   ...props
@@ -24,7 +25,7 @@ export function CalendarLoading({
   );
 }
 
-/** Decorative dated groups can join an identity in one already announced page loading composition. */
+/** Decorative dated groups can join an identity in an already announced page read. */
 export function CalendarSkeleton({
   columns,
   stacked,
@@ -36,13 +37,13 @@ export function CalendarSkeleton({
   );
 }
 
-/** Reads viewport geometry only for a destination whose calendar list has not mounted. */
+/** Uses the existing grid calculation before a calendar list has mounted. */
 function ViewportCalendarLoading() {
   const layout = useCalendarLayout();
   return <CalendarLoadingContent {...layout} />;
 }
 
-/** Shares the ready scene's lateral columns and trailing group spacing without another measurement or scroll container. */
+/** Dates and two bounded groups begin where the real native list content begins. */
 function CalendarLoadingContent({
   columns,
   stacked,
@@ -50,6 +51,7 @@ function CalendarLoadingContent({
   columns: number;
   stacked: boolean;
 }) {
+  const { fontScale } = useWindowDimensions();
   return (
     <View>
       {Array.from({ length: 2 }, (_, index) => (
@@ -63,20 +65,29 @@ function CalendarLoadingContent({
               stacked ? styles.stackedDate : { width: `${100 / columns}%` },
             ]}
           >
-            <Skeleton width={32} height={28} />
-            <Skeleton width={24} height={10} />
-            <Skeleton width={20} height={10} />
+            <TextSkeleton role="date" width={32 * fontScale} />
+            <View>
+              <TextSkeleton role="metadata" width={24 * fontScale} />
+              <TextSkeleton role="metadata" width={20 * fontScale} />
+            </View>
           </View>
-          <PoolGroupSkeleton stacked={stacked} />
+          <PoolGroupSkeleton stacked={stacked} status={index === 0} />
         </View>
       ))}
     </View>
   );
 }
 
-/** One pool heading and one fixture with its two team rows, never provider dates, scores or names. */
-function PoolGroupSkeleton({ stacked }: { stacked: boolean }) {
+/** A neutral three-line pool heading and fixture keep the loaded card's borders and insets. */
+function PoolGroupSkeleton({
+  stacked,
+  status,
+}: {
+  stacked: boolean;
+  status: boolean;
+}) {
   const { colors } = useTheme();
+  const { fontScale } = useWindowDimensions();
   return (
     <View
       style={[
@@ -86,29 +97,63 @@ function PoolGroupSkeleton({ stacked }: { stacked: boolean }) {
       ]}
     >
       <View style={styles.headingInset}>
-        <View style={styles.heading}>
-          <Skeleton width={40} height={40} />
+        <View
+          style={[styles.heading, { backgroundColor: colors.skeletonHeader }]}
+        >
+          <Skeleton
+            width={tokens.size.media.row}
+            height={tokens.size.media.row}
+          />
           <View style={styles.headingCopy}>
-            <Skeleton />
-            <Skeleton width="70%" height={10} />
+            <TextSkeleton width="85%" />
+            <TextSkeleton role="metadata" width="84%" />
+            <TextSkeleton role="metadata" width={42 * fontScale} />
           </View>
         </View>
       </View>
       <View style={styles.fixtureInset}>
         <View style={[styles.fixture, { borderColor: colors.border }]}>
-          <View style={styles.teams}>
-            <TeamSkeleton />
-            <TeamSkeleton divided />
+          {status && (
+            <View
+              style={[
+                styles.status,
+                { backgroundColor: colors.skeletonHeader },
+              ]}
+            >
+              <TextSkeleton role="metadata" width={80 * fontScale} />
+            </View>
+          )}
+          <View style={styles.fixtureContent}>
+            <View style={styles.teams}>
+              <TeamSkeleton continuation />
+              <TeamSkeleton divided />
+            </View>
+            <View
+              style={[
+                styles.time,
+                {
+                  width: 56 * fontScale,
+                  backgroundColor: colors.skeletonHeader,
+                },
+              ]}
+            >
+              <TextSkeleton width={34 * fontScale} />
+            </View>
           </View>
-          <View style={[styles.time, { backgroundColor: colors.skeleton }]} />
         </View>
       </View>
     </View>
   );
 }
 
-/** A decorative crest and proportional team name retain the fixture's 56-point native row. */
-function TeamSkeleton({ divided = false }: { divided?: boolean }) {
+/** Actual 32-point logos and line boxes determine each row's height as text scales. */
+function TeamSkeleton({
+  divided = false,
+  continuation = false,
+}: {
+  divided?: boolean;
+  continuation?: boolean;
+}) {
   const { colors } = useTheme();
   return (
     <View
@@ -120,9 +165,13 @@ function TeamSkeleton({ divided = false }: { divided?: boolean }) {
         },
       ]}
     >
-      <Skeleton width={tokens.size.icon.lg} height={tokens.size.icon.lg} />
+      <Skeleton
+        width={tokens.size.media.match}
+        height={tokens.size.media.match}
+      />
       <View style={styles.teamCopy}>
-        <Skeleton height={11} />
+        <TextSkeleton width="90%" />
+        {continuation && <TextSkeleton width="65%" />}
       </View>
     </View>
   );
@@ -154,26 +203,35 @@ const styles = StyleSheet.create({
   heading: {
     flexDirection: "row",
     alignItems: "center",
-    gap: tokens.spacing.sm,
+    gap: tokens.spacing.md,
     padding: tokens.spacing.md,
-    minHeight: 64,
+    borderTopLeftRadius: tokens.radius.panelInset,
+    borderTopRightRadius: tokens.radius.panelInset,
   },
-  headingCopy: { flex: 1, minWidth: 0, gap: tokens.spacing.sm },
+  headingCopy: { flex: 1, minWidth: 0, gap: tokens.spacing.xs },
   fixtureInset: { padding: tokens.spacing.lg },
   fixture: {
-    height: 112,
-    flexDirection: "row",
     borderWidth: tokens.border.thin,
     borderRadius: tokens.radius.control,
     overflow: "hidden",
   },
-  time: { width: 52 },
-  teams: { flex: 1, minWidth: 0 },
-  team: {
-    height: 56,
-    flexDirection: "row",
+  status: {
     alignItems: "center",
     paddingHorizontal: tokens.spacing.sm,
+    paddingVertical: tokens.spacing.tight,
+  },
+  fixtureContent: { flexDirection: "row", alignItems: "stretch" },
+  time: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: tokens.spacing.xs,
+  },
+  teams: { flex: 1, minWidth: 0 },
+  team: {
+    minHeight: 56,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: tokens.spacing.sm,
     gap: tokens.spacing.sm,
   },
   teamCopy: { flex: 1, minWidth: 0 },

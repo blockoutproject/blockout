@@ -1,6 +1,8 @@
 import { StyleSheet, View } from "react-native";
 import { LoadingGroup } from "../../../shared/components/loading-group";
 import { Skeleton } from "../../../shared/components/skeleton";
+import { TextSkeleton } from "../../../shared/components/text-skeleton";
+import { MatchSummarySkeleton } from "../../sporting/match-consultation";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
@@ -45,11 +47,15 @@ export function ModerationVersionLoading() {
 /** Bounded reason rows stay inside their report section while its first read is pending. */
 export function ModerationReportsLoading() {
   return (
-    <LoadingGroup label="Chargement des signalements" style={styles.stack}>
-      <Skeleton width="42%" height={tokens.typography.metadata.lineHeight} />
-      <Skeleton width="90%" />
-      <Skeleton width="38%" height={tokens.typography.metadata.lineHeight} />
-      <Skeleton width="75%" />
+    <LoadingGroup label="Chargement des signalements" style={styles.reports}>
+      <View style={styles.report}>
+        <TextSkeleton width="42%" role="metadata" />
+        <TextSkeleton width="90%" />
+      </View>
+      <View style={styles.report}>
+        <TextSkeleton width="38%" role="metadata" />
+        <TextSkeleton width="75%" />
+      </View>
     </LoadingGroup>
   );
 }
@@ -60,10 +66,7 @@ export function ModerationFiltersLoading() {
     <LoadingGroup label="Chargement des filtres des liens" style={styles.stack}>
       {["season", "platform", "state"].map((field) => (
         <View key={field} style={styles.stack}>
-          <Skeleton
-            width="30%"
-            height={tokens.typography.metadata.lineHeight}
-          />
+          <TextSkeleton width="30%" role="metadata" />
           <Skeleton height={tokens.size.control.default} shape="rectangle" />
         </View>
       ))}
@@ -74,25 +77,7 @@ export function ModerationFiltersLoading() {
 
 /** Mirrors the retained match context's heading and two sporting identity rows. */
 function MatchPlaceholder() {
-  const { colors } = useTheme();
-  return (
-    <View style={[styles.card, { backgroundColor: colors.surface }]}>
-      <Skeleton width="60%" height={tokens.typography.title.lineHeight} />
-      <Skeleton width="48%" height={tokens.typography.metadata.lineHeight} />
-      {["home", "away"].map((team) => (
-        <View key={team} style={styles.row}>
-          <Skeleton
-            width={tokens.size.icon.lg}
-            height={tokens.size.icon.lg}
-            shape="rectangle"
-          />
-          <View style={styles.copy}>
-            <Skeleton width="82%" />
-          </View>
-        </View>
-      ))}
-    </View>
-  );
+  return <MatchSummarySkeleton />;
 }
 
 /** Uses the approved soft version surface and, for an editor, the real control dimensions. */
@@ -101,33 +86,31 @@ function VersionPlaceholder({ editor = false }: { editor?: boolean }) {
   return (
     <View style={[styles.card, { backgroundColor: colors.insetSurface }]}>
       <View style={styles.row}>
-        <Skeleton width="28%" />
-        <Skeleton width="22%" />
+        <TextSkeleton width="28%" />
+        <TextSkeleton width="22%" />
       </View>
-      <Skeleton width="64%" height={tokens.typography.metadata.lineHeight} />
-      <Skeleton
-        height={
-          editor
-            ? tokens.size.control.default
-            : tokens.typography.body.lineHeight
-        }
-        shape={editor ? "rectangle" : "text"}
-      />
+      <TextSkeleton width="64%" role="metadata" />
+      {editor ? (
+        <Skeleton height={tokens.size.control.default} shape="rectangle" />
+      ) : (
+        <TextSkeleton />
+      )}
       {editor && (
         <Skeleton height={tokens.size.control.default} shape="rectangle" />
       )}
-      <Skeleton width="45%" height={tokens.typography.metadata.lineHeight} />
+      <TextSkeleton width="45%" role="metadata" />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   stack: { gap: tokens.spacing.md },
+  reports: { gap: tokens.spacing.sm },
   card: {
     padding: tokens.layout.surface.inset,
     borderRadius: tokens.radius.control,
     gap: tokens.spacing.md,
   },
   row: { flexDirection: "row", alignItems: "center", gap: tokens.spacing.sm },
-  copy: { flex: 1 },
+  report: { gap: tokens.spacing.xs, paddingVertical: tokens.spacing.xs },
 });
