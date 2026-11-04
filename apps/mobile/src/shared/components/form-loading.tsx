@@ -1,23 +1,34 @@
-import { StyleSheet, View, type DimensionValue } from "react-native";
+import {
+  StyleSheet,
+  View,
+  useWindowDimensions,
+  type DimensionValue,
+} from "react-native";
 import { LoadingGroup } from "./loading-group";
 import { Skeleton } from "./skeleton";
+import { TextSkeleton } from "./text-skeleton";
 import { tokens } from "../theme/tokens";
 
 /** Decorative label and native field slot; the surrounding read owns its single announcement. */
 export function FieldSkeleton({
   labelWidth = "35%",
-  height = tokens.size.control.default,
+  height,
 }: {
   labelWidth?: DimensionValue;
   height?: number;
 }) {
+  const { fontScale } = useWindowDimensions();
+  const fieldHeight =
+    height ??
+    Math.max(
+      tokens.size.control.default,
+      tokens.typography.body.lineHeight * fontScale +
+        2 * (tokens.spacing.md + tokens.border.thin),
+    );
   return (
     <View style={styles.field}>
-      <Skeleton
-        width={labelWidth}
-        height={tokens.typography.label.lineHeight}
-      />
-      <Skeleton height={height} shape="rectangle" />
+      <TextSkeleton width={labelWidth} role="label" />
+      <Skeleton height={fieldHeight} shape="rectangle" />
     </View>
   );
 }

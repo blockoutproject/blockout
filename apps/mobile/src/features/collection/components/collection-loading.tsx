@@ -1,5 +1,6 @@
 import { StyleSheet, View } from "react-native";
 import { Skeleton } from "../../../shared/components/skeleton";
+import { TextSkeleton } from "../../../shared/components/text-skeleton";
 import { LoadingGroup } from "../../../shared/components/loading-group";
 import { FieldSkeleton } from "../../../shared/components/form-loading";
 import { Surface } from "../../../shared/components/surface";
@@ -23,9 +24,9 @@ export function CollectionControlLoading() {
       label="Chargement du contrôle de collecte"
       style={styles.rows}
     >
-      <Skeleton width="55%" height={tokens.typography.title.lineHeight} />
+      <TextSkeleton role="title" width="55%" />
       <Surface>
-        <Skeleton width="45%" />
+        <TextSkeleton width="45%" />
         <View style={styles.actions}>
           <Skeleton
             width="46%"
@@ -38,9 +39,9 @@ export function CollectionControlLoading() {
             shape="rectangle"
           />
         </View>
-        <Skeleton width="60%" />
-        <Skeleton width="80%" height={tokens.typography.metadata.lineHeight} />
-        <Skeleton width="72%" height={tokens.typography.metadata.lineHeight} />
+        <TextSkeleton width="60%" />
+        <TextSkeleton role="metadata" width="80%" />
+        <TextSkeleton role="metadata" width="72%" />
       </Surface>
     </LoadingGroup>
   );
@@ -55,20 +56,11 @@ export function CollectionResultsLoading() {
     >
       {Array.from({ length: 2 }, (_, index) => (
         <Surface key={index}>
-          <Skeleton width="72%" />
-          <Skeleton width="55%" />
-          <Skeleton
-            width="82%"
-            height={tokens.typography.metadata.lineHeight}
-          />
-          <Skeleton
-            width="68%"
-            height={tokens.typography.metadata.lineHeight}
-          />
-          <Skeleton
-            width="58%"
-            height={tokens.typography.metadata.lineHeight}
-          />
+          <TextSkeleton width="72%" />
+          <TextSkeleton width="55%" />
+          <TextSkeleton role="metadata" width="82%" />
+          <TextSkeleton role="metadata" width="68%" />
+          <TextSkeleton role="metadata" width="58%" />
         </Surface>
       ))}
     </LoadingGroup>
@@ -79,10 +71,10 @@ export function CollectionResultsLoading() {
 export function SourcePreparationLoading() {
   return (
     <LoadingGroup label="Chargement de la source" style={styles.rows}>
-      <Skeleton width="55%" height={tokens.typography.title.lineHeight} />
+      <TextSkeleton role="title" width="55%" />
       <Surface>
-        <Skeleton width="70%" />
-        <Skeleton width="45%" height={tokens.typography.metadata.lineHeight} />
+        <TextSkeleton width="70%" />
+        <TextSkeleton role="metadata" width="45%" />
         <FieldSkeleton labelWidth="38%" />
         <Skeleton height={tokens.size.control.default} shape="rectangle" />
       </Surface>
@@ -94,7 +86,7 @@ export function SourcePreparationLoading() {
 export function ProviderPreparationLoading() {
   return (
     <LoadingGroup label="Chargement des sources" style={styles.rows}>
-      <Skeleton width="55%" height={tokens.typography.title.lineHeight} />
+      <TextSkeleton role="title" width="55%" />
       <DestinationLoading />
       <DestinationLoading />
       <Skeleton height={tokens.size.control.default} shape="rectangle" />
@@ -109,10 +101,10 @@ export function CloseSeasonLoading() {
       label="Chargement de la clôture de saison"
       style={styles.rows}
     >
-      <Skeleton width="55%" height={tokens.typography.title.lineHeight} />
+      <TextSkeleton role="title" width="55%" />
       <Surface>
-        <Skeleton width="85%" />
-        <Skeleton width="70%" />
+        <TextSkeleton width="85%" />
+        <TextSkeleton width="70%" />
         <FieldSkeleton labelWidth="46%" />
         <Skeleton height={tokens.size.control.default} shape="rectangle" />
       </Surface>
@@ -144,8 +136,8 @@ function DestinationLoading() {
         shape="rectangle"
       />
       <View style={styles.copy}>
-        <Skeleton width={130} />
-        <Skeleton height={11} />
+        <TextSkeleton width={130} />
+        <TextSkeleton role="metadata" />
       </View>
       <Skeleton width={tokens.size.icon.md} height={tokens.size.icon.md} />
     </View>

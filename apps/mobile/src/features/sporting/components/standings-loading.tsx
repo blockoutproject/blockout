@@ -1,12 +1,11 @@
-import { Fragment } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, useWindowDimensions } from "react-native";
 import { LoadingGroup } from "../../../shared/components/loading-group";
 import { Skeleton } from "../../../shared/components/skeleton";
-import { EntryGroupSeparator } from "../../../shared/components/entry-group";
+import { TextSkeleton } from "../../../shared/components/text-skeleton";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 
-/** The selected standings presentation retains its actual rank, crest, identity, J/G/P and points slots. */
+/** The selected standings presentation retains its rank, crest, identity, statistics and points slots. */
 export function StandingsLoading({
   layout = "list",
 }: {
@@ -19,7 +18,7 @@ export function StandingsLoading({
   );
 }
 
-/** Decorative standings remain one content block when a whole page owns the single pending announcement. */
+/** Six list rows or a bounded podium and two cards reserve only the selected initial presentation. */
 export function StandingsSkeleton({
   layout = "list",
 }: {
@@ -45,43 +44,69 @@ export function StandingsSkeleton({
         </>
       ) : (
         Array.from({ length: 6 }, (_, index) => (
-          <Fragment key={index}>
-            {index > 0 && <EntryGroupSeparator />}
-            <StandingRowSkeleton />
-          </Fragment>
+          <StandingRowSkeleton key={index} last={index === 5} />
         ))
       )}
     </View>
   );
 }
 
-/** Decorative list columns use the same native dimensions as the accepted row, without fictional ranks or values. */
-function StandingRowSkeleton() {
+/** List rows use the loaded row's padding, minimum height and inside separators. */
+function StandingRowSkeleton({ last }: { last: boolean }) {
+  const { colors } = useTheme();
   return (
-    <View style={styles.row}>
+    <View
+      style={[
+        styles.row,
+        {
+          borderBottomColor: colors.border,
+          borderBottomWidth: last ? 0 : tokens.border.thin,
+        },
+      ]}
+    >
+      <StandingIdentitySkeleton />
+    </View>
+  );
+}
+
+/** The common identity row keeps a card's two name lines separate from the compact list name. */
+function StandingIdentitySkeleton({ card = false }: { card?: boolean }) {
+  const { fontScale } = useWindowDimensions();
+  return (
+    <View style={styles.identityRow}>
       <Skeleton
         width={tokens.sporting.standingsRankWidth}
-        height={tokens.sporting.standingsRankHeight}
+        height={Math.max(
+          tokens.sporting.standingsRankHeight,
+          tokens.typography.headingSm.lineHeight * fontScale +
+            tokens.spacing.xs * 2,
+        )}
       />
       <Skeleton
         width={tokens.size.media.match}
         height={tokens.size.media.match}
       />
-      <View style={styles.copy}>
-        <Skeleton height={14} />
-        <Skeleton width="67%" height={9} />
+      <View style={[styles.copy, card && styles.cardCopy]}>
+        <TextSkeleton width="90%" />
+        {card ? (
+          <TextSkeleton width="70%" />
+        ) : (
+          <TextSkeleton role="metadata" width="67%" />
+        )}
       </View>
-      <Skeleton width={tokens.sporting.standingsPointsWidth} height={32} />
+      <PointsSkeleton />
     </View>
   );
 }
 
-/** A neutral podium occupies the published 2–1–3 silhouette without displaying medal ranks as accepted data. */
+/** A neutral card retains the loaded 2–1–3 silhouette without fictional positions or results. */
 function PodiumSkeleton({ height }: { height: number }) {
   const { colors } = useTheme();
+  const { fontScale } = useWindowDimensions();
   return (
     <View
       style={[
+        styles.card,
         styles.podiumCard,
         {
           minHeight: height,
@@ -91,87 +116,152 @@ function PodiumSkeleton({ height }: { height: number }) {
       ]}
     >
       <View style={styles.podiumIdentity}>
-        <Skeleton width={24} height={28} />
-        <Skeleton width={40} height={40} />
+        <Skeleton
+          width={tokens.sporting.standingsCard.podiumRankWidth}
+          height={Math.max(
+            tokens.sporting.standingsCard.podiumRankHeight,
+            tokens.typography.headingLg.lineHeight * fontScale,
+          )}
+        />
+        <Skeleton
+          width={tokens.size.media.row}
+          height={tokens.size.media.row}
+        />
       </View>
-      <Skeleton width="80%" height={28} />
-      <Skeleton width={28} height={32} />
-      <StatisticsSkeleton />
+      <View style={styles.podiumName}>
+        <TextSkeleton width="80%" />
+        <TextSkeleton width="70%" />
+      </View>
+      <PointsSkeleton podium />
+      <PerformanceSkeleton podium />
     </View>
   );
 }
 
-/** Subsequent cards retain the ordinary identity/points row above its three counters. */
+/** Subsequent cards share their actual identity row and performance strip above three counters. */
 function StandingCardSkeleton() {
   const { colors } = useTheme();
   return (
     <View
       style={[
         styles.card,
-        { borderColor: colors.border, backgroundColor: colors.surface },
+        styles.rowCard,
+        {
+          minHeight: tokens.sporting.standingsCard.rowMinHeight,
+          borderColor: colors.border,
+          backgroundColor: colors.surface,
+        },
       ]}
     >
-      <StandingRowSkeleton />
-      <StatisticsSkeleton />
+      <StandingIdentitySkeleton card />
+      <PerformanceSkeleton />
     </View>
   );
 }
 
-/** Three decorative counters represent only the displayed J/G/P presentation. */
-function StatisticsSkeleton() {
-  const { colors } = useTheme();
+/** Point ink and its unit occupy the same typography boxes as the loaded points rail. */
+function PointsSkeleton({ podium = false }: { podium?: boolean }) {
+  const { fontScale } = useWindowDimensions();
   return (
-    <View style={[styles.statistics, { borderColor: colors.border }]}>
-      <Skeleton width={20} height={22} />
-      <Skeleton width={20} height={22} />
-      <Skeleton width={20} height={22} />
+    <View style={[styles.points, podium && styles.podiumPoints]}>
+      <TextSkeleton
+        role={podium ? "date" : "headingLarge"}
+        width={(podium ? 30 : 23) * fontScale}
+      />
+      <TextSkeleton role="metadata" width={(podium ? 34 : 17) * fontScale} />
+    </View>
+  );
+}
+
+/** A thin performance slot and J/G/P value-label pairs preserve the real card footer anatomy. */
+function PerformanceSkeleton({ podium = false }: { podium?: boolean }) {
+  const { fontScale } = useWindowDimensions();
+  return (
+    <View style={styles.performance}>
+      <Skeleton height={tokens.sporting.standingsCard.performanceHeight} />
+      <View style={podium ? styles.podiumStatistics : styles.rowStatistics}>
+        {[0, 1, 2].map((index) => (
+          <View
+            key={index}
+            style={podium ? styles.podiumStatistic : styles.rowStatistic}
+          >
+            <TextSkeleton width={8 * fontScale} />
+            <TextSkeleton role="metadata" width={8 * fontScale} />
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  cards: { gap: tokens.spacing.md },
+  cards: { gap: tokens.layout.list.gap },
   row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: tokens.spacing.sm,
     minHeight: tokens.sporting.standingsRowMinHeight,
     paddingVertical: tokens.spacing.compact,
   },
-  copy: { flex: 1, minWidth: 0, gap: tokens.spacing.sm },
+  identityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+  },
+  copy: { flex: 1, minWidth: 0, gap: tokens.spacing.xs },
+  cardCopy: { gap: 0 },
   podium: {
     flexDirection: "row",
     alignItems: "flex-end",
     gap: tokens.spacing.sm,
   },
+  card: {
+    borderWidth: tokens.border.thin,
+    borderRadius: tokens.radius.panel,
+    overflow: "hidden",
+    justifyContent: "space-between",
+  },
   podiumCard: {
     flex: 1,
     minWidth: 0,
     alignItems: "center",
-    justifyContent: "space-between",
-    borderWidth: tokens.border.thin,
-    borderRadius: tokens.radius.panel,
-    paddingHorizontal: tokens.spacing.sm,
-    paddingVertical: tokens.spacing.md,
-    gap: tokens.spacing.md,
+    padding: tokens.spacing.sm,
+    gap: tokens.spacing.sm,
   },
   podiumIdentity: {
+    width: "100%",
+    minHeight: tokens.sporting.standingsCard.podiumIdentityMinHeight,
     flexDirection: "row",
-    alignSelf: "stretch",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: tokens.spacing.sm,
+  },
+  podiumName: {
+    width: "100%",
+    minHeight: tokens.sporting.standingsCard.nameMinHeight,
+    alignItems: "center",
+  },
+  rowCard: { padding: tokens.spacing.md, gap: tokens.spacing.md },
+  points: {
+    minWidth: tokens.sporting.standingsPointsWidth,
+    alignItems: "flex-end",
+  },
+  podiumPoints: { alignItems: "center" },
+  performance: { gap: tokens.spacing.sm, width: "100%" },
+  podiumStatistics: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-around",
     gap: tokens.spacing.xs,
   },
-  card: {
-    borderWidth: tokens.border.thin,
-    borderRadius: tokens.radius.panel,
-    padding: tokens.spacing.md,
-    minHeight: tokens.sporting.standingsCard.rowMinHeight,
-  },
-  statistics: {
-    alignSelf: "stretch",
+  rowStatistics: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    borderTopWidth: tokens.border.thin,
-    paddingTop: tokens.spacing.md,
+    flexWrap: "wrap",
+    justifyContent: "space-around",
     gap: tokens.spacing.sm,
+  },
+  podiumStatistic: { alignItems: "center", minWidth: "25%" },
+  rowStatistic: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: tokens.spacing.xs,
   },
 });

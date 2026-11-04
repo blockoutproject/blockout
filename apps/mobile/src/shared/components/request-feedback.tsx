@@ -1,6 +1,6 @@
 import { StyleSheet } from "react-native";
 import { tokens } from "../theme/tokens";
-import { Skeleton } from "./skeleton";
+import { TextSkeleton } from "./text-skeleton";
 import { Surface } from "./surface";
 import { LoadingGroup } from "./loading-group";
 
@@ -9,9 +9,9 @@ export function RequestLoading() {
   return (
     <LoadingGroup label="Chargement en cours" style={styles.loading}>
       <Surface style={styles.content}>
-        <Skeleton width="62%" height={16} />
-        <Skeleton height={11} />
-        <Skeleton width="54%" height={11} />
+        <TextSkeleton role="title" width="62%" />
+        <TextSkeleton />
+        <TextSkeleton width="54%" />
       </Surface>
     </LoadingGroup>
   );

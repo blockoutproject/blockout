@@ -10,6 +10,7 @@ export interface IdentityCardProps {
   railBackground?: ReactNode;
   borderColor?: string;
   artworkBackgroundColor?: string;
+  railBackgroundColor?: string;
   children: ReactNode;
 }
 
@@ -20,6 +21,7 @@ export function IdentityCard({
   railBackground,
   borderColor,
   artworkBackgroundColor,
+  railBackgroundColor,
   children,
 }: IdentityCardProps) {
   const { colors } = useTheme();
@@ -33,7 +35,12 @@ export function IdentityCard({
         },
       ]}
     >
-      <View style={[styles.rail, { backgroundColor: colors.subtle }]}>
+      <View
+        style={[
+          styles.rail,
+          { backgroundColor: railBackgroundColor ?? colors.subtle },
+        ]}
+      >
         {railBackground}
         {atmosphere && (
           <View

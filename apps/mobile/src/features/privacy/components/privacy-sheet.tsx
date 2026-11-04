@@ -4,8 +4,6 @@ import { useEffect } from "react";
 import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { EntryRow } from "../../../shared/components/entry-row";
 import { EntryGroup } from "../../../shared/components/entry-group";
-import { LoadingGroup } from "../../../shared/components/loading-group";
-import { EntryRowSkeleton } from "../../../shared/components/list-loading";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -86,14 +84,6 @@ export function PrivacySheet() {
             onPress={() => router.replace("/privacy-age")}
           />
         </EntryGroup>
-        {nativePrivacy.pending && (
-          <LoadingGroup label="Chargement des choix publicitaires">
-            <EntryGroup>
-              <EntryRowSkeleton />
-              <EntryRowSkeleton />
-            </EntryGroup>
-          </LoadingGroup>
-        )}
       </SheetContent>
     </Sheet>
   );

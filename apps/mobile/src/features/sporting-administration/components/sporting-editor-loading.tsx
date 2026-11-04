@@ -2,6 +2,7 @@ import { StyleSheet, View } from "react-native";
 import { FieldSkeleton } from "../../../shared/components/form-loading";
 import { LoadingGroup } from "../../../shared/components/loading-group";
 import { Skeleton } from "../../../shared/components/skeleton";
+import { TextSkeleton } from "../../../shared/components/text-skeleton";
 import { Surface } from "../../../shared/components/surface";
 import { tokens } from "../../../shared/theme/tokens";
 import type { PresentationTarget } from "../api/presentation";
@@ -10,7 +11,7 @@ import type { PresentationTarget } from "../api/presentation";
 export function ClassificationLoading() {
   return (
     <LoadingGroup label="Chargement de la classification" style={styles.form}>
-      <Skeleton width="85%" />
+      <TextSkeleton width="85%" />
       <Skeleton height={tokens.size.control.default} shape="rectangle" />
       <FieldSkeleton labelWidth="30%" />
       <View style={styles.row}>
@@ -43,7 +44,7 @@ export function PresentationLoading({
             shape="rectangle"
           />
           <View style={styles.column}>
-            <Skeleton width="70%" />
+            <TextSkeleton width="70%" />
           </View>
         </View>
       </Surface>
@@ -63,15 +64,12 @@ export function PresentationLoading({
       {division && (
         <>
           <Surface>
-            <Skeleton width="48%" />
+            <TextSkeleton width="48%" />
             <FieldSkeleton labelWidth="35%" />
-            <Skeleton
-              width="72%"
-              height={tokens.typography.metadata.lineHeight}
-            />
+            <TextSkeleton role="metadata" width="72%" />
           </Surface>
           <Surface>
-            <Skeleton width="35%" />
+            <TextSkeleton width="35%" />
             <Skeleton height={126} shape="rectangle" />
             <FieldSkeleton labelWidth="25%" />
             <FieldSkeleton labelWidth="25%" />

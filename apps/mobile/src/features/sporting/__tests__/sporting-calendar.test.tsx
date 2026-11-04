@@ -69,6 +69,9 @@ jest.mock("react-native-auth0", () => {
 });
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
+  // The isolated scene supplies focus; native route animation is verified on device.
+  useFocusEffect: (effect: () => void | (() => void)) =>
+    jest.requireActual("react").useEffect(effect, [effect]),
   useRouter: () => ({ push: mockPush, back: jest.fn(), canGoBack: () => true }),
   useNavigation: () => ({ isFocused: () => mockFocused }),
 }));
@@ -1094,4 +1097,95 @@ it("changes calendar category with the native horizontal pager without rereading
       ([url]) => new URL(url).pathname === `/teams/${sportingId}`,
     ),
   ).toHaveLength(1);
+});
+
+it("admits the team's default standings read only after identity resolves", async () => {
+  // Given: the real team and standings observers are held at their HTTP boundaries.
+  const teamRead = Promise.withResolvers<Response>();
+  const standingsRead = Promise.withResolvers<Response>();
+  const pool = matchDetail().match.pool;
+  const team = {
+    team: {
+      team: { id: sportingId, name: "Team awaiting admission" },
+      season: pool.season,
+      classification: {},
+      professional: false,
+    },
+    participations: [pool],
+  };
+  const standings = {
+    poolId: pool.pool.id,
+    availability: "available",
+    observedAt: "2026-10-28T12:00:00Z",
+    lastAttemptFailed: false,
+    columns: ["Points"],
+    rows: [
+      {
+        sourceName: "Admitted official row",
+        position: 1,
+        statistics: { Points: "18" },
+      },
+    ],
+  };
+  mockFetch.mockImplementation((url: string) => {
+    const path = new URL(url).pathname;
+    if (path.endsWith("/application-access"))
+      return Promise.resolve(Response.json(applicationAccessResponse()));
+    if (path === `/teams/${sportingId}`) return teamRead.promise;
+    if (path.endsWith("/standings")) return standingsRead.promise;
+    return Promise.resolve(Response.json(calendar));
+  });
+
+  try {
+    // When
+    await render(<TeamScreen teamId={sportingId} />, { wrapper: Providers });
+
+    // Then: the unknown resource has one page announcement and no admitted tab reads.
+    expect(
+      await screen.findByRole("progressbar", {
+        name: "Chargement de l’équipe",
+      }),
+    ).toBeOnTheScreen();
+    expect(screen.getAllByRole("progressbar")).toHaveLength(1);
+    expect(screen.queryByRole("tab")).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(url).pathname.endsWith("/standings"),
+      ),
+    ).toHaveLength(0);
+
+    // When: the known participation selects its own pending standings scene.
+    await act(() => teamRead.resolve(Response.json(team)));
+    await screen.findByRole("tab", { selected: true });
+    await layoutNativeTabs();
+
+    // Then
+    expect(
+      await screen.findByRole("progressbar", {
+        name: "Chargement du classement",
+      }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByLabelText("Chargement de l’équipe"),
+    ).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(
+        ([url]) => new URL(url).pathname === "/matches",
+      ),
+    ).toHaveLength(0);
+
+    // When
+    await act(() => standingsRead.resolve(Response.json(standings)));
+
+    // Then
+    expect(await screen.findByText("Admitted official row")).toBeOnTheScreen();
+    expect(
+      screen.queryByLabelText("Chargement du classement"),
+    ).not.toBeOnTheScreen();
+  } finally {
+    await act(() => {
+      teamRead.resolve(Response.json(team));
+      standingsRead.resolve(Response.json(standings));
+    });
+  }
 });

@@ -41,6 +41,8 @@ export const appearanceColors = {
     // UI Library performance/*; the source must supply qualified won/lost counts.
     performance: { won: "#287E63", lost: "#C7CBD3" },
     skeleton: "#EDEDEE",
+    // Published UI Library surface/skeleton-header; ink remains surface/skeleton in both regions.
+    skeletonHeader: "#EBEBEB",
     onDarkAccent: reference.white,
     onLightAccent: "#000000",
     raised: "#FFFFFFF7",
@@ -93,6 +95,7 @@ export const appearanceColors = {
     },
     performance: { won: "#76BCA6", lost: "#565A63" },
     skeleton: "#2B2B2D",
+    skeletonHeader: "#121212",
     onDarkAccent: reference.white,
     onLightAccent: "#000000",
     raised: "#181819F5",

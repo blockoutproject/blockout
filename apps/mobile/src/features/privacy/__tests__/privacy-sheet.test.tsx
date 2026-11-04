@@ -278,12 +278,11 @@ it("returns to privacy after persisted age correction while native consent remai
     screen.queryByRole("header", { name: "Corriger mon âge" }),
   ).not.toBeOnTheScreen();
   expect(
-    screen.getByRole("progressbar", {
+    screen.queryByRole("progressbar", {
       name: "Chargement des choix publicitaires",
       busy: true,
     }),
-  ).toBeOnTheScreen();
-  expect(screen.getAllByRole("progressbar")).toHaveLength(1);
+  ).not.toBeOnTheScreen();
   expect(
     screen.getByRole("button", { name: "Corriger mon âge" }),
   ).toBeDisabled();
@@ -363,6 +362,54 @@ it("hides unavailable native advertising options and allows dismissal back to th
   // Then
   expect(await screen.findByText("Profile caller")).toBeOnTheScreen();
   expect(AdsConsent.showPrivacyOptionsForm).not.toHaveBeenCalled();
+});
+
+it("keeps the two privacy actions disabled while the native form owns the operation", async () => {
+  // Given
+  await openPrivacy();
+  const consent = Promise.withResolvers<AdsConsentInfo>();
+  jest
+    .mocked(AdsConsent.showPrivacyOptionsForm)
+    .mockReturnValueOnce(consent.promise);
+  const user = userEvent.setup();
+
+  // When
+  await user.press(
+    await screen.findByRole("button", { name: "Choix publicitaires" }),
+  );
+
+  // Then
+  expect(
+    screen.getByRole("button", { name: "Choix publicitaires" }),
+  ).toBeDisabled();
+  expect(
+    screen.getByRole("button", { name: "Corriger mon âge" }),
+  ).toBeDisabled();
+  expect(
+    screen.queryByRole("progressbar", {
+      name: "Chargement des choix publicitaires",
+    }),
+  ).not.toBeOnTheScreen();
+  expect(AdsConsent.showPrivacyOptionsForm).toHaveBeenCalledTimes(1);
+
+  // When
+  await act(() =>
+    consent.resolve({
+      status: AdsConsentStatus.OBTAINED,
+      canRequestAds: true,
+      isConsentFormAvailable: true,
+      privacyOptionsRequirementStatus:
+        AdsConsentPrivacyOptionsRequirementStatus.REQUIRED,
+    }),
+  );
+
+  // Then
+  expect(
+    screen.getByRole("button", { name: "Choix publicitaires" }),
+  ).toBeEnabled();
+  expect(
+    screen.getByRole("button", { name: "Corriger mon âge" }),
+  ).toBeEnabled();
 });
 
 it("shows understandable native failure and permits an explicit retry without false confirmation", async () => {
