@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
+import { Text } from "react-native";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import {
   ProfileIdentity,
@@ -6,7 +7,7 @@ import {
 } from "../components/profile-identity";
 import { accountResponse } from "../test-support/account-response";
 
-/** Supplies the actual theme while exercising the identity's public photo/read inputs and native image events. */
+/** Uses the real theme and identity composition while native image events remain the controlled I/O boundary. */
 function Identity(props: ProfileIdentityProps) {
   return (
     <ThemeProvider>
@@ -15,36 +16,41 @@ function Identity(props: ProfileIdentityProps) {
   );
 }
 
-it("waits for native photo display and retains it across identical-byte reads", async () => {
+it("keeps known profile information while its optional foreground loads and fails", async () => {
   // Given
   const account = accountResponse({ hasPhoto: true });
-  const photo = {
-    data: "data:image/png;base64,cGhvdG8=",
-    dataUpdatedAt: 1,
-    isFetching: false,
-  };
-  const view = await render(<Identity account={account} photo={photo} />);
+  const membershipStatus = <Text>Compte Pro</Text>;
+
+  // When
+  const view = await render(
+    <Identity
+      account={account}
+      photo={{ data: undefined, isFetching: true }}
+      membershipStatus={membershipStatus}
+    />,
+  );
+
+  // Then
+  expect(screen.getByText(account.username)).toBeOnTheScreen();
+  expect(screen.getByText(account.email)).toBeOnTheScreen();
+  expect(screen.getByText("Compte Pro")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("image", { name: "Photo de profil", busy: true }),
+  ).toBeOnTheScreen();
+
+  // When
+  await view.rerender(
+    <Identity
+      account={account}
+      photo={{ data: "data:image/png;base64,cGhvdG8=", isFetching: false }}
+      membershipStatus={membershipStatus}
+    />,
+  );
   const foreground = screen.getByRole("image", {
     name: "Photo de profil",
     busy: true,
   });
-  const pendingDisplay = foreground.props.onDisplay;
-
-  // When
-  await fireEvent(foreground, "load");
-  await fireEvent(screen.getByTestId("profile-photo-atmosphere"), "load");
-  await view.rerender(
-    <Identity account={account} photo={{ ...photo, dataUpdatedAt: 2 }} />,
-  );
-
-  // Then
-  expect(
-    screen.getByRole("image", { name: "Photo de profil", busy: true }),
-  ).toBeOnTheScreen();
-  expect(screen.getByText(account.username)).toBeOnTheScreen();
-
-  // When
-  await act(() => pendingDisplay());
+  await fireEvent(foreground, "display");
 
   // Then
   expect(
@@ -52,50 +58,8 @@ it("waits for native photo display and retains it across identical-byte reads", 
   ).toBeOnTheScreen();
 
   // When
-  await view.rerender(
-    <Identity account={account} photo={{ ...photo, dataUpdatedAt: 3 }} />,
-  );
-
-  // Then
-  expect(
-    screen.getByRole("image", { name: "Photo de profil", busy: false }),
-  ).toBeOnTheScreen();
-});
-
-it("keeps a failed replacement withdrawn after former photo callbacks and permits a new accepted read", async () => {
-  // Given
-  const account = accountResponse({ hasPhoto: true });
-  const firstPhoto = {
-    data: "data:image/png;base64,Zmlyc3Q=",
-    dataUpdatedAt: 1,
-    isFetching: false,
-  };
-  const replacementPhoto = {
-    data: "data:image/png;base64,c2Vjb25k",
-    dataUpdatedAt: 2,
-    isFetching: false,
-  };
-  const view = await render(<Identity account={account} photo={firstPhoto} />);
-  // Native callbacks can already be queued when a former image is detached.
-  const formerError = screen.getByRole("image", { name: "Photo de profil" })
-    .props.onError;
-  const formerAtmosphereError = screen.getByTestId("profile-photo-atmosphere")
-    .props.onError;
-  await view.rerender(<Identity account={account} photo={replacementPhoto} />);
-  const replacement = screen.getByRole("image", { name: "Photo de profil" });
-  const replacementError = replacement.props.onError;
-  const replacementDisplay = replacement.props.onDisplay;
-  await fireEvent(replacement, "error", {
-    nativeEvent: { error: "Replacement decode failed" },
-  });
-
-  // When
-  await act(() => {
-    formerError({ nativeEvent: { error: "Detached photo failed" } });
-    formerAtmosphereError({
-      nativeEvent: { error: "Detached artwork failed" },
-    });
-    replacementDisplay();
+  await fireEvent(foreground, "error", {
+    nativeEvent: { error: "Native decode failed" },
   });
 
   // Then
@@ -103,48 +67,53 @@ it("keeps a failed replacement withdrawn after former photo callbacks and permit
     screen.getByRole("image", { name: "Photo de profil indisponible" }),
   ).toBeOnTheScreen();
   expect(
-    screen.queryByTestId("profile-photo-atmosphere"),
+    screen.queryByRole("image", { name: "Photo de profil" }),
   ).not.toBeOnTheScreen();
+  expect(screen.getByTestId("profile-photo-atmosphere")).toBeOnTheScreen();
+  expect(screen.getByText(account.username)).toBeOnTheScreen();
+  expect(screen.getByText(account.email)).toBeOnTheScreen();
+  expect(screen.getByText("Compte Pro")).toBeOnTheScreen();
+});
 
-  // When
-  // Accepted read revisions are compared by equality, without assuming a monotonic clock.
-  await view.rerender(
+it("keeps the displayed photo when only its decorative background fails", async () => {
+  // Given
+  const account = accountResponse({ hasPhoto: true });
+  await render(
     <Identity
       account={account}
-      photo={{ ...replacementPhoto, dataUpdatedAt: 1 }}
+      photo={{ data: "data:image/png;base64,cGhvdG8=", isFetching: false }}
     />,
   );
-  await act(() => {
-    replacementError({ nativeEvent: { error: "Former attempt failed" } });
-    replacementDisplay();
-  });
-
-  // Then
-  const retried = screen.getByRole("image", {
-    name: "Photo de profil",
-    busy: true,
-  });
+  await fireEvent(
+    screen.getByRole("image", { name: "Photo de profil" }),
+    "display",
+  );
 
   // When
-  await fireEvent(retried, "display");
+  await fireEvent(screen.getByTestId("profile-photo-atmosphere"), "error", {
+    nativeEvent: { error: "Decorative decode failed" },
+  });
 
   // Then
   expect(
+    screen.queryByTestId("profile-photo-atmosphere"),
+  ).not.toBeOnTheScreen();
+  expect(
     screen.getByRole("image", { name: "Photo de profil", busy: false }),
   ).toBeOnTheScreen();
+  expect(screen.getByText(account.username)).toBeOnTheScreen();
+  expect(screen.getByText(account.email)).toBeOnTheScreen();
 });
 
-it("invalidates former callbacks when the admitted photo is withdrawn despite retained bytes", async () => {
+it("withdraws both photo layers after removal even while old bytes remain available", async () => {
   // Given
   const account = accountResponse({ hasPhoto: true });
-  const photo = {
-    data: "data:image/png;base64,cGhvdG8=",
-    dataUpdatedAt: 1,
-    isFetching: false,
-  };
+  const photo = { data: "data:image/png;base64,cGhvdG8=", isFetching: false };
   const view = await render(<Identity account={account} photo={photo} />);
-  const formerError = screen.getByRole("image", { name: "Photo de profil" })
-    .props.onError;
+  await fireEvent(
+    screen.getByRole("image", { name: "Photo de profil" }),
+    "display",
+  );
 
   // When
   await view.rerender(
@@ -156,46 +125,72 @@ it("invalidates former callbacks when the admitted photo is withdrawn despite re
     screen.getByRole("image", { name: "Photo de profil absente" }),
   ).toBeOnTheScreen();
   expect(
+    screen.queryByRole("image", { name: "Photo de profil" }),
+  ).not.toBeOnTheScreen();
+  expect(
     screen.queryByTestId("profile-photo-atmosphere"),
   ).not.toBeOnTheScreen();
+  expect(screen.getByText(account.username)).toBeOnTheScreen();
+});
+
+it("retains a displayed photo through an ordinary reread of the same source", async () => {
+  // Given
+  const account = accountResponse({ hasPhoto: true });
+  const photo = { data: "data:image/png;base64,cGhvdG8=", isFetching: false };
+  const view = await render(<Identity account={account} photo={photo} />);
+  await fireEvent(
+    screen.getByRole("image", { name: "Photo de profil" }),
+    "display",
+  );
 
   // When
-  await view.rerender(<Identity account={account} photo={photo} />);
-  await act(() =>
-    formerError({ nativeEvent: { error: "Withdrawn photo failed" } }),
+  await view.rerender(
+    <Identity account={account} photo={{ ...photo, isFetching: true }} />,
   );
 
   // Then
   expect(
-    screen.getByRole("image", { name: "Photo de profil", busy: true }),
+    screen.getByRole("image", { name: "Photo de profil", busy: false }),
   ).toBeOnTheScreen();
+  expect(screen.getByText(account.username)).toBeOnTheScreen();
 });
 
-it("replaces the failed native host when an accepted reread is batched with its error", async () => {
+it("displays a replacement source after the previous photo failed", async () => {
   // Given
   const account = accountResponse({ hasPhoto: true });
-  const photo = {
-    data: "data:image/png;base64,cGhvdG8=",
-    dataUpdatedAt: 1,
-    isFetching: false,
-  };
-  const view = await render(<Identity account={account} photo={photo} />);
-  const formerImage = screen.getByRole("image", { name: "Photo de profil" });
+  const view = await render(
+    <Identity
+      account={account}
+      photo={{ data: "data:image/png;base64,Zmlyc3Q=", isFetching: false }}
+    />,
+  );
+  await fireEvent(
+    screen.getByRole("image", { name: "Photo de profil" }),
+    "error",
+    { nativeEvent: { error: "Native decode failed" } },
+  );
+  expect(
+    screen.getByRole("image", { name: "Photo de profil indisponible" }),
+  ).toBeOnTheScreen();
 
   // When
-  // The old host may never commit its withdrawn state before the parent admits the new read.
-  await act(async () => {
-    formerImage.props.onError({
-      nativeEvent: { error: "Native decode failed" },
-    });
-    await view.rerender(
-      <Identity account={account} photo={{ ...photo, dataUpdatedAt: 2 }} />,
-    );
-  });
+  await view.rerender(
+    <Identity
+      account={account}
+      photo={{ data: "data:image/png;base64,c2Vjb25k", isFetching: false }}
+    />,
+  );
+  await fireEvent(
+    screen.getByRole("image", { name: "Photo de profil", busy: true }),
+    "display",
+  );
 
   // Then
-  expect(formerImage).not.toBeOnTheScreen();
   expect(
-    screen.getByRole("image", { name: "Photo de profil", busy: true }),
+    screen.getByRole("image", { name: "Photo de profil", busy: false }),
   ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("image", { name: "Photo de profil indisponible" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.getByText(account.username)).toBeOnTheScreen();
 });

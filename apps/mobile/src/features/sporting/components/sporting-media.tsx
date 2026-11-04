@@ -18,7 +18,7 @@ export interface SportingMediaProps {
   kind: "club" | "team" | "division";
   /** The owning composition sizes the slot; Media/Logo and Entity Card retain their approved shapes. */
   size?: number;
-  presentation?: "logo" | "entity" | "identity";
+  presentation?: "logo" | "entity";
   /** The owner places both layers; a decoding failure removes the foreground and atmosphere together. */
   renderWithAtmosphere?: (logo: ReactNode, atmosphere: ReactNode) => ReactNode;
 }
@@ -55,11 +55,7 @@ export function SportingMedia({
         ? "Logo indisponible"
         : "Logo absent";
   const borderRadius =
-    presentation === "identity"
-      ? tokens.radius.panelInset
-      : presentation === "entity"
-        ? tokens.radius.media
-        : tokens.radius.sm;
+    presentation === "entity" ? tokens.radius.media : tokens.radius.sm;
   const logo = (
     <View
       style={[
@@ -99,14 +95,8 @@ export function SportingMedia({
             onDisplay={image.onDisplay}
             onError={image.onError}
             style={{
-              width:
-                kind === "division" || presentation === "identity"
-                  ? size
-                  : size * (5 / 6),
-              height:
-                kind === "division" || presentation === "identity"
-                  ? size
-                  : size * (5 / 6),
+              width: kind === "division" ? size : size * (5 / 6),
+              height: kind === "division" ? size : size * (5 / 6),
             }}
           />
         ) : loading ? (
@@ -127,7 +117,7 @@ export function SportingMedia({
           </View>
         )}
       </View>
-      {notice && presentation !== "identity" && (
+      {notice && (
         <Text
           accessible={false}
           style={[styles.notice, { color: colors.logoInk }]}
@@ -145,20 +135,13 @@ export function SportingMedia({
             key={image.attemptKey}
             testID="sporting-logo-atmosphere"
             uri={uri}
-            resizeMode={presentation === "identity" ? "cover" : "contain"}
-            blurRadius={
-              presentation === "identity"
-                ? tokens.media.identityAtmosphere.blur
-                : tokens.sporting.coverBlur
-            }
+            resizeMode="contain"
+            blurRadius={tokens.sporting.coverBlur}
             onError={image.onError}
             style={[
               StyleSheet.absoluteFill,
               {
-                opacity:
-                  presentation === "identity"
-                    ? tokens.media.identityAtmosphere.opacity
-                    : tokens.sporting.standingsCard.atmosphereOpacity,
+                opacity: tokens.sporting.standingsCard.atmosphereOpacity,
               },
             ]}
           />

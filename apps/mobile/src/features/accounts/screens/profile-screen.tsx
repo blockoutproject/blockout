@@ -10,7 +10,7 @@ import { useRouter } from "expo-router";
 import Constants from "expo-constants";
 import { LogIn, SquarePen } from "lucide-react-native";
 import { IconButton } from "../../../shared/components/icon-button";
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useProfilePhoto } from "../api/use-profile-editing";
@@ -44,7 +44,7 @@ export interface ProfileScreenProps {
   membershipStatus?: ReactNode;
 }
 
-/** Admits one complete account overview; initial failures and unusable sessions replace its entire body. */
+/** Admits the authorized account overview independently of its optional photo; account/session failures own whole-page recovery. */
 export function ProfileScreen({
   admitted,
   proEntry,
@@ -138,8 +138,6 @@ export function ProfileScreen({
       account={connected ? account.data : undefined}
       disabled={!account.isSuccess}
       membershipStatus={membershipStatus}
-      onRetryRead={() => void account.refetch()}
-      retryingRead={account.isFetching}
       onEdit={() => router.push("/profile/edit")}
       onSignIn={() => router.push("/sign-in")}
     >
@@ -191,7 +189,7 @@ export function ProfileScreen({
   );
 }
 
-/** Admits content and its native refresh together; later photo failures retain the accepted overview. */
+/** Keeps known account content and native refresh usable while its independent photo read loads or fails. */
 function ProfileContent({
   refreshControl,
   account,
@@ -199,8 +197,6 @@ function ProfileContent({
   membershipStatus,
   onEdit,
   onSignIn,
-  onRetryRead,
-  retryingRead,
   children,
 }: {
   refreshControl: PageScrollViewProps["refreshControl"];
@@ -209,62 +205,40 @@ function ProfileContent({
   membershipStatus?: ReactNode;
   onEdit: () => void;
   onSignIn: () => void;
-  onRetryRead: () => void;
-  retryingRead: boolean;
   children: ReactNode;
 }) {
   const photo = useProfilePhoto(
     account?.accountId ?? "",
     !!account?.hasPhoto && !disabled,
   );
-  const available = !account?.hasPhoto || !!photo.data;
-  const [admitted, setAdmitted] = useState(available);
-  if (!admitted && available) setAdmitted(true);
   return (
     <Page
       header={
         <ProfileHeader
-          onEdit={account && (admitted || available) ? onEdit : undefined}
+          onEdit={account ? onEdit : undefined}
           disabled={disabled}
         />
       }
     >
-      <PageScrollView
-        refreshControl={admitted || available ? refreshControl : undefined}
-      >
-        {!admitted && !available ? (
-          photo.isError || disabled ? (
-            <ScreenState>
-              <ErrorState
-                onRetry={disabled ? onRetryRead : () => void photo.refetch()}
-                retrying={retryingRead || photo.isFetching}
-              />
-            </ScreenState>
+      <PageScrollView refreshControl={refreshControl}>
+        <PageContent>
+          {account ? (
+            <ProfileIdentity
+              account={account}
+              photo={photo}
+              membershipStatus={membershipStatus}
+            />
           ) : (
-            <PageContent>
-              <ProfileLoading />
-            </PageContent>
-          )
-        ) : (
-          <PageContent>
-            {account ? (
-              <ProfileIdentity
-                account={account}
-                photo={photo}
-                membershipStatus={membershipStatus}
-              />
-            ) : (
-              <ProfileSignIn onSignIn={onSignIn} />
-            )}
-            {children}
-          </PageContent>
-        )}
+            <ProfileSignIn onSignIn={onSignIn} />
+          )}
+          {children}
+        </PageContent>
       </PageScrollView>
     </Page>
   );
 }
 
-/** Shared profile chrome keeps editing beside support only after the existing account/photo admission. */
+/** Shared profile chrome keeps authorized account editing beside support, independently of optional media readiness. */
 function ProfileHeader({
   onEdit,
   disabled = false,

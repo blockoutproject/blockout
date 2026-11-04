@@ -506,7 +506,7 @@ it.each([
   "foreground-decode-failed",
   "atmosphere-decode-failed",
 ] as const)(
-  "uses a basic profile image fallback when the photo is %s",
+  "keeps known profile information when the photo is %s",
   async (outcome) => {
     // Given
     const previousReader = Object.getOwnPropertyDescriptor(
@@ -534,10 +534,10 @@ it.each([
     );
     try {
       await openProfile();
-      await screen.findByRole("image", { name: "Photo de profil" });
-      expect(screen.getByTestId("profile-photo-atmosphere")).toHaveProp(
-        "source",
-        { uri: "data:image/png;base64,accepted", cache: "reload" },
+      await screen.findByTestId("profile-photo-atmosphere");
+      await fireEvent(
+        screen.getByRole("image", { name: "Photo de profil" }),
+        "display",
       );
       if (outcome === "removed")
         mockFetch.mockImplementation(async () =>
@@ -560,55 +560,41 @@ it.each([
         );
 
       // Then
-      await waitFor(() =>
+      if (outcome === "atmosphere-decode-failed") {
         expect(
-          screen.queryByRole("image", { name: "Photo de profil" }),
-        ).not.toBeOnTheScreen(),
-      );
-      expect(
-        screen.getByRole("image", {
-          name:
-            outcome === "removed"
-              ? "Photo de profil absente"
-              : "Photo de profil indisponible",
-        }),
-      ).toBeOnTheScreen();
-      expect(screen.getByText(account.username)).toBeOnTheScreen();
-      expect(
-        screen.queryByTestId("profile-photo-atmosphere"),
-      ).not.toBeOnTheScreen();
-      expect(
-        screen.getByRole("button", { name: "Modifier mon profil" }),
-      ).toBeEnabled();
-      if (outcome !== "removed") {
-        // A failed account refresh keeps the original photo decode withdrawn.
-        mockFetch.mockRejectedValueOnce(new TypeError("Network unavailable"));
-        await fireEvent(
-          screen.getByLabelText("Actualiser les données"),
-          "refresh",
-        );
-        await screen.findByText(TECHNICAL_ERROR);
+          screen.getByRole("image", { name: "Photo de profil" }),
+        ).toBeOnTheScreen();
         expect(
-          screen.queryByRole("image", { name: "Photo de profil" }),
+          screen.queryByRole("image", { name: "Photo de profil indisponible" }),
         ).not.toBeOnTheScreen();
-        expect(
-          screen.queryByTestId("profile-photo-atmosphere"),
-        ).not.toBeOnTheScreen();
-        // A successful explicit reread of identical bytes permits a fresh native decode attempt.
-        await fireEvent(
-          screen.getByLabelText("Actualiser les données"),
-          "refresh",
+      } else {
+        await waitFor(() =>
+          expect(
+            screen.queryByRole("image", { name: "Photo de profil" }),
+          ).not.toBeOnTheScreen(),
         );
-        await screen.findByRole("image", { name: "Photo de profil" });
+        expect(
+          screen.getByRole("image", {
+            name:
+              outcome === "removed"
+                ? "Photo de profil absente"
+                : "Photo de profil indisponible",
+          }),
+        ).toBeOnTheScreen();
+      }
+      if (outcome === "foreground-decode-failed")
         expect(
           screen.getByTestId("profile-photo-atmosphere"),
         ).toBeOnTheScreen();
+      else
         expect(
-          mockFetch.mock.calls.filter(([url]) =>
-            String(url).endsWith("/photo"),
-          ),
-        ).toHaveLength(2);
-      }
+          screen.queryByTestId("profile-photo-atmosphere"),
+        ).not.toBeOnTheScreen();
+      expect(screen.getByText(account.username)).toBeOnTheScreen();
+      expect(screen.getByText(account.email)).toBeOnTheScreen();
+      expect(
+        screen.getByRole("button", { name: "Modifier mon profil" }),
+      ).toBeEnabled();
     } finally {
       await cleanup();
       if (previousReader)
@@ -780,97 +766,113 @@ it.each([
   },
 );
 
-it("waits for the initial existing photo before admitting the complete overview", async () => {
-  // Given
-  const response = Promise.withResolvers<Response>();
-  mockFetch.mockImplementation(async (url) =>
-    String(url).endsWith("/photo")
-      ? response.promise
-      : Response.json({ ...account, hasPhoto: true }),
-  );
-  const user = userEvent.setup();
-  const previousReader = Object.getOwnPropertyDescriptor(
-    globalThis,
-    "FileReader",
-  );
-  /** Only the native binary preview conversion is controlled; generated transport and Query remain real. */
-  class PhotoReader {
-    result = "data:image/png;base64,accepted";
-    onload?: () => void;
-    /** Publishes the decoded preview to its existing asynchronous owner. */
-    readAsDataURL() {
-      this.onload?.();
-    }
-  }
-  Object.defineProperty(globalThis, "FileReader", {
-    configurable: true,
-    value: PhotoReader,
-  });
-  await openProfile();
-
-  try {
-    // When
-    await waitFor(() =>
-      expect(
-        mockFetch.mock.calls.some(([url]) => String(url).endsWith("/photo")),
-      ).toBe(true),
+it.each([503, 403])(
+  "keeps the authorized overview usable while its initial photo loads and fails with %i",
+  async (status) => {
+    // Given
+    const response = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation(async (url) =>
+      String(url).endsWith("/photo")
+        ? response.promise
+        : Response.json({ ...account, hasPhoto: true }),
     );
+    const previousReader = Object.getOwnPropertyDescriptor(
+      globalThis,
+      "FileReader",
+    );
+    /** Controls binary conversion while the actual account/photo Query and Router owners remain mounted. */
+    class PhotoReader {
+      result = "data:image/png;base64,accepted";
+      onload?: () => void;
+      /** Publishes the accepted preview through the native file-reading boundary. */
+      readAsDataURL() {
+        this.onload?.();
+      }
+    }
+    Object.defineProperty(globalThis, "FileReader", {
+      configurable: true,
+      value: PhotoReader,
+    });
+    await openProfile();
 
-    // Then
-    expect(
-      screen.getByRole("progressbar", { name: "Chargement du profil" }),
-    ).toBeOnTheScreen();
-    expect(screen.queryByText(account.username)).not.toBeOnTheScreen();
-    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
-    expect(
-      screen.queryByRole("header", { name: "Mon compte" }),
-    ).not.toBeOnTheScreen();
+    try {
+      // When
+      await waitFor(() =>
+        expect(
+          mockFetch.mock.calls.some(([url]) => String(url).endsWith("/photo")),
+        ).toBe(true),
+      );
 
-    // When
-    await act(() => response.resolve(new Response(null, { status: 503 })));
+      // Then
+      expect(await screen.findByText(account.username)).toBeOnTheScreen();
+      expect(screen.getByText(account.email)).toBeOnTheScreen();
+      expect(
+        screen.getByRole("header", { name: "Mon compte" }),
+      ).toBeOnTheScreen();
+      expect(
+        screen.getByRole("button", { name: "Modifier mon profil" }),
+      ).toBeEnabled();
+      expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
+      expect(
+        screen.queryByRole("progressbar", { name: "Chargement du profil" }),
+      ).not.toBeOnTheScreen();
 
-    // Then
-    expect(
-      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
-    ).toBeOnTheScreen();
-    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
-    expect(
-      screen.queryByRole("button", { name: "Modifier mon profil" }),
-    ).not.toBeOnTheScreen();
-    expect(
-      screen.queryByRole("header", { name: "Informations légales" }),
-    ).not.toBeOnTheScreen();
-    // When
-    const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
-    mockFetch
-      .mockClear()
-      .mockImplementation(async (url) =>
+      // When
+      await act(() => response.resolve(new Response(null, { status })));
+
+      // Then
+      expect(
+        await screen.findByRole("image", {
+          name: "Photo de profil indisponible",
+        }),
+      ).toBeOnTheScreen();
+      expect(screen.getByText(account.username)).toBeOnTheScreen();
+      expect(screen.getByText(account.email)).toBeOnTheScreen();
+      expect(
+        screen.getByRole("header", { name: "Informations légales" }),
+      ).toBeOnTheScreen();
+      expect(
+        screen.getByRole("button", { name: "Modifier mon profil" }),
+      ).toBeEnabled();
+      expect(
+        screen.queryByRole("alert", { name: "Une erreur est survenue" }),
+      ).not.toBeOnTheScreen();
+      expect(
+        screen.queryByTestId("profile-photo-atmosphere"),
+      ).not.toBeOnTheScreen();
+
+      // When
+      const png = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+      mockFetch.mockImplementation(async (url) =>
         String(url).endsWith("/photo")
           ? new Response(png, { headers: { "Content-Type": "image/png" } })
           : Response.json({ ...account, hasPhoto: true }),
       );
-    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+      await fireEvent(
+        screen.getByLabelText("Actualiser les données"),
+        "refresh",
+      );
 
-    // Then
-    expect(
-      await screen.findByRole("image", { name: "Photo de profil" }),
-    ).toBeOnTheScreen();
-    expect(screen.getByText(account.username)).toBeOnTheScreen();
-    expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
-    expect(
-      screen.getByRole("header", { name: "Mon compte" }),
-    ).toBeOnTheScreen();
-    expect(
-      screen.queryByRole("alert", { name: "Une erreur est survenue" }),
-    ).not.toBeOnTheScreen();
-  } finally {
-    await act(() => response.resolve(new Response(null, { status: 503 })));
-    await cleanup();
-    if (previousReader)
-      Object.defineProperty(globalThis, "FileReader", previousReader);
-    else Reflect.deleteProperty(globalThis, "FileReader");
-  }
-});
+      // Then
+      expect(
+        await screen.findByRole("image", { name: "Photo de profil" }),
+      ).toBeOnTheScreen();
+      expect(screen.getByText(account.username)).toBeOnTheScreen();
+      expect(
+        screen.getByRole("header", { name: "Mon compte" }),
+      ).toBeOnTheScreen();
+      expect(
+        screen.getByRole("button", { name: "Modifier mon profil" }),
+      ).toBeEnabled();
+    } finally {
+      await act(() => response.resolve(new Response(null, { status })));
+      await cleanup();
+      if (previousReader)
+        Object.defineProperty(globalThis, "FileReader", previousReader);
+      else Reflect.deleteProperty(globalThis, "FileReader");
+    }
+  },
+);
 
 it("removes the complete overview after a current account refusal and restores it only after successful retry", async () => {
   // Given
