@@ -37,15 +37,6 @@ export function ModerationMatchLoading({
   );
 }
 
-/** A related exact member has no sporting header and uses the same version placeholder. */
-export function ModerationVersionLoading() {
-  return (
-    <LoadingGroup label="Chargement de la version du lien" style={styles.stack}>
-      <VersionPlaceholder />
-    </LoadingGroup>
-  );
-}
-
 /** Three decorative date/reason rows reserve the dedicated report page's first read, never its continuation. */
 export function ModerationReportsLoading() {
   return (

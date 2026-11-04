@@ -2,7 +2,7 @@ import { Stack } from "expo-router";
 import { sheetScreenOptions } from "../../../../shared/components/sheet";
 import { useTheme } from "../../../../shared/theme/theme-provider";
 
-/** Short contextual sheets and a full-screen report reader retain their native callers underneath. */
+/** Filters keep their short sheet; match and report readers use ordinary native stack pages. */
 export default function ModerationLayout() {
   const { colors } = useTheme();
   return (
@@ -13,17 +13,6 @@ export default function ModerationLayout() {
           ...sheetScreenOptions,
           contentStyle: { backgroundColor: colors.surface },
         }}
-      />
-      <Stack.Screen
-        name="version"
-        options={{
-          ...sheetScreenOptions,
-          contentStyle: { backgroundColor: colors.surface },
-        }}
-      />
-      <Stack.Screen
-        name="reports"
-        options={{ presentation: "fullScreenModal" }}
       />
     </Stack>
   );

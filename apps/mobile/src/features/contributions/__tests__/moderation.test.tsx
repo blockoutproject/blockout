@@ -40,7 +40,6 @@ import { ModerationScreen } from "../screens/moderation-screen";
 import { ModerationMatchScreen } from "../screens/moderation-match-screen";
 import { ModerationReportsScreen } from "../screens/moderation-reports-screen";
 import { ModerationFilters } from "../components/moderation-filters";
-import { ModerationVersionSheet } from "../components/moderation-version-sheet";
 import type {
   ModeratedStreamContributionsResponse,
   ModeratedStreamContributionResponse,
@@ -331,39 +330,21 @@ async function mount(children: React.ReactElement) {
   return view;
 }
 
-it.each(["queue", "active", "pending", "filters", "version"] as const)(
+it.each(["queue", "active", "pending", "filters", "reports"] as const)(
   "recovers F05 initialization on the %s view without leaving disabled moderation reads in loading",
   async (surface) => {
     // Given
     jest
       .mocked(initializeV2Installation)
       .mockRejectedValueOnce(new Error("Unavailable"));
-    if (surface === "version") {
-      const peer = mockFetch.getMockImplementation();
-      mockFetch.mockImplementation((url, init) => {
-        if (
-          new URL(String(url)).pathname.endsWith(
-            `/stream-contributions/${versionId}`,
-          )
-        )
-          return Promise.resolve(
-            Response.json({
-              revision: detail.revision,
-              contribution: version(),
-            }),
-          );
-        if (!peer) throw new Error("Missing HTTP boundary");
-        return peer(url, init);
-      });
-    }
     const user = userEvent.setup();
     await mount(
       surface === "queue" ? (
         <ModerationScreen filters={{}} />
       ) : surface === "filters" ? (
         <ModerationFilters initial={{}} />
-      ) : surface === "version" ? (
-        <ModerationVersionSheet matchId={sporting.id} versionId={versionId} />
+      ) : surface === "reports" ? (
+        <ModerationReportsScreen matchId={sporting.id} versionId={versionId} />
       ) : (
         <ModerationMatchScreen matchId={sporting.id} />
       ),
@@ -401,6 +382,8 @@ it.each(["queue", "active", "pending", "filters", "version"] as const)(
       expect(await screen.findByLabelText("Adresse du lien")).toBeOnTheScreen();
     else if (surface === "queue")
       expect(await screen.findByText(sporting.home.name)).toBeOnTheScreen();
+    else if (surface === "reports")
+      expect(await screen.findByText("Motif indisponible")).toBeOnTheScreen();
     else
       expect(
         await screen.findByText("https://twitch.tv/review_link"),
@@ -1938,106 +1921,52 @@ it("keeps a conflicted draft but adopts the current viewed address/revision afte
   ]);
 });
 
-it("opens each exact lineage member when retained versions share the same address", async () => {
-  // Given
-  const sourceId = "00000000-0000-4000-8000-000000000771";
-  const replacementId = "00000000-0000-4000-8000-000000000772";
-  detail.items = [
-    version({
-      state: "replaced",
-      sourceVersionId: sourceId,
-      replacedByVersionId: replacementId,
+it.each(["active", "historical"] as const)(
+  "opens exact %s reports without source or replacement shortcuts",
+  async (selection) => {
+    // Given: retained lineage metadata does not introduce another version-reading journey.
+    const retained = version({
+      state: selection === "active" ? "active" : "replaced",
+      sourceVersionId: "00000000-0000-4000-8000-000000000771",
+      replacedByVersionId: "00000000-0000-4000-8000-000000000772",
+      reportCount: 1,
       canApprove: false,
       canReject: false,
-    }),
-  ];
-  await mount(<ModerationMatchScreen matchId={sporting.id} />);
-  const user = userEvent.setup();
-  await user.press(await screen.findByRole("tab", { name: "Historique" }));
-  await user.press(
-    await screen.findByRole("button", { name: "Twitch, Lien remplacé" }),
-  );
+      canWithdraw: selection === "active",
+    });
+    if (selection === "active") detail.activeContribution = retained;
+    else detail.items = [retained];
+    await mount(<ModerationMatchScreen matchId={sporting.id} />);
+    const user = userEvent.setup();
 
-  // When
-  await user.press(screen.getByRole("button", { name: "Version d’origine" }));
-  await user.press(
-    screen.getByRole("button", { name: "Version de remplacement" }),
-  );
+    // When
+    if (selection === "historical") {
+      await user.press(await screen.findByRole("tab", { name: "Historique" }));
+      await user.press(
+        await screen.findByRole("button", { name: "Twitch, Lien remplacé" }),
+      );
+    }
+    await user.press(
+      await screen.findByRole("link", { name: "Signalements (1)" }),
+    );
 
-  // Then
-  expect(mockPush.mock.calls.map(([destination]) => destination)).toEqual([
-    {
-      pathname: "/administration/stream-links/version",
-      params: { matchId: sporting.id, versionId: sourceId, relation: "source" },
-    },
-    {
-      pathname: "/administration/stream-links/version",
-      params: {
-        matchId: sporting.id,
-        versionId: replacementId,
-        relation: "replacement",
-      },
-    },
-  ]);
-});
+    // Then
+    expect(screen.queryByText("Version d’origine")).not.toBeOnTheScreen();
+    expect(screen.queryByText("Version de remplacement")).not.toBeOnTheScreen();
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/administration/stream-links/reports",
+      params: { matchId: sporting.id, versionId },
+    });
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(String(url)).pathname.endsWith("/reports"),
+      ),
+    ).toHaveLength(0);
+  },
+);
 
-it("reads an exact off-page source and opens its separate read-only report destination", async () => {
-  // Given: equal addresses do not identify a retained version.
-  const sourceId = "00000000-0000-4000-8000-000000000771";
-  const ordinary = mockFetch.getMockImplementation()!;
-  mockFetch.mockImplementation((url, init) =>
-    new URL(String(url)).pathname.endsWith(`/stream-contributions/${sourceId}`)
-      ? Promise.resolve(
-          Response.json({
-            revision: "current:2",
-            contribution: version({
-              id: sourceId,
-              state: "hidden",
-              authorName: "Source historique exacte",
-              reportCount: 1,
-              canApprove: false,
-              canReject: false,
-              canReactivate: true,
-            }),
-          }),
-        )
-      : ordinary(url, init),
-  );
-
-  // When
-  await mount(
-    <ModerationVersionSheet
-      matchId={sporting.id}
-      versionId={sourceId}
-      relation="source"
-    />,
-  );
-  await userEvent.press(
-    await screen.findByRole("link", { name: "Signalements (1)" }),
-  );
-
-  // Then
-  expect(screen.getByText("Source historique exacte")).toBeOnTheScreen();
-  expect(screen.queryByRole("button", { name: "Réactiver" })).toBeNull();
-  expect(mockPush).toHaveBeenCalledWith({
-    pathname: "/administration/stream-links/reports",
-    params: { matchId: sporting.id, versionId: sourceId },
-  });
-  expect(
-    mockFetch.mock.calls.filter(([url]) =>
-      new URL(String(url)).pathname.endsWith("/reports"),
-    ),
-  ).toHaveLength(0);
-});
-
-it.each([
-  "queue",
-  "active",
-  "pending",
-  "filters",
-  "version",
-  "reports",
-] as const)(
+it.each(["queue", "active", "pending", "filters", "reports"] as const)(
   "shows a content skeleton rather than loading text for the initial %s read",
   async (kind) => {
     // Given: only HTTP completion is held; the real providers, Query and screen rendering stay in place.
@@ -2055,16 +1984,11 @@ it.each([
           ? address.pathname.endsWith("/stream-moderation")
           : kind === "reports"
             ? address.pathname.endsWith("/reports")
-            : kind === "version"
-              ? address.pathname.endsWith(`/stream-contributions/${versionId}`)
-              : address.pathname.endsWith("/stream-contributions") &&
-                address.searchParams.get("state") === kind;
+            : address.pathname.endsWith("/stream-contributions") &&
+              address.searchParams.get("state") === kind;
       if (!target) return ordinary(url, init);
       requested = true;
-      response =
-        kind === "version"
-          ? Response.json({ revision: "viewed:1", contribution: version() })
-          : await ordinary(url, init);
+      response = await ordinary(url, init);
       return held;
     });
     const label =
@@ -2072,11 +1996,9 @@ it.each([
         ? "Chargement de la file de modération"
         : kind === "filters"
           ? "Chargement des filtres des liens"
-          : kind === "version"
-            ? "Chargement de la version du lien"
-            : kind === "reports"
-              ? "Chargement des signalements"
-              : "Chargement des liens du match";
+          : kind === "reports"
+            ? "Chargement des signalements"
+            : "Chargement des liens du match";
     try {
       // When
       await mount(
@@ -2084,8 +2006,6 @@ it.each([
           <ModerationScreen filters={{}} />
         ) : kind === "filters" ? (
           <ModerationFilters initial={{}} />
-        ) : kind === "version" ? (
-          <ModerationVersionSheet matchId={sporting.id} versionId={versionId} />
         ) : kind === "reports" ? (
           <ModerationReportsScreen
             matchId={sporting.id}

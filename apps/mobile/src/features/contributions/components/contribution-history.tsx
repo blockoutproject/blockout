@@ -19,7 +19,7 @@ import {
 } from "../model/moderation-presentation";
 import { ContributionStateBadge } from "./contribution-state-badge";
 
-/** One exact version; command owners supply original actor/revision confirmation, while linked-version sheets stay read-only. */
+/** One exact version; command owners supply original actor/revision confirmation, while reports open in their own reader. */
 export interface ContributionHistoryProps {
   matchId: string;
   contribution: ModeratedStreamContributionResponse;
@@ -48,13 +48,6 @@ export function ContributionHistory({
   const [expanded, setExpanded] = useState(!historical);
   const platform = streamPlatformLabels[version.platform];
   const state = contributionStateLabels[version.state];
-  /** Opens the exact related HTTP member, including a source outside the loaded history page. */
-  function openRelated(versionId: string, relation: "source" | "replacement") {
-    router.push({
-      pathname: "/administration/stream-links/version",
-      params: { matchId, versionId, relation },
-    });
-  }
   return (
     <View
       style={
@@ -170,24 +163,6 @@ export function ContributionHistory({
               ))}
             </View>
           )}
-          {version.sourceVersionId && (
-            <EntryRow
-              label="Version d’origine"
-              disclosure
-              style={styles.related}
-              onPress={() => openRelated(version.sourceVersionId!, "source")}
-            />
-          )}
-          {version.replacedByVersionId && (
-            <EntryRow
-              label="Version de remplacement"
-              disclosure
-              style={styles.related}
-              onPress={() =>
-                openRelated(version.replacedByVersionId!, "replacement")
-              }
-            />
-          )}
           <View style={[styles.reports, { backgroundColor: colors.surface }]}>
             <EntryRow
               label={`Signalements (${version.reportCount})`}
@@ -231,7 +206,6 @@ const styles = StyleSheet.create({
   actions: { flexDirection: "row", gap: tokens.spacing.sm },
   action: { flex: 1 },
   decisions: { gap: tokens.spacing.xs },
-  related: { paddingHorizontal: 0, paddingVertical: tokens.spacing.sm },
   reports: {
     borderRadius: tokens.radius.control,
     paddingHorizontal: tokens.spacing.md,

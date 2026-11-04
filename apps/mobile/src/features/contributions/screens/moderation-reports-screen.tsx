@@ -26,7 +26,7 @@ import { useModerationReports } from "../api/moderation";
 import { ModerationReportsLoading } from "../components/moderation-loading";
 import { moderationTime } from "../model/moderation-presentation";
 
-/** The selected match and version stay exact, including when opened from an independently read lineage member. */
+/** The active editor or a proposed/historical version supplies its exact match and version. */
 export interface ModerationReportsScreenProps {
   matchId: string;
   versionId: string;
@@ -83,7 +83,7 @@ export function ModerationReportsScreen({
   }
 
   return (
-    <Page header={<PageHeader title="Signalements" />} accessibilityViewIsModal>
+    <Page header={<PageHeader title="Signalements" />}>
       <PageList
         {...hiddenScrollIndicators}
         testID="moderation-reports-list"
