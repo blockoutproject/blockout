@@ -70,7 +70,10 @@ export function MatchSummarySkeleton() {
       </View>
       <View style={styles.metadata}>
         <TextSkeleton role="metadata" width={49 * fontScale} />
-        <TextSkeleton role="metadata" width={134 * fontScale} />
+        <View style={styles.date}>
+          <TextSkeleton role="metadata" width={134 * fontScale} />
+          <TextSkeleton role="metadata" width={84 * fontScale} />
+        </View>
       </View>
       {[0, 1].map((index) => (
         <Fragment key={index}>
@@ -115,6 +118,11 @@ const styles = StyleSheet.create({
     rowGap: tokens.spacing.xs,
     paddingHorizontal: tokens.spacing.lg,
     paddingVertical: tokens.spacing.sm,
+  },
+  date: {
+    alignItems: "flex-end",
+    flexShrink: 1,
+    minWidth: tokens.sporting.dateMinWidth,
   },
   team: {
     flexDirection: "row",
