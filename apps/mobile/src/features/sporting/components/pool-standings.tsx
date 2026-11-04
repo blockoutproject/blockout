@@ -360,8 +360,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   layoutVisual: {
-    width: 36,
-    height: 36,
+    width: tokens.size.control.compact,
+    height: tokens.size.control.compact,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: tokens.radius.control,
