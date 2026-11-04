@@ -2,6 +2,8 @@ import { StyleSheet, View, useWindowDimensions } from "react-native";
 import { LoadingGroup } from "../../../shared/components/loading-group";
 import { Skeleton } from "../../../shared/components/skeleton";
 import { TextSkeleton } from "../../../shared/components/text-skeleton";
+import { EntryGroupSeparator } from "../../../shared/components/entry-group";
+import { Fragment } from "react";
 import { MatchSurface } from "../../sporting/match-consultation";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -44,18 +46,19 @@ export function ModerationVersionLoading() {
   );
 }
 
-/** Bounded reason rows stay inside their report section while its first read is pending. */
+/** Three decorative date/reason rows reserve the dedicated report page's first read, never its continuation. */
 export function ModerationReportsLoading() {
   return (
-    <LoadingGroup label="Chargement des signalements" style={styles.reports}>
-      <View style={styles.report}>
-        <TextSkeleton width="42%" role="metadata" />
-        <TextSkeleton width="90%" />
-      </View>
-      <View style={styles.report}>
-        <TextSkeleton width="38%" role="metadata" />
-        <TextSkeleton width="75%" />
-      </View>
+    <LoadingGroup label="Chargement des signalements">
+      {Array.from({ length: 3 }, (_, index) => (
+        <Fragment key={index}>
+          {index > 0 && <EntryGroupSeparator />}
+          <View style={styles.report}>
+            <TextSkeleton width="42%" role="metadata" />
+            <TextSkeleton width="90%" />
+          </View>
+        </Fragment>
+      ))}
     </LoadingGroup>
   );
 }
@@ -154,7 +157,6 @@ function VersionPlaceholder({ editor = false }: { editor?: boolean }) {
 
 const styles = StyleSheet.create({
   stack: { gap: tokens.spacing.md },
-  reports: { gap: tokens.spacing.sm },
   card: {
     padding: tokens.layout.surface.inset,
     borderRadius: tokens.radius.control,
@@ -176,5 +178,5 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: tokens.spacing.sm,
   },
-  report: { gap: tokens.spacing.xs, paddingVertical: tokens.spacing.xs },
+  report: { gap: tokens.spacing.xs, paddingVertical: tokens.spacing.md },
 });

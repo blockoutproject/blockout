@@ -2,7 +2,7 @@ import { Stack } from "expo-router";
 import { sheetScreenOptions } from "../../../../shared/components/sheet";
 import { useTheme } from "../../../../shared/theme/theme-provider";
 
-/** Registers short filter and exact-lineage views with the existing native sheet presentation. */
+/** Short contextual sheets and a full-screen report reader retain their native callers underneath. */
 export default function ModerationLayout() {
   const { colors } = useTheme();
   return (
@@ -20,6 +20,10 @@ export default function ModerationLayout() {
           ...sheetScreenOptions,
           contentStyle: { backgroundColor: colors.surface },
         }}
+      />
+      <Stack.Screen
+        name="reports"
+        options={{ presentation: "fullScreenModal" }}
       />
     </Stack>
   );

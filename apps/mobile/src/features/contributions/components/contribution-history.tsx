@@ -8,13 +8,9 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { Button } from "../../../shared/components/button";
 import { EntryRow } from "../../../shared/components/entry-row";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
-import { ListContinuation } from "../../../shared/components/list-continuation";
-import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useNativeHandoff } from "../../../shared/native/use-native-handoff";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
-import { useModerationReports } from "../api/moderation";
 import {
   contributionStateLabels,
   contributionDecisionLabels,
@@ -22,7 +18,6 @@ import {
   moderationTime,
 } from "../model/moderation-presentation";
 import { ContributionStateBadge } from "./contribution-state-badge";
-import { ModerationReportsLoading } from "./moderation-loading";
 
 /** One exact version; command owners supply original actor/revision confirmation, while linked-version sheets stay read-only. */
 export interface ContributionHistoryProps {
@@ -38,7 +33,7 @@ export interface ContributionHistoryProps {
   ) => void;
 }
 
-/** Groups each version in a soft surface; report headings/reasons share one inset on the base surface. */
+/** Groups each version in a soft surface; its report entry opens the exact-version reader without replacing this caller. */
 export function ContributionHistory({
   matchId,
   contribution: version,
@@ -51,31 +46,8 @@ export function ContributionHistory({
   const router = useRouter();
   const handoff = useNativeHandoff(version.url);
   const [expanded, setExpanded] = useState(!historical);
-  const [reportsOpen, setReportsOpen] = useState(false);
-  const [reportPage, setReportPage] = useState(0);
-  const reading = useModerationReports(
-    matchId,
-    version.id,
-    reportsOpen && expanded,
-  );
-  const { query: reports } = reading;
-  const reportContent =
-    reading.canRetain && !isAccessDenied(reports.error)
-      ? reports.data?.pages[reportPage]
-      : undefined;
   const platform = streamPlatformLabels[version.platform];
   const state = contributionStateLabels[version.state];
-  /** Failed continuation retains the current twenty-row page; only a later explicit action retries it. */
-  async function nextReports() {
-    if (!reading.canRetain || reports.isFetching) return;
-    if (reportPage + 1 < (reports.data?.pages.length ?? 0)) {
-      setReportPage(reportPage + 1);
-      return;
-    }
-    if (!reading.allowed) return;
-    const next = await reports.fetchNextPage({ cancelRefetch: false });
-    if (!next.isFetchNextPageError) setReportPage(reportPage + 1);
-  }
   /** Opens the exact related HTTP member, including a source outside the loaded history page. */
   function openRelated(versionId: string, relation: "source" | "replacement") {
     router.push({
@@ -218,84 +190,17 @@ export function ContributionHistory({
           )}
           <View style={[styles.reports, { backgroundColor: colors.surface }]}>
             <EntryRow
-              label={`Signalements (${reportContent?.count ?? version.reportCount})`}
-              accessibilityState={{ expanded: reportsOpen }}
-              onPress={() => setReportsOpen(!reportsOpen)}
+              label={`Signalements (${version.reportCount})`}
+              accessibilityRole="link"
+              disclosure
+              onPress={() =>
+                router.push({
+                  pathname: "/administration/stream-links/reports",
+                  params: { matchId, versionId: version.id },
+                })
+              }
               style={styles.reportHeading}
             />
-            {reportsOpen && (
-              <View style={styles.reportContent}>
-                {!reportContent ? (
-                  <ReadFeedback
-                    query={!reading.allowed ? reading.profile : reports}
-                    loadingContent={<ModerationReportsLoading />}
-                  />
-                ) : (
-                  <>
-                    {reportContent.items.length === 0 && (
-                      <Text
-                        style={[
-                          tokens.typography.body,
-                          { color: colors.secondaryText },
-                        ]}
-                      >
-                        Aucun signalement
-                      </Text>
-                    )}
-                    {reportContent.items.map((report) => (
-                      <View key={report.id} style={styles.report}>
-                        <Text
-                          style={[
-                            tokens.typography.metadata,
-                            { color: colors.secondaryText },
-                          ]}
-                        >
-                          {moderationTime(report.reportedAt)}
-                        </Text>
-                        <Text
-                          style={[
-                            tokens.typography.body,
-                            { color: colors.text },
-                          ]}
-                        >
-                          {report.reason ?? "Motif indisponible"}
-                        </Text>
-                      </View>
-                    ))}
-                    {reportPage > 0 && (
-                      <Button
-                        label="Signalements précédents"
-                        variant="secondary"
-                        fullWidth
-                        onPress={() => setReportPage(reportPage - 1)}
-                      />
-                    )}
-                    {reports.isFetchNextPageError ? (
-                      <ListContinuation
-                        loading={reports.isFetchingNextPage}
-                        failed
-                        disabled={!reading.allowed || reports.isFetching}
-                        onRetry={() => void nextReports()}
-                      />
-                    ) : (
-                      reportContent.nextPage !== undefined && (
-                        <Button
-                          label="Signalements suivants"
-                          variant="secondary"
-                          fullWidth
-                          loading={reports.isFetchingNextPage}
-                          disabled={
-                            !reading.allowed &&
-                            reportPage + 1 >= (reports.data?.pages.length ?? 0)
-                          }
-                          onPress={() => void nextReports()}
-                        />
-                      )
-                    )}
-                  </>
-                )}
-              </View>
-            )}
           </View>
         </View>
       )}
@@ -332,6 +237,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.md,
   },
   reportHeading: { paddingHorizontal: 0, paddingVertical: tokens.spacing.sm },
-  reportContent: { paddingBottom: tokens.spacing.sm, gap: tokens.spacing.sm },
-  report: { gap: tokens.spacing.xs, paddingVertical: tokens.spacing.xs },
 });
