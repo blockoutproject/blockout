@@ -88,6 +88,7 @@ export function ModerationReportsScreen({
         {...hiddenScrollIndicators}
         testID="moderation-reports-list"
         data={reports}
+        extraData={colors}
         keyExtractor={(report) => report.id}
         contentContainerStyle={reports.length ? pageContentStyle : styles.list}
         alwaysBounceVertical={refreshable}
