@@ -10,6 +10,7 @@ import { AdvertisingProviders } from "../../advertising/test-support/advertising
 import * as proSessionModule from "../../pro/pro-session";
 import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
+import { Button } from "../../../shared/components/button";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -1365,6 +1366,64 @@ it("keeps a team readable when its native public logo fails", async () => {
     mockFetch.mock.calls.filter(([url]) => String(url).includes("/logo")),
   ).toHaveLength(0);
 });
+it("keeps sharp artwork, classification and the follow action usable when the decorative image fails", async () => {
+  // Given: only HTTP and native image events are controlled; the page keeps its actual read owners.
+  const user = userEvent.setup();
+  const follow = jest.fn();
+  team.team.team.logoUrl = `/teams/${sportingId}/logo`;
+  team.team.classification = {
+    division: {
+      id: "00000000-0000-4000-8000-000000000013",
+      name: "Division des Deux Rives",
+      color: "#168C8C",
+      gradient: null,
+    },
+    format: "6x6",
+    gender: "female",
+  };
+  await renderPage(
+    <TeamScreen
+      teamId={sportingId}
+      renderFollow={() => (
+        <Button label="Suivre cette équipe" onPress={follow} />
+      )}
+    />,
+  );
+  const image = await screen.findByRole("image", {
+    name: `Logo : ${team.team.team.name}`,
+  });
+  await fireEvent(image, "display");
+
+  // When
+  await fireEvent(screen.getByTestId("sporting-logo-atmosphere"), "error", {
+    nativeEvent: { error: "Decorative image decoding failed" },
+  });
+
+  // Then
+  expect(
+    screen.queryByTestId("sporting-logo-atmosphere"),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("image", {
+      name: `Logo : ${team.team.team.name}`,
+      busy: false,
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText(team.team.team.name)).toBeOnTheScreen();
+  expect(screen.getByText("Division des Deux Rives")).toBeOnTheScreen();
+  expect(screen.getByText(season.label)).toBeOnTheScreen();
+  const action = screen.getByRole("button", { name: "Suivre cette équipe" });
+  expect(action).toBeEnabled();
+
+  // When
+  await user.press(action);
+
+  // Then: the entity owner still receives the ordinary action, without any extra logo read.
+  expect(follow).toHaveBeenCalledTimes(1);
+  expect(
+    mockFetch.mock.calls.filter(([url]) => String(url).includes("/logo")),
+  ).toHaveLength(0);
+});
 it("loads a public logo directly without native caching and unmounts it after its resource is refused", async () => {
   // Given
   team.team.team.logoUrl = `/teams/${sportingId}/logo`;
@@ -1379,6 +1438,7 @@ it("loads a public logo directly without native caching and unmounts it after it
     ]),
   );
   expect(image).toHaveProp("cachePolicy", "none");
+  expect(screen.getByTestId("sporting-logo-atmosphere")).toBeOnTheScreen();
   mockFetch.mockImplementation((url: string) =>
     new URL(url).pathname.endsWith(`/teams/${sportingId}`)
       ? Promise.resolve(Response.json({}, { status: 403 }))
@@ -1396,6 +1456,9 @@ it("loads a public logo directly without native caching and unmounts it after it
       screen.queryByRole("image", { name: `Logo : ${team.team.team.name}` }),
     ).not.toBeOnTheScreen(),
   );
+  expect(
+    screen.queryByTestId("sporting-logo-atmosphere"),
+  ).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("/logo")),
   ).toHaveLength(0);

@@ -19,6 +19,9 @@ import {
 } from "./sporting-media";
 import { DivisionPaint } from "./division-paint";
 import { IdentityCard } from "../../../shared/components/identity-card";
+import { IdentityArtwork } from "../../../shared/components/identity-artwork";
+import { IdentityAtmosphere } from "../../../shared/components/identity-atmosphere";
+import { ImageFallback } from "../../../shared/components/image-fallback";
 
 /** Addressed sporting identity; public native artwork and explicit bypass share the owning resource guard. */
 export interface SportingLogoProps {
@@ -84,7 +87,7 @@ export interface SportingIdentityProps extends Omit<
   children?: ReactNode;
 }
 
-/** Approved profile rail and wrapping identity metadata, with one optional owner action region. */
+/** Approved identity metadata and actions remain mounted while each authorized image layer handles its own decoding. */
 export function SportingIdentity({
   identity,
   kind,
@@ -95,6 +98,21 @@ export function SportingIdentity({
   children,
 }: SportingIdentityProps) {
   const { colors } = useTheme();
+  const logoIdentity =
+    kind === "pool"
+      ? (classification?.division ?? { ...identity, logoUrl: undefined })
+      : identity;
+  const logo = useSportingLogo(
+    logoIdentity,
+    kind === "pool" ? "division" : kind,
+  );
+  const imageLabel = logo.uri
+    ? logo.error
+      ? "Logo non actualisé"
+      : "Logo"
+    : logo.loading
+      ? "Chargement du logo"
+      : "Logo";
   const gender = genderLabel(classification?.gender);
   const metadata = [
     season?.label,
@@ -102,73 +120,81 @@ export function SportingIdentity({
     gender,
   ].filter(Boolean);
   return (
-    <SportingLogo
-      identity={
-        kind === "pool"
-          ? (classification?.division ?? {
-              ...identity,
-              logoUrl: undefined,
-            })
-          : identity
-      }
-      kind={kind === "pool" ? "division" : kind}
-      size={tokens.size.media.profile}
-      presentation="identity"
-      renderWithAtmosphere={(artwork, atmosphere) => (
-        <IdentityCard
-          artwork={artwork}
-          atmosphere={atmosphere}
-          railBackground={
-            atmosphere && classification?.division ? (
-              <DivisionPaint division={classification.division} />
-            ) : undefined
+    <IdentityCard
+      artwork={
+        <IdentityArtwork
+          key={logo.uri}
+          uri={logo.uri}
+          loading={logo.loading}
+          label={`${imageLabel} : ${logoIdentity.name}`}
+          contentFit="contain"
+          cachePolicy="none"
+          fallback={
+            <ImageFallback
+              color={colors.logoInk}
+              label={`${logo.uri || logo.error ? "Logo indisponible" : "Logo absent"} : ${logoIdentity.name}`}
+            />
           }
-          borderColor={classification?.division?.color}
+        />
+      }
+      atmosphere={
+        logo.uri ? (
+          <IdentityAtmosphere
+            key={logo.uri}
+            uri={logo.uri}
+            testID="sporting-logo-atmosphere"
+          />
+        ) : undefined
+      }
+      railBackground={
+        logo.uri && classification?.division ? (
+          <DivisionPaint division={classification.division} />
+        ) : undefined
+      }
+      borderColor={classification?.division?.color}
+    >
+      <View style={styles.heading}>
+        <Text style={[styles.eyebrow, { color: colors.secondaryText }]}>
+          {classification?.division?.name ??
+            (kind === "club"
+              ? "Le club"
+              : kind === "team"
+                ? "L’équipe"
+                : "La poule")}
+        </Text>
+        <Text
+          accessibilityRole="header"
+          style={[
+            kind === "club" ? styles.clubName : styles.name,
+            { color: colors.text },
+          ]}
         >
-          <View style={styles.heading}>
-            <Text style={[styles.eyebrow, { color: colors.secondaryText }]}>
-              {classification?.division?.name ??
-                (kind === "club"
-                  ? "Le club"
-                  : kind === "team"
-                    ? "L’équipe"
-                    : "La poule")}
-            </Text>
+          {identity.name}
+        </Text>
+      </View>
+      {subtitle && (
+        <Text style={[styles.eyebrow, { color: colors.secondaryText }]}>
+          {subtitle}
+        </Text>
+      )}
+      {(metadata.length > 0 || !!clubId) && (
+        <View style={styles.metadata}>
+          {metadata.map((label) => (
             <Text
-              accessibilityRole="header"
+              key={label}
               style={[
-                kind === "club" ? styles.clubName : styles.name,
-                { color: colors.text },
+                styles.badge,
+                { color: colors.secondaryText, borderColor: colors.border },
               ]}
             >
-              {identity.name}
+              {label}
             </Text>
-          </View>
-          {subtitle && (
-            <Text style={[styles.eyebrow, { color: colors.secondaryText }]}>
-              {subtitle}
-            </Text>
-          )}
-          {(metadata.length > 0 || !!clubId) && (
-            <View style={styles.metadata}>
-              {metadata.map((label) => (
-                <Text
-                  key={label}
-                  style={[
-                    styles.badge,
-                    { color: colors.secondaryText, borderColor: colors.border },
-                  ]}
-                >
-                  {label}
-                </Text>
-              ))}
-              {clubId && <ClubBadge key={clubId} clubId={clubId} />}
-            </View>
-          )}
-          {children}
-        </IdentityCard>
+          ))}
+          {clubId && <ClubBadge key={clubId} clubId={clubId} />}
+        </View>
       )}
-    />
+      {children}
+    </IdentityCard>
   );
 }
 
