@@ -3,11 +3,10 @@ package com.blockout.backend.search.infrastructure;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
 
 import com.blockout.backend.search.application.ProjectSearch;
 import com.blockout.backend.sporting.application.SportingProjectionChanges;
@@ -76,8 +75,8 @@ class SearchProjectionSchedulerTest {
                     SportingProjectionChanges.Kind.CLUB,
                     UUID.fromString("00000000-0000-4000-8000-000000000001"))));
     ArgumentCaptor<Runnable> submitted = ArgumentCaptor.forClass(Runnable.class);
-    doNothing().when(tasks).execute(submitted.capture());
     scheduler.submit(change);
+    verify(tasks, atLeastOnce()).execute(submitted.capture());
 
     // When
     submitted.getValue().run();
@@ -98,9 +97,9 @@ class SearchProjectionSchedulerTest {
   void executesScheduledRebuild() {
     // Given
     ArgumentCaptor<Runnable> scheduled = ArgumentCaptor.forClass(Runnable.class);
-    when(tasks.scheduleWithFixedDelay(scheduled.capture(), eq(Duration.ofHours(1))))
-        .thenReturn(null);
     scheduler.start(null);
+    verify(tasks, atLeastOnce())
+        .scheduleWithFixedDelay(scheduled.capture(), eq(Duration.ofHours(1)));
 
     // When
     scheduled.getValue().run();

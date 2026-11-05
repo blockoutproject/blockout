@@ -68,21 +68,6 @@ public class FollowingContractWebMvcTest {
   @BeforeEach
   void owner() {
     when(current.findId()).thenReturn(Optional.of(UUID.fromString(ACCOUNT)));
-    when(counts.read(any())).thenReturn(9007199254740991L);
-    when(lists.teams(any(), any(), anyLong()))
-        .thenReturn(new ReadFollowLists.Teams(List.of(), null));
-    when(lists.pools(any(), any(), anyLong()))
-        .thenReturn(new ReadFollowLists.Pools(List.of(), null));
-    when(calendars.read(any(), any(), any()))
-        .thenReturn(
-            new ReadPersonalCalendar.Calendar(
-                false,
-                new ConsultationViews.Calendar(
-                    CalendarCategoryEnum.UPCOMING,
-                    "Europe/Paris",
-                    OffsetDateTime.parse("2026-10-24T00:00:00Z"),
-                    List.of(),
-                    null)));
   }
 
   @ParameterizedTest
@@ -116,6 +101,13 @@ public class FollowingContractWebMvcTest {
   void preservesAbsence(String kind) throws Exception {
     // Given
     String path = "/accounts/" + ACCOUNT + "/" + kind + "-follows";
+    if (kind.equals("team")) {
+      when(lists.teams(any(), any(), anyLong()))
+          .thenReturn(new ReadFollowLists.Teams(List.of(), null));
+    } else {
+      when(lists.pools(any(), any(), anyLong()))
+          .thenReturn(new ReadFollowLists.Pools(List.of(), null));
+    }
 
     // When
     ResultActions response = mvc.perform(get(path));
@@ -190,6 +182,7 @@ public class FollowingContractWebMvcTest {
   void serializesSafeIntegerCount() throws Exception {
     // Given
     MockHttpServletRequestBuilder request = get("/teams/" + TARGET + "/follower-count");
+    when(counts.read(any())).thenReturn(9007199254740991L);
 
     // When
     ResultActions count = mvc.perform(request);
@@ -203,6 +196,16 @@ public class FollowingContractWebMvcTest {
   void bindsCalendar() throws Exception {
     // Given
     String path = "/accounts/" + ACCOUNT + "/matches";
+    when(calendars.read(any(), any(), any()))
+        .thenReturn(
+            new ReadPersonalCalendar.Calendar(
+                false,
+                new ConsultationViews.Calendar(
+                    CalendarCategoryEnum.UPCOMING,
+                    "Europe/Paris",
+                    OffsetDateTime.parse("2026-10-24T00:00:00Z"),
+                    List.of(),
+                    null)));
 
     // When
     ResultActions response =
