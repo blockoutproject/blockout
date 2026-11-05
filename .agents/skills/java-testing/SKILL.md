@@ -25,7 +25,7 @@ workflow. A regression fix starts with a failing reproduction whenever practical
 - `*SmokeTest`: small startup or implemented runtime-entrypoint proof.
 
 Bind adopted suffixes explicitly to Maven Surefire or Failsafe so every suite runs in its intended phase. Use
-Failsafe for `*IntegrationTest`; a test that the build does not discover is not evidence. Use visible `// Given`, `// When` and `// Then` comments with blank lines between phases.
+Failsafe for `*IntegrationTest`; a test that the build does not discover is not evidence. Use visible `// Given`, `// When` and `// Then` comments with blank lines between phases. Combine `// When / Then` when an assertion naturally executes the action; keep an intermediate value only when it clarifies the scenario.
 
 Mirror production packages under the test source root selected by the repository instructions. Use suffixes rather than
 `unit`, `slice`, or `integration` package directories. Name test methods as present-tense behavior. If a name needs
@@ -160,10 +160,10 @@ Use explicit Java types in all handwritten tests, resources and loops; do not us
 
 ## Readable scenarios and reusable data
 
-The test name, scenario-determining inputs, action and expected result must be visible together. One behavior may need several assertions; do not split one outcome mechanically. Integration tests stay near their boundary owner; reserve transversal locations for truly cross-boundary behavior. Identify which collaborators are real and which are controlled doubles. Helpers must not hide the action, database writes, installed mocks or unrelated setup.
+The test name, scenario-determining inputs, action and expected result must be visible together. One behavior may need several assertions; do not split one outcome mechanically. Parameterize input variants of the same behavior with native JUnit sources and identifiable invocations; keep boundary values explicit and distinct behaviors separate. Integration tests stay near their boundary owner; reserve transversal locations for truly cross-boundary behavior. Identify which collaborators are real and which are controlled doubles. Helpers must not hide the action, database writes, installed mocks or unrelated setup.
 
 Keep scenario-defining values explicit and UUIDs stable when asserted or persisted. Keep simple values inline. Use targeted typed factories for rich valid objects that are actually reused, with explicit overrides for the scenario's decisive fields. Search existing factories before adding one, and share only identical meaning at the narrowest owner. A private helper may name one coherent step, and a public boundary may have one consumer; neither permits speculative test DSLs, generic object mothers or automatic reflection-based object graphs.
 
-Use Datafaker when generated secondary values are useful, as a test dependency with a project-owned compatible version. Use a native fixed seed per test and explicit construction; never mutable random state shared across parallel tests. Control the clock for time-sensitive data. Assert scenario values, not a hard-coded string tied to a Faker version or call order. Keep boundary cases explicit and parameterized. Small tests do not require a data library, and installing this skill does not add dependencies.
+Use Datafaker when generated secondary values are useful, as a test dependency with a project-owned compatible version. Use a native fixed seed per test and explicit construction; never mutable random state shared across parallel tests. Control the clock for time-sensitive data. Assert scenario values, not a hard-coded string tied to a Faker version or call order. Small tests do not require a data library, and installing this skill does not add dependencies.
 
 Read [canonical examples](references/examples.md) when adding or substantially restructuring tests or factories. They show a unit test, an integration boundary and a rich typed factory, not a new test framework. No new E2E infrastructure is introduced by this policy.

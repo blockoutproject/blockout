@@ -49,12 +49,9 @@ class ReservationServiceUnitTest {
         ReservationStore store = mock(ReservationStore.class);
         ReservationService service = new ReservationService(store);
 
-        // When
-        org.assertj.core.api.ThrowableAssert.ThrowingCallable create =
-                () -> service.create(command);
-
-        // Then
-        assertThatThrownBy(create).isInstanceOf(MissingCustomerException.class);
+        // When / Then
+        assertThatThrownBy(() -> service.create(command))
+                .isInstanceOf(MissingCustomerException.class);
         verifyNoInteractions(store);
     }
 
@@ -74,6 +71,32 @@ class ReservationServiceUnitTest {
 ```
 
 Keep this factory local until another test genuinely needs the same valid shape, then move it to the feature's test support and import it; do not duplicate or build a universal object mother. A private helper need not have multiple callers to explain a coherent step.
+
+## Parameterized input variants
+
+When the same rule rejects several inputs, use a native source rather than a loop hiding the individual cases. Here the use case accepts 1–8 guests and rejects other counts before calling the store. Place this method in the unit test above, with these imports:
+
+```java
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+@ParameterizedTest(name = "Rejects {0} guests before storing a reservation")
+@ValueSource(ints = {0, 9})
+@DisplayName("Rejects guest counts outside the accepted range")
+void rejectsGuestCount(int guests) {
+    // Given
+    UUID customerId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+    CreateReservation command = new CreateReservation(
+            customerId, "Ada", "ada@example.invalid", guests);
+    ReservationStore store = mock(ReservationStore.class);
+    ReservationService service = new ReservationService(store);
+
+    // When / Then
+    assertThatThrownBy(() -> service.create(command))
+            .isInstanceOf(IllegalArgumentException.class);
+    verifyNoInteractions(store);
+}
+```
 
 ## Database integration
 
@@ -99,19 +122,15 @@ class ReservationStoreIntegrationTest {
         entityManager.flush();
         entityManager.clear();
 
-        // When
-        org.assertj.core.api.ThrowableAssert.ThrowingCallable duplicate = () -> {
+        // When / Then
+        assertThatThrownBy(() -> {
             store.createWithExternalReference("external-42", 3);
             entityManager.flush();
-        };
-
-        // Then
-        assertThatThrownBy(duplicate)
-                .isInstanceOf(jakarta.persistence.PersistenceException.class);
+        }).isInstanceOf(jakarta.persistence.PersistenceException.class);
     }
 }
 ```
 
 Use the exact exception exposed by the application's actual flush/translation boundary; if the adapter flushes and translates before returning, assert that translated constraint exception instead. Keep both writes visible and force the second write to reach the database. Rollback isolates test data; it does not prove application commit semantics. Add a separate transaction test without an enclosing test transaction when commit/rollback ownership is the behavior. Never claim this example ran without the module, migrations and database.
 
-Tool mechanics: [Datafaker setup](https://www.datafaker.net/documentation/getting-started/). Use the versions supported by the owning project.
+Tool mechanics: [AssertJ exception assertions](https://assertj.github.io/doc/#assertj-core-exception-assertions), [JUnit parameterized tests](https://docs.junit.org/current/writing-tests/parameterized-classes-and-tests.html) and [Datafaker setup](https://www.datafaker.net/documentation/getting-started/). Use the versions supported by the owning project.
