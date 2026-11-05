@@ -65,11 +65,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Backend integration partitions cover search and its complement.
           - project: backend
-            name: backend-search
+            name: backend (1/2)
             mavenArgs: -Dbackend.integration.forks=2 -Dit.test=com/blockout/backend/search/**/*IntegrationTest.java,com/blockout/backend/search/**/*JpaTest.java
           - project: backend
-            name: backend-other
+            name: backend (2/2)
             mavenArgs: -Dbackend.integration.forks=2 -Dit.test=**/*IntegrationTest.java,**/*JpaTest.java,!com/blockout/backend/search/**
           - project: collector
             name: collector
