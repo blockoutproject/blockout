@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.http.message.BasicNameValuePair;
 import org.jsoup.Jsoup;
@@ -26,6 +28,8 @@ import org.springframework.stereotype.Component;
 public class FfvbClubSheets implements ClubSheets {
   private static final URI LOOKUP =
       URI.create("https://www.ffvbbeach.org/ffvbapp/adressier/recherche.php");
+  private static final Pattern POSTAL_LOCALITY =
+      Pattern.compile("([0-9]{5}|) (.*)", Pattern.DOTALL);
   private final ProviderHttpClient http;
 
   /**
@@ -110,9 +114,11 @@ public class FfvbClubSheets implements ClubSheets {
 
   /**
    * Reads the published identity header and club-only cards. League, committee and named-person
-   * sections supply no club contact proposals. Omitted street rows stay unknown. Preserve the
-   * native postal/city separator before trimming either value; an inseparable locality supplies
-   * neither proposal. An incompatible card is refused without withdrawal.
+   * sections supply no club contact proposals. The observed postal row has a five-digit or empty
+   * postcode, its native space separator and a city; this is source-format recognition, not F02
+   * postcode validation. Only one unmarked postal row at the end qualifies the complete address
+   * block. Without it, only an independently identified street row is usable; ambiguous or
+   * inseparable components stay unknown. Empty components preserve their native separator.
    *
    * @param page ephemeral parsed club sheet
    * @param reference exact encountered identity, including leading zeros
@@ -155,23 +161,39 @@ public class FfvbClubSheets implements ClubSheets {
                     return cells.getLast();
                   })
               .toList();
-      if (values.size() > 1)
+      List<Element> localities =
+          values.stream()
+              .filter(value -> value.parent().select("img[src$=ico_dossier_rg.png]").isEmpty())
+              .filter(
+                  value ->
+                      POSTAL_LOCALITY.matcher(value.wholeText().replace('\u00a0', ' ')).matches())
+              .toList();
+      Element locality =
+          localities.size() == 1 && localities.getFirst() == values.getLast()
+              ? localities.getFirst()
+              : null;
+      if (locality != null) {
+        Matcher components = POSTAL_LOCALITY.matcher(locality.wholeText().replace('\u00a0', ' '));
+        if (!components.matches()) throw invalid();
+        fields.put("code postal", components.group(1).strip());
+        fields.put("ville", components.group(2).strip());
+      }
+      List<Element> streets =
+          values.stream()
+              .filter(value -> !value.parent().select("img[src$=ico_dossier_rg.png]").isEmpty())
+              .toList();
+      if (streets.size() == 1
+          && streets.getFirst() == values.getFirst()
+          && (locality != null || values.size() == 1)) {
+        int streetEnd = locality == null ? values.size() : values.size() - 1;
         fields.put(
             "adresse",
             String.join(
                 " ",
-                values.subList(0, values.size() - 1).stream()
+                values.subList(0, streetEnd).stream()
                     .map(value -> value.text().strip())
                     .filter(line -> !line.isEmpty())
                     .toList()));
-      if (!values.isEmpty()) {
-        String combined = values.getLast().wholeText().replace('\u00a0', ' ');
-        int separator = combined.indexOf(' ');
-        if (combined.isBlank() || separator >= 0) {
-          fields.put(
-              "code postal", combined.isBlank() ? "" : combined.substring(0, separator).strip());
-          fields.put("ville", combined.isBlank() ? "" : combined.substring(separator + 1).strip());
-        }
       }
     }
     return observation(fields);

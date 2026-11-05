@@ -274,6 +274,64 @@ class FfvbClubSheetTest {
   }
 
   @Test
+  @DisplayName(
+      "An omitted locality never turns the identified street into postal or city proposals")
+  void preservesOmittedLocality() {
+    // Given
+    byte[] html =
+        bytes(publishedSheet("0000042").replace("<tr><td></td><td>00123 Testville</td></tr>", ""));
+
+    // When
+    SportingObservation.Club club = FfvbClubSheets.parse(html, "0000042");
+
+    // Then
+    assertThat(club.address().get()).isEqualTo("1 demonstration street");
+    assertThat(club.postalCode().isPresent()).isFalse();
+    assertThat(club.city().isPresent()).isFalse();
+    assertThat(club.email().get()).isEqualTo("club@example.test");
+  }
+
+  @Test
+  @DisplayName(
+      "An incomplete address block cannot infer locality from an unmarked street continuation")
+  void refusesUnattributableAddressBlock() {
+    // Given
+    byte[] html =
+        bytes(publishedSheet("0000042").replace("00123 Testville", "Demonstration building"));
+
+    // When
+    SportingObservation.Club club = FfvbClubSheets.parse(html, "0000042");
+
+    // Then
+    assertThat(club.address().isPresent()).isFalse();
+    assertThat(club.postalCode().isPresent()).isFalse();
+    assertThat(club.city().isPresent()).isFalse();
+    assertThat(club.email().get()).isEqualTo("club@example.test");
+  }
+
+  @Test
+  @DisplayName("Two postal-looking rows cannot select a locality or a complete address")
+  void refusesAmbiguousAddressBlock() {
+    // Given
+    byte[] html =
+        bytes(
+            publishedSheet("0000042")
+                .replace(
+                    "<tr><td></td><td>00123 Testville</td></tr>",
+                    "<tr><td></td><td>00456 Other city</td></tr>"
+                        + "<tr><td></td><td>00123 Testville</td></tr>"));
+
+    // When
+    SportingObservation.Club club = FfvbClubSheets.parse(html, "0000042");
+
+    // Then
+    assertThat(club.address().isPresent()).isFalse();
+    assertThat(club.postalCode().isPresent()).isFalse();
+    assertThat(club.city().isPresent()).isFalse();
+    assertThat(club.email().get()).isEqualTo("club@example.test");
+  }
+
+  @Test
   @DisplayName("A published card for a different textual reference cannot withdraw club data")
   void rejectsForeignPublishedIdentity() {
     // Given
