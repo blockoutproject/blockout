@@ -39,7 +39,8 @@ and `ContributionQualificationIntegrationTest`, using real local F02/F05/F07/F12
 generated HTTP bindings. Server and generated/Jest consumer checks use controlled time, identity
 and transport; historical report pagination beyond twenty uses retained SQL fixtures, while
 [T046/T050](#original-account-attribution-erasure-t046t050) exercise actual local F05 erasure.
-These checks establish no native/provider or global acceptance. T017 and T055/T056 remain open.
+These checks establish no native/provider or global acceptance. T017 and T056 remain open;
+[T055](#integrated-erasure-and-generated-consumers--t055) qualifies the local erasure and access boundaries.
 
 ### Local policies and persistence — T007/T010/T011
 
@@ -82,7 +83,8 @@ The [F07 qualification](../011-notifications-delivery/quickstart.md#atomic-produ
 owns announcement timing, handoff and allowance evidence. Controlled hiding/new exempt-version
 and personal-row deletion fixtures are not real moderation-command or scheduled-purge
 qualification; those remain [F07 T046 and T052](../011-notifications-delivery/tasks.md). Actual local F05 erasure is qualified in [T046/T050](#original-account-attribution-erasure-t046t050);
-full native/mobile journeys retain T055/T056. F08 T016/F03 public projection is qualified separately below.
+full native/mobile journeys retain T056. F08 T016/F03 public projection is qualified separately below;
+[T055](#integrated-erasure-and-generated-consumers--t055) supplies the integrated local erasure boundary.
 
 ## Reads and mobile
 
@@ -379,3 +381,18 @@ Final `mobile:verify` and its dependencies pass: 172 Jest suites and 2,353 tests
 ## Original-account attribution erasure (T046/T050)
 
 `ContributionErasureIntegrationTest` runs actual F05 erasure with F08 submission, reporting and moderation over the migrated database. Hidden versions, ownerless pending proposals, report counts/distinct anonymous rows, holds, decision chronology, quota flags and lineage remain unchanged while owner/publication/decision actors and each erased reporter's reason disappear. Re-registration recovers no ownership. Submission/report/reactivation races hold their real sporting roots before the account phase: erasure completes without those roots and the resumed writer refuses the old actor or rereads anonymous source ownership. [F05's rollback cases](../005-accounts-identity/quickstart.md#server-erasure-construction) additionally reject required participant SQL and final account deletion, preserving all local owners and suppressing external cleanup. Controlled provider boundaries and synthetic fixtures establish no native, live-provider or wider T055/T056 acceptance.
+
+## Integrated erasure and generated consumers — T055
+
+T055 reuses the preceding participant and [F05 T035's local erasure/return qualification](../005-accounts-identity/quickstart.md#local-erasure-races-and-return--t035), including atomic rollback and fresh registration, without another orchestration or cleanup mechanism. `ContributionErasureBoundaryIntegrationTest` adds current F02 calendar withdrawal/reappearance through the real sporting owner: F03 hides a withdrawn match while authorized F08 moderation retains its anonymous history. Return restores only a still-active useful link; a report-hidden version and its hold stay hidden. Current F12 maintenance activation blocks real public/private reads and writes; a stream grant supplies no bypass, explicit bypass needs its separate current grant, and revoked moderation remains refused. A command already holding sporting roots is paused before its original moderator account lock; F05 erasure and same-subject registration complete, and that old command still cannot use the newly granted replacement UUID.
+
+`ContributionErasureConsumersIntegrationTest` starts the actual backend, migrated PostgreSQL 18.6 and an isolated signing-key endpoint, then runs `contribution-erasure-provider.test.tsx` through the existing Jest Expo runner. Its Orval calls and F13 response validation consume actual F02/F03/F05/F08/F12 HTTP responses. Losing a response after a committed withdrawal causes an ordinary network error without a second write. A deliberate reactivation creates one new version; retrying the old target/revision receives 409 and preserves the newer selection. Another captured original-owner command is held before network dispatch while generated DELETE calls erase its author, reporter and decision actor, then receives 403. Current projections retain useful ownerless content, exact report identities/counts/times, unavailable erased reasons, decision kinds/times and lineage, with no private history in the public match. Generated F12 activation also refuses public/private consultation until ordinary explicit deactivation.
+
+Run after `npm ci --no-audit --no-fund` and `npm run generate`, with Docker available and local port 8289 free:
+
+```sh
+BLOCKOUT_CONTRIBUTION_CONSUMERS_TEST=true ./mvnw -B -ntp -pl apps/backend verify
+npm run test --workspace=@blockout/mobile -- --runInBand --reporters=default
+```
+
+The opt-in server suite supplies its synthetic fixture identities and short-lived tokens to its own in-band Jest process. Its log stays under ignored `apps/backend/target/`; no provider credential, private fixture or diagnostic belongs in public artifacts. Ordinary standalone Jest skips this provider-dependent case. The actual SQL facts/rollback/registration cases above combine with the existing `contribution-recovery.test.tsx`, `contribution-context.test.ts` and `report-contribution.test.tsx` cases for A35–A40: mounted French feedback and input retention, delayed completions, explicit same-version retry, separate read recovery after confirmed success, no replay and private-session isolation. Those UI cases control HTTP/native I/O; the provider suite directly exercises transport and makes no mounted-UI claim. T054 retains accepted-transition/F07 atomicity evidence. Cleanup remains disabled; neither synthetic JWTs, Node networking nor Jest establishes Auth0/provider erasure, production behavior, native appearance, screen-reader operation or global acceptance. The exhaustive native matrix remains T056.
