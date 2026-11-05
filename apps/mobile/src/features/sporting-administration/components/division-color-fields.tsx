@@ -204,6 +204,7 @@ export function DivisionColorFields({
     </>
   );
 }
+
 const styles = StyleSheet.create({
   fields: { gap: tokens.spacing.lg },
   examples: { flexDirection: "row", flexWrap: "wrap", gap: tokens.spacing.sm },

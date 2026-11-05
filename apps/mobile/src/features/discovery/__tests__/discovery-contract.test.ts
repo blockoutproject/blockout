@@ -20,8 +20,11 @@ beforeEach(() => {
 });
 afterEach(() => {
   jest.restoreAllMocks();
-  if (originalUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
-  else process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  if (originalUrl === undefined) {
+    delete process.env.EXPO_PUBLIC_API_URL;
+  } else {
+    process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  }
 });
 
 it("admits additive fields while preserving absent optional values", async () => {

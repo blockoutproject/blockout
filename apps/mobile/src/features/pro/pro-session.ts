@@ -77,7 +77,9 @@ export function createProSession() {
   async function refresh(
     session: SessionSnapshot,
   ): Promise<boolean | undefined> {
-    if (!isAssociated(session)) return;
+    if (!isAssociated(session)) {
+      return;
+    }
     const request = Symbol();
     publish({ ...snapshot, read: request });
     try {
@@ -113,25 +115,31 @@ export function createProSession() {
 
   /** Settles one mutation before applying the newest desired target, without retaining a queue. */
   async function associate() {
-    if (identityInFlight) return;
+    if (identityInFlight) {
+      return;
+    }
     identityInFlight = true;
     const desired = target;
     try {
       const configured = await Purchases.isConfigured();
-      if (!sameSession(target, desired)) return;
+      if (!sameSession(target, desired)) {
+        return;
+      }
       if (desired?.accountId) {
         let customerInfo: CustomerInfo | null = null;
         if (!configured) {
           const config = Constants.expoConfig?.extra?.revenueCat;
           const apiKey: unknown =
             Platform.OS === "ios" ? config?.iosApiKey : config?.androidApiKey;
-          if (typeof apiKey !== "string" || !apiKey)
+          if (typeof apiKey !== "string" || !apiKey) {
             throw new Error("Pro is not configured");
+          }
           // The SDK's default handler forwards raw provider strings to the console.
           Purchases.setLogHandler(() => {});
           Purchases.configure({ apiKey, appUserID: desired.accountId });
-          if (!(await Purchases.isConfigured()))
+          if (!(await Purchases.isConfigured())) {
             throw new Error("Pro setup unavailable");
+          }
         } else {
           customerInfo = (await Purchases.logIn(desired.accountId))
             .customerInfo;
@@ -147,7 +155,9 @@ export function createProSession() {
             read: null,
             verificationFailed: false,
           });
-          if (!customerInfo) void refresh(desired);
+          if (!customerInfo) {
+            void refresh(desired);
+          }
         }
       } else if (configured && !(await Purchases.isAnonymous())) {
         await Purchases.logOut();
@@ -168,7 +178,9 @@ export function createProSession() {
       }
     } finally {
       identityInFlight = false;
-      if (!sameSession(target, desired)) void associate();
+      if (!sameSession(target, desired)) {
+        void associate();
+      }
     }
   }
 
@@ -178,7 +190,9 @@ export function createProSession() {
     operation: ProOperation,
     customerInfo?: CustomerInfo,
   ) {
-    if (!isAssociated(session) || !snapshot.evidence) return;
+    if (!isAssociated(session) || !snapshot.evidence) {
+      return;
+    }
     publish({
       ...snapshot,
       ...(customerInfo ? { read: null, verificationFailed: false } : {}),
@@ -196,12 +210,15 @@ export function createProSession() {
       operation === "uncertain" ||
       operation === "restore-uncertain" ||
       operation === "failed"
-    )
+    ) {
       diagnose(
         "operation",
         operation === "restore-uncertain" ? "uncertain" : operation,
       );
-    if (!customerInfo) await refresh(session);
+    }
+    if (!customerInfo) {
+      await refresh(session);
+    }
   }
 
   /** Records native restoration without replacing unresolved payment or starting a second store call. */
@@ -210,15 +227,17 @@ export function createProSession() {
       !isAssociated(session) ||
       !snapshot.evidence ||
       ["purchasing", "restoring"].includes(snapshot.evidence.operation)
-    )
+    ) {
       return false;
+    }
     const previous = snapshot.evidence.operation;
     // Keep unresolved payment visible even if restoration is interrupted or its callback never arrives.
-    if (restoredProOperation(previous, "restoring") === "restoring")
+    if (restoredProOperation(previous, "restoring") === "restoring") {
       publish({
         ...snapshot,
         evidence: { ...snapshot.evidence, operation: "restoring" },
       });
+    }
     return true;
   }
 
@@ -235,7 +254,9 @@ export function createProSession() {
 
     /** Consumes F05 publication immediately; null detaches presentation and requests native logout. */
     setTarget(next: SessionSnapshot | null) {
-      if (sameSession(target, next)) return;
+      if (sameSession(target, next)) {
+        return;
+      }
       target = next;
       publish({
         evidence: next?.accountId
@@ -260,8 +281,9 @@ export function createProSession() {
         !sameSession(target, session) ||
         !session.accountId ||
         identityInFlight
-      )
+      ) {
         return;
+      }
       if (isAssociated(session)) {
         return refresh(session);
       }
@@ -289,8 +311,9 @@ export function createProSession() {
             snapshot.evidence,
           ),
         )
-      )
+      ) {
         return false;
+      }
       publish({
         ...snapshot,
         evidence: { ...snapshot.evidence, operation: "purchasing" },
@@ -302,20 +325,24 @@ export function createProSession() {
 
     /** Explicit fallback for a missing offer/unknown rights; no retry or restoration on account entry. */
     async restore(session: SessionSnapshot) {
-      if (!beginRestore(session)) return;
+      if (!beginRestore(session)) {
+        return;
+      }
       const association = snapshot.evidence?.session;
       try {
         const customerInfo = await Purchases.restorePurchases();
-        if (!snapshot.evidence || snapshot.evidence.session !== association)
+        if (!snapshot.evidence || snapshot.evidence.session !== association) {
           return;
+        }
         await completeOperation(
           session,
           restoredProOperation(snapshot.evidence.operation, "restored"),
           customerInfo,
         );
       } catch (error) {
-        if (!snapshot.evidence || snapshot.evidence.session !== association)
+        if (!snapshot.evidence || snapshot.evidence.session !== association) {
           return;
+        }
         await completeOperation(
           session,
           restoredProOperation(
@@ -328,11 +355,14 @@ export function createProSession() {
 
     /** Closing an in-flight presentation proves no cancellation; verification is the only follow-up. */
     async dismissPresentation(session: SessionSnapshot) {
-      if (!isAssociated(session)) return;
-      if (snapshot.evidence?.operation === "purchasing")
+      if (!isAssociated(session)) {
+        return;
+      }
+      if (snapshot.evidence?.operation === "purchasing") {
         await completeOperation(session, "uncertain");
-      else if (snapshot.evidence?.operation === "restoring")
+      } else if (snapshot.evidence?.operation === "restoring") {
         await completeOperation(session, "restore-uncertain");
+      }
     },
 
     completeOperation,

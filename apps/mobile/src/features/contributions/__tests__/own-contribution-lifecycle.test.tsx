@@ -78,8 +78,9 @@ beforeAll(() =>
   }),
 );
 afterAll(() => {
-  if (appStateDescriptor)
+  if (appStateDescriptor) {
     Object.defineProperty(AppState, "currentState", appStateDescriptor);
+  }
 });
 let mockFocused = true;
 const mockPush = jest.fn();
@@ -148,20 +149,26 @@ beforeEach(() => {
   mockAuth0.clearCredentials.mockReset().mockResolvedValue();
   mockFetch.mockReset().mockImplementation(async (url, init) => {
     const parsed = new URL(String(url));
-    if (parsed.pathname.endsWith("/application-access"))
+    if (parsed.pathname.endsWith("/application-access")) {
       return Response.json(applicationAccessResponse());
-    if (parsed.pathname.endsWith("/me"))
+    }
+    if (parsed.pathname.endsWith("/me")) {
       return Response.json(accountResponse());
+    }
     if (parsed.pathname.includes("/stream-contributions")) {
       if (init?.method === "PATCH") {
         const id = parsed.pathname.split("/").at(-1);
-        if (!id) throw new Error("Missing synthetic member");
+        if (!id) {
+          throw new Error("Missing synthetic member");
+        }
         const body = UpdateOwnStreamContributionRequest.parse(
           JSON.parse(String(init.body)),
         );
         patches.push({ id, body });
         const item = rows.find((row) => row.id === id);
-        if (!item) throw new Error("Unknown synthetic version");
+        if (!item) {
+          throw new Error("Unknown synthetic version");
+        }
         const changed = {
           ...item,
           state:
@@ -178,7 +185,9 @@ beforeEach(() => {
           contribution: changed,
         });
       }
-      if (failRead) throw new TypeError("Controlled read failure");
+      if (failRead) {
+        throw new TypeError("Controlled read failure");
+      }
       const page = Number(parsed.searchParams.get("page") ?? 0);
       pages.push(page);
       return Response.json({
@@ -228,6 +237,7 @@ async function mount() {
     </QueryClientProvider>,
   );
 }
+
 /** Configures one-shot reads and timer-free mutation retention on the actual identity-owned test cache. */
 function PrivateQueries({ children }: PropsWithChildren) {
   const cache = useQueryClient();
@@ -240,6 +250,7 @@ function PrivateQueries({ children }: PropsWithChildren) {
   }, [cache]);
   return children;
 }
+
 /** Uses real session and profile commands for current-owner lifecycle scenarios. */
 function SessionExit() {
   const session = useAccountSession();
@@ -377,12 +388,13 @@ it.each([false, true])(
     expect(
       screen.queryByText(/Journée de Paris jusqu’au/),
     ).not.toBeOnTheScreen();
-    if (hasActive)
+    if (hasActive) {
       expect(
         screen.getByDisplayValue(version(2, "active").url),
       ).toBeOnTheScreen();
-    else
+    } else {
       expect(screen.queryByLabelText("Adresse du lien")).not.toBeOnTheScreen();
+    }
   },
 );
 
@@ -390,7 +402,9 @@ it("keeps the proposals heading without inventing zero during initial loading or
   // Given
   const response = Promise.withResolvers<Response>();
   const boundary = mockFetch.getMockImplementation();
-  if (!boundary) throw new Error("Missing test HTTP boundary");
+  if (!boundary) {
+    throw new Error("Missing test HTTP boundary");
+  }
   mockFetch.mockImplementation((url, init) =>
     String(url).includes("/stream-contributions")
       ? response.promise
@@ -641,7 +655,9 @@ it("abandons the native confirmation without changing either version", async () 
 it("refreshes after conflict without transferring the old confirmation to a new version", async () => {
   // Given
   const boundary = mockFetch.getMockImplementation();
-  if (!boundary) throw new Error("Missing test HTTP boundary");
+  if (!boundary) {
+    throw new Error("Missing test HTTP boundary");
+  }
   mockFetch.mockImplementation(async (url, init) => {
     if (init?.method === "PATCH") {
       const body = UpdateOwnStreamContributionRequest.parse(
@@ -697,7 +713,9 @@ it("refreshes after conflict without transferring the old confirmation to a new 
 it("excludes duplicate confirmations and the other owner action while one PATCH is pending", async () => {
   // Given
   const boundary = mockFetch.getMockImplementation();
-  if (!boundary) throw new Error("Missing test HTTP boundary");
+  if (!boundary) {
+    throw new Error("Missing test HTTP boundary");
+  }
   let release: (() => void) | undefined;
   const delayed = new Promise<void>((resolve) => {
     release = resolve;
@@ -744,7 +762,9 @@ it("excludes duplicate confirmations and the other owner action while one PATCH 
 it("removes private versions after a current read refuses access", async () => {
   // Given
   const boundary = mockFetch.getMockImplementation();
-  if (!boundary) throw new Error("Missing test HTTP boundary");
+  if (!boundary) {
+    throw new Error("Missing test HTTP boundary");
+  }
   let denied = false;
   const user = userEvent.setup();
   mockFetch.mockImplementation((url, init) =>
@@ -781,13 +801,17 @@ it("retains history after a failed continuation and retries that page only on th
     version(index + 1, "replaced"),
   );
   const boundary = mockFetch.getMockImplementation();
-  if (!boundary) throw new Error("Missing test HTTP boundary");
+  if (!boundary) {
+    throw new Error("Missing test HTTP boundary");
+  }
   let unavailable = true;
   let continuationAttempts = 0;
   mockFetch.mockImplementation(async (url, init) => {
     if (new URL(String(url)).searchParams.get("page") === "1") {
       continuationAttempts++;
-      if (unavailable) throw new TypeError("Controlled continuation failure");
+      if (unavailable) {
+        throw new TypeError("Controlled continuation failure");
+      }
     }
     return boundary(url, init);
   });
@@ -828,8 +852,11 @@ it.each(["unfocused", "background"])(
     );
     await mount();
     await screen.findByText("https://youtu.be/history-1");
-    if (state === "unfocused") mockFocused = false;
-    else mockAppState = "background";
+    if (state === "unfocused") {
+      mockFocused = false;
+    } else {
+      mockAppState = "background";
+    }
 
     // When
     await fireEvent(
@@ -845,11 +872,14 @@ it.each(["unfocused", "background"])(
 it("refreshes recovered match context together with the private history", async () => {
   // Given
   const boundary = mockFetch.getMockImplementation();
-  if (!boundary) throw new Error("Missing test HTTP boundary");
+  if (!boundary) {
+    throw new Error("Missing test HTTP boundary");
+  }
   let unavailable = true;
   mockFetch.mockImplementation((url, init) => {
-    if (String(url).endsWith(`/matches/${match.match.id}`) && unavailable)
+    if (String(url).endsWith(`/matches/${match.match.id}`) && unavailable) {
       throw new TypeError("Controlled match read failure");
+    }
     return boundary(url, init);
   });
   const user = userEvent.setup();
@@ -902,10 +932,13 @@ it.each(["refresh", "reconcile", "acknowledgement"])(
       version(index + 1, index === 0 ? "active" : "replaced"),
     );
     const boundary = mockFetch.getMockImplementation();
-    if (!boundary) throw new Error("Missing test HTTP boundary");
+    if (!boundary) {
+      throw new Error("Missing test HTTP boundary");
+    }
     mockFetch.mockImplementation(async (url, init) => {
-      if (init?.method === "PATCH" && operation === "reconcile")
+      if (init?.method === "PATCH" && operation === "reconcile") {
         return Response.json({ status: 409 }, { status: 409 });
+      }
       return boundary(url, init);
     });
     const user = userEvent.setup();
@@ -919,11 +952,11 @@ it.each(["refresh", "reconcile", "acknowledgement"])(
     failRead = true;
 
     // When
-    if (operation === "refresh")
+    if (operation === "refresh") {
       await user.pullToRefresh(
         screen.getByLabelText("Liste de mes propositions"),
       );
-    else {
+    } else {
       await user.press(screen.getByRole("button", { name: "Retirer" }));
       await act(async () => {
         alert.mock.calls
@@ -963,11 +996,14 @@ it.each(["refresh", "reconcile", "acknowledgement"])(
 it("keeps original-owner history read-only through a technical profile refresh failure", async () => {
   // Given
   const boundary = mockFetch.getMockImplementation();
-  if (!boundary) throw new Error("Missing test HTTP boundary");
+  if (!boundary) {
+    throw new Error("Missing test HTTP boundary");
+  }
   let unavailable = false;
   mockFetch.mockImplementation((url, init) => {
-    if (String(url).endsWith("/me") && unavailable)
+    if (String(url).endsWith("/me") && unavailable) {
       throw new TypeError("Controlled profile read failure");
+    }
     return boundary(url, init);
   });
   const user = userEvent.setup();
@@ -992,14 +1028,18 @@ it.each([401, 403, 404])(
   async (status) => {
     // Given
     const boundary = mockFetch.getMockImplementation();
-    if (!boundary) throw new Error("Missing test HTTP boundary");
+    if (!boundary) {
+      throw new Error("Missing test HTTP boundary");
+    }
     let failure: "none" | "denied" | "technical" = "none";
     mockFetch.mockImplementation((url, init) => {
       if (String(url).endsWith(`/matches/${match.match.id}`)) {
-        if (failure === "denied")
+        if (failure === "denied") {
           return Promise.resolve(Response.json({ status }, { status }));
-        if (failure === "technical")
+        }
+        if (failure === "technical") {
           throw new TypeError("Controlled match retry failure");
+        }
       }
       return boundary(url, init);
     });
@@ -1074,12 +1114,16 @@ it.each([
 it("recovers a refused match when its successful retry settles after the personal read", async () => {
   // Given
   const boundary = mockFetch.getMockImplementation();
-  if (!boundary) throw new Error("Missing test HTTP boundary");
+  if (!boundary) {
+    throw new Error("Missing test HTTP boundary");
+  }
   let denied = false;
   let pendingMatch: Promise<void> | undefined;
   mockFetch.mockImplementation(async (url, init) => {
     if (String(url).endsWith(`/matches/${match.match.id}`)) {
-      if (denied) return Response.json({ status: 404 }, { status: 404 });
+      if (denied) {
+        return Response.json({ status: 404 }, { status: 404 });
+      }
       await pendingMatch;
     }
     return boundary(url, init);
@@ -1116,10 +1160,13 @@ it("retains the draft and every authorized page with toast-only refresh failure 
     version(index + 1, index === 0 ? "active" : "replaced"),
   );
   const boundary = mockFetch.getMockImplementation();
-  if (!boundary) throw new Error("Missing test HTTP boundary");
+  if (!boundary) {
+    throw new Error("Missing test HTTP boundary");
+  }
   mockFetch.mockImplementation((url, init) => {
-    if (failRead && String(url).endsWith(`/matches/${match.match.id}`))
+    if (failRead && String(url).endsWith(`/matches/${match.match.id}`)) {
       throw new TypeError("Controlled match refresh failure");
+    }
     return boundary(url, init);
   });
   const user = userEvent.setup();
@@ -1218,14 +1265,18 @@ it.each([401, 403, 404])(
   async (status) => {
     // Given
     const boundary = mockFetch.getMockImplementation();
-    if (!boundary) throw new Error("Missing test HTTP boundary");
+    if (!boundary) {
+      throw new Error("Missing test HTTP boundary");
+    }
     let failure: "none" | "denied" | "technical" = "none";
     mockFetch.mockImplementation((url, init) => {
       if (String(url).includes("/stream-contributions")) {
-        if (failure === "denied")
+        if (failure === "denied") {
           return Promise.resolve(Response.json({ status }, { status }));
-        if (failure === "technical")
+        }
+        if (failure === "technical") {
           throw new TypeError("Controlled retry failure");
+        }
       }
       return boundary(url, init);
     });
@@ -1258,7 +1309,9 @@ it.each([401, 403, 404])(
   async (status) => {
     // Given
     const boundary = mockFetch.getMockImplementation();
-    if (!boundary) throw new Error("Missing test HTTP boundary");
+    if (!boundary) {
+      throw new Error("Missing test HTTP boundary");
+    }
     let refused = false;
     let attempts = 0;
     let observations = 0;

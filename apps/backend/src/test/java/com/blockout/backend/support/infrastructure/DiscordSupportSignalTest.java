@@ -56,7 +56,9 @@ class DiscordSupportSignalTest {
           query.set(exchange.getRequestURI().getQuery());
           authorization.set(exchange.getRequestHeaders().getFirst("Authorization"));
           try {
-            if (status == 0) Thread.sleep(2_000);
+            if (status == 0) {
+              Thread.sleep(2_000);
+            }
             byte[] bytes =
                 "{\"id\":\"fictional-message\",\"content\":\"raw-discord-response\"}"
                     .getBytes(StandardCharsets.UTF_8);

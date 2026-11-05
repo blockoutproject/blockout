@@ -85,6 +85,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
   process.env = { ...previousEnvironment };
 });
+
 /** Keeps the real account and Pro owners alive while the Router changes focus. */
 function JourneyLayout() {
   useQueryClient().setQueryDefaults([], { retry: false, gcTime: Infinity });
@@ -98,6 +99,7 @@ function JourneyLayout() {
     </ActionFeedbackProvider>
   );
 }
+
 /** The profile entry navigates before any offering lookup. */
 function ProfileRoute() {
   return (
@@ -107,6 +109,7 @@ function ProfileRoute() {
     </>
   );
 }
+
 it("opens Pro immediately and discards a late offer after the destination loses its owner", async () => {
   // Given: real Router and providers; only SDK I/O and native provider UI are controlled.
   const user = userEvent.setup();

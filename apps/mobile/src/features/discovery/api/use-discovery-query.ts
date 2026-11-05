@@ -49,8 +49,9 @@ export function useSearchExamplesQuery(
     context: string;
     revision: number;
   }>({ context, revision: 0 });
-  if (selection.context !== context)
+  if (selection.context !== context) {
     setSelection({ context, revision: selection.revision + 1 });
+  }
   const options = createSearchExamplesQueryOptions(
     resource,
     input,

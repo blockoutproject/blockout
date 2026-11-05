@@ -259,7 +259,9 @@ class MatchDocumentClientTest {
             exchange.getResponseHeaders().add("Retry-After", "0");
             exchange.sendResponseHeaders(503, -1);
             exchange.close();
-          } else pdf(exchange, "application/pdf", PDF);
+          } else {
+            pdf(exchange, "application/pdf", PDF);
+          }
         });
     Reference reference =
         method.equals("POST")

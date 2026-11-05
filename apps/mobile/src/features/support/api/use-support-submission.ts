@@ -44,7 +44,9 @@ export function useSupportSubmission() {
           ordinary.bypass !== undefined,
           session.getCredentials,
         );
-        if (!active.current) throw new ApiError("cancelled");
+        if (!active.current) {
+          throw new ApiError("cancelled");
+        }
         const options = ordinary.request({
           headers,
           signal: controller.signal,
@@ -52,10 +54,14 @@ export function useSupportSubmission() {
         const result = await createSupportRequest(body, {
           ...options,
           onHttpError(error) {
-            if (active.current) options.onHttpError?.(error);
+            if (active.current) {
+              options.onHttpError?.(error);
+            }
           },
         });
-        if (!active.current) throw new ApiError("cancelled");
+        if (!active.current) {
+          throw new ApiError("cancelled");
+        }
         return result;
       } finally {
         pending.current = undefined;
@@ -72,11 +78,14 @@ export function useSupportSubmission() {
     metadata: SubmitSupportRequest,
     images: readonly (Blob | null | undefined)[] = [],
   ): Promise<void> {
-    if (images.length > createSupportRequestBodyImagesMax)
+    if (images.length > createSupportRequestBodyImagesMax) {
       throw new ApiError("http", 422);
+    }
     const files: Blob[] = [];
     for (const image of images) {
-      if (!image) throw new ApiError("http", 422);
+      if (!image) {
+        throw new ApiError("http", 422);
+      }
       files.push(image);
     }
     // Expo File implements Blob without inheriting from it; the native transport owns those file references.
@@ -86,5 +95,6 @@ export function useSupportSubmission() {
     };
     await mutation.mutateAsync(body);
   }
+
   return { mutation, send };
 }

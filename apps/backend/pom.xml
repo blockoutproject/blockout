@@ -1,5 +1,9 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8" ?>
+<project
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
+>
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.blockout</groupId>
@@ -47,7 +51,9 @@
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-security-oauth2-resource-server</artifactId>
+      <artifactId>
+        spring-boot-starter-security-oauth2-resource-server
+      </artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -101,7 +107,9 @@
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-security-oauth2-resource-server-test</artifactId>
+      <artifactId>
+        spring-boot-starter-security-oauth2-resource-server-test
+      </artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -127,10 +135,16 @@
   </dependencies>
   <build>
     <testResources>
-      <testResource><directory>src/test/resources</directory></testResource>
       <testResource>
-        <directory>${maven.multiModuleProjectDirectory}/infra/postgres</directory>
-        <includes><include>init-roles.sql</include></includes>
+        <directory>src/test/resources</directory>
+      </testResource>
+      <testResource>
+        <directory>
+          ${maven.multiModuleProjectDirectory}/infra/postgres
+        </directory>
+        <includes>
+          <include>init-roles.sql</include>
+        </includes>
       </testResource>
     </testResources>
     <plugins>
@@ -164,7 +178,9 @@
         <groupId>org.liquibase</groupId>
         <artifactId>liquibase-maven-plugin</artifactId>
         <configuration>
-          <changeLogFile>src/main/resources/db/changelog/db.changelog-master.xml</changeLogFile>
+          <changeLogFile>
+            src/main/resources/db/changelog/db.changelog-master.xml
+          </changeLogFile>
           <url>${env.LIQUIBASE_URL}</url>
           <username>${env.LIQUIBASE_USERNAME}</username>
           <password>${env.LIQUIBASE_PASSWORD}</password>
@@ -189,12 +205,20 @@
             <useSpringBoot4>true</useSpringBoot4>
             <useSpringBuiltInValidation>true</useSpringBuiltInValidation>
             <useJackson3>true</useJackson3>
-            <disallowAdditionalPropertiesIfNotPresent>false</disallowAdditionalPropertiesIfNotPresent>
+            <disallowAdditionalPropertiesIfNotPresent>
+              false
+            </disallowAdditionalPropertiesIfNotPresent>
             <hideGenerationTimestamp>true</hideGenerationTimestamp>
             <containerDefaultToNull>true</containerDefaultToNull>
-            <generateJsonIncludeAnnotations>true</generateJsonIncludeAnnotations>
-            <generateJsonSetterNullsAnnotations>true</generateJsonSetterNullsAnnotations>
-            <optionalNonNullPropertyJsonSetterNulls>FAIL</optionalNonNullPropertyJsonSetterNulls>
+            <generateJsonIncludeAnnotations>
+              true
+            </generateJsonIncludeAnnotations>
+            <generateJsonSetterNullsAnnotations>
+              true
+            </generateJsonSetterNullsAnnotations>
+            <optionalNonNullPropertyJsonSetterNulls>
+              FAIL
+            </optionalNonNullPropertyJsonSetterNulls>
             <interfaceOnly>true</interfaceOnly>
             <skipDefaultInterface>true</skipDefaultInterface>
             <useTags>true</useTags>
@@ -205,35 +229,69 @@
         <executions>
           <execution>
             <id>mobile</id>
-            <goals><goal>generate</goal></goals>
+            <goals>
+              <goal>generate</goal>
+            </goals>
             <configuration>
-              <inputSpec>${maven.multiModuleProjectDirectory}/contracts/http/.generated/mobile.yaml</inputSpec>
-              <output>${project.build.directory}/generated-sources/openapi/mobile</output>
+              <inputSpec>
+                ${maven.multiModuleProjectDirectory}/contracts/http/.generated/mobile.yaml
+              </inputSpec>
+              <output>
+                ${project.build.directory}/generated-sources/openapi/mobile
+              </output>
               <apiPackage>com.blockout.backend.generated.mobile.api</apiPackage>
-              <modelPackage>com.blockout.backend.generated.mobile.model</modelPackage>
-              <invokerPackage>com.blockout.backend.generated.mobile</invokerPackage>
+              <modelPackage>
+                com.blockout.backend.generated.mobile.model
+              </modelPackage>
+              <invokerPackage>
+                com.blockout.backend.generated.mobile
+              </invokerPackage>
             </configuration>
           </execution>
           <execution>
             <id>ingestion</id>
-            <goals><goal>generate</goal></goals>
+            <goals>
+              <goal>generate</goal>
+            </goals>
             <configuration>
-              <inputSpec>${maven.multiModuleProjectDirectory}/contracts/http/.generated/ingestion.yaml</inputSpec>
-              <output>${project.build.directory}/generated-sources/openapi/ingestion</output>
-              <apiPackage>com.blockout.backend.generated.ingestion.api</apiPackage>
-              <modelPackage>com.blockout.backend.generated.ingestion.model</modelPackage>
-              <invokerPackage>com.blockout.backend.generated.ingestion</invokerPackage>
+              <inputSpec>
+                ${maven.multiModuleProjectDirectory}/contracts/http/.generated/ingestion.yaml
+              </inputSpec>
+              <output>
+                ${project.build.directory}/generated-sources/openapi/ingestion
+              </output>
+              <apiPackage>
+                com.blockout.backend.generated.ingestion.api
+              </apiPackage>
+              <modelPackage>
+                com.blockout.backend.generated.ingestion.model
+              </modelPackage>
+              <invokerPackage>
+                com.blockout.backend.generated.ingestion
+              </invokerPackage>
             </configuration>
           </execution>
           <execution>
             <id>legacy-mobile</id>
-            <goals><goal>generate</goal></goals>
+            <goals>
+              <goal>generate</goal>
+            </goals>
             <configuration>
-              <inputSpec>${maven.multiModuleProjectDirectory}/contracts/http/.generated/legacy-mobile.yaml</inputSpec>
-              <output>${project.build.directory}/generated-sources/openapi/legacy-mobile</output>
-              <apiPackage>com.blockout.backend.generated.legacymobile.api</apiPackage>
-              <modelPackage>com.blockout.backend.generated.legacymobile.model</modelPackage>
-              <invokerPackage>com.blockout.backend.generated.legacymobile</invokerPackage>
+              <inputSpec>
+                ${maven.multiModuleProjectDirectory}/contracts/http/.generated/legacy-mobile.yaml
+              </inputSpec>
+              <output>
+                ${project.build.directory}/generated-sources/openapi/legacy-mobile
+              </output>
+              <apiPackage>
+                com.blockout.backend.generated.legacymobile.api
+              </apiPackage>
+              <modelPackage>
+                com.blockout.backend.generated.legacymobile.model
+              </modelPackage>
+              <invokerPackage>
+                com.blockout.backend.generated.legacymobile
+              </invokerPackage>
             </configuration>
           </execution>
         </executions>

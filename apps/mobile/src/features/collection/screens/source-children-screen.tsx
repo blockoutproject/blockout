@@ -59,13 +59,18 @@ export function SourceChildrenScreen({
             .map((item) => [item.id, item]),
         ).values(),
       ];
+
   /** Refreshes the admitted catalog; a failed technical reread retains authorized content and reports its outcome. */
   async function refresh() {
-    if (query.isFetching) return;
+    if (query.isFetching) {
+      return;
+    }
     const result = await query.refetch({ cancelRefetch: false });
-    if (result.isError && items.length > 0 && !isAccessDenied(result.error))
+    if (result.isError && items.length > 0 && !isAccessDenied(result.error)) {
       feedback.error();
+    }
   }
+
   /** Shared continuation command keeps traversal and scope; automatic edges separately exclude failed reads. */
   async function loadMore() {
     if (
@@ -74,11 +79,13 @@ export function SourceChildrenScreen({
       !query.hasNextPage ||
       denied ||
       query.isFetching
-    )
+    ) {
       return;
+    }
     feedback.clear();
     await query.fetchNextPage({ cancelRefetch: false });
   }
+
   return (
     <Page header={<PageHeader title="Groupes découverts" />}>
       <PageFlatList
@@ -100,7 +107,9 @@ export function SourceChildrenScreen({
         }
         ItemSeparatorComponent={ListSeparator}
         onEndReached={() => {
-          if (!query.isError) loadMore();
+          if (!query.isError) {
+            loadMore();
+          }
         }}
         onEndReachedThreshold={0.5}
         renderItem={({ item }) =>
@@ -174,6 +183,7 @@ export function SourceChildrenScreen({
     </Page>
   );
 }
+
 const styles = StyleSheet.create({
   list: { flexGrow: 1 },
   footer: { paddingTop: tokens.spacing.lg },

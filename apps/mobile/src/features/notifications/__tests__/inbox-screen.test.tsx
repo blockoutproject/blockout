@@ -111,23 +111,29 @@ function Harness({ children }: PropsWithChildren) {
 /** Provides deterministic server outcomes without a second client cache or fake business owner. */
 async function response(url: string, init: RequestInit): Promise<Response> {
   const path = new URL(url).pathname;
-  if (path.endsWith("application-access"))
+  if (path.endsWith("application-access")) {
     return Response.json(applicationAccessResponse());
-  if (path.endsWith("accounts/me"))
+  }
+  if (path.endsWith("accounts/me")) {
     return Response.json(accountResponse({ accountId: row.id }));
-  if (path.endsWith("notification-summary"))
+  }
+  if (path.endsWith("notification-summary")) {
     return Response.json(
       total
         ? { unreadCount: total, nextExpiryAt: nextExpiry }
         : { unreadCount: 0 },
     );
-  if (path.endsWith("/notifications"))
+  }
+  if (path.endsWith("/notifications")) {
     return Response.json({ notifications: rows });
+  }
   if (path.endsWith(`/notifications/${row.id}`)) {
     if (init.method === "PATCH") {
       rows = rows.map((value) => ({ ...value, read: true }));
       total = 6;
-      if (readResponseLost) throw new TypeError("lost acknowledgement");
+      if (readResponseLost) {
+        throw new TypeError("lost acknowledgement");
+      }
     }
     return Response.json({ ...row, read: true });
   }
@@ -246,8 +252,9 @@ it("keeps four family choices in server order through refresh and reopening", as
       screen.getAllByRole("link").map((link) => link.props.accessibilityLabel),
     ).toEqual(originalNames),
   );
-  for (const entry of rows)
+  for (const entry of rows) {
     expect(screen.getByText(entry.title)).toBeOnTheScreen();
+  }
   expect(mockFetch.mock.calls.some(([, init]) => init.method === "PATCH")).toBe(
     false,
   );
@@ -550,7 +557,9 @@ it("keeps accepted notification links while one appended page is pending and rev
   };
   mockFetch.mockImplementation((url: string, init: RequestInit) => {
     const target = new URL(url);
-    if (!target.pathname.endsWith("/notifications")) return response(url, init);
+    if (!target.pathname.endsWith("/notifications")) {
+      return response(url, init);
+    }
     return target.searchParams.has("cursor")
       ? pending.promise
       : Response.json({ notifications: [row], nextCursor: "held-page" });
@@ -652,8 +661,10 @@ it("loads only the focused inbox and retains rows while its local footer retries
   let failNext = true;
   mockFetch.mockImplementation((url: string, init: RequestInit) => {
     const target = new URL(url);
-    if (!target.pathname.endsWith("/notifications")) return response(url, init);
-    if (!target.searchParams.has("cursor"))
+    if (!target.pathname.endsWith("/notifications")) {
+      return response(url, init);
+    }
+    if (!target.searchParams.has("cursor")) {
       return Promise.resolve(
         Response.json(
           failNext
@@ -661,7 +672,10 @@ it("loads only the focused inbox and retains rows while its local footer retries
             : { notifications: [second] },
         ),
       );
-    if (failNext) return Promise.reject(new TypeError("offline"));
+    }
+    if (failNext) {
+      return Promise.reject(new TypeError("offline"));
+    }
     return Promise.resolve(Response.json({ notifications: [second] }));
   });
   await showInbox();

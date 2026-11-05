@@ -12,12 +12,15 @@ export function useDiscardChanges(dirty: boolean, discard: () => void) {
   useLayoutEffect(() => {
     currentDirty.current = dirty;
   }, [dirty]);
+
   /**
    * A clean form leaves immediately; a held dialog cannot discard a draft already saved or replaced.
    * Inline cancellation may reset fields without releasing an editor retained for the current route.
    */
   async function confirmDiscard(discardDraft = discard): Promise<boolean> {
-    if (!currentDirty.current) return true;
+    if (!currentDirty.current) {
+      return true;
+    }
     const accepted = await confirm({
       title: "Abandonner les modifications ?",
       message: "Votre brouillon n’a pas été enregistré.",
@@ -25,12 +28,17 @@ export function useDiscardChanges(dirty: boolean, discard: () => void) {
       cancelLabel: "Continuer la saisie",
       destructive: true,
     });
-    if (!accepted || !currentDirty.current) return false;
+    if (!accepted || !currentDirty.current) {
+      return false;
+    }
     discardDraft();
     return true;
   }
+
   usePreventRemove(dirty, async ({ repeat }) => {
-    if (await confirmDiscard()) repeat();
+    if (await confirmDiscard()) {
+      repeat();
+    }
   });
   return confirmDiscard;
 }

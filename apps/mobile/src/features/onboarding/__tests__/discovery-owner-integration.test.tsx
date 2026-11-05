@@ -170,12 +170,15 @@ beforeEach(async () => {
   mockMobileAds.setRequestConfiguration.mockClear();
   nativeAdvertising.AdsConsent.gatherConsent.mockClear();
   mockFetch.mockReset().mockImplementation(async (url, options) => {
-    if (String(url).endsWith("/application-access"))
+    if (String(url).endsWith("/application-access")) {
       return Response.json(applicationAccessResponse());
-    if (String(url).endsWith("/accounts") && options?.method === "POST")
+    }
+    if (String(url).endsWith("/accounts") && options?.method === "POST") {
       return Response.json(accountResponse(), { status: 201 });
-    if (String(url).includes("/accounts/me"))
+    }
+    if (String(url).includes("/accounts/me")) {
       return Response.json(accountResponse());
+    }
     throw new Error(`Unexpected HTTP boundary: ${String(url)}`);
   });
 });
@@ -485,28 +488,34 @@ it.each([
     await AsyncStorage.setItem(initializationMarker, "true");
     await completeDiscovery();
     const access = applicationAccessResponse();
-    if (gate === "maintenance") access.maintenance.active = true;
-    else if (gate === "minimum version") {
+    if (gate === "maintenance") {
+      access.maintenance.active = true;
+    } else if (gate === "minimum version") {
       access.versions.ios.minimumVersion = "9.0.0";
       access.versions.android.minimumVersion = "9.0.0";
     }
     mockFetch.mockImplementation(async () => {
-      if (gate === "unavailable configuration") throw new Error("Unavailable");
+      if (gate === "unavailable configuration") {
+        throw new Error("Unavailable");
+      }
       return Response.json(access);
     });
-    if (gate === "unavailable configuration") jest.useFakeTimers();
+    if (gate === "unavailable configuration") {
+      jest.useFakeTimers();
+    }
 
     // When
     await openInstallation("/support");
-    if (gate === "unavailable configuration")
+    if (gate === "unavailable configuration") {
       await act(async () => jest.advanceTimersByTimeAsync(7500));
+    }
 
     // Then
-    if (gate === "unavailable configuration")
+    if (gate === "unavailable configuration") {
       expect(
         await screen.findByRole("alert", { name: "Une erreur est survenue" }),
       ).toBeOnTheScreen();
-    else
+    } else {
       expect(
         await screen.findByRole("header", {
           name:
@@ -515,6 +524,7 @@ it.each([
               : "Mets Blockout à jour.",
         }),
       ).toBeOnTheScreen();
+    }
     expect(screen.queryByLabelText("Titre")).toBeNull();
     expect(screen.queryByRole("button", { name: "Se connecter" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Besoin d’aide ?" })).toBeNull();

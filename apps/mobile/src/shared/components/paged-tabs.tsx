@@ -74,7 +74,9 @@ export function PagedTabs({
   const topInset = useContext(NavigationSafeAreaContext);
   const [inset, setInset] = useState(topInset);
   const [visited, setVisited] = useState(() => new Set([selected]));
-  if (!visited.has(selected)) setVisited(new Set([...visited, selected]));
+  if (!visited.has(selected)) {
+    setVisited(new Set([...visited, selected]));
+  }
   const [identities, setIdentities] = useState(() =>
     tabs.map(({ id, resetKey }) => ({ id, resetKey, generation: 0 })),
   );
@@ -99,12 +101,15 @@ export function PagedTabs({
     : identities;
   // RNCT retains offsets by name even after removal. A generation prevents an
   // old search from resurrecting its former position when its criteria return.
-  if (changed) setIdentities(scenes);
+  if (changed) {
+    setIdentities(scenes);
+  }
   const names = scenes.map(({ id, generation }) => `${id}:${generation}`);
   const selectedName = names[tabs.findIndex((tab) => tab.id === selected)];
   useEffect(() => {
-    if (selectedName && pager.current?.getFocusedTab() !== selectedName)
+    if (selectedName && pager.current?.getFocusedTab() !== selectedName) {
       pager.current?.jumpToTab(selectedName, !reducedMotion);
+    }
   }, [selectedName, tabs, reducedMotion]);
   return (
     <NavigationInsetContext value={inset}>
@@ -147,7 +152,9 @@ export function PagedTabs({
         }}
         onTabChange={({ tabName }) => {
           const tab = tabs[names.indexOf(tabName)];
-          if (tab) onSelect(tab.id);
+          if (tab) {
+            onSelect(tab.id);
+          }
         }}
       >
         {tabs.map((tab, index) => (

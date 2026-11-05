@@ -11,13 +11,19 @@ export function toApplicationVersionsRequest(
   const body: ChangeApplicationVersionsRequest = { revision };
   for (const platform of ["ios", "android"] as const) {
     const fields = dirty[platform];
-    if (!fields?.minimumVersion && !fields?.storeUrl) continue;
+    if (!fields?.minimumVersion && !fields?.storeUrl) {
+      continue;
+    }
     body[platform] = {};
-    if (fields.minimumVersion)
+    if (fields.minimumVersion) {
       body[platform].minimumVersion = values[platform].minimumVersion || null;
-    if (fields.storeUrl)
+    }
+    if (fields.storeUrl) {
       body[platform].storeUrl = values[platform].storeUrl || null;
+    }
   }
-  if (dirty.message) body.message = values.message || null;
+  if (dirty.message) {
+    body.message = values.message || null;
+  }
   return body;
 }

@@ -5,6 +5,7 @@ export const supportKindLabels: Record<SupportValues["kind"], string> = {
   problem: "Signaler un problème",
   suggestion: "Suggérer une amélioration",
 };
+
 /** Optional classification is editable; sporting-data also owns logo reports. */
 export const supportSubjectLabels: Record<SupportValues["subject"], string> = {
   "": "Sans sujet",

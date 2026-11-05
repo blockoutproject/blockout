@@ -230,7 +230,9 @@ class ContributionAccessWebMvcTest {
   void refusesCredentials(String scenario, String bearer, int expectedStatus) throws Exception {
     // Given
     MockHttpServletRequestBuilder request = owner(ACCOUNT);
-    if (bearer != null) request.header("Authorization", "Bearer " + bearer);
+    if (bearer != null) {
+      request.header("Authorization", "Bearer " + bearer);
+    }
 
     // When
     ResultActions response = mvc.perform(request);

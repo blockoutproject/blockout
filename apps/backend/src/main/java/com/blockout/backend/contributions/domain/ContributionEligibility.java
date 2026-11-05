@@ -33,22 +33,35 @@ public final class ContributionEligibility {
       StreamAddress proposed,
       ContributionQuota.Usage usage,
       Instant now) {
-    if (!actor.moderator() && !actor.mayPublish()) return new Decision(Status.FORBIDDEN, null);
-    if (!match.viewable() || match.date() == null)
+    if (!actor.moderator() && !actor.mayPublish()) {
+      return new Decision(Status.FORBIDDEN, null);
+    }
+    if (!match.viewable() || match.date() == null) {
       return new Decision(Status.MATCH_UNAVAILABLE, null);
-    if (match.professional()) return new Decision(Status.PROFESSIONAL_MATCH, null);
-    if (current.state().revision() != expectedRevision)
+    }
+    if (match.professional()) {
+      return new Decision(Status.PROFESSIONAL_MATCH, null);
+    }
+    if (current.state().revision() != expectedRevision) {
       return new Decision(Status.STALE_REVISION, null);
+    }
     if (!actor.moderator()) {
-      if (current.active() != null && !actor.accountId().equals(current.active().ownerId()))
+      if (current.active() != null && !actor.accountId().equals(current.active().ownerId())) {
         return new Decision(Status.NOT_OWNER, null);
-      if (actor.principalCreatedAt() == null) return new Decision(Status.ACCOUNT_AGE_UNKNOWN, null);
-      if (now.isBefore(accountEligibleAt(actor.principalCreatedAt())))
+      }
+      if (actor.principalCreatedAt() == null) {
+        return new Decision(Status.ACCOUNT_AGE_UNKNOWN, null);
+      }
+      if (now.isBefore(accountEligibleAt(actor.principalCreatedAt()))) {
         return new Decision(Status.ACCOUNT_TOO_YOUNG, null);
+      }
       if (!match.definitiveResult()) {
-        if (match.confirmedStart() == null) return new Decision(Status.START_UNCONFIRMED, null);
-        if (now.isBefore(windowOpensAt(match.confirmedStart())))
+        if (match.confirmedStart() == null) {
+          return new Decision(Status.START_UNCONFIRMED, null);
+        }
+        if (now.isBefore(windowOpensAt(match.confirmedStart()))) {
           return new Decision(Status.WINDOW_NOT_OPEN, null);
+        }
       }
     }
     for (ContributionVersion version :
@@ -57,15 +70,20 @@ public final class ContributionEligibility {
           && actor.accountId().equals(version.ownerId())
           && (version.state() == ContributionVersion.State.ACTIVE
               || version.state() == ContributionVersion.State.PENDING)
-          && version.address().equals(proposed))
+          && version.address().equals(proposed)) {
         return new Decision(Status.UNCHANGED, version.id());
+      }
     }
-    if (actor.moderator()) return new Decision(Status.ACTIVE, null);
+    if (actor.moderator()) {
+      return new Decision(Status.ACTIVE, null);
+    }
     ContributionQuota.Limit limit = ContributionQuota.limit(usage);
-    if (limit == ContributionQuota.Limit.VERSION_LIMIT)
+    if (limit == ContributionQuota.Limit.VERSION_LIMIT) {
       return new Decision(Status.VERSION_LIMIT, null);
-    if (limit == ContributionQuota.Limit.DAILY_MATCH_LIMIT)
+    }
+    if (limit == ContributionQuota.Limit.DAILY_MATCH_LIMIT) {
       return new Decision(Status.DAILY_MATCH_LIMIT, null);
+    }
     return new Decision(
         requiresApproval(actor.moderator(), match.definitiveResult(), current.state())
             ? Status.PENDING

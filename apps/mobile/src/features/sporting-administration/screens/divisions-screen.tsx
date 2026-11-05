@@ -77,12 +77,15 @@ export function DivisionsScreen() {
   const blockingState = !authority.enabled ? (
     <AccessFeedback {...authority} loadingContent={<DivisionsLoading />} />
   ) : undefined;
+
   /** Rereads the current catalogue without changing its activity/search context or replaying commands. */
   async function refresh() {
     const result = await query.refetch();
-    if (result.isError && items.length > 0 && !isAccessDenied(result.error))
+    if (result.isError && items.length > 0 && !isAccessDenied(result.error)) {
       feedback.error();
+    }
   }
+
   return (
     <Page header={<PageHeader title="Divisions" />}>
       {blockingState ? (
@@ -278,6 +281,7 @@ export function DivisionsScreen() {
     </Page>
   );
 }
+
 /** A row opens the single editor; presentation artwork remains a protected, generated binary read. */
 function DivisionCard({
   division,
@@ -347,6 +351,7 @@ function DivisionCard({
     </Pressable>
   );
 }
+
 const styles = StyleSheet.create({
   list: { flexGrow: 1 },
   controls: { gap: tokens.spacing.lg, marginBottom: tokens.spacing["2xl"] },

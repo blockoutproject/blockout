@@ -42,15 +42,17 @@ public class AcceptSourceValidation {
   public Source submitValidation(UUID sourceId, SourceValidation result) {
     CollectionState.CycleScope scope = store.cycleScope(result.cycleId());
     runtimeAccess.requireCurrent(scope.incarnationId());
-    if (!sourceId.equals(scope.sourceBindingId()))
+    if (!sourceId.equals(scope.sourceBindingId())) {
       throw CollectionConflictException.invalidContext();
+    }
     CollectionSeasonView season = seasons.lockCollectionState(store.sourceSeason(sourceId));
     Cycle cycle = store.lockCycleForUpdate(result.cycleId());
     Source source = store.lockSource(sourceId);
     CollectionLifecycle.requireOpen(season);
     CollectionRevision.requireAdvance(season.collectionRevision());
-    if (!cycle.id().equals(source.currentCycleId()))
+    if (!cycle.id().equals(source.currentCycleId())) {
       throw CollectionConflictException.invalidContext();
+    }
     Instant observedAt = result.observedAt().truncatedTo(ChronoUnit.MICROS);
     if (cycle.completedAt() != null) {
       SourceValidationStateEnum acceptedState =
@@ -61,21 +63,26 @@ public class AcceptSourceValidation {
           || !Objects.equals(source.validatedAt(), observedAt)
           || !Objects.equals(source.seasonEvidence(), result.seasonEvidence())
           || !Objects.equals(source.reason(), result.reason())
-          || !Objects.equals(source.reasonType(), result.reasonType()))
+          || !Objects.equals(source.reasonType(), result.reasonType())) {
         throw CollectionConflictException.invalidContext();
+      }
       return source;
     }
     if (source.locked()
         || source.validationState() != SourceValidationStateEnum.PENDING
         || source.revision() != cycle.revision()
-        || observedAt.isBefore(cycle.startedAt()))
+        || observedAt.isBefore(cycle.startedAt())) {
       throw CollectionConflictException.invalidContext();
+    }
     if (result.state() != SourceValidationStateEnum.INVALID
         && result.state() != SourceValidationStateEnum.CONFIRMATION_REQUIRED
-        && result.state() != SourceValidationStateEnum.QUALIFIED)
+        && result.state() != SourceValidationStateEnum.QUALIFIED) {
       throw new InvalidSourceException();
+    }
     if (result.state() == SourceValidationStateEnum.QUALIFIED
-        && !StringUtils.hasText(result.seasonEvidence())) throw new InvalidSourceException();
+        && !StringUtils.hasText(result.seasonEvidence())) {
+      throw new InvalidSourceException();
+    }
     Source accepted =
         changes.save(
             source.toBuilder()

@@ -30,8 +30,12 @@ public final class ContributionQuota {
    * @return available or the reached limit
    */
   public static Limit limit(Usage usage) {
-    if (usage.versionsUsed() >= 3) return Limit.VERSION_LIMIT;
-    if (usage.dailyMatchesUsed() >= 3 && !usage.matchCountedToday()) return Limit.DAILY_MATCH_LIMIT;
+    if (usage.versionsUsed() >= 3) {
+      return Limit.VERSION_LIMIT;
+    }
+    if (usage.dailyMatchesUsed() >= 3 && !usage.matchCountedToday()) {
+      return Limit.DAILY_MATCH_LIMIT;
+    }
     return Limit.AVAILABLE;
   }
 

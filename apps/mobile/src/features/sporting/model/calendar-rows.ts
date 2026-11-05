@@ -31,11 +31,14 @@ export function calendarRows(
     rows.push({ kind: "date", key: `date:${day.date}`, date: day.date });
     day.pools.forEach((group, poolIndex) => {
       const prefix = `${day.date}:${group.poolId}`;
-      if (!stacked && poolIndex > 0)
+      if (!stacked && poolIndex > 0) {
         rows.push({ kind: "space", key: `${prefix}:space` });
+      }
       rows.push({ kind: "pool", key: `${prefix}:pool`, group });
       group.matches.forEach((match, index) => {
-        if (!stacked) rows.push({ kind: "space", key: `space:${match.id}` });
+        if (!stacked) {
+          rows.push({ kind: "space", key: `space:${match.id}` });
+        }
         rows.push({
           kind: "match",
           key: `match:${match.id}`,

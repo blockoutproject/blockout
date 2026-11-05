@@ -13,11 +13,17 @@ public final class TextTrimming {
    * @return normalized text with omission preserved
    */
   public static String trim(String value) {
-    if (value == null) return null;
+    if (value == null) {
+      return null;
+    }
     int start = 0;
     int end = value.length();
-    while (start < end && isWhitespace(value.charAt(start))) start++;
-    while (end > start && isWhitespace(value.charAt(end - 1))) end--;
+    while (start < end && isWhitespace(value.charAt(start))) {
+      start++;
+    }
+    while (end > start && isWhitespace(value.charAt(end - 1))) {
+      end--;
+    }
     return value.substring(start, end);
   }
 

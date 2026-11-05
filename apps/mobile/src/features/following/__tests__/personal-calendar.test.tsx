@@ -37,6 +37,7 @@ let owner: FollowingOwner;
 async function request(signal?: AbortSignal) {
   return { signal };
 }
+
 /** Complete generated envelope, retaining its category-independent explanation alongside F03 days. */
 function page(
   date: string,
@@ -61,6 +62,7 @@ function page(
     },
   };
 }
+
 beforeEach(() => {
   client = createQueryClient();
   owner = {
@@ -465,8 +467,11 @@ it.each(["success", "failure"])(
     const reload = client.fetchQuery(
       createFollowOptionsQueryOptions(owner, request),
     );
-    if (outcome === "success") await reload;
-    else await expect(reload).rejects.toMatchObject({ status: 503 });
+    if (outcome === "success") {
+      await reload;
+    } else {
+      await expect(reload).rejects.toMatchObject({ status: 503 });
+    }
 
     // Then
     const retainedAll = client.getQueryData<

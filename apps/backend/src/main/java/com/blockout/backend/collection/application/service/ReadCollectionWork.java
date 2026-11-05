@@ -65,7 +65,9 @@ public class ReadCollectionWork {
   @Transactional
   public TargetPage targets(UUID cycleId, long page, int size) {
     cycleAccess.requireRunningControl(cycleId);
-    if (page > Integer.MAX_VALUE / size) return new TargetPage(List.of(), page, false);
+    if (page > Integer.MAX_VALUE / size) {
+      return new TargetPage(List.of(), page, false);
+    }
     SnapshotPage snapshot = store.targets(cycleId, (int) page, size);
     List<ServedTarget> targets = clubs.serve(snapshot.items());
     return new TargetPage(targets, page, snapshot.hasNext());
@@ -92,9 +94,13 @@ public class ReadCollectionWork {
                 .toList());
     Set<UUID> seasonIds = new HashSet<>();
     for (Control control : configuration) {
-      if (control.seasonId() != null) seasonIds.add(control.seasonId());
+      if (control.seasonId() != null) {
+        seasonIds.add(control.seasonId());
+      }
     }
-    for (Source source : pending) seasonIds.add(source.seasonId());
+    for (Source source : pending) {
+      seasonIds.add(source.seasonId());
+    }
     Map<UUID, CollectionSeasonView> seasonStates = seasonReads.collectionStates(seasonIds);
     List<ControlWork> controls = new ArrayList<>();
     for (Control control : configuration) {

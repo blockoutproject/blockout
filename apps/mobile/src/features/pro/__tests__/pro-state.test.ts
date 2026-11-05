@@ -188,7 +188,9 @@ it.each([
       entitlement: right,
       operation: "idle",
     });
-    if (state.status === "active") expect(state.entitlement).toBe(right);
+    if (state.status === "active") {
+      expect(state.entitlement).toBe(right);
+    }
   },
 );
 it("uses the active map rather than historical rights, other entitlements or subscription products", () => {

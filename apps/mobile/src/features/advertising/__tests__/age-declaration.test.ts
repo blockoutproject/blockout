@@ -71,8 +71,9 @@ it.each([
   "uses child protection without synthesizing a declaration from %s",
   async (raw) => {
     // Given
-    if (raw !== null)
+    if (raw !== null) {
       await AsyncStorage.setItem("blockout:advertising-age", raw);
+    }
 
     // When
     const declaration = await readAgeDeclaration();

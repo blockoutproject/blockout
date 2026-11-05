@@ -57,7 +57,9 @@ const safeError: NonNullable<Sentry.ReactNativeOptions["beforeSend"]> = (
   hint,
 ) => {
   hint.attachments = [];
-  if (!event.exception?.values?.length) return null;
+  if (!event.exception?.values?.length) {
+    return null;
+  }
 
   return {
     type: undefined,
@@ -100,8 +102,9 @@ const safeError: NonNullable<Sentry.ReactNativeOptions["beforeSend"]> = (
           !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
             image.debug_id,
           )
-        )
+        ) {
           return [];
+        }
         const codeFile = bundleFilename(image.code_file);
         return codeFile
           ? [

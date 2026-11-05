@@ -24,7 +24,9 @@ export interface PersonalSeasonScope {
   blocked: boolean;
   bypass: boolean;
 }
+
 const PersonalSeasonContext = createContext<PersonalSeasonScope | null>(null);
+
 /** Lifts the existing in-memory choice only to Home's layout; neither another cache nor a route-parameter callback is created. */
 export function PersonalSeasonProvider({ children }: PropsWithChildren) {
   const session = useAccountSession();
@@ -38,10 +40,12 @@ export function PersonalSeasonProvider({ children }: PropsWithChildren) {
     <PersonalSeasonContext value={null}>{children}</PersonalSeasonContext>
   );
 }
+
 /** Reads the current shared scope; absent identity supplies no private choice or former account data. */
 export function usePersonalSeasonScope() {
   return useContext(PersonalSeasonContext);
 }
+
 /** Keeps native credentials and admission around the sole choice; Query withdraws refused options across remounts. */
 function SeasonScope({
   owner,
@@ -58,16 +62,22 @@ function SeasonScope({
     profile.data?.accountId === owner.accountId &&
     !isAccessDenied(profile.error);
   const bypass = Boolean(admission.bypass);
+
   /** Prepares only a current original-owner request after native credentials and current F12 admission. */
   async function request(signal?: AbortSignal) {
-    if (!admission.admitted) throw new ApiError("cancelled");
+    if (!admission.admitted) {
+      throw new ApiError("cancelled");
+    }
     const credentials = await getCredentials();
-    if (!credentials) throw new ApiError("http", 401);
+    if (!credentials) {
+      throw new ApiError("http", 401);
+    }
     return admission.request({
       signal,
       headers: { Authorization: `Bearer ${credentials.accessToken}` },
     });
   }
+
   const season = usePersonalSeason(owner, request, usable, bypass);
   const refused =
     isAccessDenied(season.options.error) ||

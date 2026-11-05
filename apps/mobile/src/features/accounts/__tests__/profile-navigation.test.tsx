@@ -513,15 +513,18 @@ it.each([
       globalThis,
       "FileReader",
     );
+
     /** Controls binary preview conversion; current account and photo reads retain their real Query caches. */
     class PhotoReader {
       result = "data:image/png;base64,accepted";
       onload?: () => void;
+
       /** Completes the native preview boundary without replacing its transport or cache owner. */
       readAsDataURL() {
         this.onload?.();
       }
     }
+
     Object.defineProperty(globalThis, "FileReader", {
       configurable: true,
       value: PhotoReader,
@@ -539,18 +542,19 @@ it.each([
         screen.getByRole("image", { name: "Photo de profil" }),
         "display",
       );
-      if (outcome === "removed")
+      if (outcome === "removed") {
         mockFetch.mockImplementation(async () =>
           Response.json({ ...account, hasPhoto: false }),
         );
+      }
 
       // When
-      if (outcome === "removed")
+      if (outcome === "removed") {
         await fireEvent(
           screen.getByLabelText("Actualiser les données"),
           "refresh",
         );
-      else
+      } else {
         await fireEvent(
           outcome === "foreground-decode-failed"
             ? screen.getByRole("image", { name: "Photo de profil" })
@@ -558,6 +562,7 @@ it.each([
           "error",
           { nativeEvent: { error: "Native image decoding failed" } },
         );
+      }
 
       // Then
       if (outcome === "atmosphere-decode-failed") {
@@ -582,14 +587,15 @@ it.each([
           }),
         ).toBeOnTheScreen();
       }
-      if (outcome === "foreground-decode-failed")
+      if (outcome === "foreground-decode-failed") {
         expect(
           screen.getByTestId("profile-photo-atmosphere"),
         ).toBeOnTheScreen();
-      else
+      } else {
         expect(
           screen.queryByTestId("profile-photo-atmosphere"),
         ).not.toBeOnTheScreen();
+      }
       expect(screen.getByText(account.username)).toBeOnTheScreen();
       expect(screen.getByText(account.email)).toBeOnTheScreen();
       expect(
@@ -597,9 +603,11 @@ it.each([
       ).toBeEnabled();
     } finally {
       await cleanup();
-      if (previousReader)
+      if (previousReader) {
         Object.defineProperty(globalThis, "FileReader", previousReader);
-      else Reflect.deleteProperty(globalThis, "FileReader");
+      } else {
+        Reflect.deleteProperty(globalThis, "FileReader");
+      }
     }
   },
 );
@@ -742,13 +750,14 @@ it.each([
   "%s names sign-in navigation explicitly after a %s",
   async (initialUrl, reason) => {
     // Given: account reads and session state remain real; only HTTP/native I/O fails.
-    if (reason === "missing account")
+    if (reason === "missing account") {
       mockFetch.mockResolvedValue(new Response(null, { status: 404 }));
-    else
+    } else {
       mockAuth0.getCredentials.mockRejectedValue({
         code: "invalid_grant",
         message: "Credentials expired",
       });
+    }
     const user = userEvent.setup();
     await openProfile(initialUrl);
     const signIn = await screen.findByRole("button", { name: "Se connecter" });
@@ -780,15 +789,18 @@ it.each([503, 403])(
       globalThis,
       "FileReader",
     );
+
     /** Controls binary conversion while the actual account/photo Query and Router owners remain mounted. */
     class PhotoReader {
       result = "data:image/png;base64,accepted";
       onload?: () => void;
+
       /** Publishes the accepted preview through the native file-reading boundary. */
       readAsDataURL() {
         this.onload?.();
       }
     }
+
     Object.defineProperty(globalThis, "FileReader", {
       configurable: true,
       value: PhotoReader,
@@ -867,9 +879,11 @@ it.each([503, 403])(
     } finally {
       await act(() => response.resolve(new Response(null, { status })));
       await cleanup();
-      if (previousReader)
+      if (previousReader) {
         Object.defineProperty(globalThis, "FileReader", previousReader);
-      else Reflect.deleteProperty(globalThis, "FileReader");
+      } else {
+        Reflect.deleteProperty(globalThis, "FileReader");
+      }
     }
   },
 );

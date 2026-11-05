@@ -38,13 +38,19 @@ public final class SupportValidation {
    */
   public SupportSubmission validate(SupportSubmission.Metadata metadata, List<byte[]> images)
       throws IOException {
-    if (images.size() > 5) throw new InvalidSubmission(Reason.INVALID_INPUT);
+    if (images.size() > 5) {
+      throw new InvalidSubmission(Reason.INVALID_INPUT);
+    }
     for (byte[] image : images) {
-      if (image.length > MAX_FILE_BYTES) throw new InvalidSubmission(Reason.CONTENT_TOO_LARGE);
+      if (image.length > MAX_FILE_BYTES) {
+        throw new InvalidSubmission(Reason.CONTENT_TOO_LARGE);
+      }
     }
     List<byte[]> snapshots = images.stream().map(byte[]::clone).toList();
     List<String> mediaTypes = new ArrayList<>();
-    for (byte[] image : snapshots) mediaTypes.add(validateImage(image));
+    for (byte[] image : snapshots) {
+      mediaTypes.add(validateImage(image));
+    }
 
     List<Path> files = new ArrayList<>();
     try {
@@ -90,8 +96,9 @@ public final class SupportValidation {
                 // Divide first to avoid overflowing on hostile source dimensions.
                 if (header.width() <= 0
                     || header.height() <= 0
-                    || (long) header.width() * (header.height() + 3L) > MAX_DECODED_BYTES / 8)
+                    || (long) header.width() * (header.height() + 3L) > MAX_DECODED_BYTES / 8) {
                   throw new InvalidSubmission(Reason.INVALID_IMAGE);
+                }
               });
       image.pixels().flush();
       return image.mediaType();

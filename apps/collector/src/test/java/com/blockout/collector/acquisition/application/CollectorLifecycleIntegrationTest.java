@@ -68,10 +68,11 @@ class CollectorLifecycleIntegrationTest {
                 "candidateUrl":"https://www.ffvbbeach.org/source","seasonLabel":"2026/2027","provider":"ffvb","organizerReference":"ABCCS"}]}
                 """;
           } else if (path.endsWith("collector-runtime")) {
-            if (method.equals("PUT"))
+            if (method.equals("PUT")) {
               registered =
                   UUID.fromString(
                       json.readTree(exchange.getRequestBody()).get("incarnationId").asText());
+            }
             if (method.equals("PUT") && loseRegistration) {
               exchange.close();
               return;
@@ -95,7 +96,9 @@ class CollectorLifecycleIntegrationTest {
                       + "\",\"revision\":7,"
                       + "\"candidateUrl\":\"https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901\","
                       + "\"seasonLabel\":\"2026/2027\",\"provider\":\"lnv\",\"organizerReference\":\"901\"}";
-              if (omitCandidate) purpose = "\"sourceBindingId\":\"" + source + "\"";
+              if (omitCandidate) {
+                purpose = "\"sourceBindingId\":\"" + source + "\"";
+              }
             } else {
               purpose =
                   "\"controlId\":\""
@@ -110,11 +113,12 @@ class CollectorLifecycleIntegrationTest {
                     + "\","
                     + purpose
                     + ",\"cycleOrder\":3,\"state\":\"running\",\"startedAt\":\"2026-10-19T10:00:00Z\"}";
-            if (contradictoryPurpose)
+            if (contradictoryPurpose) {
               cycle =
                   cycle.replace(
                       "\"mode\":\"periodic\"",
                       "\"mode\":\"periodic\",\"sourceBindingId\":\"00000000-0000-4000-8000-000000000002\"");
+            }
             if (refuseAdmission) {
               byte[] problem =
                   "{\"type\":\"urn:blockout:problem:invalid-cycle-context\",\"title\":\"Conflict\",\"status\":409}"

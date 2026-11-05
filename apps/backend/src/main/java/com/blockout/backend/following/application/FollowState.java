@@ -29,7 +29,9 @@ public class FollowState {
    */
   @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
   public boolean read(FollowContext context) {
-    if (!accounts.exists(context.accountId())) throw new AccountNotFoundException();
+    if (!accounts.exists(context.accountId())) {
+      throw new AccountNotFoundException();
+    }
     requireVisibleTarget(context);
     return store.find(context).isPresent();
   }
@@ -46,10 +48,14 @@ public class FollowState {
    */
   @Transactional
   public boolean replace(FollowContext context, boolean following) {
-    if (!accounts.lock(context.accountId())) throw new AccountNotFoundException();
+    if (!accounts.lock(context.accountId())) {
+      throw new AccountNotFoundException();
+    }
     requireVisibleTarget(context);
     if (following) {
-      if (store.find(context).isEmpty()) store.add(context);
+      if (store.find(context).isEmpty()) {
+        store.add(context);
+      }
     } else {
       store.remove(context);
     }

@@ -25,8 +25,9 @@ public final class AccessSettingsValidation {
    * @throws IllegalArgumentException for an unsafe or negative integer
    */
   public static void revision(long revision) {
-    if (revision < 0 || revision > MAX_REVISION)
+    if (revision < 0 || revision > MAX_REVISION) {
       throw new IllegalArgumentException("Invalid revision");
+    }
   }
 
   /**
@@ -39,11 +40,15 @@ public final class AccessSettingsValidation {
    */
   public static String text(String value, boolean required) {
     if (value == null) {
-      if (required) throw new IllegalArgumentException("Missing message");
+      if (required) {
+        throw new IllegalArgumentException("Missing message");
+      }
       return null;
     }
     String trimmed = TextTrimming.trim(value);
-    if (trimmed.isEmpty()) throw new IllegalArgumentException("Empty message");
+    if (trimmed.isEmpty()) {
+      throw new IllegalArgumentException("Empty message");
+    }
     return trimmed;
   }
 
@@ -54,7 +59,9 @@ public final class AccessSettingsValidation {
    * @throws IllegalArgumentException for invalid syntax or embedded credentials
    */
   public static void image(String value) {
-    if (value == null) return;
+    if (value == null) {
+      return;
+    }
     https(value);
   }
 
@@ -65,11 +72,16 @@ public final class AccessSettingsValidation {
    * @throws IllegalArgumentException for malformed or unsafe components
    */
   public static void version(String value) {
-    if (value == null) return;
-    if (!VERSION.matcher(value).matches()) throw new IllegalArgumentException("Invalid version");
+    if (value == null) {
+      return;
+    }
+    if (!VERSION.matcher(value).matches()) {
+      throw new IllegalArgumentException("Invalid version");
+    }
     for (String component : value.split("\\.")) {
-      if (new BigInteger(component).compareTo(BigInteger.valueOf(MAX_REVISION)) > 0)
+      if (new BigInteger(component).compareTo(BigInteger.valueOf(MAX_REVISION)) > 0) {
         throw new IllegalArgumentException("Unsafe version component");
+      }
     }
   }
 
@@ -81,11 +93,15 @@ public final class AccessSettingsValidation {
    * @throws IllegalArgumentException for a missing required link or invalid destination
    */
   public static void platform(ApplicationVersionSettings.Platform platform, boolean ios) {
-    if (platform == null) throw new IllegalArgumentException("Missing platform");
+    if (platform == null) {
+      throw new IllegalArgumentException("Missing platform");
+    }
     version(platform.minimumVersion());
     String url = platform.storeUrl();
     if (url == null) {
-      if (platform.minimumVersion() != null) throw new IllegalArgumentException("Missing store");
+      if (platform.minimumVersion() != null) {
+        throw new IllegalArgumentException("Missing store");
+      }
       return;
     }
     URI uri = https(url);
@@ -96,7 +112,9 @@ public final class AccessSettingsValidation {
             : "play.google.com".equalsIgnoreCase(uri.getHost())
                 && "/store/apps/details".equals(uri.getPath())
                 && intendedAndroidApplication(uri.getRawQuery());
-    if (!valid) throw new IllegalArgumentException("Invalid store");
+    if (!valid) {
+      throw new IllegalArgumentException("Invalid store");
+    }
   }
 
   /**
@@ -106,14 +124,18 @@ public final class AccessSettingsValidation {
    * @return whether exactly one application ID identifies the selected Blockout listing
    */
   private static boolean intendedAndroidApplication(String query) {
-    if (query == null) return false;
+    if (query == null) {
+      return false;
+    }
     int identifiers = 0;
     for (String pair : query.split("&")) {
       String[] parameter = pair.split("=", 2);
       if ("id".equals(URLDecoder.decode(parameter[0], StandardCharsets.UTF_8))) {
         if (parameter.length != 2
             || !"com.blockoutproject.blockout"
-                .equals(URLDecoder.decode(parameter[1], StandardCharsets.UTF_8))) return false;
+                .equals(URLDecoder.decode(parameter[1], StandardCharsets.UTF_8))) {
+          return false;
+        }
         identifiers++;
       }
     }
@@ -132,7 +154,9 @@ public final class AccessSettingsValidation {
     if (!"https".equalsIgnoreCase(uri.getScheme())
         || uri.getHost() == null
         || uri.getRawUserInfo() != null
-        || uri.getPort() > 65535) throw new IllegalArgumentException("Invalid HTTPS URL");
+        || uri.getPort() > 65535) {
+      throw new IllegalArgumentException("Invalid HTTPS URL");
+    }
     return uri;
   }
 }

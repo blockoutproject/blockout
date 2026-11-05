@@ -34,12 +34,18 @@ public class ReadOwnReport {
    */
   @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
   public boolean read(UUID reporter, UUID versionId) {
-    if (!accounts.exists(reporter)) throw new AccountNotFoundException();
+    if (!accounts.exists(reporter)) {
+      throw new AccountNotFoundException();
+    }
     ContributionVersion version =
         store.version(versionId).orElseThrow(SportingResourceNotFoundException::new);
-    if (!sporting.read(version.matchId()).viewable()) throw new SportingResourceNotFoundException();
+    if (!sporting.read(version.matchId()).viewable()) {
+      throw new SportingResourceNotFoundException();
+    }
     boolean reported = store.reported(versionId, reporter);
-    if (!reported && version.state() != State.ACTIVE) throw new SportingResourceNotFoundException();
+    if (!reported && version.state() != State.ACTIVE) {
+      throw new SportingResourceNotFoundException();
+    }
     return reported;
   }
 }

@@ -46,10 +46,12 @@ const queueTabs = [
   { id: "active", label: "Actifs" },
   { id: "all", label: "Tous" },
 ] as const;
+
 /** Committed route criteria persist across detail navigation; RHF owns only the editable search field. */
 export interface ModerationScreenProps {
   filters: ModerationFilters;
 }
+
 /** Keeps queue navigation and search above independently retained native list scenes. */
 export function ModerationScreen({ filters }: ModerationScreenProps) {
   const router = useRouter();
@@ -217,9 +219,12 @@ function QueueScene({
         ).values(),
       ]
     : [];
+
   /** Refreshes this selected traversal from page zero, retaining accepted rows and route criteria on failure. */
   async function refresh() {
-    if (refreshing || !active) return;
+    if (refreshing || !active) {
+      return;
+    }
     feedback.clear();
     setRefreshing(true);
     try {
@@ -229,12 +234,14 @@ function QueueScene({
         rows.length > 0 &&
         currentScene.current === identity &&
         navigation.isFocused()
-      )
+      ) {
         feedback.error();
+      }
     } finally {
       setRefreshing(false);
     }
   }
+
   /** The same native end event and retry footer used by search own bounded continuation. */
   async function more() {
     if (
@@ -246,11 +253,13 @@ function QueueScene({
       !query.hasNextPage ||
       query.isFetching ||
       (query.isError && !query.isFetchNextPageError)
-    )
+    ) {
       return;
+    }
     feedback.clear();
     await query.fetchNextPage({ cancelRefetch: false });
   }
+
   const refreshControl =
     current && rows.length > 0 ? (
       <DataRefreshControl enabled={active} onRefresh={refresh} />
@@ -261,7 +270,7 @@ function QueueScene({
       !!editing.session.operation ||
       (editing.session.status === "authenticated" &&
         (editing.profile.isLoading || (editing.allowed && query.isLoading))))
-  )
+  ) {
     return (
       <PageScrollView
         key={criteria}
@@ -273,7 +282,8 @@ function QueueScene({
         </View>
       </PageScrollView>
     );
-  if (rows.length === 0)
+  }
+  if (rows.length === 0) {
     return (
       <PageScrollView
         key={criteria}
@@ -323,6 +333,7 @@ function QueueScene({
         </ScreenState>
       </PageScrollView>
     );
+  }
   return (
     <PageList
       key={criteria}
@@ -337,7 +348,9 @@ function QueueScene({
       keyboardDismissMode="on-drag"
       refreshControl={refreshControl}
       onEndReached={() => {
-        if (!query.isError) void more();
+        if (!query.isError) {
+          void more();
+        }
       }}
       renderItem={({ item }) => <ModerationQueueRow item={item} />}
       ListFooterComponent={
@@ -404,6 +417,7 @@ function ModerationQueueRow({ item }: { item: StreamModerationItemResponse }) {
     </Link>
   );
 }
+
 const styles = StyleSheet.create({
   centered: { justifyContent: "center" },
   toolbar: {

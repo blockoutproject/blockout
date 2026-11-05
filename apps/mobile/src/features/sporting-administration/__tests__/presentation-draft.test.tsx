@@ -6,10 +6,12 @@ jest.mock("expo-file-system", () => ({
   File: class {
     exists = true;
     uri: string;
+
     /** Represents the app-owned cache copy without invoking native disk I/O. */
     constructor(uri: string) {
       this.uri = uri;
     }
+
     /** Releases only this controlled owned copy. */
     delete() {
       this.exists = false;

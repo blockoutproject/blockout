@@ -57,11 +57,16 @@ public class AcceptStandings {
     if (previous != null) {
       int comparison =
           order.compareTo(new ObservationOrder(previous.cycleOrder(), previous.readOrdinal()));
-      if (comparison < 0) return ObservationOutcome.refused(pool.key().reference(), true);
-      if (comparison == 0) return outcome(pool, false);
+      if (comparison < 0) {
+        return ObservationOutcome.refused(pool.key().reference(), true);
+      }
+      if (comparison == 0) {
+        return outcome(pool, false);
+      }
     }
-    if (!acquisitionClassification.acceptsObservation(poolId, target))
+    if (!acquisitionClassification.acceptsObservation(poolId, target)) {
       return ObservationOutcome.refused(pool.key().reference(), false);
+    }
     Instant observed = observation.context().observedAt();
     Instant published = observation.context().providerPublishedAt();
     StandingsView.StandingsViewBuilder next =

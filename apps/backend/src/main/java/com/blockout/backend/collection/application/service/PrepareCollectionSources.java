@@ -58,9 +58,12 @@ public class PrepareCollectionSources {
     CollectionRevision.requireAdvance(season.collectionRevision());
     CollectionRevision.requireRevision(revision, season.collectionRevision());
     SourceReference.requireUrl(candidateUrl, false);
-    if (!StringUtils.hasText(organizerReference)) throw new InvalidSourceException();
-    if (store.source(seasonId, provider, organizerReference).isPresent())
+    if (!StringUtils.hasText(organizerReference)) {
+      throw new InvalidSourceException();
+    }
+    if (store.source(seasonId, provider, organizerReference).isPresent()) {
       throw new CollectionConflictException("conflict");
+    }
     Source created =
         store.createSource(seasonId, provider, organizerReference, candidateUrl.toString());
     seasons.updatePreparation(seasonId, false);
@@ -80,8 +83,9 @@ public class PrepareCollectionSources {
   public Source setCandidate(UUID accountId, UUID sourceId, long revision, URI candidateUrl) {
     Source source = editable(accountId, sourceId, revision);
     SourceReference.requireUrl(candidateUrl, false);
-    if (candidateUrl.toString().equals(source.candidateUrl()))
+    if (candidateUrl.toString().equals(source.candidateUrl())) {
       return configurationReads.sourceView(source);
+    }
     Source changed =
         clearEvidence(source)
             .candidateUrl(candidateUrl.toString())
@@ -101,9 +105,13 @@ public class PrepareCollectionSources {
   @Transactional
   public Source requestValidation(UUID accountId, UUID sourceId, long revision) {
     Source source = editable(accountId, sourceId, revision);
-    if (source.candidateUrl() == null) throw new CollectionConflictException("conflict");
+    if (source.candidateUrl() == null) {
+      throw new CollectionConflictException("conflict");
+    }
     if (configurationReads.sourceView(source).validationState()
-        == SourceValidationStateEnum.PENDING) return source;
+        == SourceValidationStateEnum.PENDING) {
+      return source;
+    }
     UUID previousCycle = source.currentCycleId();
     Source pending =
         changes.save(
@@ -128,8 +136,9 @@ public class PrepareCollectionSources {
   public Source confirmSeason(UUID accountId, UUID sourceId, long revision, String label) {
     Source source = editable(accountId, sourceId, revision);
     if (source.validationState() != SourceValidationStateEnum.CONFIRMATION_REQUIRED
-        || !seasonReads.collectionState(source.seasonId()).label().equals(label))
+        || !seasonReads.collectionState(source.seasonId()).label().equals(label)) {
       throw new CollectionConflictException("conflict");
+    }
     return changes.save(
         source.toBuilder()
             .validationState(SourceValidationStateEnum.QUALIFIED)
@@ -164,10 +173,14 @@ public class PrepareCollectionSources {
                 source ->
                     source.validationState() != SourceValidationStateEnum.QUALIFIED
                         || (source.locked() ? source.acceptedUrl() : source.candidateUrl())
-                            == null)) throw new CollectionConflictException("conflict");
+                            == null)) {
+      throw new CollectionConflictException("conflict");
+    }
     boolean changed = false;
     for (Source source : sources) {
-      if (source.launched()) continue;
+      if (source.launched()) {
+        continue;
+      }
       CollectionRevision.requireAdvance(source.revision());
       store.saveSource(
           source.toBuilder()
@@ -198,7 +211,9 @@ public class PrepareCollectionSources {
     CollectionRevision.requireAdvance(season.collectionRevision());
     CollectionRevision.requireRevision(revision, source.revision());
     CollectionRevision.requireAdvance(source.revision());
-    if (source.locked()) throw new CollectionConflictException("conflict");
+    if (source.locked()) {
+      throw new CollectionConflictException("conflict");
+    }
     return source;
   }
 

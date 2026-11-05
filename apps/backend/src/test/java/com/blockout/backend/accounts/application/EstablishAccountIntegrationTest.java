@@ -315,13 +315,14 @@ class EstablishAccountIntegrationTest {
                                 original.id()))
                         .isEqualTo("committed@example.invalid");
                     sql.update("DELETE FROM account WHERE id = ?", original.id());
-                    if (recreate)
+                    if (recreate) {
                       accounts.create(
                           ISSUER,
                           "auth0|one",
                           "Replacement",
                           "replacement@example.invalid",
                           CREATED);
+                    }
                   });
               return call.callRealMethod();
             })
@@ -342,7 +343,9 @@ class EstablishAccountIntegrationTest {
     if (recreate) {
       assertThat(replacement.orElseThrow().id()).isNotEqualTo(original.id());
       assertThat(replacement.orElseThrow().email()).isEqualTo("replacement@example.invalid");
-    } else assertThat(replacement).isEmpty();
+    } else {
+      assertThat(replacement).isEmpty();
+    }
   }
 
   @ParameterizedTest
@@ -360,7 +363,7 @@ class EstablishAccountIntegrationTest {
             call -> {
               assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
               sql.update("DELETE FROM account WHERE id = ?", original.id());
-              if (recreate)
+              if (recreate) {
                 transaction.execute(
                     status ->
                         accounts.create(
@@ -369,6 +372,7 @@ class EstablishAccountIntegrationTest {
                             "Replacement",
                             "replacement@example.invalid",
                             CREATED));
+              }
               return new PrincipalReader.Evidence("late@example.invalid", null);
             });
 
@@ -383,6 +387,8 @@ class EstablishAccountIntegrationTest {
     if (recreate) {
       assertThat(replacement.orElseThrow().email()).isEqualTo("replacement@example.invalid");
       assertThat(replacement.orElseThrow().id()).isNotEqualTo(original.id());
-    } else assertThat(replacement).isEmpty();
+    } else {
+      assertThat(replacement).isEmpty();
+    }
   }
 }

@@ -49,6 +49,7 @@ export function ContributionStateBadge({
     </Text>
   );
 }
+
 const styles = StyleSheet.create({
   badge: {
     ...tokens.typography.metadata,

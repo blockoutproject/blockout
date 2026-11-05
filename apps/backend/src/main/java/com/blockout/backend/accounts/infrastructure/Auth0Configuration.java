@@ -122,7 +122,9 @@ public class Auth0Configuration {
     if (properties.audience() == null
         || registration == null
         || clients == null
-        || registration.findByRegistrationId("auth0") == null) return null;
+        || registration.findByRegistrationId("auth0") == null) {
+      return null;
+    }
     RestClientClientCredentialsTokenResponseClient tokens =
         new RestClientClientCredentialsTokenResponseClient();
     tokens.setParametersCustomizer(
@@ -151,7 +153,9 @@ public class Auth0Configuration {
                   OAuth2AuthorizeRequest.withClientRegistrationId("auth0")
                       .principal("account-provider")
                       .build());
-          if (authorized == null) throw new AccountUnavailableException();
+          if (authorized == null) {
+            throw new AccountUnavailableException();
+          }
           return "Bearer " + authorized.getAccessToken().getTokenValue();
         };
     return new ManagementApi(
@@ -184,7 +188,9 @@ public class Auth0Configuration {
                   throw new AccountUnavailableException();
                 });
     return (issuer, subject) -> {
-      if (!security.issuer().toString().equals(issuer)) throw new AccountUnavailableException();
+      if (!security.issuer().toString().equals(issuer)) {
+        throw new AccountUnavailableException();
+      }
       return reader.read(issuer, subject);
     };
   }

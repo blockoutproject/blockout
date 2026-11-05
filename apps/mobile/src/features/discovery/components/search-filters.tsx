@@ -28,7 +28,9 @@ export function SearchFilters() {
   const options = query.data;
   // Initialize once, then reconcile only disappeared choices; every other editable value survives rereads.
   useEffect(() => {
-    if (!options || !filters) return;
+    if (!options || !filters) {
+      return;
+    }
     if (!initialized.current) {
       initialized.current = true;
       reset(filters);
@@ -39,8 +41,9 @@ export function SearchFilters() {
     if (
       next.seasonId !== current.seasonId ||
       next.divisionId !== current.divisionId
-    )
+    ) {
       reset(next, { keepDirty: true });
+    }
   }, [options, filters, getValues, reset]);
   return (
     <Sheet

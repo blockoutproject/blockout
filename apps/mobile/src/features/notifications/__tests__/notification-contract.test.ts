@@ -39,8 +39,11 @@ afterEach(async () => {
   await jest.runOnlyPendingTimersAsync();
   jest.useRealTimers();
   jest.restoreAllMocks();
-  if (originalUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
-  else process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  if (originalUrl === undefined) {
+    delete process.env.EXPO_PUBLIC_API_URL;
+  } else {
+    process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  }
 });
 
 it.each([

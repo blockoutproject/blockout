@@ -214,21 +214,24 @@ it.each([
 ] as const)("does not prompt ATT for %s", async (scenario) => {
   // Given
   jest.replaceProperty(Platform, "OS", "ios");
-  if (scenario === "under16" || scenario === "16–17")
+  if (scenario === "under16" || scenario === "16–17") {
     context.category = scenario;
-  if (scenario === "denied" || scenario === "restricted")
+  }
+  if (scenario === "denied" || scenario === "restricted") {
     jest.mocked(getTrackingPermissionsAsync).mockResolvedValue({
       status: PermissionStatus.DENIED,
       granted: false,
       expires: "never",
       canAskAgain: false,
     } as Awaited<ReturnType<typeof getTrackingPermissionsAsync>>);
-  if (scenario === "refused-personalization")
+  }
+  if (scenario === "refused-personalization") {
     jest.mocked(AdsConsent.getUserChoices).mockResolvedValue({
       ...personalized,
       selectPersonalisedAds: false,
     });
-  if (scenario === "unknown-rights")
+  }
+  if (scenario === "unknown-rights") {
     context = {
       ...context,
       pro: {
@@ -237,6 +240,7 @@ it.each([
         operation: "idle",
       },
     };
+  }
   const privacy = createAdvertisingPrivacy({ getContext: () => context });
   // When
   await privacy.prepare();
@@ -245,8 +249,9 @@ it.each([
   expect(privacy.getSnapshot().choices?.authorizedMode).not.toBe(
     "personalized",
   );
-  if (scenario === "unknown-rights")
+  if (scenario === "unknown-rights") {
     expect(mockAds.initialize).not.toHaveBeenCalled();
+  }
   privacy.dispose();
 });
 it.each([
@@ -260,20 +265,25 @@ it.each([
   async (failure) => {
     // Given
     const error = new Error("private SDK payload");
-    if (failure === "native-refusal")
+    if (failure === "native-refusal") {
       jest
         .mocked(AdsConsent.gatherConsent)
         .mockResolvedValue({ ...consentInfo, canRequestAds: false } as Awaited<
           ReturnType<typeof AdsConsent.gatherConsent>
         >);
-    if (failure === "configuration-error")
+    }
+    if (failure === "configuration-error") {
       mockAds.setRequestConfiguration.mockRejectedValueOnce(error);
-    if (failure === "consent-error")
+    }
+    if (failure === "consent-error") {
       jest.mocked(AdsConsent.gatherConsent).mockRejectedValueOnce(error);
-    if (failure === "helpers-error")
+    }
+    if (failure === "helpers-error") {
       jest.mocked(AdsConsent.getUserChoices).mockRejectedValueOnce(error);
-    if (failure === "initialization-error")
+    }
+    if (failure === "initialization-error") {
       mockAds.initialize.mockRejectedValueOnce(error);
+    }
     const privacy = createAdvertisingPrivacy({
       getContext: () => context,
       adUnitId: "test-unit",
@@ -330,14 +340,15 @@ it.each(["configuration", "gathering"])(
       priorRequests,
     );
     expect(privacy.synchronize()).toBeUndefined();
-    if (failure === "configuration")
+    if (failure === "configuration") {
       mockAds.setRequestConfiguration.mockRejectedValueOnce(
         new Error("private failure"),
       );
-    else
+    } else {
       jest
         .mocked(AdsConsent.gatherConsent)
         .mockRejectedValueOnce(new Error("private failure"));
+    }
     await privacy.showOptions()?.catch(() => undefined);
     expect(privacy.getSnapshot()).toMatchObject({
       privacyOptionsRequired: true,
@@ -383,12 +394,13 @@ it("invalidates initialized adult → teen → child → adult preparation befor
     adUnitId: "test-unit",
   });
   await privacy.prepare();
-  for (let index = 0; index < 9; index++)
+  for (let index = 0; index < 9; index++) {
     await privacy.openSportingTransition({
       key: {},
       isCurrent: () => true,
       open: jest.fn(),
     });
+  }
   // When / Then: each confirmed treatment change retires even a same-mode ad before any pending configuration.
   for (const category of ["16–17", "under16", "adult"] as const) {
     const previous = jest

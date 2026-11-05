@@ -107,8 +107,9 @@ public class JpaSportingStore implements SportingStore {
     PackEntity pack = packs.findById(parentId).orElseThrow(SportingResourceNotFoundException::new);
     if (!seasonId.equals(pack.getSeason().getId())
         || pack.getProvider() != provider
-        || !organizerReference.equals(pack.getOrganizerReference()))
+        || !organizerReference.equals(pack.getOrganizerReference())) {
       throw new SportingResourceNotFoundException();
+    }
     Slice<PoolEntity> slice = pools.findByPackIdOrderBySourceNameAscIdAsc(parentId, request);
     return new SportingViews.CollectionResourcePage(
         slice.stream().map(mapper::toCollectionResource).toList(), page, slice.hasNext());
@@ -126,7 +127,9 @@ public class JpaSportingStore implements SportingStore {
     List<PoolEntity> selected =
         pools.acquisitionPools(
             seasonId, provider, organizerReference, initialImport, afterId, PageRequest.of(0, 200));
-    if (selected.isEmpty()) return List.of();
+    if (selected.isEmpty()) {
+      return List.of();
+    }
     Map<UUID, Instant> windows =
         matches
             .findLatestMatchStartsInWindow(
@@ -140,7 +143,7 @@ public class JpaSportingStore implements SportingStore {
                     value -> value.getLatestStart().plus(Duration.ofHours(4))));
     List<AcquisitionReference> references = new ArrayList<>();
     for (PoolEntity pool : selected) {
-      if (pool.getCalendarUrl() != null)
+      if (pool.getCalendarUrl() != null) {
         references.add(
             acquisitionReference(
                 pool,
@@ -150,7 +153,8 @@ public class JpaSportingStore implements SportingStore {
                 null,
                 pool.getCalendarUrl(),
                 windows.get(pool.getId())));
-      if (pool.getStandingsUrl() != null)
+      }
+      if (pool.getStandingsUrl() != null) {
         references.add(
             acquisitionReference(
                 pool,
@@ -160,6 +164,7 @@ public class JpaSportingStore implements SportingStore {
                 null,
                 pool.getStandingsUrl(),
                 windows.get(pool.getId())));
+      }
     }
     return references;
   }
@@ -258,7 +263,9 @@ public class JpaSportingStore implements SportingStore {
   /** {@inheritDoc} */
   @Override
   public Map<UUID, SportingViews.CollectionSeasonView> collectionSeasons(Set<UUID> ids) {
-    if (ids.isEmpty()) return Map.of();
+    if (ids.isEmpty()) {
+      return Map.of();
+    }
     return seasons.findAllById(ids).stream()
         .collect(Collectors.toUnmodifiableMap(SeasonEntity::getId, mapper::toCollectionView));
   }
@@ -269,11 +276,14 @@ public class JpaSportingStore implements SportingStore {
   public SportingViews.CollectionSeasonView updatePreparation(UUID id, boolean activate) {
     SeasonEntity season = seasons.findById(id).orElseThrow(SportingResourceNotFoundException::new);
     long revision = season.getCollectionRevision();
-    if (activate) season.setCollectionState(CollectionSeasonStateEnum.ACTIVE);
+    if (activate) {
+      season.setCollectionState(CollectionSeasonStateEnum.ACTIVE);
+    }
     // Observe dirty version advancement before forcing a revision for a source-only change.
     seasons.flush();
-    if (season.getCollectionRevision() == revision)
+    if (season.getCollectionRevision() == revision) {
       entityManager.lock(season, LockModeType.PESSIMISTIC_FORCE_INCREMENT);
+    }
     return mapper.toCollectionView(season);
   }
 
@@ -702,7 +712,9 @@ public class JpaSportingStore implements SportingStore {
     }
     pool.setCompletedCycleOrder(order.cycleOrder());
     pool.setCompletedReadOrdinal(order.readOrdinal());
-    if (changed) changes.submit(Kind.POOL, poolId);
+    if (changed) {
+      changes.submit(Kind.POOL, poolId);
+    }
   }
 
   /** {@inheritDoc} */
@@ -714,7 +726,9 @@ public class JpaSportingStore implements SportingStore {
     boolean changed = !match.isPresent() || pool.isCalendarEmpty();
     match.setPresent(true);
     pool.setCalendarEmpty(false);
-    if (changed) changes.submit(Kind.POOL, pool.getId());
+    if (changed) {
+      changes.submit(Kind.POOL, pool.getId());
+    }
     return changed;
   }
 
@@ -767,17 +781,25 @@ public class JpaSportingStore implements SportingStore {
       UUID id = createPool(key, candidate.packReference(), candidate.sourceName(), null).id();
       pool = pools.findById(id).orElseThrow();
     }
-    if (!pool.getPack().getReference().equals(candidate.packReference()))
+    if (!pool.getPack().getReference().equals(candidate.packReference())) {
       throw new SportingConflictException("identity-conflict", List.of());
+    }
     boolean changed =
         !pool.isCatalogEligible() || !Objects.equals(pool.getSourceName(), candidate.sourceName());
-    if (!Objects.equals(pool.getSourceName(), candidate.sourceName()))
+    if (!Objects.equals(pool.getSourceName(), candidate.sourceName())) {
       pool.setPresentationRevision(pool.getPresentationRevision() + 1);
+    }
     pool.setSourceName(candidate.sourceName());
     pool.setCatalogEligible(true);
-    if (changed) changes.submit(Kind.POOL, pool.getId());
-    if (candidate.calendarUrl() != null) pool.setCalendarUrl(candidate.calendarUrl().toString());
-    if (candidate.standingsUrl() != null) pool.setStandingsUrl(candidate.standingsUrl().toString());
+    if (changed) {
+      changes.submit(Kind.POOL, pool.getId());
+    }
+    if (candidate.calendarUrl() != null) {
+      pool.setCalendarUrl(candidate.calendarUrl().toString());
+    }
+    if (candidate.standingsUrl() != null) {
+      pool.setStandingsUrl(candidate.standingsUrl().toString());
+    }
     return pool.getId();
   }
 
@@ -793,22 +815,28 @@ public class JpaSportingStore implements SportingStore {
       boolean complete,
       ObservationOrder order,
       MatchObservation.Context context) {
-    if (complete)
+    if (complete) {
       for (PoolEntity pool :
-          pools.findBySeasonIdAndProviderAndOrganizerReference(seasonId, provider, organizer))
+          pools.findBySeasonIdAndProviderAndOrganizerReference(seasonId, provider, organizer)) {
         if (!presentIds.contains(pool.getId()) && pool.isCatalogEligible()) {
           pool.setCatalogEligible(false);
           changes.submit(Kind.POOL, pool.getId());
         }
+      }
+    }
     CatalogEntity catalog = catalogs.findById(sourceId).orElse(null);
     boolean created = catalog == null;
-    if (created) catalog = new CatalogEntity(sourceId);
+    if (created) {
+      catalog = new CatalogEntity(sourceId);
+    }
     catalog.setCycleOrder(order.cycleOrder());
     catalog.setReadOrdinal(order.readOrdinal());
     catalog.setObservedAt(context.observedAt());
     catalog.setProviderPublishedAt(context.providerPublishedAt());
     // The caller holds the season lock; assigned IDs identify new rows, never merge targets.
-    if (created) entityManager.persist(catalog);
+    if (created) {
+      entityManager.persist(catalog);
+    }
   }
 
   /** {@inheritDoc} */
@@ -836,7 +864,9 @@ public class JpaSportingStore implements SportingStore {
   public void saveStandings(StandingsView value) {
     StandingsEntity entity = standings.findById(value.poolId()).orElse(null);
     boolean created = entity == null;
-    if (created) entity = new StandingsEntity(value.poolId());
+    if (created) {
+      entity = new StandingsEntity(value.poolId());
+    }
     mapper.updateStandings(value, entity);
     if (value.publicationState() == StandingsPublicationStateEnum.PUBLISHED) {
       if (!entity.getColumns().equals(value.columns())) {
@@ -849,7 +879,9 @@ public class JpaSportingStore implements SportingStore {
       }
     }
     // A first publication inserts the assigned pool key and its owned rows once.
-    if (created) entityManager.persist(entity);
+    if (created) {
+      entityManager.persist(entity);
+    }
   }
 
   /** {@inheritDoc} */
@@ -887,7 +919,9 @@ public class JpaSportingStore implements SportingStore {
   /** {@inheritDoc} */
   @Override
   public Map<UUID, SportingPresentation.View> presentations(Kind kind, Set<UUID> ids) {
-    if (ids.isEmpty()) return Map.of();
+    if (ids.isEmpty()) {
+      return Map.of();
+    }
     List<SportingPresentationRow> rows =
         switch (kind) {
           case CLUB -> clubs.findPresentations(ids);
@@ -1029,8 +1063,9 @@ public class JpaSportingStore implements SportingStore {
         divisions.flush();
       } catch (DataIntegrityViolationException failure) {
         if (failure.getCause() instanceof ConstraintViolationException constraint
-            && "uk_division_name".equals(constraint.getConstraintName()))
+            && "uk_division_name".equals(constraint.getConstraintName())) {
           throw new SportingConflictException("conflict", List.of());
+        }
         throw failure;
       }
     }
@@ -1062,7 +1097,9 @@ public class JpaSportingStore implements SportingStore {
       club.setSourceName(sourceName);
       club.setPresentationRevision(club.getPresentationRevision() + 1);
     }
-    if (contactChanged) club.setContactsRevision(club.getContactsRevision() + 1);
+    if (contactChanged) {
+      club.setContactsRevision(club.getContactsRevision() + 1);
+    }
     if (!Objects.equals(
             addressBefore,
             contacts.fields().get(SportingPresentation.ContactField.ADDRESS).effectiveValue())
@@ -1080,7 +1117,9 @@ public class JpaSportingStore implements SportingStore {
       club.setLongitude(null);
       club.setGeocodedRevision(null);
     }
-    if (contactChanged || nameChanged) changes.submit(Kind.CLUB, club.getId());
+    if (contactChanged || nameChanged) {
+      changes.submit(Kind.CLUB, club.getId());
+    }
     club.setDetailCycleOrder(contacts.order() == null ? null : contacts.order().cycleOrder());
     club.setDetailReadOrdinal(contacts.order() == null ? null : contacts.order().readOrdinal());
     club.setDetailObservedAt(contacts.observedAt());
@@ -1108,7 +1147,9 @@ public class JpaSportingStore implements SportingStore {
     club.setGeocodedRevision(club.getLocalityRevision());
     club.setLocalityCycleOrder(order.cycleOrder());
     club.setLocalityReadOrdinal(order.readOrdinal());
-    if (changed) changes.submit(Kind.CLUB, id);
+    if (changed) {
+      changes.submit(Kind.CLUB, id);
+    }
   }
 
   /** {@inheritDoc} */
@@ -1162,10 +1203,13 @@ public class JpaSportingStore implements SportingStore {
         .findById(id)
         .flatMap(
             team -> {
-              if (selection == TeamLogoSelectionEnum.EFFECTIVE && team.getLogo() != null)
+              if (selection == TeamLogoSelectionEnum.EFFECTIVE && team.getLogo() != null) {
                 return Optional.of(image(team.getLogo(), team.getLogoMediaType()));
-              if (team.getProvider() == CollectionProviderEnum.LNV && team.getSourceLogo() != null)
+              }
+              if (team.getProvider() == CollectionProviderEnum.LNV
+                  && team.getSourceLogo() != null) {
                 return Optional.of(image(team.getSourceLogo(), team.getSourceLogoMediaType()));
+              }
               return team.getClub() == null
                   ? Optional.empty()
                   : effectiveLogo(Kind.CLUB, team.getClub().getId());

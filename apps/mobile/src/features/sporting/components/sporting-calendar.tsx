@@ -156,13 +156,18 @@ export function SportingCalendarView({
   );
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") setDisplayZone(currentSportingTimeZone());
+      if (state === "active") {
+        setDisplayZone(currentSportingTimeZone());
+      }
     });
     return () => subscription.remove();
   }, []);
+
   /** A zone change selects its native read state; same-zone failure reports feedback only when usable rows survive. */
   async function refresh() {
-    if (refreshing || !active || calendar.isEnabled === false) return;
+    if (refreshing || !active || calendar.isEnabled === false) {
+      return;
+    }
     feedback.clear();
     setRefreshing(true);
     const nextZone = currentSportingTimeZone();
@@ -177,12 +182,14 @@ export function SportingCalendarView({
         !resourceUnavailable(error) &&
         !isCancelledError(error) &&
         !(error instanceof ApiError && error.kind === "cancelled")
-      )
+      ) {
         feedback.error();
+      }
     } finally {
       setRefreshing(false);
     }
   }
+
   /** The focused idle list may retry a failed cursor explicitly; its edge callback blocks automatic error replay. */
   async function loadMore() {
     if (
@@ -192,16 +199,18 @@ export function SportingCalendarView({
       refreshing ||
       calendar.isFetching ||
       (calendar.isError && !calendar.isFetchNextPageError)
-    )
+    ) {
       return;
+    }
     feedback.clear();
     await calendar.fetchNextPage({ cancelRefetch: false });
   }
+
   const refreshControl =
     rows.length > 0 ? (
       <DataRefreshControl onRefresh={refresh} enabled={active} />
     ) : undefined;
-  if (rows.length === 0)
+  if (rows.length === 0) {
     return (
       <PageScrollView refreshControl={refreshControl}>
         {calendar.isPending &&
@@ -244,6 +253,7 @@ export function SportingCalendarView({
         )}
       </PageScrollView>
     );
+  }
   return (
     <PageList<CalendarRow>
       {...hiddenScrollIndicators}
@@ -303,8 +313,9 @@ export function SportingCalendarView({
         )
       }
       onEndReached={() => {
-        if (calendar.hasNextPage && !calendar.isFetching && !calendar.isError)
+        if (calendar.hasNextPage && !calendar.isFetching && !calendar.isError) {
           loadMore();
+        }
       }}
       ListFooterComponent={
         <>

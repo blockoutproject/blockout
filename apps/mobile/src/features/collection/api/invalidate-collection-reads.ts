@@ -20,6 +20,7 @@ export function invalidateSeasonPreparation(
     exact: true,
   });
 }
+
 /** Confirmed lifecycle changes refresh the navigation list without changing the accepted season response. */
 export function invalidateCollectionSeasons(client: QueryClient) {
   void client.invalidateQueries({
@@ -27,6 +28,7 @@ export function invalidateCollectionSeasons(client: QueryClient) {
     exact: true,
   });
 }
+
 /** Control commands and terminal season closure share the same complete-scope list invalidation. */
 export function invalidateCollectionControls(
   client: QueryClient,

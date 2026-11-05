@@ -60,8 +60,9 @@ public class AcceptMatchObservation {
     cycleAccess.requireTarget(context.cycleId(), poolId, CollectionTargetKindEnum.CALENDAR);
     ObservationOrder order = order(context);
     CalendarState state = store.calendarState(poolId);
-    if (state.current() == null || order.compareTo(state.current()) > 0)
+    if (state.current() == null || order.compareTo(state.current()) > 0) {
       store.beginCalendar(poolId, order);
+    }
     return order;
   }
 
@@ -82,23 +83,28 @@ public class AcceptMatchObservation {
       CalendarObservation.Match candidate) {
     CollectionState.Target target =
         cycleAccess.requireTarget(context.cycleId(), poolId, CollectionTargetKindEnum.CALENDAR);
-    if (!expected.equals(store.calendarState(poolId).current()))
+    if (!expected.equals(store.calendarState(poolId).current())) {
       return ObservationOutcome.refused(candidate.nativeMatchReference(), true);
+    }
     ObservationOrder previous = store.matchOrder(poolId, candidate.nativeMatchReference());
-    if (previous != null && expected.compareTo(previous) < 0)
+    if (previous != null && expected.compareTo(previous) < 0) {
       return ObservationOutcome.refused(candidate.nativeMatchReference(), true);
-    if (expected.equals(store.calendarState(poolId).completed()) && !expected.equals(previous))
+    }
+    if (expected.equals(store.calendarState(poolId).completed()) && !expected.equals(previous)) {
       return ObservationOutcome.refused(candidate.nativeMatchReference(), true);
-    if (!acquisitionClassification.acceptsObservation(poolId, target))
+    }
+    if (!acquisitionClassification.acceptsObservation(poolId, target)) {
       return ObservationOutcome.refused(candidate.nativeMatchReference(), false);
+    }
     if (previous != null && expected.equals(previous)) {
       return success(store.match(poolId, candidate.nativeMatchReference()).orElseThrow(), false);
     }
-    if (store.pool(poolId).orElseThrow().classification() == null)
+    if (store.pool(poolId).orElseThrow().classification() == null) {
       store.correctClassification(
           List.of(poolId),
           List.of(),
           new SportingClassification(target.divisionId(), target.format(), target.gender()));
+    }
     contributionContext.lockDivisionForPool(poolId);
     SportingViews.MatchView existing =
         store.match(poolId, candidate.nativeMatchReference()).orElse(null);
@@ -116,7 +122,9 @@ public class AcceptMatchObservation {
     SportingViews.MatchView match =
         identities.identifyMatch(
             poolId, candidate.nativeMatchReference(), candidate.home(), candidate.away());
-    if (created) schedule = store.lockMatchSchedule(match.id());
+    if (created) {
+      schedule = store.lockMatchSchedule(match.id());
+    }
     boolean restored = store.restoreCalendarPresence(match.id());
     boolean changed =
         acceptSchedule(
@@ -154,10 +162,16 @@ public class AcceptMatchObservation {
         cycleAccess.requireTarget(context.cycleId(), poolId, CollectionTargetKindEnum.CALENDAR);
     CalendarState state = store.calendarState(poolId);
     if (!expected.equals(state.current())
-        || !acquisitionClassification.acceptsObservation(poolId, target)) return false;
-    if (empty && collectionWork.get(context.cycleId()).mode() == CollectionModeEnum.INITIAL_IMPORT)
+        || !acquisitionClassification.acceptsObservation(poolId, target)) {
       return false;
-    if (expected.equals(state.completed())) return false;
+    }
+    if (empty
+        && collectionWork.get(context.cycleId()).mode() == CollectionModeEnum.INITIAL_IMPORT) {
+      return false;
+    }
+    if (expected.equals(state.completed())) {
+      return false;
+    }
     store.completeCalendar(poolId, expected, presentReferences, empty);
     return true;
   }
@@ -263,11 +277,15 @@ public class AcceptMatchObservation {
     ObservationOrder current = store.calendarState(match.poolId()).current();
     ObservationOrder previous = store.matchOrder(match.poolId(), match.reference());
     if ((current != null && expected.compareTo(current) < 0)
-        || (previous != null && expected.compareTo(previous) < 0))
+        || (previous != null && expected.compareTo(previous) < 0)) {
       return ObservationOutcome.refused(match.reference(), true);
-    if (!acquisitionClassification.acceptsObservation(match.poolId(), target))
+    }
+    if (!acquisitionClassification.acceptsObservation(match.poolId(), target)) {
       return ObservationOutcome.refused(match.reference(), false);
-    if (expected.equals(previous)) return success(match, false);
+    }
+    if (expected.equals(previous)) {
+      return success(match, false);
+    }
     contributionContext.lockDivisionForPool(match.poolId());
     return success(
         match,
@@ -315,8 +333,9 @@ public class AcceptMatchObservation {
             .resultPublishedAt(published);
       } else {
         String label = proposal.specialLabel();
-        if (label != null)
+        if (label != null) {
           next.uninterpretedResult(label.substring(0, Math.min(label.length(), 256)));
+        }
         diagnose(matchId, "uninterpreted-result");
       }
     }
@@ -330,7 +349,9 @@ public class AcceptMatchObservation {
       if (compatible(result, proposed)) {
         sets = proposed;
         next.setsObservedAt(observed).setsPublishedAt(published);
-      } else diagnose(matchId, "incompatible-sets");
+      } else {
+        diagnose(matchId, "incompatible-sets");
+      }
     }
     if (sets != null && !compatible(result, sets)) {
       sets = null;
@@ -362,7 +383,9 @@ public class AcceptMatchObservation {
         String url = value == null ? null : value.toString();
         changed |= !Objects.equals(previous.professionalStreamUrl(), url);
         next.professionalStreamUrl(url).streamObservedAt(observed).streamPublishedAt(published);
-      } else diagnose(matchId, "invalid-stream-reference");
+      } else {
+        diagnose(matchId, "invalid-stream-reference");
+      }
     }
     boolean documents = false;
     // An auxiliary date/participant lookup cannot replace a code already attached to this match.
@@ -383,7 +406,9 @@ public class AcceptMatchObservation {
         changed |= !Objects.equals(previous.scoresheetUrl(), url);
         next.scoresheetUrl(url);
         documents = true;
-      } else diagnose(matchId, "invalid-scoresheet-reference");
+      } else {
+        diagnose(matchId, "invalid-scoresheet-reference");
+      }
     }
     if (facts.statisticsUrl().isPresent()) {
       URI value = facts.statisticsUrl().get();
@@ -392,9 +417,13 @@ public class AcceptMatchObservation {
         changed |= !Objects.equals(previous.statisticsUrl(), url);
         next.statisticsUrl(url);
         documents = true;
-      } else diagnose(matchId, "invalid-statistics-reference");
+      } else {
+        diagnose(matchId, "invalid-statistics-reference");
+      }
     }
-    if (documents) next.documentsObservedAt(observed).documentsPublishedAt(published);
+    if (documents) {
+      next.documentsObservedAt(observed).documentsPublishedAt(published);
+    }
     store.saveMatchDetails(next.build());
     MatchContributionAccess.Facts current = contributionContext.read(matchId);
     handoff.submit(

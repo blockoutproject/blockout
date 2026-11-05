@@ -75,7 +75,7 @@ export function ScrollingParticipationLabel({
   const animated = useAnimatedStyle(() => ({
     transform: [{ translateX: offset.get() }],
   }));
-  if (reducedMotion)
+  if (reducedMotion) {
     return (
       <Text
         accessible={false}
@@ -86,6 +86,7 @@ export function ScrollingParticipationLabel({
         {label}
       </Text>
     );
+  }
   return (
     <ScrollView
       horizontal

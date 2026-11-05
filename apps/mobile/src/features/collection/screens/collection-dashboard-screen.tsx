@@ -57,6 +57,7 @@ const familyLabels: Record<CollectionFamilyEnum, string> = {
   "club-sheets": "Fiches clubs",
   geocoding: "Géocodage",
 };
+
 /** Keeps authorized bounded seasons through technical rereads; independent club destinations have no pagination. */
 export function CollectionDashboardScreen() {
   const { authority, query } = useCollectionSeasons();
@@ -64,6 +65,7 @@ export function CollectionDashboardScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const denied = isAccessDenied(query.error);
+
   /** Rereads seasons without commands; failures retain authorized rows or use the empty section's error card. */
   async function refresh() {
     const result = await query.refetch({ cancelRefetch: false });
@@ -71,9 +73,11 @@ export function CollectionDashboardScreen() {
       result.isError &&
       (result.data?.items.length ?? 0) > 0 &&
       !isAccessDenied(result.error)
-    )
+    ) {
       feedback.error();
+    }
   }
+
   const FeedbackLayout =
     authority.sessionStatus === "restoring" ||
     (authority.sessionStatus === "authenticated" && authority.account.isLoading)
@@ -176,11 +180,13 @@ export function CollectionDashboardScreen() {
     </Page>
   );
 }
+
 /** Navigable control identity comes from the route; club families deliberately have no season setting. */
 export interface CollectionControlScreenProps {
   family: CollectionFamilyEnum;
   seasonId?: string;
 }
+
 /** Composes current-season lifecycle only for competition controls, retaining the separate preparation destination. */
 export function CollectionControlScreen({
   family,
@@ -192,6 +198,7 @@ export function CollectionControlScreen({
     <ControlScope family={family} />
   );
 }
+
 /** A competition command must have a current readable season as well as its control projection. */
 function SeasonControlScope({
   family,
@@ -208,7 +215,7 @@ function SeasonControlScope({
   )
     ? PageContent
     : ScreenState;
-  if (!authority.enabled || !season.data || isAccessDenied(season.error))
+  if (!authority.enabled || !season.data || isAccessDenied(season.error)) {
     return (
       <Page header={<PageHeader title={familyLabels[family]} />}>
         <PageScrollView>
@@ -226,8 +233,9 @@ function SeasonControlScope({
                       result.isError &&
                       result.data &&
                       !isAccessDenied(result.error)
-                    )
+                    ) {
                       feedback.error();
+                    }
                   })
                 }
                 retrying={season.isFetching}
@@ -242,6 +250,7 @@ function SeasonControlScope({
         </PageScrollView>
       </Page>
     );
+  }
   return (
     <ControlScope
       family={family}
@@ -252,6 +261,7 @@ function SeasonControlScope({
     />
   );
 }
+
 /** Selection is read from the complete scope list, never inferred from a provider code or another season. */
 function ControlScope({
   family,
@@ -281,8 +291,9 @@ function ControlScope({
     (family === "ffvb" || family === "lnv") &&
     query.isSuccess &&
     !selected
-  )
+  ) {
     return <ProviderSourcesScreen seasonId={season.id} provider={family} />;
+  }
   const FeedbackLayout = (
     !authority.enabled
       ? authority.sessionStatus === "restoring" ||
@@ -292,7 +303,7 @@ function ControlScope({
   )
     ? PageContent
     : ScreenState;
-  if (!authority.enabled || !selected)
+  if (!authority.enabled || !selected) {
     return (
       <Page header={<PageHeader title={familyLabels[family]} />}>
         <PageScrollView>
@@ -310,8 +321,9 @@ function ControlScope({
                       result.isError &&
                       result.data &&
                       !isAccessDenied(result.error)
-                    )
+                    ) {
                       feedback.error();
+                    }
                   })
                 }
                 retrying={query.isFetching}
@@ -328,6 +340,7 @@ function ControlScope({
         </PageScrollView>
       </Page>
     );
+  }
   return (
     <ControlDashboard
       key={`${authority.session.subject}/${selected.id}`}
@@ -340,6 +353,7 @@ function ControlScope({
     />
   );
 }
+
 /** Visible list edges append current evidence; technical failures retain authorized rows without changing command ownership. */
 function ControlDashboard({
   controlId,
@@ -384,6 +398,7 @@ function ControlDashboard({
               .map((row) => [`${row.scopeId}/${row.stage}/${row.phase}`, row]),
           ).values(),
         ];
+
   /** Refreshes all displayed projections without resubmitting a mutation, reporting their failures once. */
   async function refresh() {
     if (
@@ -392,8 +407,9 @@ function ControlDashboard({
       query.isFetching ||
       results.isFetching ||
       seasonFetching
-    )
+    ) {
       return;
+    }
     feedback.clear();
     const [controlRead, resultsRead, seasonRead] = await Promise.all([
       query.refetch({ cancelRefetch: false }),
@@ -407,9 +423,11 @@ function ControlDashboard({
       (rows.length > 0 &&
         resultsRead.isError &&
         !isAccessDenied(resultsRead.error))
-    )
+    ) {
       feedback.error();
+    }
   }
+
   /** The shared continuation command preserves scope; automatic edges separately exclude read errors. */
   async function loadMore() {
     if (
@@ -424,11 +442,13 @@ function ControlDashboard({
       query.isFetching ||
       editing.activity.isPending ||
       editing.request.isPending
-    )
+    ) {
       return;
+    }
     feedback.clear();
     await results.fetchNextPage({ cancelRefetch: false });
   }
+
   const header = (
     <View style={[!rows.length && pageContentStyle, styles.section]}>
       {season && <SeasonIdentity season={season} />}
@@ -536,7 +556,9 @@ function ControlDashboard({
           ListHeaderComponent={header}
           ItemSeparatorComponent={ListSeparator}
           onEndReached={() => {
-            if (!query.isError && !results.isError) loadMore();
+            if (!query.isError && !results.isError) {
+              loadMore();
+            }
           }}
           onEndReachedThreshold={0.5}
           renderItem={({ item }) => (
@@ -603,6 +625,7 @@ function ControlDashboard({
     </Page>
   );
 }
+
 const styles = StyleSheet.create({
   emptyList: { flexGrow: 1 },
   section: { gap: tokens.spacing.lg, paddingBottom: tokens.spacing.lg },

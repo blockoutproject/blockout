@@ -85,7 +85,9 @@ class ContributionErasureConsumersIntegrationTest extends ContributionScenario {
   /** Stops only this suite's signing-key server after its consumer finishes. */
   @AfterAll
   static void closeKeys() {
-    if (keys != null) keys.stop(0);
+    if (keys != null) {
+      keys.stop(0);
+    }
   }
 
   @Test

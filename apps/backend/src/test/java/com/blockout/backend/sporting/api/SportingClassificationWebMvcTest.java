@@ -210,8 +210,11 @@ class SportingClassificationWebMvcTest {
     SportingClassification value =
         new SportingClassification(ID, SportFormatEnum._4X4, SportGenderEnum.MIXED);
     ClassificationView current = new ClassificationView(ID, "2", value, value);
-    if (resource.equals("packs")) when(configurationReads.pack(ACCOUNT, ID)).thenReturn(current);
-    else when(configurationReads.pool(ACCOUNT, ID)).thenReturn(current);
+    if (resource.equals("packs")) {
+      when(configurationReads.pack(ACCOUNT, ID)).thenReturn(current);
+    } else {
+      when(configurationReads.pool(ACCOUNT, ID)).thenReturn(current);
+    }
     // When
     ResultActions response =
         mvc.perform(

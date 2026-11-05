@@ -87,6 +87,7 @@ export function PersonalScreen() {
     </Page>
   );
 }
+
 /** Keeps fully named, one-line Home branding in ordinary chrome and the pager's collapsible header. */
 function PersonalHeader() {
   const { colors } = useTheme();
@@ -106,6 +107,7 @@ function PersonalHeader() {
     </View>
   );
 }
+
 /** Keeps the choice and selected tab mounted while ordinary sporting routes cover Home. */
 function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
   const { owner, profile, season, request, admitted, usable, blocked, bypass } =
@@ -121,6 +123,7 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
     ) : (
       <CalendarLoading />
     );
+
   /** Composes the native pager bar or non-paged admission choices beside the same season owner. */
   function controls(tabBar: ReactNode) {
     return (
@@ -135,6 +138,7 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
       </View>
     );
   }
+
   return (
     <Page fullBleed>
       {ready ? (
@@ -207,6 +211,7 @@ function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
     </Page>
   );
 }
+
 const tabs = [
   { id: "upcoming", label: "À venir" },
   { id: "completed", label: "Terminés" },

@@ -56,7 +56,7 @@ async function filterPersonalCalendars(
     const data = client.getQueryData<
       InfiniteData<PersonalMatchCalendarResponse>
     >(query.queryKey);
-    if (data)
+    if (data) {
       query.setState({
         data: {
           ...data,
@@ -66,5 +66,6 @@ async function filterPersonalCalendars(
           })),
         },
       });
+    }
   }
 }

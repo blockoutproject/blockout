@@ -10,6 +10,8 @@ export function supportFormData(body: CreateSupportRequestBody): FormData {
     "metadata",
     new Blob([JSON.stringify(body.metadata)], { type: "application/json" }),
   );
-  for (const image of body.images ?? []) form.append("images", image);
+  for (const image of body.images ?? []) {
+    form.append("images", image);
+  }
   return form;
 }

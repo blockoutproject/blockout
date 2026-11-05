@@ -13,8 +13,11 @@ beforeEach(() => {
   mockFetch.mockReset();
 });
 afterEach(() => {
-  if (originalUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
-  else process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  if (originalUrl === undefined) {
+    delete process.env.EXPO_PUBLIC_API_URL;
+  } else {
+    process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  }
 });
 
 it.each([401, 403, 404])(
@@ -58,9 +61,11 @@ it.each(["network", "server"])(
     const options = queries.participants(sportingId);
     mockFetch.mockResolvedValueOnce(Response.json(participants));
     await client.query(options);
-    if (failure === "network")
+    if (failure === "network") {
       mockFetch.mockRejectedValueOnce(new TypeError("Unavailable"));
-    else mockFetch.mockResolvedValueOnce(Response.json({}, { status: 503 }));
+    } else {
+      mockFetch.mockResolvedValueOnce(Response.json({}, { status: 503 }));
+    }
     try {
       // When
       const read = client.query(options);

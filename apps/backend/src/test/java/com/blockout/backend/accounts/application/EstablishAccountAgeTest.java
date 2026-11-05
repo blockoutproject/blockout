@@ -55,8 +55,11 @@ class EstablishAccountAgeTest {
     when(accounts.synchronize(ORIGINAL, null, null)).thenReturn(Optional.of(original));
     when(reads.original(ISSUER, SUBJECT, ORIGINAL))
         .thenReturn(new ReadAccount.View(original, false, Set.of()));
-    if (outage) when(provider.read(ISSUER, SUBJECT)).thenThrow(new AccountUnavailableException());
-    else when(provider.read(ISSUER, SUBJECT)).thenReturn(new PrincipalReader.Evidence(null, null));
+    if (outage) {
+      when(provider.read(ISSUER, SUBJECT)).thenThrow(new AccountUnavailableException());
+    } else {
+      when(provider.read(ISSUER, SUBJECT)).thenReturn(new PrincipalReader.Evidence(null, null));
+    }
     EstablishAccount establishment = new EstablishAccount(accounts, provider, reads, transactions);
 
     // When

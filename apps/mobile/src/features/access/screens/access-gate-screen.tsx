@@ -279,6 +279,7 @@ export function AccessGateScreen() {
     />
   );
 }
+
 const styles = StyleSheet.create({
   pending: { gap: tokens.spacing.md },
   // Admission status and preview actions retain their approved compact header, distinct from the discovery brand header.

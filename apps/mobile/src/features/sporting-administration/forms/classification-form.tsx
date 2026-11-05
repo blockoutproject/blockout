@@ -33,6 +33,7 @@ export interface ClassificationFormProps {
   editing: ReturnType<typeof useClassification>;
   divisions: ReturnType<typeof useDivisions>;
 }
+
 /** Complete override/inheritance correction with native confirmation and explicit current-state recovery. */
 export function ClassificationForm({
   target,
@@ -74,9 +75,12 @@ export function ClassificationForm({
       mounted.current = false;
     };
   }, []);
+
   /** Validates active choices, awaits confirmation and sends the complete state against its original revision. */
   async function submit(values: ClassificationValues) {
-    if (busy || rereadRequired) return;
+    if (busy || rereadRequired) {
+      return;
+    }
     if (
       values.custom &&
       (!divisions.query.isSuccess ||
@@ -94,8 +98,9 @@ export function ClassificationForm({
           "La correction est appliquée entièrement ou refusée. Retirer le réglage conserve les identités et la dernière classification publiée ; cela peut arrêter la collecte.",
         confirmLabel: "Enregistrer",
       }))
-    )
+    ) {
       return;
+    }
     try {
       const attempt = editing.save.mutateAsync(
         toClassificationRequest(baseline.revision, values),
@@ -133,11 +138,14 @@ export function ClassificationForm({
       });
     }
   }
+
   /** Updates the revision and non-dirty values only after successful reads, without sending a write. */
   async function reread() {
     const [result, available] = await (() =>
       Promise.all([editing.query.refetch(), divisions.query.refetch()]))();
-    if (!mounted.current) return;
+    if (!mounted.current) {
+      return;
+    }
     if (result.isError || !result.data || available.isError) {
       actionFeedback.error();
       return;
@@ -152,6 +160,7 @@ export function ClassificationForm({
         "État relu. Vérifiez le brouillon puis confirmez explicitement l’enregistrement.",
     });
   }
+
   const effective = current.effective;
   return (
     <View style={styles.form}>
@@ -289,6 +298,7 @@ export function ClassificationForm({
     </View>
   );
 }
+
 /** A bounded native radio choice exposes the same selected/disabled state to touch and assistive navigation. */
 function Choice({
   label,
@@ -328,6 +338,7 @@ function Choice({
     </Pressable>
   );
 }
+
 const styles = StyleSheet.create({
   form: { gap: tokens.layout.form.gap },
   row: { flexDirection: "row", gap: tokens.spacing.md },

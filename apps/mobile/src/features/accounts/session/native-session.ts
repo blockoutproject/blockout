@@ -8,7 +8,9 @@ import {
  * Generic renewal/network failures remain retryable; no token decoding or expiry clock is added.
  */
 export function requiresReauthentication(error: unknown): boolean {
-  if (!(error instanceof CredentialsManagerError)) return false;
+  if (!(error instanceof CredentialsManagerError)) {
+    return false;
+  }
   switch (error.type) {
     case CredentialsManagerErrorCodes.NO_CREDENTIALS:
     case CredentialsManagerErrorCodes.NO_REFRESH_TOKEN:

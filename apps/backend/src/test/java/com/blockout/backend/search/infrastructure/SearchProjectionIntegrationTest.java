@@ -287,8 +287,9 @@ class SearchProjectionIntegrationTest {
         () -> {
           blocked.countDown();
           try {
-            if (!release.await(20, TimeUnit.SECONDS))
+            if (!release.await(20, TimeUnit.SECONDS)) {
               throw new IllegalStateException("Fixture gate expired");
+            }
           } catch (InterruptedException failure) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException(failure);
@@ -298,8 +299,9 @@ class SearchProjectionIntegrationTest {
       assertThat(blocked.await(5, TimeUnit.SECONDS)).isTrue();
 
       // When
-      if (decision.equals("restricted")) restrictions.restrict(CLUB, Set.of(ContactField.CITY));
-      else
+      if (decision.equals("restricted")) {
+        restrictions.restrict(CLUB, Set.of(ContactField.CITY));
+      } else {
         contacts.correct(
             operator,
             CLUB,
@@ -309,6 +311,7 @@ class SearchProjectionIntegrationTest {
                 new ContactEdit(
                     decision.equals("corrected") ? ContactModeEnum.MANUAL : ContactModeEnum.HIDDEN,
                     decision.equals("corrected") ? "Paris" : null)));
+      }
 
       // Then
       assertThat(document("clubs", CLUB).city()).isEqualTo("Lyon");
@@ -337,7 +340,9 @@ class SearchProjectionIntegrationTest {
       assertThat(clubs.get(0).path("city").asText()).isEqualTo("Paris");
       assertThat(results("clubs", "Paris").size()).isEqualTo(1);
       assertThat(results("teams", "Paris").size()).isEqualTo(1);
-    } else assertThat(clubs.get(0).hasNonNull("city")).isFalse();
+    } else {
+      assertThat(clubs.get(0).hasNonNull("city")).isFalse();
+    }
   }
 
   @Test
@@ -710,7 +715,9 @@ class SearchProjectionIntegrationTest {
     String other = "blockout-local-search-other-220-clubs-g-" + UUID.randomUUID();
     nativeEngine.createIndex(unrelated);
     nativeEngine.createIndex(other);
-    for (int generation = 0; generation < 5; generation++) writer.createGeneration();
+    for (int generation = 0; generation < 5; generation++) {
+      writer.createGeneration();
+    }
 
     // When
     writer.cleanup();

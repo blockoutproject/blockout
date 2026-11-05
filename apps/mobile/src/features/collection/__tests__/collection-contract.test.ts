@@ -25,8 +25,11 @@ beforeEach(() => {
   mockFetch.mockReset();
 });
 afterEach(() => {
-  if (originalApiUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
-  else process.env.EXPO_PUBLIC_API_URL = originalApiUrl;
+  if (originalApiUrl === undefined) {
+    delete process.env.EXPO_PUBLIC_API_URL;
+  } else {
+    process.env.EXPO_PUBLIC_API_URL = originalApiUrl;
+  }
 });
 
 it("accepts explicit nullable evidence and additive fields through the generated client", async () => {

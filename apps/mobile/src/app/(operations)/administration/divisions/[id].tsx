@@ -14,7 +14,7 @@ export default function DivisionRoute() {
   const params = z
     .object({ id: z.string().uuid() })
     .safeParse(useLocalSearchParams());
-  if (!admitted || !params.success)
+  if (!admitted || !params.success) {
     return (
       <Page>
         <PageHeader title="Administration technique" />
@@ -25,6 +25,7 @@ export default function DivisionRoute() {
         </PageScrollView>
       </Page>
     );
+  }
   return (
     <PresentationScreen
       key={params.data.id}

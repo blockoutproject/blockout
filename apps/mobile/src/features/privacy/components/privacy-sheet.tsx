@@ -42,7 +42,9 @@ export function PrivacySheet() {
   /** Keeps action errors on the shared original-scope toast; native state alone owns retry admission. */
   function openOptions() {
     const attempt = privacy.showOptions();
-    if (!attempt) return;
+    if (!attempt) {
+      return;
+    }
     feedback.clear();
     void attempt.catch(() =>
       feedback.error(

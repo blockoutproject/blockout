@@ -84,8 +84,12 @@ public record NotificationMessage(String title, String body) {
   private static String match(Facts facts) {
     String home = facts.homeName() == null ? "" : facts.homeName().strip();
     String away = facts.awayName() == null ? "" : facts.awayName().strip();
-    if (!home.isEmpty() && !away.isEmpty()) return "le match " + home + " – " + away;
-    if (!home.isEmpty() || !away.isEmpty()) return "le match de " + (home.isEmpty() ? away : home);
+    if (!home.isEmpty() && !away.isEmpty()) {
+      return "le match " + home + " – " + away;
+    }
+    if (!home.isEmpty() || !away.isEmpty()) {
+      return "le match de " + (home.isEmpty() ? away : home);
+    }
     return "ce match";
   }
 
@@ -96,11 +100,15 @@ public record NotificationMessage(String title, String body) {
    * @return current result wording with no inferred winner or synthetic score
    */
   private static String result(Facts facts) {
-    if (!facts.finalResult()) return "Le résultat n’est pas confirmé actuellement.";
-    if (facts.specialResult() != null && !facts.specialResult().isBlank())
+    if (!facts.finalResult()) {
+      return "Le résultat n’est pas confirmé actuellement.";
+    }
+    if (facts.specialResult() != null && !facts.specialResult().isBlank()) {
       return "Résultat particulier : " + facts.specialResult() + ".";
-    if (facts.homeSets() != null && facts.awaySets() != null)
+    }
+    if (facts.homeSets() != null && facts.awaySets() != null) {
       return "Score final : " + facts.homeSets() + "–" + facts.awaySets() + ".";
+    }
     return "Résultat confirmé, score indisponible.";
   }
 

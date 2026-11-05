@@ -392,8 +392,9 @@ class CurrentPresentationIntegrationTest {
     catchUp();
     JsonNode search = read("/teams?q=home");
     assertThat(search.toString()).contains(team.toString(), nextTeam.toString());
-    for (JsonNode result : search.get("teams"))
+    for (JsonNode result : search.get("teams")) {
       assertThat(result.get("team").hasNonNull("logoUrl")).isTrue();
+    }
     assertThat(
             sql.queryForObject(
                 "SELECT COUNT(*) FROM sporting_team WHERE club_id=? AND logo IS NOT NULL",

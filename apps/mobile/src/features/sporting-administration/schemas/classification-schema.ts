@@ -13,12 +13,17 @@ export const classificationSchema = z
     gender: SportGenderEnum,
   })
   .superRefine((value, context) => {
-    if (value.custom && !z.string().uuid().safeParse(value.divisionId).success)
+    if (
+      value.custom &&
+      !z.string().uuid().safeParse(value.divisionId).success
+    ) {
       context.addIssue({
         code: "custom",
         path: ["divisionId"],
         message: "Choisissez une division active.",
       });
+    }
   });
+
 /** RHF owns this complete editable snapshot, independently of server cache refreshes. */
 export type ClassificationValues = z.infer<typeof classificationSchema>;

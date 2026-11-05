@@ -45,8 +45,9 @@ export function ThemeProvider({
   const navigationTheme = scheme === "dark" ? DarkTheme : DefaultTheme;
   useEffect(() => {
     // Expo Blur samples this native background behind transparent target content.
-    if (Platform.OS === "android")
+    if (Platform.OS === "android") {
       void SystemUI.setBackgroundColorAsync(colors.canvas);
+    }
   }, [colors.canvas]);
   return (
     <ThemeContext
@@ -81,6 +82,8 @@ export function ThemeProvider({
 /** Reads current semantic presentation; using a control outside its root provider is a programming error. */
 export function useTheme(): Theme {
   const theme = useContext(ThemeContext);
-  if (!theme) throw new Error("Shared controls require ThemeProvider.");
+  if (!theme) {
+    throw new Error("Shared controls require ThemeProvider.");
+  }
   return theme;
 }

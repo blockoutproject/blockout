@@ -80,9 +80,10 @@ let publicClient = createQueryClient();
 /** Controls HTTP only; generation, response validation, Query, session and admission stay real. */
 function publicReads(url: string): Promise<Response> {
   const path = new URL(url).pathname;
-  if (path.endsWith("/application-access"))
+  if (path.endsWith("/application-access")) {
     return Promise.resolve(Response.json(applicationAccessResponse()));
-  if (path.endsWith("/sporting-search-options"))
+  }
+  if (path.endsWith("/sporting-search-options")) {
     return Promise.resolve(
       choicesFail
         ? Response.json({ status: 503 }, { status: 503 })
@@ -94,7 +95,8 @@ function publicReads(url: string): Promise<Response> {
             genders: ["female", "male", "mixed"],
           }),
     );
-  if (path.endsWith("/clubs"))
+  }
+  if (path.endsWith("/clubs")) {
     return Promise.resolve(
       Response.json({
         clubs: [
@@ -103,7 +105,8 @@ function publicReads(url: string): Promise<Response> {
         ],
       }),
     );
-  if (path.endsWith("/teams"))
+  }
+  if (path.endsWith("/teams")) {
     return Promise.resolve(
       Response.json({
         teams: [
@@ -116,7 +119,8 @@ function publicReads(url: string): Promise<Response> {
         ],
       }),
     );
-  if (path.endsWith("/pools"))
+  }
+  if (path.endsWith("/pools")) {
     return Promise.resolve(
       Response.json({
         pools: [
@@ -130,6 +134,7 @@ function publicReads(url: string): Promise<Response> {
         ],
       }),
     );
+  }
   throw new Error(`Unexpected controlled request ${path}`);
 }
 
@@ -233,12 +238,14 @@ async function choose(label: string, value: string) {
   await user.press(await screen.findByRole("button", { name: label }));
   await user.press(await screen.findByRole("radio", { name: value }));
 }
+
 /** Opens the current tab's draft and waits for the generated catalogue to be accepted. */
 async function openFilters() {
   const user = userEvent.setup();
   await user.press(await screen.findByRole("button", { name: /Filtres/ }));
   await screen.findByRole("button", { name: "Saison" });
 }
+
 /** Accepts the editable draft through the visible action. */
 async function applyFilters() {
   await userEvent
@@ -392,7 +399,9 @@ it.each([false, true])(
         screen.getByRole("button", { name: "Saison" }),
       ).toHaveAccessibilityValue({ text: season.label }),
     );
-    if (explicit) await choose("Saison", season.label);
+    if (explicit) {
+      await choose("Saison", season.label);
+    }
     await applyFilters();
     seasons = [futureSeason, season, oldSeason];
 

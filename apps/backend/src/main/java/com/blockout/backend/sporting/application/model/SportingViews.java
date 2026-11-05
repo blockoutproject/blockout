@@ -18,7 +18,13 @@ public final class SportingViews {
 
   /** Bounded direct children in stable label/identity order; no total-count query. */
   public record CollectionResourcePage(List<CollectionResource> items, long page, boolean hasNext) {
-    /** Detaches the returned children from persistence. */
+    /**
+     * Detaches the returned children from persistence.
+     *
+     * @param items direct children in stable label/identity order
+     * @param page zero-based page index
+     * @param hasNext whether another page remains
+     */
     public CollectionResourcePage {
       items = List.copyOf(items);
     }
@@ -158,7 +164,9 @@ public final class SportingViews {
      */
     public static ClassificationView from(PoolClassificationView pool, PackView pack) {
       String revision = Long.toString(pool.revision());
-      if (pool.setting() == null) revision += ":" + pack.revision();
+      if (pool.setting() == null) {
+        revision += ":" + pack.revision();
+      }
       return new ClassificationView(
           pool.pool().id(),
           revision,
@@ -216,7 +224,17 @@ public final class SportingViews {
       List<String> gradient,
       boolean hasLogo,
       boolean active) {
-    /** Detaches optional colors from persistence. */
+    /**
+     * Detaches optional colors from persistence.
+     *
+     * @param id stable division identity
+     * @param revision current managed editing version
+     * @param name unique division name
+     * @param color primary sRGB color
+     * @param gradient explicit three colors, or null for ordinary derivation
+     * @param hasLogo whether validated logo bytes are retained
+     * @param active independent lifecycle state
+     */
     public DivisionDetail {
       gradient = gradient == null ? null : List.copyOf(gradient);
     }

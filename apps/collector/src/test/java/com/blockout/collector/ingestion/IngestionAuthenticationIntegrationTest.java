@@ -169,10 +169,16 @@ class IngestionAuthenticationIntegrationTest {
   void closePeers() {
     release.countDown();
     try {
-      if (context != null) context.close();
+      if (context != null) {
+        context.close();
+      }
     } finally {
-      if (server != null) server.stop(0);
-      if (peers != null) peers.close();
+      if (server != null) {
+        server.stop(0);
+      }
+      if (peers != null) {
+        peers.close();
+      }
     }
   }
 

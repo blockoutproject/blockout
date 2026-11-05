@@ -33,9 +33,15 @@ public class LnvDocumentReferences {
    */
   public String competitionCode(String title) {
     String text = title.toLowerCase(Locale.ROOT);
-    if (text.contains("alterna volstar") || text.contains("ligue a masculine")) return "LAM";
-    if (text.contains("saforelle volstar") || text.contains("ligue a féminine")) return "LAF";
-    if (text.contains("volstar masculine 2") || text.contains("ligue b masculine")) return "LBM";
+    if (text.contains("alterna volstar") || text.contains("ligue a masculine")) {
+      return "LAM";
+    }
+    if (text.contains("saforelle volstar") || text.contains("ligue a féminine")) {
+      return "LAF";
+    }
+    if (text.contains("volstar masculine 2") || text.contains("ligue b masculine")) {
+      return "LBM";
+    }
     return null;
   }
 
@@ -75,23 +81,36 @@ public class LnvDocumentReferences {
       Matcher controls = TAB.matcher(script.data());
       while (controls.find()) {
         Element strip = document.getElementById(controls.group(2));
-        if (strip == null) continue;
+        if (strip == null) {
+          continue;
+        }
         List<Element> tabs = strip.select("li.rtsLI");
         int selected = -1;
-        for (int index = 0; index < tabs.size(); index++)
-          if (label.equals(tabs.get(index).text())) selected = index;
-        if (selected < 0) continue;
+        for (int index = 0; index < tabs.size(); index++) {
+          if (label.equals(tabs.get(index).text())) {
+            selected = index;
+          }
+        }
+        if (selected < 0) {
+          continue;
+        }
         JsonNode configuration = JSON.readTree(controls.group(1));
         JsonNode data = configuration.path("tabData");
-        if (!data.isArray() || data.size() != tabs.size()) throw LnvPage.invalid();
+        if (!data.isArray() || data.size() != tabs.size()) {
+          throw LnvPage.invalid();
+        }
         String index =
             data.get(selected).has("index")
                 ? data.get(selected).get("index").asText()
                 : Integer.toString(selected);
         Matcher event = EVENT.matcher(configuration.path("_postBackReference").asText());
-        if (!index.matches("[0-9]+") || !event.matches()) throw LnvPage.invalid();
+        if (!index.matches("[0-9]+") || !event.matches()) {
+          throw LnvPage.invalid();
+        }
         if (!(strip.closest("form") instanceof FormElement form)
-            || !form.attr("method").equalsIgnoreCase("post")) throw LnvPage.invalid();
+            || !form.attr("method").equalsIgnoreCase("post")) {
+          throw LnvPage.invalid();
+        }
         form.elements()
             .removeIf(
                 element ->
@@ -100,12 +119,16 @@ public class LnvDocumentReferences {
         String state = configuration.path("clientStateFieldID").asText();
         Element previous = document.getElementById(state);
         String stateName = previous == null ? state : previous.attr("name");
-        if (stateName.isBlank()) throw LnvPage.invalid();
+        if (stateName.isBlank()) {
+          throw LnvPage.invalid();
+        }
         for (Connection.KeyVal field : form.formData()) {
           String name = field.key();
           if (name.equals("__EVENTTARGET")
               || name.equals("__EVENTARGUMENT")
-              || name.equals(stateName)) continue;
+              || name.equals(stateName)) {
+            continue;
+          }
           fields.add(new BasicNameValuePair(name, field.value()));
         }
         fields.add(new BasicNameValuePair("__EVENTTARGET", event.group(1)));
@@ -116,13 +139,16 @@ public class LnvDocumentReferences {
             previous != null && !previous.attr("value").isBlank()
                 ? JSON.readTree(previous.attr("value"))
                 : JSON.createObjectNode();
-        if (!(retainedState instanceof ObjectNode clientState)) throw LnvPage.invalid();
+        if (!(retainedState instanceof ObjectNode clientState)) {
+          throw LnvPage.invalid();
+        }
         clientState.putArray("selectedIndexes").add(index);
         fields.add(new BasicNameValuePair(stateName, JSON.writeValueAsString(clientState)));
         URI action = form.attr("action").isBlank() ? page : URI.create(form.absUrl("action"));
         if (!page.getHost().equalsIgnoreCase(action.getHost())
-            || !LnvPage.query(page).get("mID").equals(LnvPage.query(action).get("mID")))
+            || !LnvPage.query(page).get("mID").equals(LnvPage.query(action).get("mID"))) {
           throw LnvPage.invalid();
+        }
         return new Form(action, fields);
       }
     }
@@ -154,9 +180,13 @@ public class LnvDocumentReferences {
       List<DocumentTeamAssociation> associations) {
     String homeLabel = label(year, championship, home, associations);
     String awayLabel = label(year, championship, away, associations);
-    if (date == null || homeLabel == null || awayLabel == null) return null;
+    if (date == null || homeLabel == null || awayLabel == null) {
+      return null;
+    }
     Element competition = index.selectFirst("Competition[CodeCompetition=" + code + "]");
-    if (competition == null) throw LnvPage.invalid();
+    if (competition == null) {
+      throw LnvPage.invalid();
+    }
     List<Element> matches =
         competition.select("Match").stream()
             .filter(
@@ -166,9 +196,13 @@ public class LnvDocumentReferences {
                         && date.format(DateTimeFormatter.ofPattern("dd-MM-uuuu"))
                             .equals(match.select("Date").text()))
             .toList();
-    if (matches.size() != 1) return null;
+    if (matches.size() != 1) {
+      return null;
+    }
     String reference = matches.getFirst().select("CodeMatch").text();
-    if (reference.isBlank()) return null;
+    if (reference.isBlank()) {
+      return null;
+    }
     return new SportingObservation.InformationSheet(year + "/" + (year + 1), "AALNV", reference);
   }
 
@@ -185,8 +219,11 @@ public class LnvDocumentReferences {
             .map(
                 element -> {
                   String attribute = "href";
-                  if (element.hasAttr("src")) attribute = "src";
-                  else if (element.hasAttr("data")) attribute = "data";
+                  if (element.hasAttr("src")) {
+                    attribute = "src";
+                  } else if (element.hasAttr("data")) {
+                    attribute = "data";
+                  }
                   return element.absUrl(attribute);
                 })
             .filter(value -> value.toLowerCase(Locale.ROOT).contains(".pdf"))

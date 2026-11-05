@@ -585,10 +585,11 @@ class CollectPassageTest {
           .thenReturn(
               new SportingObservation.Outcome(
                   "new", ObservationOutcomeEnum.ACCEPTED, newMatch, null, null, null));
-      if (imageOutcome == ImageOutcome.FAILED)
+      if (imageOutcome == ImageOutcome.FAILED) {
         when(lnv.image(logo)).thenThrow(new IllegalArgumentException("Unavailable image"));
-      else if (imageOutcome == ImageOutcome.CACHED) when(lnv.image(logo)).thenReturn(null);
-      else {
+      } else if (imageOutcome == ImageOutcome.CACHED) {
+        when(lnv.image(logo)).thenReturn(null);
+      } else {
         when(lnv.image(logo)).thenReturn(new LnvAcquisition.Read<>(image, imageReadAt));
         when(sporting.logo(any(), any(), eq(image)))
             .thenReturn(
@@ -614,7 +615,9 @@ class CollectPassageTest {
                   assertThat(context.cycleId()).isEqualTo(admitted.getCycle().id());
                   assertThat(context.observedAt()).isEqualTo(imageReadAt);
                 });
-      } else verify(sporting, never()).logo(any(), any(), any());
+      } else {
+        verify(sporting, never()).logo(any(), any(), any());
+      }
       ArgumentCaptor<CollectionBackend.Result> evidence =
           ArgumentCaptor.forClass(CollectionBackend.Result.class);
       verify(backend, times(4 + logoResults))

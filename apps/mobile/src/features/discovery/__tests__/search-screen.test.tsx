@@ -86,9 +86,10 @@ let publicClient = createQueryClient();
 /** Controls HTTP only; generation, response validation, Query, session and admission stay real. */
 function publicReads(url: string): Promise<Response> {
   const path = new URL(url).pathname;
-  if (path.endsWith("/application-access"))
+  if (path.endsWith("/application-access")) {
     return Promise.resolve(Response.json(applicationAccessResponse()));
-  if (path.endsWith("/sporting-search-options"))
+  }
+  if (path.endsWith("/sporting-search-options")) {
     return Promise.resolve(
       Response.json({
         resourceType: new URL(url).searchParams.get("resourceType"),
@@ -98,7 +99,8 @@ function publicReads(url: string): Promise<Response> {
         genders: ["female", "male", "mixed"],
       }),
     );
-  if (path.endsWith("/clubs"))
+  }
+  if (path.endsWith("/clubs")) {
     return Promise.resolve(
       Response.json({
         clubs: [
@@ -107,7 +109,8 @@ function publicReads(url: string): Promise<Response> {
         ],
       }),
     );
-  if (path.endsWith("/teams"))
+  }
+  if (path.endsWith("/teams")) {
     return Promise.resolve(
       Response.json({
         teams: [
@@ -120,7 +123,8 @@ function publicReads(url: string): Promise<Response> {
         ],
       }),
     );
-  if (path.endsWith("/pools"))
+  }
+  if (path.endsWith("/pools")) {
     return Promise.resolve(
       Response.json({
         pools: [
@@ -134,6 +138,7 @@ function publicReads(url: string): Promise<Response> {
         ],
       }),
     );
+  }
   throw new Error(`Unexpected controlled request ${path}`);
 }
 
@@ -283,9 +288,11 @@ it.each(["guest", "free", "Pro", "unresolved"])(
   async (access) => {
     // Given: no RevenueCat dependency is mounted; unresolved native restoration must not block public reads.
     const restoration = Promise.withResolvers<boolean>();
-    if (access === "unresolved")
+    if (access === "unresolved") {
       mockAuth0.hasValidCredentials.mockReturnValue(restoration.promise);
-    else mockAuth0.hasValidCredentials.mockResolvedValue(access !== "guest");
+    } else {
+      mockAuth0.hasValidCredentials.mockResolvedValue(access !== "guest");
+    }
     const user = userEvent.setup();
     try {
       await renderSearch(access === "Pro");
@@ -618,11 +625,14 @@ it("keeps clearing available without pull-to-refresh through replacement reads a
   mockFetch.mockImplementation((url: string) => {
     const parsed = new URL(url);
     if (parsed.pathname.endsWith("/clubs")) {
-      if (parsed.searchParams.get("q") === "None") return pending.promise;
-      if (parsed.searchParams.get("q") === "Failed")
+      if (parsed.searchParams.get("q") === "None") {
+        return pending.promise;
+      }
+      if (parsed.searchParams.get("q") === "Failed") {
         return Promise.resolve(
           Response.json({ title: "Unavailable", status: 503 }, { status: 503 }),
         );
+      }
     }
     return publicReads(url);
   });
@@ -812,15 +822,17 @@ it.each(["empty", "error"])(
     await renderSearch();
     await user.paste(await screen.findByLabelText("Rechercher"), "Volley");
     await user.press(screen.getByRole("tab", { name: "Clubs" }));
-    if (state === "empty")
+    if (state === "empty") {
       await screen.findByText("Aucun résultat pour ces critères");
-    else await screen.findByRole("button", { name: "Réessayer" });
+    } else {
+      await screen.findByRole("button", { name: "Réessayer" });
+    }
     mockFetch.mockReset().mockImplementation(publicReads);
 
     // When
-    if (state === "error")
+    if (state === "error") {
       await user.press(screen.getByRole("button", { name: "Réessayer" }));
-    else
+    } else {
       await act(async () => {
         await client.refetchQueries({
           predicate: ({ queryKey }) =>
@@ -828,6 +840,7 @@ it.each(["empty", "error"])(
           type: "active",
         });
       });
+    }
 
     // Then
     expect(await screen.findByText("Lyon")).toBeOnTheScreen();
@@ -849,8 +862,12 @@ it("does not append from an inactive resource or covered Search route", async ()
   const pending = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url: string) => {
     const parsed = new URL(url);
-    if (!parsed.pathname.endsWith("/clubs")) return publicReads(url);
-    if (parsed.searchParams.has("cursor")) return pending.promise;
+    if (!parsed.pathname.endsWith("/clubs")) {
+      return publicReads(url);
+    }
+    if (parsed.searchParams.has("cursor")) {
+      return pending.promise;
+    }
     return Promise.resolve(
       Response.json({
         clubs: [{ club: { id: firstId, name: "Volley Lyon" }, city: "Lyon" }],
@@ -901,8 +918,12 @@ it("shares one pending cursor read across repeated native end events", async () 
   const pending = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url: string) => {
     const parsed = new URL(url);
-    if (!parsed.pathname.endsWith("/clubs")) return publicReads(url);
-    if (parsed.searchParams.has("cursor")) return pending.promise;
+    if (!parsed.pathname.endsWith("/clubs")) {
+      return publicReads(url);
+    }
+    if (parsed.searchParams.has("cursor")) {
+      return pending.promise;
+    }
     return Promise.resolve(
       Response.json({
         clubs: [{ club: { id: firstId, name: "Volley Lyon" }, city: "Lyon" }],
@@ -960,11 +981,14 @@ it("retains loaded rows with local failure feedback and retries only the same cu
   let nextPageAvailable = false;
   mockFetch.mockImplementation((url: string) => {
     const parsed = new URL(url);
-    if (!parsed.pathname.endsWith("/clubs")) return publicReads(url);
-    if (!parsed.searchParams.has("cursor"))
+    if (!parsed.pathname.endsWith("/clubs")) {
+      return publicReads(url);
+    }
+    if (!parsed.searchParams.has("cursor")) {
       return Promise.resolve(
         Response.json({ clubs: [first], nextCursor: "next-page" }),
       );
+    }
     return nextPageAvailable
       ? retry.promise
       : Promise.resolve(
@@ -1056,7 +1080,9 @@ it.each([false, true])(
     const user = userEvent.setup();
     mockFetch.mockImplementation((url: string) => {
       const parsed = new URL(url);
-      if (!parsed.pathname.endsWith("/clubs")) return publicReads(url);
+      if (!parsed.pathname.endsWith("/clubs")) {
+        return publicReads(url);
+      }
       return Promise.resolve(
         Response.json(
           parsed.searchParams.has("cursor")
@@ -1174,7 +1200,9 @@ it("cancels pending pagination before a background read and rejects its late res
   let pageSignal: AbortSignal | undefined;
   mockFetch.mockImplementation((url: string, options?: RequestInit) => {
     const parsed = new URL(url);
-    if (!parsed.pathname.endsWith("/clubs")) return publicReads(url);
+    if (!parsed.pathname.endsWith("/clubs")) {
+      return publicReads(url);
+    }
     if (parsed.searchParams.has("cursor")) {
       pageSignal = options?.signal ?? undefined;
       return pending.promise;

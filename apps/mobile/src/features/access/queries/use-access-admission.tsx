@@ -26,8 +26,9 @@ function useAdmission() {
         bypass.accountId !== session.accountId ||
         !permissions?.bypassMaintenance ||
         access.snapshot.maintenance?.active === false)
-    )
+    ) {
       clearBypass();
+    }
   }, [
     bypass,
     clearBypass,
@@ -59,11 +60,13 @@ function useAdmission() {
     /** Public checking and existing-session identification retry independently, without establishment or interactive login. */
     retry() {
       const checking = access.retry();
-      if (session.status === "authenticated") void account.refetch();
-      else if (session.status === "authentication-error")
+      if (session.status === "authenticated") {
+        void account.refetch();
+      } else if (session.status === "authentication-error") {
         session.retryAuthentication();
-      else if (session.status === "initialization-error")
+      } else if (session.status === "initialization-error") {
         session.retryInitialization();
+      }
       return checking;
     },
     /** Records personal intent only from current grants, a complete check and the satisfied minimum. */
@@ -87,8 +90,9 @@ export function AccessAdmissionProvider({ children }: PropsWithChildren) {
 /** Returns the current root policy; route entry alone grants no domain operation. */
 export function useAccessAdmission() {
   const admission = useContext(AdmissionContext);
-  if (!admission)
+  if (!admission) {
     throw new Error("Access admission requires AccessAdmissionProvider");
+  }
   return admission;
 }
 

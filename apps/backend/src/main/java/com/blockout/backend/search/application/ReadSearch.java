@@ -45,8 +45,9 @@ public class ReadSearch {
    */
   @Transactional(propagation = Propagation.NEVER)
   public SearchPage examples(SearchContext context, SearchExamples examples) {
-    if (!context.examples())
+    if (!context.examples()) {
       throw new IllegalArgumentException("Retained examples require empty text");
+    }
     return read(context, null, examples);
   }
 
@@ -61,11 +62,16 @@ public class ReadSearch {
    */
   private SearchPage read(
       SearchContext context, SearchEngine.Position after, SearchExamples examples) {
-    if (context.examples() && after != null)
+    if (context.examples() && after != null) {
       throw new IllegalArgumentException("Examples forbid continuation");
+    }
     try {
-      if (examples == null) return traverse(context, after);
-      if (examples.identities().isEmpty()) return new SearchPage(List.of(), null);
+      if (examples == null) {
+        return traverse(context, after);
+      }
+      if (examples.identities().isEmpty()) {
+        return new SearchPage(List.of(), null);
+      }
       SearchEngine.Batch batch = engine.examples(context, examples.identities());
       Map<UUID, SearchPage.Summary> current = hydration.current(context, batch.candidates());
       return new SearchPage(
@@ -112,15 +118,21 @@ public class ReadSearch {
             results.add(summary);
             return new SearchPage(results, null);
           }
-          if (results.size() == 20) return new SearchPage(results, consumed);
+          if (results.size() == 20) {
+            return new SearchPage(results, consumed);
+          }
           beforeLastEligible = consumed;
           results.add(summary);
         }
         consumed = candidate.position();
       }
-      if (batch.exhausted()) return new SearchPage(results, null);
+      if (batch.exhausted()) {
+        return new SearchPage(results, null);
+      }
     }
-    if (context.examples() && !results.isEmpty()) return new SearchPage(results, null);
+    if (context.examples() && !results.isEmpty()) {
+      return new SearchPage(results, null);
+    }
     if (results.size() < 2) {
       log.atWarn()
           .addKeyValue("operation", "search_traversal")

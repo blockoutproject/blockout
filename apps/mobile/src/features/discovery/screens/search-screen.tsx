@@ -138,23 +138,29 @@ export function SearchScreen() {
     pool: uniqueSearchResults(poolQuery.data?.pages),
     club: uniqueSearchResults(clubQuery.data?.pages),
   };
+
   /** Clearing resets the editable query and validation without altering the selected resource tab. */
   function clearSearch() {
     reset(searchValues());
   }
+
   /** The results heading clears this resource's criteria; the input clear action retains sporting filters. */
   function clearCriteria(target: DiscoveryResource) {
     clearSearch();
     const selection = target === "club" ? undefined : visit[target];
-    if (selection?.query.data)
+    if (selection?.query.data) {
       selection.apply(reconcileSearchFilters(undefined, selection.query.data));
+    }
   }
+
   return (
     <Page fullBleed>
       <PagedTabs
         selected={resource}
         onSelect={(id) => {
-          if (id === "team" || id === "pool" || id === "club") setResource(id);
+          if (id === "team" || id === "pool" || id === "club") {
+            setResource(id);
+          }
         }}
         tabs={searchTabs.map(({ id, label }) => ({
           id,
@@ -350,6 +356,7 @@ function SearchScene({
   const sporting = resource === "club" ? undefined : visit[resource];
   const filters = sporting?.filters;
   const resultsReady = (searchable || examples) && (!sporting || !!filters);
+
   /** The visible valid context owns continuation; explicit retry may resume its failed cursor. */
   async function loadMore() {
     if (
@@ -359,10 +366,12 @@ function SearchScene({
       examples ||
       !textQuery.hasNextPage ||
       query.isFetching
-    )
+    ) {
       return;
+    }
     await textQuery.fetchNextPage({ cancelRefetch: false });
   }
+
   // An unfinished empty traversal retains its existing explicit continuation action.
   const continueEmpty =
     !examples &&
@@ -399,7 +408,9 @@ function SearchScene({
       examples={examples}
       items={resultsReady ? items : []}
       onEndReached={() => {
-        if (!query.isError) loadMore();
+        if (!query.isError) {
+          loadMore();
+        }
       }}
       emptyComponent={
         !searchable && !examples ? null : sporting && !filters ? (

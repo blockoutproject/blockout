@@ -55,6 +55,7 @@ export function ProfileScreen({
   const account = useCurrentAccount();
   const router = useRouter();
   const feedback = useActionFeedback();
+
   /** Uses SDK browser logout; cancellation preserves the signed-in account and safe retry feedback. */
   async function signOut() {
     feedback.clear();
@@ -65,6 +66,7 @@ export function ProfileScreen({
       feedback.error();
     }
   }
+
   const { colors } = useTheme();
   const { saving, refresh } = useProfileRefresh(account);
   const connected = session.status === "authenticated";
@@ -121,12 +123,13 @@ export function ProfileScreen({
       </ErrorState>
     </ScreenState>
   ) : undefined;
-  if (blockingContent)
+  if (blockingContent) {
     return (
       <Page header={<ProfileHeader />}>
         <PageScrollView>{blockingContent}</PageScrollView>
       </Page>
     );
+  }
   return (
     <ProfileContent
       key={`${session.subject}:${account.data?.accountId ?? "guest"}`}
@@ -283,7 +286,9 @@ function AccountAgeRetry() {
       loading={establishment.isPending}
       onPress={() => {
         feedback.clear();
-        if (!session.subject) return;
+        if (!session.subject) {
+          return;
+        }
         void establishment
           .mutateAsync({
             subject: session.subject,

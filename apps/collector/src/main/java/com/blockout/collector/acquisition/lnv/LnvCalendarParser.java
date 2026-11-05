@@ -55,16 +55,22 @@ public class LnvCalendarParser {
    */
   public Read parse(byte[] bytes, URI url, String competition, String phase, String group) {
     Map<String, String> query = LnvPage.query(url);
-    if (!competition.equals(query.get("ID")) || !phase.equals(query.get("PID")))
+    if (!competition.equals(query.get("ID")) || !phase.equals(query.get("PID"))) {
       throw LnvPage.invalid();
+    }
     Document page = LnvPage.parse(bytes, url);
     Element container = page.getElementById("Content_Main_" + group);
-    if (container == null) throw LnvPage.invalid();
-    Elements titles = container.select("[id$=lbl_title]");
-    if (titles.isEmpty()) throw LnvPage.invalid();
-    if (container.select("[id$=_MatchRow]").isEmpty()
-        && !container.text().toLowerCase(Locale.FRENCH).contains("aucun match"))
+    if (container == null) {
       throw LnvPage.invalid();
+    }
+    Elements titles = container.select("[id$=lbl_title]");
+    if (titles.isEmpty()) {
+      throw LnvPage.invalid();
+    }
+    if (container.select("[id$=_MatchRow]").isEmpty()
+        && !container.text().toLowerCase(Locale.FRENCH).contains("aucun match")) {
+      throw LnvPage.invalid();
+    }
     Map<String, RosterTeam> roster = roster(page);
     Map<String, SportingObservation.Match> matches = new LinkedHashMap<>();
     Map<String, URI> logos = new LinkedHashMap<>();
@@ -79,7 +85,9 @@ public class LnvCalendarParser {
         if (reference == null
             || !competition.equals(context.get("ID"))
             || !phase.equals(context.get("PID"))
-            || !group.equals(context.get("CID"))) throw LnvPage.invalid();
+            || !group.equals(context.get("CID"))) {
+          throw LnvPage.invalid();
+        }
         SportingObservation.Team home = team(row, "Home", roster, logos);
         SportingObservation.Team away = team(row, "Guest", roster, logos);
         String rendered = text(row, "_LB_DataOra");
@@ -133,7 +141,9 @@ public class LnvCalendarParser {
                   reference, URI.create("urn:blockout:acquisition:contradictory-match")));
         }
       } catch (RuntimeException invalid) {
-        if (reference != null) contradictory.add(reference);
+        if (reference != null) {
+          contradictory.add(reference);
+        }
         failures.add(
             new SportingObservation.Failure(
                 reference, URI.create("urn:blockout:acquisition:invalid-match")));
@@ -168,14 +178,20 @@ public class LnvCalendarParser {
     for (Element team : page.select("[id$=_DIV_Team]")) {
       Element id = team.selectFirst("[id$=_HF_TeamID]");
       Element image = team.selectFirst("img[src]");
-      if (id == null || id.attr("value").isBlank() || image == null) continue;
+      if (id == null || id.attr("value").isBlank() || image == null) {
+        continue;
+      }
       try {
         URI logo = URI.create(image.absUrl("src"));
-        if (logo.getPath() == null) continue;
+        if (logo.getPath() == null) {
+          continue;
+        }
         String file = logo.getPath().substring(logo.getPath().lastIndexOf('/') + 1);
         RosterTeam item = new RosterTeam(id.attr("value"), logo);
         RosterTeam previous = result.putIfAbsent(file, item);
-        if (previous != null && !previous.equals(item)) ambiguous.add(file);
+        if (previous != null && !previous.equals(item)) {
+          ambiguous.add(file);
+        }
       } catch (IllegalArgumentException invalidImage) {
         // This roster entry cannot identify a participant; unrelated matches remain usable.
       }
@@ -211,19 +227,33 @@ public class LnvCalendarParser {
   private SportingObservation.Team team(
       Element row, String side, Map<String, RosterTeam> roster, Map<String, URI> logos) {
     Element logo = row.selectFirst("[id$=_Logo_" + side + "]");
-    if (logo == null) throw LnvPage.invalid();
+    if (logo == null) {
+      throw LnvPage.invalid();
+    }
     Matcher matcher = IMAGE.matcher(logo.attr("style"));
-    if (!matcher.find()) throw LnvPage.invalid();
+    if (!matcher.find()) {
+      throw LnvPage.invalid();
+    }
     URI uri = URI.create(matcher.group(1));
     if (!"images.dataproject.com".equalsIgnoreCase(uri.getHost())
-        || !uri.getPath().startsWith("/lnv/TeamLogo/")) throw LnvPage.invalid();
+        || !uri.getPath().startsWith("/lnv/TeamLogo/")) {
+      throw LnvPage.invalid();
+    }
     RosterTeam identity = roster.get(uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1));
-    if (identity == null) throw LnvPage.invalid();
+    if (identity == null) {
+      throw LnvPage.invalid();
+    }
     if (!"images.dataproject.com".equalsIgnoreCase(identity.logo().getHost())
-        || !identity.logo().getPath().startsWith("/lnv/TeamLogo/")) throw LnvPage.invalid();
+        || !identity.logo().getPath().startsWith("/lnv/TeamLogo/")) {
+      throw LnvPage.invalid();
+    }
     String label = text(row, side.equals("Home") ? "_Label2" : "_Label4");
-    if (label.isBlank()) label = text(row, "_LBL_" + side + "TeamName");
-    if (label.isBlank()) throw LnvPage.invalid();
+    if (label.isBlank()) {
+      label = text(row, "_LBL_" + side + "TeamName");
+    }
+    if (label.isBlank()) {
+      throw LnvPage.invalid();
+    }
     logos.put(identity.id(), identity.logo());
     return new SportingObservation.Team(label, identity.id(), null, null);
   }
@@ -241,16 +271,23 @@ public class LnvCalendarParser {
     for (Element element : row.select("[onclick], a[href]")) {
       if (element.hasAttr("href")) {
         URI target = URI.create(element.absUrl("href"));
-        if (target.getPath() != null && target.getPath().endsWith("/MatchStatistics.aspx"))
+        if (target.getPath() != null && target.getPath().endsWith("/MatchStatistics.aspx")) {
           references.add(target);
+        }
       } else {
         Matcher match = MATCH.matcher(element.attr("onclick"));
-        if (match.find()) references.add(base.resolve(match.group()));
+        if (match.find()) {
+          references.add(base.resolve(match.group()));
+        }
       }
     }
-    if (references.size() != 1) throw LnvPage.invalid();
+    if (references.size() != 1) {
+      throw LnvPage.invalid();
+    }
     URI detail = references.iterator().next();
-    if (!base.getHost().equalsIgnoreCase(detail.getHost())) throw LnvPage.invalid();
+    if (!base.getHost().equalsIgnoreCase(detail.getHost())) {
+      throw LnvPage.invalid();
+    }
     return detail;
   }
 

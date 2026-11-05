@@ -75,7 +75,9 @@ class RecipientSnapshotIntegrationTest extends ContributionScenario {
     inspector.hook =
         statement -> {
           String query = statement.toLowerCase(Locale.ROOT).stripLeading();
-          if (!query.startsWith("select")) return;
+          if (!query.startsWith("select")) {
+            return;
+          }
           boolean teamOnly = query.contains("team_follow") && !query.contains("pool_follow");
           boolean poolOnly = query.contains("pool_follow") && !query.contains("team_follow");
           if ((stage.get() == 0 || stage.get() == 2) && poolOnly) {

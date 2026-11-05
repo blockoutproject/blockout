@@ -49,7 +49,9 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
   const feedback = useActionFeedback();
   // Focus/foreground rereads retain Query state without publishing action feedback.
   useEffect(() => {
-    if (focused) void refetch({ cancelRefetch: false });
+    if (focused) {
+      void refetch({ cancelRefetch: false });
+    }
   }, [focused, matchId, refetch]);
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
@@ -58,7 +60,9 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
         setPresentation({
           timeZone: currentSportingTimeZone(),
         });
-        if (focused) void refetch({ cancelRefetch: false });
+        if (focused) {
+          void refetch({ cancelRefetch: false });
+        }
       }
     });
     return () => subscription.remove();
@@ -72,13 +76,16 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
     document?.matchId === matchId &&
     !!data?.documents.some((item) => item.kind === document.kind);
   // Retire a local opening when its resource/context disappears; a later recovery never reopens it.
-  if (document && (!focused || !documentAvailable)) setDocument(undefined);
+  if (document && (!focused || !documentAvailable)) {
+    setDocument(undefined);
+  }
   const contribution = useMatchContributionAction(
     matchId,
     !!data,
     data?.streamUrl ? data.streamContributionId : undefined,
     data?.streamUrl,
   );
+
   /** A failed explicit refresh keeps authorized content and reports only the attempted read. */
   async function refresh() {
     feedback.clear();
@@ -89,9 +96,11 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
     if (
       (result.isError && result.data && !isAccessDenied(result.error)) ||
       (entryResult?.isError && !isAccessDenied(entryResult.error))
-    )
+    ) {
       feedback.error();
+    }
   }
+
   const blockingState = !data ? (
     <ReadFeedback query={match} loadingContent={<SportingMatchLoading />} />
   ) : undefined;

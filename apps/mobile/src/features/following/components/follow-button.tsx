@@ -16,6 +16,7 @@ export interface FollowButtonProps {
   target: FollowingTarget;
   season: SportingSeasonResponse;
 }
+
 /** Query keeps the confirmed follow state visible; native mutation state owns progress and shared failure feedback. */
 export function FollowButton({ target, season }: FollowButtonProps) {
   const context = useFollowStateQuery(target);
@@ -36,17 +37,20 @@ export function FollowButton({ target, season }: FollowButtonProps) {
       disabled
     />
   );
-  if (!guest && sessionStatus !== "authenticated")
+  if (!guest && sessionStatus !== "authenticated") {
     return <AccountSessionFeedback loadingContent={loadingContent} />;
-  if (!guest && admitted && !usable)
+  }
+  if (!guest && admitted && !usable) {
     return (
       <ReadFeedback
         query={{ ...profile, isEnabled: admitted && profile.isEnabled }}
         loadingContent={loadingContent}
       />
     );
-  if (!guest && query.data === undefined)
+  }
+  if (!guest && query.data === undefined) {
     return <ReadFeedback query={query} loadingContent={loadingContent} />;
+  }
   const following = query.data?.following;
   return (
     <View style={styles.control}>
@@ -68,12 +72,12 @@ export function FollowButton({ target, season }: FollowButtonProps) {
           !guest && (!usable || following === undefined || query.isError)
         }
         onPress={async () => {
-          if (guest)
+          if (guest) {
             router.push({
               pathname: "/sign-in-invitation",
               params: { reason: "follow" },
             });
-          else {
+          } else {
             feedback.clear();
             try {
               await action.mutateAsync(!following);
@@ -89,4 +93,5 @@ export function FollowButton({ target, season }: FollowButtonProps) {
     </View>
   );
 }
+
 const styles = StyleSheet.create({ control: { gap: tokens.spacing.sm } });

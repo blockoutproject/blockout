@@ -22,11 +22,13 @@ export interface FollowingOwner {
   readonly accountId: string;
   readonly subject: string | null;
 }
+
 /** Sporting identity only; screen, name, Pro and display season never define a follow target. */
 export interface FollowingTarget {
   readonly type: "team" | "pool";
   readonly id: string;
 }
+
 /** Captures the established native account for an original-target request. Credentials enforce principal ownership. */
 export function captureFollowingOwner(
   session: SessionSnapshot,
@@ -35,6 +37,7 @@ export function captureFollowingOwner(
     ? { accountId: session.accountId, subject: session.subject }
     : null;
 }
+
 /** One confirmed relationship per original account/session/target; admission affects requests, not its identity. */
 export function followStateKey(owner: FollowingOwner, target: FollowingTarget) {
   return [
@@ -43,6 +46,7 @@ export function followStateKey(owner: FollowingOwner, target: FollowingTarget) {
       : getGetPoolFollowStateQueryKey(owner.accountId, target.id)),
   ];
 }
+
 /** One mutation identity per session/account/type/target across all originating controls. */
 export function followMutationKey(
   owner: FollowingOwner,
@@ -54,6 +58,7 @@ export function followMutationKey(
       : getReplacePoolFollowStateMutationKey();
   return [...generated, owner.accountId, target.id];
 }
+
 /**
  * Keys an infinite list selection; page belongs to pageParam, not to the selection identity.
  * The generated schema rejects malformed/unknown filters and the detached object cannot drift.
@@ -74,10 +79,12 @@ export function followListKey(
     bypass,
   );
 }
+
 /** Isolates the personal-space options while preserving ordinary versus bypass admission. */
 export function followOptionsKey(owner: FollowingOwner, bypass = false) {
   return withAdmission(getGetFollowOptionsQueryKey(owner.accountId), bypass);
 }
+
 /** Calendar continuation belongs to pageParam; season, category and time zone identify the data. */
 export function personalCalendarKey(
   owner: FollowingOwner,
@@ -92,6 +99,7 @@ export function personalCalendarKey(
     bypass,
   );
 }
+
 /** Captures every personal calendar selection within one original session/account/admission context. */
 export function personalCalendarCollectionKey(
   owner: FollowingOwner,
@@ -99,6 +107,7 @@ export function personalCalendarCollectionKey(
 ) {
   return withAdmission(getListPersonalMatchesQueryKey(owner.accountId), bypass);
 }
+
 /** Public counts share their generated key; explicit F12 bypass adds the captured personal scope. */
 export function followerCountKey(
   target: FollowingTarget,
@@ -110,6 +119,7 @@ export function followerCountKey(
       : getGetPoolFollowerCountQueryKey(target.id);
   return bypass ? withAdmission(generated, true) : Object.freeze(generated);
 }
+
 /** Adds the selected request admission without introducing an account cache namespace. */
 function withAdmission(generated: QueryKey, bypass: boolean) {
   const selection = generated[1];

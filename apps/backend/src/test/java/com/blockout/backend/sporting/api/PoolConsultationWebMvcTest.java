@@ -117,9 +117,11 @@ class PoolConsultationWebMvcTest {
   @DisplayName("Hidden and unknown pools return safe NotFound")
   void refusesUnavailablePool(String section) throws Exception {
     // Given
-    if (section.equals("standings"))
+    if (section.equals("standings")) {
       when(resources.standings(ID)).thenThrow(new SportingResourceNotFoundException());
-    else when(resources.participants(ID)).thenThrow(new SportingResourceNotFoundException());
+    } else {
+      when(resources.participants(ID)).thenThrow(new SportingResourceNotFoundException());
+    }
 
     // When
     ResultActions response = mvc.perform(get("/pools/{id}/{section}", ID, section));

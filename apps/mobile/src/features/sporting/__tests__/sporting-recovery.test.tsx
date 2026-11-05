@@ -34,6 +34,7 @@ import { ClubScreen } from "../screens/club-screen";
 import { TeamScreen } from "../screens/team-screen";
 import { PoolScreen } from "../screens/pool-screen";
 import { MatchScreen } from "../screens/match-screen";
+
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("@react-native-async-storage/async-storage", () =>
   jest.requireActual(
@@ -434,17 +435,19 @@ it("keeps season selection when an earlier teams request completes after a new s
   const old = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url: string) => {
     const parsed = new URL(url);
-    if (parsed.pathname === `/clubs/${sportingId}`)
+    if (parsed.pathname === `/clubs/${sportingId}`) {
       return Promise.resolve(
         Response.json({
           ...clubDetail("Club des Rives"),
           seasons: [season, older],
         }),
       );
-    if (parsed.pathname.endsWith("/teams"))
+    }
+    if (parsed.pathname.endsWith("/teams")) {
       return parsed.searchParams.get("seasonId") === season.id
         ? old.promise
         : Promise.resolve(Response.json({ seasonId: older.id, items: [] }));
+    }
     return reads(url);
   });
   const user = userEvent.setup();
@@ -529,8 +532,9 @@ it("keeps a delayed old-account public result outside the new principal's privat
   mockAuth0.saveCredentials.mockResolvedValue(undefined);
   let clubReads = 0;
   mockFetch.mockImplementation((url: string) => {
-    if (url.endsWith("/accounts/me"))
+    if (url.endsWith("/accounts/me")) {
       return Promise.resolve(Response.json(accountResponse()));
+    }
     if (url.endsWith(`/clubs/${sportingId}`)) {
       if (++clubReads === 1) {
         started.resolve();
@@ -588,18 +592,22 @@ it.each(["current", "former"] as const)(
       },
     };
     mockFetch.mockImplementation((url: string, options: RequestInit) => {
-      if (url.endsWith("/accounts/me"))
+      if (url.endsWith("/accounts/me")) {
         return Promise.resolve(Response.json(maintainer));
+      }
       if (url.endsWith("/application-access")) {
         const access = applicationAccessResponse();
         access.maintenance.active = true;
         return Promise.resolve(Response.json(access));
       }
-      if (url.endsWith(`/clubs/${sportingId}`))
+      if (url.endsWith(`/clubs/${sportingId}`)) {
         return new Headers(options.headers).has("Blockout-Maintenance-Bypass")
           ? bypass.promise
           : Promise.resolve(Response.json(logoClub));
-      if (url.endsWith("/logo")) return artwork.promise;
+      }
+      if (url.endsWith("/logo")) {
+        return artwork.promise;
+      }
       return reads(url);
     });
     await renderPage(
@@ -636,10 +644,11 @@ it.each(["current", "former"] as const)(
         mockFetch.mock.calls.some(([url]) => String(url).endsWith("/logo")),
       ).toBe(true),
     );
-    if (context === "former")
+    if (context === "former") {
       await user.press(
         screen.getByRole("button", { name: "Use ordinary admission" }),
       );
+    }
     await act(() =>
       artwork.resolve(Response.json({ status: 404 }, { status: 404 })),
     );

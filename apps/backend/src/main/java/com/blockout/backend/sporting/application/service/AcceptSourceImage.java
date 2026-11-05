@@ -56,18 +56,19 @@ public class AcceptSourceImage {
             collectionWork.get(context.cycleId()).cycleOrder(), context.readOrdinal());
     ObservationOrder previous = store.sourceLogoOrder(teamId);
     ObservationOutcomeEnum status;
-    if (previous != null && order.compareTo(previous) <= 0)
+    if (previous != null && order.compareTo(previous) <= 0) {
       status =
           order.compareTo(previous) < 0
               ? ObservationOutcomeEnum.STALE
               : ObservationOutcomeEnum.UNCHANGED;
-    else if (!acquisitionClassification.acceptsObservation(target.poolId(), target))
+    } else if (!acquisitionClassification.acceptsObservation(target.poolId(), target)) {
       status = ObservationOutcomeEnum.REJECTED;
-    else
+    } else {
       status =
           store.saveSourceLogo(teamId, image, order, context)
               ? ObservationOutcomeEnum.ACCEPTED
               : ObservationOutcomeEnum.UNCHANGED;
+    }
     return new ObservationOutcome(team.nativeReference(), status, teamId, null, null, null);
   }
 
@@ -83,8 +84,9 @@ public class AcceptSourceImage {
     CollectionState.Target target =
         cycleAccess.requireTeamLogo(context.cycleId(), teamId, store.teamPoolIds(teamId));
     TeamView team = store.team(teamId).orElseThrow(SportingResourceNotFoundException::new);
-    if (team.provider() != CollectionProviderEnum.LNV)
+    if (team.provider() != CollectionProviderEnum.LNV) {
       throw new AccessDeniedException("Professional artwork is not permitted");
+    }
     return target;
   }
 }

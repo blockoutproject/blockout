@@ -32,10 +32,13 @@ public class ReadPersonalCalendar {
    */
   @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
   public Calendar read(UUID accountId, UUID seasonId, CalendarWindow window) {
-    if (!accounts.exists(accountId)) throw new AccountNotFoundException();
+    if (!accounts.exists(accountId)) {
+      throw new AccountNotFoundException();
+    }
     List<FollowReadStore.SeasonChoice> choices = follows.seasons(accountId);
-    if (seasonId != null && choices.stream().noneMatch(choice -> choice.id().equals(seasonId)))
+    if (seasonId != null && choices.stream().noneMatch(choice -> choice.id().equals(seasonId))) {
       throw new FollowUnavailableTargetException();
+    }
     boolean available =
         choices.stream()
             .anyMatch(

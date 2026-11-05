@@ -231,8 +231,9 @@ it.each([
     expect(
       screen.getByRole("link", { name: new RegExp(label) }),
     ).toBeOnTheScreen();
-    if (!result || !("homeSets" in result))
+    if (!result || !("homeSets" in result)) {
       expect(screen.queryByText("0")).not.toBeOnTheScreen();
+    }
   },
 );
 
@@ -635,11 +636,15 @@ it("reports a failed active cursor and retries the same boundary from its footer
   let failNext = true;
   mockFetch.mockImplementation((url: string) => {
     const target = new URL(url);
-    if (target.pathname.endsWith("/application-access"))
+    if (target.pathname.endsWith("/application-access")) {
       return Promise.resolve(Response.json(applicationAccessResponse()));
-    if (!target.searchParams.has("nextDay") && failNext)
+    }
+    if (!target.searchParams.has("nextDay") && failNext) {
       return Promise.resolve(Response.json(calendar));
-    if (failNext) return Promise.reject(new TypeError("offline"));
+    }
+    if (failNext) {
+      return Promise.reject(new TypeError("offline"));
+    }
     return Promise.resolve(
       Response.json({
         ...calendar,
@@ -773,8 +778,9 @@ it("keeps a delayed cursor failure in its original scene after departure", async
   const pending = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url: string) => {
     const target = new URL(url);
-    if (target.pathname.endsWith("/application-access"))
+    if (target.pathname.endsWith("/application-access")) {
       return Promise.resolve(Response.json(applicationAccessResponse()));
+    }
     return target.searchParams.has("nextDay")
       ? pending.promise
       : Promise.resolve(Response.json(calendar));
@@ -868,16 +874,19 @@ it("keeps a pending former selection refresh outside the newly selected calendar
   };
   mockFetch.mockImplementation((url: string) => {
     const target = new URL(url);
-    if (target.pathname.endsWith("/application-access"))
+    if (target.pathname.endsWith("/application-access")) {
       return Promise.resolve(Response.json(applicationAccessResponse()));
-    if (target.searchParams.get("teamId") === nextTeam)
+    }
+    if (target.searchParams.get("teamId") === nextTeam) {
       return Promise.resolve(Response.json(nextCalendar));
+    }
     if (holdOriginal) {
       started.resolve();
       return pending.promise;
     }
     return Promise.resolve(Response.json(calendar));
   });
+
   /** A covered, retained observer uses the same real Query resource as the visible original scene. */
   function calendars(teamId: string) {
     return (
@@ -897,6 +906,7 @@ it("keeps a pending former selection refresh outside the newly selected calendar
       </>
     );
   }
+
   const view = await render(calendars(sportingId), { wrapper: Providers });
   await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
@@ -1005,7 +1015,9 @@ it("loads calendar tabs lazily and refreshes only the active calendar through ge
   // When
   await act(() => {
     events.mock.calls.forEach(([event, listener]) => {
-      if (event === "change") listener("active");
+      if (event === "change") {
+        listener("active");
+      }
     });
   });
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
@@ -1129,10 +1141,15 @@ it("admits the team's default standings read only after identity resolves", asyn
   };
   mockFetch.mockImplementation((url: string) => {
     const path = new URL(url).pathname;
-    if (path.endsWith("/application-access"))
+    if (path.endsWith("/application-access")) {
       return Promise.resolve(Response.json(applicationAccessResponse()));
-    if (path === `/teams/${sportingId}`) return teamRead.promise;
-    if (path.endsWith("/standings")) return standingsRead.promise;
+    }
+    if (path === `/teams/${sportingId}`) {
+      return teamRead.promise;
+    }
+    if (path.endsWith("/standings")) {
+      return standingsRead.promise;
+    }
     return Promise.resolve(Response.json(calendar));
   });
 

@@ -7,11 +7,13 @@ import { useAccountSession } from "../../accounts/session/account-session-provid
 import { SupportVisitProvider } from "../forms/support-visit";
 import { supportContext, type SupportOrigin } from "../model/support-context";
 import { supportDeviceContext } from "../api/support-device-context";
+
 /** Existing F12 admission and untrusted route origin; this composition grants no independent access. */
 export interface SupportJourneyProps extends PropsWithChildren {
   admitted: boolean;
   origin: SupportOrigin;
 }
+
 /** Reads already-known contact passively and scopes the private draft to F05's mounted private lifetime. */
 export function SupportJourney({
   admitted,
@@ -25,7 +27,9 @@ export function SupportJourney({
     queryKey: getGetMyAccountQueryKey(),
     queryFn: skipToken,
   });
-  if (!admitted) return null;
+  if (!admitted) {
+    return null;
+  }
   const knownAccount =
     account.data?.accountId === session.accountId ? account.data : undefined;
   const replyEmail =

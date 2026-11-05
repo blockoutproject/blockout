@@ -42,8 +42,9 @@ public final class GitHubAttachmentProcess implements SupportAttachments {
   /** {@inheritDoc} */
   @Override
   public void attach(long issueNumber, List<Path> images) {
-    if (destination == null)
+    if (destination == null) {
       throw new SupportUnavailableException(Stage.CONFIGURATION, Reason.UNCONFIGURED);
+    }
     List<String> arguments = new ArrayList<>(executable);
     arguments.addAll(
         List.of(
@@ -52,7 +53,9 @@ public final class GitHubAttachmentProcess implements SupportAttachments {
             Long.toString(issueNumber),
             "--repo",
             "github.com/" + destination.repository()));
-    for (Path image : images) arguments.addAll(List.of("--attach", image.toString()));
+    for (Path image : images) {
+      arguments.addAll(List.of("--attach", image.toString()));
+    }
     ProcessBuilder builder =
         new ProcessBuilder(arguments)
             .redirectOutput(ProcessBuilder.Redirect.DISCARD)
@@ -72,8 +75,9 @@ public final class GitHubAttachmentProcess implements SupportAttachments {
         throw new SupportUnavailableException(
             Stage.ATTACH, stop(child) ? Reason.TIMEOUT : Reason.TERMINATION_FAILED);
       }
-      if (child.exitValue() != 0)
+      if (child.exitValue() != 0) {
         throw new SupportUnavailableException(Stage.ATTACH, Reason.PROCESS_FAILED);
+      }
     } catch (IOException failure) {
       throw new SupportUnavailableException(
           Stage.ATTACH, stop(child) ? Reason.IO : Reason.TERMINATION_FAILED, failure);
@@ -95,7 +99,9 @@ public final class GitHubAttachmentProcess implements SupportAttachments {
   private static boolean stop(Process child) {
     child.destroy();
     try {
-      if (child.waitFor(Duration.ofSeconds(1))) return true;
+      if (child.waitFor(Duration.ofSeconds(1))) {
+        return true;
+      }
       child.destroyForcibly();
       return child.waitFor(Duration.ofSeconds(5));
     } catch (InterruptedException interrupted) {

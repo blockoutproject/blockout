@@ -21,14 +21,18 @@ export function useGuestNavigation() {
 
   /** Uses native local clearing; a failed action remains visible and retryable. */
   async function continueAsGuest() {
-    if (session.operation === "signing-out") return;
+    if (session.operation === "signing-out") {
+      return;
+    }
     feedback.clear();
     const clearing = session.clearCredentials();
     try {
       await clearing;
       router.replace("/");
     } catch {
-      if (mounted.current) feedback.error();
+      if (mounted.current) {
+        feedback.error();
+      }
     }
   }
 

@@ -22,11 +22,13 @@ const VisitContext = createContext<
     }
   | undefined
 >(undefined);
+
 /** Supplies live route context; it retains no form after the owning route unmounts. */
 export function ClassificationVisitProvider({ children }: PropsWithChildren) {
   const [visit, setVisit] = useState<ClassificationVisit>();
   return <VisitContext value={{ visit, setVisit }}>{children}</VisitContext>;
 }
+
 /** Returns the optional live form context used by the parent and its sibling choice sheet. */
 export function useClassificationVisit() {
   return useContext(VisitContext);

@@ -42,6 +42,7 @@ export interface FollowedListsProps {
   active: boolean;
   bypass: boolean;
 }
+
 /** Render-only current identity slots; no follow state or loaded-count total is inferred from them. */
 type FollowedItem = SportingEntityCardProps & {
   kind: FollowingTarget["type"];
@@ -59,6 +60,7 @@ type FollowedRow =
       resource: FollowingTarget["type"];
       item: FollowedItem;
     };
+
 /** UUIDs retain their first position and latest current summary after offset movement; homonyms stay distinct. */
 function followedItems(
   pages: readonly FollowListPage[] | undefined,
@@ -93,6 +95,7 @@ function followedItems(
     ).values(),
   ];
 }
+
 /** Query owns retained pages and reset semantics; only an explicit grouped refresh may publish gesture feedback. */
 function useFollowedList(
   props: FollowedListsProps,
@@ -120,6 +123,7 @@ function useFollowedList(
     ...options,
     enabled: (state) => active && state.state.status !== "error",
   });
+
   /** Native scroll continuation stops after failure; only its explicit footer retries the same page. */
   async function append(retry = false) {
     if (
@@ -127,13 +131,17 @@ function useFollowedList(
       query.isFetching ||
       !query.hasNextPage ||
       (query.isError && !retry)
-    )
+    ) {
       return;
+    }
     await query.fetchNextPage({ cancelRefetch: false });
   }
+
   /** Retains authorized pages on failure; footer retries stay silent and a grouped gesture supplies its sole notice callback. */
   async function refresh(onFailure?: () => void) {
-    if (!active || !query.data || query.isFetching) return;
+    if (!active || !query.data || query.isFetching) {
+      return;
+    }
     await client.cancelQueries({ queryKey: options.queryKey, exact: true });
     try {
       await client.infiniteQuery({ ...options, staleTime: 0, pages: 1 });
@@ -142,12 +150,15 @@ function useFollowedList(
       if (
         current.current === identity &&
         followedItems(retained?.pages).length > 0
-      )
+      ) {
         onFailure?.();
+      }
     }
   }
+
   return { query, items: followedItems(query.data?.pages), append, refresh };
 }
+
 /** Approved Home sections retain native scroll context and open exact F03 sheets through the existing F11 owner. */
 export function FollowedLists(props: FollowedListsProps) {
   const [expanded, setExpanded] = useState({ team: true, pool: true });
@@ -157,21 +168,27 @@ export function FollowedLists(props: FollowedListsProps) {
   const { colors } = useTheme();
   const sporting = useSportingNavigation(props.active);
   const feedback = useActionFeedback();
+
   /** One pull waits for both collections and shares one notice; each read retains its own current-context guard. */
   async function refresh() {
     feedback.clear();
     let reported = false;
+
     /** Publishes at most one error for this gesture, without changing either read's independent outcome. */
     function reportFailure() {
-      if (reported) return;
+      if (reported) {
+        return;
+      }
       reported = true;
       feedback.error();
     }
+
     await Promise.all([
       teams.refresh(reportFailure),
       pools.refresh(reportFailure),
     ]);
   }
+
   const rows: FollowedRow[] = (["team", "pool"] as const).flatMap(
     (resource) => [
       { key: `${resource}-heading`, kind: "heading" as const, resource },
@@ -206,7 +223,7 @@ export function FollowedLists(props: FollowedListsProps) {
     !pools.items.length &&
     !teams.query.hasNextPage &&
     !pools.query.hasNextPage
-  )
+  ) {
     return (
       <PageScrollView refreshControl={refreshControl}>
         <ScreenState>
@@ -214,6 +231,7 @@ export function FollowedLists(props: FollowedListsProps) {
         </ScreenState>
       </PageScrollView>
     );
+  }
   return (
     <PageList
       {...hiddenScrollIndicators}
@@ -262,7 +280,7 @@ export function FollowedLists(props: FollowedListsProps) {
             </Pressable>
           );
         }
-        if (row.kind === "item")
+        if (row.kind === "item") {
           return (
             <View style={styles.card}>
               <SportingEntityCard
@@ -273,6 +291,7 @@ export function FollowedLists(props: FollowedListsProps) {
               />
             </View>
           );
+        }
         return (
           <View style={styles.feedback}>
             {!list.items.length && list.query.isError ? (
@@ -280,8 +299,9 @@ export function FollowedLists(props: FollowedListsProps) {
                 onRetry={
                   props.active && expanded[row.resource]
                     ? () => {
-                        if (props.active && expanded[row.resource])
+                        if (props.active && expanded[row.resource]) {
                           void list.query.refetch();
+                        }
                       }
                     : undefined
                 }
@@ -322,6 +342,7 @@ export function FollowedLists(props: FollowedListsProps) {
     />
   );
 }
+
 /** Empty current visibility offers manual discovery without claiming that retained relations were erased. */
 function NoAvailableFollows() {
   const router = useRouter();
@@ -339,6 +360,7 @@ function NoAvailableFollows() {
     </EmptyState>
   );
 }
+
 const styles = StyleSheet.create({
   content: { paddingHorizontal: tokens.spacing.lg },
   heading: {

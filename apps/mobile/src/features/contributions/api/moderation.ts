@@ -46,6 +46,7 @@ export type ModerationChange = {
   versionId: string;
   body: UpdateModeratedStreamContributionRequest;
 };
+
 /** Reactivation targets a historical source rather than whichever version is now active. */
 export type ModerationReactivation = {
   versionId: string;
@@ -76,15 +77,19 @@ function useModerationAuthority() {
       });
     }
   }, [client, profile.isSuccess, profile.data]);
+
   /** Captured native credentials refuse a different subject before private dispatch. */
   async function request(signal?: AbortSignal) {
     const credentials = await session.getCredentials();
-    if (!credentials) throw new ApiError("http", 401);
+    if (!credentials) {
+      throw new ApiError("http", 401);
+    }
     return admission.request({
       signal,
       headers: { Authorization: `Bearer ${credentials.accessToken}` },
     });
   }
+
   return { allowed, canRetain, session, profile, request };
 }
 
@@ -156,11 +161,13 @@ export function useModerationQueue(filters: ModerationFilters, enabled = true) {
     getNextPageParam: (page) => page.nextPage,
   });
   const query = useInfiniteQuery(options);
+
   /** Replaces a traversal from page zero only after a successful native first-page fetch. */
   async function refresh() {
     await client.cancelQueries({ queryKey: options.queryKey, exact: true });
     return client.fetchInfiniteQuery({ ...options, staleTime: 0, pages: 1 });
   }
+
   return { ...authority, query, refresh };
 }
 
@@ -196,11 +203,13 @@ export function useModerationVersions(
     getNextPageParam: (page) => page.nextPage,
   });
   const query = useInfiniteQuery(options);
+
   /** Restarts this traversal at page zero without discarding an accepted page on read failure. */
   async function refresh() {
     await client.cancelQueries({ queryKey: options.queryKey, exact: true });
     return client.fetchInfiniteQuery({ ...options, staleTime: 0, pages: 1 });
   }
+
   return { ...authority, query, refresh };
 }
 
@@ -214,17 +223,19 @@ export function useModerationMatch(
   const authority = reading;
   const client = useQueryClient();
   const matchKey = useConsultationQueries().match(matchId).queryKey;
+
   /** Invalidates original private traversals and public F03 composition without rejecting an acknowledged mutation. */
   function settled(data: unknown, error: unknown) {
-    if (isAccessDenied(error))
+    if (isAccessDenied(error)) {
       client.removeQueries({
         predicate: (query) => isModerationResource(query.queryKey[0]),
       });
+    }
     for (const queryKey of [
       getListStreamModerationQueryKey(),
       getListModeratedStreamContributionsQueryKey(matchId),
     ]) {
-      if (data !== undefined)
+      if (data !== undefined) {
         client.setQueriesData<InfiniteData<unknown>>({ queryKey }, (current) =>
           current
             ? {
@@ -234,6 +245,7 @@ export function useModerationMatch(
               }
             : current,
         );
+      }
       void client.invalidateQueries({ queryKey });
     }
     const resource = getListModeratedStreamContributionsQueryKey(matchId)[0];
@@ -244,6 +256,7 @@ export function useModerationMatch(
     });
     void client.invalidateQueries({ queryKey: matchKey, exact: true });
   }
+
   const publish = useMutation({
     mutationKey: [
       ...getCreateModeratedStreamContributionMutationKey(),
@@ -287,6 +300,7 @@ export function useModerationMatch(
       ),
     onSettled: settled,
   });
+
   /** Explicit match refresh also rereads open exact-version reports, including unchanged totals after erasure. */
   async function refresh() {
     const resource = getListModeratedStreamContributionsQueryKey(matchId)[0];
@@ -303,6 +317,7 @@ export function useModerationMatch(
       ),
     ]);
   }
+
   return { ...reading, publish, change, reactivate, refresh };
 }
 

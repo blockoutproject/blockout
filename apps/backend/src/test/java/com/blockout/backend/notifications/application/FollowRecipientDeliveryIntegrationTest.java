@@ -82,7 +82,9 @@ class FollowRecipientDeliveryIntegrationTest extends ContributionScenario {
                         "SELECT away_team_id FROM sporting_match WHERE id=?",
                         UUID.class,
                         matchId))));
-    for (FollowContext origin : origins) follows.replace(origin, true);
+    for (FollowContext origin : origins) {
+      follows.replace(origin, true);
+    }
     sql.update(
         "INSERT INTO push_subscription(id,subscription_id,installation_id,account_id,expo_push_token,revision) VALUES (?,?,?,?,?,0)",
         UUID.fromString("00000000-0000-4000-8000-000000000090"),
@@ -193,7 +195,9 @@ class FollowRecipientDeliveryIntegrationTest extends ContributionScenario {
     // Given
     announce(Producer.RESULT);
     if (eraseAccount) {
-      for (FollowContext origin : origins) follows.replace(origin, false);
+      for (FollowContext origin : origins) {
+        follows.replace(origin, false);
+      }
       sql.update("DELETE FROM account WHERE id=?", FOLLOWER);
     } else {
       sql.update("UPDATE sporting_match SET present=FALSE WHERE id=?", matchId);
@@ -303,11 +307,12 @@ class FollowRecipientDeliveryIntegrationTest extends ContributionScenario {
       result(2, ResultStateEnum.FINAL);
     } else {
       moderator(AUTHOR);
-      if (producer == Producer.DUE_LINK)
+      if (producer == Producer.DUE_LINK) {
         sql.update(
             "UPDATE sporting_match SET reliable_start=? WHERE id=?",
             Timestamp.from(NOW.plusSeconds(60)),
             matchId);
+      }
       submit(AUTHOR, "0", "https://youtube.com/advance", true);
       if (producer == Producer.DUE_LINK) {
         when(clock.instant()).thenReturn(NOW.plusSeconds(90));

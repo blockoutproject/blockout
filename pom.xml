@@ -1,11 +1,15 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8" ?>
+<project
+  xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
+>
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
     <version>4.1.1</version>
-    <relativePath/>
+    <relativePath />
   </parent>
   <groupId>com.blockout</groupId>
   <artifactId>blockout</artifactId>
@@ -23,8 +27,10 @@
     <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
     <checkstyle.version>14.3.0</checkstyle.version>
     <openapi-generator.version>7.26.0</openapi-generator.version>
-    <jackson-databind-nullable.version>0.2.12</jackson-databind-nullable.version>
-    <argLine/>
+    <jackson-databind-nullable.version>
+      0.2.12
+    </jackson-databind-nullable.version>
+    <argLine />
   </properties>
   <build>
     <plugins>
@@ -34,7 +40,9 @@
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
           <execution>
-            <goals><goal>properties</goal></goals>
+            <goals>
+              <goal>properties</goal>
+            </goals>
           </execution>
         </executions>
       </plugin>
@@ -42,7 +50,9 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar}</argLine>
+          <argLine>
+            @{argLine} -javaagent:${org.mockito:mockito-core:jar}
+          </argLine>
           <includes>
             <include>**/*Test.java</include>
           </includes>
@@ -56,7 +66,9 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
         <configuration>
-          <argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar}</argLine>
+          <argLine>
+            @{argLine} -javaagent:${org.mockito:mockito-core:jar}
+          </argLine>
           <includes>
             <include>**/*IntegrationTest.java</include>
             <include>**/*JpaTest.java</include>
@@ -80,7 +92,7 @@
             <googleJavaFormat>
               <version>${google-java-format.version}</version>
             </googleJavaFormat>
-            <removeUnusedImports/>
+            <removeUnusedImports />
           </java>
         </configuration>
         <executions>
@@ -103,7 +115,9 @@
           </dependency>
         </dependencies>
         <configuration>
-          <configLocation>${maven.multiModuleProjectDirectory}/checkstyle.xml</configLocation>
+          <configLocation>
+            ${maven.multiModuleProjectDirectory}/checkstyle.xml
+          </configLocation>
           <includeTestSourceDirectory>true</includeTestSourceDirectory>
           <consoleOutput>true</consoleOutput>
           <excludeGeneratedSources>true</excludeGeneratedSources>

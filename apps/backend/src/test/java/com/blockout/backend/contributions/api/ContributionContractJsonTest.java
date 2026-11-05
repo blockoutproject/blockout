@@ -344,10 +344,11 @@ class ContributionContractJsonTest {
     // Given
     StreamReportsResponse response =
         new StreamReportsResponse(0L, new java.util.ArrayList<>()).nextPage(107374182L);
-    for (int i = 0; i < 20; i++)
+    for (int i = 0; i < 20; i++) {
       response.addItemsItem(
           new com.blockout.backend.generated.mobile.model.StreamReportResponse(
               UUID.fromString(ID), java.time.OffsetDateTime.parse("2026-10-24T12:00:00Z"), null));
+    }
 
     // When
     boolean twentyValid = validator.validate(response).isEmpty();

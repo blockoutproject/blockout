@@ -48,10 +48,12 @@ jest.mock(
   () => {
     const React = require("react");
     const View = require("react-native/Libraries/Components/View/View").default;
+
     /** Projects native refresh inputs without simulating a gesture or a request lifecycle. */
     function RefreshControl(props) {
       return React.createElement(View, props);
     }
+
     return { __esModule: true, default: RefreshControl };
   },
 );

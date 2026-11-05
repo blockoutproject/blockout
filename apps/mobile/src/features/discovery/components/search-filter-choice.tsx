@@ -27,7 +27,7 @@ export function SearchFilterChoice() {
     field !== "divisionId" &&
     field !== "format" &&
     field !== "gender"
-  )
+  ) {
     return (
       <Sheet title="Filtres" onClose={() => router.back()}>
         <SheetContent>
@@ -35,6 +35,7 @@ export function SearchFilterChoice() {
         </SheetContent>
       </Sheet>
     );
+  }
   const title = {
     seasonId: "Saison",
     divisionId: "Division",
@@ -94,7 +95,7 @@ export function SearchFilterChoice() {
                 label={choice.label}
                 selected={values[field] === choice.value}
                 onPress={() => {
-                  if (field === "format")
+                  if (field === "format") {
                     visit.draft.setValue(
                       field,
                       choice.value === undefined
@@ -102,7 +103,7 @@ export function SearchFilterChoice() {
                         : SportFormatEnum.parse(choice.value),
                       { shouldDirty: true },
                     );
-                  else if (field === "gender")
+                  } else if (field === "gender") {
                     visit.draft.setValue(
                       field,
                       choice.value === undefined
@@ -110,10 +111,11 @@ export function SearchFilterChoice() {
                         : SportGenderEnum.parse(choice.value),
                       { shouldDirty: true },
                     );
-                  else
+                  } else {
                     visit.draft.setValue(field, choice.value, {
                       shouldDirty: true,
                     });
+                  }
                   router.back();
                 }}
               />

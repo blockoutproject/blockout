@@ -26,6 +26,7 @@ export function followingFixture() {
   });
   let session: AccountSession;
   let admission: ReturnType<typeof useApplicationAccess>;
+
   /** Exposes real owner APIs without replacing their lifecycle or Query behavior. */
   function Probe({ children }: { children: ReactNode }) {
     const current = useAccountSession();
@@ -43,10 +44,13 @@ export function followingFixture() {
     }, [current, access, privateClient]);
     return children;
   }
+
   return {
     /** Clears every observed private cache and the public cache after React cleanup. */
     dispose() {
-      for (const cache of clients) cache.clear();
+      for (const cache of clients) {
+        cache.clear();
+      }
       clients.clear();
     },
     get client() {

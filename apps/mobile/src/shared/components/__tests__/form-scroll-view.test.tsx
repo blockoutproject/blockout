@@ -38,6 +38,7 @@ it.each(["ios", "android"] as const)(
     const onScroll = jest.fn();
     const user = userEvent.setup();
     let scrollTo: jest.SpyInstance | undefined;
+
     /** Observes the public adapter ref; native event-to-offset delivery still needs a device. */
     function NativeScrollBoundary() {
       const { scrollRef } = useTabPageContext();
@@ -47,7 +48,9 @@ it.each(["ios", "android"] as const)(
           accessibilityLabel="Revenir au début"
           onPress={() => {
             const native: ScrollViewInstance | null = scrollRef.current;
-            if (native) scrollTo = jest.spyOn(native, "scrollTo");
+            if (native) {
+              scrollTo = jest.spyOn(native, "scrollTo");
+            }
             pager.current?.scrollToTop(false);
           }}
         >
@@ -55,6 +58,7 @@ it.each(["ios", "android"] as const)(
         </Pressable>
       );
     }
+
     await render(
       <GestureHandlerRootView>
         <Container ref={pager} initialTabName="active">

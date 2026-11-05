@@ -18,8 +18,9 @@ export async function prepareSportingLogo(
     !Number.isSafeInteger(asset.height) ||
     asset.width < 1 ||
     asset.height < 1
-  )
+  ) {
     throw new ImageValidationError("Invalid dimensions");
+  }
   const original = new File(asset.uri);
   const mediaType = asset.mimeType ?? original.type;
   if (
@@ -45,7 +46,7 @@ export async function prepareSportingLogo(
   let rendered: ImageRef | undefined;
   let file: File | undefined;
   try {
-    if (asset.width * asset.height > 4194304)
+    if (asset.width * asset.height > 4194304) {
       context.resize({
         width: Math.max(
           1,
@@ -54,11 +55,13 @@ export async function prepareSportingLogo(
           ),
         ),
       });
+    }
     rendered = await context.renderAsync();
     const output = await rendered.saveAsync({ format: SaveFormat.PNG });
     file = new File(output.uri);
-    if (file.size < 1 || file.size > 5242880)
+    if (file.size < 1 || file.size > 5242880) {
       throw new ImageValidationError("Prepared image exceeds the upload limit");
+    }
     return file;
   } catch (error) {
     deleteOwnedImage(file);

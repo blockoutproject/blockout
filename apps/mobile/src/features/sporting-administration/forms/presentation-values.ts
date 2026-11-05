@@ -5,7 +5,7 @@ import type { PresentationValues } from "../schemas/presentation-schema";
 export function presentationValues(
   presentation: Presentation,
 ): PresentationValues {
-  if (presentation.kind === "division-creation")
+  if (presentation.kind === "division-creation") {
     return {
       kind: "division",
       name: "",
@@ -14,6 +14,7 @@ export function presentationValues(
       gradient: ["", "", ""],
       logo: { action: "keep" },
     };
+  }
   const division =
     presentation.kind === "division" ? presentation.data : undefined;
   const names =

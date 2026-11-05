@@ -19,7 +19,9 @@ export function useOrdinaryRequest() {
       const headers = new Headers(options.headers);
       headers.delete("Blockout-Maintenance-Bypass");
       if (bypass) {
-        if (!headers.has("Authorization")) throw new ApiError("http", 401);
+        if (!headers.has("Authorization")) {
+          throw new ApiError("http", 401);
+        }
         headers.set("Blockout-Maintenance-Bypass", "true");
       }
       return {

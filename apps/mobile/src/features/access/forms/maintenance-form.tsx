@@ -30,6 +30,7 @@ export interface MaintenanceFormProps {
   editing: ReturnType<typeof useMaintenanceSettings>;
   disabled?: boolean;
 }
+
 /** Owns one route-local content draft and independent activation, preserving typed input across refusals. */
 export function MaintenanceForm({
   settings,
@@ -70,30 +71,40 @@ export function MaintenanceForm({
   const rereadRequired = Math.max(settings.revision, 0) > baseline.revision;
   const validPreview =
     imageUrl !== "" && maintenanceImageSchema.safeParse(imageUrl).success;
+
   /** Reports ordinary failures while newer revisions retain their separate reread prompt. */
   function failed(error: unknown) {
-    if (!mounted.current) return;
-    if (!(error instanceof ApiError && error.status === 409))
+    if (!mounted.current) {
+      return;
+    }
+    if (!(error instanceof ApiError && error.status === 409)) {
       actionFeedback.error();
+    }
   }
+
   /** Submits supplied dirty content against its accepted editing revision, without activation. */
   async function submit(draft: MaintenanceValues) {
-    if (rereadRequired || busy) return;
+    if (rereadRequired || busy) {
+      return;
+    }
     if (
       !(await confirmAction({
         title: "Enregistrer le contenu ?",
         message: "L’activation reste inchangée.",
         confirmLabel: "Enregistrer",
       }))
-    )
+    ) {
       return;
+    }
     actionFeedback.clear();
     try {
       const command = editing.content.mutateAsync(
         toMaintenanceRequest(baseline.revision, draft, dirtyFields),
       );
       const accepted = await command;
-      if (!mounted.current) return;
+      if (!mounted.current) {
+        return;
+      }
       setState({
         baseline: accepted,
       });
@@ -102,9 +113,12 @@ export function MaintenanceForm({
       failed(error);
     }
   }
+
   /** Changes only the desired global state and leaves the content draft in RHF untouched. */
   async function activate() {
-    if (rereadRequired || busy) return;
+    if (rereadRequired || busy) {
+      return;
+    }
     if (
       !(await confirmAction({
         title: baseline.active
@@ -114,8 +128,9 @@ export function MaintenanceForm({
           "Cette action utilise le contenu enregistré. Votre brouillon est conservé.",
         confirmLabel: baseline.active ? "Désactiver" : "Activer",
       }))
-    )
+    ) {
       return;
+    }
     actionFeedback.clear();
     try {
       const command = editing.activation.mutateAsync({
@@ -123,7 +138,9 @@ export function MaintenanceForm({
         active: !baseline.active,
       });
       const accepted = await command;
-      if (!mounted.current) return;
+      if (!mounted.current) {
+        return;
+      }
       setState({
         baseline: accepted,
       });
@@ -131,11 +148,14 @@ export function MaintenanceForm({
       failed(error);
     }
   }
+
   /** Adopts explicitly reread settings while preserving dirty fields for a later submission. */
   async function reread() {
     actionFeedback.clear();
     const result = await (() => editing.query.refetch())();
-    if (!mounted.current) return;
+    if (!mounted.current) {
+      return;
+    }
     if (
       !result.data ||
       result.isError ||
@@ -154,6 +174,7 @@ export function MaintenanceForm({
       keepDirty: true,
     });
   }
+
   return (
     <View style={styles.form}>
       <Surface>
@@ -303,6 +324,7 @@ export function MaintenanceForm({
     </View>
   );
 }
+
 /** Retries only the current draft image's mounted decode attempt, leaving its URL and other fields untouched. */
 function MaintenanceImagePreview({ uri }: { uri: string }) {
   const [failed, setFailed] = useState(false);
@@ -319,6 +341,7 @@ function MaintenanceImagePreview({ uri }: { uri: string }) {
     />
   );
 }
+
 const styles = StyleSheet.create({
   heading: {
     flexDirection: "row",

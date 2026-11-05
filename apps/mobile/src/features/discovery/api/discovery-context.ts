@@ -29,13 +29,20 @@ export function createDiscoveryContext(
   let schema:
     typeof ListClubsParams | typeof ListTeamsParams | typeof ListPoolsParams =
     ListPoolsParams;
-  if (resource === "club") schema = ListClubsParams;
-  else if (resource === "team") schema = ListTeamsParams;
+  if (resource === "club") {
+    schema = ListClubsParams;
+  } else if (resource === "team") {
+    schema = ListTeamsParams;
+  }
   const parsed = schema.strict().parse(input);
   let q = (parsed.q ?? "").replace(/\p{White_Space}+/gu, " ").toLowerCase();
   // Folding leaves at most one ASCII space at either edge; preserve other control characters.
-  if (q.startsWith(" ")) q = q.slice(1);
-  if (q.endsWith(" ")) q = q.slice(0, -1);
+  if (q.startsWith(" ")) {
+    q = q.slice(1);
+  }
+  if (q.endsWith(" ")) {
+    q = q.slice(0, -1);
+  }
   if (
     (parsed.cursor !== undefined && q === "") ||
     (parsed.exampleIds !== undefined &&
@@ -50,12 +57,18 @@ export function createDiscoveryContext(
     ...parsed,
     ...(parsed.exampleIds ? { exampleIds: [...parsed.exampleIds] } : {}),
   });
-  if (params.exampleIds) Object.freeze(params.exampleIds);
+  if (params.exampleIds) {
+    Object.freeze(params.exampleIds);
+  }
   const { cursor: _cursor, ...filters } = params;
   const selection = Object.freeze({ ...filters, q });
   let queryKey;
-  if (resource === "club") queryKey = getListClubsQueryKey(selection);
-  else if (resource === "team") queryKey = getListTeamsQueryKey(selection);
-  else queryKey = getListPoolsQueryKey(selection);
+  if (resource === "club") {
+    queryKey = getListClubsQueryKey(selection);
+  } else if (resource === "team") {
+    queryKey = getListTeamsQueryKey(selection);
+  } else {
+    queryKey = getListPoolsQueryKey(selection);
+  }
   return Object.freeze({ resource, params, queryKey });
 }

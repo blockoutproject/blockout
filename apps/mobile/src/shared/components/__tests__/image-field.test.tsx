@@ -538,6 +538,7 @@ it("ignores a native selection returned after the field unmounts", async () => {
 it("shows accepted caller values and removes them only when the owner updates", async () => {
   // Given
   launch.mockResolvedValue({ canceled: false, assets: [photo] });
+
   /** Local controlled fixture, without upload or business persistence. */
   function Owner() {
     const [images, setImages] = useState([logo]);
@@ -562,6 +563,7 @@ it("shows accepted caller values and removes them only when the owner updates", 
       </MediaProviders>
     );
   }
+
   const user = userEvent.setup();
   await render(<Owner />);
 

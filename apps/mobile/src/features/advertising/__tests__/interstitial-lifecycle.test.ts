@@ -36,6 +36,7 @@ afterEach(() => {
   jest.restoreAllMocks();
   jest.useRealTimers();
 });
+
 /** One valid accepted sporting intent, with its own transient deduplication key. */
 function action() {
   return {
@@ -46,12 +47,16 @@ function action() {
     open: jest.fn(),
   };
 }
+
 /** Advances only accepted sporting actions; the SDK and time remain controlled by each test. */
 async function nineActions(
   lifecycle: ReturnType<typeof createInterstitialLifecycle>,
 ) {
-  for (let index = 0; index < 9; index++) await lifecycle.transition(action());
+  for (let index = 0; index < 9; index++) {
+    await lifecycle.transition(action());
+  }
 }
+
 it("preloads one instance with current request options and resets only on OPENED", async () => {
   // Given
   const { input } = advertisingContext();
@@ -102,17 +107,22 @@ it.each(["closed", "error", "rejected", "synchronous"])(
     ad.destroy.mockImplementation(() =>
       expect(destination.open).toHaveBeenCalledTimes(1),
     );
-    if (outcome === "rejected")
+    if (outcome === "rejected") {
       ad.show.mockRejectedValue(new Error("private provider payload"));
-    if (outcome === "synchronous")
+    }
+    if (outcome === "synchronous") {
       ad.show.mockImplementation(() => {
         throw new Error("private provider payload");
       });
+    }
     // When
     const result = lifecycle.transition(destination);
-    if (outcome === "closed") ad.emit(AdEventType.CLOSED);
-    if (outcome === "error")
+    if (outcome === "closed") {
+      ad.emit(AdEventType.CLOSED);
+    }
+    if (outcome === "error") {
       ad.emit(AdEventType.ERROR, { ...noFill, phase: "show" });
+    }
     await result;
     ad.emit(AdEventType.ERROR, noFill);
     ad.emit(AdEventType.CLOSED);
@@ -213,7 +223,9 @@ it.each(["privacy", "session", "destination"])(
       session = { subject: "auth0|other", accountId: "other" };
       input = { ...input, account: { ...input.account, ...session } };
     }
-    if (change === "destination") valid = false;
+    if (change === "destination") {
+      valid = false;
+    }
     lifecycle.invalidate();
     ad.emit(AdEventType.CLOSED);
     ad.emit(AdEventType.OPENED);
@@ -349,19 +361,23 @@ it.each(["create", "load", "sdk-error"])(
       getInput: () => input,
     });
     const ad = controlledInterstitial();
-    if (failure === "create")
+    if (failure === "create") {
       mockCreateAd.mockImplementationOnce(() => {
         throw new Error("private provider details");
       });
-    else mockCreateAd.mockReturnValueOnce(ad);
-    if (failure === "load")
+    } else {
+      mockCreateAd.mockReturnValueOnce(ad);
+    }
+    if (failure === "load") {
       ad.load.mockImplementationOnce(() => {
         throw new Error("private provider details");
       });
+    }
     // When
     lifecycle.preload();
-    if (failure === "sdk-error")
+    if (failure === "sdk-error") {
       ad.emit(AdEventType.ERROR, { ...noFill, reason: "network-error" });
+    }
     lifecycle.preload();
     const destination = action();
     await lifecycle.transition(destination);

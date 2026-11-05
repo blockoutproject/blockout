@@ -49,8 +49,9 @@ public class QualifySource {
    * @param context confirmed candidate capability
    */
   public void execute(CollectorLifecycle.AdmittedCycle context) {
-    if (context.getCycle().sourceBindingId() == null)
+    if (context.getCycle().sourceBindingId() == null) {
       throw new IllegalArgumentException("Candidate context required");
+    }
     context.nextReadOrdinal();
     Evidence evidence = qualify(context.getCycle().candidate());
     lifecycle.validate(
@@ -84,25 +85,28 @@ public class QualifySource {
                         .organizerReference(candidate.organizerReference())
                         .build())
                 .catalog();
-        if (!catalog.complete())
+        if (!catalog.complete()) {
           return new Evidence(
               SourceValidationStateEnum.INVALID,
               null,
               "Incomplete FFVB catalog",
               URI.create("urn:blockout:acquisition:structure"));
+        }
         season = candidate.seasonLabel();
       } else {
         ProviderResponse response = lnvHttp.page(candidate.candidateUrl());
         season = lnv.qualify(response.body(), response.url(), candidate.organizerReference());
       }
-      if (season == null)
+      if (season == null) {
         return new Evidence(SourceValidationStateEnum.CONFIRMATION_REQUIRED, null, null, null);
-      if (!season.equals(candidate.seasonLabel()))
+      }
+      if (!season.equals(candidate.seasonLabel())) {
         return new Evidence(
             SourceValidationStateEnum.INVALID,
             season,
             "Contradictory season evidence",
             URI.create("urn:blockout:acquisition:context"));
+      }
       return new Evidence(SourceValidationStateEnum.QUALIFIED, season, null, null);
     } catch (RuntimeException failure) {
       return new Evidence(

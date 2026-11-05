@@ -81,6 +81,7 @@ public interface SportingPresentationMapper {
   /**
    * Unwraps required nullable metadata only after generated binding has checked its presence.
    *
+   * @param <T> supplied scalar type
    * @param value present generated nullable scalar
    * @return explicit null or supplied value
    */
@@ -97,10 +98,11 @@ public interface SportingPresentationMapper {
   default NamePresentationResponse toDto(SportingPresentation.Names names) {
     NamePresentationResponse response =
         new NamePresentationResponse(names.sourceName(), names.effectiveName(), names.manualName());
-    if (names.effectiveShortName() != null)
+    if (names.effectiveShortName() != null) {
       response
           .effectiveShortName(names.effectiveShortName())
           .manualShortName(names.manualShortName());
+    }
     return response;
   }
 
@@ -191,7 +193,9 @@ public interface SportingPresentationMapper {
       Map<ContactField, SportingPresentation.ContactEdit> target,
       ContactField field,
       ContactFieldRequest request) {
-    if (request != null) target.put(field, toCommand(request));
+    if (request != null) {
+      target.put(field, toCommand(request));
+    }
   }
 
   /**

@@ -111,8 +111,9 @@ class SearchTraversalIntegrationTest {
       assertThat(nativeEngine.client.bulk(bulk.build()).errors()).isFalse();
     }
     List<UUID> stale = List.copyOf(expected.subList(2, 9));
-    for (UUID id : stale)
+    for (UUID id : stale) {
       sql.update("UPDATE sporting_club SET municipality_restricted = TRUE WHERE id = ?", id);
+    }
     expected = expected.stream().filter(id -> !stale.contains(id)).toList();
     nativeEngine.client.indices().refresh(r -> r.index(PREFIX + "-clubs"));
     List<UUID> seen = new ArrayList<>();
@@ -122,7 +123,9 @@ class SearchTraversalIntegrationTest {
     do {
       org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request =
           get("/clubs").param("q", term);
-      if (cursor != null) request.param("cursor", cursor);
+      if (cursor != null) {
+        request.param("cursor", cursor);
+      }
       JsonNode page =
           json.readTree(
               mvc.perform(request)
@@ -150,19 +153,21 @@ class SearchTraversalIntegrationTest {
     String term = "replacement";
     UUID first = UUID.fromString("00000000-0000-4000-8000-000000000091");
     UUID second = UUID.fromString("00000000-0000-4000-8000-000000000092");
-    for (UUID id : List.of(first, second))
+    for (UUID id : List.of(first, second)) {
       sql.update(
           "INSERT INTO sporting_club(id, provider, reference, source_name, municipality) VALUES (?, 'FFVB', ?, ?, 'Lyon')",
           id,
           id.toString(),
           term);
+    }
     for (com.blockout.backend.sporting.application.model.SportingPublicInput input :
-        owners.publicInputs(Kind.CLUB, Set.of(first, second)))
+        owners.publicInputs(Kind.CLUB, Set.of(first, second))) {
       nativeEngine.client.index(
           r ->
               r.index(PREFIX + "-clubs")
                   .id(input.id().toString())
                   .document(SearchDocuments.from(input)));
+    }
     nativeEngine.client.indices().refresh(r -> r.index(PREFIX + "-clubs"));
     mvc.perform(get("/clubs").param("q", term))
         .andExpect(status().isOk())

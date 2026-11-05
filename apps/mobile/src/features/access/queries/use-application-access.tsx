@@ -14,6 +14,7 @@ import type { SessionSnapshot } from "../../accounts/session/account-session-pro
 
 /** Explicit maintenance choice; the server checks the current principal's grant. */
 export type MaintenanceBypass = Pick<SessionSnapshot, "subject" | "accountId">;
+
 const AccessContext = createContext<ReturnType<typeof useProcessAccess> | null>(
   null,
 );
@@ -36,8 +37,11 @@ function useProcessAccess() {
     bypass,
     clearBypass,
     invalidate,
+    /** Records an eligible account session's local choice; true means recorded, never server authorization. */
     requestBypass(session: SessionSnapshot, eligible: boolean) {
-      if (!eligible || !session.accountId) return false;
+      if (!eligible || !session.accountId) {
+        return false;
+      }
       setBypass({
         subject: session.subject,
         accountId: session.accountId,
@@ -64,7 +68,8 @@ export function ApplicationAccessProvider({ children }: PropsWithChildren) {
 /** Returns the public access query and explicit maintenance choice. */
 export function useApplicationAccess() {
   const access = useContext(AccessContext);
-  if (!access)
+  if (!access) {
     throw new Error("Application access requires ApplicationAccessProvider");
+  }
   return access;
 }

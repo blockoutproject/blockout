@@ -28,13 +28,14 @@ export function serveAccount(accountId: string) {
     : transport.fetch;
   const fetch = jest.spyOn(transport, "fetch");
   fetch.mockImplementation(async (url, options) => {
-    if (String(url).endsWith("/accounts/me"))
+    if (String(url).endsWith("/accounts/me")) {
       return Response.json(
         accountResponse({
           accountId,
           principalCreatedAt: "2020-01-01T00:00:00Z",
         }),
       ) as Awaited<ReturnType<typeof transport.fetch>>;
+    }
     return previous
       ? previous(url, options)
       : (new Response(null, { status: 404 }) as Awaited<

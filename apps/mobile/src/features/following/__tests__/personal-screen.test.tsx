@@ -85,13 +85,16 @@ jest.mock("expo-router", () => ({
   useRouter: () => ({
     push: (href: unknown) => {
       mockPush(href);
-      if (href === "/season")
+      if (href === "/season") {
         jest.requireActual("expo-router").router.push(href);
+      }
     },
     back: () => {
       mockBack();
       const router = jest.requireActual("expo-router").router;
-      if (router.canGoBack()) router.back();
+      if (router.canGoBack()) {
+        router.back();
+      }
     },
     canGoBack: () => true,
   }),
@@ -229,15 +232,19 @@ async function mount(extra?: ReactNode) {
 
 /** Synthetic current-owner HTTP responses go through the actual generated validation. */
 async function transport(url: string, request?: RequestInit) {
-  if (url.endsWith("/application-access"))
+  if (url.endsWith("/application-access")) {
     return Response.json(applicationAccessResponse());
-  if (url.endsWith("/accounts/me")) return Response.json(profile);
-  if (url.includes("follow-options"))
+  }
+  if (url.endsWith("/accounts/me")) {
+    return Response.json(profile);
+  }
+  if (url.includes("follow-options")) {
     return Response.json({
       seasons: [newer, older],
       defaultSeasonId: proposed.id,
     });
-  if (new URL(url).pathname === `/accounts/${accountId}/team-follows`)
+  }
+  if (new URL(url).pathname === `/accounts/${accountId}/team-follows`) {
     return Response.json({
       items: [
         {
@@ -248,7 +255,8 @@ async function transport(url: string, request?: RequestInit) {
         },
       ],
     });
-  if (new URL(url).pathname === `/accounts/${accountId}/pool-follows`)
+  }
+  if (new URL(url).pathname === `/accounts/${accountId}/pool-follows`) {
     return Response.json({
       items: [
         {
@@ -258,7 +266,8 @@ async function transport(url: string, request?: RequestInit) {
         },
       ],
     });
-  if (new URL(url).pathname === `/accounts/${accountId}/matches`)
+  }
+  if (new URL(url).pathname === `/accounts/${accountId}/matches`) {
     return Response.json({
       hasAvailableFollows: true,
       calendar: {
@@ -273,6 +282,7 @@ async function transport(url: string, request?: RequestInit) {
         ],
       },
     });
+  }
   if (request?.method === "PUT") {
     proposed = newer;
     following = true;
@@ -358,7 +368,9 @@ it("shows separate current teams and pools in Following and opens their exact sp
 });
 afterEach(async () => {
   await cleanup();
-  for (const cache of clients) cache.clear();
+  for (const cache of clients) {
+    cache.clear();
+  }
   clients.clear();
   process.env = { ...environment };
   jest.restoreAllMocks();
@@ -620,13 +632,15 @@ it("leaves the actual club-season and search-input owners unchanged", async () =
   // Given
   const user = userEvent.setup();
   mockFetch.mockImplementation((url, request) => {
-    if (url.includes("/clubs/") && url.includes("/teams"))
+    if (url.includes("/clubs/") && url.includes("/teams")) {
       return Promise.resolve(Response.json({ seasonId: older.id, items: [] }));
-    if (url.includes("/clubs/"))
+    }
+    if (url.includes("/clubs/")) {
       return Promise.resolve(
         Response.json({ ...clubDetail(), seasons: [older, newer] }),
       );
-    if (url.includes("/sporting-search-options?"))
+    }
+    if (url.includes("/sporting-search-options?")) {
       return Promise.resolve(
         Response.json({
           resourceType: new URL(url).searchParams.get("resourceType"),
@@ -636,8 +650,10 @@ it("leaves the actual club-season and search-input owners unchanged", async () =
           genders: ["female", "male", "mixed"],
         }),
       );
-    if (url.includes("/teams?"))
+    }
+    if (url.includes("/teams?")) {
       return Promise.resolve(Response.json({ teams: [] }));
+    }
     return transport(url, request);
   });
   await mount(
@@ -959,6 +975,7 @@ it("restarts the selected completed traversal after a confirmed follow change an
   const oldSecond = "00000000-0000-4000-8000-000000000041";
   const oldThird = "00000000-0000-4000-8000-000000000042";
   const replacement = "00000000-0000-4000-8000-000000000043";
+
   /** Supplies valid generated envelopes; cursor and identities remain explicit in each request. */
   function calendar(
     url: string,
@@ -1001,13 +1018,21 @@ it("restarts the selected completed traversal after a confirmed follow change an
     };
     return Response.json(envelope);
   }
+
   mockFetch.mockImplementation((url, request) => {
     const parsed = new URL(url);
-    if (request?.method === "PUT") changed = true;
-    if (!parsed.pathname.endsWith("/matches")) return transport(url, request);
-    if (changed) return Promise.resolve(calendar(url, replacement, "Current"));
-    if (parsed.searchParams.get("nextDay") === "2026-10-19")
+    if (request?.method === "PUT") {
+      changed = true;
+    }
+    if (!parsed.pathname.endsWith("/matches")) {
+      return transport(url, request);
+    }
+    if (changed) {
+      return Promise.resolve(calendar(url, replacement, "Current"));
+    }
+    if (parsed.searchParams.get("nextDay") === "2026-10-19") {
       return late.promise;
+    }
     return Promise.resolve(
       parsed.searchParams.has("nextDay")
         ? calendar(url, oldSecond, "Second", "2026-10-19")
@@ -1167,8 +1192,9 @@ it("withdraws obsolete personal rows when a successful continuation establishes 
   // Given
   mockFetch.mockImplementation(async (url, request) => {
     const response = await transport(url, request);
-    if (new URL(url).pathname !== `/accounts/${accountId}/matches`)
+    if (new URL(url).pathname !== `/accounts/${accountId}/matches`) {
       return response;
+    }
     const first = await response.json();
     return Response.json(
       new URL(url).searchParams.has("nextDay")
@@ -1220,6 +1246,7 @@ it("retains its own calendar projection after an independent match-detail refusa
     }, []);
     return open ? <MatchScreen matchId={matchDetail().match.id} /> : null;
   }
+
   mockFetch.mockImplementation((url, request) =>
     new URL(url).pathname.startsWith("/matches/")
       ? Promise.resolve(new Response(null, { status: 404 }))
@@ -1265,8 +1292,9 @@ it("keeps current absence across previously visited personal categories", async 
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
   mockFetch.mockImplementation(async (url, request) => {
     const response = await transport(url, request);
-    if (new URL(url).pathname !== `/accounts/${accountId}/matches`)
+    if (new URL(url).pathname !== `/accounts/${accountId}/matches`) {
       return response;
+    }
     const body = await response.json();
     return Response.json({
       hasAvailableFollows: false,
@@ -1436,7 +1464,7 @@ it.each(
     let withdrawn = false;
     mockFetch.mockImplementation((url, request) => {
       const parsed = new URL(url);
-      if (withdrawn && parsed.pathname.endsWith("/follow-options"))
+      if (withdrawn && parsed.pathname.endsWith("/follow-options")) {
         return Promise.resolve(
           Response.json(
             fallback === "catalog"
@@ -1444,12 +1472,14 @@ it.each(
               : { seasons: [] },
           ),
         );
+      }
       if (
         withdrawn &&
         parsed.pathname.endsWith(`/${collection}`) &&
         parsed.searchParams.get("seasonId") === older.id
-      )
+      ) {
         return Promise.resolve(new Response(null, { status: 404 }));
+      }
       if (withdrawn && parsed.searchParams.get("seasonId") !== older.id) {
         if (parsed.pathname.endsWith("/matches")) {
           const envelope: PersonalMatchCalendarResponse = {
@@ -1466,8 +1496,9 @@ it.each(
           };
           return Promise.resolve(Response.json(envelope));
         }
-        if (/\/(team|pool)-follows$/.test(parsed.pathname))
+        if (/\/(team|pool)-follows$/.test(parsed.pathname)) {
           return Promise.resolve(Response.json({ items: [] }));
+        }
       }
       return transport(url, request);
     });
@@ -1556,10 +1587,12 @@ it.each(
     // Given
     let refused = false;
     mockFetch.mockImplementation((url, request) => {
-      if (refused && new URL(url).pathname.endsWith(`/${collection}`))
+      if (refused && new URL(url).pathname.endsWith(`/${collection}`)) {
         return Promise.resolve(new Response(null, { status: 404 }));
-      if (refused && url.endsWith("/follow-options") && outcome === "failed")
+      }
+      if (refused && url.endsWith("/follow-options") && outcome === "failed") {
         return Promise.reject(new TypeError("Synthetic options outage"));
+      }
       return transport(url, request);
     });
     await mount();
@@ -1573,10 +1606,11 @@ it.each(
     await screen.findByRole("link", {
       name: tab === "Suivis" ? /Étoile/ : /Ouvrir le match Home — Away/,
     });
-    if (tab === "Suivis")
+    if (tab === "Suivis") {
       await userEvent.press(
         screen.getByRole("button", { name: "Poules suivies", expanded: true }),
       );
+    }
     mockFetch.mockClear();
 
     // When
@@ -1627,12 +1661,14 @@ it.each([false, true])(
     let failed = false;
     mockFetch.mockImplementation((url, request) => {
       const pathname = new URL(url).pathname;
-      if (pathname === `/accounts/${accountId}/team-follows`)
+      if (pathname === `/accounts/${accountId}/team-follows`) {
         return failed
           ? Promise.reject(new TypeError("Synthetic empty-list outage"))
           : Promise.resolve(Response.json({ items: [] }));
-      if (emptyPools && pathname === `/accounts/${accountId}/pool-follows`)
+      }
+      if (emptyPools && pathname === `/accounts/${accountId}/pool-follows`) {
         return Promise.resolve(Response.json({ items: [] }));
+      }
       return transport(url, request);
     });
     await mount();
@@ -1646,7 +1682,7 @@ it.each([false, true])(
 
     // When
     failed = true;
-    if (emptyPools)
+    if (emptyPools) {
       await act(async () => {
         await client.invalidateQueries({
           queryKey: followListKey(
@@ -1657,11 +1693,12 @@ it.each([false, true])(
           exact: true,
         });
       });
-    else
+    } else {
       await fireEvent(
         screen.getByLabelText("Actualiser les données"),
         "refresh",
       );
+    }
 
     // Then
     await screen.findByRole("button", { name: "Réessayer" });
@@ -1680,8 +1717,9 @@ it.each([false, true])(
     // Then
     await screen.findByText("Aucun suivi à afficher");
     expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
-    if (!emptyPools)
+    if (!emptyPools) {
       expect(screen.getByRole("link", { name: /Poule A/ })).toBeOnTheScreen();
+    }
   },
 );
 
@@ -1702,11 +1740,13 @@ it("retains pages on append failure, deduplicates UUIDs and keeps homonyms disti
     classification: { format: "4x4" },
   };
   mockFetch.mockImplementation((url, request) => {
-    if (new URL(url).pathname !== `/accounts/${accountId}/team-follows`)
+    if (new URL(url).pathname !== `/accounts/${accountId}/team-follows`) {
       return transport(url, request);
+    }
     const next = new URL(url).searchParams.get("page") === "1";
-    if (next && failAppend)
+    if (next && failAppend) {
       return Promise.reject(new TypeError("Synthetic append failure"));
+    }
     return Promise.resolve(
       Response.json(
         next ? { items: [first, second] } : { items: [first], nextPage: 1 },
@@ -1939,9 +1979,12 @@ it("keeps an explicit read retry at the list edge after a failed first-page refr
   let unavailable = false;
   const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility");
   mockFetch.mockImplementation(async (url, request) => {
-    if (new URL(url).pathname !== `/accounts/${accountId}/team-follows`)
+    if (new URL(url).pathname !== `/accounts/${accountId}/team-follows`) {
       return transport(url, request);
-    if (unavailable) throw new TypeError("Synthetic refresh outage");
+    }
+    if (unavailable) {
+      throw new TypeError("Synthetic refresh outage");
+    }
     const response = await transport(url, request);
     return Response.json({ ...(await response.json()), nextPage: 1 });
   });

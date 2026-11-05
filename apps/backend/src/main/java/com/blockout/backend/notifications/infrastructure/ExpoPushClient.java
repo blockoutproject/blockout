@@ -28,14 +28,16 @@ public class ExpoPushClient implements PushProvider {
   /** {@inheritDoc} */
   @Override
   public List<Outcome> send(List<Message> messages) {
-    if (messages.isEmpty() || messages.size() > 100)
+    if (messages.isEmpty() || messages.size() > 100) {
       throw new IllegalArgumentException("Send batch limit");
+    }
     List<PushNotification> notifications = messages.stream().map(mapper::toDto).toList();
     try {
       List<Ticket> tickets = client.sendPushNotifications(notifications);
       List<Outcome> outcomes = new ArrayList<>();
-      for (int i = 0; i < messages.size(); i++)
+      for (int i = 0; i < messages.size(); i++) {
         outcomes.add(ticket(tickets != null && i < tickets.size() ? tickets.get(i) : null));
+      }
       report(outcomes, "ticket");
       return List.copyOf(outcomes);
     } catch (IOException failure) {
@@ -48,15 +50,20 @@ public class ExpoPushClient implements PushProvider {
   /** {@inheritDoc} */
   @Override
   public Map<String, Outcome> receipts(List<String> ids) {
-    if (ids.isEmpty() || ids.size() > 1000)
+    if (ids.isEmpty() || ids.size() > 1000) {
       throw new IllegalArgumentException("Receipt batch limit");
+    }
     Map<String, Outcome> outcomes = new LinkedHashMap<>();
     try {
       Map<String, Receipt> receipts = client.getPushNotificationReceipts(ids);
-      for (String id : ids) outcomes.put(id, receipt(receipts == null ? null : receipts.get(id)));
+      for (String id : ids) {
+        outcomes.put(id, receipt(receipts == null ? null : receipts.get(id)));
+      }
     } catch (IOException failure) {
       Outcome unavailable = failed(failure);
-      for (String id : ids) outcomes.put(id, unavailable);
+      for (String id : ids) {
+        outcomes.put(id, unavailable);
+      }
     }
     report(List.copyOf(outcomes.values()), "receipt");
     return Map.copyOf(outcomes);
@@ -69,14 +76,19 @@ public class ExpoPushClient implements PushProvider {
    * @return accepted ID, exact invalidation signal, ordinary rejection or uncertainty
    */
   private Outcome ticket(Ticket ticket) {
-    if (ticket == null) return new Outcome(Status.UNKNOWN, null);
+    if (ticket == null) {
+      return new Outcome(Status.UNKNOWN, null);
+    }
     if (ticket.getStatus() == com.niamedtech.expo.exposerversdk.response.Status.OK
         && ticket.getId() != null
-        && !ticket.getId().isBlank()) return new Outcome(Status.ACCEPTED, ticket.getId());
+        && !ticket.getId().isBlank()) {
+      return new Outcome(Status.ACCEPTED, ticket.getId());
+    }
     if (ticket.getStatus() == com.niamedtech.expo.exposerversdk.response.Status.ERROR) {
       Ticket.Details details = ticket.getDetails();
-      if (details != null && details.getError() == Ticket.Error.INVALID_CREDENTIALS)
+      if (details != null && details.getError() == Ticket.Error.INVALID_CREDENTIALS) {
         configurationAlert();
+      }
       return new Outcome(
           details != null && details.getError() == Ticket.Error.DEVICE_NOT_REGISTERED
               ? Status.DEVICE_NOT_REGISTERED
@@ -93,13 +105,17 @@ public class ExpoPushClient implements PushProvider {
    * @return bounded evidence at the APNs/FCM boundary only
    */
   private Outcome receipt(Receipt receipt) {
-    if (receipt == null) return new Outcome(Status.UNKNOWN, null);
-    if (receipt.getStatus() == com.niamedtech.expo.exposerversdk.response.Status.OK)
+    if (receipt == null) {
+      return new Outcome(Status.UNKNOWN, null);
+    }
+    if (receipt.getStatus() == com.niamedtech.expo.exposerversdk.response.Status.OK) {
       return new Outcome(Status.ACCEPTED, null);
+    }
     if (receipt.getStatus() == com.niamedtech.expo.exposerversdk.response.Status.ERROR) {
       Receipt.Details details = receipt.getDetails();
-      if (details != null && details.getError() == Receipt.Details.Error.INVALID_CREDENTIALS)
+      if (details != null && details.getError() == Receipt.Details.Error.INVALID_CREDENTIALS) {
         configurationAlert();
+      }
       return new Outcome(
           details != null && details.getError() == Receipt.Details.Error.DEVICE_NOT_REGISTERED
               ? Status.DEVICE_NOT_REGISTERED
@@ -131,7 +147,7 @@ public class ExpoPushClient implements PushProvider {
   private void report(List<Outcome> outcomes, String stage) {
     for (Status status : Status.values()) {
       long count = outcomes.stream().filter(value -> value.status() == status).count();
-      if (count > 0)
+      if (count > 0) {
         log.atInfo()
             .addKeyValue("operation", "expo_push_evidence")
             .addKeyValue("stage", stage)
@@ -139,6 +155,7 @@ public class ExpoPushClient implements PushProvider {
             .addKeyValue("outcome", status.name().toLowerCase(java.util.Locale.ROOT))
             .addKeyValue("affected_count", count)
             .log("Provider boundary evidence only");
+      }
     }
   }
 

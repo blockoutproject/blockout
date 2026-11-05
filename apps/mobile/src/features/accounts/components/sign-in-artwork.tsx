@@ -40,6 +40,7 @@ export function SignInArtwork() {
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   artwork: { width: "100%", aspectRatio: 414 / 518, overflow: "hidden" },
   block: {

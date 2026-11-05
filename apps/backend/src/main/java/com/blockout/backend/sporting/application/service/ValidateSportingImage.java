@@ -27,15 +27,18 @@ public class ValidateSportingImage {
    */
   @Transactional(propagation = Propagation.NEVER)
   public Image validate(byte[] bytes) {
-    if (bytes.length == 0 || bytes.length > MAX_BYTES) throw new SportingValidationException();
+    if (bytes.length == 0 || bytes.length > MAX_BYTES) {
+      throw new SportingValidationException();
+    }
     try {
       DecodedImage image =
           ImageDecoder.decode(
               bytes,
               false,
               header -> {
-                if ((long) header.width() * header.height() > MAX_DECODED_PIXELS)
+                if ((long) header.width() * header.height() > MAX_DECODED_PIXELS) {
                   throw new SportingValidationException();
+                }
               });
       image.pixels().flush();
       return new Image(bytes, image.mediaType());

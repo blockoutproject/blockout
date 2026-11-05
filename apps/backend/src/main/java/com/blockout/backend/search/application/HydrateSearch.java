@@ -34,8 +34,9 @@ public class HydrateSearch {
   public Map<UUID, SearchPage.Summary> current(
       SearchContext context, List<SearchEngine.Candidate> candidates) {
     Map<UUID, String> cities = new HashMap<>();
-    for (SearchEngine.Candidate candidate : candidates)
+    for (SearchEngine.Candidate candidate : candidates) {
       cities.put(candidate.position().id(), candidate.city());
+    }
     List<SportingPublicInput> admitted =
         owners
             .publicInputs(

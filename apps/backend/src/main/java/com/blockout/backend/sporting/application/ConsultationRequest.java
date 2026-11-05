@@ -50,8 +50,9 @@ public final class ConsultationRequest {
       Objects.requireNonNull(id, "Resource identity is required");
       Objects.requireNonNull(category, "Category is required");
       Objects.requireNonNull(timeZone, "Grouping zone is required");
-      if (kind == Kind.MATCH || (kind == Kind.CLUB) != (seasonId != null))
+      if (kind == Kind.MATCH || (kind == Kind.CLUB) != (seasonId != null)) {
         throw new IllegalArgumentException("Calendar requires a club/season, team or pool");
+      }
     }
 
     /** Captures the F03 traversal independently from this already admitted public selector. */

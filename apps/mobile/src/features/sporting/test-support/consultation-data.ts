@@ -43,20 +43,23 @@ export async function consultationResponse(
   const season = detail.match.pool.season;
   const parsed = new URL(url);
   const path = parsed.pathname;
-  if (path.endsWith("/application-access"))
+  if (path.endsWith("/application-access")) {
     return Response.json(applicationAccessResponse());
-  if (path === `/clubs/${sportingId}`)
+  }
+  if (path === `/clubs/${sportingId}`) {
     return Response.json({
       ...clubDetail("Club des Rives"),
       seasons: [season],
       contacts: { email: "club@example.invalid" },
     });
-  if (path.endsWith("/teams") && path.startsWith("/clubs/"))
+  }
+  if (path.endsWith("/teams") && path.startsWith("/clubs/")) {
     return Response.json({
       seasonId: parsed.searchParams.get("seasonId"),
       items: [],
     });
-  if (path === `/teams/${sportingId}`)
+  }
+  if (path === `/teams/${sportingId}`) {
     return Response.json({
       team: {
         team: { id: sportingId, name: "Équipe des Rives" },
@@ -66,9 +69,11 @@ export async function consultationResponse(
       },
       participations: [detail.match.pool],
     });
-  if (path === `/pools/${sportingId}`)
+  }
+  if (path === `/pools/${sportingId}`) {
     return Response.json({ pool: detail.match.pool });
-  if (path.endsWith("/standings"))
+  }
+  if (path.endsWith("/standings")) {
     return Response.json({
       poolId: sportingId,
       availability: "not-published",
@@ -76,15 +81,20 @@ export async function consultationResponse(
       columns: [],
       rows: [],
     });
-  if (path.endsWith("/participants"))
+  }
+  if (path.endsWith("/participants")) {
     return Response.json({ poolId: sportingId, items: [] });
-  if (path.startsWith("/matches/")) return Response.json(detail);
-  if (path === "/matches")
+  }
+  if (path.startsWith("/matches/")) {
+    return Response.json(detail);
+  }
+  if (path === "/matches") {
     return Response.json({
       category: parsed.searchParams.get("category"),
       timeZone: parsed.searchParams.get("timeZone"),
       evaluatedAt: "2026-10-25T12:00:00Z",
       days: [],
     });
+  }
   throw new Error(`Unexpected controlled request ${path}`);
 }

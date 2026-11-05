@@ -107,19 +107,22 @@ async function transport(url: string, options?: RequestInit) {
   const path = new URL(url).pathname;
   const ownerId = path.split("/")[2];
   const following = followedAccounts.has(ownerId);
-  if (path === "/application-access")
+  if (path === "/application-access") {
     return Response.json(applicationAccessResponse());
+  }
   if (path === "/accounts" && options?.method === "POST") {
     established = true;
     return Response.json(currentProfile, { status: 201 });
   }
-  if (path === "/accounts/me")
+  if (path === "/accounts/me") {
     return established
       ? Response.json(currentProfile)
       : Response.json({ title: "Not found", status: 404 }, { status: 404 });
-  if (path.endsWith("/follow-options"))
+  }
+  if (path.endsWith("/follow-options")) {
     return Response.json({ seasons: [season], defaultSeasonId: season.id });
-  if (path.endsWith("/team-follows"))
+  }
+  if (path.endsWith("/team-follows")) {
     return Response.json({
       items: following
         ? [
@@ -132,8 +135,11 @@ async function transport(url: string, options?: RequestInit) {
           ]
         : [],
     });
-  if (path.endsWith("/pool-follows")) return Response.json({ items: [] });
-  if (path.endsWith("/matches"))
+  }
+  if (path.endsWith("/pool-follows")) {
+    return Response.json({ items: [] });
+  }
+  if (path.endsWith("/matches")) {
     return Response.json({
       hasAvailableFollows: following,
       calendar: {
@@ -143,15 +149,18 @@ async function transport(url: string, options?: RequestInit) {
         days: [],
       },
     });
+  }
   if (path.endsWith(`/team-follows/${target.id}`)) {
     if (options?.method === "PUT") {
-      if (JSON.parse(String(options.body)).following)
+      if (JSON.parse(String(options.body)).following) {
         followedAccounts.add(ownerId);
-      else followedAccounts.delete(ownerId);
+      } else {
+        followedAccounts.delete(ownerId);
+      }
     }
     return Response.json({ following: followedAccounts.has(ownerId) });
   }
-  if (path.endsWith("/notification-summary"))
+  if (path.endsWith("/notification-summary")) {
     return Response.json(
       inbox.length
         ? {
@@ -160,8 +169,10 @@ async function transport(url: string, options?: RequestInit) {
           }
         : { unreadCount: 0 },
     );
-  if (path.endsWith("/notifications"))
+  }
+  if (path.endsWith("/notifications")) {
     return Response.json({ notifications: inbox });
+  }
   throw new Error(`Unexpected controlled request ${path}`);
 }
 

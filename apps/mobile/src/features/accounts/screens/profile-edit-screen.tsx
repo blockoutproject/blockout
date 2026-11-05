@@ -124,4 +124,5 @@ export function ProfileEditScreen({ admitted }: ProfileEditScreenProps) {
     </Page>
   );
 }
+
 const styles = StyleSheet.create({ centered: { justifyContent: "center" } });

@@ -72,7 +72,9 @@ public record InitialReconstructionProperties(
    */
   @AssertTrue(message = "Required reconstruction inputs are missing")
   public boolean isActionComplete() {
-    if (action == null) return true;
+    if (action == null) {
+      return true;
+    }
     return switch (action) {
       case PREPARE ->
           startYear != null

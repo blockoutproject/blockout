@@ -31,15 +31,19 @@ export function usePersonalSeason(
     options.isSuccess &&
     !options.isFetching &&
     choice !== (seasonId ?? null)
-  )
+  ) {
     setChoice(seasonId ?? null);
+  }
+
   /** Applies an explicit choice or an established fallback only to this mounted personal space. */
   function selectSeason(value: string | undefined) {
     setChoice(value ?? null);
   }
+
   /** Recalculates from the most recent successful options without replacing choice data on failure. */
   function resetSeason() {
     selectSeason(options.data?.defaultSeasonId);
   }
+
   return { options, seasonId, selectSeason, resetSeason };
 }

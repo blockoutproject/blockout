@@ -312,8 +312,12 @@ it("keeps an erased owner's inbox unavailable when an earlier refresh and read f
   const delayedPage = Promise.withResolvers<Response>();
   const delayedRead = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url: string, init: RequestInit) => {
-    if (init.method === "PATCH") return delayedRead.promise;
-    if (url.endsWith("/notifications")) return delayedPage.promise;
+    if (init.method === "PATCH") {
+      return delayedRead.promise;
+    }
+    if (url.endsWith("/notifications")) {
+      return delayedPage.promise;
+    }
     return Promise.resolve(new Response(null, { status: 404 }));
   });
   const refresh = client
@@ -390,8 +394,12 @@ it("keeps other notifications but invalidates the exact total when a member is m
   const summary = { unreadCount: 2, nextExpiryAt: "2026-11-01T00:00:00Z" };
   let initial = true;
   mockFetch.mockImplementation(async (url, init) => {
-    if (init.method === "PATCH") return new Response(null, { status: 404 });
-    if (!initial) throw new TypeError("offline during refresh");
+    if (init.method === "PATCH") {
+      return new Response(null, { status: 404 });
+    }
+    if (!initial) {
+      throw new TypeError("offline during refresh");
+    }
     return String(url).endsWith("/notification-summary")
       ? Response.json(summary)
       : Response.json({ notifications: [row, survivor] });
@@ -480,8 +488,9 @@ it("reconciles independent clients after a lost read response and offline unload
     if (
       secondOffline &&
       new Headers(init.headers).get("Fixture-Client") === "two"
-    )
+    ) {
       throw new TypeError("offline second client");
+    }
     if (init.method === "PATCH") {
       if (!read) {
         read = true;
@@ -489,10 +498,12 @@ it("reconciles independent clients after a lost read response and offline unload
       }
       throw new TypeError("lost read acknowledgement");
     }
-    if (url.endsWith("notification-summary"))
+    if (url.endsWith("notification-summary")) {
       return Response.json({ unreadCount: total, nextExpiryAt });
-    if (url.endsWith("/notifications"))
+    }
+    if (url.endsWith("/notifications")) {
       return Response.json({ notifications: [{ ...row, read }, second] });
+    }
     throw new Error("No member reconciliation endpoint is expected");
   });
   const list = new InfiniteQueryObserver(client, queries.inbox);

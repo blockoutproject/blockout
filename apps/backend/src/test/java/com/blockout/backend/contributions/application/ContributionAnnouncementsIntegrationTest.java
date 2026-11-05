@@ -854,7 +854,9 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
         ids.add(created.entry().id());
         relationCounts.add(created.relations().size());
       }
-      if (fail) throw new IllegalStateException("Controlled external sender failure");
+      if (fail) {
+        throw new IllegalStateException("Controlled external sender failure");
+      }
     }
   }
 }

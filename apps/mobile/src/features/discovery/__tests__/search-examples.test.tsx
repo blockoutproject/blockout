@@ -95,13 +95,15 @@ let pro: ProContext;
 /** Controls HTTP only; the generated client, Query, navigation and feature owners stay real. */
 function publicReads(url: string): Promise<Response> {
   const parsed = new URL(url);
-  if (parsed.pathname.endsWith("/application-access"))
+  if (parsed.pathname.endsWith("/application-access")) {
     return Promise.resolve(Response.json(applicationAccessResponse()));
-  if (parsed.pathname.endsWith("/accounts/me"))
+  }
+  if (parsed.pathname.endsWith("/accounts/me")) {
     return Promise.resolve(
       Response.json(accountResponse({ accountId: firstId })),
     );
-  if (parsed.pathname.endsWith("/sporting-search-options"))
+  }
+  if (parsed.pathname.endsWith("/sporting-search-options")) {
     return Promise.resolve(
       Response.json({
         resourceType: parsed.searchParams.get("resourceType"),
@@ -111,7 +113,8 @@ function publicReads(url: string): Promise<Response> {
         genders: ["female"],
       }),
     );
-  if (parsed.pathname.endsWith("/clubs"))
+  }
+  if (parsed.pathname.endsWith("/clubs")) {
     return Promise.resolve(
       Response.json({
         clubs: [
@@ -120,7 +123,8 @@ function publicReads(url: string): Promise<Response> {
         ],
       }),
     );
-  if (parsed.pathname.endsWith(`/clubs/${secondId}`))
+  }
+  if (parsed.pathname.endsWith(`/clubs/${secondId}`)) {
     return Promise.resolve(
       Response.json({
         club: { id: secondId, name: "Volley Niort" },
@@ -128,7 +132,8 @@ function publicReads(url: string): Promise<Response> {
         seasons: [],
       }),
     );
-  if (parsed.pathname.endsWith("/teams"))
+  }
+  if (parsed.pathname.endsWith("/teams")) {
     return Promise.resolve(
       Response.json({
         teams: [
@@ -142,7 +147,8 @@ function publicReads(url: string): Promise<Response> {
         ],
       }),
     );
-  if (parsed.pathname.endsWith("/pools"))
+  }
+  if (parsed.pathname.endsWith("/pools")) {
     return Promise.resolve(
       Response.json({
         pools: [
@@ -156,8 +162,10 @@ function publicReads(url: string): Promise<Response> {
         ],
       }),
     );
+  }
   throw new Error(`Unexpected controlled path ${parsed.pathname}`);
 }
+
 /** Observes the real account and private client; failure scenarios explicitly disable read retries. */
 function PrivateQueries({ children }: QueryFixtureProps) {
   const current = useQueryClient();
@@ -295,11 +303,13 @@ it.each([
     customerInfo: info,
     created: false,
   });
-  if (access === "unknown")
+  if (access === "unknown") {
     mockPurchases.getCustomerInfo.mockRejectedValue(
       new Error("Synthetic store outage"),
     );
-  else mockPurchases.getCustomerInfo.mockResolvedValue(info);
+  } else {
+    mockPurchases.getCustomerInfo.mockResolvedValue(info);
+  }
   const user = userEvent.setup();
   await renderSearch();
   await screen.findByText("Club public");
@@ -310,7 +320,7 @@ it.each([
     expect(session.accountId).toBe(access === "guest" ? null : firstId),
   );
   await waitFor(() => expect(pro.state.status).toBe(expectedPro));
-  if (access === "unknown")
+  if (access === "unknown") {
     await waitFor(() =>
       expect(pro.state).toEqual({
         status: "unavailable",
@@ -318,6 +328,7 @@ it.each([
         operation: "idle",
       }),
     );
+  }
 
   // When
   await user.press(screen.getByRole("tab", { name: "Clubs" }));
@@ -407,7 +418,7 @@ it.each(["tab", "text"])(
       const reads = collectionCalls("clubs").length;
       mockFetch.mockImplementation((url: string) => {
         const parsed = new URL(url);
-        if (parsed.pathname.endsWith("/clubs"))
+        if (parsed.pathname.endsWith("/clubs")) {
           return Promise.resolve(
             Response.json({
               clubs: [
@@ -426,17 +437,19 @@ it.each(["tab", "text"])(
               ],
             }),
           );
+        }
         return publicReads(url);
       });
 
       // When: the same visit returns after the native unused-cache collection delay.
       await act(async () => jest.advanceTimersByTime(5 * 60 * 1000 + 1));
-      if (away === "tab")
+      if (away === "tab") {
         await user.press(screen.getByRole("tab", { name: "Clubs" }));
-      else
+      } else {
         await user.press(
           screen.getByRole("button", { name: "Effacer la recherche" }),
         );
+      }
 
       // Then: returning keeps the accepted selection until its own authoritative reread.
       expect(await screen.findByText("Niort")).toBeOnTheScreen();

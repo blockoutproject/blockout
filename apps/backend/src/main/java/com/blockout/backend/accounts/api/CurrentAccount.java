@@ -33,7 +33,9 @@ public class CurrentAccount {
    */
   public Optional<UUID> findId() {
     if (!(SecurityContextHolder.getContext().getAuthentication()
-        instanceof JwtAuthenticationToken authentication)) return Optional.empty();
+        instanceof JwtAuthenticationToken authentication)) {
+      return Optional.empty();
+    }
     return accounts.currentId(
         authentication.getToken().getIssuer().toString(), authentication.getToken().getSubject());
   }

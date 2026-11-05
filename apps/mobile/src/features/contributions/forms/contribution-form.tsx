@@ -32,6 +32,7 @@ export interface ContributionFormProps {
   /** Current private active projection; pristine fields follow accepted version changes without replacing dirty drafts. */
   replacement?: OwnStreamContributionResponse;
 }
+
 /** Retains the ordinary address editor through page-owned refresh failures and confirms native intent before each write. */
 export function ContributionForm({
   matchId,
@@ -58,8 +59,9 @@ export function ContributionForm({
   const { isDirty } = useFormState({ control });
   useEffect(() => {
     // RHF owns dirtiness during this mounted visit; only a pristine field follows a newly accepted active version.
-    if (replacement && !getFieldState("url").isDirty)
+    if (replacement && !getFieldState("url").isDirty) {
       reset(contributionValues(replacement.url));
+    }
   }, [getFieldState, replacement, reset]);
   useDiscardChanges(isDirty, () => {
     reset(contributionValues());
@@ -68,6 +70,7 @@ export function ContributionForm({
   const busy = submit.isPending || change.isPending || query.isFetching;
   const disabled =
     !editing.usable || query.isError || !current.eligibility.canSubmit;
+
   /** Acknowledges the saved address before leaving for the exact match, without abandoning a dirty form. */
   function finish(url: string) {
     reset(contributionValues(url));
@@ -75,9 +78,12 @@ export function ContributionForm({
       router.dismissTo({ pathname: "/matches/[matchId]", params: { matchId } });
     }
   }
+
   /** Confirms the validated literal and viewed revision once; failures preserve the draft. */
   async function send(values: ContributionValues) {
-    if (busy || disabled) return;
+    if (busy || disabled) {
+      return;
+    }
     const body = { revision: current.revision, url: values.url };
     const confirmed = await confirmAction({
       title: replacement ? "Remplacer ce lien ?" : "Soumettre ce lien ?",
@@ -87,7 +93,9 @@ export function ContributionForm({
       confirmLabel: replacement ? "Remplacer le lien" : "Soumettre le lien",
       cancelLabel: "Continuer la saisie",
     });
-    if (!confirmed || !mounted.current) return;
+    if (!confirmed || !mounted.current) {
+      return;
+    }
     feedback.clear();
     const attempt = submit.mutateAsync(body);
     try {
@@ -95,18 +103,24 @@ export function ContributionForm({
       // A reopened route may already own this control while the original callback is detached.
       finish(accepted.contribution.url);
     } catch (error) {
-      if (!mounted.current) return;
+      if (!mounted.current) {
+        return;
+      }
       if (error instanceof ApiError && error.status === 422) {
         setError("url", {
           message: "Le lien a été refusé. Votre saisie est conservée.",
         });
-      } else feedback.error(contributionErrorMessage(error));
+      } else {
+        feedback.error(contributionErrorMessage(error));
+      }
     }
   }
+
   /** Withdraws the exact displayed published version independently of eligibility for a new proposal. */
   async function withdraw() {
-    if (!replacement?.canWithdraw || !editing.usable || query.isError || busy)
+    if (!replacement?.canWithdraw || !editing.usable || query.isError || busy) {
       return;
+    }
     const target = {
       versionId: replacement.id,
       body: { action: "withdraw" as const, revision: current.revision },
@@ -118,17 +132,22 @@ export function ContributionForm({
       cancelLabel: "Conserver",
       destructive: true,
     });
-    if (!confirmed || !mounted.current) return;
+    if (!confirmed || !mounted.current) {
+      return;
+    }
     feedback.clear();
     const attempt = change.mutateAsync(target);
     try {
       const accepted = await attempt;
       finish(accepted.contribution.url);
     } catch (error) {
-      if (!mounted.current) return;
+      if (!mounted.current) {
+        return;
+      }
       feedback.error(contributionErrorMessage(error));
     }
   }
+
   return (
     <Surface>
       <View style={styles.header}>
@@ -199,6 +218,7 @@ export function ContributionForm({
     </Surface>
   );
 }
+
 const styles = StyleSheet.create({
   form: { gap: tokens.layout.form.gap },
   header: {

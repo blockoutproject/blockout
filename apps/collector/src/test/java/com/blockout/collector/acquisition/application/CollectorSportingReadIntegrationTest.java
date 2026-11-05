@@ -100,7 +100,9 @@ class CollectorSportingReadIntegrationTest {
    */
   @AfterAll
   static void stopBackend() throws Exception {
-    if (runtime != null) runtime.close();
+    if (runtime != null) {
+      runtime.close();
+    }
   }
 
   /**
@@ -146,9 +148,13 @@ class CollectorSportingReadIntegrationTest {
   @AfterEach
   void closeClients() throws Exception {
     try {
-      if (transport != null) transport.close();
+      if (transport != null) {
+        transport.close();
+      }
     } finally {
-      if (publicHttp != null) publicHttp.close();
+      if (publicHttp != null) {
+        publicHttp.close();
+      }
     }
   }
 
@@ -838,9 +844,10 @@ class CollectorSportingReadIntegrationTest {
       // When: the ordinary reader first fails to obtain bytes, then refuses unreadable HTML.
       org.mockito.Mockito.doAnswer(
               call -> {
-                if (failure.equals("technical"))
+                if (failure.equals("technical")) {
                   throw new java.io.UncheckedIOException(
                       new java.io.IOException("Synthetic unavailable source"));
+                }
                 return new ProviderResponse(
                     "<html>unreadable synthetic content</html>".getBytes(StandardCharsets.UTF_8),
                     call.getArgument(0),

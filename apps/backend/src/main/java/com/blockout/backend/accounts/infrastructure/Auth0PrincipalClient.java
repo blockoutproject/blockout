@@ -33,8 +33,9 @@ public class Auth0PrincipalClient implements PrincipalReader {
                       .fields("user_id,email,created_at")
                       .includeFields(true)
                       .build());
-      if (principal.getUserId().filter(subject::equals).isEmpty())
+      if (principal.getUserId().filter(subject::equals).isEmpty()) {
         throw new AccountUnavailableException();
+      }
       String candidate = principal.getEmail().orElse(null);
       String email = validator.validate(new ProviderEmail(candidate)).isEmpty() ? candidate : null;
       return new Evidence(

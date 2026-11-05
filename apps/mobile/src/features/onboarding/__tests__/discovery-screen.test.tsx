@@ -32,7 +32,9 @@ afterEach(async () => {
 /** Applies the root's installation-read and completion boundaries without replacing discovery behavior. */
 function Journey() {
   const discovery = useDiscovery();
-  if (discovery.loading) return <RequestLoading />;
+  if (discovery.loading) {
+    return <RequestLoading />;
+  }
   return discovery.complete ? (
     <Text>Ordinary routes</Text>
   ) : (

@@ -32,7 +32,9 @@ export function MatchLinks({
 }: MatchLinksProps) {
   const { colors } = useTheme();
   const url = safeWebsite(detail.streamUrl);
-  if (!url && !action && !primaryAction) return null;
+  if (!url && !action && !primaryAction) {
+    return null;
+  }
   const target = `${detail.match.id}:${detail.streamContributionId ?? "professional"}:${url}`;
   return (
     <MatchSurface division={detail.match.pool.classification.division}>

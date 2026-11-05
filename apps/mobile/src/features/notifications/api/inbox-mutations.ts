@@ -7,6 +7,7 @@ import {
   type InboxData,
   type createInboxQueries,
 } from "./inbox-queries";
+
 /** Sends true-only read intent; ordinary invalidation establishes the next server representation. */
 export function createReadNotificationOptions(
   client: QueryClient,
@@ -14,7 +15,9 @@ export function createReadNotificationOptions(
   queries: ReturnType<typeof createInboxQueries>,
 ) {
   const accountId = owner.accountId;
-  if (!accountId) throw new ApiError("cancelled");
+  if (!accountId) {
+    throw new ApiError("cancelled");
+  }
   return mutationOptions({
     mutationKey: [...queries.inbox.queryKey, "read"],
     retry: false,

@@ -6,10 +6,12 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { EntryRow } from "../../../shared/components/entry-row";
 import { usePro } from "../pro-provider";
+
 /** Profile command supplied by the native host owner; guests always take the ordinary F05 invitation. */
 export interface ProEntryProps {
   onOpenPresentation: () => void;
 }
+
 /** Profile action only; native offering selection, entitlement presentation and operations remain T025-owned. */
 export function ProEntry({ onOpenPresentation }: ProEntryProps) {
   const account = useAccountSession();
@@ -31,17 +33,23 @@ export function ProEntry({ onOpenPresentation }: ProEntryProps) {
         />
       }
       onPress={() => {
-        if (guest) router.push("/sign-in-invitation");
-        else onOpenPresentation();
+        if (guest) {
+          router.push("/sign-in-invitation");
+        } else {
+          onOpenPresentation();
+        }
       }}
     />
   );
 }
+
 /** Shows only current SDK-established membership; unknown rights never imply a free account. */
 export function ProProfileBadge() {
   const { state } = usePro();
   const { colors, membership } = useTheme();
-  if (state.status !== "active" && state.status !== "inactive") return null;
+  if (state.status !== "active" && state.status !== "inactive") {
+    return null;
+  }
   const active = state.status === "active";
   return (
     <View
@@ -64,6 +72,7 @@ export function ProProfileBadge() {
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   icon: {
     width: tokens.size.icon.md,

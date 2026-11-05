@@ -9,8 +9,11 @@ export function toMaintenanceRequest(
   dirty: FieldNamesMarkedBoolean<MaintenanceValues>,
 ): ChangeMaintenanceRequest {
   const body: ChangeMaintenanceRequest = { revision };
-  if (dirty.message) body.message = values.message;
-  if (dirty.imageUrl)
+  if (dirty.message) {
+    body.message = values.message;
+  }
+  if (dirty.imageUrl) {
     body.imageUrl = values.imageUrl === "" ? null : values.imageUrl;
+  }
   return body;
 }

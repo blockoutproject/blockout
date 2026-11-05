@@ -42,9 +42,10 @@ public class MatchDocumentClient implements MatchDocumentSource {
                       || url.query() != null
                       || url.fragment() != null
                       || !url.username().isEmpty()
-                      || !url.password().isEmpty())
+                      || !url.password().isEmpty()) {
                     throw new IllegalArgumentException(
                         "Document origins must contain only an HTTP(S) origin");
+                  }
                   return origin(url);
                 })
             .collect(Collectors.toUnmodifiableSet());
@@ -86,35 +87,43 @@ public class MatchDocumentClient implements MatchDocumentSource {
                     .add("codmatch", reference.informationSheet().matchCode())
                     .add("codent", reference.informationSheet().organizerReference())
                     .build());
-      } else request.url(reference.url().toString());
+      } else {
+        request.url(reference.url().toString());
+      }
       Request current = request.build();
       for (int redirects = 0; ; redirects++) {
         requireOrigin(current.url());
         try (Response response = http.newCall(current).execute()) {
           if (Set.of(301, 302, 303, 307, 308).contains(response.code())) {
-            if (redirects >= properties.maxRedirects())
+            if (redirects >= properties.maxRedirects()) {
               throw new MatchDocumentUnavailableException();
+            }
             String location = response.header("Location");
             HttpUrl next = location == null ? null : current.url().resolve(location);
-            if (next == null || (current.url().isHttps() && !next.isHttps()))
+            if (next == null || (current.url().isHttps() && !next.isHttps())) {
               throw new MatchDocumentUnavailableException();
+            }
             requireOrigin(next);
             Request.Builder redirected = current.newBuilder().url(next);
             if (response.code() == 303
                 || ((response.code() == 301 || response.code() == 302)
-                    && current.method().equals("POST"))) redirected.get();
+                    && current.method().equals("POST"))) {
+              redirected.get();
+            }
             current = redirected.build();
             continue;
           }
-          if (!response.isSuccessful() || response.body() == null)
+          if (!response.isSuccessful() || response.body() == null) {
             throw new MatchDocumentUnavailableException();
+          }
           String type =
               response.body().contentType() == null
                   ? ""
                   : response.body().contentType().toString().split(";", 2)[0].trim();
           if (!type.equalsIgnoreCase("application/pdf")
-              && !type.equalsIgnoreCase("application/octet-stream"))
+              && !type.equalsIgnoreCase("application/octet-stream")) {
             throw new MatchDocumentUnavailableException();
+          }
           byte[] bytes = response.body().byteStream().readNBytes(properties.maxBytes() + 1);
           if (bytes.length > properties.maxBytes()
               || bytes.length < 12
@@ -125,7 +134,9 @@ public class MatchDocumentClient implements MatchDocumentSource {
                       Math.max(0, bytes.length - 1024),
                       Math.min(bytes.length, 1024),
                       StandardCharsets.ISO_8859_1)
-                  .contains("%%EOF")) throw new MatchDocumentUnavailableException();
+                  .contains("%%EOF")) {
+            throw new MatchDocumentUnavailableException();
+          }
           return bytes;
         }
       }
@@ -149,7 +160,9 @@ public class MatchDocumentClient implements MatchDocumentSource {
     if (!url.username().isEmpty()
         || !url.password().isEmpty()
         || url.fragment() != null
-        || !origins.contains(origin(url))) throw new MatchDocumentUnavailableException();
+        || !origins.contains(origin(url))) {
+      throw new MatchDocumentUnavailableException();
+    }
   }
 
   /**

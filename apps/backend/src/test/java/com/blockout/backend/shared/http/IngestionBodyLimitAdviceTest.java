@@ -29,7 +29,9 @@ class IngestionBodyLimitAdviceTest {
     int length = 5_242_912;
     ByteArrayInputStream content = new ByteArrayInputStream(new byte[length]);
     MockHttpInputMessage message = new MockHttpInputMessage(content);
-    if (declaredLength) message.getHeaders().setContentLength(length);
+    if (declaredLength) {
+      message.getHeaders().setContentLength(length);
+    }
     MethodParameter parameter =
         new MethodParameter(
             SportingIngestionController.class.getMethod(

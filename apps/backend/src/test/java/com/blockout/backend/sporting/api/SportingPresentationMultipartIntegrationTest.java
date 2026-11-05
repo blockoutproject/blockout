@@ -137,7 +137,7 @@ class SportingPresentationMultipartIntegrationTest {
     HttpHeaders jsonHeaders = new HttpHeaders();
     jsonHeaders.setContentType(MediaType.APPLICATION_JSON);
     parts.add("metadata", new HttpEntity<>(metadata.getBytes(StandardCharsets.UTF_8), jsonHeaders));
-    if (image != null)
+    if (image != null) {
       parts.add(
           "image",
           new ByteArrayResource(image) {
@@ -147,6 +147,7 @@ class SportingPresentationMultipartIntegrationTest {
               return "synthetic.png";
             }
           });
+    }
     MockHttpOutputMessage output = new MockHttpOutputMessage();
     new FormHttpMessageConverter().write(parts, MediaType.MULTIPART_FORM_DATA, output);
     return output;

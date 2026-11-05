@@ -96,8 +96,9 @@ jest.mock("react-native-purchases", () => ({
 }));
 jest.mock("expo/fetch", () => ({
   fetch: async (url: RequestInfo | URL) => {
-    if (!String(url).endsWith("/application-access"))
+    if (!String(url).endsWith("/application-access")) {
       return Response.json(mockAccountResponse());
+    }
     const response = mockApplicationAccessResponse();
     return Response.json({
       ...response,

@@ -30,7 +30,9 @@ export async function removeUnavailableFollowTarget(
     const data = client.getQueryData<InfiniteData<FollowListPage>>(
       query.queryKey,
     );
-    if (!data) continue;
+    if (!data) {
+      continue;
+    }
     query.setState({
       data: {
         ...data,
@@ -84,7 +86,9 @@ export async function withdrawUnavailableFollowLists(
       const data = client.getQueryData<InfiniteData<FollowListPage>>(
         query.queryKey,
       );
-      if (!data) continue;
+      if (!data) {
+        continue;
+      }
       const empty =
         seasonId === undefined || selectedSeason(query.queryKey) === seasonId;
       query.setState({

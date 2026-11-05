@@ -19,7 +19,9 @@ export interface MatchSetScoresProps {
 /** Approved Set Scores pattern; no empty score panel before any result or set detail is accepted. */
 export function MatchSetScores({ match, sets }: MatchSetScoresProps) {
   const { colors } = useTheme();
-  if (!match.result && !sets) return null;
+  if (!match.result && !sets) {
+    return null;
+  }
   return (
     <MatchSurface division={match.pool.classification.division}>
       <View style={styles.content}>

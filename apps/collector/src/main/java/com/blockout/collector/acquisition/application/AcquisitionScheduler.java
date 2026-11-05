@@ -80,9 +80,13 @@ public class AcquisitionScheduler {
           || (!initial
               && (!control.enabled()
                   || (control.seasonId() != null
-                      && control.seasonState() != CollectionSeasonStateEnum.ACTIVE)))) continue;
+                      && control.seasonState() != CollectionSeasonStateEnum.ACTIVE)))) {
+        continue;
+      }
       boolean minuteWork = control.requestId() != null || control.seasonId() == null;
-      if (minuteWork != requests) continue;
+      if (minuteWork != requests) {
+        continue;
+      }
       schedule(control.id(), null, control.revision(), control.requestId());
     }
   }
@@ -103,8 +107,11 @@ public class AcquisitionScheduler {
                   () -> {
                     CollectorLifecycle.AdmittedCycle context =
                         lifecycle.admit(controlId, sourceBindingId, revision, requestId);
-                    if (sourceBindingId == null) passages.execute(context);
-                    else qualification.execute(context);
+                    if (sourceBindingId == null) {
+                      passages.execute(context);
+                    } else {
+                      qualification.execute(context);
+                    }
                   }));
     } catch (TaskRejectedException saturated) {
       log.atWarn()
@@ -120,7 +127,9 @@ public class AcquisitionScheduler {
    * @param work one current read, admission or independently scheduled discovery
    */
   private void safely(Runnable work) {
-    if (!lifecycle.isActive()) return;
+    if (!lifecycle.isActive()) {
+      return;
+    }
     try {
       lifecycle.requireActive();
       work.run();

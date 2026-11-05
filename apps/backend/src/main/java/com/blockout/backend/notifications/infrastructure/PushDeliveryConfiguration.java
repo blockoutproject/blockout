@@ -106,7 +106,9 @@ public class PushDeliveryConfiguration {
         ExpoPushNotificationClient.builder()
             .setHttpClient(httpClient)
             .setBaseUri("https://exp.host/--/api/v2");
-    if (properties.enabled()) builder.setAccessToken(properties.accessToken());
+    if (properties.enabled()) {
+      builder.setAccessToken(properties.accessToken());
+    }
     return builder;
   }
 

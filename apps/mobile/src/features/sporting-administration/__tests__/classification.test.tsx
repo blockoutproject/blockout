@@ -115,6 +115,7 @@ let permissions: Record<string, boolean>;
 let client: QueryClient;
 let publicClient = createQueryClient();
 const environment = { ...process.env };
+
 /** Deterministic transport responses still pass through the real generated schema boundary. */
 function json(value: unknown, status = 200) {
   return new Response(JSON.stringify(value), {
@@ -125,6 +126,7 @@ function json(value: unknown, status = 200) {
     },
   });
 }
+
 /** Synthetic baseline HTTP peer; each scenario owns its changed network outcome. */
 async function respond(
   url: RequestInfo | URL,
@@ -152,6 +154,7 @@ async function respond(
           : stored,
   );
 }
+
 beforeEach(async () => {
   await completeDiscovery();
   jest.mocked(initializeV2Installation).mockResolvedValue();
@@ -179,6 +182,7 @@ afterEach(async () => {
   process.env = { ...environment };
   jest.restoreAllMocks();
 });
+
 /** Selects the real private client with one-shot reads and no detached mutation GC timers in these scenarios. */
 function PrivateQueries({ children }: PropsWithChildren) {
   const current = useQueryClient();
@@ -243,6 +247,7 @@ async function renderEditor(
     },
   );
 }
+
 it("announces the pending division catalogue without inventing editable rows", async () => {
   // Given
   const response = Promise.withResolvers<Response>();
@@ -518,8 +523,9 @@ it("uses an independent explicit activity command with the division revision", a
   jest.spyOn(Alert, "alert");
   let current = division;
   mockFetch.mockImplementation((url, options) => {
-    if (options?.method === "PUT")
+    if (options?.method === "PUT") {
       current = { ...division, revision: "d2", active: false };
+    }
     return String(url).includes(`/divisions/${divisionId}`)
       ? Promise.resolve(json(current))
       : respond(url, options);
@@ -728,6 +734,7 @@ function PermissionRefresh() {
     </Pressable>
   );
 }
+
 /** Real root and operational layouts retain all declared routes; unrelated destinations remain probes. */
 async function openRoutes() {
   return renderRouter(
@@ -869,14 +876,15 @@ it.each(["classification", "activity"])(
     client.setQueryData(clubKey, { seasonId: inactiveId, items: [] });
 
     // When
-    if (operation === "activity")
+    if (operation === "activity") {
       await user.press(
         await screen.findByRole("button", { name: "Désactiver la division" }),
       );
-    else
+    } else {
       await user.press(
         await screen.findByRole("button", { name: "Enregistrer" }),
       );
+    }
     await act(async () =>
       nativeAlertAction(
         operation === "activity" ? "Désactiver" : "Enregistrer",
@@ -884,10 +892,11 @@ it.each(["classification", "activity"])(
     );
 
     // Then
-    if (operation === "activity")
+    if (operation === "activity") {
       await screen.findByText(
         "Division désactivée. L’historique est conservé.",
       );
+    }
     await waitFor(() =>
       expect(client.getQueryState(clubKey)?.isInvalidated).toBe(true),
     );
@@ -903,7 +912,9 @@ it("distinguishes a stale revision and uses the reread revision only on explicit
   jest.spyOn(Alert, "alert");
   let refuse = true;
   mockFetch.mockImplementation((url, options) => {
-    if (options?.method !== "PUT") return respond(url, options);
+    if (options?.method !== "PUT") {
+      return respond(url, options);
+    }
     if (refuse) {
       stored = { ...stored, revision: "r2" };
       return Promise.resolve(
@@ -1142,8 +1153,9 @@ it("discards a held classification confirmation when its protected route is remo
     .mock.lastCall?.[2]?.find(
       (action) => action.text === "Enregistrer",
     )?.onPress;
-  if (!confirmation)
+  if (!confirmation) {
     throw new Error("Missing native classification confirmation");
+  }
 
   // When
   permissions = {};

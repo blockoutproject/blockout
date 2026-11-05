@@ -12,6 +12,7 @@ import { useMaintenanceSettings } from "../api/use-maintenance-settings";
 import { MaintenanceForm } from "../forms/maintenance-form";
 import { MaintenanceLoading } from "../components/settings-loading";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
+
 /** Loads only with current grants and retains an existing draft read-only when they become unavailable. */
 export function MaintenanceSettingsScreen() {
   const { permissions, account, sessionStatus } =
@@ -24,18 +25,26 @@ export function MaintenanceSettingsScreen() {
     isAccessDenied(account.error) || isAccessDenied(editing.query.error);
   const settings =
     sessionStatus === "authenticated" ? editing.query.data : undefined;
+
   /** Explicit refresh reports retained-data failure once and never resets the mounted draft. */
   async function refresh() {
-    if (editing.content.isPending) return;
+    if (editing.content.isPending) {
+      return;
+    }
     feedback.clear();
     if (!canManage) {
       const result = await account.refetch();
-      if (result.isError && settings) feedback.error();
+      if (result.isError && settings) {
+        feedback.error();
+      }
       return;
     }
     const result = await editing.query.refetch();
-    if (result.isError && result.data) feedback.error();
+    if (result.isError && result.data) {
+      feedback.error();
+    }
   }
+
   let accessError = null;
   if (
     sessionStatus === "authenticated" &&

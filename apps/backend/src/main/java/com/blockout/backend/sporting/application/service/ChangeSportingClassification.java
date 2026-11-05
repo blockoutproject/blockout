@@ -52,7 +52,9 @@ public class ChangeSportingClassification {
     DivisionDetail division = lockDivision(setting);
     authorization.require(accountId, Permission.MANAGE_SPORTING_CLASSIFICATION);
     SportingEditRevision.require(revision, ClassificationView.from(pack).revision());
-    if (Objects.equals(setting, pack.setting())) return ClassificationView.from(pack);
+    if (Objects.equals(setting, pack.setting())) {
+      return ClassificationView.from(pack);
+    }
     List<UUID> pools =
         store.packPools(packId).stream()
             .filter(pool -> pool.setting() == null)
@@ -88,7 +90,9 @@ public class ChangeSportingClassification {
     DivisionDetail division = lockDivision(effective);
     authorization.require(accountId, Permission.MANAGE_SPORTING_CLASSIFICATION);
     SportingEditRevision.require(revision, ClassificationView.from(pool, pack).revision());
-    if (Objects.equals(setting, pool.setting())) return ClassificationView.from(pool, pack);
+    if (Objects.equals(setting, pool.setting())) {
+      return ClassificationView.from(pool, pack);
+    }
     requireActive(division, List.of(poolId));
     correct(List.of(poolId), effective);
     store.setPoolClassification(poolId, setting);
@@ -104,7 +108,9 @@ public class ChangeSportingClassification {
    * @throws SportingConflictException if any identity or outside participation conflicts
    */
   private void correct(List<UUID> poolIds, SportingClassification target) {
-    if (target == null) return;
+    if (target == null) {
+      return;
+    }
     List<TeamView> teams = store.teamsInPools(poolIds);
     List<UUID> teamIds = teams.stream().map(TeamView::id).toList();
     Set<UUID> conflicts = new LinkedHashSet<>();
@@ -146,7 +152,8 @@ public class ChangeSportingClassification {
    * @throws SportingConflictException if the target is inactive
    */
   private void requireActive(DivisionDetail division, List<UUID> pools) {
-    if (division != null && !division.active())
+    if (division != null && !division.active()) {
       throw new SportingConflictException("classification-conflict", pools);
+    }
   }
 }

@@ -106,7 +106,9 @@ public class AccountsController implements AccountsApi {
    */
   private ResponseEntity<AccountResponse> response(boolean original, ReadAccount.View view) {
     ResponseEntity.BodyBuilder response = ResponseEntity.ok().cacheControl(CacheControl.noStore());
-    if (original) response.header("Accept-Patch", "multipart/form-data");
+    if (original) {
+      response.header("Accept-Patch", "multipart/form-data");
+    }
     return response.body(mapper.toDto(view.account(), view.hasPhoto(), view.permissions()));
   }
 }

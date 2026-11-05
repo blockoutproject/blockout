@@ -58,16 +58,23 @@ public class AnnouncementRecipients {
     Set<UUID> candidates = new HashSet<>(follows.recipients(targets).keySet());
     candidates.addAll(additionalAccounts);
     List<UUID> usable = new ArrayList<>();
-    for (UUID accountId : candidates.stream().sorted().toList())
-      if (accounts.lock(accountId)) usable.add(accountId);
+    for (UUID accountId : candidates.stream().sorted().toList()) {
+      if (accounts.lock(accountId)) {
+        usable.add(accountId);
+      }
+    }
     Map<UUID, Set<Relation>> current = follows.recipients(targets);
     Set<UUID> locked = Set.copyOf(usable);
     // A new lower UUID cannot be locked now without reversing the global account order.
-    if (!locked.containsAll(current.keySet())) throw new AnnouncementAudienceChangedException();
+    if (!locked.containsAll(current.keySet())) {
+      throw new AnnouncementAudienceChangedException();
+    }
     List<Recipient> recipients = new ArrayList<>();
     for (UUID accountId : usable) {
       Set<Relation> relations = current.getOrDefault(accountId, Set.of());
-      if (!relations.isEmpty()) recipients.add(new Recipient(accountId, relations));
+      if (!relations.isEmpty()) {
+        recipients.add(new Recipient(accountId, relations));
+      }
     }
     return new Selection(List.copyOf(recipients), locked);
   }

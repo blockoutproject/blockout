@@ -76,6 +76,7 @@ const mockFetch = jest.fn<
   [RequestInfo | URL, RequestInit?]
 >();
 const previous = { ...process.env };
+
 /** Uses the actual public action and its read owner, as the match refresh composition does. */
 function Entry({ header = false }: { header?: boolean }) {
   const entry = useMatchContributionAction(
@@ -83,6 +84,7 @@ function Entry({ header = false }: { header?: boolean }) {
   );
   return <MatchContributionAction entry={entry} header={header} />;
 }
+
 let client = createQueryClient();
 let privateClient: ReturnType<typeof createQueryClient>;
 let context = ownContributions();
@@ -109,9 +111,12 @@ beforeEach(() => {
   context = ownContributions();
   mockFetch.mockReset().mockImplementation(async (url) => {
     const path = new URL(String(url)).pathname;
-    if (path.endsWith("/application-access"))
+    if (path.endsWith("/application-access")) {
       return Response.json(applicationAccessResponse());
-    if (path.endsWith("/me")) return Response.json(accountResponse());
+    }
+    if (path.endsWith("/me")) {
+      return Response.json(accountResponse());
+    }
     return Response.json(
       path.includes("/stream-contributions") ? context : matchDetail(),
     );
@@ -137,9 +142,12 @@ it.each(["refused", "owner outage", "profile outage"])(
         ((initial === "owner outage" &&
           String(url).includes("/stream-contributions")) ||
           (initial === "profile outage" && String(url).endsWith("/me")))
-      )
+      ) {
         throw new TypeError("Controlled test network failure");
-      if (!peer) throw new Error("Missing test HTTP boundary");
+      }
+      if (!peer) {
+        throw new Error("Missing test HTTP boundary");
+      }
       return peer(url, init);
     });
     await render(
@@ -209,10 +217,12 @@ it.each([false, true])(
       eligibility: { canSubmit: false, requiresApproval: false },
     });
     const boundary = mockFetch.getMockImplementation();
-    if (!boundary) throw new Error("Missing test HTTP boundary");
+    if (!boundary) {
+      throw new Error("Missing test HTTP boundary");
+    }
     const detail = matchDetail();
     mockFetch.mockImplementation((url, init) => {
-      if (new URL(String(url)).pathname === `/matches/${detail.match.id}`)
+      if (new URL(String(url)).pathname === `/matches/${detail.match.id}`) {
         return Promise.resolve(
           Response.json({
             ...detail,
@@ -221,6 +231,7 @@ it.each([false, true])(
               : {}),
           }),
         );
+      }
       return boundary(url, init);
     });
 
@@ -315,8 +326,12 @@ it.each([
   const response = Promise.withResolvers<Response>();
   const peer = mockFetch.getMockImplementation();
   mockFetch.mockImplementation((url, init) => {
-    if (String(url).includes("/stream-contributions")) return response.promise;
-    if (!peer) throw new Error("Missing test HTTP boundary");
+    if (String(url).includes("/stream-contributions")) {
+      return response.promise;
+    }
+    if (!peer) {
+      throw new Error("Missing test HTTP boundary");
+    }
     return peer(url, init);
   });
   await render(
@@ -437,7 +452,7 @@ it.each(["exact owner", "different owner", "missing projection"] as const)(
     const detail = matchDetail();
     const boundary = mockFetch.getMockImplementation();
     mockFetch.mockImplementation((url, init) => {
-      if (new URL(String(url)).pathname === `/matches/${detail.match.id}`)
+      if (new URL(String(url)).pathname === `/matches/${detail.match.id}`) {
         return Promise.resolve(
           Response.json({
             ...detail,
@@ -445,7 +460,10 @@ it.each(["exact owner", "different owner", "missing projection"] as const)(
             streamContributionId: publicId,
           }),
         );
-      if (!boundary) throw new Error("Missing test HTTP boundary");
+      }
+      if (!boundary) {
+        throw new Error("Missing test HTTP boundary");
+      }
       return boundary(url, init);
     });
     const user = userEvent.setup();
@@ -529,7 +547,7 @@ it.each(["own", "other", "failure"] as const)(
     let firstRead = true;
     mockFetch.mockImplementation((url, init) => {
       const path = new URL(String(url)).pathname;
-      if (path === `/matches/${detail.match.id}`)
+      if (path === `/matches/${detail.match.id}`) {
         return Promise.resolve(
           Response.json({
             ...detail,
@@ -537,11 +555,14 @@ it.each(["own", "other", "failure"] as const)(
             streamContributionId: publicId,
           }),
         );
+      }
       if (path.includes("/stream-contributions") && firstRead) {
         firstRead = false;
         return delayed.promise;
       }
-      if (!boundary) throw new Error("Missing test HTTP boundary");
+      if (!boundary) {
+        throw new Error("Missing test HTTP boundary");
+      }
       return boundary(url, init);
     });
     const user = userEvent.setup();
@@ -628,7 +649,7 @@ it.each(["guest", "professional"] as const)(
     let privateReads = 0;
     mockFetch.mockImplementation((url, init) => {
       const path = new URL(String(url)).pathname;
-      if (path === `/matches/${detail.match.id}`)
+      if (path === `/matches/${detail.match.id}`) {
         return Promise.resolve(
           Response.json({
             ...detail,
@@ -638,11 +659,14 @@ it.each(["guest", "professional"] as const)(
               : {}),
           }),
         );
+      }
       if (path.includes("/stream-contributions")) {
         privateReads++;
         return delayed.promise;
       }
-      if (!boundary) throw new Error("Missing test HTTP boundary");
+      if (!boundary) {
+        throw new Error("Missing test HTTP boundary");
+      }
       return boundary(url, init);
     });
 
@@ -670,9 +694,11 @@ it.each(["guest", "professional"] as const)(
       expect(
         await screen.findByRole("link", { name: "Ouvrir le lien" }),
       ).toBeOnTheScreen();
-      if (source === "professional")
+      if (source === "professional") {
         await waitFor(() => expect(privateReads).toBe(1));
-      else expect(privateReads).toBe(0);
+      } else {
+        expect(privateReads).toBe(0);
+      }
       expect(
         screen.getByRole("link", { name: "Ouvrir le lien" }),
       ).toBeOnTheScreen();
@@ -705,7 +731,7 @@ it.each([
     const detail = matchDetail();
     const boundary = mockFetch.getMockImplementation();
     mockFetch.mockImplementation((url, init) => {
-      if (new URL(String(url)).pathname === `/matches/${detail.match.id}`)
+      if (new URL(String(url)).pathname === `/matches/${detail.match.id}`) {
         return Promise.resolve(
           Response.json({
             ...detail,
@@ -713,7 +739,10 @@ it.each([
             streamContributionId: "00000000-0000-4000-8000-000000000099",
           }),
         );
-      if (!boundary) throw new Error("Missing test HTTP boundary");
+      }
+      if (!boundary) {
+        throw new Error("Missing test HTTP boundary");
+      }
       return boundary(url, init);
     });
 
@@ -767,9 +796,12 @@ it("routes the viewed contributed version to reporting independently of support"
   };
   const peer = mockFetch.getMockImplementation();
   mockFetch.mockImplementation(async (url, init) => {
-    if (String(url).endsWith(`/matches/${detail.match.id}`))
+    if (String(url).endsWith(`/matches/${detail.match.id}`)) {
       return Response.json(detail);
-    if (!peer) throw new Error("Missing HTTP boundary");
+    }
+    if (!peer) {
+      throw new Error("Missing HTTP boundary");
+    }
     return peer(url, init);
   });
   const user = userEvent.setup();

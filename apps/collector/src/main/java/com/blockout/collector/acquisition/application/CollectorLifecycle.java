@@ -29,13 +29,15 @@ public class CollectorLifecycle {
    * registration; an operator may explicitly restart the process.
    */
   public synchronized void start() {
-    if (registrationAttempted)
+    if (registrationAttempted) {
       throw new IllegalStateException("Collector startup was already attempted");
+    }
     registrationAttempted = true;
     CollectionBackend.Runtime current = backend.current();
     CollectionBackend.Runtime registered = backend.register(current.revision(), incarnationId);
-    if (!incarnationId.equals(registered.incarnationId()))
+    if (!incarnationId.equals(registered.incarnationId())) {
       throw new IllegalStateException("Collector startup is not current");
+    }
     active = true;
   }
 
@@ -67,8 +69,9 @@ public class CollectorLifecycle {
    */
   public AdmittedCycle admit(UUID controlId, UUID sourceBindingId, long revision, UUID requestId) {
     requireActive();
-    if ((controlId == null) == (sourceBindingId == null))
+    if ((controlId == null) == (sourceBindingId == null)) {
       throw new IllegalArgumentException("Exactly one collection purpose is required");
+    }
     CollectionBackend.StartCycle command =
         new CollectionBackend.StartCycle(
             UUID.randomUUID(), incarnationId, controlId, sourceBindingId, revision, requestId);
@@ -80,7 +83,9 @@ public class CollectorLifecycle {
       throw failure;
     }
     if (!incarnationId.equals(cycle.incarnationId())
-        || cycle.state() == CollectionCycleStateEnum.INTERRUPTED) stop();
+        || cycle.state() == CollectionCycleStateEnum.INTERRUPTED) {
+      stop();
+    }
     requireActive();
     if (!cycle.id().equals(command.cycleId())
         || !Objects.equals(cycle.controlId(), controlId)
@@ -99,9 +104,13 @@ public class CollectorLifecycle {
    * @param failure original work, admission or execution failure; only conflicts need inspection
    */
   public void inspectConflict(CollectionBackendFailure failure) {
-    if (failure.getKind() != CollectionBackendFailure.Kind.CONFLICT) return;
+    if (failure.getKind() != CollectionBackendFailure.Kind.CONFLICT) {
+      return;
+    }
     try {
-      if (!incarnationId.equals(backend.current().incarnationId())) stop();
+      if (!incarnationId.equals(backend.current().incarnationId())) {
+        stop();
+      }
     } catch (CollectionBackendFailure unavailable) {
       log.atWarn()
           .addKeyValue("operation", "collector_runtime")
@@ -126,8 +135,9 @@ public class CollectorLifecycle {
    * @param completedAt actual passage end
    */
   public void complete(AdmittedCycle context, Instant completedAt) {
-    if (context.getCycle().controlId() == null)
+    if (context.getCycle().controlId() == null) {
       throw new IllegalArgumentException("Control completion requires a control passage");
+    }
     backend.complete(context.getCycle().id(), completedAt);
   }
 
@@ -139,8 +149,9 @@ public class CollectorLifecycle {
    */
   public void validate(AdmittedCycle context, CollectionBackend.Validation result) {
     if (context.getCycle().sourceBindingId() == null
-        || !context.getCycle().id().equals(result.cycleId()))
+        || !context.getCycle().id().equals(result.cycleId())) {
       throw new IllegalArgumentException("Candidate result requires its admitted context");
+    }
     try {
       backend.validate(context.getCycle().sourceBindingId(), result);
     } catch (CollectionBackendFailure failure) {
@@ -151,7 +162,9 @@ public class CollectorLifecycle {
 
   /** Refuses work before startup confirmation or after supersession. */
   void requireActive() {
-    if (!active) throw new IllegalStateException("Collector is not active");
+    if (!active) {
+      throw new IllegalStateException("Collector is not active");
+    }
   }
 
   /** One confirmed context owns its monotonic pre-read ordinal, not observation arrival time. */
@@ -180,8 +193,9 @@ public class CollectorLifecycle {
       requireActive();
       return ordinal.updateAndGet(
           value -> {
-            if (value >= MAX_SAFE_INTEGER)
+            if (value >= MAX_SAFE_INTEGER) {
               throw new IllegalStateException("Collection read ordinal is exhausted");
+            }
             return value + 1;
           });
     }

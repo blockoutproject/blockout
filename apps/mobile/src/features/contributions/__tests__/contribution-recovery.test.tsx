@@ -145,9 +145,12 @@ beforeEach(() => {
   mockAuth0.saveCredentials.mockReset().mockResolvedValue();
   mockFetch.mockReset().mockImplementation(async (url, init) => {
     const path = new URL(String(url)).pathname;
-    if (path.endsWith("/application-access"))
+    if (path.endsWith("/application-access")) {
       return Response.json(applicationAccessResponse());
-    if (path.endsWith("/me")) return Response.json(profile);
+    }
+    if (path.endsWith("/me")) {
+      return Response.json(profile);
+    }
     if (init?.method === "POST" || init?.method === "PATCH") {
       writes.push({
         url: String(url),
@@ -157,12 +160,21 @@ beforeEach(() => {
       return write();
     }
     reads.push(path);
-    if (failRead) throw new TypeError("Controlled read outage");
-    if (path.endsWith("/report")) return Response.json({ reported });
-    if (path.endsWith("/stream-moderation"))
+    if (failRead) {
+      throw new TypeError("Controlled read outage");
+    }
+    if (path.endsWith("/report")) {
+      return Response.json({ reported });
+    }
+    if (path.endsWith("/stream-moderation")) {
       return Response.json({ items: [], total: 0 });
-    if (path.includes("/administration/")) return Response.json(detail);
-    if (path.includes("/stream-contributions")) return Response.json(owner);
+    }
+    if (path.includes("/administration/")) {
+      return Response.json(detail);
+    }
+    if (path.includes("/stream-contributions")) {
+      return Response.json(owner);
+    }
     return Response.json(match);
   });
 });
@@ -189,6 +201,7 @@ function PrivateQueries({ children }: PropsWithChildren) {
   }, [privateClient]);
   return children;
 }
+
 /** Only native credentials, HTTP and navigation are doubled; generated calls and application providers stay real. */
 function Wrapper({ children }: PropsWithChildren) {
   return (
@@ -205,12 +218,14 @@ function Wrapper({ children }: PropsWithChildren) {
     </QueryClientProvider>
   );
 }
+
 /** Observes the real F03 resource so settlement must refresh its authorized projection too. */
 function useOwner() {
   const editing = useOwnContributions(match.match.id);
   const matchQuery = useQuery(useConsultationQueries().match(match.match.id));
   return { ...editing, matchQuery };
 }
+
 /** Keeps actual private queue and detail observers mounted for mutation invalidation. */
 function useModerator() {
   const editing = useModerationMatch(match.match.id);
@@ -218,6 +233,7 @@ function useModerator() {
   const matchQuery = useQuery(useConsultationQueries().match(match.match.id));
   return { ...editing, queue, matchQuery };
 }
+
 /** Accepts the existing native dialog exactly once without replacing its confirmation owner. */
 async function confirm(label: string) {
   await act(async () =>
@@ -246,7 +262,9 @@ it.each(
     const baselineReads = reads.length;
     write = async () => {
       owner = ownContributions({ revision: "newer" });
-      if (outcome === "lost") throw new TypeError("Lost acknowledgement");
+      if (outcome === "lost") {
+        throw new TypeError("Lost acknowledgement");
+      }
       return Response.json(
         {
           status: 409,
@@ -329,7 +347,9 @@ it.each(
     const baselineReads = reads.length;
     write = async () => {
       detail = { ...detail, revision: "someone-else-later" };
-      if (outcome === "lost") throw new TypeError("Lost acknowledgement");
+      if (outcome === "lost") {
+        throw new TypeError("Lost acknowledgement");
+      }
       return Response.json(
         {
           status: 409,
@@ -530,16 +550,17 @@ it.each(["submit", "cancel", "withdraw"] as const)(
 
     // When
     await act(async () => {
-      if (action === "submit")
+      if (action === "submit") {
         await result.current.submit.mutateAsync({
           revision: "initial",
           url: version.url,
         });
-      else
+      } else {
         await result.current.change.mutateAsync({
           versionId: version.id,
           body: { action, revision: "initial" },
         });
+      }
     });
 
     // Then
@@ -579,18 +600,19 @@ it.each(["publish", "approve", "reject", "withdraw", "reactivate"] as const)(
     // When
     await act(async () => {
       const body = { revision: "viewed", actorAccountId: account.accountId };
-      if (action === "publish")
+      if (action === "publish") {
         await result.current.publish.mutateAsync({ ...body, url: version.url });
-      else if (action === "reactivate")
+      } else if (action === "reactivate") {
         await result.current.reactivate.mutateAsync({
           versionId: version.id,
           body,
         });
-      else
+      } else {
         await result.current.change.mutateAsync({
           versionId: version.id,
           body: { ...body, action },
         });
+      }
     });
 
     // Then
@@ -768,11 +790,13 @@ it.each(["success", "failure"] as const)(
     // When
     await view.rerender(<Text>Another page</Text>);
     await act(async () => {
-      if (outcome === "success")
+      if (outcome === "success") {
         pending.resolve(
           Response.json({ revision: "accepted", contribution: version }),
         );
-      else pending.reject(new TypeError("Late network failure"));
+      } else {
+        pending.reject(new TypeError("Late network failure"));
+      }
     });
 
     // Then
@@ -898,9 +922,12 @@ it.each([401, 403, 404])(
         denied &&
         init?.method !== "POST" &&
         (path === `/matches/${match.match.id}` || path.endsWith("/report"))
-      )
+      ) {
         return Response.json({ status, title: "Unavailable" }, { status });
-      if (!peer) throw new Error("Missing HTTP boundary");
+      }
+      if (!peer) {
+        throw new Error("Missing HTTP boundary");
+      }
       return peer(url, init);
     });
     const user = userEvent.setup();
@@ -962,12 +989,15 @@ it("keeps the exact-version draft retryable when only the report member is unava
   const peer = mockFetch.getMockImplementation();
   let missing = false;
   mockFetch.mockImplementation(async (url, init) => {
-    if (missing && String(url).endsWith("/report") && init?.method !== "POST")
+    if (missing && String(url).endsWith("/report") && init?.method !== "POST") {
       return Response.json(
         { status: 404, title: "Not Found" },
         { status: 404 },
       );
-    if (!peer) throw new Error("Missing HTTP boundary");
+    }
+    if (!peer) {
+      throw new Error("Missing HTTP boundary");
+    }
     return peer(url, init);
   });
   const user = userEvent.setup();

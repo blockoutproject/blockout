@@ -53,8 +53,9 @@ export function EraseAccountScreen({ admitted }: EraseAccountScreenProps) {
     (session.status !== "authenticated" ||
       (account.error instanceof ApiError && account.error.status === 404));
   // This route's target survives an ordinary current-account refresh, including absence or replacement.
-  if (!originalAccountId && account.isSuccess)
+  if (!originalAccountId && account.isSuccess) {
     setOriginalAccountId(account.data.accountId);
+  }
   return (
     <Page header={<PageHeader title="Supprimer mon compte ?" />}>
       <PageScrollView>
@@ -163,7 +164,9 @@ function ErasureConfirmation({
   /** Clears through the existing native action independently of browser/provider logout; failures permit local retry. */
   async function leaveLocally() {
     await session.clearCredentials();
-    if (active.current) disablePrevention();
+    if (active.current) {
+      disablePrevention();
+    }
     router.replace("/");
   }
 
@@ -185,38 +188,58 @@ function ErasureConfirmation({
       async function readOriginal() {
         try {
           const original = await getAccount(accountId, options);
-          if (original.accountId !== accountId) throw new ApiError("schema");
+          if (original.accountId !== accountId) {
+            throw new ApiError("schema");
+          }
           return false;
         } catch (error) {
-          if (error instanceof ApiError && error.status === 404) return true;
+          if (error instanceof ApiError && error.status === 404) {
+            return true;
+          }
           throw error;
         }
       }
 
       let absent: boolean;
-      if (action === "verify") absent = await readOriginal();
-      else {
-        if (session.accountId !== accountId) throw new ApiError("cancelled");
+      if (action === "verify") {
+        absent = await readOriginal();
+      } else {
+        if (session.accountId !== accountId) {
+          throw new ApiError("cancelled");
+        }
         try {
           await eraseAccount(accountId, options);
           absent = true;
         } catch (error) {
-          if (error instanceof ApiError && error.status === 404) absent = true;
-          else {
-            if (!isUncertainMutationFailure(error)) throw error;
-            if (active.current) setNeedsVerification(true);
+          if (error instanceof ApiError && error.status === 404) {
+            absent = true;
+          } else {
+            if (!isUncertainMutationFailure(error)) {
+              throw error;
+            }
+            if (active.current) {
+              setNeedsVerification(true);
+            }
             absent = await readOriginal();
           }
         }
       }
-      if (active.current) setNeedsVerification(false);
+      if (active.current) {
+        setNeedsVerification(false);
+      }
       if (absent) {
-        if (active.current) setDeleted(true);
+        if (active.current) {
+          setDeleted(true);
+        }
         await leaveLocally();
-      } else if (active.current) feedback.error();
+      } else if (active.current) {
+        feedback.error();
+      }
     },
     onError: () => {
-      if (active.current) feedback.error();
+      if (active.current) {
+        feedback.error();
+      }
     },
   });
   // Confirmed removal keeps local departure mandatory, including an explicit retry after native storage failure.

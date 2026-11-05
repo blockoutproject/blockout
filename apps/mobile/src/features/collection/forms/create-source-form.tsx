@@ -20,6 +20,7 @@ export interface CreateSourceFormProps {
   /** Confirms disposal of the mounted provider draft before closing the inline form. */
   onCancel(): void;
 }
+
 /** Validates and submits a supported candidate without qualifying it or launching collection implicitly. */
 export function CreateSourceForm({
   editor,
@@ -31,9 +32,12 @@ export function CreateSourceForm({
   const actionFeedback = useActionFeedback();
   const { baseline } = editor.state;
   const { control, handleSubmit, reset } = editor.form;
+
   /** Keeps the original scope and input after refusal; acceptance resets only this candidate's fields. */
   async function submit(values: CreateSourceValues) {
-    if (disabled) return;
+    if (disabled) {
+      return;
+    }
     try {
       const attempt = editing.create.mutateAsync({
         seasonRevision: baseline.revision,
@@ -61,6 +65,7 @@ export function CreateSourceForm({
       }
     }
   }
+
   return (
     <View style={styles.form}>
       <Controller
@@ -117,4 +122,5 @@ export function CreateSourceForm({
     </View>
   );
 }
+
 const styles = StyleSheet.create({ form: { gap: tokens.layout.form.gap } });

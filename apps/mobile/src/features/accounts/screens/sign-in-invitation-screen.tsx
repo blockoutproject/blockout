@@ -25,19 +25,27 @@ export function SignInInvitationScreen({
 
   /** Native back preserves the origin; a direct link without history safely returns home. */
   function close() {
-    if (router.canGoBack()) router.back();
-    else router.replace("/");
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/");
+    }
   }
 
   useEffect(() => {
-    if (!admitted || account.status === "restoring") return;
+    if (!admitted || account.status === "restoring") {
+      return;
+    }
     if (!currentGuest) {
-      if (router.canGoBack()) router.back();
-      else router.replace("/");
+      if (router.canGoBack()) {
+        router.back();
+      } else {
+        router.replace("/");
+      }
     }
   }, [admitted, account.status, currentGuest, router]);
 
-  if (!admitted)
+  if (!admitted) {
     return (
       <Sheet title="Connexion" onClose={close}>
         <SheetContent>
@@ -45,7 +53,8 @@ export function SignInInvitationScreen({
         </SheetContent>
       </Sheet>
     );
-  if (account.status === "restoring")
+  }
+  if (account.status === "restoring") {
     return (
       <Sheet title="Connexion" onClose={close}>
         <SheetContent>
@@ -53,13 +62,18 @@ export function SignInInvitationScreen({
         </SheetContent>
       </Sheet>
     );
-  if (!currentGuest) return null;
+  }
+  if (!currentGuest) {
+    return null;
+  }
   return (
     <SignInInvitation
       message={message}
       onClose={close}
       onSignIn={() => {
-        if (currentGuest) router.replace("/sign-in");
+        if (currentGuest) {
+          router.replace("/sign-in");
+        }
       }}
     />
   );

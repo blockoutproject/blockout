@@ -44,7 +44,9 @@ public class ReadClubAcquisition {
   public TargetBatch targets(UUID controlId, boolean geocoding, boolean manual, UUID afterId) {
     List<ClubAcquisitionReference> references =
         acquisitionReads.acquisitionClubs(geocoding, afterId);
-    if (references.isEmpty()) return new TargetBatch(List.of(), null);
+    if (references.isEmpty()) {
+      return new TargetBatch(List.of(), null);
+    }
     Map<UUID, CollectionAttempt> attempts =
         geocoding && !manual
             ? store
@@ -80,7 +82,9 @@ public class ReadClubAcquisition {
    * @return true for a fresh need or a failure newer than F02's last accepted normal result
    */
   private boolean needsGeocoding(ClubAcquisitionReference reference, CollectionAttempt attempt) {
-    if (!reference.normalLocalityResult()) return true;
+    if (!reference.normalLocalityResult()) {
+      return true;
+    }
     return attempt != null
         && attempt.outcome() == CollectionOutcomeEnum.FAILED
         && (reference.localityOrder() == null
@@ -124,10 +128,13 @@ public class ReadClubAcquisition {
     return targets.stream()
         .map(
             target -> {
-              if (target.kind() != CollectionTargetKindEnum.GEOCODING)
+              if (target.kind() != CollectionTargetKindEnum.GEOCODING) {
                 return mapper.toServedTarget(target, null);
+              }
               ClubLocalityView locality = localities.get(target.clubId());
-              if (locality == null) throw new CollectionNotFoundException();
+              if (locality == null) {
+                throw new CollectionNotFoundException();
+              }
               return mapper.toServedTarget(target, locality);
             })
         .toList();

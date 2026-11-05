@@ -83,7 +83,9 @@ export function PoolMap({ pool, active = true, children }: PoolMapProps) {
 
   /** Refetches both existing resources without making optional statistics a condition of the map. */
   async function refresh() {
-    if (!active) return;
+    if (!active) {
+      return;
+    }
     feedback.clear();
     const [currentParticipants, currentStandings] = await Promise.all([
       participants.refetch({ cancelRefetch: false }),
@@ -95,15 +97,16 @@ export function PoolMap({ pool, active = true, children }: PoolMapProps) {
       [currentParticipants, currentStandings].some(
         (result) => result.isError && !resourceUnavailable(result.error),
       )
-    )
+    ) {
       feedback.error();
+    }
   }
 
   const refreshControl =
     data && hasLocations ? (
       <DataRefreshControl onRefresh={refresh} enabled={active} />
     ) : undefined;
-  if (!data || !hasLocations)
+  if (!data || !hasLocations) {
     return (
       <PageScrollView refreshControl={refreshControl}>
         {participants.isLoading ? (
@@ -141,6 +144,7 @@ export function PoolMap({ pool, active = true, children }: PoolMapProps) {
         )}
       </PageScrollView>
     );
+  }
   return (
     <PageScrollView alwaysBounceVertical refreshControl={refreshControl}>
       <PageContent>
@@ -177,17 +181,21 @@ function participantPoints(
 ): ParticipantPoint[] {
   const groups = new Map<string, ParticipantPoint>();
   for (const item of items) {
-    if (!item.location) continue;
+    if (!item.location) {
+      continue;
+    }
     const { latitude, longitude } = item.location;
     const key = `${latitude}:${longitude}`;
     const existing = groups.get(key);
-    if (existing) existing.items.push(item);
-    else
+    if (existing) {
+      existing.items.push(item);
+    } else {
       groups.set(key, {
         key,
         coordinate: { latitude, longitude },
         items: [item],
       });
+    }
   }
   return [...groups.values()];
 }
@@ -224,7 +232,9 @@ function ParticipantMap({
 
   /** Frames current points only at initial readiness or an explicit command, without text geometry. */
   function fit() {
-    if (!cameraAvailable || !map.current || !points.length) return;
+    if (!cameraAvailable || !map.current || !points.length) {
+      return;
+    }
     const coordinate = points[0].coordinate;
     // A lone marker keeps the existing viewport envelope; these camera bounds create no markers.
     const viewport =
@@ -250,6 +260,7 @@ function ParticipantMap({
       animated: false,
     });
   }
+
   const frameInitialPoints = useEffectEvent(() => fit());
   // Readiness and layout may arrive in either order; later content changes retain the native camera.
   useEffect(() => {
@@ -258,21 +269,32 @@ function ParticipantMap({
 
   /** Lets the native camera own position and scale; no region mirror or tile-state detector is stored. */
   async function zoom(direction: 1 | -1) {
-    if (!active) return;
+    if (!active) {
+      return;
+    }
     try {
       const camera = await map.current?.getCamera();
-      if (!currentActive.current || !camera || !map.current) return;
+      if (!currentActive.current || !camera || !map.current) {
+        return;
+      }
       const change =
         Platform.OS === "ios" && camera.altitude !== undefined
           ? { altitude: camera.altitude / 2 ** direction }
           : Platform.OS === "android" && camera.zoom !== undefined
             ? { zoom: camera.zoom + direction }
             : undefined;
-      if (!change) return;
-      if (reducedMotion) map.current.setCamera(change);
-      else map.current.animateCamera(change);
+      if (!change) {
+        return;
+      }
+      if (reducedMotion) {
+        map.current.setCamera(change);
+      } else {
+        map.current.animateCamera(change);
+      }
     } catch {
-      if (currentActive.current) feedback.error();
+      if (currentActive.current) {
+        feedback.error();
+      }
     }
   }
 

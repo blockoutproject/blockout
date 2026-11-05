@@ -23,7 +23,9 @@ export function SelectionIndicator({
 }: SelectionIndicatorProps) {
   const { membership } = useTheme();
   const animated = useAnimatedStyle(() => {
-    if (!layout) return {};
+    if (!layout) {
+      return {};
+    }
     const timing = {
       duration: reducedMotion ? 0 : tokens.motion.navigation.duration,
       easing: Easing.out(Easing.cubic),
@@ -36,7 +38,9 @@ export function SelectionIndicator({
       height: withTiming(layout.height, timing),
     };
   });
-  if (!layout) return null;
+  if (!layout) {
+    return null;
+  }
   return (
     <Animated.View
       accessible={false}

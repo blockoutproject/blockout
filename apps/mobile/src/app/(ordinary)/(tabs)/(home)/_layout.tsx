@@ -12,9 +12,15 @@ export const unstable_settings = { anchor: "index" };
 export default function HomeLayout() {
   const age = useAgeDeclaration();
   const session = useAccountSession();
-  if (age.loading) return <StartupAccessGate />;
-  if (age.required) return <Redirect href="/age-declaration" />;
-  if (session.status === "guest") return <Redirect href="/search" />;
+  if (age.loading) {
+    return <StartupAccessGate />;
+  }
+  if (age.required) {
+    return <Redirect href="/age-declaration" />;
+  }
+  if (session.status === "guest") {
+    return <Redirect href="/search" />;
+  }
   return (
     <PersonalSeasonProvider>
       <PersonalNavigation />

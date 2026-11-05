@@ -23,8 +23,9 @@ export async function downloadMatchDocument(
 ): Promise<File> {
   const blob = await getMatchDocument(matchId, kind, options);
   options.signal?.throwIfAborted();
-  if (blob.type.split(";", 1)[0].toLowerCase() !== "application/pdf")
+  if (blob.type.split(";", 1)[0].toLowerCase() !== "application/pdf") {
     throw new ApiError("schema");
+  }
   const bytes = await readDocumentBytes(blob, options.signal);
   options.signal?.throwIfAborted();
   const directory = new Directory(Paths.cache, "f03-match-documents");
@@ -52,18 +53,23 @@ function readDocumentBytes(
       return;
     }
     const reader = new FileReader();
+
     /** Native completion, failure and cancellation release the same request subscription. */
     function cleanup() {
       signal?.removeEventListener("abort", cancel);
       reader.onload = null;
       reader.onerror = null;
     }
+
     /** A cancelled native decode cannot deliver bytes to the temporary-file owner. */
     function cancel() {
       cleanup();
-      if (reader.readyState === FileReader.LOADING) reader.abort();
+      if (reader.readyState === FileReader.LOADING) {
+        reader.abort();
+      }
       reject(new ApiError("cancelled"));
     }
+
     reader.onerror = () => {
       cleanup();
       reject(new ApiError("network"));
@@ -71,9 +77,11 @@ function readDocumentBytes(
     reader.onload = () => {
       const bytes = reader.result;
       cleanup();
-      if (bytes !== null && typeof bytes !== "string")
+      if (bytes !== null && typeof bytes !== "string") {
         resolve(new Uint8Array(bytes));
-      else reject(new ApiError("schema"));
+      } else {
+        reject(new ApiError("schema"));
+      }
     };
     signal?.addEventListener("abort", cancel, { once: true });
     try {
@@ -88,7 +96,9 @@ function readDocumentBytes(
 /** Releases an owned handle; a native deletion failure leaves only a cold-start-cleanable file. */
 export function releaseMatchDocument(file: File): void {
   try {
-    if (file.exists) file.delete();
+    if (file.exists) {
+      file.delete();
+    }
   } catch {
     // This native boundary owns the failure; never include the local path or PDF content.
     console.warn("Temporary match document cleanup failed");
@@ -99,15 +109,18 @@ export function releaseMatchDocument(file: File): void {
 export function cleanupMatchDocuments(): void {
   try {
     const directory = new Directory(Paths.cache, "f03-match-documents");
-    if (!directory.exists) return;
+    if (!directory.exists) {
+      return;
+    }
     for (const entry of directory.list()) {
       if (
         entry instanceof File &&
         /^f03-[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}\.pdf$/i.test(
           entry.name,
         )
-      )
+      ) {
         releaseMatchDocument(entry);
+      }
     }
   } catch {
     console.warn("Temporary match document cleanup failed");

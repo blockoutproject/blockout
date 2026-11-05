@@ -29,16 +29,22 @@ public class ProcessLinkAnnouncement {
   @Transactional(propagation = Propagation.MANDATORY)
   public List<Created> process(Context context, List<Recipient> recipients) {
     MatchAnnouncementFacts facts = store.facts(context.match().id());
-    if (!context.publicLink()) return List.of();
+    if (!context.publicLink()) {
+      return List.of();
+    }
     NotificationFamily family;
     if (context.finalResult()) {
-      if (!context.acceptedPublication() || facts.postResultProcessed()) return List.of();
+      if (!context.acceptedPublication() || facts.postResultProcessed()) {
+        return List.of();
+      }
       family = NotificationFamily.POST_RESULT_LINK;
       store.saveFacts(facts.consumePostResultLink());
     } else {
       if (facts.liveProcessed()
           || context.start() == null
-          || context.now().isBefore(context.start())) return List.of();
+          || context.now().isBefore(context.start())) {
+        return List.of();
+      }
       family = NotificationFamily.LIVE_LINK;
       store.saveFacts(facts.consumeLive());
     }

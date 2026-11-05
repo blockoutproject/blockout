@@ -66,6 +66,7 @@ export function PersonalSeasonSelector({
     </Pressable>
   );
 }
+
 const styles = StyleSheet.create({
   target: {
     minHeight: tokens.touch.minimum,

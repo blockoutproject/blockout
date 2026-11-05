@@ -143,9 +143,12 @@ async function renderFollowing(children: ReactElement) {
 
 /** Default synthetic transport uses the actual generated validation and explicit member replacement. */
 async function transport(url: string, request?: RequestInit) {
-  if (url.endsWith("/application-access"))
+  if (url.endsWith("/application-access")) {
     return Response.json(applicationAccessResponse());
-  if (url.endsWith("/accounts/me")) return Response.json(profile);
+  }
+  if (url.endsWith("/accounts/me")) {
+    return Response.json(profile);
+  }
   if (request?.method === "PUT") {
     const state = JSON.parse(String(request.body));
     mockFollowStates.set(url, state.following);
@@ -324,7 +327,7 @@ it.each(["team", "pool"] as const)(
       season,
     };
     mockFetch.mockImplementation((url, request) => {
-      if (url.endsWith(`/teams/${team.id}`))
+      if (url.endsWith(`/teams/${team.id}`)) {
         return Promise.resolve(
           Response.json({
             team: {
@@ -336,8 +339,10 @@ it.each(["team", "pool"] as const)(
             participations: [],
           }),
         );
-      if (url.endsWith(`/pools/${pool.id}`))
+      }
+      if (url.endsWith(`/pools/${pool.id}`)) {
         return Promise.resolve(Response.json({ pool: publicPool }));
+      }
       return transport(url, request);
     });
     const user = userEvent.setup();
@@ -432,7 +437,7 @@ it("keeps the confirmed member state when returning from an explicit maintenance
   let revision = 0;
   let following = false;
   mockFetch.mockImplementation((url, request) => {
-    if (url.endsWith("/application-access"))
+    if (url.endsWith("/application-access")) {
       return Promise.resolve(
         Response.json({
           ...applicationAccessResponse(),
@@ -444,16 +449,19 @@ it("keeps the confirmed member state when returning from an explicit maintenance
           },
         }),
       );
-    if (url.endsWith("/accounts/me"))
+    }
+    if (url.endsWith("/accounts/me")) {
       return Promise.resolve(
         Response.json({
           ...profile,
           permissions: { ...profile.permissions, bypassMaintenance: true },
         }),
       );
+    }
     if (url.includes("team-follows")) {
-      if (request?.method === "PUT")
+      if (request?.method === "PUT") {
         following = JSON.parse(String(request.body)).following;
+      }
       return Promise.resolve(Response.json({ following }));
     }
     return transport(url, request);
@@ -525,9 +533,11 @@ it("invalidates after the initiating control unmounts and reads current truth on
   await user.press(screen.getByRole("button", { name: "Suivre" }));
   await rendered.rerender(<Text>Another page</Text>);
   await act(async () => {
-    for (const [url, request] of mockFetch.mock.calls)
-      if (url.includes("team-follows") && request?.method !== "PUT")
+    for (const [url, request] of mockFetch.mock.calls) {
+      if (url.includes("team-follows") && request?.method !== "PUT") {
         mockFollowStates.set(url, true);
+      }
+    }
     response.resolve(Response.json({ following: true }));
   });
 
@@ -649,7 +659,9 @@ it.each([true, false])(
     let saved = !following;
     mockFetch.mockImplementation((url, request) => {
       if (request?.method === "PUT") {
-        if (++writes === 1) return refusal.promise;
+        if (++writes === 1) {
+          return refusal.promise;
+        }
         saved = following;
         return Promise.resolve(Response.json({ following }));
       }
@@ -791,8 +803,9 @@ it.each([403, 404])(
         current = JSON.parse(String(request.body)).following;
         return Promise.resolve(Response.json({ following: current }));
       }
-      if (url.includes("team-follows"))
+      if (url.includes("team-follows")) {
         return Promise.resolve(Response.json({ following: current }));
+      }
       return transport(url, request);
     });
     const user = userEvent.setup();
@@ -842,12 +855,16 @@ it("keeps a refused member withdrawn after a delayed successful write until an o
   let member: "available" | "refused" | "transient" = "available";
   let following = false;
   mockFetch.mockImplementation((url, request) => {
-    if (request?.method === "PUT") return response.promise;
+    if (request?.method === "PUT") {
+      return response.promise;
+    }
     if (url.includes("team-follows")) {
-      if (member === "refused")
+      if (member === "refused") {
         return Promise.resolve(new Response(null, { status: 403 }));
-      if (member === "transient")
+      }
+      if (member === "transient") {
         return Promise.reject(new TypeError("member read failed"));
+      }
       return Promise.resolve(Response.json({ following }));
     }
     return transport(url, request);
@@ -909,10 +926,12 @@ it("keeps an uncertain follow refused through a failed read and a remount until 
       return Promise.reject(new TypeError("Synthetic lost acknowledgement"));
     }
     if (url.includes("team-follows")) {
-      if (member === "refused")
+      if (member === "refused") {
         return Promise.resolve(new Response(null, { status: 403 }));
-      if (member === "transient")
+      }
+      if (member === "transient") {
         return Promise.reject(new TypeError("Synthetic member outage"));
+      }
     }
     return transport(url, request);
   });
@@ -962,7 +981,9 @@ it("retains ordinary failure feedback when the refreshed member read is cancelle
       attempted = true;
       return Promise.reject(new TypeError("response lost"));
     }
-    if (url.includes("team-follows") && attempted) return observation.promise;
+    if (url.includes("team-follows") && attempted) {
+      return observation.promise;
+    }
     return transport(url, request);
   });
   const user = userEvent.setup();
@@ -1075,7 +1096,7 @@ it.each(["guest", "other", "same"] as const)(
 it("suspends the canonical confirmed relation when its maintenance bypass is cleared", async () => {
   // Given: the confirmed relationship is shared, while admission belongs to the current intent.
   mockFetch.mockImplementation((url, request) => {
-    if (url.endsWith("/application-access"))
+    if (url.endsWith("/application-access")) {
       return Promise.resolve(
         Response.json({
           ...applicationAccessResponse(),
@@ -1087,15 +1108,18 @@ it("suspends the canonical confirmed relation when its maintenance bypass is cle
           },
         }),
       );
-    if (url.endsWith("/accounts/me"))
+    }
+    if (url.endsWith("/accounts/me")) {
       return Promise.resolve(
         Response.json({
           ...profile,
           permissions: { ...profile.permissions, bypassMaintenance: true },
         }),
       );
-    if (url.includes("team-follows"))
+    }
+    if (url.includes("team-follows")) {
       return Promise.resolve(Response.json({ following: true }));
+    }
     return transport(url, request);
   });
   const user = userEvent.setup();

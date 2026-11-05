@@ -50,8 +50,9 @@ beforeEach(() => {
     .mockReset()
     .mockRejectedValue(new Error("Synthetic initialization failure"));
   mockFetch.mockReset().mockImplementation(async (url) => {
-    if (String(url).endsWith("/application-access"))
+    if (String(url).endsWith("/application-access")) {
       return Response.json(applicationAccessResponse());
+    }
     throw new Error("A failed session must not read private resources");
   });
   mockPush.mockReset();

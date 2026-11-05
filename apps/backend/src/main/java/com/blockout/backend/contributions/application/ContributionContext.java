@@ -32,8 +32,9 @@ public record ContributionContext(UUID accountId, boolean moderateStreamLinks) {
    * @throws AccessDeniedException if it is not the currently usable lifecycle
    */
   public void requireOriginalAccount(UUID originalAccountId) {
-    if (!accountId.equals(originalAccountId))
+    if (!accountId.equals(originalAccountId)) {
       throw new AccessDeniedException("Action is not permitted");
+    }
   }
 
   /**
@@ -42,6 +43,8 @@ public record ContributionContext(UUID accountId, boolean moderateStreamLinks) {
    * @throws AccessDeniedException if current stream moderation is absent
    */
   public void requireModeration() {
-    if (!moderateStreamLinks) throw new AccessDeniedException("Action is not permitted");
+    if (!moderateStreamLinks) {
+      throw new AccessDeniedException("Action is not permitted");
+    }
   }
 }

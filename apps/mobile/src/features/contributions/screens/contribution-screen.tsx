@@ -23,6 +23,7 @@ import { ContributionForm } from "../forms/contribution-form";
 export interface ContributionScreenProps {
   matchId: string;
 }
+
 /** Composes native scrolling and retained RHF content without a second session, cache or form shell. */
 export function ContributionScreen({ matchId }: ContributionScreenProps) {
   const editing = useOwnContributions(matchId);
@@ -32,17 +33,22 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
   const current = editing.query.data?.pages[0];
   const guest = editing.session.status === "guest";
   const authenticated = editing.session.status === "authenticated";
+
   /** Rereads displayed context and proposals while a pending submission disables the gesture. */
   async function refresh() {
-    if (editing.submit.isPending) return;
+    if (editing.submit.isPending) {
+      return;
+    }
     feedback.clear();
     const results = await Promise.allSettled([
       editing.refresh(),
       match.refetch({ throwOnError: true }),
     ]);
-    if (results.some((result) => result.status === "rejected"))
+    if (results.some((result) => result.status === "rejected")) {
       feedback.error();
+    }
   }
+
   const pending =
     !guest &&
     (!authenticated
@@ -132,4 +138,5 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
     </Page>
   );
 }
+
 const styles = StyleSheet.create({ centered: { justifyContent: "center" } });

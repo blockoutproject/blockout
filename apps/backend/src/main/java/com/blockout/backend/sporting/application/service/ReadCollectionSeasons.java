@@ -37,7 +37,9 @@ public class ReadCollectionSeasons {
   @Transactional(readOnly = true)
   public Map<UUID, SportingViews.CollectionSeasonView> collectionStates(Set<UUID> ids) {
     Map<UUID, SportingViews.CollectionSeasonView> states = store.collectionSeasons(ids);
-    if (!states.keySet().equals(ids)) throw new SportingResourceNotFoundException();
+    if (!states.keySet().equals(ids)) {
+      throw new SportingResourceNotFoundException();
+    }
     return states;
   }
 

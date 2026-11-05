@@ -75,7 +75,9 @@ public record MatchAnnouncementFacts(
    * @return monotone processed facts
    */
   public MatchAnnouncementFacts consumeResult(NotificationFamily family) {
-    if (resultProcessed) return this;
+    if (resultProcessed) {
+      return this;
+    }
     return new MatchAnnouncementFacts(
         matchId,
         liveProcessed,

@@ -25,7 +25,9 @@ public class BackendApplication {
    */
   public static void main(String[] args) {
     ConfigurableApplicationContext context = SpringApplication.run(BackendApplication.class, args);
-    if (context.getEnvironment().matchesProfiles("initial-reconstruction")) context.close();
+    if (context.getEnvironment().matchesProfiles("initial-reconstruction")) {
+      context.close();
+    }
   }
 
   /**

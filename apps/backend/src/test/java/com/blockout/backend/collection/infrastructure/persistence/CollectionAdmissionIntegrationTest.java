@@ -475,11 +475,12 @@ class CollectionAdmissionIntegrationTest {
     Mockito.doAnswer(
             invocation -> {
               Object result = invocation.callRealMethod();
-              if (changed.compareAndSet(false, true))
+              if (changed.compareAndSet(false, true)) {
                 independent.executeWithoutResult(
                     status ->
                         sql.update(
                             "INSERT INTO sporting_club(id, provider, reference, municipality) VALUES ('00000000-0000-4000-8000-000000000999', 'FFVB', '999', 'Paris')"));
+              }
               return result;
             })
         .when(persistence)
@@ -541,13 +542,14 @@ class CollectionAdmissionIntegrationTest {
               List<CollectionState.Target> targets = invocation.getArgument(1);
               if (!targets.isEmpty()
                   && targets.getFirst().kind() == CollectionTargetKindEnum.CALENDAR
-                  && changed.compareAndSet(false, true))
+                  && changed.compareAndSet(false, true)) {
                 independent.executeWithoutResult(
                     status ->
                         sql.update(
                             "UPDATE sporting_division SET active = ? WHERE id = ?",
                             activate,
                             changingDivision));
+              }
               return result;
             })
         .when(persistence)

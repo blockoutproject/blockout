@@ -34,18 +34,24 @@ export function useActionConfirmation() {
     cancelLabel = "Annuler",
     destructive = false,
   }: ActionConfirmation): Promise<boolean> {
-    if (!mounted.current || dismiss.current) return Promise.resolve(false);
+    if (!mounted.current || dismiss.current) {
+      return Promise.resolve(false);
+    }
     return new Promise((resolve) => {
       /** Releases this dialog only; a retained callback cannot affect a later confirmation. */
       function finish(accepted: boolean) {
-        if (dismiss.current !== cancel) return;
+        if (dismiss.current !== cancel) {
+          return;
+        }
         dismiss.current = undefined;
         resolve(accepted && mounted.current);
       }
+
       /** Treats native dismissal and owner disposal as an explicit non-confirmation. */
       function cancel() {
         finish(false);
       }
+
       dismiss.current = cancel;
       Alert.alert(
         title,

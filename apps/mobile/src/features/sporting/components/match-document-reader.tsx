@@ -43,7 +43,9 @@ export function MatchDocumentReader({
   const [openingBypass] = useState(admission.bypass);
   const current = admission.admitted && openingBypass === admission.bypass;
   useLayoutEffect(() => {
-    if (!current) onClose();
+    if (!current) {
+      onClose();
+    }
   }, [current, onClose]);
   const router = useRouter();
   const { colors } = useTheme();
@@ -118,12 +120,16 @@ function DocumentAttempt({
   const { colors } = useTheme();
   /** Captures only the current admission/credentials for this native attempt, without restarting it on rerenders. */
   const request = useEffectEvent(async (signal: AbortSignal) => {
-    if (!admission.admitted) throw new ApiError("http", 403);
+    if (!admission.admitted) {
+      throw new ApiError("http", 403);
+    }
     const credentials = admission.bypass
       ? await session.getCredentials()
       : undefined;
     signal.throwIfAborted();
-    if (admission.bypass && !credentials) throw new ApiError("http", 401);
+    if (admission.bypass && !credentials) {
+      throw new ApiError("http", 401);
+    }
     return admission.request({
       signal,
       headers: credentials
@@ -134,6 +140,7 @@ function DocumentAttempt({
   useLayoutEffect(() => {
     const controller = new AbortController();
     let file: File | undefined;
+
     /** Ordinary public reads never request credentials; bypass uses the captured principal once. */
     async function open() {
       try {
@@ -142,19 +149,27 @@ function DocumentAttempt({
           kind,
           await request(controller.signal),
         );
-        if (controller.signal.aborted) releaseMatchDocument(file);
-        else setState({ file, failed: false });
+        if (controller.signal.aborted) {
+          releaseMatchDocument(file);
+        } else {
+          setState({ file, failed: false });
+        }
       } catch {
-        if (!controller.signal.aborted) setState({ failed: true });
+        if (!controller.signal.aborted) {
+          setState({ failed: true });
+        }
       }
     }
+
     void open();
     return () => {
       controller.abort();
-      if (file) releaseMatchDocument(file);
+      if (file) {
+        releaseMatchDocument(file);
+      }
     };
   }, [matchId, kind]);
-  if (state.failed)
+  if (state.failed) {
     return (
       <ScrollView
         {...hiddenScrollIndicators}
@@ -166,14 +181,19 @@ function DocumentAttempt({
         </ScreenState>
       </ScrollView>
     );
-  if (!state.file) return <DocumentLoading />;
+  }
+  if (!state.file) {
+    return <DocumentLoading />;
+  }
   return (
     <Pdf
       style={[styles.pdf, { backgroundColor: colors.canvas }]}
       source={{ uri: state.file.uri }}
       renderActivityIndicator={() => <DocumentLoading />}
       onError={() => {
-        if (state.file) releaseMatchDocument(state.file);
+        if (state.file) {
+          releaseMatchDocument(state.file);
+        }
         setState({ failed: true });
       }}
     />

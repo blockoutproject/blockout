@@ -41,11 +41,12 @@ export function Tabs({
   const reducedMotion = useReducedMotion();
   const target = layouts[selected];
   useEffect(() => {
-    if (target)
+    if (target) {
       rail.current?.scrollTo({
         x: Math.max(0, target.x - tokens.spacing.screen),
         animated: !reducedMotion,
       });
+    }
   }, [target, reducedMotion]);
   return (
     <ScrollView
@@ -113,16 +114,19 @@ function StandaloneTab({
       [colors.secondaryText, membership.content],
     ),
   }));
+
   /** Both native rectangles share the rail's local coordinate system after adding the pill inset. */
   function publishLayout() {
-    if (outer.current && inner.current)
+    if (outer.current && inner.current) {
       onMeasure({
         x: outer.current.x + inner.current.x,
         y: outer.current.y + inner.current.y,
         width: inner.current.width,
         height: inner.current.height,
       });
+    }
   }
+
   return (
     <Pressable
       accessibilityRole="tab"

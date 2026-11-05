@@ -237,9 +237,10 @@ class TransitionIdentityIntegrationTest {
     sql.update("INSERT INTO account_permission VALUES (?,'maintenance.manage')", original.id());
     String currentSubject = principalSurvives ? SUBJECT : "apple|new-principal";
     Instant currentCreated = principalSurvives ? CREATED : Instant.parse("2026-10-31T12:00:00Z");
-    if (!principalSurvives)
+    if (!principalSurvives) {
       when(provider.read(ISSUER, currentSubject))
           .thenReturn(new PrincipalReader.Evidence("owner@example.invalid", currentCreated));
+    }
     when(auth0Cleanup.remove(ISSUER, SUBJECT))
         .thenReturn(
             principalSurvives

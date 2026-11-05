@@ -24,16 +24,23 @@ import {
 } from "../state/inbox-expiry";
 import { getNotificationKeys } from "./notification-keys";
 import { subscribeMatchAccess } from "../../sporting/match-access";
+
 /** Captured F05 session; private requests retain their original account. */
 export type InboxOwner = SessionSnapshot;
+
 /** Prepares credentials and current ordinary admission immediately before each request. */
 export type InboxRequest = (signal?: AbortSignal) => Promise<ApiFetchOptions>;
+
 /** Native infinite-query data; there is no second inbox store or read journal. */
 export type InboxData = InfiniteData<NotificationsResponse, string | undefined>;
+
 /** Honors native Query cancellation around credential acquisition and response handling. */
 function assertNotAborted(signal?: AbortSignal) {
-  if (signal?.aborted) throw new ApiError("cancelled");
+  if (signal?.aborted) {
+    throw new ApiError("cancelled");
+  }
 }
+
 /**
  * Defines current owner reads with generated validation and native retained-page refresh.
  * Local age applies before cache admission; read status follows the current server response.
@@ -41,7 +48,10 @@ function assertNotAborted(signal?: AbortSignal) {
 export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
   const keys = getNotificationKeys(owner);
   const accountId = owner.accountId;
-  if (!accountId) throw new ApiError("cancelled");
+  if (!accountId) {
+    throw new ApiError("cancelled");
+  }
+
   /** Credentials/admission are prepared afresh; the captured business owner never changes. */
   async function currentRequest(signal?: AbortSignal) {
     assertNotAborted(signal);
@@ -49,6 +59,7 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
     assertNotAborted(signal);
     return { ...options, signal: options.signal ?? signal };
   }
+
   return {
     request: currentRequest,
     inbox: infiniteQueryOptions({
@@ -75,8 +86,9 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
             ),
           };
         } catch (error) {
-          if (!signal.aborted)
+          if (!signal.aborted) {
             refuseInboxAccess(client, owner, error, keys.inbox);
+          }
           throw error;
         }
       },
@@ -93,12 +105,14 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
             await currentRequest(signal),
           );
           assertNotAborted(signal);
-          if (confirmedUnreadCount(summary) === undefined)
+          if (confirmedUnreadCount(summary) === undefined) {
             throw new ApiError("cancelled");
+          }
           return summary;
         } catch (error) {
-          if (!signal.aborted)
+          if (!signal.aborted) {
             refuseInboxAccess(client, owner, error, keys.summary);
+          }
           throw error;
         }
       },
@@ -117,13 +131,15 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
             await currentRequest(signal),
           );
           assertNotAborted(signal);
-          if (notificationExpiry(row) <= Date.now())
+          if (notificationExpiry(row) <= Date.now()) {
             throw new ApiError("http", 404);
+          }
           return row;
         },
       }),
   };
 }
+
 /** Refetches retained pages natively; failures preserve authorized content and reach explicit refresh feedback. */
 export function refreshInbox(
   client: QueryClient,
@@ -134,6 +150,7 @@ export function refreshInbox(
     { throwOnError: true },
   );
 }
+
 /** Refetches the native summary while preserving ordinary stale data on technical failure. */
 export function refreshNotificationSummary(
   client: QueryClient,
@@ -144,6 +161,7 @@ export function refreshNotificationSummary(
     { throwOnError: true },
   );
 }
+
 /**
  * Connects current F03 refusals for the original F05 client's entire lifetime, including periods
  * with suspended private reads. Query metadata identifies existing resources, without retaining
@@ -162,13 +180,17 @@ export function subscribeInboxVisibility(client: QueryClient) {
     });
     for (const query of client.getQueryCache().findAll()) {
       const resource = query.meta?.notificationResource;
-      if (resource !== "inbox" && resource !== "summary") continue;
-      if (resource === "summary" && outcome === "link-unavailable") continue;
+      if (resource !== "inbox" && resource !== "summary") {
+        continue;
+      }
+      if (resource === "summary" && outcome === "link-unavailable") {
+        continue;
+      }
       const filter = { queryKey: query.queryKey, exact: true };
       void client.cancelQueries(filter);
-      if (resource === "summary")
+      if (resource === "summary") {
         query.setState({ data: undefined, dataUpdatedAt: 0 });
-      else
+      } else {
         client.setQueryData<InboxData>(
           query.queryKey,
           (data) =>
@@ -177,19 +199,27 @@ export function subscribeInboxVisibility(client: QueryClient) {
               pages: data.pages.map((page) => ({
                 ...page,
                 notifications: page.notifications.flatMap((row) => {
-                  if (row.match.id !== matchId) return [row];
-                  if (outcome === "unavailable") return [];
-                  if (row.family === "result") return [row];
+                  if (row.match.id !== matchId) {
+                    return [row];
+                  }
+                  if (outcome === "unavailable") {
+                    return [];
+                  }
+                  if (row.family === "result") {
+                    return [row];
+                  }
                   // Use only F07's existing absence copy until its next current response.
                   return [{ ...row, title: "Le lien n’est plus proposé." }];
                 }),
               })),
             },
         );
+      }
       void client.invalidateQueries({ ...filter, refetchType: "none" });
     }
   });
 }
+
 /**
  * Applies a known current owner refusal or missing owner across private list/count observers. Older reads are
  * cancelled; both representations enter ordinary error state so an initial read can be retried.
@@ -204,12 +234,14 @@ export function refuseInboxAccess(
   if (
     !(error instanceof ApiError) ||
     !(isAccessDenied(error) || error.status === 404)
-  )
+  ) {
     return;
+  }
   const keys = getNotificationKeys(owner);
   for (const queryKey of [keys.inbox, keys.summary]) {
-    if (!failingKey || hashKey(failingKey) !== hashKey(queryKey))
+    if (!failingKey || hashKey(failingKey) !== hashKey(queryKey)) {
       void client.cancelQueries({ queryKey, exact: true });
+    }
     client.getQueryCache().find({ queryKey, exact: true })?.setState({
       data: undefined,
       dataUpdatedAt: 0,

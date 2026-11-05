@@ -83,8 +83,11 @@ afterEach(async () => {
   await cleanup();
   jest.restoreAllMocks();
   for (const [key, value] of Object.entries(originalConfiguration)) {
-    if (value === undefined) delete process.env[key];
-    else process.env[key] = value;
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
   }
 });
 

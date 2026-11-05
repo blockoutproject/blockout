@@ -16,16 +16,22 @@ export function publishedMapRecord(
   table: PoolStandingsResponse | undefined,
   teamId: string,
 ): PublishedMapRecord | undefined {
-  if (table?.availability !== "available") return undefined;
+  if (table?.availability !== "available") {
+    return undefined;
+  }
   const rows = table.rows.filter((row) => row.team?.id === teamId);
-  if (rows.length !== 1) return undefined;
+  if (rows.length !== 1) {
+    return undefined;
+  }
   const families = [
     ["Jou.", "Gag.", "Per."],
     ["Matchs / Joués", "Matchs / Gagnés", "Matchs / Perdus"],
   ].filter((columns) =>
     columns.some((column) => table.columns.includes(column)),
   );
-  if (families.length !== 1) return undefined;
+  if (families.length !== 1) {
+    return undefined;
+  }
   const values = families[0].map((column) => {
     const value = table.columns.includes(column)
       ? rows[0].statistics[column]

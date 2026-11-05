@@ -109,12 +109,13 @@ class CurrentEntryOperationalEvidenceIntegrationTest {
     URI entry = URI.create("https://www.ffvb.org/120-37-1-Championnats-Regionaux");
     URI broken = URI.create("https://www.ffvbbeach.org/ffvbapp/resu/broken.htm");
     URI valid = URI.create("https://www.ffvbbeach.org/ffvbapp/resu/valid.htm");
-    if (http200)
+    if (http200) {
       doReturn(response(broken, "<html>unrecognized page</html>")).when(http).page(broken);
-    else
+    } else {
       doThrow(new java.io.UncheckedIOException(new IOException("private-provider-body")))
           .when(http)
           .page(broken);
+    }
     doReturn(
             response(entry, "<a href='" + broken + "'>First</a><a href='" + valid + "'>Second</a>"))
         .when(http)

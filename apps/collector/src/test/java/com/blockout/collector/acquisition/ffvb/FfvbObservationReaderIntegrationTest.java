@@ -99,8 +99,12 @@ class FfvbObservationReaderIntegrationTest {
   /** Releases the actual worker, HTTP pool and local server after every scenario. */
   @AfterEach
   void stopPeer() throws IOException {
-    if (http != null) http.close();
-    if (server != null) server.stop(0);
+    if (http != null) {
+      http.close();
+    }
+    if (server != null) {
+      server.stop(0);
+    }
   }
 
   @Test

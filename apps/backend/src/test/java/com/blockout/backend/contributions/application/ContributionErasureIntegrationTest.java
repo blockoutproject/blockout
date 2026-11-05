@@ -139,9 +139,10 @@ class ContributionErasureIntegrationTest extends ContributionScenario {
     // Given
     moderator(OTHER);
     SubmitContribution.Outcome source = submit(AUTHOR, "0", "https://youtu.be/source", false);
-    if (operation.equals("reactivation"))
+    if (operation.equals("reactivation")) {
       moderation.change(
           OTHER, matchId, source.version().id(), "1", StreamModerationActionEnum.WITHDRAW);
+    }
     UUID erased = operation.equals("reactivation") ? AUTHOR : FOLLOWER;
     CompletableFuture<Void> beforeAccount = new CompletableFuture<>();
     CompletableFuture<Void> proceed = new CompletableFuture<>();

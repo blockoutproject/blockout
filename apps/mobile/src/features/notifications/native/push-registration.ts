@@ -11,8 +11,10 @@ import type { AccountCredentialCleanup } from "../../accounts";
 import type { InboxOwner, InboxRequest } from "../api/inbox-queries";
 import { readPushInstallation } from "./installation-identity";
 import { clearNotificationBadge } from "./notification-badge";
+
 /** The sole installation registration owner; contains no inbox, session authority or persisted credentials. */
 export type PushRegistration = ReturnType<typeof createPushRegistration>;
+
 /** Owns one sign-in association and controllable SDK/HTTP work; failures wait for the next ordinary occasion. */
 export function createPushRegistration() {
   let connection:
@@ -32,11 +34,13 @@ export function createPushRegistration() {
   let currentRequest: AbortController | undefined;
   // One storage read/write per process owner also prevents competing first-registration UUID creation.
   let installation: Promise<string> | undefined;
+
   /** Stops obsolete work without claiming that an already transmitted PUT can be recalled. */
   function cancel() {
     currentRequest?.abort();
     currentRequest = undefined;
   }
+
   return {
     cancel,
     /** Discards in-memory association/work on external invalidation; explicit departures capture removal first. */
@@ -64,7 +68,9 @@ export function createPushRegistration() {
       >,
       devicePushToken?: Notifications.DevicePushToken,
     ) {
-      if (!owner.accountId) return;
+      if (!owner.accountId) {
+        return;
+      }
       if (
         connection?.owner.subject !== owner.subject ||
         connection.owner.accountId !== owner.accountId
@@ -83,32 +89,47 @@ export function createPushRegistration() {
       const current = () =>
         !controller.signal.aborted && connection === original;
       try {
-        if (Platform.OS === "android")
+        if (Platform.OS === "android") {
           await Notifications.setNotificationChannelAsync("default", {
             name: "Notifications",
             importance: AndroidImportance.DEFAULT,
           });
-        if (!current()) return;
+        }
+        if (!current()) {
+          return;
+        }
         let permission = await Notifications.getPermissionsAsync();
-        if (!current()) return;
+        if (!current()) {
+          return;
+        }
         if (!permission.granted && permission.canAskAgain) {
           permission = await Notifications.requestPermissionsAsync();
-          if (!current()) return;
+          if (!current()) {
+            return;
+          }
         }
-        if (!permission.granted) return;
+        if (!permission.granted) {
+          return;
+        }
         installation ??= readPushInstallation().catch((error: unknown) => {
           installation = undefined;
           throw error;
         });
         const installationId = await installation;
-        if (!current()) return;
+        if (!current()) {
+          return;
+        }
         // Reusing the listener's native token avoids getDevicePushTokenAsync re-emitting that listener.
         const token = await Notifications.getExpoPushTokenAsync(
           devicePushToken ? { projectId, devicePushToken } : { projectId },
         );
-        if (!current()) return;
+        if (!current()) {
+          return;
+        }
         const options = await request(controller.signal);
-        if (!current()) return;
+        if (!current()) {
+          return;
+        }
         await replacePushSubscription(
           owner.accountId,
           original.id,
@@ -129,7 +150,9 @@ export function createPushRegistration() {
       const original = connection;
       connection = undefined;
       clearNotificationBadge();
-      if (!original) return;
+      if (!original) {
+        return;
+      }
       return async () => {
         const controller = new AbortController();
         let timer: ReturnType<typeof setTimeout> | undefined;
@@ -142,7 +165,9 @@ export function createPushRegistration() {
         /** Credentials remain SDK-owned and are never retained solely to retry cleanup. */
         const remove = async () => {
           const credentials = await original.credentials();
-          if (!credentials || controller.signal.aborted) return;
+          if (!credentials || controller.signal.aborted) {
+            return;
+          }
           await deletePushSubscription(original.owner.accountId, original.id, {
             signal: controller.signal,
             headers: { Authorization: `Bearer ${credentials.accessToken}` },

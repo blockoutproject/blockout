@@ -38,10 +38,14 @@ export function AgeForm({
 
   /** A rejected write leaves the selected age editable; only an explicit new confirmation retries it. */
   async function submit(values: AgeSubmission) {
-    if (pending) return;
+    if (pending) {
+      return;
+    }
     try {
       const operation = onSubmit(values.age);
-      if (!operation) return;
+      if (!operation) {
+        return;
+      }
       feedback.clear();
       await operation;
     } catch {

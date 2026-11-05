@@ -54,8 +54,9 @@ class AcquisitionSchedulerIntegrationTest {
           () -> {
             held.countDown();
             try {
-              if (!release.await(10, TimeUnit.SECONDS))
+              if (!release.await(10, TimeUnit.SECONDS)) {
                 throw new IllegalStateException("Test release timed out");
+              }
             } catch (InterruptedException failure) {
               Thread.currentThread().interrupt();
             }

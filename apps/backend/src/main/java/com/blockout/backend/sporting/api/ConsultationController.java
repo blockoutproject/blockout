@@ -59,10 +59,12 @@ public class ConsultationController implements ConsultationApi, SportingApi {
       LocalDate nextDay,
       Boolean bypass) {
     if (Stream.of(clubId, teamId, poolId).filter(Objects::nonNull).count() != 1
-        || (clubId != null) != (seasonId != null))
+        || (clubId != null) != (seasonId != null)) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
-    if (!ZoneId.getAvailableZoneIds().contains(timeZone))
+    }
+    if (!ZoneId.getAvailableZoneIds().contains(timeZone)) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+    }
     Kind kind = clubId != null ? Kind.CLUB : teamId != null ? Kind.TEAM : Kind.POOL;
     UUID id = clubId != null ? clubId : teamId != null ? teamId : poolId;
     return ResponseEntity.ok()

@@ -47,10 +47,13 @@ public class IngestionBodyLimitAdvice extends RequestBodyAdviceAdapter {
         Resource.class.isAssignableFrom(parameter.getParameterType())
             ? ValidateSportingImage.MAX_BYTES
             : MAX_JSON_BYTES;
-    if (input.getHeaders().getContentLength() > limit)
+    if (input.getHeaders().getContentLength() > limit) {
       throw new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE);
+    }
     byte[] bytes = input.getBody().readNBytes(limit + 1);
-    if (bytes.length > limit) throw new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE);
+    if (bytes.length > limit) {
+      throw new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE);
+    }
     return new HttpInputMessage() {
       /** {@inheritDoc} */
       @Override

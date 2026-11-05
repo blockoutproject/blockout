@@ -13,7 +13,9 @@ export interface FieldMessageProps {
 export function FieldMessage({ error, helper, disabled }: FieldMessageProps) {
   const { colors } = useTheme();
   const message = error || helper;
-  if (!message) return null;
+  if (!message) {
+    return null;
+  }
   return (
     <Text
       accessibilityRole={error ? "alert" : undefined}

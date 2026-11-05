@@ -182,6 +182,7 @@ export function ContributionHistory({
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   card: { borderRadius: tokens.radius.control, overflow: "hidden" },
   heading: { paddingHorizontal: tokens.spacing.md },

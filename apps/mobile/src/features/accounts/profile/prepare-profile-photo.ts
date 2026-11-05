@@ -22,8 +22,9 @@ export async function prepareProfilePhoto(
     !Number.isSafeInteger(asset.width) ||
     asset.width < 1 ||
     asset.width !== asset.height
-  )
+  ) {
     throw new ImageValidationError("La photo doit être carrée.");
+  }
   const dimension = Math.min(asset.width, 1024);
   const context = ImageManipulator.manipulate(asset.uri);
   let rendered: ImageRef | undefined;
@@ -33,10 +34,11 @@ export async function prepareProfilePhoto(
     rendered = await context.renderAsync();
     const output = await rendered.saveAsync({ format: SaveFormat.PNG });
     file = new File(output.uri);
-    if (file.size < 1 || file.size > 5 * 1024 * 1024)
+    if (file.size < 1 || file.size > 5 * 1024 * 1024) {
       throw new ImageValidationError(
         "La photo préparée doit être un PNG de 5 Mio maximum.",
       );
+    }
     return file;
   } catch (error) {
     deleteOwnedImage(file);

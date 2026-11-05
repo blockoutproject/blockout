@@ -43,6 +43,7 @@ jest.mock("react-native-pager-view", () => {
     }>;
   }) {
     const host = React.useRef<ViewInstance>(null);
+
     /** Projects a completed animated command; tests can separately dispatch early native events. */
     function settle(position: number, animated: boolean) {
       onPageSelected?.({ nativeEvent: { position } } as Parameters<
@@ -59,6 +60,7 @@ jest.mock("react-native-pager-view", () => {
         >[0]);
       }
     }
+
     React.useImperativeHandle(ref, () => ({
       getScrollableNode: () => host.current,
       setPage: (position) => {
@@ -88,6 +90,7 @@ jest.mock("react-native-pager-view", () => {
 jest.mock("@legendapp/list/react-native", () => {
   const { FlatList } =
     jest.requireActual<typeof import("react-native")>("react-native");
+
   /** Keeps rows, list states, refresh and continuation public; recycling, spans and sticky geometry stay native evidence. */
   function NativeLegendViewport({
     ref,
@@ -102,6 +105,7 @@ jest.mock("@legendapp/list/react-native", () => {
       />
     );
   }
+
   return { LegendList: NativeLegendViewport };
 });
 
@@ -117,7 +121,8 @@ export async function layoutNativeTabs() {
     const nodes = screen.container.queryAll(
       (node) => typeof node.props.onLayout === "function",
     );
-    for (const node of nodes)
+    for (const node of nodes) {
       await fireEvent(node, "layout", { nativeEvent: { layout } });
+    }
   }
 }

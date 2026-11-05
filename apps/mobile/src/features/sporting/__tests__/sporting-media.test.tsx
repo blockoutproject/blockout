@@ -57,7 +57,9 @@ it.each([
       screen.getByRole("image", { name: `${label} : ${identity.name}`, busy }),
     ).toBeOnTheScreen();
     expect(screen.queryByText("VR")).not.toBeOnTheScreen();
-    if (error) expect(screen.getByText("Logo indisponible")).toBeOnTheScreen();
+    if (error) {
+      expect(screen.getByText("Logo indisponible")).toBeOnTheScreen();
+    }
   },
 );
 
@@ -112,6 +114,7 @@ it("retains caller content and ignores former events when an image source return
   const firstUri = "data:image/png;base64,Zmlyc3Q=";
   const replacementUri = "data:image/png;base64,c2Vjb25k";
   const user = userEvent.setup();
+
   /** Represents caller-owned input beside the media; replacing an image must not remount that content. */
   function CardDraft() {
     const [value, setValue] = useState("");
@@ -123,6 +126,7 @@ it("retains caller content and ignores former events when an image source return
       />
     );
   }
+
   /** Keeps the real composition stable while only its native media source changes. */
   function Card({ uri }: { uri: string }) {
     return (
@@ -142,6 +146,7 @@ it("retains caller content and ignores former events when an image source return
       </ThemeProvider>
     );
   }
+
   const view = await render(<Card uri={firstUri} />);
   const firstImage = screen.getByRole("image", {
     name: `Logo : ${identity.name}`,

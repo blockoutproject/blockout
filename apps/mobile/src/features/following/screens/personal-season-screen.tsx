@@ -16,15 +16,18 @@ export function PersonalSeasonScreen() {
   const opening = useRef(scope);
   useEffect(() => {
     const current = opening.current;
-    if (!current?.usable || current.blocked) return;
+    if (!current?.usable || current.blocked) {
+      return;
+    }
     void current.season.options
       .refetch({ cancelRefetch: false, throwOnError: true })
       .catch((error: unknown) => {
         if (
           !isCancelledError(error) &&
           !(error instanceof ApiError && error.kind === "cancelled")
-        )
+        ) {
           feedback.error();
+        }
       });
     // This route's mount is the opening event. Query/feedback rerenders must not start another read.
     // eslint-disable-next-line react-hooks/exhaustive-deps

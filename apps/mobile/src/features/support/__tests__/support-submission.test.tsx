@@ -96,11 +96,15 @@ beforeEach(() => {
       Response.json({ requestId: acceptedId }, { status: 201 }),
     );
   mockFetch.mockReset().mockImplementation((url, options) => {
-    if (String(url).endsWith("/application-access"))
+    if (String(url).endsWith("/application-access")) {
       return Promise.resolve(Response.json(applicationAccessResponse()));
-    if (String(url).endsWith("/accounts/me"))
+    }
+    if (String(url).endsWith("/accounts/me")) {
       return Promise.resolve(Response.json(accountResponse()));
-    if (String(url).endsWith("/support-requests")) return supportHttp(options);
+    }
+    if (String(url).endsWith("/support-requests")) {
+      return supportHttp(options);
+    }
     throw new Error("Unexpected test destination");
   });
 });
@@ -193,10 +197,12 @@ it("freezes nested metadata and every prepared file before asynchronous credenti
   const access = applicationAccessResponse();
   access.maintenance.active = true;
   mockFetch.mockImplementation((url, options) => {
-    if (String(url).endsWith("/application-access"))
+    if (String(url).endsWith("/application-access")) {
       return Promise.resolve(Response.json(access));
-    if (String(url).endsWith("/accounts/me"))
+    }
+    if (String(url).endsWith("/accounts/me")) {
       return Promise.resolve(Response.json(accountResponse()));
+    }
     return supportHttp(options);
   });
   const { result } = await renderHook(
@@ -285,12 +291,13 @@ it.each(["guest", "failed-restoration"])(
   "sends ordinary support as %s without acquiring or renewing credentials",
   async (identity) => {
     // Given
-    if (identity === "guest")
+    if (identity === "guest") {
       mockAuth0.hasValidCredentials.mockResolvedValue(false);
-    else
+    } else {
       mockAuth0.getCredentials.mockRejectedValue(
         new Error("Synthetic SDK failure"),
       );
+    }
     await render(<Journey />);
     await screen.findByText("guest");
     const user = await fillForm();
@@ -316,10 +323,12 @@ it("does not start transport after the original visit leaves during bypass crede
   const access = applicationAccessResponse();
   access.maintenance.active = true;
   mockFetch.mockImplementation((url, options) => {
-    if (String(url).endsWith("/application-access"))
+    if (String(url).endsWith("/application-access")) {
       return Promise.resolve(Response.json(access));
-    if (String(url).endsWith("/accounts/me"))
+    }
+    if (String(url).endsWith("/accounts/me")) {
       return Promise.resolve(Response.json(accountResponse()));
+    }
     return supportHttp(options);
   });
   const { result, unmount } = await renderHook(
@@ -433,21 +442,24 @@ it.each([
   "retains editable input after %s and sends corrected input only on an explicit retry",
   async (failure) => {
     // Given
-    if (failure === "offline" || failure === "lost-response")
+    if (failure === "offline" || failure === "lost-response") {
       supportHttp.mockRejectedValueOnce(
         new TypeError("Synthetic lost connection"),
       );
-    else if (failure === "malformed-success")
+    } else if (failure === "malformed-success") {
       supportHttp.mockResolvedValueOnce(Response.json({}, { status: 201 }));
-    else
+    } else {
       supportHttp.mockResolvedValueOnce(
         Response.json({}, { status: failure === "refusal" ? 422 : 503 }),
       );
+    }
     await render(<Journey />);
     await screen.findByText("auth0|A");
     await screen.findByDisplayValue("owner@example.invalid");
     const user = await fillForm();
-    if (failure === "offline") onlineManager.setOnline(false);
+    if (failure === "offline") {
+      onlineManager.setOnline(false);
+    }
 
     // When
     await user.press(

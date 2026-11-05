@@ -38,18 +38,24 @@ public class ChangePushSubscriptions {
     boolean originalPresent = false;
     for (UUID accountId : affected.stream().sorted().toList()) {
       boolean present = accounts.lock(accountId);
-      if (accountId.equals(registration.accountId())) originalPresent = present;
+      if (accountId.equals(registration.accountId())) {
+        originalPresent = present;
+      }
     }
-    if (!originalPresent) throw new NotificationNotFoundException();
+    if (!originalPresent) {
+      throw new NotificationNotFoundException();
+    }
     List<Association> current = subscriptions.affected(registration);
-    if (current.stream().anyMatch(row -> !affected.contains(row.accountId())))
+    if (current.stream().anyMatch(row -> !affected.contains(row.accountId()))) {
       throw new PushSubscriptionConflictException();
+    }
     if (current.stream()
         .anyMatch(
             row ->
                 row.id().equals(registration.id())
-                    && !row.accountId().equals(registration.accountId())))
+                    && !row.accountId().equals(registration.accountId()))) {
       throw new NotificationNotFoundException();
+    }
     return subscriptions.replace(registration, current);
   }
 
@@ -63,7 +69,9 @@ public class ChangePushSubscriptions {
    */
   @Transactional
   public void remove(NotificationContext owner, UUID id) {
-    if (!accounts.lock(owner.accountId())) throw new NotificationNotFoundException();
+    if (!accounts.lock(owner.accountId())) {
+      throw new NotificationNotFoundException();
+    }
     subscriptions.remove(owner.accountId(), id);
   }
 }

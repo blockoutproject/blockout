@@ -55,8 +55,11 @@ public class JpaNotificationStore implements NotificationStore {
   public void saveFacts(MatchAnnouncementFacts facts) {
     MatchAnnouncementEntity entity = entities.find(MatchAnnouncementEntity.class, facts.matchId());
     // Assigned match IDs are insert-only; merging could replace already consumed allowances.
-    if (entity == null) entities.persist(new MatchAnnouncementEntity(facts));
-    else entity.advance(facts);
+    if (entity == null) {
+      entities.persist(new MatchAnnouncementEntity(facts));
+    } else {
+      entity.advance(facts);
+    }
   }
 
   /** {@inheritDoc} */

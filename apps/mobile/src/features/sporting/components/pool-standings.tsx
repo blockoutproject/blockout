@@ -59,7 +59,9 @@ export function PoolStandings({
 
   /** Refetches only this table; ordinary failure preserves its original supplier attribution. */
   async function refresh() {
-    if (!active) return;
+    if (!active) {
+      return;
+    }
     feedback.clear();
     const result = await standings.refetch({ cancelRefetch: false });
     if (
@@ -69,8 +71,9 @@ export function PoolStandings({
       result.data.availability === "available" &&
       result.data.rows.length > 0 &&
       !resourceUnavailable(result.error)
-    )
+    ) {
       feedback.error();
+    }
   }
 
   const hasRows = data?.availability === "available" && data.rows.length > 0;
@@ -115,7 +118,7 @@ export function PoolStandings({
       </View>
     </View>
   );
-  if (!hasRows)
+  if (!hasRows) {
     return (
       <PageScrollView refreshControl={refreshControl}>
         {standings.isLoading ? (
@@ -163,6 +166,7 @@ export function PoolStandings({
         )}
       </PageScrollView>
     );
+  }
   return (
     <PageScrollView alwaysBounceVertical refreshControl={refreshControl}>
       <PageContent style={styles.content}>

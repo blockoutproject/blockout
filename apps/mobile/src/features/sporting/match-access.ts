@@ -16,18 +16,22 @@ export function subscribeMatchAccess(
 ) {
   return client.getQueryCache().subscribe((event) => {
     const matchId = event.query.meta?.sportingMatchId;
-    if (event.type !== "updated" || typeof matchId !== "string") return;
+    if (event.type !== "updated" || typeof matchId !== "string") {
+      return;
+    }
     if (
       (event.action.type === "error" || event.action.type === "failed") &&
       resourceUnavailable(event.action.error)
-    )
+    ) {
       onAccess(matchId, "unavailable");
-    else if (event.action.type === "success") {
+    } else if (event.action.type === "success") {
       // F03's query admits this generated response only after transport validation.
       const detail = client.getQueryData<MatchDetailResponse>(
         event.query.queryKey,
       );
-      if (detail && !detail.streamUrl) onAccess(matchId, "link-unavailable");
+      if (detail && !detail.streamUrl) {
+        onAccess(matchId, "link-unavailable");
+      }
     }
   });
 }

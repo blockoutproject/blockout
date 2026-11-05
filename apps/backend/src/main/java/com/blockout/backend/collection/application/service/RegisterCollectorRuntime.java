@@ -31,7 +31,9 @@ public class RegisterCollectorRuntime {
   public CollectionState.Runtime register(long revision, UUID incarnationId) {
     Objects.requireNonNull(incarnationId);
     CollectionState.Runtime current = store.lockRuntimeForReplacement();
-    if (incarnationId.equals(current.incarnationId())) return current;
+    if (incarnationId.equals(current.incarnationId())) {
+      return current;
+    }
     CollectionRevision.requireRevision(revision, current.revision());
     CollectionRevision.requireAdvance(current.revision());
     return store.replaceRuntime(incarnationId);

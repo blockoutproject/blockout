@@ -255,7 +255,9 @@ public final class SportingPresentation {
    * @throws SportingValidationException when the name is absent or blank
    */
   private static void requireDivisionName(String name) {
-    if (name == null || name.isBlank()) throw new SportingValidationException();
+    if (name == null || name.isBlank()) {
+      throw new SportingValidationException();
+    }
   }
 
   /**
@@ -264,6 +266,8 @@ public final class SportingPresentation {
    * @param name independent manual name or null
    */
   private static void validateName(String name) {
-    if (name != null && name.isBlank()) throw new SportingValidationException();
+    if (name != null && name.isBlank()) {
+      throw new SportingValidationException();
+    }
   }
 }

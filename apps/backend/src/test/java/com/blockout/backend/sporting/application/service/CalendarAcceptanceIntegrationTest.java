@@ -131,8 +131,9 @@ class CalendarAcceptanceIntegrationTest {
     calendars.accept(
         pool, calendar(1, List.of(candidate("M100", "Home", LocalDate.of(2026, 10, 1)))));
     List<CalendarObservation.Match> proposed = new ArrayList<>();
-    for (int i = 1; i < 100; i++)
+    for (int i = 1; i < 100; i++) {
       proposed.add(candidate("M" + i, "Home", LocalDate.of(2026, 11, 1)));
+    }
     proposed.add(candidate("M100", "Unrecognized replacement", LocalDate.of(2026, 12, 1)));
 
     // When

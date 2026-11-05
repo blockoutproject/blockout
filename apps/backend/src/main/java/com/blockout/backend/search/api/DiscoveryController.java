@@ -134,8 +134,9 @@ public class DiscoveryController implements DiscoveryApi {
    */
   private SearchPage read(SearchContext context, String cursor, Set<UUID> exampleIds) {
     DiscoveryRequest.Bound bound = requests.bind(context, cursor, exampleIds);
-    if (bound.exampleIds() != null)
+    if (bound.exampleIds() != null) {
       return reads.examples(context, new SearchExamples(bound.exampleIds()));
+    }
     SearchContinuation continuation = bound.continuation();
     return reads.read(
         context,

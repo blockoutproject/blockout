@@ -124,7 +124,9 @@ class CollectorPresentationBoundaryIntegrationTest {
    */
   @AfterAll
   static void stopBackend() throws Exception {
-    if (runtime != null) runtime.close();
+    if (runtime != null) {
+      runtime.close();
+    }
   }
 
   /**
@@ -156,8 +158,9 @@ class CollectorPresentationBoundaryIntegrationTest {
     transport =
         runtime.connect(
             (request, body, execution) -> {
-              if (request.getURI().getPath().endsWith("/locality-observations"))
+              if (request.getURI().getPath().endsWith("/locality-observations")) {
                 submissions.add(new String(body, StandardCharsets.UTF_8));
+              }
               return execution.execute(request, body);
             });
     backend =
@@ -225,15 +228,23 @@ class CollectorPresentationBoundaryIntegrationTest {
   @AfterEach
   void closeBoundaries() throws Exception {
     try {
-      if (transport != null) transport.close();
+      if (transport != null) {
+        transport.close();
+      }
     } finally {
       try {
-        if (imageHttp != null) imageHttp.close();
+        if (imageHttp != null) {
+          imageHttp.close();
+        }
       } finally {
         try {
-          if (imagePeer != null) imagePeer.stop(0);
+          if (imagePeer != null) {
+            imagePeer.stop(0);
+          }
         } finally {
-          if (mobileHttp != null) mobileHttp.close();
+          if (mobileHttp != null) {
+            mobileHttp.close();
+          }
         }
       }
     }
@@ -881,7 +892,7 @@ class CollectorPresentationBoundaryIntegrationTest {
     metadata.put("manualName", name);
     metadata.put("manualShortName", null);
     parts.add("metadata", new HttpEntity<>(metadata, json));
-    if (bytes != null)
+    if (bytes != null) {
       parts.add(
           "image",
           new ByteArrayResource(bytes) {
@@ -891,6 +902,7 @@ class CollectorPresentationBoundaryIntegrationTest {
               return "synthetic.jpg";
             }
           });
+    }
     mobile
         .patch()
         .uri("/administration/teams/{id}/presentation", team)

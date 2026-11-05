@@ -45,8 +45,9 @@ export function SupportForm({ onSubmit }: SupportFormProps) {
     try {
       const files: Blob[] = [];
       for (const image of values.images) {
-        if (image.status !== "ready" || !image.file)
+        if (image.status !== "ready" || !image.file) {
           throw new Error("Unready support image");
+        }
         files.push(image.file);
       }
       const attempt = onSubmit(toSupportRequest(values, context), files);
@@ -60,8 +61,9 @@ export function SupportForm({ onSubmit }: SupportFormProps) {
 
   /** Serializes native taps before RHF's asynchronous validation can trigger a second send. */
   async function send() {
-    if (submitting.current || attachments.selection.isPending() || unready)
+    if (submitting.current || attachments.selection.isPending() || unready) {
       return;
+    }
     submitting.current = true;
     try {
       await handleSubmit(submit)();
@@ -191,6 +193,7 @@ export function SupportForm({ onSubmit }: SupportFormProps) {
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   sections: { gap: tokens.layout.section.gap },
   fields: { gap: tokens.layout.form.gap },

@@ -57,11 +57,13 @@ public class JpaPushSubscriptionStore implements PushSubscriptionStore {
   public Replacement replace(Registration registration, List<Association> lockedBindings) {
     PushSubscriptionEntity entity =
         subscriptions.findBySubscriptionId(registration.id()).orElse(null);
-    if (entity != null && !entity.getAccountId().equals(registration.accountId()))
+    if (entity != null && !entity.getAccountId().equals(registration.accountId())) {
       throw new PushSubscriptionConflictException();
+    }
     for (Association binding : lockedBindings) {
-      if (!binding.id().equals(registration.id()))
+      if (!binding.id().equals(registration.id())) {
         subscriptions.removeExact(binding.accountId(), binding.id());
+      }
     }
     boolean created = entity == null;
     if (created) {

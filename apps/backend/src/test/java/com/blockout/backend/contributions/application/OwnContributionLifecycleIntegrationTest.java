@@ -155,7 +155,9 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
   @DisplayName("Only a current revision repeats an exact terminal target without new effects")
   void repeatsExactTerminalTarget(String action, State terminal) throws Exception {
     // Given
-    if (action.equals("cancel")) result(2, ResultStateEnum.FINAL);
+    if (action.equals("cancel")) {
+      result(2, ResultStateEnum.FINAL);
+    }
     SubmitContribution.Outcome original = submit(AUTHOR, "0", "https://youtu.be/original", false);
     change(AUTHOR, original.version().id(), "1", action).andExpect(status().isOk());
     ContributionVersion completed = contributions.version(original.version().id()).orElseThrow();
@@ -289,7 +291,9 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
   void refusesForeignOrOwnerlessTarget(boolean erased) throws Exception {
     // Given
     SubmitContribution.Outcome original = submit(AUTHOR, "0", "https://youtu.be/original", false);
-    if (erased) sql.update("DELETE FROM account WHERE id=?", AUTHOR);
+    if (erased) {
+      sql.update("DELETE FROM account WHERE id=?", AUTHOR);
+    }
 
     // When
     ResultActions response = change(OTHER, original.version().id(), "1", "withdraw");
@@ -313,7 +317,9 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
     // Given
     result(2, ResultStateEnum.FINAL);
     SubmitContribution.Outcome pending = submit(AUTHOR, "0", "https://youtu.be/pending", false);
-    if (erased) sql.update("DELETE FROM account WHERE id=?", AUTHOR);
+    if (erased) {
+      sql.update("DELETE FROM account WHERE id=?", AUTHOR);
+    }
     moderator(OTHER);
 
     // When

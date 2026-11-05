@@ -49,6 +49,7 @@ import { ContributionStateBadge } from "../components/contribution-state-badge";
 export interface OwnContributionsScreenProps {
   matchId: string;
 }
+
 /** French lifecycle explanations reveal neither other proposals nor private moderation reasons. */
 const states: Record<
   StreamContributionStateEnum,
@@ -97,6 +98,7 @@ const states: Record<
       "Une autre proposition a été retenue ou une nouvelle version a été soumise. Les détails des autres personnes restent privés.",
   },
 };
+
 /** Combines the exact current owner editor with a virtualized, read-only history under the existing Query/session owner. */
 export function OwnContributionsScreen({
   matchId,
@@ -130,9 +132,12 @@ export function OwnContributionsScreen({
       ]
     : [];
   const active = authorized ? current?.activeContribution : undefined;
+
   /** Rereads displayed context and personal history together; an ordinary failure preserves their authorized data. */
   async function refresh() {
-    if (change.isPending || submit.isPending) return;
+    if (change.isPending || submit.isPending) {
+      return;
+    }
     feedback.clear();
     const results = await Promise.allSettled([
       editing.refresh(),
@@ -141,9 +146,11 @@ export function OwnContributionsScreen({
     if (
       mounted.current &&
       results.some((result) => result.status === "rejected")
-    )
+    ) {
       feedback.error();
+    }
   }
+
   /** Continues the same native page traversal; failed continuations wait for the explicit footer retry. */
   async function loadMore() {
     if (
@@ -155,11 +162,13 @@ export function OwnContributionsScreen({
       change.isPending ||
       submit.isPending ||
       (query.isError && !query.isFetchNextPageError)
-    )
+    ) {
       return;
+    }
     feedback.clear();
     await query.fetchNextPage({ cancelRefetch: false });
   }
+
   const pending =
     session.status !== "guest" &&
     (session.status !== "authenticated"
@@ -189,7 +198,9 @@ export function OwnContributionsScreen({
         data={rows}
         keyExtractor={(item) => item.id}
         onEndReached={() => {
-          if (!query.isError) void loadMore();
+          if (!query.isError) {
+            void loadMore();
+          }
         }}
         ItemSeparatorComponent={EntryGroupSeparator}
         refreshControl={
@@ -323,14 +334,17 @@ export function OwnContributionsScreen({
     content
   );
 }
+
 /** Keeps Android keyboard handling on the virtualized list's own supported scroll component. */
 function renderAndroidScroll(props: ScrollViewProps) {
   return <KeyboardAwareScrollView {...props} />;
 }
+
 /** One retained personal version; its state never grants a command in the read-only history. */
 interface ProposalRowProps {
   item: OwnStreamContributionResponse;
 }
+
 /** Shows the immutable address and textual semantic badge without exposing any row action. */
 function ProposalRow({ item }: ProposalRowProps) {
   const { colors } = useTheme();
@@ -353,6 +367,7 @@ function ProposalRow({ item }: ProposalRowProps) {
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   // The virtualized header already owns the shared horizontal inset and first eight points above feedback.
   feedback: { padding: 0, paddingTop: tokens.spacing.sm },

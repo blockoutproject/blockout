@@ -133,7 +133,9 @@ class Auth0ConfigurationIntegrationTest {
     release.countDown();
     server.stop(0);
     workers.shutdownNow();
-    if (tokenHttp != null) tokenHttp.close();
+    if (tokenHttp != null) {
+      tokenHttp.close();
+    }
     validators.close();
     configuration.closeManagementHttp();
   }

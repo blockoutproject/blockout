@@ -50,7 +50,9 @@ public class CreateSupportRequest {
       throw failure;
     } finally {
       // Do not remove bytes underneath a child whose termination could not be established.
-      if (childStopped) cleanup(submission);
+      if (childStopped) {
+        cleanup(submission);
+      }
     }
   }
 

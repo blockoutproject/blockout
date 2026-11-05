@@ -29,17 +29,20 @@ export interface CollectionQueryAuthority {
   enabled: boolean;
   request(): Promise<ApiFetchOptions>;
 }
+
 /** Defines every collection read once; native Query owns data, cancellation, pagination and status. */
 export function createCollectionQueries(authority: CollectionQueryAuthority) {
   /** Removes a refused list or control snapshot so a later technical failure cannot resurrect it. */
   function rejectDenied(error: unknown, context: QueryFunctionContext): never {
-    if (!context.signal.aborted && isAccessDenied(error))
+    if (!context.signal.aborted && isAccessDenied(error)) {
       context.client
         .getQueryCache()
         .find({ queryKey: context.queryKey, exact: true })
         ?.setState({ data: undefined, dataUpdatedAt: 0 });
+    }
     throw error;
   }
+
   return {
     /** Canonical seasons, without provider calls or implicit season creation. */
     seasons: () =>

@@ -62,11 +62,14 @@ export function ModerationReportsScreen({
 
   /** A native pull rereads this traversal; usable rows survive a technical failure with one gesture-owned notice. */
   async function refresh() {
-    if (!reading.allowed || query.isFetching) return;
+    if (!reading.allowed || query.isFetching) {
+      return;
+    }
     feedback.clear();
     const result = await query.refetch({ cancelRefetch: false });
-    if (result.isError && reports.length > 0 && !isAccessDenied(result.error))
+    if (result.isError && reports.length > 0 && !isAccessDenied(result.error)) {
       feedback.error();
+    }
   }
 
   /** Automatic edges and explicit append Retry share Query's current next page; failed edges never retry themselves. */
@@ -77,8 +80,9 @@ export function ModerationReportsScreen({
       denied ||
       !query.hasNextPage ||
       query.isFetching
-    )
+    ) {
       return;
+    }
     feedback.clear();
     await query.fetchNextPage({ cancelRefetch: false });
   }
@@ -137,7 +141,9 @@ export function ModerationReportsScreen({
             ) : undefined
           }
           onEndReached={() => {
-            if (!query.isError) void loadMore();
+            if (!query.isError) {
+              void loadMore();
+            }
           }}
           onEndReachedThreshold={0.5}
           ListHeaderComponent={

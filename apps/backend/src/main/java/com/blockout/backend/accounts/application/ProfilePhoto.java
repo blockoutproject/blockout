@@ -19,7 +19,8 @@ public record ProfilePhoto(byte[] bytes, String mediaType, int dimension) {
    * @throws InvalidProfileChangeException when the image and intent disagree
    */
   public static void requireConsistentIntent(ProfilePhotoActionEnum action, boolean supplied) {
-    if ((action == ProfilePhotoActionEnum.REPLACE) != supplied)
+    if ((action == ProfilePhotoActionEnum.REPLACE) != supplied) {
       throw new InvalidProfileChangeException();
+    }
   }
 }

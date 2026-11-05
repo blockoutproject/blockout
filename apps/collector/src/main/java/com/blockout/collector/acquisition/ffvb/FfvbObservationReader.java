@@ -95,7 +95,9 @@ public class FfvbObservationReader implements FfvbAcquisition {
           exportFailure = readFailure(failure);
         }
       }
-      if (exportFailure != null) throw exportFailure;
+      if (exportFailure != null) {
+        throw exportFailure;
+      }
       return new Read<>(
           calendars.parse(export.observation(), page, scope(target)), export.observedAt());
     }

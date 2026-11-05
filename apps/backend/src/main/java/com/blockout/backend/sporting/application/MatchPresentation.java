@@ -27,8 +27,9 @@ public final class MatchPresentation {
    */
   public static CalendarCategoryEnum category(
       ConsultationViews.Schedule schedule, ConsultationViews.Result result, Instant now) {
-    if (result != null && result.state() == ResultStateEnum.FINAL)
+    if (result != null && result.state() == ResultStateEnum.FINAL) {
       return CalendarCategoryEnum.COMPLETED;
+    }
     Instant boundary =
         schedule.instant() == null
             ? schedule.localDate().plusDays(1).atStartOfDay(DATE_ONLY_ZONE).toInstant()

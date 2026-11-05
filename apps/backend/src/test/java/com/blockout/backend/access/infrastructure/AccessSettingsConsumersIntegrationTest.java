@@ -83,7 +83,9 @@ class AccessSettingsConsumersIntegrationTest {
   /** Stops this suite's key server; Spring owns its separate disposable database. */
   @AfterAll
   static void closeKeys() {
-    if (keys != null) keys.stop(0);
+    if (keys != null) {
+      keys.stop(0);
+    }
   }
 
   @Test

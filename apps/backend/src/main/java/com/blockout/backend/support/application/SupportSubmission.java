@@ -43,11 +43,16 @@ public record SupportSubmission(UUID requestId, Metadata metadata, List<Path> im
       try {
         Files.deleteIfExists(image);
       } catch (IOException exception) {
-        if (failure == null) failure = exception;
-        else failure.addSuppressed(exception);
+        if (failure == null) {
+          failure = exception;
+        } else {
+          failure.addSuppressed(exception);
+        }
       }
     }
-    if (failure != null) throw failure;
+    if (failure != null) {
+      throw failure;
+    }
   }
 
   /** Immutable content mapped from the validated canonical request; optional facts remain null. */

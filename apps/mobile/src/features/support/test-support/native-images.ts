@@ -10,6 +10,7 @@ class NativeImageFile extends Blob {
   delete = jest.fn(() => {
     this.exists = false;
   });
+
   constructor(uri: string, size = 32) {
     super([new Uint8Array(size)], {
       type: uri.endsWith(".jpg") ? "image/jpeg" : "image/png",
@@ -43,16 +44,20 @@ export const nativeFileSystem = {
     normalize: (path: string) => path,
   },
 };
+
 /** System-picker outcomes are controlled without replacing the shared selection hook. */
 export const picker = { launchImageLibraryAsync: jest.fn() };
+
 /** Controlled native image reference; encoding completion remains explicit in each scenario. */
 export const renderedImage = { saveAsync: jest.fn(), release: jest.fn() };
+
 /** Only the installed manipulator's native operations are replaced. */
 export const manipulation = {
   resize: jest.fn(),
   renderAsync: jest.fn(),
   release: jest.fn(),
 };
+
 /** SDK module facade with its actual supported save formats. */
 export const manipulator = {
   ImageManipulator: { manipulate: jest.fn(() => manipulation) },

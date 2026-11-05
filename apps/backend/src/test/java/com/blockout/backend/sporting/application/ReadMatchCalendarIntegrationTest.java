@@ -89,10 +89,13 @@ class ReadMatchCalendarIntegrationTest {
       MatchView match =
           fixtures.match(
               scope.pool(), "BUSY-" + index, FIRST, Instant.parse("2026-01-01T12:00:00Z"));
-      if (first == null) first = match;
+      if (first == null) {
+        first = match;
+      }
     }
-    for (int day = 1; day < 10; day++)
+    for (int day = 1; day < 10; day++) {
       fixtures.match(scope.pool(), "DAY-" + day, FIRST.plusDays(day * 3), null);
+    }
     UUID id =
         switch (kind) {
           case CLUB -> acquisition.team(first.homeTeamId()).orElseThrow().clubId();
@@ -162,8 +165,9 @@ class ReadMatchCalendarIntegrationTest {
   void repairsMovedRowsOnRefresh() {
     // Given
     MatchView moved = fixtures.match(scope.pool(), "MOVED", FIRST, null);
-    for (int day = 1; day < 9; day++)
+    for (int day = 1; day < 9; day++) {
       fixtures.match(scope.pool(), "DAY-" + day, FIRST.plusDays(day), null);
+    }
     ConsultationViews.Calendar page = calendars.read(request(null));
     sql.update("UPDATE sporting_match SET local_date='2026-01-09' WHERE id=?", moved.id());
 

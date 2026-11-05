@@ -53,7 +53,9 @@ export function FollowerCount({ target }: FollowerCountProps) {
             label="Réessayer le nombre d’abonnés"
             loading={query.isFetching}
             onPress={() => {
-              if (query.isEnabled) void query.refetch();
+              if (query.isEnabled) {
+                void query.refetch();
+              }
             }}
           >
             <RotateCcw

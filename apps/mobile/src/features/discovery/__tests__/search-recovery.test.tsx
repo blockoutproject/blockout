@@ -85,9 +85,10 @@ let publicClient = createQueryClient();
 /** Controlled HTTP preserves generated transport, Query, admission, session, shared paging and Router; native SDKs are doubled above. */
 function publicReads(url: string): Promise<Response> {
   const parsed = new URL(url);
-  if (parsed.pathname.endsWith("/application-access"))
+  if (parsed.pathname.endsWith("/application-access")) {
     return Promise.resolve(Response.json(applicationAccessResponse()));
-  if (parsed.pathname.endsWith("/sporting-search-options"))
+  }
+  if (parsed.pathname.endsWith("/sporting-search-options")) {
     return Promise.resolve(
       Response.json({
         resourceType: parsed.searchParams.get("resourceType"),
@@ -97,7 +98,8 @@ function publicReads(url: string): Promise<Response> {
         genders: ["female"],
       }),
     );
-  if (parsed.pathname.endsWith("/clubs"))
+  }
+  if (parsed.pathname.endsWith("/clubs")) {
     return Promise.resolve(
       Response.json({
         clubs: [
@@ -107,7 +109,8 @@ function publicReads(url: string): Promise<Response> {
         nextCursor: "next",
       }),
     );
-  if (parsed.pathname.endsWith(`/clubs/${secondId}`))
+  }
+  if (parsed.pathname.endsWith(`/clubs/${secondId}`)) {
     return Promise.resolve(
       Response.json({
         club: { id: secondId, name: "Volley Niort" },
@@ -115,7 +118,8 @@ function publicReads(url: string): Promise<Response> {
         seasons: [],
       }),
     );
-  if (parsed.pathname.endsWith("/teams"))
+  }
+  if (parsed.pathname.endsWith("/teams")) {
     return Promise.resolve(
       Response.json({
         teams: [
@@ -129,7 +133,8 @@ function publicReads(url: string): Promise<Response> {
         ],
       }),
     );
-  if (parsed.pathname.endsWith("/pools"))
+  }
+  if (parsed.pathname.endsWith("/pools")) {
     return Promise.resolve(
       Response.json({
         pools: [
@@ -143,6 +148,7 @@ function publicReads(url: string): Promise<Response> {
         ],
       }),
     );
+  }
   throw new Error(`Unexpected controlled path ${parsed.pathname}`);
 }
 
@@ -819,9 +825,12 @@ it("preserves applied filters and all accepted pages when the second reread page
   await screen.findByText("Deuxième page");
   mockFetch.mockImplementation((url: string) => {
     const parsed = new URL(url);
-    if (!parsed.pathname.endsWith("/teams")) return publicReads(url);
-    if (parsed.searchParams.has("cursor"))
+    if (!parsed.pathname.endsWith("/teams")) {
+      return publicReads(url);
+    }
+    if (parsed.searchParams.has("cursor")) {
       return Promise.reject(new TypeError("offline"));
+    }
     return Promise.resolve(
       Response.json({
         teams: [

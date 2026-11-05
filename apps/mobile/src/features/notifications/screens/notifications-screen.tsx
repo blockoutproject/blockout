@@ -38,6 +38,7 @@ import { NotificationItem } from "../components/notification-item";
 import { NotificationLoading } from "../components/notification-loading";
 import { AccountSessionFeedback } from "../../accounts/current-account";
 import { useSportingNavigation } from "../../sporting/navigation";
+
 /** Current F05/F12 admission precedes private inbox observers, including direct guest entry. */
 export function NotificationsScreen() {
   const authority = useInboxQueries();
@@ -49,7 +50,7 @@ export function NotificationsScreen() {
     session.status === "signing-out" ||
     (authenticated && account.isLoading);
   const FeedbackLayout = pending ? PageContent : ScreenState;
-  if (!authority.queries)
+  if (!authority.queries) {
     return (
       <Page
         edges={["top", "left", "right"]}
@@ -73,6 +74,7 @@ export function NotificationsScreen() {
         </PageScrollView>
       </Page>
     );
+  }
   return (
     <Inbox
       key={`${authority.owner.subject}:${authority.owner.accountId}`}
@@ -81,6 +83,7 @@ export function NotificationsScreen() {
     />
   );
 }
+
 /** Native growing list with a fully named, one-line page title; read and match navigation settle independently in their existing owners. */
 function Inbox({
   owner,
@@ -114,9 +117,12 @@ function Inbox({
     void refreshNotificationSummary(client, queries).catch(() => undefined);
   });
   useEffect(() => {
-    if (navigation.isFocused()) open();
+    if (navigation.isFocused()) {
+      open();
+    }
     return navigation.addListener("focus", () => open());
   }, [navigation]);
+
   /** Explicit refresh retains authorized rows on ordinary failure and reports it through the existing toast. */
   async function refresh() {
     feedback.clear();
@@ -130,9 +136,11 @@ function Inbox({
         (result) =>
           result.status === "rejected" && !isAccessDenied(result.reason),
       )
-    )
+    ) {
       feedback.error();
+    }
   }
+
   /** The focused current owner may retry the failed cursor explicitly; native edge events never replay it. */
   async function loadMore() {
     if (
@@ -140,24 +148,31 @@ function Inbox({
       !query.hasNextPage ||
       query.isFetching ||
       (query.isError && !query.isFetchNextPageError)
-    )
+    ) {
       return;
+    }
     feedback.clear();
     await query.fetchNextPage({ cancelRefetch: false });
   }
+
   /** Starts both independent intents once; this tap owns their first safe failure feedback. */
   function openNotification(id: string, matchId: string) {
     feedback.clear();
     let reported = false;
+
     /** Later failure of this same tap neither replaces its toast nor reannounces it. */
     function reportFailure() {
-      if (reported) return;
+      if (reported) {
+        return;
+      }
       reported = true;
       feedback.error();
     }
+
     command.mutate(id, { onError: reportFailure });
     void sporting.navigate("match", matchId, reportFailure);
   }
+
   return (
     <Page
       edges={["top", "left", "right"]}
@@ -180,7 +195,9 @@ function Inbox({
         alwaysBounceVertical={rows.length > 0}
         data={rows}
         onEndReached={() => {
-          if (!query.isError) void loadMore();
+          if (!query.isError) {
+            void loadMore();
+          }
         }}
         keyExtractor={(item) => item.id}
         ItemSeparatorComponent={ListSeparator}
@@ -252,6 +269,7 @@ function Inbox({
     </Page>
   );
 }
+
 const styles = StyleSheet.create({
   header: {
     minHeight: tokens.layout.header,

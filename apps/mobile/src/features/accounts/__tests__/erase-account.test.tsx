@@ -379,7 +379,9 @@ it("rereads the captured original after a lost response and requires an explicit
   // Given
   const user = await openErasure();
   mockFetch.mockClear().mockImplementation(async (_url, request) => {
-    if (request?.method === "DELETE") throw new TypeError("Lost response");
+    if (request?.method === "DELETE") {
+      throw new TypeError("Lost response");
+    }
     return Response.json(account);
   });
   await user.press(screen.getByRole("checkbox"));
@@ -419,7 +421,9 @@ it("uses original absence after response loss to leave without repeating deletio
   // Given
   const user = await openErasure();
   mockFetch.mockClear().mockImplementation(async (_url, request) => {
-    if (request?.method === "DELETE") throw new TypeError("Lost response");
+    if (request?.method === "DELETE") {
+      throw new TypeError("Lost response");
+    }
     return new Response(null, { status: 404 });
   });
   await user.press(screen.getByRole("checkbox"));

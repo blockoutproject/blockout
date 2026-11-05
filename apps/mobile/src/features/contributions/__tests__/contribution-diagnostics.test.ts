@@ -83,12 +83,13 @@ it.each(["network", "schema"] as const)(
   "retains safe %s failure classification without claiming rollback or retrying",
   async (kind) => {
     // Given
-    if (kind === "network")
+    if (kind === "network") {
       mockFetch.mockRejectedValue(new TypeError(privateContent));
-    else
+    } else {
       mockFetch.mockResolvedValue(
         Response.json({ contribution: privateContent }),
       );
+    }
 
     // When
     const failure = await createStreamContribution(

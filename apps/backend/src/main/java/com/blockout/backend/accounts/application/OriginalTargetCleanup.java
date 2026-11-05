@@ -28,14 +28,19 @@ public class OriginalTargetCleanup {
       diagnostic(targets, "auth0", null, Outcome.MISSING_TARGET);
     } else {
       Outcome result = attempt(() -> auth0.remove(targets.issuer(), targets.subject()));
-      if (result.needsAttention()) diagnostic(targets, "auth0", targets.subject(), result);
+      if (result.needsAttention()) {
+        diagnostic(targets, "auth0", targets.subject(), result);
+      }
     }
-    if (targets.revenueCatIds().isEmpty())
+    if (targets.revenueCatIds().isEmpty()) {
       diagnostic(targets, "revenuecat", null, Outcome.MISSING_TARGET);
+    }
     for (String target : new LinkedHashSet<>(targets.revenueCatIds())) {
       Outcome result =
           target.isBlank() ? Outcome.MISSING_TARGET : attempt(() -> revenueCat.remove(target));
-      if (result.needsAttention()) diagnostic(targets, "revenuecat", target, result);
+      if (result.needsAttention()) {
+        diagnostic(targets, "revenuecat", target, result);
+      }
     }
   }
 
@@ -65,8 +70,9 @@ public class OriginalTargetCleanup {
       OriginalAccountTargets targets, String provider, String target, Outcome outcome) {
     Map<String, String> reference = new java.util.LinkedHashMap<>();
     reference.put("original_account_id", targets.accountId().toString());
-    if (target != null)
+    if (target != null) {
       reference.put(provider.equals("auth0") ? "auth0_subject" : "revenuecat_app_user_id", target);
+    }
     log.atWarn()
         .addKeyValue("operation", "account_cleanup")
         .addKeyValue("scope", environment)

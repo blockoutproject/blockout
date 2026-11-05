@@ -62,8 +62,9 @@ public class JpaFollowReadStore implements FollowReadStore {
             target.visible(),
             builder.equal(follow.get("accountId"), accountId),
             builder.equal(follow.get(type == TargetType.TEAM ? "teamId" : "poolId"), target.id()));
-    if (seasonId != null)
+    if (seasonId != null) {
       selected = builder.and(selected, builder.equal(target.seasonId(), seasonId));
+    }
     query
         .select(target.id())
         .where(selected)

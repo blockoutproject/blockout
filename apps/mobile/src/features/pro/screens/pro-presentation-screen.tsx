@@ -39,12 +39,14 @@ import {
   isProVerificationLoading,
   ProVerification,
 } from "../components/pro-verification";
+
 /** F12 admission, explicit management intent and the existing F10 navigation destination. */
 export interface ProPresentationScreenProps {
   admitted: boolean;
   management?: boolean;
   onSupport?: () => void;
 }
+
 /**
  * Owns Pro admission/recovery with unwrapped, session-scoped provider content.
  * Current native outcomes outlive route removal; its feedback and navigation do not.
@@ -89,6 +91,7 @@ export function ProPresentationScreen({
   const closed = useRef(false);
   const restoreStarted = useRef(false);
   const paywallFinished = useRef(false);
+
   /** Reads the live F05 snapshot, including business UUID establishment for the native principal. */
   function isCurrentPresentation() {
     return (
@@ -97,6 +100,7 @@ export function ProPresentationScreen({
       liveAccount.current.accountId === openedFor.accountId
     );
   }
+
   const current =
     account.status === "authenticated" &&
     openedFor.accountId !== null &&
@@ -115,28 +119,38 @@ export function ProPresentationScreen({
         ["purchasing", "restoring"].includes(state.operation)));
   const offering = useProOffering(admitted && current && showPaywall);
   const { refetch: readOffering } = offering;
+
   /** A safe catalogue retry leaves failure in Query and never repeats a purchase or publishes a toast. */
   async function retryOffering() {
     if (
       closed.current ||
       !isCurrentPresentation() ||
       !canPurchasePro(getState())
-    )
+    ) {
       return;
+    }
     feedback.clear();
     await readOffering();
   }
+
   /** Observes a provider-owned explicit restoration; the native UI owns store execution. */
   function startRestore() {
-    if (closed.current || !isCurrentPresentation()) return;
+    if (closed.current || !isCurrentPresentation()) {
+      return;
+    }
     restoreStarted.current = beginRestore();
   }
+
   /** Accepts one attributed native result without equating operation completion with active rights. */
   function finishRestore(customerInfo?: CustomerInfo, error?: unknown) {
-    if (!restoreStarted.current || !isCurrentPresentation()) return;
+    if (!restoreStarted.current || !isCurrentPresentation()) {
+      return;
+    }
     restoreStarted.current = false;
     const current = getState();
-    if (current.status === "guest") return;
+    if (current.status === "guest") {
+      return;
+    }
     void completeOperation(
       restoredProOperation(
         current.operation,
@@ -144,24 +158,37 @@ export function ProPresentationScreen({
       ),
       customerInfo,
     );
-    if (closed.current) return;
+    if (closed.current) {
+      return;
+    }
     const completed = getState();
-    if (completed.status === "active" && !hasUnsettledProOperation(completed))
+    if (completed.status === "active" && !hasUnsettledProOperation(completed)) {
       close();
-    else setView("outcome");
+    } else {
+      setView("outcome");
+    }
   }
+
   /** The fallback remains independent of offers; the existing owner gates native execution. */
   function restoreExplicitly() {
-    if (closed.current || !isCurrentPresentation()) return;
+    if (closed.current || !isCurrentPresentation()) {
+      return;
+    }
     setView("outcome");
     restoration.mutate();
   }
+
   /** Removes the route once, even when native dismissal follows a completion callback. */
   const close = useCallback(() => {
-    if (closed.current) return false;
+    if (closed.current) {
+      return false;
+    }
     closed.current = true;
-    if (router.canGoBack()) router.back();
-    else router.replace("/profile");
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/profile");
+    }
     return true;
   }, [router]);
   useEffect(() => {
@@ -171,7 +198,9 @@ export function ProPresentationScreen({
     };
   }, []);
   useEffect(() => {
-    if (admitted && current) void refresh();
+    if (admitted && current) {
+      void refresh();
+    }
     return () => {
       void dismissPresentation();
     };
@@ -186,10 +215,13 @@ export function ProPresentationScreen({
       view === "outcome" &&
       state.status === "active" &&
       !hasUnsettledProOperation(state)
-    )
+    ) {
       close();
+    }
   }, [view, state, close]);
-  if (!admitted || !current) return null;
+  if (!admitted || !current) {
+    return null;
+  }
   if (
     showPaywall &&
     offering.isFetchedAfterMount &&
@@ -213,41 +245,61 @@ export function ProPresentationScreen({
           )
         }
         onPurchaseCompleted={({ customerInfo }) => {
-          if (paywallFinished.current || !isCurrentPresentation()) return;
+          if (paywallFinished.current || !isCurrentPresentation()) {
+            return;
+          }
           paywallFinished.current = true;
           void completeOperation("purchased", customerInfo);
-          if (closed.current) return;
+          if (closed.current) {
+            return;
+          }
           const completed = getState();
           if (
             completed.status === "active" &&
             !hasUnsettledProOperation(completed)
-          )
+          ) {
             close();
-          else setView("outcome");
+          } else {
+            setView("outcome");
+          }
         }}
         onPurchaseCancelled={() => {
-          if (paywallFinished.current || !isCurrentPresentation()) return;
+          if (paywallFinished.current || !isCurrentPresentation()) {
+            return;
+          }
           paywallFinished.current = true;
           void completeOperation("cancelled");
-          if (!closed.current) close();
+          if (!closed.current) {
+            close();
+          }
         }}
         onPurchaseError={({ error }) => {
-          if (paywallFinished.current || !isCurrentPresentation()) return;
+          if (paywallFinished.current || !isCurrentPresentation()) {
+            return;
+          }
           paywallFinished.current = true;
           const outcome = purchaseErrorOutcome(error.code);
-          if (!closed.current && outcome === "failed") feedback.error();
+          if (!closed.current && outcome === "failed") {
+            feedback.error();
+          }
           void completeOperation(outcome);
-          if (closed.current) return;
-          if (outcome === "failed" || outcome === "cancelled") close();
-          else setView("outcome");
+          if (closed.current) {
+            return;
+          }
+          if (outcome === "failed" || outcome === "cancelled") {
+            close();
+          } else {
+            setView("outcome");
+          }
         }}
         onDismiss={() => {
           if (
             closed.current ||
             paywallFinished.current ||
             !isCurrentPresentation()
-          )
+          ) {
             return;
+          }
           void dismissPresentation();
           close();
         }}
@@ -260,7 +312,7 @@ export function ProPresentationScreen({
       (view === "automatic" &&
         state.status === "active" &&
         !hasUnsettledProOperation(state)))
-  )
+  ) {
     return (
       <RevenueCatUI.CustomerCenterView
         style={styles.provider}
@@ -271,7 +323,9 @@ export function ProPresentationScreen({
         onRestoreCompleted={({ customerInfo }) => finishRestore(customerInfo)}
         onRestoreFailed={({ error }) => finishRestore(undefined, error)}
         onDismiss={() => {
-          if (isCurrentPresentation()) close();
+          if (isCurrentPresentation()) {
+            close();
+          }
         }}
         onCustomActionSelected={
           onSupport
@@ -282,15 +336,19 @@ export function ProPresentationScreen({
                   actionId !==
                     Constants.expoConfig?.extra?.revenueCat
                       ?.supportActionIdentifier
-                )
+                ) {
                   return;
-                if (!close()) return;
+                }
+                if (!close()) {
+                  return;
+                }
                 onSupport();
               }
             : undefined
         }
       />
     );
+  }
   const loadingOffer =
     offering.isFetching &&
     (!offering.isFetchedAfterMount || offering.data !== null);
@@ -366,7 +424,9 @@ export function ProPresentationScreen({
             <Button
               label="Contacter l’assistance"
               onPress={() => {
-                if (isCurrentPresentation() && close()) onSupport();
+                if (isCurrentPresentation() && close()) {
+                  onSupport();
+                }
               }}
             />
           )}
@@ -375,6 +435,7 @@ export function ProPresentationScreen({
     </Page>
   );
 }
+
 const styles = StyleSheet.create({
   provider: { flex: 1 },
   centered: { justifyContent: "center" },

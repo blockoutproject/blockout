@@ -12,6 +12,7 @@ export interface AccessSettingsQueryContext {
   enabled: boolean;
   request(): Promise<ApiFetchOptions>;
 }
+
 /** Reads the maintenance group through its generated key in the private native client. */
 export function createMaintenanceSettingsQueryOptions(
   context: AccessSettingsQueryContext,
@@ -24,6 +25,7 @@ export function createMaintenanceSettingsQueryOptions(
       getMaintenanceSettings({ ...(await context.request()), signal }),
   });
 }
+
 /** Reads the versions group through its generated key in the private native client. */
 export function createApplicationVersionsQueryOptions(
   context: AccessSettingsQueryContext,

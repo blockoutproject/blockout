@@ -43,14 +43,20 @@ public class ReadPushEligibility {
       propagation = Propagation.REQUIRES_NEW,
       isolation = Isolation.REPEATABLE_READ)
   public Optional<Message> current(Created created, Target target) {
-    if (!subscriptions.current(created.entry().accountId(), target)) return Optional.empty();
+    if (!subscriptions.current(created.entry().accountId(), target)) {
+      return Optional.empty();
+    }
     Optional<Entry> current =
         inbox.availableMember(
             new NotificationContext(created.entry().accountId()), created.entry().id());
-    if (current.isEmpty()) return Optional.empty();
+    if (current.isEmpty()) {
+      return Optional.empty();
+    }
     Entry entry = current.orElseThrow();
     MatchSummary match = entry.match();
-    if (!match.id().equals(created.entry().matchId())) return Optional.empty();
+    if (!match.id().equals(created.entry().matchId())) {
+      return Optional.empty();
+    }
     boolean continuous =
         created.relations().stream()
             .anyMatch(
@@ -58,15 +64,18 @@ public class ReadPushEligibility {
                     relation.accountId().equals(created.entry().accountId())
                         && isOrigin(relation, match)
                         && follows.stillPresent(relation));
-    if (!continuous) return Optional.empty();
+    if (!continuous) {
+      return Optional.empty();
+    }
     Result result = match.result();
     boolean finalResult = result != null && result.state() == ResultStateEnum.FINAL;
     if (entry.family() == NotificationFamily.LIVE_LINK
         && (finalResult
             || !entry.publicLink()
             || match.schedule().instant() == null
-            || match.schedule().instant().toInstant().isAfter(clock.instant())))
+            || match.schedule().instant().toInstant().isAfter(clock.instant()))) {
       return Optional.empty();
+    }
     NotificationMessage text =
         NotificationMessage.render(
             entry.family(),

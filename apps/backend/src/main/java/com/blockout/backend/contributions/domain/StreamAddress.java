@@ -39,7 +39,9 @@ public record StreamAddress(String value) {
    * @throws IllegalArgumentException with a safe message excluding the supplied address
    */
   private static Platform recognize(String value) {
-    if (value == null) throw new IllegalArgumentException("Stream address is not permitted");
+    if (value == null) {
+      throw new IllegalArgumentException("Stream address is not permitted");
+    }
     URI uri;
     try {
       uri = URI.create(value);
@@ -50,12 +52,19 @@ public record StreamAddress(String value) {
         || !("https".equalsIgnoreCase(uri.getScheme()) || "http".equalsIgnoreCase(uri.getScheme()))
         || uri.getHost() == null
         || uri.getHost().isEmpty()
-        || uri.getRawUserInfo() != null)
+        || uri.getRawUserInfo() != null) {
       throw new IllegalArgumentException("Stream address is not permitted");
+    }
     String host = uri.getHost().toLowerCase(Locale.ROOT);
-    if (host.equals("youtu.be") || domain(host, "youtube.com")) return Platform.YOUTUBE;
-    if (domain(host, "twitch.tv")) return Platform.TWITCH;
-    if (host.equals("fb.watch") || domain(host, "facebook.com")) return Platform.FACEBOOK;
+    if (host.equals("youtu.be") || domain(host, "youtube.com")) {
+      return Platform.YOUTUBE;
+    }
+    if (domain(host, "twitch.tv")) {
+      return Platform.TWITCH;
+    }
+    if (host.equals("fb.watch") || domain(host, "facebook.com")) {
+      return Platform.FACEBOOK;
+    }
     throw new IllegalArgumentException("Stream address is not permitted");
   }
 

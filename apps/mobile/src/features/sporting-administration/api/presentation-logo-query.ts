@@ -52,16 +52,23 @@ export function createPresentationLogoQueryOptions(
               : target.kind === "division"
                 ? await getDivisionLogo(target.id, options)
                 : undefined;
-        if (!blob) throw new ApiError("configuration");
+        if (!blob) {
+          throw new ApiError("configuration");
+        }
         const uri = await binaryImagePreview(blob, signal);
-        if (signal.aborted) throw new ApiError("cancelled");
+        if (signal.aborted) {
+          throw new ApiError("cancelled");
+        }
         return uri;
       } catch (error) {
-        if (signal.aborted) throw new ApiError("cancelled");
-        if (isAccessDenied(error))
+        if (signal.aborted) {
+          throw new ApiError("cancelled");
+        }
+        if (isAccessDenied(error)) {
           client.getQueryCache().find({ queryKey, exact: true })?.setState({
             data: null,
           });
+        }
         throw isAccessDenied(previousError) ? previousError : error;
       }
     },

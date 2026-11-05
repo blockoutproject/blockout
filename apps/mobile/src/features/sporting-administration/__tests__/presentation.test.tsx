@@ -162,6 +162,7 @@ async function respond(
     String(url).endsWith("/accounts/me") ? { ...account, permissions } : stored,
   );
 }
+
 beforeEach(async () => {
   jest
     .mocked(File)
@@ -258,6 +259,7 @@ async function renderEditor(
     ),
   });
 }
+
 /** Exercises the existing F05 lifecycle rather than replacing session state. */
 function SessionAction() {
   const session = useAccountSession();
@@ -271,6 +273,7 @@ function SessionAction() {
     </Pressable>
   );
 }
+
 /** Safe synthetic replies enter the actual generated transport validation. */
 function json(value: unknown, status = 200) {
   return new Response(JSON.stringify(value), {
@@ -303,12 +306,13 @@ it("saves independent names and a nonsquare logo in one generated multipart PATC
   await user.press(screen.getByRole("button", { name: "Choisir un logo" }));
   await screen.findByRole("button", { name: "Aperçu : Logo" });
   mockFetch.mockImplementation((url, options) => {
-    if (options?.method === "PATCH")
+    if (options?.method === "PATCH") {
       stored = {
         ...initial,
         revision: "r2",
         names: { ...names, manualName: "Chosen", effectiveName: "Chosen" },
       };
+    }
     return respond(url, options);
   });
 
@@ -359,13 +363,14 @@ it("restores automatic artwork and clears only the selected name customization a
   );
 
   mockFetch.mockImplementation((url, options) => {
-    if (options?.method === "PATCH")
+    if (options?.method === "PATCH") {
       stored = {
         ...initial,
         revision: "r2",
         names: { ...names, manualName: null, effectiveName: names.sourceName },
         logo,
       };
+    }
     return respond(url, options);
   });
 
@@ -402,7 +407,7 @@ it("edits pool names with complete JSON and no logo or contacts", async () => {
   );
 
   mockFetch.mockImplementation((url, options) => {
-    if (options?.method === "PUT")
+    if (options?.method === "PUT") {
       stored = {
         id: resourceId,
         revision: "r2",
@@ -412,6 +417,7 @@ it("edits pool names with complete JSON and no logo or contacts", async () => {
           effectiveShortName: "Custom short",
         },
       };
+    }
     return respond(url, options);
   });
 
@@ -444,7 +450,7 @@ it("saves club presentation without a short-name field", async () => {
   await user.type(screen.getByLabelText("Nom personnalisé"), "Club chosen");
 
   mockFetch.mockImplementation((url, options) => {
-    if (options?.method === "PATCH")
+    if (options?.method === "PATCH") {
       stored = {
         ...initial,
         kind: "club",
@@ -455,6 +461,7 @@ it("saves club presentation without a short-name field", async () => {
           effectiveName: "Club chosen",
         },
       };
+    }
     return respond(url, options);
   });
 
@@ -497,7 +504,7 @@ it("validates and saves division colors, gradient and name without touching acti
   await user.type(screen.getByLabelText("Couleur HEX"), "invalid");
 
   mockFetch.mockImplementation((url, options) => {
-    if (options?.method === "PATCH")
+    if (options?.method === "PATCH") {
       stored = {
         id: resourceId,
         revision: "r2",
@@ -507,6 +514,7 @@ it("validates and saves division colors, gradient and name without touching acti
         logo,
         active: false,
       };
+    }
     return respond(url, options);
   });
 
@@ -561,8 +569,12 @@ it.each(["conflict", "network", "schema"])(
     );
     mockFetch.mockImplementation(async (_url, options) => {
       if (options?.method === "PATCH") {
-        if (outcome === "network") throw new TypeError("Lost response");
-        if (outcome === "schema") return json({ revision: "r2" });
+        if (outcome === "network") {
+          throw new TypeError("Lost response");
+        }
+        if (outcome === "schema") {
+          return json({ revision: "r2" });
+        }
         return json(
           {
             type: "urn:blockout:problem:stale-revision",
@@ -704,23 +716,27 @@ it("refreshes the displayed logo, retaining technical failures but removing refu
     globalThis,
     "FileReader",
   );
+
   /** Controls only native binary decoding; the actual generated transport and Query owners remain mounted. */
   class LogoReader {
     result = "data:image/png;base64,sporting-logo";
     onload?: () => void;
+
     /** Makes an accepted binary response observable in the semantic image preview. */
     readAsDataURL() {
       this.onload?.();
     }
   }
+
   Object.defineProperty(globalThis, "FileReader", {
     configurable: true,
     value: LogoReader,
   });
   let logoStatus = 200;
   mockFetch.mockImplementation(async (url, options) => {
-    if (!String(url).includes(`/teams/${resourceId}/logo`))
+    if (!String(url).includes(`/teams/${resourceId}/logo`)) {
       return respond(url, options);
+    }
     return logoStatus === 200
       ? new Response(mockFile, { headers: { "Content-Type": "image/png" } })
       : json({ title: "Logo unavailable", status: logoStatus }, logoStatus);
@@ -808,9 +824,11 @@ it("refreshes the displayed logo, retaining technical failures but removing refu
       ),
     ).toBe(false);
   } finally {
-    if (previousReader)
+    if (previousReader) {
       Object.defineProperty(globalThis, "FileReader", previousReader);
-    else Reflect.deleteProperty(globalThis, "FileReader");
+    } else {
+      Reflect.deleteProperty(globalThis, "FileReader");
+    }
   }
 });
 
@@ -990,6 +1008,7 @@ async function openRoutes(initialUrl = "/") {
     { initialUrl },
   );
 }
+
 /** Exposes completion of the real account read so routing assertions cannot pass before grants resolve. */
 function AccessProbe() {
   const account = useCurrentAccount();
@@ -1039,6 +1058,7 @@ it("keeps a presentation-only original-target editor admitted during maintenance
   await screen.findByDisplayValue("Current name");
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
 });
+
 /** Exposes real account refresh and keeps protected-route fixture mutations free of detached GC timers. */
 function PermissionRefresh() {
   const cache = useQueryClient();
@@ -1474,7 +1494,7 @@ it("restores automatic division paint without sending a separate color or lifecy
   await renderEditor("division");
 
   mockFetch.mockImplementation((url, options) => {
-    if (options?.method === "PATCH")
+    if (options?.method === "PATCH") {
       stored = {
         id: resourceId,
         revision: "d2",
@@ -1484,6 +1504,7 @@ it("restores automatic division paint without sending a separate color or lifecy
         logo,
         active: false,
       };
+    }
     return respond(url, options);
   });
 
@@ -1682,10 +1703,11 @@ it.each(["division-creation", "division"] as const)(
       await user.clear(screen.getByLabelText("Couleur HEX"));
       await user.type(screen.getByLabelText("Couleur HEX"), "#123456");
       await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    } else
+    } else {
       await user.press(
         await screen.findByRole("button", { name: "Désactiver la division" }),
       );
+    }
     const confirm = nativeAlertAction(
       kind === "division-creation" ? "Créer la division" : "Désactiver",
     );
@@ -1733,8 +1755,9 @@ it("releases only the replaced logo copy while the new draft remains usable", as
     if (
       parts.length === 1 &&
       String(parts[0]).startsWith("file:///cache/ImagePicker/")
-    )
+    ) {
       return mockPickedFile as unknown as File;
+    }
     return (mockPickedFile.copy.mock.calls.length === 0
       ? mockFile
       : replacement) as unknown as File;

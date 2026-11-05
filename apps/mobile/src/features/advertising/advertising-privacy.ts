@@ -116,12 +116,16 @@ export function createAdvertisingPrivacy({
     session: SessionSnapshot,
     current: () => boolean,
   ) {
-    if (!info.canRequestAds) return null;
+    if (!info.canRequestAds) {
+      return null;
+    }
     let authorizedMode: AdvertisingChoices["authorizedMode"] = "contextual";
     let wantsTracking = false;
     if (context.category === "adult") {
       const native = await AdsConsent.getUserChoices();
-      if (!current()) return null;
+      if (!current()) {
+        return null;
+      }
       authorizedMode = native.storeAndAccessInformationOnDevice
         ? "contextual"
         : "limited";
@@ -144,7 +148,9 @@ export function createAdvertisingPrivacy({
         .canServeAds
     ) {
       let permission = await getTrackingPermissionsAsync();
-      if (!current()) return null;
+      if (!current()) {
+        return null;
+      }
       if (
         permission.status === "undetermined" &&
         permission.canAskAgain &&
@@ -152,16 +158,21 @@ export function createAdvertisingPrivacy({
       ) {
         trackingRequested = true;
         permission = await requestTrackingPermissionsAsync();
-        if (!current()) return null;
+        if (!current()) {
+          return null;
+        }
       }
       tracking = permission.status === "granted";
     }
-    if (wantsTracking && tracking) authorizedMode = "personalized";
+    if (wantsTracking && tracking) {
+      authorizedMode = "personalized";
+    }
     if (
       Platform.OS === "ios" &&
       Number.parseInt(String(Platform.Version), 10) < 17
-    )
+    ) {
       setAdvertiserTrackingEnabled(wantsTracking && tracking);
+    }
     return { ...candidate, authorizedMode };
   }
 
@@ -169,8 +180,9 @@ export function createAdvertisingPrivacy({
   function start(
     action: "gather" | "refresh" | "options",
   ): Promise<boolean> | undefined {
-    if (disposed || snapshot.pending || !getContext().admission.ordinary)
+    if (disposed || snapshot.pending || !getContext().admission.ordinary) {
       return;
+    }
     const context = getContext();
     const key = contextKey(context);
     const session = context.account;
@@ -204,7 +216,9 @@ export function createAdvertisingPrivacy({
               ? MaxAdContentRating.G
               : MaxAdContentRating.T,
         });
-        if (!current()) return false;
+        if (!current()) {
+          return false;
+        }
         let info: AdsConsentInfo;
         let optionsShown = action !== "options";
         if (action === "options") {
@@ -212,10 +226,16 @@ export function createAdvertisingPrivacy({
             info = await AdsConsent.gatherConsent({
               tagForUnderAgeOfConsent: context.category === "under16",
             });
-            if (!current()) return false;
+            if (!current()) {
+              return false;
+            }
             consentCategory = context.category;
-          } else info = await AdsConsent.getConsentInfo();
-          if (!current()) return false;
+          } else {
+            info = await AdsConsent.getConsentInfo();
+          }
+          if (!current()) {
+            return false;
+          }
           if (
             info.privacyOptionsRequirementStatus !==
             AdsConsentPrivacyOptionsRequirementStatus.REQUIRED
@@ -223,7 +243,9 @@ export function createAdvertisingPrivacy({
             publish({ ...snapshot, privacyOptionsRequired: false });
           } else {
             await AdsConsent.showPrivacyOptionsForm();
-            if (!current()) return false;
+            if (!current()) {
+              return false;
+            }
             info = await AdsConsent.getConsentInfo();
             optionsShown = true;
           }
@@ -236,7 +258,9 @@ export function createAdvertisingPrivacy({
               ? await AdsConsent.gatherConsent(options)
               : await AdsConsent.requestInfoUpdate(options);
         }
-        if (!current()) return false;
+        if (!current()) {
+          return false;
+        }
         consentCategory = context.category;
         publish({
           ...snapshot,
@@ -245,7 +269,9 @@ export function createAdvertisingPrivacy({
             AdsConsentPrivacyOptionsRequirementStatus.REQUIRED,
         });
         const choices = await readChoices(info, context, session, current);
-        if (!current()) return false;
+        if (!current()) {
+          return false;
+        }
         if (
           getAdvertisingEligibility({ ...getContext(), choices }).canServeAds &&
           !initialized
@@ -253,24 +279,32 @@ export function createAdvertisingPrivacy({
           await mobileAds().initialize();
           initialized = true;
         }
-        if (!current()) return false;
+        if (!current()) {
+          return false;
+        }
         publish({ ...snapshot, choices });
         interstitial?.preload();
         return optionsShown;
       } catch {
-        if (current()) publish({ ...snapshot, choices: null, failure: action });
+        if (current()) {
+          publish({ ...snapshot, choices: null, failure: action });
+        }
         throw new Error("Advertising choices could not be established");
       } finally {
-        if (!disposed) publish({ ...snapshot, pending: false });
+        if (!disposed) {
+          publish({ ...snapshot, pending: false });
+        }
       }
     }
+
     return run();
   }
 
   /** Reads native entry-point applicability without changing consent, readiness, failure or frequency. */
   function refreshOptions(): Promise<boolean> | undefined {
-    if (disposed || snapshot.pending || !getContext().admission.ordinary)
+    if (disposed || snapshot.pending || !getContext().admission.ordinary) {
       return;
+    }
     const key = contextKey(getContext());
     const attempt = revision;
     const current = () =>
@@ -279,7 +313,9 @@ export function createAdvertisingPrivacy({
     return AdsConsent.getConsentInfo()
       .then(
         (info) => {
-          if (!current()) return false;
+          if (!current()) {
+            return false;
+          }
           publish({
             ...snapshot,
             privacyOptionsRequired:
@@ -289,13 +325,16 @@ export function createAdvertisingPrivacy({
           return true;
         },
         () => {
-          if (current())
+          if (current()) {
             publish({ ...snapshot, privacyOptionsRequired: false });
+          }
           return false;
         },
       )
       .finally(() => {
-        if (!disposed) publish({ ...snapshot, pending: false });
+        if (!disposed) {
+          publish({ ...snapshot, pending: false });
+        }
       });
   }
 
@@ -322,14 +361,19 @@ export function createAdvertisingPrivacy({
     retry: () => (snapshot.failure ? start(snapshot.failure) : undefined),
     /** Synchronizes changed owner inputs once; errors for unchanged inputs never cause an automatic retry. */
     synchronize() {
-      if (contextKey(getContext()) === attempted || snapshot.pending) return;
+      if (contextKey(getContext()) === attempted || snapshot.pending) {
+        return;
+      }
       return start(getContext().pro.status === "active" ? "refresh" : "gather");
     },
     /** Existing sporting consumers retain intent/failure ownership and the one shared threshold. */
     openSportingTransition(action: SportingAdTransition) {
-      if (interstitial) return interstitial.transition(action);
-      if (!action.isCurrent())
+      if (interstitial) {
+        return interstitial.transition(action);
+      }
+      if (!action.isCurrent()) {
         return Promise.resolve({ status: "abandoned" as const });
+      }
       return openTransitionDestination(action.open);
     },
     /** Detaches native preparation without changing installation persistence or resetting SDK consent. */

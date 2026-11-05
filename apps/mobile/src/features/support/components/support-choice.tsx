@@ -24,7 +24,7 @@ export function SupportChoice({ field }: SupportChoiceProps) {
   const { form } = useSupportVisit();
   const values = useWatch({ control: form.control });
   const router = useRouter();
-  if (field !== "kind" && field !== "subject")
+  if (field !== "kind" && field !== "subject") {
     return (
       <Sheet title="Assistance" onClose={() => router.back()}>
         <SheetContent>
@@ -32,6 +32,7 @@ export function SupportChoice({ field }: SupportChoiceProps) {
         </SheetContent>
       </Sheet>
     );
+  }
   const choices = Object.entries(
     field === "kind" ? supportKindLabels : supportSubjectLabels,
   );
@@ -48,17 +49,18 @@ export function SupportChoice({ field }: SupportChoiceProps) {
               label={label}
               selected={values[field] === value}
               onPress={() => {
-                if (field === "kind")
+                if (field === "kind") {
                   form.setValue(field, SupportRequestKindEnum.parse(value), {
                     shouldDirty: true,
                     shouldTouch: true,
                   });
-                else
+                } else {
                   form.setValue(
                     field,
                     value === "" ? "" : SupportRequestSubjectEnum.parse(value),
                     { shouldDirty: true, shouldTouch: true },
                   );
+                }
                 router.back();
               }}
             />

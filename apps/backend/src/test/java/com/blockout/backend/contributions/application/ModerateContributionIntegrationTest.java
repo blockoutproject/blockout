@@ -256,7 +256,8 @@ class ModerateContributionIntegrationTest extends ContributionScenario {
     try (ExecutorService workers = Executors.newFixedThreadPool(2)) {
       java.util.List<Future<Throwable>> outcomes = new java.util.ArrayList<>();
       for (StreamModerationActionEnum action :
-          java.util.List.of(StreamModerationActionEnum.APPROVE, StreamModerationActionEnum.REJECT))
+          java.util.List.of(
+              StreamModerationActionEnum.APPROVE, StreamModerationActionEnum.REJECT)) {
         outcomes.add(
             workers.submit(
                 () -> {
@@ -264,11 +265,14 @@ class ModerateContributionIntegrationTest extends ContributionScenario {
                   return org.assertj.core.api.Assertions.catchThrowable(
                       () -> moderation.change(OTHER, matchId, pending.version().id(), "1", action));
                 }));
+      }
 
       // When
       start.countDown();
       java.util.List<Throwable> results = new java.util.ArrayList<>();
-      for (Future<Throwable> outcome : outcomes) results.add(outcome.get(15, TimeUnit.SECONDS));
+      for (Future<Throwable> outcome : outcomes) {
+        results.add(outcome.get(15, TimeUnit.SECONDS));
+      }
 
       // Then
       assertThat(results.stream().filter(java.util.Objects::isNull)).hasSize(1);
@@ -294,9 +298,10 @@ class ModerateContributionIntegrationTest extends ContributionScenario {
     follow(FOLLOWER);
     SubmitContribution.Outcome pending = submit(AUTHOR, "0", "https://youtu.be/pending", false);
     moderator(OTHER);
-    if (reactivation)
+    if (reactivation) {
       sql.update(
           "UPDATE contribution_version SET state='REJECTED' WHERE id=?", pending.version().id());
+    }
     sql.update(
         "INSERT INTO notification(id,account_id,match_id,family,variant,created_at,is_read) VALUES (?,?,?,'POST_RESULT_LINK','FIRST',?,FALSE)",
         java.util.UUID.randomUUID(),
@@ -308,14 +313,16 @@ class ModerateContributionIntegrationTest extends ContributionScenario {
     Throwable failure =
         org.assertj.core.api.Assertions.catchThrowable(
             () -> {
-              if (reactivation) moderation.reactivate(OTHER, matchId, pending.version().id(), "1");
-              else
+              if (reactivation) {
+                moderation.reactivate(OTHER, matchId, pending.version().id(), "1");
+              } else {
                 moderation.change(
                     OTHER,
                     matchId,
                     pending.version().id(),
                     "1",
                     StreamModerationActionEnum.APPROVE);
+              }
             });
 
     // Then

@@ -46,8 +46,9 @@ public class RecordCollectionResults {
   @Transactional
   public CollectionState.Cycle record(UUID cycleId, RecordCollectionResult command) {
     CollectionState.Cycle cycle = cycleAccess.lockControlPassage(cycleId);
-    if (cycle.state() != CollectionCycleStateEnum.RUNNING)
+    if (cycle.state() != CollectionCycleStateEnum.RUNNING) {
       throw CollectionConflictException.invalidContext();
+    }
     Target target = requireTarget(cycleId, command.scopeId(), command.stage());
     store.lockControl(cycle.controlId());
     CollectionResult previous =
@@ -57,7 +58,9 @@ public class RecordCollectionResults {
     if (previous != null
         && (previous.cycleOrder() > cycle.cycleOrder()
             || (previous.cycleOrder() == cycle.cycleOrder()
-                && previous.readOrdinal() >= command.readOrdinal()))) return cycle;
+                && previous.readOrdinal() >= command.readOrdinal()))) {
+      return cycle;
+    }
     Instant lastSuccessAt =
         command.outcome() == CollectionOutcomeEnum.SUCCESS
             ? command.observedAt()
@@ -77,17 +80,21 @@ public class RecordCollectionResults {
             command.reason(),
             command.obtainedCount(),
             command.rejectedCount()));
-    if (cycle.mode() == CollectionModeEnum.INITIAL_IMPORT) recordInitial(cycle, target, command);
+    if (cycle.mode() == CollectionModeEnum.INITIAL_IMPORT) {
+      recordInitial(cycle, target, command);
+    }
     if (command.outcome() != CollectionOutcomeEnum.SUCCESS
-        || (previous != null && previous.outcome() != CollectionOutcomeEnum.SUCCESS))
+        || (previous != null && previous.outcome() != CollectionOutcomeEnum.SUCCESS)) {
       events.publishEvent(
           new CollectionOperationalDiagnostics.EvidenceChanged(
               cycle.controlId(), command.scopeId(), command.stage(), command.phase()));
+    }
     if (command.stage() == CollectionStageEnum.DISCOVERY
         && command.phase() == CollectionPhaseEnum.INTEGRATION
         && (command.outcome() == CollectionOutcomeEnum.SUCCESS
-            || command.outcome() == CollectionOutcomeEnum.PARTIAL))
+            || command.outcome() == CollectionOutcomeEnum.PARTIAL)) {
       events.publishEvent(new CollectionOperationalDiagnostics.CatalogObserved(cycle.controlId()));
+    }
     return cycle;
   }
 
@@ -104,12 +111,17 @@ public class RecordCollectionResults {
     CollectionState.Cycle cycle = cycleAccess.lockControlPassage(cycleId);
     completedAt = completedAt.truncatedTo(ChronoUnit.MICROS);
     if (cycle.completedAt() != null) {
-      if (!cycle.completedAt().equals(completedAt))
+      if (!cycle.completedAt().equals(completedAt)) {
         throw CollectionConflictException.invalidContext();
+      }
       return cycle;
     }
-    if (completedAt.isBefore(cycle.startedAt())) throw CollectionConflictException.invalidContext();
-    if (cycle.mode() == CollectionModeEnum.INITIAL_IMPORT) store.finishInitialCoverage(cycle.id());
+    if (completedAt.isBefore(cycle.startedAt())) {
+      throw CollectionConflictException.invalidContext();
+    }
+    if (cycle.mode() == CollectionModeEnum.INITIAL_IMPORT) {
+      store.finishInitialCoverage(cycle.id());
+    }
     store.complete(cycle, completedAt);
     return store.cycle(cycleId).orElseThrow();
   }
@@ -129,7 +141,7 @@ public class RecordCollectionResults {
           store
               .initialCoverage(target.sourceBindingId(), command.scopeId(), command.stage(), phase)
               .orElse(null);
-      if (previous == null || previous.cycleOrder() != cycle.cycleOrder())
+      if (previous == null || previous.cycleOrder() != cycle.cycleOrder()) {
         store.saveInitialCoverage(
             new InitialCoverage(
                 target.sourceBindingId(),
@@ -142,6 +154,7 @@ public class RecordCollectionResults {
                 0,
                 null,
                 null));
+      }
     }
     InitialCoverage.Status status =
         switch (command.outcome()) {

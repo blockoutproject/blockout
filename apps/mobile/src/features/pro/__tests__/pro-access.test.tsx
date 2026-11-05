@@ -198,14 +198,22 @@ beforeEach(async () => {
   mockFetch.mockReset().mockImplementation(async (url) => {
     const parsed = new URL(String(url));
     const path = parsed.pathname;
-    if (path === "/accounts/me") return Response.json(mockAccount);
-    if (path.endsWith("/notification-summary"))
+    if (path === "/accounts/me") {
+      return Response.json(mockAccount);
+    }
+    if (path.endsWith("/notification-summary")) {
       return Response.json({ unreadCount: 0 });
-    if (path.endsWith("/follow-options")) return Response.json({ seasons: [] });
-    if (path.endsWith("/follower-count")) return Response.json({ count: 2 });
-    if (/\/(pool|team)-follows\//.test(path))
+    }
+    if (path.endsWith("/follow-options")) {
+      return Response.json({ seasons: [] });
+    }
+    if (path.endsWith("/follower-count")) {
+      return Response.json({ count: 2 });
+    }
+    if (/\/(pool|team)-follows\//.test(path)) {
       return Response.json({ following: false });
-    if (path.endsWith("/participants"))
+    }
+    if (path.endsWith("/participants")) {
       return Response.json({
         poolId: sportingId,
         items: [
@@ -225,6 +233,7 @@ beforeEach(async () => {
           },
         ],
       });
+    }
     if (path === "/matches") {
       const category = parsed.searchParams.get("category");
       const next = parsed.searchParams.has("nextDay");
@@ -386,27 +395,33 @@ it.each([
   "keeps maps and complete upcoming/completed club calendars public for %s",
   async (state) => {
     // Given
-    if (state === "guest")
+    if (state === "guest") {
       mockAuth0.hasValidCredentials.mockResolvedValue(false);
-    if (state === "paid" || state === "gifted")
+    }
+    if (state === "paid" || state === "gifted") {
       mockPurchases.getCustomerInfo.mockResolvedValue(
         rights(state === "paid" ? "APP_STORE" : "PROMOTIONAL"),
       );
-    if (state === "association-pending")
+    }
+    if (state === "association-pending") {
       mockPurchases.isConfigured.mockReturnValue(new Promise(() => undefined));
-    if (state === "association-failed")
+    }
+    if (state === "association-failed") {
       mockPurchases.isConfigured.mockRejectedValue(
         new Error("Native association unavailable"),
       );
-    if (state === "read-pending")
+    }
+    if (state === "read-pending") {
       mockPurchases.getCustomerInfo.mockReturnValue(
         new Promise(() => undefined),
       );
-    if (state === "unknown")
+    }
+    if (state === "unknown") {
       mockPurchases.getCustomerInfo.mockRejectedValue(
         new Error("Native verification unavailable"),
       );
-    if (state === "expired" || state === "revoked")
+    }
+    if (state === "expired" || state === "revoked") {
       mockPurchases.getCustomerInfo.mockResolvedValue(
         customerInfo({
           active: {},
@@ -419,6 +434,7 @@ it.each([
           verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
         }),
       );
+    }
     await openInstallation();
     const status =
       state === "guest"
@@ -443,9 +459,9 @@ it.each([
     await consultPublicSport();
 
     // Then
-    if (status === "active" || status === "unavailable")
+    if (status === "active" || status === "unavailable") {
       expect(mockCreateAd).not.toHaveBeenCalled();
-    else {
+    } else {
       await waitFor(() => expect(mockCreateAd).toHaveBeenCalled());
       expect(InterstitialAd.createForAdRequest).toHaveBeenCalledWith(
         "synthetic-unit",
@@ -531,7 +547,9 @@ it.each(["APP_STORE", "PROMOTIONAL"] as const)(
     mockPurchases.getCustomerInfo.mockResolvedValue(rights(store));
     const signal =
       mockPurchases.addCustomerInfoUpdateListener.mock.calls.at(-1)?.[0];
-    if (!signal) throw new Error("Expected native entitlement subscription");
+    if (!signal) {
+      throw new Error("Expected native entitlement subscription");
+    }
 
     // When
     await act(() => signal(rights(store)));
@@ -648,8 +666,9 @@ it.each(["inactive", "active"] as const)(
   async (status) => {
     // Given
     mockAccount.permissions.manageMaintenance = true;
-    if (status === "active")
+    if (status === "active") {
       mockPurchases.getCustomerInfo.mockResolvedValue(rights("APP_STORE"));
+    }
     await openInstallation();
     await waitFor(() => expect(owners.pro.state.status).toBe(status));
 

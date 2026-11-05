@@ -47,7 +47,9 @@ public class ProcessDueLinkAnnouncements {
               .log("Link announcement candidate failed");
         }
       }
-      if (!candidates.isEmpty()) after = candidates.getLast();
+      if (!candidates.isEmpty()) {
+        after = candidates.getLast();
+      }
     } while (candidates.size() == 100);
   }
 
@@ -71,12 +73,16 @@ public class ProcessDueLinkAnnouncements {
     @Transactional
     public void process(UUID matchId) {
       Facts facts = sporting.lock(matchId);
-      if (notifications.facts(matchId).liveProcessed()) return;
+      if (notifications.facts(matchId).liveProcessed()) {
+        return;
+      }
       if (!facts.viewable()
           || facts.definitiveResult()
           || facts.schedule().reliableStart() == null
           || clock.instant().isBefore(facts.schedule().reliableStart())
-          || links.read(matchId).isEmpty()) return;
+          || links.read(matchId).isEmpty()) {
+        return;
+      }
       handoff.submit(
           announcements.process(
               new ProcessLinkAnnouncement.Context(

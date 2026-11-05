@@ -40,7 +40,9 @@ class LnvHttpCachingIntegrationTest {
           exchange.getResponseHeaders().add("Content-Type", "image/jpeg");
           int response = count == 1 ? 200 : status;
           exchange.sendResponseHeaders(response, response == 304 ? -1 : 1);
-          if (response != 304) exchange.getResponseBody().write(count);
+          if (response != 304) {
+            exchange.getResponseBody().write(count);
+          }
           exchange.close();
         });
     server.start();

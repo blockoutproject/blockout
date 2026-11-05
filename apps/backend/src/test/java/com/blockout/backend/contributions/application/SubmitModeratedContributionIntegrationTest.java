@@ -121,8 +121,11 @@ class SubmitModeratedContributionIntegrationTest extends ContributionScenario {
           status -> {
             assertThat(sql.queryForObject("SELECT COUNT(*) FROM contribution_version", Long.class))
                 .isEqualTo(1);
-            if (erase) sql.update("DELETE FROM account WHERE id=?", AUTHOR);
-            else sql.update("UPDATE account SET username='ChangedAfterCommit' WHERE id=?", AUTHOR);
+            if (erase) {
+              sql.update("DELETE FROM account WHERE id=?", AUTHOR);
+            } else {
+              sql.update("UPDATE account SET username='ChangedAfterCommit' WHERE id=?", AUTHOR);
+            }
           });
     }
   }

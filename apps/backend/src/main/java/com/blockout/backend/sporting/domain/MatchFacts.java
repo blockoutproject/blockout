@@ -42,13 +42,20 @@ public final class MatchFacts {
    * @return whether detail describes exactly the supplied overall totals
    */
   public static boolean compatibleSets(Integer home, Integer away, List<SetScore> sets) {
-    if (home == null || away == null || sets == null) return false;
+    if (home == null || away == null || sets == null) {
+      return false;
+    }
     int homeWins = 0;
     int awayWins = 0;
     for (SetScore set : sets) {
-      if (set.home() < 0 || set.away() < 0 || set.home() == set.away()) return false;
-      if (set.home() > set.away()) homeWins++;
-      else awayWins++;
+      if (set.home() < 0 || set.away() < 0 || set.home() == set.away()) {
+        return false;
+      }
+      if (set.home() > set.away()) {
+        homeWins++;
+      } else {
+        awayWins++;
+      }
     }
     return homeWins == home && awayWins == away;
   }
@@ -62,7 +69,9 @@ public final class MatchFacts {
    * @return reliable instant or null
    */
   public static Instant resolveStart(LocalDate date, String time, String zone) {
-    if (date == null || time == null || zone == null) return null;
+    if (date == null || time == null || zone == null) {
+      return null;
+    }
     try {
       LocalDateTime local = LocalDateTime.of(date, LocalTime.parse(time));
       List<ZoneOffset> offsets = ZoneId.of(zone).getRules().getValidOffsets(local);

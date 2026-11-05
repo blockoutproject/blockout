@@ -445,8 +445,9 @@ class SportingPresentationWebMvcTest {
    */
   private SportingPresentation.Contacts contactState() {
     Map<ContactField, ContactValue> fields = new EnumMap<>(ContactField.class);
-    for (ContactField field : ContactField.values())
+    for (ContactField field : ContactField.values()) {
       fields.put(field, new ContactValue(null, null, ContactModeEnum.SOURCE, false));
+    }
     return new SportingPresentation.Contacts(RESOURCE, 1, fields, null, null, null);
   }
 }

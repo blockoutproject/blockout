@@ -96,8 +96,9 @@ public class LnvObservationReader implements LnvAcquisition {
         requireSeason(response, target);
         Map<String, String> fields = LnvPage.query(response.url());
         if (!target.competitionReference().equals(fields.get("ID"))
-            || fields.containsKey("PID") && !target.poolReference().equals(fields.get("PID")))
+            || fields.containsKey("PID") && !target.poolReference().equals(fields.get("PID"))) {
           throw LnvPage.invalid();
+        }
         return new Read<>(
             standings.parse(response.body(), response.url(), target.groupReference()), observedAt);
       }
@@ -123,14 +124,20 @@ public class LnvObservationReader implements LnvAcquisition {
         requireSeason(response, target);
         requireMatch(response.url(), target);
         LnvDocumentReferences.Form form = documents.form(response.body(), response.url(), label);
-        if (form == null) return null;
+        if (form == null) {
+          return null;
+        }
         requireMatch(form.action(), target);
         ProviderResponse document = http.postPage(form.action(), form.fields());
         requireMatch(document.url(), target);
         requireSeason(document, target);
         URI pdf = documents.publishedPdf(document.body(), document.url());
-        if (pdf == null && documents.unavailableFile(document.body(), document.url())) return null;
-        if (pdf == null) throw LnvPage.invalid();
+        if (pdf == null && documents.unavailableFile(document.body(), document.url())) {
+          return null;
+        }
+        if (pdf == null) {
+          throw LnvPage.invalid();
+        }
         SportingObservation.Facts facts =
             label.equals("Scoresheet")
                 ? SportingObservation.Facts.builder().scoresheetUrl(JsonNullable.of(pdf)).build()
@@ -146,14 +153,17 @@ public class LnvObservationReader implements LnvAcquisition {
     Map<String, CompletableFuture<Index>> indexes = new LinkedHashMap<>();
     return (target, calendar) -> {
       String code = calendar.documentCompetition();
-      if (code == null) return null;
+      if (code == null) {
+        return null;
+      }
       long year = Long.parseLong(target.seasonLabel().substring(0, 4));
       if (properties.documentTeamAssociations().stream()
           .noneMatch(
               item ->
                   item.seasonStartYear() == year
-                      && item.championshipReference().equals(target.competitionReference())))
+                      && item.championshipReference().equals(target.competitionReference()))) {
         return null;
+      }
       if (!indexes.containsKey(code)) {
         // Store a completed result, including its original failure, without scheduling another
         // task or retrying an unavailable index for another pool in this passage.
@@ -185,7 +195,9 @@ public class LnvObservationReader implements LnvAcquisition {
                 match.away().nativeTeamReference(),
                 date,
                 properties.documentTeamAssociations());
-        if (sheet != null) sheets.put(match.nativeMatchReference(), sheet);
+        if (sheet != null) {
+          sheets.put(match.nativeMatchReference(), sheet);
+        }
       }
       return new DocumentRead(Map.copyOf(sheets), index.observedAt(), index.readOrdinal());
     };
@@ -206,7 +218,9 @@ public class LnvObservationReader implements LnvAcquisition {
    */
   private void requireSeason(ProviderResponse response, CollectionBackend.Target target) {
     String season = LnvPage.season(LnvPage.parse(response.body(), response.url()));
-    if (season != null && !season.equals(target.seasonLabel())) throw LnvPage.invalid();
+    if (season != null && !season.equals(target.seasonLabel())) {
+      throw LnvPage.invalid();
+    }
   }
 
   /**
@@ -221,8 +235,9 @@ public class LnvObservationReader implements LnvAcquisition {
     if (!target.nativeMatchReference().equals(fields.get("mID"))
         || !target.competitionReference().equals(fields.get("ID"))
         || fields.containsKey("PID") && !fields.get("PID").equals(target.poolReference())
-        || fields.containsKey("CID") && !fields.get("CID").equals(target.groupReference()))
+        || fields.containsKey("CID") && !fields.get("CID").equals(target.groupReference())) {
       throw LnvPage.invalid();
+    }
   }
 
   /**

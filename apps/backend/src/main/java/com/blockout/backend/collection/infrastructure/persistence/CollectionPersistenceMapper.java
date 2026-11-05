@@ -117,7 +117,9 @@ interface CollectionPersistenceMapper {
    */
   @Named("cycleState")
   default CollectionCycleStateEnum state(CollectionCycleEntity source, @Context UUID current) {
-    if (source.getCompletedAt() != null) return CollectionCycleStateEnum.COMPLETED;
+    if (source.getCompletedAt() != null) {
+      return CollectionCycleStateEnum.COMPLETED;
+    }
     return Objects.equals(source.getIncarnationId(), current)
         ? CollectionCycleStateEnum.RUNNING
         : CollectionCycleStateEnum.INTERRUPTED;

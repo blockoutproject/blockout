@@ -160,9 +160,11 @@ class MarkNotificationReadIntegrationTest {
                                   marks.mark(new NotificationContext(ACCOUNT), id);
                                 }));
                 PostgresTestDatabase.awaitBlocked(sql, waitingPid);
-                if (removed.equals("account"))
+                if (removed.equals("account")) {
                   sql.update("DELETE FROM account WHERE id=?", ACCOUNT);
-                else sql.update("DELETE FROM notification WHERE id=?", id);
+                } else {
+                  sql.update("DELETE FROM notification WHERE id=?", id);
+                }
                 return mark;
               });
 
@@ -182,7 +184,9 @@ class MarkNotificationReadIntegrationTest {
 
         // Then
         assertThat(secondFailure).isInstanceOf(NotificationNotFoundException.class);
-      } else assertThat(reads.summary(new NotificationContext(ACCOUNT)).unreadCount()).isZero();
+      } else {
+        assertThat(reads.summary(new NotificationContext(ACCOUNT)).unreadCount()).isZero();
+      }
     }
   }
 

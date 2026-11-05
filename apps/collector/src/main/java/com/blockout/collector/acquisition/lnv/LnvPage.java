@@ -49,7 +49,9 @@ final class LnvPage {
     Map<String, String> values = new LinkedHashMap<>();
     for (NameValuePair field : new URIBuilder(uri).getQueryParams()) {
       String previous = values.putIfAbsent(field.getName(), field.getValue());
-      if (previous != null && !previous.equals(field.getValue())) throw invalid();
+      if (previous != null && !previous.equals(field.getValue())) {
+        throw invalid();
+      }
     }
     return values;
   }
@@ -64,11 +66,12 @@ final class LnvPage {
    * @throws LnvAcquisitionException when the published date or clock has unsupported syntax
    */
   static SportingObservation.Facts time(String rendered, DateTimeFormatter dateFormat) {
-    if (rendered.isBlank())
+    if (rendered.isBlank()) {
       return SportingObservation.Facts.builder()
           .localDate(JsonNullable.of(null))
           .localTime(JsonNullable.of(null))
           .build();
+    }
     // Start only at a whitespace run's boundary, rather than retrying from each space in that run.
     String[] parts = rendered.strip().split("(?<=\\S)\\s+-\\s+", 2);
     LocalDate date;
@@ -80,11 +83,12 @@ final class LnvPage {
     } catch (DateTimeException failure) {
       throw invalid();
     }
-    if (parts.length == 1 || parts[1].equals("--:--"))
+    if (parts.length == 1 || parts[1].equals("--:--")) {
       return SportingObservation.Facts.builder()
           .localDate(JsonNullable.of(date))
           .localTime(JsonNullable.of(null))
           .build();
+    }
     try {
       LocalTime time =
           LocalTime.parse(
@@ -119,10 +123,13 @@ final class LnvPage {
                     .text());
     String result = null;
     while (seasons.find()) {
-      if (Integer.parseInt(seasons.group(2)) != Integer.parseInt(seasons.group(1)) + 1)
+      if (Integer.parseInt(seasons.group(2)) != Integer.parseInt(seasons.group(1)) + 1) {
         throw invalid();
+      }
       String season = seasons.group(1) + "/" + seasons.group(2);
-      if (result != null && !result.equals(season)) throw invalid();
+      if (result != null && !result.equals(season)) {
+        throw invalid();
+      }
       result = season;
     }
     return result;
@@ -137,11 +144,14 @@ final class LnvPage {
    * @return absent for an unpublished/unplayed result; F02 owns interpretation of native notation
    */
   static JsonNullable<SportingObservation.Result> result(String home, String away, boolean live) {
-    if (home.isBlank() && away.isBlank() || home.equals("0") && away.equals("0")) return null;
+    if (home.isBlank() && away.isBlank() || home.equals("0") && away.equals("0")) {
+      return null;
+    }
     String notation = home + "/" + away;
-    if (!home.matches("[0-9]") || !away.matches("[0-9]"))
+    if (!home.matches("[0-9]") || !away.matches("[0-9]")) {
       return JsonNullable.of(
           new SportingObservation.Result(ResultStateEnum.UNCONFIRMED, null, null, notation));
+    }
     return JsonNullable.of(
         new SportingObservation.Result(
             live ? ResultStateEnum.PROVISIONAL : ResultStateEnum.FINAL,

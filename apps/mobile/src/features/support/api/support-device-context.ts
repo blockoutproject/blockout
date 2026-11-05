@@ -5,8 +5,9 @@ import type { SupportContextRequest } from "../../../../.generated/schemas/index
 /** Native facts only, without installation, advertising or device identifiers; unknown/oversized facts stay absent. */
 export function supportDeviceContext(): SupportContextRequest {
   const context: SupportContextRequest = {};
-  if (Platform.OS === "ios" || Platform.OS === "android")
+  if (Platform.OS === "ios" || Platform.OS === "android") {
     context.platform = Platform.OS;
+  }
   const version =
     Platform.OS === "android"
       ? Platform.constants.Release
@@ -14,11 +15,15 @@ export function supportDeviceContext(): SupportContextRequest {
           typeof Platform.Version === "number"
         ? String(Platform.Version)
         : undefined;
-  if (usefulText(nativeApplicationVersion))
+  if (usefulText(nativeApplicationVersion)) {
     context.appVersion = nativeApplicationVersion;
-  if (usefulText(version)) context.osVersion = version;
-  if (Platform.OS === "android" && usefulText(Platform.constants.Model))
+  }
+  if (usefulText(version)) {
+    context.osVersion = version;
+  }
+  if (Platform.OS === "android" && usefulText(Platform.constants.Model)) {
     context.deviceModel = Platform.constants.Model;
+  }
   return context;
 }
 

@@ -16,7 +16,8 @@ public record SearchExamples(List<UUID> identities) {
    */
   public SearchExamples {
     identities = List.copyOf(identities);
-    if (identities.size() > 5 || identities.stream().distinct().count() != identities.size())
+    if (identities.size() > 5 || identities.stream().distinct().count() != identities.size()) {
       throw new IllegalArgumentException("Invalid retained examples");
+    }
   }
 }

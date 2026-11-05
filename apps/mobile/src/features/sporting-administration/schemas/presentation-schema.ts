@@ -10,6 +10,7 @@ const name = z
 const color = z
   .string()
   .regex(/^#[0-9a-fA-F]{6}$/, "Utilisez une couleur au format #RRGGBB.");
+
 /** Editing validation is distinct from generated requests: empty optional names restore automatic values. */
 export const presentationSchema = z
   .object({
@@ -28,29 +29,36 @@ export const presentationSchema = z
     ]),
   })
   .superRefine((values, context) => {
-    if (values.kind !== "division") return;
-    if (!values.name.trim())
+    if (values.kind !== "division") {
+      return;
+    }
+    if (!values.name.trim()) {
       context.addIssue({
         code: "custom",
         path: ["name"],
         message: "Le nom de la division est requis.",
       });
-    if (!color.safeParse(values.color).success)
+    }
+    if (!color.safeParse(values.color).success) {
       context.addIssue({
         code: "custom",
         path: ["color"],
         message: "Utilisez une couleur au format #RRGGBB.",
       });
-    if (values.gradient.some((v) => v !== ""))
+    }
+    if (values.gradient.some((v) => v !== "")) {
       values.gradient.forEach((value, index) => {
-        if (!color.safeParse(value).success)
+        if (!color.safeParse(value).success) {
           context.addIssue({
             code: "custom",
             path: ["gradient", index],
             message:
               "Renseignez les trois couleurs au format #RRGGBB ou laissez-les toutes vides.",
           });
+        }
       });
+    }
   });
+
 /** Caller-owned draft, including a prepared local image only when replacement is explicitly selected. */
 export type PresentationValues = z.infer<typeof presentationSchema>;

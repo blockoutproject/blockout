@@ -169,7 +169,9 @@ public final class SearchTestEngine implements AutoCloseable {
               "%{http_code}",
               "https://localhost:9200");
       curlExitCode = probe.getExitCode();
-      if (probe.getStdout().matches("[0-9]{3}")) httpStatus = probe.getStdout();
+      if (probe.getStdout().matches("[0-9]{3}")) {
+        httpStatus = probe.getStdout();
+      }
     } catch (InterruptedException interrupted) {
       Thread.currentThread().interrupt();
     } catch (IOException | RuntimeException ignored) {
@@ -188,12 +190,16 @@ public final class SearchTestEngine implements AutoCloseable {
   @Override
   public void close() throws Exception {
     try {
-      if (transport != null) transport.close();
+      if (transport != null) {
+        transport.close();
+      }
     } finally {
       transport = null;
       client = null;
       try {
-        if (engine != null) engine.stop();
+        if (engine != null) {
+          engine.stop();
+        }
       } finally {
         engine = null;
         if (temporary != null && Files.exists(temporary)) {

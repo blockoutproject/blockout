@@ -169,9 +169,11 @@ class ExpoPushTransportIntegrationTest {
 
       // Then
       assertThat(requests.get()).isEqualTo(1);
-      if (operation.equals("send"))
+      if (operation.equals("send")) {
         assertThat(outcomes).containsExactly(Status.ACCEPTED, Status.DEVICE_NOT_REGISTERED);
-      else assertThat(outcomes).containsExactly(Status.REJECTED, Status.DEVICE_NOT_REGISTERED);
+      } else {
+        assertThat(outcomes).containsExactly(Status.REJECTED, Status.DEVICE_NOT_REGISTERED);
+      }
     } finally {
       server.stop(0);
     }

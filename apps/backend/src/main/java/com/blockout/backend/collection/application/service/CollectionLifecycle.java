@@ -14,7 +14,8 @@ public class CollectionLifecycle {
    * @param season current canonical season, absent for seasonless controls
    */
   static void requireOpen(CollectionSeasonView season) {
-    if (season != null && season.collectionState() == CollectionSeasonStateEnum.CLOSED)
+    if (season != null && season.collectionState() == CollectionSeasonStateEnum.CLOSED) {
       throw new CollectionConflictException("conflict");
+    }
   }
 }

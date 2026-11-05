@@ -41,10 +41,12 @@ export interface ModerationPublicationFormProps {
   children?: ReactNode;
   ref?: Ref<ModerationPublicationFormHandle>;
 }
+
 /** The active scene's explicit pull gesture may adopt a new viewed baseline without replacing dirty RHF input. */
 export interface ModerationPublicationFormHandle {
   refresh: () => Promise<void>;
 }
+
 /** Reuses ContributionForm's header withdrawal, address field and full-width replacement composition. */
 export function ModerationPublicationForm({
   current,
@@ -104,10 +106,13 @@ export function ModerationPublicationForm({
     editing.query.isFetching;
   const disabled =
     !editing.allowed || !current.canPublish || editing.query.isError;
+
   /** Captures the coherent draft baseline and original actor before one native confirmation, without retrying writes. */
   async function send(values: ContributionValues) {
     const actorAccountId = editing.session.accountId;
-    if (!actorAccountId || busy || disabled) return;
+    if (!actorAccountId || busy || disabled) {
+      return;
+    }
     const body = {
       actorAccountId,
       revision: baseline.current.revision,
@@ -122,7 +127,9 @@ export function ModerationPublicationForm({
       confirmLabel: label,
       cancelLabel: "Continuer la saisie",
     });
-    if (!accepted || !mounted.current) return;
+    if (!accepted || !mounted.current) {
+      return;
+    }
     feedback.clear();
     try {
       const result = await editing.publish.mutateAsync(body);
@@ -135,12 +142,14 @@ export function ModerationPublicationForm({
         onSuccess();
       }
     } catch {
-      if (mounted.current)
+      if (mounted.current) {
         feedback.error(
           "La publication n’a pas pu être confirmée. Votre saisie est conservée.",
         );
+      }
     }
   }
+
   return (
     <Surface style={{ backgroundColor: colors.insetSurface, borderWidth: 0 }}>
       <View style={styles.header}>
@@ -226,6 +235,7 @@ export function ModerationPublicationForm({
     </Surface>
   );
 }
+
 const styles = StyleSheet.create({
   form: { gap: tokens.layout.form.gap },
   header: {

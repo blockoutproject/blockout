@@ -40,12 +40,17 @@ class SportingPresentationValidator {
    */
   Image validateImage(LogoActionEnum action, MultipartFile image) {
     if (action != LogoActionEnum.REPLACE) {
-      if (image != null) throw new SportingValidationException();
+      if (image != null) {
+        throw new SportingValidationException();
+      }
       return null;
     }
-    if (image == null || image.isEmpty()) throw new SportingValidationException();
-    if (image.getSize() > ValidateSportingImage.MAX_BYTES)
+    if (image == null || image.isEmpty()) {
+      throw new SportingValidationException();
+    }
+    if (image.getSize() > ValidateSportingImage.MAX_BYTES) {
       throw new ResponseStatusException(HttpStatus.CONTENT_TOO_LARGE);
+    }
     return validateImage(image.getResource());
   }
 }

@@ -44,6 +44,7 @@ export interface ApplicationVersionsFormProps {
   editing: ReturnType<typeof useApplicationVersionsSettings>;
   disabled?: boolean;
 }
+
 /** Publishes atomic dirty-field changes without changing maintenance or replaying uncertain writes. */
 export function ApplicationVersionsForm({
   settings,
@@ -102,17 +103,21 @@ export function ApplicationVersionsForm({
       mounted.current = false;
     };
   }, []);
+
   /** Maps only dirty fields, with null removals, into the generated atomic PATCH. */
   async function submit(draft: ApplicationVersionsValues) {
-    if (busy || rereadRequired || (raised && !checked)) return;
+    if (busy || rereadRequired || (raised && !checked)) {
+      return;
+    }
     if (
       !(await confirmAction({
         title: "Appliquer les modifications ?",
         message: "Les réglages de maintenance restent inchangés.",
         confirmLabel: "Appliquer",
       }))
-    )
+    ) {
       return;
+    }
     actionFeedback.clear();
     try {
       const command = editing.content.mutateAsync(
@@ -123,18 +128,24 @@ export function ApplicationVersionsForm({
         baseline: accepted,
       });
       reset(applicationVersionsValues(accepted));
-      if (mounted.current) setAcknowledged(undefined);
+      if (mounted.current) {
+        setAcknowledged(undefined);
+      }
     } catch (error) {
-      if (!(error instanceof ApiError && error.status === 409))
+      if (!(error instanceof ApiError && error.status === 409)) {
         actionFeedback.error();
+      }
     }
   }
+
   /** Reads the actual outcome and keeps dirty fields, without submitting or merging conflicting input. */
   async function reread() {
     actionFeedback.clear();
     const result = await (() => editing.query.refetch())();
     // Query may restore its old success when route removal cancels this read.
-    if (!mounted.current) return;
+    if (!mounted.current) {
+      return;
+    }
     if (
       !result.data ||
       result.isError ||
@@ -154,6 +165,7 @@ export function ApplicationVersionsForm({
     });
     setAcknowledged(undefined);
   }
+
   return (
     <View style={styles.form}>
       <View style={styles.platforms}>
@@ -401,6 +413,7 @@ export function ApplicationVersionsForm({
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   form: { gap: tokens.layout.form.gap },
   platforms: { flexDirection: "row", flexWrap: "wrap", gap: tokens.spacing.sm },

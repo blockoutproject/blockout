@@ -23,6 +23,7 @@ import { PresentationForm } from "../forms/presentation-form";
 export interface PresentationScreenProps {
   target: PresentationTarget;
 }
+
 /** Composes the approved editor using the platform's existing ordinary-form keyboard mechanism. */
 export function PresentationScreen({ target }: PresentationScreenProps) {
   const { permissions, account, sessionStatus } =
@@ -62,21 +63,30 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
             ? "Modifier la poule"
             : "Personnaliser la division";
   const feedback = useActionFeedback();
+
   /** Native refresh rereads current presentation and only its mounted remote logo; a prepared local replacement stays untouched. */
   async function refresh() {
-    if (editing.save.isPending) return;
+    if (editing.save.isPending) {
+      return;
+    }
     feedback.clear();
     if (!canRead) {
       const result = await account.refetch();
-      if (result.isError && presentation) feedback.error();
+      if (result.isError && presentation) {
+        feedback.error();
+      }
       return;
     }
     const result = await editing.query.refetch();
     if (result.isError) {
-      if (result.data) feedback.error();
+      if (result.data) {
+        feedback.error();
+      }
       return;
     }
-    if (editing.save.isPending) return;
+    if (editing.save.isPending) {
+      return;
+    }
     await client.refetchQueries(
       { queryKey: logoKey, type: "active" },
       { cancelRefetch: false },
@@ -85,8 +95,11 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
       .getQueryCache()
       .findAll({ queryKey: logoKey, type: "active" })
       .some(({ state }) => state.status === "error" && state.dataUpdatedAt > 0);
-    if (retainedFailure) feedback.error();
+    if (retainedFailure) {
+      feedback.error();
+    }
   }
+
   const accessState = pending ? (
     <PresentationLoading kind={target.kind} />
   ) : sessionStatus === "authenticated" &&

@@ -324,7 +324,9 @@ it("defers clean profile updates until native photo selection has settled", asyn
     .getQueryCache()
     .findAll()
     .find(({ queryKey }) => queryKey.includes("/accounts/me"))?.queryKey;
-  if (!key) throw new Error("The real current-account query is missing");
+  if (!key) {
+    throw new Error("The real current-account query is missing");
+  }
 
   mockFetch.mockResolvedValueOnce(
     json({ ...account, username: "Remote_name" }),
@@ -599,10 +601,12 @@ it.each(["keep", "replace"] as const)(
       "FileReader",
     );
     const nativeRead = jest.fn();
+
     /** Controls only the native binary decoder, so each successful photo read is observable in the preview. */
     class PhotoReader {
       result = "";
       onload?: () => void;
+
       /** Publishes the native decoder result while keeping real Fetch and Query ownership. */
       readAsDataURL() {
         nativeRead();
@@ -610,6 +614,7 @@ it.each(["keep", "replace"] as const)(
         this.onload?.();
       }
     }
+
     Object.defineProperty(globalThis, "FileReader", {
       configurable: true,
       value: PhotoReader,
@@ -674,9 +679,11 @@ it.each(["keep", "replace"] as const)(
       expect(mockFile.delete).not.toHaveBeenCalled();
     } finally {
       await cleanup();
-      if (previousReader)
+      if (previousReader) {
         Object.defineProperty(globalThis, "FileReader", previousReader);
-      else delete (globalThis as { FileReader?: unknown }).FileReader;
+      } else {
+        delete (globalThis as { FileReader?: unknown }).FileReader;
+      }
     }
   },
 );
@@ -687,23 +694,27 @@ it("removes a refused remote photo until a successful photo read without treatin
     globalThis,
     "FileReader",
   );
+
   /** Supplies only the native binary decoder result; HTTP, Query and the profile remain real. */
   class PhotoReader {
     result = "data:image/png;base64,remote";
     onload?: () => void;
+
     /** Completes a successful binary preview without invoking native I/O in Jest. */
     readAsDataURL() {
       this.onload?.();
     }
   }
+
   Object.defineProperty(globalThis, "FileReader", {
     configurable: true,
     value: PhotoReader,
   });
   let photoStatus = 200;
   mockFetch.mockImplementation(async (url) => {
-    if (!String(url).endsWith("/photo"))
+    if (!String(url).endsWith("/photo")) {
       return json({ ...account, hasPhoto: true });
+    }
     return photoStatus === 200
       ? new Response(png, { headers: { "Content-Type": "image/png" } })
       : json({ title: "Unavailable", status: photoStatus }, photoStatus);
@@ -751,9 +762,11 @@ it("removes a refused remote photo until a successful photo read without treatin
     expect(screen.queryByText("Une erreur est survenue")).toBeNull();
   } finally {
     await cleanup();
-    if (previousReader)
+    if (previousReader) {
       Object.defineProperty(globalThis, "FileReader", previousReader);
-    else delete (globalThis as { FileReader?: unknown }).FileReader;
+    } else {
+      delete (globalThis as { FileReader?: unknown }).FileReader;
+    }
   }
 });
 
@@ -806,7 +819,9 @@ it("retains a dirty draft on background refetch and whole-save username refusal"
     .getQueryCache()
     .findAll()
     .find(({ queryKey }) => queryKey.includes("/accounts/me"))?.queryKey;
-  if (!key) throw new Error("The real current-account query is missing");
+  if (!key) {
+    throw new Error("The real current-account query is missing");
+  }
   mockFetch.mockResolvedValueOnce(
     json({ ...account, username: "Other_device" }),
   );
@@ -877,7 +892,9 @@ it("keeps dirty input and ordinary failure feedback after a lost save response",
   await user.clear(screen.getByLabelText("Pseudo"));
   await user.type(screen.getByLabelText("Pseudo"), "My_draft");
   mockFetch.mockImplementation(async (url, request) => {
-    if (request?.method === "PATCH") throw new TypeError("Lost response");
+    if (request?.method === "PATCH") {
+      throw new TypeError("Lost response");
+    }
     return json({ ...account, username: "Saved_remotely" });
   });
 
@@ -911,7 +928,9 @@ it("submits prepared replacement then explicit removal without a username edit",
   await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
   const bodies: FormData[] = [];
   mockFetch.mockImplementation(async (_url, request) => {
-    if (request?.method === "PATCH") bodies.push(request.body as FormData);
+    if (request?.method === "PATCH") {
+      bodies.push(request.body as FormData);
+    }
     return json(account);
   });
 
@@ -1087,8 +1106,9 @@ it.each(["preparation", "save"])(
     ).not.toBeOnTheScreen();
     expect(screen.queryByText("Profil enregistré.")).not.toBeOnTheScreen();
     expect(mockNavigate).not.toHaveBeenCalled();
-    if (operation === "preparation")
+    if (operation === "preparation") {
       expect(mockFile.delete).toHaveBeenCalledTimes(1);
+    }
   },
 );
 
@@ -1115,11 +1135,13 @@ it.each(["unmount", "session"])(
     await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
 
     // When
-    if (exit === "unmount") await screen.unmount();
-    else
+    if (exit === "unmount") {
+      await screen.unmount();
+    } else {
       await user.press(
         screen.getByRole("button", { name: "Quitter la session" }),
       );
+    }
 
     // Then
     expect(mockFile.delete.mock.calls).toEqual([[]]);

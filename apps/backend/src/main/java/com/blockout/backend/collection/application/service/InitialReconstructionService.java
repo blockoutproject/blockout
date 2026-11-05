@@ -66,8 +66,9 @@ public class InitialReconstructionService {
     for (CollectionProviderEnum provider :
         selected.stream().map(Source::provider).distinct().sorted().toList()) {
       if (configured.stream()
-          .noneMatch(control -> control.family().getValue().equals(provider.getValue())))
+          .noneMatch(control -> control.family().getValue().equals(provider.getValue()))) {
         configured.add(store.prepareInitialControl(seasonId, provider));
+      }
     }
     authorization.require(operator, Permission.MANAGE_COLLECTION);
     CollectionRevision.requireRevision(revision, season.collectionRevision());
@@ -79,7 +80,9 @@ public class InitialReconstructionService {
                 source ->
                     source.validationState() != SourceValidationStateEnum.QUALIFIED
                         || (source.locked() ? source.acceptedUrl() : source.candidateUrl())
-                            == null)) throw new CollectionConflictException("conflict");
+                            == null)) {
+      throw new CollectionConflictException("conflict");
+    }
     List<InitialCoverage> retries =
         scopeIds.isEmpty() ? List.of() : store.initialCoverage(sourceIds, scopeIds);
     Set<UUID> failed =
@@ -92,7 +95,9 @@ public class InitialReconstructionService {
             && !retries.stream()
                 .map(InitialCoverage::sourceBindingId)
                 .collect(Collectors.toSet())
-                .equals(sourceIds))) throw new CollectionConflictException("conflict");
+                .equals(sourceIds))) {
+      throw new CollectionConflictException("conflict");
+    }
     List<Control> accepted = new ArrayList<>();
     for (Control control : configured.stream().sorted(Comparator.comparing(Control::id)).toList()) {
       Set<UUID> roots =
@@ -100,12 +105,16 @@ public class InitialReconstructionService {
               .filter(source -> source.provider().getValue().equals(control.family().getValue()))
               .map(Source::id)
               .collect(Collectors.toSet());
-      if (roots.isEmpty()) continue;
+      if (roots.isEmpty()) {
+        continue;
+      }
       if (control.currentCycleId() != null
           && store
               .cycle(control.currentCycleId())
               .map(cycle -> cycle.state() == CollectionCycleStateEnum.RUNNING)
-              .orElse(false)) throw new CollectionConflictException("conflict");
+              .orElse(false)) {
+        throw new CollectionConflictException("conflict");
+      }
       Set<UUID> scopes =
           retries.stream()
               .filter(row -> roots.contains(row.sourceBindingId()))
@@ -114,8 +123,9 @@ public class InitialReconstructionService {
       if (control.requestId() != null) {
         if (control.requestedMode() != CollectionModeEnum.INITIAL_IMPORT
             || !control.sourceBindingIds().equals(roots)
-            || !control.scopeIds().equals(scopes))
+            || !control.scopeIds().equals(scopes)) {
           throw new CollectionConflictException("conflict");
+        }
         accepted.add(control);
       } else {
         CollectionRevision.requireAdvance(control.revision());
@@ -138,13 +148,16 @@ public class InitialReconstructionService {
   @Transactional
   public Source prepare(
       UUID operator, long startYear, CollectionProviderEnum provider, String organizer, URI url) {
-    if (startYear < 0 || startYear >= 9_007_199_254_740_991L || provider == null)
+    if (startYear < 0 || startYear >= 9_007_199_254_740_991L || provider == null) {
       throw new IllegalArgumentException("Explicit supported season and provider are required");
+    }
     store.lockRuntime();
     UUID seasonId = seasons.getOrCreate(startYear).id();
     CollectionSeasonView season = seasons.lockCollectionState(seasonId);
     Source existing = store.source(seasonId, provider, organizer).orElse(null);
-    if (existing != null) existing = store.lockSource(existing.id());
+    if (existing != null) {
+      existing = store.lockSource(existing.id());
+    }
     authorization.require(operator, Permission.MANAGE_COLLECTION);
     CollectionLifecycle.requireOpen(season);
     Source source;
@@ -155,21 +168,26 @@ public class InitialReconstructionService {
     } else {
       if (!Objects.equals(
           existing.locked() ? existing.acceptedUrl() : existing.candidateUrl(), url.toString())) {
-        if (existing.locked()) throw new CollectionConflictException("conflict");
+        if (existing.locked()) {
+          throw new CollectionConflictException("conflict");
+        }
         source = preparation.setCandidate(operator, existing.id(), existing.revision(), url);
-      } else source = existing;
+      } else {
+        source = existing;
+      }
     }
     source = configurationReads.sourceView(source);
     if (source.validationState() == SourceValidationStateEnum.UNVALIDATED
-        || source.validationState() == SourceValidationStateEnum.INVALID)
+        || source.validationState() == SourceValidationStateEnum.INVALID) {
       source = preparation.requestValidation(operator, source.id(), source.revision());
+    }
     if (store
         .initialCoverage(
             source.id(),
             source.id(),
             CollectionStageEnum.DISCOVERY,
             CollectionPhaseEnum.ACQUISITION)
-        .isEmpty())
+        .isEmpty()) {
       store.saveInitialCoverage(
           new InitialCoverage(
               source.id(),
@@ -182,6 +200,7 @@ public class InitialReconstructionService {
               0,
               null,
               null));
+    }
     return configurationReads.sourceView(source);
   }
 
@@ -231,9 +250,12 @@ public class InitialReconstructionService {
    */
   private InitialCoverage.Page readCoverage(
       UUID seasonId, int page, int size, List<Source> sources) {
-    if (page < 0 || size < 1 || size > 200)
+    if (page < 0 || size < 1 || size > 200) {
       throw new IllegalArgumentException("Invalid coverage page");
-    if (page > Integer.MAX_VALUE / size) return new InitialCoverage.Page(List.of(), page, false);
+    }
+    if (page > Integer.MAX_VALUE / size) {
+      return new InitialCoverage.Page(List.of(), page, false);
+    }
     InitialCoverage.Page result = store.initialCoverage(seasonId, page, size);
     Map<UUID, Source> bindings =
         sources.stream().collect(Collectors.toMap(Source::id, source -> source));
@@ -253,15 +275,17 @@ public class InitialReconstructionService {
                     if (row.cycleId() == null) {
                       Source source = bindings.get(row.sourceBindingId());
                       if (source != null
-                          && source.validationState() == SourceValidationStateEnum.INVALID)
+                          && source.validationState() == SourceValidationStateEnum.INVALID) {
                         status =
                             RecordCollectionResults.isStructuralReason(source.reasonType())
                                 ? InitialCoverage.Status.REJECTED
                                 : InitialCoverage.Status.UNAVAILABLE;
+                      }
                     } else {
                       Cycle cycle = cycles.get(row.cycleId());
-                      if (cycle == null || cycle.state() != CollectionCycleStateEnum.RUNNING)
+                      if (cycle == null || cycle.state() != CollectionCycleStateEnum.RUNNING) {
                         status = InitialCoverage.Status.UNAVAILABLE;
+                      }
                     }
                   }
                   return new InitialCoverage(

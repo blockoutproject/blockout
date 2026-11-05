@@ -48,10 +48,11 @@ public class MatchContributionAccess {
   public void lockDivisionForPool(UUID poolId) {
     com.blockout.backend.sporting.application.model.SportingViews.PoolView pool =
         store.pool(poolId).orElseThrow(SportingResourceNotFoundException::new);
-    if (pool.classification() != null)
+    if (pool.classification() != null) {
       store
           .lockDivision(pool.classification().divisionId())
           .orElseThrow(SportingResourceNotFoundException::new);
+    }
   }
 
   /**

@@ -48,6 +48,7 @@ export type PresentationTarget =
       kind: "division-creation";
       id?: never;
     };
+
 /** Validated generated projections retain their resource-specific meaning at the form boundary. */
 export type Presentation =
   | {
@@ -66,6 +67,7 @@ export type Presentation =
       kind: "division-creation";
       data: DivisionListResponse;
     };
+
 /** A confirmed write always returns one resource, never the division-creation list read. */
 type SavedPresentation = Exclude<
   Presentation,
@@ -79,17 +81,24 @@ type PresentationData =
   | PoolPresentationResponse
   | DivisionResponse
   | DivisionListResponse;
+
 /** Adds the editor's discriminant after cache observation; generated schemas already validated each DTO. */
 function toPresentation(
   target: PresentationTarget,
   data: PresentationData,
 ): Presentation {
-  if ("items" in data) return { kind: "division-creation", data };
-  if ("name" in data) return { kind: "division", data };
-  if ("logo" in data)
+  if ("items" in data) {
+    return { kind: "division-creation", data };
+  }
+  if ("name" in data) {
+    return { kind: "division", data };
+  }
+  if ("logo" in data) {
     return { kind: target.kind === "club" ? "club" : "team", data };
+  }
   return { kind: "pool", data };
 }
+
 /** Original-target reads, single atomic writes and current-session cache admission; never replays a mutation. */
 export function usePresentation(target: PresentationTarget, enabled: boolean) {
   const authority = useSportingAuthority(
@@ -121,12 +130,14 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
     enabled: enabled && authority.enabled && session.status === "authenticated",
     select: (data) => toPresentation(target, data),
   });
+
   /** Invalidates the edited resource and affected projections after settlement. */
   function accept() {
     void client.invalidateQueries({ queryKey, exact: true });
     invalidateSportingReads(client);
     invalidateDivisionReads(client);
   }
+
   const operationKey =
     target.kind === "club"
       ? getSetClubPresentationMutationKey()
@@ -204,6 +215,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
   });
   return { query, save, queryKey };
 }
+
 /** Loads backend-controlled binary artwork using #203's generated operations, without direct URL image requests. */
 export function usePresentationLogo(
   target: PresentationTarget,

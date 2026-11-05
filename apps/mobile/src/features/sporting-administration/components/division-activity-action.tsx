@@ -59,6 +59,7 @@ export function DivisionActivityAction({
     </Pressable>
   );
 }
+
 const styles = StyleSheet.create({
   action: {
     minHeight: tokens.size.control.default,

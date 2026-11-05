@@ -51,27 +51,33 @@ public class FfvbCalendarParser {
    * @throws FfvbAcquisitionException for unreadable structure or unqualified overall context
    */
   public SportingObservation.Calendar parse(byte[] body, FfvbPage page, FfvbScope scope) {
-    if (!page.calendarPresent())
+    if (!page.calendarPresent()) {
       throw new FfvbAcquisitionException("FFVB calendar completeness is not established");
+    }
     Map<String, CSVRecord> selected = new LinkedHashMap<>();
     Set<String> contradictions = new LinkedHashSet<>();
     Set<String> malformed = new LinkedHashSet<>();
     List<SportingObservation.Failure> failures = new ArrayList<>();
     try (CSVParser csv = FORMAT.parse(new StringReader(new String(body, FfvbPage.CHARSET)))) {
-      if (!csv.getHeaderNames().equals(HEADERS))
+      if (!csv.getHeaderNames().equals(HEADERS)) {
         throw new FfvbAcquisitionException("Unsupported FFVB calendar columns");
+      }
       for (CSVRecord row : csv) {
         if (!row.isConsistent()) {
           String reference = row.size() > 2 ? row.get(2).strip() : "row-" + row.getRecordNumber();
-          if (page.references().contains(reference)) malformed.add(reference);
-          else if (!page.allReferences().contains(reference))
+          if (page.references().contains(reference)) {
+            malformed.add(reference);
+          } else if (!page.allReferences().contains(reference)) {
             failures.add(failure(reference, "invalid-row"));
+          }
           continue;
         }
-        if (page.qualifiedEmpty())
+        if (page.qualifiedEmpty()) {
           throw new FfvbAcquisitionException("Nonempty export contradicts the empty FFVB calendar");
-        if (!scope.organizerReference().equals(row.get("Entité")))
+        }
+        if (!scope.organizerReference().equals(row.get("Entité"))) {
           throw new FfvbAcquisitionException("Wrong FFVB organizer in export");
+        }
         String reference = row.get("Match").strip();
         if (reference.isEmpty()) {
           failures.add(failure("row-" + row.getRecordNumber(), "invalid-match-reference"));
@@ -81,10 +87,13 @@ public class FfvbCalendarParser {
           failures.add(failure(reference, "unqualified-match-context"));
           continue;
         }
-        if (!page.references().contains(reference)) continue;
+        if (!page.references().contains(reference)) {
+          continue;
+        }
         CSVRecord previous = selected.putIfAbsent(reference, row);
-        if (previous != null && !previous.toList().equals(row.toList()))
+        if (previous != null && !previous.toList().equals(row.toList())) {
           contradictions.add(reference);
+        }
       }
     } catch (IOException | UncheckedIOException | IllegalArgumentException exception) {
       throw new FfvbAcquisitionException("Unreadable FFVB calendar export");
@@ -97,8 +106,11 @@ public class FfvbCalendarParser {
       CSVRecord row = selected.get(reference);
       if (row == null || malformed.contains(reference) || contradictions.contains(reference)) {
         String reason = "contradictory-match";
-        if (malformed.contains(reference)) reason = "invalid-row";
-        else if (row == null) reason = "missing-match";
+        if (malformed.contains(reference)) {
+          reason = "invalid-row";
+        } else if (row == null) {
+          reason = "missing-match";
+        }
         failures.add(failure(reference, reason));
         continue;
       }
@@ -125,10 +137,12 @@ public class FfvbCalendarParser {
                 null));
       }
     }
-    if (matches.isEmpty() && slots.isEmpty() && failures.isEmpty() && !page.qualifiedEmpty())
+    if (matches.isEmpty() && slots.isEmpty() && failures.isEmpty() && !page.qualifiedEmpty()) {
       throw new FfvbAcquisitionException("Empty FFVB calendar lacks positive scope evidence");
-    if (matches.size() + slots.size() + failures.size() > 1000)
+    }
+    if (matches.size() + slots.size() + failures.size() > 1000) {
       throw new FfvbAcquisitionException("FFVB calendar exceeds the observation item bound");
+    }
     return new SportingObservation.Calendar(failures.isEmpty(), matches, slots, failures);
   }
 
@@ -144,8 +158,9 @@ public class FfvbCalendarParser {
     SportingObservation.Facts.FactsBuilder facts = SportingObservation.Facts.builder();
     String reference = row.get("Match").strip();
     String date = row.get("Date").strip();
-    if (date.isEmpty()) facts.localDate(JsonNullable.of(null));
-    else {
+    if (date.isEmpty()) {
+      facts.localDate(JsonNullable.of(null));
+    } else {
       try {
         facts.localDate(JsonNullable.of(LocalDate.parse(date)));
       } catch (DateTimeParseException invalid) {
@@ -153,10 +168,13 @@ public class FfvbCalendarParser {
       }
     }
     String time = row.get("Heure").strip();
-    if (time.isEmpty() || time.equals("00:00")) facts.localTime(JsonNullable.of(null));
-    else {
+    if (time.isEmpty() || time.equals("00:00")) {
+      facts.localTime(JsonNullable.of(null));
+    } else {
       try {
-        if (!time.matches("\\d{2}:\\d{2}")) throw new DateTimeParseException("Invalid time", "", 0);
+        if (!time.matches("\\d{2}:\\d{2}")) {
+          throw new DateTimeParseException("Invalid time", "", 0);
+        }
         LocalTime.parse(time);
         facts.localTime(JsonNullable.of(time)).timeZone("Europe/Paris");
       } catch (DateTimeParseException invalid) {
@@ -182,14 +200,18 @@ public class FfvbCalendarParser {
         } catch (NumberFormatException invalid) {
           failures.add(failure(reference, "invalid-result"));
         }
-      } else failures.add(failure(reference, "invalid-result"));
+      } else {
+        failures.add(failure(reference, "invalid-result"));
+      }
     }
     String scores = row.get("Score").strip();
     if (!scores.isEmpty()) {
       List<SportingObservation.SetScore> sets = new ArrayList<>();
       try {
         for (String score : scores.split(",", -1)) {
-          if (!score.strip().matches("[0-9]+-[0-9]+")) throw new NumberFormatException();
+          if (!score.strip().matches("[0-9]+-[0-9]+")) {
+            throw new NumberFormatException();
+          }
           String[] points = score.strip().split("-");
           sets.add(
               new SportingObservation.SetScore(
@@ -200,12 +222,16 @@ public class FfvbCalendarParser {
         failures.add(failure(reference, "invalid-sets"));
       }
     }
-    if (!row.get("Salle").isBlank()) facts.venueName(JsonNullable.of(row.get("Salle").strip()));
+    if (!row.get("Salle").isBlank()) {
+      facts.venueName(JsonNullable.of(row.get("Salle").strip()));
+    }
     List<String> referees =
         List.of(row.get("Arb1").strip(), row.get("Arb2").strip()).stream()
             .filter(name -> !name.isEmpty())
             .toList();
-    if (!referees.isEmpty()) facts.referees(JsonNullable.of(referees));
+    if (!referees.isEmpty()) {
+      facts.referees(JsonNullable.of(referees));
+    }
     return facts.build();
   }
 

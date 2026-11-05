@@ -78,8 +78,9 @@ class InboxTraversalIntegrationTest {
   void traversesChangingPages() throws Exception {
     // Given
     List<UUID> ids = new ArrayList<>();
-    for (int number = 1; number <= 43; number++)
+    for (int number = 1; number <= 43; number++) {
       ids.add(entry(sql, number, ACCOUNT, NOW.minusSeconds(60)));
+    }
     Collections.reverse(ids);
     JsonNode first = page(null);
     assertThat(first.path("notifications"))
@@ -169,15 +170,17 @@ class InboxTraversalIntegrationTest {
   void summarizesUnloadedChanges() throws Exception {
     // Given: only IDs 24/25 are unread in page one; unread IDs 1–5 lie beyond its twenty rows.
     List<UUID> ids = new ArrayList<>();
-    for (int number = 1; number <= 25; number++)
+    for (int number = 1; number <= 25; number++) {
       ids.add(
           entry(
               sql,
               number,
               ACCOUNT,
               number == 1 ? NOW.minus(Duration.ofDays(29)).plusSeconds(1) : NOW.minusSeconds(60)));
-    for (int number = 6; number <= 23; number++)
+    }
+    for (int number = 6; number <= 23; number++) {
       sql.update("UPDATE notification SET is_read=TRUE WHERE id=?", ids.get(number - 1));
+    }
     JsonNode loaded = page(null);
     assertThat(
             loaded
@@ -240,12 +243,13 @@ class InboxTraversalIntegrationTest {
   void refusesForeignInbox(String actor) throws Exception {
     // Given
     UUID id = entry(sql, 1, ACCOUNT, NOW);
-    if (actor.equals("moderator"))
+    if (actor.equals("moderator")) {
       sql.update(
           "INSERT INTO account_permission(account_id,permission) VALUES (?,'stream-links.moderate')",
           OTHER);
+    }
     RequestPostProcessor caller = principal(actor.equals("missing") ? "absent" : "two");
-    if (actor.equals("pro"))
+    if (actor.equals("pro")) {
       caller =
           jwt()
               .jwt(
@@ -255,6 +259,7 @@ class InboxTraversalIntegrationTest {
                           .subject("two")
                           .claim("azp", "mobile-test")
                           .claim("pro", true));
+    }
     List<MockHttpServletRequestBuilder> requests =
         List.of(
             get(COLLECTION),
@@ -266,7 +271,9 @@ class InboxTraversalIntegrationTest {
 
     // When
     for (MockHttpServletRequestBuilder request : requests) {
-      if (!actor.equals("guest")) request.with(caller);
+      if (!actor.equals("guest")) {
+        request.with(caller);
+      }
       mvc.perform(request)
           // Then: foreign ownership is deliberately indistinguishable from absence.
           .andExpect(status().is(actor.equals("guest") ? 401 : actor.equals("missing") ? 403 : 404))
@@ -285,7 +292,9 @@ class InboxTraversalIntegrationTest {
    */
   private JsonNode page(String cursor) throws Exception {
     MockHttpServletRequestBuilder request = get(COLLECTION).with(principal("one"));
-    if (cursor != null) request.queryParam("cursor", cursor);
+    if (cursor != null) {
+      request.queryParam("cursor", cursor);
+    }
     String response =
         mvc.perform(request)
             .andExpect(status().isOk())

@@ -45,8 +45,11 @@ beforeEach(() => {
 });
 afterEach(() => {
   client.clear();
-  if (originalUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
-  else process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  if (originalUrl === undefined) {
+    delete process.env.EXPO_PUBLIC_API_URL;
+  } else {
+    process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  }
 });
 
 it.each([false, true])(

@@ -66,12 +66,12 @@ export function useContributionEntry(
       (session.status === "guest" || authorized),
     /** Captures only the contributed identity actually displayed; guests receive no replay context. */
     report() {
-      if (session.status === "guest")
+      if (session.status === "guest") {
         router.push({
           pathname: "/sign-in-invitation",
           params: { reason: "stream-report" },
         });
-      else if (publicContributionId)
+      } else if (publicContributionId) {
         router.push({
           pathname: "/matches/[matchId]/report-contribution",
           params: {
@@ -80,11 +80,13 @@ export function useContributionEntry(
             contributionUrl: publicContributionUrl,
           },
         });
+      }
     },
     /** Reobserves the existing owner on match refresh; a recovered profile enables its dependent query. */
     refresh() {
-      if (!available || session.status !== "authenticated")
+      if (!available || session.status !== "authenticated") {
         return Promise.resolve(undefined);
+      }
       return usable
         ? query.refetch({ cancelRefetch: false })
         : profile.refetch({ cancelRefetch: false });
@@ -98,16 +100,17 @@ export function useContributionEntry(
     },
     /** An eligible first proposal opens its form directly; guests retain the existing F05 invitation. */
     propose() {
-      if (session.status === "guest")
+      if (session.status === "guest") {
         router.push({
           pathname: "/sign-in-invitation",
           params: { reason: "contribution" },
         });
-      else
+      } else {
         router.push({
           pathname: "/matches/[matchId]/contribution",
           params: { matchId },
         });
+      }
     },
   };
 }
@@ -119,7 +122,7 @@ export function ContributionEntry({
   ...context
 }: ContributionEntryProps) {
   const { colors } = useTheme();
-  if (header)
+  if (header) {
     return entry.hasProposals ? (
       <Pressable
         accessibilityRole="button"
@@ -137,14 +140,18 @@ export function ContributionEntry({
         </Text>
       </Pressable>
     ) : null;
-  if (entry.publicOwnershipUnknown)
+  }
+  if (entry.publicOwnershipUnknown) {
     return entry.ownershipRead ? (
       <ReadFeedback
         query={entry.ownershipRead}
         loadingContent={<ContributionEntryLoading />}
       />
     ) : null;
-  if (!entry.ownsPublic && !entry.canPropose) return null;
+  }
+  if (!entry.ownsPublic && !entry.canPropose) {
+    return null;
+  }
   return (
     <Button
       {...context}
@@ -154,6 +161,7 @@ export function ContributionEntry({
     />
   );
 }
+
 /** Contextual exact-version report action, distinct from the match's general support destination. */
 export function ContributionReportEntry({ entry }: ContributionEntryProps) {
   const { colors } = useTheme();
@@ -175,6 +183,7 @@ export function ContributionReportEntry({ entry }: ContributionEntryProps) {
     </Pressable>
   ) : null;
 }
+
 const styles = StyleSheet.create({
   manage: {
     minHeight: tokens.touch.minimum,

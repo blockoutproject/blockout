@@ -41,22 +41,28 @@ export function useCollectionAuthority() {
   const version = useOperationalVersionAdmission();
   const enabled =
     capabilities.permissions?.manageCollection === true && version.satisfied;
+
   /** Supplies original-principal credentials; the server validates the action grant and revision. */
   async function request() {
     const credentials = await session.getCredentials();
-    if (!credentials) throw new ApiError("http", 401);
+    if (!credentials) {
+      throw new ApiError("http", 401);
+    }
     return {
       headers: { Authorization: `Bearer ${credentials.accessToken}` },
     };
   }
+
   return { ...capabilities, session, enabled, request };
 }
+
 /** Lists canonical seasons only; reads never create seasons or contact a provider. */
 export function useCollectionSeasons() {
   const authority = useCollectionAuthority();
   const query = useQuery(createCollectionQueries(authority).seasons());
   return { authority, query };
 }
+
 /** Reads only the season needed by provider navigation, sharing its session-scoped cache with editors. */
 export function useCollectionSeason(seasonId: string) {
   const authority = useCollectionAuthority();
@@ -64,6 +70,7 @@ export function useCollectionSeason(seasonId: string) {
   const season = useQuery(options);
   return { authority, season, seasonKey: options.queryKey };
 }
+
 /** Complete configuration reads and atomic selected-source launch; selection and drafts belong to the forms. */
 export function useSeasonPreparation(seasonId: string) {
   const { authority, season, seasonKey } = useCollectionSeason(seasonId);
@@ -71,10 +78,12 @@ export function useSeasonPreparation(seasonId: string) {
   const sourcesOptions = createCollectionQueries(authority).sources(seasonId);
   const sourcesKey = sourcesOptions.queryKey;
   const sources = useQuery(sourcesOptions);
+
   /** A confirmed creation has no complete season projection; invalidate its two owning reads. */
   function acceptCreatedSource() {
     invalidateSeasonPreparation(client, seasonId);
   }
+
   /** Refreshes source/season decisions and controls that a first launch can create. */
   function acceptLaunchedSources() {
     void client.invalidateQueries({ queryKey: seasonKey, exact: true });
@@ -82,6 +91,7 @@ export function useSeasonPreparation(seasonId: string) {
     invalidateCollectionSeasons(client);
     invalidateCollectionControls(client, seasonId);
   }
+
   const create = useMutation({
     retry: false,
     networkMode: "always",
@@ -108,6 +118,7 @@ export function useSeasonPreparation(seasonId: string) {
     sourcesKey,
   };
 }
+
 /** Candidate commands use canonical generated decoders, with explicit status reads and no polling. */
 export function useSourcePreparation(seasonId: string, sourceId: string) {
   const { authority, season, seasonKey } = useCollectionSeason(seasonId);
@@ -115,11 +126,13 @@ export function useSourcePreparation(seasonId: string, sourceId: string) {
   const sourceOptions = createCollectionQueries(authority).source(sourceId);
   const queryKey = sourceOptions.queryKey;
   const source = useQuery(sourceOptions);
+
   /** Refreshes the original source and owning season after any explicit attempt. */
   function accept() {
     void client.invalidateQueries({ queryKey, exact: true });
     invalidateSeasonPreparation(client, seasonId);
   }
+
   const candidate = useMutation({
     retry: false,
     networkMode: "always",
@@ -165,6 +178,7 @@ export function useSourcePreparation(seasonId: string, sourceId: string) {
     seasonKey,
   };
 }
+
 /** Paginates discovered direct children without importing classification, totals or provider data. */
 export function useSourceChildren(sourceId: string, parentId?: string) {
   const authority = useCollectionAuthority();

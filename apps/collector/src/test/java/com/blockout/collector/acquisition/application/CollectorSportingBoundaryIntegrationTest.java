@@ -94,7 +94,9 @@ class CollectorSportingBoundaryIntegrationTest {
    */
   @AfterAll
   static void stopBackend() throws Exception {
-    if (runtime != null) runtime.close();
+    if (runtime != null) {
+      runtime.close();
+    }
   }
 
   /**
@@ -117,7 +119,9 @@ class CollectorSportingBoundaryIntegrationTest {
             (request, body, execution) -> {
               String path = request.getURI().getPath();
               requests.add(new Request(request.getMethod(), path, body));
-              if (path.endsWith("/calendar-observations")) beforeCalendar.run();
+              if (path.endsWith("/calendar-observations")) {
+                beforeCalendar.run();
+              }
               ClientHttpResponse response = execution.execute(request, body);
               if (path.equals(lostPath)
                   && request.getMethod() != HttpMethod.GET
@@ -149,7 +153,9 @@ class CollectorSportingBoundaryIntegrationTest {
    */
   @AfterEach
   void closeTransport() throws Exception {
-    if (transport != null) transport.close();
+    if (transport != null) {
+      transport.close();
+    }
   }
 
   @Test

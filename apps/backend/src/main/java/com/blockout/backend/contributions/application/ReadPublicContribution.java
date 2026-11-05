@@ -38,8 +38,9 @@ public class ReadPublicContribution {
    */
   @Transactional(readOnly = true)
   public Optional<Link> read(UUID matchId) {
-    if (sporting.visibility(Kind.MATCH, matchId).filter(SportingVisibility::viewable).isEmpty())
+    if (sporting.visibility(Kind.MATCH, matchId).filter(SportingVisibility::viewable).isEmpty()) {
       return Optional.empty();
+    }
     return store.active(matchId).map(version -> new Link(version.id(), version.address().value()));
   }
 

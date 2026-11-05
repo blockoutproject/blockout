@@ -27,6 +27,7 @@ let owner: FollowingOwner;
 async function request(signal?: AbortSignal) {
   return { signal };
 }
+
 /** A current public summary; the page's continuation and identities remain explicit in scenarios. */
 function team(id: number, name = `Équipe ${id}`) {
   return {
@@ -265,8 +266,9 @@ it.each([
             },
       ),
     );
-    for (const options of [teams, pools, bypassTeams])
+    for (const options of [teams, pools, bypassTeams]) {
       await client.infiniteQuery(options);
+    }
     await client.infiniteQuery(calendar);
     await client.infiniteQuery(bypassCalendar);
     mockFetch.mockImplementation(async () => new Response(null, { status }));
@@ -344,8 +346,9 @@ it("withdraws a successfully omitted season from exact and All-seasons lists on 
     allPools,
     bypassTeams,
     bypassPools,
-  ])
+  ]) {
     await client.infiniteQuery(options);
+  }
   mockFetch.mockClear();
   mockFetch.mockResolvedValueOnce(Response.json({ seasons: [otherSeason] }));
 
@@ -461,8 +464,9 @@ it.each([undefined, season.id])(
         nextPage: 1,
       }),
     );
-    for (const options of [selected, all, pools, other, bypass])
+    for (const options of [selected, all, pools, other, bypass]) {
       await client.infiniteQuery(options);
+    }
     const observer = new InfiniteQueryObserver(client, {
       ...selected,
       enabled: false,

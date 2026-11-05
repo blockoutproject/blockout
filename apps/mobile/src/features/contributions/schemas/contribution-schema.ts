@@ -18,6 +18,7 @@ function supportedAddress(value: string): boolean {
     return false;
   }
 }
+
 /** Editing validation only; the backend rechecks current rights, sporting facts and literal address policy. */
 export const contributionSchema = z.object({
   url: z
@@ -27,5 +28,6 @@ export const contributionSchema = z.object({
       "Utilisez une adresse HTTP(S) YouTube, Twitch ou Facebook sans identifiants.",
     ),
 });
+
 /** Local address draft, independent of revision and private owner projections. */
 export type ContributionValues = z.infer<typeof contributionSchema>;

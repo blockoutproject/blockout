@@ -39,8 +39,10 @@ public final class FfvbPage {
         .getQueryParams().stream()
             .noneMatch(
                 parameter ->
-                    parameter.getName().equals("calend") && parameter.getValue().equals("COMPLET")))
+                    parameter.getName().equals("calend")
+                        && parameter.getValue().equals("COMPLET"))) {
       throw new FfvbAcquisitionException("A complete FFVB calendar is required");
+    }
     Document page = Jsoup.parse(new String(body, CHARSET), url.toString());
     export =
         page.select("form[action$=vbspo_calendrier_export.php]").stream()
@@ -61,50 +63,67 @@ public final class FfvbPage {
                 "cal_codtour",
                 "typ_edition",
                 "type",
-                "rech_equipe"))) throw new FfvbAcquisitionException("Incomplete FFVB export form");
+                "rech_equipe"))) {
+      throw new FfvbAcquisitionException("Incomplete FFVB export form");
+    }
     if (!scope.seasonLabel().equals(fields.get("cal_saison"))
         || !scope.organizerReference().equals(fields.get("cal_codent"))
         || !value(scope.tourReference()).equals(fields.get("cal_codtour"))
         || !"".equals(fields.get("rech_equipe"))
-        || !"RES".equals(fields.get("type")))
+        || !"RES".equals(fields.get("type"))) {
       throw new FfvbAcquisitionException("FFVB context does not match the admitted scope");
+    }
     String selected =
         scope.groupReference() == null ? scope.poolReference() : scope.groupReference();
     boolean grouped = fields.get("cal_codpoule").isEmpty();
     if ((!grouped && !scope.poolReference().equals(fields.get("cal_codpoule")))
         || (grouped
             && (scope.tourReference() == null
-                || !fields.get("cal_coddiv").equals(scope.competitionReference()))))
+                || !fields.get("cal_coddiv").equals(scope.competitionReference())))) {
       throw new FfvbAcquisitionException("Unqualified FFVB pool context");
+    }
     Element selectedStandings = null;
     LinkedHashSet<String> selectedReferences = new LinkedHashSet<>();
     LinkedHashSet<String> publishedReferences = new LinkedHashSet<>();
     boolean selectedCalendar = false;
     String currentGroup = grouped ? null : selected;
     for (Element table : page.select("table")) {
-      if (table.select("table").size() > 1) continue;
+      if (table.select("table").size() > 1) {
+        continue;
+      }
       Set<String> pools =
           table.select("input[name=poule]").stream()
               .map(input -> input.attr("value"))
               .collect(Collectors.toSet());
-      if (pools.size() > 1) throw new FfvbAcquisitionException("Contradictory FFVB group context");
-      if (pools.size() == 1) currentGroup = pools.iterator().next();
+      if (pools.size() > 1) {
+        throw new FfvbAcquisitionException("Contradictory FFVB group context");
+      }
+      if (pools.size() == 1) {
+        currentGroup = pools.iterator().next();
+      }
       List<Element> rows = table.select("tr");
-      if (rows.isEmpty()) continue;
+      if (rows.isEmpty()) {
+        continue;
+      }
       List<String> heading = cells(rows.getFirst());
       if (selected.equals(currentGroup) && heading.contains("Points") && heading.contains("Jou.")) {
-        if (selectedStandings != null)
+        if (selectedStandings != null) {
           throw new FfvbAcquisitionException("Ambiguous FFVB standings context");
+        }
         selectedStandings = table;
       }
       if (heading.stream()
           .anyMatch(text -> text.startsWith("Journée ") || text.startsWith("Tour "))) {
-        if (selected.equals(currentGroup)) selectedCalendar = true;
+        if (selected.equals(currentGroup)) {
+          selectedCalendar = true;
+        }
         for (Element row : rows) {
           List<String> cells = cells(row);
           if (cells.size() >= 6 && !cells.getFirst().isBlank()) {
             publishedReferences.add(cells.getFirst());
-            if (selected.equals(currentGroup)) selectedReferences.add(cells.getFirst());
+            if (selected.equals(currentGroup)) {
+              selectedReferences.add(cells.getFirst());
+            }
           }
         }
       }

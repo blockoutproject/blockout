@@ -46,6 +46,7 @@ export interface ProfileFormProps {
   /** Called only after a current acknowledged save resets the draft. */
   onSaved: () => void;
 }
+
 /** Keeps mounted input through ordinary save failures and preserves each submitted photo until settlement. */
 export function ProfileForm({
   refreshControl,
@@ -67,19 +68,28 @@ export function ProfileForm({
     aspect: [1, 1],
     onSelect: async (assets) => {
       const selected = assets[0];
-      if (!selected) return;
+      if (!selected) {
+        return;
+      }
       try {
         const prepared = await prepareProfilePhoto(selected);
-        if (active.current) replacePhoto({ action: "replace", prepared });
-        else deleteOwnedImage(prepared);
+        if (active.current) {
+          replacePhoto({ action: "replace", prepared });
+        } else {
+          deleteOwnedImage(prepared);
+        }
       } catch (error) {
-        if (!active.current) return;
-        if (error instanceof ImageValidationError)
+        if (!active.current) {
+          return;
+        }
+        if (error instanceof ImageValidationError) {
           setError("photo", {
             message:
               "Impossible de préparer la photo. Votre choix précédent est conservé.",
           });
-        else throw error;
+        } else {
+          throw error;
+        }
       }
     },
   });
@@ -104,8 +114,9 @@ export function ProfileForm({
       keepDirty: false,
       keepErrors: false,
     });
-    if (photo.action === "replace" && photo.prepared !== uploading.current)
+    if (photo.action === "replace" && photo.prepared !== uploading.current) {
       deleteOwnedImage(photo.prepared);
+    }
   });
   const draft = useWatch({ control, name: "photo" });
   const photo = useProfilePhoto(
@@ -115,28 +126,36 @@ export function ProfileForm({
   const photoReady = !account.hasPhoto || !!photo.data;
   // This admission belongs to the original mounted draft, not to each subsequent Query status.
   const [admitted, setAdmitted] = useState(photoReady);
-  if (!admitted && photoReady) setAdmitted(true);
+  if (!admitted && photoReady) {
+    setAdmitted(true);
+  }
   let photoUri: string | undefined;
-  if (draft.action === "replace") photoUri = draft.prepared.uri;
-  else if (draft.action === "keep" && account.hasPhoto && photo.data)
+  if (draft.action === "replace") {
+    photoUri = draft.prepared.uri;
+  } else if (draft.action === "keep" && account.hasPhoto && photo.data) {
     photoUri = photo.data;
+  }
   const images =
     photoUri === undefined
       ? []
       : [{ id: "profile-photo", uri: photoUri, label: "Photo de profil" }];
   useEffect(() => {
     active.current = true;
+
     /** Unmount releases the draft, while a sent upload keeps its own file until settlement. */
     function releasePhoto() {
       const photo = getValues("photo");
-      if (photo.action === "replace" && photo.prepared !== uploading.current)
+      if (photo.action === "replace" && photo.prepared !== uploading.current) {
         deleteOwnedImage(photo.prepared);
+      }
     }
+
     return () => {
       active.current = false;
       releasePhoto();
     };
   }, [getValues]);
+
   /** Transfers a prepared copy to RHF and releases the replaced draft without touching an active upload. */
   function replacePhoto(next: ProfileValues["photo"]) {
     const previous = getValues("photo");
@@ -145,12 +164,16 @@ export function ProfileForm({
       previous.action === "replace" &&
       (next.action !== "replace" || next.prepared !== previous.prepared) &&
       previous.prepared !== uploading.current
-    )
+    ) {
       deleteOwnedImage(previous.prepared);
+    }
   }
+
   /** Submits the captured profile intent without automatic write retries. */
   async function submit(values: ProfileValues) {
-    if (disabled || selection.isPending() || !active.current) return;
+    if (disabled || selection.isPending() || !active.current) {
+      return;
+    }
     const file =
       values.photo.action === "replace" ? values.photo.prepared : undefined;
     feedback.clear();
@@ -167,21 +190,25 @@ export function ProfileForm({
         onSaved();
       }
     } catch (error) {
-      if (!active.current) return;
+      if (!active.current) {
+        return;
+      }
       if (
         error instanceof ApiError &&
         error.problem?.type === "urn:blockout:problem:username-unavailable"
-      )
+      ) {
         setError("username", { message: "Ce pseudo est déjà utilisé." });
-      else if (
+      } else if (
         error instanceof ApiError &&
         error.problem?.type === "urn:blockout:problem:invalid-image"
-      )
+      ) {
         setError("photo", {
           message:
             "Cette photo ne peut pas être enregistrée. Choisissez une autre image.",
         });
-      else feedback.error();
+      } else {
+        feedback.error();
+      }
     } finally {
       uploading.current = undefined;
       const current = getValues("photo");
@@ -189,10 +216,12 @@ export function ProfileForm({
         !active.current ||
         current.action !== "replace" ||
         current.prepared !== file
-      )
+      ) {
         deleteOwnedImage(file);
+      }
     }
   }
+
   return (
     <FormScrollView
       refreshControl={admitted || photoReady ? refreshControl : undefined}
@@ -285,6 +314,7 @@ export function ProfileForm({
     </FormScrollView>
   );
 }
+
 const styles = StyleSheet.create({
   form: { gap: tokens.layout.form.gap },
   photo: { gap: tokens.spacing.md },

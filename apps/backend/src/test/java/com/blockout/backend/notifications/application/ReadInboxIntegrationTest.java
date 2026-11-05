@@ -104,7 +104,9 @@ class ReadInboxIntegrationTest {
   void continuesWithoutAnchor() {
     // Given
     List<UUID> expected = new ArrayList<>();
-    for (int i = 1; i <= 43; i++) expected.add(entry(sql, i, ACCOUNT, NOW.minusSeconds(60)));
+    for (int i = 1; i <= 43; i++) {
+      expected.add(entry(sql, i, ACCOUNT, NOW.minusSeconds(60)));
+    }
     java.util.Collections.reverse(expected);
     NotificationContext owner = new NotificationContext(ACCOUNT);
 
@@ -136,7 +138,9 @@ class ReadInboxIntegrationTest {
   void filtersBeforeWindow() {
     // Given
     List<UUID> expected = new ArrayList<>();
-    for (int i = 1; i <= 20; i++) expected.add(entry(sql, i, ACCOUNT, NOW.minusSeconds(120)));
+    for (int i = 1; i <= 20; i++) {
+      expected.add(entry(sql, i, ACCOUNT, NOW.minusSeconds(120)));
+    }
     java.util.Collections.reverse(expected);
     for (int i = 21; i <= 45; i++) {
       UUID hidden = entry(sql, i, ACCOUNT, NOW.minusSeconds(60));
@@ -157,7 +161,9 @@ class ReadInboxIntegrationTest {
   @DisplayName("Counts unloaded unread entries with the earliest exact 29-day expiry")
   void summarizesAllPages() {
     // Given
-    for (int i = 1; i <= 25; i++) entry(sql, i, ACCOUNT, NOW.minusSeconds(i));
+    for (int i = 1; i <= 25; i++) {
+      entry(sql, i, ACCOUNT, NOW.minusSeconds(i));
+    }
     entry(sql, 30, ACCOUNT, NOW.minus(Duration.ofDays(29)).plusNanos(1000));
     entry(sql, 31, ACCOUNT, NOW.minus(Duration.ofDays(29)));
     entry(sql, 32, OTHER, NOW);
@@ -286,7 +292,9 @@ class ReadInboxIntegrationTest {
   @DisplayName("Loads twenty distinct matches with a bounded number of sporting/link queries")
   void avoidsPerNotificationQueries() {
     // Given
-    for (int i = 1; i <= 20; i++) entry(sql, i, ACCOUNT, NOW.minusSeconds(i));
+    for (int i = 1; i <= 20; i++) {
+      entry(sql, i, ACCOUNT, NOW.minusSeconds(i));
+    }
     org.hibernate.stat.Statistics statistics =
         entityManagerFactory.unwrap(SessionFactory.class).getStatistics();
     statistics.clear();

@@ -3,6 +3,7 @@ import type {
   PurchasesEntitlementInfo,
 } from "react-native-purchases";
 import type { AccountSession, SessionSnapshot } from "../accounts";
+
 /** Transient operation presentation, independent of SDK entitlement and never persisted. */
 export type ProOperation =
   | "idle"
@@ -17,6 +18,7 @@ export type ProOperation =
   | "purchased"
   | "already-owned"
   | "completed";
+
 /**
  * Evidence captured for one F05 session by the native association/read owner.
  * A failed read with no usable SDK state supplies null, never an empty CustomerInfo.
@@ -28,6 +30,7 @@ export interface ProSessionState {
   readonly customerInfo: CustomerInfo | null;
   readonly operation: ProOperation;
 }
+
 /**
  * Current-account presentation only. Active/inactive come exclusively from the SDK;
  * unavailable suppresses ads and purchase encouragement, while guests follow F11 rules.
@@ -55,6 +58,7 @@ export type ProState =
       status: "inactive";
       operation: ProOperation;
     };
+
 /**
  * Reads current F05 evidence without storing rights or calculating expiry.
  * Uses the current React principal and business account; SDK identity sequencing remains independent.
@@ -65,7 +69,9 @@ export function getProState(
   account: Pick<AccountSession, "status" | "subject" | "accountId">,
   native: ProSessionState | null,
 ): ProState {
-  if (account.status === "guest") return { status: "guest" };
+  if (account.status === "guest") {
+    return { status: "guest" };
+  }
   const current = account;
   if (account.status !== "authenticated" || !current.accountId) {
     return { status: "unavailable", reason: "account", operation: "idle" };

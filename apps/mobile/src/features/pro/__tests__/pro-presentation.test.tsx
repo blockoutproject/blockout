@@ -122,6 +122,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
   process.env = { ...previousEnvironment };
 });
+
 /** Real session/rights observers; only native SDK and navigation commands are controlled. */
 function Probe() {
   useQueryClient().setQueryDefaults([], { retry: false, gcTime: Infinity });
@@ -133,8 +134,10 @@ function Probe() {
   }, [a, p]);
   return <Text>Pro: {p.state.status}</Text>;
 }
+
 let openPresentation: () => void;
 let closePresentation: () => void;
+
 /** Separates explicit route mounting from account establishment without replacing either owner. */
 function Journey(props: ProPresentationScreenProps) {
   const session = useAccountSession();
@@ -151,6 +154,7 @@ function Journey(props: ProPresentationScreenProps) {
     </ActionFeedbackProvider>
   );
 }
+
 /** Mounts actual providers; each scenario explicitly establishes its account and chooses its entry. */
 async function mount(props: ProPresentationScreenProps = { admitted: true }) {
   await renderRouter(
@@ -169,6 +173,7 @@ async function mount(props: ProPresentationScreenProps = { admitted: true }) {
     },
   );
 }
+
 it("passes the explicit V2 offering to the native host and requests dismissal once", async () => {
   // Given
   const user = userEvent.setup();
@@ -282,8 +287,9 @@ it.each(["gift", "unknown"])(
           verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
         }),
       );
-    } else
+    } else {
       mockPurchases.getCustomerInfo.mockRejectedValue(new Error("unavailable"));
+    }
     await mount();
     await waitFor(() => expect(account.status).toBe("authenticated"));
     await act(() =>
@@ -391,15 +397,16 @@ it.each(["absent", "failed"])(
   async (scenario) => {
     // Given
     const user = userEvent.setup();
-    if (scenario === "absent")
+    if (scenario === "absent") {
       mockPurchases.getOfferings.mockResolvedValue({
         current: v2Offering,
         all: {},
       });
-    else
+    } else {
       mockPurchases.getOfferings.mockRejectedValue(
         new Error("private provider data"),
       );
+    }
     await mount();
     await waitFor(() => expect(account.status).toBe("authenticated"));
     await act(() =>
@@ -868,7 +875,7 @@ it.each(["purchased", "cancelled", "pending", "failed"] as const)(
     mockPurchases.getCustomerInfo.mockRejectedValue(new Error("unavailable"));
     // When
     await act(() => {
-      if (outcome === "purchased")
+      if (outcome === "purchased") {
         callbacks.onPurchaseCompleted!({
           customerInfo: customerInfo({
             active: {},
@@ -884,8 +891,9 @@ it.each(["purchased", "cancelled", "pending", "failed"] as const)(
             signature: null,
           },
         });
-      else if (outcome === "cancelled") callbacks.onPurchaseCancelled!();
-      else
+      } else if (outcome === "cancelled") {
+        callbacks.onPurchaseCancelled!();
+      } else {
         callbacks.onPurchaseError!({
           error: {
             code:
@@ -899,6 +907,7 @@ it.each(["purchased", "cancelled", "pending", "failed"] as const)(
             userCancelled: false,
           },
         });
+      }
     });
     // Then
     await waitFor(() =>
@@ -911,16 +920,17 @@ it.each(["purchased", "cancelled", "pending", "failed"] as const)(
     // When
     await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
     // Then
-    if (outcome === "purchased")
+    if (outcome === "purchased") {
       expect(await screen.findByText(/Paiement confirmé/)).toBeOnTheScreen();
-    else if (outcome === "pending")
+    } else if (outcome === "pending") {
       expect(
         await screen.findByText(/Le paiement est en attente/),
       ).toBeOnTheScreen();
-    else
+    } else {
       expect(
         await screen.findByText("Native paywall double"),
       ).toBeOnTheScreen();
+    }
   },
 );
 it("returns quietly to Profile after cancellation and ignores the provider's later dismissal", async () => {

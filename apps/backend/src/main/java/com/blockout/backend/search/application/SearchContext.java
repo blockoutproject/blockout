@@ -51,8 +51,12 @@ public record SearchContext(
     text = text == null ? "" : text.replaceAll("(?U)\\s+", " ").toLowerCase(Locale.ROOT);
     // Folding leaves at most one ASCII space at each edge. String trim/strip would also remove
     // control characters that the accepted Unicode whitespace rule deliberately preserves.
-    if (text.startsWith(" ")) text = text.substring(1);
-    if (text.endsWith(" ")) text = text.substring(0, text.length() - 1);
+    if (text.startsWith(" ")) {
+      text = text.substring(1);
+    }
+    if (text.endsWith(" ")) {
+      text = text.substring(0, text.length() - 1);
+    }
     if (resource == Resource.CLUB
         && (seasonId != null || divisionId != null || format != null || gender != null)) {
       throw new IllegalArgumentException("Clubs have no sporting filters");

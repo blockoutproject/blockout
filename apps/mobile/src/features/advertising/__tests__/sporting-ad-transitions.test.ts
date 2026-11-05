@@ -21,6 +21,7 @@ const mockCreateAd = jest.fn(controlledInterstitial);
 beforeEach(() =>
   mockCreateAd.mockReset().mockImplementation(controlledInterstitial),
 );
+
 /** A new accepted intent; repeated submissions reuse this same key. */
 function action() {
   return {
@@ -29,6 +30,7 @@ function action() {
     open: jest.fn(),
   };
 }
+
 it("shares the first nine accepted actions and the tenth opportunity", async () => {
   // Given
   const { input } = advertisingContext();
@@ -90,7 +92,9 @@ it("counts a repeated pending action once and refuses a different concurrent des
   lifecycle.preload();
   const ad = mockCreateAd.mock.results[0].value;
   ad.emit(AdEventType.LOADED);
-  for (let index = 0; index < 9; index++) await lifecycle.transition(action());
+  for (let index = 0; index < 9; index++) {
+    await lifecycle.transition(action());
+  }
   const destination = action();
   const other = action();
   // When
@@ -117,8 +121,9 @@ it.each(["active", "unknown"])(
       adUnitId: "test-unit",
       getInput: () => current,
     });
-    for (let index = 0; index < 9; index++)
+    for (let index = 0; index < 9; index++) {
       await lifecycle.transition(action());
+    }
     session = {
       subject: `auth0|${"00000000-0000-4000-8000-000000000001"}`,
       accountId: "00000000-0000-4000-8000-000000000001",
@@ -143,8 +148,9 @@ it.each(["active", "unknown"])(
           : { status: "active", entitlement: right, operation: "idle" },
     };
     // When
-    for (let index = 0; index < 12; index++)
+    for (let index = 0; index < 12; index++) {
       await lifecycle.transition(action());
+    }
     // Then
     expect(lifecycle.count).toBe(9);
     current = {
@@ -180,7 +186,9 @@ it("counts free actions without authorized choices and retains the threshold whe
     adUnitId: "test-unit",
     getInput: () => current,
   });
-  for (let index = 0; index < 10; index++) await lifecycle.transition(action());
+  for (let index = 0; index < 10; index++) {
+    await lifecycle.transition(action());
+  }
   // When
   current = input;
   lifecycle.preload();
@@ -200,7 +208,9 @@ it("retains memory across backgrounding and starts a fresh runtime at zero witho
     adUnitId: "test-unit",
     getInput: () => input,
   });
-  for (let index = 0; index < 9; index++) await lifecycle.transition(action());
+  for (let index = 0; index < 9; index++) {
+    await lifecycle.transition(action());
+  }
   // When: a fresh process creates a new counter.
   const restarted = createInterstitialLifecycle({
     adUnitId: "test-unit",
@@ -223,7 +233,9 @@ it.each(["throw", "reject"])(
     const destination = {
       ...action(),
       open: jest.fn(() => {
-        if (failure === "throw") throw error;
+        if (failure === "throw") {
+          throw error;
+        }
         return Promise.reject(error);
       }),
     };

@@ -151,6 +151,7 @@ async function renderSettings(content = <ApplicationVersionsSettingsScreen />) {
     ),
   });
 }
+
 /** Returns a real Fetch representation consumed by the canonical generated schema. */
 function json(value: unknown, status = 200) {
   return new Response(JSON.stringify(value), {
@@ -161,6 +162,7 @@ function json(value: unknown, status = 200) {
     },
   });
 }
+
 /** Finds the real generated private query so refetches exercise the production consumer. */
 function settingsKey() {
   const query = client
@@ -169,9 +171,12 @@ function settingsKey() {
     .find((q) =>
       q.queryKey.includes(getGetApplicationVersionSettingsQueryKey()[0]),
     );
-  if (!query) throw new Error("The versions query is missing");
+  if (!query) {
+    throw new Error("The versions query is missing");
+  }
   return query.queryKey;
 }
+
 it("shows loading without publishing defaults, then retries a failed initial read", async () => {
   // Given
   const user = userEvent.setup();
@@ -362,7 +367,9 @@ it.each([
     await user.press(await screen.findByRole("button", { name: "iOS" }));
     await user.press(screen.getByRole("button", { name: "Android" }));
     await user.clear(screen.getByLabelText(label));
-    if (value) await user.type(screen.getByLabelText(label), value);
+    if (value) {
+      await user.type(screen.getByLabelText(label), value);
+    }
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
@@ -396,13 +403,17 @@ it.each([
 
     // When
     await user.clear(screen.getByLabelText("Version minimale iOS"));
-    if (next)
+    if (next) {
       await user.type(screen.getByLabelText("Version minimale iOS"), next);
+    }
 
     // Then
     const acknowledgement = screen.queryByRole("checkbox");
-    if (required) expect(acknowledgement).toBeOnTheScreen();
-    else expect(acknowledgement).not.toBeOnTheScreen();
+    if (required) {
+      expect(acknowledgement).toBeOnTheScreen();
+    } else {
+      expect(acknowledgement).not.toBeOnTheScreen();
+    }
   },
 );
 it("requires store acknowledgement before raising a minimum, and cancellation preserves the draft", async () => {
@@ -494,12 +505,18 @@ it.each(["conflict", "lost", "invalid-response"])(
     await user.type(screen.getByLabelText("Message commun"), "Mon brouillon");
     let writes = 0;
     mockFetch.mockImplementation(async (url, options) => {
-      if (String(url).endsWith("/accounts/me")) return json(account);
+      if (String(url).endsWith("/accounts/me")) {
+        return json(account);
+      }
       if (options?.method === "PATCH") {
         writes++;
         if (writes === 1) {
-          if (outcome === "lost") throw new TypeError("Lost response");
-          if (outcome === "invalid-response") return json({ revision: 3 });
+          if (outcome === "lost") {
+            throw new TypeError("Lost response");
+          }
+          if (outcome === "invalid-response") {
+            return json({ revision: 3 });
+          }
           return json(
             {
               type: "urn:blockout:problem:stale-revision",
@@ -512,13 +529,14 @@ it.each(["conflict", "lost", "invalid-response"])(
         stored = { ...stored, revision: 4, message: "Mon brouillon" };
         return json(stored);
       }
-      if (stored.revision < 3)
+      if (stored.revision < 3) {
         stored = {
           ...initial,
           revision: 3,
           ios: { ...initial.ios, minimumVersion: "1.8.0" },
           message: "Autre éditeur",
         };
+      }
       return json(stored);
     });
 

@@ -25,6 +25,7 @@ import {
 /** Generated collection envelopes retain each resource's summaries and server cursor. */
 export type DiscoveryPage =
   ClubSearchResponse | TeamSearchResponse | PoolSearchResponse;
+
 /** Ordinary admission is public; explicit bypass captures the original native credential owner. */
 type DiscoveryAdmission = Pick<
   ReturnType<typeof useOrdinaryRequest>,
@@ -41,7 +42,9 @@ async function request(
   let headers: Record<string, string> | undefined;
   if (admission.bypass) {
     const credentials = await getCredentials();
-    if (!credentials?.accessToken) throw new ApiError("http", 401);
+    if (!credentials?.accessToken) {
+      throw new ApiError("http", 401);
+    }
     headers = { Authorization: `Bearer ${credentials.accessToken}` };
   }
   return admission.request({ signal, headers });
@@ -139,7 +142,9 @@ export function createSearchExamplesQueryOptions(
       const retained =
         previous &&
         uniqueSearchResults([previous]).map((item) => item.identity.id);
-      if (retained?.length === 0) return emptyExamples(resource);
+      if (retained?.length === 0) {
+        return emptyExamples(resource);
+      }
       const options = await request(admission, getCredentials, signal);
       const params = {
         ...context.params,
@@ -156,7 +161,11 @@ export function createSearchExamplesQueryOptions(
 
 /** An exhausted selection keeps its generated successful empty envelope. */
 function emptyExamples(resource: DiscoveryResource): DiscoveryPage {
-  if (resource === "club") return { clubs: [] };
-  if (resource === "team") return { teams: [] };
+  if (resource === "club") {
+    return { clubs: [] };
+  }
+  if (resource === "team") {
+    return { teams: [] };
+  }
   return { pools: [] };
 }

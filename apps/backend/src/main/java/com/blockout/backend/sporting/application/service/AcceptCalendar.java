@@ -38,8 +38,9 @@ public class AcceptCalendar {
     for (CalendarObservation.Match candidate : observation.matches()) {
       CalendarObservation.Match earlier =
           distinct.putIfAbsent(candidate.nativeMatchReference(), candidate);
-      if (earlier != null && !earlier.equals(candidate))
+      if (earlier != null && !earlier.equals(candidate)) {
         contradictory.add(candidate.nativeMatchReference());
+      }
     }
     List<ObservationOutcome> outcomes = new ArrayList<>();
     for (CalendarObservation.Match candidate : distinct.values()) {
@@ -58,8 +59,9 @@ public class AcceptCalendar {
         outcomes.add(ObservationOutcome.refused(candidate.nativeMatchReference(), false));
       }
     }
-    for (CalendarObservation.Failure failure : observation.failures())
+    for (CalendarObservation.Failure failure : observation.failures()) {
       outcomes.add(ObservationOutcome.refused(failure.sourceReference(), false));
+    }
     int accepted = count(outcomes, ObservationOutcomeEnum.ACCEPTED);
     int unchanged = count(outcomes, ObservationOutcomeEnum.UNCHANGED);
     int stale = count(outcomes, ObservationOutcomeEnum.STALE);

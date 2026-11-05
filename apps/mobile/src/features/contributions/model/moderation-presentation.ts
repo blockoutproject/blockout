@@ -18,6 +18,7 @@ export const contributionStateLabels: Record<
   replaced: "Lien remplacé",
   superseded: "Proposition remplacée",
 };
+
 /** Useful decision copy preserves publication and later removal as separate facts. */
 export const contributionDecisionLabels: Record<StreamDecisionEnum, string> = {
   publish: "Publication",
@@ -30,12 +31,14 @@ export const contributionDecisionLabels: Record<StreamDecisionEnum, string> = {
   supersede: "Autre proposition retenue",
   reactivate: "Réactivation",
 };
+
 /** Provider names identify the address without asserting video availability. */
 export const streamPlatformLabels: Record<StreamPlatformEnum, string> = {
   youtube: "YouTube",
   twitch: "Twitch",
   facebook: "Facebook",
 };
+
 /** Formats an accepted original time in the current native locale zone. */
 export function moderationTime(at: string) {
   return new Intl.DateTimeFormat("fr-FR", {
