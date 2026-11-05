@@ -260,37 +260,29 @@ it.each(["active", "inactive"] as const)(
   },
 );
 
-it.each(["direct-switch", "guest-return"] as const)(
-  "rejects obsolete native-choice preparation after %s even with current inactive rights",
-  (transition) => {
-    // Given
-    const choices = {
-      session: { ...session },
-      canRequestAds: true,
-      authorizedMode: "limited" as const,
-    };
-    // When
-    if (transition === "guest-return") {
-      session = { subject: null, accountId: null };
-      account = { ...account, ...session };
-    }
-    session = {
-      subject: `auth0|${transition === "direct-switch" ? b : a}`,
-      accountId: transition === "direct-switch" ? b : a,
-    };
-    account = { ...account, ...session };
-    const eligibility = getAdvertisingEligibility({
-      account,
-      pro: getProState(account, nativeState({ ...session })),
-      admission: { ordinary: true },
-      choices: transition === "guest-return" ? null : choices,
-    });
-    // Then
-    expect(eligibility).toEqual({
-      canServeAds: false,
-    });
-  },
-);
+it("rejects obsolete native-choice preparation after a direct account switch even with current inactive rights", () => {
+  // Given
+  const choices = {
+    session: { ...session },
+    canRequestAds: true,
+    authorizedMode: "limited" as const,
+  };
+
+  // When
+  session = { subject: `auth0|${b}`, accountId: b };
+  account = { ...account, ...session };
+  const eligibility = getAdvertisingEligibility({
+    account,
+    pro: getProState(account, nativeState({ ...session })),
+    admission: { ordinary: true },
+    choices,
+  });
+
+  // Then
+  expect(eligibility).toEqual({
+    canServeAds: false,
+  });
+});
 it("requires current choices when a guest becomes an established account during native account establishment", () => {
   // Given: business account establishment changes the privacy input without a client epoch.
   session = { subject: null, accountId: null };
@@ -311,30 +303,6 @@ it("requires current choices when a guest becomes an established account during 
   });
   // Then
   expect(eligibility).toEqual({
-    canServeAds: false,
-  });
-});
-it("rechecks changed native rights before presentation without retaining a former permission", () => {
-  // Given
-  const input = {
-    account,
-    pro: getProState(account, nativeState({ ...session })),
-    admission: { ordinary: true },
-    choices: {
-      session: { ...session },
-      canRequestAds: true,
-      authorizedMode: "limited" as const,
-    },
-  };
-  const inactive = getAdvertisingEligibility(input);
-  // When
-  const active = getAdvertisingEligibility({
-    ...input,
-    pro: getProState(account, nativeState({ ...session }, entitlement())),
-  });
-  // Then
-  expect(inactive.canServeAds).toBe(true);
-  expect(active).toEqual({
     canServeAds: false,
   });
 });

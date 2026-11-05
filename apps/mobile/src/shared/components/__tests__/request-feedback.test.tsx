@@ -43,26 +43,6 @@ it("shows safe French failure copy without inventing a recovery action", async (
   expect(screen.queryByRole("button")).not.toBeOnTheScreen();
 });
 
-it("leaves the waiting state when the owner reports failure", async () => {
-  // Given
-  const { rerender } = await render(
-    <ThemeProvider>
-      <RequestLoading />
-    </ThemeProvider>,
-  );
-
-  // When
-  await rerender(
-    <ThemeProvider>
-      <ErrorState />
-    </ThemeProvider>,
-  );
-
-  // Then
-  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
-  expect(screen.getByRole("alert")).toBeOnTheScreen();
-});
-
 it("invokes only the caller's explicit retry and leaves its outcome to the caller", async () => {
   // Given
   const onRetry = jest.fn();

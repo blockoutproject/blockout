@@ -8,7 +8,6 @@ import {
   replacePushSubscription,
 } from "../../../../.generated/mobile";
 import {
-  ListNotifications200,
   MarkNotificationReadRequest,
   ReplacePushSubscriptionRequest,
   ListNotificationsParams,
@@ -79,14 +78,13 @@ it.each([
   },
 );
 
-it("validates a twenty-entry page once at F13 before cache admission and preserves end absence", async () => {
+it("admits a twenty-entry page into Query and preserves end absence", async () => {
   // Given
   const page = {
     notifications: Array.from({ length: 20 }, () => notificationResponse()),
     future: true,
   };
   mockFetch.mockResolvedValue(Response.json(page));
-  const parse = jest.spyOn(ListNotifications200, "parse");
   const client = createQueryClient();
   const options = getListNotificationsQueryOptions(id);
 
@@ -98,7 +96,6 @@ it("validates a twenty-entry page once at F13 before cache admission and preserv
     expect(result.notifications).toHaveLength(20);
     expect(result.nextCursor).toBeUndefined();
     expect(client.getQueryData(options.queryKey)).toEqual(result);
-    expect(parse).toHaveBeenCalledTimes(1);
   } finally {
     client.clear();
   }

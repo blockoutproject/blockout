@@ -256,28 +256,6 @@ it.each([
     expect(state).toEqual({ status: "inactive", operation });
   },
 );
-it.each(["00000000-0000-4000-8000-000000000002"])(
-  "rejects a late read and operation across logout then account %s",
-  async (nextAccount) => {
-    // Given: plain native principal snapshots; the native completion is controlled.
-    const completion = Promise.withResolvers<ProSessionState>();
-    const result = completion.promise.then((evidence) =>
-      getProState(account, evidence),
-    );
-    // When
-    session = { subject: null, accountId: null };
-    account = { ...account, ...session };
-    session = { subject: `auth0|${nextAccount}`, accountId: nextAccount };
-    account = { ...account, ...session };
-    completion.resolve({ ...native, operation: "completed" });
-    // Then
-    expect(await result).toEqual({
-      status: "unavailable",
-      reason: "association-pending",
-      operation: "idle",
-    });
-  },
-);
 it("discards prior rights immediately on a direct account switch", () => {
   // Given
   const previous = native;

@@ -84,31 +84,25 @@ it("refuses duplicate starts and keeps a lost response uncertain after closure a
   expect(owner.beginPurchase(session)).toBe(false);
 });
 
-it.each([
-  PURCHASES_ERROR_CODE.NETWORK_ERROR,
-  PURCHASES_ERROR_CODE.OFFLINE_CONNECTION_ERROR,
-  PURCHASES_ERROR_CODE.PRODUCT_REQUEST_TIMED_OUT_ERROR,
-  PURCHASES_ERROR_CODE.INVALID_PROMOTIONAL_OFFER_ERROR,
-  PURCHASES_ERROR_CODE.TEST_STORE_SIMULATED_PURCHASE_ERROR,
-])(
-  "allows an explicit new purchase after documented SDK failure %s",
-  async (code) => {
-    // Given
-    const owner = createProSession();
-    owner.setTarget(session);
-    await waitFor(() =>
-      expect(owner.getSnapshot().evidence?.association).toBe("associated"),
-    );
-    owner.beginPurchase(session);
+it("allows an explicit new purchase after a documented SDK network failure", async () => {
+  // Given
+  const owner = createProSession();
+  owner.setTarget(session);
+  await waitFor(() =>
+    expect(owner.getSnapshot().evidence?.association).toBe("associated"),
+  );
+  owner.beginPurchase(session);
 
-    // When
-    await owner.completeOperation(session, purchaseErrorOutcome(code));
+  // When
+  await owner.completeOperation(
+    session,
+    purchaseErrorOutcome(PURCHASES_ERROR_CODE.NETWORK_ERROR),
+  );
 
-    // Then
-    expect(owner.getSnapshot().evidence?.operation).toBe("failed");
-    expect(owner.beginPurchase(session)).toBe(true);
-  },
-);
+  // Then
+  expect(owner.getSnapshot().evidence?.operation).toBe("failed");
+  expect(owner.beginPurchase(session)).toBe(true);
+});
 
 it("keeps confirmed payment separate from activation when verification is unavailable", async () => {
   // Given

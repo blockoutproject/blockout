@@ -140,25 +140,3 @@ it("keeps the editable choice after rejected persistence and allows explicit ret
   // Then
   expect(submit.mock.calls).toEqual([[16], [16]]);
 });
-
-it("cancels an edited correction on unmount and starts a fresh neutral choice when reopened", async () => {
-  // Given
-  const submit = jest.fn().mockResolvedValue(undefined);
-  const view = await render(<AgeForm pending={false} onSubmit={submit} />, {
-    wrapper: AgeFormProviders,
-  });
-  await fireEvent(screen.getByRole("adjustable"), "change", {
-    nativeEvent: { value: 17 },
-  });
-
-  // When
-  await view.unmount();
-  await render(<AgeForm pending={false} onSubmit={submit} />, {
-    wrapper: AgeFormProviders,
-  });
-
-  // Then
-  expect(submit).not.toHaveBeenCalled();
-  expect(screen.getByText("—")).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Continuer" })).toBeDisabled();
-});

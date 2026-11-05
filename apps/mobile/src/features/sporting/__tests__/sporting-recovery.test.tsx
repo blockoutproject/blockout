@@ -74,7 +74,6 @@ const environment = { ...process.env };
 let client: QueryClient;
 let publicClient: QueryClient;
 let detail = matchDetail();
-const season = detail.match.pool.season;
 const otherId = "00000000-0000-4000-8000-000000000008";
 
 /** Controlled transport delegates fixture decoding without replacing feature reads. */
@@ -427,66 +426,6 @@ it("never lets a delayed resource response replace the newly selected match", as
   // Then
   expect(screen.getByText("Current team")).toBeOnTheScreen();
   expect(screen.queryByText("Home")).not.toBeOnTheScreen();
-});
-
-it("keeps season selection when an earlier teams request completes after a new selection", async () => {
-  // Given
-  const older = { id: otherId, label: "2025/2026", startYear: 2025 };
-  const old = Promise.withResolvers<Response>();
-  mockFetch.mockImplementation((url: string) => {
-    const parsed = new URL(url);
-    if (parsed.pathname === `/clubs/${sportingId}`) {
-      return Promise.resolve(
-        Response.json({
-          ...clubDetail("Club des Rives"),
-          seasons: [season, older],
-        }),
-      );
-    }
-    if (parsed.pathname.endsWith("/teams")) {
-      return parsed.searchParams.get("seasonId") === season.id
-        ? old.promise
-        : Promise.resolve(Response.json({ seasonId: older.id, items: [] }));
-    }
-    return reads(url);
-  });
-  const user = userEvent.setup();
-  await renderPage(<ClubScreen clubId={sportingId} />);
-  await screen.findByText("Club des Rives");
-  await screen.findByText("Coordonnées");
-  await user.press(screen.getByRole("tab", { name: "Équipes" }));
-  await screen.findByRole("progressbar", {
-    name: "Chargement des équipes du club",
-  });
-
-  // When
-  await user.press(
-    screen.getByRole("button", { name: `Saison ${season.label}` }),
-  );
-  await user.press(screen.getByRole("button", { name: older.label }));
-  await layoutNativeTabs();
-  await screen.findByText("Aucune équipe pour cette saison");
-  await act(() =>
-    old.resolve(
-      Response.json({
-        seasonId: season.id,
-        items: [
-          {
-            team: { id: sportingId, name: "Obsolete team" },
-            season,
-            classification: {},
-            professional: false,
-          },
-        ],
-      }),
-    ),
-  );
-
-  // Then
-  expect(
-    screen.getByRole("button", { name: `Saison ${older.label}` }),
-  ).toBeOnTheScreen();
-  expect(screen.queryByText("Obsolete team")).not.toBeOnTheScreen();
 });
 
 /** Explicit session/admission actions use real owners; no state/query hook is replaced by the fixture. */

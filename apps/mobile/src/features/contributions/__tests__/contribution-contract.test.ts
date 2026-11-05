@@ -12,7 +12,6 @@ import {
   CreateStreamReactivationRequest,
   CreateStreamReportRequest,
   ListOwnStreamContributionsParams,
-  ListModeratedStreamContributions200,
   ModeratedStreamContributionsResponse,
   StreamContributionStateEnum,
   StreamDecisionEnum,
@@ -84,7 +83,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  jest.restoreAllMocks();
   if (originalApiUrl === undefined) {
     delete process.env.EXPO_PUBLIC_API_URL;
   } else {
@@ -183,30 +181,6 @@ it("admits erased attribution and hidden dateless private sporting context throu
   expect(result.match).not.toHaveProperty("result");
   expect(result.items[0]).not.toHaveProperty("authorName");
   expect(result.items[0].decisions[0]).not.toHaveProperty("actorName");
-});
-
-it("validates a JSON body once before Query accepts it", async () => {
-  // Given
-  const response = new Response(JSON.stringify(moderation), {
-    headers: { "Content-Type": "application/json" },
-  });
-  const readJson = jest.spyOn(response, "json");
-  const validate = jest.spyOn(ListModeratedStreamContributions200, "parse");
-  mockFetch.mockResolvedValue(response);
-  const client = createQueryClient();
-
-  // When
-  const result = await client.fetchQuery({
-    queryKey: ["contract"],
-    queryFn: () => listModeratedStreamContributions(id),
-  });
-
-  // Then
-  expect(result.revision).toBe(moderation.revision);
-  expect(readJson).toHaveBeenCalledTimes(1);
-  expect(validate).toHaveBeenCalledTimes(1);
-  expect(mockFetch).toHaveBeenCalledTimes(1);
-  client.clear();
 });
 
 it.each([

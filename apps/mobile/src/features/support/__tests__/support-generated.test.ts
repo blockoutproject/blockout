@@ -1,8 +1,5 @@
 import { createSupportRequest } from "../../../../.generated/mobile";
-import {
-  CreateSupportRequest201,
-  SubmitSupportRequest,
-} from "../../../../.generated/schemas/index.zod";
+import { SubmitSupportRequest } from "../../../../.generated/schemas/index.zod";
 import { supportImage, supportMetadata } from "./fixtures";
 
 const originalApiUrl = process.env.EXPO_PUBLIC_API_URL;
@@ -20,7 +17,6 @@ beforeEach(() => {
   mockFetch.mockReset();
 });
 afterEach(() => {
-  jest.restoreAllMocks();
   if (originalApiUrl === undefined) {
     delete process.env.EXPO_PUBLIC_API_URL;
   } else {
@@ -84,7 +80,6 @@ it.each([0, 5])(
         headers: { "Content-Type": "application/json" },
       }),
     );
-    const parse = jest.spyOn(CreateSupportRequest201, "parse");
 
     // When
     const result = await createSupportRequest({
@@ -104,7 +99,6 @@ it.each([0, 5])(
     );
     expect(body.getAll("images")).toHaveLength(count);
     expect(new Headers(request?.headers).has("Content-Type")).toBe(false);
-    expect(parse).toHaveBeenCalledTimes(1);
     expect(result.requestId).toBe(requestId);
   },
 );

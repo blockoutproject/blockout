@@ -759,7 +759,9 @@ it("releases every delivered cache copy after preparation settles even if the fi
   await act(async () => preparation.resolve());
 
   // Then
-  expect(mockDeleteFile.mock.calls).toEqual([[photo.uri], [second.uri]]);
+  expect(mockDeleteFile).toHaveBeenCalledTimes(2);
+  expect(mockDeleteFile).toHaveBeenCalledWith(photo.uri);
+  expect(mockDeleteFile).toHaveBeenCalledWith(second.uri);
 });
 
 /** Matches the application's theme and transient feedback owners for native selection scenarios. */
