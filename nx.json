@@ -14,6 +14,7 @@
       "{workspaceRoot}/.nvmrc",
       "{workspaceRoot}/.prettierrc.json",
       "{workspaceRoot}/.prettierignore",
+      "{workspaceRoot}/.editorconfig",
       "{workspaceRoot}/.redocly.yaml",
       "{workspaceRoot}/pom.xml",
       "{workspaceRoot}/mvnw",

@@ -1,5 +1,17 @@
 {
   "$schema": "https://json.schemastore.org/prettierrc",
+  "plugins": ["@prettier/plugin-xml"],
+  "printWidth": 80,
+  "tabWidth": 2,
+  "useTabs": false,
   "bracketSpacing": true,
-  "endOfLine": "lf"
+  "endOfLine": "lf",
+  "overrides": [
+    {
+      "files": ["**/pom.xml", "checkstyle.xml"],
+      "options": {
+        "xmlWhitespaceSensitivity": "ignore"
+      }
+    }
+  ]
 }

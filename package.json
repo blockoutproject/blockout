@@ -13,6 +13,8 @@
   "scripts": {
     "format:check": "prettier --check .",
     "format": "prettier --write .",
+    "lint:fix": "npm run lint:fix --workspace=@blockout/mobile",
+    "style:fix": "npm run lint:fix && npm run format && ./mvnw -B -ntp spotless:apply",
     "lint:contracts": "redocly lint --config .redocly.yaml",
     "lint": "nx run-many -t lint",
     "typecheck": "nx run-many -t typecheck",
@@ -23,6 +25,7 @@
     "generate": "nx run-many -t generate --output-style=static"
   },
   "devDependencies": {
+    "@prettier/plugin-xml": "3.4.2",
     "@redocly/cli": "2.62.1",
     "nx": "23.3.0",
     "prettier": "3.9.6"

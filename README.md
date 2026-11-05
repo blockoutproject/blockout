@@ -77,6 +77,50 @@ npm run generate
 
 Validate local links, anchors and source ownership against the final tree. [CI](.github/workflows/ci.yml) retains the `verify` gate and develop-only promotion to main; it starts no deployment or EAS build. These checks establish no provider, device, visual or production qualification. Personal skills are copied from their authoritative bank; official Spec Kit imports remain unchanged except for authorized constitution amendments through the official procedure. Publication follows [the Git delivery policy](AGENTS.md#git-delivery).
 
+### Code readability
+
+Use two-space indentation, standard brace spacing (`{ id }`, `if (ready) {`, JSX
+`{label}`), and a blank line between functions and methods. Group related
+instructions and separate logical steps when that helps a reader. Keep
+documentation attached to its declaration.
+
+Prettier retains its 80-column target and standard JSX wrapping. The existing
+Expo ESLint preset is supplemented only by mandatory braces and two ESLint
+Stylistic spacing rules: separate imports from other statements, separate
+function/class/export declarations, and separate methods while keeping related
+fields together. These use documented statement kinds, without custom selectors.
+Exported overload signatures also receive a separating line; local arrow
+functions follow the readability convention without a syntax-specific check.
+
+Java retains Google Java Format's 100-column style. Native Checkstyle rules
+require braces and separate methods while allowing related fields to stay
+together. Neither language mandates a blank line before every return or bans
+nested ternaries: simplify difficult expressions during review rather than
+rewriting readable conditions mechanically.
+
+The standard Prettier XML plugin formats Maven/Checkstyle files and test fixtures.
+Maven/Checkstyle use its documented whitespace-insensitive mode; other XML keeps
+the conservative default. Values and attribute order remain unchanged. Historical migrations, generated
+sources, upstream imports, licenses and protected artwork remain excluded.
+EditorConfig shares basic editor settings with matching protected-file exceptions.
+
+```sh
+npm run style:fix       # Available ESLint fixes, Prettier and Java Spotless
+npm run lint:fix        # ESLint automatic fixes only
+npm run format         # Prettier, including XML
+./mvnw -B -ntp spotless:apply # Java formatting
+npm run verify         # Formatting and application checks
+```
+
+Spotless formats Java but does not add braces reported by Checkstyle. Fix remaining
+lint errors directly. There are no custom analyzers, regex/XPath style checks,
+arbitrary function-size limits, Git hooks or suppression baselines.
+
+Integration references: [Expo flat config](https://docs.expo.dev/guides/using-eslint/),
+[Prettier with linters](https://prettier.io/docs/integrating-with-linters),
+[Stylistic spacing](https://eslint.style/rules/padding-line-between-statements),
+and [Prettier XML](https://github.com/prettier/plugin-xml#configuration).
+
 ### Collector-to-sporting qualification
 
 `CollectorSportingBoundaryIntegrationTest` is an opt-in Failsafe suite spanning the actual collector clients and a separately launched backend JAR. It requires an explicitly selected **disposable migrated PostgreSQL database**: its fixture truncates sporting/source data between cases. Use an isolated Compose project and free ports; never point it at a retained or shared database. The backend uses the restricted application role. The migration role is used only for fixture reset and scoped failure injection. The suite owns its backend process and ephemeral local signing-key endpoint, and closes both. Provider interpretation is synthetic; no provider or Auth0 request is made.

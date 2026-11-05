@@ -6,6 +6,7 @@
 - Keep commit identifiers, issue/PR links, CI runs, captures and delivery chronology outside `specs/`; project traceability there uses native Spec Kit owner links, without a parallel catalogue or revision journal. Keep necessary official technical documentation, Figma sources, implementation paths and exact functional URL values; these sources do not replace native Spec Kit requirement ownership.
 - Load only relevant skills. Personal skills supply technical expertise and delivery mechanics; their presence selects no stack and authorizes no migration or service installation.
 - Apply `karpathy-guidelines` to changed handwritten code and `code-documentation` throughout touched handwritten code files, with the applicable language/testing skills. Keep official upstream imports intact.
+- Follow the [code readability conventions](README.md#code-readability). Use standard formatter/linter rules; omit unsupported checks rather than add custom analyzers or mandatory manual formatting rules.
 - Use `github-delivery` for authorized issues and publication under the Git delivery policy below. Existing authorization remains valid; issue labels do not switch Codex modes.
 - Never inspect an archived or independent repository without an explicit human request. Links are references, not permission.
 
