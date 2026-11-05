@@ -185,7 +185,9 @@ it.each([
   { read: "true" },
   { read: true, opened: true },
 ])("rejects unsupported read intent: %j", (body) => {
-  // Given / When
+  // Given: the table supplies the unsupported read intent.
+
+  // When
   const result = MarkNotificationReadRequest.strict().safeParse(body);
 
   // Then
@@ -201,7 +203,9 @@ it.each([
   { installationId: id, expoPushToken: "" },
   { installationId: id, expoPushToken: "synthetic", accountId: id },
 ])("rejects incomplete or extra registration fields: %j", (body) => {
-  // Given / When
+  // Given: the table supplies the incomplete or extra registration fields.
+
+  // When
   const result = ReplacePushSubscriptionRequest.strict().safeParse(body);
 
   // Then
@@ -239,7 +243,9 @@ it("sends true-only intent and keeps an opaque continuation unmodified", async (
 it.each([{ cursor: null }, { cursor: "" }, { opened: true }])(
   "rejects invalid list parameters: %j",
   (params) => {
-    // Given / When
+    // Given: the table supplies the invalid list parameters.
+
+    // When
     const result = ListNotificationsParams.strict().safeParse(params);
 
     // Then

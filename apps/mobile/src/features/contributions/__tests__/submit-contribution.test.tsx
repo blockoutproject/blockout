@@ -722,11 +722,13 @@ it("refreshes the actual F03 match key after a publication under explicit mainte
 });
 
 it("shows compact match context without inventing unknown scores or extra sporting navigation", async () => {
-  // Given
+  // Given: the public match has no published score.
+
+  // When
   await mount();
   await screen.findByLabelText("Adresse du lien");
 
-  // When / Then
+  // Then
   expect(screen.getByText("Home")).toBeOnTheScreen();
   expect(screen.getByText("Away")).toBeOnTheScreen();
   expect(screen.queryByText("À venir")).not.toBeOnTheScreen();

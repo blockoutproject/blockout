@@ -96,8 +96,11 @@ it.each([
   { following: "false" },
   { following: true, extra: 1 },
 ])("rejects incomplete or additive mutation requests: %j", (body) => {
-  // Given / When
-  const result = ReplaceFollowStateRequest.strict().safeParse(body);
+  // Given
+  const schema = ReplaceFollowStateRequest.strict();
+
+  // When
+  const result = schema.safeParse(body);
 
   // Then
   expect(result.success).toBe(false);
@@ -257,9 +260,12 @@ it.each(["team", "pool"] as const)(
 it.each([-1, 107374183, 0.5, "1", null])(
   "rejects unsupported request pages: %j",
   (page) => {
-    // Given / When
-    const results = [ListTeamFollowsParams, ListPoolFollowsParams].map(
-      (schema) => schema.strict().safeParse({ page }),
+    // Given
+    const schemas = [ListTeamFollowsParams, ListPoolFollowsParams];
+
+    // When
+    const results = schemas.map((schema) =>
+      schema.strict().safeParse({ page }),
     );
 
     // Then
@@ -270,8 +276,11 @@ it.each([-1, 107374183, 0.5, "1", null])(
 it.each([{ seasonId: null }, { seasonId: "" }, { future: true }])(
   "rejects invalid list request shapes: %j",
   (params) => {
-    // Given / When
-    const result = ListTeamFollowsParams.strict().safeParse(params);
+    // Given
+    const schema = ListTeamFollowsParams.strict();
+
+    // When
+    const result = schema.safeParse(params);
 
     // Then
     expect(result.success).toBe(false);
@@ -284,8 +293,11 @@ it.each([
   { category: "upcoming", timeZone: "Europe/Paris", future: true },
   { category: "upcoming", timeZone: "Europe/Paris", nextDay: null },
 ])("rejects invalid calendar request shapes: %j", (params) => {
-  // Given / When
-  const result = ListPersonalMatchesParams.strict().safeParse(params);
+  // Given
+  const schema = ListPersonalMatchesParams.strict();
+
+  // When
+  const result = schema.safeParse(params);
 
   // Then
   expect(result.success).toBe(false);

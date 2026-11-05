@@ -103,6 +103,8 @@ it.each([team, pool])(
         ? Promise.reject(new TypeError("private profile unavailable"))
         : transport(url, request),
     );
+
+    // When
     await fixture.render(
       <>
         <PrivateProfile />
@@ -110,7 +112,7 @@ it.each([team, pool])(
       </>,
     );
 
-    // When / Then
+    // Then
     expect(await screen.findByLabelText("2 abonnés")).toBeOnTheScreen();
     const countRequest = mockFetch.mock.calls.find(([url]) =>
       url.endsWith(`/${target.type}s/${target.id}/follower-count`),
@@ -135,9 +137,11 @@ it("shows a real zero for a guest without resolving a private account", async ()
       ? Promise.resolve(Response.json({ count: 0 }))
       : transport(url, request),
   );
+
+  // When
   await fixture.render(<FollowerCount target={team} />);
 
-  // When / Then
+  // Then
   expect(await screen.findByLabelText("0 abonné")).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.some(([url]) => url.endsWith("/accounts/me")),
@@ -239,9 +243,11 @@ it.each([{}, { count: -1 }, { count: 9007199254740992 }])(
         ? Promise.resolve(Response.json(body))
         : transport(url, request),
     );
+
+    // When
     await fixture.render(<FollowerCount target={team} />);
 
-    // When / Then
+    // Then
     expect(
       await screen.findByRole("button", {
         name: "Réessayer le nombre d’abonnés",
@@ -377,13 +383,15 @@ it("isolates deliberate maintenance bypass from the anonymous public count", asy
   await waitFor(() =>
     expect(fixture.session.accountId).toBe(accountResponse().accountId),
   );
+
+  // When
   await act(async () => {
     active = true;
     await fixture.admission.retry();
     fixture.admission.requestBypass(fixture.session, true);
   });
 
-  // When / Then
+  // Then
   expect(await screen.findByLabelText("3 abonnés")).toBeOnTheScreen();
   const countRequests = mockFetch.mock.calls.filter(([url]) =>
     url.endsWith("/follower-count"),

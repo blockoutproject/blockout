@@ -353,9 +353,11 @@ it("suppresses duplicate presses while the report is pending", async () => {
 it("reads only existing report state without exposing a reason or offering a second send", async () => {
   // Given
   ownState = true;
+
+  // When
   await mount();
 
-  // When / Then
+  // Then
   expect(
     await screen.findByText("Vous avez déjà signalé ce lien."),
   ).toBeOnTheScreen();
@@ -397,9 +399,11 @@ it.each(["initialization", "restoration"] as const)(
       mockAuth0.getCredentials.mockRejectedValueOnce(new Error("Unavailable"));
     }
     const user = userEvent.setup();
+
+    // When
     await mount();
 
-    // When / Then
+    // Then
     expect(
       await screen.findByRole("alert", { name: "Une erreur est survenue" }),
     ).toBeOnTheScreen();

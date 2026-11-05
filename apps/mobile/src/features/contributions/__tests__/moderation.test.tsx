@@ -347,6 +347,8 @@ it.each(["queue", "active", "pending", "filters", "reports"] as const)(
       .mocked(initializeV2Installation)
       .mockRejectedValueOnce(new Error("Unavailable"));
     const user = userEvent.setup();
+
+    // When
     await mount(
       surface === "queue" ? (
         <ModerationScreen filters={{}} />
@@ -362,7 +364,7 @@ it.each(["queue", "active", "pending", "filters", "reports"] as const)(
       await user.press(screen.getByRole("tab", { name: /^Propositions/ }));
     }
 
-    // When / Then
+    // Then
     expect(
       await screen.findByRole("alert", { name: "Une erreur est survenue" }),
     ).toBeOnTheScreen();

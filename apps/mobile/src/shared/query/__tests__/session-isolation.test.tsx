@@ -100,6 +100,7 @@ it("keeps A's detached mutation and private data out of B's new cache while reta
   });
   const completion = command.mutate();
   mockAuth0.getCredentials.mockResolvedValue(credentialsFor("auth0|b"));
+
   // When
   await act(async () => {
     await hook.result.current.session.signIn("https://api.example.invalid");
@@ -111,6 +112,7 @@ it("keeps A's detached mutation and private data out of B's new cache while reta
     response.resolve("Late Alice");
     await completion;
   });
+
   // Then
   expect(hook.result.current.client).not.toBe(oldClient);
   expect(

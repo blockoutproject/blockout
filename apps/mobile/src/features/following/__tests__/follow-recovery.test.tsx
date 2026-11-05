@@ -481,6 +481,8 @@ it("keeps public sporting content when the private opaque member read returns 40
     }
     return transport(url, request);
   });
+
+  // When
   await fixture.render(
     <TeamScreen
       teamId={team.id}
@@ -489,7 +491,7 @@ it("keeps public sporting content when the private opaque member read returns 40
   );
   await screen.findByText("Public team remains viewable");
 
-  // When / Then
+  // Then
   await screen.findAllByRole("button", { name: "Réessayer" });
   expect(await screen.findByLabelText("2 abonnés")).toBeOnTheScreen();
   expect(screen.getByText("Public team remains viewable")).toBeOnTheScreen();

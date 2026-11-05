@@ -277,11 +277,15 @@ it.each([undefined, null])(
     await waitFor(() => expect(result.current.session.accountId).toBeTruthy());
     const images = [supportImage("png"), unready];
 
-    // When / Then
+    // When
     await act(async () => {
-      await expect(
-        result.current.submission.send(supportMetadata, images),
-      ).rejects.toBeDefined();
+      const submission = result.current.submission.send(
+        supportMetadata,
+        images,
+      );
+
+      // Then
+      await expect(submission).rejects.toBeDefined();
     });
     expect(supportHttp).not.toHaveBeenCalled();
   },

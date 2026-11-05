@@ -204,6 +204,7 @@ it("opens one native picker when selection is requested twice before a render", 
   // Then
   expect(launch).toHaveBeenCalledTimes(1);
   expect(result.current.pending).toBe(true);
+
   // When
   await act(async () => picker.resolve({ canceled: false, assets: [photo] }));
 
@@ -307,7 +308,11 @@ it("opens a full-screen preview and closes it without changing caller values", a
   await user.press(
     screen.getByRole("button", { name: "Aperçu : Logo du club" }),
   );
+
+  // Then
   expect(screen.getByRole("image", { name: "Logo du club" })).toBeOnTheScreen();
+
+  // When
   await user.press(screen.getByRole("button", { name: "Fermer" }));
 
   // Then

@@ -70,6 +70,8 @@ it("isolates type, normalized text, exact filters and deliberate bypass intent",
       value,
   };
   const credentials = jest.fn();
+
+  // When
   const options = createDiscoveryQueryOptions(
     "team",
     { q: " Volley ", gender: "female" },
@@ -78,7 +80,7 @@ it("isolates type, normalized text, exact filters and deliberate bypass intent",
     credentials,
   );
 
-  // When / Then
+  // Then
   expect(options.queryKey).toEqual(
     createDiscoveryQueryOptions(
       "team",

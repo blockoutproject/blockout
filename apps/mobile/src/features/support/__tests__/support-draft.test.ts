@@ -94,19 +94,19 @@ it("trims only the outer title/contact whitespace and preserves explanation", ()
   });
 });
 
-it.each(["incorrect", "x".repeat(243) + "@example.invalid"])(
-  "refuses invalid or oversized reply contact",
-  (replyEmail) => {
-    // Given
-    const draft = { ...supportMetadata, images: [], subject: "", replyEmail };
+it.each([
+  ["malformed", "incorrect"],
+  ["oversized", "x".repeat(243) + "@example.invalid"],
+])("refuses a %s reply contact", (_case, replyEmail) => {
+  // Given
+  const draft = { ...supportMetadata, images: [], subject: "", replyEmail };
 
-    // When
-    const result = supportSchema.safeParse(draft);
+  // When
+  const result = supportSchema.safeParse(draft);
 
-    // Then
-    expect(result.success).toBe(false);
-  },
-);
+  // Then
+  expect(result.success).toBe(false);
+});
 
 it("accepts exactly 254 email code units and refuses 255", () => {
   // Given

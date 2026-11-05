@@ -19,6 +19,8 @@ it.each([
 ])("does not load or retry a disabled read: %j", async (state) => {
   // Given
   const refetch = jest.fn();
+
+  // When
   await render(
     <ThemeProvider>
       <ReadFeedback
@@ -36,12 +38,13 @@ it.each([
     </ThemeProvider>,
   );
 
-  // When
-  const loading = screen.queryByRole("progressbar");
-
   // Then
-  expect(loading).not.toBeOnTheScreen();
-  expect(!!screen.queryByRole("alert")).toBe(state.isError);
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+  if (state.isError) {
+    expect(screen.getByRole("alert")).toBeOnTheScreen();
+  } else {
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  }
   expect(screen.queryByRole("button")).not.toBeOnTheScreen();
   expect(refetch).not.toHaveBeenCalled();
 });
@@ -113,20 +116,21 @@ it("announces the caller's known pending content once and leaves retry with the 
       <Skeleton />
     </LoadingGroup>
   );
+
+  // When
   const { rerender } = await render(
     <ThemeProvider>
       <ReadFeedback query={query} loadingContent={loadingContent} />
     </ThemeProvider>,
   );
 
-  // When
-  const pending = screen.getAllByRole("progressbar", {
-    name: "Chargement des matchs",
-    busy: true,
-  });
-
   // Then
-  expect(pending).toHaveLength(1);
+  expect(
+    screen.getAllByRole("progressbar", {
+      name: "Chargement des matchs",
+      busy: true,
+    }),
+  ).toHaveLength(1);
   expect(screen.queryByText("Chargement des matchs")).not.toBeOnTheScreen();
   expect(screen.queryByRole("button")).not.toBeOnTheScreen();
   expect(refetch).not.toHaveBeenCalled();
@@ -153,6 +157,8 @@ it("announces the caller's known pending content once and leaves retry with the 
 it("keeps accepted content beside compact continuation feedback and retries only on explicit activation", async () => {
   // Given
   const onRetry = jest.fn();
+
+  // When
   const { rerender } = await render(
     <ThemeProvider>
       <Text>Match conservé</Text>
@@ -160,13 +166,13 @@ it("keeps accepted content beside compact continuation feedback and retries only
     </ThemeProvider>,
   );
 
-  // When
-  await screen.findByRole("progressbar", {
-    name: "Chargement de la suite…",
-    busy: true,
-  });
-
   // Then
+  expect(
+    await screen.findByRole("progressbar", {
+      name: "Chargement de la suite…",
+      busy: true,
+    }),
+  ).toBeOnTheScreen();
   expect(screen.getAllByRole("progressbar")).toHaveLength(1);
   expect(screen.getByText("Chargement de la suite…")).toBeOnTheScreen();
   expect(screen.getByText("Match conservé")).toBeOnTheScreen();

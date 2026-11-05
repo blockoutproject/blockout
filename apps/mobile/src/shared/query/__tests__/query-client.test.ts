@@ -20,9 +20,11 @@ it("recovers a transient read and publishes the accepted result", async () => {
     queryFn: read,
     retryDelay: 0,
   });
+
+  // When
   const unsubscribe = observer.subscribe(() => {});
   try {
-    // When / Then
+    // Then
     await waitFor(() =>
       expect(observer.getCurrentResult()).toMatchObject({
         status: "success",
@@ -46,8 +48,14 @@ it("reports an offline write once without pausing or replaying it", async () => 
   const mutation = new MutationObserver(client, { mutationFn: write });
   try {
     // When
-    await expect(mutation.mutate(undefined)).rejects.toBe(failure);
+    const completion = mutation.mutate(undefined);
+
+    // Then
+    await expect(completion).rejects.toBe(failure);
+
+    // When
     onlineManager.setOnline(true);
+
     // Then
     expect(write).toHaveBeenCalledTimes(1);
     expect(mutation.getCurrentResult()).toMatchObject({

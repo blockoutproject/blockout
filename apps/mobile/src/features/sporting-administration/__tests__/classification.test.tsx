@@ -789,7 +789,9 @@ it("drops the local classification draft when its protected route is removed", a
   stored.setting = classification;
   const user = userEvent.setup();
   await openRoutes();
-  await user.press(await screen.findByText("Modifier la classification"));
+  await user.press(
+    await screen.findByRole("link", { name: "Modifier la classification" }),
+  );
   await user.press(await screen.findByRole("button", { name: "Format" }));
   await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
   await screen.findByRole("button", { name: "Format" });
@@ -812,7 +814,9 @@ it("drops the local classification draft when its protected route is removed", a
   await user.press(
     await screen.findByRole("button", { name: "Relire les permissions" }),
   );
-  await user.press(await screen.findByText("Modifier la classification"));
+  await user.press(
+    await screen.findByRole("link", { name: "Modifier la classification" }),
+  );
 
   // Then
   expect(
@@ -835,7 +839,7 @@ it("admits the divisions administration destination for the lifecycle grant alon
   // When
   await screen.findByText("Permissions connues");
   await act(async () => router.push("/administration"));
-  await user.press(await screen.findByText("Divisions"));
+  await user.press(await screen.findByRole("link", { name: "Divisions" }));
 
   // Then
   await screen.findByRole("header", { name: "Divisions" });
@@ -1145,7 +1149,9 @@ it("discards a held classification confirmation when its protected route is remo
   stored.setting = classification;
   const user = userEvent.setup();
   await openRoutes();
-  await user.press(await screen.findByText("Modifier la classification"));
+  await user.press(
+    await screen.findByRole("link", { name: "Modifier la classification" }),
+  );
   jest.spyOn(Alert, "alert");
   await user.press(await screen.findByRole("button", { name: "Enregistrer" }));
   const confirmation = jest

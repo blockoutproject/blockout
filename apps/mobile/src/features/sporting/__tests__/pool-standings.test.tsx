@@ -475,11 +475,12 @@ it("projects only official podium ranks as 2–1–3 and preserves the remaining
   );
 
   // Then
-  expect(
-    screen
-      .getAllByRole("link")
-      .map((node) => node.props.accessibilityLabel.split(".")[0]),
-  ).toEqual(["Second", "Official A", "Third", "Official Z"]);
+  const links = screen.getAllByRole("link");
+  expect(links).toHaveLength(4);
+  expect(links[0]).toHaveAccessibleName(/^Second(?:\.|$)/);
+  expect(links[1]).toHaveAccessibleName(/^Official A(?:\.|$)/);
+  expect(links[2]).toHaveAccessibleName(/^Third(?:\.|$)/);
+  expect(links[3]).toHaveAccessibleName(/^Official Z(?:\.|$)/);
   expect(
     client
       .getQueryCache()
@@ -508,11 +509,10 @@ it("keeps ambiguous podium ranks in source order without inventing a place", asy
   );
 
   // Then
-  expect(
-    screen
-      .getAllByRole("link")
-      .map((node) => node.props.accessibilityLabel.split(".")[0]),
-  ).toEqual(["Official Z", "Official A"]);
+  const links = screen.getAllByRole("link");
+  expect(links).toHaveLength(2);
+  expect(links[0]).toHaveAccessibleName(/^Official Z(?:\.|$)/);
+  expect(links[1]).toHaveAccessibleName(/^Official A(?:\.|$)/);
   expect(screen.getByText("Also first")).toBeOnTheScreen();
   expect(screen.getByText("Second")).toBeOnTheScreen();
   expect(screen.getByText("Third")).toBeOnTheScreen();

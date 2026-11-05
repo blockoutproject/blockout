@@ -205,8 +205,11 @@ it("discards private input when the native identity enters guest mode", async ()
 });
 
 it("does not mount the private form outside ordinary admission", async () => {
-  // Given / When
-  await mountSupport(false);
+  // Given
+  const admitted = false;
+
+  // When
+  await mountSupport(admitted);
 
   // Then
   expect(screen.queryByLabelText("Titre")).toBeNull();

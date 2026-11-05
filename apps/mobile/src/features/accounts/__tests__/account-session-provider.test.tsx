@@ -76,28 +76,36 @@ it("keeps consumers behind F14 initialization before restoring native identity",
   jest
     .mocked(initializeV2Installation)
     .mockReturnValueOnce(initialization.promise);
+
+  // When
   await render(
     <AccountSessionProvider fallback={<Text>Preparing installation</Text>}>
       <Text>Application</Text>
     </AccountSessionProvider>,
   );
-  // When / Then
+
+  // Then
   expect(screen.getByText("Preparing installation")).toBeOnTheScreen();
   expect(screen.queryByText("Application")).not.toBeOnTheScreen();
   expect(mockAuth0.hasValidCredentials).not.toHaveBeenCalled();
+
   // When
   await act(async () => initialization.resolve());
+
   // Then
   expect(await screen.findByText("Application")).toBeOnTheScreen();
   expect(mockAuth0.hasValidCredentials).toHaveBeenCalled();
 });
 
 it("restores through Auth0 and derives the business UUID from the native account query", async () => {
-  // Given
+  // Given: Auth0 restoration and the current-account response are available.
+
+  // When
   const hook = await renderHook(useIdentity, {
     wrapper: AccountSessionProvider,
   });
-  // When / Then
+
+  // Then
   await waitFor(() =>
     expect(hook.result.current.account.data).toEqual(account),
   );
@@ -122,8 +130,10 @@ it("retains guest navigation after initialization failure and retries explicitly
     expect(hook.result.current.status).toBe("initialization-error"),
   );
   expect(mockFetch).not.toHaveBeenCalled();
+
   // When
   await act(() => hook.result.current.retryInitialization());
+
   // Then
   await waitFor(() => expect(hook.result.current.status).toBe("authenticated"));
   expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
@@ -139,6 +149,7 @@ it("does not dispatch an original account command with a different principal's c
   );
   const original = hook.result.current.session;
   mockAuth0.getCredentials.mockResolvedValue(credentialsFor("auth0|b"));
+
   // When
   await act(async () => {
     const write = original
@@ -152,6 +163,7 @@ it("does not dispatch an original account command with a different principal's c
       );
     await expect(write).rejects.toMatchObject({ kind: "cancelled" });
   });
+
   // Then
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
@@ -166,11 +178,13 @@ it("returns the SDK's explicit login principal without establishing on restorati
   });
   expect(hook.result.current.status).toBe("guest");
   mockAuth0.getCredentials.mockResolvedValue(credentialsFor("auth0|b"));
+
   // When
   let login: Awaited<ReturnType<typeof hook.result.current.signIn>>;
   await act(async () => {
     login = await hook.result.current.signIn("https://api.example.invalid");
   });
+
   // Then
   expect(login?.subject).toBe("auth0|b");
   await expect(login?.getCredentials()).resolves.toEqual(
@@ -231,6 +245,7 @@ it("does not restore A's native identity after B has signed in while A credentia
       delayed.resolve(credentialsA);
       await oldRead;
     });
+
     // Then
     expect(hook.result.current.session.subject).toBe("auth0|b");
     expect(hook.result.current.session.accountId).toBe(accountB.accountId);

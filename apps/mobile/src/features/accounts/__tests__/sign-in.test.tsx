@@ -122,10 +122,12 @@ it("continues as guest without opening hosted login or establishing an account",
   // Given
   const user = userEvent.setup();
   await renderJourney();
+
   // When
   await user.press(
     screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
   );
+
   // Then
   expect(mockNavigate).toHaveBeenCalledWith("/");
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
@@ -136,8 +138,10 @@ it("dispatches explicit establishment through the subject remount and then opens
   // Given
   const user = userEvent.setup();
   await renderJourney();
+
   // When
   await user.press(screen.getByRole("button", { name: "Se connecter" }));
+
   // Then
   await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/profile"));
   expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
@@ -162,8 +166,10 @@ it.each([
   });
   const user = userEvent.setup();
   await renderJourney();
+
   // When
   await user.press(screen.getByRole("button", { name: "Se connecter" }));
+
   // Then
   expect(await screen.findByText(message)).toBeOnTheScreen();
   expect(
@@ -182,8 +188,10 @@ it("reports native persistence failure without submitting establishment", async 
   );
   const user = userEvent.setup();
   await renderJourney();
+
   // When
   await user.press(screen.getByRole("button", { name: "Se connecter" }));
+
   // Then
   expect(
     await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
@@ -208,8 +216,10 @@ it.each(["rejected", "lost"] as const)(
     });
     const user = userEvent.setup();
     await renderJourney();
+
     // When
     await user.press(screen.getByRole("button", { name: "Se connecter" }));
+
     // Then
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/profile"));
     expect(
@@ -223,8 +233,10 @@ it("retries establishment explicitly for an already authenticated principal with
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   const user = userEvent.setup();
   await renderJourney();
+
   // When
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
+
   // Then
   await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/profile"));
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
@@ -236,10 +248,13 @@ it("retries establishment explicitly for an already authenticated principal with
 it("reads a restored account without implicitly establishing it", async () => {
   // Given
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
+
+  // When
   await renderJourney(
     <ProfileScreen admitted proEntry={null} privacyEntry={null} />,
   );
-  // When / Then
+
+  // Then
   expect(await screen.findByText(account.username)).toBeOnTheScreen();
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
   expect(
@@ -254,10 +269,12 @@ it("keeps explicit guest recovery when F14 initialization fails", async () => {
     .mockRejectedValue(new Error("Private storage failure"));
   const user = userEvent.setup();
   await renderJourney();
+
   // When
   await user.press(
     screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
   );
+
   // Then
   expect(mockNavigate).toHaveBeenCalledWith("/");
   expect(mockAuth0.hasValidCredentials).not.toHaveBeenCalled();
@@ -265,9 +282,12 @@ it("keeps explicit guest recovery when F14 initialization fails", async () => {
 });
 
 it("does not start hosted login or establishment behind F12 admission", async () => {
-  // Given
+  // Given: ordinary admission is closed.
+
+  // When
   await renderJourney(<SignInScreen admitted={false} />);
-  // When / Then
+
+  // Then
   expect(
     screen.queryByRole("button", { name: "Se connecter" }),
   ).not.toBeOnTheScreen();

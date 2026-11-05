@@ -42,23 +42,29 @@ beforeEach(() => {
     }),
   };
 });
+
 it("gives guests no former entitlement or operation presentation", () => {
   // Given
   const previous = { ...native, operation: "pending" as const };
-  // When
   session = { subject: null, accountId: null };
   account = { ...account, ...session };
   account.status = "guest";
+
+  // When
   const state = getProState(account, previous);
+
   // Then
   expect(state).toEqual({ status: "guest" });
 });
+
 it("requires usable-account establishment before consuming native state", () => {
   // Given
   session = { subject: null, accountId: null };
   account = { ...account, ...session };
+
   // When
   const state = getProState(account, native);
+
   // Then
   expect(state).toEqual({
     status: "unavailable",
@@ -66,6 +72,7 @@ it("requires usable-account establishment before consuming native state", () => 
     operation: "idle",
   });
 });
+
 it.each([
   "restoring",
   "authentication-error",
@@ -74,8 +81,10 @@ it.each([
 ] as const)("does not publish rights while authentication is %s", (status) => {
   // Given
   account.status = status;
+
   // When
   const state = getProState(account, native);
+
   // Then
   expect(state).toEqual({
     status: "unavailable",
@@ -83,13 +92,16 @@ it.each([
     operation: "idle",
   });
 });
+
 it.each(["pending", "failed"] as const)(
   "keeps association %s distinct from inactivity",
   (association) => {
     // Given
     const evidence = { ...native, association };
+
     // When
     const state = getProState(account, evidence);
+
     // Then
     expect(state).toEqual({
       status: "unavailable",
@@ -98,11 +110,14 @@ it.each(["pending", "failed"] as const)(
     });
   },
 );
+
 it("waits for association when there is no evidence for this session", () => {
   // Given
   const evidence = null;
+
   // When
   const state = getProState(account, evidence);
+
   // Then
   expect(state).toEqual({
     status: "unavailable",
@@ -110,6 +125,7 @@ it("waits for association when there is no evidence for this session", () => {
     operation: "idle",
   });
 });
+
 it.each([
   "idle",
   "failed",
@@ -121,8 +137,10 @@ it.each([
   (operation) => {
     // Given
     const evidence = { ...native, customerInfo: null, operation };
+
     // When
     const state = getProState(account, evidence);
+
     // Then
     expect(state).toEqual({
       status: "unavailable",
@@ -131,6 +149,7 @@ it.each([
     });
   },
 );
+
 it.each([
   { label: "paid with renewal disabled", values: { willRenew: false } },
   {
@@ -180,8 +199,10 @@ it.each([
         verification: VERIFICATION_RESULT.NOT_REQUESTED,
       }),
     };
+
     // When
     const state = getProState(account, evidence);
+
     // Then
     expect(state).toEqual({
       status: "active",
@@ -193,6 +214,7 @@ it.each([
     }
   },
 );
+
 it("uses the active map rather than historical rights, other entitlements or subscription products", () => {
   // Given
   const info = customerInfo({
@@ -206,11 +228,14 @@ it("uses the active map rather than historical rights, other entitlements or sub
     ...native,
     customerInfo: { ...info, activeSubscriptions: ["monthly"] },
   };
+
   // When
   const state = getProState(account, evidence);
+
   // Then
   expect(state).toEqual({ status: "inactive", operation: "idle" });
 });
+
 it.each([
   "cancelled",
   "pending",
@@ -222,8 +247,10 @@ it.each([
   (operation) => {
     // Given
     const evidence = { ...native, operation };
+
     // When
     const state = getProState(account, evidence);
+
     // Then
     expect(state).toEqual({
       status: "active",
@@ -232,6 +259,7 @@ it.each([
     });
   },
 );
+
 it.each([
   "cancelled",
   "pending",
@@ -250,22 +278,27 @@ it.each([
         verification: VERIFICATION_RESULT.NOT_REQUESTED,
       }),
     };
+
     // When
     const state = getProState(account, evidence);
+
     // Then
     expect(state).toEqual({ status: "inactive", operation });
   },
 );
+
 it("discards prior rights immediately on a direct account switch", () => {
   // Given
   const previous = native;
-  // When
   session = {
     subject: `auth0|${"00000000-0000-4000-8000-000000000002"}`,
     accountId: "00000000-0000-4000-8000-000000000002",
   };
   account = { ...account, ...session };
+
+  // When
   const state = getProState(account, previous);
+
   // Then
   expect(state).toEqual({
     status: "unavailable",
