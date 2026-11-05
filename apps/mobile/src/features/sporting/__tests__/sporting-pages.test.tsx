@@ -790,41 +790,69 @@ it("retains a valid season through failed retrieval and falls back only after su
   );
 });
 
-it("does not replace the selected season with a delayed former team response", async () => {
-  // Given
-  const formerTeams = Promise.withResolvers<Response>();
-  mockFetch.mockImplementation((url: string) =>
-    url.includes("/teams?seasonId=" + season.id)
-      ? formerTeams.promise
-      : reads(url),
-  );
-  const user = userEvent.setup();
-  await renderPage(<ClubScreen clubId={sportingId} />);
-  await screen.findByText(club.club.name);
-  await user.press(screen.getByRole("tab", { name: "Équipes" }));
-  await user.press(screen.getByRole("button", { name: "Saison 2027/2028" }));
+it.each(["empty", "populated"] as const)(
+  "keeps the selected %s season after a former teams request completes late",
+  async (currentState) => {
+    // Given: generated reads and the screen stay real; only HTTP completion is controlled.
+    const formerTeams = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url: string) => {
+      const parsed = new URL(url);
+      if (parsed.pathname === `/clubs/${sportingId}/teams`) {
+        if (parsed.searchParams.get("seasonId") === season.id) {
+          return formerTeams.promise;
+        }
+        if (currentState === "empty") {
+          return Promise.resolve(
+            Response.json({ seasonId: olderSeason.id, items: [] }),
+          );
+        }
+      }
+      return reads(url);
+    });
+    const user = userEvent.setup();
+    await renderPage(<ClubScreen clubId={sportingId} />);
+    await screen.findByText(club.club.name);
+    await user.press(screen.getByRole("tab", { name: "Équipes" }));
+    await screen.findByRole("progressbar", {
+      name: "Chargement des équipes du club",
+    });
 
-  // When
-  await user.press(screen.getByRole("button", { name: "2026/2027" }));
-  await layoutNativeTabs();
-  await screen.findByRole("link", { name: team.team.team.name });
-  await act(async () =>
-    formerTeams.resolve(
-      Response.json({
-        seasonId: season.id,
-        items: [
-          { ...team.team, team: { id: secondPoolId, name: "Obsolete team" } },
-        ],
-      }),
-    ),
-  );
+    // When
+    await user.press(
+      screen.getByRole("button", { name: `Saison ${season.label}` }),
+    );
+    await user.press(screen.getByRole("button", { name: olderSeason.label }));
+    await layoutNativeTabs();
+    const currentContent =
+      currentState === "empty"
+        ? "Aucune équipe pour cette saison"
+        : team.team.team.name;
+    await screen.findByText(currentContent);
+    await act(async () =>
+      formerTeams.resolve(
+        Response.json({
+          seasonId: season.id,
+          items: [
+            { ...team.team, team: { id: secondPoolId, name: "Obsolete team" } },
+          ],
+        }),
+      ),
+    );
 
-  // Then
-  expect(screen.queryByText("Obsolete team")).not.toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Saison 2026/2027" }),
-  ).toBeOnTheScreen();
-});
+    // Then
+    expect(screen.queryByText("Obsolete team")).not.toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: `Saison ${olderSeason.label}` }),
+    ).toBeOnTheScreen();
+    if (currentState === "populated") {
+      expect(
+        screen.getByRole("link", { name: currentContent }),
+      ).toBeOnTheScreen();
+    } else {
+      expect(screen.getByText(currentContent)).toBeOnTheScreen();
+    }
+  },
+);
 
 it("keeps the selected participation and permits selecting its former index after a team refetch inserts a phase", async () => {
   // Given: the page uses real Query and RNCT; only HTTP/native layout and pager I/O are controlled.

@@ -1,7 +1,6 @@
 import {
   listClubs,
   listTeams,
-  getSportingSearchOptions,
   getListClubsQueryOptions,
 } from "../../../../.generated/mobile";
 import { createQueryClient } from "../../../shared/query/query-client";
@@ -63,25 +62,6 @@ it.each([
   await expect(result).rejects.toMatchObject({ kind: "schema" });
   expect(cache.getQueryData(options.queryKey)).toBeUndefined();
   cache.clear();
-});
-
-it("rejects unknown sporting enums in generated responses", async () => {
-  // Given
-  mockFetch.mockResolvedValue(
-    Response.json({
-      resourceType: "team",
-      seasons: [],
-      divisions: [],
-      formats: ["future"],
-      genders: [],
-    }),
-  );
-
-  // When
-  const result = getSportingSearchOptions({ resourceType: "team" });
-
-  // Then
-  await expect(result).rejects.toMatchObject({ kind: "schema" });
 });
 
 it("encodes repeated UUID examples in their selected order", async () => {

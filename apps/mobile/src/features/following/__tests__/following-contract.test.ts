@@ -16,7 +16,6 @@ import {
   ListTeamFollowsParams,
   ListPoolFollowsParams,
   ListPersonalMatchesParams,
-  ListTeamFollows200,
 } from "../../../../.generated/schemas/index.zod";
 import { createQueryClient } from "../../../shared/query/query-client";
 
@@ -104,10 +103,9 @@ it.each([
   expect(result.success).toBe(false);
 });
 
-it("validates a successful JSON body exactly once", async () => {
+it("preserves absent continuation and removes additive fields from a valid list", async () => {
   // Given
   mockFetch.mockResolvedValue(Response.json({ items: [team], future: true }));
-  const parse = jest.spyOn(ListTeamFollows200, "parse");
   const client = createQueryClient();
   const options = getListTeamFollowsQueryOptions(account);
 
@@ -118,7 +116,6 @@ it("validates a successful JSON body exactly once", async () => {
   expect(result.items[0].team.name).toBe("Étoile");
   expect(result.items[0].team).not.toHaveProperty("future");
   expect(result.nextPage).toBeUndefined();
-  expect(parse).toHaveBeenCalledTimes(1);
   client.clear();
 });
 

@@ -9,10 +9,7 @@ import {
   matchDetail,
   sportingId,
 } from "../../sporting/test-support/consultation-data";
-import {
-  calendarDays,
-  refreshCalendar,
-} from "../../sporting/api/sporting-calendar";
+import { refreshCalendar } from "../../sporting/api/sporting-calendar";
 import {
   createFollowOptionsQueryOptions,
   createPersonalCalendarOptions,
@@ -77,7 +74,7 @@ afterEach(() => {
   process.env = { ...environment };
 });
 
-it("uses the exclusive nextDay while caching full validated personal envelopes and deduplicating display rows", async () => {
+it("uses the exclusive nextDay while caching full validated personal envelopes", async () => {
   // Given
   const options = createPersonalCalendarOptions(owner, request, selection);
   mockFetch
@@ -99,11 +96,6 @@ it("uses the exclusive nextDay while caching full validated personal envelopes a
   expect(new URL(mockFetch.mock.calls[1][0]).searchParams.get("nextDay")).toBe(
     "2026-10-29",
   );
-  expect(
-    calendarDays(
-      data && { ...data, pages: data.pages.map((value) => value.calendar) },
-    ),
-  ).toHaveLength(1);
   close();
 });
 

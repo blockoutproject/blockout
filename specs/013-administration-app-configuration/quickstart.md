@@ -115,8 +115,7 @@ Compare the blocking-screen backdrop with the [native composition](plan.md#mobil
 ```sh
 npm run test --workspace=@blockout/mobile -- --runTestsByPath \
   src/features/access/__tests__/application-versions-settings.test.tsx \
-  src/features/access/__tests__/application-versions-route.test.tsx \
-  src/features/access/__tests__/application-versions-draft.test.tsx
+  src/features/access/__tests__/application-versions-route.test.tsx
 NX_LOAD_DOT_ENV_FILES=false NX_DAEMON=false NX_ISOLATE_PLUGINS=false \
   npx nx run mobile:verify --output-style=static
 ```

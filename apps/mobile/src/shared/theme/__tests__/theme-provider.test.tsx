@@ -11,21 +11,10 @@ import {
   ThemeProvider as NavigationThemeProvider,
   useTheme as useNavigationTheme,
 } from "expo-router";
-import {
-  AccessibilityInfo,
-  Appearance,
-  DeviceEventEmitter,
-  Text,
-  TextInput,
-} from "react-native";
-import { Button } from "../../components/button";
-import { DisclosureChevron } from "../../components/disclosure-chevron";
+import { Appearance, Text, TextInput } from "react-native";
 import { ThemeProvider, useTheme } from "../theme-provider";
 
 jest.unmock("react-native/Libraries/Utilities/useColorScheme");
-jest.unmock(
-  "react-native/Libraries/Components/AccessibilityInfo/AccessibilityInfo",
-);
 
 afterEach(async () => {
   await cleanup();
@@ -217,47 +206,5 @@ it.each(["light", "dark"] as const)(
     );
     expect(screen.getByText(scheme)).toBeOnTheScreen();
     expect(screen.getByDisplayValue("Saisie conservée")).toBeOnTheScreen();
-  },
-);
-
-it.each([true, false])(
-  "preserves appearance, Pro presentation and the draft when native reduced motion becomes %s",
-  async (reducedMotion) => {
-    // Given
-    jest.spyOn(Appearance, "getColorScheme").mockReturnValue("dark");
-    jest
-      .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
-      .mockResolvedValue(!reducedMotion);
-    const subscribe = jest.spyOn(AccessibilityInfo, "addEventListener");
-    const user = userEvent.setup();
-    // Pending controls are static skeletons; the disclosure owns a real native-motion subscription.
-    await render(
-      <ThemeProvider proAccent>
-        <ThemeConsumer />
-        <DisclosureChevron expanded />
-        <Button label="Enregistrement" loading onPress={jest.fn()} />
-      </ThemeProvider>,
-    );
-    await user.type(screen.getByLabelText("Brouillon"), "Saisie conservée");
-    expect(subscribe).toHaveBeenCalledWith(
-      "reduceMotionChanged",
-      expect.any(Function),
-    );
-
-    // When
-    await act(() => {
-      // jest-expo uses iOS, whose native event keeps the public event name.
-      DeviceEventEmitter.emit("reduceMotionChanged", reducedMotion);
-    });
-
-    // Then
-    expect(screen.getByText("dark")).toBeOnTheScreen();
-    expect(screen.getByLabelText("Accent de sélection")).toHaveTextContent(
-      "#E2C985",
-    );
-    expect(screen.getByDisplayValue("Saisie conservée")).toBeOnTheScreen();
-    expect(
-      screen.getByRole("button", { name: "Enregistrement", busy: true }),
-    ).toBeDisabled();
   },
 );

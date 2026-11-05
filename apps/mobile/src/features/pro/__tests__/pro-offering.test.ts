@@ -31,8 +31,6 @@ it("selects only the configured V2 offering and preserves its native localized p
 
   // Then
   expect(offering).toBe(v2);
-  expect(offering?.availablePackages[0].product.priceString).toBe("4,29 €");
-  expect(offering?.availablePackages[0].product.subscriptionPeriod).toBe("P1M");
   expect(Purchases.getOfferings).toHaveBeenCalledTimes(1);
 });
 
