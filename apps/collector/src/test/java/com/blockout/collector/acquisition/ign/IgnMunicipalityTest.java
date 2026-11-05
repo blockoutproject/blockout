@@ -119,8 +119,28 @@ class IgnMunicipalityTest {
   }
 
   @Test
-  @DisplayName("Only the qualified city-filter error is an ordinary no candidate")
-  void qualifiesCityFilterError() {
+  @DisplayName("The published singular city-filter error is an ordinary no candidate")
+  void qualifiesSingularCityFilterError() {
+    // Given
+    byte[] response =
+        bytes(
+            """
+        {"code":400,"message":"Failed to parse query","detail":["city: No matching cities found"]}
+        """);
+
+    // When
+    SportingObservation.Locality result = IgnMunicipalGeocoder.parse(400, response, "7");
+
+    // Then
+    assertThat(result.localityRevision()).isEqualTo("7");
+    assertThat(result.outcome()).isEqualTo(GeocodingOutcomeEnum.EMPTY);
+    assertThat(result.latitude()).isNull();
+    assertThat(result.longitude()).isNull();
+  }
+
+  @Test
+  @DisplayName("The qualified plural city-filter error remains an ordinary no candidate")
+  void qualifiesPluralCityFilterError() {
     // Given
     byte[] response =
         bytes(
@@ -133,6 +153,30 @@ class IgnMunicipalityTest {
 
     // Then
     assertThat(result.outcome()).isEqualTo(GeocodingOutcomeEnum.EMPTY);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "{\"code\":400,\"detail\":[\"index: Unknown index\"]}",
+        "{\"code\":400,\"detail\":[\"city: No matching cities found\",\"index: Unknown index\"]}",
+        "{\"code\":400,\"details\":[\"city: No matching cities found\",\"index: Unknown index\"]}",
+        "{\"code\":400,\"detail\":[\"city: No matching cities found\"],\"details\":[\"index: Unknown index\"]}",
+        "{\"code\":400,\"detail\":[\"index: Unknown index\"],\"details\":[\"city: No matching cities found\"]}",
+        "{\"code\":400,\"detail\":\"city: No matching cities found\"}",
+        "{\"code\":500,\"detail\":[\"city: No matching cities found\"]}"
+      })
+  @DisplayName("Additional or unqualified error details remain technical failures")
+  void rejectsUnqualifiedCityFilterErrors(String json) {
+    // Given
+    byte[] response = bytes(json);
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable parse =
+        () -> IgnMunicipalGeocoder.parse(400, response, "7");
+
+    // Then
+    assertThatThrownBy(parse).isInstanceOf(IllegalArgumentException.class);
   }
 
   @ParameterizedTest

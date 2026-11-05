@@ -70,7 +70,7 @@ public class FfvbClubSheets implements ClubSheets {
   }
 
   /**
-   * Interprets attributable labeled sheet fields without inventing missing values or a logo feed.
+   * Interprets attributable labeled fields or published club cards without inventing a logo feed.
    * Invalid nonblank field proposals reach F02's field validator; absent labels stay unknown and
    * explicit empty cells withdraw only that source value.
    *
@@ -81,6 +81,7 @@ public class FfvbClubSheets implements ClubSheets {
    */
   static SportingObservation.Club parse(byte[] body, String reference) {
     Document page = Jsoup.parse(new String(body, FfvbPage.CHARSET));
+    if (!page.select("img[src$=clubs_pt.png]").isEmpty()) return publishedSheet(page, reference);
     Map<String, String> fields = new LinkedHashMap<>();
     for (Element row : page.select("tr")) {
       List<Element> cells = row.children().stream().filter(cell -> cell.is("td,th")).toList();
@@ -104,6 +105,105 @@ public class FfvbClubSheets implements ClubSheets {
     if (!reference.equals(fields.get("code club"))
         || !fields.containsKey("nom du club")
         || fields.get("nom du club").isBlank()) throw invalid();
+    return observation(fields);
+  }
+
+  /**
+   * Reads the published identity header and club-only cards. League, committee and named-person
+   * sections supply no club contact proposals. An incompatible card is refused without withdrawal.
+   *
+   * @param page ephemeral parsed club sheet
+   * @param reference exact encountered identity, including leading zeros
+   * @return normalized club proposals from recognized cards only
+   */
+  private static SportingObservation.Club publishedSheet(Document page, String reference) {
+    List<Element> headers = page.select("td[colspan=2]:has(img[src$=clubs_pt.png])");
+    if (headers.size() != 1) throw invalid();
+    String heading = headers.getFirst().text();
+    if (!heading.startsWith(reference + " ")) throw invalid();
+    String name = heading.substring(reference.length()).strip();
+    if (name.isEmpty()) throw invalid();
+    Map<String, String> fields = new LinkedHashMap<>();
+    fields.put("nom du club", name);
+    Element contacts = card(page, "Coordonnées");
+    if (contacts != null) {
+      for (Element row : rows(contacts).stream().skip(1).toList()) {
+        List<Element> cells = row.children().stream().filter(cell -> cell.is("td,th")).toList();
+        if (cells.size() != 2) throw invalid();
+        Element label = cells.getFirst();
+        String key = null;
+        if (!label.select("img[src$=ico_mail_rg.png]").isEmpty()) key = "email";
+        else if (!label.select("img[src$=ico_spo_www_rg.png]").isEmpty()) key = "site web";
+        else if (label.text().equalsIgnoreCase("Portable")) key = "téléphone";
+        if (key != null && fields.putIfAbsent(key, cells.getLast().text().strip()) != null)
+          throw invalid();
+      }
+    }
+    Element address = card(page, "Siège social");
+    if (address != null) {
+      List<Element> rows = rows(address);
+      if (rows.size() < 3) throw invalid();
+      List<String> lines =
+          rows.stream()
+              .skip(1)
+              .map(
+                  row -> {
+                    List<Element> cells =
+                        row.children().stream().filter(cell -> cell.is("td")).toList();
+                    if (cells.size() != 2) throw invalid();
+                    return cells.getLast().text().strip();
+                  })
+              .toList();
+      fields.put(
+          "adresse",
+          String.join(
+              " ",
+              lines.subList(0, lines.size() - 1).stream()
+                  .filter(line -> !line.isEmpty())
+                  .toList()));
+      String combined = lines.getLast();
+      int separator = combined.indexOf(' ');
+      if (!combined.isEmpty() && separator < 0) throw invalid();
+      fields.put("code postal", combined.isEmpty() ? "" : combined.substring(0, separator));
+      fields.put("ville", combined.isEmpty() ? "" : combined.substring(separator + 1).strip());
+    }
+    return observation(fields);
+  }
+
+  /**
+   * Finds one explicitly titled card, excluding enclosing tables with nested content.
+   *
+   * @param page current sheet
+   * @param title published card heading
+   * @return the recognized card, or null when that source section is omitted
+   */
+  private static Element card(Document page, String title) {
+    List<Element> cards =
+        page.select("table").stream()
+            .filter(table -> !rows(table).isEmpty())
+            .filter(table -> rows(table).getFirst().text().equalsIgnoreCase(title))
+            .toList();
+    if (cards.size() > 1) throw invalid();
+    return cards.isEmpty() ? null : cards.getFirst();
+  }
+
+  /**
+   * Keeps only a table's own rows so unrelated nested sections cannot supply field values.
+   *
+   * @param table owning native card
+   * @return direct rows in publication order
+   */
+  private static List<Element> rows(Element table) {
+    return table.select("tr").stream().filter(row -> row.closest("table") == table).toList();
+  }
+
+  /**
+   * Maps recognized fields while leaving validation and current privacy restrictions with F02.
+   *
+   * @param fields attributable source proposals, without unrelated person/league sections
+   * @return independent absent, empty or nonblank proposals
+   */
+  private static SportingObservation.Club observation(Map<String, String> fields) {
     return SportingObservation.Club.builder()
         .sourceName(fields.get("nom du club"))
         .address(proposal(fields, "adresse"))

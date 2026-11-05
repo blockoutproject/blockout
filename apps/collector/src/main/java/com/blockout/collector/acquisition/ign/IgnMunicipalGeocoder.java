@@ -57,12 +57,15 @@ public class IgnMunicipalGeocoder implements MunicipalGeocoder {
   /**
    * Qualifies only native municipality features; malformed/unqualified content stays technical.
    * Neither postcode equality nor a provider score establishes municipal identity. Distinct native
-   * city codes remain ambiguous, including a bounded response at its result limit.
+   * city codes remain ambiguous, including a bounded response at its result limit. A city-filter
+   * error may use singular or plural detail, but not both envelopes or additional errors.
    *
    * @param status actual HTTP status
    * @param body complete bounded JSON bytes
    * @param revision original F02 locality revision, never recomputed from provider content
    * @return unique point, ordinary empty or ambiguity; no technical-failure observation is produced
+   * @throws IllegalArgumentException when neither municipal data nor the city-filter error
+   *     qualifies
    */
   static SportingObservation.Locality parse(int status, byte[] body, String revision) {
     JsonNode response;
@@ -72,12 +75,15 @@ public class IgnMunicipalGeocoder implements MunicipalGeocoder {
       throw invalid();
     }
     if (response == null || !response.isObject()) throw invalid();
-    if (status == 400
-        && response.path("code").asInt() == 400
-        && response.path("details").isArray()
-        && response.path("details").size() == 1
-        && response.path("details").get(0).asString().equals("city: No matching cities found"))
-      return new SportingObservation.Locality(revision, GeocodingOutcomeEnum.EMPTY, null, null);
+    if (status == 400 && response.path("code").asInt() == 400) {
+      JsonNode details = response.path("detail");
+      if (details.isMissingNode()) details = response.path("details");
+      else if (response.has("details")) throw invalid();
+      if (details.isArray()
+          && details.size() == 1
+          && details.get(0).asString().equals("city: No matching cities found"))
+        return new SportingObservation.Locality(revision, GeocodingOutcomeEnum.EMPTY, null, null);
+    }
     if (status != 200
         || !response.path("type").asString().equals("FeatureCollection")
         || !response.path("features").isArray()) throw invalid();
