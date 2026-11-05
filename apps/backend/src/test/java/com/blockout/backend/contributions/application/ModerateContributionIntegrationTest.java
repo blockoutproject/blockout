@@ -309,9 +309,8 @@ class ModerateContributionIntegrationTest extends ContributionScenario {
         matchId,
         java.sql.Timestamp.from(NOW));
 
-    // When
-    Throwable failure =
-        org.assertj.core.api.Assertions.catchThrowable(
+    // When / Then
+    assertThatThrownBy(
             () -> {
               if (reactivation) {
                 moderation.reactivate(OTHER, matchId, pending.version().id(), "1");
@@ -323,10 +322,8 @@ class ModerateContributionIntegrationTest extends ContributionScenario {
                     "1",
                     StreamModerationActionEnum.APPROVE);
               }
-            });
-
-    // Then
-    assertThat(failure).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+            })
+        .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     assertThat(contributions.version(pending.version().id()).orElseThrow().state())
         .isEqualTo(reactivation ? State.REJECTED : State.PENDING);
     assertThat(contributions.state(matchId).revision()).isEqualTo(1);

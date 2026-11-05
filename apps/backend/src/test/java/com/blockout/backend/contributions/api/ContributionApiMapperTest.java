@@ -37,11 +37,8 @@ class ContributionApiMapperTest {
             new ContributionStore.VersionPage(List.of(), false),
             0);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable convert = () -> mapper.toDto(page);
-
-    // Then
-    assertThatThrownBy(convert).isInstanceOf(ArithmeticException.class);
+    // When / Then
+    assertThatThrownBy(() -> mapper.toDto(page)).isInstanceOf(ArithmeticException.class);
   }
 
   @ParameterizedTest

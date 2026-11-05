@@ -8,7 +8,6 @@ import com.blockout.backend.sporting.application.service.ReadSportingData;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.util.Set;
 import java.util.UUID;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -50,20 +49,18 @@ class ProjectSearchTransactionIntegrationTest {
                 SportingProjectionChanges.Kind.CLUB,
                 UUID.fromString("00000000-0000-4000-8000-000000000001")));
 
-    // When
-    ThrowingCallable invoke =
-        () ->
-            transaction.executeWithoutResult(
-                status -> {
-                  if (fullRebuild) {
-                    projection.rebuild();
-                  } else {
-                    projection.update(scopes);
-                  }
-                });
-
-    // Then
-    assertThatThrownBy(invoke).isInstanceOf(IllegalTransactionStateException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                transaction.executeWithoutResult(
+                    status -> {
+                      if (fullRebuild) {
+                        projection.rebuild();
+                      } else {
+                        projection.update(scopes);
+                      }
+                    }))
+        .isInstanceOf(IllegalTransactionStateException.class);
     verifyNoInteractions(writer);
   }
 

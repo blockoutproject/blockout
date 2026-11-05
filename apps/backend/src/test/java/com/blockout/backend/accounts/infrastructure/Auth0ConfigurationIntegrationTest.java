@@ -172,12 +172,9 @@ class Auth0ConfigurationIntegrationTest {
     delayedPath = path;
     PrincipalReader reader = reader();
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () -> reader.read(origin + "/", "auth0|one");
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(AccountUnavailableException.class);
+    // When / Then
+    assertThatThrownBy(() -> reader.read(origin + "/", "auth0|one"))
+        .isInstanceOf(AccountUnavailableException.class);
     assertThat(tokens.get()).isEqualTo(1);
     assertThat(reads.get()).isEqualTo(path.equals("/oauth/token") ? 0 : 1);
   }
@@ -189,12 +186,9 @@ class Auth0ConfigurationIntegrationTest {
     disconnectToken = true;
     PrincipalReader reader = reader();
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () -> reader.read(origin + "/", "auth0|one");
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(AccountUnavailableException.class);
+    // When / Then
+    assertThatThrownBy(() -> reader.read(origin + "/", "auth0|one"))
+        .isInstanceOf(AccountUnavailableException.class);
     assertThat(tokens.get()).isEqualTo(1);
     assertThat(reads.get()).isZero();
   }
@@ -230,12 +224,9 @@ class Auth0ConfigurationIntegrationTest {
     // Given
     PrincipalReader reader = reader();
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () -> reader.read("https://other.example.invalid/", "auth0|one");
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(AccountUnavailableException.class);
+    // When / Then
+    assertThatThrownBy(() -> reader.read("https://other.example.invalid/", "auth0|one"))
+        .isInstanceOf(AccountUnavailableException.class);
     assertThat(tokens.get()).isZero();
     assertThat(reads.get()).isZero();
   }
@@ -247,12 +238,8 @@ class Auth0ConfigurationIntegrationTest {
     refuseToken = true;
     PrincipalReader reader = reader();
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () -> reader.read(origin + "/", "auth0|one");
-
-    // Then
-    assertThatThrownBy(read)
+    // When / Then
+    assertThatThrownBy(() -> reader.read(origin + "/", "auth0|one"))
         .isInstanceOf(AccountUnavailableException.class)
         .hasMessageNotContaining("private provider diagnostics");
     assertThat(reads.get()).isZero();
@@ -280,12 +267,9 @@ class Auth0ConfigurationIntegrationTest {
       redirectStatus = status;
       PrincipalReader reader = reader();
 
-      // When
-      org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-          () -> reader.read(origin + "/", "auth0|one");
-
-      // Then
-      assertThatThrownBy(read).isInstanceOf(AccountUnavailableException.class);
+      // When / Then
+      assertThatThrownBy(() -> reader.read(origin + "/", "auth0|one"))
+          .isInstanceOf(AccountUnavailableException.class);
       assertThat(forwarded.get()).isZero();
       assertThat(tokens.get()).isEqualTo(1);
       assertThat(reads.get()).isZero();

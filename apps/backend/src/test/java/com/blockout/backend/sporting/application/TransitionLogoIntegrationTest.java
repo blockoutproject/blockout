@@ -35,7 +35,6 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.UUID;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -197,12 +196,10 @@ class TransitionLogoIntegrationTest {
     // Given
     String reference = "0000340";
 
-    // When
-    ThrowingCallable create =
-        () -> store.createClub(CollectionProviderEnum.FFVB, reference, "Synthetic club");
-
-    // Then
-    assertThatThrownBy(create).isInstanceOf(IllegalTransactionStateException.class);
+    // When / Then
+    assertThatThrownBy(
+            () -> store.createClub(CollectionProviderEnum.FFVB, reference, "Synthetic club"))
+        .isInstanceOf(IllegalTransactionStateException.class);
     assertThat(store.club(CollectionProviderEnum.FFVB, reference)).isEmpty();
   }
 
@@ -212,16 +209,13 @@ class TransitionLogoIntegrationTest {
     // Given
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
-    // When
-    ThrowingCallable duplicate =
-        () ->
-            transaction.executeWithoutResult(
-                state ->
-                    store.createClub(
-                        CollectionProviderEnum.FFVB, "000339", "Conflicting synthetic club"));
-
-    // Then
-    assertThatThrownBy(duplicate)
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                transaction.executeWithoutResult(
+                    state ->
+                        store.createClub(
+                            CollectionProviderEnum.FFVB, "000339", "Conflicting synthetic club")))
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasStackTraceContaining("uk_club_identity");
     assertThat(store.club(CollectionProviderEnum.FFVB, "000339").orElseThrow().id())
@@ -237,20 +231,18 @@ class TransitionLogoIntegrationTest {
     Path missing = preservedFiles.resolve("missing-logo.png");
     View current = configurationReads.presentation(account, Kind.CLUB, club);
 
-    // When
-    ThrowingCallable apply =
-        () -> {
-          permissions.requireForRead(account, Permission.MANAGE_SPORTING_PRESENTATION);
-          Image validated = new ValidateSportingImage().validate(Files.readAllBytes(missing));
-          presentation.set(
-              account,
-              Kind.CLUB,
-              club,
-              new Edit(current.revision(), null, null, LogoActionEnum.REPLACE, validated));
-        };
-
-    // Then
-    assertThatThrownBy(apply).isInstanceOf(NoSuchFileException.class);
+    // When / Then
+    assertThatThrownBy(
+            () -> {
+              permissions.requireForRead(account, Permission.MANAGE_SPORTING_PRESENTATION);
+              Image validated = new ValidateSportingImage().validate(Files.readAllBytes(missing));
+              presentation.set(
+                  account,
+                  Kind.CLUB,
+                  club,
+                  new Edit(current.revision(), null, null, LogoActionEnum.REPLACE, validated));
+            })
+        .isInstanceOf(NoSuchFileException.class);
     assertThat(configurationReads.presentation(account, Kind.CLUB, club)).isEqualTo(current);
     assertThat(reads.publicLogo(Kind.CLUB, club)).isEmpty();
   }
@@ -269,20 +261,18 @@ class TransitionLogoIntegrationTest {
         Files.write(
             preservedFiles.resolve("corrupt.png"), corrupt.getBytes(StandardCharsets.ISO_8859_1));
 
-    // When
-    ThrowingCallable apply =
-        () -> {
-          permissions.requireForRead(account, Permission.MANAGE_SPORTING_PRESENTATION);
-          Image validated = new ValidateSportingImage().validate(Files.readAllBytes(preserved));
-          presentation.set(
-              account,
-              Kind.CLUB,
-              club,
-              new Edit(current.revision(), null, null, LogoActionEnum.REPLACE, validated));
-        };
-
-    // Then
-    assertThatThrownBy(apply).isInstanceOf(SportingValidationException.class);
+    // When / Then
+    assertThatThrownBy(
+            () -> {
+              permissions.requireForRead(account, Permission.MANAGE_SPORTING_PRESENTATION);
+              Image validated = new ValidateSportingImage().validate(Files.readAllBytes(preserved));
+              presentation.set(
+                  account,
+                  Kind.CLUB,
+                  club,
+                  new Edit(current.revision(), null, null, LogoActionEnum.REPLACE, validated));
+            })
+        .isInstanceOf(SportingValidationException.class);
     assertThat(configurationReads.presentation(account, Kind.CLUB, club)).isEqualTo(current);
     assertThat(reads.publicLogo(Kind.CLUB, club).orElseThrow().bytes()).isEqualTo(original.bytes());
   }
@@ -296,17 +286,15 @@ class TransitionLogoIntegrationTest {
         new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x112233));
     sql.update("DELETE FROM account_permission WHERE account_id=?", account);
 
-    // When
-    ThrowingCallable apply =
-        () ->
-            presentation.set(
-                account,
-                Kind.CLUB,
-                club,
-                new Edit(current.revision(), null, null, LogoActionEnum.REPLACE, original));
-
-    // Then
-    assertThatThrownBy(apply).isInstanceOf(AccessDeniedException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                presentation.set(
+                    account,
+                    Kind.CLUB,
+                    club,
+                    new Edit(current.revision(), null, null, LogoActionEnum.REPLACE, original)))
+        .isInstanceOf(AccessDeniedException.class);
     assertThat(reads.publicLogo(Kind.CLUB, club)).isEmpty();
   }
 
@@ -325,17 +313,15 @@ class TransitionLogoIntegrationTest {
     Image oldCopy =
         new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x112233));
 
-    // When
-    ThrowingCallable apply =
-        () ->
-            presentation.set(
-                account,
-                Kind.CLUB,
-                club,
-                new Edit(earlier.revision(), null, null, LogoActionEnum.REPLACE, oldCopy));
-
-    // Then
-    assertThatThrownBy(apply).isInstanceOf(SportingConflictException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                presentation.set(
+                    account,
+                    Kind.CLUB,
+                    club,
+                    new Edit(earlier.revision(), null, null, LogoActionEnum.REPLACE, oldCopy)))
+        .isInstanceOf(SportingConflictException.class);
     assertThat(configurationReads.presentation(account, Kind.CLUB, club)).isEqualTo(current);
     assertThat(reads.publicLogo(Kind.CLUB, club).orElseThrow().bytes()).isEqualTo(newer.bytes());
   }

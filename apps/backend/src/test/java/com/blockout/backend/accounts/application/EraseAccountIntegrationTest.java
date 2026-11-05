@@ -182,12 +182,9 @@ class EraseAccountIntegrationTest extends ContributionScenario {
     // Given
     UUID target = AUTHOR;
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable erase =
-        () -> erasure.erase(ISSUER, FOLLOWER.toString(), target);
-
-    // Then
-    assertThatThrownBy(erase).isInstanceOf(AccountNotFoundException.class);
+    // When / Then
+    assertThatThrownBy(() -> erasure.erase(ISSUER, FOLLOWER.toString(), target))
+        .isInstanceOf(AccountNotFoundException.class);
     assertThat(accounts.findById(target)).isPresent();
     verifyNoInteractions(auth0, revenueCat);
   }
@@ -238,12 +235,9 @@ class EraseAccountIntegrationTest extends ContributionScenario {
             "ALTER TABLE contribution_report ADD CONSTRAINT synthetic_reject_erasure CHECK (reporter_id IS NOT NULL)");
       }
       try {
-        // When
-        org.assertj.core.api.ThrowableAssert.ThrowingCallable erase =
-            () -> erasure.erase(ISSUER, FOLLOWER.toString(), FOLLOWER);
-
-        // Then
-        assertThatThrownBy(erase).isInstanceOf(DataIntegrityViolationException.class);
+        // When / Then
+        assertThatThrownBy(() -> erasure.erase(ISSUER, FOLLOWER.toString(), FOLLOWER))
+            .isInstanceOf(DataIntegrityViolationException.class);
         assertThat(accounts.findById(FOLLOWER).orElseThrow().username()).isEqualTo("Retained");
         assertThat(readsAccount.photo(ISSUER, FOLLOWER.toString(), FOLLOWER).bytes())
             .isEqualTo(originalPhoto.bytes());

@@ -397,19 +397,16 @@ class ReportContributionIntegrationTest extends ContributionScenario {
     UUID target =
         unknownVersion ? UUID.fromString("99999999-0000-4000-8000-000000000001") : version;
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable insert =
-        () ->
-            sql.update(
-                "INSERT INTO contribution_report(id,version_id,reporter_id,reason,reported_at) VALUES (?,?,?,?,?)",
-                UUID.randomUUID(),
-                target,
-                FOLLOWER,
-                "Duplicate",
-                java.sql.Timestamp.from(NOW));
-
-    // Then
-    org.assertj.core.api.Assertions.assertThatThrownBy(insert)
+    // When / Then
+    org.assertj.core.api.Assertions.assertThatThrownBy(
+            () ->
+                sql.update(
+                    "INSERT INTO contribution_report(id,version_id,reporter_id,reason,reported_at) VALUES (?,?,?,?,?)",
+                    UUID.randomUUID(),
+                    target,
+                    FOLLOWER,
+                    "Duplicate",
+                    java.sql.Timestamp.from(NOW)))
         .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     assertThat(count("contribution_report")).isEqualTo(1);
   }

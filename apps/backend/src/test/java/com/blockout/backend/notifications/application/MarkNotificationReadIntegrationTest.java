@@ -6,6 +6,7 @@ import static com.blockout.backend.notifications.testsupport.InboxDatabaseFixtur
 import static com.blockout.backend.notifications.testsupport.InboxDatabaseFixture.entry;
 import static com.blockout.backend.notifications.testsupport.InboxDatabaseFixture.reset;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.when;
 
@@ -91,12 +92,9 @@ class MarkNotificationReadIntegrationTest {
     // Given
     UUID id = entry(sql, 1, ACCOUNT, NOW.minus(Duration.ofDays(29)));
 
-    // When
-    Throwable observedFailure =
-        catchThrowable(() -> marks.mark(new NotificationContext(ACCOUNT), id));
-
-    // Then
-    assertThat(observedFailure).isInstanceOf(NotificationNotFoundException.class);
+    // When / Then
+    assertThatThrownBy(() -> marks.mark(new NotificationContext(ACCOUNT), id))
+        .isInstanceOf(NotificationNotFoundException.class);
     assertThat(sql.queryForObject("SELECT is_read FROM notification WHERE id=?", Boolean.class, id))
         .isFalse();
   }
@@ -178,12 +176,9 @@ class MarkNotificationReadIntegrationTest {
       assertThat(sql.queryForObject("SELECT COUNT(*) FROM notification", Long.class)).isZero();
       if (removed.equals("account")) {
 
-        // When
-        Throwable secondFailure =
-            catchThrowable(() -> reads.summary(new NotificationContext(ACCOUNT)));
-
-        // Then
-        assertThat(secondFailure).isInstanceOf(NotificationNotFoundException.class);
+        // When / Then
+        assertThatThrownBy(() -> reads.summary(new NotificationContext(ACCOUNT)))
+            .isInstanceOf(NotificationNotFoundException.class);
       } else {
         assertThat(reads.summary(new NotificationContext(ACCOUNT)).unreadCount()).isZero();
       }
@@ -224,29 +219,21 @@ class MarkNotificationReadIntegrationTest {
     // Given
     UUID id = entry(sql, 1, ACCOUNT, NOW);
 
-    // When
-    Throwable observedFailure =
-        catchThrowable(() -> marks.mark(new NotificationContext(OTHER), id));
-
-    // Then
-    assertThat(observedFailure).isInstanceOf(NotificationNotFoundException.class);
+    // When / Then
+    assertThatThrownBy(() -> marks.mark(new NotificationContext(OTHER), id))
+        .isInstanceOf(NotificationNotFoundException.class);
     sql.update("UPDATE sporting_match SET present=FALSE WHERE id=?", id);
 
-    // When
-    Throwable secondFailure =
-        catchThrowable(() -> marks.mark(new NotificationContext(ACCOUNT), id));
-
-    // Then
-    assertThat(secondFailure).isInstanceOf(NotificationNotFoundException.class);
+    // When / Then
+    assertThatThrownBy(() -> marks.mark(new NotificationContext(ACCOUNT), id))
+        .isInstanceOf(NotificationNotFoundException.class);
     assertThat(sql.queryForObject("SELECT is_read FROM notification WHERE id=?", Boolean.class, id))
         .isFalse();
     sql.update("DELETE FROM notification WHERE id=?", id);
 
-    // When
-    Throwable thirdFailure = catchThrowable(() -> marks.mark(new NotificationContext(ACCOUNT), id));
-
-    // Then
-    assertThat(thirdFailure).isInstanceOf(NotificationNotFoundException.class);
+    // When / Then
+    assertThatThrownBy(() -> marks.mark(new NotificationContext(ACCOUNT), id))
+        .isInstanceOf(NotificationNotFoundException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM notification", Long.class)).isZero();
   }
 

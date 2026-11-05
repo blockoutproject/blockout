@@ -43,12 +43,10 @@ class AccessSettingsConsumerProcessIntegrationTest {
     try {
       Thread.currentThread().interrupt();
 
-      // When
-      org.assertj.core.api.ThrowableAssert.ThrowingCallable wait =
-          () -> AccessSettingsConsumerProcess.waitFor(consumer, Duration.ofSeconds(90));
-
-      // Then
-      assertThatThrownBy(wait).isInstanceOf(InterruptedException.class);
+      // When / Then
+      assertThatThrownBy(
+              () -> AccessSettingsConsumerProcess.waitFor(consumer, Duration.ofSeconds(90)))
+          .isInstanceOf(InterruptedException.class);
       assertThat(child.isAlive()).isFalse();
       assertThat(consumer.isAlive()).isFalse();
     } finally {

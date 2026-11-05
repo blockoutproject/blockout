@@ -8,7 +8,6 @@ import com.blockout.backend.sporting.application.ConsultationViews.StreamLink;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -21,11 +20,9 @@ class ConsultationViewsTest {
     // Given
     UUID version = UUID.fromString("00000000-0000-4000-8000-000000000001");
 
-    // When
-    ThrowingCallable create = () -> new StreamLink(null, version);
-
-    // Then
-    assertThatThrownBy(create).isInstanceOf(NullPointerException.class);
+    // When / Then
+    assertThatThrownBy(() -> new StreamLink(null, version))
+        .isInstanceOf(NullPointerException.class);
   }
 
   @Test
@@ -60,10 +57,8 @@ class ConsultationViewsTest {
             "#112233",
             List.of("#112233", "#223344", "#334455"));
 
-    // When
-    ThrowingCallable mutate = () -> division.gradient().clear();
-
-    // Then
-    assertThatThrownBy(mutate).isInstanceOf(UnsupportedOperationException.class);
+    // When / Then
+    assertThatThrownBy(() -> division.gradient().clear())
+        .isInstanceOf(UnsupportedOperationException.class);
   }
 }

@@ -1,7 +1,7 @@
 package com.blockout.backend.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.backend.BackendApplication;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
@@ -81,11 +81,9 @@ class DatabaseConfigurationIntegrationTest {
     // Given
     createSchema("missing");
 
-    // When
-    Throwable failure = catchThrowable(() -> startApplication("missing").close());
-
-    // Then
-    assertThat(failure).hasStackTraceContaining("Schema validation: missing table");
+    // When / Then
+    assertThatThrownBy(() -> startApplication("missing").close())
+        .hasStackTraceContaining("Schema validation: missing table");
     try (Connection connection = applicationConnection("missing");
         Statement sql = connection.createStatement();
         ResultSet tables =
@@ -112,11 +110,8 @@ class DatabaseConfigurationIntegrationTest {
     migrate(schema, "db/changelog/database-fixture.xml");
     try (Connection connection = applicationConnection(schema);
         Statement sql = connection.createStatement()) {
-      // When
-      Throwable failure = catchThrowable(() -> sql.execute(statement));
-
-      // Then
-      assertThat(failure)
+      // When / Then
+      assertThatThrownBy(() -> sql.execute(statement))
           .isInstanceOfSatisfying(
               SQLException.class,
               sqlFailure -> assertThat(sqlFailure.getSQLState()).isEqualTo("42501"));

@@ -8,7 +8,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.UUID;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -72,14 +71,11 @@ class NotificationCursorTest {
   @ParameterizedTest
   @ValueSource(strings = {"", "?", "a===", "bm90LWtleXM"})
   @DisplayName("Rejects malformed URL-safe tokens")
-  void rejectsToken(String token) {
+  void rejectsMalformedToken(String token) {
     // Given: the parameter supplies one malformed token.
 
-    // When
-    ThrowingCallable decode = () -> NotificationCursor.decode(token);
-
-    // Then
-    assertThatThrownBy(decode)
+    // When / Then
+    assertThatThrownBy(() -> NotificationCursor.decode(token))
         .isInstanceOfSatisfying(
             ResponseStatusException.class,
             error -> assertThat(error.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST));
@@ -99,11 +95,8 @@ class NotificationCursorTest {
             .withoutPadding()
             .encodeToString(text.getBytes(StandardCharsets.US_ASCII));
 
-    // When
-    ThrowingCallable decode = () -> NotificationCursor.decode(cursor);
-
-    // Then
-    assertThatThrownBy(decode)
+    // When / Then
+    assertThatThrownBy(() -> NotificationCursor.decode(cursor))
         .isInstanceOfSatisfying(
             ResponseStatusException.class,
             error -> assertThat(error.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST));

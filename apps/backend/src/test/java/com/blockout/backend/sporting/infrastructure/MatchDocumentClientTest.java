@@ -132,12 +132,8 @@ class MatchDocumentClientTest {
           exchange.close();
         });
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () -> client.fetch(new Reference(origin.resolve("/redirect"), null));
-
-    // Then
-    assertThatThrownBy(read)
+    // When / Then
+    assertThatThrownBy(() -> client.fetch(new Reference(origin.resolve("/redirect"), null)))
         .isInstanceOf(MatchDocumentUnavailableException.class)
         .hasMessage("Match document unavailable");
   }
@@ -155,12 +151,8 @@ class MatchDocumentClientTest {
                 type,
                 "<html>private supplier detail</html>".getBytes(StandardCharsets.UTF_8)));
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () -> client.fetch(new Reference(origin.resolve("/html"), null));
-
-    // Then
-    assertThatThrownBy(read)
+    // When / Then
+    assertThatThrownBy(() -> client.fetch(new Reference(origin.resolve("/html"), null)))
         .isInstanceOf(MatchDocumentUnavailableException.class)
         .hasMessage("Match document unavailable");
   }
@@ -182,12 +174,9 @@ class MatchDocumentClientTest {
           pdf(exchange, "application/pdf", compressed.toByteArray());
         });
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () -> client.fetch(new Reference(origin.resolve("/large"), null));
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(MatchDocumentUnavailableException.class);
+    // When / Then
+    assertThatThrownBy(() -> client.fetch(new Reference(origin.resolve("/large"), null)))
+        .isInstanceOf(MatchDocumentUnavailableException.class);
   }
 
   @Test
@@ -204,12 +193,9 @@ class MatchDocumentClientTest {
           exchange.close();
         });
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () -> client.fetch(new Reference(origin.resolve("/loop"), null));
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(MatchDocumentUnavailableException.class);
+    // When / Then
+    assertThatThrownBy(() -> client.fetch(new Reference(origin.resolve("/loop"), null)))
+        .isInstanceOf(MatchDocumentUnavailableException.class);
     assertThat(requests).hasValue(4);
   }
 
@@ -233,13 +219,10 @@ class MatchDocumentClientTest {
           exchange.close();
         });
 
-    // When
     try {
-      org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-          () -> client.fetch(new Reference(origin.resolve("/slow"), null));
-
-      // Then
-      assertThatThrownBy(read).isInstanceOf(MatchDocumentUnavailableException.class);
+      // When / Then
+      assertThatThrownBy(() -> client.fetch(new Reference(origin.resolve("/slow"), null)))
+          .isInstanceOf(MatchDocumentUnavailableException.class);
       assertThat(requests).hasValue(1);
     } finally {
       release.countDown();
@@ -268,13 +251,10 @@ class MatchDocumentClientTest {
             ? new Reference(null, new InformationSheet("2026/2027", "ORIGIN", "EXACT259"))
             : new Reference(origin.resolve("/information"), null);
 
-    // When
-    Throwable failure =
-        org.assertj.core.api.Assertions.catchThrowable(() -> client.fetch(reference));
-
-    // Then
+    // When / Then
+    assertThatThrownBy(() -> client.fetch(reference))
+        .isInstanceOf(MatchDocumentUnavailableException.class);
     assertThat(requests).hasValue(1);
-    assertThat(failure).isInstanceOf(MatchDocumentUnavailableException.class);
   }
 
   @Test
@@ -299,12 +279,9 @@ class MatchDocumentClientTest {
           pdf(exchange, "application/pdf", PDF);
         });
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () -> client.fetch(new Reference(origin.resolve("/private"), null));
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(MatchDocumentUnavailableException.class);
+    // When / Then
+    assertThatThrownBy(() -> client.fetch(new Reference(origin.resolve("/private"), null)))
+        .isInstanceOf(MatchDocumentUnavailableException.class);
     assertThat(requests).hasValue(0);
   }
 

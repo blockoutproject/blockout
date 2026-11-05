@@ -95,15 +95,11 @@ class ReadOwnContributionsIntegrationTest extends ContributionScenario {
     SubmitContribution.Outcome created = submit(AUTHOR, "0", "https://youtube.com/one", false);
     sql.update("UPDATE sporting_match SET present=FALSE WHERE id=?", matchId);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable collection =
-        () -> reads.read(AUTHOR, matchId, 0);
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable member =
-        () -> reads.member(AUTHOR, matchId, created.version().id());
-
-    // Then
-    assertThatThrownBy(collection).isInstanceOf(SportingResourceNotFoundException.class);
-    assertThatThrownBy(member).isInstanceOf(SportingResourceNotFoundException.class);
+    // When / Then
+    assertThatThrownBy(() -> reads.read(AUTHOR, matchId, 0))
+        .isInstanceOf(SportingResourceNotFoundException.class);
+    assertThatThrownBy(() -> reads.member(AUTHOR, matchId, created.version().id()))
+        .isInstanceOf(SportingResourceNotFoundException.class);
   }
 
   @ParameterizedTest

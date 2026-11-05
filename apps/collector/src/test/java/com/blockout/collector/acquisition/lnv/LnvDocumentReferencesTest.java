@@ -61,12 +61,10 @@ class LnvDocumentReferencesTest {
             .formatted(state);
     LnvDocumentReferences references = new LnvDocumentReferences();
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () -> references.form(html.getBytes(StandardCharsets.UTF_8), page, "Scoresheet");
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(LnvAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(
+            () -> references.form(html.getBytes(StandardCharsets.UTF_8), page, "Scoresheet"))
+        .isInstanceOf(LnvAcquisitionException.class);
   }
 
   @Test
@@ -142,10 +140,8 @@ class LnvDocumentReferencesTest {
 
     // Then
     assertThat(form.action()).isEqualTo(page);
-    assertThat(
-            form.fields().stream()
-                .filter(field -> field.getName().equals("Native$Tabs$State"))
-                .toList())
+    assertThat(form.fields())
+        .filteredOn(field -> field.getName().equals("Native$Tabs$State"))
         .singleElement()
         .satisfies(field -> assertThat(field.getValue()).contains("\"selectedIndexes\":[\"0\"]"));
     assertThat(form.fields())
@@ -244,14 +240,19 @@ class LnvDocumentReferencesTest {
             Parser.xmlParser());
     LnvDocumentReferences references = new LnvDocumentReferences();
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () ->
-            references.informationSheet(
-                index, 2026, "901", "LAM", "001", "002", LocalDate.of(2026, 10, 17), ASSOCIATIONS);
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(LnvAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                references.informationSheet(
+                    index,
+                    2026,
+                    "901",
+                    "LAM",
+                    "001",
+                    "002",
+                    LocalDate.of(2026, 10, 17),
+                    ASSOCIATIONS))
+        .isInstanceOf(LnvAcquisitionException.class);
   }
 
   @ParameterizedTest

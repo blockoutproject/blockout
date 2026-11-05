@@ -8,7 +8,6 @@ import static org.mockito.Mockito.when;
 import com.blockout.backend.access.application.MaintenanceAdmission;
 import com.blockout.backend.access.domain.AccessSettingsUnavailableException;
 import com.blockout.backend.access.domain.MaintenanceSettings;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -84,11 +83,8 @@ class MaintenancePushAdmissionTest {
         .thenThrow(failure);
     boolean earlierAdmission = admission.allowsHandoff();
 
-    // When
-    ThrowingCallable nextDecision = admission::allowsHandoff;
-
-    // Then
+    // When / Then
     assertThat(earlierAdmission).isTrue();
-    assertThatThrownBy(nextDecision).isSameAs(failure);
+    assertThatThrownBy(admission::allowsHandoff).isSameAs(failure);
   }
 }

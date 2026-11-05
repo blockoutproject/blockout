@@ -1,7 +1,7 @@
 package com.blockout.backend.search.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.List;
@@ -62,11 +62,8 @@ class OpenSearchClientIntegrationTest {
             .openSearchTransport(ENGINE.properties("untrusted", ENGINE.password), ENGINE.bundles)) {
       OpenSearchClient untrustedClient = new OpenSearchClient(untrusted);
 
-      // When
-      Throwable failure = catchThrowable(untrustedClient::info);
-
-      // Then
-      assertThat(failure).hasCauseInstanceOf(SSLHandshakeException.class);
+      // When / Then
+      assertThatThrownBy(untrustedClient::info).hasCauseInstanceOf(SSLHandshakeException.class);
     }
   }
 
@@ -80,11 +77,10 @@ class OpenSearchClientIntegrationTest {
                 ENGINE.properties("trusted", "incorrect-synthetic-password"), ENGINE.bundles)) {
       OpenSearchClient deniedClient = new OpenSearchClient(denied);
 
-      // When
-      Throwable failure = catchThrowable(deniedClient::info);
-
-      // Then
-      assertThat(failure).isInstanceOf(IOException.class).hasMessage("Unauthorized access");
+      // When / Then
+      assertThatThrownBy(deniedClient::info)
+          .isInstanceOf(IOException.class)
+          .hasMessage("Unauthorized access");
     }
   }
 
@@ -94,12 +90,10 @@ class OpenSearchClientIntegrationTest {
     // Given
     String unrelated = "unrelated-" + UUID.randomUUID();
 
-    // When
-    Throwable failure =
-        catchThrowable(() -> client.indices().create(request -> request.index(unrelated)));
-
-    // Then
-    assertThat(failure).isInstanceOf(IOException.class).hasMessage("Forbidden access");
+    // When / Then
+    assertThatThrownBy(() -> client.indices().create(request -> request.index(unrelated)))
+        .isInstanceOf(IOException.class)
+        .hasMessage("Forbidden access");
   }
 
   @Test
@@ -196,9 +190,8 @@ class OpenSearchClientIntegrationTest {
               return request;
             });
 
-    // When
-    Throwable failure =
-        catchThrowable(
+    // When / Then: a rejected action cannot publish a partial replacement.
+    assertThatThrownBy(
             () ->
                 client
                     .indices()
@@ -217,10 +210,8 @@ class OpenSearchClientIntegrationTest {
                                         action.add(
                                             add ->
                                                 add.alias(aliases.getFirst())
-                                                    .index("blockout-local-search-missing")))));
-
-    // Then: a rejected action cannot publish a partial replacement.
-    assertThat(failure).isInstanceOf(OpenSearchException.class);
+                                                    .index("blockout-local-search-missing")))))
+        .isInstanceOf(OpenSearchException.class);
     assertThat(
             client
                 .indices()

@@ -24,7 +24,6 @@ import jakarta.validation.Validator;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.UUID;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -92,11 +91,9 @@ class ContributionContractJsonTest {
             StreamDecisionEnum.class);
 
     for (Class<?> type : enums) {
-      // When
-      ThrowingCallable decodeUnknown = () -> mapper.readValue("\"unknown\"", type);
-
-      // Then
-      assertThatThrownBy(decodeUnknown).isInstanceOf(JacksonException.class);
+      // When / Then
+      assertThatThrownBy(() -> mapper.readValue("\"unknown\"", type))
+          .isInstanceOf(JacksonException.class);
       for (Object value : type.getEnumConstants()) {
         // When
         Object decoded = mapper.readValue(mapper.writeValueAsString(value), type);
@@ -170,12 +167,9 @@ class ContributionContractJsonTest {
         PRIVATE_CONTEXT.replace(
             "\"state\":\"hidden\"", "\"" + field + "\":null,\"state\":\"hidden\"");
 
-    // When
-    ThrowingCallable decode =
-        () -> mapper.readValue(body, ModeratedStreamContributionsResponse.class);
-
-    // Then
-    assertThatThrownBy(decode).isInstanceOf(JacksonException.class);
+    // When / Then
+    assertThatThrownBy(() -> mapper.readValue(body, ModeratedStreamContributionsResponse.class))
+        .isInstanceOf(JacksonException.class);
   }
 
   @Test
@@ -291,11 +285,9 @@ class ContributionContractJsonTest {
     // Given
     String body = OWN_COLLECTION.formatted("");
 
-    // When
-    ThrowingCallable decode = () -> mapper.readValue(body, OwnStreamContributionsResponse.class);
-
-    // Then
-    assertThatThrownBy(decode).isInstanceOf(JacksonException.class);
+    // When / Then
+    assertThatThrownBy(() -> mapper.readValue(body, OwnStreamContributionsResponse.class))
+        .isInstanceOf(JacksonException.class);
   }
 
   @Test

@@ -315,12 +315,9 @@ class PurgeNotificationsIntegrationTest {
     entry(sql, 1, ACCOUNT, NOW.minus(Duration.ofDays(30)));
     TransactionTemplate caller = new TransactionTemplate(transactions);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable nested =
-        () -> caller.executeWithoutResult(status -> purge.run());
-
-    // Then
-    assertThatThrownBy(nested).isInstanceOf(IllegalTransactionStateException.class);
+    // When / Then
+    assertThatThrownBy(() -> caller.executeWithoutResult(status -> purge.run()))
+        .isInstanceOf(IllegalTransactionStateException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM notification", Long.class)).isEqualTo(1);
     assertThat(output.getAll()).doesNotContain("\"operation\":\"notification_retention\"");
   }

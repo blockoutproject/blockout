@@ -61,12 +61,9 @@ class IgnClubGeocoderTest {
     // Given
     ProviderHttpClient http = mock(ProviderHttpClient.class);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () -> new IgnClubGeocoder(http).read(null, null, "75001", "9");
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(IllegalArgumentException.class);
+    // When / Then
+    assertThatThrownBy(() -> new IgnClubGeocoder(http).read(null, null, "75001", "9"))
+        .isInstanceOf(IllegalArgumentException.class);
     verifyNoInteractions(http);
   }
 
@@ -155,12 +152,9 @@ class IgnClubGeocoderTest {
     // Given
     byte[] response = bytes(json);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable parse =
-        () -> IgnClubGeocoder.parse(400, response, "7", true);
-
-    // Then
-    assertThatThrownBy(parse).isInstanceOf(IllegalArgumentException.class);
+    // When / Then
+    assertThatThrownBy(() -> IgnClubGeocoder.parse(400, response, "7", true))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   @ParameterizedTest
@@ -177,12 +171,9 @@ class IgnClubGeocoderTest {
     // Given
     byte[] response = bytes(json);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable parse =
-        () -> IgnClubGeocoder.parse(200, response, "7", true);
-
-    // Then
-    assertThatThrownBy(parse).isInstanceOf(IllegalArgumentException.class);
+    // When / Then
+    assertThatThrownBy(() -> IgnClubGeocoder.parse(200, response, "7", true))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   @ParameterizedTest
@@ -192,12 +183,9 @@ class IgnClubGeocoderTest {
     // Given
     byte[] response = bytes("{\"message\":\"unqualified error\"}");
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable parse =
-        () -> IgnClubGeocoder.parse(status, response, "7", true);
-
-    // Then
-    assertThatThrownBy(parse).isInstanceOf(IllegalArgumentException.class);
+    // When / Then
+    assertThatThrownBy(() -> IgnClubGeocoder.parse(status, response, "7", true))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
@@ -273,12 +261,10 @@ class IgnClubGeocoderTest {
         .when(http)
         .getWithBadRequest(any());
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () -> new IgnClubGeocoder(http).read("73 Demonstration road", "Paris", "75015", "9");
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(IllegalArgumentException.class);
+    // When / Then
+    assertThatThrownBy(
+            () -> new IgnClubGeocoder(http).read("73 Demonstration road", "Paris", "75015", "9"))
+        .isInstanceOf(IllegalArgumentException.class);
     verify(http).getWithBadRequest(any());
   }
 

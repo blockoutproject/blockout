@@ -1,6 +1,7 @@
 package com.blockout.collector.ingestion;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.junit.jupiter.api.Assertions.assertTimeout;
 
@@ -160,11 +161,8 @@ class GeneratedClientIntegrationTest {
     // Given
     body = response;
 
-    // When
-    Throwable failure = catchThrowable(() -> api.getCollectorRuntime());
-
-    // Then
-    assertThat(failure).isInstanceOf(RestClientException.class);
+    // When / Then
+    assertThatThrownBy(() -> api.getCollectorRuntime()).isInstanceOf(RestClientException.class);
   }
 
   @ParameterizedTest
@@ -188,11 +186,9 @@ class GeneratedClientIntegrationTest {
         """
             .formatted(family, date);
 
-    // When
-    Throwable failure = catchThrowable(() -> api.getCollectionWork(incarnationId));
-
-    // Then
-    assertThat(failure).isInstanceOf(RestClientException.class);
+    // When / Then
+    assertThatThrownBy(() -> api.getCollectionWork(incarnationId))
+        .isInstanceOf(RestClientException.class);
   }
 
   @Test
@@ -266,11 +262,9 @@ class GeneratedClientIntegrationTest {
             .revision(0L)
             .incarnationId(UUID.fromString("00000000-0000-4000-8000-000000000001"));
 
-    // When
-    Throwable failure = catchThrowable(() -> api.registerCollectorRuntime(request));
-
-    // Then
-    assertThat(failure).isInstanceOf(RestClientException.class);
+    // When / Then
+    assertThatThrownBy(() -> api.registerCollectorRuntime(request))
+        .isInstanceOf(RestClientException.class);
     assertThat(calls).hasValue(1);
   }
 }

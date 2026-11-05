@@ -105,12 +105,9 @@ class Auth0PrincipalClientTest {
     // Given
     Auth0PrincipalClient client = client(response, 200);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () -> client.read("https://identity.example.invalid/", "auth0|one");
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(AccountUnavailableException.class);
+    // When / Then
+    assertThatThrownBy(() -> client.read("https://identity.example.invalid/", "auth0|one"))
+        .isInstanceOf(AccountUnavailableException.class);
   }
 
   @Test
@@ -119,12 +116,8 @@ class Auth0PrincipalClientTest {
     // Given
     Auth0PrincipalClient client = client("{\"message\":\"private provider payload\"}", 429);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () -> client.read("https://identity.example.invalid/", "auth0|one");
-
-    // Then
-    assertThatThrownBy(read)
+    // When / Then
+    assertThatThrownBy(() -> client.read("https://identity.example.invalid/", "auth0|one"))
         .isInstanceOf(AccountUnavailableException.class)
         .hasMessageNotContaining("private provider payload");
     assertThat(output).doesNotContain("private provider payload", "synthetic-server-token");

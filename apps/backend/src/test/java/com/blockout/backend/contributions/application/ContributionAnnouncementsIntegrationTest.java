@@ -1,6 +1,7 @@
 package com.blockout.backend.contributions.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.blockout.backend.contributions.domain.StreamAddress;
@@ -165,12 +166,9 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
     moderator(AUTHOR);
     duplicateFamily("POST_RESULT_LINK");
 
-    // When
-    Throwable observedFailure =
-        catchThrowable(() -> submit(AUTHOR, "0", "https://youtube.com/replay", true));
-
-    // Then
-    assertThat(observedFailure).isInstanceOf(DataIntegrityViolationException.class);
+    // When / Then
+    assertThatThrownBy(() -> submit(AUTHOR, "0", "https://youtube.com/replay", true))
+        .isInstanceOf(DataIntegrityViolationException.class);
     assertThat(count("contribution_version")).isZero();
     assertThat(count("contribution_state")).isZero();
     assertThat(probe.ids).isEmpty();
@@ -189,11 +187,9 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
     follow(FOLLOWER);
     duplicateFamily("PLAIN_RESULT");
 
-    // When
-    Throwable observedFailure = catchThrowable(() -> result(2, ResultStateEnum.FINAL));
-
-    // Then
-    assertThat(observedFailure).isInstanceOf(DataIntegrityViolationException.class);
+    // When / Then
+    assertThatThrownBy(() -> result(2, ResultStateEnum.FINAL))
+        .isInstanceOf(DataIntegrityViolationException.class);
     assertThat(
             sql.queryForObject(
                 "SELECT result_state FROM sporting_match WHERE id=?", String.class, matchId))

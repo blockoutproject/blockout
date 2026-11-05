@@ -60,12 +60,9 @@ class InitialReconstructionTest {
         .when(authorization)
         .require(OPERATOR, Permission.MANAGE_COLLECTION);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable request =
-        () -> service.request(OPERATOR, SEASON, 0, Set.of(SOURCE), Set.of());
-
-    // Then
-    assertThatThrownBy(request).isInstanceOf(AccessDeniedException.class);
+    // When / Then
+    assertThatThrownBy(() -> service.request(OPERATOR, SEASON, 0, Set.of(SOURCE), Set.of()))
+        .isInstanceOf(AccessDeniedException.class);
     verify(store, never()).setInitialIntent(any(), any(), any(), any());
   }
 
@@ -75,12 +72,9 @@ class InitialReconstructionTest {
     // Given
     when(seasons.lockCollectionState(SEASON)).thenReturn(season(CollectionSeasonStateEnum.CLOSED));
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable request =
-        () -> service.request(OPERATOR, SEASON, 0, Set.of(SOURCE), Set.of());
-
-    // Then
-    assertThatThrownBy(request).isInstanceOf(CollectionConflictException.class);
+    // When / Then
+    assertThatThrownBy(() -> service.request(OPERATOR, SEASON, 0, Set.of(SOURCE), Set.of()))
+        .isInstanceOf(CollectionConflictException.class);
     verify(store, never()).setInitialIntent(any(), any(), any(), any());
   }
 
@@ -109,12 +103,9 @@ class InitialReconstructionTest {
                 Set.of(),
                 Set.of()));
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable request =
-        () -> service.request(OPERATOR, SEASON, 0, Set.of(SOURCE), Set.of());
-
-    // Then
-    assertThatThrownBy(request).isInstanceOf(CollectionConflictException.class);
+    // When / Then
+    assertThatThrownBy(() -> service.request(OPERATOR, SEASON, 0, Set.of(SOURCE), Set.of()))
+        .isInstanceOf(CollectionConflictException.class);
     verify(store, never()).setInitialIntent(any(), any(), any(), any());
   }
 
@@ -148,12 +139,9 @@ class InitialReconstructionTest {
     when(store.controls(SEASON)).thenReturn(List.of(pending));
     when(store.lockControl(CONTROL)).thenReturn(pending);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable request =
-        () -> service.request(OPERATOR, SEASON, 0, Set.of(SOURCE), Set.of());
-
-    // Then
-    assertThatThrownBy(request).isInstanceOf(CollectionConflictException.class);
+    // When / Then
+    assertThatThrownBy(() -> service.request(OPERATOR, SEASON, 0, Set.of(SOURCE), Set.of()))
+        .isInstanceOf(CollectionConflictException.class);
     verify(store, never()).setInitialIntent(any(), any(), any(), any());
   }
 

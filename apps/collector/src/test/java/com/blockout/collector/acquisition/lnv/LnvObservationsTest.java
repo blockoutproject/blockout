@@ -155,12 +155,10 @@ class LnvObservationsTest {
     // Given
     String html = "<div id=Content_Main_903><span id=group_lbl_title>Alterna VOLSTAR</span></div>";
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () -> new LnvCalendarParser().parse(bytes(html), CALENDAR, "901", "902", "903");
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(
+            () -> new LnvCalendarParser().parse(bytes(html), CALENDAR, "901", "902", "903"))
+        .isInstanceOf(LnvAcquisitionException.class);
   }
 
   @Test
@@ -383,12 +381,9 @@ class LnvObservationsTest {
     URI detail = URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901");
     byte[] html = bytes("<h1>Error</h1>");
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () -> parser.inspect(html, detail, "990", "901");
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(() -> parser.inspect(html, detail, "990", "901"))
+        .isInstanceOf(LnvAcquisitionException.class);
   }
 
   @Test
@@ -399,12 +394,9 @@ class LnvObservationsTest {
     URI detail = URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=991&ID=901");
     byte[] html = bytes("<span id=Content_Main_LB_DateTime>samedi 17 octobre 2026</span>");
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () -> parser.inspect(html, detail, "990", "901");
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(() -> parser.inspect(html, detail, "990", "901"))
+        .isInstanceOf(LnvAcquisitionException.class);
   }
 
   @Test
@@ -438,12 +430,9 @@ class LnvObservationsTest {
     byte[] html = bytes("<h1>Error</h1>");
     LnvStandingsParser parser = new LnvStandingsParser();
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable parse =
-        () -> parser.parse(html, CALENDAR, "903");
-
-    // Then
-    assertThatThrownBy(parse).isInstanceOf(LnvAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(() -> parser.parse(html, CALENDAR, "903"))
+        .isInstanceOf(LnvAcquisitionException.class);
   }
 
   /**

@@ -12,7 +12,6 @@ import com.blockout.backend.generated.mobile.model.NotificationsResponse;
 import jakarta.validation.Validator;
 import java.util.ArrayList;
 import java.util.List;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -68,11 +67,9 @@ class NotificationContractJsonTest {
     // Given
     String unknown = "\"future\"";
 
-    // When
-    ThrowingCallable decode = () -> json.readValue(unknown, NotificationFamilyEnum.class);
-
-    // Then
-    org.assertj.core.api.Assertions.assertThatThrownBy(decode)
+    // When / Then
+    org.assertj.core.api.Assertions.assertThatThrownBy(
+            () -> json.readValue(unknown, NotificationFamilyEnum.class))
         .isInstanceOf(tools.jackson.core.JacksonException.class);
   }
 

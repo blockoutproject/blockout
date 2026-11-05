@@ -267,7 +267,6 @@ class NotificationsWebMvcTest {
     // Given
     when(account.id()).thenReturn(UUID.fromString("00000000-0000-4000-8000-000000000002"));
 
-    // When
     for (String path :
         List.of(
             COLLECTION, COLLECTION + "/" + ID, "/accounts/" + ACCOUNT + "/notification-summary")) {
@@ -280,6 +279,7 @@ class NotificationsWebMvcTest {
           .andExpect(status().isNotFound())
           .andExpect(header().string("Cache-Control", "no-store"));
     }
+
     // When
     ResultActions secondResponse =
         mvc.perform(

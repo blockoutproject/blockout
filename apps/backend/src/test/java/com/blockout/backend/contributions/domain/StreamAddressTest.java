@@ -3,7 +3,6 @@ package com.blockout.backend.contributions.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -76,11 +75,8 @@ class StreamAddressTest {
     // Given
     // The source supplies one unsupported literal without performing any provider lookup.
 
-    // When
-    ThrowingCallable recognize = () -> new StreamAddress(literal);
-
-    // Then
-    assertThatThrownBy(recognize)
+    // When / Then
+    assertThatThrownBy(() -> new StreamAddress(literal))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessage("Stream address is not permitted");
   }

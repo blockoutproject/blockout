@@ -246,12 +246,8 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
         Timestamp.from(NOW.plusSeconds(7200)),
         matchId);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable rejected =
-        () -> submit(AUTHOR, "2", "https://youtu.be/refused", false);
-
-    // Then
-    assertThatThrownBy(rejected)
+    // When / Then
+    assertThatThrownBy(() -> submit(AUTHOR, "2", "https://youtu.be/refused", false))
         .isInstanceOfSatisfying(
             ContributionRejectedException.class,
             failure -> assertThat(failure.getStatus()).isEqualTo(Status.WINDOW_NOT_OPEN));
@@ -297,12 +293,12 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
 
     // When
     ResultActions response = change(OTHER, original.version().id(), "1", "withdraw");
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable reclaim =
-        () -> submit(OTHER, "1", "https://youtu.be/reclaim", false);
 
     // Then
     response.andExpect(status().isNotFound());
-    assertThatThrownBy(reclaim)
+
+    // When / Then
+    assertThatThrownBy(() -> submit(OTHER, "1", "https://youtu.be/reclaim", false))
         .isInstanceOfSatisfying(
             ContributionRejectedException.class,
             failure -> assertThat(failure.getStatus()).isEqualTo(Status.NOT_OWNER));
@@ -343,12 +339,8 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
         submit(AUTHOR, "2", "https://youtu.be/current-proposal", false);
     result(3, null);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable rejected =
-        () -> submit(AUTHOR, "3", "https://youtu.be/fourth", false);
-
-    // Then
-    assertThatThrownBy(rejected)
+    // When / Then
+    assertThatThrownBy(() -> submit(AUTHOR, "3", "https://youtu.be/fourth", false))
         .isInstanceOfSatisfying(
             ContributionRejectedException.class,
             failure -> assertThat(failure.getStatus()).isEqualTo(Status.VERSION_LIMIT));

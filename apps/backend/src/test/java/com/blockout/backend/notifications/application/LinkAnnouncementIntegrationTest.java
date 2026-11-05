@@ -11,7 +11,6 @@ import java.net.URI;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.IllegalTransactionStateException;
@@ -35,11 +34,9 @@ class LinkAnnouncementIntegrationTest extends ContributionScenario {
     when(clock.instant()).thenReturn(NOW.plusSeconds(90));
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
-    // When
-    ThrowingCallable invoke = () -> transaction.executeWithoutResult(status -> due.run());
-
-    // Then
-    assertThatThrownBy(invoke).isInstanceOf(IllegalTransactionStateException.class);
+    // When / Then
+    assertThatThrownBy(() -> transaction.executeWithoutResult(status -> due.run()))
+        .isInstanceOf(IllegalTransactionStateException.class);
     assertThat(count("notification")).isZero();
     assertThat(count("match_announcement")).isZero();
   }

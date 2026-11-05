@@ -1,6 +1,7 @@
 package com.blockout.backend.following.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -236,40 +237,21 @@ class FollowRelationsIntegrationTest {
     String insert = "INSERT INTO " + table + "(id, account_id, " + column + ") VALUES (?, ?, ?)";
     state.replace(context(type), true);
 
-    // When: each statement commits independently, so every rejection reaches SQL.
-    Throwable observedFailure =
-        catchThrowable(() -> sql.update(insert, UUID.randomUUID(), ACCOUNT, TARGET));
+    // When / Then: each statement commits independently, so every rejection reaches SQL.
+    assertThatThrownBy(() -> sql.update(insert, UUID.randomUUID(), ACCOUNT, TARGET))
+        .isInstanceOf(DataIntegrityViolationException.class);
 
-    // Then
-    assertThat(observedFailure).isInstanceOf(DataIntegrityViolationException.class);
+    assertThatThrownBy(() -> sql.update(insert, UUID.randomUUID(), null, TARGET))
+        .isInstanceOf(DataIntegrityViolationException.class);
 
-    // When
-    Throwable secondFailure =
-        catchThrowable(() -> sql.update(insert, UUID.randomUUID(), null, TARGET));
+    assertThatThrownBy(() -> sql.update(insert, UUID.randomUUID(), ACCOUNT, null))
+        .isInstanceOf(DataIntegrityViolationException.class);
 
-    // Then
-    assertThat(secondFailure).isInstanceOf(DataIntegrityViolationException.class);
+    assertThatThrownBy(() -> sql.update(insert, UUID.randomUUID(), UUID.randomUUID(), TARGET))
+        .isInstanceOf(DataIntegrityViolationException.class);
 
-    // When
-    Throwable thirdFailure =
-        catchThrowable(() -> sql.update(insert, UUID.randomUUID(), ACCOUNT, null));
-
-    // Then
-    assertThat(thirdFailure).isInstanceOf(DataIntegrityViolationException.class);
-
-    // When
-    Throwable fourthFailure =
-        catchThrowable(() -> sql.update(insert, UUID.randomUUID(), UUID.randomUUID(), TARGET));
-
-    // Then
-    assertThat(fourthFailure).isInstanceOf(DataIntegrityViolationException.class);
-
-    // When
-    Throwable fifthFailure =
-        catchThrowable(() -> sql.update(insert, UUID.randomUUID(), ACCOUNT, UUID.randomUUID()));
-
-    // Then
-    assertThat(fifthFailure).isInstanceOf(DataIntegrityViolationException.class);
+    assertThatThrownBy(() -> sql.update(insert, UUID.randomUUID(), ACCOUNT, UUID.randomUUID()))
+        .isInstanceOf(DataIntegrityViolationException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM " + table, Long.class)).isEqualTo(1L);
   }
 
@@ -283,17 +265,13 @@ class FollowRelationsIntegrationTest {
     sql.update(
         "UPDATE sporting_pool SET catalog_eligible=FALSE, calendar_empty=TRUE WHERE id=?", TARGET);
 
-    // When
-    Throwable observedFailure = catchThrowable(() -> state.read(context(type)));
+    // When / Then
+    assertThatThrownBy(() -> state.read(context(type)))
+        .isInstanceOf(FollowUnavailableTargetException.class);
 
-    // Then
-    assertThat(observedFailure).isInstanceOf(FollowUnavailableTargetException.class);
-
-    // When
-    Throwable secondFailure = catchThrowable(() -> state.replace(context(type), false));
-
-    // Then
-    assertThat(secondFailure).isInstanceOf(FollowUnavailableTargetException.class);
+    // When / Then
+    assertThatThrownBy(() -> state.replace(context(type), false))
+        .isInstanceOf(FollowUnavailableTargetException.class);
     assertThat(relation(type).id()).isEqualTo(original);
 
     // Given
@@ -301,11 +279,9 @@ class FollowRelationsIntegrationTest {
         "UPDATE sporting_pool SET catalog_eligible=TRUE, calendar_empty=FALSE WHERE id=?", TARGET);
     sql.update("UPDATE sporting_division SET active=FALSE WHERE id=?", DIVISION);
 
-    // When
-    Throwable thirdFailure = catchThrowable(() -> state.read(context(type)));
-
-    // Then
-    assertThat(thirdFailure).isInstanceOf(FollowUnavailableTargetException.class);
+    // When / Then
+    assertThatThrownBy(() -> state.read(context(type)))
+        .isInstanceOf(FollowUnavailableTargetException.class);
 
     // Given
     sql.update("UPDATE sporting_division SET active=TRUE WHERE id=?", DIVISION);
@@ -357,11 +333,9 @@ class FollowRelationsIntegrationTest {
     // Given
     FollowContext missing = new FollowContext(ACCOUNT, new Target(type, UUID.randomUUID()));
 
-    // When
-    Throwable observedFailure = catchThrowable(() -> state.replace(missing, true));
-
-    // Then
-    assertThat(observedFailure).isInstanceOf(FollowUnavailableTargetException.class);
+    // When / Then
+    assertThatThrownBy(() -> state.replace(missing, true))
+        .isInstanceOf(FollowUnavailableTargetException.class);
     assertThat(store.find(missing)).isEmpty();
   }
 
@@ -373,19 +347,16 @@ class FollowRelationsIntegrationTest {
     UUID original = relation(TargetType.POOL).id();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
-    // When
-    Throwable observedFailure =
-        catchThrowable(
+    // When / Then
+    assertThatThrownBy(
             () ->
                 transaction.executeWithoutResult(
                     status -> {
                       state.replace(context(TargetType.POOL), false);
                       state.replace(context(TargetType.TEAM), true);
                       throw new IllegalStateException("Controlled rollback");
-                    }));
-
-    // Then
-    assertThat(observedFailure).isInstanceOf(IllegalStateException.class);
+                    }))
+        .isInstanceOf(IllegalStateException.class);
     assertThat(store.find(context(TargetType.TEAM))).isEmpty();
     assertThat(relation(TargetType.POOL).id()).isEqualTo(original);
   }
@@ -532,12 +503,9 @@ class FollowRelationsIntegrationTest {
       // Then
       assertThat(store.find(context(TargetType.POOL))).isEmpty();
 
-      // When
-      Throwable observedFailure =
-          catchThrowable(() -> state.replace(context(TargetType.POOL), true));
-
-      // Then
-      assertThat(observedFailure).isInstanceOf(AccountNotFoundException.class);
+      // When / Then
+      assertThatThrownBy(() -> state.replace(context(TargetType.POOL), true))
+          .isInstanceOf(AccountNotFoundException.class);
       verifyNoInteractions(provider);
     }
   }

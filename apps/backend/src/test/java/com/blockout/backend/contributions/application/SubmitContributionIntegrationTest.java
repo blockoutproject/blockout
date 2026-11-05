@@ -1,6 +1,7 @@
 package com.blockout.backend.contributions.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.contributions.domain.StreamAddress;
@@ -62,14 +63,8 @@ class SubmitContributionIntegrationTest extends ContributionScenario {
     submit(AUTHOR, "1", "https://youtube.com/two", false);
     SubmitContribution.Outcome third = submit(AUTHOR, "2", "https://youtube.com/three", false);
 
-    // When
-    Throwable failure =
-        org.assertj.core.api.Assertions.catchThrowable(
-            () -> submit(AUTHOR, "3", "https://youtube.com/four", false));
-    SubmitContribution.Outcome repeat = submit(AUTHOR, "3", "https://youtube.com/three", false);
-
-    // Then
-    assertThat(failure)
+    // When / Then
+    assertThatThrownBy(() -> submit(AUTHOR, "3", "https://youtube.com/four", false))
         .isInstanceOfSatisfying(
             ContributionRejectedException.class,
             rejected ->
@@ -77,6 +72,11 @@ class SubmitContributionIntegrationTest extends ContributionScenario {
                     .isEqualTo(
                         com.blockout.backend.contributions.domain.ContributionEligibility.Status
                             .VERSION_LIMIT));
+
+    // When
+    SubmitContribution.Outcome repeat = submit(AUTHOR, "3", "https://youtube.com/three", false);
+
+    // Then
     assertThat(repeat.created()).isFalse();
     assertThat(repeat.version().id()).isEqualTo(third.version().id());
     assertThat(count("contribution_version")).isEqualTo(3);
@@ -89,13 +89,8 @@ class SubmitContributionIntegrationTest extends ContributionScenario {
     // Given
     submit(AUTHOR, "0", "https://youtube.com/one", false);
 
-    // When
-    Throwable failure =
-        org.assertj.core.api.Assertions.catchThrowable(
-            () -> submit(AUTHOR, "0", "https://youtube.com/one", false));
-
-    // Then
-    assertThat(failure)
+    // When / Then
+    assertThatThrownBy(() -> submit(AUTHOR, "0", "https://youtube.com/one", false))
         .isInstanceOfSatisfying(
             ContributionRejectedException.class,
             rejected ->
@@ -112,13 +107,9 @@ class SubmitContributionIntegrationTest extends ContributionScenario {
     // Given
     SubmitContribution.Outcome original = submit(AUTHOR, "0", "https://youtube.com/one", false);
 
-    // When
-    Throwable failure =
-        org.assertj.core.api.Assertions.catchThrowable(
-            () -> submit(OTHER, "1", "https://twitch.tv/other", false));
-
-    // Then
-    assertThat(failure).isInstanceOf(ContributionRejectedException.class);
+    // When / Then
+    assertThatThrownBy(() -> submit(OTHER, "1", "https://twitch.tv/other", false))
+        .isInstanceOf(ContributionRejectedException.class);
     assertThat(contributions.active(matchId).orElseThrow().id()).isEqualTo(original.version().id());
     assertThat(count("contribution_version")).isEqualTo(1);
     assertThat(reads.read(AUTHOR, matchId, 0).revision()).isEqualTo("1");
@@ -187,13 +178,8 @@ class SubmitContributionIntegrationTest extends ContributionScenario {
           }
         });
 
-    // When
-    Throwable failure =
-        org.assertj.core.api.Assertions.catchThrowable(
-            () -> submit(AUTHOR, "0", "https://youtube.com/fourth", false));
-
-    // Then
-    assertThat(failure)
+    // When / Then
+    assertThatThrownBy(() -> submit(AUTHOR, "0", "https://youtube.com/fourth", false))
         .isInstanceOfSatisfying(
             ContributionRejectedException.class,
             rejected ->

@@ -12,7 +12,6 @@ import com.blockout.backend.sporting.application.ReadSportingResources;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.IntStream;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -35,13 +34,11 @@ class ReadFollowListsTest {
     // Given
     // The supplied page lies outside the canonical native offset range.
 
-    // When
-    ThrowingCallable teams = () -> lists.teams(ACCOUNT, null, page);
-    ThrowingCallable pools = () -> lists.pools(ACCOUNT, null, page);
-
-    // Then
-    assertThatThrownBy(teams).isInstanceOf(FollowPageOutOfRangeException.class);
-    assertThatThrownBy(pools).isInstanceOf(FollowPageOutOfRangeException.class);
+    // When / Then
+    assertThatThrownBy(() -> lists.teams(ACCOUNT, null, page))
+        .isInstanceOf(FollowPageOutOfRangeException.class);
+    assertThatThrownBy(() -> lists.pools(ACCOUNT, null, page))
+        .isInstanceOf(FollowPageOutOfRangeException.class);
     verifyNoInteractions(accounts, follows, sporting);
   }
 
@@ -56,18 +53,16 @@ class ReadFollowListsTest {
     when(follows.targets(ACCOUNT, type, null, 107374182L))
         .thenReturn(new FollowReadStore.TargetPage(fullPage, true));
 
-    // When
-    ThrowingCallable read =
-        () -> {
-          if (type == TargetType.TEAM) {
-            lists.teams(ACCOUNT, null, 107374182L);
-          } else {
-            lists.pools(ACCOUNT, null, 107374182L);
-          }
-        };
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(FollowPageOutOfRangeException.class);
+    // When / Then
+    assertThatThrownBy(
+            () -> {
+              if (type == TargetType.TEAM) {
+                lists.teams(ACCOUNT, null, 107374182L);
+              } else {
+                lists.pools(ACCOUNT, null, 107374182L);
+              }
+            })
+        .isInstanceOf(FollowPageOutOfRangeException.class);
     verifyNoInteractions(sporting);
   }
 

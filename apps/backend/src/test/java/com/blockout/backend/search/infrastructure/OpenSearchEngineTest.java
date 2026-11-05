@@ -11,7 +11,6 @@ import static org.mockito.Mockito.when;
 import com.blockout.backend.search.application.SearchContext;
 import com.blockout.backend.search.application.SearchUnavailableException;
 import java.util.List;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -71,11 +70,8 @@ class OpenSearchEngineTest {
     SearchContext context =
         new SearchContext(SearchContext.Resource.CLUB, "eagles", null, null, null, null, false);
 
-    // When
-    ThrowingCallable read = () -> engine.search(context, null, 200);
-
-    // Then
-    assertThatThrownBy(read)
+    // When / Then
+    assertThatThrownBy(() -> engine.search(context, null, 200))
         .isInstanceOf(SearchUnavailableException.class)
         .hasMessage("Search is unavailable")
         .hasNoCause();

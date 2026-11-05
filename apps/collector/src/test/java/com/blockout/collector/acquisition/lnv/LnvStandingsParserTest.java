@@ -84,11 +84,8 @@ class LnvStandingsParserTest {
         ("<div id='Content_Main_903'><span id='x_lbl_title'>Standing</span>" + context + "</div>")
             .getBytes(StandardCharsets.UTF_8);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable parse =
-        () -> new LnvStandingsParser().parse(html, PAGE, "903");
-
-    // Then
-    assertThatThrownBy(parse).isInstanceOf(LnvAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(() -> new LnvStandingsParser().parse(html, PAGE, "903"))
+        .isInstanceOf(LnvAcquisitionException.class);
   }
 }

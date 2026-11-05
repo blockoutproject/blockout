@@ -13,7 +13,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -59,11 +58,9 @@ class SupportValidationTest {
     SupportValidation validation = new SupportValidation(temporaryDirectory);
     List<byte[]> images = Collections.nCopies(6, fixture("synthetic.png"));
 
-    // When
-    ThrowingCallable validate = () -> validation.validate(metadata(), images);
-
-    // Then
-    assertThatThrownBy(validate).isInstanceOf(SupportValidation.InvalidSubmission.class);
+    // When / Then
+    assertThatThrownBy(() -> validation.validate(metadata(), images))
+        .isInstanceOf(SupportValidation.InvalidSubmission.class);
     assertEmptyTemporaryDirectory();
   }
 
@@ -89,11 +86,8 @@ class SupportValidationTest {
     byte[] image = Arrays.copyOf(fixture("synthetic.png"), 5_242_881);
     SupportValidation validation = new SupportValidation(temporaryDirectory);
 
-    // When
-    ThrowingCallable validate = () -> validation.validate(metadata(), List.of(image));
-
-    // Then
-    assertThatThrownBy(validate)
+    // When / Then
+    assertThatThrownBy(() -> validation.validate(metadata(), List.of(image)))
         .isInstanceOf(SupportValidation.InvalidSubmission.class)
         .extracting("reason")
         .isEqualTo(SupportValidation.Reason.CONTENT_TOO_LARGE);
@@ -108,11 +102,8 @@ class SupportValidationTest {
     SupportValidation validation = new SupportValidation(temporaryDirectory);
     List<byte[]> images = List.of(fixture("synthetic.png"), fixture(filename));
 
-    // When
-    ThrowingCallable validate = () -> validation.validate(metadata(), images);
-
-    // Then
-    assertThatThrownBy(validate)
+    // When / Then
+    assertThatThrownBy(() -> validation.validate(metadata(), images))
         .isInstanceOf(SupportValidation.InvalidSubmission.class)
         .extracting("reason")
         .isEqualTo(SupportValidation.Reason.INVALID_IMAGE);
@@ -141,11 +132,8 @@ class SupportValidationTest {
     SupportValidation validation = new SupportValidation(temporaryDirectory);
     byte[] image = fixture(filename);
 
-    // When
-    ThrowingCallable validate = () -> validation.validate(metadata(), List.of(image));
-
-    // Then
-    assertThatThrownBy(validate)
+    // When / Then
+    assertThatThrownBy(() -> validation.validate(metadata(), List.of(image)))
         .isInstanceOf(SupportValidation.InvalidSubmission.class)
         .extracting("reason")
         .isEqualTo(SupportValidation.Reason.INVALID_IMAGE);
@@ -159,11 +147,8 @@ class SupportValidationTest {
     SupportValidation validation = new SupportValidation(temporaryDirectory);
     byte[] image = fixture("synthetic.gif");
 
-    // When
-    ThrowingCallable validate = () -> validation.validate(metadata(), List.of(image));
-
-    // Then
-    assertThatThrownBy(validate)
+    // When / Then
+    assertThatThrownBy(() -> validation.validate(metadata(), List.of(image)))
         .isInstanceOf(SupportValidation.InvalidSubmission.class)
         .extracting("reason")
         .isEqualTo(SupportValidation.Reason.UNSUPPORTED_IMAGE);
@@ -192,11 +177,9 @@ class SupportValidationTest {
     // Given
     SupportValidation validation = new SupportValidation(temporaryDirectory);
 
-    // When
-    ThrowingCallable validate = () -> validation.validate(metadata(), List.of(new byte[0]));
-
-    // Then
-    assertThatThrownBy(validate).isInstanceOf(SupportValidation.InvalidSubmission.class);
+    // When / Then
+    assertThatThrownBy(() -> validation.validate(metadata(), List.of(new byte[0])))
+        .isInstanceOf(SupportValidation.InvalidSubmission.class);
     assertEmptyTemporaryDirectory();
   }
 
@@ -207,17 +190,15 @@ class SupportValidationTest {
     SupportValidation validation = new SupportValidation(temporaryDirectory);
     byte[] image = fixture("synthetic.jpg");
 
-    // When
-    ThrowingCallable process =
-        () -> {
-          try (SupportSubmission submission = validation.validate(metadata(), List.of(image))) {
-            assertThat(submission.images()).hasSize(1);
-            throw new IllegalStateException("Synthetic processing failure");
-          }
-        };
-
-    // Then
-    assertThatThrownBy(process).isInstanceOf(IllegalStateException.class);
+    // When / Then
+    assertThatThrownBy(
+            () -> {
+              try (SupportSubmission submission = validation.validate(metadata(), List.of(image))) {
+                assertThat(submission.images()).hasSize(1);
+                throw new IllegalStateException("Synthetic processing failure");
+              }
+            })
+        .isInstanceOf(IllegalStateException.class);
     assertEmptyTemporaryDirectory();
   }
 

@@ -9,7 +9,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import javax.imageio.ImageIO;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -39,7 +38,7 @@ class ImageDecoderTest {
 
   @Test
   @DisplayName("Propagates the feature's header refusal before attempting raster decoding")
-  void admitsHeaderBeforeDecoding() throws IOException {
+  void propagatesHeaderRefusalBeforeRasterDecoding() throws IOException {
     // Given
     ByteArrayOutputStream output = new ByteArrayOutputStream();
     ImageIO.write(new BufferedImage(2, 3, BufferedImage.TYPE_INT_RGB), "PNG", output);
@@ -47,19 +46,17 @@ class ImageDecoderTest {
     byte[] headerOnly = Arrays.copyOf(output.toByteArray(), 33);
     IllegalArgumentException refusal = new IllegalArgumentException("Feature rejects geometry");
 
-    // When
-    ThrowingCallable decode =
-        () ->
-            ImageDecoder.decode(
-                headerOnly,
-                true,
-                header -> {
-                  assertThat(header).isEqualTo(new ImageDecoder.Header("image/png", 2, 3));
-                  throw refusal;
-                });
-
-    // Then
-    assertThatThrownBy(decode).isSameAs(refusal);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                ImageDecoder.decode(
+                    headerOnly,
+                    true,
+                    header -> {
+                      assertThat(header).isEqualTo(new ImageDecoder.Header("image/png", 2, 3));
+                      throw refusal;
+                    }))
+        .isSameAs(refusal);
   }
 
   @Test
@@ -70,10 +67,8 @@ class ImageDecoderTest {
     ImageIO.write(new BufferedImage(2, 3, BufferedImage.TYPE_INT_RGB), "PNG", output);
     byte[] headerOnly = Arrays.copyOf(output.toByteArray(), 33);
 
-    // When
-    ThrowingCallable decode = () -> ImageDecoder.decode(headerOnly, true, header -> {});
-
-    // Then
-    assertThatThrownBy(decode).isInstanceOf(IOException.class);
+    // When / Then
+    assertThatThrownBy(() -> ImageDecoder.decode(headerOnly, true, header -> {}))
+        .isInstanceOf(IOException.class);
   }
 }

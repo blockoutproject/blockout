@@ -80,12 +80,10 @@ class ExpoPushClientTest {
   @DisplayName("Refuses batch limits before invoking the SDK")
   void refusesOversizedBatch() {
     // Given
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable tooManyMessages =
-        () -> client.send(Collections.nCopies(101, message));
 
-    // Then
-    assertThatThrownBy(tooManyMessages).isInstanceOf(IllegalArgumentException.class);
+    // When / Then
+    assertThatThrownBy(() -> client.send(Collections.nCopies(101, message)))
+        .isInstanceOf(IllegalArgumentException.class);
     assertThatThrownBy(() -> client.receipts(Collections.nCopies(1001, "ticket")))
         .isInstanceOf(IllegalArgumentException.class);
     verifyNoInteractions(sdk);

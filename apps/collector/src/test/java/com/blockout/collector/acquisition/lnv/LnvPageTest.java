@@ -68,12 +68,9 @@ class LnvPageTest {
     // Given
     DateTimeFormatter dateFormat = DATE;
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable parse =
-        () -> LnvPage.time(rendered, dateFormat);
-
-    // Then
-    assertThatThrownBy(parse).isInstanceOf(LnvAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(() -> LnvPage.time(rendered, dateFormat))
+        .isInstanceOf(LnvAcquisitionException.class);
   }
 
   @Test
@@ -83,11 +80,8 @@ class LnvPageTest {
     // Given: bounded provider input can contain a long run that is not followed by the delimiter.
     String rendered = "17/10/2026" + " ".repeat(150_000) + "invalid";
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () -> LnvPage.time(rendered, DATE);
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(() -> LnvPage.time(rendered, DATE))
+        .isInstanceOf(LnvAcquisitionException.class);
   }
 }

@@ -103,11 +103,8 @@ class ProjectSearchTest {
     when(sporting.projectionInputs(Kind.CLUB, 0, 200)).thenReturn(List.of(club(id, "Club")));
     doThrow(new SearchUnavailableException()).when(writer).write(any(), any());
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable rebuild = projection::rebuild;
-
-    // Then
-    assertThatThrownBy(rebuild).isInstanceOf(SearchUnavailableException.class);
+    // When / Then
+    assertThatThrownBy(projection::rebuild).isInstanceOf(SearchUnavailableException.class);
     verify(writer, org.mockito.Mockito.never()).cleanup();
     verify(writer, org.mockito.Mockito.never()).publish(any());
   }

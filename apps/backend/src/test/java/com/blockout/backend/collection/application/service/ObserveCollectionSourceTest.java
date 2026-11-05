@@ -21,7 +21,6 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -79,11 +78,9 @@ class ObserveCollectionSourceTest {
             new CollectionSeasonView(
                 SEASON, "2026/2027", 2026, CollectionSeasonStateEnum.CLOSED, 4));
 
-    // When
-    ThrowingCallable observe = () -> service.observe(proposal);
-
-    // Then
-    assertThatThrownBy(observe).isInstanceOf(CollectionConflictException.class);
+    // When / Then
+    assertThatThrownBy(() -> service.observe(proposal))
+        .isInstanceOf(CollectionConflictException.class);
     verifyNoInteractions(store, events);
   }
 

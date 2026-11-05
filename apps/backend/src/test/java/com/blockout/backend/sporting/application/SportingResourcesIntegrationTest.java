@@ -347,11 +347,9 @@ class SportingResourcesIntegrationTest {
             + " WHERE id=?",
         match.id());
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read = () -> resources.match(match.id());
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(SportingResourceNotFoundException.class);
+    // When / Then
+    assertThatThrownBy(() -> resources.match(match.id()))
+        .isInstanceOf(SportingResourceNotFoundException.class);
   }
 
   @Test
@@ -360,11 +358,9 @@ class SportingResourcesIntegrationTest {
     // Given
     sql.update("UPDATE sporting_pool SET catalog_eligible=FALSE WHERE id=?", scope.pool());
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read = () -> resources.match(match.id());
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(SportingResourceNotFoundException.class);
+    // When / Then
+    assertThatThrownBy(() -> resources.match(match.id()))
+        .isInstanceOf(SportingResourceNotFoundException.class);
     assertThatThrownBy(() -> resources.team(match.homeTeamId()))
         .isInstanceOf(SportingResourceNotFoundException.class);
     assertThatThrownBy(() -> resources.pool(scope.pool()))

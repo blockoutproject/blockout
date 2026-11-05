@@ -1,6 +1,7 @@
 package com.blockout.backend.collection.infrastructure.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -358,8 +359,9 @@ class CollectionControlIntegrationTest {
     // When
     ResultActions closureResponse = close(0, "2026/2027");
     results.complete(CYCLE, Instant.now().plusSeconds(1));
-    Throwable refusedAdmission =
-        catchThrowable(
+
+    // When / Then
+    assertThatThrownBy(
             () ->
                 cycles.admit(
                     new CollectionState.StartCycle(
@@ -368,12 +370,10 @@ class CollectionControlIntegrationTest {
                         CONTROL,
                         null,
                         configurationReads.control(ACCOUNT, CONTROL).control().revision(),
-                        null)));
-
-    // Then
+                        null)))
+        .isInstanceOf(CollectionConflictException.class);
     closureResponse.andExpect(status().isOk());
     assertThat(collectionWork.get(CYCLE).state()).isEqualTo(CollectionCycleStateEnum.COMPLETED);
-    assertThat(refusedAdmission).isInstanceOf(CollectionConflictException.class);
   }
 
   @Test

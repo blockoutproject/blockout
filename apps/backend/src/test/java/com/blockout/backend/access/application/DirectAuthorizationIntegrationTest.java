@@ -178,11 +178,8 @@ class DirectAuthorizationIntegrationTest extends ContributionScenario {
             });
     Map<String, Object> before = protectedState();
 
-    // When
-    ThrowingCallable direct = () -> command(action, OTHER);
-
-    // Then
-    assertThatThrownBy(direct).isInstanceOf(AccessDeniedException.class);
+    // When / Then
+    assertThatThrownBy(() -> command(action, OTHER)).isInstanceOf(AccessDeniedException.class);
     assertThat(protectedState()).isEqualTo(before);
     assertThat(permissions.forAccount(OTHER)).isEmpty();
     currentAccount(OTHER)

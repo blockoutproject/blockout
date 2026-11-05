@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.collector.generated.ingestion.model.StandingsPublicationStateEnum;
 import java.util.List;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -17,13 +16,11 @@ class SportingObservationTest {
     // Given
     List<String> columns = List.of("Points");
 
-    // When
-    ThrowingCallable create =
-        () ->
-            new SportingObservation.Standings(
-                StandingsPublicationStateEnum.NOT_PUBLISHED, columns, List.of());
-
-    // Then
-    assertThatThrownBy(create).isInstanceOf(IllegalArgumentException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                new SportingObservation.Standings(
+                    StandingsPublicationStateEnum.NOT_PUBLISHED, columns, List.of()))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 }

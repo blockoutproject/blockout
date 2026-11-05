@@ -110,12 +110,9 @@ class AccessSettingsIntegrationTest {
     // Given
     MaintenanceSettings changed = new MaintenanceSettings(0, true, "Changed", null);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable write =
-        () -> store.saveMaintenance(changed);
-
-    // Then
-    assertThatThrownBy(write).isInstanceOf(IllegalTransactionStateException.class);
+    // When / Then
+    assertThatThrownBy(() -> store.saveMaintenance(changed))
+        .isInstanceOf(IllegalTransactionStateException.class);
     assertThat(store.maintenance()).isEqualTo(new MaintenanceSettings(0, false, "Prepared", null));
   }
 
@@ -124,11 +121,9 @@ class AccessSettingsIntegrationTest {
   void requiresMutationLoadTransaction() {
     // Given: no caller transaction is open.
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable load = store::maintenanceForChange;
-
-    // Then
-    assertThatThrownBy(load).isInstanceOf(IllegalTransactionStateException.class);
+    // When / Then
+    assertThatThrownBy(store::maintenanceForChange)
+        .isInstanceOf(IllegalTransactionStateException.class);
   }
 
   @Test
@@ -278,22 +273,20 @@ class AccessSettingsIntegrationTest {
             JsonNullable.of("Update"));
     ApplicationVersionSettings saved = updates.changeVersions(first, valid);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable invalid =
-        () ->
-            updates.changeVersions(
-                first,
-                new VersionChange(
-                    saved.revision(),
-                    new PlatformChange(JsonNullable.undefined(), JsonNullable.of(null)),
-                    new PlatformChange(
-                        JsonNullable.of("3.0.0"),
-                        JsonNullable.of(
-                            "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout")),
-                    JsonNullable.of(null)));
-
-    // Then
-    assertThatThrownBy(invalid).isInstanceOf(InvalidAccessSettingsException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                updates.changeVersions(
+                    first,
+                    new VersionChange(
+                        saved.revision(),
+                        new PlatformChange(JsonNullable.undefined(), JsonNullable.of(null)),
+                        new PlatformChange(
+                            JsonNullable.of("3.0.0"),
+                            JsonNullable.of(
+                                "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout")),
+                        JsonNullable.of(null))))
+        .isInstanceOf(InvalidAccessSettingsException.class);
     assertThat(reads.versions(first)).isEqualTo(saved);
   }
 
@@ -310,22 +303,20 @@ class AccessSettingsIntegrationTest {
             null,
             JsonNullable.undefined()));
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable android =
-        () ->
-            updates.changeVersions(
-                second,
-                new VersionChange(
-                    0,
-                    null,
-                    new PlatformChange(
-                        JsonNullable.of("2.0.0"),
-                        JsonNullable.of(
-                            "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout")),
-                    JsonNullable.undefined()));
-
-    // Then
-    assertThatThrownBy(android).isInstanceOf(StaleSettingsRevisionException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                updates.changeVersions(
+                    second,
+                    new VersionChange(
+                        0,
+                        null,
+                        new PlatformChange(
+                            JsonNullable.of("2.0.0"),
+                            JsonNullable.of(
+                                "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout")),
+                        JsonNullable.undefined())))
+        .isInstanceOf(StaleSettingsRevisionException.class);
     assertThat(reads.versions(first).android().minimumVersion()).isNull();
   }
 
@@ -421,11 +412,8 @@ class AccessSettingsIntegrationTest {
     // Given
     sql.update("DELETE FROM access_settings WHERE id=?", group);
     try {
-      // When
-      Throwable failure = org.assertj.core.api.Assertions.catchThrowable(reads::read);
-
-      // Then
-      assertThat(failure).isInstanceOf(AccessSettingsUnavailableException.class);
+      // When / Then
+      assertThatThrownBy(reads::read).isInstanceOf(AccessSettingsUnavailableException.class);
     } finally {
       // Restore the disposable fixture for the next method without rerunning migrations.
       sql.update(
@@ -442,11 +430,8 @@ class AccessSettingsIntegrationTest {
     // Given
     sql.update("UPDATE access_settings SET message='   ' WHERE id='maintenance'");
 
-    // When
-    Throwable failure = org.assertj.core.api.Assertions.catchThrowable(reads::read);
-
-    // Then
-    assertThat(failure).isInstanceOf(AccessSettingsUnavailableException.class);
+    // When / Then
+    assertThatThrownBy(reads::read).isInstanceOf(AccessSettingsUnavailableException.class);
   }
 
   @Test
@@ -455,13 +440,9 @@ class AccessSettingsIntegrationTest {
     // Given
     sql.update("DELETE FROM account_permission WHERE account_id=?", first);
 
-    // When
-    Throwable failure =
-        org.assertj.core.api.Assertions.catchThrowable(
-            () -> updates.changeMaintenance(first, content(0, "Refused")));
-
-    // Then
-    assertThat(failure).isInstanceOf(AccessDeniedException.class);
+    // When / Then
+    assertThatThrownBy(() -> updates.changeMaintenance(first, content(0, "Refused")))
+        .isInstanceOf(AccessDeniedException.class);
     assertThat(reads.maintenance(second).message()).isEqualTo("Prepared");
   }
 
@@ -583,11 +564,8 @@ class AccessSettingsIntegrationTest {
                     }
                   });
 
-      // When
-      Throwable failure = org.assertj.core.api.Assertions.catchThrowable(noop);
-
-      // Then
-      assertThat(failure).isInstanceOf(OptimisticLockingFailureException.class);
+      // When / Then
+      assertThatThrownBy(noop).isInstanceOf(OptimisticLockingFailureException.class);
       assertThat(reads.maintenance(second).message()).isEqualTo("Concurrent");
     }
   }
@@ -596,17 +574,14 @@ class AccessSettingsIntegrationTest {
   @ValueSource(longs = {-1L, 9007199254740992L})
   @DisplayName("PostgreSQL rejects unsafe persisted revisions independently of the application")
   void constrainsStoredRevision(long revision) {
-    // Given
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable invalid =
-        () ->
-            sql.update(
-                "UPDATE access_settings SET revision = ? WHERE id = 'maintenance'", revision);
+    // Given: the parameter supplies a revision outside the supported persisted range.
 
-    // When
-    Throwable failure = org.assertj.core.api.Assertions.catchThrowable(invalid);
-
-    // Then
-    assertThat(failure).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                sql.update(
+                    "UPDATE access_settings SET revision = ? WHERE id = 'maintenance'", revision))
+        .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     assertThat(reads.maintenance(first).revision()).isZero();
   }
 

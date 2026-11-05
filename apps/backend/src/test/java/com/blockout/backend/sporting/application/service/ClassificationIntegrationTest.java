@@ -27,7 +27,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -145,14 +144,11 @@ class ClassificationIntegrationTest {
     match(second, "Independent", "Second away");
     ClassificationView before = configurationReads.pack(account, first.packId());
 
-    // When
-    ThrowingCallable correction =
-        () ->
-            classifications.setPack(
-                account, first.packId(), before.revision(), classification(TARGET));
-
-    // Then
-    assertThatThrownBy(correction)
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                classifications.setPack(
+                    account, first.packId(), before.revision(), classification(TARGET)))
         .isInstanceOfSatisfying(
             SportingConflictException.class,
             error ->
@@ -174,13 +170,11 @@ class ClassificationIntegrationTest {
     match(first, "Home", "Away");
     ClassificationView before = configurationReads.pool(account, first.id());
 
-    // When
-    ThrowingCallable correction =
-        () ->
-            classifications.setPool(account, first.id(), before.revision(), classification(TARGET));
-
-    // Then
-    assertThatThrownBy(correction)
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                classifications.setPool(
+                    account, first.id(), before.revision(), classification(TARGET)))
         .isInstanceOfSatisfying(
             SportingConflictException.class,
             error -> assertThat(error.getResourceIds()).contains(existing.homeTeamId()));
@@ -206,13 +200,11 @@ class ClassificationIntegrationTest {
         targetAlias);
     ClassificationView before = configurationReads.pool(account, first.id());
 
-    // When
-    ThrowingCallable correction =
-        () ->
-            classifications.setPool(account, first.id(), before.revision(), classification(TARGET));
-
-    // Then
-    assertThatThrownBy(correction)
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                classifications.setPool(
+                    account, first.id(), before.revision(), classification(TARGET)))
         .isInstanceOfSatisfying(
             SportingConflictException.class,
             error ->
@@ -240,14 +232,11 @@ class ClassificationIntegrationTest {
         season);
     ClassificationView before = configurationReads.pack(account, first.packId());
 
-    // When
-    ThrowingCallable correction =
-        () ->
-            classifications.setPack(
-                account, first.packId(), before.revision(), classification(ORIGINAL));
-
-    // Then
-    assertThatThrownBy(correction)
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                classifications.setPack(
+                    account, first.packId(), before.revision(), classification(ORIGINAL)))
         .isInstanceOfSatisfying(
             SportingConflictException.class,
             error ->
@@ -348,12 +337,8 @@ class ClassificationIntegrationTest {
         .isEqualTo(before);
     classifications.setPack(account, pool.packId(), pack.revision(), classification(TARGET));
 
-    // When
-    ThrowingCallable stale =
-        () -> classifications.setPool(account, pool.id(), before.revision(), null);
-
-    // Then
-    assertThatThrownBy(stale)
+    // When / Then
+    assertThatThrownBy(() -> classifications.setPool(account, pool.id(), before.revision(), null))
         .isInstanceOfSatisfying(
             SportingConflictException.class,
             error -> assertThat(error.getType()).isEqualTo("stale-revision"));
@@ -406,12 +391,10 @@ class ClassificationIntegrationTest {
     SportingClassification changed =
         new SportingClassification(TARGET, SportFormatEnum._4X4, SportGenderEnum.MIXED);
 
-    // When
-    ThrowingCallable correction =
-        () -> classifications.setPack(account, first.packId(), pack.revision(), changed);
-
-    // Then
-    assertThatThrownBy(correction).isInstanceOf(SportingConflictException.class);
+    // When / Then
+    assertThatThrownBy(
+            () -> classifications.setPack(account, first.packId(), pack.revision(), changed))
+        .isInstanceOf(SportingConflictException.class);
     assertThat(configurationReads.pack(account, first.packId())).isEqualTo(pack);
   }
 

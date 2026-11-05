@@ -15,10 +15,10 @@ import com.blockout.backend.sporting.application.port.SportingStore;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 
 /** Current owner decisions protect hydration independently of any index or personal follow. */
@@ -107,9 +107,10 @@ class ReadSportingDataTest {
     assertThat(result).isEmpty();
   }
 
-  @Test
-  @DisplayName("Invalid rebuild page bounds never reach persistence")
-  void boundsProjectionReads() {
+  @ParameterizedTest
+  @CsvSource({"-1, 20", "0, 201"})
+  @DisplayName("Rejects invalid rebuild page bounds before persistence")
+  void rejectsInvalidProjectionPageBounds(int page, int size) {
     // Given
     SportingStore store = mock(SportingStore.class);
     SportingReadStore current = mock(SportingReadStore.class);
@@ -120,13 +121,9 @@ class ReadSportingDataTest {
                 com.blockout.backend.sporting.application.model.SportingModelMapper.class),
             current);
 
-    // When
-    ThrowingCallable invalidPage = () -> reads.projectionInputs(Kind.TEAM, -1, 20);
-    ThrowingCallable invalidSize = () -> reads.projectionInputs(Kind.TEAM, 0, 201);
-
-    // Then
-    assertThatThrownBy(invalidPage).isInstanceOf(IllegalArgumentException.class);
-    assertThatThrownBy(invalidSize).isInstanceOf(IllegalArgumentException.class);
+    // When / Then
+    assertThatThrownBy(() -> reads.projectionInputs(Kind.TEAM, page, size))
+        .isInstanceOf(IllegalArgumentException.class);
     verifyNoInteractions(store, current);
   }
 }

@@ -195,14 +195,16 @@ class FfvbDiscoveryTest {
     // Given
     String html = "<ul id=menu><li><a>Compétitions</a></li></ul>";
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () ->
-            new FfvbDiscovery()
-                .parse((html).getBytes(Charset.forName("windows-1252")), ROOT, "2026/2027", "LIRA");
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(FfvbAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                new FfvbDiscovery()
+                    .parse(
+                        (html).getBytes(Charset.forName("windows-1252")),
+                        ROOT,
+                        "2026/2027",
+                        "LIRA"))
+        .isInstanceOf(FfvbAcquisitionException.class);
   }
 
   @Test
@@ -212,14 +214,16 @@ class FfvbDiscoveryTest {
     String html =
         "<select name=saison><option selected value='2026/2027'>2026/2027</option></select>";
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () ->
-            new FfvbDiscovery()
-                .parse((html).getBytes(Charset.forName("windows-1252")), ROOT, "2026/2027", "LIRA");
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(FfvbAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                new FfvbDiscovery()
+                    .parse(
+                        (html).getBytes(Charset.forName("windows-1252")),
+                        ROOT,
+                        "2026/2027",
+                        "LIRA"))
+        .isInstanceOf(FfvbAcquisitionException.class);
   }
 
   @Test
@@ -322,12 +326,9 @@ class FfvbDiscoveryTest {
     FfvbDiscovery discovery = new FfvbDiscovery();
     byte[] response = html.getBytes(Charset.forName("windows-1252"));
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable parse =
-        () -> discovery.parse(response, ROOT, "2026/2027", "LIRA");
-
-    // Then
-    assertThatThrownBy(parse).isInstanceOf(FfvbAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(() -> discovery.parse(response, ROOT, "2026/2027", "LIRA"))
+        .isInstanceOf(FfvbAcquisitionException.class);
   }
 
   @ParameterizedTest
@@ -337,15 +338,16 @@ class FfvbDiscoveryTest {
     // Given
     String html = "<ul id=menu></ul>";
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable parse =
-        () ->
-            new FfvbDiscovery()
-                .parse(
-                    (html).getBytes(Charset.forName("windows-1252")), ROOT, "2026/2027", organizer);
-
-    // Then
-    assertThatThrownBy(parse).isInstanceOf(FfvbAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                new FfvbDiscovery()
+                    .parse(
+                        (html).getBytes(Charset.forName("windows-1252")),
+                        ROOT,
+                        "2026/2027",
+                        organizer))
+        .isInstanceOf(FfvbAcquisitionException.class);
   }
 
   @Test

@@ -358,12 +358,10 @@ class SportingObservationClientIntegrationTest {
             + code
             + "}";
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () -> client.detail(ID, CONTEXT, SportingObservation.Facts.builder().build());
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(CollectionBackendFailure.class);
+    // When / Then
+    assertThatThrownBy(
+            () -> client.detail(ID, CONTEXT, SportingObservation.Facts.builder().build()))
+        .isInstanceOf(CollectionBackendFailure.class);
     assertThat(requests).hasValue(1);
   }
 }

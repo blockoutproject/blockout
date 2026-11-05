@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -97,11 +96,8 @@ class AnnounceContributionTest {
             true,
             false);
 
-    // When
-    ThrowingCallable publish = () -> transitions.published(facts, List.of(), NOW);
-
-    // Then
-    assertThatThrownBy(publish).isSameAs(failure);
+    // When / Then
+    assertThatThrownBy(() -> transitions.published(facts, List.of(), NOW)).isSameAs(failure);
     verifyNoInteractions(handoff);
   }
 

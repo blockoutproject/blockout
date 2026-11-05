@@ -10,7 +10,6 @@ import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.accounts.application.AccountAccess;
 import java.util.Set;
 import java.util.UUID;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -34,11 +33,8 @@ class ActionAuthorizationTest {
     when(accounts.lock(ACCOUNT_ID)).thenReturn(true);
     when(store.findByAccountId(ACCOUNT_ID)).thenReturn(Set.of(permission));
 
-    // When
-    ThrowingCallable action = () -> authorization.require(ACCOUNT_ID, permission);
-
-    // Then
-    assertThatCode(action).doesNotThrowAnyException();
+    // When / Then
+    assertThatCode(() -> authorization.require(ACCOUNT_ID, permission)).doesNotThrowAnyException();
   }
 
   @ParameterizedTest
@@ -52,11 +48,9 @@ class ActionAuthorizationTest {
     when(accounts.lock(ACCOUNT_ID)).thenReturn(true);
     when(store.findByAccountId(ACCOUNT_ID)).thenReturn(Set.of(Permission.MANAGE_MAINTENANCE));
 
-    // When
-    ThrowingCallable action = () -> authorization.require(ACCOUNT_ID, otherAction);
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(AccessDeniedException.class);
+    // When / Then
+    assertThatThrownBy(() -> authorization.require(ACCOUNT_ID, otherAction))
+        .isInstanceOf(AccessDeniedException.class);
   }
 
   @Test
@@ -65,12 +59,9 @@ class ActionAuthorizationTest {
     // Given
     when(accounts.lock(ACCOUNT_ID)).thenReturn(false);
 
-    // When
-    ThrowingCallable action =
-        () -> authorization.require(ACCOUNT_ID, Permission.MANAGE_MAINTENANCE);
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(AccessDeniedException.class);
+    // When / Then
+    assertThatThrownBy(() -> authorization.require(ACCOUNT_ID, Permission.MANAGE_MAINTENANCE))
+        .isInstanceOf(AccessDeniedException.class);
     verifyNoInteractions(store);
   }
 }

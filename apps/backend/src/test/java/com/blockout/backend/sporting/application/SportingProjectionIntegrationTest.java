@@ -4,7 +4,7 @@ import static com.blockout.backend.sporting.support.SportingIngestionFixture.DIV
 import static com.blockout.backend.sporting.support.SportingIngestionFixture.SOURCE;
 import static com.blockout.backend.sporting.support.SportingIngestionFixture.candidate;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
@@ -105,12 +105,9 @@ class SportingProjectionIntegrationTest {
     // Given
     events.clear();
 
-    // When
-    Throwable thrown =
-        catchThrowable(() -> projectionChanges.submit(SportingProjectionChanges.Kind.POOL, pool));
-
-    // Then
-    assertThat(thrown).isInstanceOf(IllegalTransactionStateException.class);
+    // When / Then
+    assertThatThrownBy(() -> projectionChanges.submit(SportingProjectionChanges.Kind.POOL, pool))
+        .isInstanceOf(IllegalTransactionStateException.class);
     assertThat(events.stream(Changed.class)).isEmpty();
   }
 

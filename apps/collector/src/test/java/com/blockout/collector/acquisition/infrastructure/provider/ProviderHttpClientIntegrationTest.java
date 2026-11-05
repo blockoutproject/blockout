@@ -102,12 +102,8 @@ class ProviderHttpClientIntegrationTest {
           exchange.close();
         });
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
-      // When
-      org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-          () -> client.page(origin.resolve("/source"));
-
-      // Then
-      assertThatThrownBy(read)
+      // When / Then
+      assertThatThrownBy(() -> client.page(origin.resolve("/source")))
           .isInstanceOf(UncheckedIOException.class)
           .hasCauseInstanceOf(HttpResponseException.class);
     }
@@ -129,12 +125,9 @@ class ProviderHttpClientIntegrationTest {
           exchange.close();
         });
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 1)) {
-      // When
-      org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-          () -> client.page(origin.resolve("/source"));
-
-      // Then
-      assertThatThrownBy(read).isInstanceOf(RequestNotPermitted.class);
+      // When / Then
+      assertThatThrownBy(() -> client.page(origin.resolve("/source")))
+          .isInstanceOf(RequestNotPermitted.class);
       assertThat(requests).hasValue(1);
     }
   }
@@ -160,12 +153,8 @@ class ProviderHttpClientIntegrationTest {
     // Given
     serveGzip("a".repeat(33).getBytes(StandardCharsets.UTF_8));
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
-      // When
-      org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.page(origin.resolve("/source"));
-
-      // Then
-      assertThatThrownBy(action)
+      // When / Then
+      assertThatThrownBy(() -> client.page(origin.resolve("/source")))
           .hasRootCauseMessage("Provider response exceeds the configured byte limit");
     }
   }
@@ -175,12 +164,10 @@ class ProviderHttpClientIntegrationTest {
   void refusesUnknownOrigin() throws Exception {
     // Given
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
-      // When
-      org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.page(URI.create("http://localhost:" + server.getAddress().getPort()));
-
-      // Then
-      assertThatThrownBy(action).isInstanceOf(IllegalArgumentException.class);
+      // When / Then
+      assertThatThrownBy(
+              () -> client.page(URI.create("http://localhost:" + server.getAddress().getPort())))
+          .isInstanceOf(IllegalArgumentException.class);
     }
   }
 
@@ -206,12 +193,9 @@ class ProviderHttpClientIntegrationTest {
           exchange.close();
         });
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
-      // When
-      org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.page(origin.resolve("/source"));
-
-      // Then
-      assertThatThrownBy(action).isInstanceOf(IllegalArgumentException.class);
+      // When / Then
+      assertThatThrownBy(() -> client.page(origin.resolve("/source")))
+          .isInstanceOf(IllegalArgumentException.class);
       assertThat(followed).hasValue(0);
     }
   }
@@ -248,12 +232,8 @@ class ProviderHttpClientIntegrationTest {
           callers.submit(() -> client.page(origin.resolve("/source")));
       assertThat(entered.await(3, TimeUnit.SECONDS)).isTrue();
       try {
-        // When
-        org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-            () -> client.page(origin.resolve("/source"));
-
-        // Then
-        assertThatThrownBy(read)
+        // When / Then
+        assertThatThrownBy(() -> client.page(origin.resolve("/source")))
             .isInstanceOf(UncheckedIOException.class)
             .hasCauseInstanceOf(ConnectionRequestTimeoutException.class);
         assertThat(requests).hasValue(1);
@@ -326,12 +306,10 @@ class ProviderHttpClientIntegrationTest {
         });
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 1)) {
       client.page(origin.resolve("/source"));
-      // When
-      org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.page(origin.resolve("/source"));
 
-      // Then
-      assertThatThrownBy(action).isInstanceOf(RequestNotPermitted.class);
+      // When / Then
+      assertThatThrownBy(() -> client.page(origin.resolve("/source")))
+          .isInstanceOf(RequestNotPermitted.class);
       assertThat(requests).hasValue(1);
     }
   }
@@ -389,12 +367,9 @@ class ProviderHttpClientIntegrationTest {
           exchange.close();
         });
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
-      // When
-      org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.post(origin.resolve("/source"), List.of());
-
-      // Then
-      assertThatThrownBy(action).hasRootCauseInstanceOf(HttpResponseException.class);
+      // When / Then
+      assertThatThrownBy(() -> client.post(origin.resolve("/source"), List.of()))
+          .hasRootCauseInstanceOf(HttpResponseException.class);
       assertThat(requests).hasValue(3);
     }
   }
@@ -412,18 +387,16 @@ class ProviderHttpClientIntegrationTest {
           exchange.close();
         });
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
-      // When
-      org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> {
-            if (post) {
-              client.post(origin.resolve("/source"), List.of());
-            } else {
-              client.page(origin.resolve("/source"));
-            }
-          };
-
-      // Then
-      assertThatThrownBy(action).hasRootCauseInstanceOf(IOException.class);
+      // When / Then
+      assertThatThrownBy(
+              () -> {
+                if (post) {
+                  client.post(origin.resolve("/source"), List.of());
+                } else {
+                  client.page(origin.resolve("/source"));
+                }
+              })
+          .hasRootCauseInstanceOf(IOException.class);
       assertThat(requests).hasValue(attempts);
     }
   }
@@ -446,12 +419,9 @@ class ProviderHttpClientIntegrationTest {
           exchange.close();
         });
     try (ProviderHttpClient client = client(32, Duration.ofMillis(100), 10)) {
-      // When
-      org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.page(origin.resolve("/source"));
-
-      // Then
-      assertThatThrownBy(action).hasRootCauseInstanceOf(SocketTimeoutException.class);
+      // When / Then
+      assertThatThrownBy(() -> client.page(origin.resolve("/source")))
+          .hasRootCauseInstanceOf(SocketTimeoutException.class);
       assertThat(requests).hasValue(1);
     } finally {
       release.countDown();
@@ -472,12 +442,9 @@ class ProviderHttpClientIntegrationTest {
           exchange.close();
         });
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
-      // When
-      org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.page(origin.resolve("/source"));
-
-      // Then
-      assertThatThrownBy(action).hasRootCauseInstanceOf(RedirectException.class);
+      // When / Then
+      assertThatThrownBy(() -> client.page(origin.resolve("/source")))
+          .hasRootCauseInstanceOf(RedirectException.class);
       assertThat(requests).hasValue(2);
     }
   }
@@ -501,12 +468,8 @@ class ProviderHttpClientIntegrationTest {
           exchange.close();
         });
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
-      // When
-      org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-          () -> client.page(origin.resolve("/source"));
-
-      // Then
-      assertThatThrownBy(action)
+      // When / Then
+      assertThatThrownBy(() -> client.page(origin.resolve("/source")))
           .hasRootCauseMessage("Provider response exceeds the configured byte limit");
     } finally {
       release.countDown();
@@ -547,12 +510,8 @@ class ProviderHttpClientIntegrationTest {
           exchange.close();
         });
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
-      // When
-      org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-          () -> client.getWithBadRequest(origin.resolve("/source"));
-
-      // Then
-      assertThatThrownBy(read)
+      // When / Then
+      assertThatThrownBy(() -> client.getWithBadRequest(origin.resolve("/source")))
           .hasRootCauseMessage("Provider response exceeds the configured byte limit");
     }
   }

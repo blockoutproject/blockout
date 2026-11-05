@@ -6,7 +6,6 @@ import static com.blockout.backend.sporting.support.SportingIngestionFixture.SOU
 import static com.blockout.backend.sporting.support.SportingIngestionFixture.candidate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.model.CollectionState;
@@ -94,12 +93,9 @@ class CalendarAcceptanceIntegrationTest {
     byte[] undecodable = new byte[] {1, 2, 3};
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable validate =
-        () -> transaction.executeWithoutResult(status -> imageContent.validate(undecodable));
-
-    // Then
-    assertThatThrownBy(validate)
+    // When / Then
+    assertThatThrownBy(
+            () -> transaction.executeWithoutResult(status -> imageContent.validate(undecodable)))
         .isInstanceOf(org.springframework.transaction.IllegalTransactionStateException.class);
   }
 
@@ -111,12 +107,9 @@ class CalendarAcceptanceIntegrationTest {
         calendar(1, List.of(candidate("AMBIENT", "Home", LocalDate.of(2026, 10, 1))));
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable accept =
-        () -> transaction.executeWithoutResult(status -> calendars.accept(pool, observation));
-
-    // Then
-    assertThatThrownBy(accept)
+    // When / Then
+    assertThatThrownBy(
+            () -> transaction.executeWithoutResult(status -> calendars.accept(pool, observation)))
         .isInstanceOf(org.springframework.transaction.IllegalTransactionStateException.class);
     assertThat(
             sql.queryForObject(
@@ -231,11 +224,9 @@ class CalendarAcceptanceIntegrationTest {
     UUID unselected = UUID.fromString("00000000-0000-4000-8000-000000000199");
     CalendarObservation observation = calendar(1, List.of(candidate("M1", "Home", null)));
 
-    // When
-    Throwable thrown = catchThrowable(() -> calendars.accept(unselected, observation));
-
-    // Then
-    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+    // When / Then
+    assertThatThrownBy(() -> calendars.accept(unselected, observation))
+        .isInstanceOf(CollectionConflictException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Integer.class)).isZero();
   }
 
@@ -287,9 +278,8 @@ class CalendarAcceptanceIntegrationTest {
         sql.queryForObject(
             "SELECT catalog_eligible FROM sporting_pool WHERE id=?", Boolean.class, pool);
 
-    // When
-    Throwable conflict =
-        catchThrowable(
+    // When / Then
+    assertThatThrownBy(
             () ->
                 catalogs.accept(
                     SOURCE,
@@ -299,14 +289,12 @@ class CalendarAcceptanceIntegrationTest {
                         List.of(
                             catalogPool("OTHER", "Other"),
                             item,
-                            catalogPool("NEW", "Contradiction")))));
-
-    // Then
+                            catalogPool("NEW", "Contradiction")))))
+        .isInstanceOf(SportingConflictException.class);
     assertThat(first.outcomes()).hasSize(2);
     assertThat(first.outcomes().get(0).resourceId())
         .isEqualTo(first.outcomes().get(1).resourceId());
     assertThat(originalEligible).isTrue();
-    assertThat(conflict).isInstanceOf(SportingConflictException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_pool", Integer.class))
         .isEqualTo(2);
     assertThat(
@@ -600,17 +588,14 @@ class CalendarAcceptanceIntegrationTest {
         new CatalogObservation.Pool(
             "OTHER_PACK", "COMP", "POOL", null, null, null, null, "Existing");
 
-    // When
-    Throwable thrown =
-        catchThrowable(
+    // When / Then
+    assertThatThrownBy(
             () ->
                 catalogs.accept(
                     SOURCE,
                     new CatalogObservation(
-                        context(1), true, List.of(catalogPool("NEW", "New"), wrongPack))));
-
-    // Then
-    assertThat(thrown).isInstanceOf(SportingConflictException.class);
+                        context(1), true, List.of(catalogPool("NEW", "New"), wrongPack))))
+        .isInstanceOf(SportingConflictException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_pool", Integer.class))
         .isEqualTo(1);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_catalog", Integer.class)).isZero();

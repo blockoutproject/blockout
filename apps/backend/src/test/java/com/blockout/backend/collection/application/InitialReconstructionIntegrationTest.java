@@ -335,11 +335,8 @@ class InitialReconstructionIntegrationTest {
     CollectionSeasonView season = seasonReads.collectionState(source.seasonId());
     preparation.launch(OPERATOR, season.id(), season.collectionRevision(), Set.of(source.id()));
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable start = () -> admit(pending);
-
-    // Then
-    assertThatThrownBy(start).isInstanceOf(CollectionConflictException.class);
+    // When / Then
+    assertThatThrownBy(() -> admit(pending)).isInstanceOf(CollectionConflictException.class);
     assertThat(configuration.control(OPERATOR, pending.id()).control().requestId())
         .isEqualTo(pending.requestId());
   }
@@ -467,11 +464,8 @@ class InitialReconstructionIntegrationTest {
     Source source = qualified(2023, "ABCCS");
     sql.update("DELETE FROM account_permission WHERE account_id=?", OPERATOR);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable request = () -> request(source, Set.of());
-
-    // Then
-    assertThatThrownBy(request).isInstanceOf(AccessDeniedException.class);
+    // When / Then
+    assertThatThrownBy(() -> request(source, Set.of())).isInstanceOf(AccessDeniedException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_request_source", Long.class))
         .isZero();
   }
@@ -538,18 +532,16 @@ class InitialReconstructionIntegrationTest {
     // Given
     sql.update("DELETE FROM account_permission WHERE account_id=?", OPERATOR);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable prepare =
-        () ->
-            reconstruction.prepare(
-                OPERATOR,
-                2023,
-                CollectionProviderEnum.FFVB,
-                "ABCCS",
-                URI.create("https://www.ffvbbeach.org/archive"));
-
-    // Then
-    assertThatThrownBy(prepare).isInstanceOf(AccessDeniedException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                reconstruction.prepare(
+                    OPERATOR,
+                    2023,
+                    CollectionProviderEnum.FFVB,
+                    "ABCCS",
+                    URI.create("https://www.ffvbbeach.org/archive")))
+        .isInstanceOf(AccessDeniedException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_season", Long.class)).isZero();
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_source_binding", Long.class))
         .isZero();
@@ -722,18 +714,16 @@ class InitialReconstructionIntegrationTest {
       results.complete(cycle.id(), NOW.plusSeconds(60));
     }
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable retry =
-        () ->
-            reconstruction.request(
-                OPERATOR,
-                ffvb.seasonId(),
-                seasonReads.collectionState(ffvb.seasonId()).collectionRevision(),
-                roots,
-                Set.of(ffvb.id()));
-
-    // Then
-    assertThatThrownBy(retry).isInstanceOf(CollectionConflictException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                reconstruction.request(
+                    OPERATOR,
+                    ffvb.seasonId(),
+                    seasonReads.collectionState(ffvb.seasonId()).collectionRevision(),
+                    roots,
+                    Set.of(ffvb.id())))
+        .isInstanceOf(CollectionConflictException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_request_source", Long.class))
         .isZero();
   }
@@ -745,12 +735,9 @@ class InitialReconstructionIntegrationTest {
     Source source = qualified(2023, "ABCCS");
     UUID unknown = UUID.fromString("00000000-0000-4000-8000-000000000299");
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable request =
-        () -> request(source, Set.of(unknown));
-
-    // Then
-    assertThatThrownBy(request).isInstanceOf(CollectionConflictException.class);
+    // When / Then
+    assertThatThrownBy(() -> request(source, Set.of(unknown)))
+        .isInstanceOf(CollectionConflictException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_request_source", Long.class))
         .isZero();
   }
