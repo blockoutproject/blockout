@@ -1,6 +1,7 @@
 package com.blockout.collector.ingestion;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.junit.jupiter.api.Assertions.assertTimeout;
 
@@ -193,15 +194,10 @@ class IngestionAuthenticationIntegrationTest {
             .incarnationId(UUID.fromString("00000000-0000-4000-8000-000000000001"));
 
     // When
-    Throwable failure =
-        catchThrowable(
-            () -> {
-              api.registerCollectorRuntime(request);
-              api.registerCollectorRuntime(request);
-            });
+    api.registerCollectorRuntime(request);
+    api.registerCollectorRuntime(request);
 
     // Then
-    assertThat(failure).isNull();
     assertThat(tokens).hasValue(1);
     assertThat(writes).hasValue(2);
     assertThat(bearer.get()).isEqualTo("Bearer harmless-token-1");
@@ -250,11 +246,9 @@ class IngestionAuthenticationIntegrationTest {
     provider.setClock(Clock.fixed(Instant.now().plusSeconds(7200), ZoneOffset.UTC));
     refuseToken = true;
 
-    // When
-    Throwable failure = catchThrowable(() -> api.registerCollectorRuntime(request));
-
-    // Then
-    assertThat(failure).isInstanceOf(OAuth2AuthorizationException.class);
+    // When / Then
+    assertThatThrownBy(() -> api.registerCollectorRuntime(request))
+        .isInstanceOf(OAuth2AuthorizationException.class);
     assertThat(tokens).hasValue(2);
     assertThat(writes).hasValue(1);
   }
@@ -292,11 +286,8 @@ class IngestionAuthenticationIntegrationTest {
     stallToken = timeout;
     UUID incarnation = UUID.fromString("00000000-0000-4000-8000-000000000001");
 
-    // When
-    Throwable failure = catchThrowable(() -> backend.register(0, incarnation));
-
-    // Then
-    assertThat(failure)
+    // When / Then
+    assertThatThrownBy(() -> backend.register(0, incarnation))
         .isInstanceOfSatisfying(
             CollectionBackendFailure.class,
             classified -> {
@@ -319,11 +310,9 @@ class IngestionAuthenticationIntegrationTest {
             .revision(0L)
             .incarnationId(UUID.fromString("00000000-0000-4000-8000-000000000001"));
 
-    // When
-    Throwable failure = catchThrowable(() -> api.registerCollectorRuntime(request));
-
-    // Then
-    assertThat(failure).isInstanceOf(HttpClientErrorException.Unauthorized.class);
+    // When / Then
+    assertThatThrownBy(() -> api.registerCollectorRuntime(request))
+        .isInstanceOf(HttpClientErrorException.Unauthorized.class);
     assertThat(tokens).hasValue(1);
     assertThat(writes).hasValue(1);
 
@@ -350,11 +339,9 @@ class IngestionAuthenticationIntegrationTest {
             .revision(0L)
             .incarnationId(UUID.fromString("00000000-0000-4000-8000-000000000001"));
 
-    // When
-    Throwable failure = catchThrowable(() -> api.registerCollectorRuntime(request));
-
-    // Then
-    assertThat(failure).isInstanceOf(ResourceAccessException.class);
+    // When / Then
+    assertThatThrownBy(() -> api.registerCollectorRuntime(request))
+        .isInstanceOf(ResourceAccessException.class);
     assertThat(tokens).hasValue(1);
     assertThat(writes).hasValue(1);
   }

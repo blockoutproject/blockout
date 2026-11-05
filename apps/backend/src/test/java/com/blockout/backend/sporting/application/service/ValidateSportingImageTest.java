@@ -11,7 +11,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
 import javax.imageio.ImageIO;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -45,11 +44,9 @@ class ValidateSportingImageTest {
     byte[] bytes = image(format, width, height);
     assertThat(bytes.length).isLessThan(ValidateSportingImage.MAX_BYTES);
 
-    // When
-    ThrowingCallable validate = () -> validator.validate(bytes);
-
-    // Then
-    assertThatThrownBy(validate).isInstanceOf(SportingValidationException.class);
+    // When / Then
+    assertThatThrownBy(() -> validator.validate(bytes))
+        .isInstanceOf(SportingValidationException.class);
   }
 
   @Test
@@ -86,11 +83,9 @@ class ValidateSportingImageTest {
     // Given
     byte[] bytes = Arrays.copyOf(image("PNG", 1, 1), ValidateSportingImage.MAX_BYTES + 1);
 
-    // When
-    ThrowingCallable validate = () -> validator.validate(bytes);
-
-    // Then
-    assertThatThrownBy(validate).isInstanceOf(SportingValidationException.class);
+    // When / Then
+    assertThatThrownBy(() -> validator.validate(bytes))
+        .isInstanceOf(SportingValidationException.class);
   }
 
   @Test
@@ -99,11 +94,9 @@ class ValidateSportingImageTest {
     // Given
     byte[] bytes = {};
 
-    // When
-    ThrowingCallable validate = () -> validator.validate(bytes);
-
-    // Then
-    assertThatThrownBy(validate).isInstanceOf(SportingValidationException.class);
+    // When / Then
+    assertThatThrownBy(() -> validator.validate(bytes))
+        .isInstanceOf(SportingValidationException.class);
   }
 
   @Test
@@ -112,11 +105,9 @@ class ValidateSportingImageTest {
     // Given
     byte[] bytes = {1, 2, 3};
 
-    // When
-    ThrowingCallable validate = () -> validator.validate(bytes);
-
-    // Then
-    assertThatThrownBy(validate).isInstanceOf(SportingValidationException.class);
+    // When / Then
+    assertThatThrownBy(() -> validator.validate(bytes))
+        .isInstanceOf(SportingValidationException.class);
   }
 
   @Test
@@ -125,11 +116,9 @@ class ValidateSportingImageTest {
     // Given
     byte[] bytes = {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a};
 
-    // When
-    ThrowingCallable validate = () -> validator.validate(bytes);
-
-    // Then
-    assertThatThrownBy(validate).isInstanceOf(SportingValidationException.class);
+    // When / Then
+    assertThatThrownBy(() -> validator.validate(bytes))
+        .isInstanceOf(SportingValidationException.class);
   }
 
   @Test
@@ -138,24 +127,20 @@ class ValidateSportingImageTest {
     // Given
     byte[] bytes = image("GIF", 2, 2);
 
-    // When
-    ThrowingCallable validate = () -> validator.validate(bytes);
-
-    // Then
-    assertThatThrownBy(validate).isInstanceOf(SportingValidationException.class);
+    // When / Then
+    assertThatThrownBy(() -> validator.validate(bytes))
+        .isInstanceOf(SportingValidationException.class);
   }
 
   @Test
   @DisplayName("Rejects invalid source metadata even when the original pixels are decodable")
-  void validatesOriginalMetadata() throws IOException {
+  void rejectsInvalidOriginalMetadata() throws IOException {
     // Given
     byte[] bytes = ImageFixture.pngWithMalformedCompressedText();
 
-    // When
-    ThrowingCallable validate = () -> validator.validate(bytes);
-
-    // Then
-    assertThatThrownBy(validate).isInstanceOf(SportingValidationException.class);
+    // When / Then
+    assertThatThrownBy(() -> validator.validate(bytes))
+        .isInstanceOf(SportingValidationException.class);
   }
 
   /**

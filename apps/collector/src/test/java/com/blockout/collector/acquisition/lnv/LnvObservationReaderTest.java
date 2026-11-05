@@ -30,7 +30,6 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -182,11 +181,9 @@ class LnvObservationReaderTest {
                 true),
             Instant.EPOCH);
 
-    // When
-    ThrowingCallable action = () -> resource.document(target, "Scoresheet");
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(() -> resource.document(target, "Scoresheet"))
+        .isInstanceOf(LnvAcquisitionException.class);
     verifyNoInteractions(http);
   }
 
@@ -210,11 +207,8 @@ class LnvObservationReaderTest {
         reader.fromPage(
             new ProviderResponse(html.getBytes(StandardCharsets.UTF_8), page, true), Instant.EPOCH);
 
-    // When
-    ThrowingCallable action = () -> resource.detail(target);
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(() -> resource.detail(target)).isInstanceOf(LnvAcquisitionException.class);
     verifyNoInteractions(http);
   }
 
@@ -238,11 +232,9 @@ class LnvObservationReaderTest {
         reader.fromPage(
             new ProviderResponse(html.getBytes(StandardCharsets.UTF_8), page, true), Instant.EPOCH);
 
-    // When
-    ThrowingCallable action = () -> resource.document(target, "Scoresheet");
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(() -> resource.document(target, "Scoresheet"))
+        .isInstanceOf(LnvAcquisitionException.class);
     verifyNoInteractions(http);
   }
 
@@ -285,11 +277,9 @@ class LnvObservationReaderTest {
         .when(http)
         .postPage(any(), any());
 
-    // When
-    ThrowingCallable action = () -> resource.document(target, "Scoresheet");
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(LnvAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(() -> resource.document(target, "Scoresheet"))
+        .isInstanceOf(LnvAcquisitionException.class);
     verify(http).postPage(any(), any());
     verifyNoMoreInteractions(http);
   }

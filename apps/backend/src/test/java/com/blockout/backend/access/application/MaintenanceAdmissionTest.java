@@ -64,14 +64,12 @@ class MaintenanceAdmissionTest {
         .when(authorization)
         .require(ID, Permission.BYPASS_MAINTENANCE);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () ->
-            admission.requireOrdinaryAccess(
-                "https://identity.example.invalid/", "synthetic-subject", true);
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(AccessDeniedException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                admission.requireOrdinaryAccess(
+                    "https://identity.example.invalid/", "synthetic-subject", true))
+        .isInstanceOf(AccessDeniedException.class);
   }
 
   @Test
@@ -87,12 +85,9 @@ class MaintenanceAdmissionTest {
             mock(ActionAuthorization.class),
             mock(PlatformTransactionManager.class));
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () -> admission.requireOrdinaryAccess(null, null, true);
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(AccessDeniedException.class);
+    // When / Then
+    assertThatThrownBy(() -> admission.requireOrdinaryAccess(null, null, true))
+        .isInstanceOf(AccessDeniedException.class);
   }
 
   @Test
@@ -108,11 +103,8 @@ class MaintenanceAdmissionTest {
             mock(ActionAuthorization.class),
             mock(PlatformTransactionManager.class));
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () -> admission.requireOrdinaryAccess(null, null, false);
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(MaintenanceRequiredException.class);
+    // When / Then
+    assertThatThrownBy(() -> admission.requireOrdinaryAccess(null, null, false))
+        .isInstanceOf(MaintenanceRequiredException.class);
   }
 }

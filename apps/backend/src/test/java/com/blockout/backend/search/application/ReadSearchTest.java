@@ -89,11 +89,9 @@ class ReadSearchTest {
     }
     when(hydration.current(eq(context), any())).thenReturn(Map.of());
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read = () -> search.read(context, null);
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(SearchUnavailableException.class);
+    // When / Then
+    assertThatThrownBy(() -> search.read(context, null))
+        .isInstanceOf(SearchUnavailableException.class);
   }
 
   @Test
@@ -141,11 +139,9 @@ class ReadSearchTest {
     when(hydration.current(eq(context), any()))
         .thenReturn(Map.of(new UUID(0, 1), summary(new UUID(0, 1))));
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read = () -> search.read(context, null);
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(SearchUnavailableException.class);
+    // When / Then
+    assertThatThrownBy(() -> search.read(context, null))
+        .isInstanceOf(SearchUnavailableException.class);
   }
 
   @Test

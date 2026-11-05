@@ -215,12 +215,10 @@ class ConsultationContractJsonTest {
         (tools.jackson.databind.node.ObjectNode) json.readTree(valid);
     body.set(field, json.readTree(value));
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable decode =
-        () -> json.readValue(body.toString(), MatchCalendarResponse.class);
-
-    // Then
-    assertThatThrownBy(decode).isInstanceOf(RuntimeException.class).hasMessageContaining(field);
+    // When / Then
+    assertThatThrownBy(() -> json.readValue(body.toString(), MatchCalendarResponse.class))
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining(field);
   }
 
   /**

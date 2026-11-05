@@ -84,8 +84,10 @@ class AcquisitionSchedulerIntegrationTest {
                           null,
                           null)),
                   List.of()));
+
       // When
       competitionTick.run();
+
       // Then
       assertThat(executor.getQueueSize()).isZero();
       verify(backend, never()).admit(any());

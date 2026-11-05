@@ -12,7 +12,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.DisplayName;
@@ -267,13 +266,11 @@ class FollowListsIntegrationTest {
     // Given
     UUID missing = id(999);
 
-    // When
-    ThrowingCallable teams = () -> reads.teams(missing, null, 0);
-    ThrowingCallable pools = () -> reads.pools(missing, null, 0);
-
-    // Then
-    assertThatThrownBy(teams).isInstanceOf(AccountNotFoundException.class);
-    assertThatThrownBy(pools).isInstanceOf(AccountNotFoundException.class);
+    // When / Then
+    assertThatThrownBy(() -> reads.teams(missing, null, 0))
+        .isInstanceOf(AccountNotFoundException.class);
+    assertThatThrownBy(() -> reads.pools(missing, null, 0))
+        .isInstanceOf(AccountNotFoundException.class);
   }
 
   @Test
@@ -288,17 +285,15 @@ class FollowListsIntegrationTest {
     sql.update("UPDATE sporting_pool SET calendar_empty = TRUE WHERE id = ?", pool);
     UUID unknown = id(999);
 
-    // When
-    ThrowingCallable unknownTeams = () -> reads.teams(ACCOUNT, unknown, 0);
-    ThrowingCallable unknownPools = () -> reads.pools(ACCOUNT, unknown, 0);
-    ThrowingCallable hiddenTeams = () -> reads.teams(ACCOUNT, hidden.season(), 0);
-    ThrowingCallable hiddenPools = () -> reads.pools(ACCOUNT, hidden.season(), 0);
-
-    // Then
-    assertThatThrownBy(unknownTeams).isInstanceOf(FollowUnavailableTargetException.class);
-    assertThatThrownBy(unknownPools).isInstanceOf(FollowUnavailableTargetException.class);
-    assertThatThrownBy(hiddenTeams).isInstanceOf(FollowUnavailableTargetException.class);
-    assertThatThrownBy(hiddenPools).isInstanceOf(FollowUnavailableTargetException.class);
+    // When / Then
+    assertThatThrownBy(() -> reads.teams(ACCOUNT, unknown, 0))
+        .isInstanceOf(FollowUnavailableTargetException.class);
+    assertThatThrownBy(() -> reads.pools(ACCOUNT, unknown, 0))
+        .isInstanceOf(FollowUnavailableTargetException.class);
+    assertThatThrownBy(() -> reads.teams(ACCOUNT, hidden.season(), 0))
+        .isInstanceOf(FollowUnavailableTargetException.class);
+    assertThatThrownBy(() -> reads.pools(ACCOUNT, hidden.season(), 0))
+        .isInstanceOf(FollowUnavailableTargetException.class);
   }
 
   @Test

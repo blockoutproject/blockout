@@ -2,7 +2,6 @@ package com.blockout.backend.collection.infrastructure.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.exception.CollectionNotFoundException;
@@ -132,17 +131,14 @@ class CollectionAdmissionIntegrationTest {
     // Given
     UUID duplicate = UUID.fromString("00000000-0000-4000-8000-000000000199");
 
-    // When
-    Throwable thrown =
-        catchThrowable(
+    // When / Then
+    assertThatThrownBy(
             () ->
                 sql.update(
                     "INSERT INTO collection_control(id,season_id,family,enabled) VALUES (?,?,'FFVB',TRUE)",
                     duplicate,
-                    season));
-
-    // Then
-    assertThat(thrown).isInstanceOf(DataIntegrityViolationException.class);
+                    season))
+        .isInstanceOf(DataIntegrityViolationException.class);
   }
 
   @Test
@@ -151,17 +147,14 @@ class CollectionAdmissionIntegrationTest {
     // Given
     UUID duplicate = UUID.fromString("00000000-0000-4000-8000-000000000199");
 
-    // When
-    Throwable thrown =
-        catchThrowable(
+    // When / Then
+    assertThatThrownBy(
             () ->
                 sql.update(
                     "INSERT INTO collection_source_binding(id,season_id,provider,organizer_reference,validation_state,locked,launched) VALUES (?,?,'FFVB','ABCCS','UNVALIDATED',FALSE,FALSE)",
                     duplicate,
-                    season));
-
-    // Then
-    assertThat(thrown).isInstanceOf(DataIntegrityViolationException.class);
+                    season))
+        .isInstanceOf(DataIntegrityViolationException.class);
   }
 
   @Test
@@ -170,11 +163,9 @@ class CollectionAdmissionIntegrationTest {
     // Given
     sql.update("UPDATE collector_runtime SET revision = 9007199254740991 WHERE id = 1");
 
-    // When
-    Throwable thrown = catchThrowable(() -> runtimes.register(9_007_199_254_740_991L, REPLACEMENT));
-
-    // Then
-    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+    // When / Then
+    assertThatThrownBy(() -> runtimes.register(9_007_199_254_740_991L, REPLACEMENT))
+        .isInstanceOf(CollectionConflictException.class);
     assertThat(collectionWork.current().incarnationId()).isEqualTo(STARTUP);
   }
 
@@ -233,11 +224,8 @@ class CollectionAdmissionIntegrationTest {
     // Given
     StartCycle command = new StartCycle(CYCLE, STARTUP, CONTROL, SOURCE, 0, null);
 
-    // When
-    Throwable thrown = catchThrowable(() -> cycles.admit(command));
-
-    // Then
-    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+    // When / Then
+    assertThatThrownBy(() -> cycles.admit(command)).isInstanceOf(CollectionConflictException.class);
   }
 
   @Test
@@ -833,12 +821,9 @@ class CollectionAdmissionIntegrationTest {
         "UPDATE collection_source_binding SET revision = 1, locked = FALSE, launched = FALSE, validation_state = 'PENDING' WHERE id = ?",
         SOURCE);
 
-    // When
-    Throwable thrown =
-        catchThrowable(() -> cycles.admit(new StartCycle(CYCLE, STARTUP, null, SOURCE, 0, null)));
-
-    // Then
-    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+    // When / Then
+    assertThatThrownBy(() -> cycles.admit(new StartCycle(CYCLE, STARTUP, null, SOURCE, 0, null)))
+        .isInstanceOf(CollectionConflictException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_cycle", Long.class)).isZero();
   }
 
@@ -848,15 +833,12 @@ class CollectionAdmissionIntegrationTest {
     // Given
     sql.update("UPDATE collection_control SET revision = 9007199254740991 WHERE id = ?", CONTROL);
 
-    // When
-    Throwable thrown =
-        catchThrowable(
+    // When / Then
+    assertThatThrownBy(
             () ->
                 cycles.admit(
-                    new StartCycle(CYCLE, STARTUP, CONTROL, null, 9_007_199_254_740_991L, null)));
-
-    // Then
-    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+                    new StartCycle(CYCLE, STARTUP, CONTROL, null, 9_007_199_254_740_991L, null)))
+        .isInstanceOf(CollectionConflictException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_cycle", Long.class)).isZero();
   }
 
@@ -991,11 +973,8 @@ class CollectionAdmissionIntegrationTest {
     // Given
     StartCycle command = new StartCycle(CYCLE, STARTUP, CONTROL, null, 1, null);
 
-    // When
-    Throwable thrown = catchThrowable(() -> cycles.admit(command));
-
-    // Then
-    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+    // When / Then
+    assertThatThrownBy(() -> cycles.admit(command)).isInstanceOf(CollectionConflictException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_cycle", Long.class)).isZero();
   }
 
@@ -1005,12 +984,9 @@ class CollectionAdmissionIntegrationTest {
     // Given
     sql.update("UPDATE sporting_season SET collection_state = 'CLOSED' WHERE id = ?", season);
 
-    // When
-    Throwable thrown =
-        catchThrowable(() -> cycles.admit(new StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null)));
-
-    // Then
-    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+    // When / Then
+    assertThatThrownBy(() -> cycles.admit(new StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null)))
+        .isInstanceOf(CollectionConflictException.class);
   }
 
   @Test

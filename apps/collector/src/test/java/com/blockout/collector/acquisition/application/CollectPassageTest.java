@@ -35,7 +35,6 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -1089,11 +1088,8 @@ class CollectPassageTest {
                 return new SportingObservation.CalendarOutcome(List.of(), 0, 0, 0, 0, true);
               });
 
-      // When
-      ThrowingCallable action = () -> passage.execute(admitted);
-
-      // Then
-      assertThatThrownBy(action).isInstanceOf(IllegalStateException.class);
+      // When / Then
+      assertThatThrownBy(() -> passage.execute(admitted)).isInstanceOf(IllegalStateException.class);
       verify(resource, never()).standings(any());
       verify(backend, never()).complete(any(), any());
     }

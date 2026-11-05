@@ -74,7 +74,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -255,18 +254,16 @@ class SportingPresentationIntegrationTest {
             club,
             new Edit(current.revision(), "Manual", null, LogoActionEnum.KEEP, null));
 
-    // When
-    ThrowingCallable stale =
-        () ->
-            presentation.set(
-                account,
-                SportingProjectionChanges.Kind.CLUB,
-                club,
-                new Edit(current.revision(), "Manual", null, LogoActionEnum.KEEP, null));
-
-    // Then
+    // When / Then
     assertThat(noOp.revision()).isEqualTo(current.revision());
-    assertThatThrownBy(stale).isInstanceOf(SportingConflictException.class);
+    assertThatThrownBy(
+            () ->
+                presentation.set(
+                    account,
+                    SportingProjectionChanges.Kind.CLUB,
+                    club,
+                    new Edit(current.revision(), "Manual", null, LogoActionEnum.KEEP, null)))
+        .isInstanceOf(SportingConflictException.class);
     assertThat(configurationReads.presentation(account, SportingProjectionChanges.Kind.CLUB, club))
         .isEqualTo(changed);
   }
@@ -407,20 +404,18 @@ class SportingPresentationIntegrationTest {
     contactRestrictions.restrict(club, Set.of(ContactField.EMAIL));
     Contacts current = configurationReads.clubContacts(account, club);
 
-    // When
-    ThrowingCallable change =
-        () ->
-            details.correct(
-                account,
-                club,
-                Long.toString(current.revision()),
-                Map.of(
-                    ContactField.PHONE, new ContactEdit(ContactModeEnum.MANUAL, "0100000001"),
-                    ContactField.EMAIL,
-                        new ContactEdit(ContactModeEnum.MANUAL, "manual@example.invalid")));
-
-    // Then
-    assertThatThrownBy(change).isInstanceOf(SportingConflictException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                details.correct(
+                    account,
+                    club,
+                    Long.toString(current.revision()),
+                    Map.of(
+                        ContactField.PHONE, new ContactEdit(ContactModeEnum.MANUAL, "0100000001"),
+                        ContactField.EMAIL,
+                            new ContactEdit(ContactModeEnum.MANUAL, "manual@example.invalid"))))
+        .isInstanceOf(SportingConflictException.class);
     assertThat(configurationReads.clubContacts(account, club)).isEqualTo(current);
     assertThatThrownBy(
             () ->
@@ -932,16 +927,14 @@ class SportingPresentationIntegrationTest {
         new LocalityObservation(
             context(geocoding, 1), revision, GeocodingOutcomeEnum.LOCATED, 48.86, 2.34));
 
-    // When
-    ThrowingCallable change =
-        () ->
-            localities.accept(
-                club,
-                new LocalityObservation(
-                    context(geocoding, 2), revision, GeocodingOutcomeEnum.LOCATED, null, 2.34));
-
-    // Then
-    assertThatThrownBy(change).isInstanceOf(SportingValidationException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                localities.accept(
+                    club,
+                    new LocalityObservation(
+                        context(geocoding, 2), revision, GeocodingOutcomeEnum.LOCATED, null, 2.34)))
+        .isInstanceOf(SportingValidationException.class);
     assertThatThrownBy(
             () ->
                 localities.accept(
@@ -1529,17 +1522,15 @@ class SportingPresentationIntegrationTest {
         division);
     DivisionDetail before = configurationReads.division(account, division);
 
-    // When
-    ThrowingCallable rename =
-        () ->
-            presentation.setDivision(
-                account,
-                division,
-                new SportingPresentation.DivisionEdit(
-                    "0", "synthetic", "#445566", null, LogoActionEnum.KEEP, null));
-
-    // Then
-    assertThatThrownBy(rename).isInstanceOf(SportingConflictException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                presentation.setDivision(
+                    account,
+                    division,
+                    new SportingPresentation.DivisionEdit(
+                        "0", "synthetic", "#445566", null, LogoActionEnum.KEEP, null)))
+        .isInstanceOf(SportingConflictException.class);
     assertThat(configurationReads.division(account, division)).isEqualTo(before);
   }
 

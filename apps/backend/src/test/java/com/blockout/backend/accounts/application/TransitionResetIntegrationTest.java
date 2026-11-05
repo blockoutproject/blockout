@@ -212,11 +212,9 @@ class TransitionResetIntegrationTest {
     Account owner = establishment.establish(ISSUER, SUBJECT_A).view().account();
     FollowContext old = new FollowContext(owner.id(), new Target(type, OLD_REFERENCE));
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable follow = () -> follows.replace(old, true);
-
-    // Then
-    assertThatThrownBy(follow).isInstanceOf(FollowUnavailableTargetException.class);
+    // When / Then
+    assertThatThrownBy(() -> follows.replace(old, true))
+        .isInstanceOf(FollowUnavailableTargetException.class);
     assertFreshPersonalReads(owner.id());
   }
 

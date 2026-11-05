@@ -138,12 +138,9 @@ class MatchDocumentsIntegrationTest {
     // Given
     sql.update("UPDATE sporting_match SET local_date=NULL WHERE id=?", match.id());
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () -> documents.read(match.id(), MatchDocumentKindEnum.INFORMATION);
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(SportingResourceNotFoundException.class);
+    // When / Then
+    assertThatThrownBy(() -> documents.read(match.id(), MatchDocumentKindEnum.INFORMATION))
+        .isInstanceOf(SportingResourceNotFoundException.class);
     assertThat(
             sql.queryForObject(
                 "SELECT document_match_code FROM sporting_match WHERE id=?",

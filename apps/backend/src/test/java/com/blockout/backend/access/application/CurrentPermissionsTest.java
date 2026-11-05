@@ -9,7 +9,6 @@ import static org.mockito.Mockito.when;
 import com.blockout.backend.access.domain.Permission;
 import java.util.Set;
 import java.util.UUID;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -43,11 +42,9 @@ class CurrentPermissionsTest {
     // Given
     when(store.findByAccountId(ACCOUNT_ID)).thenReturn(Set.of(permission));
 
-    // When
-    ThrowingCallable read = () -> permissions.requireForRead(ACCOUNT_ID, permission);
-
-    // Then
-    assertThatCode(read).doesNotThrowAnyException();
+    // When / Then
+    assertThatCode(() -> permissions.requireForRead(ACCOUNT_ID, permission))
+        .doesNotThrowAnyException();
   }
 
   @ParameterizedTest
@@ -60,11 +57,9 @@ class CurrentPermissionsTest {
     // Given
     when(store.findByAccountId(ACCOUNT_ID)).thenReturn(Set.of(Permission.MANAGE_MAINTENANCE));
 
-    // When
-    ThrowingCallable read = () -> permissions.requireForRead(ACCOUNT_ID, permission);
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(AccessDeniedException.class);
+    // When / Then
+    assertThatThrownBy(() -> permissions.requireForRead(ACCOUNT_ID, permission))
+        .isInstanceOf(AccessDeniedException.class);
   }
 
   @Test
@@ -75,11 +70,8 @@ class CurrentPermissionsTest {
         .thenReturn(Set.of(Permission.MANAGE_COLLECTION), Set.of());
     permissions.requireForRead(ACCOUNT_ID, Permission.MANAGE_COLLECTION);
 
-    // When
-    ThrowingCallable read =
-        () -> permissions.requireForRead(ACCOUNT_ID, Permission.MANAGE_COLLECTION);
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(AccessDeniedException.class);
+    // When / Then
+    assertThatThrownBy(() -> permissions.requireForRead(ACCOUNT_ID, Permission.MANAGE_COLLECTION))
+        .isInstanceOf(AccessDeniedException.class);
   }
 }

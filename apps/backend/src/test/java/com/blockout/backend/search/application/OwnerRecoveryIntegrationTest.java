@@ -52,12 +52,9 @@ class OwnerRecoveryIntegrationTest extends ContributionScenario {
     SearchContext context =
         new SearchContext(SearchContext.Resource.POOL, "synthetic", null, null, null, null, false);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable search =
-        () -> unpublished.search(context, null, 20);
-
-    // Then
-    assertThatThrownBy(search).isInstanceOf(SearchUnavailableException.class);
+    // When / Then
+    assertThatThrownBy(() -> unpublished.search(context, null, 20))
+        .isInstanceOf(SearchUnavailableException.class);
   }
 
   @Test

@@ -1,7 +1,7 @@
 package com.blockout.collector.ingestion;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.collector.generated.ingestion.ApiClient;
 import com.blockout.collector.generated.ingestion.api.SportingApi;
@@ -162,11 +162,9 @@ class SportingContractIntegrationTest {
     responseBody = response;
     MatchDetailObservationInternalRequest request = request(new MatchFactsInternalRequest());
 
-    // When
-    Throwable failure = catchThrowable(() -> api.observeMatchDetail(MATCH, request));
-
-    // Then
-    assertThat(failure).isInstanceOf(RestClientException.class);
+    // When / Then
+    assertThatThrownBy(() -> api.observeMatchDetail(MATCH, request))
+        .isInstanceOf(RestClientException.class);
   }
 
   @Test
@@ -178,11 +176,8 @@ class SportingContractIntegrationTest {
         "{\"type\":\"urn:blockout:problem:unavailable\",\"title\":\"Service Unavailable\",\"status\":503}";
     MatchDetailObservationInternalRequest request = request(new MatchFactsInternalRequest());
 
-    // When
-    Throwable failure = catchThrowable(() -> api.observeMatchDetail(MATCH, request));
-
-    // Then
-    assertThat(failure)
+    // When / Then
+    assertThatThrownBy(() -> api.observeMatchDetail(MATCH, request))
         .isInstanceOfSatisfying(
             RestClientResponseException.class,
             exception -> {

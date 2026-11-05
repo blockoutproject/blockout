@@ -7,7 +7,6 @@ import com.blockout.backend.sporting.api.SportingIngestionController;
 import java.io.ByteArrayInputStream;
 import java.time.OffsetDateTime;
 import java.util.UUID;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -45,14 +44,11 @@ class IngestionBodyLimitAdviceTest {
             4);
     IngestionBodyLimitAdvice advice = new IngestionBodyLimitAdvice();
 
-    // When
-    ThrowingCallable read =
-        () ->
-            advice.beforeBodyRead(
-                message, parameter, Resource.class, ResourceHttpMessageConverter.class);
-
-    // Then
-    assertThatThrownBy(read)
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                advice.beforeBodyRead(
+                    message, parameter, Resource.class, ResourceHttpMessageConverter.class))
         .isInstanceOfSatisfying(
             ResponseStatusException.class,
             failure -> assertThat(failure.getStatusCode()).isEqualTo(HttpStatus.CONTENT_TOO_LARGE));

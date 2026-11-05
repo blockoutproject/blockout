@@ -123,11 +123,8 @@ class FfvbObservationReaderIntegrationTest {
     when(clock.instant()).thenReturn(HTML_TIME);
     FfvbAcquisition.Resource resource = reader.read(reader.resourceUrl(target));
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action = () -> resource.calendar(target);
-
-    // Then
-    assertThatThrownBy(action)
+    // When / Then
+    assertThatThrownBy(() -> resource.calendar(target))
         .isInstanceOf(FfvbAcquisitionException.class)
         .hasMessage("A complete FFVB calendar is required");
     assertThat(htmlReads).hasValue(1);
@@ -231,11 +228,8 @@ class FfvbObservationReaderIntegrationTest {
     when(clock.instant()).thenReturn(HTML_TIME);
     FfvbAcquisition.Resource resource = reader.read(reader.resourceUrl(target));
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action = () -> resource.calendar(target);
-
-    // Then
-    assertThatThrownBy(action)
+    // When / Then
+    assertThatThrownBy(() -> resource.calendar(target))
         .isInstanceOf(FfvbAcquisitionException.class)
         .hasMessage("Provider HTTP 400");
     assertThatThrownBy(() -> resource.calendar(target))

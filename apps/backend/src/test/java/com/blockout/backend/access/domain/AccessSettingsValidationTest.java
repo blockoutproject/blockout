@@ -3,7 +3,6 @@ package com.blockout.backend.access.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -21,11 +20,9 @@ class AccessSettingsValidationTest {
     // Given
     // The parameter source supplies the decisive blank message.
 
-    // When
-    ThrowingCallable validate = () -> new MaintenanceSettings(0, false, message, null);
-
-    // Then
-    assertThatThrownBy(validate).isInstanceOf(IllegalArgumentException.class);
+    // When / Then
+    assertThatThrownBy(() -> new MaintenanceSettings(0, false, message, null))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   @ParameterizedTest
@@ -40,11 +37,9 @@ class AccessSettingsValidationTest {
     // Given
     // The parameter source supplies the decisive destination; the message remains usable.
 
-    // When
-    ThrowingCallable validate = () -> new MaintenanceSettings(0, false, "Prepared", url);
-
-    // Then
-    assertThatThrownBy(validate).isInstanceOf(IllegalArgumentException.class);
+    // When / Then
+    assertThatThrownBy(() -> new MaintenanceSettings(0, false, "Prepared", url))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   @ParameterizedTest
@@ -64,18 +59,16 @@ class AccessSettingsValidationTest {
     // Given
     // Only the supplied version or destination differs from the valid complete platform group.
 
-    // When
-    ThrowingCallable validate =
-        () ->
-            new ApplicationVersionSettings(
-                0,
-                new ApplicationVersionSettings.Platform(
-                    version, "https://apps.apple.com/app/id123"),
-                new ApplicationVersionSettings.Platform(null, null),
-                null);
-
-    // Then
-    assertThatThrownBy(validate).isInstanceOf(IllegalArgumentException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                new ApplicationVersionSettings(
+                    0,
+                    new ApplicationVersionSettings.Platform(
+                        version, "https://apps.apple.com/app/id123"),
+                    new ApplicationVersionSettings.Platform(null, null),
+                    null))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   @ParameterizedTest
@@ -90,17 +83,15 @@ class AccessSettingsValidationTest {
     // Given
     // Only the supplied version or destination differs from the valid complete platform group.
 
-    // When
-    ThrowingCallable validate =
-        () ->
-            new ApplicationVersionSettings(
-                0,
-                new ApplicationVersionSettings.Platform(null, null),
-                new ApplicationVersionSettings.Platform("2.0.0", url),
-                null);
-
-    // Then
-    assertThatThrownBy(validate).isInstanceOf(IllegalArgumentException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                new ApplicationVersionSettings(
+                    0,
+                    new ApplicationVersionSettings.Platform(null, null),
+                    new ApplicationVersionSettings.Platform("2.0.0", url),
+                    null))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   @ParameterizedTest

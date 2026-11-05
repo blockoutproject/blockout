@@ -50,7 +50,6 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.imageio.ImageIO;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -662,12 +661,8 @@ class CollectorPresentationBoundaryIntegrationTest {
     presentation(team, "replace", "Manual team", manual);
     String revision = presentation(team).path("revision").asString();
 
-    // When
-    ThrowingCallable replace =
-        () -> presentation(team, "replace", "Rejected name", new byte[] {1, 2, 3});
-
-    // Then
-    assertThatThrownBy(replace)
+    // When / Then
+    assertThatThrownBy(() -> presentation(team, "replace", "Rejected name", new byte[] {1, 2, 3}))
         .isInstanceOfSatisfying(
             HttpClientErrorException.class,
             failure -> assertThat(failure.getStatusCode().value()).isEqualTo(422));

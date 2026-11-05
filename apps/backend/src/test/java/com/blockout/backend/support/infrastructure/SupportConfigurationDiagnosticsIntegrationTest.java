@@ -3,7 +3,6 @@ package com.blockout.backend.support.infrastructure;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,11 +35,9 @@ class SupportConfigurationDiagnosticsIntegrationTest {
       "--blockout.support.destination.discord-webhook=https://invalid.example/synthetic-private-webhook"
     };
 
-    // When
-    ThrowingCallable start = () -> application.run(arguments);
-
-    // Then
-    assertThatThrownBy(start).isInstanceOf(ConfigurationPropertiesBindException.class);
+    // When / Then
+    assertThatThrownBy(() -> application.run(arguments))
+        .isInstanceOf(ConfigurationPropertiesBindException.class);
     assertThat(output.getAll())
         .doesNotContain("synthetic-sensitive-token", "synthetic-private-webhook", "fictional-org");
     assertThat(output.getAll()).contains("ERROR");

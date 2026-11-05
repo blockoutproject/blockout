@@ -34,7 +34,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import javax.imageio.ImageIO;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
@@ -153,13 +152,12 @@ class DivisionIntegrationTest {
             new DivisionDefinition("National 2", "#112233", null),
             new Image(image, "image/png"));
 
-    // When
-    ThrowingCallable duplicate =
-        () ->
-            divisions.create(account, new DivisionDefinition("national 2", "#445566", null), null);
-
-    // Then
-    assertThatThrownBy(duplicate).isInstanceOf(SportingConflictException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                divisions.create(
+                    account, new DivisionDefinition("national 2", "#445566", null), null))
+        .isInstanceOf(SportingConflictException.class);
     assertThat(configurationReads.divisions(account, true)).containsExactly(original);
     assertThat(original.hasLogo()).isTrue();
     assertThat(
@@ -234,13 +232,12 @@ class DivisionIntegrationTest {
         "DELETE FROM account_permission WHERE account_id = ? AND permission = 'division-lifecycle.manage'",
         account);
 
-    // When
-    ThrowingCallable create =
-        () ->
-            divisions.create(account, new DivisionDefinition("National 2", "#112233", null), null);
-
-    // Then
-    assertThatThrownBy(create).isInstanceOf(AccessDeniedException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                divisions.create(
+                    account, new DivisionDefinition("National 2", "#112233", null), null))
+        .isInstanceOf(AccessDeniedException.class);
     assertThat(configurationReads.divisions(account, true)).isEmpty();
   }
 

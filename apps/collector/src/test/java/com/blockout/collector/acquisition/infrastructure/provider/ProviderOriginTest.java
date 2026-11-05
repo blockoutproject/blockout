@@ -26,12 +26,9 @@ class ProviderOriginTest {
     // Given
     Set<HttpHost> origins = Set.of(HttpHost.create(URI.create(allowed)));
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () -> ProviderHttpClient.requireOrigin(URI.create(requested), origins);
-
-    // Then
-    assertThatCode(action).doesNotThrowAnyException();
+    // When / Then
+    assertThatCode(() -> ProviderHttpClient.requireOrigin(URI.create(requested), origins))
+        .doesNotThrowAnyException();
   }
 
   @ParameterizedTest
@@ -46,11 +43,8 @@ class ProviderOriginTest {
     // Given
     Set<HttpHost> origins = Set.of(HttpHost.create(URI.create("https://www.ffvb.org")));
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () -> ProviderHttpClient.requireOrigin(URI.create(requested), origins);
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(IllegalArgumentException.class);
+    // When / Then
+    assertThatThrownBy(() -> ProviderHttpClient.requireOrigin(URI.create(requested), origins))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 }

@@ -17,7 +17,6 @@ import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.List;
 import org.apache.hc.core5.http.NameValuePair;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -43,11 +42,9 @@ class FfvbClubSheetTest {
     ProviderHttpClient http = mock(ProviderHttpClient.class);
     doReturn(new ProviderResponse(bytes(form), FORM, true)).when(http).page(FORM);
 
-    // When
-    ThrowingCallable action = () -> new FfvbClubSheets(http).read("000042");
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(FfvbAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(() -> new FfvbClubSheets(http).read("000042"))
+        .isInstanceOf(FfvbAcquisitionException.class);
     verify(http, never()).post(any(), any());
   }
 
@@ -128,11 +125,9 @@ class FfvbClubSheetTest {
     // Given
     byte[] response = bytes(html);
 
-    // When
-    ThrowingCallable parse = () -> FfvbClubSheets.parse(response, "000042");
-
-    // Then
-    assertThatThrownBy(parse).isInstanceOf(FfvbAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(() -> FfvbClubSheets.parse(response, "000042"))
+        .isInstanceOf(FfvbAcquisitionException.class);
   }
 
   @Test
@@ -337,11 +332,9 @@ class FfvbClubSheetTest {
     // Given
     byte[] html = bytes(publishedSheet("42"));
 
-    // When
-    ThrowingCallable parse = () -> FfvbClubSheets.parse(html, "0000042");
-
-    // Then
-    assertThatThrownBy(parse).isInstanceOf(FfvbAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(() -> FfvbClubSheets.parse(html, "0000042"))
+        .isInstanceOf(FfvbAcquisitionException.class);
   }
 
   /**

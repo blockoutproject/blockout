@@ -109,12 +109,9 @@ class ReadMatchDocumentTest {
     when(transactions.getTransaction(org.mockito.ArgumentMatchers.any()))
         .thenReturn(new SimpleTransactionStatus());
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () -> reader.read(ID, MatchDocumentKindEnum.INFORMATION);
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(SportingResourceNotFoundException.class);
+    // When / Then
+    assertThatThrownBy(() -> reader.read(ID, MatchDocumentKindEnum.INFORMATION))
+        .isInstanceOf(SportingResourceNotFoundException.class);
     verifyNoInteractions(store, source);
   }
 

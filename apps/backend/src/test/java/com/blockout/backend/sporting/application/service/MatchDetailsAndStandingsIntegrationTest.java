@@ -3,7 +3,6 @@ package com.blockout.backend.sporting.application.service;
 import static com.blockout.backend.sporting.support.SportingIngestionFixture.candidate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.model.CollectionState;
@@ -507,9 +506,8 @@ class MatchDetailsAndStandingsIntegrationTest {
     StandingsView previous = table();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
-    // When
-    Throwable thrown =
-        catchThrowable(
+    // When / Then
+    assertThatThrownBy(
             () ->
                 transaction.executeWithoutResult(
                     status -> {
@@ -522,10 +520,8 @@ class MatchDetailsAndStandingsIntegrationTest {
                               List.of()));
                       entityManager.flush();
                       throw new IllegalStateException("Synthetic failure before commit");
-                    }));
-
-    // Then
-    assertThat(thrown).isInstanceOf(IllegalStateException.class);
+                    }))
+        .isInstanceOf(IllegalStateException.class);
     assertThat(table()).isEqualTo(previous);
   }
 

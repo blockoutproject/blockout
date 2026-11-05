@@ -2,7 +2,6 @@ package com.blockout.backend.collection.infrastructure.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
@@ -239,11 +238,9 @@ class SourcePreparationIntegrationTest {
             URI.create(URL),
             NOW);
 
-    // When
-    Throwable thrown = catchThrowable(() -> discovery.observe(proposal));
-
-    // Then
-    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+    // When / Then
+    assertThatThrownBy(() -> discovery.observe(proposal))
+        .isInstanceOf(CollectionConflictException.class);
     assertThat(
             sql.queryForObject(
                 "SELECT count(*) FROM sporting_season WHERE start_year=2027", Integer.class))
@@ -312,15 +309,12 @@ class SourcePreparationIntegrationTest {
     preparation.setCandidate(
         ACCOUNT, SOURCE, pending.revision(), URI.create(URL + "&saison=2026/2027"));
 
-    // When
-    Throwable thrown =
-        catchThrowable(
+    // When / Then
+    assertThatThrownBy(
             () ->
                 sourceValidation.submitValidation(
-                    SOURCE, result(SourceValidationStateEnum.QUALIFIED, "2026/2027", null)));
-
-    // Then
-    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+                    SOURCE, result(SourceValidationStateEnum.QUALIFIED, "2026/2027", null)))
+        .isInstanceOf(CollectionConflictException.class);
     assertThat(configurationReads.source(ACCOUNT, SOURCE).validationState())
         .isEqualTo(SourceValidationStateEnum.UNVALIDATED);
   }
@@ -333,15 +327,12 @@ class SourcePreparationIntegrationTest {
     cycles.admit(new StartCycle(CYCLE, STARTUP, null, SOURCE, pending.revision(), null));
     sql.update("UPDATE sporting_season SET collection_state = 'CLOSED' WHERE id = ?", season);
 
-    // When
-    Throwable thrown =
-        catchThrowable(
+    // When / Then
+    assertThatThrownBy(
             () ->
                 sourceValidation.submitValidation(
-                    SOURCE, result(SourceValidationStateEnum.QUALIFIED, "2026/2027", null)));
-
-    // Then
-    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+                    SOURCE, result(SourceValidationStateEnum.QUALIFIED, "2026/2027", null)))
+        .isInstanceOf(CollectionConflictException.class);
     assertThat(collectionWork.get(CYCLE).completedAt()).isNull();
   }
 
@@ -374,13 +365,10 @@ class SourcePreparationIntegrationTest {
     Source invalid =
         validate(SourceValidationStateEnum.INVALID, null, "Wrong organizer or championship");
 
-    // When
-    Throwable thrown =
-        catchThrowable(
-            () -> preparation.confirmSeason(ACCOUNT, SOURCE, invalid.revision(), "2026/2027"));
-
-    // Then
-    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+    // When / Then
+    assertThatThrownBy(
+            () -> preparation.confirmSeason(ACCOUNT, SOURCE, invalid.revision(), "2026/2027"))
+        .isInstanceOf(CollectionConflictException.class);
     assertThat(configurationReads.source(ACCOUNT, SOURCE).validationState())
         .isEqualTo(SourceValidationStateEnum.INVALID);
   }
@@ -517,12 +505,9 @@ class SourcePreparationIntegrationTest {
         URL);
     long revision = seasonReads.collectionState(season).collectionRevision();
 
-    // When
-    Throwable thrown =
-        catchThrowable(() -> preparation.launch(ACCOUNT, season, revision, Set.of(SOURCE, OTHER)));
-
-    // Then
-    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+    // When / Then
+    assertThatThrownBy(() -> preparation.launch(ACCOUNT, season, revision, Set.of(SOURCE, OTHER)))
+        .isInstanceOf(CollectionConflictException.class);
     assertThat(configurationReads.source(ACCOUNT, SOURCE).locked()).isFalse();
     assertThat(seasonReads.collectionState(season).collectionState())
         .isEqualTo(CollectionSeasonStateEnum.PREPARING);
@@ -545,16 +530,17 @@ class SourcePreparationIntegrationTest {
 
     Source locked = configurationReads.source(ACCOUNT, SOURCE);
 
-    // When
-    Throwable editFailure =
-        catchThrowable(
+    // When / Then
+    assertThatThrownBy(
             () ->
                 preparation.setCandidate(
-                    ACCOUNT, SOURCE, locked.revision(), URI.create(URL + "&saison=2027/2028")));
+                    ACCOUNT, SOURCE, locked.revision(), URI.create(URL + "&saison=2027/2028")))
+        .isInstanceOf(CollectionConflictException.class);
+
+    // When
     Source pending = preparation.requestValidation(ACCOUNT, OTHER, 0);
 
     // Then
-    assertThat(editFailure).isInstanceOf(CollectionConflictException.class);
     assertThat(pending.validationState()).isEqualTo(SourceValidationStateEnum.PENDING);
     assertThat(configurationReads.source(ACCOUNT, SOURCE).acceptedUrl()).isEqualTo(URL);
   }
@@ -570,11 +556,9 @@ class SourcePreparationIntegrationTest {
         ACCOUNT,
         permission);
 
-    // When
-    Throwable thrown = catchThrowable(() -> preparation.requestValidation(ACCOUNT, SOURCE, 0));
-
-    // Then
-    assertThat(thrown).isInstanceOf(AccessDeniedException.class);
+    // When / Then
+    assertThatThrownBy(() -> preparation.requestValidation(ACCOUNT, SOURCE, 0))
+        .isInstanceOf(AccessDeniedException.class);
     assertThat(
             sql.queryForObject(
                 "SELECT validation_state FROM collection_source_binding WHERE id = ?",
@@ -607,15 +591,12 @@ class SourcePreparationIntegrationTest {
     // Given
     URI replacement = URI.create(URL + "&saison=2027/2028");
 
-    // When
-    Throwable thrown =
-        catchThrowable(
+    // When / Then
+    assertThatThrownBy(
             () ->
                 preparation.create(
-                    ACCOUNT, season, 0, CollectionProviderEnum.FFVB, "ABCCS", replacement));
-
-    // Then
-    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+                    ACCOUNT, season, 0, CollectionProviderEnum.FFVB, "ABCCS", replacement))
+        .isInstanceOf(CollectionConflictException.class);
     assertThat(configurationReads.sources(ACCOUNT, season)).hasSize(1);
     assertThat(configurationReads.source(ACCOUNT, SOURCE).candidateUrl()).isEqualTo(URL);
     assertThat(seasonReads.collectionState(season).collectionRevision()).isZero();
@@ -630,12 +611,8 @@ class SourcePreparationIntegrationTest {
     preparation.create(
         ACCOUNT, season, revision, CollectionProviderEnum.FFVB, "LIRA", URI.create(URL));
 
-    // When
-    Throwable thrown =
-        catchThrowable(() -> preparation.launch(ACCOUNT, season, revision, Set.of(SOURCE)));
-
-    // Then
-    assertThat(thrown)
+    // When / Then
+    assertThatThrownBy(() -> preparation.launch(ACCOUNT, season, revision, Set.of(SOURCE)))
         .isInstanceOfSatisfying(
             CollectionConflictException.class,
             failure -> assertThat(failure.getType()).isEqualTo("stale-revision"));
@@ -654,15 +631,12 @@ class SourcePreparationIntegrationTest {
     // Given
     URI candidate = URI.create(url);
 
-    // When
-    Throwable thrown =
-        catchThrowable(
+    // When / Then
+    assertThatThrownBy(
             () ->
                 preparation.create(
-                    ACCOUNT, season, 0, CollectionProviderEnum.FFVB, "LIRA", candidate));
-
-    // Then
-    assertThat(thrown).isInstanceOf(InvalidSourceException.class);
+                    ACCOUNT, season, 0, CollectionProviderEnum.FFVB, "LIRA", candidate))
+        .isInstanceOf(InvalidSourceException.class);
     assertThat(configurationReads.sources(ACCOUNT, season)).hasSize(1);
   }
 

@@ -111,12 +111,9 @@ class FfvbObservationsTest {
                 + "<table><tr><td>TST - Synthetic pool</td></tr><tr><td colspan=11></td></tr></table></body></html>");
     byte[] export = bytes(fixture("calendar.csv"));
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable parse =
-        () -> calendars.parse(export, context, SCOPE);
-
-    // Then
-    assertThatThrownBy(parse).isInstanceOf(FfvbAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(() -> calendars.parse(export, context, SCOPE))
+        .isInstanceOf(FfvbAcquisitionException.class);
   }
 
   @Test
@@ -125,12 +122,9 @@ class FfvbObservationsTest {
     // Given
     byte[] html = bytes("<html><body>Temporarily unavailable</body></html>");
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable qualify =
-        () -> new FfvbPage(html, URL, SCOPE);
-
-    // Then
-    assertThatThrownBy(qualify).isInstanceOf(FfvbAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(() -> new FfvbPage(html, URL, SCOPE))
+        .isInstanceOf(FfvbAcquisitionException.class);
   }
 
   @Test
@@ -144,12 +138,9 @@ class FfvbObservationsTest {
     byte[] header = bytes(fixture("calendar.csv").lines().findFirst().orElseThrow() + "\n");
     FfvbPage context = page(incomplete);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () -> calendars.parse(header, context, SCOPE);
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(FfvbAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(() -> calendars.parse(header, context, SCOPE))
+        .isInstanceOf(FfvbAcquisitionException.class);
   }
 
   @Test
@@ -337,12 +328,9 @@ class FfvbObservationsTest {
     // Given
     byte[] html = bytes(fixture("calendar.html").replace("2026/2027", "2025/2026"));
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable qualify =
-        () -> new FfvbPage(html, URL, SCOPE);
-
-    // Then
-    assertThatThrownBy(qualify).isInstanceOf(FfvbAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(() -> new FfvbPage(html, URL, SCOPE))
+        .isInstanceOf(FfvbAcquisitionException.class);
   }
 
   @Test
@@ -352,12 +340,9 @@ class FfvbObservationsTest {
     byte[] html = bytes(fixture("calendar.html"));
     URI recent = URI.create("https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php");
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable qualify =
-        () -> new FfvbPage(html, recent, SCOPE);
-
-    // Then
-    assertThatThrownBy(qualify).isInstanceOf(FfvbAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(() -> new FfvbPage(html, recent, SCOPE))
+        .isInstanceOf(FfvbAcquisitionException.class);
   }
 
   @Test

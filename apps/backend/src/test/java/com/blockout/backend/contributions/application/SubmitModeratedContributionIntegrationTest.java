@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.blockout.backend.contributions.support.ContributionScenario;
 import com.blockout.backend.notifications.application.AfterCommitAnnouncements;
 import java.net.URI;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -57,16 +56,14 @@ class SubmitModeratedContributionIntegrationTest extends ContributionScenario {
     moderator(AUTHOR);
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
-    // When
-    ThrowingCallable invoke =
-        () ->
-            transaction.executeWithoutResult(
-                status ->
-                    moderated.submit(
-                        AUTHOR, matchId, "0", URI.create("https://youtube.com/moderated")));
-
-    // Then
-    assertThatThrownBy(invoke).isInstanceOf(IllegalTransactionStateException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                transaction.executeWithoutResult(
+                    status ->
+                        moderated.submit(
+                            AUTHOR, matchId, "0", URI.create("https://youtube.com/moderated"))))
+        .isInstanceOf(IllegalTransactionStateException.class);
     assertThat(count("contribution_version")).isZero();
   }
 

@@ -17,7 +17,6 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -141,19 +140,16 @@ class ContributionPersistenceJpaTest {
     insertVersion(FIRST, MATCH, OWNER, "ACTIVE", true, NOW);
     insertVersion(SECOND, MATCH, OWNER, "PENDING", true, NOW);
 
-    // When
-    ThrowingCallable duplicate =
-        () ->
-            insertVersion(
-                UUID.fromString("00000000-0000-4000-8000-000000000022"),
-                MATCH,
-                OTHER,
-                "ACTIVE",
-                false,
-                NOW);
-
-    // Then
-    assertThatThrownBy(duplicate)
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                insertVersion(
+                    UUID.fromString("00000000-0000-4000-8000-000000000022"),
+                    MATCH,
+                    OTHER,
+                    "ACTIVE",
+                    false,
+                    NOW))
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasStackTraceContaining("uk_contribution_active");
     assertThat(
@@ -170,19 +166,16 @@ class ContributionPersistenceJpaTest {
     insertVersion(FIRST, MATCH, OWNER, "PENDING", true, NOW);
     insertVersion(SECOND, MATCH, OTHER, "PENDING", true, NOW);
 
-    // When
-    ThrowingCallable duplicate =
-        () ->
-            insertVersion(
-                UUID.fromString("00000000-0000-4000-8000-000000000022"),
-                MATCH,
-                OWNER,
-                "PENDING",
-                true,
-                NOW);
-
-    // Then
-    assertThatThrownBy(duplicate)
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                insertVersion(
+                    UUID.fromString("00000000-0000-4000-8000-000000000022"),
+                    MATCH,
+                    OWNER,
+                    "PENDING",
+                    true,
+                    NOW))
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasStackTraceContaining("uk_contribution_pending_owner");
   }
@@ -217,14 +210,14 @@ class ContributionPersistenceJpaTest {
     insertVersion(FIRST, MATCH, OWNER, "REJECTED", true, NOW);
     insertVersion(SECOND, NEXT_MATCH, OTHER, "ACTIVE", false, NOW);
 
-    // When
-    ThrowingCallable crossMatch =
-        () ->
-            sql.update(
-                "UPDATE contribution_version SET " + column + " = ? WHERE id = ?", SECOND, FIRST);
-
-    // Then
-    assertThatThrownBy(crossMatch).isInstanceOf(DataIntegrityViolationException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                sql.update(
+                    "UPDATE contribution_version SET " + column + " = ? WHERE id = ?",
+                    SECOND,
+                    FIRST))
+        .isInstanceOf(DataIntegrityViolationException.class);
   }
 
   @Test
@@ -234,16 +227,13 @@ class ContributionPersistenceJpaTest {
     insertVersion(FIRST, NEXT_MATCH, OTHER, "HIDDEN", true, NOW);
     sql.update("INSERT INTO contribution_state(match_id, revision) VALUES (?, 4)", MATCH);
 
-    // When
-    ThrowingCallable crossMatch =
-        () ->
-            sql.update(
-                "UPDATE contribution_state SET report_hold_version_id = ? WHERE match_id = ?",
-                FIRST,
-                MATCH);
-
-    // Then
-    assertThatThrownBy(crossMatch)
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                sql.update(
+                    "UPDATE contribution_state SET report_hold_version_id = ? WHERE match_id = ?",
+                    FIRST,
+                    MATCH))
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasStackTraceContaining("fk_contribution_hold_match");
   }
@@ -290,30 +280,26 @@ class ContributionPersistenceJpaTest {
     // Given
     UUID absent = UUID.fromString("00000000-0000-4000-8000-000000000099");
 
-    // When
-    ThrowingCallable missingMatch = () -> insertVersion(FIRST, absent, OWNER, "PENDING", true, NOW);
-    ThrowingCallable missingAccount =
-        () -> insertVersion(FIRST, MATCH, absent, "PENDING", true, NOW);
-    ThrowingCallable missingStateMatch =
-        () ->
-            sql.update("INSERT INTO contribution_state(match_id, revision) VALUES (?, 0)", absent);
-
-    // Then
-    assertThatThrownBy(missingMatch).isInstanceOf(DataIntegrityViolationException.class);
-    assertThatThrownBy(missingAccount).isInstanceOf(DataIntegrityViolationException.class);
-    assertThatThrownBy(missingStateMatch).isInstanceOf(DataIntegrityViolationException.class);
+    // When / Then
+    assertThatThrownBy(() -> insertVersion(FIRST, absent, OWNER, "PENDING", true, NOW))
+        .isInstanceOf(DataIntegrityViolationException.class);
+    assertThatThrownBy(() -> insertVersion(FIRST, MATCH, absent, "PENDING", true, NOW))
+        .isInstanceOf(DataIntegrityViolationException.class);
+    assertThatThrownBy(
+            () ->
+                sql.update(
+                    "INSERT INTO contribution_state(match_id, revision) VALUES (?, 0)", absent))
+        .isInstanceOf(DataIntegrityViolationException.class);
   }
 
   @Test
   @DisplayName("Rejects a negative editing revision")
   void enforcesNonnegativeRevision() {
-    // When
-    ThrowingCallable negative =
-        () ->
-            sql.update("INSERT INTO contribution_state(match_id, revision) VALUES (?, -1)", MATCH);
-
-    // Then
-    assertThatThrownBy(negative)
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                sql.update(
+                    "INSERT INTO contribution_state(match_id, revision) VALUES (?, -1)", MATCH))
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasStackTraceContaining("ck_contribution_revision");
   }
@@ -325,24 +311,20 @@ class ContributionPersistenceJpaTest {
     // Given
     insertVersion(FIRST, MATCH, OWNER, "PENDING", true, NOW);
 
-    // When
-    ThrowingCallable missingTime =
-        () ->
-            sql.update(
-                "UPDATE contribution_version SET " + fact + "_kind = 'APPROVAL' WHERE id = ?",
-                FIRST);
-    ThrowingCallable missingKind =
-        () ->
-            sql.update(
-                "UPDATE contribution_version SET " + fact + "_actor_id = ? WHERE id = ?",
-                OWNER,
-                FIRST);
-
-    // Then
-    assertThatThrownBy(missingTime)
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                sql.update(
+                    "UPDATE contribution_version SET " + fact + "_kind = 'APPROVAL' WHERE id = ?",
+                    FIRST))
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasStackTraceContaining("ck_contribution_" + fact + "_fact");
-    assertThatThrownBy(missingKind)
+    assertThatThrownBy(
+            () ->
+                sql.update(
+                    "UPDATE contribution_version SET " + fact + "_actor_id = ? WHERE id = ?",
+                    OWNER,
+                    FIRST))
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasStackTraceContaining("ck_contribution_" + fact + "_fact");
   }

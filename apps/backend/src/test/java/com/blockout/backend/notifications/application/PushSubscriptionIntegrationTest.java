@@ -4,6 +4,7 @@ import static com.blockout.backend.notifications.testsupport.InboxDatabaseFixtur
 import static com.blockout.backend.notifications.testsupport.InboxDatabaseFixture.OTHER;
 import static com.blockout.backend.notifications.testsupport.InboxDatabaseFixture.reset;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.blockout.backend.accounts.application.AccountAccess;
@@ -166,14 +167,15 @@ class PushSubscriptionIntegrationTest {
     // Given
     changes.replace(new Registration(ID, INSTALLATION, ACCOUNT, "Expo[one]"));
 
+    // When / Then
+    assertThatThrownBy(
+            () -> changes.replace(new Registration(ID, SECOND_INSTALLATION, OTHER, "Expo[two]")))
+        .isInstanceOf(NotificationNotFoundException.class);
+
     // When
-    Throwable failure =
-        catchThrowable(
-            () -> changes.replace(new Registration(ID, SECOND_INSTALLATION, OTHER, "Expo[two]")));
     changes.remove(new NotificationContext(OTHER), ID);
 
     // Then
-    assertThat(failure).isInstanceOf(NotificationNotFoundException.class);
     assertThat(
             sql.queryForObject(
                 "SELECT account_id FROM push_subscription WHERE subscription_id=?", UUID.class, ID))
@@ -307,9 +309,8 @@ class PushSubscriptionIntegrationTest {
     // Given
     changes.replace(new Registration(ID, INSTALLATION, ACCOUNT, "Expo[one]"));
 
-    // When
-    Throwable failure =
-        catchThrowable(
+    // When / Then
+    assertThatThrownBy(
             () ->
                 sql.update(
                     "INSERT INTO"
@@ -319,10 +320,8 @@ class PushSubscriptionIntegrationTest {
                     NEXT,
                     INSTALLATION,
                     OTHER,
-                    "Expo[two]"));
-
-    // Then
-    assertThat(failure).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+                    "Expo[two]"))
+        .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     assertThat(sql.queryForList("SELECT subscription_id FROM push_subscription", UUID.class))
         .containsExactly(ID);
   }

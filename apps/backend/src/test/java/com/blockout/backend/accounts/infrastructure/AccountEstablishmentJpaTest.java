@@ -21,7 +21,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -181,14 +180,12 @@ class AccountEstablishmentJpaTest {
     // Given
     String subject = "auth0|unusable-email";
 
-    // When
-    ThrowingCallable create =
-        () ->
-            transaction.execute(
-                state -> accounts.create(ISSUER, subject, "Player_144", email, null));
-
-    // Then
-    assertThatThrownBy(create).isInstanceOf(ConstraintViolationException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                transaction.execute(
+                    state -> accounts.create(ISSUER, subject, "Player_144", email, null)))
+        .isInstanceOf(ConstraintViolationException.class);
     assertThat(accounts.findByPrincipal(ISSUER, subject)).isEmpty();
   }
 
@@ -199,15 +196,13 @@ class AccountEstablishmentJpaTest {
     // Given
     String subject = "auth0|invalid-name";
 
-    // When
-    ThrowingCallable create =
-        () ->
-            transaction.execute(
-                state ->
-                    accounts.create(ISSUER, subject, username, "player@example.invalid", null));
-
-    // Then
-    assertThatThrownBy(create).isInstanceOf(ConstraintViolationException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                transaction.execute(
+                    state ->
+                        accounts.create(ISSUER, subject, username, "player@example.invalid", null)))
+        .isInstanceOf(ConstraintViolationException.class);
     assertThat(accounts.findByPrincipal(ISSUER, subject)).isEmpty();
   }
 
@@ -365,11 +360,9 @@ class AccountEstablishmentJpaTest {
     // Given
     UUID original = UUID.fromString("00000000-0000-4000-8000-000000000144");
 
-    // When
-    ThrowingCallable lock = () -> access.lock(original);
-
-    // Then
-    assertThatThrownBy(lock).isInstanceOf(IllegalTransactionStateException.class);
+    // When / Then
+    assertThatThrownBy(() -> access.lock(original))
+        .isInstanceOf(IllegalTransactionStateException.class);
   }
 
   @Test
@@ -438,18 +431,15 @@ class AccountEstablishmentJpaTest {
             state ->
                 accounts.create(ISSUER, "auth0|one", "Player_144", "player@example.invalid", null));
 
-    // When
-    ThrowingCallable update =
-        () ->
-            sql.update(
-                "UPDATE account SET photo_bytes = ?, photo_media_type = ?, photo_dimension = ? WHERE id = ?",
-                new byte[length],
-                mediaType,
-                dimension,
-                original.id());
-
-    // Then
-    assertThatThrownBy(update)
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                sql.update(
+                    "UPDATE account SET photo_bytes = ?, photo_media_type = ?, photo_dimension = ? WHERE id = ?",
+                    new byte[length],
+                    mediaType,
+                    dimension,
+                    original.id()))
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasStackTraceContaining("ck_account_photo");
     assertThat(
@@ -464,18 +454,16 @@ class AccountEstablishmentJpaTest {
     // Given
     UUID id = UUID.fromString("00000000-0000-4000-8000-000000000144");
 
-    // When
-    ThrowingCallable create =
-        () ->
-            sql.update(
-                "INSERT INTO account(id, issuer, subject, username) VALUES (?, ?, ?, ?)",
-                id,
-                "https://identity.example.invalid/",
-                "auth0|missing-email",
-                "Player_144");
-
-    // Then
-    assertThatThrownBy(create).isInstanceOf(DataIntegrityViolationException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                sql.update(
+                    "INSERT INTO account(id, issuer, subject, username) VALUES (?, ?, ?, ?)",
+                    id,
+                    "https://identity.example.invalid/",
+                    "auth0|missing-email",
+                    "Player_144"))
+        .isInstanceOf(DataIntegrityViolationException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM account WHERE id = ?", Long.class, id))
         .isZero();
   }

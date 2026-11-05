@@ -122,14 +122,12 @@ class ChangeAccountProfileIntegrationTest {
     changes.change(ISSUER, "auth0|one", id, null, ProfilePhotoActionEnum.REPLACE, PHOTO);
     ProfilePhoto replacement = new ProfilePhoto(new byte[] {4, 5}, "image/jpeg", 2);
 
-    // When
-    ThrowingCallable change =
-        () ->
-            changes.change(
-                ISSUER, "auth0|one", id, "taken", ProfilePhotoActionEnum.REPLACE, replacement);
-
-    // Then
-    assertThatThrownBy(change).isInstanceOf(UsernameUnavailableException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                changes.change(
+                    ISSUER, "auth0|one", id, "taken", ProfilePhotoActionEnum.REPLACE, replacement))
+        .isInstanceOf(UsernameUnavailableException.class);
     assertThat(accounts.findById(id).orElseThrow().username()).isEqualTo("Original");
     assertThat(sql.queryForObject("SELECT photo_bytes FROM account WHERE id = ?", byte[].class, id))
         .isEqualTo(PHOTO.bytes());
@@ -141,12 +139,11 @@ class ChangeAccountProfileIntegrationTest {
     // Given
     changes.change(ISSUER, "auth0|one", id, null, ProfilePhotoActionEnum.REPLACE, PHOTO);
 
-    // When
-    ThrowingCallable change =
-        () -> changes.change(ISSUER, "auth0|one", id, "ab", ProfilePhotoActionEnum.REMOVE, null);
-
-    // Then
-    assertThatThrownBy(change).isInstanceOf(InvalidProfileChangeException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                changes.change(ISSUER, "auth0|one", id, "ab", ProfilePhotoActionEnum.REMOVE, null))
+        .isInstanceOf(InvalidProfileChangeException.class);
     assertThat(reads.original(ISSUER, "auth0|one", id).hasPhoto()).isTrue();
   }
 

@@ -106,12 +106,9 @@ class PushDeliveryConfigurationTest {
         executor.execute(() -> {});
       }
 
-      // When
-      org.assertj.core.api.ThrowableAssert.ThrowingCallable extra =
-          () -> executor.execute(() -> {});
-
-      // Then
-      assertThatThrownBy(extra).isInstanceOf(TaskRejectedException.class);
+      // When / Then
+      assertThatThrownBy(() -> executor.execute(() -> {}))
+          .isInstanceOf(TaskRejectedException.class);
     } finally {
       release.countDown();
       executor.shutdown();

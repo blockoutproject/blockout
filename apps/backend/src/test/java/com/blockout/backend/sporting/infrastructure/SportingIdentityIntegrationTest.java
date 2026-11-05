@@ -41,7 +41,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -105,14 +104,12 @@ class SportingIdentityIntegrationTest {
     SeasonView season = seasons.getOrCreate(2026L);
     PoolView pool = pool(season, "A", null, CollectionProviderEnum.FFVB);
 
-    // When
-    ThrowingCallable identify =
-        () ->
-            identityParticipant.identifyMatch(
-                pool.id(), "M1", ffvb("Home", "0001"), ffvb("Away", "0002"));
-
-    // Then
-    assertThatThrownBy(identify).isInstanceOf(IllegalTransactionStateException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                identityParticipant.identifyMatch(
+                    pool.id(), "M1", ffvb("Home", "0001"), ffvb("Away", "0002")))
+        .isInstanceOf(IllegalTransactionStateException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Long.class)).isZero();
   }
 
@@ -320,13 +317,12 @@ class SportingIdentityIntegrationTest {
     MatchView match =
         identities.identifyMatch(pool.id(), "M1", ffvb("Home 1", "0001"), ffvb("Away", "0002"));
 
-    // When
-    ThrowingCallable replace =
-        () ->
-            identities.identifyMatch(pool.id(), "M1", ffvb("Home 2", "0001"), ffvb("Away", "0002"));
-
-    // Then
-    assertThatThrownBy(replace).isInstanceOf(UnresolvedSportingIdentityException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                identities.identifyMatch(
+                    pool.id(), "M1", ffvb("Home 2", "0001"), ffvb("Away", "0002")))
+        .isInstanceOf(UnresolvedSportingIdentityException.class);
     assertThat(acquisitionReads.match(match.id())).contains(match);
     assertThat(acquisitionReads.team(match.homeTeamId()).orElseThrow().sourceName())
         .isEqualTo("Home 1");
@@ -394,12 +390,11 @@ class SportingIdentityIntegrationTest {
     // Given
     PoolView pool = pool(seasons.getOrCreate(2026L), "A", null, CollectionProviderEnum.FFVB);
 
-    // When
-    ThrowingCallable identify =
-        () -> identities.identifyMatch(pool.id(), "M1", ffvb("Home", "0001"), ffvb("Away", null));
-
-    // Then
-    assertThatThrownBy(identify).isInstanceOf(UnresolvedSportingIdentityException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                identities.identifyMatch(pool.id(), "M1", ffvb("Home", "0001"), ffvb("Away", null)))
+        .isInstanceOf(UnresolvedSportingIdentityException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_club", Long.class)).isZero();
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_team", Long.class)).isZero();
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Long.class)).isZero();
@@ -433,14 +428,12 @@ class SportingIdentityIntegrationTest {
         match.homeTeamId(),
         season.id());
 
-    // When
-    ThrowingCallable identify =
-        () ->
-            identities.identifyMatch(
-                other.id(), "M1", ffvb("Renamed home", "0001"), ffvb("Away", "0002"));
-
-    // Then
-    assertThatThrownBy(identify).isInstanceOf(UnresolvedSportingIdentityException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                identities.identifyMatch(
+                    other.id(), "M1", ffvb("Renamed home", "0001"), ffvb("Away", "0002")))
+        .isInstanceOf(UnresolvedSportingIdentityException.class);
     assertThat(acquisitionReads.match(otherMatch.id())).contains(otherMatch);
     assertThat(acquisitionReads.team(match.homeTeamId()).orElseThrow().sourceName())
         .isEqualTo("Home");
@@ -495,14 +488,11 @@ class SportingIdentityIntegrationTest {
     TeamView home = acquisitionReads.team(match.homeTeamId()).orElseThrow();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
-    // When
-    ThrowingCallable duplicate =
-        () ->
-            transaction.executeWithoutResult(
-                state -> store.createTeam(pool, home.clubId(), ffvb("Home", "0001"), "home"));
-
-    // Then
-    assertThatThrownBy(duplicate)
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                transaction.executeWithoutResult(
+                    state -> store.createTeam(pool, home.clubId(), ffvb("Home", "0001"), "home")))
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasStackTraceContaining("uk_team_ffvb");
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_team", Long.class)).isEqualTo(2L);
@@ -521,19 +511,16 @@ class SportingIdentityIntegrationTest {
         new TeamCandidate("T2", "Away", null, null));
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
-    // When
-    ThrowingCallable duplicate =
-        () ->
-            transaction.executeWithoutResult(
-                state ->
-                    store.createTeam(
-                        pool,
-                        null,
-                        new TeamCandidate("T1", "Different label", null, null),
-                        "different label"));
-
-    // Then
-    assertThatThrownBy(duplicate)
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                transaction.executeWithoutResult(
+                    state ->
+                        store.createTeam(
+                            pool,
+                            null,
+                            new TeamCandidate("T1", "Different label", null, null),
+                            "different label")))
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasStackTraceContaining("uk_team_lnv");
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_team", Long.class)).isEqualTo(2L);
@@ -546,15 +533,13 @@ class SportingIdentityIntegrationTest {
     PoolView pool = pool(seasons.getOrCreate(2026L), "A", null, CollectionProviderEnum.FFVB);
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
-    // When
-    ThrowingCallable duplicate =
-        () ->
-            transaction.executeWithoutResult(
-                state ->
-                    store.createPool(pool.key(), "pack", "Changed label", pool.classification()));
-
-    // Then
-    assertThatThrownBy(duplicate)
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                transaction.executeWithoutResult(
+                    state ->
+                        store.createPool(
+                            pool.key(), "pack", "Changed label", pool.classification())))
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasStackTraceContaining("uk_pool_identity");
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_pool", Long.class)).isEqualTo(1L);
@@ -567,14 +552,11 @@ class SportingIdentityIntegrationTest {
     seasons.getOrCreate(2026L);
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
-    // When
-    ThrowingCallable duplicate =
-        () ->
-            transaction.executeWithoutResult(
-                state -> store.createSeason(2026L, "Another provider label"));
-
-    // Then
-    assertThatThrownBy(duplicate)
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                transaction.executeWithoutResult(
+                    state -> store.createSeason(2026L, "Another provider label")))
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasStackTraceContaining("uk_season_identity");
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_season", Long.class))
@@ -587,15 +569,13 @@ class SportingIdentityIntegrationTest {
     // Given
     UUID other = UUID.fromString("00000000-0000-4000-8000-000000000011");
 
-    // When
-    ThrowingCallable duplicate =
-        () ->
-            sql.update(
-                "INSERT INTO sporting_division(id, name, active, color) VALUES (?, 'SYNTHETIC DIVISION', TRUE, '#112233')",
-                other);
-
-    // Then
-    assertThatThrownBy(duplicate).isInstanceOf(DataIntegrityViolationException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                sql.update(
+                    "INSERT INTO sporting_division(id, name, active, color) VALUES (?, 'SYNTHETIC DIVISION', TRUE, '#112233')",
+                    other))
+        .isInstanceOf(DataIntegrityViolationException.class);
     assertThat(reads.division(DIVISION).orElseThrow().name()).isEqualTo("Synthetic division");
     assertThat(reads.division(other)).isEmpty();
   }
@@ -607,15 +587,13 @@ class SportingIdentityIntegrationTest {
     sql.update(
         "INSERT INTO sporting_division_term(division_id, term) VALUES (?, 'National')", DIVISION);
 
-    // When
-    ThrowingCallable duplicate =
-        () ->
-            sql.update(
-                "INSERT INTO sporting_division_term(division_id, term) VALUES (?, 'National')",
-                DIVISION);
-
-    // Then
-    assertThatThrownBy(duplicate).isInstanceOf(DataIntegrityViolationException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                sql.update(
+                    "INSERT INTO sporting_division_term(division_id, term) VALUES (?, 'National')",
+                    DIVISION))
+        .isInstanceOf(DataIntegrityViolationException.class);
     assertThat(reads.division(DIVISION).orElseThrow().searchTerms()).containsExactly("National");
   }
 
@@ -625,17 +603,15 @@ class SportingIdentityIntegrationTest {
     // Given
     PoolView pool = pool(seasons.getOrCreate(2026L), "A", null, CollectionProviderEnum.FFVB);
 
-    // When
-    ThrowingCallable orphan =
-        () ->
-            sql.update(
-                "INSERT INTO sporting_participation(id, team_id, pool_id, current) VALUES (?, ?, ?, TRUE)",
-                UUID.fromString("00000000-0000-4000-8000-000000000030"),
-                UUID.fromString("00000000-0000-4000-8000-000000000031"),
-                pool.id());
-
-    // Then
-    assertThatThrownBy(orphan).isInstanceOf(DataIntegrityViolationException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                sql.update(
+                    "INSERT INTO sporting_participation(id, team_id, pool_id, current) VALUES (?, ?, ?, TRUE)",
+                    UUID.fromString("00000000-0000-4000-8000-000000000030"),
+                    UUID.fromString("00000000-0000-4000-8000-000000000031"),
+                    pool.id()))
+        .isInstanceOf(DataIntegrityViolationException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_participation", Long.class))
         .isZero();
   }

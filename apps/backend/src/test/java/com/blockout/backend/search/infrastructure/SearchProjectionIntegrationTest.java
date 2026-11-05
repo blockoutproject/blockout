@@ -1,6 +1,7 @@
 package com.blockout.backend.search.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -568,12 +569,9 @@ class SearchProjectionIntegrationTest {
     OpenSearchProjectionWriter failed =
         new OpenSearchProjectionWriter(controlled, new SearchIndexProperties(PREFIX));
 
-    // When
-    Throwable failure =
-        org.assertj.core.api.Assertions.catchThrowable(() -> failed.publish(candidate));
-
-    // Then
-    assertThat(failure).isInstanceOf(SearchUnavailableException.class);
+    // When / Then
+    assertThatThrownBy(() -> failed.publish(candidate))
+        .isInstanceOf(SearchUnavailableException.class);
     writer.cleanup();
     assertThat(aliases().keySet()).containsExactlyInAnyOrderElementsOf(before.keySet());
     assertThat(document("clubs", CLUB).names()).containsExactly("Original club");
@@ -615,12 +613,9 @@ class SearchProjectionIntegrationTest {
     OpenSearchProjectionWriter uncertain =
         new OpenSearchProjectionWriter(controlled, new SearchIndexProperties(PREFIX));
 
-    // When
-    Throwable failure =
-        org.assertj.core.api.Assertions.catchThrowable(() -> uncertain.publish(candidate));
-
-    // Then
-    assertThat(failure).isInstanceOf(SearchUnavailableException.class);
+    // When / Then
+    assertThatThrownBy(() -> uncertain.publish(candidate))
+        .isInstanceOf(SearchUnavailableException.class);
     assertThat(aliases().keySet()).containsExactlyInAnyOrderElementsOf(candidate.values());
     assertThat(document("clubs", CLUB).names()).containsExactly("Replacement");
   }
@@ -695,12 +690,9 @@ class SearchProjectionIntegrationTest {
     OpenSearchProjectionWriter uncertain =
         new OpenSearchProjectionWriter(controlled, new SearchIndexProperties(PREFIX));
 
-    // When
-    Throwable failure =
-        org.assertj.core.api.Assertions.catchThrowable(() -> uncertain.publish(candidate));
-
-    // Then
-    assertThat(failure).isInstanceOf(SearchUnavailableException.class);
+    // When / Then
+    assertThatThrownBy(() -> uncertain.publish(candidate))
+        .isInstanceOf(SearchUnavailableException.class);
     uncertain.cleanup();
     assertThat(aliases().keySet()).containsExactlyInAnyOrderElementsOf(before.keySet());
     assertThat(document("clubs", CLUB).names()).containsExactly("Original club");

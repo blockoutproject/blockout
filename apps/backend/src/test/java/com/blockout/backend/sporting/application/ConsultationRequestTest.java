@@ -23,14 +23,12 @@ class ConsultationRequestTest {
     // Given
     ZoneId groupingZone = ZoneId.of("Europe/Paris");
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () ->
-            new CalendarRequest(
-                Kind.CLUB, ID, null, CalendarCategoryEnum.UPCOMING, groupingZone, null);
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(IllegalArgumentException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                new CalendarRequest(
+                    Kind.CLUB, ID, null, CalendarCategoryEnum.UPCOMING, groupingZone, null))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   @ParameterizedTest
@@ -42,12 +40,12 @@ class ConsultationRequestTest {
     // Given
     ZoneId groupingZone = ZoneId.of("Europe/Paris");
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () -> new CalendarRequest(kind, ID, ID, CalendarCategoryEnum.UPCOMING, groupingZone, null);
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(IllegalArgumentException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                new CalendarRequest(
+                    kind, ID, ID, CalendarCategoryEnum.UPCOMING, groupingZone, null))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
@@ -56,13 +54,11 @@ class ConsultationRequestTest {
     // Given
     ZoneId groupingZone = ZoneId.of("Europe/Paris");
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
-        () ->
-            new CalendarRequest(
-                Kind.MATCH, ID, null, CalendarCategoryEnum.UPCOMING, groupingZone, null);
-
-    // Then
-    assertThatThrownBy(read).isInstanceOf(IllegalArgumentException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                new CalendarRequest(
+                    Kind.MATCH, ID, null, CalendarCategoryEnum.UPCOMING, groupingZone, null))
+        .isInstanceOf(IllegalArgumentException.class);
   }
 }

@@ -20,7 +20,6 @@ import javax.imageio.ImageWriter;
 import javax.imageio.metadata.IIOMetadata;
 import javax.imageio.metadata.IIOMetadataNode;
 import javax.imageio.stream.MemoryCacheImageOutputStream;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -69,11 +68,9 @@ class ProfilePhotoProcessorTest {
     // Given
     byte[] original = image("png", width, height);
 
-    // When
-    ThrowingCallable prepare = () -> processor.prepare(original, "image/png");
-
-    // Then
-    assertThatThrownBy(prepare).isInstanceOf(InvalidProfilePhotoException.class);
+    // When / Then
+    assertThatThrownBy(() -> processor.prepare(original, "image/png"))
+        .isInstanceOf(InvalidProfilePhotoException.class);
   }
 
   @ParameterizedTest
@@ -84,11 +81,9 @@ class ProfilePhotoProcessorTest {
     // Given
     byte[] original = image("png", 2, 2);
 
-    // When
-    ThrowingCallable prepare = () -> processor.prepare(original, mediaType);
-
-    // Then
-    assertThatThrownBy(prepare).isInstanceOf(UnsupportedProfilePhotoException.class);
+    // When / Then
+    assertThatThrownBy(() -> processor.prepare(original, mediaType))
+        .isInstanceOf(UnsupportedProfilePhotoException.class);
   }
 
   @ParameterizedTest
@@ -98,11 +93,9 @@ class ProfilePhotoProcessorTest {
     // Given
     byte[] original = "not an image".getBytes(StandardCharsets.UTF_8);
 
-    // When
-    ThrowingCallable prepare = () -> processor.prepare(original, mediaType);
-
-    // Then
-    assertThatThrownBy(prepare).isInstanceOf(InvalidProfilePhotoException.class);
+    // When / Then
+    assertThatThrownBy(() -> processor.prepare(original, mediaType))
+        .isInstanceOf(InvalidProfilePhotoException.class);
   }
 
   @Test
@@ -111,11 +104,9 @@ class ProfilePhotoProcessorTest {
     // Given
     byte[] original = image("png", 2, 2);
 
-    // When
-    ThrowingCallable prepare = () -> processor.prepare(original, "image/jpeg");
-
-    // Then
-    assertThatThrownBy(prepare).isInstanceOf(InvalidProfilePhotoException.class);
+    // When / Then
+    assertThatThrownBy(() -> processor.prepare(original, "image/jpeg"))
+        .isInstanceOf(InvalidProfilePhotoException.class);
   }
 
   @Test
@@ -124,11 +115,9 @@ class ProfilePhotoProcessorTest {
     // Given
     byte[] original = image("gif", 2, 2);
 
-    // When
-    ThrowingCallable prepare = () -> processor.prepare(original, "image/png");
-
-    // Then
-    assertThatThrownBy(prepare).isInstanceOf(InvalidProfilePhotoException.class);
+    // When / Then
+    assertThatThrownBy(() -> processor.prepare(original, "image/png"))
+        .isInstanceOf(InvalidProfilePhotoException.class);
   }
 
   @Test
@@ -137,11 +126,9 @@ class ProfilePhotoProcessorTest {
     // Given
     byte[] original = new byte[5 * 1024 * 1024 + 1];
 
-    // When
-    ThrowingCallable prepare = () -> processor.prepare(original, "image/gif");
-
-    // Then
-    assertThatThrownBy(prepare).isInstanceOf(UnsupportedProfilePhotoException.class);
+    // When / Then
+    assertThatThrownBy(() -> processor.prepare(original, "image/gif"))
+        .isInstanceOf(UnsupportedProfilePhotoException.class);
   }
 
   @Test
@@ -150,11 +137,9 @@ class ProfilePhotoProcessorTest {
     // Given
     byte[] original = new byte[5 * 1024 * 1024 + 1];
 
-    // When
-    ThrowingCallable prepare = () -> processor.prepare(original, "image/png");
-
-    // Then
-    assertThatThrownBy(prepare).isInstanceOf(ProfilePhotoTooLargeException.class);
+    // When / Then
+    assertThatThrownBy(() -> processor.prepare(original, "image/png"))
+        .isInstanceOf(ProfilePhotoTooLargeException.class);
   }
 
   @Test

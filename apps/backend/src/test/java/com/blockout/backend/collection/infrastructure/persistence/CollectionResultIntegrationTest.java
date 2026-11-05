@@ -2,7 +2,6 @@ package com.blockout.backend.collection.infrastructure.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.when;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
@@ -37,7 +36,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
@@ -86,11 +84,9 @@ class CollectionResultIntegrationTest {
     // Given
     CollectionState.Runtime before = collectionWork.current();
 
-    // When
-    ThrowingCallable lock = () -> store.lockRuntimeForReplacement();
-
-    // Then
-    assertThatThrownBy(lock).isInstanceOf(IllegalTransactionStateException.class);
+    // When / Then
+    assertThatThrownBy(() -> store.lockRuntimeForReplacement())
+        .isInstanceOf(IllegalTransactionStateException.class);
     assertThat(collectionWork.current()).isEqualTo(before);
   }
 
@@ -159,12 +155,9 @@ class CollectionResultIntegrationTest {
         SCOPE,
         cycle.id());
 
-    // When
-    Throwable thrown =
-        catchThrowable(() -> results.complete(cycle.id(), cycle.startedAt().plusSeconds(1)));
-
-    // Then
-    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+    // When / Then
+    assertThatThrownBy(() -> results.complete(cycle.id(), cycle.startedAt().plusSeconds(1)))
+        .isInstanceOf(CollectionConflictException.class);
     assertThat(collectionWork.get(cycle.id()).completedAt()).isNull();
   }
 
@@ -549,11 +542,9 @@ class CollectionResultIntegrationTest {
             null,
             null);
 
-    // When
-    Throwable thrown = catchThrowable(() -> results.record(cycle.id(), unselected));
-
-    // Then
-    assertThat(thrown).isInstanceOf(CollectionConflictException.class);
+    // When / Then
+    assertThatThrownBy(() -> results.record(cycle.id(), unselected))
+        .isInstanceOf(CollectionConflictException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_result", Integer.class))
         .isZero();
   }

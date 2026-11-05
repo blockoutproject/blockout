@@ -6,7 +6,6 @@ import com.blockout.backend.sporting.application.exception.SportingValidationExc
 import com.blockout.backend.sporting.application.service.ValidateSportingImage;
 import java.io.IOException;
 import java.io.InputStream;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.AbstractResource;
@@ -36,11 +35,8 @@ class SportingPresentationValidatorTest {
           }
         };
 
-    // When
-    ThrowingCallable read = () -> validator.validateImage(unreadable);
-
-    // Then
-    assertThatThrownBy(read)
+    // When / Then
+    assertThatThrownBy(() -> validator.validateImage(unreadable))
         .isInstanceOf(SportingValidationException.class)
         .hasMessageNotContaining("Synthetic private diagnostic");
   }

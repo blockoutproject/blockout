@@ -24,7 +24,6 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -115,11 +114,8 @@ class DiscoverSeasonSourcesTest {
             .organizerReference("LIIDF")
             .build();
 
-    // When
-    ThrowingCallable action = () -> service.catalog(target);
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(FfvbAcquisitionException.class);
+    // When / Then
+    assertThatThrownBy(() -> service.catalog(target)).isInstanceOf(FfvbAcquisitionException.class);
   }
 
   @Test
@@ -152,11 +148,9 @@ class DiscoverSeasonSourcesTest {
             .build();
     List<DiscoverSeasonSources.PageRead> consumed = new ArrayList<>();
 
-    // When
-    ThrowingCallable action = () -> service.catalog(target, () -> 1, consumed::add);
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(IllegalArgumentException.class);
+    // When / Then
+    assertThatThrownBy(() -> service.catalog(target, () -> 1, consumed::add))
+        .isInstanceOf(IllegalArgumentException.class);
     assertThat(consumed).isEmpty();
   }
 
@@ -351,11 +345,8 @@ class DiscoverSeasonSourcesTest {
             lifecycle,
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
 
-    // When
-    ThrowingCallable action = service::currentEntries;
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(IllegalStateException.class);
+    // When / Then
+    assertThatThrownBy(service::currentEntries).isInstanceOf(IllegalStateException.class);
     assertThat(lifecycle.isActive()).isFalse();
     verify(http, never()).page(nextEntry);
     verify(backend).observeSource(any());

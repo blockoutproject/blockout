@@ -285,13 +285,12 @@ class CollectorLifecycleIntegrationTest {
     registered = UUID.fromString("00000000-0000-4000-8000-000000000099");
     refuseAdmission = true;
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () ->
-            lifecycle.admit(UUID.fromString("00000000-0000-4000-8000-000000000151"), null, 0, null);
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(CollectionBackendFailure.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                lifecycle.admit(
+                    UUID.fromString("00000000-0000-4000-8000-000000000151"), null, 0, null))
+        .isInstanceOf(CollectionBackendFailure.class);
     assertThatThrownBy(old::nextReadOrdinal).isInstanceOf(IllegalStateException.class);
     int observedCalls = calls.size();
     assertThatThrownBy(
@@ -310,13 +309,12 @@ class CollectorLifecycleIntegrationTest {
     lifecycle.start();
     omitCandidate = true;
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () ->
-            lifecycle.admit(null, UUID.fromString("00000000-0000-4000-8000-000000000151"), 7, null);
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(IllegalStateException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                lifecycle.admit(
+                    null, UUID.fromString("00000000-0000-4000-8000-000000000151"), 7, null))
+        .isInstanceOf(IllegalStateException.class);
     assertThat(calls.subList(2, calls.size())).containsExactly("POST /ingestion/collection-cycles");
   }
 
@@ -327,12 +325,11 @@ class CollectorLifecycleIntegrationTest {
     lifecycle.start();
     contradictoryPurpose = true;
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () ->
-            lifecycle.admit(UUID.fromString("00000000-0000-4000-8000-000000000151"), null, 0, null);
-
-    // Then
-    assertThatThrownBy(action).isInstanceOf(IllegalStateException.class);
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                lifecycle.admit(
+                    UUID.fromString("00000000-0000-4000-8000-000000000151"), null, 0, null))
+        .isInstanceOf(IllegalStateException.class);
   }
 }

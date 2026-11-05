@@ -201,12 +201,9 @@ class EstablishAccountIntegrationTest {
     when(provider.read(ISSUER, "auth0|one"))
         .thenReturn(new PrincipalReader.Evidence(null, CREATED));
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable establish =
-        () -> establishment.establish(ISSUER, "auth0|one");
-
-    // Then
-    assertThatThrownBy(establish).isInstanceOf(ProviderEmailUnavailableException.class);
+    // When / Then
+    assertThatThrownBy(() -> establishment.establish(ISSUER, "auth0|one"))
+        .isInstanceOf(ProviderEmailUnavailableException.class);
     assertThat(accounts.findByPrincipal(ISSUER, "auth0|one")).isEmpty();
   }
 
@@ -329,12 +326,9 @@ class EstablishAccountIntegrationTest {
         .when(target)
         .findById(original.id());
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable establish =
-        () -> establishment.establish(ISSUER, "auth0|one");
-
-    // Then
-    assertThatThrownBy(establish).isInstanceOf(AccountUnavailableException.class);
+    // When / Then
+    assertThatThrownBy(() -> establishment.establish(ISSUER, "auth0|one"))
+        .isInstanceOf(AccountUnavailableException.class);
     assertThat(
             sql.queryForObject(
                 "SELECT COUNT(*) FROM account WHERE id = ?", Long.class, original.id()))
@@ -376,12 +370,9 @@ class EstablishAccountIntegrationTest {
               return new PrincipalReader.Evidence("late@example.invalid", null);
             });
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable establish =
-        () -> establishment.establish(ISSUER, "auth0|one");
-
-    // Then
-    assertThatThrownBy(establish).isInstanceOf(AccountUnavailableException.class);
+    // When / Then
+    assertThatThrownBy(() -> establishment.establish(ISSUER, "auth0|one"))
+        .isInstanceOf(AccountUnavailableException.class);
     assertThat(accounts.findById(original.id())).isEmpty();
     Optional<Account> replacement = accounts.findByPrincipal(ISSUER, "auth0|one");
     if (recreate) {

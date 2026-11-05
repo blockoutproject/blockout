@@ -1,6 +1,7 @@
 package com.blockout.backend.accounts.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.auth0.client.mgmt.ManagementApi;
 import com.auth0.client.mgmt.core.ClientOptions;
@@ -269,12 +270,8 @@ class AccountCleanupIntegrationTest {
     delay = true;
     AccountCleanup.RevenueCat cleanup = revenueCat(Environment.PREPRODUCTION);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable remove =
-        () -> cleanup.remove("known-original");
-
-    // Then
-    org.assertj.core.api.Assertions.assertThatThrownBy(remove)
+    // When / Then
+    assertThatThrownBy(() -> cleanup.remove("known-original"))
         .isInstanceOf(org.springframework.web.client.ResourceAccessException.class);
     assertThat(requests).hasSize(1);
   }
@@ -286,12 +283,8 @@ class AccountCleanupIntegrationTest {
     disconnect = true;
     AccountCleanup.RevenueCat cleanup = revenueCat(Environment.PREPRODUCTION);
 
-    // When
-    org.assertj.core.api.ThrowableAssert.ThrowingCallable remove =
-        () -> cleanup.remove("known-original");
-
-    // Then
-    org.assertj.core.api.Assertions.assertThatThrownBy(remove)
+    // When / Then
+    assertThatThrownBy(() -> cleanup.remove("known-original"))
         .isInstanceOf(org.springframework.web.client.ResourceAccessException.class);
     assertThat(requests).hasSize(1);
   }
