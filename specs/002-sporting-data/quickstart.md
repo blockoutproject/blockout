@@ -56,7 +56,7 @@ Exercise numeric final/provisional/unconfirmed results; synthetic `F`, `P`, `3/F
 
 Submit a logo with supplied/omitted publication metadata and compare the actual F03 binary response to the synthetic PNG. Verify private qualified document locators, information independent of result, professional finality, withdrawal/restoration and rescheduling under stable identity. F03 exposes only backend document subresources; ineligible binary requests return NotFound before supplier access.
 
-For standings, preserve official order, unknown rank/statistics, nonnumeric ratios, exact/absent participant links and the usable table's own freshness through non-publication/failure. Distinguish no table, `not-published` and published Empty. Synthetic special notations establish no provider-observed sample; [source interpretation](research.md#supplier-interpretation-limits) and [F03 document/native cases](../007-sporting-consultation/tasks.md) retain their own requirements.
+For standings, preserve official order, unknown rank/statistics, nonnumeric ratios, exact/absent participant links and the usable table's own freshness through non-publication/failure. Distinguish no table, `not-published` and published Empty. Synthetic special notations establish no provider-observed sample; [source interpretation](research.md#supplier-interpretation-limits) and [F03 document/native boundaries](../007-sporting-consultation/plan.md#maps-and-documents) retain their own requirements.
 
 ## Classification and division editors
 
@@ -64,7 +64,7 @@ Use the existing F05 session and F12 operational admission. Enter pack/pool clas
 
 Exercise complete overrides, explicit null/inheritance, incomplete/inactive choices, all-request conflict refusal, retained dirty input, failed then successful current-state recovery and protected-route withdrawal/reentry. Create a division through the name/color/logo form with generated multipart metadata, native confirmation and no activity write. A lost response must not cause automatic duplicate creation; reread before another explicit command.
 
-Compare the [mapping controls](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4652-28674), [division catalogue](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1340-9338), [creation](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1370-10242) and [gradient/lifecycle](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1368-10291). T055 requires actual native/visual/integrated journeys; implementation illustrations and controlled native SDK/HTTP inputs cannot establish that qualification.
+Compare the [mapping controls](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4652-28674), [division catalogue](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1340-9338), [creation](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1370-10242) and [gradient/lifecycle](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1368-10291). Native design qualification requires actual integrated journeys; implementation illustrations and controlled native SDK/HTTP inputs cannot establish that qualification.
 
 ## Presentation, contacts and continuity
 
@@ -76,7 +76,7 @@ Invoke `prepareSportingLogo` with the actual native file owner: await copy compl
 
 In existing native journeys, verify a professional team with no club remains readable/followable without a club link or invented point. Exercise team override → LNV → optional club → missing artwork, plus unchanged nonprofessional inheritance. Fail logo retrieval/replacement and retain the last valid presentation. Check both themes, enlarged text, focus and meaningful accessible action labels.
 
-For T045, use the exact [approved editor, professional-team, partial-map and
+For native presentation checks, use the exact [approved editor, professional-team, partial-map and
 320-point/200% references](plan.md#consumers-and-approved-design). Prepare
 demonstration resources and a current account with `manageSportingPresentation`;
 classification, lifecycle, moderation and Pro alone must grant no editor access.
@@ -111,9 +111,9 @@ unresolved/missing identity with retained association, and certain identity with
 missing file. Reapply only the certain retained file; keep unresolved evidence
 private and report missing bytes explicitly. Never publish recovery associations,
 original URLs, personal diagnostics or files in this repository/PR. These cases
-are prepared here; execution remains with T055/T056 and their authorized inputs.
+require the actual native journeys and separately authorized private recovery inputs.
 
-Change effective address/city/postcode while a geocoding response is in flight: the old point must not return. A street-only effective correction must advance locality revision and clear the old point; an overridden source change must preserve both. Exercise source/manual/hidden modes, restrictions, deliberate absence and return to source independently. Missing city suppresses the complete target context and point; absent address with usable city permits municipality lookup. An unambiguous municipality fallback is a valid located point without repeated address upgrade or normal-rerun recalculation. Retain no former personal details or new precision state. These revised context cases require [T075–T077](tasks.md), independently of the earlier municipality-only observations.
+Change effective address/city/postcode while a geocoding response is in flight: the old point must not return. A street-only effective correction must advance locality revision and clear the old point; an overridden source change must preserve both. Exercise source/manual/hidden modes, restrictions, deliberate absence and return to source independently. Missing city suppresses the complete target context and point; absent address with usable city permits municipality lookup. An unambiguous municipality fallback is a valid located point without repeated address upgrade or normal-rerun recalculation. Retain no former personal details or new precision state. Qualify these effective-context cases through the [current locality boundary](plan.md#presentation-administration-and-locality); municipality-only inputs do not establish the full-address behavior.
 
 Exercise standings with and without a retained usable table: `published` with empty rows remains an available table; `not-published` with empty arrays is qualified absence, and a failed/unreadable read is neither. Preserve a still-usable retained table and its own freshness on failure or non-publication; without one, F03 distinguishes qualified absence from unavailable acquisition. Reject non-publication with nonempty arrays and stale absence observations without effects. A successful table containing an unlinked row preserves official order without a fabricated team. Close a season and verify history remains while new cycles are refused. F14 logo preservation and controlled initial reconstruction remain prerequisites for any separately authorized transition, not actions of this quickstart.
 
@@ -133,7 +133,7 @@ Verify current canonical visibility and permitted presentation on every public r
 
 Exercise source/manual/hidden contact modes, restrictions and restored prohibited values through actual owner reads. Restricted source/manual values remain cleared or absent; no index document supplies authoritative hydration. After commit, hand off only affected identities/scopes; rollback emits no projection work and score-only changes add none.
 
-For T076, create fresh disposable PostgreSQL from the unchanged Liquibase schema definitions and use ordinary collector admission/targets/F02 acceptance for a representative classified pool and its encountered club sheets/geocoding. Verify address-first results, valid municipality fallback, current-target restrictions and subsequent effective-context changes rejecting old responses. Existing fields support this behavior without a data-update change set or requalification of old municipality results. Task-local recreation requires verified ownership and grants no production reset. The [plan](plan.md#presentation-administration-and-locality) owns that scope.
+For collector-to-location validation, create fresh disposable PostgreSQL from the unchanged Liquibase schema definitions and use ordinary collector admission/targets/F02 acceptance for a representative classified pool and its encountered club sheets/geocoding. Verify address-first results, valid municipality fallback, current-target restrictions and subsequent effective-context changes rejecting old responses. Existing fields support this behavior without a data-update change set or requalification of old municipality results. Task-local recreation requires verified ownership and grants no production reset. The [plan](plan.md#presentation-administration-and-locality) owns that scope.
 
 ### Current restrictions and presentation
 

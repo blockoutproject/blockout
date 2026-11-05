@@ -34,7 +34,7 @@ Run the ordinary collector and F02 acceptance with periodic controls disabled fo
 
 Verify scoresheet/statistics references and the document-only information-sheet associations separately. Historical facts never come from current XML. Unavailable-file notices supply no replacement locator; unknown missing links remain structural refusals. Public F03 actions expose Blockout subresources without supplier locators, and collection fetches no PDF body.
 
-Compare pinned-offset calendar/detail clocks, date-specific Europe/Paris conversion, partial dates, unknown-time flags and UTC date changes. A later supplier correction remains authoritative under the accepted logical ordering. Use the [F03 document scenarios](../007-sporting-consultation/quickstart.md#match-document-cases--t047t058) for native relay/reader behavior. Representative sources establish only their supported formats and scopes, not exhaustive archives or cutover readiness.
+Compare pinned-offset calendar/detail clocks, date-specific Europe/Paris conversion, partial dates, unknown-time flags and UTC date changes. A later supplier correction remains authoritative under the accepted logical ordering. Use the [F03 document boundary](../007-sporting-consultation/plan.md#maps-and-documents) for native relay/reader behavior. Representative sources establish only their supported formats and scopes, not exhaustive archives or cutover readiness.
 
 ## Club and geocoding
 
@@ -51,7 +51,7 @@ Follow the [FFVB club-sheet grammar](research.md#ffvb-source-patterns) with synt
 
 Exercise a unique full-address result, absent address and qualified empty/ambiguous address followed by municipality lookup. Expect no fallback after transport/malformed-response failure, no provider call without a permitted city and the same current locality revision in the result. Effective address/city/postcode changes invalidate old responses; masked source changes do not. A unique municipality fallback is a valid located result without normal-rerun recalculation. Address remains absent from cycle snapshots and diagnostics.
 
-Check the supported IGN singular `detail` and plural `details` error envelopes, rejecting conflicting/additional errors as technical failures. Keep acquisition outcomes separate from F02 secondary-field refusals and uncertain writes; response loss permits no mutation replay. Use [T058/T082–T084](tasks.md) for separately authorized representative FFVB/IGN source compatibility, not personal provider fixtures in Git.
+Check the supported IGN singular `detail` and plural `details` error envelopes, rejecting conflicting/additional errors as technical failures. Keep acquisition outcomes separate from F02 secondary-field refusals and uncertain writes; response loss permits no mutation replay. Qualify representative FFVB/IGN source compatibility under the [selected provider policy](research.md#club-geocoding) with separately authorized inputs; keep personal provider fixtures out of Git.
 
 ## Core scenarios
 
@@ -98,7 +98,7 @@ For retained-state upgrades, preserve applied checksums, current ordering/outcom
 
 ## Ordered uncertainty cases
 
-These cases are prepared for T050's isolated qualification. Do not inject faults against FFVB, LNV, IGN or a shared environment. Use the generated collector client, a local HTTP fault peer and the actual migrated PostgreSQL/F02 owner. Control the response **after** the indicated commit, and count writes independently of received responses. Keep accepted business facts and source locks throughout.
+Run these cases in an authorized isolated collector/backend environment. Do not inject faults against FFVB, LNV, IGN or a shared environment. Use the generated collector client, a local HTTP fault peer and the actual migrated PostgreSQL/F02 owner. Control the response **after** the indicated commit, and count writes independently of received responses. Keep accepted business facts and source locks throughout.
 
 1. **Admission response lost:** let the backend commit RUNNING, then drop its response. The collector exposes no provider capability and sends no confirmation GET. Current backend RUNNING excludes further admission until explicit restart. Repeat with failure before commit: a later ordinary poll may allocate a fresh UUID. Backend atomic admission still rejects stale concurrent polls.
 2. **Sporting write response lost:** commit one F02 match transaction, then drop the response. Keep that accepted match and independently successful matches. Record unconfirmed integration; never resubmit the mutation or replay the passage. Attempt ordinary completion for the passage. A later ordinary eligible cycle may recover facts still published, subject to newer observation/visibility guards; it cannot reconstruct lost user corrections or custom image bytes.
@@ -108,7 +108,7 @@ These cases are prepared for T050's isolated qualification. Do not inject faults
 
 For every case, retain the original cycle/candidate identity privately, check actual SQL effects and HTTP call counts, and separate confirmed acceptance, refused acceptance and unresolved outcome. Availability evidence does not identify an instant crash: no heartbeat, watchdog, retry worker, sweep, checkpoint or broad reset is involved. An empty/unexecuted selection supplies no failure or recovery observation.
 
-Use the [operations guide](../../infra/operations/README.md#collection-inspection-and-explicit-recovery) for inspection and explicit restart; the full integrated fault cases belong to [T050](tasks.md).
+Use the [operations guide](../../infra/operations/README.md#collection-inspection-and-explicit-recovery) for inspection and explicit restart after the integrated fault cases; keep accepted facts and uncertain outcomes distinct.
 
 ## Operational diagnostics
 
@@ -118,11 +118,11 @@ Verify current-result mappings, commit/rollback event ownership, logical orderin
 
 For official-entry failures before a season/control exists, exercise unusable/partial entries and missing seasonal attribution without guessed proposals. Expect safe bounded native diagnostics, failure remaining actionable and no payload disclosure. Normal empty/ambiguous geocoding is independent of failed integration.
 
-Use the [native conditions](../../infra/observability/README.md#collection-evidence-and-native-conditions-f01) for actual alert evaluation and [T063](tasks.md) for firing/delivery/reminder/closure cases. Local encoders and synthetic owner checks do not establish external notification delivery.
+Use the [native conditions](../../infra/observability/README.md#collection-evidence-and-native-conditions-f01) to evaluate firing, delivery, reminders and closure in an authorized isolated environment. Local encoders and synthetic owner checks do not establish external notification delivery.
 
 ## Native alert cases
 
-Prepared for [T063](tasks.md); none of these cases authorizes remote Grafana/contact-point changes or claims an emitted notification. Use an authorized isolated environment with the [F13 telemetry boundary](../../infra/observability/README.md) and the [concrete F01 conditions](../../infra/observability/README.md#collection-evidence-and-native-conditions-f01). Keep source payloads and exact private inspection references out of public evidence. Keep source payloads and private inspection data out of public artifacts.
+Remote Grafana/contact-point changes require their actual operational authorization; these prepared cases establish no emitted notification. Use an authorized isolated environment with the [F13 telemetry boundary](../../infra/observability/README.md) and the [concrete F01 conditions](../../infra/observability/README.md#collection-evidence-and-native-conditions-f01). Keep source payloads and exact private inspection references out of public artifacts.
 
 | Case                            | Controlled input and observation                                                                                                                                                                                                           | Expected interpretation                                                                                                                                                                                                                                                                                               |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -139,7 +139,7 @@ Prepared for [T063](tasks.md); none of these cases authorizes remote Grafana/con
 | Native closure versus repair    | Produce new usable exact-scope evidence, and separately expire a series, edit/disable a rule or stop telemetry without a new usable observation.                                                                                           | Native closures remain distinguishable from positive business recovery. Keep No Data/Error handling explicit; retained SQL evidence survives the log-retention window.                                                                                                                                                |
 | Commit and privacy              | Roll back an evidence write; delay its after-commit diagnostic until newer evidence commits. Include synthetic secret/contact/body strings only in controlled rejected/free-form input.                                                    | Rollback emits no accepted-evidence event; delayed diagnostics reread current state. Public/sink output contains only allowed fixed reasons, nonpersonal keys and bounded counts; unknown measurements remain absent.                                                                                                 |
 
-Do not infer instant collector failure from silence, a healthy API from collector activity, or notification delivery from a local log. Availability, detection, notification, native closure and actual recovery are separate observations. If the configured Loki query, downstream delivery or elapsed five-day behavior is unavailable, retain it explicitly as pending T063 evidence.
+Do not infer instant collector failure from silence, a healthy API from collector activity, or notification delivery from a local log. Availability, detection, notification, native closure and actual recovery are separate observations. If the configured Loki query, downstream delivery or elapsed five-day behavior is unavailable, leave that alert qualification pending.
 
 ## Bounded initial reconstruction
 

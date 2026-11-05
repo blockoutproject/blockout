@@ -231,7 +231,7 @@ The information sheet and stream link remain independent of these boundaries and
 
 ## V1 evidence and limitations
 
-The [transition owner](../014-v1-v2-transition/spec.md#v1-evidence) retains historical continuity and its qualification limits. V2 preserves exact resource navigation, club-season scope, pool/day grouping, distinct information-sheet and scoresheet uses, and focus/foreground/manual match reads. Current requirements intentionally distinguish unknown scores, date-only precision, official standings positions, independent map participants and neutral video links. Historical omissions or display anomalies do not become V2 requirements, and historical code establishes neither production incidents nor native/provider acceptance. [Qualification](quickstart.md) owns the executed boundaries and remaining cases.
+The [transition owner](../014-v1-v2-transition/spec.md#v1-evidence) retains historical continuity and its qualification limits. V2 preserves exact resource navigation, club-season scope, pool/day grouping, distinct information-sheet and scoresheet uses, and focus/foreground/manual match reads. Current requirements intentionally distinguish unknown scores, date-only precision, official standings positions, independent map participants and neutral video links. Historical omissions or display anomalies do not become V2 requirements, and historical code establishes neither production incidents nor native/provider acceptance. The [quickstart](quickstart.md) defines reproducible validation cases and expected outcomes; [tasks](tasks.md) track completion.
 
 ## Coverage and cross-perimeter dependencies
 

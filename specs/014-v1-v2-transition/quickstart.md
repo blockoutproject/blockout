@@ -30,9 +30,9 @@ Use the existing Java/mobile test tools for controlled failure and serialization
 
 ## Private continuity and final-state preparation
 
-Use the [private inventory and destruction gates](../../infra/operations/README.md#private-continuity-inventory) and [final current-state reconciliation](../../infra/operations/README.md#final-current-state-reconciliation). Execute T020 only under its actual authorization; T049 repeats the current-state check immediately before authorized retirement. Keep personal associations and unresolved cases in the authorized private process. A sampled account or controlled test does not establish population coverage.
+Use the [private inventory and destruction gates](../../infra/operations/README.md#private-continuity-inventory) and [final current-state reconciliation](../../infra/operations/README.md#final-current-state-reconciliation). Perform population reconciliation only under its actual authorization and repeat the current-state check immediately before authorized retirement. Keep personal associations and unresolved cases in the authorized private process. A sampled account or controlled test does not establish population coverage.
 
-## Identity and Pro owner integration — T015–T017
+## Identity and Pro owner integration
 
 After ordinary contract generation, run the actual account/Pro owner boundaries with isolated fictional data:
 
@@ -42,13 +42,13 @@ npm run test --workspace=@blockout/mobile -- --runInBand src/features/pro/__test
 ./mvnw -B -ntp -pl apps/backend verify -Dtest=EstablishAccountAgeTest -Dit.test=TransitionIdentityIntegrationTest
 ```
 
-Exercise the identity/Pro scenario row with actual F05/F09/F12 composition. Expect retained principal age and linked identity, new business UUID, current grants, distinct unlinked equal-email principals and explicit restoration only. Controlled HTTP/native SDK inputs do not qualify real linking, store ownership, receipt transfer or provider erasure; T020–T022 retain their population/provider obligations.
+Exercise the identity/Pro scenario row with actual F05/F09/F12 composition. Expect retained principal age and linked identity, new business UUID, current grants, distinct unlinked equal-email principals and explicit restoration only. Controlled HTTP/native SDK inputs do not qualify real linking, store ownership, receipt transfer or provider erasure. The [identity and purchase continuity requirements](plan.md#identity-and-purchase-continuity) still require actual population/provider qualification.
 
-## Auth0 default-role isolation — T019
+## Auth0 default-role isolation
 
-Under actual provider authorization, use the [operations procedure](../../infra/operations/README.md#auth0-v1-default-role-isolation) to restrict `assign-default-role` to the exact retained V1 native registration. Test non-V1 clients with/without old roles and a prefix-sharing client, then V1 existing-role and roleless success/failure. Expect return before legacy access for every non-V1 client, unchanged V1 claims and login rejection if required roleless assignment fails. Qualify actual Google/Apple and prior-role continuity under T021 before final dependency removal at T050.
+Under actual provider authorization, use the [operations procedure](../../infra/operations/README.md#auth0-v1-default-role-isolation) to restrict `assign-default-role` to the exact retained V1 native registration. Test non-V1 clients with/without old roles and a prefix-sharing client, then V1 existing-role and roleless success/failure. Expect return before legacy access for every non-V1 client, unchanged V1 claims and login rejection if required roleless assignment fails. Qualify actual Google/Apple sign-in with and without a prior role before final dependency removal.
 
-## Protected-logo rehearsal — T027/T028/T030
+## Protected-logo rehearsal
 
 Use the [bounded preservation/reassociation procedure](../../infra/operations/README.md#protected-club-logo-preservation-and-reassociation) with isolated fictional associations and files, then run:
 
@@ -56,7 +56,7 @@ Use the [bounded preservation/reassociation procedure](../../infra/operations/RE
 ./mvnw -B -ntp -pl apps/backend verify -Dtest=ImageDecoderTest,ValidateSportingImageTest -Dit.test=TransitionLogoIntegrationTest
 ```
 
-Expect distinct exact FFVB strings such as `000339` and `339`, no name-based association, rejected missing/corrupt bytes without presentation changes and ordinary uniqueness/grant/revision protection. A clubless professional team receives no guessed club logo. Private copy completeness and actual deployed V1 preservation require T029; a fixture lookup does not establish them.
+Expect distinct exact FFVB strings such as `000339` and `339`, no name-based association, rejected missing/corrupt bytes without presentation changes and ordinary uniqueness/grant/revision protection. A clubless professional team receives no guessed club logo. [Private copy completeness and deployed V1 preservation](plan.md#protected-logos-and-sporting-reconstruction) require the actual authorized freeze, copy and source checks; a fixture lookup does not establish them.
 
 ## Legacy status qualification
 
@@ -68,9 +68,9 @@ Use both supported installed V1 store builds and the actual first V2 release for
 4. Separately omit a required retirement input and simulate a network failure, first without any retained V1 configuration and then after a successful read. Record each installed client's actual result: no configuration guarantees neither a blocking screen nor an update action; retained configuration may still govern the display. Restore and verify the valid response before any cutover.
 5. In the authorized retirement rehearsal, try direct authenticated old business calls and deferred writers as well as the status read. No old mutation or identity association may reach V2 state, even when status retrieval fails. An update screenshot does not establish writer retirement.
 
-Qualify platform versions, configured thresholds and the actual installed-binary behavior under T043. Store availability, effective retirement and production activation remain distinct; serialization alone does not establish them.
+Qualify platform versions, configured thresholds and actual installed-binary behavior with the supported V1 store builds. Store availability, effective retirement and production activation remain distinct; serialization alone does not establish them.
 
-### Repository F12 integration — T037/T040
+### Repository F12 integration
 
 ```sh
 npm run bundle:contracts
@@ -79,11 +79,11 @@ npm run bundle:contracts
 
 Activate actual F12 maintenance and lower/raise/remove its version settings in isolated migrated PostgreSQL. Expect the ordinary V2 response to follow those committed edits while the entire legacy flat response remains fixed, no-store and `maintenance: false`. Missing retirement inputs must return canonical unavailable data without ordinary business admission. Installed V1 binaries, compatible host and signed V2 releases remain separate qualification inputs.
 
-## Common discovery — T006–T010
+## Common discovery
 
 Use the [approved common discovery](plan.md#design-approval) on native iOS/Android. Exercise finish, skip, interruption, persistence failure and retry; repeat after restart, sign-out and a later app version. Expect a separate installation completion flag written only on explicit skip/finish, current F12 blocking and independent F11 age declaration. Initialization success alone must not complete discovery.
 
-## Actual discovery owners and fresh personal state — T011/T026/T033
+## Actual discovery owners and fresh personal state
 
 ```sh
 npx nx run mobile:generate --output-style=static

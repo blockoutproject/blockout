@@ -38,7 +38,7 @@ Opening the season selector is the explicit recovery from a selected-season erro
 
 ## Mobile journeys
 
-### Native follow action boundary (T008, T014, T015)
+### Native follow action boundary
 
 Use independent same-target and different-target controls. Only the initiating mounted control is busy; retain its confirmed label/selection while blocking its own repeated tap. A confirmed response updates admitted member data, an ordinary failure retains confirmation, and a known current refusal stays withdrawn until a successful member read. Lose a response and perform one bounded member observation without replay; that observation proves neither historical write success nor delayed cancellation. Leave the route or change subject while pending: no obsolete feedback/navigation enters the new view; dispatch retains original-principal attribution under F05's accepted lifetime limits.
 
@@ -63,7 +63,7 @@ The generated boundary remains unchanged; the independent public counter is qual
 npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/following/__tests__/follow-action.test.tsx
 ```
 
-### Direct counters and bounded recovery (T038–T043)
+### Direct counters and bounded recovery
 
 Add/remove/re-follow and verify direct public counts independently of profile reads. Include multiple owners, distinct typed identities/seasons, hidden relations and restored visibility. Unknown/invalid/failed reads never become zero. Failed refresh retains an authorized count with count-only retry; current refusal removes it before a later network failure. A public count NotFound withdraws that F03 target and suspends its follow action; a private opaque member NotFound does not prove public absence.
 
@@ -74,7 +74,7 @@ Confirm a write, then fail dependent reads: confirmation survives. Lose a write 
 npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/following/__tests__/follower-count.test.tsx src/features/following/__tests__/follow-recovery.test.tsx src/features/following/__tests__/follow-action.test.tsx
 ```
 
-#### Prepared native A22–A28 cases (T040; execution remains T045)
+#### Native recovery and accessibility
 
 Use the approved [Home and Sport references](plan.md#constitution-check), the
 [followed team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1023-5097)
@@ -91,10 +91,10 @@ Use fictional accounts and task-owned fixtures; keep private diagnostics and rel
 | A24      | Lose a potentially recorded PUT response, delay original completion and fail or delay the member reread triggered by ordinary invalidation. Only the initiating mounted control owns pending feedback while retaining its confirmed label and selection; independent controls retain their own state. Use current observed confirmation or ordinary error and a later explicit action based on the current confirmed state. No replay or claim of cancellation. Repeat after unmount and A → guest/B → A, checking no obsolete callback applies. | Controlled HTTP delay/loss; F13 bounded transport and Query; F05 private React/Query lifetime.                                                                                                                  |
 | A25      | Confirm PUT, then fail profile, options, list/calendar reset and count reads independently, including inactive Home tabs. The write remains successful; visible reads show loading/error/retry, the other count stays unchanged, and selection/category stay intact.                                                                                                                                                                                                                                                                             | Actual F03/F05/F06 generated paths and F13 Query; controlled read failures only.                                                                                                                                |
 | A26      | Fail initial, refresh and additional-page retrieval independently. Retain permitted unchanged-context content with identifiable freshness; a current refusal must not return after a later network error. Retry the failed boundary without false empty/end-of-list or zero.                                                                                                                                                                                                                                                                     | Actual personal lists/calendar and F03 current visibility; F13 failure isolation.                                                                                                                               |
-| A27      | Remove/recreate a confirmed relation with overlapping team/pool origins and change only the display season. F07 sees one eligible recipient and distinguishes the new relation; no push promise follows from the follow itself.                                                                                                                                                                                                                                                                                                                  | [T044](#relationships-and-calendar) qualifies actual trigger/send consumption with controlled provider I/O. Native permission and provider/physical receipt retain their F07 prerequisites and qualification.   |
+| A27      | Remove/recreate a confirmed relation with overlapping team/pool origins and change only the display season. F07 sees one eligible recipient and distinguishes the new relation; no push promise follows from the follow itself.                                                                                                                                                                                                                                                                                                                  | Exercise [actual trigger/send consumption](#relationships-and-calendar) with controlled provider I/O. Native permission and provider/physical receipt retain their F07 prerequisites and qualification.         |
 | A28      | On iOS and Android, exercise system light/dark and live changes, VoiceOver/TalkBack, enlarged text and reduced motion. Count announces its quantity/unknown/failed-refresh meaning; busy/selected/retry states are understandable without color, remain operable without clipping and follow current grants. Filtering/refresh/return causes no interstitial; sporting opening uses F11. Open contextual support without adding collection or diagnostics.                                                                                       | F13 native accessibility and approved designs; F05 original session; F09 free/Pro/unknown; F10 private destination and contextual route; F11 advertising consent/provider prerequisites; F12 current admission. |
 
-### Shared personal season boundary (T017–T021)
+### Shared personal season boundary
 
 Change the shared personal selection across Home, Teams, Pools and calendar. Verify followed-versus-catalog default, historical/All seasons, reset, fresh-opening choices, successful disappearance, failed reconciliation and obsolete session/selection completions. A selected-season error does not read options automatically; opening the existing selector is the explicit recovery. Only successful options establish omission and withdraw retained exact-season/All-seasons data before fallback.
 
@@ -120,7 +120,7 @@ and its HTML select control are interaction references; their rendering is not n
 npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/following/__tests__/personal-season.test.tsx src/features/following/__tests__/personal-screen.test.tsx
 ```
 
-### Personal team and pool lists (T023–T028)
+### Personal team and pool lists
 
 Traverse more than twenty follows, including French accented names, homonyms and UUID ties. Check current public names, deterministic `fr-x-icu` ordering, closed seasons and hidden/reappearing relations. Open the exact F03/F11 target, return to retained pages and fail/retry the same continuation. Empty season offers Search; initial/page failure never becomes Empty/end. Confirm a follow change while another tab is hidden: reset former rows, then load its first page when shown. Reject obsolete account responses and withdraw only the addressed current refusal.
 
@@ -130,7 +130,7 @@ npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/follo
 NX_DAEMON=false NX_ISOLATE_PLUGINS=false npx nx run-many -t verify -p backend mobile --parallel=1 --output-style=static
 ```
 
-### Personal complete-day calendar (T030–T036)
+### Personal complete-day calendar
 
 Follow overlapping team/pool origins and verify each match once. Include known/date-only/missing times, Paris/New York zones, definitive/provisional results, postponement, seven complete nonempty days and a busy day with 26 matches. Continuation is exclusive; one response is coherent while between-page changes may require refresh. Remove origins in turn without altering the public match; only the last removal eliminates its personal selection.
 
@@ -141,7 +141,7 @@ Fail ordinary refresh and append separately, retain authorized rows and retry th
 npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/following/__tests__/personal-calendar.test.tsx src/features/following/__tests__/personal-screen.test.tsx src/features/sporting/__tests__/sporting-calendar.test.tsx
 ```
 
-### Integrated personal season and calendar (T022/T037)
+### Integrated personal season and calendar
 
 Use real F02/F03/F06 SQL paths and generated consumers for Home, season selection, both lists and calendar. Exercise qualified complete-empty withdrawal and reappearance: preserve original match/follow UUIDs, keep independent catalog/division restrictions and hide the public match while retaining its relation. Fail a confirmed-change reload after several pages: former rows disappear into ordinary Error/Retry with season/category retained. An unchanged-context refresh failure instead retains authorized rows. Read current options only on deliberate selector opening; failed options preserve the selected season.
 

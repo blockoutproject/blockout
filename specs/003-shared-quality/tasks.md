@@ -65,7 +65,7 @@ F13's data model contains logical responsibilities, not generic tables to scaffo
 - [x] T016 Configure `apps/backend/src/main/resources/application.yaml` and `apps/backend/src/main/resources/db/changelog/db.changelog-master.xml` for separate Liquibase XML execution, Hibernate validation and disabled SQL initialization; keep Liquibase outside the application runtime. Domain owners add their actual tables to the mutable initial baseline; freeze it at the first preproduction/production version, then append immutable migrations. Make T015 pass without a synthetic production table, reset or checksum clearing.
 - [x] T017 Extend `.github/workflows/ci.yml`, `contracts/http/project.json` and `apps/backend/project.json`, `apps/collector/project.json` and `apps/mobile/project.json` to lint/bundle, generate, compile/typecheck and run T009–T015 through the actual consumers. Qualify clean deterministic regeneration and ignored outputs when introducing or changing a generator or its configuration, following [Contract boundary](quickstart.md#contract-boundary). Qualify required generator shapes before adoption; do not treat schema lint or generated default methods as application behavior.
 
-**Checkpoint**: Generated consumers, shared transport and schema-startup checks pass locally/CI. Feature owners can use the foundation without waiting for monitoring, restoration or cutover completion.
+**Checkpoint**: Verify generated consumers, shared transport and schema-startup behavior through the local/CI checks. Feature owners can use the foundation without waiting for monitoring, restoration or cutover completion.
 
 ---
 

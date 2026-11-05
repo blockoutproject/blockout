@@ -25,7 +25,7 @@ Use isolated migrated PostgreSQL and native development builds with valid enviro
 | Contract boundary        | Generate/compile Java and TypeScript, run response validation and wrong-token cases.                                                                                                          | Null/absence, numeric range, additional fields, capabilities and Problem Details behave as authored; ordinary maintenance refusals carry current maintenance, exempt operations only technical unavailability; deterministic generated output stays outside Git. |
 | Accessibility            | Physical iOS/Android with screen readers, text scaling, reduced motion and deep-link/back navigation.                                                                                         | Approved actions remain reachable; focus and labels understandable; decoration never carries the only information.                                                                                                                                               |
 
-## Direct authorization and manual grant lifecycle — T011
+## Direct authorization and manual grant lifecycle
 
 Use the [owner-only grant/revoke procedure](../../infra/operations/README.md#owner-only-action-grants) against an authorized disposable connection. Exercise actual F01/F02/F05/F08 commands and all eight independent action values, including withdrawal ordered before/after a short protected mutation and erase/recreate. Expect current grants, no inferred permission and no old-UUID reassignment. Assignment remains an owner operation, never an application capability.
 
@@ -43,7 +43,7 @@ Before public distribution, establish the owner normally with the production bin
 
 Restart/deploy again and verify that saved settings survive. In an isolated rehearsal, correct an invalidating operator mistake using ordinary authorized SQL, advancing the edited revision and validating the complete result. No hidden bootstrap endpoint, reset or dedicated recovery tool is expected.
 
-## Atomic settings — T012–T020
+## Atomic settings
 
 Run the generated TypeScript/form consumer boundary through the disposable `AccessSettingsConsumersIntegrationTest` orchestrator, never against a retained/shared backend or database. Its explicit opt-in enables settings writes; skipped cases provide no qualification. Exercise the settings/concurrency rows with actual HTTP/PostgreSQL and ordinary native forms.
 
@@ -61,9 +61,9 @@ For the complete repository check when private per-application `.env.local` file
 NX_LOAD_DOT_ENV_FILES=false NX_DAEMON=false BLOCKOUT_ACCESS_CONSUMERS_TEST=true npm run verify
 ```
 
-The unavailable minimum-iOS simulator input journey remains a separate T045 obligation. Its scoped deferral permits T012–T020 delivery without changing compatibility requirements or completing final F12 acceptance. Preserve the deployment minimum and use the installed supported toolchain; no native input patch or implicit prerelease installation is selected. [F13](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) owns shared text-size/input limits.
+The minimum-iOS simulator input journey remains required for final native acceptance. Its owner-authorized scoped deferral permits delivery of the atomic settings implementation without changing compatibility requirements or completing final F12 acceptance. Preserve the deployment minimum and use the installed supported toolchain; no native input patch or implicit prerelease installation is selected. [F13](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) owns shared text-size/input limits.
 
-## Shared maintenance admission — T021/T025/T026
+## Shared maintenance admission
 
 Exercise the exact ordinary/operational method/resource boundary, complete public read, typed maintenance refusal and current-account identification exception:
 
@@ -77,7 +77,7 @@ npm run test --workspace=@blockout/mobile -- \
 
 Expect canonical no-store 401/403/503 responses, current grants and no permissive configuration fallback. Generic/inconsistent unavailable data must not fabricate maintenance or admission. Native gates and provider behavior require their own setup.
 
-## Sporting push maintenance policy — T032/T033
+## Sporting push maintenance policy
 
 After dependency installation and contract bundling, run:
 
@@ -87,7 +87,7 @@ After dependency installation and contract bundling, run:
 
 Exercise current maintenance before each handoff decision without recipient privilege/bypass input. Expect active maintenance or unavailable state to prevent a new handoff, while an earlier admitted handoff may finish. This policy check alone does not establish actual sender binding or receipt.
 
-## Maintenance notification continuity — T034
+## Maintenance notification continuity
 
 Run the actual F07 producer/inbox/sender/purge and current F12 SQL admission boundaries:
 
@@ -102,13 +102,13 @@ NX_LOAD_DOT_ENV_FILES=false EXPO_NO_DOTENV=1 \
 
 For A23–A26, expect eligible retained inbox entries during maintenance, no new handoff for ordinary or operator recipients, continued age-29 exclusion/purge, no replay on reopening and current access on old-push taps. Activation during an admitted batch may allow that batch to finish but must prevent the next handoff. Controlled Expo/native I/O does not establish physical receipt or an atomic remote stop/recall.
 
-## Native access composition — T022–T024/T027–T029/T035/T038
+## Native access composition
 
 Use actual iOS/Android builds with the F05/F14 owners and [approved design sources](spec.md#design-evidence). Exercise cold-start public/identity failures independently, explicit retry, partial/late responses, direct links, grant withdrawal and minimum versions. Expect the public complete check to remain independent of credential initialization, ordinary closure without a successful check, separate operational admission and no minimum-version bypass.
 
 Verify both themes, keyboard/navigation, screen readers, enlarged text and reduced motion. Confirmed maintenance/update retains native refresh; failed admission uses Retry alone under F13. Store opening is a native action, never proof that a required binary is downloadable.
 
-## Native versions editor — T036/T037
+## Native versions editor
 
 ```sh
 npm run test --workspace=@blockout/mobile -- --runTestsByPath \
@@ -121,6 +121,6 @@ NX_LOAD_DOT_ENV_FILES=false NX_DAEMON=false NX_ISOLATE_PLUGINS=false \
 
 On native builds, exercise first/last fields and final action with the software keyboard open, both themes and enlarged text. Expect omitted fields to remain unchanged, explicit null removal, independent platform values under one revision, retained failed-save drafts, explicit reread after conflict and a reachable full-screen preview close action. Use [the plan's form/design decisions](plan.md#mobile-state-and-native-behavior); actual operator authentication, SQL, stores and physical accessibility retain their distinct qualification boundaries.
 
-## Direct Profile operational navigation — T047
+## Direct Profile operational navigation
 
 From Profile, activate “Collectes”, “Maintenance” and “Versions minimales” under each literal current grant. Expect their existing destinations directly and Back to Profile, with no intermediate index or sporting-only access. Verify revoked/malformed/stale account reads and account changes. Retain the separate `/administration` gate destination and current ordinary/operational admission.

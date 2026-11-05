@@ -149,7 +149,7 @@ description: "Implementation tasks for F05 accounts, sessions and erasure"
 - [ ] T038 [US5] Qualify the existing public privacy-page deletion direction and contact through `specs/005-accounts-identity/quickstart.md#integration-with-other-owners` with F10/F11's private request handling and F14's store-link qualification. Verify requests without reinstall/sign-in, actual ownership verification rather than email matching, truthful outcome/deadline handling and every erasure-matrix category's owner/retention purpose. Use existing support/legal tools, with no new portal or public diagnostic attachments.
 - [ ] T039 [US5] Execute the F05 fixtures in `specs/003-shared-quality/quickstart.md#initial-restore-and-activation-condition` and `specs/005-accounts-identity/quickstart.md#integration-with-other-owners` once F13's isolated restore procedure and affected owners exist; manually reconcile current erasures, rights and expiry before affected access or sends resume, including known unresolved external cleanup. Record safe restoration evidence without marking provider repair complete solely because database recovery succeeds.
 
-**Checkpoint**: Local erasure and bounded cleanup pass controlled tests. Native deletion, receipts, private requests and restoration remain explicitly incomplete until their real prerequisites and evidence exist; accepted crash/token/other-device limits remain unchanged.
+**Checkpoint**: Verify local erasure and bounded cleanup independently with controlled tests. Native deletion, receipts, private requests and restoration remain explicitly incomplete until their real prerequisites and evidence exist; accepted crash/token/other-device limits remain unchanged.
 
 ---
 

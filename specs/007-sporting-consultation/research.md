@@ -80,7 +80,7 @@ On the installed Expo Fetch/RN 0.88.1 combination, binary responses use React Na
 
 **Alternatives**: System external readers do not guarantee reading without another installed application. A Google Drive viewer adds a third-party dependency and disclosure of the source URL. A custom PDF renderer or patched dependency would duplicate supported native rendering.
 
-**Evidence limits**: The examined supporting package was `react-native-blob-util` 0.25.1. Published config plugins 14.0.2 declare Expo >=56 compatibility; unpublished repository versions are not selected. Both native debug builds and bounded simulator/emulator rendering and cleanup pass on Expo 58.0.22/RN 0.88.1, with the [construction evidence and remaining cases](quickstart.md#match-document-cases--t047t058). Physical-device compatibility and representative source-relay qualification remain T058 before accepted adoption. Failure reopens this boundary rather than authorizing a fork or a changed minimum platform.
+**Compatibility limits**: The selected supporting package is `react-native-blob-util` 0.25.1. Published config plugins 14.0.2 declare Expo >=56 compatibility; unpublished repository versions are not selected. Validate native debug builds, rendering and cleanup against the [selected F13 platform matrix](../003-shared-quality/plan.md#technical-context) using the [document scenarios](quickstart.md#match-document-cases). Physical-device compatibility and representative source-relay qualification remain T058 before accepted adoption. Failure reopens this boundary rather than authorizing a fork or a changed minimum platform.
 
 ## Contracts, privacy and operations
 
