@@ -41,7 +41,7 @@ interface ClubRepository extends JpaRepository<ClubEntity, UUID> {
   /**
    * Selects current seasonless acquisition candidates strictly after the visited identity boundary.
    *
-   * @param geocoding whether to select current municipal needs
+   * @param geocoding whether to select current club-location needs
    * @param afterId exclusive last visited identity, or null to start
    * @param page first page limiting the next batch
    * @return stable FFVB candidates; F01 decides whether a normal unresolved result is due again

@@ -719,7 +719,7 @@ class CollectorPartialSuccessIntegrationTest {
         provider,
         mock(LnvAcquisition.class),
         mock(ClubSheets.class),
-        mock(MunicipalGeocoder.class),
+        mock(ClubGeocoder.class),
         discovery,
         lifecycle,
         Clock.systemUTC(),

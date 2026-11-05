@@ -35,7 +35,7 @@ public class CollectPassage {
   private final FfvbAcquisition ffvb;
   private final LnvAcquisition lnv;
   private final ClubSheets clubs;
-  private final MunicipalGeocoder geocoder;
+  private final ClubGeocoder geocoder;
   private final DiscoverSeasonSources discovery;
   private final CollectorLifecycle lifecycle;
   private final Clock clock;
@@ -188,7 +188,11 @@ public class CollectPassage {
         sheet = clubs.read(target.clubReference());
       else
         point =
-            geocoder.read(target.municipality(), target.postalCode(), target.localityRevision());
+            geocoder.read(
+                target.address(),
+                target.municipality(),
+                target.postalCode(),
+                target.localityRevision());
     } catch (RuntimeException failure) {
       acquisitionFailed(context, target, ordinal, failure);
       return;
@@ -203,7 +207,7 @@ public class CollectPassage {
         null,
         null,
         observedAt,
-        point == null ? null : "IGN municipality: " + point.outcome().getValue());
+        point == null ? null : "IGN location: " + point.outcome().getValue());
     SportingObservation.Context evidence =
         new SportingObservation.Context(context.getCycle().id(), ordinal, observedAt, null);
     lifecycle.requireActive();

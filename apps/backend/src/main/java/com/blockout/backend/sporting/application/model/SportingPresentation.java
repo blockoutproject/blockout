@@ -17,7 +17,7 @@ import org.openapitools.jackson.nullable.JsonNullable;
 /** Current owner values and complete commands, independent from generated objects and entities. */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class SportingPresentation {
-  /** Independently managed private club fields; CITY is the municipal geocoding context. */
+  /** Independently managed private club fields; address, city and postal code define geocoding. */
   public enum ContactField {
     ADDRESS,
     CITY,
@@ -197,7 +197,7 @@ public final class SportingPresentation {
     }
   }
 
-  /** Current effective municipal point and context; technical failure has no mutation command. */
+  /** Current effective club point and context; technical failure has no mutation command. */
   public record Locality(
       String revision,
       String city,
@@ -206,7 +206,7 @@ public final class SportingPresentation {
       Double longitude,
       ObservationOrder order) {}
 
-  /** A response for one exact current municipal context, independent from F01 attempt policy. */
+  /** A response for one exact current location context, independent from F01 attempt policy. */
   public record LocalityObservation(
       MatchObservation.Context context,
       String localityRevision,

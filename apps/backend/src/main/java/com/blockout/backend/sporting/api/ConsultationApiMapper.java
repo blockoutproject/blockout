@@ -2,6 +2,7 @@ package com.blockout.backend.sporting.api;
 
 import com.blockout.backend.config.MappingConfiguration;
 import com.blockout.backend.generated.mobile.model.ClubDetailResponse;
+import com.blockout.backend.generated.mobile.model.ClubLocationResponse;
 import com.blockout.backend.generated.mobile.model.ClubTeamsResponse;
 import com.blockout.backend.generated.mobile.model.MatchCalendarResponse;
 import com.blockout.backend.generated.mobile.model.MatchDayResponse;
@@ -13,7 +14,6 @@ import com.blockout.backend.generated.mobile.model.MatchScheduleResponse;
 import com.blockout.backend.generated.mobile.model.MatchSetScoreResponse;
 import com.blockout.backend.generated.mobile.model.MatchSetsResponse;
 import com.blockout.backend.generated.mobile.model.MatchSummaryResponse;
-import com.blockout.backend.generated.mobile.model.MunicipalityLocationResponse;
 import com.blockout.backend.generated.mobile.model.PoolDetailResponse;
 import com.blockout.backend.generated.mobile.model.PoolParticipantResponse;
 import com.blockout.backend.generated.mobile.model.PoolParticipantsResponse;
@@ -87,7 +87,7 @@ public interface ConsultationApiMapper {
    * @return canonical generated representation, or null
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  MunicipalityLocationResponse toDto(ConsultationViews.Location source);
+  ClubLocationResponse toDto(ConsultationViews.Location source);
 
   /**
    * Maps the public clubDetail without inferred defaults or administrative fields.

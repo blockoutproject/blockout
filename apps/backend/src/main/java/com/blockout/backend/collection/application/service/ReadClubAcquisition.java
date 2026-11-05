@@ -36,7 +36,7 @@ public class ReadClubAcquisition {
    * The returned keyset boundary includes suppressed rows so they cannot hide later eligible needs.
    *
    * @param controlId independent family's current evidence owner
-   * @param geocoding municipal needs rather than club-sheet identities
+   * @param geocoding club-location needs rather than club-sheet identities
    * @param manual whether this explicit passage may repeat unchanged ordinary no-results
    * @param afterId exclusive last visited club, absent for the first batch
    * @return filtered nonpersonal identities and the last scanned identity; caller applies cadence

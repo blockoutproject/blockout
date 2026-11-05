@@ -242,8 +242,8 @@ CollectionTargetInternalResponse:
     require match identity. Logo-only initial retries require the selected team UUID, nativeTeamReference,
     an eligible parent pool and its qualified LNV calendar URL; reading that calendar authorizes only
     the selected logo, not calendar/standings/detail integration. Club sheets require club identity/reference; geocoding requires club identity
-    and current localityRevision; a null permitted municipality means no provider query, with postalCode
-    only when available.
+    and current localityRevision for the effective address/municipality/postal context; a null permitted
+    municipality means no provider query. Address and postalCode are supplied only when currently permitted.
   additionalProperties: true
   properties:
     scopeId:
@@ -305,13 +305,19 @@ CollectionTargetInternalResponse:
       $ref: ../../common/sporting-enums.yaml#/SportGenderEnum
     localityRevision:
       type: string
-      description: Required for geocoding; returned unchanged with the locality result.
+      description: Required for geocoding; current effective address/municipality/postal revision, returned unchanged with the location result.
     municipality:
       type: string
       description:
         Current permitted effective municipality; null means absent/restricted and forbids
         a provider query. Never copied to diagnostics or a retained cycle snapshot.
       nullable: true
+    address:
+      type: string
+      description:
+        Current permitted effective street address for geocoding; absent when unknown or restricted,
+        and never supplied without a permitted municipality. Never retained in the cycle snapshot
+        or diagnostics. Try this address with the municipal/postal context before a municipality fallback.
     postalCode:
       type: string
       description: Current permitted effective postal context; absent when unknown.

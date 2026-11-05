@@ -18,9 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Accepts current municipality-level results; F01 alone owns provider attempts and retry policy.
- */
+/** Accepts current club-location results; F01 alone owns provider attempts and retry policy. */
 @Service
 @RequiredArgsConstructor
 public class AcceptClubLocality {

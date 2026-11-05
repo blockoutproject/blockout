@@ -20,9 +20,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 
-/** Synthetic IGN responses preserve the documented municipal outcomes without contacting IGN. */
-@DisplayName("IGN municipal interpretation")
-class IgnMunicipalityTest {
+/** Synthetic IGN responses preserve address and municipality outcomes without contacting IGN. */
+@DisplayName("IGN club address and municipality interpretation")
+class IgnClubGeocoderTest {
   @Test
   @DisplayName("Uses native municipality/postal filters with the original textual context")
   void sendsMunicipalFilters() {
@@ -36,7 +36,7 @@ class IgnMunicipalityTest {
 
     // When
     SportingObservation.Locality result =
-        new IgnMunicipalGeocoder(http).read("ST ETIENNE", "04200", "9");
+        new IgnClubGeocoder(http).read(null, "ST ETIENNE", "04200", "9");
 
     // Then
     ArgumentCaptor<URI> request = ArgumentCaptor.forClass(URI.class);
@@ -63,7 +63,7 @@ class IgnMunicipalityTest {
 
     // When
     org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
-        () -> new IgnMunicipalGeocoder(http).read(null, "75001", "9");
+        () -> new IgnClubGeocoder(http).read(null, null, "75001", "9");
 
     // Then
     assertThatThrownBy(action).isInstanceOf(IllegalArgumentException.class);
@@ -77,7 +77,7 @@ class IgnMunicipalityTest {
     String json = collection(feature("75056", "75001", 0.609, 2.34, 48.86));
 
     // When
-    SportingObservation.Locality result = IgnMunicipalGeocoder.parse(200, bytes(json), "7");
+    SportingObservation.Locality result = IgnClubGeocoder.parse(200, bytes(json), "7", true);
 
     // Then
     assertThat(result.localityRevision()).isEqualTo("7");
@@ -97,7 +97,7 @@ class IgnMunicipalityTest {
                 + feature("97411", "97400", 0.1, 55.45, -20.88));
 
     // When
-    SportingObservation.Locality result = IgnMunicipalGeocoder.parse(200, bytes(json), "7");
+    SportingObservation.Locality result = IgnClubGeocoder.parse(200, bytes(json), "7", true);
 
     // Then
     assertThat(result.outcome()).isEqualTo(GeocodingOutcomeEnum.AMBIGUOUS);
@@ -112,7 +112,7 @@ class IgnMunicipalityTest {
     byte[] response = bytes(collection(""));
 
     // When
-    SportingObservation.Locality result = IgnMunicipalGeocoder.parse(200, response, "7");
+    SportingObservation.Locality result = IgnClubGeocoder.parse(200, response, "7", true);
 
     // Then
     assertThat(result.outcome()).isEqualTo(GeocodingOutcomeEnum.EMPTY);
@@ -129,7 +129,7 @@ class IgnMunicipalityTest {
         """);
 
     // When
-    SportingObservation.Locality result = IgnMunicipalGeocoder.parse(400, response, "7");
+    SportingObservation.Locality result = IgnClubGeocoder.parse(400, response, "7", true);
 
     // Then
     assertThat(result.localityRevision()).isEqualTo("7");
@@ -149,7 +149,7 @@ class IgnMunicipalityTest {
         """);
 
     // When
-    SportingObservation.Locality result = IgnMunicipalGeocoder.parse(400, response, "7");
+    SportingObservation.Locality result = IgnClubGeocoder.parse(400, response, "7", true);
 
     // Then
     assertThat(result.outcome()).isEqualTo(GeocodingOutcomeEnum.EMPTY);
@@ -173,7 +173,7 @@ class IgnMunicipalityTest {
 
     // When
     org.assertj.core.api.ThrowableAssert.ThrowingCallable parse =
-        () -> IgnMunicipalGeocoder.parse(400, response, "7");
+        () -> IgnClubGeocoder.parse(400, response, "7", true);
 
     // Then
     assertThatThrownBy(parse).isInstanceOf(IllegalArgumentException.class);
@@ -195,7 +195,7 @@ class IgnMunicipalityTest {
 
     // When
     org.assertj.core.api.ThrowableAssert.ThrowingCallable parse =
-        () -> IgnMunicipalGeocoder.parse(200, response, "7");
+        () -> IgnClubGeocoder.parse(200, response, "7", true);
 
     // Then
     assertThatThrownBy(parse).isInstanceOf(IllegalArgumentException.class);
@@ -210,10 +210,105 @@ class IgnMunicipalityTest {
 
     // When
     org.assertj.core.api.ThrowableAssert.ThrowingCallable parse =
-        () -> IgnMunicipalGeocoder.parse(status, response, "7");
+        () -> IgnClubGeocoder.parse(status, response, "7", true);
 
     // Then
     assertThatThrownBy(parse).isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  @DisplayName("Resolves a unique native address without a municipal fallback or score rule")
+  void resolvesAddress() {
+    // Given
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    doReturn(
+            new ProviderHttpClient.StatusResponse(
+                200, bytes(collection(addressFeature("address-1", 2.345, 48.865)))))
+        .when(http)
+        .getWithBadRequest(any());
+
+    // When
+    SportingObservation.Locality result =
+        new IgnClubGeocoder(http).read("73 Demonstration road", "Testville", "00123", "9");
+
+    // Then
+    assertThat(result.outcome()).isEqualTo(GeocodingOutcomeEnum.LOCATED);
+    assertThat(result.latitude()).isEqualTo(48.865);
+    assertThat(result.longitude()).isEqualTo(2.345);
+    assertThat(result.localityRevision()).isEqualTo("9");
+    ArgumentCaptor<URI> request = ArgumentCaptor.forClass(URI.class);
+    verify(http).getWithBadRequest(request.capture());
+    assertThat(new URIBuilder(request.getValue()).getQueryParams())
+        .extracting(parameter -> parameter.getName() + "=" + parameter.getValue())
+        .contains("q=73 Demonstration road 00123 Testville", "city=Testville", "postcode=00123")
+        .doesNotContain("type=municipality");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", "ambiguous", "municipality"})
+  @DisplayName("Normal unusable address results fall back once to the current municipality")
+  void fallsBackToMunicipality(String kind) {
+    // Given
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    String addressCandidates =
+        switch (kind) {
+          case "ambiguous" ->
+              addressFeature("address-1", 2.3, 48.8) + "," + addressFeature("address-2", 2.4, 48.9);
+          case "municipality" -> feature("75056", "75001", 0.609, 2.34, 48.86);
+          default -> "";
+        };
+    doReturn(
+            new ProviderHttpClient.StatusResponse(200, bytes(collection(addressCandidates))),
+            new ProviderHttpClient.StatusResponse(
+                200, bytes(collection(feature("75056", "75001", 0.609, 2.34, 48.86)))))
+        .when(http)
+        .getWithBadRequest(any());
+
+    // When
+    SportingObservation.Locality result =
+        new IgnClubGeocoder(http).read("73 Demonstration road", "Paris", "75015", "9");
+
+    // Then
+    assertThat(result.outcome()).isEqualTo(GeocodingOutcomeEnum.LOCATED);
+    assertThat(result.latitude()).isEqualTo(48.86);
+    assertThat(result.localityRevision()).isEqualTo("9");
+    ArgumentCaptor<URI> requests = ArgumentCaptor.forClass(URI.class);
+    verify(http, org.mockito.Mockito.times(2)).getWithBadRequest(requests.capture());
+    assertThat(new URIBuilder(requests.getAllValues().getLast()).getQueryParams())
+        .extracting(parameter -> parameter.getName() + "=" + parameter.getValue())
+        .contains("q=Paris", "type=municipality", "postcode=75015");
+  }
+
+  @Test
+  @DisplayName(
+      "A malformed address response remains technical and cannot trigger municipal fallback")
+  void rejectsMalformedAddressWithoutFallback() {
+    // Given
+    ProviderHttpClient http = mock(ProviderHttpClient.class);
+    doReturn(new ProviderHttpClient.StatusResponse(200, bytes("{}")))
+        .when(http)
+        .getWithBadRequest(any());
+
+    // When
+    org.assertj.core.api.ThrowableAssert.ThrowingCallable read =
+        () -> new IgnClubGeocoder(http).read("73 Demonstration road", "Paris", "75015", "9");
+
+    // Then
+    assertThatThrownBy(read).isInstanceOf(IllegalArgumentException.class);
+    verify(http).getWithBadRequest(any());
+  }
+
+  /**
+   * Creates an attributable invented address; two IDs in one city remain distinct candidates.
+   *
+   * @param id native address identity
+   * @param longitude invented WGS84 longitude
+   * @param latitude invented WGS84 latitude
+   * @return one synthetic address feature with a low score and representative postcode
+   */
+  private static String addressFeature(String id, double longitude, double latitude) {
+    return feature("75056", "75001", 0.1, longitude, latitude)
+        .replace("\"type\":\"municipality\"", "\"type\":\"housenumber\",\"id\":\"" + id + "\"");
   }
 
   /**

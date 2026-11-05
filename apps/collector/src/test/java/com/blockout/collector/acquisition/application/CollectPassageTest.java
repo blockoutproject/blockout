@@ -70,7 +70,7 @@ class CollectPassageTest {
   private final FfvbAcquisition ffvb = mock(FfvbAcquisition.class);
   private final FfvbAcquisition.Resource resource = mock(FfvbAcquisition.Resource.class);
   private final ClubSheets clubs = mock(ClubSheets.class);
-  private final MunicipalGeocoder geocoder = mock(MunicipalGeocoder.class);
+  private final ClubGeocoder geocoder = mock(ClubGeocoder.class);
   private final CollectorLifecycle lifecycle = new CollectorLifecycle(backend);
   private final CollectPassage passage =
       new CollectPassage(
@@ -175,9 +175,9 @@ class CollectPassageTest {
 
     @ParameterizedTest
     @CsvSource({
-      "LOCATED, 48.86, 2.34, IGN municipality: located",
-      "EMPTY, , , IGN municipality: empty",
-      "AMBIGUOUS, , , IGN municipality: ambiguous"
+      "LOCATED, 48.86, 2.34, IGN location: located",
+      "EMPTY, , , IGN location: empty",
+      "AMBIGUOUS, , , IGN location: ambiguous"
     })
     @DisplayName(
         "Each qualified municipal outcome preserves the exact F02 revision and source order")
@@ -198,12 +198,13 @@ class CollectPassageTest {
               .localityRevision("9")
               .municipality("Paris")
               .postalCode("75015")
+              .address("73 Demonstration road")
               .build();
       SportingObservation.Locality point =
           new SportingObservation.Locality("9", outcome, latitude, longitude);
       when(backend.targets(admitted.getCycle().id(), 0))
           .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
-      when(geocoder.read("Paris", "75015", "9")).thenReturn(point);
+      when(geocoder.read("73 Demonstration road", "Paris", "75015", "9")).thenReturn(point);
       when(sporting.locality(eq(POOL), any(), eq(point)))
           .thenReturn(
               new SportingObservation.Outcome(
@@ -248,7 +249,7 @@ class CollectPassageTest {
               .build();
       when(backend.targets(admitted.getCycle().id(), 0))
           .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
-      when(geocoder.read("Paris", null, "9"))
+      when(geocoder.read(null, "Paris", null, "9"))
           .thenThrow(new IllegalStateException("private-provider-response"));
       when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
 
@@ -257,7 +258,7 @@ class CollectPassageTest {
 
       // Then
       verifyNoInteractions(sporting);
-      verify(geocoder).read("Paris", null, "9");
+      verify(geocoder).read(null, "Paris", null, "9");
       ArgumentCaptor<CollectionBackend.Result> result =
           ArgumentCaptor.forClass(CollectionBackend.Result.class);
       verify(backend).record(eq(admitted.getCycle().id()), result.capture());

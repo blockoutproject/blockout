@@ -1052,6 +1052,7 @@ public class JpaSportingStore implements SportingStore {
     Map<SportingPresentation.ContactField, SportingPresentation.ContactValue> before =
         mapper.toContactValues(club.contactValues());
     boolean contactChanged = !before.equals(contacts.fields());
+    String addressBefore = before.get(SportingPresentation.ContactField.ADDRESS).effectiveValue();
     String cityBefore = before.get(SportingPresentation.ContactField.CITY).effectiveValue();
     String postalBefore =
         before.get(SportingPresentation.ContactField.POSTAL_CODE).effectiveValue();
@@ -1063,6 +1064,9 @@ public class JpaSportingStore implements SportingStore {
     }
     if (contactChanged) club.setContactsRevision(club.getContactsRevision() + 1);
     if (!Objects.equals(
+            addressBefore,
+            contacts.fields().get(SportingPresentation.ContactField.ADDRESS).effectiveValue())
+        || !Objects.equals(
             cityBefore,
             contacts.fields().get(SportingPresentation.ContactField.CITY).effectiveValue())
         || !Objects.equals(

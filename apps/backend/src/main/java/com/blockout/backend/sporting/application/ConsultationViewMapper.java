@@ -71,7 +71,7 @@ public interface ConsultationViewMapper {
   ConsultationViews.Classification toView(SportingClassification source, DivisionDetail division);
 
   /**
-   * Projects a reliable municipality pair whose completeness was checked by the owner.
+   * Projects a reliable club pair whose completeness was checked by the owner.
    *
    * @param source authorized complete point
    * @return paired point with its current city label

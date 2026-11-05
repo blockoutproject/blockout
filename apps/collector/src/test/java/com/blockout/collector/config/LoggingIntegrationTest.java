@@ -109,7 +109,7 @@ class LoggingIntegrationTest {
             ffvb,
             mock(LnvAcquisition.class),
             mock(com.blockout.collector.acquisition.application.ClubSheets.class),
-            mock(com.blockout.collector.acquisition.application.MunicipalGeocoder.class),
+            mock(com.blockout.collector.acquisition.application.ClubGeocoder.class),
             mock(DiscoverSeasonSources.class),
             lifecycle,
             Clock.fixed(now, ZoneOffset.UTC),

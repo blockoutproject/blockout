@@ -42,6 +42,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -283,10 +284,15 @@ class ClubAcquisitionIntegrationTest {
   }
 
   @Test
-  @DisplayName("A manual rerun never recalculates an accepted municipal point")
+  @DisplayName("Ordinary and manual reruns never recalculate an accepted club point")
   void excludesValidPoints() {
     // Given
-    correct(Map.of(ContactField.CITY, new ContactEdit(ContactModeEnum.MANUAL, "Paris")));
+    correct(
+        Map.of(
+            ContactField.CITY,
+            new ContactEdit(ContactModeEnum.MANUAL, "Paris"),
+            ContactField.ADDRESS,
+            new ContactEdit(ContactModeEnum.MANUAL, "Synthetic street")));
     CollectionState.Cycle first = admit(GEOCODING, false);
     localities.accept(
         CLUB,
@@ -299,9 +305,14 @@ class ClubAcquisitionIntegrationTest {
     results.complete(first.id(), now);
 
     // When
+    now = now.plus(Duration.ofDays(1));
+    CollectionState.Cycle ordinary = admit(GEOCODING, false);
+    List<CollectionState.ServedTarget> ordinaryTargets = targets(ordinary);
+    results.complete(ordinary.id(), now);
     CollectionState.Cycle manual = admit(GEOCODING, true);
 
     // Then
+    assertThat(ordinaryTargets).isEmpty();
     assertThat(targets(manual)).isEmpty();
     assertThat(reads.publicLocality(CLUB).orElseThrow().latitude()).isEqualTo(48.86);
   }
@@ -327,9 +338,10 @@ class ClubAcquisitionIntegrationTest {
     assertThat(targets(next)).hasSize(1);
   }
 
-  @Test
-  @DisplayName("Only an effective municipality or postal change creates another unresolved need")
-  void tracksEffectiveLocality() {
+  @ParameterizedTest
+  @CsvSource({"ADDRESS, Synthetic street", "CITY, Lyon", "POSTAL_CODE, 75015"})
+  @DisplayName("An effective address municipality or postal change reopens an unresolved need")
+  void tracksEffectiveLocality(ContactField field, String value) {
     // Given
     correct(
         Map.of(
@@ -344,15 +356,9 @@ class ClubAcquisitionIntegrationTest {
         new SportingPresentation.LocalityObservation(
             context(first), revision, GeocodingOutcomeEnum.EMPTY, null, null));
     results.complete(first.id(), now);
-    correct(
-        Map.of(ContactField.ADDRESS, new ContactEdit(ContactModeEnum.MANUAL, "Synthetic street")));
-    assertThat(reads.publicLocality(CLUB).orElseThrow().revision()).isEqualTo(revision);
-    CollectionState.Cycle unchanged = admit(GEOCODING, false);
-    assertThat(targets(unchanged)).isEmpty();
-    results.complete(unchanged.id(), now);
 
     // When
-    correct(Map.of(ContactField.POSTAL_CODE, new ContactEdit(ContactModeEnum.MANUAL, "75015")));
+    correct(Map.of(field, new ContactEdit(ContactModeEnum.MANUAL, value)));
     now = START.plus(Duration.ofMinutes(1));
     CollectionState.Cycle changed = admit(GEOCODING, false);
 
@@ -361,7 +367,11 @@ class ClubAcquisitionIntegrationTest {
         .singleElement()
         .satisfies(
             item -> {
-              assertThat(item.postalCode()).isEqualTo("75015");
+              assertThat(item.address()).isEqualTo(field == ContactField.ADDRESS ? value : null);
+              assertThat(item.municipality())
+                  .isEqualTo(field == ContactField.CITY ? value : "Paris");
+              assertThat(item.postalCode())
+                  .isEqualTo(field == ContactField.POSTAL_CODE ? value : "75001");
               assertThat(item.localityRevision()).isNotEqualTo(revision);
             });
   }
@@ -371,11 +381,29 @@ class ClubAcquisitionIntegrationTest {
       "Targets resolve current corrections and restrictions after admission, rejecting late results")
   void currentLocalityWins() {
     // Given
-    correct(Map.of(ContactField.CITY, new ContactEdit(ContactModeEnum.MANUAL, "Paris")));
+    correct(
+        Map.of(
+            ContactField.CITY,
+            new ContactEdit(ContactModeEnum.MANUAL, "Paris"),
+            ContactField.ADDRESS,
+            new ContactEdit(ContactModeEnum.MANUAL, "Original synthetic street")));
     CollectionState.Cycle first = admit(GEOCODING, false);
     String revision = targets(first).getFirst().localityRevision();
-    correct(Map.of(ContactField.CITY, new ContactEdit(ContactModeEnum.MANUAL, "Lyon")));
+    correct(
+        Map.of(
+            ContactField.CITY,
+            new ContactEdit(ContactModeEnum.MANUAL, "Lyon"),
+            ContactField.ADDRESS,
+            new ContactEdit(ContactModeEnum.MANUAL, "Changed synthetic street")));
     assertThat(targets(first).getFirst().municipality()).isEqualTo("Lyon");
+    assertThat(targets(first).getFirst().address()).isEqualTo("Changed synthetic street");
+    assertThat(
+            sql.queryForObject(
+                "SELECT CAST(ROW_TO_JSON(t) AS TEXT) FROM collection_target t WHERE cycle_id=? AND scope_id=?",
+                String.class,
+                first.id(),
+                CLUB))
+        .doesNotContain("Original synthetic street", "Changed synthetic street", "Lyon", "Paris");
 
     // When
     ObservationOutcomeEnum late =
@@ -391,6 +419,49 @@ class ClubAcquisitionIntegrationTest {
     assertThat(late).isEqualTo(ObservationOutcomeEnum.STALE);
     assertThat(targets(first).getFirst().municipality()).isNull();
     assertThat(targets(first).getFirst().postalCode()).isNull();
+    assertThat(targets(first).getFirst().address()).isNull();
+    assertThat(reads.publicLocality(CLUB).orElseThrow().latitude()).isNull();
+  }
+
+  @Test
+  @DisplayName(
+      "A restricted street invalidates its point while retaining permitted municipality fallback")
+  void restrictsStreetWithoutRestrictingMunicipality() {
+    // Given
+    correct(
+        Map.of(
+            ContactField.CITY,
+            new ContactEdit(ContactModeEnum.MANUAL, "Paris"),
+            ContactField.POSTAL_CODE,
+            new ContactEdit(ContactModeEnum.MANUAL, "75001"),
+            ContactField.ADDRESS,
+            new ContactEdit(ContactModeEnum.MANUAL, "Synthetic street")));
+    CollectionState.Cycle cycle = admit(GEOCODING, false);
+    String revision = targets(cycle).getFirst().localityRevision();
+    localities.accept(
+        CLUB,
+        new SportingPresentation.LocalityObservation(
+            context(cycle), revision, GeocodingOutcomeEnum.LOCATED, 48.86, 2.34));
+
+    // When
+    contactRestrictions.restrict(CLUB, Set.of(ContactField.ADDRESS));
+    CollectionState.ServedTarget restricted = targets(cycle).getFirst();
+    ObservationOutcome late =
+        localities.accept(
+            CLUB,
+            new SportingPresentation.LocalityObservation(
+                new MatchObservation.Context(cycle.id(), 2, now, null),
+                revision,
+                GeocodingOutcomeEnum.LOCATED,
+                48.86,
+                2.34));
+
+    // Then
+    assertThat(restricted.address()).isNull();
+    assertThat(restricted.municipality()).isEqualTo("Paris");
+    assertThat(restricted.postalCode()).isEqualTo("75001");
+    assertThat(restricted.localityRevision()).isNotEqualTo(revision);
+    assertThat(late.outcome()).isEqualTo(ObservationOutcomeEnum.STALE);
     assertThat(reads.publicLocality(CLUB).orElseThrow().latitude()).isNull();
   }
 

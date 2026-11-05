@@ -89,7 +89,7 @@ public interface ConsultationStore {
   Set<UUID> participantTeamIds(UUID poolId);
 
   /**
-   * Loads permitted municipality pairs for distinct already admitted clubs without artwork.
+   * Loads permitted club points for distinct already admitted clubs without artwork.
    *
    * @param clubIds distinct current participant clubs
    * @return detached localities; missing or restricted coordinates remain absent

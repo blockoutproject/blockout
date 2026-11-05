@@ -227,7 +227,7 @@ Participants:
       - Consultation
     summary: Read pool participants
     description:
-      Returns all viewable participants independently of standings, with only reliable municipality points.
+      Returns all viewable participants independently of standings, with only reliable club locations.
       Ordinary access is public; explicit maintenance bypass requires a valid authorized mobile token. Current visibility
       restrictions always apply.
     security:

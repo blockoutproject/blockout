@@ -705,17 +705,18 @@ interface SportingPersistenceMapper {
   }
 
   /**
-   * Prevents a postal code from supplying a geocoding target without a permitted city.
+   * Prevents address or postal context from supplying a geocoding target without a permitted city.
    *
    * @param source loaded club owner
-   * @return current municipal acquisition context
+   * @return current address and municipal acquisition context
    */
   default ClubLocalityView toLocalityView(ClubEntity source) {
     String city = toContactValue(source.getCity()).effectiveValue();
     return new ClubLocalityView(
         Long.toString(source.getLocalityRevision()),
         city,
-        city == null ? null : toContactValue(source.getPostalCode()).effectiveValue());
+        city == null ? null : toContactValue(source.getPostalCode()).effectiveValue(),
+        city == null ? null : toContactValue(source.getAddress()).effectiveValue());
   }
 
   /**

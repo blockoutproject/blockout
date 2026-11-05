@@ -237,7 +237,7 @@ public class ReadSportingData {
   }
 
   /**
-   * Supplies the current permitted municipality point; no provider attempt is made here.
+   * Supplies the current permitted club point; no provider attempt is made here.
    *
    * @param clubId stable organization
    * @return current context and point, or empty for an unknown club

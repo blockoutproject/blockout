@@ -201,8 +201,7 @@ class PoolConsultationIntegrationTest {
   }
 
   @Test
-  @DisplayName(
-      "Preserves every coincident participant and removes only forbidden municipality points")
+  @DisplayName("Preserves every coincident participant and removes only forbidden club points")
   void preservesIndependentLocations() {
     // Given
     sql.update(
@@ -225,6 +224,42 @@ class PoolConsultationIntegrationTest {
     assertThat(partial.items()).hasSize(2);
     assertThat(partial.items().getFirst().location()).isNotNull();
     assertThat(partial.items().getLast().location()).isNull();
+  }
+
+  @Test
+  @DisplayName("Two teams inherit the same associated club point without merging participants")
+  void inheritsOneClubPointAcrossTeams() {
+    // Given
+    MatchView sameClub =
+        identities.identifyMatch(
+            scope.pool(),
+            "SAME-CLUB",
+            new TeamCandidate(null, "Zulu", "00209", "Club Z"),
+            new TeamCandidate(null, "Beta", "00209", "Club Z"));
+    UUID club =
+        sql.queryForObject(
+            "SELECT club_id FROM sporting_team WHERE id=?", UUID.class, sameClub.homeTeamId());
+    sql.update(
+        "UPDATE sporting_club SET municipality='Paris',latitude=48.86,longitude=2.34 WHERE id=?",
+        club);
+
+    // When
+    ConsultationViews.Participants result = resources.participants(scope.pool());
+
+    // Then
+    assertThat(result.items()).hasSize(3);
+    assertThat(result.items())
+        .filteredOn(item -> item.team().club().id().equals(club))
+        .extracting(item -> item.team().team().id())
+        .containsExactlyInAnyOrder(sameClub.homeTeamId(), sameClub.awayTeamId());
+    assertThat(result.items())
+        .filteredOn(item -> item.team().club().id().equals(club))
+        .allSatisfy(
+            item -> {
+              assertThat(item.location().latitude()).isEqualTo(48.86);
+              assertThat(item.location().longitude()).isEqualTo(2.34);
+              assertThat(item.location().label()).isEqualTo("Paris");
+            });
   }
 
   @Test
