@@ -169,7 +169,7 @@ private and report missing bytes explicitly. Never publish recovery associations
 original URLs, personal diagnostics or files in this repository/PR. These cases
 are prepared here; execution remains with T055/T056 and their authorized inputs.
 
-Change effective municipality/postal context while a geocoding response is in flight: the old point must not return. A street-only or overridden source change must not move it. Exercise each contact mode and current privacy restrictions without retaining former personal details.
+Change effective address/city/postcode while a geocoding response is in flight: the old point must not return. A street-only effective correction must advance locality revision and clear the old point; an overridden source change must preserve both. Exercise source/manual/hidden modes, restrictions, deliberate absence and return to source independently. Missing city suppresses the complete target context and point; absent address with usable city permits municipality lookup. An unambiguous municipality fallback is a valid located point without repeated address upgrade or normal-rerun recalculation. Retain no former personal details or new precision state. These revised context cases require [T075–T077](tasks.md), independently of the earlier municipality-only observations.
 
 Exercise standings with and without a retained usable table: `published` with empty rows remains an available table; `not-published` with empty arrays is qualified absence, and a failed/unreadable read is neither. Preserve a still-usable retained table and its own freshness on failure or non-publication; without one, F03 distinguishes qualified absence from unavailable acquisition. Reject non-publication with nonempty arrays and stale absence observations without effects. A successful table containing an unlinked row preserves official order without a fabricated team. Close a season and verify history remains while new cycles are refused. F14 logo preservation and controlled initial reconstruction remain prerequisites for any separately authorized transition, not actions of this quickstart.
 
@@ -201,14 +201,17 @@ The cases establish:
   request carries that current revision; a correction while acquisition is in flight
   or an explicit return to source rejects the earlier point. Technical acquisition
   failure sends no further locality proposal and preserves a valid current point.
-- Current restrictions prevent municipal acquisition and source-field republication.
+- Current restrictions prevent forbidden acquisition and source-field republication.
   Manual locality and deliberate absence survive club recollection; source changes
-  masked by corrections and street-only edits preserve the point and locality revision.
+  masked by corrections preserve the point and locality revision. Effective address
+  changes, including street-only edits and restrictions, invalidate
+  that state under T075; the current-target address and fallback cases are exercised
+  by T077 with [F01 T083](../001-source-acquisition/tasks.md).
 - Real Servlet multipart PATCH binds JSON metadata with explicit nulls and image
   bytes. Invalid replacement preserves the whole previous form/revision; automatic
   restoration serves the accepted source bytes through the real image read.
 
-Calendar, club-page and municipal interpretation are controlled inputs. Image GETs
+Calendar, club-page and municipality interpretation are controlled inputs; they do not qualify live full-address resolution. Image GETs
 use the production LNV image/Apache transport against a loopback HTTP server;
 locally signed credentials exercise real security without Auth0 access. Contact
 corrections use the real administrative HTTP API. The no-public-endpoint F11
@@ -229,7 +232,9 @@ Presentation inputs now include independent current full/short names and permitt
 
 `SportingPresentationWebMvcTest`, the extended `SportingIngestionWebMvcTest` and `DivisionAdministrationWebMvcTest` exercise generated request/response binding, explicit nulls, media types, current permissions, safe errors and atomic save admission. `SportingPresentationMultipartIntegrationTest` sends real multipart PATCH requests over loopback to the selected Servlet runtime with the production controller and controlled use cases. It verifies required-null metadata, original image bytes and the exact 5,242,880-byte boundary. The actual PNG/JPEG decoder and 4,194,304-pixel ceiling remain the shared JDK validator's responsibility. `IngestionBodyLimitAdviceTest` proves the source-image cutoff before native `Resource` conversion with declared and unknown body lengths; the ingestion MVC suite verifies refusal before any image use case. The professional artwork case also reads distinct effective/manual and automatic bytes before removing the manual image. These cases establish Servlet binding and the bounded owner transactions separately; they do not qualify a native mobile transport.
 
-F01 consumes current permitted municipal context and its revision through the existing read boundary. A missing/restricted effective municipality suppresses the complete served geocoding context. A postal identifier remains optional under that boundary; a qualified unambiguous result for the current context supplies the point. Street-only and masked source changes do not create a locality revision or a new need. F01 retains all attempts, cadence, one-hour deadline, pauses and relaunch ownership. The owner-only suites above do not themselves complete T041; its implemented consumer evidence is recorded below. No provider, native-device or production qualification is claimed.
+F01 consumes current permitted address/city/optional postcode and their locality revision through the existing read boundary, resolved after admission rather than copied into a cycle. A missing/restricted effective city suppresses the complete served context, including address. T075–T077 qualify all effective component changes, including street-only correction, clearing the old point and advancing revision, while masked source changes do neither. The final unambiguous address result or municipality fallback supplies the unchanged public point shape; no precision flag is added. F01 retains all attempts, cadence, one-hour deadline, pauses and unresolved-only relaunch ownership. The owner-only suites above do not themselves complete T041; its implemented consumer evidence is recorded below. These municipal boundary observations establish no full-address provider, native-device or production qualification.
+
+T076 exercises fresh task-local PostgreSQL from the unchanged existing Liquibase schema definitions and the ordinary collector path through generated F01 admission/targets and F02 acceptance for a representative classified pool, followed by its encountered club sheets and geocoding. The generated HTTP and PostgreSQL suites independently exercise restrictions and effective-context invalidation on disposable baselines. A secondary-field refusal remains partial integration without discarding accepted address/location facts. Verify address-first results, valid municipality fallback, current-target restrictions and subsequent effective address/city/postcode changes rejecting old responses. Existing schema fields support this behavior without a schema/data-update change set or requalification of old municipal results. Controlled provider fixtures and separately authorized representative source reads retain distinct evidence scopes. Current final evidence must describe the freshly ingested dataset; earlier preservation observations establish only their exercised boundary, not the contents of a recreated environment. Task-local cleanup and recreation require verified ownership under the explicit operational authorization; they imply no production reset. The [plan](plan.md#presentation-administration-and-locality) owns this fresh-creation qualification without an additional retention or backfill mechanism.
 
 ### T041 current restrictions and presentation
 
@@ -263,9 +268,12 @@ names, a qualified technical alias, permitted locality and field restrictions
 reach effective F03 responses and actual native F04 documents. A stale city
 candidate is rejected before reindexing, even when its name also matches. The
 existing private F11 operation is exercised with fictitious inputs; source
-restoration and recollection cannot republish a restricted field. Street-only
-and masked source changes preserve the point/revision and produce no new F01
-geocoding need; a changed effective context rejects an old in-flight result.
+restoration and recollection cannot republish a restricted field. Masked source
+changes preserve the point/revision and produce no new F01 geocoding need; a
+changed effective context rejects an old in-flight result. The extended
+address/city/postcode comparison, street-only invalidation and fresh
+collector ingestion are qualified separately by T075–T077; these earlier consumer observations do not
+by themselves establish the revised address behavior.
 Current club-logo inheritance spans two seasons without copied team bytes,
 while manual team and accepted LNV priority are checked through actual public
 binary reads and search hydration. Exact synthetic optional-club association

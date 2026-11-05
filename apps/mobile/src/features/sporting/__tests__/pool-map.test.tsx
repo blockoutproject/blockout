@@ -19,7 +19,7 @@ import {
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import type {
-  MunicipalityLocationResponse,
+  ClubLocationResponse,
   PoolParticipantResponse,
   PoolParticipantsResponse,
   PoolStandingsResponse,
@@ -153,7 +153,7 @@ afterEach(async () => {
 function participant(
   id: string,
   name: string,
-  location?: MunicipalityLocationResponse,
+  location?: ClubLocationResponse,
   professional = false,
 ): PoolParticipantResponse {
   return {
@@ -290,69 +290,195 @@ it("opens independent participants lazily when the pool standings are unavailabl
   ).toBeNull();
 });
 
-it("keeps each exact coincident team selectable without merging a nearby point or requiring a logo", async () => {
-  // Given
+it("opens the existing card without team choices for a single resolved location", async () => {
+  // Given: the public city label carries no address precision or fallback state.
   participants.items = [
     participant(sportingId, "Rives", {
       latitude: 46.160001,
       longitude: -1.150001,
-      label: "Commune A",
-    }),
-    participant(secondTeamId, "Marais", {
-      latitude: 46.160001,
-      longitude: -1.150001,
-      label: "Commune B",
-    }),
-    participant(thirdTeamId, "Voisine", {
-      latitude: 46.160002,
-      longitude: -1.150001,
-      label: "Commune C",
+      label: "La Rochelle",
     }),
   ];
+  table = publishedTable({ "Jou.": "8", "Gag.": "7", "Per.": "1" });
   const user = userEvent.setup();
   await open();
-  const shared = await screen.findByRole("button", {
-    name: "Commune A · Commune B: Rives, Marais",
-  });
 
   // When
-  // MarkerPress is a native map event, outside userEvent's Pressable interaction contract.
-  await fireEvent(shared, "press", { stopPropagation: jest.fn() });
-  await user.press(screen.getByRole("radio", { name: "Marais" }));
-  await user.press(screen.getByRole("link", { name: "Marais" }));
-  await user.press(screen.getByRole("radio", { name: "Rives" }));
+  await fireEvent(
+    await screen.findByRole("button", { name: "La Rochelle: Rives" }),
+    "press",
+    { stopPropagation: jest.fn() },
+  );
+
+  // Then: the same team card, optional record and Close remain available without a choice rail.
+  expect(screen.queryByLabelText("Équipes à cette localisation")).toBeNull();
+  expect(screen.queryByRole("radio")).toBeNull();
+  expect(screen.getByLabelText("Joués : 8")).toBeOnTheScreen();
+
+  // When
   await user.press(screen.getByRole("link", { name: "Rives" }));
 
   // Then
-  expect(shared.props.coordinate).toEqual({
-    latitude: 46.160001,
-    longitude: -1.150001,
-  });
-  expect(
-    screen.getByRole("button", { name: "Commune C: Voisine" }).props.coordinate,
-  ).toEqual({
-    latitude: 46.160002,
-    longitude: -1.150001,
-  });
-  expect(
-    screen.getByRole("radio", { name: "Marais", checked: false }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.getByRole("radio", { name: "Rives", checked: true }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.getAllByRole("image", { name: "Logo absent : Marais" }).length,
-  ).toBeGreaterThan(0);
-  expect(screen.queryByText("Marais")).toBeNull();
-  expect(mockPush).toHaveBeenNthCalledWith(1, {
+  expect(mockPush).toHaveBeenCalledWith({
     pathname: "/teams/[teamId]",
-    params: { teamId: secondTeamId },
+    params: { teamId: sportingId },
   });
-  expect(mockPush).toHaveBeenNthCalledWith(2, {
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+
+  // Then
+  expect(screen.queryByRole("link", { name: "Rives" })).toBeNull();
+  expect(
+    screen.getByRole("button", { name: "La Rochelle: Rives" }),
+  ).toBeOnTheScreen();
+});
+
+it("updates the selected point's rail when same-city clubs join and leave after refresh", async () => {
+  // Given: two clubs in Paris have distinct points, and Rives is selected alone.
+  const first = { latitude: 48.8566, longitude: 2.3522, label: "Paris" };
+  const second = { latitude: 48.87, longitude: 2.32, label: "Paris" };
+  participants.items = [
+    participant(sportingId, "Rives", first),
+    participant(secondTeamId, "Marais", second),
+  ];
+  const user = userEvent.setup();
+  await open();
+  expect(
+    (await screen.findByRole("button", { name: "Paris: Rives" })).props
+      .coordinate,
+  ).toEqual({ latitude: first.latitude, longitude: first.longitude });
+  expect(
+    screen.getByRole("button", { name: "Paris: Marais" }).props.coordinate,
+  ).toEqual({ latitude: second.latitude, longitude: second.longitude });
+  await fireEvent(
+    screen.getByRole("button", { name: "Paris: Rives" }),
+    "press",
+    {
+      stopPropagation: jest.fn(),
+    },
+  );
+  expect(screen.getByRole("link", { name: "Rives" })).toBeOnTheScreen();
+  expect(screen.queryByRole("radiogroup")).toBeNull();
+
+  // When: a current club location makes the selected point shared.
+  participants.items = [
+    participant(sportingId, "Rives", first),
+    participant(secondTeamId, "Marais", first),
+  ];
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then: selection survives and the new choice becomes available.
+  expect(
+    await screen.findByRole("radio", { name: "Rives", checked: true }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("radio", { name: "Marais" })).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: "Rives" })).toBeOnTheScreen();
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+
+  // When: the other team leaves, while the selected participant remains current.
+  participants.items = [participant(sportingId, "Rives", first)];
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await screen.findByRole("button", { name: "Paris: Rives" });
+
+  // Then: the singleton retains its card and exact destination without a stale rail.
+  expect(screen.queryByRole("radiogroup")).toBeNull();
+  expect(screen.queryByRole("radio")).toBeNull();
+  expect(screen.getByRole("button", { name: "Fermer" })).toBeOnTheScreen();
+  await user.press(screen.getByRole("link", { name: "Rives" }));
+  expect(mockPush).toHaveBeenCalledWith({
     pathname: "/teams/[teamId]",
     params: { teamId: sportingId },
   });
 });
+
+it.each([
+  {
+    resolution: "address",
+    latitude: 46.160001,
+    nearbyLatitude: 46.160002,
+    firstCity: "Commune A",
+    secondCity: "Commune B",
+    markerName: "Commune A · Commune B: Rives, Marais",
+  },
+  {
+    resolution: "municipality fallback",
+    latitude: 46.16,
+    nearbyLatitude: 46.160001,
+    firstCity: "La Rochelle",
+    secondCity: "La Rochelle",
+    markerName: "La Rochelle: Rives, Marais",
+  },
+])(
+  "keeps each coincident $resolution team selectable without merging a nearby point or requiring a logo",
+  async ({ latitude, nearbyLatitude, firstCity, secondCity, markerName }) => {
+    // Given
+    participants.items = [
+      participant(sportingId, "Rives", {
+        latitude,
+        longitude: -1.150001,
+        label: firstCity,
+      }),
+      participant(secondTeamId, "Marais", {
+        latitude,
+        longitude: -1.150001,
+        label: secondCity,
+      }),
+      participant(thirdTeamId, "Voisine", {
+        latitude: nearbyLatitude,
+        longitude: -1.150001,
+        label: "Commune C",
+      }),
+    ];
+    const user = userEvent.setup();
+    await open();
+    const shared = await screen.findByRole("button", {
+      name: markerName,
+    });
+
+    // When
+    // MarkerPress is a native map event, outside userEvent's Pressable interaction contract.
+    await fireEvent(shared, "press", { stopPropagation: jest.fn() });
+    await user.press(screen.getByRole("radio", { name: "Marais" }));
+    await user.press(screen.getByRole("link", { name: "Marais" }));
+    await user.press(screen.getByRole("radio", { name: "Rives" }));
+    await user.press(screen.getByRole("link", { name: "Rives" }));
+
+    // Then
+    expect(
+      screen.getByLabelText("Équipes à cette localisation"),
+    ).toBeOnTheScreen();
+    expect(shared.props.coordinate).toEqual({
+      latitude,
+      longitude: -1.150001,
+    });
+    expect(
+      screen.getByRole("button", { name: "Commune C: Voisine" }).props
+        .coordinate,
+    ).toEqual({
+      latitude: nearbyLatitude,
+      longitude: -1.150001,
+    });
+    expect(
+      screen.getByRole("radio", { name: "Marais", checked: false }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByRole("radio", { name: "Rives", checked: true }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getAllByRole("image", { name: "Logo absent : Marais" }).length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText("Marais")).toBeNull();
+    expect(mockPush).toHaveBeenNthCalledWith(1, {
+      pathname: "/teams/[teamId]",
+      params: { teamId: secondTeamId },
+    });
+    expect(mockPush).toHaveBeenNthCalledWith(2, {
+      pathname: "/teams/[teamId]",
+      params: { teamId: sportingId },
+    });
+  },
+);
 
 it("distinguishes no usable locations from no participating teams", async () => {
   // Given
@@ -594,9 +720,7 @@ it("closes the selected summary without changing participants or needing a tile-
   );
   await screen.findByRole("link", { name: "Rives" });
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(
-    screen.getByRole("radio", { name: "Rives", checked: true }),
-  ).toBeOnTheScreen();
+  expect(screen.queryByRole("radio")).toBeNull();
   const reads = mockFetch.mock.calls.length;
 
   // When
@@ -674,9 +798,7 @@ it("retains an admitted map selection when returning from standings without rere
   await user.press(screen.getByRole("tab", { name: "Carte" }));
 
   // Then: selection and exact action survive; the native camera/offset still need device evidence.
-  expect(
-    screen.getByRole("radio", { name: "Rives", checked: true }),
-  ).toBeOnTheScreen();
+  expect(screen.queryByRole("radio")).toBeNull();
   expect(screen.getByRole("link", { name: "Rives" })).toBeOnTheScreen();
   expect(mockFetch).toHaveBeenCalledTimes(admittedReads);
 });
@@ -980,7 +1102,7 @@ it.each([
   },
 );
 
-it("keeps the lone municipal frame until Show all explicitly clears and reframes selection", async () => {
+it("keeps the lone location frame until Show all explicitly clears and reframes selection", async () => {
   // Given
   const location = { latitude: 0, longitude: 0, label: "Test city" };
   participants.items = [
@@ -1031,7 +1153,7 @@ it("keeps the lone municipal frame until Show all explicitly clears and reframes
   await screen.findByText("Rives with a much longer published name");
   await waitFor(() => expect(client.isFetching()).toBe(0));
 
-  // Then: municipal markers remain exact; only an explicit Show all requests another native frame.
+  // Then: club markers remain exact; only an explicit Show all requests another native frame.
   expect(nativeMapCommands.fitToCoordinates).not.toHaveBeenCalled();
   expect(
     screen.getByRole("button", {

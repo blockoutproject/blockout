@@ -164,7 +164,7 @@ function MapLoading() {
   );
 }
 
-/** Exact coordinate equivalence only; every source participant and municipality label is retained. */
+/** Exact coordinate equivalence only; every source participant and club location label is retained. */
 interface ParticipantPoint {
   key: string;
   coordinate: LatLng;
@@ -226,7 +226,7 @@ function ParticipantMap({
   function fit() {
     if (!cameraAvailable || !map.current || !points.length) return;
     const coordinate = points[0].coordinate;
-    // A lone marker keeps a municipal viewport envelope; these camera bounds create no markers.
+    // A lone marker keeps the existing viewport envelope; these camera bounds create no markers.
     const viewport =
       points.length === 1
         ? [
@@ -311,7 +311,7 @@ function ParticipantMap({
               accessible
               accessibilityRole="button"
               accessibilityLabel={`${labels}: ${group.items.map((item) => item.team.team.name).join(", ")}`}
-              accessibilityHint="Sélectionner une équipe à cette commune"
+              accessibilityHint="Sélectionner une équipe à cette localisation"
               onPress={(event) => {
                 event.stopPropagation();
                 setSelectedId(first.team.team.id);
@@ -387,41 +387,43 @@ function ParticipantMap({
             testID="pool-map-selection"
           >
             <View style={styles.selectionToolbar}>
-              <ScrollView
-                horizontal
-                {...hiddenScrollIndicators}
-                style={styles.optionList}
-                contentContainerStyle={styles.options}
-                accessibilityRole="radiogroup"
-                accessibilityLabel="Équipes à cette commune"
-              >
-                {point.items.map((item) => (
-                  <Pressable
-                    key={item.team.team.id}
-                    accessibilityRole="radio"
-                    accessibilityLabel={item.team.team.name}
-                    accessibilityState={{
-                      checked: item.team.team.id === selectedId,
-                    }}
-                    onPress={() => setSelectedId(item.team.team.id)}
-                    style={[
-                      styles.option,
-                      {
-                        backgroundColor:
-                          item.team.team.id === selectedId
-                            ? colors.subtle
-                            : undefined,
-                      },
-                    ]}
-                  >
-                    <SportingLogo
-                      identity={item.team.team}
-                      kind="team"
-                      size={tokens.size.control.compact}
-                    />
-                  </Pressable>
-                ))}
-              </ScrollView>
+              {point.items.length > 1 && (
+                <ScrollView
+                  horizontal
+                  {...hiddenScrollIndicators}
+                  style={styles.optionList}
+                  contentContainerStyle={styles.options}
+                  accessibilityRole="radiogroup"
+                  accessibilityLabel="Équipes à cette localisation"
+                >
+                  {point.items.map((item) => (
+                    <Pressable
+                      key={item.team.team.id}
+                      accessibilityRole="radio"
+                      accessibilityLabel={item.team.team.name}
+                      accessibilityState={{
+                        checked: item.team.team.id === selectedId,
+                      }}
+                      onPress={() => setSelectedId(item.team.team.id)}
+                      style={[
+                        styles.option,
+                        {
+                          backgroundColor:
+                            item.team.team.id === selectedId
+                              ? colors.subtle
+                              : undefined,
+                        },
+                      ]}
+                    >
+                      <SportingLogo
+                        identity={item.team.team}
+                        kind="team"
+                        size={tokens.size.control.compact}
+                      />
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              )}
               <IconButton
                 label="Fermer"
                 onPress={() => setSelectedId(undefined)}
@@ -577,6 +579,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "flex-end",
     gap: tokens.spacing.sm,
   },
   optionList: { flex: 1, minWidth: 0 },

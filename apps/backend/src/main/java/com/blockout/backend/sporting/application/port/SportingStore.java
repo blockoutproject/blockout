@@ -99,7 +99,7 @@ public interface SportingStore {
   /**
    * Reads seasonless identities without personal locality.
    *
-   * @param geocoding select current unresolved municipal candidates rather than club-sheet
+   * @param geocoding select current unresolved club-location candidates rather than club-sheet
    *     references
    * @param afterId exclusive last visited club identity, or null for the first batch
    * @return stable club references and current normal-result metadata without personal values
@@ -704,7 +704,7 @@ public interface SportingStore {
   void saveClubContacts(SportingPresentation.Contacts contacts, String sourceName);
 
   /**
-   * Reads current effective municipality and point without a provider call.
+   * Reads current effective club-location context and point without a provider call.
    *
    * @param id established club
    * @return current locality context, point and accepted response order

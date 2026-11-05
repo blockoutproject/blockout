@@ -50,7 +50,7 @@ public final class ConsultationViews {
   public record Contacts(
       String address, String city, String postalCode, String email, String phone, URI website) {}
 
-  /** Reliable municipality point, independent of a match venue or official standings. */
+  /** Reliable club point with municipality fallback, independent of a match venue or standings. */
   public record Location(double latitude, double longitude, String label) {}
 
   /**
@@ -64,7 +64,7 @@ public final class ConsultationViews {
      *
      * @param club currently viewable effective identity
      * @param contacts effective permitted contacts, possibly all absent
-     * @param location reliable municipality point, or null
+     * @param location reliable club point, or null
      * @param seasons viewable canonical seasons newest first
      */
     public ClubDetail {
@@ -162,7 +162,7 @@ public final class ConsultationViews {
   /** Current viewable participation; an absent reliable point creates no map marker. */
   public record Participant(TeamSummary team, Location location) {}
 
-  /** Every current participant, including those without a standings row or municipality point. */
+  /** Every current participant, including those without a standings row or club point. */
   public record Participants(UUID poolId, List<Participant> items) {
     /**
      * Detaches participants while preserving the read owner's deterministic order.

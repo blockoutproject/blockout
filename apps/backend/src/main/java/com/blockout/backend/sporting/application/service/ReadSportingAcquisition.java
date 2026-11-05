@@ -81,7 +81,7 @@ public class ReadSportingAcquisition {
   /**
    * Reads seasonless acquisition identities without personal locality.
    *
-   * @param geocoding selects unresolved municipal candidates rather than club sheets
+   * @param geocoding selects unresolved club-location candidates rather than club sheets
    * @param afterId exclusive last visited club identity, or null for the first batch
    * @return nonpersonal identities and normal-result metadata; permitted locality is read at target
    *     service

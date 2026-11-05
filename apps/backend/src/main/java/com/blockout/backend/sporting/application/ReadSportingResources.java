@@ -217,7 +217,7 @@ public class ReadSportingResources {
    * Reads every current participant independently of official table publication or geography.
    *
    * @param poolId exact contextual pool
-   * @return effective-name/UUID ordered participants with only reliable municipality pairs
+   * @return effective-name/UUID ordered participants with only reliable club pairs
    * @throws SportingResourceNotFoundException when the pool is hidden or unknown
    */
   public ConsultationViews.Participants participants(UUID poolId) {

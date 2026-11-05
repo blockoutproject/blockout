@@ -103,10 +103,10 @@ SportingClassificationResponse:
       $ref: ../../common/sporting-enums.yaml#/SportFormatEnum
     gender:
       $ref: ../../common/sporting-enums.yaml#/SportGenderEnum
-MunicipalityLocationResponse:
-  title: MunicipalityLocationResponse
+ClubLocationResponse:
+  title: ClubLocationResponse
   type: object
-  description: Reliable municipality-level location, never an exact gymnasium.
+  description: Current permitted club location from its address or municipality fallback. The point represents the club, without establishing a match or training venue.
   additionalProperties: true
   properties:
     latitude:
@@ -123,7 +123,7 @@ MunicipalityLocationResponse:
       maximum: 180
     label:
       type: string
-      description: Effective municipality label.
+      description: Effective municipality label; no address-precision or fallback annotation is exposed.
   required:
     - latitude
     - longitude
@@ -165,7 +165,7 @@ ClubDetailResponse:
     contacts:
       $ref: "#/SportingContactsResponse"
     location:
-      $ref: "#/MunicipalityLocationResponse"
+      $ref: "#/ClubLocationResponse"
     seasons:
       type: array
       description: Available seasons newest first, then stable identity. Empty means no viewable season.
@@ -333,7 +333,7 @@ PoolParticipantResponse:
     team:
       $ref: "#/TeamSummaryResponse"
     location:
-      $ref: "#/MunicipalityLocationResponse"
+      $ref: "#/ClubLocationResponse"
   required:
     - team
 PoolParticipantsResponse:

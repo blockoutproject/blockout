@@ -281,7 +281,9 @@ class CollectionContractWebMvcTest {
     when(collectionWork.targets(cycle, 2L, 1))
         .thenReturn(
             new CollectionState.TargetPage(
-                List.of(new CollectionState.ServedTarget(target, null, null, null)), 2, hasNext));
+                List.of(new CollectionState.ServedTarget(target, null, null, null, null)),
+                2,
+                hasNext));
 
     // When
     ResultActions response =
@@ -298,9 +300,48 @@ class CollectionContractWebMvcTest {
         .andExpect(jsonPath("$.items.length()").value(1))
         .andExpect(jsonPath("$.items[0].scopeId").value(source.toString()))
         .andExpect(jsonPath("$.items[0].kind").value("discovery"))
+        .andExpect(jsonPath("$.items[0].address").doesNotExist())
         .andExpect(jsonPath("$.items[0].url").value("https://www.ffvb.org/catalog"))
         .andExpect(jsonPath("$.page").value(2))
         .andExpect(jsonPath("$.hasNext").value(hasNext));
+  }
+
+  @Test
+  @DisplayName("Serializes the current permitted full-address geocoding context")
+  void returnsCurrentGeocodingAddress() throws Exception {
+    // Given
+    UUID cycle = UUID.fromString("00000000-0000-4000-8000-000000000201");
+    UUID club = UUID.fromString("00000000-0000-4000-8000-000000001201");
+    CollectionState.Target target =
+        CollectionState.Target.builder()
+            .scopeId(club)
+            .kind(CollectionTargetKindEnum.GEOCODING)
+            .clubId(club)
+            .clubReference("000042")
+            .provider(CollectionProviderEnum.FFVB)
+            .build();
+    when(collectionWork.targets(cycle, 0L, 50))
+        .thenReturn(
+            new CollectionState.TargetPage(
+                List.of(
+                    new CollectionState.ServedTarget(
+                        target, "12", "Paris", "75001", "Synthetic street")),
+                0,
+                false));
+
+    // When
+    ResultActions response =
+        mvc.perform(get("/ingestion/collection-cycles/{id}/targets", cycle).with(collector()));
+
+    // Then
+    response
+        .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.items[0].kind").value("geocoding"))
+        .andExpect(jsonPath("$.items[0].localityRevision").value("12"))
+        .andExpect(jsonPath("$.items[0].municipality").value("Paris"))
+        .andExpect(jsonPath("$.items[0].postalCode").value("75001"))
+        .andExpect(jsonPath("$.items[0].address").value("Synthetic street"));
   }
 
   @ParameterizedTest

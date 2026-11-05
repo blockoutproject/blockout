@@ -723,7 +723,7 @@ class SportingPresentationIntegrationTest {
   }
 
   @Test
-  @DisplayName("Invalidates the point only when the effective municipal context changes")
+  @DisplayName("Preserves the point when current source changes remain masked by corrections")
   void reconcilesEffectiveLocality() {
     // Given
     CollectionState.Cycle sheets = admitFamily("CLUB_SHEETS");
@@ -736,7 +736,9 @@ class SportingPresentationIntegrationTest {
                 ContactField.CITY,
                 JsonNullable.of("Paris"),
                 ContactField.POSTAL_CODE,
-                JsonNullable.of("75001"))));
+                JsonNullable.of("75001"),
+                ContactField.ADDRESS,
+                JsonNullable.of("Synthetic street"))));
     CollectionState.Cycle geocoding = admitFamily("GEOCODING");
     String originalRevision = reads.publicLocality(club).orElseThrow().revision();
     localities.accept(
@@ -757,7 +759,13 @@ class SportingPresentationIntegrationTest {
     clubObservations.accept(
         club,
         new ClubObservation(
-            context(sheets, 2), null, Map.of(ContactField.CITY, JsonNullable.of("Lyon"))));
+            context(sheets, 2),
+            null,
+            Map.of(
+                ContactField.CITY,
+                JsonNullable.of("Lyon"),
+                ContactField.ADDRESS,
+                JsonNullable.of("Changed source street"))));
     SportingPresentation.Locality masked = reads.publicLocality(club).orElseThrow();
     details.correct(
         account,
@@ -782,6 +790,61 @@ class SportingPresentationIntegrationTest {
     assertThat(changed.latitude()).isNull();
     assertThat(late.outcome()).isEqualTo(ObservationOutcomeEnum.STALE);
     assertThat(reads.publicLocality(club).orElseThrow().latitude()).isNull();
+    assertThat(acquisitionReads.acquisitionClubs(true, null))
+        .filteredOn(reference -> reference.clubId().equals(club))
+        .singleElement()
+        .satisfies(reference -> assertThat(reference.normalLocalityResult()).isFalse());
+  }
+
+  @ParameterizedTest
+  @EnumSource(ContactModeEnum.class)
+  @DisplayName("Invalidates a street point after an effective address mode or value change")
+  void invalidatesStreetContext(ContactModeEnum mode) {
+    // Given
+    CollectionState.Cycle sheets = admitFamily("CLUB_SHEETS");
+    clubObservations.accept(
+        club,
+        new ClubObservation(
+            context(sheets, 1),
+            null,
+            Map.of(
+                ContactField.CITY,
+                JsonNullable.of("Paris"),
+                ContactField.ADDRESS,
+                JsonNullable.of("Original synthetic street"))));
+    details.correct(
+        account,
+        club,
+        Long.toString(configurationReads.clubContacts(account, club).revision()),
+        Map.of(
+            ContactField.ADDRESS,
+            new ContactEdit(ContactModeEnum.MANUAL, "Current synthetic street")));
+    CollectionState.Cycle geocoding = admitFamily("GEOCODING");
+    String revision = reads.publicLocality(club).orElseThrow().revision();
+    localities.accept(
+        club,
+        new LocalityObservation(
+            context(geocoding, 1), revision, GeocodingOutcomeEnum.LOCATED, 48.86, 2.34));
+
+    // When
+    details.correct(
+        account,
+        club,
+        Long.toString(configurationReads.clubContacts(account, club).revision()),
+        Map.of(
+            ContactField.ADDRESS,
+            new ContactEdit(
+                mode, mode == ContactModeEnum.MANUAL ? "Changed synthetic street" : null)));
+    ObservationOutcome late =
+        localities.accept(
+            club,
+            new LocalityObservation(
+                context(geocoding, 2), revision, GeocodingOutcomeEnum.LOCATED, 48.86, 2.34));
+
+    // Then
+    assertThat(reads.publicLocality(club).orElseThrow().revision()).isNotEqualTo(revision);
+    assertThat(reads.publicLocality(club).orElseThrow().latitude()).isNull();
+    assertThat(late.outcome()).isEqualTo(ObservationOutcomeEnum.STALE);
     assertThat(acquisitionReads.acquisitionClubs(true, null))
         .filteredOn(reference -> reference.clubId().equals(club))
         .singleElement()

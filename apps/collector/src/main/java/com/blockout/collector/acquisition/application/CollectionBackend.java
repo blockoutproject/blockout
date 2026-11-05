@@ -110,7 +110,8 @@ public interface CollectionBackend {
       String localityRevision,
       String municipality,
       String postalCode,
-      String nativeTeamReference) {}
+      String nativeTeamReference,
+      String address) {}
 
   /** Bounded snapshot page, without a persistent checkpoint or total count. */
   record TargetPage(List<Target> items, long page, boolean hasNext) {

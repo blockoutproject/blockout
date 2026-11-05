@@ -247,7 +247,7 @@ class CollectorPresentationBoundaryIntegrationTest {
     LnvAcquisition lnv = stubProfessionalWithNativeImages();
 
     // When
-    passageWithStubbedDiscovery(lnv, mock(ClubSheets.class), mock(MunicipalGeocoder.class))
+    passageWithStubbedDiscovery(lnv, mock(ClubSheets.class), mock(ClubGeocoder.class))
         .execute(cycle);
 
     // Then
@@ -293,9 +293,7 @@ class CollectorPresentationBoundaryIntegrationTest {
     CollectorLifecycle.AdmittedCycle first = lifecycle.admit(CONTROL, null, 0, firstRequest);
     imageStatus = 404;
     passageWithStubbedDiscovery(
-            stubProfessionalWithNativeImages(),
-            mock(ClubSheets.class),
-            mock(MunicipalGeocoder.class))
+            stubProfessionalWithNativeImages(), mock(ClubSheets.class), mock(ClubGeocoder.class))
         .execute(first);
     UUID selected =
         runtime.sql.queryForObject(
@@ -330,9 +328,7 @@ class CollectorPresentationBoundaryIntegrationTest {
     CollectorLifecycle.AdmittedCycle retry = lifecycle.admit(CONTROL, null, revision, retryRequest);
     CollectionBackend.TargetPage targets = backend.targets(retry.getCycle().id(), 0);
     passageWithStubbedDiscovery(
-            stubProfessionalWithNativeImages(),
-            mock(ClubSheets.class),
-            mock(MunicipalGeocoder.class))
+            stubProfessionalWithNativeImages(), mock(ClubSheets.class), mock(ClubGeocoder.class))
         .execute(retry);
 
     // Then
@@ -399,9 +395,7 @@ class CollectorPresentationBoundaryIntegrationTest {
 
     // When
     passageWithStubbedDiscovery(
-            stubProfessionalWithNativeImages(),
-            mock(ClubSheets.class),
-            mock(MunicipalGeocoder.class))
+            stubProfessionalWithNativeImages(), mock(ClubSheets.class), mock(ClubGeocoder.class))
         .execute(cycle);
 
     // Then
@@ -445,9 +439,11 @@ class CollectorPresentationBoundaryIntegrationTest {
             "city",
             Map.of("mode", "manual", "value", "Lyon"),
             "postalCode",
-            Map.of("mode", "manual", "value", "69001")));
-    MunicipalGeocoder geocoder = mock(MunicipalGeocoder.class);
-    when(geocoder.read("Lyon", "69001", "2"))
+            Map.of("mode", "manual", "value", "69001"),
+            "address",
+            Map.of("mode", "manual", "value", "12 rue Synthétique")));
+    ClubGeocoder geocoder = mock(ClubGeocoder.class);
+    when(geocoder.read("12 rue Synthétique", "Lyon", "69001", "2"))
         .thenReturn(
             new SportingObservation.Locality("2", GeocodingOutcomeEnum.LOCATED, 45.76, 4.84));
 
@@ -456,7 +452,7 @@ class CollectorPresentationBoundaryIntegrationTest {
         .execute(cycle);
 
     // Then
-    verify(geocoder).read("Lyon", "69001", "2");
+    verify(geocoder).read("12 rue Synthétique", "Lyon", "69001", "2");
     assertThat(
             runtime.sql.queryForObject(
                 "SELECT geocoded_revision FROM sporting_club WHERE id=?", Long.class, CLUB))
@@ -480,8 +476,8 @@ class CollectorPresentationBoundaryIntegrationTest {
   void rejectsLateLocality() {
     // Given
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(GEOCODING, null, 0, null);
-    MunicipalGeocoder geocoder = mock(MunicipalGeocoder.class);
-    when(geocoder.read("Paris", "75001", "1"))
+    ClubGeocoder geocoder = mock(ClubGeocoder.class);
+    when(geocoder.read(null, "Paris", "75001", "1"))
         .thenAnswer(
             call -> {
               correct(Map.of("city", Map.of("mode", "manual", "value", "Lyon")));
@@ -520,8 +516,9 @@ class CollectorPresentationBoundaryIntegrationTest {
         context(cycle),
         new SportingObservation.Locality("1", GeocodingOutcomeEnum.LOCATED, 48.86, 2.34));
     int preparedSubmissions = submissions.size();
-    MunicipalGeocoder geocoder = mock(MunicipalGeocoder.class);
-    when(geocoder.read(anyString(), anyString(), anyString()))
+    ClubGeocoder geocoder = mock(ClubGeocoder.class);
+    when(geocoder.read(
+            org.mockito.ArgumentMatchers.isNull(), anyString(), anyString(), anyString()))
         .thenThrow(new IllegalStateException("Synthetic transport failure"));
 
     // When
@@ -556,7 +553,7 @@ class CollectorPresentationBoundaryIntegrationTest {
     runtime.sql.update(
         "UPDATE sporting_club SET municipality=NULL,municipality_manual=NULL,municipality_restricted=TRUE,locality_revision=2,contacts_revision=1 WHERE id=?",
         CLUB);
-    MunicipalGeocoder geocoder = mock(MunicipalGeocoder.class);
+    ClubGeocoder geocoder = mock(ClubGeocoder.class);
 
     // When
     passageWithStubbedDiscovery(mock(LnvAcquisition.class), mock(ClubSheets.class), geocoder)
@@ -607,7 +604,7 @@ class CollectorPresentationBoundaryIntegrationTest {
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(SHEETS, null, 0, null);
 
     // When
-    passageWithStubbedDiscovery(mock(LnvAcquisition.class), sheets, mock(MunicipalGeocoder.class))
+    passageWithStubbedDiscovery(mock(LnvAcquisition.class), sheets, mock(ClubGeocoder.class))
         .execute(cycle);
 
     // Then
@@ -633,7 +630,11 @@ class CollectorPresentationBoundaryIntegrationTest {
     assertThat(
             runtime.sql.queryForObject(
                 "SELECT locality_revision FROM sporting_club WHERE id=?", Long.class, CLUB))
-        .isEqualTo(2);
+        .isEqualTo(3);
+    assertThat(
+            runtime.sql.queryForObject(
+                "SELECT latitude FROM sporting_club WHERE id=?", Double.class, CLUB))
+        .isNull();
   }
 
   @Test
@@ -743,7 +744,7 @@ class CollectorPresentationBoundaryIntegrationTest {
    * @return production orchestration with real backend clients
    */
   private CollectPassage passageWithStubbedDiscovery(
-      LnvAcquisition lnv, ClubSheets sheets, MunicipalGeocoder geocoder) {
+      LnvAcquisition lnv, ClubSheets sheets, ClubGeocoder geocoder) {
     DiscoverSeasonSources discovery = mock(DiscoverSeasonSources.class);
     when(discovery.catalog(any(), any(), any()))
         .thenThrow(new FfvbAcquisitionException("Synthetic discovery unavailable"));

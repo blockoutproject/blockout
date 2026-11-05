@@ -293,7 +293,7 @@ class CurrentPresentationIntegrationTest {
   }
 
   @Test
-  @DisplayName("Street and masked source changes keep the current point without new geocoding need")
+  @DisplayName("Masked source changes keep the current point without a new geocoding need")
   void preservesUnchangedGeographicContext() throws Exception {
     // Given
     CollectionState.Cycle sheets = admitFamily("CLUB_SHEETS");
@@ -312,8 +312,6 @@ class CurrentPresentationIntegrationTest {
     events.clear();
 
     // When
-    correct(
-        Map.of(ContactField.ADDRESS, new ContactEdit(ContactModeEnum.MANUAL, "Synthetic street")));
     sources.accept(
         club,
         new ClubObservation(
@@ -572,6 +570,7 @@ class CurrentPresentationIntegrationTest {
    * Admits one real seasonless source/geocoding family after the current club need exists.
    *
    * @param family existing F01 seasonless family name
+   * @return admitted cycle containing the current eligible family targets
    */
   private CollectionState.Cycle admitFamily(String family) {
     UUID control = UUID.randomUUID();
@@ -590,6 +589,7 @@ class CurrentPresentationIntegrationTest {
    *
    * @param cycle real admitted capability
    * @param ordinal logical pre-read order
+   * @return context with the controlled observation instant and no provider publication time
    */
   private MatchObservation.Context context(CollectionState.Cycle cycle, long ordinal) {
     return new MatchObservation.Context(cycle.id(), ordinal, NOW.plusSeconds(ordinal), null);
@@ -611,6 +611,7 @@ class CurrentPresentationIntegrationTest {
    *
    * @param kind native resource alias suffix
    * @param id exact sporting identity
+   * @return active native source independently of current public hydration
    */
   private SearchDocuments document(String kind, UUID id) throws Exception {
     return engine
@@ -623,6 +624,7 @@ class CurrentPresentationIntegrationTest {
    * Reads a current production F03/F04 public route with real response mapping.
    *
    * @param path canonical public route and explicit scenario parameters
+   * @return parsed response after asserting its successful HTTP status
    */
   private JsonNode read(String path) throws Exception {
     return json.readTree(
@@ -637,14 +639,14 @@ class CurrentPresentationIntegrationTest {
    * Creates validated small synthetic PNG content, without a provider image dependency.
    *
    * @param color synthetic PNG color distinguishing the expected bytes
+   * @return validated PNG value with the requested color
    */
   private Image image(int color) throws Exception {
     return new ValidateSportingImage().validate(SportingImageFixture.image("PNG", color));
   }
 
   /**
-   * * Compares effective bytes served by the real public image adapter to the expected owner
-   * choice.
+   * Compares effective bytes served by the real public image adapter to the expected owner choice.
    *
    * @param id exact seasonal team identity
    * @param expected effective owner-selected image

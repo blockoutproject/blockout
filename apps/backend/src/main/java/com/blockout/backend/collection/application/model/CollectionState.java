@@ -224,7 +224,11 @@ public final class CollectionState {
    * applicable.
    */
   public record ServedTarget(
-      Target target, String localityRevision, String municipality, String postalCode) {}
+      Target target,
+      String localityRevision,
+      String municipality,
+      String postalCode,
+      String address) {}
 
   /** Database snapshot page without personal values or a total-count query. */
   public record SnapshotPage(List<Target> items, boolean hasNext) {

@@ -53,7 +53,7 @@ class CollectionOperationalEvidenceTest {
   private static final UUID CLUB = UUID.fromString("00000000-0000-4000-8000-000000000203");
   private final CollectionBackend backend = mock(CollectionBackend.class);
   private final SportingBackend sporting = mock(SportingBackend.class);
-  private final MunicipalGeocoder geocoder = mock(MunicipalGeocoder.class);
+  private final ClubGeocoder geocoder = mock(ClubGeocoder.class);
   private final ClubSheets clubs = mock(ClubSheets.class);
   private final CollectorLifecycle lifecycle = new CollectorLifecycle(backend);
   private final CollectPassage passage =
@@ -103,7 +103,7 @@ class CollectionOperationalEvidenceTest {
             .build();
     when(backend.targets(cycle.getCycle().id(), 0))
         .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
-    when(geocoder.read("Synthetic municipality", null, "9")).thenThrow(failure);
+    when(geocoder.read(null, "Synthetic municipality", null, "9")).thenThrow(failure);
 
     // When
     passage.execute(cycle);
@@ -119,7 +119,7 @@ class CollectionOperationalEvidenceTest {
     assertThat(result.getValue().scopeId()).isEqualTo(CLUB);
 
     verifyNoInteractions(sporting);
-    verify(geocoder).read("Synthetic municipality", null, "9");
+    verify(geocoder).read(null, "Synthetic municipality", null, "9");
     assertThat(output.getAll()).doesNotContain("private-provider-body");
   }
 
@@ -159,7 +159,7 @@ class CollectionOperationalEvidenceTest {
     SportingObservation.Locality point = new SportingObservation.Locality("9", outcome, null, null);
     when(backend.targets(cycle.getCycle().id(), 0))
         .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
-    when(geocoder.read("Synthetic municipality", null, "9")).thenReturn(point);
+    when(geocoder.read(null, "Synthetic municipality", null, "9")).thenReturn(point);
     when(sporting.locality(eq(CLUB), any(), eq(point)))
         .thenReturn(
             new SportingObservation.Outcome(
