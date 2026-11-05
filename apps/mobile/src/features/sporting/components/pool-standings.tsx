@@ -365,6 +365,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: tokens.radius.control,
+    overflow: "hidden",
   },
   row: {
     flexDirection: "row",
