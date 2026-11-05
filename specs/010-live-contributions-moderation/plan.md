@@ -86,14 +86,6 @@ Use the viewed match contribution revision in version mutations. Stale revision 
 
 Lists return twenty items with optional `nextPage`, following the existing page convention. Keep filters for continuation and restart at page zero on refresh. Concurrent changes may move items; no snapshot traversal guarantee. Private match context can represent hidden or dateless matches, so it does not incorrectly reuse F03's publicly viewable dated-match wrapper. Reuse its identity, pool, schedule and result primitives where their meanings fit.
 
-The existing [strict enum binding](../../apps/backend/src/main/java/com/blockout/backend/shared/http/ContractEnumBinding.java)
-registers the generated F08 platform, queue-state and version-state parsers through native
-`@InitBinder` editors, alongside the other implemented HTTP enums. This reuses the shared binding
-owner without a separate contribution advice or parser vocabulary. JSON enum annotations alone do not configure query
-conversion; a failed converter permits Spring's fallback to Java names or blank-to-null recovery.
-Editor precedence admits canonical lowercase/hyphenated values and refuses unknown, uppercase,
-blank or space-padded values with ordinary 400 responses. No contract or generator template changes.
-
 Moderation search uses parameterized ILIKE with literal wildcard escaping. A matching version must satisfy platform/state/address criteria together; team-name matching applies to its owning match. “To review” is pending versions, unresolved report-hidden wait or reported active links. Match badges distinguish current attention from history: count reports on the active or unresolved hidden version, and expose rejected versions as a historical total. Retain old reports in per-version history. Count through SQL aggregates over current data; no stored counter and no total inferred from a loaded page. Read related context, page and counts in a short read-only repeatable-read transaction when multiple queries are needed, keeping one internally coherent response without promising stability across requests. The private queue also supplies canonical season labels for all retained contribution activity, including hidden roots, independently of filters. This small additive response projection supports the existing season selector without a new endpoint or unrelated collection-management grant.
 
 F03 adds `streamContributionId` only alongside a contributed `streamUrl`. It exposes no author, report, quota or moderation detail. F05's account response gains the optional moderation capability through F12's existing projection. These are additive fields; request shapes and enums remain strict, response fields additive. F13 owns admitted-client compatibility and generated Java/Orval/Zod integration; no dialect or generator change is selected.
