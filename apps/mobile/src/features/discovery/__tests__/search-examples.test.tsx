@@ -26,7 +26,11 @@ import ClubRoute from "../../../app/(ordinary)/clubs/[clubId]";
 import { SearchFilters } from "../components/search-filters";
 import { SearchFilterChoice } from "../components/search-filter-choice";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
-import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
+import {
+  AccountSessionProvider,
+  useAccountSession,
+  type AccountSession,
+} from "../../accounts/session/account-session-provider";
 import {
   mockAuth0,
   credentialsFor,
@@ -36,7 +40,26 @@ import { ApplicationAccessProvider } from "../../access/queries/use-application-
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
+import { usePro, type ProContext } from "../../pro";
+import { mockPurchases } from "../../pro/test-support/native-purchases";
+import {
+  customerInfo,
+  entitlement,
+} from "../../pro/test-support/customer-info";
+import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
+import * as proSessionModule from "../../pro/pro-session";
+import { accountResponse } from "../../accounts/test-support/account-response";
 
+jest.mock("expo-constants", () => ({
+  __esModule: true,
+  default: {
+    expoConfig: {
+      extra: {
+        revenueCat: { iosApiKey: "test_public", androidApiKey: "test_public" },
+      },
+    },
+  },
+}));
 jest.mock("@react-native-async-storage/async-storage", () =>
   jest.requireActual(
     "@react-native-async-storage/async-storage/jest/async-storage-mock",
@@ -66,12 +89,18 @@ const secondId = "bbbbbbbb-0000-4000-8000-000000000002";
 const season = { id: firstId, label: "2026/2027", startYear: 2026 };
 let client: QueryClient;
 let publicClient = createQueryClient();
+let session: AccountSession;
+let pro: ProContext;
 
 /** Controls HTTP only; the generated client, Query, navigation and feature owners stay real. */
 function publicReads(url: string): Promise<Response> {
   const parsed = new URL(url);
   if (parsed.pathname.endsWith("/application-access"))
     return Promise.resolve(Response.json(applicationAccessResponse()));
+  if (parsed.pathname.endsWith("/accounts/me"))
+    return Promise.resolve(
+      Response.json(accountResponse({ accountId: firstId })),
+    );
   if (parsed.pathname.endsWith("/sporting-search-options"))
     return Promise.resolve(
       Response.json({
@@ -129,9 +158,10 @@ function publicReads(url: string): Promise<Response> {
     );
   throw new Error(`Unexpected controlled path ${parsed.pathname}`);
 }
-/** Retrieves the real private lifetime client; failure scenarios explicitly disable read retries. */
+/** Observes the real account and private client; failure scenarios explicitly disable read retries. */
 function PrivateQueries({ children }: QueryFixtureProps) {
   const current = useQueryClient();
+  const account = useAccountSession();
   // Configure this fresh real client before descendant public observers start their first request.
   useQueryFixtureState(() => {
     current.setQueryDefaults([], { retry: false });
@@ -140,10 +170,28 @@ function PrivateQueries({ children }: QueryFixtureProps) {
   useLayoutEffect(() => {
     client = current;
   }, [current]);
+  useLayoutEffect(() => {
+    session = account;
+  }, [account]);
+  return children;
+}
+
+/** Observes the committed F09 public API so access cases establish their actual entitlement state. */
+function CurrentPro({ children }: QueryFixtureProps) {
+  const current = usePro();
+  useLayoutEffect(() => {
+    pro = current;
+  }, [current]);
   return children;
 }
 
 beforeEach(() => {
+  jest.replaceProperty(
+    proSessionModule,
+    "proSession",
+    proSessionModule.createProSession(),
+  );
+  prepareProNativeIO();
   publicClient = createQueryClient();
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
@@ -164,7 +212,7 @@ afterEach(async () => {
 });
 
 /** Keeps the actual visit across native filter/detail routes; layout and transport alone are controlled. */
-async function renderSearch(proAccent = false) {
+async function renderSearch() {
   await renderRouter(
     {
       _layout: () => (
@@ -189,12 +237,14 @@ async function renderSearch(proAccent = false) {
             }}
           >
             <QueryClientProvider client={publicClient}>
-              <ThemeProvider proAccent={proAccent}>
+              <ThemeProvider>
                 <ApplicationAccessProvider>
                   <AccountSessionProvider>
                     <PrivateQueries>
                       <AccountFeedbackProvider>
-                        <AdvertisingProviders>{children}</AdvertisingProviders>
+                        <AdvertisingProviders>
+                          <CurrentPro>{children}</CurrentPro>
+                        </AdvertisingProviders>
                       </AccountFeedbackProvider>
                     </PrivateQueries>
                   </AccountSessionProvider>
@@ -228,46 +278,68 @@ function collectionCalls(collection: string) {
   );
 }
 
-it.each(["guest", "free", "Pro", "unknown"])(
-  "opens examples in every public tab for %s",
-  async (access) => {
-    // Given: pending restoration must not block public discovery.
-    const pending = Promise.withResolvers<boolean>();
-    if (access === "unknown")
-      mockAuth0.hasValidCredentials.mockReturnValue(pending.promise);
-    else mockAuth0.hasValidCredentials.mockResolvedValue(access !== "guest");
-    const user = userEvent.setup();
-    try {
-      await renderSearch(access === "Pro");
-      await screen.findByText("Club public");
+it.each([
+  ["guest", "guest"],
+  ["free", "inactive"],
+  ["Pro", "active"],
+  ["unknown", "unavailable"],
+])("opens examples in every public tab for %s", async (access, expectedPro) => {
+  // Given: real account/Pro owners consume only controlled HTTP and native SDK evidence.
+  mockAuth0.hasValidCredentials.mockResolvedValue(access !== "guest");
+  const info = customerInfo({
+    active: access === "Pro" ? { "Blockout Pro": entitlement() } : {},
+    all: {},
+    verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+  });
+  mockPurchases.logIn.mockResolvedValue({
+    customerInfo: info,
+    created: false,
+  });
+  if (access === "unknown")
+    mockPurchases.getCustomerInfo.mockRejectedValue(
+      new Error("Synthetic store outage"),
+    );
+  else mockPurchases.getCustomerInfo.mockResolvedValue(info);
+  const user = userEvent.setup();
+  await renderSearch();
+  await screen.findByText("Club public");
+  await waitFor(() =>
+    expect(session.status).toBe(access === "guest" ? "guest" : "authenticated"),
+  );
+  await waitFor(() =>
+    expect(session.accountId).toBe(access === "guest" ? null : firstId),
+  );
+  await waitFor(() => expect(pro.state.status).toBe(expectedPro));
+  if (access === "unknown")
+    await waitFor(() =>
+      expect(pro.state).toEqual({
+        status: "unavailable",
+        reason: "customer-info",
+        operation: "idle",
+      }),
+    );
 
-      // When
-      await user.press(screen.getByRole("tab", { name: "Clubs" }));
-      await screen.findByText("Niort");
-      await user.press(screen.getByRole("tab", { name: "Poules" }));
-      await screen.findByText("Poule A");
+  // When
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await screen.findByText("Niort");
+  await user.press(screen.getByRole("tab", { name: "Poules" }));
+  await screen.findByText("Poule A");
 
-      // Then
-      expect(
-        screen.getByRole("header", { name: "Exemples" }),
-      ).toBeOnTheScreen();
-      expect(screen.getAllByLabelText("Exemples")).toHaveLength(2);
-      expect(
-        screen.queryByText(/résultats chargés|total|Fin des résultats/),
-      ).not.toBeOnTheScreen();
-      expect(
-        collectionCalls("teams")
-          .concat(collectionCalls("clubs"), collectionCalls("pools"))
-          .every(
-            ([, options]) => !new Headers(options.headers).has("Authorization"),
-          ),
-      ).toBe(true);
-    } finally {
-      await cleanup();
-      await act(async () => pending.resolve(false));
-    }
-  },
-);
+  // Then
+  expect(screen.getByRole("header", { name: "Exemples" })).toBeOnTheScreen();
+  expect(screen.getAllByLabelText("Exemples")).toHaveLength(2);
+  expect(
+    screen.queryByText(/résultats chargés|total|Fin des résultats/),
+  ).not.toBeOnTheScreen();
+  expect(
+    collectionCalls("teams")
+      .concat(collectionCalls("clubs"), collectionCalls("pools"))
+      .every(
+        ([, options]) => !new Headers(options.headers).has("Authorization"),
+      ),
+  ).toBe(true);
+  expect(pro.state.status).toBe(expectedPro);
+});
 
 it("retains IDs and order through detail, tabs, whitespace and clearing text", async () => {
   // Given
