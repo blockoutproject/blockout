@@ -312,6 +312,93 @@ it("retains IDs and order through detail, tabs, whitespace and clearing text", a
   ).toEqual([firstId, secondId]);
 });
 
+it.each(["tab", "text"])(
+  "retains the visit's examples after five minutes away through %s",
+  async (away) => {
+    // Given: a visit has accepted two examples before a later restriction changes the catalogue.
+    jest.useFakeTimers();
+    const user = userEvent.setup();
+    try {
+      await renderSearch();
+      await screen.findByText("Club public");
+      expect(collectionCalls("pools")).toHaveLength(0);
+      expect(collectionCalls("clubs")).toHaveLength(0);
+      await user.press(screen.getByRole("tab", { name: "Clubs" }));
+      await screen.findByText("Niort");
+      if (away === "tab") {
+        await user.press(screen.getByRole("tab", { name: "Poules" }));
+        await screen.findByText("Poule A");
+      } else {
+        await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+        await screen.findByRole("header", { name: "2 résultats chargés" });
+      }
+      const reads = collectionCalls("clubs").length;
+      mockFetch.mockImplementation((url: string) => {
+        const parsed = new URL(url);
+        if (parsed.pathname.endsWith("/clubs"))
+          return Promise.resolve(
+            Response.json({
+              clubs: [
+                { club: { id: firstId, name: "Volley" }, city: "Lyon" },
+                ...(parsed.searchParams.has("exampleIds")
+                  ? []
+                  : [
+                      {
+                        club: {
+                          id: "cccccccc-0000-4000-8000-000000000003",
+                          name: "New example",
+                        },
+                        city: "Rennes",
+                      },
+                    ]),
+              ],
+            }),
+          );
+        return publicReads(url);
+      });
+
+      // When: the same visit returns after the native unused-cache collection delay.
+      await act(async () => jest.advanceTimersByTime(5 * 60 * 1000 + 1));
+      if (away === "tab")
+        await user.press(screen.getByRole("tab", { name: "Clubs" }));
+      else
+        await user.press(
+          screen.getByRole("button", { name: "Effacer la recherche" }),
+        );
+
+      // Then: returning keeps the accepted selection until its own authoritative reread.
+      expect(await screen.findByText("Niort")).toBeOnTheScreen();
+      expect(screen.queryByText("Rennes")).not.toBeOnTheScreen();
+      expect(collectionCalls("clubs")).toHaveLength(reads);
+
+      // When: the collection's current read establishes that the second example is hidden.
+      await act(async () =>
+        client.refetchQueries({
+          queryKey: ["discovery-examples"],
+          type: "active",
+        }),
+      );
+
+      // Then: the retained UUIDs are reread without replacement sampling.
+      await waitFor(() =>
+        expect(screen.queryByText("Niort")).not.toBeOnTheScreen(),
+      );
+      expect(screen.getByText("Lyon")).toBeOnTheScreen();
+      expect(screen.queryByText("Rennes")).not.toBeOnTheScreen();
+      expect(
+        new URL(collectionCalls("clubs").at(-1)![0]).searchParams.getAll(
+          "exampleIds",
+        ),
+      ).toEqual([firstId, secondId]);
+      expect(collectionCalls("teams")).toHaveLength(1);
+      expect(collectionCalls("pools")).toHaveLength(away === "tab" ? 1 : 0);
+    } finally {
+      await cleanup();
+      jest.useRealTimers();
+    }
+  },
+);
+
 it("retains usable data on failure and never refills a restricted selection reduced to zero", async () => {
   // Given
   const user = userEvent.setup();
