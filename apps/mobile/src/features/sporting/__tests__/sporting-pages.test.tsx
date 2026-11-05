@@ -429,6 +429,8 @@ it("keeps public team/count available while credential restoration is unresolved
 
   // When
   await renderPage(<TeamRoute />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
 
   // Then
   expect(await screen.findByText(team.team.team.name)).toBeOnTheScreen();
@@ -451,6 +453,9 @@ it("retires authorized editing on sign-out while keeping guest follow and public
   });
   const user = userEvent.setup();
   await renderPage(<TeamRoute />);
+  await waitFor(() => expect(session.accountId).toBe(account.accountId));
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   await screen.findByRole("button", { name: "Modifier l’équipe" });
 
   // When
@@ -568,7 +573,7 @@ it.each(["guest", "other", "owner"] as const)(
 );
 
 /** Supplies the actual application owners without mounting unrelated root navigation/provider SDKs. */
-async function renderPage(content: ReactElement, editorRoute = false) {
+function renderPage(content: ReactElement, editorRoute = false) {
   const options = {
     wrapper: ({ children }: QueryFixtureProps) => (
       <GestureHandlerRootView>
@@ -595,19 +600,15 @@ async function renderPage(content: ReactElement, editorRoute = false) {
       </GestureHandlerRootView>
     ),
   };
-  const rendered = editorRoute
-    ? await renderRouter(
+  return editorRoute
+    ? renderRouter(
         {
           index: () => content,
           "administration/presentation/[kind]/[id]": PresentationRoute,
         },
         options,
       )
-    : await render(content, options);
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  await layoutNativeTabs();
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  return rendered;
+    : render(content, options);
 }
 
 it.each(["club", "team", "pool", "match"] as const)(
@@ -666,6 +667,8 @@ it("shares the newest/selected club season between teams and both calendar entri
   // Given
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   await screen.findByText(club.club.name);
 
   // When
@@ -706,6 +709,8 @@ it("replaces the club's native scroll context on season change while retaining i
   // Given: a visited calendar belongs to the original season and its native pager.
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   await user.press(screen.getByRole("tab", { name: "Terminés" }));
   await screen.findByText("Aucun match pour cette sélection");
   const originalPager = screen.getByTestId("native-tabs-pager");
@@ -749,11 +754,14 @@ it("retains a valid season through failed retrieval and falls back only after su
   // Given
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   await screen.findByText(club.club.name);
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
   await user.press(screen.getByRole("button", { name: "Saison 2027/2028" }));
   await user.press(screen.getByRole("button", { name: "2026/2027" }));
   await layoutNativeTabs();
+  const selectedPager = screen.getByTestId("native-tabs-pager");
   mockFetch.mockRejectedValue(new TypeError("offline"));
 
   // When
@@ -779,8 +787,8 @@ it("retains a valid season through failed retrieval and falls back only after su
       predicate: (query) => query.queryKey.includes(`/clubs/${sportingId}`),
     });
   });
-  // Query schedules observer notifications; the replacement native container then receives layout.
-  await act(async () => jest.advanceTimersByTimeAsync(0));
+  // The accepted fallback replaces the old season's native container before its new layout arrives.
+  await waitFor(() => expect(selectedPager).not.toBeOnTheScreen());
   await layoutNativeTabs();
   // Then
   await waitFor(() =>
@@ -811,6 +819,8 @@ it.each(["empty", "populated"] as const)(
     });
     const user = userEvent.setup();
     await renderPage(<ClubScreen clubId={sportingId} />);
+    await screen.findByRole("tab", { name: "À venir" });
+    await layoutNativeTabs();
     await screen.findByText(club.club.name);
     await user.press(screen.getByRole("tab", { name: "Équipes" }));
     await screen.findByRole("progressbar", {
@@ -862,6 +872,8 @@ it("keeps the selected participation and permits selecting its former index afte
     pool: { ...entry.pool, name: index === 0 ? "Phase A" : "Phase B" },
   }));
   await renderPage(<TeamScreen teamId={sportingId} />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   await user.press(screen.getByRole("tab", { name: /Phase B/ }));
 
   // When: B stays selected while a new phase moves B and A to different native page indices.
@@ -896,6 +908,8 @@ it("keeps a clubless professional team and one follow action across distinct pha
   // Given
   const user = userEvent.setup();
   await renderPage(<TeamRoute />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
 
   // When
   await user.press(
@@ -930,6 +944,8 @@ it("opens exact club and pool identities without substituting a namesake", async
   };
   const user = userEvent.setup();
   await renderPage(<TeamScreen teamId={sportingId} />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
 
   // When
   await user.press(
@@ -970,9 +986,11 @@ it("keeps the pool season and phase independent of later standings and map conte
       renderMap={(context) => <Text>{`Map ${context.pool.id}`}</Text>}
     />,
   );
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
 
   // When
-  await user.press(await screen.findByRole("tab", { name: "Carte" }));
+  await user.press(screen.getByRole("tab", { name: "Carte" }));
 
   // Then
   expect(screen.getByText("Qualification")).toBeOnTheScreen();
@@ -988,6 +1006,8 @@ it.each(["Équipes", "À venir", "Terminés"])(
     club = { ...club, seasons: [] };
     const user = userEvent.setup();
     await renderPage(<ClubScreen clubId={sportingId} />);
+    await screen.findByRole("tab", { name: "À venir" });
+    await layoutNativeTabs();
     await screen.findByText("Coordonnées");
     mockFetch.mockClear();
 
@@ -1103,6 +1123,8 @@ it("opens only effective safe contacts and labels the club municipality separate
   const open = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
 
   // When
   await user.press(
@@ -1202,6 +1224,8 @@ it("keeps missing or unusable contacts inert", async () => {
     website: "https://private:password@example.invalid",
   };
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   await screen.findByText(club.club.name);
 
   // When
@@ -1219,6 +1243,8 @@ it("reports a refused external opening while keeping club information usable", a
   jest.spyOn(Linking, "openURL").mockRejectedValue(new Error("No handler"));
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
 
   // When
   await user.press(
@@ -1238,6 +1264,8 @@ it("hides retained club teams when their parent becomes unavailable", async () =
   // Given
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   await user.press(await screen.findByRole("tab", { name: "Équipes" }));
   await screen.findByRole("link", { name: team.team.team.name });
   mockFetch.mockImplementation((url: string) =>
@@ -1272,6 +1300,8 @@ it("distinguishes an empty club season from a failed team read", async () => {
   );
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   await user.press(await screen.findByRole("tab", { name: "Équipes" }));
 
   // When
@@ -1309,6 +1339,8 @@ it("retains a club season's teams after failed pull-to-refresh and retries only 
   // Given: the club header, selection and accepted team catalogue have their real Query owners.
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
   await screen.findByRole("link", { name: team.team.team.name });
   mockFetch
@@ -1359,6 +1391,8 @@ it("suppresses a retained team after a current visibility refusal", async () => 
   // Given
   const user = userEvent.setup();
   await renderPage(<TeamScreen teamId={sportingId} />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   await screen.findByText(team.team.team.name);
   mockFetch.mockImplementation((url: string) =>
     url.endsWith(`/teams/${sportingId}`)
@@ -1392,6 +1426,8 @@ it("keeps a team readable when its native public logo fails", async () => {
   // Given
   team.team.team.logoUrl = `/teams/${sportingId}/logo`;
   await renderPage(<TeamScreen teamId={sportingId} />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   const image = await screen.findByRole("image", {
     name: `Logo : ${team.team.team.name}`,
   });
@@ -1433,6 +1469,8 @@ it("keeps sharp artwork, classification and the follow action usable when the de
       )}
     />,
   );
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   const image = await screen.findByRole("image", {
     name: `Logo : ${team.team.team.name}`,
   });
@@ -1472,6 +1510,8 @@ it("loads a public logo directly without native caching and unmounts it after it
   // Given
   team.team.team.logoUrl = `/teams/${sportingId}/logo`;
   await renderPage(<TeamScreen teamId={sportingId} />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   const image = await screen.findByRole("image", {
     name: `Logo : ${team.team.team.name}`,
   });
@@ -1511,6 +1551,8 @@ it("shows a new native logo source after the previously published source failed"
   // Given
   team.team.team.logoUrl = `/teams/${sportingId}/logo?revision=1`;
   await renderPage(<TeamScreen teamId={sportingId} />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   await fireEvent(
     await screen.findByRole("image", { name: `Logo : ${team.team.team.name}` }),
     "error",
@@ -1557,6 +1599,8 @@ it("retains the club teams when returning to a visited tab without an implicit r
   // Given
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   await user.press(await screen.findByRole("tab", { name: "Équipes" }));
   await screen.findByRole("link", { name: team.team.team.name });
   mockFetch.mockClear();
@@ -1594,6 +1638,8 @@ it("shows the known match competition independently of a generic pool name", asy
 it("rereads common club information on a fresh opening while retaining the same QueryClient", async () => {
   // Given
   const opened = await renderPage(<ClubScreen clubId={sportingId} />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   await screen.findByText(club.club.name);
   await opened.rerender(<Text>Closed resource</Text>);
   club = {
@@ -1640,6 +1686,8 @@ it.each(["network", "503"])(
     // Given
     const user = userEvent.setup();
     await renderPage(<ClubScreen clubId={sportingId} />);
+    await screen.findByRole("tab", { name: "À venir" });
+    await layoutNativeTabs();
     await screen.findByText(club.club.name);
     mockFetch.mockImplementation((url: string) =>
       url.endsWith(`/clubs/${sportingId}`)
@@ -1686,6 +1734,8 @@ it("refreshes the active club team tab only and preserves the selected season", 
   // Given
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   await screen.findByText(club.club.name);
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
   await screen.findByRole("link", { name: team.team.team.name });
@@ -1717,6 +1767,8 @@ it("opens the generated club-season calendar with its own explicit refresh", asy
   // Given
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
   await screen.findByText(club.club.name);
 
   // When
@@ -1744,6 +1796,8 @@ it.each([
 
   // When
   await renderPage(<TeamScreen teamId={sportingId} />);
+  await screen.findByRole("tab", { name: "À venir" });
+  await layoutNativeTabs();
 
   // Then
   expect(

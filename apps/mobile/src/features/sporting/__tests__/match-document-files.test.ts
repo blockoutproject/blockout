@@ -22,6 +22,7 @@ jest.mock(
 );
 const mockFetch = jest.fn();
 const id = "00000000-0000-4000-8000-000000000259";
+const originalApiUrl = process.env.EXPO_PUBLIC_API_URL;
 
 const originalReader = Object.getOwnPropertyDescriptor(
   globalThis,
@@ -45,7 +46,12 @@ afterEach(() => {
   if (originalReader) {
     Object.defineProperty(globalThis, "FileReader", originalReader);
   }
-  delete process.env.EXPO_PUBLIC_API_URL;
+  if (originalApiUrl === undefined) {
+    delete process.env.EXPO_PUBLIC_API_URL;
+  } else {
+    process.env.EXPO_PUBLIC_API_URL = originalApiUrl;
+  }
+  jest.restoreAllMocks();
 });
 
 it("uses the generated cancellable PDF request and writes its exact binary bytes into an owned local file", async () => {

@@ -1,6 +1,6 @@
+import { accountResponse as mockAccountResponse } from "../../accounts/test-support/account-response";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { fetch } from "expo/fetch";
-import { signInAccount } from "../test-support/sign-in-account";
 import * as proSessionModule from "../pro-session";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -72,12 +72,14 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo/fetch", () => ({ fetch: jest.fn() }));
 const a = "00000000-0000-4000-8000-000000000001";
 const b = "00000000-0000-4000-8000-000000000002";
+let mockAccountId: string | undefined;
 let account: AccountSession;
 let pro: ProContext;
 const originalDomain = process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
 const originalClient = process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID;
 const originalApiUrl = process.env.EXPO_PUBLIC_API_URL;
 beforeEach(async () => {
+  mockAccountId = undefined;
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
   // A fresh real owner isolates tests; remounts within one scenario retain it.
@@ -92,15 +94,22 @@ beforeEach(async () => {
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   jest
     .mocked(fetch)
-    .mockImplementation(async (url) =>
-      String(url).endsWith("/application-access")
-        ? (Response.json(applicationAccessResponse()) as Awaited<
-            ReturnType<typeof fetch>
-          >)
-        : (new Response(null, { status: 404 }) as Awaited<
-            ReturnType<typeof fetch>
-          >),
-    );
+    .mockReset()
+    .mockImplementation(async (url) => {
+      if (String(url).endsWith("/accounts/me") && mockAccountId !== undefined) {
+        return Response.json(
+          mockAccountResponse({
+            accountId: mockAccountId,
+            principalCreatedAt: "2020-01-01T00:00:00Z",
+          }),
+        ) as Awaited<ReturnType<typeof fetch>>;
+      }
+      return (
+        String(url).endsWith("/application-access")
+          ? Response.json(applicationAccessResponse())
+          : new Response(null, { status: 404 })
+      ) as Awaited<ReturnType<typeof fetch>>;
+    });
   jest.spyOn(Appearance, "getColorScheme").mockReturnValue("light");
   jest.mocked(Stack).mockImplementation(AppearanceRoute);
 });
@@ -192,7 +201,15 @@ it.each(["light", "dark"] as const)(
     jest.mocked(Appearance.getColorScheme).mockReturnValue(scheme);
     await renderAccount();
     await waitFor(() => expect(account.status).toBe("authenticated"));
-    await act(() => signInAccount(account, a));
+    mockAccountId = a;
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
     await waitFor(() => expect(account.accountId).toBe(a));
     await screen.findByText("Pro: inactive");
     expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
@@ -231,7 +248,13 @@ it("keeps unknown account and unavailable SDK state neutral", async () => {
     new Error("synthetic read failure"),
   );
   // When
-  await act(() => signInAccount(account, a));
+  mockAccountId = a;
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() => expect(account.accountId).toBe(a));
   // Then
   await waitFor(() => expect(pro.verificationFailed).toBe(true));
@@ -246,7 +269,15 @@ it.each(["signOut", "clearCredentials"] as const)(
     // Given: clearCredentials is F05's local invalidation seam after owner-accepted erasure.
     await renderAccount();
     await waitFor(() => expect(account.status).toBe("authenticated"));
-    await act(() => signInAccount(account, a));
+    mockAccountId = a;
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
     await waitFor(() => expect(account.accountId).toBe(a));
     await screen.findByText("Pro: inactive");
     mockPurchases.getCustomerInfo.mockResolvedValueOnce(activeInfo());
@@ -278,7 +309,13 @@ it("clears gold during reassociation and keeps a failed current association neut
   // Given
   await renderAccount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() => signInAccount(account, a));
+  mockAccountId = a;
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() => expect(account.accountId).toBe(a));
   await screen.findByText("Pro: inactive");
   mockPurchases.getCustomerInfo.mockResolvedValueOnce(activeInfo());
@@ -290,7 +327,13 @@ it("clears gold during reassociation and keeps a failed current association neut
     Promise.withResolvers<Awaited<ReturnType<typeof mockPurchases.logIn>>>();
   mockPurchases.logIn.mockReturnValueOnce(login.promise);
   // When
-  await act(() => signInAccount(account, b));
+  mockAccountId = b;
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() => expect(account.accountId).toBe(b));
   // Then
   expect(screen.getByText("Pro: unavailable")).toBeOnTheScreen();
@@ -311,7 +354,13 @@ it("rejects previous-session gold through A → guest → A, including a late ac
   // Given
   await renderAccount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() => signInAccount(account, a));
+  mockAccountId = a;
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() => expect(account.accountId).toBe(a));
   await screen.findByText("Pro: inactive");
   const previous = activeInfo();
@@ -334,7 +383,13 @@ it("rejects previous-session gold through A → guest → A, including a late ac
   );
   mockAuth0.webAuth.mockResolvedValueOnce(credentialsFor("auth0|synthetic"));
   await act(() => account.signIn("https://api.example.invalid"));
-  await act(() => signInAccount(account, a));
+  mockAccountId = a;
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() => expect(account.accountId).toBe(a));
   await screen.findByText("Pro: inactive");
   await act(async () => {
@@ -351,7 +406,13 @@ it("retains SDK-supplied cached active gold during failure, then removes it on r
   // Given: historical dates do not override the SDK's active map or create an app expiry clock.
   await renderAccount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() => signInAccount(account, a));
+  mockAccountId = a;
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() => expect(account.accountId).toBe(a));
   await screen.findByText("Pro: inactive");
   const cached = activeInfo();
@@ -392,7 +453,13 @@ it("follows live system appearance without resetting the mounted route or draft 
   const subscribe = jest.spyOn(Appearance, "addChangeListener");
   await renderAccount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() => signInAccount(account, a));
+  mockAccountId = a;
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() => expect(account.accountId).toBe(a));
   await screen.findByText("Pro: inactive");
   mockPurchases.getCustomerInfo.mockResolvedValueOnce(activeInfo());

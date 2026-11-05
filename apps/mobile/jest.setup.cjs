@@ -24,8 +24,7 @@ jest.mock("expo-crypto", () => ({
 // Native screen metrics have upstream defaults; suites may still supply explicit provider metrics.
 jest.mock(
   "react-native-safe-area-context",
-  () =>
-    jest.requireActual("react-native-safe-area-context/src/jest/mock").default,
+  () => jest.requireActual("react-native-safe-area-context/jest/mock").default,
 );
 
 // Use upstream Worklets mocking and Reanimated Jest support for native animation boundaries.

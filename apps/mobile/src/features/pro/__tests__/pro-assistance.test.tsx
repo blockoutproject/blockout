@@ -1,3 +1,8 @@
+import { accountResponse as mockAccountResponse } from "../../accounts/test-support/account-response";
+import {
+  credentialsFor,
+  mockAuth0,
+} from "../../accounts/test-support/native-auth0";
 import {
   act,
   cleanup,
@@ -35,7 +40,6 @@ import * as proSessionModule from "../pro-session";
 import { prepareProNativeIO } from "../test-support/pro-harness";
 import { mockPurchases } from "../test-support/native-purchases";
 import { customerInfo, entitlement } from "../test-support/customer-info";
-import { signInAccount } from "../test-support/sign-in-account";
 import { v2Offering } from "../test-support/offering";
 
 jest.mock("react-native-keyboard-controller", () =>
@@ -84,12 +88,14 @@ jest.mock("react-native-auth0", () => {
   return jest.requireActual("react-native-auth0");
 });
 let mockCenter: CustomerCenterViewProps;
+let mockAccountId: string | undefined;
 let account: AccountSession;
 let setAdmitted: (value: boolean) => void;
 let client = createQueryClient();
 const previousEnvironment = { ...process.env };
 const accountA = "00000000-0000-4000-8000-000000000318";
 beforeEach(() => {
+  mockAccountId = undefined;
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
@@ -98,14 +104,22 @@ beforeEach(() => {
   ) as typeof import("expo/fetch");
   jest
     .mocked(transport.fetch)
-    .mockImplementation(
-      async (url) =>
-        (String(url).endsWith("/application-access")
+    .mockReset()
+    .mockImplementation(async (url) => {
+      if (String(url).endsWith("/accounts/me") && mockAccountId !== undefined) {
+        return Response.json(
+          mockAccountResponse({
+            accountId: mockAccountId,
+            principalCreatedAt: "2020-01-01T00:00:00Z",
+          }),
+        ) as Awaited<ReturnType<typeof transport.fetch>>;
+      }
+      return (
+        String(url).endsWith("/application-access")
           ? Response.json(applicationAccessResponse())
-          : new Response(null, { status: 404 })) as Awaited<
-          ReturnType<typeof transport.fetch>
-        >,
-    );
+          : new Response(null, { status: 404 })
+      ) as Awaited<ReturnType<typeof transport.fetch>>;
+    });
   jest.replaceProperty(
     proSessionModule,
     "proSession",
@@ -170,15 +184,7 @@ function Support() {
 }
 
 /** Mounts production Pro and F10 routes; only SDK/HTTP I/O is controlled. */
-async function mount() {
-  const active = { "Blockout Pro": entitlement({ store: "APP_STORE" }) };
-  mockPurchases.getCustomerInfo.mockResolvedValue(
-    customerInfo({
-      active,
-      all: active,
-      verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
-    }),
-  );
+async function renderSupportRoutes() {
   await renderRouter(
     {
       _layout: Journey,
@@ -203,15 +209,29 @@ async function mount() {
       ),
     },
   );
-  await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() => signInAccount(account, accountA));
-  await waitFor(() => expect(account.accountId).toBe(accountA));
 }
 
 it("only the recognized Custom Action removes Pro before the real F10 form, without SDK payload", async () => {
   // Given: a store from the other platform still uses the same bounded support route.
   const user = userEvent.setup();
-  await mount();
+  const active = { "Blockout Pro": entitlement({ store: "APP_STORE" }) };
+  mockPurchases.getCustomerInfo.mockResolvedValue(
+    customerInfo({
+      active,
+      all: active,
+      verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+    }),
+  );
+  await renderSupportRoutes();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  mockAccountId = accountA;
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
+  await waitFor(() => expect(account.accountId).toBe(accountA));
   await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
   await screen.findByText("Native management");
   const callback = mockCenter.onCustomActionSelected!;
@@ -239,14 +259,41 @@ it.each([accountA, "00000000-0000-4000-8000-000000000319"])(
   async (nextAccount) => {
     // Given
     const user = userEvent.setup();
-    await mount();
+    const active = { "Blockout Pro": entitlement({ store: "APP_STORE" }) };
+    mockPurchases.getCustomerInfo.mockResolvedValue(
+      customerInfo({
+        active,
+        all: active,
+        verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+      }),
+    );
+    await renderSupportRoutes();
+    await waitFor(() => expect(account.status).toBe("authenticated"));
+    mockAccountId = accountA;
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
+    await waitFor(() => expect(account.accountId).toBe(accountA));
     await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
     await screen.findByText("Native management");
     const callback = mockCenter.onCustomActionSelected!;
 
     // When
     await act(() => account.clearCredentials());
-    await act(() => signInAccount(account, nextAccount));
+    mockAccountId = nextAccount;
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
     await waitFor(() => expect(account.accountId).toBe(nextAccount));
     await act(() =>
       callback({ actionId: "f10-help", purchaseIdentifier: "private" }),
@@ -260,7 +307,24 @@ it.each([accountA, "00000000-0000-4000-8000-000000000319"])(
 it("keeps profile assistance usable after closing failed native management and leaving authentication", async () => {
   // Given: the native view owns its error; it exposes only ordinary dismissal to Blockout.
   const user = userEvent.setup();
-  await mount();
+  const active = { "Blockout Pro": entitlement({ store: "APP_STORE" }) };
+  mockPurchases.getCustomerInfo.mockResolvedValue(
+    customerInfo({
+      active,
+      all: active,
+      verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+    }),
+  );
+  await renderSupportRoutes();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  mockAccountId = accountA;
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
+  await waitFor(() => expect(account.accountId).toBe(accountA));
   await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
   await screen.findByText("Native management");
   mockPurchases.getCustomerInfo.mockRejectedValue(
@@ -280,7 +344,24 @@ it("keeps profile assistance usable after closing failed native management and l
 it("does not open support when F12 withdraws ordinary admission", async () => {
   // Given
   const user = userEvent.setup();
-  await mount();
+  const active = { "Blockout Pro": entitlement({ store: "APP_STORE" }) };
+  mockPurchases.getCustomerInfo.mockResolvedValue(
+    customerInfo({
+      active,
+      all: active,
+      verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+    }),
+  );
+  await renderSupportRoutes();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  mockAccountId = accountA;
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
+  await waitFor(() => expect(account.accountId).toBe(accountA));
   await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
   await screen.findByText("Native management");
   const callback = mockCenter.onCustomActionSelected!;

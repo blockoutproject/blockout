@@ -173,10 +173,10 @@ afterEach(async () => {
 });
 
 /** Real cache, generated decoder, theme, session and admission; only native/HTTP boundaries are controlled. */
-async function open(
+function open(
   content = <PoolStandings pool={pool} highlightTeamId={sportingId} />,
 ) {
-  const result = await render(content, {
+  return render(content, {
     wrapper: ({ children }) => (
       <GestureHandlerRootView>
         <SafeAreaProvider
@@ -202,10 +202,6 @@ async function open(
       </GestureHandlerRootView>
     ),
   });
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  await layoutNativeTabs();
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  return result;
 }
 
 /** Supplies the official native scroll owner for an isolated standings panel. */
@@ -229,6 +225,8 @@ it("preserves official labels positions and missing values without guessed links
   // Given
   const user = userEvent.setup();
   await open(panel());
+  await screen.findByRole("tab", { name: "Classement" });
+  await layoutNativeTabs();
 
   // When
   await user.press(await screen.findByRole("link", { name: /Official Z/ }));
@@ -273,6 +271,8 @@ it.each([
 
     // When
     await open(panel());
+    await screen.findByRole("tab", { name: "Classement" });
+    await layoutNativeTabs();
 
     // Then
     expect(await screen.findByRole(role, { name: message })).toBeOnTheScreen();
@@ -303,6 +303,9 @@ it.each([
 it("retains source metadata silently after a failed explicit refresh", async () => {
   // Given
   await open(panel());
+  await screen.findByRole("tab", { name: "Classement" });
+  await layoutNativeTabs();
+  await screen.findByText("Official Z");
   failed = true;
 
   // When
@@ -337,6 +340,8 @@ it.each(["available", "not-published"] as const)(
     // Given
     table = { ...table, availability, rows: [] };
     await open(panel());
+    await screen.findByRole("tab", { name: "Classement" });
+    await layoutNativeTabs();
     await screen.findByRole("button", { name: "Actualiser" });
     failed = true;
 
@@ -369,6 +374,8 @@ it("keeps acquisition diagnostics out of the usable table presentation", async (
 
   // When
   await open(panel());
+  await screen.findByRole("tab", { name: "Classement" });
+  await layoutNativeTabs();
 
   // Then
   expect(await screen.findByText("Official Z")).toBeOnTheScreen();
@@ -382,6 +389,8 @@ it("loads team participation standings lazily and preserves them through calenda
   // Given
   const user = userEvent.setup();
   await open(<TeamScreen teamId={sportingId} />);
+  await screen.findByRole("tab", { name: pool.pool.name });
+  await layoutNativeTabs();
   await screen.findByText("Official Z");
   const initial = mockFetch.mock.calls.filter(([url]) =>
     new URL(url).pathname.endsWith("/standings"),
@@ -408,6 +417,8 @@ it("keeps a pool calendar usable while standings fail", async () => {
   failed = true;
   const user = userEvent.setup();
   await open(<PoolScreen poolId={pool.pool.id} />);
+  await screen.findByRole("tab", { name: "Classement" });
+  await layoutNativeTabs();
 
   // When
   await user.press(await screen.findByRole("tab", { name: "À venir" }));
@@ -427,6 +438,8 @@ it("switches to the approved cards without another read or team emphasis", async
   // Given
   const user = userEvent.setup();
   await open(panel());
+  await screen.findByRole("tab", { name: "Classement" });
+  await layoutNativeTabs();
   await screen.findByText("Official Z");
   const reads = mockFetch.mock.calls.length;
 
@@ -468,6 +481,8 @@ it("projects only official podium ranks as 2–1–3 and preserves the remaining
   ];
   const sourceOrder = table.rows.map((row) => row.sourceName);
   await open(panel());
+  await screen.findByRole("tab", { name: "Classement" });
+  await layoutNativeTabs();
 
   // When
   await user.press(
@@ -502,6 +517,8 @@ it("keeps ambiguous podium ranks in source order without inventing a place", asy
     { sourceName: "Third", position: 3, statistics: {} },
   ];
   await open(panel());
+  await screen.findByRole("tab", { name: "Classement" });
+  await layoutNativeTabs();
 
   // When
   await user.press(
@@ -523,6 +540,8 @@ it("retries an initial failure without announcing a successful empty table", asy
   failed = true;
   const user = userEvent.setup();
   await open(panel());
+  await screen.findByRole("tab", { name: "Classement" });
+  await layoutNativeTabs();
   await screen.findByRole("button", { name: "Réessayer" });
   expect(
     screen.queryByRole("header", { name: "Aucune équipe dans ce classement" }),
@@ -556,6 +575,8 @@ it("does not claim retained table information after a first failed acquisition",
 
   // When
   await open(panel());
+  await screen.findByRole("tab", { name: "Classement" });
+  await layoutNativeTabs();
 
   // Then
   expect(
@@ -578,6 +599,8 @@ it.each(["unavailable", "not-published"] as const)(
       rows: [],
     };
     await open(panel());
+    await screen.findByRole("tab", { name: "Classement" });
+    await layoutNativeTabs();
     // Query can finish before React commits its notified read state; wait for the actual recovery control.
     if (availability === "unavailable") {
       await screen.findByRole("button", { name: "Réessayer" });
@@ -644,6 +667,8 @@ it.each(["list", "cards"] as const)(
       },
     ];
     await open(panel());
+    await screen.findByRole("tab", { name: "Classement" });
+    await layoutNativeTabs();
     await screen.findByRole("link", { name: /Official compact team/ });
 
     // When

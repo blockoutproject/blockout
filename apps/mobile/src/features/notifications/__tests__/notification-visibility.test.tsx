@@ -1,5 +1,6 @@
 import { createQueryClient } from "../../../shared/query/query-client";
 import { QueryObserver } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react-native";
 import { createConsultationQueries } from "../../sporting/api/consultation-queries";
 import {
   createInboxQueries,
@@ -36,7 +37,11 @@ afterEach(async () => {
   client.clear();
   await jest.runOnlyPendingTimersAsync();
   jest.useRealTimers();
-  process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  if (originalUrl === undefined) {
+    delete process.env.EXPO_PUBLIC_API_URL;
+  } else {
+    process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  }
 });
 
 it.each([401, 403, 404])(
@@ -60,14 +65,17 @@ it.each([401, 403, 404])(
     await client.fetchQuery(inbox.detail(row.id));
     const page = Promise.withResolvers<Response>();
     const count = Promise.withResolvers<Response>();
+    const readPage = jest.fn(() => page.promise);
+    const readCount = jest.fn(() => count.promise);
     mockFetch
-      .mockReturnValueOnce(page.promise)
-      .mockReturnValueOnce(count.promise);
+      .mockImplementationOnce(readPage)
+      .mockImplementationOnce(readCount);
     const delayed = Promise.allSettled([
       client.fetchInfiniteQuery(inbox.inbox),
       client.fetchQuery(inbox.summary),
     ]);
-    await jest.advanceTimersByTimeAsync(0);
+    await waitFor(() => expect(readPage).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(readCount).toHaveBeenCalledTimes(1));
     mockFetch.mockResolvedValueOnce(new Response(null, { status }));
 
     // When
@@ -134,9 +142,10 @@ it("applies the first F03 refusal even when native retries later fail offline", 
   );
   await client.fetchQuery(inbox.summary);
   const page = Promise.withResolvers<Response>();
-  mockFetch.mockReturnValueOnce(page.promise);
+  const readPage = jest.fn(() => page.promise);
+  mockFetch.mockImplementationOnce(readPage);
   const oldPage = client.fetchInfiniteQuery(inbox.inbox).catch(() => undefined);
-  await jest.advanceTimersByTimeAsync(0);
+  await waitFor(() => expect(readPage).toHaveBeenCalledTimes(1));
   mockFetch
     .mockResolvedValueOnce(new Response(null, { status: 404 }))
     .mockRejectedValue(new TypeError("offline retry"));
@@ -144,13 +153,15 @@ it("applies the first F03 refusal even when native retries later fail offline", 
   const unsubscribe = current.subscribe(() => undefined);
   try {
     // When
-    await jest.advanceTimersByTimeAsync(0);
+    await waitFor(() =>
+      expect(
+        client.getQueryData(inbox.inbox.queryKey)?.pages[0].notifications,
+      ).toEqual([]),
+    );
 
     // Then: apply the known refusal before Query exhausts its ordinary retries.
-    expect(
-      client.getQueryData(inbox.inbox.queryKey)?.pages[0].notifications,
-    ).toEqual([]);
     expect(client.getQueryData(inbox.summary.queryKey)).toBeUndefined();
+    expect(current.getCurrentResult().failureCount).toBe(1);
 
     // When
     page.resolve(Response.json({ notifications: [row] }));
@@ -171,9 +182,10 @@ it("applies the first F03 refusal even when native retries later fail offline", 
 it("cancels an unloaded member read when its current match becomes unavailable", async () => {
   // Given: a member response has not supplied its match yet; there is no loaded page to filter.
   const member = Promise.withResolvers<Response>();
-  mockFetch.mockReturnValueOnce(member.promise);
+  const readMember = jest.fn(() => member.promise);
+  mockFetch.mockImplementationOnce(readMember);
   const old = client.fetchQuery(inbox.detail(row.id)).catch(() => undefined);
-  await jest.advanceTimersByTimeAsync(0);
+  await waitFor(() => expect(readMember).toHaveBeenCalledTimes(1));
   mockFetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
 
   // When
@@ -236,9 +248,10 @@ it("removes a known stale link claim while retaining an enriched result and its 
   );
   await client.fetchQuery(sporting.match(row.match.id));
   const page = Promise.withResolvers<Response>();
-  mockFetch.mockReturnValueOnce(page.promise);
+  const readPage = jest.fn(() => page.promise);
+  mockFetch.mockImplementationOnce(readPage);
   const old = client.fetchInfiniteQuery(inbox.inbox).catch(() => undefined);
-  await jest.advanceTimersByTimeAsync(0);
+  await waitFor(() => expect(readPage).toHaveBeenCalledTimes(1));
   mockFetch.mockResolvedValueOnce(
     Response.json({ match: row.match, documents: [] }),
   );

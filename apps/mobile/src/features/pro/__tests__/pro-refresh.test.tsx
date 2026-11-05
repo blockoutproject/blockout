@@ -1,4 +1,8 @@
-import { signInAccount } from "../test-support/sign-in-account";
+import { accountResponse as mockAccountResponse } from "../../accounts/test-support/account-response";
+import {
+  credentialsFor,
+  mockAuth0,
+} from "../../accounts/test-support/native-auth0";
 import * as proSessionModule from "../pro-session";
 import {
   act,
@@ -15,7 +19,24 @@ import { customerInfo, entitlement } from "../test-support/customer-info";
 import { mockPurchases } from "../test-support/native-purchases";
 import { prepareProNativeIO, ProHarness } from "../test-support/pro-harness";
 
-jest.mock("expo/fetch", () => ({ fetch: jest.fn() }));
+jest.mock("expo/fetch", () => ({
+  fetch: jest.fn((url: RequestInfo | URL) => {
+    // Preserve the unconfigured transport until the scenario supplies its account response.
+    if (mockAccountId === undefined) {
+      return undefined;
+    }
+    return Promise.resolve(
+      String(url).endsWith("/accounts/me")
+        ? Response.json(
+            mockAccountResponse({
+              accountId: mockAccountId,
+              principalCreatedAt: "2020-01-01T00:00:00Z",
+            }),
+          )
+        : new Response(null, { status: 404 }),
+    );
+  }),
+}));
 
 jest.mock("expo-constants", () => ({
   __esModule: true,
@@ -37,12 +58,16 @@ jest.mock("react-native-auth0", () => {
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });
+let mockAccountId: string | undefined;
 let account: AccountSession;
 let pro: ProContext;
 let info: CustomerInfo;
+const originalApiUrl = process.env.EXPO_PUBLIC_API_URL;
 const originalDomain = process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
 const originalClient = process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID;
 beforeEach(() => {
+  mockAccountId = undefined;
+  process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
   // A fresh real owner isolates tests; remounts within one scenario retain it.
@@ -56,6 +81,11 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   jest.restoreAllMocks();
+  if (originalApiUrl === undefined) {
+    delete process.env.EXPO_PUBLIC_API_URL;
+  } else {
+    process.env.EXPO_PUBLIC_API_URL = originalApiUrl;
+  }
   if (originalDomain === undefined) {
     delete process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
   } else {
@@ -93,9 +123,15 @@ it.each([
   await renderAccount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
   if (trigger !== "association") {
-    await act(() =>
-      signInAccount(account, "00000000-0000-4000-8000-000000000001"),
+    mockAccountId = "00000000-0000-4000-8000-000000000001";
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
     );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
     await waitFor(() =>
       expect(account.accountId).toBe("00000000-0000-4000-8000-000000000001"),
     );
@@ -120,7 +156,15 @@ it.each([
   await act(async () => {
     switch (trigger) {
       case "association":
-        await signInAccount(account, "00000000-0000-4000-8000-000000000001");
+        mockAccountId = "00000000-0000-4000-8000-000000000001";
+        mockAuth0.webAuth.mockResolvedValue(
+          credentialsFor(`auth0|${mockAccountId}`),
+        );
+        mockAuth0.getCredentials.mockResolvedValue(
+          credentialsFor(`auth0|${mockAccountId}`),
+        );
+        mockAuth0.saveCredentials.mockResolvedValue();
+        await account.signIn("https://api.example.invalid");
         break;
       case "explicit refresh":
         await pro.refresh();
@@ -174,9 +218,13 @@ it("rejects a detached read and callbacks after provider remount into the same b
   // Given
   await renderAccount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() =>
-    signInAccount(account, "00000000-0000-4000-8000-000000000001"),
+  mockAccountId = "00000000-0000-4000-8000-000000000001";
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
   );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() =>
     expect(account.accountId).toBe("00000000-0000-4000-8000-000000000001"),
   );
@@ -195,9 +243,13 @@ it("rejects a detached read and callbacks after provider remount into the same b
   // When
   await renderAccount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() =>
-    signInAccount(account, "00000000-0000-4000-8000-000000000001"),
+  mockAccountId = "00000000-0000-4000-8000-000000000001";
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
   );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() =>
     expect(account.accountId).toBe("00000000-0000-4000-8000-000000000001"),
   );
@@ -225,9 +277,13 @@ it("reads operation completion without waiting for an earlier read and rejects i
   // Given
   await renderAccount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() =>
-    signInAccount(account, "00000000-0000-4000-8000-000000000001"),
+  mockAccountId = "00000000-0000-4000-8000-000000000001";
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
   );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() =>
     expect(account.accountId).toBe("00000000-0000-4000-8000-000000000001"),
   );
@@ -270,9 +326,13 @@ it("keeps current verification busy when an older read fails", async () => {
   // Given
   await renderAccount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() =>
-    signInAccount(account, "00000000-0000-4000-8000-000000000001"),
+  mockAccountId = "00000000-0000-4000-8000-000000000001";
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
   );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() =>
     expect(account.accountId).toBe("00000000-0000-4000-8000-000000000001"),
   );
@@ -316,9 +376,13 @@ it("ignores a queued listener from the removed principal before reading current 
   // Given
   await renderAccount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() =>
-    signInAccount(account, "00000000-0000-4000-8000-000000000001"),
+  mockAccountId = "00000000-0000-4000-8000-000000000001";
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
   );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() =>
     expect(account.accountId).toBe("00000000-0000-4000-8000-000000000001"),
   );
@@ -331,9 +395,13 @@ it("ignores a queued listener from the removed principal before reading current 
     all: active,
     verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
   });
-  await act(() =>
-    signInAccount(account, "00000000-0000-4000-8000-000000000002"),
+  mockAccountId = "00000000-0000-4000-8000-000000000002";
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
   );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() =>
     expect(account.accountId).toBe("00000000-0000-4000-8000-000000000002"),
   );
@@ -366,9 +434,15 @@ it.each([
     // Given: SDK output is controlled; listener payloads have no F05 attribution.
     await renderAccount();
     await waitFor(() => expect(account.status).toBe("authenticated"));
-    await act(() =>
-      signInAccount(account, "00000000-0000-4000-8000-000000000001"),
+    mockAccountId = "00000000-0000-4000-8000-000000000001";
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
     );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
     await waitFor(() =>
       expect(account.accountId).toBe("00000000-0000-4000-8000-000000000001"),
     );
@@ -413,9 +487,13 @@ it("ignores events during association and accepts the current login's supplied i
   // Given
   await renderAccount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() =>
-    signInAccount(account, "00000000-0000-4000-8000-000000000001"),
+  mockAccountId = "00000000-0000-4000-8000-000000000001";
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
   );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() =>
     expect(account.accountId).toBe("00000000-0000-4000-8000-000000000001"),
   );
@@ -427,9 +505,13 @@ it("ignores events during association and accepts the current login's supplied i
     mockPurchases.addCustomerInfoUpdateListener.mock.calls.at(-1)![0];
   const readsBeforeSwitch = mockPurchases.getCustomerInfo.mock.calls.length;
   // When
-  await act(() =>
-    signInAccount(account, "00000000-0000-4000-8000-000000000002"),
+  mockAccountId = "00000000-0000-4000-8000-000000000002";
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
   );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() =>
     expect(account.accountId).toBe("00000000-0000-4000-8000-000000000002"),
   );
@@ -448,9 +530,13 @@ it("clears local rights before native logout settles, without waiting for Revenu
   // Given
   await renderAccount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() =>
-    signInAccount(account, "00000000-0000-4000-8000-000000000001"),
+  mockAccountId = "00000000-0000-4000-8000-000000000001";
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
   );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() =>
     expect(account.accountId).toBe("00000000-0000-4000-8000-000000000001"),
   );

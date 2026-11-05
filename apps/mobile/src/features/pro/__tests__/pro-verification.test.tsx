@@ -1,4 +1,8 @@
-import { signInAccount } from "../test-support/sign-in-account";
+import { accountResponse as mockAccountResponse } from "../../accounts/test-support/account-response";
+import {
+  credentialsFor,
+  mockAuth0,
+} from "../../accounts/test-support/native-auth0";
 import * as proSessionModule from "../pro-session";
 import {
   act,
@@ -42,12 +46,16 @@ jest.mock("react-native-auth0", () => {
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });
+let mockAccountId: string | undefined;
 let account: AccountSession;
 let pro: ProContext;
 const support = jest.fn();
+const originalApiUrl = process.env.EXPO_PUBLIC_API_URL;
 const originalDomain = process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
 const originalClient = process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID;
 beforeEach(() => {
+  mockAccountId = undefined;
+  process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
   // A fresh real owner isolates tests; remounts within one scenario retain it.
@@ -61,16 +69,27 @@ beforeEach(() => {
   jest
     .mocked(expoFetch)
     .mockReset()
-    .mockImplementation(
-      async () =>
-        new Response(null, { status: 404 }) as Awaited<
-          ReturnType<typeof expoFetch>
-        >,
-    );
+    .mockImplementation(async (url) => {
+      const response =
+        String(url).endsWith("/accounts/me") && mockAccountId !== undefined
+          ? Response.json(
+              mockAccountResponse({
+                accountId: mockAccountId,
+                principalCreatedAt: "2020-01-01T00:00:00Z",
+              }),
+            )
+          : new Response(null, { status: 404 });
+      return response as Awaited<ReturnType<typeof expoFetch>>;
+    });
 });
 afterEach(async () => {
   await cleanup();
   jest.restoreAllMocks();
+  if (originalApiUrl === undefined) {
+    delete process.env.EXPO_PUBLIC_API_URL;
+  } else {
+    process.env.EXPO_PUBLIC_API_URL = originalApiUrl;
+  }
   if (originalDomain === undefined) {
     delete process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
   } else {
@@ -109,9 +128,13 @@ it("does not turn an initial read failure or a failed retry into inactivity", as
     />,
   );
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() =>
-    signInAccount(account, "00000000-0000-4000-8000-000000000001"),
+  mockAccountId = "00000000-0000-4000-8000-000000000001";
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
   );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() =>
     expect(account.accountId).toBe("00000000-0000-4000-8000-000000000001"),
   );
@@ -140,9 +163,13 @@ it("keeps failed association unavailable, with explicit retry and independent su
   // Given
   await renderAccount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() =>
-    signInAccount(account, "00000000-0000-4000-8000-000000000001"),
+  mockAccountId = "00000000-0000-4000-8000-000000000001";
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
   );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() =>
     expect(account.accountId).toBe("00000000-0000-4000-8000-000000000001"),
   );
@@ -150,9 +177,13 @@ it("keeps failed association unavailable, with explicit retry and independent su
   mockPurchases.logIn.mockRejectedValueOnce(
     new Error("private customer payload"),
   );
-  await act(() =>
-    signInAccount(account, "00000000-0000-4000-8000-000000000002"),
+  mockAccountId = "00000000-0000-4000-8000-000000000002";
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
   );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() =>
     expect(account.accountId).toBe("00000000-0000-4000-8000-000000000002"),
   );
@@ -186,9 +217,15 @@ it.each([
     // Given: past dates intentionally do not define expiry; SDK-active is authoritative.
     await renderAccount();
     await waitFor(() => expect(account.status).toBe("authenticated"));
-    await act(() =>
-      signInAccount(account, "00000000-0000-4000-8000-000000000001"),
+    mockAccountId = "00000000-0000-4000-8000-000000000001";
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
     );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
     await waitFor(() =>
       expect(account.accountId).toBe("00000000-0000-4000-8000-000000000001"),
     );
@@ -222,9 +259,13 @@ it("accepts an SDK-inactive result without reconstructing historical rights", as
   // Given
   await renderAccount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() =>
-    signInAccount(account, "00000000-0000-4000-8000-000000000001"),
+  mockAccountId = "00000000-0000-4000-8000-000000000001";
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
   );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() =>
     expect(account.accountId).toBe("00000000-0000-4000-8000-000000000001"),
   );
@@ -249,9 +290,15 @@ it.each(["pending", "uncertain"] as const)(
     // Given
     await renderAccount();
     await waitFor(() => expect(account.status).toBe("authenticated"));
-    await act(() =>
-      signInAccount(account, "00000000-0000-4000-8000-000000000001"),
+    mockAccountId = "00000000-0000-4000-8000-000000000001";
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
     );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
     await waitFor(() =>
       expect(account.accountId).toBe("00000000-0000-4000-8000-000000000001"),
     );
@@ -281,9 +328,13 @@ it("preserves known rights without a persistent error block after a definite pur
   // Given
   await renderAccount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() =>
-    signInAccount(account, "00000000-0000-4000-8000-000000000001"),
+  mockAccountId = "00000000-0000-4000-8000-000000000001";
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
   );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() =>
     expect(account.accountId).toBe("00000000-0000-4000-8000-000000000001"),
   );
@@ -311,9 +362,15 @@ it.each(["inactive", "unavailable"] as const)(
     }
     await renderAccount();
     await waitFor(() => expect(account.status).toBe("authenticated"));
-    await act(() =>
-      signInAccount(account, "00000000-0000-4000-8000-000000000001"),
+    mockAccountId = "00000000-0000-4000-8000-000000000001";
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
     );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
     await waitFor(() =>
       expect(account.accountId).toBe("00000000-0000-4000-8000-000000000001"),
     );

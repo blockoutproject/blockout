@@ -3,6 +3,7 @@ import {
   MutationObserver,
   QueryObserver,
 } from "@tanstack/react-query";
+import { waitFor } from "@testing-library/react-native";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { createInboxQueries, refreshInbox } from "../api/inbox-queries";
 import { createReadNotificationOptions } from "../api/inbox-mutations";
@@ -38,7 +39,11 @@ afterEach(async () => {
   client.clear();
   await jest.runOnlyPendingTimersAsync();
   jest.useRealTimers();
-  process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  if (originalUrl === undefined) {
+    delete process.env.EXPO_PUBLIC_API_URL;
+  } else {
+    process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  }
 });
 
 it("retains a failed continuation boundary and refetches the loaded traversal natively", async () => {
@@ -122,9 +127,10 @@ it("discards a cancelled old summary when a newer confirmed summary succeeds", a
   // Given
   const { queries } = context();
   const delayed = Promise.withResolvers<Response>();
-  mockFetch.mockReturnValueOnce(delayed.promise);
+  const delayedRead = jest.fn(() => delayed.promise);
+  mockFetch.mockImplementationOnce(delayedRead);
   const old = client.fetchQuery(queries.summary).catch(() => undefined);
-  await jest.advanceTimersByTimeAsync(0);
+  await waitFor(() => expect(delayedRead).toHaveBeenCalledTimes(1));
 
   // When
   await client.cancelQueries({
@@ -178,9 +184,10 @@ it("does not restore a known missing row from an older page", async () => {
     pageParams: [undefined],
   });
   const delayed = Promise.withResolvers<Response>();
-  mockFetch.mockReturnValueOnce(delayed.promise);
+  const delayedRead = jest.fn(() => delayed.promise);
+  mockFetch.mockImplementationOnce(delayedRead);
   const old = client.fetchInfiniteQuery(queries.inbox).catch(() => undefined);
-  await jest.advanceTimersByTimeAsync(0);
+  await waitFor(() => expect(delayedRead).toHaveBeenCalledTimes(1));
   mockFetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
   const command = new MutationObserver(
     client,
@@ -202,9 +209,10 @@ it("does not restore a badge from a delayed summary after a current owner refusa
   // Given
   const { queries } = context();
   const delayed = Promise.withResolvers<Response>();
-  mockFetch.mockReturnValueOnce(delayed.promise);
+  const delayedRead = jest.fn(() => delayed.promise);
+  mockFetch.mockImplementationOnce(delayedRead);
   const old = client.fetchQuery(queries.summary).catch(() => undefined);
-  await jest.advanceTimersByTimeAsync(0);
+  await waitFor(() => expect(delayedRead).toHaveBeenCalledTimes(1));
   mockFetch.mockResolvedValueOnce(new Response(null, { status: 403 }));
 
   // When
@@ -251,10 +259,11 @@ it("presents an initial list error when the summary refuses access during its pe
   // Given
   const { queries } = context();
   const delayed = Promise.withResolvers<Response>();
-  mockFetch.mockReturnValueOnce(delayed.promise);
+  const delayedRead = jest.fn(() => delayed.promise);
+  mockFetch.mockImplementationOnce(delayedRead);
   const observer = new InfiniteQueryObserver(client, queries.inbox);
   const list = observer.refetch();
-  await jest.advanceTimersByTimeAsync(0);
+  await waitFor(() => expect(delayedRead).toHaveBeenCalledTimes(1));
   mockFetch.mockResolvedValueOnce(new Response(null, { status: 403 }));
 
   // When
@@ -311,12 +320,14 @@ it("keeps an erased owner's inbox unavailable when an earlier refresh and read f
   });
   const delayedPage = Promise.withResolvers<Response>();
   const delayedRead = Promise.withResolvers<Response>();
+  const readPage = jest.fn(() => delayedPage.promise);
+  const readNotification = jest.fn(() => delayedRead.promise);
   mockFetch.mockImplementation((url: string, init: RequestInit) => {
     if (init.method === "PATCH") {
-      return delayedRead.promise;
+      return readNotification();
     }
     if (url.endsWith("/notifications")) {
-      return delayedPage.promise;
+      return readPage();
     }
     return Promise.resolve(new Response(null, { status: 404 }));
   });
@@ -328,7 +339,8 @@ it("keeps an erased owner's inbox unavailable when an earlier refresh and read f
     createReadNotificationOptions(client, owner, queries),
   );
   const read = command.mutate(row.id);
-  await jest.advanceTimersByTimeAsync(0);
+  await waitFor(() => expect(readPage).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(readNotification).toHaveBeenCalledTimes(1));
 
   // When: a current owner read proves absence before the old successful responses arrive.
   await client.fetchQuery(queries.summary).catch(() => undefined);
@@ -364,14 +376,16 @@ it("discards a pending page and total after their original 29-day deadline", asy
   client.setQueryData(queries.summary.queryKey, summary);
   const delayedPage = Promise.withResolvers<Response>();
   const delayedSummary = Promise.withResolvers<Response>();
+  const readPage = jest.fn(() => delayedPage.promise);
+  const readSummary = jest.fn(() => delayedSummary.promise);
   mockFetch.mockImplementation((url: string) =>
-    url.endsWith("/notifications")
-      ? delayedPage.promise
-      : delayedSummary.promise,
+    url.endsWith("/notifications") ? readPage() : readSummary(),
   );
   const page = client.fetchInfiniteQuery(queries.inbox).catch(() => undefined);
   const total = client.fetchQuery(queries.summary).catch(() => undefined);
-  await jest.advanceTimersByTimeAsync(0);
+  await waitFor(() => expect(readPage).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(readSummary).toHaveBeenCalledTimes(1));
+  expect(Date.now()).toBeLessThan(deadline);
 
   // When
   jest.setSystemTime(deadline);
@@ -448,9 +462,10 @@ it("discards a delayed whole summary after a missing-member refusal", async () =
     nextExpiryAt: "2026-11-01T00:00:00Z",
   });
   const delayed = Promise.withResolvers<Response>();
-  mockFetch.mockReturnValueOnce(delayed.promise);
+  const delayedRead = jest.fn(() => delayed.promise);
+  mockFetch.mockImplementationOnce(delayedRead);
   const oldSummary = client.fetchQuery(queries.summary).catch(() => undefined);
-  await jest.advanceTimersByTimeAsync(0);
+  await waitFor(() => expect(delayedRead).toHaveBeenCalledTimes(1));
   mockFetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
   const command = new MutationObserver(
     client,

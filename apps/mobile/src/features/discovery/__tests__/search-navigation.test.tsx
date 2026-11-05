@@ -58,7 +58,6 @@ import {
 import { accountResponse } from "../../accounts/test-support/account-response";
 import * as proSessionModule from "../../pro/pro-session";
 import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
-import { signInAccount } from "../../pro/test-support/sign-in-account";
 import {
   useAccountSession,
   type AccountSession,
@@ -123,6 +122,7 @@ let session: AccountSession;
 let pro: ProContext;
 const environment = { ...process.env };
 const firstId = "aaaaaaaa-0000-4000-8000-000000000001";
+let accountProfile = accountResponse({ accountId: firstId });
 const secondId = "bbbbbbbb-0000-4000-8000-000000000002";
 const season = { id: firstId, label: "2026/2027", startYear: 2026 };
 let client: QueryClient;
@@ -135,9 +135,7 @@ function publicReads(url: string): Promise<Response> {
     return Promise.resolve(Response.json(applicationAccessResponse()));
   }
   if (parsed.pathname.endsWith("/accounts/me")) {
-    return Promise.resolve(
-      Response.json(accountResponse({ accountId: firstId })),
-    );
+    return Promise.resolve(Response.json(accountProfile));
   }
   if (parsed.pathname.endsWith("/sporting-search-options")) {
     return Promise.resolve(
@@ -270,6 +268,7 @@ function PrivateQueries({ children }: QueryFixtureProps) {
 }
 
 beforeEach(async () => {
+  accountProfile = accountResponse({ accountId: firstId });
   jest.replaceProperty(
     proSessionModule,
     "proSession",
@@ -923,7 +922,16 @@ it.each(["tab", "route", "principal", "admission"])(
       await act(async () => router.push("/search/filters"));
     } else if (change === "principal") {
       await act(async () => {
-        await signInAccount(session, firstId);
+        accountProfile = accountResponse({
+          accountId: firstId,
+          principalCreatedAt: "2020-01-01T00:00:00Z",
+        });
+        mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${firstId}`));
+        mockAuth0.getCredentials.mockResolvedValue(
+          credentialsFor(`auth0|${firstId}`),
+        );
+        mockAuth0.saveCredentials.mockResolvedValue();
+        await session.signIn("https://api.example.invalid");
       });
     } else {
       const access = applicationAccessResponse();

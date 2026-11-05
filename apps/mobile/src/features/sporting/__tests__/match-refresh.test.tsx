@@ -77,8 +77,8 @@ function captureClient(current: QueryClient) {
 }
 
 /** Renders real feature composition and providers; the caller decides which reads should settle. */
-async function renderPage(content: ReactElement) {
-  const result = await render(content, {
+function renderPage(content: ReactElement) {
+  return render(content, {
     wrapper: ({ children }) => (
       <ConsultationProviders
         publicClient={publicClient}
@@ -88,9 +88,6 @@ async function renderPage(content: ReactElement) {
       </ConsultationProviders>
     ),
   });
-  await act(async () => jest.advanceTimersByTimeAsync(0));
-  await layoutNativeTabs();
-  return result;
 }
 
 beforeEach(() => {
@@ -367,6 +364,7 @@ it("retains an already loaded calendar across match focus/foreground reads witho
     </>,
   );
   await screen.findByText("Équipe des Rives");
+  await layoutNativeTabs();
   await userEvent.setup().press(screen.getByRole("tab", { name: "À venir" }));
   await screen.findAllByText("Home");
   await waitFor(() => expect(client.isFetching()).toBe(0));
@@ -408,6 +406,7 @@ it("refreshes only the active club tab while preserving common information and s
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
   await screen.findByText("Club des Rives");
+  await layoutNativeTabs();
   await screen.findByText("Coordonnées");
   await user.press(screen.getByRole("tab", { name: "À venir" }));
   await screen.findByText("Aucun match pour cette sélection");
@@ -459,6 +458,7 @@ it("does not retain a successful empty club-team state after its explicit read f
   // Given
   await renderPage(<ClubScreen clubId={sportingId} />);
   await screen.findByText("Club des Rives");
+  await layoutNativeTabs();
   await userEvent.press(screen.getByRole("tab", { name: "Équipes" }));
   await screen.findByText("Aucune équipe pour cette saison");
   mockFetch.mockImplementation((url: string) =>

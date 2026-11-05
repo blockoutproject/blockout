@@ -1,3 +1,8 @@
+import { accountResponse as mockAccountResponse } from "../../accounts/test-support/account-response";
+import {
+  credentialsFor,
+  mockAuth0,
+} from "../../accounts/test-support/native-auth0";
 import {
   act,
   cleanup,
@@ -29,10 +34,26 @@ import * as proSessionModule from "../pro-session";
 import { prepareProNativeIO } from "../test-support/pro-harness";
 import { mockPurchases } from "../test-support/native-purchases";
 import { customerInfo, entitlement } from "../test-support/customer-info";
-import { signInAccount } from "../test-support/sign-in-account";
 import { v2Offering } from "../test-support/offering";
 
-jest.mock("expo/fetch", () => ({ fetch: jest.fn() }));
+jest.mock("expo/fetch", () => ({
+  fetch: jest.fn((url: RequestInfo | URL) => {
+    // Preserve the unconfigured transport until the scenario supplies its account response.
+    if (mockAccountId === undefined) {
+      return undefined;
+    }
+    return Promise.resolve(
+      String(url).endsWith("/accounts/me")
+        ? Response.json(
+            mockAccountResponse({
+              accountId: mockAccountId,
+              principalCreatedAt: "2020-01-01T00:00:00Z",
+            }),
+          )
+        : new Response(null, { status: 404 }),
+    );
+  }),
+}));
 jest.mock("expo-constants", () => ({
   __esModule: true,
   default: {
@@ -75,12 +96,15 @@ jest.mock("react-native-auth0", () => {
 });
 let mockPaywall: ComponentProps<typeof RevenueCatUI.Paywall>;
 let mockCenter: CustomerCenterViewProps;
+let mockAccountId: string | undefined;
 let account: AccountSession;
 let pro: ProContext;
 let client = createQueryClient();
 const previousEnvironment = { ...process.env };
 const accountA = "00000000-0000-4000-8000-000000000318";
 beforeEach(() => {
+  mockAccountId = undefined;
+  process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
   jest.replaceProperty(
@@ -118,8 +142,8 @@ function Journey() {
   );
 }
 
-/** Establishes the scenario's usable account through the real F05 boundary. */
-async function mount() {
+/** Mounts the real session, Pro and route owners without establishing an account or opening Pro. */
+async function renderProRoutes() {
   await renderRouter(
     {
       _layout: Journey,
@@ -145,19 +169,27 @@ async function mount() {
       ),
     },
   );
-  await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() => signInAccount(account, accountA));
-  await waitFor(() => expect(account.accountId).toBe(accountA));
-  await userEvent
-    .setup()
-    .press(screen.getByRole("button", { name: "Blockout Pro" }));
 }
 
 it.each(["none", "expired", "active"])(
   "consumes native paywall restore with %s rights without purchasing",
   async (outcome) => {
     // Given
-    await mount();
+    await renderProRoutes();
+    await waitFor(() => expect(account.status).toBe("authenticated"));
+    mockAccountId = accountA;
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
+    await waitFor(() => expect(account.accountId).toBe(accountA));
+    await userEvent
+      .setup()
+      .press(screen.getByRole("button", { name: "Blockout Pro" }));
     await screen.findByText("Native paywall");
     const active: CustomerInfo["entitlements"]["active"] =
       outcome === "active" ? { "Blockout Pro": entitlement() } : {};
@@ -195,7 +227,19 @@ it("restores explicitly without an offer or prior purchase and preserves receipt
   // Given
   const user = userEvent.setup();
   mockPurchases.getOfferings.mockResolvedValue({ current: null, all: {} });
-  await mount();
+  await renderProRoutes();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  mockAccountId = accountA;
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
+  await waitFor(() => expect(account.accountId).toBe(accountA));
+  await userEvent
+    .setup()
+    .press(screen.getByRole("button", { name: "Blockout Pro" }));
   await screen.findByRole("header", { name: "Aucune offre Pro disponible" });
   expect(screen.getByText(/reçu entier/)).toBeOnTheScreen();
   const result = Promise.withResolvers<CustomerInfo>();
@@ -224,7 +268,19 @@ it("keeps unknown rights restorable after association, without an offering read"
   // Given
   const user = userEvent.setup();
   mockPurchases.getCustomerInfo.mockRejectedValue(new Error("unavailable"));
-  await mount();
+  await renderProRoutes();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  mockAccountId = accountA;
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
+  await waitFor(() => expect(account.accountId).toBe(accountA));
+  await userEvent
+    .setup()
+    .press(screen.getByRole("button", { name: "Blockout Pro" }));
   await screen.findByText("Une erreur est survenue");
   const active = { "Blockout Pro": entitlement() };
   mockPurchases.restorePurchases.mockResolvedValueOnce(
@@ -257,7 +313,21 @@ it.each([
     // Given
     const user = userEvent.setup();
     mockPurchases.getOfferings.mockResolvedValue({ current: null, all: {} });
-    await mount();
+    await renderProRoutes();
+    await waitFor(() => expect(account.status).toBe("authenticated"));
+    mockAccountId = accountA;
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
+    await waitFor(() => expect(account.accountId).toBe(accountA));
+    await userEvent
+      .setup()
+      .press(screen.getByRole("button", { name: "Blockout Pro" }));
     await screen.findByRole("button", { name: "Restaurer mes achats" });
     const result = Promise.withResolvers<CustomerInfo>();
     mockPurchases.restorePurchases.mockReturnValueOnce(result.promise);
@@ -267,7 +337,15 @@ it.each([
 
     // When
     await act(() => account.clearCredentials());
-    await act(() => signInAccount(account, nextAccount));
+    mockAccountId = nextAccount;
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
     await waitFor(() => expect(account.accountId).toBe(nextAccount));
     const active = { "Blockout Pro": entitlement() };
     await act(() =>
@@ -295,7 +373,19 @@ it("consumes restoration from active native management without purchasing", asyn
     verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
   });
   mockPurchases.getCustomerInfo.mockResolvedValue(info);
-  await mount();
+  await renderProRoutes();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  mockAccountId = accountA;
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
+  await waitFor(() => expect(account.accountId).toBe(accountA));
+  await userEvent
+    .setup()
+    .press(screen.getByRole("button", { name: "Blockout Pro" }));
   await screen.findByText("Native management");
 
   // When
@@ -313,7 +403,19 @@ it("disables restoration until explicit association retry succeeds", async () =>
   mockPurchases.configure.mockImplementationOnce(() => {
     throw new Error("unavailable");
   });
-  await mount();
+  await renderProRoutes();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  mockAccountId = accountA;
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
+  await waitFor(() => expect(account.accountId).toBe(accountA));
+  await userEvent
+    .setup()
+    .press(screen.getByRole("button", { name: "Blockout Pro" }));
   await screen.findByText("Une erreur est survenue");
   expect(
     screen.getByRole("button", { name: "Restaurer mes achats" }),
@@ -332,7 +434,19 @@ it("keeps an uncertain restore distinct from no active rights and never replays 
   // Given
   const user = userEvent.setup();
   mockPurchases.getOfferings.mockResolvedValue({ current: null, all: {} });
-  await mount();
+  await renderProRoutes();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  mockAccountId = accountA;
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
+  await waitFor(() => expect(account.accountId).toBe(accountA));
+  await userEvent
+    .setup()
+    .press(screen.getByRole("button", { name: "Blockout Pro" }));
   await screen.findByRole("button", { name: "Restaurer mes achats" });
   mockPurchases.restorePurchases.mockRejectedValueOnce(
     new Error("private provider data"),
@@ -364,14 +478,36 @@ it.each([
   "rejects retired native restore callbacks after guest and return to $label",
   async ({ nextAccount }) => {
     // Given
-    await mount();
+    await renderProRoutes();
+    await waitFor(() => expect(account.status).toBe("authenticated"));
+    mockAccountId = accountA;
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
+    await waitFor(() => expect(account.accountId).toBe(accountA));
+    await userEvent
+      .setup()
+      .press(screen.getByRole("button", { name: "Blockout Pro" }));
     await screen.findByText("Native paywall");
     const callbacks = mockPaywall;
     await act(() => callbacks.onRestoreStarted!());
 
     // When
     await act(() => account.clearCredentials());
-    await act(() => signInAccount(account, nextAccount));
+    mockAccountId = nextAccount;
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
     await waitFor(() => expect(account.accountId).toBe(nextAccount));
     const active = { "Blockout Pro": entitlement() };
     await act(() =>
@@ -396,7 +532,21 @@ it.each(["empty", "cancelled"])(
   async (result) => {
     // Given
     const user = userEvent.setup();
-    await mount();
+    await renderProRoutes();
+    await waitFor(() => expect(account.status).toBe("authenticated"));
+    mockAccountId = accountA;
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
+    await waitFor(() => expect(account.accountId).toBe(accountA));
+    await userEvent
+      .setup()
+      .press(screen.getByRole("button", { name: "Blockout Pro" }));
     await screen.findByText("Native paywall");
     await act(() => pro.completeOperation("purchased"));
     await screen.findByText(/Paiement confirmé/);
@@ -438,7 +588,19 @@ it.each(["empty", "cancelled"])(
 it("consumes current native restore evidence while preserving a pending payment", async () => {
   // Given
   const user = userEvent.setup();
-  await mount();
+  await renderProRoutes();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  mockAccountId = accountA;
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
+  await waitFor(() => expect(account.accountId).toBe(accountA));
+  await userEvent
+    .setup()
+    .press(screen.getByRole("button", { name: "Blockout Pro" }));
   await screen.findByText("Native paywall");
   await act(() => pro.completeOperation("pending"));
   await user.press(
@@ -470,7 +632,19 @@ it("consumes current native restore evidence while preserving a pending payment"
 it("keeps confirmed payment visible when a restore is still unfinished after route removal", async () => {
   // Given
   const user = userEvent.setup();
-  await mount();
+  await renderProRoutes();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  mockAccountId = accountA;
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
+  await waitFor(() => expect(account.accountId).toBe(accountA));
+  await userEvent
+    .setup()
+    .press(screen.getByRole("button", { name: "Blockout Pro" }));
   await screen.findByText("Native paywall");
   await act(() => pro.completeOperation("purchased"));
   const result = Promise.withResolvers<CustomerInfo>();
@@ -506,7 +680,21 @@ it.each(["direct", "customer center"])(
   async (source) => {
     // Given
     const user = userEvent.setup();
-    await mount();
+    await renderProRoutes();
+    await waitFor(() => expect(account.status).toBe("authenticated"));
+    mockAccountId = accountA;
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
+    await waitFor(() => expect(account.accountId).toBe(accountA));
+    await userEvent
+      .setup()
+      .press(screen.getByRole("button", { name: "Blockout Pro" }));
     await screen.findByText("Native paywall");
     await act(() => pro.completeOperation("uncertain"));
     const result = Promise.withResolvers<CustomerInfo>();

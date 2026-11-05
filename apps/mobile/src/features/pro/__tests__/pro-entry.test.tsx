@@ -1,5 +1,5 @@
+import { accountResponse as mockAccountResponse } from "../../accounts/test-support/account-response";
 import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { signInAccount } from "../test-support/sign-in-account";
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
@@ -73,10 +73,21 @@ jest.mock("expo-router", () => ({
 }));
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("expo/fetch", () => ({
-  fetch: (url: RequestInfo | URL) =>
-    String(url).endsWith("/application-access")
+  fetch: (url: RequestInfo | URL) => {
+    if (String(url).endsWith("/accounts/me") && mockAccountId !== undefined) {
+      return Promise.resolve(
+        Response.json(
+          mockAccountResponse({
+            accountId: mockAccountId,
+            principalCreatedAt: "2020-01-01T00:00:00Z",
+          }),
+        ),
+      );
+    }
+    return String(url).endsWith("/application-access")
       ? Promise.resolve(Response.json(mockApplicationAccessResponse()))
-      : Promise.reject(new Error("Unexpected HTTP request")),
+      : Promise.reject(new Error("Unexpected HTTP request"));
+  },
 }));
 // Navigation commands are controlled; the actual F05 session, invitation, F13 controls and profile render.
 const mockRouter = {
@@ -86,11 +97,13 @@ const mockRouter = {
   canGoBack: jest.fn(() => true),
 };
 const previousEnvironment = { ...process.env };
+let mockAccountId: string | undefined;
 let account: AccountSession;
 let pro: ProContext;
 let client = createQueryClient();
 const message = "Connectez-vous pour utiliser Blockout Pro";
 beforeEach(() => {
+  mockAccountId = undefined;
   client = createQueryClient();
   Object.assign(process.env, {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
@@ -257,9 +270,13 @@ it("requires a new explicit press after ordinary sign-in before requesting prese
   // When
   await act(() => account.signIn("urn:synthetic:mobile"));
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() =>
-    signInAccount(account, "00000000-0000-4000-8000-000000000246"),
+  mockAccountId = "00000000-0000-4000-8000-000000000246";
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
   );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() =>
     expect(account.accountId).toBe("00000000-0000-4000-8000-000000000246"),
   );
@@ -301,9 +318,15 @@ it("shows membership only from verified current-session rights and clears it whe
       </ProProvider>,
     );
     await screen.findByText("Session: authenticated");
-    await act(() =>
-      signInAccount(account, "00000000-0000-4000-8000-000000000246"),
+    mockAccountId = "00000000-0000-4000-8000-000000000246";
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
     );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
     await waitFor(() =>
       expect(account.accountId).toBe("00000000-0000-4000-8000-000000000246"),
     );
@@ -356,9 +379,13 @@ it("keeps the signed-in profile after cancelled browser logout, then returns hom
     </ProProvider>,
   );
   await screen.findByText("Session: guest");
-  await act(() =>
-    signInAccount(account, "00000000-0000-4000-8000-000000000246"),
+  mockAccountId = "00000000-0000-4000-8000-000000000246";
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
   );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() =>
     expect(account.accountId).toBe("00000000-0000-4000-8000-000000000246"),
   );

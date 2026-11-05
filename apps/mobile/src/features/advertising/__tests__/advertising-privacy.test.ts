@@ -2,6 +2,7 @@ import type { SessionSnapshot } from "../../accounts";
 import { PermissionStatus } from "expo";
 import { nativeUserChoices } from "../test-support/native-privacy";
 import { Platform } from "react-native";
+import { waitFor } from "@testing-library/react-native";
 import mobileAds, {
   AdsConsent,
   AdsConsentStatus,
@@ -568,13 +569,13 @@ it("reestablishes UMP age treatment before privacy options can recover a failed 
   const consent = Promise.withResolvers<AdsConsentInfo>();
   jest.mocked(AdsConsent.gatherConsent).mockReturnValueOnce(consent.promise);
   const recovery = privacy.showOptions();
-  await Promise.resolve();
-  await Promise.resolve();
 
   // Then: native options are not a bypass around the corrected UMP under-age flag.
-  expect(AdsConsent.gatherConsent).toHaveBeenLastCalledWith({
-    tagForUnderAgeOfConsent: true,
-  });
+  await waitFor(() =>
+    expect(AdsConsent.gatherConsent).toHaveBeenLastCalledWith({
+      tagForUnderAgeOfConsent: true,
+    }),
+  );
   expect(InterstitialAd.createForAdRequest).toHaveBeenCalledTimes(1);
   consent.resolve({
     ...consentInfo,
