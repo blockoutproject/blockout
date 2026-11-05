@@ -96,14 +96,17 @@ class FfvbObservationReaderIntegrationTest {
         new FfvbObservationReader(http, new FfvbCalendarParser(), new FfvbStandingsParser(), clock);
   }
 
-  /** Releases the actual worker, HTTP pool and local server after every scenario. */
+  /** Releases the HTTP pool and stops the local server even if pool cleanup fails. */
   @AfterEach
   void stopPeer() throws IOException {
-    if (http != null) {
-      http.close();
-    }
-    if (server != null) {
-      server.stop(0);
+    try {
+      if (http != null) {
+        http.close();
+      }
+    } finally {
+      if (server != null) {
+        server.stop(0);
+      }
     }
   }
 

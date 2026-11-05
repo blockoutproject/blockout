@@ -457,15 +457,16 @@ class ProviderHttpClientIntegrationTest {
     server.createContext(
         "/source",
         exchange -> {
-          exchange.sendResponseHeaders(200, 0);
-          exchange.getResponseBody().write(new byte[33]);
-          exchange.getResponseBody().flush();
-          try {
-            release.await(5, TimeUnit.SECONDS);
-          } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
+          try (exchange) {
+            exchange.sendResponseHeaders(200, 0);
+            exchange.getResponseBody().write(new byte[33]);
+            exchange.getResponseBody().flush();
+            try {
+              release.await(5, TimeUnit.SECONDS);
+            } catch (InterruptedException exception) {
+              Thread.currentThread().interrupt();
+            }
           }
-          exchange.close();
         });
     try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
       // When / Then
@@ -570,10 +571,11 @@ class ProviderHttpClientIntegrationTest {
     server.createContext(
         "/source",
         exchange -> {
-          exchange.getResponseHeaders().add("Content-Encoding", "gzip");
-          exchange.sendResponseHeaders(200, bytes.length);
-          exchange.getResponseBody().write(bytes);
-          exchange.close();
+          try (exchange) {
+            exchange.getResponseHeaders().add("Content-Encoding", "gzip");
+            exchange.sendResponseHeaders(200, bytes.length);
+            exchange.getResponseBody().write(bytes);
+          }
         });
   }
 }

@@ -135,7 +135,6 @@ class ContributionAccessWebMvcTest {
   @BeforeEach
   void prepare() {
     when(accounts.currentId(issuer, "original-subject")).thenReturn(Optional.of(ACCOUNT));
-    when(accounts.lock(ACCOUNT)).thenReturn(true);
     when(permissions.findByAccountId(ACCOUNT)).thenReturn(Set.of());
     when(settings.maintenance()).thenReturn(new MaintenanceSettings(0, false, "Available", null));
     when(transactions.getTransaction(any()))
@@ -321,6 +320,7 @@ class ContributionAccessWebMvcTest {
   void separatesMaintenance(String scenario, Set<Permission> grants, int bypassStatus)
       throws Exception {
     // Given
+    when(accounts.lock(ACCOUNT)).thenReturn(true);
     when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, true, "Maintenance", null));
     when(permissions.findByAccountId(ACCOUNT)).thenReturn(grants);
     String bearer = token(issuer, "mobile-test", "mobile-client", false);

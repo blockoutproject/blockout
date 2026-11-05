@@ -3,7 +3,6 @@ package com.blockout.collector.ingestion;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.blockout.collector.generated.ingestion.ApiClient;
 import com.blockout.collector.generated.ingestion.api.SportingApi;
 import com.blockout.collector.generated.ingestion.model.MatchDetailObservationInternalRequest;
 import com.blockout.collector.generated.ingestion.model.MatchFactsInternalRequest;
@@ -30,7 +29,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 import tools.jackson.databind.JsonNode;
@@ -41,7 +39,7 @@ import tools.jackson.databind.json.JsonMapper;
 class SportingContractIntegrationTest {
   private final JsonMapper json = JsonMapper.builder().build();
   private HttpServer server;
-  private HttpComponentsClientHttpRequestFactory factory;
+  private IngestionTestClient transport;
   private SportingApi api;
   private volatile JsonNode received;
   private volatile String receivedPath;
@@ -73,11 +71,8 @@ class SportingContractIntegrationTest {
           exchange.close();
         });
     server.start();
-    IngestionTestClient transport =
-        IngestionTestClient.connect("http://127.0.0.1:" + server.getAddress().getPort());
-    factory = transport.factory();
-    ApiClient client = transport.api();
-    api = new SportingApi(client);
+    transport = IngestionTestClient.connect("http://127.0.0.1:" + server.getAddress().getPort());
+    api = new SportingApi(transport.api());
   }
 
   /**
@@ -88,7 +83,9 @@ class SportingContractIntegrationTest {
   @AfterEach
   void stopServer() throws Exception {
     server.stop(0);
-    factory.destroy();
+    if (transport != null) {
+      transport.close();
+    }
   }
 
   @ParameterizedTest(name = "{0}")
