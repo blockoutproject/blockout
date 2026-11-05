@@ -184,11 +184,12 @@ and the production daily/minute entry points are invoked explicitly.
 mount the production root, Expo Router protected groups, F05 session/Query owners, generated
 F12/F07/F03 consumers, access gate and current match route. Controlled native SDK, credentials
 and HTTP responses retain an earlier tap while maintenance and then a minimum version keep
-ordinary access closed, for ordinary and operator accounts. After a successful complete read
+ordinary access closed, for owner, operator and guest contexts. After a successful complete read
 admits access, the remembered tap is consumed once and opens the current match. Consumption
 waits until Router has replaced the protected startup gate, so its redirect cannot overwrite
 the match destination. Push-carried identifiers confer no access and contain no trusted current
-match representation.
+match representation. An admitted operational destination retains ordinary tap navigation when
+ordinary access is available; a guest never attempts the original owner's read command.
 
 After dependency installation and contract generation, run the focused boundaries:
 
