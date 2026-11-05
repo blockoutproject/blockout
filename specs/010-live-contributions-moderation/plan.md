@@ -86,11 +86,10 @@ Use the viewed match contribution revision in version mutations. Stale revision 
 
 Lists return twenty items with optional `nextPage`, following the existing page convention. Keep filters for continuation and restart at page zero on refresh. Concurrent changes may move items; no snapshot traversal guarantee. Private match context can represent hidden or dateless matches, so it does not incorrectly reuse F03's publicly viewable dated-match wrapper. Reuse its identity, pool, schedule and result primitives where their meanings fit.
 
-The F08 [MVC query binding](../../apps/backend/src/main/java/com/blockout/backend/contributions/api/ContributionQueryBinding.java)
-uses native `@InitBinder` editors for the generated platform, queue-state and version-state parsers,
-following the existing [strict enum binding](../../apps/backend/src/main/java/com/blockout/backend/shared/http/ContractEnumBinding.java)
-mechanism. The advice targets only the moderation controller, keeping its three registrations
-inside F08 without changing shared bindings. JSON enum annotations alone do not configure query
+The existing [strict enum binding](../../apps/backend/src/main/java/com/blockout/backend/shared/http/ContractEnumBinding.java)
+registers the generated F08 platform, queue-state and version-state parsers through native
+`@InitBinder` editors, alongside the other implemented HTTP enums. This reuses the shared binding
+owner without a separate contribution advice or parser vocabulary. JSON enum annotations alone do not configure query
 conversion; a failed converter permits Spring's fallback to Java names or blank-to-null recovery.
 Editor precedence admits canonical lowercase/hyphenated values and refuses unknown, uppercase,
 blank or space-padded values with ordinary 400 responses. No contract or generator template changes.

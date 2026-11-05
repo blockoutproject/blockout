@@ -5,6 +5,9 @@ import com.blockout.backend.generated.mobile.model.MatchDocumentKindEnum;
 import com.blockout.backend.generated.mobile.model.SearchResourceTypeEnum;
 import com.blockout.backend.generated.mobile.model.SportFormatEnum;
 import com.blockout.backend.generated.mobile.model.SportGenderEnum;
+import com.blockout.backend.generated.mobile.model.StreamModerationFilterEnum;
+import com.blockout.backend.generated.mobile.model.StreamPlatformEnum;
+import com.blockout.backend.generated.mobile.model.StreamVersionFilterEnum;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
 import java.beans.PropertyEditorSupport;
 import java.util.function.Function;
@@ -29,6 +32,9 @@ public class ContractEnumBinding {
     register(binder, SportFormatEnum.class, SportFormatEnum::fromValue);
     register(binder, SportGenderEnum.class, SportGenderEnum::fromValue);
     register(binder, TeamLogoSelectionEnum.class, TeamLogoSelectionEnum::fromValue);
+    register(binder, StreamPlatformEnum.class, StreamPlatformEnum::fromValue);
+    register(binder, StreamModerationFilterEnum.class, StreamModerationFilterEnum::fromValue);
+    register(binder, StreamVersionFilterEnum.class, StreamVersionFilterEnum::fromValue);
   }
 
   /**
