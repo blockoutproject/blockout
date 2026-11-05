@@ -110,7 +110,9 @@ public class FfvbClubSheets implements ClubSheets {
 
   /**
    * Reads the published identity header and club-only cards. League, committee and named-person
-   * sections supply no club contact proposals. An incompatible card is refused without withdrawal.
+   * sections supply no club contact proposals. Omitted street rows stay unknown. Preserve the
+   * native postal/city separator before trimming either value; an inseparable locality supplies
+   * neither proposal. An incompatible card is refused without withdrawal.
    *
    * @param page ephemeral parsed club sheet
    * @param reference exact encountered identity, including leading zeros
@@ -142,8 +144,7 @@ public class FfvbClubSheets implements ClubSheets {
     Element address = card(page, "Siège social");
     if (address != null) {
       List<Element> rows = rows(address);
-      if (rows.size() < 3) throw invalid();
-      List<String> lines =
+      List<Element> values =
           rows.stream()
               .skip(1)
               .map(
@@ -151,21 +152,27 @@ public class FfvbClubSheets implements ClubSheets {
                     List<Element> cells =
                         row.children().stream().filter(cell -> cell.is("td")).toList();
                     if (cells.size() != 2) throw invalid();
-                    return cells.getLast().text().strip();
+                    return cells.getLast();
                   })
               .toList();
-      fields.put(
-          "adresse",
-          String.join(
-              " ",
-              lines.subList(0, lines.size() - 1).stream()
-                  .filter(line -> !line.isEmpty())
-                  .toList()));
-      String combined = lines.getLast();
-      int separator = combined.indexOf(' ');
-      if (!combined.isEmpty() && separator < 0) throw invalid();
-      fields.put("code postal", combined.isEmpty() ? "" : combined.substring(0, separator));
-      fields.put("ville", combined.isEmpty() ? "" : combined.substring(separator + 1).strip());
+      if (values.size() > 1)
+        fields.put(
+            "adresse",
+            String.join(
+                " ",
+                values.subList(0, values.size() - 1).stream()
+                    .map(value -> value.text().strip())
+                    .filter(line -> !line.isEmpty())
+                    .toList()));
+      if (!values.isEmpty()) {
+        String combined = values.getLast().wholeText().replace('\u00a0', ' ');
+        int separator = combined.indexOf(' ');
+        if (combined.isBlank() || separator >= 0) {
+          fields.put(
+              "code postal", combined.isBlank() ? "" : combined.substring(0, separator).strip());
+          fields.put("ville", combined.isBlank() ? "" : combined.substring(separator + 1).strip());
+        }
+      }
     }
     return observation(fields);
   }

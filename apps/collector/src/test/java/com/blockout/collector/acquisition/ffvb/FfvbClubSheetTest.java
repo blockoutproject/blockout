@@ -204,6 +204,76 @@ class FfvbClubSheetTest {
   }
 
   @Test
+  @DisplayName("An omitted street preserves the independent postal municipality and contacts")
+  void preservesOmittedStreet() {
+    // Given
+    byte[] html =
+        bytes(
+            publishedSheet("0000042")
+                .replace(
+                    "<tr><td><img src=ico_dossier_rg.png></td><td>1 demonstration street</td></tr>",
+                    ""));
+
+    // When
+    SportingObservation.Club club = FfvbClubSheets.parse(html, "0000042");
+
+    // Then
+    assertThat(club.address().isPresent()).isFalse();
+    assertThat(club.postalCode().get()).isEqualTo("00123");
+    assertThat(club.city().get()).isEqualTo("Testville");
+    assertThat(club.email().get()).isEqualTo("club@example.test");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"SAINT ETIENNE", "Testville"})
+  @DisplayName("A native empty postcode keeps every word of its independently published city")
+  void preservesEmptyPostcode(String city) {
+    // Given
+    byte[] html = bytes(publishedSheet("0000042").replace("00123 Testville", " " + city));
+
+    // When
+    SportingObservation.Club club = FfvbClubSheets.parse(html, "0000042");
+
+    // Then
+    assertThat(club.postalCode().isPresent()).isTrue();
+    assertThat(club.postalCode().get()).isNull();
+    assertThat(club.city().get()).isEqualTo(city);
+    assertThat(club.email().get()).isEqualTo("club@example.test");
+  }
+
+  @Test
+  @DisplayName(
+      "An inseparable locality preserves independent club fields without guessed components")
+  void preservesUnseparatedLocality() {
+    // Given
+    byte[] html = bytes(publishedSheet("0000042").replace("00123 Testville", "Testville"));
+
+    // When
+    SportingObservation.Club club = FfvbClubSheets.parse(html, "0000042");
+
+    // Then
+    assertThat(club.postalCode().isPresent()).isFalse();
+    assertThat(club.city().isPresent()).isFalse();
+    assertThat(club.email().get()).isEqualTo("club@example.test");
+  }
+
+  @Test
+  @DisplayName("An explicitly blank native locality proposes two independent empty fields")
+  void preservesBlankLocality() {
+    // Given
+    byte[] html = bytes(publishedSheet("0000042").replace("00123 Testville", " "));
+
+    // When
+    SportingObservation.Club club = FfvbClubSheets.parse(html, "0000042");
+
+    // Then
+    assertThat(club.postalCode().isPresent()).isTrue();
+    assertThat(club.postalCode().get()).isNull();
+    assertThat(club.city().isPresent()).isTrue();
+    assertThat(club.city().get()).isNull();
+  }
+
+  @Test
   @DisplayName("A published card for a different textual reference cannot withdraw club data")
   void rejectsForeignPublishedIdentity() {
     // Given
