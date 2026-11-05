@@ -126,6 +126,8 @@ jest.mock("expo-router", () => ({
   }),
   useNavigation: () => mockNavigation,
   useRootNavigationState: () => ({ key: "root" }),
+  // This consumer isolates advertising below an already admitted ordinary Router destination.
+  useSegments: () => ["(ordinary)"],
 }));
 jest.mock("expo-notifications", () => ({
   DEFAULT_ACTION_IDENTIFIER: "default",

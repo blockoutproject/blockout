@@ -144,7 +144,7 @@ npm run test --workspace=@blockout/mobile -- \
   --runTestsByPath src/features/access/__tests__/maintenance-problem.test.ts
 ```
 
-No native screen, Auth0/RevenueCat/store operation or real source collection was exercised by this lot. Native gate implementation is recorded below; T031/T039, actual F07 handoff/inbox/purge and the existing iOS 17/text-scaling qualifications remain open with their owners. The F07 policy proof is recorded below; actual sender binding and provider qualification remain separate, without a provider stop/recall guarantee.
+No native screen, Auth0/RevenueCat/store operation or real source collection was exercised by this lot. Native gate implementation is recorded below; T031/T039 and the existing iOS 17/text-scaling qualifications remain open with their owners. The F07 policy and actual inbox/purge/handoff qualifications are recorded below, without a provider stop/recall guarantee.
 
 ## Sporting push maintenance policy — T032/T033
 
@@ -160,7 +160,28 @@ After dependency installation and contract bundling, run:
 
 The independent settings/mobile consumer boundary requires its explicit opt-in. A PostgreSQL connection timeout during collection-control initialization leaves its cause and production startup reliability unqualified; no test or timeout change is justified by that observation alone.
 
-These controlled cases prove only the policy boundary. The existing F12 PostgreSQL tests own SQL freshness, including activation inside a longer caller transaction. [F07 T035](../011-notifications-delivery/tasks.md) still owns actual sender binding; [T034](tasks.md) retains real inbox/purge/handoff continuity and provider qualification. No actual Expo send, native delivery, replay/recall guarantee across systems or final US4 acceptance is claimed.
+These controlled cases prove only the policy boundary. The existing F12 PostgreSQL tests own SQL freshness, including activation inside a longer caller transaction. [F07's after-commit sender](../011-notifications-delivery/quickstart.md#after-commit-push-construction) owns actual sender binding; the T034 qualification below exercises that implementation. Actual Expo/APNs/FCM receipt and physical devices remain [F07 T041](../011-notifications-delivery/tasks.md#phase-5-user-story-4--receive-best-effort-push-on-devices-priority-p1). No remote stop/recall guarantee is claimed.
+
+## Maintenance notification continuity — T034
+
+[MaintenanceNotificationIntegrationTest](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/MaintenanceNotificationIntegrationTest.java) exercises the generated F12 settings controllers/current SQL maintenance read and the actual F07 producer, inbox, after-commit sender and daily purge with migrated PostgreSQL and real owner reads. Time, worker/receipt triggering and external Expo I/O are controlled.
+
+A23–A25 pass: ordinary and bypass-capable operator recipients retain eligible entries without a new handoff during maintenance. Reopening preserves original entries without replay; exact age-29 exclusion and the daily purge continue, and result withdrawal/restoration cannot resurrect purged entries. A new post-maintenance match/result uses current follows and sends only its new allocation. [F07 visibility](../011-notifications-delivery/quickstart.md#current-sporting-and-link-visibility), [retention](../011-notifications-delivery/quickstart.md#retention-construction-and-isolated-restore-cases) and [sender evidence](../011-notifications-delivery/quickstart.md#after-commit-push-construction) retain their broader matrices.
+
+A26 passes at the controlled handoff boundary: activation during the first admitted batch permits its acceptance to finish but skips the next batch. Receipt observation and reopening create no resend. [The old-push route cases](../../apps/mobile/src/features/notifications/__tests__/maintenance-push-navigation.test.tsx) mount the production root, protected routes, generated consumers and current match destination with controlled native/HTTP I/O. Maintenance and minimum versions block owner/operator/guest taps; after admission, Router settles before the remembered tap is consumed once. An admitted operational route remains usable, and guests issue no original-owner read command.
+
+Run after dependency installation and contract generation:
+
+```sh
+./mvnw -B -ntp -pl apps/backend verify \
+  -Dtest=MaintenancePushAdmissionTest \
+  -Dit.test=MaintenanceNotificationIntegrationTest
+NX_LOAD_DOT_ENV_FILES=false EXPO_NO_DOTENV=1 \
+  npm run test --workspace=@blockout/mobile -- --runInBand --reporters=default \
+  --runTestsByPath src/features/notifications/__tests__/maintenance-push-navigation.test.tsx
+```
+
+T034 is complete within these admission/handoff, inbox/expiry and JavaScript composition boundaries. Actual Expo/APNs/FCM receipt and physical devices remain F07 T041; installed-native journeys, hosted scheduling and production are unqualified here. No atomic remote stop/recall is promised.
 
 ## Native access composition — T022–T024/T027–T029/T035/T038
 
