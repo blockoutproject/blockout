@@ -66,22 +66,10 @@ jobs:
       matrix:
         include:
           - project: backend
-            name: backend-baseline
-            mavenArgs: -Dbackend.integration.forks=1
-          - project: backend
-            name: backend-forks
-            mavenArgs: -Dbackend.integration.forks=2
-          - project: backend
-            name: backend-search-serial
-            mavenArgs: -Dbackend.integration.forks=1 -Dit.test=com/blockout/backend/search/**/*IntegrationTest.java,com/blockout/backend/search/**/*JpaTest.java
-          - project: backend
-            name: backend-other-serial
-            mavenArgs: -Dbackend.integration.forks=1 -Dit.test=**/*IntegrationTest.java,**/*JpaTest.java,!com/blockout/backend/search/**
-          - project: backend
-            name: backend-search-forks
+            name: backend-search
             mavenArgs: -Dbackend.integration.forks=2 -Dit.test=com/blockout/backend/search/**/*IntegrationTest.java,com/blockout/backend/search/**/*JpaTest.java
           - project: backend
-            name: backend-other-forks
+            name: backend-other
             mavenArgs: -Dbackend.integration.forks=2 -Dit.test=**/*IntegrationTest.java,**/*JpaTest.java,!com/blockout/backend/search/**
           - project: collector
             name: collector
@@ -130,17 +118,6 @@ jobs:
         env:
           PROJECT: ${{ matrix.project }}
         run: npx nx run "$PROJECT:verify" --output-style=static
-
-      - name: Retain native backend test reports
-        if: always() && matrix.project == 'backend' && hashFiles('apps/backend/target/*-reports/TEST-*.xml') != ''
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: backend-tests-${{ matrix.name }}
-          path: |
-            apps/backend/target/surefire-reports/TEST-*.xml
-            apps/backend/target/failsafe-reports/TEST-*.xml
-          if-no-files-found: error
-          retention-days: 14
 
   verify:
     name: verify
