@@ -89,8 +89,6 @@ Verify independent active/pending versions, current-condition replacement, stale
 
 Current 401/403/404 removes private data; a later outage cannot restore it. Ordinary outages preserve authorized pages and explicit retry. Successful refresh restarts at page zero; failed refresh retains accepted pages. Continuation stops on error or outside active focus. Acknowledged withdrawal clears the exact active projection even when its dependent read fails, without changing old aggregate eligibility/revision or undoing acknowledgement.
 
-not establish native networking, keyboard behavior or assistive-technology execution.
-
 Use fictional accounts/addresses on compatible iOS and Android development clients. More than
 twenty historical versions must be moderator-created and quota-exempt; ordinary active/pending
 versions retain their real consumption. Check the following construction boundaries:

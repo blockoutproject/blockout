@@ -112,6 +112,8 @@ Validate the published native version as three numeric components and compare th
 
 The optional maintenance image uses the existing image component and controlled HTTPS URL. No backend fetch or upload API; invalid URL input is rejected, display failure leaves text/actions available. Preserve the accepted maintenance/required-update media, tokens, reduced-motion behavior and accessibility. Admission checking and failed initial reads retain the branded header and use the shared structural skeleton or illustrated opaque error card respectively, following [F13 FR-038](../003-shared-quality/spec.md#functional-requirements); domain media and decorative bands do not add a separate failed-read layout.
 
+The [approved blocking-screen backdrop](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4989-590) shares one full-width stage between the foreground and three compact decorative rails. Center the intrinsic-height rail stack as a whole with `spacing.lg` gaps of 16 points. Native layout measures the motif period and rotated coverage rather than fixing the strip width or vertical offset. Each 12-second linear loop travels six motifs and joins identical copies without reversing; reduced motion remains still.
+
 ## Production preparation
 
 A fresh baseline creates inactive maintenance with a usable message, no image, and absent platform thresholds/links/update message. These are initial database values, never a fallback after a read failure. Later deployments preserve state and follow F13's baseline-freeze/migration policy.

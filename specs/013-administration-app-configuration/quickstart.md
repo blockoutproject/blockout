@@ -108,6 +108,8 @@ Use actual iOS/Android builds with the F05/F14 owners and [approved design sourc
 
 Verify both themes, keyboard/navigation, screen readers, enlarged text and reduced motion. Confirmed maintenance/update retains native refresh; failed admission uses Retry alone under F13. Store opening is a native action, never proof that a required binary is downloadable.
 
+Compare the blocking-screen backdrop with the [native composition](plan.md#mobile-state-and-native-behavior): the compact rail stack stays centered as a whole, the one-way loop joins seamlessly, and reduced motion stays still.
+
 ## Native versions editor
 
 ```sh
