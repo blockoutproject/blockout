@@ -278,6 +278,65 @@ Physical system badges, APNs/FCM/Expo receipt and real credentials remain T041; 
 purge/restore/erasure races remain T051/T052. No complete US4/US7 or provider/production
 qualification is inferred.
 
+## Retention and erasure qualification (T052)
+
+[Retention/erasure SQL cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/RetentionErasureIntegrationTest.java)
+join the actual F05 erasure orchestrator, generated HTTP handlers and migrated PostgreSQL.
+Page/refresh, summary and member reads are held after their real selection while erasure commits.
+An already admitted repeatable-read snapshot may finish; subsequent collection, continuation,
+summary, member and read intents refuse the erased owner. A read waiting behind erasure cannot
+recreate its entry. Daily purge and erasure run in both database lock orders, preserving the
+other owner's entries, original ages, sporting rows and consumed match facts.
+
+[Scheduled-purge/publication cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/ScheduledRetentionAnnouncementIntegrationTest.java)
+invoke the real daily retention entry point with actual F02/F06/F08 producers. Purging a plain
+result leaves its unused post-result allowance available for one genuinely new publication,
+with a new identity and its own original time. Advancing time before reading, replacing the
+link and withdrawing/restoring the result preserves that time and read state. Purging the replay,
+or live plus enriched-result entries, never replenishes consumed categories. These cases complete
+the scheduled-purge sequence previously prepared with controlled row removal. Existing
+[atomic-purge cases](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/PurgeNotificationsIntegrationTest.java)
+retain T072/T073's all-or-none commit/refusal guarantees; no partial-progress behavior is restored.
+
+The generated [mobile Query cases](../../apps/mobile/src/features/notifications/__tests__/inbox.test.tsx)
+hold page/PATCH responses across a current owner refusal and page/summary responses across the
+exact original 29-day deadline. Late success cannot restore erased/expired data or its exact
+count. Existing [expiry](../../apps/mobile/src/features/notifications/__tests__/inbox-expiry.test.tsx)
+and [mounted-screen cases](../../apps/mobile/src/features/notifications/__tests__/inbox-screen.test.tsx)
+cover active timers, unloaded summary expiry, offline opening/resume, elapsed time across DST,
+unknown/zero badge clearing and the ordinary empty state with no deletion controls.
+
+Native observations use iPhone 18 Pro simulator B / iOS 27.0 (402×874 points) and the Blockout625
+Android emulator / API 37 (1080×2424 pixels), with compatible existing `com.blockout.local`
+development clients, version 0.0.0/build 1, loading the current application source. The production
+backend JAR runs against isolated PostgreSQL with the actual schema and F03/F05/F12 owners.
+Synthetic signed access tokens are verified against local JWKS. A temporary ignored Metro
+resolver controls only native Auth0 credential I/O and advertising consent I/O; the Auth0 SDK,
+F05 session, private Query clients, generated Fetch consumers, inbox, expiry owner and Expo
+badge adapter remain in place. No notification HTTP response or local clock is substituted.
+
+Both inboxes display an all-page total of seven with only two unread entries in the first
+twenty-row page. While the API is unreachable, the earliest expiry on an unloaded row removes
+the exact tab badge without manufacturing a total from loaded rows; retained rows remain usable.
+Two loaded near-cutoff entries then disappear at 29 elapsed days during active API-unavailable
+use, showing the ordinary empty state without a zero badge or deletion controls. Background/resume
+across that deadline, without reloading the development client, also returns the empty inbox
+on both platforms before a successful network refresh. Fixtures cross the actual deadline
+without changing host/device clocks. The actual F05 DELETE then removes a fresh synthetic
+owner's entries; subsequent generated native refreshes remove loaded content and its badge,
+showing the ordinary error state for the refused owner rather than fabricating an empty success.
+
+Reproduce the automated boundary with the README toolchain:
+
+- `./mvnw -B -ntp -pl apps/backend verify -Dtest=PurgeNotificationsTest -Dit.test=RetentionErasureIntegrationTest,ScheduledRetentionAnnouncementIntegrationTest,PurgeNotificationsIntegrationTest,InboxTraversalIntegrationTest,ReadInboxIntegrationTest,MarkNotificationReadIntegrationTest`.
+- `EXPO_NO_DOTENV=1 NX_LOAD_DOT_ENV_FILES=false npm run test --workspace=@blockout/mobile -- --runInBand src/features/notifications/__tests__/inbox.test.tsx src/features/notifications/__tests__/inbox-expiry.test.tsx src/features/notifications/__tests__/inbox-screen.test.tsx --reporters=default`.
+
+T052 qualifies these SQL/generated-consumer and native inbox retention boundaries. Native
+Auth0/provider cleanup, physical system-icon badge behavior and APNs/FCM/Expo receipt retain
+their independent qualifications, including T041. Operational restoration and A51 remain T051;
+disposable fixtures establish no restored-data reopening or production approval. Captures,
+exact revisions, executed checks and delivery results belong in the delivery PR, outside Git.
+
 ## Native inbox construction
 
 The mobile inbox uses the generated F07 consumers and F05/F12 request context in the existing
