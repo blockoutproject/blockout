@@ -33,6 +33,14 @@ With JUnit/Spring MVC/Testcontainers PostgreSQL and the real mappings/schema:
 - Report one exact version; test duplicates, self-report refusal, erased-owner link, thresholds 3/10 and result changes without a new report. Erase several reporters: every fact remains counted, each reason/author is removed. Repeated reports never target the new active version.
 - Verify approved/rejected/withdrawn paths leave or resolve the report hold as specified. F07 announcement allowances do not reset with reactivation or report counts; result composition observes the serialized current link.
 
+T023/T026/T033/T045 (A10–A34) are qualified by the existing PostgreSQL suites and
+`ContributionLifecycleQualificationIntegrationTest`, `ContributionDecisionRaceIntegrationTest`
+and `ContributionQualificationIntegrationTest`, using real local F02/F05/F07/F12 owners and
+generated HTTP bindings. Server and generated/Jest consumer checks use controlled time, identity
+and transport; historical report pagination beyond twenty uses retained SQL fixtures, while
+[T046/T050](#original-account-attribution-erasure-t046t050) exercise actual local F05 erasure.
+These checks establish no native/provider or global acceptance. T017 and T055/T056 remain open.
+
 ### Local policies and persistence — T007/T010/T011
 
 `StreamAddressTest`, `ContributionEligibilityTest` and `ContributionQuotaTest` qualify local literal URI recognition, current authorization/revision before unchanged submission, seven elapsed days, confirmed H−1, definitive-result/report-hold approval and the limited moderator exceptions. Inputs are controlled current owner facts; these tests do not qualify F02/F05/F12 read composition or provider availability.
@@ -73,8 +81,8 @@ exclusion and an independent transaction checking committed entry visibility.
 The [F07 qualification](../011-notifications-delivery/quickstart.md#atomic-producer-and-link-qualification)
 owns announcement timing, handoff and allowance evidence. Controlled hiding/new exempt-version
 and personal-row deletion fixtures are not real moderation-command or scheduled-purge
-qualification; those remain [F07 T046 and T052](../011-notifications-delivery/tasks.md). Actual F05 erasure and native/mobile
-journeys remain with their existing tasks. F08 T016/F03 public projection is qualified separately below.
+qualification; those remain [F07 T046 and T052](../011-notifications-delivery/tasks.md). Actual local F05 erasure is qualified in [T046/T050](#original-account-attribution-erasure-t046t050);
+full native/mobile journeys retain T055/T056. F08 T016/F03 public projection is qualified separately below.
 
 ## Reads and mobile
 
@@ -237,9 +245,9 @@ an empty collection with “Mes propositions (0)” still visible. Its real soft
 leaves the editor and submission action reachable. This run does not establish iOS
 software-keyboard presentation, real provider behavior or reader speech.
 
-T023, US4 reporting, actual US5/US6 moderation/erasure, T049/T056 and the minimum-OS/narrow-device
-and screen-reader matrix retain their own qualification. A synthetic peer establishes only its
-rendering, transport and interaction boundaries; it is not provider or global design approval.
+The [integrated command/SQL qualification](#versions-quotas-and-concurrency) is separate from these
+native observations. T049/T056 retain the minimum-OS/narrow-device and screen-reader matrix.
+A synthetic peer establishes only its rendering, transport and interaction boundaries; it is not provider or global design approval.
 
 Scoped iOS/Android observations, including builds and controlled fixtures, are recorded in the native contribution evidence. Available-entry/form composition, keyboard/back, retained drafts, real refusal/explicit retry, acknowledgement and exact active public projection were observed. That run also reported cropped labels after live Android text enlargement and development navigation warnings; its missing screen-reader and minimum-OS evidence remains explicitly unqualified.
 
@@ -257,7 +265,8 @@ unchanged duplicates after hiding and first-reason retention. PostgreSQL cases q
 foreign keys, non-null reporter uniqueness, independently counted anonymous rows, root-before-account
 locking and both report/replacement orders without retargeting. The unresolved hold remains effective
 for different authors and addresses. Anonymous attribution/reason updates are controlled SQL fixtures;
-actual F05 erasure and US5 selection/reactivation remain T033/T050 and their owning qualification.
+actual F05 erasure and US5 selection/reactivation are qualified separately in
+[the integrated scenarios](#versions-quotas-and-concurrency) and T046/T050.
 
 `ContributionReportsWebMvcTest` exercises reason-only generated binding, rejection of invented
 revision/unknown fields, original-account scope, current ordinary admission, canonical conflicts,
@@ -285,8 +294,8 @@ form and ordinary error toast with the viewed address/reason retained and no ext
 The run separately observes cancellation without a write and an obsolete-target POST remaining on its
 captured version. The peer records only write metadata, never the private reason. These observations
 establish neither full protected-root/deep-link startup, minimum-OS coverage, reader speech, actual
-moderation/erasure, provider/production operation nor global design/native approval. T033 and the
-remaining full-story/session/accessibility qualification remain open.
+moderation/erasure, provider/production operation nor global design/native approval. T055/T056 retain
+the remaining full-story/session/accessibility qualification.
 
 ### Private moderation construction — T034–T044
 
@@ -365,7 +374,7 @@ The dedicated report page has bounded evidence on reused Android API 37 and iPho
 
 Live light-to-dark switching on iOS updates already rendered report rows through LegendList's public `extraData` presentation input. The report page uses the existing `PageScrollView` for initial/Error/Empty feedback and the existing `PageList` for populated data, without a layout controller or mirrored request state. Android's initial pending read shows three decorative date/reason skeleton rows below the actual navigation; append retains its compact indicator rather than a skeleton. Android ordinary Back preserves the dirty editor address and restores the expanded historical Twitch version with its “Signalements (21)” entry; no direct source/replacement shortcuts remain. The iOS successful Empty card and its complete “Actualiser” action are visible below the actual header. The iOS accessibility inspection surface was unavailable, so screenshot/coordinate-driven observations establish no VoiceOver, TalkBack or screen-reader announcement qualification. Broader F08/F13 native, minimum-runtime, identity, privacy-erasure and provider obligations remain open.
 
-Final `mobile:verify` and its dependencies pass: 172 Jest suites and 2,353 tests, with six pre-existing skipped tests; TypeScript and ESLint report no errors, with four pre-existing lint warnings. Native-platform JavaScript exports succeed for iOS and Android, and Expo Doctor passes all twenty checks. Repository formatting and diff checks pass. The changed handwritten tests were independently reviewed against the Expo testing guidance and its canonical examples. These checks and the bounded native observations complete T060–T062 without closing T045, T055, T056 or broader F13/provider qualification.
+Final `mobile:verify` and its dependencies pass: 172 Jest suites and 2,353 tests, with six pre-existing skipped tests; TypeScript and ESLint report no errors, with four pre-existing lint warnings. Native-platform JavaScript exports succeed for iOS and Android, and Expo Doctor passes all twenty checks. Repository formatting and diff checks pass. The changed handwritten tests were independently reviewed against the Expo testing guidance and its canonical examples. These checks and the bounded native observations qualify T060–T062 only; broader F08/F13 and provider qualification retain their separate scope.
 
 ## Original-account attribution erasure (T046/T050)
 
