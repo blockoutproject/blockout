@@ -117,8 +117,7 @@ jest.mock("expo-router", () => ({
 // The official native-inset double supplies the Modal window's measurement event in Jest.
 jest.mock(
   "react-native-safe-area-context",
-  () =>
-    jest.requireActual("react-native-safe-area-context/src/jest/mock").default,
+  () => jest.requireActual("react-native-safe-area-context/jest/mock").default,
 );
 jest.mock("expo/fetch", () => ({
   fetch: (url: string, request?: RequestInit) => mockFetch(url, request),

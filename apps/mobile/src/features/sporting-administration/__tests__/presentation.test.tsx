@@ -57,8 +57,7 @@ import { PresentationScreen } from "../screens/presentation-screen";
 
 jest.mock(
   "react-native-safe-area-context",
-  () =>
-    jest.requireActual("react-native-safe-area-context/src/jest/mock").default,
+  () => jest.requireActual("react-native-safe-area-context/jest/mock").default,
 );
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),

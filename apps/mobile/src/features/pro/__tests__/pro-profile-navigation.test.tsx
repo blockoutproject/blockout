@@ -1,5 +1,9 @@
+import { accountResponse as mockAccountResponse } from "../../accounts/test-support/account-response";
+import {
+  credentialsFor,
+  mockAuth0,
+} from "../../accounts/test-support/native-auth0";
 import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { signInAccount } from "../test-support/sign-in-account";
 import * as proSessionModule from "../pro-session";
 import {
   act,
@@ -28,7 +32,24 @@ import { prepareProNativeIO } from "../test-support/pro-harness";
 import { mockPurchases } from "../test-support/native-purchases";
 import { v2Offering } from "../test-support/offering";
 
-jest.mock("expo/fetch", () => ({ fetch: jest.fn() }));
+jest.mock("expo/fetch", () => ({
+  fetch: jest.fn((url: RequestInfo | URL) => {
+    // Preserve the unconfigured transport until the scenario supplies its account response.
+    if (mockAccountId === undefined) {
+      return undefined;
+    }
+    return Promise.resolve(
+      String(url).endsWith("/accounts/me")
+        ? Response.json(
+            mockAccountResponse({
+              accountId: mockAccountId,
+              principalCreatedAt: "2020-01-01T00:00:00Z",
+            }),
+          )
+        : new Response(null, { status: 404 }),
+    );
+  }),
+}));
 
 jest.mock("expo-constants", () => ({
   __esModule: true,
@@ -64,10 +85,13 @@ jest.mock("react-native-auth0", () => {
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });
+let mockAccountId: string | undefined;
 let account: AccountSession;
 let client = createQueryClient();
 const previousEnvironment = { ...process.env };
 beforeEach(() => {
+  mockAccountId = undefined;
+  process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
   jest.replaceProperty(
@@ -137,9 +161,15 @@ it("opens Pro immediately and discards a late offer after the destination loses 
       },
     );
     await waitFor(() => expect(account.status).toBe("authenticated"));
-    await act(() =>
-      signInAccount(account, "00000000-0000-4000-8000-000000000251"),
+    mockAccountId = "00000000-0000-4000-8000-000000000251";
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
     );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
     await waitFor(() =>
       expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
     );

@@ -18,6 +18,7 @@ import {
 } from "@testing-library/react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { getGetPoolStandingsQueryKey } from "../../../../.generated/mobile";
 import type {
   ClubLocationResponse,
   PoolParticipantResponse,
@@ -196,8 +197,8 @@ function publishedTable(
 }
 
 /** Real cache, generated decoder, session, admission, theme and advertising; only HTTP and native I/O are controlled. */
-async function open(content = panel(), settleReads = true) {
-  const result = await render(content, {
+function open(content = panel()) {
+  return render(content, {
     wrapper: ({ children }) => (
       <GestureHandlerRootView>
         <SafeAreaProvider
@@ -223,13 +224,6 @@ async function open(content = panel(), settleReads = true) {
       </GestureHandlerRootView>
     ),
   });
-  await layoutNativeTabs();
-  if (settleReads) {
-    await waitFor(() => expect(client.isFetching()).toBe(0));
-    await layoutNativeTabs();
-    await waitFor(() => expect(client.isFetching()).toBe(0));
-  }
-  return result;
 }
 
 /** Supplies the existing native tab owner without replacing the component's read lifecycle. */
@@ -268,6 +262,8 @@ it("opens independent participants lazily when the pool standings are unavailabl
   ];
   const user = userEvent.setup();
   await open(<PoolScreen poolId={pool.pool.id} />);
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
   await screen.findByRole("alert", { name: TECHNICAL_ERROR_TITLE });
   expect(
     mockFetch.mock.calls.some(([url]) =>
@@ -308,6 +304,8 @@ it("opens the existing card without team choices for a single resolved location"
   table = publishedTable({ "Jou.": "8", "Gag.": "7", "Per.": "1" });
   const user = userEvent.setup();
   await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
 
   // When
   await fireEvent(
@@ -319,7 +317,7 @@ it("opens the existing card without team choices for a single resolved location"
   // Then: the same team card, optional record and Close remain available without a choice rail.
   expect(screen.queryByLabelText("Équipes à cette localisation")).toBeNull();
   expect(screen.queryByRole("radio")).toBeNull();
-  expect(screen.getByLabelText("Joués : 8")).toBeOnTheScreen();
+  expect(await screen.findByLabelText("Joués : 8")).toBeOnTheScreen();
 
   // When
   await user.press(screen.getByRole("link", { name: "Rives" }));
@@ -350,6 +348,8 @@ it("updates the selected point's rail when same-city clubs join and leave after 
   ];
   const user = userEvent.setup();
   await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
   expect(
     (await screen.findByRole("button", { name: "Paris: Rives" })).props
       .coordinate,
@@ -438,6 +438,8 @@ it.each([
     ];
     const user = userEvent.setup();
     await open();
+    await screen.findByRole("tab", { name: "Carte" });
+    await layoutNativeTabs();
     const shared = await screen.findByRole("button", {
       name: markerName,
     });
@@ -495,6 +497,8 @@ it("distinguishes no usable locations from no participating teams", async () => 
 
   // When
   await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
 
   // Then
   expect(
@@ -559,6 +563,8 @@ it("matches optional standings by exact team UUID without borrowing a source-nam
     ],
   };
   await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
 
   // When
   await fireEvent(
@@ -604,7 +610,9 @@ it("opens participant identity and navigation while the optional standings respo
       : ordinaryFetch(url),
   );
   const user = userEvent.setup();
-  await open(panel(), false);
+  await open(panel());
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
 
   // When
   await fireEvent(
@@ -645,6 +653,13 @@ it.each(["initial failure", "not published", "unmatched row"] as const)(
     }
     const user = userEvent.setup();
     await open();
+    await screen.findByRole("tab", { name: "Carte" });
+    await layoutNativeTabs();
+    await waitFor(() =>
+      expect(
+        client.getQueryState(getGetPoolStandingsQueryKey(pool.pool.id))?.status,
+      ).toBe(state === "initial failure" ? "error" : "success"),
+    );
 
     // When
     await fireEvent(
@@ -692,6 +707,8 @@ it("preserves published partial LNV match values without substituting set counts
     ],
   );
   await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
 
   // When
   await fireEvent(
@@ -721,6 +738,8 @@ it("closes the selected summary without changing participants or needing a tile-
   standingsFailure = 503;
   const user = userEvent.setup();
   await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
   await fireEvent(
     await screen.findByRole("button", { name: "La Rochelle: Rives" }),
     "press",
@@ -752,6 +771,8 @@ it("keeps local selection changes independent of standings reads", async () => {
   standingsFailure = 503;
   const user = userEvent.setup();
   await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
   expect(
     mockFetch.mock.calls.filter(([url]) =>
       new URL(url).pathname.endsWith("/standings"),
@@ -790,6 +811,8 @@ it("retains an admitted map selection when returning from standings without rere
   ];
   const user = userEvent.setup();
   await open(<PoolScreen poolId={pool.pool.id} />);
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
   await user.press(screen.getByRole("tab", { name: "Carte" }));
   await fireEvent(
     await screen.findByRole("button", { name: "La Rochelle: Rives" }),
@@ -826,6 +849,8 @@ it("refreshes both resources and drops a selected invalidated locality", async (
     }),
   ];
   await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
   await fireEvent(
     await screen.findByRole("button", { name: "La Rochelle: Rives" }),
     "press",
@@ -873,6 +898,8 @@ it("retains authorized markers, selection and published record after technical r
     }),
   ];
   await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
   await fireEvent(
     await screen.findByRole("button", { name: "La Rochelle: Rives" }),
     "press",
@@ -913,6 +940,8 @@ it.each([401, 403, 404])(
     ];
     table = publishedTable({ "Jou.": "8", "Gag.": "7", "Per.": "1" });
     await open();
+    await screen.findByRole("tab", { name: "Carte" });
+    await layoutNativeTabs();
     await fireEvent(
       await screen.findByRole("button", { name: "Test city: Rives" }),
       "press",
@@ -960,6 +989,8 @@ it.each([401, 403, 404])(
     table = publishedTable({ "Jou.": "8", "Gag.": "7", "Per.": "1" });
     const user = userEvent.setup();
     await open();
+    await screen.findByRole("tab", { name: "Carte" });
+    await layoutNativeTabs();
     await fireEvent(
       await screen.findByRole("button", { name: "Test city: Rives" }),
       "press",
@@ -1004,6 +1035,8 @@ it("retries an initial participant failure without announcing empty geography", 
   ];
   const user = userEvent.setup();
   await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
   await screen.findByRole("button", { name: "Réessayer" });
   expect(screen.queryByText("Aucune localisation disponible")).toBeNull();
   participantsFailure = undefined;
@@ -1024,6 +1057,8 @@ it("retries an initial participant failure without announcing empty geography", 
 it("replaces cached empty geography with a read error and restores it only after a successful retry", async () => {
   // Given
   await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
   await screen.findByText("Aucune localisation disponible");
   participantsFailure = 503;
 
@@ -1075,6 +1110,8 @@ it.each([
     ];
     const user = userEvent.setup();
     await open();
+    await screen.findByRole("tab", { name: "Carte" });
+    await layoutNativeTabs();
     // The controlled native boundary has no semantic action for its lifecycle callbacks.
     const nativeMap = await screen.findByTestId("native-map-boundary");
     const frame = nativeMapCommands.fitToCoordinates;
@@ -1123,6 +1160,8 @@ it("keeps the lone location frame until Show all explicitly clears and reframes 
   ];
   const user = userEvent.setup();
   await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
   const nativeMap = await screen.findByTestId("native-map-boundary");
   await fireEvent(nativeMap, "layout", {
     nativeEvent: { layout: { x: 0, y: 0, width: 370, height: 440 } },
@@ -1205,6 +1244,8 @@ it("ignores an already pending zoom and team action after the map becomes inacti
   );
   const user = userEvent.setup();
   const rendered = await open();
+  await screen.findByRole("tab", { name: "Carte" });
+  await layoutNativeTabs();
   const nativeMap = await screen.findByTestId("native-map-boundary");
   await fireEvent(nativeMap, "layout", {
     nativeEvent: { layout: { x: 0, y: 0, width: 370, height: 440 } },

@@ -87,8 +87,8 @@ function captureClient(current: QueryClient) {
 }
 
 /** Renders real feature composition and providers; the caller decides which reads should settle. */
-async function renderPage(content: ReactElement) {
-  const result = await render(content, {
+function renderPage(content: ReactElement) {
+  return render(content, {
     wrapper: ({ children }) => (
       <ConsultationProviders
         publicClient={publicClient}
@@ -98,9 +98,6 @@ async function renderPage(content: ReactElement) {
       </ConsultationProviders>
     ),
   });
-  await act(async () => jest.advanceTimersByTimeAsync(0));
-  await layoutNativeTabs();
-  return result;
 }
 
 beforeEach(() => {
@@ -243,6 +240,7 @@ it.each([401, 403, 404])(
     // Given
     await renderPage(<ClubScreen clubId={sportingId} />);
     await screen.findByText("Club des Rives");
+    await layoutNativeTabs();
     await screen.findByRole("link", { name: /E-mail du club/ });
     mockFetch.mockImplementation((url: string) =>
       url.endsWith(`/clubs/${sportingId}`)
@@ -287,6 +285,7 @@ it("distinguishes a failed teams section from a successful empty season and keep
   );
   await renderPage(<ClubScreen clubId={sportingId} />);
   await screen.findByText("Club des Rives");
+  await layoutNativeTabs();
   await screen.findByText("Coordonnées");
 
   // When
@@ -323,6 +322,7 @@ it("keeps a pool's calendar and map independent of failed standings without wait
   );
   await renderPage(<PoolScreen poolId={sportingId} />);
   await screen.findByText("Pool");
+  await layoutNativeTabs();
   await screen.findByRole("alert");
 
   // When
@@ -364,6 +364,7 @@ it("removes deliberately absent contacts and native artwork on their own success
   );
   await renderPage(<ClubScreen clubId={sportingId} />);
   await screen.findByRole("image", { name: "Logo : Club des Rives" });
+  await layoutNativeTabs();
 
   // When
   mockFetch.mockImplementation((url: string) =>
@@ -557,6 +558,7 @@ it.each(["current", "former"] as const)(
     );
     await screen.findByText("Public club");
     await screen.findByText("Account ready");
+    await layoutNativeTabs();
     await waitFor(() => expect(client.isFetching()).toBe(0));
     const user = userEvent.setup();
 
@@ -654,6 +656,8 @@ it.each([
     // Given
     await renderPage(element);
     await screen.findAllByText(label);
+    await layoutNativeTabs();
+    await screen.findByLabelText("Actualiser les données");
     await waitFor(() => expect(client.isFetching()).toBe(0));
     mockFetch.mockImplementation((url: string) =>
       new URL(url).pathname === path

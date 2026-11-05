@@ -37,8 +37,7 @@ import ApplicationVersionsRoute from "../../../app/(operations)/administration/a
 // The upstream native-insets double gives the modal its own real React contexts in Jest.
 jest.mock(
   "react-native-safe-area-context",
-  () =>
-    jest.requireActual("react-native-safe-area-context/src/jest/mock").default,
+  () => jest.requireActual("react-native-safe-area-context/jest/mock").default,
 );
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),

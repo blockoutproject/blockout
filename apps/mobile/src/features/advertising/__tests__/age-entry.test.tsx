@@ -1,4 +1,4 @@
-import { signInAccount } from "../../pro/test-support/sign-in-account";
+import { accountResponse } from "../../accounts/test-support/account-response";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   act,
@@ -96,9 +96,11 @@ const mockFetch = jest.fn<
   [RequestInfo | URL, RequestInit?]
 >();
 const environment = { ...process.env };
+let mockAccountId: string | undefined;
 let account: AccountSession;
 let installationAge: ReturnType<typeof useAgeDeclaration>;
 beforeEach(async () => {
+  mockAccountId = undefined;
   jest.replaceProperty(
     proSessionModule,
     "proSession",
@@ -131,9 +133,17 @@ beforeEach(async () => {
     .mockReset()
     .mockResolvedValue(credentialsFor("auth0|discovery"));
   mockAuth0.webAuth.mockReset();
-  mockFetch
-    .mockReset()
-    .mockImplementation(async () => Response.json(applicationAccessResponse()));
+  mockFetch.mockReset().mockImplementation(async (url) => {
+    if (String(url).endsWith("/accounts/me") && mockAccountId !== undefined) {
+      return Response.json(
+        accountResponse({
+          accountId: mockAccountId,
+          principalCreatedAt: "2020-01-01T00:00:00Z",
+        }),
+      );
+    }
+    return Response.json(applicationAccessResponse());
+  });
 });
 afterEach(async () => {
   await cleanup();
@@ -432,7 +442,15 @@ it("avoids prompting known active Pro without transferring that exemption to a g
   await openEntry("/session");
   await screen.findByText("Session: authenticated");
   await act(async () => {
-    await signInAccount(account, "de5a2574-561b-48f5-9d2a-b96e55109b07");
+    mockAccountId = "de5a2574-561b-48f5-9d2a-b96e55109b07";
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await account.signIn("https://api.example.invalid");
   });
   await waitFor(() =>
     expect(
@@ -466,7 +484,15 @@ it("keeps one installation declaration through account replacement, local logout
   await screen.findByText("Session: authenticated");
   // When
   await act(async () => {
-    await signInAccount(account, "de5a2574-561b-48f5-9d2a-b96e55109b07");
+    mockAccountId = "de5a2574-561b-48f5-9d2a-b96e55109b07";
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await account.signIn("https://api.example.invalid");
   });
   await waitFor(() =>
     expect(
@@ -476,7 +502,15 @@ it("keeps one installation declaration through account replacement, local logout
   await act(() => router.replace("/session"));
   await screen.findByText("Session: authenticated");
   await act(async () => {
-    await signInAccount(account, "47256650-ac7c-4c39-926b-f521b754a3c1");
+    mockAccountId = "47256650-ac7c-4c39-926b-f521b754a3c1";
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await account.signIn("https://api.example.invalid");
   });
   await waitFor(() =>
     expect(
@@ -519,7 +553,15 @@ it("guards a signed-in free account’s home independently of its account identi
   await openEntry("/session");
   await screen.findByText("Session: authenticated");
   await act(async () => {
-    await signInAccount(account, "de5a2574-561b-48f5-9d2a-b96e55109b07");
+    mockAccountId = "de5a2574-561b-48f5-9d2a-b96e55109b07";
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await account.signIn("https://api.example.invalid");
   });
   await waitFor(() =>
     expect(

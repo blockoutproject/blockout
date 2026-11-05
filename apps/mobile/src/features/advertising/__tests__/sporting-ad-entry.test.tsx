@@ -1,4 +1,3 @@
-import { signInAccount } from "../../pro/test-support/sign-in-account";
 import {
   useState,
   useEffect,
@@ -37,7 +36,10 @@ import {
   useAccountSession,
   type AccountSession,
 } from "../../accounts/session/account-session-provider";
-import { mockAuth0 } from "../../accounts/test-support/native-auth0";
+import {
+  mockAuth0,
+  credentialsFor,
+} from "../../accounts/test-support/native-auth0";
 import { accountResponse } from "../../accounts/test-support/account-response";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
@@ -159,12 +161,14 @@ let session: AccountSession;
 let ad = controlledInterstitial();
 let push = createPushRegistration();
 const inboxRow = notificationResponse();
+let accountProfile = accountResponse({ accountId: inboxRow.id });
 const nativeNotificationId = "00000000-0000-4000-8000-000000000288";
 const nativeMatchId = "00000000-0000-4000-8000-000000000289";
 let failNativeRead = false;
 let table: PoolStandingsResponse;
 let participants: PoolParticipantsResponse;
 beforeEach(async () => {
+  accountProfile = accountResponse({ accountId: inboxRow.id });
   // Inbox retention and native-ad freshness use a fixed current instant; native Query timers stay controlled.
   jest.useFakeTimers({ now: new Date("2026-10-28T12:00:00Z") });
   jest.replaceProperty(
@@ -326,7 +330,7 @@ beforeEach(async () => {
         return Response.json(applicationAccessResponse());
       }
       if (path.endsWith("accounts/me")) {
-        return Response.json(accountResponse({ accountId: inboxRow.id }));
+        return Response.json(accountProfile);
       }
       if (path.endsWith("notification-summary")) {
         return Response.json({ unreadCount: 0 });
@@ -746,7 +750,18 @@ it("abandons the pending calendar destination when the native principal changes"
   expect(ad.show).toHaveBeenCalledTimes(1);
   // When
   await act(async () => {
-    await signInAccount(session, "00000000-0000-4000-8000-000000000001");
+    accountProfile = accountResponse({
+      accountId: "00000000-0000-4000-8000-000000000001",
+      principalCreatedAt: "2020-01-01T00:00:00Z",
+    });
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor("auth0|00000000-0000-4000-8000-000000000001"),
+    );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor("auth0|00000000-0000-4000-8000-000000000001"),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await session.signIn("https://api.example.invalid");
   });
   await act(async () => {
     ad.emit(AdEventType.CLOSED);

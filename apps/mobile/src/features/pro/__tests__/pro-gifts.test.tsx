@@ -1,3 +1,8 @@
+import { accountResponse as mockAccountResponse } from "../../accounts/test-support/account-response";
+import {
+  credentialsFor,
+  mockAuth0,
+} from "../../accounts/test-support/native-auth0";
 import {
   act,
   cleanup,
@@ -28,9 +33,25 @@ import { customerInfo, entitlement } from "../test-support/customer-info";
 import { mockPurchases } from "../test-support/native-purchases";
 import { v2Offering } from "../test-support/offering";
 import { prepareProNativeIO } from "../test-support/pro-harness";
-import { signInAccount } from "../test-support/sign-in-account";
 
-jest.mock("expo/fetch", () => ({ fetch: jest.fn() }));
+jest.mock("expo/fetch", () => ({
+  fetch: jest.fn((url: RequestInfo | URL) => {
+    // Preserve the unconfigured transport until the scenario supplies its account response.
+    if (mockAccountId === undefined) {
+      return undefined;
+    }
+    return Promise.resolve(
+      String(url).endsWith("/accounts/me")
+        ? Response.json(
+            mockAccountResponse({
+              accountId: mockAccountId,
+              principalCreatedAt: "2020-01-01T00:00:00Z",
+            }),
+          )
+        : new Response(null, { status: 404 }),
+    );
+  }),
+}));
 jest.mock("expo-constants", () => ({
   __esModule: true,
   default: {
@@ -67,12 +88,15 @@ jest.mock("react-native-auth0", () => {
   return jest.requireActual("react-native-auth0");
 });
 
+let mockAccountId: string | undefined;
 let account: AccountSession;
 let pro: ProContext;
 let client = createQueryClient();
 const previousEnvironment = { ...process.env };
 const accountId = "00000000-0000-4000-8000-000000000247";
 beforeEach(() => {
+  mockAccountId = undefined;
+  process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
   jest.replaceProperty(
@@ -120,8 +144,8 @@ function Journey() {
   );
 }
 
-/** Mounts real providers/navigation, establishes the account, then opens the actual Pro destination. */
-async function openPro() {
+/** Mounts the real provider and route owners; each scenario controls its account and interactions. */
+async function renderProRoutes() {
   await renderRouter(
     {
       _layout: Journey,
@@ -141,12 +165,6 @@ async function openPro() {
       ),
     },
   );
-  await waitFor(() => expect(account.status).toBe("authenticated"));
-  await act(() => signInAccount(account, accountId));
-  await waitFor(() => expect(account.accountId).toBe(accountId));
-  await userEvent
-    .setup()
-    .press(screen.getByRole("button", { name: "Blockout Pro" }));
 }
 
 /** Provides one synthetic native entitlement decision, without computing paid/promotional precedence. */
@@ -183,7 +201,21 @@ it.each([
     mockPurchases.getCustomerInfo.mockResolvedValue(sdkInfo(gift));
 
     // When
-    await openPro();
+    await renderProRoutes();
+    await waitFor(() => expect(account.status).toBe("authenticated"));
+    mockAccountId = accountId;
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
+    await waitFor(() => expect(account.accountId).toBe(accountId));
+    await userEvent
+      .setup()
+      .press(screen.getByRole("button", { name: "Blockout Pro" }));
 
     // Then
     expect(await screen.findByText("Native management")).toBeOnTheScreen();
@@ -221,7 +253,21 @@ it.each(["expiry", "revocation"] as const)(
       },
     };
     mockPurchases.getCustomerInfo.mockResolvedValue(info);
-    await openPro();
+    await renderProRoutes();
+    await waitFor(() => expect(account.status).toBe("authenticated"));
+    mockAccountId = accountId;
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
+    await waitFor(() => expect(account.accountId).toBe(accountId));
+    await userEvent
+      .setup()
+      .press(screen.getByRole("button", { name: "Blockout Pro" }));
     await screen.findByText("Native management");
     expect(screen.getByText("Ads: suppressed")).toBeOnTheScreen();
     expect(pro.state).toMatchObject({ status: "active", entitlement: gift });
@@ -269,7 +315,21 @@ it.each(["expiry", "revocation"] as const)(
     });
     const info = sdkInfo(gift);
     mockPurchases.getCustomerInfo.mockResolvedValue(info);
-    await openPro();
+    await renderProRoutes();
+    await waitFor(() => expect(account.status).toBe("authenticated"));
+    mockAccountId = accountId;
+    mockAuth0.webAuth.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.getCredentials.mockResolvedValue(
+      credentialsFor(`auth0|${mockAccountId}`),
+    );
+    mockAuth0.saveCredentials.mockResolvedValue();
+    await act(() => account.signIn("https://api.example.invalid"));
+    await waitFor(() => expect(account.accountId).toBe(accountId));
+    await userEvent
+      .setup()
+      .press(screen.getByRole("button", { name: "Blockout Pro" }));
     await screen.findByText("Native management");
     const inactiveGift = entitlement({
       ...gift,
@@ -309,7 +369,19 @@ it.each(["expiry", "revocation"] as const)(
 it("keeps unknown rights ad-free without an offer, then consumes a gift on explicit retry", async () => {
   // Given
   mockPurchases.getCustomerInfo.mockRejectedValue(new Error("unavailable"));
-  await openPro();
+  await renderProRoutes();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  mockAccountId = accountId;
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
+  await waitFor(() => expect(account.accountId).toBe(accountId));
+  await userEvent
+    .setup()
+    .press(screen.getByRole("button", { name: "Blockout Pro" }));
   await screen.findByRole("alert");
   expect(pro.state.status).toBe("unavailable");
   expect(screen.getByText("Ads: suppressed")).toBeOnTheScreen();

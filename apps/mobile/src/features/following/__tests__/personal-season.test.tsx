@@ -26,8 +26,7 @@ import { useState } from "react";
 // Native safe-area measurement is controlled; these interactions do not qualify sheet geometry.
 jest.mock(
   "react-native-safe-area-context",
-  () =>
-    jest.requireActual("react-native-safe-area-context/src/jest/mock").default,
+  () => jest.requireActual("react-native-safe-area-context/jest/mock").default,
 );
 jest.mock("expo/fetch", () => ({
   fetch: (url: string, request?: RequestInit) => mockFetch(url, request),

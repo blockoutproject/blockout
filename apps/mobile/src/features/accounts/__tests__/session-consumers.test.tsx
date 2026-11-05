@@ -1,4 +1,5 @@
-import { serveAccount } from "../../pro/test-support/sign-in-account";
+import { fetch as expoFetch } from "expo/fetch";
+import { accountResponse } from "../test-support/account-response";
 import {
   act,
   cleanup,
@@ -46,6 +47,7 @@ jest.mock("react-native-auth0", () => {
 });
 const env = { ...process.env };
 beforeEach(() => {
+  jest.mocked(expoFetch).mockReset();
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "synthetic-mobile";
@@ -113,7 +115,19 @@ afterEach(async () => {
 it("clears actual RevenueCat presentation before push cleanup finishes and rejects a delayed old entitlement", async () => {
   // Given: real F05/F09 owners; only native SDK I/O and F07's bounded removal are controlled.
   mockAuth0.webAuthLogout.mockResolvedValue();
-  serveAccount("00000000-0000-4000-8000-000000000001");
+  jest.mocked(expoFetch).mockImplementation(
+    async (url) =>
+      (String(url).endsWith("/accounts/me")
+        ? Response.json(
+            accountResponse({
+              accountId: "00000000-0000-4000-8000-000000000001",
+              principalCreatedAt: "2020-01-01T00:00:00Z",
+            }),
+          )
+        : new Response(null, { status: 404 })) as Awaited<
+        ReturnType<typeof expoFetch>
+      >,
+  );
   const removal = Promise.withResolvers<void>();
   const information = Promise.withResolvers<CustomerInfo>();
   mockPurchases.getCustomerInfo.mockReturnValueOnce(information.promise);

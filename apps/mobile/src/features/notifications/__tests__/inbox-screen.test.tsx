@@ -355,7 +355,9 @@ it("revalidates cached cards on focus without pulling, and shows progress only f
   await view.rerender(<NotificationsScreen />);
   await act(async () => focus?.());
   await waitFor(() => expect(delayedRead).toHaveBeenCalledTimes(1));
-  await act(async () => jest.advanceTimersByTimeAsync(1));
+  // Deliver Query's scheduled observer notification before checking native progress.
+  await act(() => jest.advanceTimersByTimeAsync(0));
+  expect(privateClient.isFetching()).toBe(1);
 
   // Then: a background read must not ask iOS to reveal its refresh control.
   expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();

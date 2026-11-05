@@ -661,13 +661,13 @@ it("retains literal filters on continuation and restarts native refresh at page 
   });
 
   // When
-  fireEvent(
+  await fireEvent(
     screen.getByLabelText("File de modération des liens"),
     "endReached",
   );
   await screen.findByText("Second match");
-  // userEvent does not synthesize the native pull-to-refresh gesture.
-  fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  // Exercise the selected native refresh callback directly, without locating a ScrollView host.
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
   await waitFor(() => expect(screen.queryByText("Second match")).toBeNull());
@@ -1108,7 +1108,7 @@ it("continues historical versions without losing the loaded source page", async 
   await user.press(await screen.findByRole("tab", { name: "Historique" }));
 
   // When
-  fireEvent(screen.getByLabelText("Historique des liens"), "endReached");
+  await fireEvent(screen.getByLabelText("Historique des liens"), "endReached");
 
   // Then
   expect(
@@ -1852,7 +1852,7 @@ it("animates native pull-to-refresh only for the explicit gesture and releases i
   );
 
   // When
-  fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
   await waitFor(() =>
@@ -1917,7 +1917,7 @@ it("keeps a conflicted draft but adopts the current viewed address/revision afte
   );
 
   // When: the user explicitly reads the current context before a new intentional confirmation.
-  fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await waitFor(() =>
     expect(
       screen.getByRole("button", { name: "Remplacer le lien" }),
