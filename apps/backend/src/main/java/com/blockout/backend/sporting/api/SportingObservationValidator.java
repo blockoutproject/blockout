@@ -23,7 +23,9 @@ public class SportingObservationValidator {
     if ((long) request.getMatches().size()
             + request.getContextSlots().size()
             + request.getFailures().size()
-        > 1000) throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        > 1000) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+    }
   }
 
   /**
@@ -47,8 +49,9 @@ public class SportingObservationValidator {
    * @param value optional submitted native entry reference
    */
   private void reference(URI value) {
-    if (!SportingReferences.qualified(value))
+    if (!SportingReferences.qualified(value)) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+    }
   }
 
   /**
@@ -58,10 +61,12 @@ public class SportingObservationValidator {
    */
   public void standings(StandingsObservationInternalRequest request) {
     if (request.getPublicationState() == StandingsPublicationStateEnum.NOT_PUBLISHED
-        && (!request.getColumns().isEmpty() || !request.getRows().isEmpty()))
+        && (!request.getColumns().isEmpty() || !request.getRows().isEmpty())) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+    }
     if (request.getRows().stream()
-        .anyMatch(row -> !request.getColumns().containsAll(row.getStatistics().keySet())))
+        .anyMatch(row -> !request.getColumns().containsAll(row.getStatistics().keySet()))) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+    }
   }
 }

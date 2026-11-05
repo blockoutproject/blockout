@@ -11,6 +11,7 @@ export const searchFiltersSchema = ListTeamsParams.pick({
   format: true,
   gender: true,
 });
+
 /** Applied criteria and the independent RHF draft share the same single-valued meaning. */
 export type SearchFilters = z.infer<typeof searchFiltersSchema>;
 

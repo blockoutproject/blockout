@@ -43,16 +43,24 @@ const team = {
 const pool = { type: "pool", id: team.id } as const;
 const environment = { ...process.env };
 let fixture: ReturnType<typeof followingFixture>;
+
 /** Scenario-neutral generated transport; each test explicitly replaces decisive failures or counts. */
 async function transport(url: string, request?: RequestInit) {
-  if (url.endsWith("/application-access"))
+  if (url.endsWith("/application-access")) {
     return Response.json(applicationAccessResponse());
-  if (url.endsWith("/accounts/me")) return Response.json(accountResponse());
-  if (url.endsWith("/follower-count")) return Response.json({ count: 2 });
-  if (request?.method === "PUT")
+  }
+  if (url.endsWith("/accounts/me")) {
+    return Response.json(accountResponse());
+  }
+  if (url.endsWith("/follower-count")) {
+    return Response.json({ count: 2 });
+  }
+  if (request?.method === "PUT") {
     return Response.json(JSON.parse(String(request.body)));
+  }
   return Response.json({ following: false });
 }
+
 /** Exercises a separate mounted private consumer without making the public counter its owner. */
 function PrivateProfile() {
   useCurrentAccount();
@@ -332,7 +340,7 @@ it("isolates deliberate maintenance bypass from the anonymous public count", asy
   // Given
   let active = false;
   mockFetch.mockImplementation((url, request) => {
-    if (url.endsWith("/application-access"))
+    if (url.endsWith("/application-access")) {
       return Promise.resolve(
         Response.json({
           ...applicationAccessResponse(),
@@ -344,6 +352,7 @@ it("isolates deliberate maintenance bypass from the anonymous public count", asy
           },
         }),
       );
+    }
     if (url.endsWith("/accounts/me")) {
       const profile = accountResponse();
       return Promise.resolve(
@@ -353,8 +362,9 @@ it("isolates deliberate maintenance bypass from the anonymous public count", asy
         }),
       );
     }
-    if (url.endsWith("/follower-count"))
+    if (url.endsWith("/follower-count")) {
       return Promise.resolve(Response.json({ count: active ? 3 : 2 }));
+    }
     return transport(url, request);
   });
   await fixture.render(
@@ -423,10 +433,11 @@ it.each([7, "transient"] as const)(
           : detailRecovery.promise;
       }
       if (url.endsWith("/follower-count")) {
-        if (count === "transient")
+        if (count === "transient") {
           return Promise.reject(
             new TypeError("Synthetic reopened count outage"),
           );
+        }
         return Promise.resolve(
           count === "refused"
             ? new Response(null, { status: 404 })
@@ -470,12 +481,14 @@ it.each([7, "transient"] as const)(
           <FollowerCount target={team} />
         </>,
       );
-      if (reopened === "transient")
+      if (reopened === "transient") {
         await screen.findByRole("button", {
           name: "Réessayer le nombre d’abonnés",
           busy: false,
         });
-      else await screen.findByLabelText("7 abonnés");
+      } else {
+        await screen.findByLabelText("7 abonnés");
+      }
       await act(async () => {
         detailRecovery.resolve(Response.json(detail));
         await refusal;

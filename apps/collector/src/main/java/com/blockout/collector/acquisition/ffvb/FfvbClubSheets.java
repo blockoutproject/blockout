@@ -44,7 +44,9 @@ public class FfvbClubSheets implements ClubSheets {
   /** {@inheritDoc} */
   @Override
   public SportingObservation.Club read(String reference) {
-    if (reference == null || reference.isBlank()) throw invalid();
+    if (reference == null || reference.isBlank()) {
+      throw invalid();
+    }
     ProviderResponse response = http.page(LOOKUP);
     Document document =
         Jsoup.parse(new String(response.body(), FfvbPage.CHARSET), response.url().toString());
@@ -57,9 +59,13 @@ public class FfvbClubSheets implements ClubSheets {
                     form.elements().stream()
                         .anyMatch(input -> input.attr("name").equals("id_club")))
             .toList();
-    if (forms.size() != 1) throw invalid();
+    if (forms.size() != 1) {
+      throw invalid();
+    }
     FormElement form = forms.getFirst();
-    if (!"post".equalsIgnoreCase(form.attr("method")) || !form.hasAttr("action")) throw invalid();
+    if (!"post".equalsIgnoreCase(form.attr("method")) || !form.hasAttr("action")) {
+      throw invalid();
+    }
     List<NameValuePair> fields =
         form.formData().stream()
             .map(
@@ -68,8 +74,9 @@ public class FfvbClubSheets implements ClubSheets {
                         new BasicNameValuePair(
                             field.key(), field.key().equals("id_club") ? reference : field.value()))
             .toList();
-    if (fields.stream().filter(field -> field.getName().equals("id_club")).count() != 1)
+    if (fields.stream().filter(field -> field.getName().equals("id_club")).count() != 1) {
       throw invalid();
+    }
     return parse(http.post(URI.create(form.absUrl("action")), fields), reference);
   }
 
@@ -85,11 +92,15 @@ public class FfvbClubSheets implements ClubSheets {
    */
   static SportingObservation.Club parse(byte[] body, String reference) {
     Document page = Jsoup.parse(new String(body, FfvbPage.CHARSET));
-    if (!page.select("img[src$=clubs_pt.png]").isEmpty()) return publishedSheet(page, reference);
+    if (!page.select("img[src$=clubs_pt.png]").isEmpty()) {
+      return publishedSheet(page, reference);
+    }
     Map<String, String> fields = new LinkedHashMap<>();
     for (Element row : page.select("tr")) {
       List<Element> cells = row.children().stream().filter(cell -> cell.is("td,th")).toList();
-      if (cells.size() != 2 || !cells.getFirst().select("table").isEmpty()) continue;
+      if (cells.size() != 2 || !cells.getFirst().select("table").isEmpty()) {
+        continue;
+      }
       String label =
           cells.getFirst().text().strip().replaceFirst("\\s*:\\s*$", "").toLowerCase(Locale.FRENCH);
       if (!Set.of(
@@ -101,14 +112,19 @@ public class FfvbClubSheets implements ClubSheets {
               "email",
               "téléphone",
               "site web")
-          .contains(label)) continue;
+          .contains(label)) {
+        continue;
+      }
       String value = cells.getLast().text().strip();
-      if (fields.putIfAbsent(label, value) != null && !fields.get(label).equals(value))
+      if (fields.putIfAbsent(label, value) != null && !fields.get(label).equals(value)) {
         throw invalid();
+      }
     }
     if (!reference.equals(fields.get("code club"))
         || !fields.containsKey("nom du club")
-        || fields.get("nom du club").isBlank()) throw invalid();
+        || fields.get("nom du club").isBlank()) {
+      throw invalid();
+    }
     return observation(fields);
   }
 
@@ -126,25 +142,38 @@ public class FfvbClubSheets implements ClubSheets {
    */
   private static SportingObservation.Club publishedSheet(Document page, String reference) {
     List<Element> headers = page.select("td[colspan=2]:has(img[src$=clubs_pt.png])");
-    if (headers.size() != 1) throw invalid();
+    if (headers.size() != 1) {
+      throw invalid();
+    }
     String heading = headers.getFirst().text();
-    if (!heading.startsWith(reference + " ")) throw invalid();
+    if (!heading.startsWith(reference + " ")) {
+      throw invalid();
+    }
     String name = heading.substring(reference.length()).strip();
-    if (name.isEmpty()) throw invalid();
+    if (name.isEmpty()) {
+      throw invalid();
+    }
     Map<String, String> fields = new LinkedHashMap<>();
     fields.put("nom du club", name);
     Element contacts = card(page, "Coordonnées");
     if (contacts != null) {
       for (Element row : rows(contacts).stream().skip(1).toList()) {
         List<Element> cells = row.children().stream().filter(cell -> cell.is("td,th")).toList();
-        if (cells.size() != 2) throw invalid();
+        if (cells.size() != 2) {
+          throw invalid();
+        }
         Element label = cells.getFirst();
         String key = null;
-        if (!label.select("img[src$=ico_mail_rg.png]").isEmpty()) key = "email";
-        else if (!label.select("img[src$=ico_spo_www_rg.png]").isEmpty()) key = "site web";
-        else if (label.text().equalsIgnoreCase("Portable")) key = "téléphone";
-        if (key != null && fields.putIfAbsent(key, cells.getLast().text().strip()) != null)
+        if (!label.select("img[src$=ico_mail_rg.png]").isEmpty()) {
+          key = "email";
+        } else if (!label.select("img[src$=ico_spo_www_rg.png]").isEmpty()) {
+          key = "site web";
+        } else if (label.text().equalsIgnoreCase("Portable")) {
+          key = "téléphone";
+        }
+        if (key != null && fields.putIfAbsent(key, cells.getLast().text().strip()) != null) {
           throw invalid();
+        }
       }
     }
     Element address = card(page, "Siège social");
@@ -157,7 +186,9 @@ public class FfvbClubSheets implements ClubSheets {
                   row -> {
                     List<Element> cells =
                         row.children().stream().filter(cell -> cell.is("td")).toList();
-                    if (cells.size() != 2) throw invalid();
+                    if (cells.size() != 2) {
+                      throw invalid();
+                    }
                     return cells.getLast();
                   })
               .toList();
@@ -174,7 +205,9 @@ public class FfvbClubSheets implements ClubSheets {
               : null;
       if (locality != null) {
         Matcher components = POSTAL_LOCALITY.matcher(locality.wholeText().replace('\u00a0', ' '));
-        if (!components.matches()) throw invalid();
+        if (!components.matches()) {
+          throw invalid();
+        }
         fields.put("code postal", components.group(1).strip());
         fields.put("ville", components.group(2).strip());
       }
@@ -212,7 +245,9 @@ public class FfvbClubSheets implements ClubSheets {
             .filter(table -> !rows(table).isEmpty())
             .filter(table -> rows(table).getFirst().text().equalsIgnoreCase(title))
             .toList();
-    if (cards.size() > 1) throw invalid();
+    if (cards.size() > 1) {
+      throw invalid();
+    }
     return cards.isEmpty() ? null : cards.getFirst();
   }
 
@@ -252,7 +287,9 @@ public class FfvbClubSheets implements ClubSheets {
    * @return absent wrapper for unknown, present null for empty, otherwise the unvalidated proposal
    */
   private static JsonNullable<String> proposal(Map<String, String> fields, String label) {
-    if (!fields.containsKey(label)) return JsonNullable.undefined();
+    if (!fields.containsKey(label)) {
+      return JsonNullable.undefined();
+    }
     String value = fields.get(label);
     return JsonNullable.of(value.isBlank() ? null : value);
   }

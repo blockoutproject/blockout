@@ -82,6 +82,7 @@ function SupportHeader() {
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   header: {
     minHeight: tokens.layout.header,

@@ -12,6 +12,7 @@ export interface SupportOrigin {
   failureStage?: unknown;
   failureReason?: unknown;
 }
+
 const screens = {
   search: "Recherche",
   profile: "Profil",
@@ -29,8 +30,9 @@ function originParams(origin: SupportOrigin) {
   if (
     typeof origin.screen === "string" &&
     Object.hasOwn(screens, origin.screen)
-  )
+  ) {
     params.screen = origin.screen;
+  }
   const type = SupportTargetTypeEnum.safeParse(origin.targetType);
   const id = z.string().uuid().safeParse(origin.targetId);
   if (type.success && id.success) {
@@ -46,8 +48,9 @@ function originParams(origin: SupportOrigin) {
     if (
       origin.failureReason === "cancelled" ||
       origin.failureReason === "unavailable"
-    )
+    ) {
       params.failureReason = origin.failureReason;
+    }
   }
   return params;
 }
@@ -56,8 +59,9 @@ function originParams(origin: SupportOrigin) {
 export function supportContext(origin: SupportOrigin): SupportContextRequest {
   const params = originParams(origin);
   const context: SupportContextRequest = {};
-  if (params.screen)
+  if (params.screen) {
     context.screen = screens[params.screen as keyof typeof screens];
+  }
   if (params.targetType && params.targetId) {
     context.action = "Consultation de la cible";
     context.target = {

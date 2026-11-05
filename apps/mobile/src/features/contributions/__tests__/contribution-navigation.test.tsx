@@ -92,10 +92,13 @@ beforeEach(() => {
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
   mockFetch.mockReset().mockImplementation(async (url, init) => {
     const path = new URL(String(url)).pathname;
-    if (path.endsWith("/application-access"))
+    if (path.endsWith("/application-access")) {
       return Response.json(applicationAccessResponse());
-    if (path.endsWith("/me")) return Response.json(accountResponse());
-    if (path.includes("/stream-contributions"))
+    }
+    if (path.endsWith("/me")) {
+      return Response.json(accountResponse());
+    }
+    if (path.includes("/stream-contributions")) {
       return Response.json(
         init?.method === "POST"
           ? {
@@ -113,6 +116,7 @@ beforeEach(() => {
           : ownContributions(),
         { status: init?.method === "POST" ? 201 : 200 },
       );
+    }
     return Response.json(match);
   });
 });
@@ -171,11 +175,13 @@ it.each([
     );
     prepareProNativeIO();
     const boundary = mockFetch.getMockImplementation();
-    if (!boundary) throw new Error("Missing test HTTP boundary");
+    if (!boundary) {
+      throw new Error("Missing test HTTP boundary");
+    }
     const versionId = "00000000-0000-4000-8000-000000000004";
     mockFetch.mockImplementation((url, init) => {
       const path = new URL(String(url)).pathname;
-      if (path === `/matches/${match.match.id}`)
+      if (path === `/matches/${match.match.id}`) {
         return Promise.resolve(
           Response.json({
             ...match,
@@ -187,7 +193,8 @@ it.each([
               : {}),
           }),
         );
-      if (path.includes("/stream-contributions"))
+      }
+      if (path.includes("/stream-contributions")) {
         return Promise.resolve(
           Response.json(
             ownContributions({
@@ -222,6 +229,7 @@ it.each([
             }),
           ),
         );
+      }
       return boundary(url, init);
     });
     const user = userEvent.setup();
@@ -258,10 +266,11 @@ it.each([
     expect(
       screen.queryByRole("button", { name: "Stream link" }),
     ).not.toBeOnTheScreen();
-    if (state !== "active")
+    if (state !== "active") {
       expect(
         screen.getByText("Aucun lien disponible pour ce match."),
       ).toBeOnTheScreen();
+    }
 
     // When
     expect(
@@ -348,7 +357,9 @@ it("keeps history revoked when a refused match opens it before technical mount r
   );
   prepareProNativeIO();
   const boundary = mockFetch.getMockImplementation();
-  if (!boundary) throw new Error("Missing test HTTP boundary");
+  if (!boundary) {
+    throw new Error("Missing test HTTP boundary");
+  }
   let phase: "authorized" | "refused" | "unavailable" = "authorized";
   let ownReads = 0;
   mockFetch.mockImplementation(async (url, init) => {
@@ -359,8 +370,9 @@ it("keeps history revoked when a refused match opens it before technical mount r
     }
     if (path.includes("/stream-contributions")) {
       ownReads++;
-      if (phase === "unavailable")
+      if (phase === "unavailable") {
         return Response.json({ status: 500 }, { status: 500 });
+      }
       return Response.json(
         ownContributions({
           proposalCount: 1,
@@ -533,7 +545,9 @@ it("discards an unsent contribution draft when its route is removed", async () =
     .mocked(Alert.alert)
     .mock.calls.at(-1)?.[2]
     ?.find((button) => button.style === "destructive");
-  if (discard) await act(async () => discard.onPress?.());
+  if (discard) {
+    await act(async () => discard.onPress?.());
+  }
   await screen.findByText("Match origin");
   await act(() =>
     router.push({
@@ -555,7 +569,9 @@ it("keeps a new visit's draft when an older detached submission completes", asyn
   const user = userEvent.setup();
   const response = Promise.withResolvers<Response>();
   const peer = mockFetch.getMockImplementation();
-  if (!peer) throw new Error("Synthetic HTTP is required");
+  if (!peer) {
+    throw new Error("Synthetic HTTP is required");
+  }
   mockFetch.mockImplementation((url, init) =>
     init?.method === "POST" ? response.promise : peer(url, init),
   );
@@ -593,7 +609,9 @@ it("keeps a new visit's draft when an older detached submission completes", asyn
     .mocked(Alert.alert)
     .mock.calls.at(-1)?.[2]
     ?.find((button) => button.style === "destructive");
-  if (discard) await act(async () => discard.onPress?.());
+  if (discard) {
+    await act(async () => discard.onPress?.());
+  }
   await screen.findByText("Match origin");
   await act(() =>
     router.push({
@@ -649,7 +667,9 @@ it("keeps a confirmed replacement distinct from retained proposals after returni
   );
   prepareProNativeIO();
   const boundary = mockFetch.getMockImplementation();
-  if (!boundary) throw new Error("Missing test HTTP boundary");
+  if (!boundary) {
+    throw new Error("Missing test HTTP boundary");
+  }
   let acknowledged = false;
   let submissions = 0;
   const previous = {
@@ -663,19 +683,22 @@ it("keeps a confirmed replacement distinct from retained proposals after returni
   };
   mockFetch.mockImplementation(async (url, init) => {
     const path = new URL(String(url)).pathname;
-    if (path === `/matches/${match.match.id}`)
+    if (path === `/matches/${match.match.id}`) {
       return Response.json({
         ...match,
         streamUrl: previous.url,
         streamContributionId: previous.id,
       });
+    }
     if (path.includes("/stream-contributions")) {
       if (init?.method === "POST") {
         submissions++;
         acknowledged = true;
         return boundary(url, init);
       }
-      if (acknowledged) throw new TypeError("Controlled owner read failure");
+      if (acknowledged) {
+        throw new TypeError("Controlled owner read failure");
+      }
       return Response.json(
         ownContributions({
           proposalCount: 1,
@@ -757,7 +780,9 @@ it("returns from the owned editor to the exact match after withdrawing its activ
   );
   prepareProNativeIO();
   const boundary = mockFetch.getMockImplementation();
-  if (!boundary) throw new Error("Missing test HTTP boundary");
+  if (!boundary) {
+    throw new Error("Missing test HTTP boundary");
+  }
   const active = {
     id: "00000000-0000-4000-8000-000000000004",
     url: "https://youtu.be/public",
@@ -770,13 +795,14 @@ it("returns from the owned editor to the exact match after withdrawing its activ
   let withdrawn = false;
   mockFetch.mockImplementation(async (url, init) => {
     const path = new URL(String(url)).pathname;
-    if (path === `/matches/${match.match.id}`)
+    if (path === `/matches/${match.match.id}`) {
       return Response.json({
         ...match,
         ...(withdrawn
           ? {}
           : { streamUrl: active.url, streamContributionId: active.id }),
       });
+    }
     if (path.includes("/stream-contributions")) {
       if (init?.method === "PATCH") {
         withdrawn = true;

@@ -62,6 +62,7 @@ export function createConsultationQueries(
   getCredentials: () => Promise<{ accessToken: string } | undefined>,
 ) {
   const intent = admission.bypass;
+
   /** Distinguishes credentialed bypass representations from ordinary generated public keys. */
   function key(generated: QueryKey) {
     return intent
@@ -73,6 +74,7 @@ export function createConsultationQueries(
         ]
       : generated;
   }
+
   /**
    * Query retains data on failure. This exact-resource purge prevents known-refused contacts,
    * locations and other sensitive facts from reappearing if the next read fails technically.
@@ -90,6 +92,7 @@ export function createConsultationQueries(
     }
     throw error;
   }
+
   /** Obtains captured-principal credentials only for bypass; generated transport owns response validation. */
   async function request(
     context: QueryFunctionContext,
@@ -97,15 +100,19 @@ export function createConsultationQueries(
     let headers: Record<string, string> | undefined;
     if (intent) {
       const credentials = await getCredentials();
-      if (!credentials?.accessToken) throw new ApiError("http", 401);
+      if (!credentials?.accessToken) {
+        throw new ApiError("http", 401);
+      }
       headers = { Authorization: `Bearer ${credentials.accessToken}` };
     }
     return admission.request({ signal: context.signal, headers });
   }
+
   /** Converts only authenticated artwork; ordinary public logos use native image loading. */
   async function preview(blob: Blob, signal: AbortSignal) {
     return binaryImagePreview(blob, signal);
   }
+
   return {
     /** An unavailable followed target invalidates its own detail; related benign collections refresh normally. */
     async rejectTarget(
@@ -114,7 +121,9 @@ export function createConsultationQueries(
       id: string,
       error: ApiError,
     ) {
-      if (context.signal.aborted || error.status !== 404) return;
+      if (context.signal.aborted || error.status !== 404) {
+        return;
+      }
       await context.client.invalidateQueries({
         queryKey: key(
           type === "team" ? getGetTeamQueryKey(id) : getGetPoolQueryKey(id),
@@ -258,8 +267,9 @@ export function createConsultationQueries(
       if (
         selectors.length !== 1 ||
         (params.clubId !== undefined) !== (params.seasonId !== undefined)
-      )
+      ) {
         throw new Error("Calendar requires a club/season, team or pool");
+      }
       new Intl.DateTimeFormat("en", { timeZone: params.timeZone });
       return {
         queryKey: key(getListMatchesQueryKey(params)),

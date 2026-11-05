@@ -28,6 +28,7 @@ export function ExampleForm({ long = false, onConfirm }: ExampleFormProps) {
     resolver: zodResolver(exampleSchema),
     defaultValues: exampleValues(),
   });
+
   /** A disposed native decision cannot publish values to a replacement qualification route. */
   async function submit(values: ExampleValues) {
     if (
@@ -36,9 +37,11 @@ export function ExampleForm({ long = false, onConfirm }: ExampleFormProps) {
         message: "Les valeurs saisies seront transmises après confirmation.",
         confirmLabel: "Confirmer",
       })
-    )
+    ) {
       onConfirm(values);
+    }
   }
+
   return (
     <Page edges={["bottom", "left", "right"]}>
       <FormScrollView>

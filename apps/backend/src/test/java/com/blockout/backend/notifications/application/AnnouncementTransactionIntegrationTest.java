@@ -190,8 +190,11 @@ class AnnouncementTransactionIntegrationTest {
           transaction.execute(
               status -> {
                 roots(MATCH);
-                if (publicationFirst) publicLink.set(true);
-                else processor.process(transition(MATCH, false));
+                if (publicationFirst) {
+                  publicLink.set(true);
+                } else {
+                  processor.process(transition(MATCH, false));
+                }
                 Future<?> second =
                     worker.submit(
                         () ->
@@ -203,8 +206,11 @@ class AnnouncementTransactionIntegrationTest {
                                   processor.process(transition(MATCH, publicLink.get()));
                                 }));
                 PostgresTestDatabase.awaitBlocked(sql, waitingPid);
-                if (publicationFirst) processor.process(transition(MATCH, true));
-                else publicLink.set(true);
+                if (publicationFirst) {
+                  processor.process(transition(MATCH, true));
+                } else {
+                  publicLink.set(true);
+                }
                 return second;
               });
 

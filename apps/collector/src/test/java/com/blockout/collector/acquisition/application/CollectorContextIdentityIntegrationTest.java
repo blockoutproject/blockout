@@ -63,7 +63,9 @@ class CollectorContextIdentityIntegrationTest {
   /** Stops only this suite's backend process and local signing endpoint. */
   @AfterAll
   static void stopBackend() throws Exception {
-    if (runtime != null) runtime.close();
+    if (runtime != null) {
+      runtime.close();
+    }
   }
 
   /** Resets synthetic sporting inputs and connects the production generated clients. */
@@ -93,7 +95,9 @@ class CollectorContextIdentityIntegrationTest {
   /** Releases this test's native connection pool; the next fixture clears retained follow data. */
   @AfterEach
   void closeTransport() throws Exception {
-    if (transport != null) transport.close();
+    if (transport != null) {
+      transport.close();
+    }
   }
 
   @Test

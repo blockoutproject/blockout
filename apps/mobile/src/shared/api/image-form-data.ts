@@ -14,6 +14,8 @@ export function imageFormData(body: ImageFormDataBody): FormData {
     "metadata",
     new Blob([JSON.stringify(body.metadata)], { type: "application/json" }),
   );
-  if (body.image !== undefined) form.append("image", body.image);
+  if (body.image !== undefined) {
+    form.append("image", body.image);
+  }
   return form;
 }

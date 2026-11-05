@@ -34,8 +34,9 @@ public class RestrictClubContacts {
     store.lockPresentation(Kind.CLUB, clubId);
     Contacts current = store.clubContacts(clubId);
     Map<ContactField, ContactValue> fields = new EnumMap<>(current.fields());
-    for (ContactField field : restrictedFields)
+    for (ContactField field : restrictedFields) {
       fields.put(field, new ContactValue(null, null, fields.get(field).mode(), true));
+    }
     store.saveClubContacts(
         new Contacts(
             clubId,

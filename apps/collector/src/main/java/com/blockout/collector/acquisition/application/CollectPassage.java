@@ -49,8 +49,9 @@ public class CollectPassage {
    * @param context backend-confirmed control capability; source validation has a separate owner
    */
   public void execute(CollectorLifecycle.AdmittedCycle context) {
-    if (context.getCycle().controlId() == null)
+    if (context.getCycle().controlId() == null) {
       throw new IllegalArgumentException("A control passage is required");
+    }
     try {
       List<CollectionBackend.Target> selected = new ArrayList<>();
       long page = 0;
@@ -65,11 +66,13 @@ public class CollectPassage {
         if (target.kind() == CollectionTargetKindEnum.CALENDAR
             || target.kind() == CollectionTargetKindEnum.STANDINGS
             || target.kind() == CollectionTargetKindEnum.LOGO) {
-          if (target.provider() == CollectionProviderEnum.FFVB)
+          if (target.provider() == CollectionProviderEnum.FFVB) {
             resources
                 .computeIfAbsent(ffvb.resourceUrl(target), ignored -> new ArrayList<>())
                 .add(target);
-          else professional.computeIfAbsent(target.url(), ignored -> new ArrayList<>()).add(target);
+          } else {
+            professional.computeIfAbsent(target.url(), ignored -> new ArrayList<>()).add(target);
+          }
         }
       }
       DetailEvidence details = new DetailEvidence(context);
@@ -79,7 +82,9 @@ public class CollectPassage {
           professional.isEmpty() ? null : lnv.documentIndexes(context::nextReadOrdinal);
       Map<UUID, Set<UUID>> presentPools = new LinkedHashMap<>();
       for (CollectionBackend.Target target : selected) {
-        if (target.kind() != CollectionTargetKindEnum.DISCOVERY) continue;
+        if (target.kind() != CollectionTargetKindEnum.DISCOVERY) {
+          continue;
+        }
         Set<UUID> present =
             discover(
                 context,
@@ -88,15 +93,16 @@ public class CollectPassage {
                   URI url = pageRead.response().url();
                   if (target.provider() == CollectionProviderEnum.FFVB) {
                     List<CollectionBackend.Target> scopes = resources.remove(url);
-                    if (scopes != null)
+                    if (scopes != null) {
                       consumeFfvb(
                           context,
                           scopes,
                           ffvb.fromPage(pageRead.response(), pageRead.observedAt()),
                           pageRead.ordinal());
+                    }
                   } else {
                     List<CollectionBackend.Target> scopes = professional.remove(url);
-                    if (scopes != null)
+                    if (scopes != null) {
                       consumeLnv(
                           context,
                           scopes,
@@ -106,9 +112,12 @@ public class CollectPassage {
                           readMatches,
                           indexes,
                           details);
+                    }
                   }
                 });
-        if (present != null) presentPools.put(target.sourceBindingId(), present);
+        if (present != null) {
+          presentPools.put(target.sourceBindingId(), present);
+        }
       }
       selected = selected.stream().filter(target -> remainsPresent(target, presentPools)).toList();
       for (Map.Entry<URI, List<CollectionBackend.Target>> entry : resources.entrySet()) {
@@ -116,14 +125,17 @@ public class CollectPassage {
             entry.getValue().stream()
                 .filter(target -> remainsPresent(target, presentPools))
                 .toList();
-        if (scopes.isEmpty()) continue;
+        if (scopes.isEmpty()) {
+          continue;
+        }
         long ordinal = context.nextReadOrdinal();
         FfvbAcquisition.Resource resource;
         try {
           resource = ffvb.read(entry.getKey());
         } catch (RuntimeException failure) {
-          for (CollectionBackend.Target target : scopes)
+          for (CollectionBackend.Target target : scopes) {
             acquisitionFailed(context, target, ordinal, failure);
+          }
           continue;
         }
         consumeFfvb(context, scopes, resource, ordinal);
@@ -133,30 +145,40 @@ public class CollectPassage {
             entry.getValue().stream()
                 .filter(target -> remainsPresent(target, presentPools))
                 .toList();
-        if (scopes.isEmpty()) continue;
+        if (scopes.isEmpty()) {
+          continue;
+        }
         long ordinal = context.nextReadOrdinal();
         LnvAcquisition.Resource resource;
         try {
           resource = lnv.read(entry.getKey());
         } catch (RuntimeException failure) {
-          for (CollectionBackend.Target target : scopes)
+          for (CollectionBackend.Target target : scopes) {
             acquisitionFailed(context, target, ordinal, failure);
+          }
           continue;
         }
         consumeLnv(context, scopes, resource, ordinal, readTeams, readMatches, indexes, details);
       }
-      for (CollectionBackend.Target target : selected)
+      for (CollectionBackend.Target target : selected) {
         if (target.provider() == CollectionProviderEnum.LNV
             && target.kind() == CollectionTargetKindEnum.DETAILS
-            && readMatches.add(target.matchId())) detail(context, target, details);
+            && readMatches.add(target.matchId())) {
+          detail(context, target, details);
+        }
+      }
       for (CollectionBackend.Target target : selected) {
         if (target.kind() == CollectionTargetKindEnum.CLUB_SHEET
-            || target.kind() == CollectionTargetKindEnum.GEOCODING) seasonless(context, target);
+            || target.kind() == CollectionTargetKindEnum.GEOCODING) {
+          seasonless(context, target);
+        }
       }
       details.flush();
       lifecycle.complete(context, clock.instant());
     } catch (CollectionBackendFailure failure) {
-      if (failure.getKind() != CollectionBackendFailure.Kind.CONFLICT) throw failure;
+      if (failure.getKind() != CollectionBackendFailure.Kind.CONFLICT) {
+        throw failure;
+      }
       lifecycle.inspectConflict(failure);
       log.atWarn()
           .addKeyValue("operation", "collection_passage")
@@ -177,22 +199,24 @@ public class CollectPassage {
    */
   private void seasonless(
       CollectorLifecycle.AdmittedCycle context, CollectionBackend.Target target) {
-    if (target.kind() == CollectionTargetKindEnum.GEOCODING && target.municipality() == null)
+    if (target.kind() == CollectionTargetKindEnum.GEOCODING && target.municipality() == null) {
       return;
+    }
     lifecycle.requireActive();
     long ordinal = context.nextReadOrdinal();
     SportingObservation.Club sheet = null;
     SportingObservation.Locality point = null;
     try {
-      if (target.kind() == CollectionTargetKindEnum.CLUB_SHEET)
+      if (target.kind() == CollectionTargetKindEnum.CLUB_SHEET) {
         sheet = clubs.read(target.clubReference());
-      else
+      } else {
         point =
             geocoder.read(
                 target.address(),
                 target.municipality(),
                 target.postalCode(),
                 target.localityRevision());
+      }
     } catch (RuntimeException failure) {
       acquisitionFailed(context, target, ordinal, failure);
       return;
@@ -233,7 +257,9 @@ public class CollectPassage {
               ? outcome.outcome().getValue()
               : outcome.reasonType().toString());
     } catch (CollectionBackendFailure failure) {
-      if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
+      if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) {
+        throw failure;
+      }
       record(
           context,
           target,
@@ -276,9 +302,11 @@ public class CollectPassage {
       long ordinal) {
     for (CollectionBackend.Target target : scopes) {
       lifecycle.requireActive();
-      if (target.kind() == CollectionTargetKindEnum.CALENDAR)
+      if (target.kind() == CollectionTargetKindEnum.CALENDAR) {
         calendar(context, target, resource, ordinal);
-      else standings(context, target, resource, ordinal);
+      } else {
+        standings(context, target, resource, ordinal);
+      }
     }
   }
 
@@ -397,7 +425,9 @@ public class CollectPassage {
               .orElse(null));
       return outcome;
     } catch (CollectionBackendFailure failure) {
-      if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
+      if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) {
+        throw failure;
+      }
       record(
           context,
           target,
@@ -479,7 +509,9 @@ public class CollectPassage {
           null,
           outcome.reasonType());
     } catch (CollectionBackendFailure failure) {
-      if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
+      if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) {
+        throw failure;
+      }
       record(
           context,
           target,
@@ -547,7 +579,9 @@ public class CollectPassage {
               .filter(Objects::nonNull)
               .findFirst()
               .orElse(null));
-      if (!outcome.absenceReconciled()) return null;
+      if (!outcome.absenceReconciled()) {
+        return null;
+      }
       Set<UUID> pools = new LinkedHashSet<>();
       outcome.outcomes().stream()
           .filter(this::accepted)
@@ -556,7 +590,9 @@ public class CollectPassage {
           .forEach(pools::add);
       return pools;
     } catch (CollectionBackendFailure failure) {
-      if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
+      if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) {
+        throw failure;
+      }
       record(
           context,
           target,
@@ -601,13 +637,19 @@ public class CollectPassage {
     }
     SportingObservation.CalendarOutcome outcome =
         submitCalendar(context, target, ordinal, read.observation(), read.observedAt());
-    if (outcome == null) return;
+    if (outcome == null) {
+      return;
+    }
     Map<String, SportingObservation.Match> matches = new LinkedHashMap<>();
     read.observation().matches().forEach(match -> matches.put(match.nativeMatchReference(), match));
     for (SportingObservation.Outcome item : outcome.outcomes()) {
-      if (!accepted(item)) continue;
+      if (!accepted(item)) {
+        continue;
+      }
       SportingObservation.Match match = matches.get(item.sourceReference());
-      if (match == null) continue;
+      if (match == null) {
+        continue;
+      }
       if (Boolean.TRUE.equals(item.created())
           && item.resourceId() != null
           && match.detailUrl() != null
@@ -691,7 +733,7 @@ public class CollectPassage {
       read = indexes.informationSheets(target, calendar);
     } catch (RuntimeException failure) {
       for (SportingObservation.Outcome item : outcome.outcomes()) {
-        if (accepted(item) && item.resourceId() != null)
+        if (accepted(item) && item.resourceId() != null) {
           details.add(
               item.resourceId(),
               ordinal,
@@ -700,14 +742,19 @@ public class CollectPassage {
               clock.instant(),
               AcquisitionFailure.reasonType(failure),
               "Information-sheet index: " + failureReason(failure));
+        }
       }
       return;
     }
-    if (read == null) return;
+    if (read == null) {
+      return;
+    }
     ordinal = read.readOrdinal();
     for (SportingObservation.Outcome item : outcome.outcomes()) {
       SportingObservation.InformationSheet sheet = read.observation().get(item.sourceReference());
-      if (!accepted(item) || item.resourceId() == null || sheet == null) continue;
+      if (!accepted(item) || item.resourceId() == null || sheet == null) {
+        continue;
+      }
       lifecycle.requireActive();
       details.add(
           item.resourceId(),
@@ -729,7 +776,9 @@ public class CollectPassage {
         String reason = null;
         if (!accepted(association)) {
           String refusal = association.outcome().toString();
-          if (association.reasonType() != null) refusal = association.reasonType().toString();
+          if (association.reasonType() != null) {
+            refusal = association.reasonType().toString();
+          }
           reason = "Information-sheet association: " + refusal;
         }
         details.add(
@@ -741,7 +790,9 @@ public class CollectPassage {
             association.reasonType(),
             reason);
       } catch (CollectionBackendFailure failure) {
-        if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
+        if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) {
+          throw failure;
+        }
         details.add(
             item.resourceId(),
             ordinal,
@@ -781,7 +832,9 @@ public class CollectPassage {
       return;
     }
     for (int part = 0; part < 3; part++) {
-      if (part > 0) ordinal = context.nextReadOrdinal();
+      if (part > 0) {
+        ordinal = context.nextReadOrdinal();
+      }
       LnvAcquisition.Read<SportingObservation.Facts> read;
       try {
         read =
@@ -801,7 +854,9 @@ public class CollectPassage {
             failureReason(failure));
         continue;
       }
-      if (read == null) continue;
+      if (read == null) {
+        continue;
+      }
       evidence.add(
           target.matchId(),
           ordinal,
@@ -826,7 +881,9 @@ public class CollectPassage {
             outcome.reasonType(),
             outcome.reasonType() == null ? null : outcome.reasonType().toString());
       } catch (CollectionBackendFailure failure) {
-        if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
+        if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) {
+          throw failure;
+        }
         evidence.add(
             target.matchId(),
             ordinal,
@@ -868,12 +925,15 @@ public class CollectPassage {
           totals
               .computeIfAbsent(match, ignored -> new LinkedHashMap<>())
               .computeIfAbsent(phase, ignored -> new DetailTotal());
-      if (outcome == CollectionOutcomeEnum.SUCCESS || outcome == CollectionOutcomeEnum.PARTIAL)
+      if (outcome == CollectionOutcomeEnum.SUCCESS || outcome == CollectionOutcomeEnum.PARTIAL) {
         total.obtained++;
+      }
       if (outcome != CollectionOutcomeEnum.SUCCESS) {
         total.rejected++;
         total.reason = reason;
-        if (reasonType != null) total.reasonType = reasonType;
+        if (reasonType != null) {
+          total.reasonType = reasonType;
+        }
       }
       total.unconfirmed |= outcome == CollectionOutcomeEnum.UNCONFIRMED;
       if (ordinal >= total.readOrdinal) {
@@ -891,7 +951,9 @@ public class CollectPassage {
         for (Map.Entry<CollectionPhaseEnum, DetailTotal> phase : match.getValue().entrySet()) {
           DetailTotal total = phase.getValue();
           CollectionOutcomeEnum outcome = measuredOutcome(total.obtained, total.rejected);
-          if (total.unconfirmed) outcome = CollectionOutcomeEnum.UNCONFIRMED;
+          if (total.unconfirmed) {
+            outcome = CollectionOutcomeEnum.UNCONFIRMED;
+          }
           record(
               context,
               new CollectionBackend.Result(
@@ -931,7 +993,9 @@ public class CollectPassage {
    */
   private void image(
       CollectorLifecycle.AdmittedCycle context, UUID team, URI url, Set<UUID> attempted) {
-    if (team == null || url == null || !attempted.add(team)) return;
+    if (team == null || url == null || !attempted.add(team)) {
+      return;
+    }
     long ordinal = context.nextReadOrdinal();
     LnvAcquisition.Read<byte[]> read;
     try {
@@ -950,7 +1014,9 @@ public class CollectPassage {
           failureReason(failure));
       return;
     }
-    if (read == null) return;
+    if (read == null) {
+      return;
+    }
     record(
         context,
         team,
@@ -979,7 +1045,9 @@ public class CollectPassage {
           null,
           outcome.reasonType());
     } catch (CollectionBackendFailure failure) {
-      if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
+      if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) {
+        throw failure;
+      }
       record(
           context,
           team,
@@ -1014,8 +1082,12 @@ public class CollectPassage {
    *     parts
    */
   private CollectionOutcomeEnum measuredOutcome(long obtained, long rejected) {
-    if (rejected == 0) return CollectionOutcomeEnum.SUCCESS;
-    if (obtained == 0) return CollectionOutcomeEnum.FAILED;
+    if (rejected == 0) {
+      return CollectionOutcomeEnum.SUCCESS;
+    }
+    if (obtained == 0) {
+      return CollectionOutcomeEnum.FAILED;
+    }
     return CollectionOutcomeEnum.PARTIAL;
   }
 
@@ -1067,9 +1139,12 @@ public class CollectPassage {
    * @return bounded diagnostic from trusted categories, never an arbitrary exception message
    */
   private String failureReason(RuntimeException failure) {
-    if (failure instanceof FfvbAcquisitionException) return failure.getMessage();
-    if (failure instanceof CollectionBackendFailure backendFailure)
+    if (failure instanceof FfvbAcquisitionException) {
+      return failure.getMessage();
+    }
+    if (failure instanceof CollectionBackendFailure backendFailure) {
       return "Backend " + backendFailure.getKind();
+    }
     return failure.getClass().getSimpleName();
   }
 
@@ -1213,7 +1288,9 @@ public class CollectPassage {
       backend.record(context.getCycle().id(), result);
       return true;
     } catch (CollectionBackendFailure failure) {
-      if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) throw failure;
+      if (failure.getKind() == CollectionBackendFailure.Kind.CONFLICT) {
+        throw failure;
+      }
       log.atError()
           .addKeyValue("operation", "collection_result")
           .addKeyValue("cycleId", context.getCycle().id())

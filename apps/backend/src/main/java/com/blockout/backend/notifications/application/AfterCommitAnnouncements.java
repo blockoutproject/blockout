@@ -27,7 +27,9 @@ public class AfterCommitAnnouncements {
    */
   @Transactional(propagation = Propagation.MANDATORY)
   public void submit(List<Created> created) {
-    if (created.isEmpty()) return;
+    if (created.isEmpty()) {
+      return;
+    }
     Map<UUID, List<Target>> targets =
         created.stream()
             .map(allocation -> allocation.entry().accountId())

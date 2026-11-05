@@ -64,7 +64,9 @@ public class FreezeCollectionTargets {
   public void freeze(Cycle cycle, Control control, CollectionSeasonView season) {
     if (season == null) {
       if (control.family() != CollectionFamilyEnum.CLUB_SHEETS
-          && control.family() != CollectionFamilyEnum.GEOCODING) throw invalid();
+          && control.family() != CollectionFamilyEnum.GEOCODING) {
+        throw invalid();
+      }
       UUID afterClub = null;
       while (true) {
         ReadClubAcquisition.TargetBatch references =
@@ -73,7 +75,9 @@ public class FreezeCollectionTargets {
                 control.family() == CollectionFamilyEnum.GEOCODING,
                 cycle.mode() != CollectionModeEnum.PERIODIC,
                 afterClub);
-        if (references.lastClubId() == null) break;
+        if (references.lastClubId() == null) {
+          break;
+        }
         retainDue(cycle, control, references.items());
         afterClub = references.lastClubId();
       }
@@ -96,14 +100,17 @@ public class FreezeCollectionTargets {
             .toList();
     if (sources.isEmpty()
         || (cycle.mode() == CollectionModeEnum.INITIAL_IMPORT
-            && sources.size() != control.sourceBindingIds().size())) throw invalid();
+            && sources.size() != control.sourceBindingIds().size())) {
+      throw invalid();
+    }
     Map<UUID, TeamView> logoTeams = new HashMap<>();
     Map<UUID, List<UUID>> logoPools = new HashMap<>();
     if (cycle.mode() == CollectionModeEnum.INITIAL_IMPORT && !control.scopeIds().isEmpty()) {
       for (InitialCoverage row :
           store.initialCoverage(control.sourceBindingIds(), control.scopeIds())) {
-        if (row.stage() != CollectionStageEnum.LOGO || logoTeams.containsKey(row.scopeId()))
+        if (row.stage() != CollectionStageEnum.LOGO || logoTeams.containsKey(row.scopeId())) {
           continue;
+        }
         acquisitionReads
             .team(row.scopeId())
             .filter(
@@ -123,8 +130,9 @@ public class FreezeCollectionTargets {
     for (Source candidate : sources) {
       Source source;
       if (candidate.validationState() != SourceValidationStateEnum.QUALIFIED
-          || (candidate.locked() ? candidate.acceptedUrl() : candidate.candidateUrl()) == null)
+          || (candidate.locked() ? candidate.acceptedUrl() : candidate.candidateUrl()) == null) {
         throw invalid();
+      }
       if (!candidate.locked()) {
         CollectionRevision.requireAdvance(candidate.revision());
         source = store.lockAcceptedSource(candidate);
@@ -143,7 +151,9 @@ public class FreezeCollectionTargets {
                 cycle.mode() == CollectionModeEnum.INITIAL_IMPORT,
                 cycle.startedAt(),
                 afterPool);
-        if (references.isEmpty()) break;
+        if (references.isEmpty()) {
+          break;
+        }
         retainDue(
             cycle,
             control,
@@ -152,7 +162,9 @@ public class FreezeCollectionTargets {
                 .toList());
         if (provider == CollectionProviderEnum.LNV) {
           for (AcquisitionReference reference : references) {
-            if (reference.kind() != CollectionTargetKindEnum.CALENDAR) continue;
+            if (reference.kind() != CollectionTargetKindEnum.CALENDAR) {
+              continue;
+            }
             for (TeamView team : logoTeams.values()) {
               if (team.seasonId().equals(season.id())
                   && team.organizerReference().equals(source.organizerReference())
@@ -173,7 +185,9 @@ public class FreezeCollectionTargets {
             for (int detailPage = 0; ; detailPage++) {
               List<AcquisitionReference> details =
                   acquisitionReads.acquisitionDetails(poolId, cycle.startedAt(), detailPage);
-              if (details.isEmpty()) break;
+              if (details.isEmpty()) {
+                break;
+              }
               retainDue(
                   cycle,
                   control,
@@ -257,7 +271,9 @@ public class FreezeCollectionTargets {
    * @return whether its ordinary cadence is due; a never-attempted target is immediately eligible
    */
   static boolean due(Target target, Instant now) {
-    if (target.lastAttemptAt() == null) return true;
+    if (target.lastAttemptAt() == null) {
+      return true;
+    }
     Duration cadence =
         switch (target.kind()) {
           case DISCOVERY -> Duration.ofMinutes(30);

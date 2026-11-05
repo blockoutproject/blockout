@@ -45,7 +45,7 @@ export function PageList<T>({
   const content = StyleSheet.flatten(contentContainerStyle);
   const padding =
     content?.paddingTop ?? content?.paddingVertical ?? content?.padding;
-  if (tab)
+  if (tab) {
     return (
       <TabLegendList
         {...props}
@@ -56,6 +56,7 @@ export function PageList<T>({
         }}
       />
     );
+  }
   return (
     <AnimatedLegendList
       {...props}
@@ -101,7 +102,7 @@ export function PageFlatList<T>({
           inset,
       })
     : undefined;
-  if (tab)
+  if (tab) {
     return (
       <TabFlatList
         {...props}
@@ -110,6 +111,7 @@ export function PageFlatList<T>({
         contentContainerStyle={contentContainerStyle}
       />
     );
+  }
   return (
     <FlatList
       {...props}

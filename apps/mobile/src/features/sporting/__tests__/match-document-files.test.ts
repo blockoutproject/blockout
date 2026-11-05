@@ -2,8 +2,6 @@ import {
   DocumentReader,
   documentRead,
   documentReaders,
-} from "../test-support/native-document-files";
-import {
   documentFiles as mockFiles,
   documentWrite,
 } from "../test-support/native-document-files";
@@ -44,8 +42,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  if (originalReader)
+  if (originalReader) {
     Object.defineProperty(globalThis, "FileReader", originalReader);
+  }
   delete process.env.EXPO_PUBLIC_API_URL;
 });
 

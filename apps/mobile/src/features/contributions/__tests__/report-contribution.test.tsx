@@ -101,13 +101,16 @@ beforeEach(() => {
   mockAuth0.clearCredentials.mockReset().mockResolvedValue();
   mockFetch.mockReset().mockImplementation(async (url, init) => {
     const path = new URL(String(url)).pathname;
-    if (path.endsWith("/application-access"))
+    if (path.endsWith("/application-access")) {
       return Response.json(applicationAccessResponse());
-    if (path.endsWith("/me")) return Response.json(accountResponse());
+    }
+    if (path.endsWith("/me")) {
+      return Response.json(accountResponse());
+    }
     if (path.endsWith("/report")) {
       if (init?.method === "POST") {
         posts.push({ url: String(url), body: JSON.parse(String(init.body)) });
-        if (responseStatus >= 400)
+        if (responseStatus >= 400) {
           return Response.json(
             {
               type: "urn:blockout:problem:conflict",
@@ -116,6 +119,7 @@ beforeEach(() => {
             },
             { status: responseStatus },
           );
+        }
         ownState = true;
       }
       return Response.json(
@@ -204,9 +208,12 @@ it("sends only a trimmed reason to the exact version and acknowledges independen
   );
   const peer = mockFetch.getMockImplementation();
   mockFetch.mockImplementation(async (url, init) => {
-    if (String(url).includes("/matches/"))
+    if (String(url).includes("/matches/")) {
       throw new TypeError("Controlled read failure");
-    if (!peer) throw new Error("Missing HTTP boundary");
+    }
+    if (!peer) {
+      throw new Error("Missing HTTP boundary");
+    }
     return peer(url, init);
   });
 
@@ -313,7 +320,9 @@ it("suppresses duplicate presses while the report is pending", async () => {
       posts.push({ url: String(url), body: JSON.parse(String(init.body)) });
       return deferred.promise;
     }
-    if (!peer) throw new Error("Missing HTTP boundary");
+    if (!peer) {
+      throw new Error("Missing HTTP boundary");
+    }
     return peer(url, init);
   });
   const user = userEvent.setup();
@@ -380,12 +389,13 @@ it.each(["initialization", "restoration"] as const)(
   "recovers a failed %s before admitting the disabled profile and report reads",
   async (stage) => {
     // Given
-    if (stage === "initialization")
+    if (stage === "initialization") {
       jest
         .mocked(initializeV2Installation)
         .mockRejectedValueOnce(new Error("Unavailable"));
-    else
+    } else {
       mockAuth0.getCredentials.mockRejectedValueOnce(new Error("Unavailable"));
+    }
     const user = userEvent.setup();
     await mount();
 
@@ -417,10 +427,15 @@ it("recovers a retained profile failure before admitting a report whose initial 
   const peer = mockFetch.getMockImplementation();
   let profileUnavailable = false;
   mockFetch.mockImplementation(async (url, init) => {
-    if (String(url).endsWith("/report")) return reportRead.promise;
-    if (String(url).endsWith("/me") && profileUnavailable)
+    if (String(url).endsWith("/report")) {
+      return reportRead.promise;
+    }
+    if (String(url).endsWith("/me") && profileUnavailable) {
       throw new TypeError("Unavailable");
-    if (!peer) throw new Error("Missing HTTP boundary");
+    }
+    if (!peer) {
+      throw new Error("Missing HTTP boundary");
+    }
     return peer(url, init);
   });
   const user = userEvent.setup();
@@ -495,7 +510,9 @@ it.each(["session", "departure"])(
         posts.push({ url: String(url), body: JSON.parse(String(init.body)) });
         return deferred.promise;
       }
-      if (!peer) throw new Error("Missing HTTP boundary");
+      if (!peer) {
+        throw new Error("Missing HTTP boundary");
+      }
       return peer(url, init);
     });
     const user = userEvent.setup();
@@ -509,20 +526,23 @@ it.each(["session", "departure"])(
     );
 
     // When
-    if (end === "session")
+    if (end === "session") {
       await user.press(
         screen.getByRole("button", { name: "Quitter la session" }),
       );
-    else await cleanup();
+    } else {
+      await cleanup();
+    }
     await act(async () =>
       deferred.resolve(Response.json({ reported: true }, { status: 201 })),
     );
 
     // Then
-    if (end === "session")
+    if (end === "session") {
       expect(
         screen.queryByText("Votre signalement a été envoyé."),
       ).not.toBeOnTheScreen();
+    }
     expect(mockDismissTo).not.toHaveBeenCalled();
     expect(posts).toHaveLength(1);
   },
@@ -536,7 +556,9 @@ it("uses ordinary error feedback for an invalid acknowledgement without automati
       posts.push({ url: String(url), body: JSON.parse(String(init.body)) });
       return Response.json({ reported: "yes" });
     }
-    if (!peer) throw new Error("Missing HTTP boundary");
+    if (!peer) {
+      throw new Error("Missing HTTP boundary");
+    }
     return peer(url, init);
   });
   const user = userEvent.setup();

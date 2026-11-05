@@ -98,7 +98,9 @@ public class ReadInbox {
    * @return authorized current representation, or empty
    */
   private Optional<Entry> currentMember(NotificationContext owner, UUID id, Instant now) {
-    if (!accounts.exists(owner.accountId())) return Optional.empty();
+    if (!accounts.exists(owner.accountId())) {
+      return Optional.empty();
+    }
     return store.member(owner, id, now).map(row -> hydrate(List.of(row), now).getFirst());
   }
 
@@ -137,6 +139,8 @@ public class ReadInbox {
    * @throws NotificationNotFoundException when that lifecycle no longer exists
    */
   private void requireOwner(NotificationContext owner) {
-    if (!accounts.exists(owner.accountId())) throw new NotificationNotFoundException();
+    if (!accounts.exists(owner.accountId())) {
+      throw new NotificationNotFoundException();
+    }
   }
 }

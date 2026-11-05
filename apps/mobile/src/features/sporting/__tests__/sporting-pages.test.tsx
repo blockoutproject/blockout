@@ -140,10 +140,13 @@ let session: AccountSession;
 function reads(url: string, request?: RequestInit): Promise<Response> {
   const parsed = new URL(url);
   const path = parsed.pathname;
-  if (path.endsWith("/application-access"))
+  if (path.endsWith("/application-access")) {
     return Promise.resolve(Response.json(applicationAccessResponse()));
-  if (path === "/accounts/me") return Promise.resolve(Response.json(account));
-  if (path.endsWith("/presentation"))
+  }
+  if (path === "/accounts/me") {
+    return Promise.resolve(Response.json(account));
+  }
+  if (path.endsWith("/presentation")) {
     return Promise.resolve(
       Response.json({
         id: sportingId,
@@ -167,16 +170,20 @@ function reads(url: string, request?: RequestInit): Promise<Response> {
           : {}),
       }),
     );
-  if (path.endsWith("/follower-count"))
+  }
+  if (path.endsWith("/follower-count")) {
     return Promise.resolve(Response.json({ count: following ? 8 : 7 }));
+  }
   if (path.includes("/team-follows/") || path.includes("/pool-follows/")) {
-    if (request?.method === "PUT")
+    if (request?.method === "PUT") {
       following = JSON.parse(String(request.body)).following;
+    }
     return Promise.resolve(Response.json({ following }));
   }
-  if (path.includes("/stream-contributions"))
+  if (path.includes("/stream-contributions")) {
     return Promise.resolve(Response.json(contributions));
-  if (path.endsWith(`/clubs/${sportingId}/teams`))
+  }
+  if (path.endsWith(`/clubs/${sportingId}/teams`)) {
     return Promise.resolve(
       Response.json({
         seasonId: parsed.searchParams.get("seasonId"),
@@ -191,11 +198,14 @@ function reads(url: string, request?: RequestInit): Promise<Response> {
         ],
       }),
     );
-  if (path.endsWith(`/clubs/${sportingId}`))
+  }
+  if (path.endsWith(`/clubs/${sportingId}`)) {
     return Promise.resolve(Response.json(club));
-  if (path.endsWith(`/teams/${sportingId}`))
+  }
+  if (path.endsWith(`/teams/${sportingId}`)) {
     return Promise.resolve(Response.json(team));
-  if (path.endsWith("/standings"))
+  }
+  if (path.endsWith("/standings")) {
     return Promise.resolve(
       Response.json({
         poolId: path.split("/")[2],
@@ -205,11 +215,14 @@ function reads(url: string, request?: RequestInit): Promise<Response> {
         rows: [],
       }),
     );
-  if (path.endsWith(`/pools/${sportingId}`))
+  }
+  if (path.endsWith(`/pools/${sportingId}`)) {
     return Promise.resolve(Response.json(pool));
-  if (path.endsWith(`/matches/${sportingId}`))
+  }
+  if (path.endsWith(`/matches/${sportingId}`)) {
     return Promise.resolve(Response.json(match));
-  if (path === "/matches")
+  }
+  if (path === "/matches") {
     return Promise.resolve(
       Response.json({
         category: parsed.searchParams.get("category"),
@@ -218,6 +231,7 @@ function reads(url: string, request?: RequestInit): Promise<Response> {
         days: [],
       }),
     );
+  }
   throw new Error(`Unexpected controlled request ${path}`);
 }
 
@@ -497,7 +511,7 @@ it.each(["guest", "other", "owner"] as const)(
     const url = "https://youtu.be/sporting-fixture";
     match = { ...match, streamUrl: url, streamContributionId: contributionId };
     mockAuth0.hasValidCredentials.mockResolvedValue(viewer !== "guest");
-    if (viewer === "owner")
+    if (viewer === "owner") {
       contributions = ownContributions({
         proposalCount: 1,
         activeContribution: {
@@ -510,6 +524,7 @@ it.each(["guest", "other", "owner"] as const)(
           canWithdraw: true,
         },
       });
+    }
     const user = userEvent.setup();
     await renderPage(<MatchScreen matchId={sportingId} />);
 
@@ -541,10 +556,11 @@ it.each(["guest", "other", "owner"] as const)(
               },
             },
     );
-    if (viewer === "owner")
+    if (viewer === "owner") {
       expect(
         screen.queryByRole("button", { name: "Signaler le lien" }),
       ).not.toBeOnTheScreen();
+    }
     expect(
       screen.getByRole("button", { name: "Signaler un problème" }),
     ).toBeOnTheScreen();

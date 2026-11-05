@@ -70,7 +70,9 @@ function SignInJourney() {
 
   /** Starts either hosted authentication or a targeted retry using still-valid SDK credentials. */
   async function signIn() {
-    if (busy || session.operation) return;
+    if (busy || session.operation) {
+      return;
+    }
     setSupportOrigin({ screen: "sign-in" });
     feedback.clear();
     const audience = process.env.EXPO_PUBLIC_AUTH0_AUDIENCE;
@@ -81,12 +83,15 @@ function SignInJourney() {
     let authenticating = session.status !== "authenticated";
     try {
       let authenticated;
-      if (session.status === "authenticated") authenticated = session;
-      else {
+      if (session.status === "authenticated") {
+        authenticated = session;
+      } else {
         setLoginAttempted(true);
         authenticated = await session.signIn(audience ?? "");
       }
-      if (!authenticated?.subject) return;
+      if (!authenticated?.subject) {
+        return;
+      }
       authenticating = false;
       const attempt = establishment.mutateAsync({
         subject: authenticated.subject,
@@ -99,7 +104,9 @@ function SignInJourney() {
         router.replace("/profile");
         return;
       }
-      if (!mounted.current) return;
+      if (!mounted.current) {
+        return;
+      }
       setSupportOrigin({
         screen: "sign-in",
         failureStage: authenticating
@@ -113,8 +120,9 @@ function SignInJourney() {
       });
       let message: string | undefined;
       if (error instanceof WebAuthError) {
-        if (error.type === WebAuthErrorCodes.USER_CANCELLED)
+        if (error.type === WebAuthErrorCodes.USER_CANCELLED) {
           message = "Connexion annulée.";
+        }
       }
       feedback.error(message);
     }
@@ -233,6 +241,7 @@ function SignInJourney() {
     </ScrollView>
   );
 }
+
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: {

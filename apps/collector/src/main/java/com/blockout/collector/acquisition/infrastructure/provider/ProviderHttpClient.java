@@ -194,7 +194,9 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
                   request.cancel();
                   throw new HttpResponseException(response.getCode(), "Provider read failed");
                 }
-                if (response.getEntity() == null) return new byte[0];
+                if (response.getEntity() == null) {
+                  return new byte[0];
+                }
                 String type = response.getEntity().getContentType();
                 if (page
                     && type != null
@@ -211,8 +213,9 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
       } catch (URISyntaxException failure) {
         throw new IOException("Invalid source URL", failure);
       }
-      if (context.getRedirectLocations() != null && context.getRedirectLocations().size() > 0)
+      if (context.getRedirectLocations() != null && context.getRedirectLocations().size() > 0) {
         actual = context.getRedirectLocations().get(context.getRedirectLocations().size() - 1);
+      }
       CacheResponseStatus status = context.getCacheResponseStatus();
       return new ProviderResponse(
           body,
@@ -234,7 +237,9 @@ public final class ProviderHttpClient implements ProviderPages, AutoCloseable {
    * @throws IOException for stream failure or decoded overflow
    */
   private byte[] boundedBody(HttpUriRequestBase request, HttpEntity entity) throws IOException {
-    if (entity == null) return new byte[0];
+    if (entity == null) {
+      return new byte[0];
+    }
     try (InputStream content = entity.getContent()) {
       byte[] bytes = content.readNBytes(maxResponseBytes);
       if (content.read() != -1) {

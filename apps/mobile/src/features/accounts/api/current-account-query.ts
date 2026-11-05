@@ -23,16 +23,19 @@ export function currentAccountQuery(
           headers: { Authorization: `Bearer ${credentials.accessToken}` },
         });
       } catch (error) {
-        if (signal.aborted) throw new ApiError("cancelled");
+        if (signal.aborted) {
+          throw new ApiError("cancelled");
+        }
         // Refused or deleted accounts cannot leave a usable personal profile in this lifetime.
         if (
           isAccessDenied(error) ||
           (error instanceof ApiError && error.status === 404)
-        )
+        ) {
           client
             .getQueryCache()
             .find({ queryKey, exact: true })
             ?.setState({ data: undefined });
+        }
         throw isAccessDenied(previousError) ? previousError : error;
       }
     },

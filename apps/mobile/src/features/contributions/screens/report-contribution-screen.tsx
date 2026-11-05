@@ -41,9 +41,11 @@ export interface ReportContributionScreenProps {
   /** The public address viewed beside this version; display only, never sent to the report API. */
   contributionUrl?: string;
 }
+
 const reasonSchema = z.object({
   reason: z.string().trim().min(1, "Indiquez le motif du signalement."),
 });
+
 /** Ordinary report route; F05 owns session recovery before private reads, with no deferred report or F10 support payload. */
 export function ReportContributionScreen({
   matchId,
@@ -127,6 +129,7 @@ export function ReportContributionScreen({
     </Page>
   );
 }
+
 /** Native form on approved report node 5534:59410; its retained reason always belongs to the viewed version. */
 function ReportForm({
   matchId,
@@ -172,27 +175,36 @@ function ReportForm({
   const busy = command.isPending;
   const disabled =
     !reporting.usable || !matchAvailable || isAccessDenied(query.error) || busy;
+
   /** Explicit cancellation abandons this draft and returns without invoking a write. */
   function cancel() {
     reset({ reason: "" });
     router.dismissTo({ pathname: "/matches/[matchId]", params: { matchId } });
   }
+
   /** Sends one validated private reason, preserving refusals and ignoring obsolete session/route callbacks. */
   async function send(body: CreateStreamReportRequest) {
-    if (disabled || reported) return;
+    if (disabled || reported) {
+      return;
+    }
     const attempt = command.mutateAsync(body);
     try {
       await attempt;
       reset({ reason: "" });
     } catch (error) {
-      if (!mounted.current) return;
-      if (error instanceof ApiError && error.status === 422)
+      if (!mounted.current) {
+        return;
+      }
+      if (error instanceof ApiError && error.status === 422) {
         setError("reason", {
           message: "Le signalement a été refusé. Votre saisie est conservée.",
         });
-      else feedback.error();
+      } else {
+        feedback.error();
+      }
     }
   }
+
   return (
     <Surface>
       <Text
@@ -258,6 +270,7 @@ function ReportForm({
     </Surface>
   );
 }
+
 const styles = StyleSheet.create({
   centered: { justifyContent: "center" },
   form: { gap: tokens.layout.form.gap },

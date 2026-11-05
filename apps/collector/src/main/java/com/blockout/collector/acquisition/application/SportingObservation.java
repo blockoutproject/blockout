@@ -71,7 +71,14 @@ public final class SportingObservation {
       List<Match> matches,
       List<ContextSlot> contextSlots,
       List<Failure> failures) {
-    /** Detaches parsed rows and prevents later scope changes. */
+    /**
+     * Detaches parsed rows and prevents later scope changes.
+     *
+     * @param complete whether the bounded provider observation is complete
+     * @param matches identifiable parsed matches
+     * @param contextSlots recognized non-match entries
+     * @param failures attributable row refusals
+     */
     public Calendar {
       matches = List.copyOf(matches);
       contextSlots = List.copyOf(contextSlots);
@@ -92,7 +99,12 @@ public final class SportingObservation {
 
   /** Qualified catalog presence; partial discovery cannot prove absence. */
   public record Catalog(boolean complete, List<Pool> pools) {
-    /** Retains the provider's ordered identity proposals. */
+    /**
+     * Retains the provider's ordered identity proposals.
+     *
+     * @param complete whether discovery can establish the full catalog presence
+     * @param pools qualified native pool identities in provider order
+     */
     public Catalog {
       pools = List.copyOf(pools);
     }
@@ -104,7 +116,14 @@ public final class SportingObservation {
       String nativeTeamReference,
       Integer position,
       Map<String, String> statistics) {
-    /** Detaches the selected nonpersonal statistics. */
+    /**
+     * Detaches the selected nonpersonal statistics.
+     *
+     * @param sourceName official team display name
+     * @param nativeTeamReference attributable native team identity when available
+     * @param position official published position when supplied
+     * @param statistics selected nonpersonal display statistics
+     */
     public Standing {
       statistics = Map.copyOf(statistics);
     }
@@ -113,13 +132,21 @@ public final class SportingObservation {
   /** Explicit publication evidence; an unreadable response cannot be represented by this value. */
   public record Standings(
       StandingsPublicationStateEnum publicationState, List<String> columns, List<Standing> rows) {
-    /** Refuses contradictory absence and preserves source order. */
+    /**
+     * Refuses contradictory absence and preserves source order.
+     *
+     * @param publicationState explicit provider publication evidence
+     * @param columns official display column order
+     * @param rows official table rows in source order
+     * @throws IllegalArgumentException when unpublished standings contain table content
+     */
     public Standings {
       columns = List.copyOf(columns);
       rows = List.copyOf(rows);
       if (publicationState == StandingsPublicationStateEnum.NOT_PUBLISHED
-          && (!columns.isEmpty() || !rows.isEmpty()))
+          && (!columns.isEmpty() || !rows.isEmpty())) {
         throw new IllegalArgumentException("Unpublished standings cannot contain a table");
+      }
     }
   }
 
@@ -178,7 +205,16 @@ public final class SportingObservation {
       long staleCount,
       long rejectedCount,
       boolean absenceReconciled) {
-    /** Detaches backend acceptance evidence. */
+    /**
+     * Detaches backend acceptance evidence.
+     *
+     * @param outcomes exact per-match backend outcomes
+     * @param acceptedCount accepted observations
+     * @param unchangedCount observations matching current facts
+     * @param staleCount observations refused as stale
+     * @param rejectedCount observations refused by the backend
+     * @param absenceReconciled whether the backend reconciled absence in the bounded scope
+     */
     public CalendarOutcome {
       outcomes = List.copyOf(outcomes);
     }
@@ -186,7 +222,12 @@ public final class SportingObservation {
 
   /** Catalog acceptance correlates compound identities by original array position. */
   public record CatalogOutcome(List<Outcome> outcomes, boolean absenceReconciled) {
-    /** Retains the backend's original response order. */
+    /**
+     * Retains the backend's original response order.
+     *
+     * @param outcomes backend outcomes correlated by original catalog position
+     * @param absenceReconciled whether the backend reconciled catalog absence
+     */
     public CatalogOutcome {
       outcomes = List.copyOf(outcomes);
     }

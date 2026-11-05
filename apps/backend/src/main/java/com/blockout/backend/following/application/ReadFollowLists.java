@@ -79,11 +79,16 @@ public class ReadFollowLists {
    * @return ordered current identities and a lookahead indication
    */
   private TargetPage select(UUID accountId, TargetType type, UUID seasonId, long page) {
-    if (page < 0 || page > MAX_PAGE) throw new FollowPageOutOfRangeException();
-    if (!accounts.exists(accountId)) throw new AccountNotFoundException();
+    if (page < 0 || page > MAX_PAGE) {
+      throw new FollowPageOutOfRangeException();
+    }
+    if (!accounts.exists(accountId)) {
+      throw new AccountNotFoundException();
+    }
     if (seasonId != null
-        && follows.seasons(accountId).stream().noneMatch(choice -> choice.id().equals(seasonId)))
+        && follows.seasons(accountId).stream().noneMatch(choice -> choice.id().equals(seasonId))) {
       throw new FollowUnavailableTargetException();
+    }
     return follows.targets(accountId, type, seasonId, page);
   }
 
@@ -95,8 +100,12 @@ public class ReadFollowLists {
    * @return next supported page, or null only when the selection has no further row
    */
   private Long continuation(TargetPage selected, long page) {
-    if (!selected.hasNext()) return null;
-    if (page == MAX_PAGE) throw new FollowPageOutOfRangeException();
+    if (!selected.hasNext()) {
+      return null;
+    }
+    if (page == MAX_PAGE) {
+      throw new FollowPageOutOfRangeException();
+    }
     return page + 1;
   }
 

@@ -120,7 +120,9 @@ class OwnerRecoveryIntegrationTest extends ContributionScenario {
     result(2, ResultStateEnum.FINAL);
     List<UUID> entries = sql.queryForList("SELECT id FROM notification", UUID.class);
     assertThat(entries).hasSize(2);
-    for (UUID entry : entries) marks.mark(new NotificationContext(FOLLOWER), entry);
+    for (UUID entry : entries) {
+      marks.mark(new NotificationContext(FOLLOWER), entry);
+    }
     Map<String, Object> facts =
         sql.queryForMap("SELECT * FROM match_announcement WHERE match_id=?", matchId);
     assertThat(facts)

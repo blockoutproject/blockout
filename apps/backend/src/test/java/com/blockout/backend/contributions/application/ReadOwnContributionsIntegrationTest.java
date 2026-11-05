@@ -59,9 +59,10 @@ class ReadOwnContributionsIntegrationTest extends ContributionScenario {
     TransactionTemplate tx = new TransactionTemplate(transactions);
     tx.executeWithoutResult(
         status -> {
-          for (int n = 0; n < 22; n++)
+          for (int n = 0; n < 22; n++) {
             contributions.record(
                 matchId, AUTHOR, new StreamAddress("https://youtube.com/" + n), true, true, NOW);
+          }
         });
 
     // When
@@ -111,7 +112,9 @@ class ReadOwnContributionsIntegrationTest extends ContributionScenario {
       "The personal version count distinguishes an empty collection from an active version")
   void countsCurrentVersionPresence(boolean active) throws Exception {
     // Given
-    if (active) submit(AUTHOR, "0", "https://youtu.be/active", false);
+    if (active) {
+      submit(AUTHOR, "0", "https://youtu.be/active", false);
+    }
 
     // When
     ResultActions response = readPage(AUTHOR, 0);
@@ -157,11 +160,13 @@ class ReadOwnContributionsIntegrationTest extends ContributionScenario {
           }
           contributions.record(
               matchId, AUTHOR, new StreamAddress("https://youtu.be/active"), true, true, NOW);
-          for (Map.Entry<ContributionVersion.State, UUID> historicalVersion : historical.entrySet())
+          for (Map.Entry<ContributionVersion.State, UUID> historicalVersion :
+              historical.entrySet()) {
             sql.update(
                 "UPDATE contribution_version SET state=? WHERE id=?",
                 historicalVersion.getKey().name(),
                 historicalVersion.getValue());
+          }
           sql.update(
               "INSERT INTO sporting_match(id,pool_id,reference,home_team_id,away_team_id,local_date,reliable_start) SELECT ?,pool_id,?,home_team_id,away_team_id,local_date,reliable_start FROM sporting_match WHERE id=?",
               otherMatch,
@@ -197,7 +202,7 @@ class ReadOwnContributionsIntegrationTest extends ContributionScenario {
     ContributionVersion active =
         tx.execute(
             transaction -> {
-              for (int n = 0; n < 21; n++)
+              for (int n = 0; n < 21; n++) {
                 contributions.record(
                     matchId,
                     AUTHOR,
@@ -205,6 +210,7 @@ class ReadOwnContributionsIntegrationTest extends ContributionScenario {
                     true,
                     true,
                     NOW.minusSeconds(n));
+              }
               return contributions.record(
                   matchId,
                   AUTHOR,
@@ -244,12 +250,14 @@ class ReadOwnContributionsIntegrationTest extends ContributionScenario {
     if (absence != ActiveAbsence.NO_VERSION) {
       UUID owner = absence == ActiveAbsence.OTHER_OWNER ? OTHER : AUTHOR;
       SubmitContribution.Outcome created = submit(owner, "0", "https://youtu.be/active", false);
-      if (absence == ActiveAbsence.ERASED_OWNER)
+      if (absence == ActiveAbsence.ERASED_OWNER) {
         sql.update(
             "UPDATE contribution_version SET owner_id=NULL WHERE id=?", created.version().id());
-      if (absence == ActiveAbsence.WITHDRAWN)
+      }
+      if (absence == ActiveAbsence.WITHDRAWN) {
         sql.update(
             "UPDATE contribution_version SET state='WITHDRAWN' WHERE id=?", created.version().id());
+      }
     }
 
     // When

@@ -11,6 +11,7 @@ import { useInboxQueries } from "../api/use-inbox-queries";
 import type { PushRegistration } from "./push-registration";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useSportingTransition } from "../../advertising/use-sporting-transition";
+
 // SDK 58 otherwise presents foreground messages while F14/native authentication is still initializing.
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -25,11 +26,13 @@ const routing = z.object({
   notificationId: z.string().uuid(),
   matchId: z.string().uuid(),
 });
+
 /** Root-owned SDK subscriptions; current ordinary navigation is supplied by the existing access/discovery owners. */
 export interface NotificationLifecycleProps {
   registration: PushRegistration;
   enabled: boolean;
 }
+
 /** Keeps registration and receipt with their session/Query owners, consuming taps only after root gate redirects settle. */
 export function NotificationLifecycle({
   registration,
@@ -65,8 +68,14 @@ export function NotificationLifecycle({
   /** Current registration credentials stay with the original inbox owner and existing push boundary. */
   const register = useEffectEvent(
     (devicePushToken?: Notifications.DevicePushToken) => {
-      if (!available || !queries || typeof projectId !== "string" || !projectId)
+      if (
+        !available ||
+        !queries ||
+        typeof projectId !== "string" ||
+        !projectId
+      ) {
         return;
+      }
       void registration.register(
         owner,
         projectId,
@@ -78,7 +87,9 @@ export function NotificationLifecycle({
   );
   /** Receipt rereads are silent and refresh only an already-observed inbox plus its whole summary. */
   const refresh = useEffectEvent(() => {
-    if (!queries) return;
+    if (!queries) {
+      return;
+    }
     void Promise.allSettled([
       client.getQueryData(queries.inbox.queryKey)
         ? refreshInbox(client, queries)
@@ -89,24 +100,35 @@ export function NotificationLifecycle({
   /** Consumes each remembered response once; reading and navigation stay independent under one tap's feedback. */
   const open = useEffectEvent(
     (response: Notifications.NotificationResponse) => {
-      if (response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER)
+      if (
+        response.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER
+      ) {
         return;
+      }
       const key = response.notification.request.identifier;
-      if (handled.current === key) return;
+      if (handled.current === key) {
+        return;
+      }
       handled.current = key;
       const data = routing.safeParse(
         response.notification.request.content.data,
       );
       // Consume remembered tap context without inspecting or dismissing presented notifications.
       Notifications.clearLastNotificationResponse();
-      if (!data.success) return;
+      if (!data.success) {
+        return;
+      }
       let reported = false;
+
       /** The consumed native tap owns both outcomes; its second failure never repeats the same notice. */
       function reportFailure() {
-        if (reported) return;
+        if (reported) {
+          return;
+        }
         reported = true;
         feedback.error();
       }
+
       if (queries && data.data.ownerAccountId === owner.accountId) {
         const observer = new MutationObserver(client, {
           ...createReadNotificationOptions(client, owner, queries),
@@ -130,14 +152,18 @@ export function NotificationLifecycle({
     },
   );
   useEffect(() => {
-    if (!available) return;
+    if (!available) {
+      return;
+    }
 
     register();
     const token = Notifications.addPushTokenListener((devicePushToken) => {
       register(devicePushToken);
     });
     const foreground = AppState.addEventListener("change", (state) => {
-      if (state === "active") register();
+      if (state === "active") {
+        register();
+      }
     });
     return () => {
       token.remove();
@@ -146,7 +172,9 @@ export function NotificationLifecycle({
     };
   }, [available, subject, accountId, registration]);
   useEffect(() => {
-    if (!ready) return;
+    if (!ready) {
+      return;
+    }
 
     const receive = Notifications.addNotificationReceivedListener(() => {
       refresh();
@@ -157,7 +185,9 @@ export function NotificationLifecycle({
       },
     );
     const initial = Notifications.getLastNotificationResponse();
-    if (initial) open(initial);
+    if (initial) {
+      open(initial);
+    }
     return () => {
       receive.remove();
       tap.remove();

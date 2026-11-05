@@ -15,6 +15,8 @@ public class SportingEditRevision {
    * @throws SportingConflictException when revisions differ
    */
   static void require(String supplied, String current) {
-    if (!current.equals(supplied)) throw new SportingConflictException("stale-revision", List.of());
+    if (!current.equals(supplied)) {
+      throw new SportingConflictException("stale-revision", List.of());
+    }
   }
 }

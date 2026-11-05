@@ -709,8 +709,9 @@ class CurrentRestrictionsIntegrationTest {
                           .issuer("https://identity.example.invalid/")
                           .subject("issue213")
                           .claim("azp", "mobile-test")));
-      if (path.contains("/matches") && !path.contains("category="))
+      if (path.contains("/matches") && !path.contains("category=")) {
         request.param("category", "upcoming").param("timeZone", "Europe/Paris");
+      }
     }
     return json.readTree(
         mvc.perform(request)

@@ -121,7 +121,9 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
       ConsultationMatchSelection.Filter selection,
       List<LocalDate> days,
       Instant now) {
-    if (days.isEmpty()) return List.of();
+    if (days.isEmpty()) {
+      return List.of();
+    }
     CriteriaBuilder builder = entityManager.getCriteriaBuilder();
     CriteriaQuery<Tuple> query = builder.createTupleQuery();
     Root<MatchEntity> match = query.from(MatchEntity.class);
@@ -232,11 +234,12 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
                     now.atZone(MatchPresentation.DATE_ONLY_ZONE).toLocalDate())));
     conditions.add(
         request.category() == CalendarCategoryEnum.COMPLETED ? completed : builder.not(completed));
-    if (request.nextDay() != null)
+    if (request.nextDay() != null) {
       conditions.add(
           request.category() == CalendarCategoryEnum.UPCOMING
               ? builder.greaterThan(day, request.nextDay())
               : builder.lessThan(day, request.nextDay()));
+    }
     return builder.and(conditions.toArray(Predicate[]::new));
   }
 
@@ -275,7 +278,9 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
   /** {@inheritDoc} */
   @Override
   public Map<UUID, DivisionDetail> divisions(Set<UUID> ids) {
-    if (ids.isEmpty()) return Map.of();
+    if (ids.isEmpty()) {
+      return Map.of();
+    }
     return divisions.findSummariesByIdIn(ids).stream()
         .map(mapper::toDetail)
         .collect(Collectors.toUnmodifiableMap(DivisionDetail::id, value -> value));
@@ -290,7 +295,9 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
   /** {@inheritDoc} */
   @Override
   public Map<UUID, SportingPresentation.Locality> localities(Set<UUID> clubIds) {
-    if (clubIds.isEmpty()) return Map.of();
+    if (clubIds.isEmpty()) {
+      return Map.of();
+    }
     return clubs.findLocalities(clubIds).stream()
         .collect(Collectors.toUnmodifiableMap(ClubLocalityRow::id, mapper::toLocality));
   }
@@ -298,7 +305,9 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
   /** {@inheritDoc} */
   @Override
   public Map<UUID, TeamView> teams(Set<UUID> ids) {
-    if (ids.isEmpty()) return Map.of();
+    if (ids.isEmpty()) {
+      return Map.of();
+    }
     return teams.findViews(ids).stream()
         .collect(Collectors.toUnmodifiableMap(TeamView::id, value -> value));
   }
@@ -306,7 +315,9 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
   /** {@inheritDoc} */
   @Override
   public Map<UUID, PoolView> pools(Set<UUID> ids) {
-    if (ids.isEmpty()) return Map.of();
+    if (ids.isEmpty()) {
+      return Map.of();
+    }
     return pools.findViews(ids).stream()
         .collect(Collectors.toUnmodifiableMap(PoolView::id, value -> value));
   }
@@ -314,7 +325,9 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
   /** {@inheritDoc} */
   @Override
   public Map<UUID, SeasonView> seasons(Set<UUID> ids) {
-    if (ids.isEmpty()) return Map.of();
+    if (ids.isEmpty()) {
+      return Map.of();
+    }
     return seasons.findAllById(ids).stream()
         .map(mapper::toView)
         .collect(Collectors.toUnmodifiableMap(SeasonView::id, value -> value));
@@ -323,7 +336,9 @@ public class JpaConsultationStore implements ConsultationStore, ConsultationMatc
   /** {@inheritDoc} */
   @Override
   public Map<UUID, MatchInput> matches(Set<UUID> ids) {
-    if (ids.isEmpty()) return Map.of();
+    if (ids.isEmpty()) {
+      return Map.of();
+    }
     return matches.findPresentationByIdIn(ids).stream()
         .collect(Collectors.toUnmodifiableMap(MatchEntity::getId, mapper::toMatchInput));
   }

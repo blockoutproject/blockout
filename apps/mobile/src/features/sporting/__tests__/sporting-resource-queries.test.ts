@@ -17,8 +17,11 @@ beforeEach(() => {
 });
 afterEach(() => {
   jest.restoreAllMocks();
-  if (originalUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
-  else process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  if (originalUrl === undefined) {
+    delete process.env.EXPO_PUBLIC_API_URL;
+  } else {
+    process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  }
 });
 
 /** Uses real session and admission preparation while controlling only the network boundary. */

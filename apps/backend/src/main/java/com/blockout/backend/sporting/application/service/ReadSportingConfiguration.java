@@ -78,8 +78,9 @@ public class ReadSportingConfiguration {
     Set<Permission> current = permissions.forAccount(accountId);
     if (!current.contains(Permission.MANAGE_SPORTING_CLASSIFICATION)
         && !current.contains(Permission.MANAGE_SPORTING_PRESENTATION)
-        && !current.contains(Permission.MANAGE_DIVISION_LIFECYCLE))
+        && !current.contains(Permission.MANAGE_DIVISION_LIFECYCLE)) {
       throw new AccessDeniedException("Division read is not permitted");
+    }
   }
 
   /**

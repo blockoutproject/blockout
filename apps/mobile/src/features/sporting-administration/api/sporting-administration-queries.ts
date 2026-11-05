@@ -23,6 +23,7 @@ export interface SportingQueryAuthority {
   enabled: boolean;
   request(signal?: AbortSignal): Promise<ApiFetchOptions>;
 }
+
 /** Canonical generated DTO reads; editor-specific projections belong to Query select, never a second cache. */
 export function createSportingAdministrationQueries(
   authority: SportingQueryAuthority,
@@ -40,11 +41,12 @@ export function createSportingAdministrationQueries(
             return await listDivisions(params, await authority.request(signal));
           } catch (error) {
             // A later technical failure cannot restore a catalog whose current read was refused.
-            if (!signal.aborted && isAccessDenied(error))
+            if (!signal.aborted && isAccessDenied(error)) {
               client
                 .getQueryCache()
                 .find({ queryKey, exact: true })
                 ?.setState({ data: undefined, dataUpdatedAt: 0 });
+            }
             throw error;
           }
         },

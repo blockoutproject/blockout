@@ -33,15 +33,19 @@ export function useContributionReport(matchId: string, contributionId: string) {
     session.status === "authenticated" &&
     profile.isSuccess &&
     profile.data?.accountId === actor.accountId;
+
   /** Uses the existing generated transport with no publication eligibility or persistent reason payload. */
   async function request(signal?: AbortSignal) {
     const credentials = await session.getCredentials();
-    if (!credentials) throw new ApiError("http", 401);
+    if (!credentials) {
+      throw new ApiError("http", 401);
+    }
     return admission.request({
       signal,
       headers: { Authorization: `Bearer ${credentials.accessToken}` },
     });
   }
+
   const query = useQuery({
     queryKey,
     enabled: usable,

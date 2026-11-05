@@ -48,9 +48,12 @@ public class ChangeCollectionControls {
     authorization.require(accountId, Permission.MANAGE_COLLECTION);
     CollectionRevision.requireRevision(revision, control.revision());
     CollectionLifecycle.requireOpen(season);
-    if (enabled) requireLaunched(control, season);
-    if (control.enabled() == enabled && (enabled || control.requestId() == null))
+    if (enabled) {
+      requireLaunched(control, season);
+    }
+    if (control.enabled() == enabled && (enabled || control.requestId() == null)) {
       return configurationReads.controlView(control);
+    }
     CollectionRevision.requireAdvance(control.revision());
     return configurationReads.controlView(
         store.setControlIntent(
@@ -81,13 +84,17 @@ public class ChangeCollectionControls {
     CollectionRevision.requireRevision(revision, control.revision());
     CollectionLifecycle.requireOpen(season);
     if (!control.enabled()
-        || (season != null && season.collectionState() != CollectionSeasonStateEnum.ACTIVE))
+        || (season != null && season.collectionState() != CollectionSeasonStateEnum.ACTIVE)) {
       throw new CollectionConflictException("conflict");
+    }
     requireLaunched(control, season);
     ControlView current = configurationReads.controlView(control);
-    if (current.cycle() != null && current.cycle().state() == CollectionCycleStateEnum.RUNNING)
+    if (current.cycle() != null && current.cycle().state() == CollectionCycleStateEnum.RUNNING) {
       return new RequestOutcome(current, true);
-    if (control.requestId() != null) return new RequestOutcome(current, false);
+    }
+    if (control.requestId() != null) {
+      return new RequestOutcome(current, false);
+    }
     CollectionRevision.requireAdvance(control.revision());
     return new RequestOutcome(
         configurationReads.controlView(
@@ -117,7 +124,8 @@ public class ChangeCollectionControls {
                 .noneMatch(
                     source ->
                         source.launched()
-                            && source.provider().getValue().equals(control.family().getValue()))))
+                            && source.provider().getValue().equals(control.family().getValue())))) {
       throw new CollectionConflictException("conflict");
+    }
   }
 }

@@ -196,11 +196,13 @@ beforeEach(async () => {
     .mockReset()
     .mockImplementation(async (url: string, init: RequestInit) => {
       const path = new URL(url).pathname;
-      if (path.endsWith("application-access"))
+      if (path.endsWith("application-access")) {
         return Response.json(applicationAccessResponse());
-      if (path.endsWith("accounts/me"))
+      }
+      if (path.endsWith("accounts/me")) {
         return Response.json(accountResponse({ accountId: row.id }));
-      if (path.endsWith("sporting-search-options"))
+      }
+      if (path.endsWith("sporting-search-options")) {
         return Response.json({
           resourceType: new URL(url).searchParams.get("resourceType"),
           seasons: [],
@@ -208,18 +210,23 @@ beforeEach(async () => {
           formats: ["6x6"],
           genders: ["female", "male", "mixed"],
         });
-      if (path.endsWith("notification-summary"))
+      }
+      if (path.endsWith("notification-summary")) {
         return Response.json(
           total
             ? { unreadCount: total, nextExpiryAt: "2026-11-01T00:00:00Z" }
             : { unreadCount: 0 },
         );
-      if (path.endsWith("/notifications"))
+      }
+      if (path.endsWith("/notifications")) {
         return Response.json({ notifications: [{ ...row, read }] });
-      if (path.endsWith(`/matches/${row.match.id}`))
+      }
+      if (path.endsWith(`/matches/${row.match.id}`)) {
         return Response.json(match);
-      if (path.endsWith("/stream-contributions"))
+      }
+      if (path.endsWith("/stream-contributions")) {
         return Response.json(ownContributions());
+      }
       if (
         path.endsWith(`/notifications/${row.id}`) &&
         init.method === "PATCH"
@@ -271,13 +278,17 @@ it.each([false, true])(
     await screen.findByRole("link", { name: /non lue$/ });
     privateClient.setDefaultOptions({ queries: { retry: false } });
     const ordinary = mockFetch.getMockImplementation();
-    if (!ordinary) throw new Error("Synthetic HTTP implementation is required");
+    if (!ordinary) {
+      throw new Error("Synthetic HTTP implementation is required");
+    }
     mockFetch.mockImplementation(async (url: string, init: RequestInit) => {
-      if (new URL(url).pathname.endsWith(`/matches/${row.match.id}`))
+      if (new URL(url).pathname.endsWith(`/matches/${row.match.id}`)) {
         return new Response(null, { status: 503 });
+      }
       const response = await ordinary(url, init);
-      if (lost && init.method === "PATCH")
+      if (lost && init.method === "PATCH") {
         throw new TypeError("lost read acknowledgement");
+      }
       return response;
     });
     const user = userEvent.setup();
@@ -318,18 +329,24 @@ it.each(["owner", "foreign", "guest"] as const)(
   "opens an old missing notification's current F03 target as %s without recreating it",
   async (actor) => {
     // Given: only SDK event I/O is controlled; the actual lifecycle and navigator are mounted.
-    if (actor === "guest")
+    if (actor === "guest") {
       mockAuth0.hasValidCredentials.mockResolvedValue(false);
+    }
     const ordinary = mockFetch.getMockImplementation();
-    if (!ordinary) throw new Error("Synthetic HTTP implementation is required");
+    if (!ordinary) {
+      throw new Error("Synthetic HTTP implementation is required");
+    }
     mockFetch.mockImplementation(async (url: string, init: RequestInit) => {
       const path = new URL(url).pathname;
-      if (path.endsWith(`/notifications/${row.id}`))
+      if (path.endsWith(`/notifications/${row.id}`)) {
         return new Response(null, { status: 404 });
-      if (path.endsWith("/notifications"))
+      }
+      if (path.endsWith("/notifications")) {
         return Response.json({ notifications: [] });
-      if (path.endsWith("/notification-summary"))
+      }
+      if (path.endsWith("/notification-summary")) {
         return Response.json({ unreadCount: 0 });
+      }
       return ordinary(url, init);
     });
     await openInbox();
@@ -345,7 +362,9 @@ it.each(["owner", "foreign", "guest"] as const)(
     const tap = jest
       .mocked(Notifications.addNotificationResponseReceivedListener)
       .mock.calls.at(-1)?.[0];
-    if (!tap) throw new Error("The native tap listener must be mounted");
+    if (!tap) {
+      throw new Error("The native tap listener must be mounted");
+    }
     const notification: Notifications.NotificationResponse = {
       actionIdentifier: "default",
       notification: {
@@ -393,7 +412,9 @@ it.each(["owner", "foreign", "guest"] as const)(
       .slice(before)
       .filter(([url]) => /\/notifications\/[^/]+$/.test(new URL(url).pathname));
     expect(personal).toHaveLength(actor === "owner" ? 1 : 0);
-    if (actor === "owner") expect(personal[0][1].method).toBe("PATCH");
+    if (actor === "owner") {
+      expect(personal[0][1].method).toBe("PATCH");
+    }
     expect(
       mockFetch.mock.calls.some(([, init]) => init.method === "POST"),
     ).toBe(false);
@@ -418,8 +439,9 @@ it.each(["professional", "contributed"] as const)(
   "opens the current match's exact %s stream destination from the real inbox",
   async (source) => {
     // Given
-    if (source === "contributed")
+    if (source === "contributed") {
       match.streamContributionId = "00000000-0000-4000-8000-000000000290";
+    }
     await openInbox();
     const open = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
     const user = userEvent.setup();
@@ -469,13 +491,16 @@ it("shows known link absence on the retained result when returning to an offline
   };
   delete match.streamUrl;
   const ordinary = mockFetch.getMockImplementation();
-  if (!ordinary) throw new Error("Synthetic HTTP implementation is required");
+  if (!ordinary) {
+    throw new Error("Synthetic HTTP implementation is required");
+  }
   let offline = false;
   mockFetch.mockImplementation((url: string, init: RequestInit) => {
-    if (url.endsWith("/notifications"))
+    if (url.endsWith("/notifications")) {
       return offline
         ? Promise.reject(new TypeError("offline inbox refresh"))
         : Promise.resolve(Response.json({ notifications: [linked] }));
+    }
     return ordinary(url, init);
   });
   await openInbox();
@@ -512,13 +537,19 @@ it("removes a currently unavailable match from the real inbox despite a delayed 
   );
   const delayed = Promise.withResolvers<Response>();
   const ordinary = mockFetch.getMockImplementation();
-  if (!ordinary) throw new Error("Synthetic HTTP implementation is required");
+  if (!ordinary) {
+    throw new Error("Synthetic HTTP implementation is required");
+  }
   mockFetch.mockImplementation((url: string, init: RequestInit) => {
-    if (url.endsWith("/notifications")) return delayed.promise;
-    if (url.endsWith(`/matches/${row.match.id}`))
+    if (url.endsWith("/notifications")) {
+      return delayed.promise;
+    }
+    if (url.endsWith(`/matches/${row.match.id}`)) {
       return Promise.resolve(new Response(null, { status: 404 }));
-    if (url.endsWith("notification-summary"))
+    }
+    if (url.endsWith("notification-summary")) {
       return Promise.reject(new TypeError("offline summary"));
+    }
     return ordinary(url, init);
   });
   const oldPage = privateClient
@@ -566,17 +597,25 @@ it("keeps current-match restriction handling mounted while this subject's privat
     getCredentials: async () => credentialsFor("synthetic-owner"),
   });
   const ordinary = mockFetch.getMockImplementation();
-  if (!ordinary) throw new Error("Synthetic HTTP implementation is required");
+  if (!ordinary) {
+    throw new Error("Synthetic HTTP implementation is required");
+  }
   let suspended = true;
   mockFetch.mockImplementation((url: string, init: RequestInit) => {
-    if (url.endsWith("accounts/me"))
+    if (url.endsWith("accounts/me")) {
       return suspended
         ? Promise.resolve(new Response(null, { status: 403 }))
         : ordinary(url, init);
-    if (url.endsWith(`/matches/${row.match.id}`))
+    }
+    if (url.endsWith(`/matches/${row.match.id}`)) {
       return Promise.resolve(new Response(null, { status: 404 }));
-    if (url.endsWith("/notifications") || url.endsWith("notification-summary"))
+    }
+    if (
+      url.endsWith("/notifications") ||
+      url.endsWith("notification-summary")
+    ) {
       return Promise.reject(new TypeError("offline private refresh"));
+    }
     return ordinary(url, init);
   });
   await act(async () => {
@@ -768,11 +807,17 @@ it("retains native in-flight pagination on tab return and allows explicit refres
   };
   let firstPage = true;
   const ordinary = mockFetch.getMockImplementation();
-  if (!ordinary) throw new Error("Synthetic HTTP implementation is required");
+  if (!ordinary) {
+    throw new Error("Synthetic HTTP implementation is required");
+  }
   mockFetch.mockImplementation((url: string, init: RequestInit) => {
     const target = new URL(url);
-    if (!target.pathname.endsWith("/notifications")) return ordinary(url, init);
-    if (target.searchParams.has("cursor")) return delayed.promise;
+    if (!target.pathname.endsWith("/notifications")) {
+      return ordinary(url, init);
+    }
+    if (target.searchParams.has("cursor")) {
+      return delayed.promise;
+    }
     if (firstPage) {
       firstPage = false;
       return Promise.resolve(
@@ -821,15 +866,23 @@ it("distinguishes append retry from failed refresh in the real inbox route", asy
   let failAppend = true;
   let failRefresh = false;
   const ordinary = mockFetch.getMockImplementation();
-  if (!ordinary) throw new Error("Synthetic HTTP implementation is required");
+  if (!ordinary) {
+    throw new Error("Synthetic HTTP implementation is required");
+  }
   mockFetch.mockImplementation(async (url: string, init: RequestInit) => {
     const target = new URL(url);
-    if (!target.pathname.endsWith("/notifications")) return ordinary(url, init);
+    if (!target.pathname.endsWith("/notifications")) {
+      return ordinary(url, init);
+    }
     if (target.searchParams.has("cursor")) {
-      if (failAppend) throw new TypeError("append unavailable");
+      if (failAppend) {
+        throw new TypeError("append unavailable");
+      }
       return Response.json({ notifications: [second] });
     }
-    if (failRefresh) throw new TypeError("refresh unavailable");
+    if (failRefresh) {
+      throw new TypeError("refresh unavailable");
+    }
     return Response.json({ notifications: [row], nextCursor: "same-boundary" });
   });
   await openInbox();

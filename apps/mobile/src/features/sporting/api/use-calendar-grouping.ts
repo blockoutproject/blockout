@@ -14,11 +14,18 @@ export function useCalendarGrouping(
 ) {
   const client = useQueryClient();
   const [timeZone, setTimeZone] = useState(currentSportingTimeZone);
+
   /** Changes the visible query key, or explicitly refreshes the current active traversal. */
   async function refresh(nextZone: string) {
-    if (!active) return;
-    if (nextZone !== timeZone) setTimeZone(nextZone);
-    else await refreshCalendar(client, create(timeZone));
+    if (!active) {
+      return;
+    }
+    if (nextZone !== timeZone) {
+      setTimeZone(nextZone);
+    } else {
+      await refreshCalendar(client, create(timeZone));
+    }
   }
+
   return { timeZone, refresh };
 }

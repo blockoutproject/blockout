@@ -55,7 +55,9 @@ beforeEach(async () => {
   mockFetch
     .mockReset()
     .mockImplementation(async (url: string, init: RequestInit) => {
-      if (init.method === "DELETE") return new Response(null, { status: 204 });
+      if (init.method === "DELETE") {
+        return new Response(null, { status: 204 });
+      }
       const body = JSON.parse(String(init.body));
       return Response.json({
         id: url.split("/").at(-1),

@@ -32,8 +32,11 @@ afterEach(async () => {
   Sentry.getIsolationScope().clearBreadcrumbs();
   await Sentry.close();
   jest.restoreAllMocks();
-  if (originalDsn === undefined) delete process.env.EXPO_PUBLIC_SENTRY_DSN;
-  else process.env.EXPO_PUBLIC_SENTRY_DSN = originalDsn;
+  if (originalDsn === undefined) {
+    delete process.env.EXPO_PUBLIC_SENTRY_DSN;
+  } else {
+    process.env.EXPO_PUBLIC_SENTRY_DSN = originalDsn;
+  }
 });
 
 it("keeps release capture disabled and discards breadcrumbs before native synchronization", async () => {
@@ -56,7 +59,9 @@ it("keeps release capture disabled and discards breadcrumbs before native synchr
 
   // When
   initializeSentry();
-  for (const breadcrumb of breadcrumbs) Sentry.addBreadcrumb(breadcrumb);
+  for (const breadcrumb of breadcrumbs) {
+    Sentry.addBreadcrumb(breadcrumb);
+  }
   Sentry.captureException(new Error("harmless-private-fixture"));
   await Sentry.flush();
 

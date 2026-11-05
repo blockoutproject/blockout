@@ -24,7 +24,7 @@ export function ListContinuation({
   onRetry,
 }: ListContinuationProps) {
   const { colors } = useTheme();
-  if (loading)
+  if (loading) {
     return (
       <View
         accessible
@@ -52,7 +52,10 @@ export function ListContinuation({
         </Text>
       </View>
     );
-  if (!failed) return null;
+  }
+  if (!failed) {
+    return null;
+  }
   return (
     <View style={styles.row}>
       <Text

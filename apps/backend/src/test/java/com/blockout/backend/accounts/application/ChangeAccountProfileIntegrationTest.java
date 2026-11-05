@@ -240,10 +240,11 @@ class ChangeAccountProfileIntegrationTest {
                 sql.update("DELETE FROM account WHERE id = ?", id);
                 return writing;
               });
-      if (recreate)
+      if (recreate) {
         transaction.executeWithoutResult(
             status ->
                 accounts.create(ISSUER, "auth0|one", "Replacement", "new@example.invalid", null));
+      }
 
       // When
       ThrowingCallable completed = () -> result.get(15, TimeUnit.SECONDS);
@@ -251,9 +252,10 @@ class ChangeAccountProfileIntegrationTest {
       // Then
       assertThatThrownBy(completed).hasCauseInstanceOf(AccountNotFoundException.class);
       assertThat(accounts.findById(id)).isEmpty();
-      if (recreate)
+      if (recreate) {
         assertThat(accounts.findByPrincipal(ISSUER, "auth0|one").orElseThrow().username())
             .isEqualTo("Replacement");
+      }
     }
   }
 

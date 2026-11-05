@@ -78,7 +78,9 @@ class MaintenanceAdmissionIntegrationTest {
         "INSERT INTO account_permission (account_id, permission) VALUES (?, 'maintenance.bypass')",
         ACCOUNT);
     MockHttpServletRequestBuilder request = get("/clubs").with(principal());
-    if (intent != null) request.header("Blockout-Maintenance-Bypass", intent);
+    if (intent != null) {
+      request.header("Blockout-Maintenance-Bypass", intent);
+    }
 
     // When
     mvc.perform(request)

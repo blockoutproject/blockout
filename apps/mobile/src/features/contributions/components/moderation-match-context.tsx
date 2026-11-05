@@ -19,6 +19,7 @@ export interface ModerationMatchContextProps {
   showMatchLink?: boolean;
   children?: ReactNode;
 }
+
 /** Uses F03 sporting identities/paint without constructing its public dated-match wrapper. */
 export function ModerationMatchContext({
   match,
@@ -115,6 +116,7 @@ export function ModerationMatchContext({
     </MatchSurface>
   );
 }
+
 const styles = StyleSheet.create({
   ribbon: {
     padding: tokens.spacing.md,

@@ -452,7 +452,9 @@ it.each([202, 200])(
     const write = mockFetch.mock.calls.find(
       ([, options]) => options?.method === "POST",
     );
-    if (!write) throw new Error("Missing collection request");
+    if (!write) {
+      throw new Error("Missing collection request");
+    }
     const [url, options] = write;
     expect(String(url)).toContain(
       `/collection-controls/${control().id}/requests`,
@@ -1132,8 +1134,9 @@ it.each(["settled", "in-flight"])(
     await act(async () => nativeAlertAction("Relancer")());
     // When
     await view.rerender(<></>);
-    if (timing === "in-flight")
+    if (timing === "in-flight") {
       await act(async () => response.resolve(refused(409)));
+    }
     await view.rerender(
       <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
     );
@@ -1325,11 +1328,14 @@ it("blocks refresh and automatic paging while a collection command is awaiting a
   const user = userEvent.setup();
   const acknowledgement = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url, options) => {
-    if (options?.method === "POST") return acknowledgement.promise;
-    if (new URL(String(url)).pathname.endsWith("/results"))
+    if (options?.method === "POST") {
+      return acknowledgement.promise;
+    }
+    if (new URL(String(url)).pathname.endsWith("/results")) {
       return Promise.resolve(
         json({ items: [result()], page: 0, hasNext: true }),
       );
+    }
     return peer.reads(url, options);
   });
   await renderCollection(

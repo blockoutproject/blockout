@@ -43,6 +43,7 @@ import {
 export interface ModerationMatchScreenProps {
   matchId: string;
 }
+
 type Action = StreamModerationActionEnum | "reactivate";
 /** A decision takes its editing revision from the same native page that displayed its exact version. */
 type Decide = (
@@ -87,6 +88,7 @@ export function ModerationMatchScreen({ matchId }: ModerationMatchScreenProps) {
     editing.change.isPending ||
     editing.reactivate.isPending ||
     editing.publish.isPending;
+
   /** Captures exact target, original actor and the displayed page revision before native confirmation. */
   async function decide(
     version: ModeratedStreamContributionResponse,
@@ -95,7 +97,9 @@ export function ModerationMatchScreen({ matchId }: ModerationMatchScreenProps) {
     activeUrl?: string,
   ) {
     const actorAccountId = editing.session.accountId;
-    if (!actorAccountId || busy) return;
+    if (!actorAccountId || busy) {
+      return;
+    }
     const label = {
       approve: "Approuver",
       reject: "Refuser",
@@ -108,27 +112,34 @@ export function ModerationMatchScreen({ matchId }: ModerationMatchScreenProps) {
       confirmLabel: label,
       destructive: action === "reject" || action === "withdraw",
     });
-    if (!selected || !mounted.current) return;
+    if (!selected || !mounted.current) {
+      return;
+    }
     feedback.clear();
     try {
-      if (action === "reactivate")
+      if (action === "reactivate") {
         await editing.reactivate.mutateAsync({
           versionId: version.id,
           body: { actorAccountId, revision },
         });
-      else
+      } else {
         await editing.change.mutateAsync({
           versionId: version.id,
           body: { actorAccountId, revision, action },
         });
-      if (mounted.current) setConfirmed(true);
+      }
+      if (mounted.current) {
+        setConfirmed(true);
+      }
     } catch {
-      if (mounted.current)
+      if (mounted.current) {
         feedback.error(
           "La décision n’a pas pu être confirmée. Actualisez avant une nouvelle décision.",
         );
+      }
     }
   }
+
   return (
     <Page fullBleed>
       <PagedTabs
@@ -215,9 +226,12 @@ function ActiveScene({
   const form = useRef<ModerationPublicationFormHandle>(null);
   const { colors } = useTheme();
   const feedback = useActionFeedback();
+
   /** Refreshes published context and any open reports while retaining the mounted editor on outages. */
   async function refresh() {
-    if (!active || busy) return;
+    if (!active || busy) {
+      return;
+    }
     feedback.clear();
     try {
       await (form.current ? form.current.refresh() : editing.refresh());
@@ -225,6 +239,7 @@ function ActiveScene({
       feedback.error();
     }
   }
+
   if (
     !current &&
     (editing.session.status === "restoring" ||
@@ -232,7 +247,7 @@ function ActiveScene({
       (editing.session.status === "authenticated" &&
         (editing.profile.isLoading ||
           (editing.allowed && editing.query.isLoading))))
-  )
+  ) {
     return (
       <PageScrollView
         keyboardShouldPersistTaps="handled"
@@ -243,7 +258,8 @@ function ActiveScene({
         </View>
       </PageScrollView>
     );
-  if (!current)
+  }
+  if (!current) {
     return (
       <PageScrollView
         keyboardShouldPersistTaps="handled"
@@ -279,6 +295,7 @@ function ActiveScene({
         </ScreenState>
       </PageScrollView>
     );
+  }
   const published = current.activeContribution;
   return (
     <FormScrollView
@@ -318,7 +335,9 @@ function ActiveScene({
             current={current}
             editing={editing}
             onWithdraw={() => {
-              if (published) onAction(published, "withdraw", current.revision);
+              if (published) {
+                onAction(published, "withdraw", current.revision);
+              }
             }}
             onSuccess={onSuccess}
           >
@@ -389,9 +408,12 @@ function VersionScene({
   }, [active, reading.allowed, identity]);
   const feedback = useActionFeedback();
   const { colors } = useTheme();
+
   /** Rereads this traversal and shared active context; independent read failures never discard authorized rows. */
   async function refresh() {
-    if (refreshing || !active || busy) return;
+    if (refreshing || !active || busy) {
+      return;
+    }
     feedback.clear();
     setRefreshing(true);
     try {
@@ -403,12 +425,14 @@ function VersionScene({
         currentScene.current === identity &&
         navigation.isFocused() &&
         results.some((result) => result.status === "rejected")
-      )
+      ) {
         feedback.error();
+      }
     } finally {
       setRefreshing(false);
     }
   }
+
   /** Only the current scene continues; its footer owns failures and retries the original cursor. */
   async function more() {
     if (
@@ -421,18 +445,20 @@ function VersionScene({
       !query.hasNextPage ||
       query.isFetching ||
       (query.isError && !query.isFetchNextPageError)
-    )
+    ) {
       return;
+    }
     feedback.clear();
     await query.fetchNextPage({ cancelRefetch: false });
   }
+
   if (
     !current &&
     (reading.session.status === "restoring" ||
       !!reading.session.operation ||
       (reading.session.status === "authenticated" &&
         (reading.profile.isLoading || (reading.allowed && query.isLoading))))
-  )
+  ) {
     return (
       <PageScrollView
         keyboardShouldPersistTaps="handled"
@@ -443,7 +469,8 @@ function VersionScene({
         </View>
       </PageScrollView>
     );
-  if (!current)
+  }
+  if (!current) {
     return (
       <PageScrollView
         keyboardShouldPersistTaps="handled"
@@ -479,6 +506,7 @@ function VersionScene({
         </ScreenState>
       </PageScrollView>
     );
+  }
   return (
     <PageList
       key={identity}
@@ -492,7 +520,9 @@ function VersionScene({
       contentContainerStyle={pageContentStyle}
       ItemSeparatorComponent={ListSeparator}
       onEndReached={() => {
-        if (!query.isError) void more();
+        if (!query.isError) {
+          void more();
+        }
       }}
       refreshControl={
         <DataRefreshControl enabled={active && !busy} onRefresh={refresh} />
@@ -557,6 +587,7 @@ function VersionScene({
     />
   );
 }
+
 const styles = StyleSheet.create({
   empty: { alignItems: "center" },
   centered: { justifyContent: "center" },

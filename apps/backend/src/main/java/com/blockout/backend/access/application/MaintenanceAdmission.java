@@ -51,10 +51,15 @@ public class MaintenanceAdmission implements AccountAdmission {
           .execute(
               status -> {
                 MaintenanceSettings maintenance = settings.maintenance();
-                if (!maintenance.active()) return Optional.empty();
-                if (!bypass) throw new MaintenanceRequiredException(maintenance);
-                if (issuer == null || subject == null)
+                if (!maintenance.active()) {
+                  return Optional.empty();
+                }
+                if (!bypass) {
+                  throw new MaintenanceRequiredException(maintenance);
+                }
+                if (issuer == null || subject == null) {
                   throw new AccessDeniedException("Action is not permitted");
+                }
                 UUID account =
                     accounts
                         .currentId(issuer, subject)

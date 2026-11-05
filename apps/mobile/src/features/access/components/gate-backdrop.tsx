@@ -90,7 +90,9 @@ export function GateBackdrop() {
     area.width * Math.cos(tiltRadians) + area.height * Math.sin(tiltRadians);
   useEffect(() => {
     progress.set(0);
-    if (reducedMotion) return;
+    if (reducedMotion) {
+      return;
+    }
     progress.set(
       withRepeat(
         withTiming(1, {
@@ -133,6 +135,7 @@ export function GateBackdrop() {
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFill,

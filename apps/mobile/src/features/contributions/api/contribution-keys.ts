@@ -6,8 +6,10 @@ import {
   getListOwnStreamContributionsQueryKey,
   getUpdateOwnStreamContributionMutationKey,
 } from "../../../../.generated/mobile";
+
 /** Original business account for generated owner endpoints. */
 type ContributionActor = { readonly accountId: string };
+
 /** Generated keys identify each original resource, selection and mutation. The native private client owns account isolation. */
 export const contributionKeys = {
   /** Personal traversal; start at page zero and supply subsequent pages through pageParam. */

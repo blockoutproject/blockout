@@ -59,8 +59,11 @@ class ReadFollowListsTest {
     // When
     ThrowingCallable read =
         () -> {
-          if (type == TargetType.TEAM) lists.teams(ACCOUNT, null, 107374182L);
-          else lists.pools(ACCOUNT, null, 107374182L);
+          if (type == TargetType.TEAM) {
+            lists.teams(ACCOUNT, null, 107374182L);
+          } else {
+            lists.pools(ACCOUNT, null, 107374182L);
+          }
         };
 
     // Then

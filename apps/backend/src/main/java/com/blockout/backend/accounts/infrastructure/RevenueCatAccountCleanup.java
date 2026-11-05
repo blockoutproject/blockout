@@ -19,10 +19,13 @@ public class RevenueCatAccountCleanup implements AccountCleanup.RevenueCat {
         || properties.revenueCatProjectId() == null
         || properties.revenueCatProjectId().isBlank()
         || properties.revenueCatSecretKey() == null
-        || properties.revenueCatSecretKey().isBlank()) return Outcome.MISSING_CONFIGURATION;
+        || properties.revenueCatSecretKey().isBlank()) {
+      return Outcome.MISSING_CONFIGURATION;
+    }
     if (properties.environment() == Environment.PREPRODUCTION
-        && !properties.preproductionRevenueCatIds().contains(customerId))
+        && !properties.preproductionRevenueCatIds().contains(customerId)) {
       return Outcome.UNSAFE_SCOPE;
+    }
     return client
         .delete()
         .uri(
@@ -32,8 +35,12 @@ public class RevenueCatAccountCleanup implements AccountCleanup.RevenueCat {
         .headers(headers -> headers.setBearerAuth(properties.revenueCatSecretKey()))
         .exchange(
             (request, response) -> {
-              if (response.getStatusCode().value() == 200) return Outcome.QUEUED;
-              if (response.getStatusCode().value() == 404) return Outcome.ABSENT;
+              if (response.getStatusCode().value() == 200) {
+                return Outcome.QUEUED;
+              }
+              if (response.getStatusCode().value() == 404) {
+                return Outcome.ABSENT;
+              }
               return Outcome.UNAVAILABLE_OR_UNCERTAIN;
             });
   }

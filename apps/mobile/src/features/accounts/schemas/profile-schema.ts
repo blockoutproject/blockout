@@ -19,5 +19,6 @@ export const profileSchema = z.object({
     }),
   ]),
 });
+
 /** Form-owned values keep the prepared native image separate from transport metadata. */
 export type ProfileValues = z.infer<typeof profileSchema>;

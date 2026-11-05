@@ -206,8 +206,9 @@ class PushDeliveryTest {
     when(provider.send(any())).thenReturn(List.of(new Outcome(Status.ACCEPTED, "ticket")));
 
     // When
-    for (int i = 0; i < 101; i++)
+    for (int i = 0; i < 101; i++) {
       delivery.deliver(List.of(new DeliverPush.Attempt(created, target)));
+    }
 
     // Then
     verify(scheduler, times(100)).schedule(any(Runnable.class), any(Instant.class));

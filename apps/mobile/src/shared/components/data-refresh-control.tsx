@@ -23,6 +23,7 @@ export function DataRefreshControl({
 }: DataRefreshControlProps) {
   const { colors, context } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
+
   /** The callback's promise bounds this gesture; read failures remain with the feature owner. */
   async function refresh() {
     setRefreshing(true);
@@ -32,6 +33,7 @@ export function DataRefreshControl({
       setRefreshing(false);
     }
   }
+
   return (
     <RefreshControl
       {...nativeContent}

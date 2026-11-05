@@ -64,7 +64,9 @@ public class OpenSearchProjectionWriter implements SearchProjectionWriter {
         if (!client
             .indices()
             .create(request -> request.index(index).settings(settings).mappings(mapping))
-            .acknowledged()) throw new SearchUnavailableException();
+            .acknowledged()) {
+          throw new SearchUnavailableException();
+        }
         generation.put(kind, index);
       }
       return Map.copyOf(generation);
@@ -76,24 +78,29 @@ public class OpenSearchProjectionWriter implements SearchProjectionWriter {
   /** {@inheritDoc} */
   @Override
   public void write(String index, List<SearchDocuments> documents) {
-    if (documents.isEmpty()) return;
+    if (documents.isEmpty()) {
+      return;
+    }
     BulkRequest.Builder request = new BulkRequest.Builder();
-    for (SearchDocuments document : documents)
+    for (SearchDocuments document : documents) {
       request.operations(
           operation ->
               operation.index(
                   item -> item.index(index).id(document.id().toString()).document(document)));
+    }
     bulk(request.build());
   }
 
   /** {@inheritDoc} */
   @Override
   public void update(Kind kind, Set<UUID> ids, List<SearchDocuments> documents) {
-    if (ids.isEmpty()) return;
+    if (ids.isEmpty()) {
+      return;
+    }
     BulkRequest.Builder request =
         new BulkRequest.Builder().requireAlias(true).refresh(Refresh.WaitFor);
     Set<UUID> visible = documents.stream().map(SearchDocuments::id).collect(Collectors.toSet());
-    for (SearchDocuments document : documents)
+    for (SearchDocuments document : documents) {
       request.operations(
           operation ->
               operation.index(
@@ -101,11 +108,14 @@ public class OpenSearchProjectionWriter implements SearchProjectionWriter {
                       item.index(indexes.alias(kind))
                           .id(document.id().toString())
                           .document(document)));
-    for (UUID id : ids)
-      if (!visible.contains(id))
+    }
+    for (UUID id : ids) {
+      if (!visible.contains(id)) {
         request.operations(
             operation ->
                 operation.delete(item -> item.index(indexes.alias(kind)).id(id.toString())));
+      }
+    }
     bulk(request.build());
   }
 
@@ -134,8 +144,9 @@ public class OpenSearchProjectionWriter implements SearchProjectionWriter {
       RefreshResponse refreshed =
           client.indices().refresh(request -> request.index(new ArrayList<>(generation.values())));
       if (refreshed.shards().failed() != 0
-          || refreshed.shards().successful() != refreshed.shards().total())
+          || refreshed.shards().successful() != refreshed.shards().total()) {
         throw new SearchUnavailableException();
+      }
       UpdateAliasesRequest.Builder request = new UpdateAliasesRequest.Builder();
       for (Map.Entry<Kind, String> target : generation.entrySet()) {
         String alias = indexes.alias(target.getKey());
@@ -145,8 +156,9 @@ public class OpenSearchProjectionWriter implements SearchProjectionWriter {
                     remove -> remove.index(indexes.prefix() + "-*").alias(alias).mustExist(false)));
         request.actions(action -> action.add(add -> add.index(target.getValue()).alias(alias)));
       }
-      if (!client.indices().updateAliases(request.build()).acknowledged())
+      if (!client.indices().updateAliases(request.build()).acknowledged()) {
         throw new SearchUnavailableException();
+      }
     } catch (IOException failure) {
       throw new SearchUnavailableException(failure);
     }
@@ -192,8 +204,9 @@ public class OpenSearchProjectionWriter implements SearchProjectionWriter {
               .limit(12)
               .toList();
       if (!inactive.isEmpty()
-          && !client.indices().delete(request -> request.index(inactive)).acknowledged())
+          && !client.indices().delete(request -> request.index(inactive)).acknowledged()) {
         throw new SearchUnavailableException();
+      }
     } catch (IOException | RuntimeException failure) {
       log.atWarn()
           .addKeyValue("operation", "search_projection")

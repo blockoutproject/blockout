@@ -208,16 +208,18 @@ beforeEach(async () => {
   mockMobileAds.setRequestConfiguration.mockClear();
   nativeAdvertising.AdsConsent.gatherConsent.mockClear();
   mockFetch.mockReset().mockImplementation(async (url, options) => {
-    if (String(url).endsWith("/application-access"))
+    if (String(url).endsWith("/application-access")) {
       return Response.json(applicationAccessResponse());
+    }
     if (String(url).endsWith("/accounts") && options?.method === "POST") {
       mockAccountExists = true;
       return Response.json(mockAccount, { status: 201 });
     }
-    if (String(url).endsWith("/accounts/me"))
+    if (String(url).endsWith("/accounts/me")) {
       return mockAccountExists
         ? Response.json(mockAccount)
         : new Response(null, { status: 404 });
+    }
     if (
       String(url).endsWith(`/accounts/${mockAccount.accountId}`) &&
       options?.method === "DELETE"
@@ -376,8 +378,9 @@ it("keeps missing-email establishment unusable until an explicit retry without a
   // Given
   prepareLogin("apple|no-email");
   mockFetch.mockImplementation(async (url) => {
-    if (String(url).endsWith("/application-access"))
+    if (String(url).endsWith("/application-access")) {
       return Response.json(applicationAccessResponse());
+    }
     return Response.json(
       {
         type: "urn:blockout:problem:provider-email-unavailable",
@@ -413,10 +416,12 @@ it("keeps missing-email establishment unusable until an explicit retry without a
 
   // When
   mockFetch.mockImplementation(async (url, options) => {
-    if (String(url).endsWith("/application-access"))
+    if (String(url).endsWith("/application-access")) {
       return Response.json(applicationAccessResponse());
-    if (String(url).endsWith("/accounts") && options?.method === "POST")
+    }
+    if (String(url).endsWith("/accounts") && options?.method === "POST") {
       mockAccountExists = true;
+    }
     return mockAccountExists
       ? Response.json(mockAccount)
       : new Response(null, { status: 404 });

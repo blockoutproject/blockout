@@ -125,9 +125,12 @@ public class EstablishAccount {
               .orElseThrow(() -> new AccountUnavailableException());
       return new Committed(account.id(), false);
     }
-    if (providerUnavailable) throw new AccountUnavailableException();
-    if (evidence.email() == null || evidence.email().isBlank())
+    if (providerUnavailable) {
+      throw new AccountUnavailableException();
+    }
+    if (evidence.email() == null || evidence.email().isBlank()) {
       throw new ProviderEmailUnavailableException();
+    }
     Account account =
         accounts.create(
             issuer, subject, AccountUsername.neutral(), evidence.email(), evidence.createdAt());

@@ -197,10 +197,12 @@ class GitHubSupportClientTest {
         });
 
     // When / Then
-    if (observation.equals("complete") || observation.equals("lost")) client().complete(17L);
-    else
+    if (observation.equals("complete") || observation.equals("lost")) {
+      client().complete(17L);
+    } else {
       assertThatThrownBy(() -> client().complete(17L))
           .isInstanceOf(SupportUnavailableException.class);
+    }
     assertThat(calls).extracting(Call::method).containsExactly("POST", "DELETE", "GET");
     assertThat(calls.getLast().path()).isEqualTo("/repos/fictional-org/private-support/issues/17");
   }

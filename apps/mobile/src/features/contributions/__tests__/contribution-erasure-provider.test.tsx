@@ -15,7 +15,9 @@ import {
 jest.mock("expo/fetch", () => ({
   fetch: async (url: RequestInfo | URL, options?: RequestInit) => {
     const method = options?.method ?? "GET";
-    if (method !== "GET") mockWrites.push({ url: String(url), method });
+    if (method !== "GET") {
+      mockWrites.push({ url: String(url), method });
+    }
     if (method === "PATCH" && mockDelayedDispatch) {
       const delay = mockDelayedDispatch;
       mockDelayedDispatch = undefined;
@@ -54,8 +56,11 @@ suite("generated contribution consumers over actual account erasure", () => {
 
   afterEach(() => {
     mockDelayedDispatch?.release.resolve();
-    if (previousApi === undefined) delete process.env.EXPO_PUBLIC_API_URL;
-    else process.env.EXPO_PUBLIC_API_URL = previousApi;
+    if (previousApi === undefined) {
+      delete process.env.EXPO_PUBLIC_API_URL;
+    } else {
+      process.env.EXPO_PUBLIC_API_URL = previousApi;
+    }
   });
 
   it("retains anonymous useful history after a lost response and a delayed old owner command", async () => {

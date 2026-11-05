@@ -32,14 +32,20 @@ public final class ImageDecoder {
     try (MemoryCacheImageInputStream input =
         new MemoryCacheImageInputStream(new ByteArrayInputStream(bytes))) {
       Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
-      if (!readers.hasNext()) throw new IIOException("Unrecognized image content");
+      if (!readers.hasNext()) {
+        throw new IIOException("Unrecognized image content");
+      }
       ImageReader reader = readers.next();
       try {
         String format = reader.getFormatName();
         String mediaType;
-        if ("PNG".equalsIgnoreCase(format)) mediaType = "image/png";
-        else if ("JPEG".equalsIgnoreCase(format)) mediaType = "image/jpeg";
-        else throw new UnsupportedFormatException();
+        if ("PNG".equalsIgnoreCase(format)) {
+          mediaType = "image/png";
+        } else if ("JPEG".equalsIgnoreCase(format)) {
+          mediaType = "image/jpeg";
+        } else {
+          throw new UnsupportedFormatException();
+        }
         reader.setInput(input, true, ignoreMetadata);
         admission.accept(new Header(mediaType, reader.getWidth(0), reader.getHeight(0)));
         return new DecodedImage(reader.read(0), mediaType);

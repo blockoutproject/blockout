@@ -125,8 +125,11 @@ class JpaCollectionStore implements CollectionStore {
                 new InitialCoverageEntity.Key(
                     value.sourceBindingId(), value.scopeId(), value.stage(), value.phase()))
             .orElse(null);
-    if (entity == null) entityManager.persist(coverageMapper.toEntity(value));
-    else coverageMapper.update(value, entity);
+    if (entity == null) {
+      entityManager.persist(coverageMapper.toEntity(value));
+    } else {
+      coverageMapper.update(value, entity);
+    }
   }
 
   /** {@inheritDoc} */
@@ -173,10 +176,14 @@ class JpaCollectionStore implements CollectionStore {
     CollectionResultEntity.Key key =
         new CollectionResultEntity.Key(controlId, result.scopeId(), result.stage(), result.phase());
     CollectionResultEntity entity = results.findById(key).orElse(null);
-    if (entity == null) entityManager.persist(mapper.toEntity(controlId, result));
-    else mapper.update(result, entity);
-    if (result.phase() == CollectionPhaseEnum.ACQUISITION)
+    if (entity == null) {
+      entityManager.persist(mapper.toEntity(controlId, result));
+    } else {
+      mapper.update(result, entity);
+    }
+    if (result.phase() == CollectionPhaseEnum.ACQUISITION) {
       controls.recordAttempt(controlId, result.observedAt());
+    }
   }
 
   /** {@inheritDoc} */
@@ -195,8 +202,9 @@ class JpaCollectionStore implements CollectionStore {
   public void complete(CollectionState.Cycle cycle, Instant completedAt) {
     cycles.findById(cycle.id()).orElseThrow().setCompletedAt(completedAt);
     if (cycle.controlId() != null
-        && results.successful(cycle.controlId(), cycle.id(), cycle.cycleOrder()))
+        && results.successful(cycle.controlId(), cycle.id(), cycle.cycleOrder())) {
       controls.recordSuccess(cycle.controlId(), completedAt);
+    }
   }
 
   /** {@inheritDoc} */
@@ -227,8 +235,9 @@ class JpaCollectionStore implements CollectionStore {
     // Renewing interrupted pending intent only changes the version-excluded cycle pointer.
     if (entity.getValidationState() == SourceValidationStateEnum.PENDING
         && source.validationState() == SourceValidationStateEnum.PENDING
-        && !Objects.equals(entity.getCurrentCycleId(), source.currentCycleId()))
+        && !Objects.equals(entity.getCurrentCycleId(), source.currentCycleId())) {
       entityManager.lock(entity, LockModeType.PESSIMISTIC_FORCE_INCREMENT);
+    }
     mapper.update(source, entity);
     // Expose the native editing revision in the returned immutable view.
     sources.flush();
@@ -244,8 +253,9 @@ class JpaCollectionStore implements CollectionStore {
           case FFVB -> CollectionFamilyEnum.FFVB;
           case LNV -> CollectionFamilyEnum.LNV;
         };
-    if (!controls.existsBySeasonIdAndFamily(seasonId, family))
+    if (!controls.existsBySeasonIdAndFamily(seasonId, family)) {
       controls.save(new CollectionControlEntity(seasonId, family));
+    }
   }
 
   /** {@inheritDoc} */
@@ -416,7 +426,9 @@ class JpaCollectionStore implements CollectionStore {
   /** {@inheritDoc} */
   @Override
   public Map<UUID, CollectionState.Cycle> cycles(List<UUID> ids) {
-    if (ids.isEmpty()) return Map.of();
+    if (ids.isEmpty()) {
+      return Map.of();
+    }
     UUID current = runtime().incarnationId();
     return cycles.findByIdIn(ids).stream()
         .collect(
@@ -466,7 +478,9 @@ class JpaCollectionStore implements CollectionStore {
   @Override
   @Transactional(propagation = Propagation.MANDATORY)
   public void discardCycle(UUID id) {
-    if (id != null) cycles.deleteById(id);
+    if (id != null) {
+      cycles.deleteById(id);
+    }
   }
 
   /** {@inheritDoc} */

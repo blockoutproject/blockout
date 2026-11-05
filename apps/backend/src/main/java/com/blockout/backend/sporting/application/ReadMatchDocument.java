@@ -67,7 +67,9 @@ public class ReadMatchDocument {
         reads.execute(
             status -> {
               Reference current = references(id).get(kind);
-              if (current == null) throw new SportingResourceNotFoundException();
+              if (current == null) {
+                throw new SportingResourceNotFoundException();
+              }
               return current;
             });
     return source.fetch(reference);
@@ -101,18 +103,21 @@ public class ReadMatchDocument {
     PoolView pool = store.pool(match.poolId()).orElseThrow(SportingResourceNotFoundException::new);
     MatchDetails details = store.matchDetails(id);
     Map<MatchDocumentKindEnum, Reference> result = new EnumMap<>(MatchDocumentKindEnum.class);
-    if (details.informationSheet() != null)
+    if (details.informationSheet() != null) {
       result.put(
           MatchDocumentKindEnum.INFORMATION, new Reference(null, details.informationSheet()));
+    }
     if (details.result() != null && details.result().state() == ResultStateEnum.FINAL) {
-      if (details.scoresheetUrl() != null)
+      if (details.scoresheetUrl() != null) {
         result.put(
             MatchDocumentKindEnum.SCORESHEET,
             new Reference(URI.create(details.scoresheetUrl()), null));
-      if (pool.key().provider() == CollectionProviderEnum.LNV && details.statisticsUrl() != null)
+      }
+      if (pool.key().provider() == CollectionProviderEnum.LNV && details.statisticsUrl() != null) {
         result.put(
             MatchDocumentKindEnum.STATISTICS,
             new Reference(URI.create(details.statisticsUrl()), null));
+      }
     }
     return result;
   }

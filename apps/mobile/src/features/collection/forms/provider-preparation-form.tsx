@@ -28,6 +28,7 @@ export interface ProviderPreparationFormProps {
   provider: CollectionProviderEnum;
   editing: ReturnType<typeof useSeasonPreparation>;
 }
+
 /** Keeps the original selection baseline until explicit reset or accepted save. */
 export function ProviderPreparationForm({
   season,
@@ -80,16 +81,23 @@ export function ProviderPreparationForm({
     selection.length > 0 &&
     selection.every((id) => ready.includes(id));
   const Icon = provider === "lnv" ? Trophy : Globe;
+
   /** Cancels this mounted addition through the ordinary dirty-form confirmation. */
   async function cancelAddition() {
-    if (editing.create.isPending) return;
+    if (editing.create.isPending) {
+      return;
+    }
     const accepted = await confirmDiscard(() => {
-      if (mounted.current && !editing.create.isPending)
+      if (mounted.current && !editing.create.isPending) {
         editor.form.reset(createSourceValues());
+      }
     });
-    if (!accepted || !mounted.current || editing.create.isPending) return;
+    if (!accepted || !mounted.current || editing.create.isPending) {
+      return;
+    }
     editor.update({ ...editor.state, adding: false });
   }
+
   /** Preserves mounted input and reports a server revision conflict distinctly. */
   function failed(error: unknown) {
     if (error instanceof ApiError && error.status === 409) {
@@ -102,9 +110,12 @@ export function ProviderPreparationForm({
       actionFeedback.error();
     }
   }
+
   /** Presents the actual selected labels; a native confirmation never broadens the atomic launch scope. */
   async function confirmLaunch() {
-    if (busy || rereadRequired || !canLaunch) return;
+    if (busy || rereadRequired || !canLaunch) {
+      return;
+    }
     editor.update({ ...state, selected: selection });
     if (
       !(await confirmAction({
@@ -117,13 +128,17 @@ export function ProviderPreparationForm({
           )}\nLes liens sélectionnés seront verrouillés. Ce lancement ne garantit pas que toutes les sources ont publié une saison complète.`,
         confirmLabel: "Lancer",
       }))
-    )
+    ) {
       return;
+    }
     await launch(selection);
   }
+
   /** Sends exactly the selection against its read revision and clears it only after confirmed acceptance. */
   async function launch(confirmed: string[]) {
-    if (busy || rereadRequired || !canLaunch) return;
+    if (busy || rereadRequired || !canLaunch) {
+      return;
+    }
     try {
       const attempt = editing.launch.mutateAsync({
         revision: baseline.revision,
@@ -142,11 +157,14 @@ export function ProviderPreparationForm({
       failed(error);
     }
   }
+
   /** Reads the entire launch context; a failed half-read cannot unlock an old selection or replay its command. */
   async function reread() {
     const [seasonResult, sourcesResult] = await (() =>
       Promise.all([editing.season.refetch(), editing.sources.refetch()]))();
-    if (!mounted.current) return;
+    if (!mounted.current) {
+      return;
+    }
     if (
       seasonResult.isError ||
       sourcesResult.isError ||
@@ -163,6 +181,7 @@ export function ProviderPreparationForm({
       feedback: "État relu. Vérifiez votre saisie avant une nouvelle action.",
     });
   }
+
   return (
     <View style={styles.form}>
       <SeasonIdentity season={season} />
@@ -297,6 +316,7 @@ export function ProviderPreparationForm({
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   form: { gap: tokens.layout.form.gap },
   source: {

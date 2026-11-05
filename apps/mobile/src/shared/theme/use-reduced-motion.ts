@@ -18,7 +18,9 @@ export function useReducedMotion(): boolean {
     );
     void AccessibilityInfo.isReduceMotionEnabled().then(
       (enabled) => {
-        if (acceptInitialRead) setReducedMotion(enabled);
+        if (acceptInitialRead) {
+          setReducedMotion(enabled);
+        }
       },
       () => {
         // An unavailable native preference keeps the conservative initial value.

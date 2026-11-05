@@ -480,10 +480,11 @@ class FollowRelationsIntegrationTest {
                 sql.update("DELETE FROM account WHERE id=?", ACCOUNT);
                 return writer;
               });
-      if (recreate)
+      if (recreate) {
         sql.update(
             "INSERT INTO account(id, issuer, subject, username, email) VALUES (?, 'https://identity.example.invalid/', 'one', 'replacement', 'replacement@example.invalid')",
             UUID.fromString("00000000-0000-4000-8000-000000000104"));
+      }
 
       // When
       Throwable observedFailure = catchThrowable(() -> waiting.get(15, TimeUnit.SECONDS));

@@ -38,12 +38,18 @@ public final class NotificationCursor {
    * @throws ResponseStatusException for malformed syntax or keys
    */
   public static Continuation decode(String cursor) {
-    if (cursor == null) return null;
+    if (cursor == null) {
+      return null;
+    }
     try {
-      if (cursor.length() > 128) throw new IllegalArgumentException();
+      if (cursor.length() > 128) {
+        throw new IllegalArgumentException();
+      }
       String decoded = new String(Base64.getUrlDecoder().decode(cursor), StandardCharsets.US_ASCII);
       int separator = decoded.indexOf('/');
-      if (separator < 0) throw new IllegalArgumentException();
+      if (separator < 0) {
+        throw new IllegalArgumentException();
+      }
       Continuation keys =
           new Continuation(
               Instant.parse(decoded.substring(0, separator)),

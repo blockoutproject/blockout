@@ -27,17 +27,19 @@ export function AccessFeedback({
     (sessionStatus === "authenticated" &&
       account.isPending &&
       account.isFetching)
-  )
+  ) {
     return loadingContent;
+  }
   if (
     sessionStatus === "authenticated" &&
     (account.isError || account.isPending)
-  )
+  ) {
     return (
       <ErrorState
         onRetry={() => void account.refetch()}
         retrying={account.isFetching}
       />
     );
+  }
   return enabled ? null : <ErrorState />;
 }

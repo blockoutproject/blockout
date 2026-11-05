@@ -39,8 +39,9 @@ export function SearchResults({
   onEndReached,
   onOpen,
 }: SearchResultsProps) {
-  if (items.length === 0)
+  if (items.length === 0) {
     return <PageScrollView>{emptyComponent}</PageScrollView>;
+  }
   return (
     <PageList
       {...hiddenScrollIndicators}

@@ -127,8 +127,11 @@ class ContributionContractWebMvcTest {
         mvc.perform(post("/contract/submit").contentType(MediaType.APPLICATION_JSON).content(body));
 
     // Then
-    if (revision.isEmpty()) result.andExpect(status().isBadRequest());
-    else result.andExpect(status().isOk()).andExpect(jsonPath("$.revision").value(revision));
+    if (revision.isEmpty()) {
+      result.andExpect(status().isBadRequest());
+    } else {
+      result.andExpect(status().isOk()).andExpect(jsonPath("$.revision").value(revision));
+    }
   }
 
   @ParameterizedTest

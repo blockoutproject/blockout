@@ -124,6 +124,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
   process.env = { ...previousEnvironment };
 });
+
 /** Keeps actual Router/F12 injection and account owners alive across destinations. */
 function Journey() {
   useQueryClient().setQueryDefaults([], { retry: false, gcTime: Infinity });
@@ -146,6 +147,7 @@ function Journey() {
     </AccessAdmissionProvider>
   );
 }
+
 /** Real profile entry and independent F10 fallback; no provider dependency in support navigation. */
 function Profile() {
   return (
@@ -155,6 +157,7 @@ function Profile() {
     </>
   );
 }
+
 /** Shows the real form and its admitted context without submitting a private request. */
 function Support() {
   const { context } = useSupportVisit();
@@ -165,6 +168,7 @@ function Support() {
     </>
   );
 }
+
 /** Mounts production Pro and F10 routes; only SDK/HTTP I/O is controlled. */
 async function mount() {
   const active = { "Blockout Pro": entitlement({ store: "APP_STORE" }) };
@@ -203,6 +207,7 @@ async function mount() {
   await act(() => signInAccount(account, accountA));
   await waitFor(() => expect(account.accountId).toBe(accountA));
 }
+
 it("only the recognized Custom Action removes Pro before the real F10 form, without SDK payload", async () => {
   // Given: a store from the other platform still uses the same bounded support route.
   const user = userEvent.setup();

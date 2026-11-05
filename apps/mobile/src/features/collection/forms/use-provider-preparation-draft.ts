@@ -15,6 +15,7 @@ interface DraftState {
   adding: boolean;
   feedback?: string;
 }
+
 /** Owns RHF fields and their coherent baseline for the mounted route only. */
 export function useProviderPreparationDraft(season: CollectionSeasonResponse) {
   const [state, update] = useState<DraftState>({

@@ -5,6 +5,8 @@ import { NotificationsScreen } from "../../../features/notifications/screens/not
 /** Thin ordinary route; F05/F12 and F07 retain admission, data and interaction ownership. */
 export default function NotificationsRoute() {
   const session = useAccountSession();
-  if (session.status === "guest") return <Redirect href="/search" />;
+  if (session.status === "guest") {
+    return <Redirect href="/search" />;
+  }
   return <NotificationsScreen />;
 }

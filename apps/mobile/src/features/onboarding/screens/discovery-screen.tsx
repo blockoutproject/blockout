@@ -75,8 +75,9 @@ export function DiscoveryScreen() {
 
   useEffect(() => {
     scroll.current?.scrollTo({ y: 0, animated: false });
-    if (heading.current)
+    if (heading.current) {
       AccessibilityInfo.sendAccessibilityEvent(heading.current, "focus");
+    }
   }, [step]);
   useEffect(() => {
     const subscription = BackHandler.addEventListener(

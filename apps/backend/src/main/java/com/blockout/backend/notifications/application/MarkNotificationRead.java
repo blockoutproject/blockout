@@ -34,11 +34,17 @@ public class MarkNotificationRead {
   public InboxViews.Entry mark(NotificationContext owner, UUID id) {
     UUID matchId = reads.matchId(owner, id).orElseThrow(NotificationNotFoundException::new);
     sporting.lock(matchId);
-    if (!accounts.lock(owner.accountId())) throw new NotificationNotFoundException();
+    if (!accounts.lock(owner.accountId())) {
+      throw new NotificationNotFoundException();
+    }
     Instant now = clock.instant();
     InboxViews.Entry current = inbox.member(owner, id, now);
-    if (current.read()) return current;
-    if (!writes.markRead(owner, id, now)) throw new NotificationNotFoundException();
+    if (current.read()) {
+      return current;
+    }
+    if (!writes.markRead(owner, id, now)) {
+      throw new NotificationNotFoundException();
+    }
     return new InboxViews.Entry(
         current.id(),
         current.createdAt(),

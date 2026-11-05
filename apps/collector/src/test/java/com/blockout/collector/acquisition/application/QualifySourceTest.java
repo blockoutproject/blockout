@@ -161,11 +161,11 @@ class QualifySourceTest {
     // Given
     ProviderPages http = mock(ProviderPages.class);
     URI url = URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901");
-    if (unavailable)
+    if (unavailable) {
       doThrow(new java.io.UncheckedIOException(new IOException("Synthetic transport failure")))
           .when(http)
           .page(url);
-    else
+    } else {
       doReturn(
               new ProviderResponse(
                   "<html>Unsupported synthetic content</html>".getBytes(StandardCharsets.UTF_8),
@@ -173,6 +173,7 @@ class QualifySourceTest {
                   true))
           .when(http)
           .page(url);
+    }
     QualifySource service =
         new QualifySource(
             http,

@@ -25,6 +25,7 @@ import {
 import { ClubScreen } from "../screens/club-screen";
 import { TeamScreen } from "../screens/team-screen";
 import { MatchScreen } from "../screens/match-screen";
+
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("@react-native-async-storage/async-storage", () =>
   jest.requireActual(
@@ -208,11 +209,15 @@ it("rereads on foreground only while focused, then applies result withdrawal on 
   jest
     .spyOn(AppState, "addEventListener")
     .mockImplementation((event, listener) => {
-      if (event === "change") listeners.push(listener);
+      if (event === "change") {
+        listeners.push(listener);
+      }
       return {
         remove: () => {
           const index = listeners.indexOf(listener);
-          if (index >= 0) listeners.splice(index, 1);
+          if (index >= 0) {
+            listeners.splice(index, 1);
+          }
         },
       };
     });
@@ -271,11 +276,15 @@ it("withdraws refused match facts at foreground and keeps them absent if the nex
   jest
     .spyOn(AppState, "addEventListener")
     .mockImplementation((event, listener) => {
-      if (event === "change") listeners.push(listener);
+      if (event === "change") {
+        listeners.push(listener);
+      }
       return {
         remove: () => {
           const index = listeners.indexOf(listener);
-          if (index >= 0) listeners.splice(index, 1);
+          if (index >= 0) {
+            listeners.splice(index, 1);
+          }
         },
       };
     });
@@ -315,11 +324,15 @@ it("retains an already loaded calendar across match focus/foreground reads witho
   jest
     .spyOn(AppState, "addEventListener")
     .mockImplementation((event, listener) => {
-      if (event === "change") listeners.push(listener);
+      if (event === "change") {
+        listeners.push(listener);
+      }
       return {
         remove: () => {
           const index = listeners.indexOf(listener);
-          if (index >= 0) listeners.splice(index, 1);
+          if (index >= 0) {
+            listeners.splice(index, 1);
+          }
         },
       };
     });

@@ -35,6 +35,7 @@ export function useCollectionControls(seasonId?: string) {
   const query = useQuery(createCollectionQueries(authority).controls(seasonId));
   return { authority, query };
 }
+
 /** Current control, paged evidence and explicit commands share generated keys and the F05/F12 authority. */
 export function useCollectionControl(controlId: string, seasonId?: string) {
   const authority = useCollectionAuthority();
@@ -47,12 +48,14 @@ export function useCollectionControl(controlId: string, seasonId?: string) {
     : undefined;
   const query = useQuery(controlOptions);
   const results = useInfiniteQuery(queries.results(controlId));
+
   /** Invalidates the control and its owning season projections after settlement. */
   function accept() {
     void client.invalidateQueries({ queryKey: key, exact: true });
     invalidateCollectionControls(client, seasonId);
     invalidateCollectionSeasons(client);
   }
+
   const activity = useMutation({
     retry: false,
     networkMode: "always",
@@ -83,16 +86,19 @@ export function useCollectionControl(controlId: string, seasonId?: string) {
     seasonKey,
   };
 }
+
 /** Exact terminal closure uses the existing season revision and never retries an uncertain acknowledgement. */
 export function useCloseCollectionSeason(seasonId: string) {
   const { authority, season, seasonKey: key } = useCollectionSeason(seasonId);
   const client = useQueryClient();
+
   /** Invalidates the closed season and its related controls after settlement. */
   function accept() {
     void client.invalidateQueries({ queryKey: key, exact: true });
     invalidateCollectionControls(client, seasonId);
     invalidateCollectionSeasons(client);
   }
+
   const close = useMutation({
     retry: false,
     networkMode: "always",

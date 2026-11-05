@@ -33,9 +33,12 @@ public class ProfilePhotoProcessor implements ProfilePhotoPreparation {
       throw new UnsupportedProfilePhotoException();
     }
     if (!MediaType.IMAGE_PNG.equalsTypeAndSubtype(declaredType)
-        && !MediaType.IMAGE_JPEG.equalsTypeAndSubtype(declaredType))
+        && !MediaType.IMAGE_JPEG.equalsTypeAndSubtype(declaredType)) {
       throw new UnsupportedProfilePhotoException();
-    if (bytes.length > 5 * 1024 * 1024) throw new ProfilePhotoTooLargeException();
+    }
+    if (bytes.length > 5 * 1024 * 1024) {
+      throw new ProfilePhotoTooLargeException();
+    }
     try {
       DecodedImage image =
           ImageDecoder.decode(
@@ -45,16 +48,21 @@ public class ProfilePhotoProcessor implements ProfilePhotoPreparation {
                 if (!MediaType.parseMediaType(header.mediaType()).equalsTypeAndSubtype(declaredType)
                     || header.width() < 1
                     || header.width() > 1024
-                    || header.width() != header.height()) throw new InvalidProfilePhotoException();
+                    || header.width() != header.height()) {
+                  throw new InvalidProfilePhotoException();
+                }
               });
       try {
         ByteArrayOutputStream bytesOut = new ByteArrayOutputStream();
         try (MemoryCacheImageOutputStream output = new MemoryCacheImageOutputStream(bytesOut)) {
-          if (!ImageIO.write(image.pixels(), declaredType.getSubtype(), output))
+          if (!ImageIO.write(image.pixels(), declaredType.getSubtype(), output)) {
             throw new InvalidProfilePhotoException();
+          }
         }
         byte[] prepared = bytesOut.toByteArray();
-        if (prepared.length > 5 * 1024 * 1024) throw new ProfilePhotoTooLargeException();
+        if (prepared.length > 5 * 1024 * 1024) {
+          throw new ProfilePhotoTooLargeException();
+        }
         return new ProfilePhoto(prepared, image.mediaType(), image.pixels().getWidth());
       } finally {
         image.pixels().flush();

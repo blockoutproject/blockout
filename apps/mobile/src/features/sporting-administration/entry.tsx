@@ -12,12 +12,15 @@ import type { PresentationTarget } from "./api/presentation";
 export interface PresentationEntryProps {
   target: Exclude<PresentationTarget, { kind: "division-creation" }>;
 }
+
 /** Discreet contextual editor; route admission and server authorization remain independently enforced. */
 export function PresentationEntry({ target }: PresentationEntryProps) {
   const { permissions } = useAdministrationCapabilities();
   const router = useRouter();
   const { colors } = useTheme();
-  if (permissions?.manageSportingPresentation !== true) return null;
+  if (permissions?.manageSportingPresentation !== true) {
+    return null;
+  }
   return (
     <IconButton
       onPress={() =>
@@ -52,7 +55,9 @@ export function ClassificationEntry({
   target: ClassificationTarget;
 }) {
   const { permissions } = useAdministrationCapabilities();
-  if (permissions?.manageSportingClassification !== true) return null;
+  if (permissions?.manageSportingClassification !== true) {
+    return null;
+  }
   return (
     <NavigationLink
       href={{

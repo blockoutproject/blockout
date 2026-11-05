@@ -14,7 +14,9 @@ public class CollectionRevision {
    * @param actual current locked revision
    */
   static void requireRevision(long expected, long actual) {
-    if (expected != actual) throw new CollectionConflictException("stale-revision");
+    if (expected != actual) {
+      throw new CollectionConflictException("stale-revision");
+    }
   }
 
   /**
@@ -23,7 +25,8 @@ public class CollectionRevision {
    * @param revision current nonnegative wire revision
    */
   static void requireAdvance(long revision) {
-    if (revision < 0 || revision >= MAX_SAFE_INTEGER)
+    if (revision < 0 || revision >= MAX_SAFE_INTEGER) {
       throw new CollectionConflictException("conflict");
+    }
   }
 }

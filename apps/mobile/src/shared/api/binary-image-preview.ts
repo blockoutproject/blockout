@@ -22,7 +22,9 @@ export function binaryImagePreview(
     /** An obsolete request cannot publish a decoded image even if its HTTP body already completed. */
     function cancel() {
       cleanup();
-      if (reader.readyState === FileReader.LOADING) reader.abort();
+      if (reader.readyState === FileReader.LOADING) {
+        reader.abort();
+      }
       reject(new ApiError("cancelled"));
     }
 
@@ -32,8 +34,11 @@ export function binaryImagePreview(
     };
     reader.onload = () => {
       cleanup();
-      if (typeof reader.result === "string") resolve(reader.result);
-      else reject(new ApiError("schema"));
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+      } else {
+        reject(new ApiError("schema"));
+      }
     };
     signal?.addEventListener("abort", cancel, { once: true });
     try {

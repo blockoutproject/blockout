@@ -113,6 +113,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
   process.env = { ...previousEnvironment };
 });
+
 /** Captures the real session API without granting a usable business account. */
 function SessionProbe() {
   useQueryClient().setQueryDefaults([], { retry: false, gcTime: Infinity });
@@ -122,6 +123,7 @@ function SessionProbe() {
   }, [session]);
   return <Text>Session: {session.status}</Text>;
 }
+
 /** Mounts focused real owners; routing remains an explicitly controlled command boundary. */
 async function mount(content: React.ReactNode) {
   await renderRouter(
@@ -145,6 +147,7 @@ async function mount(content: React.ReactNode) {
     },
   );
 }
+
 it("places a distinct Pro action before Privacy in the existing admitted profile", async () => {
   // Given
   await mount(
@@ -268,6 +271,7 @@ it("requires a new explicit press after ordinary sign-in before requesting prese
   // Then
   expect(present.mock.calls).toEqual([[]]);
 });
+
 /** Observes the real Pro context beside the badge so explicit verification keeps its provider-owned lifecycle. */
 function MembershipProbe() {
   const current = usePro();
@@ -276,6 +280,7 @@ function MembershipProbe() {
   }, [current]);
   return <ProProfileBadge />;
 }
+
 it("shows membership only from verified current-session rights and clears it when the native principal changes", async () => {
   // Given
   jest.replaceProperty(

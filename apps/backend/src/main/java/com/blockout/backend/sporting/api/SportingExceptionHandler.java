@@ -40,8 +40,9 @@ public class SportingExceptionHandler {
   ResponseEntity<Object> conflict(SportingConflictException exception) {
     ProblemResponse problem =
         HttpProblems.body(HttpStatus.CONFLICT, "urn:blockout:problem:" + exception.getType());
-    if (!exception.getResourceIds().isEmpty())
+    if (!exception.getResourceIds().isEmpty()) {
       problem.setConflictingResourceIds(exception.getResourceIds());
+    }
     return HttpProblems.response(problem, HttpHeaders.EMPTY);
   }
 

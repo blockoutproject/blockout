@@ -18,7 +18,9 @@ public class SourceReference {
         || uri.getHost() == null
         || uri.getUserInfo() != null
         || (qualified && uri.getFragment() != null)
-        || !("https".equalsIgnoreCase(uri.getScheme()) || "http".equalsIgnoreCase(uri.getScheme())))
+        || !("https".equalsIgnoreCase(uri.getScheme())
+            || "http".equalsIgnoreCase(uri.getScheme()))) {
       throw new InvalidSourceException();
+    }
   }
 }

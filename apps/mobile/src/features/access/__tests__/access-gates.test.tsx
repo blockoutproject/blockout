@@ -278,18 +278,19 @@ it.each(["maintenance", "update"] as const)(
   async (restriction) => {
     // Given
     const full = applicationAccessResponse();
-    if (restriction === "maintenance")
+    if (restriction === "maintenance") {
       full.maintenance = {
         revision: 1,
         active: true,
         message: "Nous intervenons sur le service.",
         imageUrl: null,
       };
-    else
+    } else {
       full.versions.ios = {
         minimumVersion: "2.10.0",
         storeUrl: "https://apps.apple.com/app/id123",
       };
+    }
     mockFetch.mockImplementation(async () => json(full));
     await openRoute("/support");
     const title =
@@ -406,7 +407,9 @@ it("refreshes maintenance and retries existing-account identification without in
   let identificationFails = true;
   mockFetch.mockImplementation(async (url) => {
     if (String(url).endsWith("/accounts/me")) {
-      if (identificationFails) throw new Error("Transient identity outage");
+      if (identificationFails) {
+        throw new Error("Transient identity outage");
+      }
       return json(operator);
     }
     return json(full);

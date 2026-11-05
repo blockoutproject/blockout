@@ -2,6 +2,8 @@ import {
   DocumentReader,
   documentRead,
   documentReaders,
+  documentFiles,
+  documentWrite,
 } from "../test-support/native-document-files";
 import type { ReactElement } from "react";
 import type { QueryClient } from "@tanstack/react-query";
@@ -32,10 +34,6 @@ import {
   matchDetail,
   sportingId,
 } from "../test-support/consultation-data";
-import {
-  documentFiles,
-  documentWrite,
-} from "../test-support/native-document-files";
 import { MatchScreen } from "../screens/match-screen";
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
@@ -83,6 +81,7 @@ let detail = matchDetail();
 function captureClient(current: QueryClient) {
   client = current;
 }
+
 /** Renders actual generated transport, access, session, advertising and shared UI owners. */
 function renderPage(content: ReactElement) {
   return render(content, {
@@ -96,16 +95,19 @@ function renderPage(content: ReactElement) {
     ),
   });
 }
+
 /** Uses only synthetic generated HTTP results; no application hook or lifecycle is replaced. */
 function reads(url: string) {
-  if (url.includes("/documents/"))
+  if (url.includes("/documents/")) {
     return Promise.resolve(
       new Response("%PDF-1.7\nsynthetic\n%%EOF", {
         headers: { "Content-Type": "application/pdf" },
       }),
     );
-  if (url.endsWith("/accounts/me"))
+  }
+  if (url.endsWith("/accounts/me")) {
     return Promise.resolve(Response.json(accountResponse()));
+  }
   return consultationResponse(url, detail);
 }
 
@@ -153,8 +155,9 @@ beforeEach(() => {
     ));
 });
 afterEach(async () => {
-  if (originalReader)
+  if (originalReader) {
     Object.defineProperty(globalThis, "FileReader", originalReader);
+  }
   await cleanup();
   client?.clear();
   publicClient.clear();
@@ -231,7 +234,9 @@ it("cancels a closed opening and rejects its obsolete successful completion", as
   const pending = Promise.withResolvers<Response>();
   let signal: AbortSignal | undefined;
   mockFetch.mockImplementation((url: string, request: RequestInit) => {
-    if (!url.includes("/documents/")) return reads(url);
+    if (!url.includes("/documents/")) {
+      return reads(url);
+    }
     signal = request.signal ?? undefined;
     return pending.promise;
   });
@@ -323,7 +328,9 @@ it("cancels a pending PDF when the SDK principal replaces the private tree", asy
   mockAuth0.webAuth.mockResolvedValue(credentialsFor("auth0|second"));
   mockAuth0.saveCredentials.mockResolvedValue(undefined);
   mockFetch.mockImplementation((url: string, request: RequestInit) => {
-    if (!url.includes("/documents/")) return reads(url);
+    if (!url.includes("/documents/")) {
+      return reads(url);
+    }
     signal = request.signal ?? undefined;
     return pending.promise;
   });

@@ -54,7 +54,9 @@ jest.mock("expo-router", () => ({
 // Node Fetch replaces native networking only. Every request reaches the actual Spring provider.
 jest.mock("expo/fetch", () => ({
   fetch: async (url: RequestInfo | URL, options?: RequestInit) => {
-    if (String(url).endsWith("/application-access")) mockPublicReads++;
+    if (String(url).endsWith("/application-access")) {
+      mockPublicReads++;
+    }
     const response = await jest.requireActual("node-fetch")(url, options);
     if (options?.method === "PATCH") {
       mockPatchCount++;
@@ -131,7 +133,9 @@ suite("configured provider and generated consumer integration", () => {
   });
   afterEach(async () => {
     await cleanup();
-    for (const cache of clients) cache.clear();
+    for (const cache of clients) {
+      cache.clear();
+    }
     clients.clear();
     jest.restoreAllMocks();
     process.env = { ...environment };
@@ -392,6 +396,7 @@ suite("configured provider and generated consumer integration", () => {
     expect(mockPatchCount).toBe(1);
   });
 });
+
 /** Mounts the actual form component with its real F05/Query owners, outside production route admission. */
 async function renderEditor() {
   await render(

@@ -43,6 +43,7 @@ function useVisit() {
   });
   return { team, pool, editing, setEditing, draft };
 }
+
 const SearchVisitContext = createContext<
   ReturnType<typeof useVisit> | undefined
 >(undefined);
@@ -56,6 +57,8 @@ export function SearchVisitProvider({ children }: PropsWithChildren) {
 /** Requires the search route's visit lifetime; unrelated routes never share its filter draft. */
 export function useSearchVisit() {
   const visit = useContext(SearchVisitContext);
-  if (!visit) throw new Error("Search visit provider is required");
+  if (!visit) {
+    throw new Error("Search visit provider is required");
+  }
   return visit;
 }

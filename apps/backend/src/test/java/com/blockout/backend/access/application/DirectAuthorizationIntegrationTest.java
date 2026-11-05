@@ -99,7 +99,9 @@ class DirectAuthorizationIntegrationTest extends ContributionScenario {
   @DisplayName("A single grant authorizes only its real command and current account capability")
   void separatesEveryAction(Permission assigned) throws Exception {
     // Given
-    if (assigned != null) grant(OTHER, assigned);
+    if (assigned != null) {
+      grant(OTHER, assigned);
+    }
 
     for (Permission action : Permission.values()) {
       Map<String, Object> before = protectedState();
@@ -108,8 +110,9 @@ class DirectAuthorizationIntegrationTest extends ContributionScenario {
       ThrowingCallable command = () -> command(action, OTHER);
 
       // Then
-      if (action == assigned) assertThatCode(command).doesNotThrowAnyException();
-      else {
+      if (action == assigned) {
+        assertThatCode(command).doesNotThrowAnyException();
+      } else {
         assertThatThrownBy(command).isInstanceOf(AccessDeniedException.class);
         assertThat(protectedState()).isEqualTo(before);
       }
@@ -235,7 +238,9 @@ class DirectAuthorizationIntegrationTest extends ContributionScenario {
       "Actual erasure and explicit recreation preserve settings but restore no grant to either UUID")
   void erasesOriginalLifecycle() throws Exception {
     // Given
-    for (Permission action : Permission.values()) grant(OTHER, action);
+    for (Permission action : Permission.values()) {
+      grant(OTHER, action);
+    }
     List<Map<String, Object>> originalSettings =
         sql.queryForList("SELECT * FROM access_settings ORDER BY id");
     RequestPostProcessor oldSession = operator(OTHER);
@@ -304,8 +309,9 @@ class DirectAuthorizationIntegrationTest extends ContributionScenario {
                 account, matchId, "0", URI.create("https://youtu.be/ordinary"), false);
 
     // Then
-    if (eligible) assertThatCode(publish).doesNotThrowAnyException();
-    else
+    if (eligible) {
+      assertThatCode(publish).doesNotThrowAnyException();
+    } else {
       assertThatThrownBy(publish)
           .isInstanceOfSatisfying(
               ContributionRejectedException.class,
@@ -313,6 +319,7 @@ class DirectAuthorizationIntegrationTest extends ContributionScenario {
                   assertThat(failure.getStatus())
                       .isEqualTo(
                           ageSeconds < 0 ? Status.ACCOUNT_AGE_UNKNOWN : Status.ACCOUNT_TOO_YOUNG));
+    }
     assertThat(permissions.forAccount(account)).isEmpty();
     assertThat(count("contribution_version")).isEqualTo(eligible ? 1 : 0);
   }
@@ -331,13 +338,14 @@ class DirectAuthorizationIntegrationTest extends ContributionScenario {
     ThrowingCallable publish = () -> submit(OTHER, "0", "https://youtu.be/young", false);
 
     // Then
-    if (assigned == Permission.MODERATE_STREAM_LINKS)
+    if (assigned == Permission.MODERATE_STREAM_LINKS) {
       assertThatCode(publish).doesNotThrowAnyException();
-    else
+    } else {
       assertThatThrownBy(publish)
           .isInstanceOfSatisfying(
               ContributionRejectedException.class,
               failure -> assertThat(failure.getStatus()).isEqualTo(Status.ACCOUNT_TOO_YOUNG));
+    }
     assertThat(count("contribution_version"))
         .isEqualTo(assigned == Permission.MODERATE_STREAM_LINKS ? 1 : 0);
   }

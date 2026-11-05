@@ -71,6 +71,7 @@ let detail = matchDetail();
 function captureClient(current: QueryClient) {
   client = current;
 }
+
 /** Renders actual generated transport, access, session, advertising and shared UI owners. */
 function renderPage(content: ReactElement) {
   return render(content, {
@@ -84,16 +85,19 @@ function renderPage(content: ReactElement) {
     ),
   });
 }
+
 /** Uses only synthetic generated HTTP results; no application hook or lifecycle is replaced. */
 function reads(url: string) {
-  if (url.includes("/documents/"))
+  if (url.includes("/documents/")) {
     return Promise.resolve(
       new Response("%PDF-1.7\nsynthetic\n%%EOF", {
         headers: { "Content-Type": "application/pdf" },
       }),
     );
-  if (url.endsWith("/accounts/me"))
+  }
+  if (url.endsWith("/accounts/me")) {
     return Promise.resolve(Response.json(accountResponse()));
+  }
   return consultationResponse(url, detail);
 }
 

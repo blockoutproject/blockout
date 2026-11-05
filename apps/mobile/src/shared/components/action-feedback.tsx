@@ -66,7 +66,9 @@ export function ActionFeedbackProvider({
   /** Shows only a current-scope event and leaves the existing request/form owners untouched. */
   const error = useCallback(
     (owner: object, message: string, nextScope?: string) => {
-      if (nextScope === undefined && currentScope.current !== scopeKey) return;
+      if (nextScope === undefined && currentScope.current !== scopeKey) {
+        return;
+      }
       setNotice({ owner, scopeKey: nextScope ?? scopeKey, message });
     },
     [scopeKey],
@@ -78,23 +80,29 @@ export function ActionFeedbackProvider({
   }, []);
 
   useEffect(() => {
-    if (!notice || notice.scopeKey !== scopeKey) return;
+    if (!notice || notice.scopeKey !== scopeKey) {
+      return;
+    }
     let active = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const duration = Math.max(6_000, notice.message.length * 60);
+
     /** Uses the native accessibility timeout where supported; failure retains the approved duration. */
     function expireAfter(milliseconds: number) {
-      if (!active) return;
+      if (!active) {
+        return;
+      }
       timer = setTimeout(() => {
         setNotice((current) => (current === notice ? undefined : current));
       }, milliseconds);
     }
-    if (Platform.OS === "android")
+
+    if (Platform.OS === "android") {
       void AccessibilityInfo.getRecommendedTimeoutMillis(duration).then(
         expireAfter,
         () => expireAfter(duration),
       );
-    else {
+    } else {
       AccessibilityInfo.announceForAccessibility(notice.message);
       expireAfter(duration);
     }
@@ -132,8 +140,9 @@ export function ActionFeedbackProvider({
  */
 export function useActionFeedback({ retainOnUnmount = false } = {}) {
   const context = useContext(FeedbackContext);
-  if (!context)
+  if (!context) {
     throw new Error("Action feedback requires ActionFeedbackProvider");
+  }
   const owner = useRef({});
   const mounted = useRef(false);
   const { clear } = context;
@@ -142,7 +151,9 @@ export function useActionFeedback({ retainOnUnmount = false } = {}) {
     const identity = owner.current;
     return () => {
       mounted.current = false;
-      if (!retainOnUnmount) clear(identity);
+      if (!retainOnUnmount) {
+        clear(identity);
+      }
     };
   }, [clear, retainOnUnmount]);
   return {
@@ -151,7 +162,9 @@ export function useActionFeedback({ retainOnUnmount = false } = {}) {
      * within the owning mounted account lifetime; ordinary commands use the captured scope.
      */
     error(message = TECHNICAL_ERROR, nextScope?: string) {
-      if (mounted.current) context.error(owner.current, message, nextScope);
+      if (mounted.current) {
+        context.error(owner.current, message, nextScope);
+      }
     },
     /** Retires this interaction's previous feedback when a new explicit action begins. */
     clear() {
@@ -165,6 +178,7 @@ function ErrorToast({ message }: { message: string }) {
   const { colors } = useTheme();
   const reducedMotion = useReducedMotion();
   const duration = reducedMotion ? 1 : 240;
+
   /** Reanimated receives the measured height, preserving the approved offscreen travel with text scaling. */
   function enter(values: EntryAnimationsValues) {
     "worklet";
@@ -184,6 +198,7 @@ function ErrorToast({ message }: { message: string }) {
       },
     };
   }
+
   /** Presentation expiry animates only this surface and performs no domain callback. */
   function exit(values: ExitAnimationsValues) {
     "worklet";
@@ -201,6 +216,7 @@ function ErrorToast({ message }: { message: string }) {
       },
     };
   }
+
   return (
     <Animated.View
       entering={enter}

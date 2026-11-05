@@ -21,5 +21,6 @@ export const candidateUrlSchema = z
 export const sourceCandidateSchema = z.object({
   candidateUrl: candidateUrlSchema,
 });
+
 /** RHF values for an existing source candidate. */
 export type SourceCandidateValues = z.infer<typeof sourceCandidateSchema>;

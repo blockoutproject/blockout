@@ -18,8 +18,9 @@ export function confirmedUnreadCount(
     !summary ||
     (summary.unreadCount > 0 &&
       (!summary.nextExpiryAt || Date.parse(summary.nextExpiryAt) <= Date.now()))
-  )
+  ) {
     return undefined;
+  }
   return summary.unreadCount;
 }
 

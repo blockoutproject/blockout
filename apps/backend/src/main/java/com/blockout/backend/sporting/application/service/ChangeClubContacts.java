@@ -44,7 +44,9 @@ public class ChangeClubContacts {
   public Contacts correct(
       UUID accountId, UUID clubId, String revision, Map<ContactField, ContactEdit> edits) {
     permissions.requireForRead(accountId, Permission.MANAGE_SPORTING_PRESENTATION);
-    if (edits.isEmpty()) throw new SportingValidationException();
+    if (edits.isEmpty()) {
+      throw new SportingValidationException();
+    }
     store.lockPresentation(Kind.CLUB, clubId);
     authorization.require(accountId, Permission.MANAGE_SPORTING_PRESENTATION);
     Contacts current = store.clubContacts(clubId);
@@ -54,9 +56,15 @@ public class ChangeClubContacts {
       ContactEdit edit = entry.getValue();
       ContactValue previous = fields.get(entry.getKey());
       if (edit.mode() == ContactModeEnum.MANUAL) {
-        if (previous.restricted()) throw new SportingConflictException("conflict", List.of());
-        if (!values.valid(entry.getKey(), edit.value())) throw new SportingValidationException();
-      } else if (edit.value() != null) throw new SportingValidationException();
+        if (previous.restricted()) {
+          throw new SportingConflictException("conflict", List.of());
+        }
+        if (!values.valid(entry.getKey(), edit.value())) {
+          throw new SportingValidationException();
+        }
+      } else if (edit.value() != null) {
+        throw new SportingValidationException();
+      }
       fields.put(
           entry.getKey(),
           new ContactValue(

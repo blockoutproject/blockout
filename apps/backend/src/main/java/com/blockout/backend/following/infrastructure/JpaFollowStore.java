@@ -77,7 +77,9 @@ public class JpaFollowStore implements FollowStore {
         case POOL -> poolIds.add(target.id());
       }
     }
-    if (targets.isEmpty()) return List.of();
+    if (targets.isEmpty()) {
+      return List.of();
+    }
     return List.copyOf(teams.findRelations(teamIds, poolIds));
   }
 }

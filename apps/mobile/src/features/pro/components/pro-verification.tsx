@@ -53,44 +53,51 @@ export function ProVerification({ onSupport }: ProVerificationProps) {
     feedback.clear();
     const known =
       state.status === "active" || state.status === "inactive" || uncertain;
-    if ((await retry()) === false && known) feedback.error();
+    if ((await retry()) === false && known) {
+      feedback.error();
+    }
   }
-  if (state.status === "guest") return null;
+
+  if (state.status === "guest") {
+    return null;
+  }
   const uncertain = hasUnsettledProOperation(state);
   if (
     state.status !== "unavailable" &&
     !uncertain &&
     state.operation !== "restored"
-  )
+  ) {
     return null;
+  }
   const waiting = isProVerificationLoading(
     state,
     refreshing,
     verificationFailed,
   );
   let message = "";
-  if (state.operation === "restoring")
+  if (state.operation === "restoring") {
     message =
       "La restauration est en cours. Aucun nouvel achat n’est nécessaire.";
-  else if (state.operation === "restored")
+  } else if (state.operation === "restored") {
     message =
       "Restauration terminée. Aucun droit Pro actif n’a été établi pour ce compte. Vérifiez vos droits ou contactez l’assistance sans acheter à nouveau.";
-  else if (state.operation === "restore-uncertain")
+  } else if (state.operation === "restore-uncertain") {
     message =
       "Le résultat de la restauration est incertain. Vérifiez vos droits ou contactez l’assistance sans acheter à nouveau.";
-  else if (state.operation === "purchased")
+  } else if (state.operation === "purchased") {
     message =
       state.status === "active"
         ? "Paiement confirmé. Les droits liés à cet achat restent à vérifier. Vérifiez vos droits sans acheter à nouveau."
         : "Paiement confirmé. L’activation Pro reste à vérifier. Vérifiez vos droits sans acheter à nouveau.";
-  else if (state.operation === "already-owned")
+  } else if (state.operation === "already-owned") {
     message =
       "Cet achat est déjà détenu. Vérifiez vos droits ou retrouvez la restauration dans la gestion des achats.";
-  else if (uncertain)
+  } else if (uncertain) {
     message =
       state.operation === "pending"
         ? "Le paiement est en attente de validation du store. Vérifiez vos droits sans renouveler l’achat."
         : "Le résultat de l’achat est incertain. Vérifiez vos droits sans acheter à nouveau.";
+  }
   return (
     <View style={styles.feedback}>
       {waiting ? (

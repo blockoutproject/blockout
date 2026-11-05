@@ -112,6 +112,7 @@ function binding(
     ...overrides,
   };
 }
+
 /** Real Fetch responses exercise the generated decoder; no query or form behavior is mocked. */
 function json(value: unknown, status = 200) {
   return Response.json(value, {
@@ -122,6 +123,7 @@ function json(value: unknown, status = 200) {
     },
   });
 }
+
 /** Shared safe problem category, without provider text or a fabricated successful representation. */
 function refused(status: number) {
   return json(
@@ -136,20 +138,34 @@ function refused(status: number) {
     status,
   );
 }
+
 /** Default read-only local peer; each mutation scenario installs its own explicit response. */
 async function reads(url: RequestInfo | URL): Promise<Response> {
   const path = new URL(String(url)).pathname;
-  if (path.endsWith("/application-access"))
+  if (path.endsWith("/application-access")) {
     return json(applicationAccessResponse());
-  if (path.endsWith("/accounts/me")) return json({ ...account, permissions });
-  if (path.endsWith("/collection-seasons")) return json({ items: [season] });
-  if (path.endsWith(`/collection-seasons/${seasonId}`)) return json(season);
-  if (path.endsWith("/source-bindings")) return json({ items: sources });
-  if (path.endsWith(`/source-bindings/${sourceId}`)) return json(source);
-  if (path.endsWith("/children"))
+  }
+  if (path.endsWith("/accounts/me")) {
+    return json({ ...account, permissions });
+  }
+  if (path.endsWith("/collection-seasons")) {
+    return json({ items: [season] });
+  }
+  if (path.endsWith(`/collection-seasons/${seasonId}`)) {
+    return json(season);
+  }
+  if (path.endsWith("/source-bindings")) {
+    return json({ items: sources });
+  }
+  if (path.endsWith(`/source-bindings/${sourceId}`)) {
+    return json(source);
+  }
+  if (path.endsWith("/children")) {
     return json({ items: [], page: 0, hasNext: false });
+  }
   throw new Error(`Unexpected controlled request ${path}`);
 }
+
 beforeEach(() => {
   mockIsFocused.mockReset().mockReturnValue(true);
   publicClient = createQueryClient();
@@ -256,6 +272,7 @@ it.each(["candidate", "creation"] as const)(
     );
   },
 );
+
 /** Explicit actions use the existing owners so session invalidation and grant refresh remain real. */
 function AccountActions() {
   const session = useAccountSession();
@@ -505,7 +522,9 @@ it("preserves dirty input through a background refetch and requires an explicit 
     .find((q) =>
       q.queryKey.includes(getGetCollectionSourceQueryKey(sourceId)[0]),
     );
-  if (!query) throw new Error("Source query missing");
+  if (!query) {
+    throw new Error("Source query missing");
+  }
   source = binding({ revision: 3, candidateUrl: `${candidateUrl}&other=1` });
 
   // When
@@ -639,14 +658,16 @@ it("never offers confirmation to override invalid evidence", async () => {
 
 it.each(["locked", "closed"])("keeps %s sources read-only", async (state) => {
   // Given
-  if (state === "closed") season.state = "closed";
-  else
+  if (state === "closed") {
+    season.state = "closed";
+  } else {
     source = binding({
       locked: true,
       launched: true,
       acceptedUrl: candidateUrl,
       validation: "qualified",
     });
+  }
 
   // When
   await renderPreparation();
@@ -779,7 +800,9 @@ it("adds only an unqualified candidate for the explicit provider and current sea
   );
   await user.type(screen.getByLabelText("URL officielle"), candidateUrl);
   mockFetch.mockImplementation(async (url, options) => {
-    if (options?.method === "POST") return created.promise;
+    if (options?.method === "POST") {
+      return created.promise;
+    }
     return reads(url);
   });
 
@@ -948,9 +971,13 @@ it("loads child pages only from the visible idle list and keeps overlapping chil
   const nextPage = Promise.withResolvers<Response>();
   mockFetch.mockImplementation(async (url) => {
     const parsed = new URL(String(url));
-    if (!parsed.pathname.endsWith("/children")) return reads(url);
+    if (!parsed.pathname.endsWith("/children")) {
+      return reads(url);
+    }
     const page = Number(parsed.searchParams.get("page"));
-    if (page === 1) return nextPage.promise;
+    if (page === 1) {
+      return nextPage.promise;
+    }
     return json({
       items: [
         {
@@ -1060,9 +1087,13 @@ it("retains child rows and retries the failed page without a toast while retaini
   let fails = true;
   mockFetch.mockImplementation(async (url) => {
     const parsed = new URL(String(url));
-    if (!parsed.pathname.endsWith("/children")) return reads(url);
+    if (!parsed.pathname.endsWith("/children")) {
+      return reads(url);
+    }
     const page = Number(parsed.searchParams.get("page"));
-    if (page === 1 && fails) return refused(503);
+    if (page === 1 && fails) {
+      return refused(503);
+    }
     return json({
       items: [
         {
@@ -1257,7 +1288,9 @@ it("rejects a source mutation arriving after the original F05 session ended", as
     .find((query) =>
       query.queryKey.includes(getGetCollectionSourceQueryKey(sourceId)[0]),
     )?.queryKey;
-  if (!originalQueryKey) throw new Error("Source query missing");
+  if (!originalQueryKey) {
+    throw new Error("Source query missing");
+  }
   const pending = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url, options) =>
     options?.method === "PUT" ? pending.promise : reads(url),
@@ -1358,12 +1391,14 @@ it("keeps every provider blocked when an acknowledged source invalidates a seaso
   );
   await user.type(screen.getByLabelText("URL officielle"), draftUrl);
   mockFetch.mockImplementation((url, options) => {
-    if (options?.method === "POST")
+    if (options?.method === "POST") {
       return Promise.resolve(json(binding({ organizerReference: "139" }), 201));
+    }
     if (
       new URL(String(url)).pathname.endsWith(`/collection-seasons/${seasonId}`)
-    )
+    ) {
       return Promise.resolve(refused(503));
+    }
     return reads(url);
   });
 

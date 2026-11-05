@@ -43,7 +43,9 @@ it("keeps the public scroll ref and caller events while its page observes native
     </ThemeProvider>,
   );
   const native = ref.current;
-  if (!native) throw new Error("The native scroll ref was not forwarded");
+  if (!native) {
+    throw new Error("The native scroll ref was not forwarded");
+  }
   const scrollTo = jest.spyOn(native, "scrollTo");
   const event = { nativeEvent: { contentOffset: { x: 0, y: 64 } } };
 

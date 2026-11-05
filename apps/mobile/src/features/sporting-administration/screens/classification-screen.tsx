@@ -19,6 +19,7 @@ import { ClassificationForm } from "../forms/classification-form";
 export interface ClassificationScreenProps {
   target: ClassificationTarget;
 }
+
 /** Composes F05/F12 admission, generated reads and the retained correction form. */
 export function ClassificationScreen({ target }: ClassificationScreenProps) {
   const editing = useClassification(target);
@@ -29,18 +30,23 @@ export function ClassificationScreen({ target }: ClassificationScreenProps) {
       ? editing.query.data
       : undefined;
   const feedback = useActionFeedback();
+
   /** One explicit refresh owns both reads and reports their retained-data failure once. */
   async function refresh() {
-    if (editing.save.isPending) return;
+    if (editing.save.isPending) {
+      return;
+    }
     feedback.clear();
     const results = await Promise.all(
       !authority.enabled
         ? [authority.account.refetch()]
         : [editing.query.refetch(), divisions.query.refetch()],
     );
-    if (results.some((result) => result.isError && result.data))
+    if (results.some((result) => result.isError && result.data)) {
       feedback.error();
+    }
   }
+
   const FeedbackLayout =
     !current &&
     (!authority.enabled

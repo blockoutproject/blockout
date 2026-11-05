@@ -173,9 +173,10 @@ beforeEach(() => {
   mockAuth0.clearCredentials.mockReset().mockResolvedValue();
   mockFetch.mockReset().mockImplementation(async (url, init) => {
     const path = new URL(String(url)).pathname;
-    if (path.endsWith("/application-access"))
+    if (path.endsWith("/application-access")) {
       return Response.json(applicationAccessResponse());
-    if (path.endsWith("/me"))
+    }
+    if (path.endsWith("/me")) {
       return profileFails
         ? Response.json({ title: "Unavailable", status: 503 }, { status: 503 })
         : Response.json(
@@ -183,15 +184,17 @@ beforeEach(() => {
               permissions: { moderateStreamLinks: permission },
             }),
           );
+    }
     const page = new URL(String(url)).searchParams.get("page");
-    if (page === "1" && continuationFails)
+    if (page === "1" && continuationFails) {
       return Response.json(
         { title: "Unavailable", status: 503 },
         { status: 503 },
       );
+    }
     if (init?.method === "PATCH" || init?.method === "POST") {
       writes.push(JSON.parse(String(init.body)));
-      if (writeStatus >= 400)
+      if (writeStatus >= 400) {
         return Response.json(
           {
             type: "urn:blockout:problem:conflict",
@@ -200,13 +203,16 @@ beforeEach(() => {
           },
           { status: writeStatus },
         );
-      if (failAfterWrite) failRead = true;
+      }
+      if (failAfterWrite) {
+        failRead = true;
+      }
       return Response.json({
         revision: "accepted:2",
         contribution: detail.items[0],
       });
     }
-    if (failRead)
+    if (failRead) {
       return Response.json(
         {
           type: "urn:blockout:problem:unavailable",
@@ -215,6 +221,7 @@ beforeEach(() => {
         },
         { status: 503 },
       );
+    }
     if (path.endsWith("/stream-moderation")) {
       const page = new URL(String(url)).searchParams.get("page");
       return Response.json({
@@ -240,7 +247,7 @@ beforeEach(() => {
         ...(queuePaged && page !== "1" ? { nextPage: 1 } : {}),
       });
     }
-    if (path.endsWith("/reports"))
+    if (path.endsWith("/reports")) {
       return Response.json({
         count: reportsPaged ? 21 : 1,
         items: [
@@ -258,6 +265,7 @@ beforeEach(() => {
         ],
         ...(reportsPaged && page !== "1" ? { nextPage: 1 } : {}),
       });
+    }
     return Response.json({
       ...detail,
       ...(historyPaged && page === "1"
@@ -303,6 +311,7 @@ function PrivateQueries({ children }: PropsWithChildren) {
   }, [current]);
   return children;
 }
+
 /** Mounts a real feature screen in its providers and permits rerendering an exact route context. */
 async function mount(children: React.ReactElement) {
   const view = await render(children, {
@@ -349,8 +358,9 @@ it.each(["queue", "active", "pending", "filters", "reports"] as const)(
         <ModerationMatchScreen matchId={sporting.id} />
       ),
     );
-    if (surface === "pending")
+    if (surface === "pending") {
       await user.press(screen.getByRole("tab", { name: /^Propositions/ }));
+    }
 
     // When / Then
     expect(
@@ -374,20 +384,21 @@ it.each(["queue", "active", "pending", "filters", "reports"] as const)(
     }
 
     // Then
-    if (surface === "filters")
+    if (surface === "filters") {
       expect(
         await screen.findByRole("button", { name: "Saison" }),
       ).toBeOnTheScreen();
-    else if (surface === "active")
+    } else if (surface === "active") {
       expect(await screen.findByLabelText("Adresse du lien")).toBeOnTheScreen();
-    else if (surface === "queue")
+    } else if (surface === "queue") {
       expect(await screen.findByText(sporting.home.name)).toBeOnTheScreen();
-    else if (surface === "reports")
+    } else if (surface === "reports") {
       expect(await screen.findByText("Motif indisponible")).toBeOnTheScreen();
-    else
+    } else {
       expect(
         await screen.findByText("https://twitch.tv/review_link"),
       ).toBeOnTheScreen();
+    }
     expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
     expect(writes).toHaveLength(0);
   },
@@ -786,16 +797,22 @@ it("does not restore private content from a late concurrent response after refus
   });
   mockFetch.mockImplementation((url, init) => {
     const path = new URL(String(url)).pathname;
-    if (path.endsWith("/stream-moderation")) return queue;
-    if (path.includes("/stream-contributions")) return heldDetail;
+    if (path.endsWith("/stream-moderation")) {
+      return queue;
+    }
+    if (path.includes("/stream-contributions")) {
+      return heldDetail;
+    }
     return ordinary(url, init);
   });
+
   /** Real feature observers share only the existing private QueryClient; both transports are held. */
   function ConcurrentReads() {
     useModerationQueue({});
     useModerationMatch(sporting.id, "active");
     return null;
   }
+
   await mount(<ConcurrentReads />);
   await waitFor(() =>
     expect(
@@ -866,7 +883,7 @@ it.each(["queue", "versions"] as const)(
     queuePaged = kind === "queue";
     historyPaged = kind === "versions";
     continuationFails = true;
-    if (kind !== "queue")
+    if (kind !== "queue") {
       detail.items = [
         version({
           state: "hidden",
@@ -875,6 +892,7 @@ it.each(["queue", "versions"] as const)(
           canReject: false,
         }),
       ];
+    }
     await mount(
       kind === "queue" ? (
         <ModerationScreen filters={{}} />
@@ -883,8 +901,9 @@ it.each(["queue", "versions"] as const)(
       ),
     );
     const user = userEvent.setup();
-    if (kind === "versions")
+    if (kind === "versions") {
       await user.press(await screen.findByRole("tab", { name: "Historique" }));
+    }
 
     // When
     await fireEvent(
@@ -904,16 +923,17 @@ it.each(["queue", "versions"] as const)(
         name: "Réessayer",
       }),
     ).toBeOnTheScreen();
-    if (kind === "queue")
+    if (kind === "queue") {
       expect(
         screen.getByRole("link", {
           name: `${detail.match.home.name} – ${detail.match.away.name}`,
         }),
       ).toBeOnTheScreen();
-    else
+    } else {
       expect(
         screen.getByRole("button", { name: /Twitch, Masqué/ }),
       ).toBeOnTheScreen();
+    }
   },
 );
 
@@ -1034,10 +1054,11 @@ it.each([
     await mount(<ModerationMatchScreen matchId={sporting.id} />);
     const user = userEvent.setup();
     await user.press(await screen.findByRole("tab", { name: tab }));
-    if (action === "reactivate")
+    if (action === "reactivate") {
       await user.press(
         await screen.findByRole("button", { name: "Twitch, Refusé" }),
       );
+    }
 
     // When
     await user.press(await screen.findByRole("button", { name: label }));
@@ -1151,8 +1172,9 @@ it("retains reports through failed continuation and retries only the exact next 
     if (
       address.pathname !== reportPath ||
       address.searchParams.get("page") !== "1"
-    )
+    ) {
       return ordinary(url, init);
+    }
     return appendAvailable
       ? Promise.resolve(
           Response.json({
@@ -1311,7 +1333,7 @@ it("keeps a new exact-version report context separate from a late older continua
   let appendSignal: AbortSignal | undefined;
   mockFetch.mockImplementation((url, init) => {
     const address = new URL(String(url));
-    if (address.pathname.endsWith(`${replacementId}/reports`))
+    if (address.pathname.endsWith(`${replacementId}/reports`)) {
       return Promise.resolve(
         Response.json({
           count: 1,
@@ -1324,6 +1346,7 @@ it("keeps a new exact-version report context separate from a late older continua
           ],
         }),
       );
+    }
     if (
       address.pathname.endsWith(`${versionId}/reports`) &&
       address.searchParams.get("page") === "1"
@@ -1604,11 +1627,13 @@ it("presents an explicit refusal on another already loaded moderation screen", a
   mockFetch.mockImplementation((url, init) =>
     String(url).endsWith("/reports?page=0") ? held : ordinary(url, init),
   );
+
   /** Keeps the refusing HTTP resource observed without inventing a second presentation store. */
   function ReportReader() {
     useModerationReports(sporting.id, versionId, true);
     return null;
   }
+
   await mount(
     <>
       <ModerationScreen filters={{}} />
@@ -1737,12 +1762,13 @@ it.each(["queue", "active", "pending"] as const)(
   "does not animate a pull-to-refresh for a background %s read",
   async (kind) => {
     // Given: a loaded native scene stays visible while its ordinary Query data is reread.
-    if (kind === "active")
+    if (kind === "active") {
       detail = {
         ...detail,
         canPublish: true,
         match: { ...detail.match, publiclyViewable: true },
       };
+    }
     await mount(
       kind === "queue" ? (
         <ModerationScreen filters={{}} />
@@ -1751,17 +1777,19 @@ it.each(["queue", "active", "pending"] as const)(
       ),
     );
     const user = userEvent.setup();
-    if (kind === "pending")
+    if (kind === "pending") {
       await user.press(
         await screen.findByRole("tab", { name: "Propositions (1)" }),
       );
+    }
     await screen.findByLabelText("Actualiser les données");
-    if (kind === "active")
+    if (kind === "active") {
       await waitFor(() =>
         expect(
           screen.getByRole("button", { name: "Remplacer le lien" }),
         ).toBeEnabled(),
       );
+    }
     const key =
       kind === "queue"
         ? getListStreamModerationQueryKey({ state: "to-review" })
@@ -1789,12 +1817,13 @@ it.each(["queue", "active", "pending"] as const)(
       await waitFor(() =>
         expect(client.getQueryState(key)?.fetchStatus).toBe("fetching"),
       );
-      if (kind === "active")
+      if (kind === "active") {
         await waitFor(() =>
           expect(
             screen.getByRole("button", { name: "Remplacer le lien" }),
           ).toBeDisabled(),
         );
+      }
 
       // Then
       expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
@@ -1934,8 +1963,11 @@ it.each(["active", "historical"] as const)(
       canReject: false,
       canWithdraw: selection === "active",
     });
-    if (selection === "active") detail.activeContribution = retained;
-    else detail.items = [retained];
+    if (selection === "active") {
+      detail.activeContribution = retained;
+    } else {
+      detail.items = [retained];
+    }
     await mount(<ModerationMatchScreen matchId={sporting.id} />);
     const user = userEvent.setup();
 
@@ -1986,7 +2018,9 @@ it.each(["queue", "active", "pending", "filters", "reports"] as const)(
             ? address.pathname.endsWith("/reports")
             : address.pathname.endsWith("/stream-contributions") &&
               address.searchParams.get("state") === kind;
-      if (!target) return ordinary(url, init);
+      if (!target) {
+        return ordinary(url, init);
+      }
       requested = true;
       response = await ordinary(url, init);
       return held;
@@ -2016,10 +2050,11 @@ it.each(["queue", "active", "pending", "filters", "reports"] as const)(
         ),
       );
       const user = userEvent.setup();
-      if (kind === "pending")
+      if (kind === "pending") {
         await user.press(
           await screen.findByRole("tab", { name: "Propositions (1)" }),
         );
+      }
       await waitFor(() => expect(requested).toBe(true));
 
       // Then: the single accessible pending announcement surrounds decorative, noninteractive shapes.

@@ -33,6 +33,7 @@ export interface SourceCandidateFormProps {
   season: CollectionSeasonResponse;
   editing: ReturnType<typeof useSourcePreparation>;
 }
+
 /** Inline supported-candidate editing and explicit qualification/confirmation, without post-launch repair. */
 export function SourceCandidateForm({
   source,
@@ -83,16 +84,23 @@ export function SourceCandidateForm({
       mounted.current = false;
     };
   }, []);
+
   /** Cancels the URL draft without releasing the owner needed by later edits and temporary route removal. */
   async function cancelEditing() {
-    if (editing.candidate.isPending) return;
+    if (editing.candidate.isPending) {
+      return;
+    }
     const accepted = await confirmDiscard(() => {
-      if (mounted.current && !editing.candidate.isPending)
+      if (mounted.current && !editing.candidate.isPending) {
         reset(sourceCandidateValues(editor.state.baseline));
+      }
     });
-    if (!accepted || !mounted.current || editing.candidate.isPending) return;
+    if (!accepted || !mounted.current || editing.candidate.isPending) {
+      return;
+    }
     editor.update({ ...editor.state, editingUrl: false });
   }
+
   /** A refusal retains input; ambiguous acknowledgements additionally prevent any new command until reread. */
   function failed(error: unknown) {
     if (error instanceof ApiError && error.status === 409) {
@@ -105,9 +113,12 @@ export function SourceCandidateForm({
       actionFeedback.error();
     }
   }
+
   /** Replaces only the candidate against its editing revision; a successful response invalidates old evidence. */
   async function save(values: SourceCandidateValues) {
-    if (busy || readOnly || rereadRequired) return;
+    if (busy || readOnly || rereadRequired) {
+      return;
+    }
     try {
       const attempt = editing.candidate.mutateAsync({
         revision: baseline.revision,
@@ -129,9 +140,12 @@ export function SourceCandidateForm({
       failed(error);
     }
   }
+
   /** Requests validation once; 202 stays pending until an operator rereads the binding. */
   async function validate() {
-    if (busy || readOnly || rereadRequired || isDirty) return;
+    if (busy || readOnly || rereadRequired || isDirty) {
+      return;
+    }
     try {
       const attempt = editing.validation.mutateAsync({
         revision: baseline.revision,
@@ -148,6 +162,7 @@ export function SourceCandidateForm({
       failed(error);
     }
   }
+
   /** Confirms only missing seasonal attribution, retaining the exact canonical season label. */
   async function confirmSeason() {
     if (
@@ -156,8 +171,9 @@ export function SourceCandidateForm({
       rereadRequired ||
       isDirty ||
       current.validation !== "confirmation-required"
-    )
+    ) {
       return;
+    }
     if (
       !(await confirmAction({
         title: `Confirmer ${season.label} ?`,
@@ -165,13 +181,17 @@ export function SourceCandidateForm({
           "Confirmez uniquement si cette page correspond bien à la saison préparée.",
         confirmLabel: "Confirmer la saison",
       }))
-    )
+    ) {
       return;
+    }
     await acceptSeason();
   }
+
   /** The request boundary rechecks live grants/session even when a native alert callback was held. */
   async function acceptSeason() {
-    if (busy || readOnly || rereadRequired || isDirty) return;
+    if (busy || readOnly || rereadRequired || isDirty) {
+      return;
+    }
     try {
       const attempt = editing.confirmation.mutateAsync({
         revision: baseline.revision,
@@ -189,11 +209,14 @@ export function SourceCandidateForm({
       failed(error);
     }
   }
+
   /** Reads source and season together; neither a failed read nor retained cache can unlock resubmission. */
   async function reread() {
     const [sourceResult, seasonResult] = await (() =>
       Promise.all([editing.source.refetch(), editing.season.refetch()]))();
-    if (!mounted.current) return;
+    if (!mounted.current) {
+      return;
+    }
     if (
       sourceResult.isError ||
       seasonResult.isError ||
@@ -214,6 +237,7 @@ export function SourceCandidateForm({
       feedback: "État relu. Vérifiez votre saisie avant une nouvelle action.",
     });
   }
+
   return (
     <View style={styles.form}>
       <SeasonIdentity season={editing.season.data ?? season} />
@@ -450,6 +474,7 @@ export function SourceCandidateForm({
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   form: { gap: tokens.layout.form.gap },
   row: {

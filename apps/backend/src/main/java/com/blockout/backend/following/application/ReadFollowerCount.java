@@ -32,8 +32,9 @@ public class ReadFollowerCount {
         .filter(SportingVisibility::viewable)
         .orElseThrow(FollowUnavailableTargetException::new);
     long count = follows.count(target);
-    if (count < 0 || count > 9007199254740991L)
+    if (count < 0 || count > 9007199254740991L) {
       throw new IllegalStateException("Follower count exceeds transport bounds");
+    }
     return count;
   }
 }

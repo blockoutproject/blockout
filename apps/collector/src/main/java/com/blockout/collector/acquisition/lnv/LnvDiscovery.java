@@ -21,7 +21,9 @@ public class LnvDiscovery {
    */
   public String qualify(byte[] bytes, URI url, String competition) {
     if (!"lnv-web.dataproject.com".equalsIgnoreCase(url.getHost())
-        || !competition.equals(LnvPage.query(url).get("ID"))) throw LnvPage.invalid();
+        || !competition.equals(LnvPage.query(url).get("ID"))) {
+      throw LnvPage.invalid();
+    }
     Document page = LnvPage.parse(bytes, url);
     String title =
         page.select("title, .CompetitionDescription_Header, [id$=lbl_title]")
@@ -34,7 +36,9 @@ public class LnvDiscovery {
         || title.contains("saforelle power 6")
         || title.contains("ligue a masculine")
         || title.contains("ligue a féminine")
-        || title.contains("ligue b masculine"))) throw LnvPage.invalid();
+        || title.contains("ligue b masculine"))) {
+      throw LnvPage.invalid();
+    }
     phaseLinks(bytes, url, competition);
     return LnvPage.season(page);
   }
@@ -60,9 +64,13 @@ public class LnvDiscovery {
       if ("lnv-web.dataproject.com".equalsIgnoreCase(target.getHost())
           && target.getPath().endsWith("/CompetitionMatches.aspx")
           && competition.equals(LnvPage.query(target).get("ID"))
-          && LnvPage.query(target).containsKey("PID")) result.add(target);
+          && LnvPage.query(target).containsKey("PID")) {
+        result.add(target);
+      }
     }
-    if (result.isEmpty()) throw LnvPage.invalid();
+    if (result.isEmpty()) {
+      throw LnvPage.invalid();
+    }
     return result.stream().distinct().toList();
   }
 }

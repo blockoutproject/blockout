@@ -123,8 +123,11 @@ class ContributionReportsWebMvcTest {
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.reported").value(true))
         .andExpect(jsonPath("$.reason").doesNotExist());
-    if (created) response.andExpect(header().string("Location", PATH));
-    else response.andExpect(header().doesNotExist("Location"));
+    if (created) {
+      response.andExpect(header().string("Location", PATH));
+    } else {
+      response.andExpect(header().doesNotExist("Location"));
+    }
   }
 
   @Test

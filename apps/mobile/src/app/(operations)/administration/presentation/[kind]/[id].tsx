@@ -12,11 +12,12 @@ const targetSchema = z.object({
   kind: z.enum(["club", "team", "pool", "division"]),
   id: z.string().uuid(),
 });
+
 /** Requires the actual F12 operational group and a valid original resource before mounting private queries. */
 export default function PresentationRoute() {
   const admitted = useOperationalAdmission();
   const params = targetSchema.safeParse(useLocalSearchParams());
-  if (!admitted || !params.success)
+  if (!admitted || !params.success) {
     return (
       <Page>
         <PageHeader title="Administration technique" />
@@ -27,6 +28,7 @@ export default function PresentationRoute() {
         </PageScrollView>
       </Page>
     );
+  }
   return (
     <PresentationScreen
       key={`${params.data.kind}:${params.data.id}`}

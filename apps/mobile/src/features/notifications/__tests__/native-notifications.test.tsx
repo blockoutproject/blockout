@@ -150,6 +150,7 @@ function Capture() {
     </AccountFeedbackProvider>
   );
 }
+
 /** Mirrors the existing root theme/feedback/session ownership with controlled SDK/network boundaries. */
 function Root() {
   return (
@@ -204,19 +205,24 @@ beforeEach(() => {
   mockFetch
     .mockReset()
     .mockImplementation(async (url: string, init: RequestInit) => {
-      if (url.endsWith("application-access"))
+      if (url.endsWith("application-access")) {
         return Response.json(applicationAccessResponse());
-      if (url.endsWith("accounts/me"))
+      }
+      if (url.endsWith("accounts/me")) {
         return Response.json(accountResponse({ accountId: ownerId }));
-      if (url.endsWith("notification-summary"))
+      }
+      if (url.endsWith("notification-summary")) {
         return Response.json({ unreadCount: 0 });
-      if (init.method === "PUT" && url.includes("push-subscriptions"))
+      }
+      if (init.method === "PUT" && url.includes("push-subscriptions")) {
         return Response.json({
           id: url.split("/").at(-1),
           installationId: JSON.parse(String(init.body)).installationId,
         });
-      if (url.endsWith(`/notifications/${row.id}`) && init.method === "PATCH")
+      }
+      if (url.endsWith(`/notifications/${row.id}`) && init.method === "PATCH") {
         return Response.json({ ...row, read: true });
+      }
       throw new Error("Unexpected synthetic boundary");
     });
 });
@@ -238,7 +244,9 @@ it("uses a native token change only to reacquire the Expo address for the same c
   const changed = jest
     .mocked(Notifications.addPushTokenListener)
     .mock.calls.at(-1)?.[0];
-  if (!changed) throw new Error("Token listener must be registered");
+  if (!changed) {
+    throw new Error("Token listener must be registered");
+  }
 
   // When
   await act(async () =>
@@ -278,7 +286,9 @@ it("sets explicit foreground silence and refreshes summary without creating an a
   const receive = jest
     .mocked(Notifications.addNotificationReceivedListener)
     .mock.calls.at(-1)?.[0];
-  if (!handler || !receive) throw new Error("SDK listeners must be registered");
+  if (!handler || !receive) {
+    throw new Error("SDK listeners must be registered");
+  }
   const before = mockFetch.mock.calls.filter(([url]) =>
     url.endsWith("notification-summary"),
   ).length;
@@ -319,7 +329,9 @@ it("handles cold response and duplicate tap once, clears it, and reads even if n
   const tap = jest
     .mocked(Notifications.addNotificationResponseReceivedListener)
     .mock.calls.at(-1)?.[0];
-  if (!tap) throw new Error("Tap listener must be registered");
+  if (!tap) {
+    throw new Error("Tap listener must be registered");
+  }
 
   // When
   await act(async () => tap(response()));
@@ -345,8 +357,12 @@ it("reports one native tap failure when navigation and marking the same notifica
   const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility");
   const peer = mockFetch.getMockImplementation();
   mockFetch.mockImplementation((url: string, init: RequestInit) => {
-    if (init.method === "PATCH") return reading.promise;
-    if (!peer) throw new Error("Missing HTTP boundary");
+    if (init.method === "PATCH") {
+      return reading.promise;
+    }
+    if (!peer) {
+      throw new Error("Missing HTTP boundary");
+    }
     return peer(url, init);
   });
   mockOpen.mockImplementation(() => {
@@ -357,7 +373,9 @@ it("reports one native tap failure when navigation and marking the same notifica
   const tap = jest
     .mocked(Notifications.addNotificationResponseReceivedListener)
     .mock.calls.at(-1)?.[0];
-  if (!tap) throw new Error("Tap listener must be registered");
+  if (!tap) {
+    throw new Error("Tap listener must be registered");
+  }
 
   // When
   await act(async () => tap(response()));
@@ -407,7 +425,9 @@ it("installs foreground silence before asynchronous installation initialization 
 it("reports a failed read action without cancelling its successful match navigation", async () => {
   // Given
   const ordinary = mockFetch.getMockImplementation();
-  if (!ordinary) throw new Error("Synthetic HTTP boundary is required");
+  if (!ordinary) {
+    throw new Error("Synthetic HTTP boundary is required");
+  }
   mockFetch.mockImplementation((url: string, init: RequestInit) =>
     url.includes(`/notifications/${row.id}`)
       ? Promise.resolve(new Response(null, { status: 503 }))
@@ -435,9 +455,13 @@ it("keeps a failed passive receive refresh discreet", async () => {
   const receive = jest
     .mocked(Notifications.addNotificationReceivedListener)
     .mock.calls.at(-1)?.[0];
-  if (!receive) throw new Error("Receive listener must be registered");
+  if (!receive) {
+    throw new Error("Receive listener must be registered");
+  }
   const ordinary = mockFetch.getMockImplementation();
-  if (!ordinary) throw new Error("Synthetic HTTP boundary is required");
+  if (!ordinary) {
+    throw new Error("Synthetic HTTP boundary is required");
+  }
   const before = mockFetch.mock.calls.filter(([url]) =>
     url.endsWith("notification-summary"),
   ).length;
@@ -503,8 +527,9 @@ it.each(["guest", "other-account"])(
   "opens an old %s tap through public match navigation without reading the former inbox",
   async (kind) => {
     // Given
-    if (kind === "guest")
+    if (kind === "guest") {
       mockAuth0.hasValidCredentials.mockResolvedValue(false);
+    }
     await render(<Root />);
     await waitFor(() =>
       expect(session.status).toBe(kind === "guest" ? "guest" : "authenticated"),
@@ -517,7 +542,9 @@ it.each(["guest", "other-account"])(
     const tap = jest
       .mocked(Notifications.addNotificationResponseReceivedListener)
       .mock.calls.at(-1)?.[0];
-    if (!tap) throw new Error("Tap listener must be registered");
+    if (!tap) {
+      throw new Error("Tap listener must be registered");
+    }
 
     // When
     await act(async () =>
@@ -558,7 +585,9 @@ it("removes native subscriptions and clears the badge after sign-out", async () 
 it("leaves an old system tap blocked by current maintenance without reading or navigating", async () => {
   // Given: the real admission and lifecycle owners consume a controlled current F12 response.
   const ordinary = mockFetch.getMockImplementation();
-  if (!ordinary) throw new Error("Synthetic HTTP implementation is required");
+  if (!ordinary) {
+    throw new Error("Synthetic HTTP implementation is required");
+  }
   const access = applicationAccessResponse();
   access.maintenance.active = true;
   mockFetch.mockImplementation((url: string, init: RequestInit) =>

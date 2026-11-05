@@ -29,8 +29,12 @@ export function accessPresentation(
     snapshot.complete !== undefined && version === "satisfied" && !maintenance;
   let gate: "maintenance" | "update" | "checking" | "unavailable" =
     "unavailable";
-  if (maintenance) gate = "maintenance";
-  else if (version === "outdated") gate = "update";
-  else if (snapshot.checking) gate = "checking";
+  if (maintenance) {
+    gate = "maintenance";
+  } else if (version === "outdated") {
+    gate = "update";
+  } else if (snapshot.checking) {
+    gate = "checking";
+  }
   return { versions, version, ordinary, gate } as const;
 }

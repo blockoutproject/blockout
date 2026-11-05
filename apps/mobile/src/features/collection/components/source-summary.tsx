@@ -6,6 +6,7 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+
 /** Canonical season identity in the preparation context; never inferred from a provider identifier. */
 export function SeasonIdentity({
   season,
@@ -36,8 +37,12 @@ export function SeasonIdentity({
 
 /** Source lifecycle labels prioritize immutable bindings over candidate qualification. */
 export function sourceStatus(source: SourceBindingResponse) {
-  if (source.locked || source.launched) return "Verrouillée";
-  if (!source.candidateUrl) return "Source manquante";
+  if (source.locked || source.launched) {
+    return "Verrouillée";
+  }
+  if (!source.candidateUrl) {
+    return "Source manquante";
+  }
   return {
     unvalidated: "À valider",
     pending: "Validation en attente",

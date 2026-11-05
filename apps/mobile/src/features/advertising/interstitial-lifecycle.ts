@@ -67,7 +67,9 @@ export function createInterstitialLifecycle({
     destination: PendingDestination,
     result: SportingAdTransitionResult,
   ) {
-    if (pending === destination) pending = null;
+    if (pending === destination) {
+      pending = null;
+    }
     destination.resolve(result);
   }
 
@@ -79,7 +81,9 @@ export function createInterstitialLifecycle({
    */
   function releaseDestination() {
     const destination = pending;
-    if (!destination) return;
+    if (!destination) {
+      return;
+    }
     if (
       !sameSession(destination.session, getInput().account) ||
       !destination.action.isCurrent()
@@ -87,7 +91,9 @@ export function createInterstitialLifecycle({
       complete(destination, { status: "abandoned" });
       return;
     }
-    if (destination.released) return;
+    if (destination.released) {
+      return;
+    }
     destination.released = true;
     void openTransitionDestination(destination.action.open).then((result) =>
       complete(destination, result),
@@ -116,7 +122,9 @@ export function createInterstitialLifecycle({
 
   /** Rejects queued events after an owner change even before the provider's invalidation effect. */
   function currentInstance(instance: PreparedInterstitial) {
-    if (prepared !== instance) return false;
+    if (prepared !== instance) {
+      return false;
+    }
     if (!compatible(instance, getInput())) {
       retire();
       return false;
@@ -130,11 +138,14 @@ export function createInterstitialLifecycle({
     operation: "load" | "show",
     noFill = false,
   ) {
-    if (instance !== prepared) return;
+    if (instance !== prepared) {
+      return;
+    }
     retryOnAction = true;
     retire();
-    if (!noFill)
+    if (!noFill) {
       Sentry.captureException(new Error(`Interstitial ${operation} failed`));
+    }
   }
 
   /**
@@ -142,17 +153,24 @@ export function createInterstitialLifecycle({
    * eligible sporting action. Native choices/initialization must already be established upstream.
    */
   function preload() {
-    if (disposed || retryOnAction) return;
+    if (disposed || retryOnAction) {
+      return;
+    }
     const input = getInput();
-    if (prepared && !compatible(prepared, input)) retire();
+    if (prepared && !compatible(prepared, input)) {
+      retire();
+    }
     if (
       prepared &&
       !prepared.showing &&
       prepared.loadedAt !== null &&
       Date.now() - prepared.loadedAt >= 3_600_000
-    )
+    ) {
       retire();
-    if (prepared || !getAdvertisingEligibility(input).canServeAds) return;
+    }
+    if (prepared || !getAdvertisingEligibility(input).canServeAds) {
+      return;
+    }
 
     try {
       const instance: PreparedInterstitial = {
@@ -167,19 +185,26 @@ export function createInterstitialLifecycle({
       };
       prepared = instance;
       instance.ad.addAdEventListener(AdEventType.LOADED, () => {
-        if (currentInstance(instance) && !instance.showing)
+        if (currentInstance(instance) && !instance.showing) {
           instance.loadedAt = Date.now();
+        }
       });
       instance.ad.addAdEventListener(AdEventType.OPENED, () => {
-        if (currentInstance(instance) && instance.showing) count = 0;
+        if (currentInstance(instance) && instance.showing) {
+          count = 0;
+        }
       });
       instance.ad.addAdEventListener(AdEventType.CLOSED, () => {
-        if (!currentInstance(instance)) return;
+        if (!currentInstance(instance)) {
+          return;
+        }
         retire();
         preload();
       });
       instance.ad.addAdEventListener(AdEventType.ERROR, (error) => {
-        if (!currentInstance(instance)) return;
+        if (!currentInstance(instance)) {
+          return;
+        }
         const operation = instance.showing ? "show" : "load";
         fail(
           instance,
@@ -220,14 +245,18 @@ export function createInterstitialLifecycle({
     transition(
       action: SportingAdTransition,
     ): Promise<SportingAdTransitionResult> {
-      if (disposed || !action.isCurrent())
+      if (disposed || !action.isCurrent()) {
         return Promise.resolve({ status: "abandoned" });
+      }
       const input = getInput();
-      if (prepared && !compatible(prepared, input)) retire();
-      if (pending)
+      if (prepared && !compatible(prepared, input)) {
+        retire();
+      }
+      if (pending) {
         return pending.action.key === action.key
           ? pending.result
           : Promise.resolve({ status: "busy" });
+      }
 
       let resolve: PendingDestination["resolve"];
       const result = new Promise<SportingAdTransitionResult>((settle) => {
@@ -244,10 +273,14 @@ export function createInterstitialLifecycle({
       const freeAction =
         input.admission.ordinary &&
         (pro.status === "guest" || pro.status === "inactive");
-      if (freeAction) count = Math.min(10, count + 1);
+      if (freeAction) {
+        count = Math.min(10, count + 1);
+      }
       const eligibleAction =
         freeAction && getAdvertisingEligibility(input).canServeAds;
-      if (eligibleAction) retryOnAction = false;
+      if (eligibleAction) {
+        retryOnAction = false;
+      }
       const instance = prepared;
       if (
         eligibleAction &&
@@ -265,7 +298,9 @@ export function createInterstitialLifecycle({
         }
       } else {
         releaseDestination();
-        if (eligibleAction) preload();
+        if (eligibleAction) {
+          preload();
+        }
       }
       return result;
     },

@@ -494,11 +494,12 @@ class ClubAcquisitionIntegrationTest {
    */
   private CollectionState.Cycle admit(UUID control, boolean manual) {
     UUID request = manual ? UUID.randomUUID() : null;
-    if (manual)
+    if (manual) {
       sql.update(
           "UPDATE collection_control SET request_id=?,requested_mode='MANUAL' WHERE id=?",
           request,
           control);
+    }
     long revision =
         sql.queryForObject(
             "SELECT revision FROM collection_control WHERE id=?", Long.class, control);

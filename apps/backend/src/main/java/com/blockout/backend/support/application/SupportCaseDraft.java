@@ -19,7 +19,9 @@ public record SupportCaseDraft(String title, String body, boolean complete) {
     StringBuilder body = new StringBuilder();
     body.append("Request: ").append(submission.requestId()).append('\n');
     field(body, "kind", metadata.kind().getValue());
-    if (metadata.subject() != null) field(body, "subject", metadata.subject().getValue());
+    if (metadata.subject() != null) {
+      field(body, "subject", metadata.subject().getValue());
+    }
     field(body, "replyEmail", metadata.replyEmail());
     body.append("\n## Description\n\n")
         .append(metadata.description())
@@ -29,7 +31,9 @@ public record SupportCaseDraft(String title, String body, boolean complete) {
     field(body, "action", context.action());
     field(body, "accountId", context.accountId());
     field(body, "appVersion", context.appVersion());
-    if (context.platform() != null) field(body, "platform", context.platform().getValue());
+    if (context.platform() != null) {
+      field(body, "platform", context.platform().getValue());
+    }
     field(body, "osVersion", context.osVersion());
     field(body, "deviceModel", context.deviceModel());
     if (context.target() != null) {
@@ -53,6 +57,8 @@ public record SupportCaseDraft(String title, String body, boolean complete) {
    * @param value known canonical declaration, or null when unknown
    */
   private static void field(StringBuilder body, String name, Object value) {
-    if (value != null) body.append(name).append(": ").append(value).append('\n');
+    if (value != null) {
+      body.append(name).append(": ").append(value).append('\n');
+    }
   }
 }

@@ -64,9 +64,13 @@ public class ModerateContribution {
           case REJECT -> State.REJECTED;
           case WITHDRAW -> State.WITHDRAWN;
         };
-    if (target.state() == terminal) return new SubmitContribution.Outcome(target, revision, false);
+    if (target.state() == terminal) {
+      return new SubmitContribution.Outcome(target, revision, false);
+    }
     State required = action == StreamModerationActionEnum.WITHDRAW ? State.ACTIVE : State.PENDING;
-    if (target.state() != required) throw new ContributionConflictException();
+    if (target.state() != required) {
+      throw new ContributionConflictException();
+    }
     ContributionVersion changed;
     boolean publishes = action == StreamModerationActionEnum.APPROVE;
     if (publishes) {
@@ -85,7 +89,9 @@ public class ModerateContribution {
                   actor));
     }
     String next = Long.toString(store.advance(matchId, publishes).revision());
-    if (publishes) transitions.published(facts, audience.recipients(), clock.instant());
+    if (publishes) {
+      transitions.published(facts, audience.recipients(), clock.instant());
+    }
     return new SubmitContribution.Outcome(changed, next, false);
   }
 
@@ -106,8 +112,9 @@ public class ModerateContribution {
     Facts facts = sporting.lock(matchId);
     Selection audience = lock(actor, facts, versionId);
     ContributionVersion source = target(matchId, versionId, revision);
-    if (!ContributionDecision.canReactivate(source.state()))
+    if (!ContributionDecision.canReactivate(source.state())) {
       throw new ContributionConflictException();
+    }
     requirePublication(facts);
     ContributionVersion created = store.select(versionId, actor, clock.instant(), true);
     String next = Long.toString(store.advance(matchId, true).revision());
@@ -129,9 +136,12 @@ public class ModerateContribution {
     affected.addAll(store.versionAttributionAccounts(versionId));
     affected.add(actor);
     Selection selection = recipients.select(facts.match(), affected);
-    if (!selection.accounts().contains(actor)) throw new AccountNotFoundException();
-    if (!permissions.forAccount(actor).contains(Permission.MODERATE_STREAM_LINKS))
+    if (!selection.accounts().contains(actor)) {
+      throw new AccountNotFoundException();
+    }
+    if (!permissions.forAccount(actor).contains(Permission.MODERATE_STREAM_LINKS)) {
       throw new AccessDeniedException("Action is not permitted");
+    }
     return selection;
   }
 
@@ -144,8 +154,9 @@ public class ModerateContribution {
    * @return detached current member
    */
   private ContributionVersion target(UUID matchId, UUID versionId, String revision) {
-    if (!Long.toString(store.state(matchId).revision()).equals(revision))
+    if (!Long.toString(store.state(matchId).revision()).equals(revision)) {
       throw new ContributionRejectedException(Status.STALE_REVISION);
+    }
     return store
         .version(versionId)
         .filter(v -> v.matchId().equals(matchId))
@@ -158,7 +169,11 @@ public class ModerateContribution {
    * @param facts current locked owner facts
    */
   private void requirePublication(Facts facts) {
-    if (!facts.viewable()) throw new ContributionRejectedException(Status.MATCH_UNAVAILABLE);
-    if (facts.professional()) throw new ContributionRejectedException(Status.PROFESSIONAL_MATCH);
+    if (!facts.viewable()) {
+      throw new ContributionRejectedException(Status.MATCH_UNAVAILABLE);
+    }
+    if (facts.professional()) {
+      throw new ContributionRejectedException(Status.PROFESSIONAL_MATCH);
+    }
   }
 }

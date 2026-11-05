@@ -66,8 +66,11 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   for (const [key, value] of Object.entries(originalConfiguration)) {
-    if (value === undefined) delete process.env[key];
-    else process.env[key] = value;
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
   }
 });
 

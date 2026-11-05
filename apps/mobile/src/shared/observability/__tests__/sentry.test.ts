@@ -208,8 +208,11 @@ it.each([
       "__DEV__",
       development,
     );
-    if (dsn === undefined) delete process.env.EXPO_PUBLIC_SENTRY_DSN;
-    else process.env.EXPO_PUBLIC_SENTRY_DSN = dsn;
+    if (dsn === undefined) {
+      delete process.env.EXPO_PUBLIC_SENTRY_DSN;
+    } else {
+      process.env.EXPO_PUBLIC_SENTRY_DSN = dsn;
+    }
 
     // When
     initializeSentry();

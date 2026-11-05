@@ -35,7 +35,11 @@ public class SupportController implements SupportApi {
       SubmitSupportRequest metadata, Boolean bypass, List<MultipartFile> images) {
     List<byte[]> originals = new ArrayList<>();
     try {
-      if (images != null) for (MultipartFile image : images) originals.add(image.getBytes());
+      if (images != null) {
+        for (MultipartFile image : images) {
+          originals.add(image.getBytes());
+        }
+      }
     } catch (IOException failure) {
       throw new SupportUnavailableException(Stage.INPUT, Reason.IO, failure);
     }

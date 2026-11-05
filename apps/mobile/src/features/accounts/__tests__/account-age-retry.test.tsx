@@ -290,7 +290,9 @@ it.each(["network", "missing", "invalid"])(
     await renderProfile();
     await screen.findByText("Original");
     mockFetch.mockImplementation(async () => {
-      if (outcome === "network") throw new TypeError("Provider unavailable");
+      if (outcome === "network") {
+        throw new TypeError("Provider unavailable");
+      }
       return json({
         ...account,
         principalCreatedAt: outcome === "invalid" ? "not-a-date" : null,
@@ -356,7 +358,7 @@ it.each(["success", "failure"])(
 
       // When
       await act(async () => {
-        if (outcome === "success")
+        if (outcome === "success") {
           response.resolve(
             json({
               ...account,
@@ -364,7 +366,9 @@ it.each(["success", "failure"])(
               principalCreatedAt: "2020-01-02T03:04:05Z",
             }),
           );
-        else response.reject(new TypeError("Late failure"));
+        } else {
+          response.reject(new TypeError("Late failure"));
+        }
       });
 
       // Then

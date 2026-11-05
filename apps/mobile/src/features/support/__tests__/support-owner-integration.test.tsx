@@ -124,11 +124,18 @@ beforeEach(async () => {
     .mockResolvedValue(Response.json({ requestId: targetId }, { status: 201 }));
   mockFetch.mockReset().mockImplementation(async (url, options) => {
     const path = new URL(String(url)).pathname;
-    if (path === "/application-access") return accessHttp();
-    if (path === "/accounts/me") return accountHttp();
-    if (path === "/support-requests") return supportHttp(options);
-    if (path === `/matches/${targetId}`)
+    if (path === "/application-access") {
+      return accessHttp();
+    }
+    if (path === "/accounts/me") {
+      return accountHttp();
+    }
+    if (path === "/support-requests") {
+      return supportHttp(options);
+    }
+    if (path === `/matches/${targetId}`) {
       return Response.json({}, { status: 404 });
+    }
     throw new Error(`Unexpected test destination: ${path}`);
   });
 });
@@ -205,15 +212,17 @@ it.each(["guest", "signed-in", "profile-unavailable"])(
   async (identity) => {
     // Given
     mockAuth0.hasValidCredentials.mockResolvedValue(identity !== "guest");
-    if (identity === "profile-unavailable")
+    if (identity === "profile-unavailable") {
       accountHttp.mockResolvedValue(Response.json({}, { status: 503 }));
+    }
     await openRoute("/profile");
-    if (identity === "profile-unavailable")
+    if (identity === "profile-unavailable") {
       expect(
         screen.getByRole("alert", { name: "Une erreur est survenue" }),
       ).toBeOnTheScreen();
-    else if (identity === "signed-in")
+    } else if (identity === "signed-in") {
       expect(await screen.findByText(account.username)).toBeOnTheScreen();
+    }
     const credentialsBeforeSupport = mockAuth0.getCredentials.mock.calls.length;
     const requestsBeforeSupport = mockFetch.mock.calls.length;
     const user = userEvent.setup();
@@ -497,31 +506,34 @@ it.each(["maintenance", "mandatory-update", "access-unavailable"])(
     // Given
     mockAuth0.hasValidCredentials.mockResolvedValue(true);
     account.permissions = { manageMaintenance: true, bypassMaintenance: true };
-    if (gate === "maintenance")
+    if (gate === "maintenance") {
       access.maintenance = {
         revision: 1,
         active: true,
         message: "Maintenance",
         imageUrl: null,
       };
-    if (gate === "mandatory-update")
+    }
+    if (gate === "mandatory-update") {
       access.versions.ios = {
         minimumVersion: "2.10.0",
         storeUrl: "https://apps.apple.com/app/id123",
       };
-    if (gate === "access-unavailable")
+    }
+    if (gate === "access-unavailable") {
       accessHttp.mockResolvedValue(Response.json({}, { status: 503 }));
+    }
 
     // When
     await openRoute("/support?originScreen=profile");
 
     // Then
     expect(screen).toHavePathname("/access");
-    if (gate === "access-unavailable")
+    if (gate === "access-unavailable") {
       expect(
         screen.getByRole("alert", { name: "Une erreur est survenue" }),
       ).toBeOnTheScreen();
-    else
+    } else {
       expect(
         screen.getByRole("header", {
           name:
@@ -530,6 +542,7 @@ it.each(["maintenance", "mandatory-update", "access-unavailable"])(
               : "Mets Blockout à jour.",
         }),
       ).toBeOnTheScreen();
+    }
     expect(screen.queryByLabelText("Titre")).toBeNull();
     expect(
       screen.queryByRole("button", { name: "Besoin d’aide ?" }),
@@ -686,12 +699,14 @@ it.each(["grant-withdrawal", "mandatory-update"])(
     await openRoute("/support");
     await chooseBypass();
     await fillForm();
-    if (restriction === "grant-withdrawal") account = accountResponse();
-    else
+    if (restriction === "grant-withdrawal") {
+      account = accountResponse();
+    } else {
       access.versions.ios = {
         minimumVersion: "2.10.0",
         storeUrl: "https://apps.apple.com/app/id123",
       };
+    }
 
     // When: native Query focus recovery reads the current owners, without injecting their context.
     await act(() => {

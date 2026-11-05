@@ -116,7 +116,9 @@ public class CollectionOperationalDiagnostics {
     diagnose(
         () -> {
           Control control = lockControl(event.controlId());
-          if (control.seasonId() == null) return;
+          if (control.seasonId() == null) {
+            return;
+          }
           CollectionProviderEnum provider =
               control.family() == CollectionFamilyEnum.LNV
                   ? CollectionProviderEnum.LNV
@@ -153,7 +155,9 @@ public class CollectionOperationalDiagnostics {
    */
   private Control lockControl(UUID controlId) {
     Control control = store.control(controlId).orElseThrow();
-    if (control.seasonId() != null) seasons.lockCollectionState(control.seasonId());
+    if (control.seasonId() != null) {
+      seasons.lockCollectionState(control.seasonId());
+    }
     return store.lockControl(controlId);
   }
 

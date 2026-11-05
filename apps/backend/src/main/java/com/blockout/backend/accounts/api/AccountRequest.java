@@ -85,7 +85,9 @@ public class AccountRequest {
   public ProfilePhoto profilePhoto(ProfilePhotoActionEnum action, MultipartFile image) {
     requireProfileParts();
     ProfilePhoto.requireConsistentIntent(action, image != null);
-    if (image == null) return null;
+    if (image == null) {
+      return null;
+    }
     try {
       return photos.prepare(image.getBytes(), image.getContentType());
     } catch (IOException failure) {
@@ -102,8 +104,9 @@ public class AccountRequest {
     Set<String> names = new HashSet<>();
     try {
       for (Part part : request.getParts()) {
-        if (!Set.of("metadata", "image").contains(part.getName()) || !names.add(part.getName()))
+        if (!Set.of("metadata", "image").contains(part.getName()) || !names.add(part.getName())) {
           throw new InvalidProfileChangeException();
+        }
       }
     } catch (IOException | ServletException failure) {
       throw new InvalidProfileChangeException();

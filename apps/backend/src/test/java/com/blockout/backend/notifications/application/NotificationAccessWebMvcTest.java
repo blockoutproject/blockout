@@ -111,7 +111,9 @@ class NotificationAccessWebMvcTest {
   /** Releases only this suite's isolated key server. */
   @AfterAll
   static void stopKeys() {
-    if (keys != null) keys.stop(0);
+    if (keys != null) {
+      keys.stop(0);
+    }
   }
 
   /**

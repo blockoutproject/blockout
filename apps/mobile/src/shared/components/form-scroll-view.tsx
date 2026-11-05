@@ -121,10 +121,12 @@ function TabbedFormScrollView({
     },
     [scrollRef],
   );
+
   /** Container commands always reach the current native form rather than retaining a former node. */
   function scrollToOffset(offset: number, animated = false) {
     scrollRef.current?.scrollTo({ y: offset, animated });
   }
+
   useRegisterTabList({
     scrollToOffset: ({ offset, animated }) => scrollToOffset(offset, animated),
   });

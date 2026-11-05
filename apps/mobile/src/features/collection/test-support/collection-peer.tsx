@@ -28,6 +28,7 @@ import { AccountSessionProvider } from "../../accounts/session/account-session-p
 
 /** Stable synthetic identifiers shared by dashboard and closure scenarios. */
 export const seasonId = "00000000-0000-4000-8000-000000000187";
+
 /** The current operator projection exercises F12's actual capability owner. */
 export const operator = {
   accountId: "00000000-0000-4000-8000-000000000188",
@@ -122,33 +123,44 @@ export function collectionPeer(): CollectionPeer {
     permissions: operator.permissions,
     reads,
   };
+
   /** Strict default reads refuse accidental mutation requests. Tests install writes beside their decisive actions. */
   async function reads(
     url: RequestInfo | URL,
     options?: RequestInit,
   ): Promise<Response> {
     const request = new URL(String(url));
-    if (options?.method && options.method !== "GET")
+    if (options?.method && options.method !== "GET") {
       throw new Error("Unexpected mutation");
+    }
     const path = request.pathname;
-    if (path.endsWith("/application-access"))
+    if (path.endsWith("/application-access")) {
       return json(applicationAccessResponse());
-    if (path.endsWith("/accounts/me"))
+    }
+    if (path.endsWith("/accounts/me")) {
       return json({ ...operator, permissions: peer.permissions });
-    if (path.endsWith("/collection-seasons"))
+    }
+    if (path.endsWith("/collection-seasons")) {
       return json({ items: [peer.season] });
-    if (path.endsWith(`/collection-seasons/${seasonId}`))
+    }
+    if (path.endsWith(`/collection-seasons/${seasonId}`)) {
       return json(peer.season);
-    if (path.endsWith("/collection-controls"))
+    }
+    if (path.endsWith("/collection-controls")) {
       return json({ items: peer.controls });
+    }
     const selected = peer.controls.find((value) =>
       path.endsWith(`/collection-controls/${value.id}`),
     );
-    if (selected) return json(selected);
-    if (path.endsWith("/results"))
+    if (selected) {
+      return json(selected);
+    }
+    if (path.endsWith("/results")) {
       return json({ items: peer.results, page: 0, hasNext: false });
+    }
     throw new Error(`Unexpected controlled request ${path}`);
   }
+
   return peer;
 }
 

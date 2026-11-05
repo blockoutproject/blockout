@@ -29,7 +29,8 @@ export const AgeContext = createContext<InstallationAge | null>(null);
 /** Reads the installation's declaration and single privacy/advertising owner. */
 export function useAgeDeclaration(): InstallationAge {
   const value = useContext(AgeContext);
-  if (!value)
+  if (!value) {
     throw new Error("Age declaration requires AgeDeclarationProvider");
+  }
   return value;
 }

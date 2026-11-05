@@ -5,5 +5,10 @@
     <module name="AvoidStarImport"/>
     <module name="UnusedImports"/>
     <module name="EmptyStatement"/>
+    <module name="NeedBraces"/>
+    <module name="EmptyLineSeparator">
+      <property name="allowNoEmptyLineBetweenFields" value="true"/>
+      <property name="allowMultipleEmptyLines" value="false"/>
+    </module>
   </module>
 </module>

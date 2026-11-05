@@ -52,7 +52,9 @@ class PushDeliveryConfigurationTest {
     // Given
     ApplicationContextRunner enabled =
         context.withPropertyValues("blockout.notifications.push.enabled=true");
-    if (!partial.isEmpty()) enabled = enabled.withPropertyValues(partial);
+    if (!partial.isEmpty()) {
+      enabled = enabled.withPropertyValues(partial);
+    }
 
     // When
     enabled.run(
@@ -100,7 +102,9 @@ class PushDeliveryConfigurationTest {
             }
           });
       assertThat(started.await(3, TimeUnit.SECONDS)).isTrue();
-      for (int i = 0; i < 100; i++) executor.execute(() -> {});
+      for (int i = 0; i < 100; i++) {
+        executor.execute(() -> {});
+      }
 
       // When
       org.assertj.core.api.ThrowableAssert.ThrowingCallable extra =

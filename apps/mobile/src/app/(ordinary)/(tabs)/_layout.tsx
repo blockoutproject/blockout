@@ -82,8 +82,9 @@ export default function TabsLayout() {
         <TabList asChild>
           <NavigationCapsule
             onLayout={({ nativeEvent }) => {
-              if (nativeEvent.layout.height > 0)
+              if (nativeEvent.layout.height > 0) {
                 setCapsuleHeight(nativeEvent.layout.height);
+              }
             }}
             layout={selectionLayout}
             reducedMotion={reducedMotion}
@@ -203,7 +204,9 @@ function TabButton({
   const { colors, membership } = useTheme();
   const [layout, setLayout] = useState<LayoutRectangle>();
   useEffect(() => {
-    if (isFocused) onFocusedLayout(hidden ? undefined : layout);
+    if (isFocused) {
+      onFocusedLayout(hidden ? undefined : layout);
+    }
   }, [isFocused, hidden, layout, onFocusedLayout]);
   const focus = useDerivedValue(() =>
     withTiming(isFocused ? 1 : 0, {

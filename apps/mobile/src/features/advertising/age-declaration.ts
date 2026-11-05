@@ -24,7 +24,9 @@ export type AgeDeclaration = z.infer<typeof declarationSchema>;
 /** Reads this installation only; corrupt/missing data stays absent and I/O failures remain explicit. */
 export async function readAgeDeclaration(): Promise<AgeDeclaration | null> {
   const stored = await AsyncStorage.getItem(storageKey);
-  if (stored === null) return null;
+  if (stored === null) {
+    return null;
+  }
   try {
     const parsed = declarationSchema.safeParse(JSON.parse(stored));
     return parsed.success ? parsed.data : null;
@@ -55,13 +57,18 @@ export function getAgeDeclarationStatus(
   declaration: AgeDeclaration | null,
   launch = new Date(),
 ): "missing" | "expired" | "current" {
-  if (!declaration || declaration.declaredAt > localDay(launch))
+  if (!declaration || declaration.declaredAt > localDay(launch)) {
     return "missing";
-  if (declaration.category === "adult") return "current";
+  }
+  if (declaration.category === "adult") {
+    return "current";
+  }
   const anniversary = new Date(`${declaration.declaredAt}T12:00:00`);
   const month = anniversary.getMonth();
   anniversary.setFullYear(anniversary.getFullYear() + 1);
-  if (anniversary.getMonth() !== month) anniversary.setDate(0);
+  if (anniversary.getMonth() !== month) {
+    anniversary.setDate(0);
+  }
   return localDay(launch) >= localDay(anniversary) ? "expired" : "current";
 }
 

@@ -141,9 +141,12 @@ public interface ContributionApiMapper {
     boolean allowed = page.eligibility() == Status.ACTIVE || page.eligibility() == Status.PENDING;
     StreamSubmissionEligibilityResponse eligibility =
         new StreamSubmissionEligibilityResponse(allowed, page.requiresApproval());
-    if (!allowed) eligibility.reason(reason(page.eligibility()));
-    if (page.eligibleAt() != null)
+    if (!allowed) {
+      eligibility.reason(reason(page.eligibility()));
+    }
+    if (page.eligibleAt() != null) {
       eligibility.eligibleAt(TemporalMapping.toDate(page.eligibleAt()));
+    }
     StreamQuotaResponse quota =
         new StreamQuotaResponse(
             Math.toIntExact(page.usage().versionsUsed()),
@@ -157,9 +160,12 @@ public interface ContributionApiMapper {
             quota,
             page.proposalCount(),
             page.versions().items().stream().map(this::toDto).toList());
-    if (page.activeContribution() != null)
+    if (page.activeContribution() != null) {
       response.activeContribution(toDto(page.activeContribution()));
-    if (page.versions().hasNext()) response.nextPage(page.page() + 1);
+    }
+    if (page.versions().hasNext()) {
+      response.nextPage(page.page() + 1);
+    }
     return response;
   }
 
@@ -173,10 +179,12 @@ public interface ContributionApiMapper {
     ContributionVersion version = source.version();
     boolean pending = version.state() == ContributionVersion.State.PENDING;
     java.util.ArrayList<StreamDecisionResponse> decisions = new java.util.ArrayList<>();
-    if (version.publication() != null)
+    if (version.publication() != null) {
       decisions.add(decision(version.publication(), source.publicationActorName()));
-    if (version.decision() != null)
+    }
+    if (version.decision() != null) {
       decisions.add(decision(version.decision(), source.decisionActorName()));
+    }
     decisions.sort(java.util.Comparator.comparing(StreamDecisionResponse::getAt));
     return new ModeratedStreamContributionResponse(
             version.id(),
@@ -197,7 +205,12 @@ public interface ContributionApiMapper {
         .replacedByVersionId(version.replacedByVersionId());
   }
 
-  /** Maps useful domain decisions without treating automatic hiding as an attributed command. */
+  /**
+   * Maps useful domain decisions without treating automatic hiding as an attributed command.
+   *
+   * @param source retained decision and its original occurrence time
+   * @param actorName optional current actor name, without attributing automatic hiding
+   */
   default StreamDecisionResponse decision(ContributionVersion.Decision source, String actorName) {
     StreamDecisionEnum kind =
         switch (source.kind()) {

@@ -13,13 +13,8 @@ coverage/
 .generated/
 apps/mobile/android/
 apps/mobile/ios/
-# Preserve upstream font licenses and files.
-apps/mobile/assets/fonts/
-# Preserve source-owned Figma artwork byte-for-byte.
-apps/mobile/assets/collection/
-apps/mobile/assets/onboarding/community-backdrop-*.svg
-apps/mobile/assets/sporting/
-apps/mobile/assets/discovery/
+# Preserve upstream fonts/licenses and source-owned artwork byte-for-byte.
+apps/mobile/assets/
 mvnw
 mvnw.cmd
 *.java

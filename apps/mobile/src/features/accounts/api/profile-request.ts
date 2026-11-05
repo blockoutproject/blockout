@@ -8,10 +8,12 @@ export function toProfileBody(
   dirty: FieldNamesMarkedBoolean<ProfileValues>,
 ): ChangeAccountProfileBody {
   const metadata: ChangeAccountProfileBody["metadata"] = {};
-  if (dirty.username || values.photo.action === "keep")
+  if (dirty.username || values.photo.action === "keep") {
     metadata.username = values.username;
-  if (values.photo.action !== "keep")
+  }
+  if (values.photo.action !== "keep") {
     metadata.photoAction = values.photo.action;
+  }
   return {
     metadata,
     ...(values.photo.action === "replace"

@@ -47,16 +47,18 @@ public class AcceptCatalog {
     for (CatalogObservation.Pool candidate : observation.pools()) {
       PoolKey key = key(source, candidate);
       CatalogObservation.Pool previous = unique.putIfAbsent(key, candidate);
-      if (previous != null && !previous.equals(candidate))
+      if (previous != null && !previous.equals(candidate)) {
         throw new SportingConflictException("identity-conflict", List.of());
+      }
     }
     ObservationOrder previous = store.catalogOrder(sourceId);
-    if (previous != null && order.compareTo(previous) < 0)
+    if (previous != null && order.compareTo(previous) < 0) {
       return new ObservationOutcome.Catalog(
           observation.pools().stream()
               .map(pool -> ObservationOutcome.refused(pool.poolReference(), true))
               .toList(),
           false);
+    }
     boolean repeated = order.equals(previous);
     boolean complete =
         observation.complete()
@@ -66,8 +68,11 @@ public class AcceptCatalog {
     Map<PoolKey, ObservationOutcome> outcomes = new LinkedHashMap<>();
     for (Map.Entry<PoolKey, CatalogObservation.Pool> entry : unique.entrySet()) {
       UUID id;
-      if (repeated) id = store.pool(entry.getKey()).map(pool -> pool.id()).orElse(null);
-      else id = store.acceptCatalogPool(entry.getKey(), entry.getValue());
+      if (repeated) {
+        id = store.pool(entry.getKey()).map(pool -> pool.id()).orElse(null);
+      } else {
+        id = store.acceptCatalogPool(entry.getKey(), entry.getValue());
+      }
       outcomes.put(
           entry.getKey(),
           new ObservationOutcome(
@@ -78,7 +83,7 @@ public class AcceptCatalog {
               null,
               null));
     }
-    if (!repeated)
+    if (!repeated) {
       store.finishCatalog(
           sourceId,
           source.seasonId(),
@@ -89,6 +94,7 @@ public class AcceptCatalog {
           complete,
           order,
           observation.context());
+    }
     return new ObservationOutcome.Catalog(
         observation.pools().stream().map(pool -> outcomes.get(key(source, pool))).toList(),
         !repeated && complete);

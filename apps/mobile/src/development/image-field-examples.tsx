@@ -25,7 +25,9 @@ export function ImageFieldExamplesScreen() {
     multiple,
     selectionLimit: 5,
     onSelect: async (assets, replaceId) => {
-      if (fail) throw new Error("Demonstration preparation failure");
+      if (fail) {
+        throw new Error("Demonstration preparation failure");
+      }
       // This preview-only host checks picker metadata, not authoritative upload contents.
       if (
         assets.some(
@@ -129,6 +131,7 @@ export function ImageFieldExamplesScreen() {
     </Page>
   );
 }
+
 const styles = StyleSheet.create({
   option: {
     flexDirection: "row",

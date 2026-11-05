@@ -18,6 +18,7 @@ export interface ProviderSourcesScreenProps {
   seasonId: string;
   provider: CollectionProviderEnum;
 }
+
 /** Lists missing/discovered source coverage and launches only explicitly selected qualified bindings. */
 export function ProviderSourcesScreen({
   seasonId,
@@ -29,9 +30,12 @@ export function ProviderSourcesScreen({
     authority.sessionStatus === "authenticated" ? season.data : undefined;
   const retained = Boolean(current && sources.data);
   const feedback = useActionFeedback();
+
   /** Refreshes the provider's context; an empty source failure belongs to its card rather than a duplicate toast. */
   async function refresh() {
-    if (editing.create.isPending) return;
+    if (editing.create.isPending) {
+      return;
+    }
     feedback.clear();
     const results = await Promise.all(
       !authority.enabled
@@ -50,9 +54,11 @@ export function ProviderSourcesScreen({
             index === 0 ||
             sources.data?.items.some((source) => source.provider === provider)),
       )
-    )
+    ) {
       feedback.error();
+    }
   }
+
   const pending =
     !retained &&
     (!authority.enabled

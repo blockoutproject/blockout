@@ -73,7 +73,9 @@ public class ReadCollectionConfiguration {
   @Transactional(readOnly = true)
   public List<ControlView> controls(UUID accountId, UUID seasonId) {
     permissions.requireForRead(accountId, Permission.MANAGE_COLLECTION);
-    if (seasonId != null) seasonReads.collectionState(seasonId);
+    if (seasonId != null) {
+      seasonReads.collectionState(seasonId);
+    }
     List<Control> controls = store.controls(seasonId);
     Map<UUID, Cycle> cycles =
         store.cycles(
@@ -135,7 +137,9 @@ public class ReadCollectionConfiguration {
     return sources.stream()
         .map(
             source -> {
-              if (!hasPendingCycle(source)) return source;
+              if (!hasPendingCycle(source)) {
+                return source;
+              }
               Cycle cycle = contexts.get(source.currentCycleId());
               return cycle == null || cycle.state() == CollectionCycleStateEnum.INTERRUPTED
                   ? source.toBuilder()
@@ -161,7 +165,9 @@ public class ReadCollectionConfiguration {
       UUID accountId, UUID sourceId, UUID parentId, long page, int size) {
     permissions.requireForRead(accountId, Permission.MANAGE_COLLECTION);
     Source source = store.source(sourceId).orElseThrow(CollectionNotFoundException::new);
-    if (page > Integer.MAX_VALUE / size) return new CollectionResourcePage(List.of(), page, false);
+    if (page > Integer.MAX_VALUE / size) {
+      return new CollectionResourcePage(List.of(), page, false);
+    }
     return acquisitionReads.collectionChildren(
         source.seasonId(),
         source.provider(),
@@ -236,8 +242,9 @@ public class ReadCollectionConfiguration {
   public CollectionState.ResultPage results(UUID accountId, UUID controlId, long page, int size) {
     permissions.requireForRead(accountId, Permission.MANAGE_COLLECTION);
     store.control(controlId).orElseThrow(CollectionNotFoundException::new);
-    if (page > Integer.MAX_VALUE / size)
+    if (page > Integer.MAX_VALUE / size) {
       return new CollectionState.ResultPage(List.of(), page, false);
+    }
     return store.results(controlId, (int) page, size);
   }
 }

@@ -28,12 +28,15 @@ export function SeasonPreparationScreen({ seasonId }: { seasonId: string }) {
   const router = useRouter();
   const { colors } = useTheme();
   const feedback = useActionFeedback();
+
   /** Refreshes this admitted season, retaining authorized content after a technical failure. */
   async function refresh() {
     const result = await season.refetch({ cancelRefetch: false });
-    if (result.isError && result.data && !isAccessDenied(result.error))
+    if (result.isError && result.data && !isAccessDenied(result.error)) {
       feedback.error();
+    }
   }
+
   const pending = !authority.enabled
     ? authority.sessionStatus === "restoring" ||
       (authority.sessionStatus === "authenticated" &&

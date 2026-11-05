@@ -47,8 +47,9 @@ public class AdmitCollectionCycle {
    */
   @Transactional
   public Admission admit(StartCycle command) {
-    if ((command.controlId() == null) == (command.sourceBindingId() == null))
+    if ((command.controlId() == null) == (command.sourceBindingId() == null)) {
       throw CollectionConflictException.invalidContext();
+    }
     runtimeAccess.requireCurrent(command.incarnationId());
     Optional<Cycle> existing = store.cycle(command.cycleId());
     if (existing.isPresent()) {
@@ -57,8 +58,9 @@ public class AdmitCollectionCycle {
           || !Objects.equals(cycle.sourceBindingId(), command.sourceBindingId())
           || !cycle.incarnationId().equals(command.incarnationId())
           || cycle.revision() != command.revision()
-          || !Objects.equals(cycle.requestId(), command.requestId()))
+          || !Objects.equals(cycle.requestId(), command.requestId())) {
         throw CollectionConflictException.invalidContext();
+      }
       return new Admission(cycle, false);
     }
     return command.controlId() == null ? admitValidation(command) : admitControl(command);
@@ -71,7 +73,9 @@ public class AdmitCollectionCycle {
    * @return one admitted exact candidate, without collection mode or sporting targets
    */
   private Admission admitValidation(StartCycle command) {
-    if (command.requestId() != null) throw CollectionConflictException.invalidContext();
+    if (command.requestId() != null) {
+      throw CollectionConflictException.invalidContext();
+    }
     CollectionSeasonView season =
         seasons.lockCollectionState(store.sourceSeason(command.sourceBindingId()));
     Source source = store.lockSource(command.sourceBindingId());
@@ -80,7 +84,9 @@ public class AdmitCollectionCycle {
         || source.locked()
         || source.validationState() != SourceValidationStateEnum.PENDING
         || source.candidateUrl() == null
-        || source.currentCycleId() != null) throw CollectionConflictException.invalidContext();
+        || source.currentCycleId() != null) {
+      throw CollectionConflictException.invalidContext();
+    }
     Cycle cycle =
         store.createCycle(command, null, mapper.toCandidate(source, season), clock.instant());
     store.startValidation(source, cycle);
@@ -98,8 +104,9 @@ public class AdmitCollectionCycle {
     CollectionSeasonView season = seasonId == null ? null : seasons.lockCollectionState(seasonId);
     Control control = store.lockControl(command.controlId());
     CollectionRevision.requireRevision(command.revision(), control.revision());
-    if (!Objects.equals(command.requestId(), control.requestId()))
+    if (!Objects.equals(command.requestId(), control.requestId())) {
       throw CollectionConflictException.invalidContext();
+    }
     CollectionModeEnum mode =
         control.requestId() == null ? CollectionModeEnum.PERIODIC : control.requestedMode();
     if (mode == null
@@ -112,8 +119,9 @@ public class AdmitCollectionCycle {
         || (mode == CollectionModeEnum.INITIAL_IMPORT
             && (season == null
                 || season.collectionState() != CollectionSeasonStateEnum.PREPARING
-                || control.sourceBindingIds().isEmpty())))
+                || control.sourceBindingIds().isEmpty()))) {
       throw CollectionConflictException.invalidContext();
+    }
     CollectionRevision.requireAdvance(control.revision());
     Cycle cycle = store.createCycle(command, mode, null, clock.instant());
     selection.freeze(cycle, control, season);
@@ -123,10 +131,13 @@ public class AdmitCollectionCycle {
         com.blockout.backend.collection.application.model.CollectionState.SnapshotPage targets =
             store.targets(cycle.id(), page, 200);
         targets.items().forEach(target -> selected.add(target.scopeId()));
-        if (!targets.hasNext()) break;
+        if (!targets.hasNext()) {
+          break;
+        }
       }
-      if (!selected.containsAll(control.scopeIds()))
+      if (!selected.containsAll(control.scopeIds())) {
         throw CollectionConflictException.invalidContext();
+      }
     }
     store.startControl(control, cycle);
     store.discardCycle(control.currentCycleId());

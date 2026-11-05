@@ -22,9 +22,12 @@ public class Auth0AccountCleanup implements AccountCleanup.Auth0 {
   /** {@inheritDoc} */
   @Override
   public Outcome remove(String issuer, String subject) {
-    if (properties.environment() == Environment.DISABLED || management.isEmpty())
+    if (properties.environment() == Environment.DISABLED || management.isEmpty()) {
       return Outcome.MISSING_CONFIGURATION;
-    if (!expectedIssuer.equals(issuer)) return Outcome.UNSAFE_SCOPE;
+    }
+    if (!expectedIssuer.equals(issuer)) {
+      return Outcome.UNSAFE_SCOPE;
+    }
     ManagementApi client = management.orElseThrow();
     try {
       GetUserResponseContent user =
@@ -37,11 +40,15 @@ public class Auth0AccountCleanup implements AccountCleanup.Auth0 {
                       .includeFields(true)
                       .build());
       if (user.getUserId().filter(subject::equals).isEmpty()
-          || !safeIdentities(user.getIdentities().orElse(List.of()))) return Outcome.UNSAFE_SCOPE;
+          || !safeIdentities(user.getIdentities().orElse(List.of()))) {
+        return Outcome.UNSAFE_SCOPE;
+      }
       client.users().delete(subject);
       return Outcome.REMOVED;
     } catch (ManagementApiException failure) {
-      if (failure.statusCode() == 404) return Outcome.ABSENT;
+      if (failure.statusCode() == 404) {
+        return Outcome.ABSENT;
+      }
       throw failure;
     }
   }
@@ -53,7 +60,9 @@ public class Auth0AccountCleanup implements AccountCleanup.Auth0 {
    * @return whether every identity belongs to the explicitly activated environment
    */
   private boolean safeIdentities(List<UserIdentitySchema> identities) {
-    if (identities.isEmpty()) return false;
+    if (identities.isEmpty()) {
+      return false;
+    }
     if (properties.environment() == Environment.PREPRODUCTION) {
       String connection = properties.preproductionConnection();
       return connection != null

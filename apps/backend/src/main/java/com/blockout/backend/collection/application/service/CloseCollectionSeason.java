@@ -43,7 +43,9 @@ public class CloseCollectionSeason {
     authorization.require(accountId, Permission.MANAGE_COLLECTION);
     CollectionRevision.requireRevision(revision, season.collectionRevision());
     CollectionLifecycle.requireOpen(season);
-    if (!season.label().equals(confirmation)) throw new InvalidSeasonConfirmationException();
+    if (!season.label().equals(confirmation)) {
+      throw new InvalidSeasonConfirmationException();
+    }
     CollectionRevision.requireAdvance(season.collectionRevision());
     for (Control control : controls) {
       if (control.requestId() != null) {

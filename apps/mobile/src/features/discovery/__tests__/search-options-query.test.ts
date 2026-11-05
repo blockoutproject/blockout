@@ -19,8 +19,11 @@ beforeEach(() => {
   mockFetch.mockReset();
 });
 afterEach(() => {
-  if (originalUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
-  else process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  if (originalUrl === undefined) {
+    delete process.env.EXPO_PUBLIC_API_URL;
+  } else {
+    process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  }
 });
 
 it("reads independent public team/pool options without consulting credentials", async () => {

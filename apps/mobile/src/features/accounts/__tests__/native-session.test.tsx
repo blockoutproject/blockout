@@ -50,6 +50,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
   process.env = { ...env };
 });
+
 /** Waits for the real native account observer so the next controlled SDK call belongs to the action. */
 async function restoredSession() {
   const hook = await renderHook(useAccountSession, {
@@ -131,8 +132,9 @@ it.each(["success", "cancelled", "failed"] as const)(
     });
     expect(hook.result.current.status).toBe("signing-out");
     await act(async () => {
-      if (outcome === "success") browser.resolve();
-      else
+      if (outcome === "success") {
+        browser.resolve();
+      } else {
         browser.reject({
           message: outcome,
           code:
@@ -140,8 +142,12 @@ it.each(["success", "cancelled", "failed"] as const)(
               ? "a0.session.user_cancelled"
               : "a0.network_error",
         });
-      if (outcome === "success") await logout;
-      else await expect(logout).rejects.toBeDefined();
+      }
+      if (outcome === "success") {
+        await logout;
+      } else {
+        await expect(logout).rejects.toBeDefined();
+      }
     });
     // Then
     expect(hook.result.current.status).toBe(

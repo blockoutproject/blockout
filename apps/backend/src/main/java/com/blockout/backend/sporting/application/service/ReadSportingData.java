@@ -106,7 +106,9 @@ public class ReadSportingData {
    * @return immutable current inputs, never stale engine documents
    */
   public List<SportingPublicInput> publicInputs(Kind kind, Set<UUID> ids) {
-    if (ids.size() > 200) throw new IllegalArgumentException("At most 200 identities per read");
+    if (ids.size() > 200) {
+      throw new IllegalArgumentException("At most 200 identities per read");
+    }
     return publicReads.publicInputs(kind, ids);
   }
 
@@ -119,8 +121,9 @@ public class ReadSportingData {
    * @return eligible current inputs; an empty page ends traversal
    */
   public List<SportingPublicInput> projectionInputs(Kind kind, int page, int size) {
-    if (page < 0 || size < 1 || size > 200)
+    if (page < 0 || size < 1 || size > 200) {
       throw new IllegalArgumentException("Invalid page bounds");
+    }
     return publicReads.projectionInputs(kind, page, size);
   }
 
@@ -153,8 +156,9 @@ public class ReadSportingData {
    * @return authorized retained official table, or empty for a hidden pool or unknown table
    */
   public Optional<StandingsView> publicStandings(UUID poolId) {
-    if (visibility(Kind.POOL, poolId).filter(SportingVisibility::viewable).isEmpty())
+    if (visibility(Kind.POOL, poolId).filter(SportingVisibility::viewable).isEmpty()) {
       return Optional.empty();
+    }
     return store
         .standings(poolId)
         .map(
@@ -225,8 +229,9 @@ public class ReadSportingData {
    * @return immutable current field values; restricted and deliberately absent values are null
    */
   public Map<SportingPresentation.ContactField, String> publicClubContacts(UUID clubId) {
-    if (visibility(Kind.CLUB, clubId).filter(SportingVisibility::viewable).isEmpty())
+    if (visibility(Kind.CLUB, clubId).filter(SportingVisibility::viewable).isEmpty()) {
       return Map.of();
+    }
     Map<SportingPresentation.ContactField, String> result =
         new EnumMap<>(SportingPresentation.ContactField.class);
     store

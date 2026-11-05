@@ -34,9 +34,11 @@ beforeEach(() => {
   });
 });
 afterEach(() => {
-  if (originalReader)
+  if (originalReader) {
     Object.defineProperty(globalThis, "FileReader", originalReader);
-  else Reflect.deleteProperty(globalThis, "FileReader");
+  } else {
+    Reflect.deleteProperty(globalThis, "FileReader");
+  }
 });
 
 it("rejects cancellation after HTTP completion without admitting the late decoded image", async () => {

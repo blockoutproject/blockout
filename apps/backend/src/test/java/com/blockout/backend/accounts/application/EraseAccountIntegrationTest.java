@@ -161,12 +161,13 @@ class EraseAccountIntegrationTest extends ContributionScenario {
             "pool_follow",
             "team_follow",
             "notification",
-            "push_subscription"))
+            "push_subscription")) {
       assertThat(
               sql.queryForObject(
                   "SELECT COUNT(*) FROM " + table + " WHERE account_id=?", Long.class, FOLLOWER))
           .as(table)
           .isZero();
+    }
     assertThat(accounts.findById(FOLLOWER)).isEmpty();
     assertThat(accounts.hasPhoto(FOLLOWER)).isFalse();
     assertThat(accounts.findById(OTHER)).isPresent();
@@ -258,7 +259,7 @@ class EraseAccountIntegrationTest extends ContributionScenario {
                 "pool_follow",
                 "team_follow",
                 "notification",
-                "push_subscription"))
+                "push_subscription")) {
           assertThat(
                   sql.queryForObject(
                       "SELECT COUNT(*) FROM " + table + " WHERE account_id=?",
@@ -266,6 +267,7 @@ class EraseAccountIntegrationTest extends ContributionScenario {
                       FOLLOWER))
               .as(table)
               .isEqualTo(1);
+        }
         assertThat(
                 sql.queryForList(
                     "SELECT id, pool_id AS target FROM pool_follow WHERE account_id=? UNION ALL SELECT id, team_id AS target FROM team_follow WHERE account_id=? ORDER BY id",
@@ -338,10 +340,11 @@ class EraseAccountIntegrationTest extends ContributionScenario {
                           .isEqualTo("PhotoWriter");
                       assertThat(accounts.hasPhoto(FOLLOWER))
                           .isEqualTo(writer.equals("photo-replace"));
-                      if (writer.equals("photo-replace"))
+                      if (writer.equals("photo-replace")) {
                         assertThat(
                                 readsAccount.photo(ISSUER, FOLLOWER.toString(), FOLLOWER).bytes())
                             .isEqualTo(photo.bytes());
+                      }
                     }
                     doAnswer(
                             call -> {
@@ -442,7 +445,9 @@ class EraseAccountIntegrationTest extends ContributionScenario {
                                       new Registration(
                                           CONNECTION, INSTALLATION, FOLLOWER, "Expo[late]"));
                               case "grant" -> {
-                                if (!locks.lock(FOLLOWER)) throw new AccountNotFoundException();
+                                if (!locks.lock(FOLLOWER)) {
+                                  throw new AccountNotFoundException();
+                                }
                                 moderator(FOLLOWER);
                               }
                               default -> throw new IllegalArgumentException(writer);
@@ -464,12 +469,13 @@ class EraseAccountIntegrationTest extends ContributionScenario {
       assertThatThrownBy(() -> writing.get(10, TimeUnit.SECONDS)).hasCauseInstanceOf(refusal);
       assertThat(accounts.findById(FOLLOWER)).isEmpty();
       assertThat(accounts.hasPhoto(FOLLOWER)).isFalse();
-      for (String table : List.of("account_permission", "pool_follow", "push_subscription"))
+      for (String table : List.of("account_permission", "pool_follow", "push_subscription")) {
         assertThat(
                 sql.queryForObject(
                     "SELECT COUNT(*) FROM " + table + " WHERE account_id=?", Long.class, FOLLOWER))
             .as(table)
             .isZero();
+      }
     } finally {
       commit.complete(null);
     }

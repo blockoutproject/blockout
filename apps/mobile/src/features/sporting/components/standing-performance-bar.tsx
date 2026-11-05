@@ -26,8 +26,9 @@ export function StandingPerformanceBar({
     lost === undefined ||
     !/^\d+$/.test(won) ||
     !/^\d+$/.test(lost)
-  )
+  ) {
     return null;
+  }
   const wins = Number(won);
   const losses = Number(lost);
   if (
@@ -35,8 +36,9 @@ export function StandingPerformanceBar({
     !Number.isSafeInteger(losses) ||
     !Number.isSafeInteger(wins + losses) ||
     wins + losses === 0
-  )
+  ) {
     return null;
+  }
   return <WinLossBar won={wins} lost={losses} />;
 }
 

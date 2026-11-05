@@ -110,7 +110,9 @@ class GeneratedClientIntegrationTest {
   void stopServer() throws Exception {
     releaseResponse.countDown();
     server.stop(0);
-    if (factory != null) factory.destroy();
+    if (factory != null) {
+      factory.destroy();
+    }
     meters.close();
   }
 

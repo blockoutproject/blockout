@@ -16,17 +16,23 @@ export function useProfileRefresh(
   const feedback = useActionFeedback();
   const mutationKey = getChangeAccountProfileMutationKey();
   const saving = useIsMutating({ mutationKey }) > 0;
+
   /** Refreshes the current account then its active photo; retained-data failures use the existing action feedback. */
   async function refresh() {
-    if (client.isMutating({ mutationKey })) return;
+    if (client.isMutating({ mutationKey })) {
+      return;
+    }
     feedback.clear();
     const result = await account.refetch({ cancelRefetch: false });
     if (result.isError) {
-      if (result.data && (retainedDraft || !isAccessDenied(result.error)))
+      if (result.data && (retainedDraft || !isAccessDenied(result.error))) {
         feedback.error();
+      }
       return;
     }
-    if (client.isMutating({ mutationKey }) || !result.data?.hasPhoto) return;
+    if (client.isMutating({ mutationKey }) || !result.data?.hasPhoto) {
+      return;
+    }
     const currentPhotoKey = getGetAccountPhotoQueryKey(result.data.accountId);
     await client.refetchQueries({
       queryKey: currentPhotoKey,
@@ -34,7 +40,9 @@ export function useProfileRefresh(
       type: "active",
     });
     const photo = client.getQueryState(currentPhotoKey);
-    if (photo?.status === "error" && photo.dataUpdatedAt > 0) feedback.error();
+    if (photo?.status === "error" && photo.dataUpdatedAt > 0) {
+      feedback.error();
+    }
   }
 
   return { saving, refresh };

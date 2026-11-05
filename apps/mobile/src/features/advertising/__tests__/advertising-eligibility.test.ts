@@ -21,6 +21,7 @@ jest.mock("react-native-purchases", () => ({
 }));
 const a = "00000000-0000-4000-8000-000000000001";
 const b = "00000000-0000-4000-8000-000000000002";
+
 /** Synthetic native evidence attributed to the captured F05 session, without SDK freshness simulation. */
 function nativeState(
   session: ProSessionState["session"],
@@ -40,6 +41,7 @@ function nativeState(
     }),
   };
 }
+
 let session: SessionSnapshot;
 let account: Pick<AccountSession, "status" | "subject" | "accountId">;
 beforeEach(() => {

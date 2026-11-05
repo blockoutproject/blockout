@@ -106,7 +106,9 @@ beforeEach(() => {
   jest.mocked(initializeV2Installation).mockResolvedValue(undefined);
   mockAuth0.hasValidCredentials.mockResolvedValue(false);
   mockPush.mockReset();
-  for (const command of Object.values(nativeMapCommands)) command.mockClear();
+  for (const command of Object.values(nativeMapCommands)) {
+    command.mockClear();
+  }
   participantsFailure = undefined;
   standingsFailure = undefined;
   participants = { poolId: pool.pool.id, items: [] };
@@ -119,22 +121,26 @@ beforeEach(() => {
   };
   mockFetch.mockReset().mockImplementation((url: string) => {
     const parsed = new URL(url);
-    if (parsed.pathname === "/application-access")
+    if (parsed.pathname === "/application-access") {
       return Promise.resolve(Response.json(applicationAccessResponse()));
-    if (parsed.pathname.endsWith("/participants"))
+    }
+    if (parsed.pathname.endsWith("/participants")) {
       return Promise.resolve(
         participantsFailure
           ? Response.json({}, { status: participantsFailure })
           : Response.json(participants),
       );
-    if (parsed.pathname.endsWith("/standings"))
+    }
+    if (parsed.pathname.endsWith("/standings")) {
       return Promise.resolve(
         standingsFailure
           ? Response.json({}, { status: standingsFailure })
           : Response.json(table),
       );
-    if (parsed.pathname === `/pools/${pool.pool.id}`)
+    }
+    if (parsed.pathname === `/pools/${pool.pool.id}`) {
       return Promise.resolve(Response.json({ pool }));
+    }
     return Promise.reject(
       new Error(`Unexpected synthetic path ${parsed.pathname}`),
     );
@@ -630,7 +636,9 @@ it.each(["initial failure", "not published", "unmatched row"] as const)(
         label: "Test city",
       }),
     ];
-    if (state === "initial failure") standingsFailure = 503;
+    if (state === "initial failure") {
+      standingsFailure = 503;
+    }
     if (state === "unmatched row") {
       table = publishedTable({ "Jou.": "8", "Gag.": "7", "Per.": "1" });
       table.rows[0].team = { id: secondTeamId, name: "Rives" };
@@ -1077,22 +1085,26 @@ it.each([
       screen.getByRole("button", { name: "Afficher toutes les équipes" }),
     );
     expect(frame).not.toHaveBeenCalled();
-    if (order === "ready-first") await fireEvent(nativeMap, "mapReady");
-    else
+    if (order === "ready-first") {
+      await fireEvent(nativeMap, "mapReady");
+    } else {
       await fireEvent(nativeMap, "layout", {
         nativeEvent: { layout: { x: 0, y: 0, width: 370, height: 422 } },
       });
+    }
     await user.press(
       screen.getByRole("button", { name: "Afficher toutes les équipes" }),
     );
     expect(frame).not.toHaveBeenCalled();
 
     // When
-    if (order === "ready-first")
+    if (order === "ready-first") {
       await fireEvent(nativeMap, "layout", {
         nativeEvent: { layout: { x: 0, y: 0, width: 370, height: 422 } },
       });
-    else await fireEvent(nativeMap, "mapReady");
+    } else {
+      await fireEvent(nativeMap, "mapReady");
+    }
 
     // Then
     expect(frame).toHaveBeenCalledTimes(1);

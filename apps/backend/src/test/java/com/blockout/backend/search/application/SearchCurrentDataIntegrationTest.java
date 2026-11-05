@@ -329,13 +329,14 @@ class SearchCurrentDataIntegrationTest {
             division);
         if (resource == SearchContext.Resource.TEAM) {
           UUID club = number == 200 ? null : UUID.fromString("60000000-0000-4000-8000-" + suffix);
-          if (club != null)
+          if (club != null) {
             sql.update(
                 "INSERT INTO sporting_club(id, provider, reference, source_name, manual_name, logo, logo_media_type) VALUES (?, 'FFVB', ?, 'Source club', ?, ?, 'image/png')",
                 club,
                 club.toString(),
                 "Current club " + number,
                 new byte[] {1});
+          }
           sql.update(
               "INSERT INTO sporting_team(id, season_id, provider, organizer_reference, competition_reference, native_reference, source_name, comparison_name, manual_name, club_id, division_id, format, gender, source_logo, source_logo_media_type) VALUES (?, ?, 'LNV', 'synthetic', 'competition', ?, 'Source', ?, 'Current', ?, ?, '_6X6', 'FEMALE', ?, 'image/png')",
               id,

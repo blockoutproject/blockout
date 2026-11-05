@@ -29,6 +29,7 @@ import {
 export interface ModerationFiltersProps {
   initial: Filters;
 }
+
 /** Selects private criteria with existing F13 controls; F05 recovers the session before private choices load. */
 export function ModerationFilters({ initial }: ModerationFiltersProps) {
   const router = useRouter();
@@ -42,11 +43,14 @@ export function ModerationFilters({ initial }: ModerationFiltersProps) {
   const values = useWatch({ control });
   // Like search, reconcile only a disappeared canonical season; other draft criteria survive rereads.
   useEffect(() => {
-    if (!reading.query.data) return;
+    if (!reading.query.data) {
+      return;
+    }
     const available = reading.query.data.pages[0]?.seasons ?? [];
     const seasonId = getValues("seasonId");
-    if (seasonId && !available.some((season) => season.id === seasonId))
+    if (seasonId && !available.some((season) => season.id === seasonId)) {
       setValue("seasonId", undefined, { shouldDirty: true });
+    }
   }, [reading.query.data, getValues, setValue]);
   const [choice, setChoice] = useState<"seasonId" | "platform" | "state">();
   const stateOptions: [StreamModerationFilterEnum, string][] = [
@@ -79,6 +83,7 @@ export function ModerationFilters({ initial }: ModerationFiltersProps) {
             })),
           ]
         : stateOptions.map(([value, label]) => ({ value, label }));
+
   /** Applies only the user's explicit sheet draft, preserving literal search text. */
   function apply(filters: Filters) {
     router.dismissTo({
@@ -91,6 +96,7 @@ export function ModerationFilters({ initial }: ModerationFiltersProps) {
       },
     });
   }
+
   return (
     <Sheet
       title={
@@ -131,19 +137,21 @@ export function ModerationFilters({ initial }: ModerationFiltersProps) {
                 label={option.label}
                 selected={(values[choice] ?? "") === option.value}
                 onPress={() => {
-                  if (choice === "platform")
+                  if (choice === "platform") {
                     setValue(
                       "platform",
                       option.value
                         ? StreamPlatformEnum.parse(option.value)
                         : undefined,
                     );
-                  else if (choice === "state")
+                  } else if (choice === "state") {
                     setValue(
                       "state",
                       StreamModerationFilterEnum.parse(option.value),
                     );
-                  else setValue("seasonId", option.value || undefined);
+                  } else {
+                    setValue("seasonId", option.value || undefined);
+                  }
                   setChoice(undefined);
                 }}
               />
@@ -200,6 +208,7 @@ export function ModerationFilters({ initial }: ModerationFiltersProps) {
     </Sheet>
   );
 }
+
 // SearchFilters and SearchFilterChoice own the existing F13 composition reproduced here.
 const styles = StyleSheet.create({
   form: { gap: tokens.spacing.lg },

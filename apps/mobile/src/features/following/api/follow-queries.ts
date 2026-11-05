@@ -62,22 +62,26 @@ export function createFollowStateQueryOptions(
     refetchOnMount: "always",
     staleTime: Infinity,
     queryFn: async ({ signal, client, queryKey }) => {
-      if (!owner) throw new ApiError("cancelled");
+      if (!owner) {
+        throw new ApiError("cancelled");
+      }
       try {
         const options = await request(signal);
         const state = await (target.type === "team"
           ? getTeamFollowState(owner.accountId, target.id, options)
           : getPoolFollowState(owner.accountId, target.id, options));
-        if (signal.aborted || options.signal?.aborted)
+        if (signal.aborted || options.signal?.aborted) {
           throw new ApiError("cancelled");
+        }
         return state;
       } catch (error) {
         if (
           !signal.aborted &&
           error instanceof ApiError &&
           (isAccessDenied(error) || error.status === 404)
-        )
+        ) {
           await withdrawRefusedFollowingQuery(client, queryKey, error);
+        }
         throw error;
       }
     },

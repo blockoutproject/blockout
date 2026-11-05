@@ -98,8 +98,9 @@ it("updates the mounted form's appearance without losing its draft", async () =>
   // When
   jest.mocked(Appearance.getColorScheme).mockReturnValue("dark");
   await act(() => {
-    for (const [listener] of subscribe.mock.calls)
+    for (const [listener] of subscribe.mock.calls) {
       listener({ colorScheme: "dark" });
+    }
   });
 
   // Then

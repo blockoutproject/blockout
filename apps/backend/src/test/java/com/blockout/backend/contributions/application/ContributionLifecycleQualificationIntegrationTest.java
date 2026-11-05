@@ -90,7 +90,9 @@ class ContributionLifecycleQualificationIntegrationTest extends ContributionScen
     SubmitContribution.Outcome original = submit(AUTHOR, "0", "https://youtu.be/source", false);
     reportToHide(original.version().id());
     ContributionVersion hidden = contributions.version(original.version().id()).orElseThrow();
-    if (postResult) result(2, ResultStateEnum.FINAL);
+    if (postResult) {
+      result(2, ResultStateEnum.FINAL);
+    }
     SubmitContribution.Outcome proposed = submit(AUTHOR, "4", "https://twitch.tv/proposed", false);
     SubmitContribution.Outcome alternative =
         submit(FOLLOWER, "5", "https://facebook.com/alternative", false);
@@ -131,8 +133,9 @@ class ContributionLifecycleQualificationIntegrationTest extends ContributionScen
     }
 
     // Given: remove only the direct publisher's controlled grant before their ordinary submission.
-    if (selection == Selection.PUBLISH)
+    if (selection == Selection.PUBLISH) {
       sql.update("DELETE FROM account_permission WHERE account_id=?", OTHER);
+    }
     UUID owner = selected.version().ownerId();
 
     // When
@@ -143,11 +146,12 @@ class ContributionLifecycleQualificationIntegrationTest extends ContributionScen
     assertThat(next.version().state()).isEqualTo(postResult ? State.PENDING : State.ACTIVE);
     assertThat(next.version().quotaParticipating()).isTrue();
     assertThat(contributions.state(matchId).reportHoldVersionId()).isNull();
-    if (postResult)
+    if (postResult) {
       assertThat(contributions.active(matchId).orElseThrow().id())
           .isEqualTo(selected.version().id());
-    else
+    } else {
       assertThat(contributions.active(matchId).orElseThrow().id()).isEqualTo(next.version().id());
+    }
   }
 
   @Test
@@ -249,8 +253,9 @@ class ContributionLifecycleQualificationIntegrationTest extends ContributionScen
     assertThat(repeatedExempt.version().id()).isEqualTo(direct.version().id());
     assertThat(reads.read(AUTHOR, matchId, 0).usage()).isEqualTo(exhausted);
     for (UUID version :
-        List.of(initial.version().id(), superseded.version().id(), pending.version().id()))
+        List.of(initial.version().id(), superseded.version().id(), pending.version().id())) {
       assertThat(contributions.version(version).orElseThrow().quotaParticipating()).isTrue();
+    }
     assertThatThrownBy(() -> submit(AUTHOR, "7", "https://youtu.be/refused", false))
         .isInstanceOfSatisfying(
             ContributionRejectedException.class,

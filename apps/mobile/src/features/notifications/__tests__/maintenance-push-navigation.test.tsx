@@ -171,12 +171,15 @@ it.each(["owner", "operator", "guest"] as const)(
       minimumVersion: "2.10.0",
       storeUrl: "https://play.google.com/store/apps/details?id=com.blockout",
     };
-    if (actor === "guest")
+    if (actor === "guest") {
       mockAuth0.hasValidCredentials.mockResolvedValue(false);
+    }
     mockFetch.mockImplementation(async (url: string, init: RequestInit) => {
       const path = new URL(url).pathname;
-      if (path.endsWith("application-access")) return Response.json(access);
-      if (path.endsWith("accounts/me"))
+      if (path.endsWith("application-access")) {
+        return Response.json(access);
+      }
+      if (path.endsWith("accounts/me")) {
         return Response.json(
           accountResponse({
             accountId: ownerId,
@@ -186,12 +189,19 @@ it.each(["owner", "operator", "guest"] as const)(
                 : {},
           }),
         );
-      if (path.endsWith("notification-summary"))
+      }
+      if (path.endsWith("notification-summary")) {
         return Response.json({ unreadCount: 0 });
-      if (path.endsWith(`/notifications/${row.id}`) && init.method === "PATCH")
+      }
+      if (
+        path.endsWith(`/notifications/${row.id}`) &&
+        init.method === "PATCH"
+      ) {
         return Response.json({ ...row, read: true });
-      if (path.endsWith(`/matches/${row.match.id}`))
+      }
+      if (path.endsWith(`/matches/${row.match.id}`)) {
         return Response.json({ match: row.match, documents: [] });
+      }
       throw new Error(`Unexpected synthetic boundary ${path}`);
     });
 
@@ -259,8 +269,9 @@ it.each(["owner", "operator", "guest"] as const)(
       ([, init]) => init.method === "PATCH",
     );
     expect(commands).toHaveLength(actor === "guest" ? 0 : 1);
-    if (actor !== "guest")
+    if (actor !== "guest") {
       expect(JSON.parse(commands[0][1].body)).toEqual({ read: true });
+    }
     expect(
       mockFetch.mock.calls.some(([url]) =>
         new URL(url).pathname.endsWith(`/matches/${row.match.id}`),
@@ -271,7 +282,9 @@ it.each(["owner", "operator", "guest"] as const)(
     const tap = jest
       .mocked(Notifications.addNotificationResponseReceivedListener)
       .mock.calls.at(-1)?.[0];
-    if (!tap) throw new Error("The native response listener must be mounted");
+    if (!tap) {
+      throw new Error("The native response listener must be mounted");
+    }
     await act(async () => tap(oldPush()));
 
     // Then: consuming a remembered tap is not a provider resend or personal-entry recreation.
@@ -292,21 +305,26 @@ it("opens an old tap from an admitted operational destination", async () => {
   jest.mocked(Notifications.getLastNotificationResponse).mockReturnValue(null);
   mockFetch.mockImplementation(async (url: string, init: RequestInit) => {
     const path = new URL(url).pathname;
-    if (path.endsWith("application-access"))
+    if (path.endsWith("application-access")) {
       return Response.json(applicationAccessResponse());
-    if (path.endsWith("accounts/me"))
+    }
+    if (path.endsWith("accounts/me")) {
       return Response.json(
         accountResponse({
           accountId: ownerId,
           permissions: { manageMaintenance: true },
         }),
       );
-    if (path.endsWith("notification-summary"))
+    }
+    if (path.endsWith("notification-summary")) {
       return Response.json({ unreadCount: 0 });
-    if (path.endsWith(`/notifications/${row.id}`) && init.method === "PATCH")
+    }
+    if (path.endsWith(`/notifications/${row.id}`) && init.method === "PATCH") {
       return Response.json({ ...row, read: true });
-    if (path.endsWith(`/matches/${row.match.id}`))
+    }
+    if (path.endsWith(`/matches/${row.match.id}`)) {
       return Response.json({ match: row.match, documents: [] });
+    }
     throw new Error(`Unexpected synthetic boundary ${path}`);
   });
   await openApplication();
@@ -316,7 +334,9 @@ it("opens an old tap from an admitted operational destination", async () => {
   const tap = jest
     .mocked(Notifications.addNotificationResponseReceivedListener)
     .mock.calls.at(-1)?.[0];
-  if (!tap) throw new Error("The native response listener must be mounted");
+  if (!tap) {
+    throw new Error("The native response listener must be mounted");
+  }
 
   // When
   await act(async () => tap(oldPush()));

@@ -239,7 +239,9 @@ class MaintenanceNotificationIntegrationTest extends ContributionScenario {
   void stopsNewHandoffsAfterAdmission() throws Exception {
     // Given: one committed event has two provider batches under F07's native 100-target bound.
     follow(FOLLOWER);
-    for (int number = 1; number <= 101; number++) destination(FOLLOWER, number);
+    for (int number = 1; number <= 101; number++) {
+      destination(FOLLOWER, number);
+    }
     when(provider.send(any()))
         .thenAnswer(
             invocation -> {

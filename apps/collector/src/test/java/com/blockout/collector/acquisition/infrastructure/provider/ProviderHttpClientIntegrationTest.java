@@ -415,8 +415,11 @@ class ProviderHttpClientIntegrationTest {
       // When
       org.assertj.core.api.ThrowableAssert.ThrowingCallable action =
           () -> {
-            if (post) client.post(origin.resolve("/source"), List.of());
-            else client.page(origin.resolve("/source"));
+            if (post) {
+              client.post(origin.resolve("/source"), List.of());
+            } else {
+              client.page(origin.resolve("/source"));
+            }
           };
 
       // Then

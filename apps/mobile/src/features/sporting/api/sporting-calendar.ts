@@ -97,7 +97,9 @@ export function calendarDays(
             .map((pool) => ({
               ...pool,
               matches: pool.matches.filter((match) => {
-                if (seen.has(match.id)) return false;
+                if (seen.has(match.id)) {
+                  return false;
+                }
                 seen.add(match.id);
                 return true;
               }),

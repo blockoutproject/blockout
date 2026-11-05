@@ -99,8 +99,11 @@ class AccountAccessWebMvcTest {
         .andExpect(jsonPath("$.hasPhoto").value(false))
         .andExpect(jsonPath("$.permissions.manageMaintenance").value(true))
         .andExpect(jsonPath("$.permissions.moderateStreamLinks").value(false));
-    if (created) response.andExpect(header().string("Location", "/accounts/" + ID));
-    else response.andExpect(header().doesNotExist("Location"));
+    if (created) {
+      response.andExpect(header().string("Location", "/accounts/" + ID));
+    } else {
+      response.andExpect(header().doesNotExist("Location"));
+    }
     verify(admission).requireOrdinaryAccess(ISSUER, "auth0|one", false);
     verifyNoInteractions(store, permissions);
   }

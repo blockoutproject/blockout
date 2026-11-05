@@ -40,14 +40,20 @@ export function DiscoveryProvider({ children }: PropsWithChildren) {
   }, []);
 
   useEffect(() => {
-    if (phase !== "loading") return;
+    if (phase !== "loading") {
+      return;
+    }
     let current = true;
     void readDiscoveryCompletion().then(
       (value) => {
-        if (current) setPhase(value ? "complete" : "incomplete");
+        if (current) {
+          setPhase(value ? "complete" : "incomplete");
+        }
       },
       () => {
-        if (current) setPhase("read-error");
+        if (current) {
+          setPhase("read-error");
+        }
       },
     );
     return () => {
@@ -57,18 +63,23 @@ export function DiscoveryProvider({ children }: PropsWithChildren) {
 
   /** Retries only the rejected read after an explicit user action. */
   function retryRead() {
-    if (phase === "read-error") setPhase("loading");
+    if (phase === "read-error") {
+      setPhase("loading");
+    }
   }
 
   /** Starts the explicit write before rendering; one operation survives route disposal without replay. */
   function finish() {
-    if (!mounted.current || completion.current || phase !== "incomplete")
+    if (!mounted.current || completion.current || phase !== "incomplete") {
       return;
+    }
     feedback.clear();
     setPhase("saving");
     completion.current = completeDiscovery().then(
       () => {
-        if (mounted.current) setPhase("complete");
+        if (mounted.current) {
+          setPhase("complete");
+        }
       },
       () => {
         completion.current = undefined;
@@ -99,6 +110,8 @@ export function DiscoveryProvider({ children }: PropsWithChildren) {
 /** Exposes the one local completion owner to discovery and root route composition. */
 export function useDiscovery(): Discovery {
   const value = useContext(DiscoveryContext);
-  if (!value) throw new Error("Discovery requires DiscoveryProvider");
+  if (!value) {
+    throw new Error("Discovery requires DiscoveryProvider");
+  }
   return value;
 }

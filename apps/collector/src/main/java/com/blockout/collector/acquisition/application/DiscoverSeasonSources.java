@@ -100,8 +100,9 @@ public class DiscoverSeasonSources {
    */
   public void currentEntries() {
     lifecycle.requireActive();
-    for (CurrentEntry entry : FFVB_ENTRIES)
+    for (CurrentEntry entry : FFVB_ENTRIES) {
       reportEntry(CollectionProviderEnum.FFVB, entry.scope(), currentFfvb(entry.url()));
+    }
     for (CurrentEntry entry : LNV_ENTRIES) {
       boolean usable = false;
       boolean complete = true;
@@ -112,15 +113,20 @@ public class DiscoverSeasonSources {
             Jsoup.parse(new String(page.body(), StandardCharsets.UTF_8), page.url().toString())
                 .select("iframe[src]")) {
           URI candidate = URI.create(frame.absUrl("src"));
-          if (!"lnv-web.dataproject.com".equalsIgnoreCase(candidate.getHost())) continue;
+          if (!"lnv-web.dataproject.com".equalsIgnoreCase(candidate.getHost())) {
+            continue;
+          }
           String competition = query(candidate).get("ID");
-          if (competition == null) continue;
+          if (competition == null) {
+            continue;
+          }
           ProviderResponse source = lnvHttp.page(candidate);
           String season = lnv.qualify(source.body(), source.url(), competition);
           usable = true;
-          if (season != null)
+          if (season != null) {
             complete &=
                 propose(CollectionProviderEnum.LNV, competition, season, candidate, entry.url());
+          }
         }
       } catch (RuntimeException failure) {
         complete = false;
@@ -151,8 +157,9 @@ public class DiscoverSeasonSources {
    */
   public Read catalog(
       CollectionBackend.Target target, LongSupplier nextOrdinal, Consumer<PageRead> consume) {
-    if (target.provider() == CollectionProviderEnum.LNV)
+    if (target.provider() == CollectionProviderEnum.LNV) {
       return lnvCatalog(target, nextOrdinal, consume);
+    }
     ffvb.requireContext(target.url(), target.seasonLabel(), target.organizerReference());
     ArrayDeque<URI> pending = new ArrayDeque<>(List.of(target.url()));
     Set<URI> visited = new LinkedHashSet<>();
@@ -162,9 +169,12 @@ public class DiscoverSeasonSources {
     Instant observedAt = clock.instant();
     while (!pending.isEmpty()) {
       URI url = pending.removeFirst();
-      if (!visited.add(url)) continue;
-      if (visited.size() > 512)
+      if (!visited.add(url)) {
+        continue;
+      }
+      if (visited.size() > 512) {
         throw new FfvbAcquisitionException("FFVB discovery exceeds bounded navigation");
+      }
       lifecycle.requireActive();
       try {
         long ordinal = nextOrdinal.getAsLong();
@@ -190,8 +200,11 @@ public class DiscoverSeasonSources {
                   target.organizerReference()));
         } catch (FfvbAcquisitionException unsupported) {
           List<URI> links = ffvb.navigation(response.body(), response.url());
-          if (links.isEmpty()) complete = false;
-          else pending.addAll(links);
+          if (links.isEmpty()) {
+            complete = false;
+          } else {
+            pending.addAll(links);
+          }
         }
       } catch (CollectionBackendFailure failure) {
         throw failure;
@@ -199,7 +212,9 @@ public class DiscoverSeasonSources {
         complete = false;
       }
     }
-    if (!recognized) throw new FfvbAcquisitionException("No qualified FFVB catalog");
+    if (!recognized) {
+      throw new FfvbAcquisitionException("No qualified FFVB catalog");
+    }
     return new Read(
         new SportingObservation.Catalog(complete, pools.stream().distinct().toList()), observedAt);
   }
@@ -218,8 +233,9 @@ public class DiscoverSeasonSources {
     ProviderResponse root = lnvHttp.page(target.url());
     Instant observedAt = clock.instant();
     String season = lnv.qualify(root.body(), root.url(), target.organizerReference());
-    if (season != null && !season.equals(target.seasonLabel()))
+    if (season != null && !season.equals(target.seasonLabel())) {
       throw new IllegalArgumentException("Contradictory LNV season");
+    }
     consume.accept(new PageRead(root, observedAt, rootOrdinal));
     List<SportingObservation.Pool> pools = new ArrayList<>();
     boolean complete = true;
@@ -232,32 +248,40 @@ public class DiscoverSeasonSources {
           page = lnvHttp.page(phase);
           observedAt = clock.instant();
           String phaseSeason = lnv.qualify(page.body(), page.url(), target.organizerReference());
-          if (phaseSeason != null && !phaseSeason.equals(target.seasonLabel()))
+          if (phaseSeason != null && !phaseSeason.equals(target.seasonLabel())) {
             throw new IllegalArgumentException("Contradictory LNV season");
+          }
           if (!target.organizerReference().equals(query(page.url()).get("ID"))
-              || !query(phase).get("PID").equals(query(page.url()).get("PID")))
+              || !query(phase).get("PID").equals(query(page.url()).get("PID"))) {
             throw new IllegalArgumentException("Contradictory phase");
+          }
           consume.accept(new PageRead(page, observedAt, ordinal));
         }
         Map<String, String> context = query(page.url());
         if (!target.organizerReference().equals(context.get("ID"))
-            || !query(phase).get("PID").equals(context.get("PID")))
+            || !query(phase).get("PID").equals(context.get("PID"))) {
           throw new IllegalArgumentException("Contradictory phase");
+        }
         Document document =
             Jsoup.parse(new String(page.body(), StandardCharsets.UTF_8), page.url().toString());
         List<Element> groups = document.select("div.rmpView[id^=Content_Main_]");
-        if (groups.isEmpty()) throw new IllegalArgumentException("Missing groups");
+        if (groups.isEmpty()) {
+          throw new IllegalArgumentException("Missing groups");
+        }
         for (Element group : groups) {
           String id = group.id().substring("Content_Main_".length());
           Element title = group.selectFirst("[id$=lbl_title]");
-          if (!id.matches("[0-9]+") || title == null)
+          if (!id.matches("[0-9]+") || title == null) {
             throw new IllegalArgumentException("Invalid group");
+          }
           URI standings = null;
           for (Element link : document.select("a[href*=CompetitionStandings.aspx]")) {
             URI proposed = URI.create(link.absUrl("href"));
             if (context.get("ID").equals(query(proposed).get("ID"))
                 && (!query(proposed).containsKey("PID")
-                    || context.get("PID").equals(query(proposed).get("PID")))) standings = proposed;
+                    || context.get("PID").equals(query(proposed).get("PID")))) {
+              standings = proposed;
+            }
           }
           pools.add(
               new SportingObservation.Pool(
@@ -295,8 +319,12 @@ public class DiscoverSeasonSources {
       ArrayDeque<URI> pending = new ArrayDeque<>(ffvb.navigation(page.body(), page.url()));
       while (!pending.isEmpty()) {
         URI candidate = pending.removeFirst();
-        if (!seen.add(candidate)) continue;
-        if (seen.size() > 512) throw new IllegalArgumentException("Discovery navigation bound");
+        if (!seen.add(candidate)) {
+          continue;
+        }
+        if (seen.size() > 512) {
+          throw new IllegalArgumentException("Discovery navigation bound");
+        }
         lifecycle.requireActive();
         try {
           ProviderResponse source = ffvbHttp.page(candidate);
@@ -368,9 +396,13 @@ public class DiscoverSeasonSources {
    */
   private boolean propose(
       CollectionProviderEnum provider, String organizer, String season, URI candidate, URI entry) {
-    if (!season.matches("[0-9]{4}/[0-9]{4}")) return false;
+    if (!season.matches("[0-9]{4}/[0-9]{4}")) {
+      return false;
+    }
     long year = Long.parseLong(season.substring(0, 4));
-    if (!season.endsWith(Long.toString(year + 1))) return false;
+    if (!season.endsWith(Long.toString(year + 1))) {
+      return false;
+    }
     backend.observeSource(
         new CollectionBackend.SourceProposal(
             lifecycle.getIncarnationId(),
@@ -403,7 +435,9 @@ public class DiscoverSeasonSources {
    * @param failure failed read or proposal
    */
   private void discoveryFailure(RuntimeException failure) {
-    if (failure instanceof CollectionBackendFailure refused) lifecycle.inspectConflict(refused);
+    if (failure instanceof CollectionBackendFailure refused) {
+      lifecycle.inspectConflict(refused);
+    }
     lifecycle.requireActive();
   }
 

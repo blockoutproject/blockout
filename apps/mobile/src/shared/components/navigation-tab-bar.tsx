@@ -21,7 +21,7 @@ export function NavigationTabBar({
   const { colors, membership } = useTheme();
   // RNCT 0.1.3 always animates its rail's auto-centering. Its public renderTabBar
   // slot reuses our existing static rail when the platform requests reduced motion.
-  if (reducedMotion)
+  if (reducedMotion) {
     return (
       <Tabs
         items={props.tabNames.map((id) => ({
@@ -32,6 +32,7 @@ export function NavigationTabBar({
         onSelect={props.onTabPress}
       />
     );
+  }
   return (
     <DefaultTabBar
       {...props}

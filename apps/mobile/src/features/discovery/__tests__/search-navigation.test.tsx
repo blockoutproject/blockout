@@ -131,13 +131,15 @@ let publicClient = createQueryClient();
 /** Only HTTP is controlled: generated transport, Query, admission, session, shared paging and Router stay real. */
 function publicReads(url: string): Promise<Response> {
   const parsed = new URL(url);
-  if (parsed.pathname.endsWith("/application-access"))
+  if (parsed.pathname.endsWith("/application-access")) {
     return Promise.resolve(Response.json(applicationAccessResponse()));
-  if (parsed.pathname.endsWith("/accounts/me"))
+  }
+  if (parsed.pathname.endsWith("/accounts/me")) {
     return Promise.resolve(
       Response.json(accountResponse({ accountId: firstId })),
     );
-  if (parsed.pathname.endsWith("/sporting-search-options"))
+  }
+  if (parsed.pathname.endsWith("/sporting-search-options")) {
     return Promise.resolve(
       Response.json({
         resourceType: parsed.searchParams.get("resourceType"),
@@ -147,7 +149,8 @@ function publicReads(url: string): Promise<Response> {
         genders: ["female"],
       }),
     );
-  if (parsed.pathname.endsWith("/clubs"))
+  }
+  if (parsed.pathname.endsWith("/clubs")) {
     return Promise.resolve(
       Response.json({
         clubs: [
@@ -157,7 +160,8 @@ function publicReads(url: string): Promise<Response> {
         nextCursor: "next",
       }),
     );
-  if (parsed.pathname.endsWith(`/clubs/${secondId}`))
+  }
+  if (parsed.pathname.endsWith(`/clubs/${secondId}`)) {
     return Promise.resolve(
       Response.json({
         club: { id: secondId, name: "Volley Niort" },
@@ -165,7 +169,8 @@ function publicReads(url: string): Promise<Response> {
         seasons: [],
       }),
     );
-  if (parsed.pathname.endsWith(`/teams/${firstId}`))
+  }
+  if (parsed.pathname.endsWith(`/teams/${firstId}`)) {
     return Promise.resolve(
       Response.json({
         team: {
@@ -177,7 +182,8 @@ function publicReads(url: string): Promise<Response> {
         participations: [],
       }),
     );
-  if (parsed.pathname.endsWith(`/pools/${firstId}`))
+  }
+  if (parsed.pathname.endsWith(`/pools/${firstId}`)) {
     return Promise.resolve(
       Response.json({
         pool: {
@@ -187,7 +193,8 @@ function publicReads(url: string): Promise<Response> {
         },
       }),
     );
-  if (parsed.pathname.endsWith("/standings"))
+  }
+  if (parsed.pathname.endsWith("/standings")) {
     return Promise.resolve(
       Response.json({
         poolId: firstId,
@@ -197,9 +204,11 @@ function publicReads(url: string): Promise<Response> {
         rows: [],
       }),
     );
-  if (parsed.pathname.endsWith("/participants"))
+  }
+  if (parsed.pathname.endsWith("/participants")) {
     return Promise.resolve(Response.json({ poolId: firstId, items: [] }));
-  if (parsed.pathname.endsWith("/matches"))
+  }
+  if (parsed.pathname.endsWith("/matches")) {
     return Promise.resolve(
       Response.json({
         category: parsed.searchParams.get("category"),
@@ -208,7 +217,8 @@ function publicReads(url: string): Promise<Response> {
         days: [],
       }),
     );
-  if (parsed.pathname.endsWith("/teams"))
+  }
+  if (parsed.pathname.endsWith("/teams")) {
     return Promise.resolve(
       Response.json({
         teams: [
@@ -222,7 +232,8 @@ function publicReads(url: string): Promise<Response> {
         ],
       }),
     );
-  if (parsed.pathname.endsWith("/pools"))
+  }
+  if (parsed.pathname.endsWith("/pools")) {
     return Promise.resolve(
       Response.json({
         pools: [
@@ -236,6 +247,7 @@ function publicReads(url: string): Promise<Response> {
         ],
       }),
     );
+  }
   throw new Error(`Unexpected controlled path ${parsed.pathname}`);
 }
 
@@ -421,13 +433,15 @@ it.each(["network", "schema", "http"])(
       ),
     ).toHaveLength(1);
     await act(async () => {
-      if (failure === "network")
+      if (failure === "network") {
         pending.reject(new TypeError("private transport diagnostic"));
-      else if (failure === "schema")
+      } else if (failure === "schema") {
         pending.resolve(
           Response.json({ clubs: [{ club: { id: firstId, name: 42 } }] }),
         );
-      else pending.resolve(Response.json({ status: 500 }, { status: 500 }));
+      } else {
+        pending.resolve(Response.json({ status: 500 }, { status: 500 }));
+      }
     });
     const retry = await screen.findByRole("button", {
       name: "Réessayer",
@@ -598,9 +612,12 @@ it("traverses all 47 stable identities through three pages in one context", asyn
   }));
   mockFetch.mockImplementation((url: string) => {
     const parsed = new URL(url);
-    if (!parsed.pathname.endsWith("/clubs")) return publicReads(url);
-    if (!parsed.searchParams.get("q"))
+    if (!parsed.pathname.endsWith("/clubs")) {
+      return publicReads(url);
+    }
+    if (!parsed.searchParams.get("q")) {
       return Promise.resolve(Response.json({ clubs: clubs.slice(0, 5) }));
+    }
     const start = Number(parsed.searchParams.get("cursor") ?? 0);
     return Promise.resolve(
       Response.json({
@@ -721,10 +738,11 @@ it.each(["hidden", "network"])(
     await user.press(screen.getByRole("link", { name: "Volley, Niort" }));
     await screen.findByText("Volley Niort");
     mockFetch.mockImplementation((url: string) => {
-      if (new URL(url).pathname.endsWith(`/clubs/${secondId}`))
+      if (new URL(url).pathname.endsWith(`/clubs/${secondId}`)) {
         return outcome === "hidden"
           ? Promise.resolve(Response.json({ status: 404 }, { status: 404 }))
           : Promise.reject(new TypeError("private failure"));
+      }
       return publicReads(url);
     });
 
@@ -741,13 +759,16 @@ it.each(["hidden", "network"])(
         "Une erreur est survenue",
       );
       expect(screen.queryByText("Volley Niort")).not.toBeOnTheScreen();
-    } else expect(screen.getByText("Volley Niort")).toBeOnTheScreen();
+    } else {
+      expect(screen.getByText("Volley Niort")).toBeOnTheScreen();
+    }
     expect(screen.queryByText("private failure")).not.toBeOnTheScreen();
     expect(screen).toHavePathname(`/clubs/${secondId}`);
     await act(async () => router.back());
     expect(await screen.findByText("Lyon")).toBeOnTheScreen();
-    if (outcome === "network")
+    if (outcome === "network") {
       expect(screen.getByText("Niort")).toBeOnTheScreen();
+    }
     expect(
       screen.getByRole("tab", { name: "Clubs", selected: true }),
     ).toBeOnTheScreen();
@@ -856,13 +877,15 @@ it.each(["show rejection", "native error"])(
   async (failure) => {
     // Given
     const user = await nineOpenings();
-    if (failure === "show rejection")
+    if (failure === "show rejection") {
       ad.show.mockRejectedValueOnce(new Error("Synthetic SDK failure"));
+    }
 
     // When
     await user.press(screen.getByRole("link", { name: "Volley, Niort" }));
-    if (failure === "native error")
+    if (failure === "native error") {
       await act(async () => ad.emit(AdEventType.ERROR));
+    }
     await screen.findByText("Volley Niort");
     await act(async () => ad.emit(AdEventType.CLOSED));
 
@@ -884,15 +907,15 @@ it.each(["tab", "route", "principal", "admission"])(
     expect(ad.show).toHaveBeenCalledTimes(1);
 
     // When
-    if (change === "tab")
+    if (change === "tab") {
       await user.press(screen.getByRole("tab", { name: "Équipes" }));
-    else if (change === "route")
+    } else if (change === "route") {
       await act(async () => router.push("/search/filters"));
-    else if (change === "principal")
+    } else if (change === "principal") {
       await act(async () => {
         await signInAccount(session, firstId);
       });
-    else {
+    } else {
       const access = applicationAccessResponse();
       access.maintenance = {
         revision: 1,
@@ -936,11 +959,13 @@ it.each(["inactive", "active", "unavailable"])(
       customerInfo: info,
       created: false,
     });
-    if (status === "unavailable")
+    if (status === "unavailable") {
       mockPurchases.getCustomerInfo.mockRejectedValue(
         new Error("Synthetic store outage"),
       );
-    else mockPurchases.getCustomerInfo.mockResolvedValue(info);
+    } else {
+      mockPurchases.getCustomerInfo.mockResolvedValue(info);
+    }
     const user = userEvent.setup();
     await renderSearch();
     await waitFor(() => expect(pro.state.status).toBe(status));

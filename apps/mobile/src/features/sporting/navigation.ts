@@ -26,17 +26,18 @@ export function useSportingNavigation(active = true) {
       target: id,
       isCurrent: () => currentActive.current && navigation.isFocused(),
       open() {
-        if (kind === "club")
+        if (kind === "club") {
           router.push({ pathname: "/clubs/[clubId]", params: { clubId: id } });
-        else if (kind === "team")
+        } else if (kind === "team") {
           router.push({ pathname: "/teams/[teamId]", params: { teamId: id } });
-        else if (kind === "pool")
+        } else if (kind === "pool") {
           router.push({ pathname: "/pools/[poolId]", params: { poolId: id } });
-        else
+        } else {
           router.push({
             pathname: "/matches/[matchId]",
             params: { matchId: id },
           });
+        }
       },
       onFailure: onFailure ?? (() => feedback.error()),
     });

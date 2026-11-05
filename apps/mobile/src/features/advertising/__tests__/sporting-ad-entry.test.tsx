@@ -210,7 +210,7 @@ beforeEach(async () => {
     .mockImplementation(async (url: string, init?: RequestInit) => {
       const path = new URL(url).pathname;
       const { match } = matchDetail();
-      if (path === "/sporting-search-options")
+      if (path === "/sporting-search-options") {
         return Response.json({
           resourceType: new URL(url).searchParams.get("resourceType"),
           seasons: [match.pool.season],
@@ -218,11 +218,13 @@ beforeEach(async () => {
           formats: [],
           genders: [],
         });
-      if (path === "/clubs")
+      }
+      if (path === "/clubs") {
         return Response.json({
           clubs: [{ club: { id: match.home.id, name: "Search club" } }],
         });
-      if (path === "/teams")
+      }
+      if (path === "/teams") {
         return Response.json({
           teams: [
             {
@@ -233,7 +235,8 @@ beforeEach(async () => {
             },
           ],
         });
-      if (path === "/pools")
+      }
+      if (path === "/pools") {
         return Response.json({
           pools: [
             {
@@ -242,12 +245,14 @@ beforeEach(async () => {
             },
           ],
         });
-      if (path.endsWith("/follow-options"))
+      }
+      if (path.endsWith("/follow-options")) {
         return Response.json({
           seasons: [match.pool.season],
           defaultSeasonId: match.pool.season.id,
         });
-      if (path.endsWith("/team-follows"))
+      }
+      if (path.endsWith("/team-follows")) {
         return Response.json({
           items: [
             {
@@ -258,7 +263,8 @@ beforeEach(async () => {
             },
           ],
         });
-      if (path.endsWith("/pool-follows"))
+      }
+      if (path.endsWith("/pool-follows")) {
         return Response.json({
           items: [
             {
@@ -267,7 +273,8 @@ beforeEach(async () => {
             },
           ],
         });
-      if (path === `/accounts/${inboxRow.id}/matches`)
+      }
+      if (path === `/accounts/${inboxRow.id}/matches`) {
         return Response.json({
           hasAvailableFollows: true,
           calendar: {
@@ -282,11 +289,17 @@ beforeEach(async () => {
             ],
           },
         });
-      if (path.endsWith("/standings")) return Response.json(table);
-      if (path.endsWith("/participants")) return Response.json(participants);
-      if (path.startsWith("/pools/"))
+      }
+      if (path.endsWith("/standings")) {
+        return Response.json(table);
+      }
+      if (path.endsWith("/participants")) {
+        return Response.json(participants);
+      }
+      if (path.startsWith("/pools/")) {
         return Response.json({ pool: matchDetail().match.pool });
-      if (path.startsWith("/teams/"))
+      }
+      if (path.startsWith("/teams/")) {
         return Response.json({
           team: {
             team: matchDetail().match.home,
@@ -296,27 +309,34 @@ beforeEach(async () => {
           },
           participations: [matchDetail().match.pool],
         });
-      if (path === "/matches")
+      }
+      if (path === "/matches") {
         return Response.json({
           category: new URL(url).searchParams.get("category"),
           timeZone: new URL(url).searchParams.get("timeZone"),
           evaluatedAt: "2026-10-28T12:00:00Z",
           days: [],
         });
-      if (path.endsWith("application-access"))
+      }
+      if (path.endsWith("application-access")) {
         return Response.json(applicationAccessResponse());
-      if (path.endsWith("accounts/me"))
+      }
+      if (path.endsWith("accounts/me")) {
         return Response.json(accountResponse({ accountId: inboxRow.id }));
-      if (path.endsWith("notification-summary"))
+      }
+      if (path.endsWith("notification-summary")) {
         return Response.json({ unreadCount: 0 });
-      if (path.endsWith("/notifications"))
+      }
+      if (path.endsWith("/notifications")) {
         return Response.json({ notifications: [inboxRow] });
+      }
       if (
         path.endsWith(`/notifications/${inboxRow.id}`) &&
         init?.method === "PATCH"
-      )
+      ) {
         return Response.json({ ...inboxRow, read: true });
-      if (path.endsWith(`/notifications/${nativeNotificationId}`))
+      }
+      if (path.endsWith(`/notifications/${nativeNotificationId}`)) {
         return failNativeRead && init?.method === "PATCH"
           ? Response.json({}, { status: 500 })
           : Response.json({
@@ -325,6 +345,7 @@ beforeEach(async () => {
               read: !failNativeRead,
               match: { ...inboxRow.match, id: nativeMatchId },
             });
+      }
       throw new Error("Unexpected synthetic transport");
     });
   ad = controlledInterstitial();
@@ -340,6 +361,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
   jest.useRealTimers();
 });
+
 /** Actual sporting rows and F05/F09/F11/F12 owners; only native and HTTP I/O and router handoff are controlled. */
 function Entries({
   detail = matchDetail(),
@@ -409,6 +431,7 @@ function Entries({
     </>
   );
 }
+
 /** Matches the production root ownership without mounting unrelated navigation screens. */
 function Owners({ children }: PropsWithChildren) {
   const [privacy] = useState(createInstallationAdvertisingPrivacy);
@@ -442,6 +465,7 @@ function Owners({ children }: PropsWithChildren) {
     </GestureHandlerRootView>
   );
 }
+
 /** Waits only for real installation/native readiness before supplying the native LOADED event. */
 async function mount(props: Parameters<typeof Entries>[0] = {}) {
   const result = await render(
@@ -459,16 +483,18 @@ async function mount(props: Parameters<typeof Entries>[0] = {}) {
   }
   return result;
 }
+
 it("shares nine real club/team/pool openings with the tenth calendar opening and deduplicates pending taps", async () => {
   // Given
   await mount();
   const user = userEvent.setup();
-  for (let index = 0; index < 9; index++)
+  for (let index = 0; index < 9; index++) {
     await user.press(
       screen.getByRole("link", {
         name: ["Club", "Équipe", "Poule"][index % 3],
       }),
     );
+  }
   expect(mockPush).toHaveBeenCalledTimes(9);
   expect(ad.show).not.toHaveBeenCalled();
   const match = screen.getByRole("link", { name: /Ouvrir le match/ });
@@ -571,8 +597,9 @@ it.each([
     await waitFor(() => expect(mockCreateAd).toHaveBeenCalledTimes(1));
     await act(async () => ad.emit(AdEventType.LOADED));
     const user = userEvent.setup();
-    for (let index = 0; index < 9; index++)
+    for (let index = 0; index < 9; index++) {
       await user.press(screen.getByRole("link", { name: "Club" }));
+    }
 
     // When: actual non-sporting entries keep their own navigation; legal actions retain their current unavailable boundary.
     for (const name of [
@@ -626,8 +653,9 @@ it.each(["À venir", "Terminés", "Suivis"])(
     });
     await layoutNativeTabs();
     const user = userEvent.setup();
-    for (let index = 0; index < 9; index++)
+    for (let index = 0; index < 9; index++) {
       await user.press(screen.getByRole("link", { name: "Club" }));
+    }
     await user.press(screen.getByRole("tab", { name: tab }));
     expect(ad.show).not.toHaveBeenCalled();
     await user.press(
@@ -664,17 +692,19 @@ it.each(["resource", "live"])(
     };
     await mount({ detail });
     const user = userEvent.setup();
-    for (let index = 0; index < 9; index++)
+    for (let index = 0; index < 9; index++) {
       await user.press(screen.getByRole("link", { name: "Club" }));
+    }
     const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue();
-    if (destination === "live")
+    if (destination === "live") {
       openURL.mockRejectedValueOnce(
         new Error("Private native handoff failure"),
       );
-    else
+    } else {
       mockPush.mockImplementationOnce(() => {
         throw new Error("Private route failure");
       });
+    }
     const name = destination === "live" ? "Ouvrir le lien" : "Équipe";
 
     // When
@@ -705,8 +735,9 @@ it("abandons the pending calendar destination when the native principal changes"
   // Given
   await mount();
   const user = userEvent.setup();
-  for (let index = 0; index < 9; index++)
+  for (let index = 0; index < 9; index++) {
     await user.press(screen.getByRole("link", { name: "Club" }));
+  }
   await user.press(screen.getByRole("link", { name: /Ouvrir le match/ }));
   expect(ad.show).toHaveBeenCalledTimes(1);
   // When
@@ -729,18 +760,21 @@ it.each(["screen focus", "calendar tab"])(
     // Given
     const result = await mount();
     const user = userEvent.setup();
-    for (let index = 0; index < 9; index++)
+    for (let index = 0; index < 9; index++) {
       await user.press(screen.getByRole("link", { name: "Club" }));
+    }
     await user.press(screen.getByRole("link", { name: /Ouvrir le match/ }));
     expect(ad.show).toHaveBeenCalledTimes(1);
     // When
-    if (source === "screen focus") mockFocused = false;
-    else
+    if (source === "screen focus") {
+      mockFocused = false;
+    } else {
       await result.rerender(
         <Owners>
           <Entries calendarActive={false} />
         </Owners>,
       );
+    }
     await act(async () => {
       ad.emit(AdEventType.OPENED);
       ad.emit(AdEventType.CLOSED);
@@ -755,11 +789,15 @@ it("shares calendar, inbox and native tap openings while keeping read failure in
   await mount({ notifications: true });
   const user = userEvent.setup();
   const match = screen.getByRole("link", { name: /Ouvrir le match/ });
-  for (let index = 0; index < 8; index++) await user.press(match);
+  for (let index = 0; index < 8; index++) {
+    await user.press(match);
+  }
   const receive = jest
     .mocked(Notifications.addNotificationReceivedListener)
     .mock.calls.at(-1)?.[0];
-  if (!receive) throw new Error("Expected native receive subscription");
+  if (!receive) {
+    throw new Error("Expected native receive subscription");
+  }
   await act(async () =>
     receive({
       date: Date.now(),
@@ -788,7 +826,9 @@ it("shares calendar, inbox and native tap openings while keeping read failure in
   const tap = jest
     .mocked(Notifications.addNotificationResponseReceivedListener)
     .mock.calls.at(-1)?.[0];
-  if (!tap) throw new Error("Expected native tap subscription");
+  if (!tap) {
+    throw new Error("Expected native tap subscription");
+  }
   const response: Notifications.NotificationResponse = {
     actionIdentifier: "default",
     notification: {
@@ -849,8 +889,9 @@ it("releases the exact calendar destination once when the SDK rejects presentati
   // Given
   await mount();
   const user = userEvent.setup();
-  for (let index = 0; index < 9; index++)
+  for (let index = 0; index < 9; index++) {
     await user.press(screen.getByRole("link", { name: "Club" }));
+  }
   ad.show.mockRejectedValueOnce(new Error("Synthetic presentation failure"));
   // When
   await user.press(screen.getByRole("link", { name: /Ouvrir le match/ }));
@@ -876,8 +917,9 @@ it("abandons the exact old stream URL when its published version changes during 
   const result = await mount({ detail: original });
   const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue();
   const user = userEvent.setup();
-  for (let index = 0; index < 9; index++)
+  for (let index = 0; index < 9; index++) {
     await user.press(screen.getByRole("link", { name: "Club" }));
+  }
   await user.press(screen.getByRole("link", { name: "Ouvrir le lien" }));
   expect(ad.show).toHaveBeenCalledTimes(1);
   // When
@@ -914,8 +956,9 @@ it("abandons a still-mounted stream handoff after the match route loses focus", 
   });
   const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue();
   const user = userEvent.setup();
-  for (let index = 0; index < 9; index++)
+  for (let index = 0; index < 9; index++) {
     await user.press(screen.getByRole("link", { name: "Club" }));
+  }
   await user.press(screen.getByRole("link", { name: "Ouvrir le lien" }));
   expect(ad.show).toHaveBeenCalledTimes(1);
   // When
@@ -931,7 +974,7 @@ it.each(["list", "cards", "podium"])(
   "abandons a pending %s standings team when refresh changes its association at the same slot",
   async (layout) => {
     // Given
-    if (layout === "podium")
+    if (layout === "podium") {
       table = {
         ...table,
         rows: [
@@ -940,14 +983,17 @@ it.each(["list", "cards", "podium"])(
           { sourceName: "Third", position: 3, statistics: { Points: "3" } },
         ],
       };
+    }
     await mount({ resourcePage: "pool" });
     const user = userEvent.setup();
-    if (layout !== "list")
+    if (layout !== "list") {
       await user.press(
         screen.getByRole("radio", { name: "Afficher en cartes" }),
       );
-    for (let index = 0; index < 9; index++)
+    }
+    for (let index = 0; index < 9; index++) {
       await user.press(screen.getByRole("link", { name: "Club" }));
+    }
     await user.press(
       screen.getByRole("link", { name: /Original standings team/ }),
     );
@@ -991,12 +1037,14 @@ it.each(["list", "cards"])(
     // Given
     await mount({ resourcePage: "pool" });
     const user = userEvent.setup();
-    if (layout === "cards")
+    if (layout === "cards") {
       await user.press(
         screen.getByRole("radio", { name: "Afficher en cartes" }),
       );
-    for (let index = 0; index < 9; index++)
+    }
+    for (let index = 0; index < 9; index++) {
       await user.press(screen.getByRole("link", { name: "Club" }));
+    }
     await user.press(
       screen.getByRole("link", { name: /Original standings team/ }),
     );
@@ -1015,8 +1063,9 @@ it("abandons a participation pool link when the actual team page changes its tab
   // Given
   await mount({ resourcePage: "team" });
   const user = userEvent.setup();
-  for (let index = 0; index < 9; index++)
+  for (let index = 0; index < 9; index++) {
     await user.press(screen.getByRole("link", { name: "Club" }));
+  }
   await user.press(screen.getByRole("link", { name: "Pool" }));
   expect(ad.show).toHaveBeenCalledTimes(1);
   // When
@@ -1067,8 +1116,9 @@ it("abandons a pending map team opening when a coincident team replaces the sele
     "press",
     { stopPropagation: jest.fn() },
   );
-  for (let index = 0; index < 9; index++)
+  for (let index = 0; index < 9; index++) {
     await user.press(screen.getByRole("link", { name: "Club" }));
+  }
   await user.press(screen.getByRole("link", { name: "Rives" }));
   expect(ad.show).toHaveBeenCalledTimes(1);
   expect(mockPush).toHaveBeenCalledTimes(9);

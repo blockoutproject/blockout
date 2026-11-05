@@ -175,8 +175,9 @@ class PurgeNotificationsIntegrationTest {
   @DisplayName("Rolls back a failed pass and removes due rows on the next ordinary day")
   void resumesNextDailyPass(CapturedOutput output) {
     // Given
-    for (int i = 1; i <= 105; i++)
+    for (int i = 1; i <= 105; i++) {
       entry(sql, i, ACCOUNT, NOW.minus(Duration.ofDays(31)).plusSeconds(i));
+    }
     UUID survivor = entry(sql, 200, ACCOUNT, NOW.minusSeconds(60));
     AtomicBoolean failed = new AtomicBoolean();
     inspector.failMatch =
@@ -386,7 +387,9 @@ class PurgeNotificationsIntegrationTest {
     @Override
     public String inspect(String statement) {
       java.util.function.Consumer<String> callback = failMatch;
-      if (callback != null) callback.accept(statement);
+      if (callback != null) {
+        callback.accept(statement);
+      }
       return statement;
     }
   }

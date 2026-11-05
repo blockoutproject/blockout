@@ -47,20 +47,24 @@ export function useSportingTransition() {
 
   /** Captures original-session validity and deduplicates only the same still-pending destination. */
   function open(action: SportingOpening): Promise<SportingAdTransitionResult> {
-    if (active.current && !active.current.isCurrent())
+    if (active.current && !active.current.isCurrent()) {
       active.current = undefined;
-    if (active.current)
+    }
+    if (active.current) {
       return active.current.kind === action.kind &&
         active.current.target === action.target
         ? active.current.result
         : Promise.resolve({ status: "busy" });
+    }
     const original = account;
     const isCurrent = () =>
       mounted.current &&
       currentAdmission.current &&
       account.accountId === original.accountId &&
       (action.isCurrent?.() ?? true);
-    if (!isCurrent()) return Promise.resolve({ status: "abandoned" });
+    if (!isCurrent()) {
+      return Promise.resolve({ status: "abandoned" });
+    }
     setPending(true);
     const result = privacy
       .openSportingTransition({
@@ -69,14 +73,19 @@ export function useSportingTransition() {
         open: action.open,
       })
       .then((outcome) => {
-        if (outcome.status === "destination-failed" && isCurrent())
+        if (outcome.status === "destination-failed" && isCurrent()) {
           action.onFailure?.();
+        }
         return outcome;
       })
       .finally(() => {
-        if (active.current?.result !== result) return;
+        if (active.current?.result !== result) {
+          return;
+        }
         active.current = undefined;
-        if (mounted.current) setPending(false);
+        if (mounted.current) {
+          setPending(false);
+        }
       });
     active.current = {
       kind: action.kind,

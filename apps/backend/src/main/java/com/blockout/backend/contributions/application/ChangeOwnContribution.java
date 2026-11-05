@@ -55,21 +55,30 @@ public class ChangeOwnContribution {
     affected.add(owner);
     for (UUID account : affected.stream().sorted().toList()) {
       boolean exists = accounts.lock(account);
-      if (account.equals(owner) && !exists) throw new AccountNotFoundException();
+      if (account.equals(owner) && !exists) {
+        throw new AccountNotFoundException();
+      }
     }
-    if (!facts.viewable()) throw new SportingResourceNotFoundException();
+    if (!facts.viewable()) {
+      throw new SportingResourceNotFoundException();
+    }
     ContributionVersion version =
         store
             .version(versionId)
             .filter(current -> current.matchId().equals(matchId) && owner.equals(current.ownerId()))
             .orElseThrow(SportingResourceNotFoundException::new);
     ContributionState state = store.state(matchId);
-    if (!Long.toString(state.revision()).equals(revision))
+    if (!Long.toString(state.revision()).equals(revision)) {
       throw new ContributionRejectedException(Status.STALE_REVISION);
+    }
     State terminal = action == StreamOwnerActionEnum.CANCEL ? State.CANCELLED : State.WITHDRAWN;
-    if (version.state() == terminal) return new ReadOwnContributions.Detail(revision, version);
+    if (version.state() == terminal) {
+      return new ReadOwnContributions.Detail(revision, version);
+    }
     State required = action == StreamOwnerActionEnum.CANCEL ? State.PENDING : State.ACTIVE;
-    if (version.state() != required) throw new ContributionConflictException();
+    if (version.state() != required) {
+      throw new ContributionConflictException();
+    }
     DecisionKind kind =
         action == StreamOwnerActionEnum.CANCEL
             ? DecisionKind.CANCELLATION

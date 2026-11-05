@@ -24,7 +24,9 @@ function AdmittedAdministration() {
       onBypass={
         access.canBypass
           ? () => {
-              if (access.bypassMaintenance()) router.replace("/");
+              if (access.bypassMaintenance()) {
+                router.replace("/");
+              }
             }
           : undefined
       }

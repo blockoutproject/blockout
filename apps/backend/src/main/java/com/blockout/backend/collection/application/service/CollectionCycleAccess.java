@@ -42,8 +42,9 @@ public class CollectionCycleAccess {
     requireRunningControl(id);
     Optional<CollectionState.Target> selected =
         store.target(id, teamId, CollectionTargetKindEnum.LOGO);
-    if (selected.isPresent() && poolIds.contains(selected.orElseThrow().poolId()))
+    if (selected.isPresent() && poolIds.contains(selected.orElseThrow().poolId())) {
       return selected.orElseThrow();
+    }
     return store
         .firstTarget(id, poolIds, CollectionTargetKindEnum.CALENDAR)
         .orElseThrow(CollectionConflictException::invalidContext);
@@ -108,10 +109,13 @@ public class CollectionCycleAccess {
         scope.controlId() == null
             ? store.sourceSeason(scope.sourceBindingId())
             : store.controlSeason(scope.controlId());
-    if (seasonId != null) seasons.lockCollectionState(seasonId);
+    if (seasonId != null) {
+      seasons.lockCollectionState(seasonId);
+    }
     Cycle cycle = store.lockCycle(id);
-    if (cycle.state() != CollectionCycleStateEnum.RUNNING)
+    if (cycle.state() != CollectionCycleStateEnum.RUNNING) {
       throw CollectionConflictException.invalidContext();
+    }
     return cycle;
   }
 
@@ -126,9 +130,13 @@ public class CollectionCycleAccess {
   public Cycle lockControlPassage(UUID id) {
     CycleScope scope = store.cycleScope(id);
     runtimeAccess.requireCurrent(scope.incarnationId());
-    if (scope.controlId() == null) throw CollectionConflictException.invalidContext();
+    if (scope.controlId() == null) {
+      throw CollectionConflictException.invalidContext();
+    }
     UUID seasonId = store.controlSeason(scope.controlId());
-    if (seasonId != null) seasons.lockCollectionState(seasonId);
+    if (seasonId != null) {
+      seasons.lockCollectionState(seasonId);
+    }
     return store.lockCycleForUpdate(id);
   }
 
@@ -142,7 +150,9 @@ public class CollectionCycleAccess {
   @Transactional(propagation = Propagation.MANDATORY)
   public Cycle requireRunningControl(UUID id) {
     Cycle cycle = requireRunning(id);
-    if (cycle.controlId() == null) throw CollectionConflictException.invalidContext();
+    if (cycle.controlId() == null) {
+      throw CollectionConflictException.invalidContext();
+    }
     return cycle;
   }
 }

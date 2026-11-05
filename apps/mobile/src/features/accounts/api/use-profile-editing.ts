@@ -25,17 +25,25 @@ export function useProfileEditing(accountId: string) {
   const client = useQueryClient();
   const photoKey = getGetAccountPhotoQueryKey(accountId);
   const currentKey = getGetMyAccountQueryKey();
+
   /** Captures credentials for the current original account at the dispatch boundary. */
   async function options(signal?: AbortSignal) {
-    if (session.accountId !== accountId) throw new ApiError("cancelled");
+    if (session.accountId !== accountId) {
+      throw new ApiError("cancelled");
+    }
     const credentials = await session.getCredentials();
-    if (session.accountId !== accountId) throw new ApiError("cancelled");
-    if (!credentials) throw new ApiError("http", 401);
+    if (session.accountId !== accountId) {
+      throw new ApiError("cancelled");
+    }
+    if (!credentials) {
+      throw new ApiError("http", 401);
+    }
     return request({
       signal,
       headers: { Authorization: `Bearer ${credentials.accessToken}` },
     });
   }
+
   const save = useMutation({
     mutationKey: [...getChangeAccountProfileMutationKey(), accountId],
     retry: false,
@@ -49,6 +57,7 @@ export function useProfileEditing(accountId: string) {
   });
   return { save };
 }
+
 /** Loads the displayed owner-only photo; a prepared replacement or removal disables this remote preview. */
 export function useProfilePhoto(accountId: string, enabled: boolean) {
   const { request } = useOrdinaryRequest();
@@ -62,22 +71,29 @@ export function useProfilePhoto(accountId: string, enabled: boolean) {
         const previousError = client.getQueryState(queryKey)?.error;
         try {
           const credentials = await session.getCredentials();
-          if (!credentials) throw new ApiError("http", 401);
+          if (!credentials) {
+            throw new ApiError("http", 401);
+          }
           const options = request({
             signal,
             headers: { Authorization: `Bearer ${credentials.accessToken}` },
           });
           const blob = await getAccountPhoto(accountId, options);
           const uri = await binaryImagePreview(blob, options.signal);
-          if (options.signal?.aborted) throw new ApiError("cancelled");
+          if (options.signal?.aborted) {
+            throw new ApiError("cancelled");
+          }
           return uri;
         } catch (error) {
-          if (signal.aborted) throw new ApiError("cancelled");
+          if (signal.aborted) {
+            throw new ApiError("cancelled");
+          }
           // Null removes only the URI; Query's accepted-read timestamp distinguishes refresh from initial failure.
-          if (isAccessDenied(error))
+          if (isAccessDenied(error)) {
             client.getQueryCache().find({ queryKey, exact: true })?.setState({
               data: null,
             });
+          }
           throw isAccessDenied(previousError) ? previousError : error;
         }
       },

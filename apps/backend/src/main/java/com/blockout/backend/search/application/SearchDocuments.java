@@ -57,7 +57,7 @@ public record SearchDocuments(
             ? null
             : input.classification().gender().getValue();
     add(context, format);
-    if (input.classification() != null && input.classification().gender() != null)
+    if (input.classification() != null && input.classification().gender() != null) {
       add(
           context,
           switch (input.classification().gender()) {
@@ -65,6 +65,7 @@ public record SearchDocuments(
             case MALE -> "masculin";
             case MIXED -> "mixte";
           });
+    }
     return new SearchDocuments(
         input.id(),
         names.stream().distinct().toList(),
@@ -83,6 +84,8 @@ public record SearchDocuments(
    * @param value current permitted label, or null
    */
   private static void add(List<String> values, String value) {
-    if (value != null && !value.isBlank()) values.add(value);
+    if (value != null && !value.isBlank()) {
+      values.add(value);
+    }
   }
 }

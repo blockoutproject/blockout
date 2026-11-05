@@ -32,7 +32,9 @@ public class JpaAccountStore implements AccountStore {
   /** {@inheritDoc} */
   @Override
   public java.util.Map<UUID, String> displayNames(java.util.Set<UUID> ids) {
-    if (ids.isEmpty()) return java.util.Map.of();
+    if (ids.isEmpty()) {
+      return java.util.Map.of();
+    }
     return accounts.findNames(ids).stream()
         .collect(
             java.util.stream.Collectors.toUnmodifiableMap(
@@ -79,13 +81,18 @@ public class JpaAccountStore implements AccountStore {
   public void changeProfile(
       UUID id, String username, ProfilePhotoActionEnum photoAction, ProfilePhoto photo) {
     try {
-      if (username != null) accounts.findById(id).orElseThrow().setUsername(username);
-      if (photoAction != null) photos.findById(id).orElseThrow().replace(photo);
+      if (username != null) {
+        accounts.findById(id).orElseThrow().setUsername(username);
+      }
+      if (photoAction != null) {
+        photos.findById(id).orElseThrow().replace(photo);
+      }
       // Flush before returning so only the named username constraint becomes a business refusal.
       accounts.flush();
     } catch (DataIntegrityViolationException failure) {
-      if ("uk_account_username".equals(constraintName(failure)))
+      if ("uk_account_username".equals(constraintName(failure))) {
         throw new UsernameUnavailableException();
+      }
       throw failure;
     }
   }
@@ -109,8 +116,9 @@ public class JpaAccountStore implements AccountStore {
               new AccountEntity(issuer, subject, username, email, principalCreatedAt)));
     } catch (DataIntegrityViolationException failure) {
       String constraint = constraintName(failure);
-      if ("uk_account_principal".equals(constraint) || "uk_account_username".equals(constraint))
+      if ("uk_account_principal".equals(constraint) || "uk_account_username".equals(constraint)) {
         throw new AccountCreationConflictException(failure);
+      }
       throw failure;
     }
   }
@@ -139,8 +147,9 @@ public class JpaAccountStore implements AccountStore {
    */
   private static String constraintName(DataIntegrityViolationException failure) {
     for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-      if (cause instanceof ConstraintViolationException constraint)
+      if (cause instanceof ConstraintViolationException constraint) {
         return constraint.getConstraintName();
+      }
     }
     return null;
   }

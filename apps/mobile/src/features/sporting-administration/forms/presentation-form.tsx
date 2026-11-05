@@ -41,6 +41,7 @@ export interface PresentationFormProps {
   editing: ReturnType<typeof usePresentation>;
   disabled: boolean;
 }
+
 /** Saves one revision atomically and retains dirty fields through refusals and explicit original-target rereads. */
 export function PresentationForm({
   presentation,
@@ -65,19 +66,26 @@ export function PresentationForm({
     canSelect: () => !editing.save.isPending,
     onSelect: async (assets) => {
       const asset = assets[0];
-      if (!asset) return;
+      if (!asset) {
+        return;
+      }
       try {
         const prepared = await prepareSportingLogo(asset);
-        if (mounted.current)
+        if (mounted.current) {
           editor.replaceLogo({ action: "replace", prepared });
-        else deleteOwnedImage(prepared);
+        } else {
+          deleteOwnedImage(prepared);
+        }
       } catch (error) {
-        if (!(error instanceof ImageValidationError)) throw error;
-        if (mounted.current)
+        if (!(error instanceof ImageValidationError)) {
+          throw error;
+        }
+        if (mounted.current) {
           setError("logo", {
             message:
               "Impossible de préparer le logo. Votre choix précédent est conservé.",
           });
+        }
       }
     },
   });
@@ -147,6 +155,7 @@ export function PresentationForm({
       mounted.current = false;
     };
   }, []);
+
   /** Only an explicit save writes; ordinary errors preserve mounted input for refresh or retry. */
   async function submit(values: PresentationValues) {
     if (
@@ -154,8 +163,9 @@ export function PresentationForm({
       imageSelection.isPending() ||
       busy ||
       rereadRequired
-    )
+    ) {
       return;
+    }
     if (
       baseline.kind === "division-creation" &&
       baseline.data.items.some(
@@ -178,9 +188,12 @@ export function PresentationForm({
           "La nouvelle division sera active. Sa présentation ne changera jamais implicitement son activité.",
         confirmLabel: "Créer la division",
       }))
-    )
+    ) {
       return;
-    if (!mounted.current || imageSelection.isPending()) return;
+    }
+    if (!mounted.current || imageSelection.isPending()) {
+      return;
+    }
     editor.update({ ...state, feedback: undefined });
     const file =
       values.logo.action === "replace" ? values.logo.prepared : undefined;
@@ -221,27 +234,32 @@ export function PresentationForm({
           error instanceof ApiError &&
           (error.problem?.type === "urn:blockout:problem:invalid-image" ||
             error.status === 413)
-        )
+        ) {
           setError("logo", {
             message:
               "Ce logo ne peut pas être enregistré. Choisissez une autre image.",
           });
-        else if (
+        } else if (
           isDivision &&
           error instanceof ApiError &&
           error.problem?.type === "urn:blockout:problem:conflict"
-        )
+        ) {
           setError("name", { message: "Ce nom de division est déjà utilisé." });
-        else actionFeedback.error();
+        } else {
+          actionFeedback.error();
+        }
       }
     } finally {
       editor.finishUpload(file);
     }
   }
+
   /** Refreshes non-dirty fields and the revision only after a successful explicit read; no write is replayed. */
   async function reread() {
     const result = await (() => editing.query.refetch())();
-    if (!mounted.current || imageSelection.isPending()) return;
+    if (!mounted.current || imageSelection.isPending()) {
+      return;
+    }
     if (result.isError || !result.data) {
       actionFeedback.error();
       return;
@@ -253,6 +271,7 @@ export function PresentationForm({
     });
     editor.reset(presentationValues(result.data), true);
   }
+
   /** Confirms and executes the separate lifecycle command against this editor's original revision. */
   async function changeActivity() {
     if (
@@ -263,8 +282,9 @@ export function PresentationForm({
       editing.query.isFetching ||
       !activity.authority.enabled ||
       rereadRequired
-    )
+    ) {
       return;
+    }
     const division = baseline.data;
     if (
       !(await confirmAction({
@@ -274,9 +294,12 @@ export function PresentationForm({
           : "Seule l’inactivité sera levée. Les autres restrictions de visibilité et de collecte restent applicables.",
         confirmLabel: division.active ? "Désactiver" : "Réactiver",
       }))
-    )
+    ) {
       return;
-    if (!mounted.current || imageSelection.isPending()) return;
+    }
+    if (!mounted.current || imageSelection.isPending()) {
+      return;
+    }
     try {
       const attempt = activity.save.mutateAsync({
         revision: division.revision,
@@ -294,22 +317,24 @@ export function PresentationForm({
       });
       editor.reset(presentationValues(accepted), true);
     } catch (error) {
-      if (error instanceof ApiError && error.status === 409)
+      if (error instanceof ApiError && error.status === 409) {
         editor.update({
           ...editor.state,
           feedback:
             "L’action n’a pas abouti. Relisez l’état courant avant de réessayer.",
         });
-      else {
+      } else {
         editor.update({ ...editor.state, feedback: undefined });
         actionFeedback.error();
       }
     }
   }
+
   /** Restoring is draft intent; source/LNV/club fallback is resolved by the existing binary read. */
   function restoreLogo() {
     editor.replaceLogo({ action: "automatic" });
   }
+
   const logoPending =
     draft.action !== "replace" && hasLogo && artwork.isLoading;
   const identity = (
@@ -572,6 +597,7 @@ export function PresentationForm({
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   imagePlaceholder: { alignItems: "center", justifyContent: "center" },
   form: { gap: tokens.layout.form.gap },

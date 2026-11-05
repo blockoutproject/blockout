@@ -141,6 +141,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
   jest.useRealTimers();
 });
+
 /** Real root, session and installation owners; HTTP/SDK I/O and future destination content are controlled. */
 async function openEntry(initialUrl = "/sign-in") {
   return renderRouter(
@@ -167,6 +168,7 @@ async function openEntry(initialUrl = "/sign-in") {
     { initialUrl },
   );
 }
+
 /** Observes real public owner APIs so account transitions exercise storage independence and current Pro state. */
 function SessionProbe() {
   const session = useAccountSession();
@@ -186,6 +188,7 @@ function SessionProbe() {
     </>
   );
 }
+
 it("persists one submitted age while the rendered form is busy", async () => {
   // Given
   await completeDiscovery();
@@ -315,16 +318,17 @@ it.each(["/legal", "/support", "/sign-in"])(
       await jest.advanceTimersByTimeAsync(8000);
     });
     // Then
-    if (path === "/sign-in")
+    if (path === "/sign-in") {
       expect(
         await screen.findByRole("button", { name: "Se connecter" }),
       ).toBeOnTheScreen();
-    else
+    } else {
       expect(
         await screen.findByText(
           path === "/legal" ? "Public legal reading" : "Public support",
         ),
       ).toBeOnTheScreen();
+    }
     expect(await readAgeDeclaration()).toBeNull();
   },
 );

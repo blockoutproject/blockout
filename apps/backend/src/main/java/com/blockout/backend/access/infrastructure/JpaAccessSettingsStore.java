@@ -121,7 +121,9 @@ public class JpaAccessSettingsStore implements AccessSettingsStore {
   private static MaintenanceSettings maintenance(
       long revision, Boolean active, String message, String imageUrl) {
     try {
-      if (active == null) throw new IllegalArgumentException("Missing active state");
+      if (active == null) {
+        throw new IllegalArgumentException("Missing active state");
+      }
       return new MaintenanceSettings(revision, active, message, imageUrl);
     } catch (IllegalArgumentException invalid) {
       throw new AccessSettingsUnavailableException(invalid);

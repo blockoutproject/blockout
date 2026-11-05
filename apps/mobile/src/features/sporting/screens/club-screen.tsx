@@ -73,8 +73,9 @@ function ClubPage({ clubId }: ClubScreenProps) {
   const season =
     seasons.find((item) => item.id === selectedSeason) ?? seasons[0];
   // Reconcile only a successful current representation, so a failed read never discards the choice.
-  if (club.isSuccess && selectedSeason !== season?.id)
+  if (club.isSuccess && selectedSeason !== season?.id) {
     setSelectedSeason(season?.id);
+  }
   const teams = useQuery({
     ...queries.clubTeams(clubId, season?.id ?? ""),
     enabled: (query) =>
@@ -89,6 +90,7 @@ function ClubPage({ clubId }: ClubScreenProps) {
   useLayoutEffect(() => {
     currentScope.current = scope;
   }, [scope]);
+
   /** Explicit refresh retains each authorized scope; late failure feedback stays with the attempted selection. */
   async function refresh() {
     feedback.clear();
@@ -100,8 +102,9 @@ function ClubPage({ clubId }: ClubScreenProps) {
         result.isError &&
         result.data?.items.length &&
         !isAccessDenied(result.error)
-      )
+      ) {
         feedback.error();
+      }
       return;
     }
     const result = await club.refetch({ cancelRefetch: false });
@@ -111,9 +114,11 @@ function ClubPage({ clubId }: ClubScreenProps) {
       result.data &&
       (tab === "info" || result.data.seasons.length > 0) &&
       !isAccessDenied(result.error)
-    )
+    ) {
       feedback.error();
+    }
   }
+
   const identity = data ? (
     <SportingIdentity
       identity={data.club}

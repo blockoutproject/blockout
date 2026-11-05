@@ -8,8 +8,9 @@ export function parsePublishedVersion(
     value === null ||
     !/^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/.test(value) ||
     value.trim() !== value
-  )
+  ) {
     return undefined;
+  }
   const components = value.split(".").map(Number);
   return components.every(Number.isSafeInteger) ? components : undefined;
 }
@@ -19,13 +20,21 @@ export function installedVersionStatus(
   minimum: string | null,
   installed: string | null = nativeApplicationVersion,
 ): "satisfied" | "outdated" | "unavailable" {
-  if (minimum === null) return "satisfied";
+  if (minimum === null) {
+    return "satisfied";
+  }
   const required = parsePublishedVersion(minimum);
   const actual = parsePublishedVersion(installed);
-  if (!required || !actual) return "unavailable";
+  if (!required || !actual) {
+    return "unavailable";
+  }
   for (let index = 0; index < 3; index++) {
-    if (actual[index] < required[index]) return "outdated";
-    if (actual[index] > required[index]) return "satisfied";
+    if (actual[index] < required[index]) {
+      return "outdated";
+    }
+    if (actual[index] > required[index]) {
+      return "satisfied";
+    }
   }
   return "satisfied";
 }

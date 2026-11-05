@@ -37,7 +37,9 @@ function AgeBackdrop() {
   }));
   useEffect(() => {
     offset.set(0);
-    if (reducedMotion) return;
+    if (reducedMotion) {
+      return;
+    }
     offset.set(
       withRepeat(
         withTiming(-48, {

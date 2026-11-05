@@ -72,7 +72,9 @@ public class JpaContributionStore implements ContributionStore {
   /** {@inheritDoc} */
   @Override
   public Set<UUID> activeMatchIds(Set<UUID> matchIds) {
-    if (matchIds.isEmpty()) return Set.of();
+    if (matchIds.isEmpty()) {
+      return Set.of();
+    }
     return Set.copyOf(versions.findMatchIdsByMatchIdInAndState(matchIds, State.ACTIVE));
   }
 
@@ -117,9 +119,15 @@ public class JpaContributionStore implements ContributionStore {
     Set<UUID> accounts = new HashSet<>();
     for (ContributionVersionRepository.Attribution row :
         versions.findAttributions(matchId, List.of(State.ACTIVE, State.PENDING))) {
-      if (row.getOwnerId() != null) accounts.add(row.getOwnerId());
-      if (row.getPublicationActorId() != null) accounts.add(row.getPublicationActorId());
-      if (row.getDecisionActorId() != null) accounts.add(row.getDecisionActorId());
+      if (row.getOwnerId() != null) {
+        accounts.add(row.getOwnerId());
+      }
+      if (row.getPublicationActorId() != null) {
+        accounts.add(row.getPublicationActorId());
+      }
+      if (row.getDecisionActorId() != null) {
+        accounts.add(row.getDecisionActorId());
+      }
     }
     return Set.copyOf(accounts);
   }
@@ -132,9 +140,15 @@ public class JpaContributionStore implements ContributionStore {
         .findAttribution(versionId)
         .ifPresent(
             row -> {
-              if (row.getOwnerId() != null) accounts.add(row.getOwnerId());
-              if (row.getPublicationActorId() != null) accounts.add(row.getPublicationActorId());
-              if (row.getDecisionActorId() != null) accounts.add(row.getDecisionActorId());
+              if (row.getOwnerId() != null) {
+                accounts.add(row.getOwnerId());
+              }
+              if (row.getPublicationActorId() != null) {
+                accounts.add(row.getPublicationActorId());
+              }
+              if (row.getDecisionActorId() != null) {
+                accounts.add(row.getDecisionActorId());
+              }
             });
     return Set.copyOf(accounts);
   }
@@ -148,11 +162,15 @@ public class JpaContributionStore implements ContributionStore {
     for (ContributionVersionEntity current :
         versions.findByMatchIdAndStateIn(
             source.getMatchId(), List.of(State.ACTIVE, State.PENDING))) {
-      if (!reactivate && current.getId().equals(versionId)) continue;
+      if (!reactivate && current.getId().equals(versionId)) {
+        continue;
+      }
       if (current.getState() == State.ACTIVE) {
         decide(current, State.REPLACED, DecisionKind.REPLACEMENT, actor, now);
         replaced.add(current);
-      } else decide(current, State.SUPERSEDED, DecisionKind.SUPERSESSION, actor, now);
+      } else {
+        decide(current, State.SUPERSEDED, DecisionKind.SUPERSESSION, actor, now);
+      }
     }
     versions.flush();
     ContributionVersionEntity selected = source;
@@ -167,11 +185,15 @@ public class JpaContributionStore implements ContributionStore {
               false,
               source.getId());
       versions.save(selected);
-    } else selected.setState(State.ACTIVE);
+    } else {
+      selected.setState(State.ACTIVE);
+    }
     selected.setPublicationKind(reactivate ? DecisionKind.REACTIVATION : DecisionKind.APPROVAL);
     selected.setPublicationAt(now);
     selected.setPublicationActorId(actor);
-    for (ContributionVersionEntity old : replaced) old.setReplacedByVersionId(selected.getId());
+    for (ContributionVersionEntity old : replaced) {
+      old.setReplacedByVersionId(selected.getId());
+    }
     return mapper.toDomain(selected);
   }
 
@@ -214,8 +236,10 @@ public class JpaContributionStore implements ContributionStore {
       if (old.getState() == State.ACTIVE && active) {
         decide(old, State.REPLACED, DecisionKind.REPLACEMENT, ownerId, now);
         replaced.add(old);
-      } else if (old.getState() == State.PENDING && (moderator || ownerId.equals(old.getOwnerId())))
+      } else if (old.getState() == State.PENDING
+          && (moderator || ownerId.equals(old.getOwnerId()))) {
         decide(old, State.SUPERSEDED, DecisionKind.SUPERSESSION, ownerId, now);
+      }
     }
     // Native insert ordering would otherwise place INSERT before UPDATE against partial uniqueness.
     versions.flush();
@@ -234,7 +258,9 @@ public class JpaContributionStore implements ContributionStore {
       created.setPublicationActorId(ownerId);
     }
     versions.save(created);
-    for (ContributionVersionEntity old : replaced) old.setReplacedByVersionId(created.getId());
+    for (ContributionVersionEntity old : replaced) {
+      old.setReplacedByVersionId(created.getId());
+    }
     return mapper.toDomain(created);
   }
 
@@ -276,7 +302,9 @@ public class JpaContributionStore implements ContributionStore {
       entities.persist(state);
     }
     state.setRevision(state.getRevision() + 1);
-    if (clearHold) state.setReportHoldVersionId(null);
+    if (clearHold) {
+      state.setReportHoldVersionId(null);
+    }
     return mapper.toDomain(state);
   }
 

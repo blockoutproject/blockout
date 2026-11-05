@@ -85,8 +85,11 @@ beforeEach(() => {
 
 afterEach(() => {
   jest.restoreAllMocks();
-  if (originalApiUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
-  else process.env.EXPO_PUBLIC_API_URL = originalApiUrl;
+  if (originalApiUrl === undefined) {
+    delete process.env.EXPO_PUBLIC_API_URL;
+  } else {
+    process.env.EXPO_PUBLIC_API_URL = originalApiUrl;
+  }
 });
 
 it.each([
@@ -106,7 +109,9 @@ it.each([
 
   // Then
   expect(result.success).toBe(false);
-  for (const value of schema.options) expect(schema.parse(value)).toBe(value);
+  for (const value of schema.options) {
+    expect(schema.parse(value)).toBe(value);
+  }
 });
 
 it.each([
@@ -150,8 +155,9 @@ it.each([
         false,
       );
     }
-    if ("revision" in body)
+    if ("revision" in body) {
       expect(schema.safeParse({ ...body, revision: "" }).success).toBe(false);
+    }
   },
 );
 
@@ -289,10 +295,11 @@ it("accepts twenty items, the maximum page and a full JavaScript-safe report cou
   expect(ListOwnStreamContributionsParams.parse({ page: 107374182 }).page).toBe(
     107374182,
   );
-  for (const page of [-1, 107374183, 0.5, null])
+  for (const page of [-1, 107374183, 0.5, null]) {
     expect(ListOwnStreamContributionsParams.safeParse({ page }).success).toBe(
       false,
     );
+  }
 });
 
 it.each([undefined, 42])(
@@ -357,11 +364,12 @@ it.each([
       permissions.moderateStreamLinks === true,
     );
     expect(result.bypassMaintenance).toBeUndefined();
-    for (const invalid of [null, "true", 1])
+    for (const invalid of [null, "true", 1]) {
       expect(
         AccountPermissionsResponse.safeParse({ moderateStreamLinks: invalid })
           .success,
       ).toBe(false);
+    }
   },
 );
 
@@ -491,7 +499,8 @@ it.each(["contributed", "professional", "absent"])(
     expect(result).toEqual(body);
     expect(result).not.toHaveProperty("authorName");
     expect(result).not.toHaveProperty("reportCount");
-    if (kind !== "contributed")
+    if (kind !== "contributed") {
       expect(result).not.toHaveProperty("streamContributionId");
+    }
   },
 );

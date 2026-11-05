@@ -35,8 +35,9 @@ public final class DiscordSupportSignal implements SupportSignal {
   @Override
   public void accepted() {
     try {
-      if (destination == null)
+      if (destination == null) {
         throw new SupportUnavailableException(Stage.SIGNAL, Reason.UNCONFIGURED);
+      }
       String content =
           "A support request has been received. https://github.com/"
               + destination.repository()

@@ -58,18 +58,25 @@ const season = {
 const environment = { ...process.env };
 let fixture: ReturnType<typeof followingFixture>;
 let following = false;
+
 /** Scenario-neutral generated transport; each test explicitly replaces decisive failures or counts. */
 async function transport(url: string, request?: RequestInit) {
-  if (url.endsWith("/application-access"))
+  if (url.endsWith("/application-access")) {
     return Response.json(applicationAccessResponse());
-  if (url.endsWith("/accounts/me")) return Response.json(accountResponse());
-  if (url.endsWith("/follower-count")) return Response.json({ count: 2 });
+  }
+  if (url.endsWith("/accounts/me")) {
+    return Response.json(accountResponse());
+  }
+  if (url.endsWith("/follower-count")) {
+    return Response.json({ count: 2 });
+  }
   if (request?.method === "PUT") {
     following = JSON.parse(String(request.body)).following;
     return Response.json({ following });
   }
   return Response.json({ following });
 }
+
 beforeEach(() => {
   jest.useFakeTimers();
   fixture = followingFixture();
@@ -105,8 +112,9 @@ it("reports a failed write through shared feedback while preserving the ordinary
       writes++;
       return Promise.reject(new TypeError("response lost"));
     }
-    if (url.includes("/team-follows/"))
+    if (url.includes("/team-follows/")) {
       return Promise.resolve(Response.json({ following: false }));
+    }
     return transport(url, request);
   });
   const user = userEvent.setup();
@@ -145,14 +153,18 @@ it.each([true, false])(
     const response = Promise.withResolvers<Response>();
     let accepted = false;
     mockFetch.mockImplementation((url, request) => {
-      if (request?.method === "PUT") return response.promise;
+      if (request?.method === "PUT") {
+        return response.promise;
+      }
       if (
         accepted &&
         (url.includes("/team-follows/") || url.endsWith("/follower-count"))
-      )
+      ) {
         return Promise.reject(new TypeError("dependent read failed"));
-      if (url.includes("/team-follows/"))
+      }
+      if (url.includes("/team-follows/")) {
         return Promise.resolve(Response.json({ following: !following }));
+      }
       return transport(url, request);
     });
     const user = userEvent.setup();
@@ -220,12 +232,14 @@ it.each(["guest", "other"])(
         attempted = true;
         return Promise.reject(new TypeError("response lost"));
       }
-      if (url.endsWith("/accounts/me"))
+      if (url.endsWith("/accounts/me")) {
         return Promise.resolve(
           Response.json(accountResponse({ accountId: currentAccount })),
         );
-      if (url.includes("/team-follows/") && attempted)
+      }
+      if (url.includes("/team-follows/") && attempted) {
         return observation.promise;
+      }
       return transport(url, request);
     });
     const user = userEvent.setup();
@@ -303,9 +317,12 @@ it("rereads only the affected public counter after confirmation without provisio
   const pool = { type: "pool", id: team.id } as const;
   let confirmed = false;
   mockFetch.mockImplementation((url, request) => {
-    if (request?.method === "PUT") return write.promise;
-    if (url.endsWith(`/teams/${team.id}/follower-count`) && confirmed)
+    if (request?.method === "PUT") {
+      return write.promise;
+    }
+    if (url.endsWith(`/teams/${team.id}/follower-count`) && confirmed) {
       return count.promise;
+    }
     return transport(url, request);
   });
   const user = userEvent.setup();
@@ -361,7 +378,7 @@ it.each(["team", "pool"] as const)(
     // Given
     const target = { type, id: team.id };
     mockFetch.mockImplementation((url, request) => {
-      if (url.endsWith(`/teams/${target.id}`))
+      if (url.endsWith(`/teams/${target.id}`)) {
         return Promise.resolve(
           Response.json({
             team: {
@@ -373,7 +390,8 @@ it.each(["team", "pool"] as const)(
             participations: [],
           }),
         );
-      if (url.endsWith(`/pools/${target.id}`))
+      }
+      if (url.endsWith(`/pools/${target.id}`)) {
         return Promise.resolve(
           Response.json({
             pool: {
@@ -383,12 +401,16 @@ it.each(["team", "pool"] as const)(
             },
           }),
         );
-      if (url.includes("/matches?"))
+      }
+      if (url.includes("/matches?")) {
         return Promise.resolve(Response.json({ days: [] }));
-      if (url.endsWith("/follower-count"))
+      }
+      if (url.endsWith("/follower-count")) {
         return Promise.resolve(Response.json({ count: 2 }));
-      if (url.includes("-follows/"))
+      }
+      if (url.includes("-follows/")) {
         return Promise.resolve(Response.json({ following: true }));
+      }
       return transport(url, request);
     });
     const renderFollow = () => (
@@ -438,7 +460,7 @@ it.each(["team", "pool"] as const)(
 it("keeps public sporting content when the private opaque member read returns 404", async () => {
   // Given
   mockFetch.mockImplementation((url, request) => {
-    if (url.endsWith(`/teams/${team.id}`))
+    if (url.endsWith(`/teams/${team.id}`)) {
       return Promise.resolve(
         Response.json({
           team: {
@@ -450,10 +472,13 @@ it("keeps public sporting content when the private opaque member read returns 40
           participations: [],
         }),
       );
-    if (url.includes("/team-follows/"))
+    }
+    if (url.includes("/team-follows/")) {
       return Promise.resolve(new Response(null, { status: 404 }));
-    if (url.includes("/matches?"))
+    }
+    if (url.includes("/matches?")) {
       return Promise.resolve(Response.json({ days: [] }));
+    }
     return transport(url, request);
   });
   await fixture.render(
@@ -474,7 +499,7 @@ it("keeps a refused count withdrawn when its detail removes the control and the 
   // Given: the real detail owner unmounts its follow region after the dependent detail refusal.
   let outcome: "available" | "refused" | "transient" = "available";
   mockFetch.mockImplementation((url, request) => {
-    if (url.endsWith(`/teams/${team.id}`))
+    if (url.endsWith(`/teams/${team.id}`)) {
       return Promise.resolve(
         outcome === "refused"
           ? new Response(null, { status: 404 })
@@ -488,15 +513,19 @@ it("keeps a refused count withdrawn when its detail removes the control and the 
               participations: [],
             }),
       );
+    }
     if (url.endsWith("/follower-count")) {
-      if (outcome === "refused")
+      if (outcome === "refused") {
         return Promise.resolve(new Response(null, { status: 404 }));
-      if (outcome === "transient")
+      }
+      if (outcome === "transient") {
         return Promise.reject(new TypeError("Synthetic reopened count outage"));
+      }
       return Promise.resolve(Response.json({ count: 2 }));
     }
-    if (url.includes("/matches?"))
+    if (url.includes("/matches?")) {
       return Promise.resolve(Response.json({ days: [] }));
+    }
     return transport(url, request);
   });
   const user = userEvent.setup();
@@ -541,9 +570,13 @@ it("applies public absence to an account established while the first counter is 
   const profile = Promise.withResolvers<Response>();
   const count = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url, request) => {
-    if (url.endsWith("/accounts/me")) return profile.promise;
-    if (url.endsWith("/follower-count")) return count.promise;
-    if (url.endsWith(`/teams/${team.id}`))
+    if (url.endsWith("/accounts/me")) {
+      return profile.promise;
+    }
+    if (url.endsWith("/follower-count")) {
+      return count.promise;
+    }
+    if (url.endsWith(`/teams/${team.id}`)) {
       return Promise.resolve(
         Response.json({
           team: {
@@ -558,10 +591,13 @@ it("applies public absence to an account established while the first counter is 
           participations: [],
         }),
       );
-    if (url.includes("/team-follows/"))
+    }
+    if (url.includes("/team-follows/")) {
       return Promise.resolve(Response.json({ following: true }));
-    if (url.includes("/matches?"))
+    }
+    if (url.includes("/matches?")) {
       return Promise.resolve(Response.json({ days: [] }));
+    }
     return transport(url, request);
   });
   await fixture.render(

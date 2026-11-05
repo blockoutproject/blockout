@@ -125,15 +125,18 @@ beforeEach(() => {
   };
   mockFetch.mockReset().mockImplementation((url: string) => {
     const parsed = new URL(url);
-    if (parsed.pathname === "/application-access")
+    if (parsed.pathname === "/application-access") {
       return Promise.resolve(Response.json(applicationAccessResponse()));
-    if (parsed.pathname.endsWith("/standings"))
+    }
+    if (parsed.pathname.endsWith("/standings")) {
       return failed
         ? Promise.resolve(Response.json({}, { status: 503 }))
         : Promise.resolve(Response.json(table));
-    if (parsed.pathname === `/pools/${pool.pool.id}`)
+    }
+    if (parsed.pathname === `/pools/${pool.pool.id}`) {
       return Promise.resolve(Response.json({ pool }));
-    if (parsed.pathname === `/teams/${sportingId}`)
+    }
+    if (parsed.pathname === `/teams/${sportingId}`) {
       return Promise.resolve(
         Response.json({
           team: {
@@ -145,7 +148,8 @@ beforeEach(() => {
           participations: [pool],
         }),
       );
-    if (parsed.pathname === "/matches")
+    }
+    if (parsed.pathname === "/matches") {
       return Promise.resolve(
         Response.json({
           category: parsed.searchParams.get("category"),
@@ -154,6 +158,7 @@ beforeEach(() => {
           days: [],
         }),
       );
+    }
     return Promise.reject(
       new Error(`Unexpected synthetic path ${parsed.pathname}`),
     );
@@ -574,9 +579,11 @@ it.each(["unavailable", "not-published"] as const)(
     };
     await open(panel());
     // Query can finish before React commits its notified read state; wait for the actual recovery control.
-    if (availability === "unavailable")
+    if (availability === "unavailable") {
       await screen.findByRole("button", { name: "Réessayer" });
-    else await screen.findByRole("button", { name: "Actualiser" });
+    } else {
+      await screen.findByRole("button", { name: "Actualiser" });
+    }
     failed = true;
     mockFetch.mockClear();
 
@@ -584,8 +591,9 @@ it.each(["unavailable", "not-published"] as const)(
     if (availability === "unavailable") {
       expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
       await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
-    } else
+    } else {
       await userEvent.press(screen.getByRole("button", { name: "Actualiser" }));
+    }
 
     // Then
     expect(
@@ -639,17 +647,20 @@ it.each(["list", "cards"] as const)(
     await screen.findByRole("link", { name: /Official compact team/ });
 
     // When
-    if (layout === "cards")
+    if (layout === "cards") {
       await user.press(
         screen.getByRole("radio", { name: "Afficher en cartes" }),
       );
+    }
 
     // Then
     expect(screen.getByText("Pts")).toBeOnTheScreen();
-    for (const label of ["J", "G", "P"])
+    for (const label of ["J", "G", "P"]) {
       expect(screen.getByText(label)).toBeOnTheScreen();
-    for (const value of ["18", "9", "6", "3"])
+    }
+    for (const value of ["18", "9", "6", "3"]) {
       expect(screen.getByText(value)).toBeOnTheScreen();
+    }
     expect(screen.queryByText("999")).not.toBeOnTheScreen();
     expect(table.rows[0].statistics["Résultats / 3-0"]).toBe("999");
     expect(table.columns).toContain("Ratio sets");

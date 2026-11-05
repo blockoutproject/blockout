@@ -199,7 +199,9 @@ class PersonalCalendarIntegrationTest {
     if (collection.equals("matches")) {
       next.andExpect(jsonPath("$.hasAvailableFollows").value(false))
           .andExpect(jsonPath("$.calendar.days").isEmpty());
-    } else next.andExpect(jsonPath("$.items").isEmpty());
+    } else {
+      next.andExpect(jsonPath("$.items").isEmpty());
+    }
     assertThat(
             sql.queryForObject(
                 "SELECT COUNT(*) FROM team_follow WHERE account_id=?", Long.class, ACCOUNT))
@@ -332,10 +334,12 @@ class PersonalCalendarIntegrationTest {
   void completeDays(String zone) {
     // Given
     follow("pool", scope.pool());
-    for (int day = 0; day < 10; day++)
+    for (int day = 0; day < 10; day++) {
       fixtures.match(scope.pool(), "DAY-" + day, DAY.plusDays(day * 3), null);
-    for (int match = 0; match < 25; match++)
+    }
+    for (int match = 0; match < 25; match++) {
       fixtures.match(scope.pool(), "BUSY-" + match, DAY, null);
+    }
     CalendarWindow first = new CalendarWindow(CalendarCategoryEnum.UPCOMING, ZoneId.of(zone), null);
 
     // When
@@ -532,8 +536,11 @@ class PersonalCalendarIntegrationTest {
 
     // Then
     assertThat(page.hasAvailableFollows()).isEqualTo(!observation.equals("qualified"));
-    if (observation.equals("qualified")) assertThat(ids(page)).isEmpty();
-    else assertThat(ids(page)).containsExactly(match.id());
+    if (observation.equals("qualified")) {
+      assertThat(ids(page)).isEmpty();
+    } else {
+      assertThat(ids(page)).containsExactly(match.id());
+    }
     assertThat(
             sql.queryForObject(
                 "SELECT COUNT(*) FROM pool_follow WHERE account_id=?", Long.class, ACCOUNT))
@@ -572,12 +579,13 @@ class PersonalCalendarIntegrationTest {
             List.of(),
             List.of()));
     assertThat(read(null).hasAvailableFollows()).isFalse();
-    if (restriction.equals("catalog"))
+    if (restriction.equals("catalog")) {
       sql.update("UPDATE sporting_pool SET catalog_eligible=FALSE WHERE id=?", scope.pool());
-    else
+    } else {
       sql.update(
           "UPDATE sporting_division SET active=FALSE WHERE id=?",
           SportingIngestionFixture.DIVISION);
+    }
 
     // When
     acceptance.accept(
@@ -592,11 +600,12 @@ class PersonalCalendarIntegrationTest {
     // Then
     assertThat(read(null).hasAvailableFollows()).isFalse();
     assertThat(ids(read(null))).isEmpty();
-    if (restriction.equals("catalog"))
+    if (restriction.equals("catalog")) {
       sql.update("UPDATE sporting_pool SET catalog_eligible=TRUE WHERE id=?", scope.pool());
-    else
+    } else {
       sql.update(
           "UPDATE sporting_division SET active=TRUE WHERE id=?", SportingIngestionFixture.DIVISION);
+    }
     assertThat(read(null).hasAvailableFollows()).isTrue();
     assertThat(ids(read(null))).containsExactly(original);
     assertThat(
@@ -718,9 +727,12 @@ class PersonalCalendarIntegrationTest {
   private ResultActions personal(String collection, UUID season) throws Exception {
     org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request =
         get("/accounts/" + ACCOUNT + "/" + collection).with(owner());
-    if (season != null) request.param("seasonId", season.toString());
-    if (collection.equals("matches"))
+    if (season != null) {
+      request.param("seasonId", season.toString());
+    }
+    if (collection.equals("matches")) {
       request.param("category", "upcoming").param("timeZone", "Europe/Paris");
+    }
     return mvc.perform(request);
   }
 

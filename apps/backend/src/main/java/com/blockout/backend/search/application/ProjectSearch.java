@@ -65,7 +65,9 @@ public class ProjectSearch {
     for (Kind kind : List.of(Kind.CLUB, Kind.TEAM, Kind.POOL)) {
       for (int page = 0; ; page++) {
         List<SportingPublicInput> batch = sporting.projectionInputs(kind, page, 200);
-        if (batch.isEmpty()) break;
+        if (batch.isEmpty()) {
+          break;
+        }
         writer.write(generation.get(kind), batch.stream().map(SearchDocuments::from).toList());
       }
     }

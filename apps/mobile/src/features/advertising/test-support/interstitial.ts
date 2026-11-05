@@ -17,6 +17,7 @@ export function advertisingContext() {
   };
   return { session, input };
 }
+
 /**
  * Controlled SDK I/O only. Retains callbacks deliberately to exercise already-queued events
  * after retirement; this does not model native presentation, mediation or consent.

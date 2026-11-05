@@ -31,11 +31,13 @@ function Probe({ capture, onSupport }: ProHarnessProps) {
     </ActionFeedbackProvider>
   );
 }
+
 /** Captures current public APIs; the support destination remains a navigation double. */
 export interface ProHarnessProps {
   capture(account: AccountSession, pro: ProContext): void;
   onSupport(): void;
 }
+
 /** Real F05, F09 and F13 providers; suites explicitly install native I/O mocks. */
 export function ProHarness(props: ProHarnessProps) {
   return (
@@ -48,6 +50,7 @@ export function ProHarness(props: ProHarnessProps) {
     </ThemeProvider>
   );
 }
+
 /** Resets the explicitly installed native I/O doubles to synthetic authenticated and inactive defaults. */
 export function prepareProNativeIO() {
   jest.mocked(initializeV2Installation).mockReset().mockResolvedValue();

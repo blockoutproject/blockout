@@ -62,27 +62,35 @@ public class SubmitContribution {
     Set<UUID> affectedAccounts = new HashSet<>(store.attributionAccounts(matchId));
     affectedAccounts.add(accountId);
     Selection selection = recipients.select(facts.match(), affectedAccounts);
-    if (!selection.accounts().contains(accountId)) throw new AccountNotFoundException();
+    if (!selection.accounts().contains(accountId)) {
+      throw new AccountNotFoundException();
+    }
     boolean moderator =
         permissions.forAccount(accountId).contains(Permission.MODERATE_STREAM_LINKS);
-    if (administrative && !moderator) throw new AccessDeniedException("Action is not permitted");
+    if (administrative && !moderator) {
+      throw new AccessDeniedException("Action is not permitted");
+    }
     ContributionState state = store.state(matchId);
-    if (!Long.toString(state.revision()).equals(revision))
+    if (!Long.toString(state.revision()).equals(revision)) {
       throw new ContributionRejectedException(Status.STALE_REVISION);
+    }
     Instant now = clock.instant();
     ContributionEligibility.Decision decision =
         eligibility.evaluate(accountId, facts, state, moderator, proposed, now).decision();
-    if (decision.status() == Status.UNCHANGED)
+    if (decision.status() == Status.UNCHANGED) {
       return new Outcome(
           store.version(decision.existingVersionId()).orElseThrow(), revision, false);
-    if (decision.status() != Status.ACTIVE && decision.status() != Status.PENDING)
+    }
+    if (decision.status() != Status.ACTIVE && decision.status() != Status.PENDING) {
       throw new ContributionRejectedException(decision.status());
+    }
     ContributionVersion version =
         store.record(
             matchId, accountId, proposed, decision.status() == Status.ACTIVE, moderator, now);
     ContributionState next = store.advance(matchId, moderator);
-    if (decision.status() == Status.ACTIVE)
+    if (decision.status() == Status.ACTIVE) {
       transitions.published(facts, selection.recipients(), now);
+    }
     return new Outcome(version, Long.toString(next.revision()), true);
   }
 

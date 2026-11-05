@@ -5,11 +5,13 @@ import { z } from "zod";
 
 import { useOperationalAdmission } from "../../../features/access/queries/use-access-admission";
 import { ClassificationSelectionScreen } from "../../../features/sporting-administration/screens/classification-selection-screen";
+
 const selection = z.object({
   kind: z.enum(["pack", "pool"]),
   id: z.string().uuid(),
   field: z.enum(["divisionId", "format", "gender"]),
 });
+
 /** Validates a native field-selection route before accessing the original session's draft. */
 export default function ClassificationSelectionRoute() {
   const admitted = useOperationalAdmission();

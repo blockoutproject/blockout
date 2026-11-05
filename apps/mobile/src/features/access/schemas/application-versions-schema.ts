@@ -8,9 +8,13 @@ import {
 /** Checks the store destination locally; the backend and operator still own validation and availability. */
 function validStore(value: string, ios: boolean) {
   try {
-    if (value.trim() !== value || /\s/.test(value)) return false;
+    if (value.trim() !== value || /\s/.test(value)) {
+      return false;
+    }
     const url = new URL(value);
-    if (url.protocol !== "https:" || url.username || url.password) return false;
+    if (url.protocol !== "https:" || url.username || url.password) {
+      return false;
+    }
     return ios
       ? url.hostname === "apps.apple.com" &&
           /^\/(?:[a-zA-Z]{2}\/)?app\/(?:[^/]+\/)?id[0-9]+$/.test(url.pathname)
@@ -22,6 +26,7 @@ function validStore(value: string, ios: boolean) {
     return false;
   }
 }
+
 /** Validates the complete edited platform, including a retained minimum with a removed link. */
 function platformSchema(ios: boolean) {
   return z
@@ -42,21 +47,24 @@ function platformSchema(ios: boolean) {
         ),
     })
     .superRefine((value, context) => {
-      if (value.minimumVersion !== "" && value.storeUrl === "")
+      if (value.minimumVersion !== "" && value.storeUrl === "") {
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["storeUrl"],
           message:
             "Un lien vers le store est requis avec une version minimale.",
         });
+      }
     });
 }
+
 /** Editing values use empty strings for explicit optional removal; transport omission is mapped on submit. */
 export const applicationVersionsSchema = z.object({
   ios: platformSchema(true),
   android: platformSchema(false),
   message: z.string().trim(),
 });
+
 /** One RHF-owned draft for both platforms and the shared optional message. */
 export type ApplicationVersionsValues = z.infer<
   typeof applicationVersionsSchema
@@ -69,7 +77,9 @@ export function raisesMinimum(
 ) {
   return (["ios", "android"] as const).some((platform) => {
     const minimum = draft[platform].minimumVersion;
-    if (!parsePublishedVersion(minimum)) return false;
+    if (!parsePublishedVersion(minimum)) {
+      return false;
+    }
     const previous = baseline[platform].minimumVersion;
     return (
       previous === null ||

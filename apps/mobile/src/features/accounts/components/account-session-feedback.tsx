@@ -20,9 +20,12 @@ export function AccountSessionFeedback({
     session.status === "restoring" ||
     session.status === "authenticating" ||
     session.status === "signing-out"
-  )
+  ) {
     return loadingContent;
-  if (session.status === "authenticated") return null;
+  }
+  if (session.status === "authenticated") {
+    return null;
+  }
   return (
     <ErrorState
       onRetry={

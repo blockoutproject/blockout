@@ -79,7 +79,9 @@ class AccountMaintenanceAdmissionIntegrationTest {
         .thenReturn(new PrincipalReader.Evidence("signup@example.invalid", null));
 
     MockHttpServletRequestBuilder request = post("/accounts").with(principal("auth0|signup"));
-    if (intent != null) request.header("Blockout-Maintenance-Bypass", intent);
+    if (intent != null) {
+      request.header("Blockout-Maintenance-Bypass", intent);
+    }
 
     // When
     mvc.perform(request)

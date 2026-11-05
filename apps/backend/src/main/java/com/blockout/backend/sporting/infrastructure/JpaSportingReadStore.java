@@ -54,11 +54,15 @@ public class JpaSportingReadStore
     Set<Reason> reasons = EnumSet.noneOf(Reason.class);
     switch (kind) {
       case CLUB -> {
-        if (!clubs.existsById(id)) return Optional.empty();
+        if (!clubs.existsById(id)) {
+          return Optional.empty();
+        }
       }
       case POOL -> {
         PoolVisibilityRow pool = pools.findVisibility(id).orElse(null);
-        if (pool == null) return Optional.empty();
+        if (pool == null) {
+          return Optional.empty();
+        }
         reasons.addAll(
             poolReasons(
                 pool.catalogEligible(),
@@ -68,9 +72,15 @@ public class JpaSportingReadStore
       }
       case TEAM -> {
         Boolean active = teams.findDivisionActivity(id).orElse(null);
-        if (active == null) return Optional.empty();
-        if (!active) reasons.add(Reason.DIVISION_INACTIVE);
-        if (visiblePoolIds(Set.of(id)).isEmpty()) reasons.add(Reason.NO_VISIBLE_PARTICIPATION);
+        if (active == null) {
+          return Optional.empty();
+        }
+        if (!active) {
+          reasons.add(Reason.DIVISION_INACTIVE);
+        }
+        if (visiblePoolIds(Set.of(id)).isEmpty()) {
+          reasons.add(Reason.NO_VISIBLE_PARTICIPATION);
+        }
       }
       case MATCH -> {
         return Optional.ofNullable(matchVisibilities(Set.of(id)).get(id));
@@ -82,7 +92,9 @@ public class JpaSportingReadStore
   /** {@inheritDoc} */
   @Override
   public Map<UUID, SportingVisibility> matchVisibilities(Set<UUID> ids) {
-    if (ids.isEmpty()) return Map.of();
+    if (ids.isEmpty()) {
+      return Map.of();
+    }
     List<MatchVisibilityRow> rows = matches.findVisibilities(ids);
     Set<UUID> teams =
         rows.stream()
@@ -100,12 +112,18 @@ public class JpaSportingReadStore
                           row.calendarEmpty(),
                           row.divisionId(),
                           row.divisionActive());
-                  if (!row.present()) reasons.add(Reason.ITEM_ABSENT);
-                  if (row.localDate() == null) reasons.add(Reason.DATE_UNKNOWN);
+                  if (!row.present()) {
+                    reasons.add(Reason.ITEM_ABSENT);
+                  }
+                  if (row.localDate() == null) {
+                    reasons.add(Reason.DATE_UNKNOWN);
+                  }
                   if (!memberships.getOrDefault(row.homeTeamId(), List.of()).contains(row.poolId())
                       || !memberships
                           .getOrDefault(row.awayTeamId(), List.of())
-                          .contains(row.poolId())) reasons.add(Reason.NO_VISIBLE_PARTICIPATION);
+                          .contains(row.poolId())) {
+                    reasons.add(Reason.NO_VISIBLE_PARTICIPATION);
+                  }
                   return new SportingVisibility(row.id(), Kind.MATCH, reasons);
                 }));
   }
@@ -123,10 +141,17 @@ public class JpaSportingReadStore
   private Set<Reason> poolReasons(
       boolean catalogEligible, boolean calendarEmpty, UUID divisionId, Boolean divisionActive) {
     Set<Reason> reasons = EnumSet.noneOf(Reason.class);
-    if (!catalogEligible) reasons.add(Reason.CATALOG_ABSENT);
-    if (calendarEmpty) reasons.add(Reason.CALENDAR_EMPTY);
-    if (divisionId == null) reasons.add(Reason.UNCLASSIFIED);
-    else if (!divisionActive) reasons.add(Reason.DIVISION_INACTIVE);
+    if (!catalogEligible) {
+      reasons.add(Reason.CATALOG_ABSENT);
+    }
+    if (calendarEmpty) {
+      reasons.add(Reason.CALENDAR_EMPTY);
+    }
+    if (divisionId == null) {
+      reasons.add(Reason.UNCLASSIFIED);
+    } else if (!divisionActive) {
+      reasons.add(Reason.DIVISION_INACTIVE);
+    }
     return reasons;
   }
 
@@ -230,7 +255,9 @@ public class JpaSportingReadStore
   /** {@inheritDoc} */
   @Override
   public List<SportingPublicInput> publicInputs(Kind kind, Set<UUID> ids) {
-    if (ids.isEmpty()) return List.of();
+    if (ids.isEmpty()) {
+      return List.of();
+    }
     List<SportingSearchRow> rows =
         switch (kind) {
           case CLUB -> clubs.findSearchInputs(ids);
@@ -261,11 +288,17 @@ public class JpaSportingReadStore
    */
   private Map<UUID, Set<String>> divisionTerms(List<SportingSearchRow> rows) {
     Set<UUID> ids = new HashSet<>();
-    for (SportingSearchRow row : rows) if (row.divisionId() != null) ids.add(row.divisionId());
+    for (SportingSearchRow row : rows) {
+      if (row.divisionId() != null) {
+        ids.add(row.divisionId());
+      }
+    }
     Map<UUID, Set<String>> result = new HashMap<>();
-    if (!ids.isEmpty())
-      for (DivisionTermRow row : divisions.findTerms(ids))
+    if (!ids.isEmpty()) {
+      for (DivisionTermRow row : divisions.findTerms(ids)) {
         result.computeIfAbsent(row.divisionId(), ignored -> new HashSet<>()).add(row.term());
+      }
+    }
     return result;
   }
 
@@ -285,8 +318,9 @@ public class JpaSportingReadStore
           case MATCH -> throw new IllegalArgumentException("Matches have no search projection");
         };
     Map<UUID, Set<Alias>> result = new HashMap<>();
-    for (SportingAliasRow row : rows)
+    for (SportingAliasRow row : rows) {
       result.computeIfAbsent(row.ownerId(), ignored -> new HashSet<>()).add(mapper.toView(row));
+    }
     return result;
   }
 
@@ -298,8 +332,9 @@ public class JpaSportingReadStore
    */
   private Map<UUID, List<UUID>> visiblePoolIds(Set<UUID> teamIds) {
     Map<UUID, List<UUID>> result = new HashMap<>();
-    for (TeamPoolRow row : participations.findVisibleMemberships(teamIds))
+    for (TeamPoolRow row : participations.findVisibleMemberships(teamIds)) {
       result.computeIfAbsent(row.teamId(), ignored -> new ArrayList<>()).add(row.poolId());
+    }
     return result;
   }
 
@@ -310,7 +345,9 @@ public class JpaSportingReadStore
     for (Scope scope : scopes) {
       if (scope.kind() == SportingProjectionChanges.Kind.CLUB
           || scope.kind() == SportingProjectionChanges.Kind.TEAM
-          || scope.kind() == SportingProjectionChanges.Kind.POOL) result.add(scope);
+          || scope.kind() == SportingProjectionChanges.Kind.POOL) {
+        result.add(scope);
+      }
     }
     Set<UUID> clubIds = scopeIds(scopes, SportingProjectionChanges.Kind.CLUB);
     Set<UUID> teams = scopeIds(scopes, SportingProjectionChanges.Kind.TEAM);
@@ -321,9 +358,15 @@ public class JpaSportingReadStore
       pools.addAll(this.pools.findProjectionDependents(divisionIds, seasons));
       teams.addAll(this.teams.findProjectionDependents(divisionIds, seasons));
     }
-    if (!clubIds.isEmpty()) teams.addAll(this.teams.findIdsByClubIds(clubIds));
-    if (!pools.isEmpty()) teams.addAll(participations.findTeamIdsByPoolIds(pools));
-    if (!teams.isEmpty()) pools.addAll(participations.findPoolIdsByTeamIds(teams));
+    if (!clubIds.isEmpty()) {
+      teams.addAll(this.teams.findIdsByClubIds(clubIds));
+    }
+    if (!pools.isEmpty()) {
+      teams.addAll(participations.findTeamIdsByPoolIds(pools));
+    }
+    if (!teams.isEmpty()) {
+      pools.addAll(participations.findPoolIdsByTeamIds(teams));
+    }
     teams.forEach(id -> result.add(new Scope(SportingProjectionChanges.Kind.TEAM, id)));
     pools.forEach(id -> result.add(new Scope(SportingProjectionChanges.Kind.POOL, id)));
     return Set.copyOf(result);
@@ -338,7 +381,11 @@ public class JpaSportingReadStore
    */
   private Set<UUID> scopeIds(Set<Scope> scopes, SportingProjectionChanges.Kind kind) {
     Set<UUID> ids = new HashSet<>();
-    for (Scope scope : scopes) if (scope.kind() == kind) ids.add(scope.id());
+    for (Scope scope : scopes) {
+      if (scope.kind() == kind) {
+        ids.add(scope.id());
+      }
+    }
     return ids;
   }
 }

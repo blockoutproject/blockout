@@ -49,8 +49,9 @@ public final class GitHubSupportClient implements SupportCases {
                       new byte[0],
                       null);
                 });
-    if (destination != null)
+    if (destination != null) {
       builder.defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + destination.githubToken());
+    }
     this.http = builder.build();
   }
 
@@ -68,8 +69,9 @@ public final class GitHubSupportClient implements SupportCases {
               .retrieve()
               .body(IssueCreated.class);
       // GitHub may create the issue while silently dropping labels when push rights are absent.
-      if (issue == null || issue.number() <= 0 || !hasLabel(issue.labels(), expectedLabel))
+      if (issue == null || issue.number() <= 0 || !hasLabel(issue.labels(), expectedLabel)) {
         throw new SupportUnavailableException(Stage.CREATE, Reason.UNCONFIRMED);
+      }
       return issue.number();
     } catch (RestClientException failure) {
       throw new SupportUnavailableException(Stage.CREATE, reason(failure), failure);
@@ -94,7 +96,9 @@ public final class GitHubSupportClient implements SupportCases {
           .retrieve()
           .toBodilessEntity();
     } catch (RestClientException failure) {
-      if (reason(failure) == Reason.UNCONFIRMED && confirmsComplete(issueNumber)) return;
+      if (reason(failure) == Reason.UNCONFIRMED && confirmsComplete(issueNumber)) {
+        return;
+      }
       throw new SupportUnavailableException(Stage.COMPLETE, reason(failure), failure);
     }
   }
@@ -139,8 +143,9 @@ public final class GitHubSupportClient implements SupportCases {
    * remains usable.
    */
   private void requireDestination() {
-    if (destination == null)
+    if (destination == null) {
       throw new SupportUnavailableException(Stage.CONFIGURATION, Reason.UNCONFIGURED);
+    }
   }
 
   /**

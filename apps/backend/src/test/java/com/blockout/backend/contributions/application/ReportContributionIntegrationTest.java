@@ -92,10 +92,13 @@ class ReportContributionIntegrationTest extends ContributionScenario {
   void usesDefinitiveThreshold(boolean definitive) throws Exception {
     // Given
     UUID version = submit(AUTHOR, "0", "https://youtu.be/viewed", false).version().id();
-    if (definitive) result(2, ResultStateEnum.FINAL);
+    if (definitive) {
+      result(2, ResultStateEnum.FINAL);
+    }
     int threshold = definitive ? 10 : 3;
-    for (int n = 0; n < threshold - 1; n++)
+    for (int n = 0; n < threshold - 1; n++) {
       report(reporter(10 + n), version, "Reason").andExpect(status().isCreated());
+    }
     assertThat(contributions.active(matchId)).isPresent();
 
     // When
@@ -113,8 +116,9 @@ class ReportContributionIntegrationTest extends ContributionScenario {
     // Given
     UUID version = submit(AUTHOR, "0", "https://youtu.be/viewed", false).version().id();
     result(2, ResultStateEnum.FINAL);
-    for (int n = 0; n < 4; n++)
+    for (int n = 0; n < 4; n++) {
       report(reporter(10 + n), version, "Reason").andExpect(status().isCreated());
+    }
 
     // When
     result(3, null);
@@ -222,8 +226,9 @@ class ReportContributionIntegrationTest extends ContributionScenario {
   void retainsHold() throws Exception {
     // Given
     UUID version = submit(AUTHOR, "0", "https://youtu.be/viewed", false).version().id();
-    for (UUID actor : List.of(FOLLOWER, OTHER, reporter(4)))
+    for (UUID actor : List.of(FOLLOWER, OTHER, reporter(4))) {
       report(actor, version, "Reason").andExpect(status().isCreated());
+    }
 
     // When
     SubmitContribution.Outcome same = submit(AUTHOR, "4", "https://youtu.be/viewed", false);
@@ -287,9 +292,9 @@ class ReportContributionIntegrationTest extends ContributionScenario {
                                 inner -> {
                                   waitingPid.complete(
                                       sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
-                                  if (reportFirst)
+                                  if (reportFirst) {
                                     submit(AUTHOR, "2", "https://youtu.be/replacement", false);
-                                  else {
+                                  } else {
                                     org.assertj.core.api.Assertions.assertThatThrownBy(
                                             () -> reporting.report(FOLLOWER, version, "Viewed"))
                                         .isInstanceOf(ContributionConflictException.class);
@@ -297,8 +302,11 @@ class ReportContributionIntegrationTest extends ContributionScenario {
                                   }
                                 }));
                 PostgresTestDatabase.awaitBlocked(sql, waitingPid);
-                if (reportFirst) reporting.report(FOLLOWER, version, "Viewed");
-                else submit(AUTHOR, "1", "https://youtu.be/replacement", false);
+                if (reportFirst) {
+                  reporting.report(FOLLOWER, version, "Viewed");
+                } else {
+                  submit(AUTHOR, "1", "https://youtu.be/replacement", false);
+                }
                 return work;
               });
 

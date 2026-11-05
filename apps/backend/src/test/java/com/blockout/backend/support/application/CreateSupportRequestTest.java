@@ -131,18 +131,28 @@ class CreateSupportRequestTest {
         new SupportUnavailableException(
             SupportUnavailableException.Stage.COMPLETE,
             SupportUnavailableException.Reason.UNCONFIRMED);
-    if (failedStage.equals("create")) when(cases.create(any())).thenThrow(failure);
-    else when(cases.create(any())).thenReturn(17L);
-    if (failedStage.equals("attach")) doThrow(failure).when(attachments).attach(anyLong(), any());
-    if (failedStage.equals("complete")) doThrow(failure).when(cases).complete(17L);
+    if (failedStage.equals("create")) {
+      when(cases.create(any())).thenThrow(failure);
+    } else {
+      when(cases.create(any())).thenReturn(17L);
+    }
+    if (failedStage.equals("attach")) {
+      doThrow(failure).when(attachments).attach(anyLong(), any());
+    }
+    if (failedStage.equals("complete")) {
+      doThrow(failure).when(cases).complete(17L);
+    }
 
     // When / Then
     assertThatThrownBy(() -> useCase().create(metadata(), List.of(image()))).isSameAs(failure);
     verify(cases).create(any());
     verifyNoInteractions(signal);
-    if (failedStage.equals("create")) verifyNoInteractions(attachments);
-    if (!failedStage.equals("complete"))
+    if (failedStage.equals("create")) {
+      verifyNoInteractions(attachments);
+    }
+    if (!failedStage.equals("complete")) {
       verify(cases, org.mockito.Mockito.never()).complete(anyLong());
+    }
     assertThat(temporaryDirectory).isEmptyDirectory();
   }
 

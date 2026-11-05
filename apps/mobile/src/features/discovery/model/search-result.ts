@@ -17,13 +17,14 @@ export interface SearchResult {
 
 /** Maps current generated summaries to available presentation slots without storing a second result collection. */
 export function searchResults(page: DiscoveryPage): SearchResult[] {
-  if ("clubs" in page)
+  if ("clubs" in page) {
     return page.clubs.map(({ club, city }) => ({
       kind: "club",
       identity: club,
       city,
     }));
-  if ("teams" in page)
+  }
+  if ("teams" in page) {
     return page.teams.map(({ team, club, season, classification }) => ({
       kind: "team",
       identity: team,
@@ -31,6 +32,7 @@ export function searchResults(page: DiscoveryPage): SearchResult[] {
       season,
       classification,
     }));
+  }
   return page.pools.map(
     ({ pool, season, classification, competitionName, phaseName }) => ({
       kind: "pool",

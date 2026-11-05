@@ -55,8 +55,11 @@ class ProjectSearchTransactionIntegrationTest {
         () ->
             transaction.executeWithoutResult(
                 status -> {
-                  if (fullRebuild) projection.rebuild();
-                  else projection.update(scopes);
+                  if (fullRebuild) {
+                    projection.rebuild();
+                  } else {
+                    projection.update(scopes);
+                  }
                 });
 
     // Then

@@ -132,13 +132,16 @@ public class SportingPresentationController implements SportingPresentationApi {
   /**
    * Keeps administrative values uncached and advertises the actual patch format when applicable.
    *
+   * @param <T> generated representation type
    * @param body generated current representation
    * @param patchType supported patch media type, or null for a PUT-only resource
    * @return successful canonical response
    */
   private <T> ResponseEntity<T> response(T body, String patchType) {
     ResponseEntity.BodyBuilder response = ResponseEntity.ok().cacheControl(CacheControl.noStore());
-    if (patchType != null) response.header("Accept-Patch", patchType);
+    if (patchType != null) {
+      response.header("Accept-Patch", patchType);
+    }
     return response.body(body);
   }
 }

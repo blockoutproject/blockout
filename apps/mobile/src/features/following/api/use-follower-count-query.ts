@@ -36,13 +36,16 @@ export function useFollowerCountQuery(target: FollowingTarget) {
     retryOnMount: true,
     queryFn: async (context) => {
       const { signal, client, queryKey } = context;
-      if (!admission.admitted || (admission.bypass && !owner))
+      if (!admission.admitted || (admission.bypass && !owner)) {
         throw new ApiError("cancelled");
+      }
       try {
         let headers: Record<string, string> | undefined;
         if (admission.bypass) {
           const credentials = await getCredentials();
-          if (!credentials?.accessToken) throw new ApiError("http", 401);
+          if (!credentials?.accessToken) {
+            throw new ApiError("http", 401);
+          }
           headers = { Authorization: `Bearer ${credentials.accessToken}` };
         }
         const options = admission.request({

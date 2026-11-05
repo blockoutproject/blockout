@@ -29,7 +29,9 @@ public class ReadFollowOptions {
    */
   @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
   public Options read(UUID accountId) {
-    if (!accounts.exists(accountId)) throw new AccountNotFoundException();
+    if (!accounts.exists(accountId)) {
+      throw new AccountNotFoundException();
+    }
     List<FollowReadStore.SeasonChoice> choices = store.seasons(accountId);
     UUID proposed =
         choices.stream()

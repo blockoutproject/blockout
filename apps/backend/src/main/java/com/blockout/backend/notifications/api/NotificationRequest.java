@@ -27,7 +27,9 @@ public class NotificationRequest {
    */
   public NotificationContext owner(UUID original) {
     UUID current = account.id();
-    if (!current.equals(original)) throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+    if (!current.equals(original)) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+    }
     return new NotificationContext(current);
   }
 
@@ -39,7 +41,8 @@ public class NotificationRequest {
    * @throws ResponseStatusException with status 400 for unsupported false intent
    */
   public void requireRead(MarkNotificationReadRequest body) {
-    if (!Boolean.TRUE.equals(body.getRead()))
+    if (!Boolean.TRUE.equals(body.getRead())) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+    }
   }
 }

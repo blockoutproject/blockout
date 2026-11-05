@@ -37,6 +37,7 @@ export function isOwnContributionAccessDenied(
     (error instanceof ApiError && error.kind === "http" && error.status === 404)
   );
 }
+
 /**
  * Applies a current resource refusal to native Query state; later technical failures cannot recover
  * revoked private data. A failing reader finishes its own transition and must not cancel itself.
@@ -47,8 +48,12 @@ async function refuseOwnAccess(
   error: unknown,
   reading = false,
 ) {
-  if (!isOwnContributionAccessDenied(error)) return;
-  if (!reading) await client.cancelQueries({ queryKey, exact: true });
+  if (!isOwnContributionAccessDenied(error)) {
+    return;
+  }
+  if (!reading) {
+    await client.cancelQueries({ queryKey, exact: true });
+  }
   client.getQueryCache().find({ queryKey, exact: true })?.setState({
     data: undefined,
     dataUpdatedAt: 0,
@@ -58,6 +63,7 @@ async function refuseOwnAccess(
     fetchStatus: "idle",
   });
 }
+
 /** Shares original-account reads and revokes private data on public-match refusal, including while the entry is disabled. */
 export function useOwnContributionsRead(matchId: string, enabled = true) {
   const session = useAccountSession();
@@ -73,6 +79,7 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
   const matchHash = hashKey(useConsultationQueries().match(matchId).queryKey);
   useLayoutEffect(() => {
     const cache = client.getQueryCache();
+
     /** Revokes this original owner's cache before a later public mount can replace the refusal with loading. */
     function refuseMatch(error: unknown) {
       const personal = cache.get(ownHash);
@@ -80,16 +87,19 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
         personal &&
         (personal.state.data !== undefined ||
           personal.state.fetchStatus === "fetching")
-      )
+      ) {
         void refuseOwnAccess(client, personal.queryKey, error);
+      }
     }
+
     const unsubscribe = cache.subscribe((event) => {
       if (
         event.type === "updated" &&
         event.action.type === "error" &&
         event.query.queryHash === matchHash
-      )
+      ) {
         refuseMatch(event.query.state.error);
+      }
     });
     refuseMatch(cache.get(matchHash)?.state.error);
     return unsubscribe;
@@ -100,15 +110,19 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
     profile.data?.accountId === actor.accountId &&
     !isOwnContributionAccessDenied(profile.error);
   const usable = canRetain && profile.isSuccess;
+
   /** Applies the captured F12 intent only after fresh native credentials and original-owner checks. */
   async function request(signal?: AbortSignal) {
     const credentials = await session.getCredentials();
-    if (!credentials) throw new ApiError("http", 401);
+    if (!credentials) {
+      throw new ApiError("http", 401);
+    }
     return admission.request({
       signal,
       headers: { Authorization: `Bearer ${credentials.accessToken}` },
     });
   }
+
   const options = infiniteQueryOptions({
     queryKey,
     gcTime: 0,
@@ -124,19 +138,22 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
           await request(signal),
         );
       } catch (error) {
-        if (!signal.aborted)
+        if (!signal.aborted) {
           await refuseOwnAccess(client, queryKey, error, true);
+        }
         throw error;
       }
     },
     getNextPageParam: (page) => page.nextPage,
   });
   const query = useInfiniteQuery({ ...options, enabled: usable && enabled });
+
   /** Native Query replaces the traversal only after a successful first-page read, retaining all authorized pages on failure. */
   async function readFirstPage() {
     await client.cancelQueries({ queryKey, exact: true });
     return client.fetchInfiniteQuery({ ...options, staleTime: 0, pages: 1 });
   }
+
   return {
     query,
     queryKey,
@@ -150,11 +167,13 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
     refuseAccess: (error: unknown) => refuseOwnAccess(client, queryKey, error),
   };
 }
+
 /** Selected member and viewed revision remain together through native confirmation and dispatch. */
 export interface OwnContributionChange {
   versionId: string;
   body: UpdateOwnStreamContributionRequest;
 }
+
 /** Current original-account reads and guarded commands; Query owns all request and recovery state. */
 export function useOwnContributions(matchId: string) {
   const {
@@ -171,11 +190,13 @@ export function useOwnContributions(matchId: string) {
   } = useOwnContributionsRead(matchId);
   const client = useQueryClient();
   const matchKey = useConsultationQueries().match(matchId).queryKey;
+
   /** Invalidates the owner context and public match after settlement. */
   function accept() {
     void client.invalidateQueries({ queryKey, exact: true });
     void client.invalidateQueries({ queryKey: matchKey, exact: true });
   }
+
   const submit = useMutation({
     retry: false,
     networkMode: "always",

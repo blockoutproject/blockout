@@ -21,6 +21,7 @@ export interface CollectionControlProps {
   seasonFetching?: boolean;
   stateUnavailable?: boolean;
 }
+
 /** Presents desired activity, execution observations and ordinary mutation feedback. */
 export function CollectionControl({
   control,
@@ -48,6 +49,7 @@ export function CollectionControl({
       mounted.current = false;
     };
   }, []);
+
   /** Sends the confirmed desired state and revision; native mutation callbacks own invalidation. */
   async function send(command: "activity" | "request") {
     if (
@@ -57,8 +59,9 @@ export function CollectionControl({
       stateUnavailable ||
       editing.query.isError ||
       (command === "request" && !control.enabled)
-    )
+    ) {
       return;
+    }
     try {
       const attempt =
         command === "activity"
@@ -73,9 +76,12 @@ export function CollectionControl({
       actionFeedback.error();
     }
   }
+
   /** Native confirmation belongs to the mounted control; the backend rechecks current permission and revision. */
   async function confirm(command: "activity" | "request") {
-    if (busy || closed || stateUnavailable || editing.query.isError) return;
+    if (busy || closed || stateUnavailable || editing.query.isError) {
+      return;
+    }
     const label =
       command === "request"
         ? "Relancer"
@@ -94,10 +100,12 @@ export function CollectionControl({
         message: detail,
         confirmLabel: label,
       }))
-    )
+    ) {
       return;
+    }
     await send(command);
   }
+
   return (
     <Surface>
       <View style={styles.heading}>
@@ -204,6 +212,7 @@ export function CollectionControl({
     </Surface>
   );
 }
+
 const styles = StyleSheet.create({
   heading: {
     flexDirection: "row",

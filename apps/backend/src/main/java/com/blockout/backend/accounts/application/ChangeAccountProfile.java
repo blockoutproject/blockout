@@ -43,8 +43,9 @@ public class ChangeAccountProfile {
       ProfilePhoto photo) {
     String normalized = TextTrimming.trim(username);
     if ((normalized == null && photoAction == null)
-        || (normalized != null && !normalized.matches(AccountUsername.FORMAT)))
+        || (normalized != null && !normalized.matches(AccountUsername.FORMAT))) {
       throw new InvalidProfileChangeException();
+    }
     ProfilePhoto.requireConsistentIntent(photoAction, photo != null);
     accounts
         .lockById(id)

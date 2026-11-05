@@ -230,8 +230,10 @@ function responses(
   };
   const serve = async (url: RequestInfo | URL) => {
     const path = new URL(String(url)).pathname;
-    if (path.endsWith("/application-access")) return Response.json(access);
-    if (path.endsWith("/accounts/me"))
+    if (path.endsWith("/application-access")) {
+      return Response.json(access);
+    }
+    if (path.endsWith("/accounts/me")) {
       return Response.json({
         accountId: "00000000-0000-4000-8000-000000000181",
         username: "Operator_179",
@@ -240,19 +242,28 @@ function responses(
         hasPhoto: false,
         permissions,
       });
-    if (path.endsWith("/source-bindings")) return Response.json({ items: [] });
-    if (path.endsWith(`/source-bindings/${sourceId}`))
+    }
+    if (path.endsWith("/source-bindings")) {
+      return Response.json({ items: [] });
+    }
+    if (path.endsWith(`/source-bindings/${sourceId}`)) {
       return Response.json(source);
-    if (path.endsWith(`/collection-seasons/${seasonId}`))
+    }
+    if (path.endsWith(`/collection-seasons/${seasonId}`)) {
       return Response.json(season);
-    if (path.endsWith("/collection-seasons"))
+    }
+    if (path.endsWith("/collection-seasons")) {
       return Response.json({ items: [season] });
-    if (path.endsWith("/collection-controls"))
+    }
+    if (path.endsWith("/collection-controls")) {
       return Response.json({ items: [control({ family: "lnv", seasonId })] });
-    if (path.endsWith(`/collection-controls/${control().id}`))
+    }
+    if (path.endsWith(`/collection-controls/${control().id}`)) {
       return Response.json(control({ family: "lnv", seasonId }));
-    if (path.endsWith("/results"))
+    }
+    if (path.endsWith("/results")) {
       return Response.json({ items: [], page: 0, hasNext: false });
+    }
     throw new Error(`Unexpected controlled request ${path}`);
   };
   return serve;
@@ -277,8 +288,9 @@ it.each(["candidate", "addition"])(
         name: kind === "candidate" ? "Modifier le lien" : "Ajouter une source",
       }),
     );
-    if (kind === "candidate")
+    if (kind === "candidate") {
       await user.clear(screen.getByLabelText("URL officielle"));
+    }
     await user.type(
       screen.getByLabelText("URL officielle"),
       `${candidateUrl}&PID=192`,
@@ -446,7 +458,7 @@ it("uses the current ready launch selection after its prior route was removed", 
           )
         : Response.json({ ...season, revision: 7 });
     }
-    if (path.endsWith("/source-bindings"))
+    if (path.endsWith("/source-bindings")) {
       return Response.json({
         items: expanded
           ? [
@@ -459,8 +471,10 @@ it("uses the current ready launch selection after its prior route was removed", 
             ]
           : [source],
       });
-    if (expanded && path.endsWith(`/collection-seasons/${seasonId}`))
+    }
+    if (expanded && path.endsWith(`/collection-seasons/${seasonId}`)) {
       return Response.json({ ...season, revision: 6 });
+    }
     return serve(url);
   };
   mockFetch.mockImplementation((url, options) =>
@@ -598,7 +612,9 @@ it("discards a closure draft on protected-route removal and confirms discard onl
   const discard = jest
     .mocked(Alert.alert)
     .mock.lastCall?.[2]?.find((choice) => choice.text === "Abandonner");
-  if (!discard?.onPress) throw new Error("Missing native discard confirmation");
+  if (!discard?.onPress) {
+    throw new Error("Missing native discard confirmation");
+  }
   await act(async () => discard.onPress?.());
   // Then
   expect(
@@ -641,7 +657,9 @@ it("requires fresh confirmation after discarding a pending closure form without 
   const discard = jest
     .mocked(Alert.alert)
     .mock.lastCall?.[2]?.find((choice) => choice.text === "Abandonner");
-  if (!discard?.onPress) throw new Error("Missing native discard confirmation");
+  if (!discard?.onPress) {
+    throw new Error("Missing native discard confirmation");
+  }
   await act(async () => discard.onPress?.());
   await user.press(
     await screen.findByRole("button", { name: "Clôturer la saison" }),
@@ -793,10 +811,12 @@ it.each(["preparing", "active"] as const)(
     const serve = responses({ manageCollection: true });
     mockFetch.mockImplementation((url) => {
       const path = new URL(String(url)).pathname;
-      if (path.endsWith("/collection-controls"))
+      if (path.endsWith("/collection-controls")) {
         return Promise.resolve(Response.json({ items: [] }));
-      if (path.endsWith(`/collection-seasons/${seasonId}`))
+      }
+      if (path.endsWith(`/collection-seasons/${seasonId}`)) {
         return Promise.resolve(Response.json({ ...season, state }));
+      }
       return serve(url);
     });
     const user = userEvent.setup();
@@ -833,16 +853,19 @@ it("shows the newly created control after the first source launch without leavin
       launched = true;
       return Promise.resolve(Response.json({ ...season, revision: 6 }));
     }
-    if (path.endsWith("/collection-controls"))
+    if (path.endsWith("/collection-controls")) {
       return Promise.resolve(
         Response.json({ items: launched ? [firstControl] : [] }),
       );
-    if (path.endsWith(`/collection-controls/${firstControl.id}`))
+    }
+    if (path.endsWith(`/collection-controls/${firstControl.id}`)) {
       return Promise.resolve(Response.json(firstControl));
-    if (path.endsWith("/source-bindings"))
+    }
+    if (path.endsWith("/source-bindings")) {
       return Promise.resolve(
         Response.json({ items: [{ ...source, launched, locked: launched }] }),
       );
+    }
     return serve(url);
   });
   const user = userEvent.setup();

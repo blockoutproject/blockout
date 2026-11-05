@@ -37,10 +37,14 @@ public class ProcessResultAnnouncement {
   @Transactional(propagation = Propagation.MANDATORY)
   public List<Created> process(Transition transition) {
     MatchAnnouncementFacts previous = store.facts(transition.match().id());
-    if (previous.resultProcessed()) return List.of();
+    if (previous.resultProcessed()) {
+      return List.of();
+    }
     boolean previousFinal = isFinal(transition.previous());
     boolean currentFinal = isFinal(transition.current());
-    if (!previousFinal && !currentFinal) return List.of();
+    if (!previousFinal && !currentFinal) {
+      return List.of();
+    }
     boolean eligible =
         !previousFinal
             && currentFinal
@@ -52,7 +56,9 @@ public class ProcessResultAnnouncement {
             ? NotificationFamily.ENRICHED_RESULT
             : NotificationFamily.PLAIN_RESULT;
     store.saveFacts(previous.consumeResult(eligible ? family : null));
-    if (!eligible) return List.of();
+    if (!eligible) {
+      return List.of();
+    }
     return allocations.create(
         transition.match().id(),
         family,

@@ -219,7 +219,7 @@ function EntityArtwork({
   backgroundColor?: string;
 }) {
   const logo = useSportingLogo(identity, kind);
-  if (backgroundColor)
+  if (backgroundColor) {
     return logo.uri ? (
       <SportingCover
         key={`${identity.id}:${identity.logoUrl ?? ""}`}
@@ -227,6 +227,7 @@ function EntityArtwork({
         primary={backgroundColor}
       />
     ) : null;
+  }
   return (
     <SportingMedia
       key={`${identity.id}:${identity.logoUrl ?? ""}`}

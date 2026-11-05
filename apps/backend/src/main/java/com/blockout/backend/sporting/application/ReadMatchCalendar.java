@@ -40,8 +40,9 @@ public class ReadMatchCalendar {
     owners
         .publicPresentation(request.kind(), request.id())
         .orElseThrow(SportingResourceNotFoundException::new);
-    if (request.seasonId() != null && owners.season(request.seasonId()).isEmpty())
+    if (request.seasonId() != null && owners.season(request.seasonId()).isEmpty()) {
       throw new SportingResourceNotFoundException();
+    }
     return read(request.window(), store.calendarSelection(request));
   }
 

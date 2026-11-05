@@ -123,7 +123,9 @@ class ContributionSubmissionWebMvcTest {
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.contribution.id").value(VERSION.toString()))
         .andExpect(jsonPath("$.revision").value("1"));
-    if (created) response.andExpect(header().string("Location", PATH + "/" + VERSION));
+    if (created) {
+      response.andExpect(header().string("Location", PATH + "/" + VERSION));
+    }
   }
 
   @ParameterizedTest

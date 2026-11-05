@@ -46,7 +46,9 @@ public class DeliverPush {
   @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
   @Order(Ordered.HIGHEST_PRECEDENCE)
   public void onReady(AfterCommitAnnouncements.Ready ready) {
-    if (!enabled) return;
+    if (!enabled) {
+      return;
+    }
     try {
       ready.entries().stream()
           .flatMap(
@@ -71,19 +73,27 @@ public class DeliverPush {
       // One worker and at least 200 ms between batches cap this project's rate below 600/s.
       Thread.sleep(Duration.ofMillis(200));
       List<Message> messages = new ArrayList<>();
-      for (Attempt attempt : attempts)
+      for (Attempt attempt : attempts) {
         eligibility.current(attempt.created(), attempt.target()).ifPresent(messages::add);
-      if (messages.isEmpty() || !admission.allowsHandoff()) return;
+      }
+      if (messages.isEmpty() || !admission.allowsHandoff()) {
+        return;
+      }
       List<Outcome> outcomes = provider.send(messages);
       Map<String, Target> tickets = new LinkedHashMap<>();
       for (int i = 0; i < messages.size(); i++) {
         Outcome outcome = outcomes.get(i);
         Target target = messages.get(i).target();
-        if (outcome.status() == Status.DEVICE_NOT_REGISTERED) invalidate(target);
-        if (outcome.status() == Status.ACCEPTED && outcome.ticketId() != null)
+        if (outcome.status() == Status.DEVICE_NOT_REGISTERED) {
+          invalidate(target);
+        }
+        if (outcome.status() == Status.ACCEPTED && outcome.ticketId() != null) {
           tickets.put(outcome.ticketId(), target);
+        }
       }
-      if (!tickets.isEmpty()) scheduleReceipts(Map.copyOf(tickets));
+      if (!tickets.isEmpty()) {
+        scheduleReceipts(Map.copyOf(tickets));
+      }
     } catch (InterruptedException interrupted) {
       Thread.currentThread().interrupt();
       lost("interrupted", attempts.size());
@@ -122,8 +132,9 @@ public class DeliverPush {
               Map<String, Outcome> outcomes = provider.receipts(List.copyOf(tickets.keySet()));
               for (Map.Entry<String, Target> ticket : tickets.entrySet()) {
                 Outcome outcome = outcomes.get(ticket.getKey());
-                if (outcome != null && outcome.status() == Status.DEVICE_NOT_REGISTERED)
+                if (outcome != null && outcome.status() == Status.DEVICE_NOT_REGISTERED) {
                   invalidate(ticket.getValue());
+                }
               }
             } catch (RuntimeException failure) {
               lost("receipt_unavailable", tickets.size());

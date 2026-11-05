@@ -35,6 +35,7 @@ import { withdrawRefusedFollowingQuery } from "./follow-queries";
 
 /** Canonical F03 summaries remain inside their generated F06 collection envelopes. */
 export type FollowListPage = ListTeamFollows200 | ListPoolFollows200;
+
 /** Retains each private type/season traversal, with pageParam owning its bounded continuation. */
 export function createFollowListOptions(
   owner: FollowingOwner,
@@ -54,8 +55,9 @@ export function createFollowListOptions(
         const result = await (
           type === "team" ? listTeamFollows : listPoolFollows
         )(owner.accountId, { ...selection, page: pageParam }, options);
-        if (signal.aborted || options.signal?.aborted)
+        if (signal.aborted || options.signal?.aborted) {
           throw new ApiError("cancelled");
+        }
         return result;
       } catch (error) {
         if (
@@ -86,6 +88,7 @@ export function createFollowListOptions(
     networkMode: "always",
   });
 }
+
 /** One validated options cache for the original session; refusals withdraw only forbidden options, never infer no seasons. */
 export function createFollowOptionsQueryOptions(
   owner: FollowingOwner,
@@ -100,13 +103,17 @@ export function createFollowOptionsQueryOptions(
       try {
         const options = await request(signal);
         const result = await getFollowOptions(owner.accountId, options);
-        if (signal.aborted || options.signal?.aborted)
+        if (signal.aborted || options.signal?.aborted) {
           throw new ApiError("cancelled");
+        }
         for (const seasonId of retainedSeasonIds(client, owner, bypass)) {
-          if (result.seasons.some((season) => season.id === seasonId)) continue;
+          if (result.seasons.some((season) => season.id === seasonId)) {
+            continue;
+          }
           await withdrawUnavailableFollows(client, owner, bypass, seasonId);
-          if (signal.aborted || options.signal?.aborted)
+          if (signal.aborted || options.signal?.aborted) {
             throw new ApiError("cancelled");
+          }
         }
         return result;
       } catch (error) {
@@ -114,13 +121,15 @@ export function createFollowOptionsQueryOptions(
           !signal.aborted &&
           error instanceof ApiError &&
           (isAccessDenied(error) || error.status === 404)
-        )
+        ) {
           await withdrawRefusedFollowingQuery(client, queryKey, error);
+        }
         throw error;
       }
     },
   });
 }
+
 /**
  * Retains validated personal envelopes in the root Query cache. A continuation is an exclusive
  * sporting day; visible observers alone load reset queries, without replaying failed reads.
@@ -143,9 +152,10 @@ export function createPersonalCalendarOptions(
           { ...selection, ...(pageParam ? { nextDay: pageParam } : {}) },
           options,
         );
-        if (signal.aborted || options.signal?.aborted)
+        if (signal.aborted || options.signal?.aborted) {
           throw new ApiError("cancelled");
-        if (!result.hasAvailableFollows)
+        }
+        if (!result.hasAvailableFollows) {
           await withdrawUnavailableFollows(
             client,
             owner,
@@ -153,6 +163,7 @@ export function createPersonalCalendarOptions(
             selection.seasonId,
             queryKey,
           );
+        }
         return result;
       } catch (error) {
         // Account refusals withdraw this private collection; seasonal NotFound stays scoped to its season.
@@ -185,6 +196,7 @@ export function createPersonalCalendarOptions(
     networkMode: "always",
   });
 }
+
 /** Withdraws refused personal data across both lists and calendars in the same admission context. */
 async function withdrawRefusedPersonalCollections(
   client: QueryClient,
@@ -207,15 +219,17 @@ async function withdrawRefusedPersonalCollections(
       queryKey,
       predicate: (query) => query.queryHash !== hashKey(currentKey),
     });
-    for (const query of client.getQueryCache().findAll({ queryKey }))
+    for (const query of client.getQueryCache().findAll({ queryKey })) {
       query.setState({
         data: undefined,
         dataUpdatedAt: 0,
         error,
         status: "error",
       });
+    }
   }
 }
+
 /**
  * Applies successful category-independent absence to overlapping retained selections. A seasonal
  * absence removes only that season from All seasons; an All-seasons absence withdraws every
@@ -236,10 +250,12 @@ async function withdrawUnavailableFollows(
     currentKey,
   );
   const queryKey = personalCalendarCollectionKey(owner, bypass);
+
   /** Uses the canonical generated trailing selection to identify overlapping seasonal views. */
   function selectedSeason(key: QueryKey) {
     return (key.at(-1) as Omit<ListPersonalMatchesParams, "nextDay">).seasonId;
   }
+
   const filters = {
     queryKey,
     predicate: (query) =>
@@ -257,7 +273,9 @@ async function withdrawUnavailableFollows(
     const data = client.getQueryData<
       InfiniteData<PersonalMatchCalendarResponse>
     >(query.queryKey);
-    if (!data) continue;
+    if (!data) {
+      continue;
+    }
     const unavailable =
       seasonId === undefined || selectedSeason(query.queryKey) === seasonId;
     query.setState({
@@ -284,6 +302,7 @@ async function withdrawUnavailableFollows(
     });
   }
 }
+
 /** Derives known seasons from the current cache, including All-seasons rows when options were evicted. */
 function retainedSeasonIds(
   client: QueryClient,
@@ -301,9 +320,14 @@ function retainedSeasonIds(
       queryKey: followListKey(owner, type, {}, bypass),
     })) {
       const selection = key.at(-1) as { seasonId?: string };
-      if (selection.seasonId) seasons.add(selection.seasonId);
-      for (const page of data?.pages ?? [])
-        for (const item of page.items) seasons.add(item.season.id);
+      if (selection.seasonId) {
+        seasons.add(selection.seasonId);
+      }
+      for (const page of data?.pages ?? []) {
+        for (const item of page.items) {
+          seasons.add(item.season.id);
+        }
+      }
     }
   }
   for (const [key, data] of client.getQueriesData<
@@ -312,11 +336,18 @@ function retainedSeasonIds(
     queryKey: personalCalendarCollectionKey(owner, bypass),
   })) {
     const selection = key.at(-1) as { seasonId?: string };
-    if (selection.seasonId) seasons.add(selection.seasonId);
-    for (const page of data?.pages ?? [])
-      for (const day of page.calendar.days)
-        for (const pool of day.pools)
-          for (const match of pool.matches) seasons.add(match.pool.season.id);
+    if (selection.seasonId) {
+      seasons.add(selection.seasonId);
+    }
+    for (const page of data?.pages ?? []) {
+      for (const day of page.calendar.days) {
+        for (const pool of day.pools) {
+          for (const match of pool.matches) {
+            seasons.add(match.pool.season.id);
+          }
+        }
+      }
+    }
   }
   return seasons;
 }

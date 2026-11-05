@@ -130,13 +130,15 @@ beforeEach(() => {
     .mockResolvedValue(credentialsFor("auth0|synthetic"));
   mockAuth0.saveCredentials.mockReset().mockResolvedValue();
   mockFetch.mockReset().mockImplementation(async (url, init) => {
-    if (String(url).endsWith("/me")) return Response.json(account);
+    if (String(url).endsWith("/me")) {
+      return Response.json(account);
+    }
     if (String(url).includes("/stream-contributions")) {
       if (init?.method === "POST") {
         posts.push(init);
         return Response.json(accepted, { status: 201 });
       }
-      if (failRefresh)
+      if (failRefresh) {
         return Response.json(
           {
             type: "urn:blockout:problem:unavailable",
@@ -145,6 +147,7 @@ beforeEach(() => {
           },
           { status: 503 },
         );
+      }
       return Response.json(context);
     }
     return Response.json(match);
@@ -186,6 +189,7 @@ async function mount(
     </QueryClientProvider>,
   );
 }
+
 /** Exercises the actual session invalidation while a generated write is pending. */
 function SessionExit() {
   const session = useAccountSession();
@@ -340,7 +344,9 @@ it("keeps confirmed success when dependent refresh fails and disables its pendin
     accepted.contribution.url,
   );
   mockFetch.mockImplementationOnce(async (_url, init) => {
-    if (init) posts.push(init);
+    if (init) {
+      posts.push(init);
+    }
     return pending.promise;
   });
 
@@ -424,7 +430,9 @@ it("suspends submission when the current profile is unavailable and permits a re
         { status: 503 },
       );
     }
-    if (!reads) throw new Error("Missing test HTTP boundary");
+    if (!reads) {
+      throw new Error("Missing test HTTP boundary");
+    }
     return reads(url, init);
   });
   await mount();
@@ -515,7 +523,9 @@ it("keeps a draft after conflict and requires a fresh explicit submission", asyn
   );
   context = ownContributions({ revision: "current" });
   mockFetch.mockImplementationOnce(async (_url, init) => {
-    if (init) posts.push(init);
+    if (init) {
+      posts.push(init);
+    }
     return Response.json(
       {
         type: "urn:blockout:problem:stale-revision",
@@ -597,7 +607,9 @@ it("retains the address after a new time restriction without adding availability
     },
   });
   mockFetch.mockImplementationOnce(async (_url, init) => {
-    if (init) posts.push(init);
+    if (init) {
+      posts.push(init);
+    }
     return Response.json(
       {
         type: "urn:blockout:problem:unprocessable-content",
@@ -663,10 +675,15 @@ it("refreshes the actual F03 match key after a publication under explicit mainte
   const reads = mockFetch.getMockImplementation();
   let matchReads = 0;
   mockFetch.mockImplementation(async (url, init) => {
-    if (String(url).endsWith("/me")) return Response.json(moderator);
-    if (new URL(String(url)).pathname === `/matches/${match.match.id}`)
+    if (String(url).endsWith("/me")) {
+      return Response.json(moderator);
+    }
+    if (new URL(String(url)).pathname === `/matches/${match.match.id}`) {
       matchReads++;
-    if (!reads) throw new Error("Missing test HTTP boundary");
+    }
+    if (!reads) {
+      throw new Error("Missing test HTTP boundary");
+    }
     return reads(url, init);
   });
   const user = userEvent.setup();
@@ -966,7 +983,9 @@ it("withdraws only the confirmed published version despite an edited draft and u
         },
       });
     }
-    if (!boundary) throw new Error("Missing test HTTP boundary");
+    if (!boundary) {
+      throw new Error("Missing test HTTP boundary");
+    }
     return boundary(url, init);
   });
   const user = userEvent.setup();
@@ -1027,15 +1046,19 @@ it.each(["cancel", "session", "unmount"])(
     )?.onPress;
 
     // When
-    if (departure === "cancel")
+    if (departure === "cancel") {
       await act(async () =>
         buttons?.find((button) => button.style === "cancel")?.onPress?.(),
       );
-    if (departure === "session")
+    }
+    if (departure === "session") {
       await user.press(
         screen.getByRole("button", { name: "Quitter la session" }),
       );
-    if (departure === "unmount") await cleanup();
+    }
+    if (departure === "unmount") {
+      await cleanup();
+    }
     await act(async () => confirm?.());
 
     // Then

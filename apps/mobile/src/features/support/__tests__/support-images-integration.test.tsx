@@ -106,11 +106,15 @@ beforeEach(() => {
       ),
     );
   mockFetch.mockReset().mockImplementation((url, options) => {
-    if (String(url).endsWith("/application-access"))
+    if (String(url).endsWith("/application-access")) {
       return Promise.resolve(Response.json(applicationAccessResponse()));
-    if (String(url).endsWith("/accounts/me"))
+    }
+    if (String(url).endsWith("/accounts/me")) {
       return Promise.resolve(Response.json(accountResponse()));
-    if (String(url).endsWith("/support-requests")) return supportHttp(options);
+    }
+    if (String(url).endsWith("/support-requests")) {
+      return supportHttp(options);
+    }
     throw new Error("Unexpected controlled destination");
   });
 });

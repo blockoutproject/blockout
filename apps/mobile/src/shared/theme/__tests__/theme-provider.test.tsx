@@ -106,8 +106,9 @@ it("updates navigation surfaces and preserves a mounted draft when native appear
   // When
   jest.mocked(Appearance.getColorScheme).mockReturnValue("dark");
   await act(() => {
-    for (const [listener] of subscribe.mock.calls)
+    for (const [listener] of subscribe.mock.calls) {
       listener({ colorScheme: "dark" });
+    }
   });
 
   // Then
@@ -139,8 +140,9 @@ it("updates the Pro palette while preserving a mounted draft on native appearanc
   // When
   jest.mocked(Appearance.getColorScheme).mockReturnValue("dark");
   await act(() => {
-    for (const [listener] of subscribe.mock.calls)
+    for (const [listener] of subscribe.mock.calls) {
       listener({ colorScheme: "dark" });
+    }
   });
 
   // Then

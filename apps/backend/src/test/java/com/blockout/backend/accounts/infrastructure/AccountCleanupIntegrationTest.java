@@ -67,8 +67,12 @@ class AccountCleanupIntegrationTest {
             return;
           }
           try {
-            if (delay) release.get(3, TimeUnit.SECONDS);
-            if (redirect != null) exchange.getResponseHeaders().set("Location", redirect);
+            if (delay) {
+              release.get(3, TimeUnit.SECONDS);
+            }
+            if (redirect != null) {
+              exchange.getResponseHeaders().set("Location", redirect);
+            }
             byte[] body =
                 exchange.getRequestMethod().equals("GET")
                     ? ("{\"user_id\":\"auth0|original\",\"identities\":" + identities + "}")
@@ -109,13 +113,19 @@ class AccountCleanupIntegrationTest {
   @AfterEach
   void stop() throws Exception {
     release.complete(null);
-    if (server != null) server.stop(0);
-    if (workers != null) workers.shutdownNow();
+    if (server != null) {
+      server.stop(0);
+    }
+    if (workers != null) {
+      workers.shutdownNow();
+    }
     if (http != null) {
       http.connectionPool().evictAll();
       http.dispatcher().executorService().shutdown();
     }
-    if (revenueHttp != null) revenueHttp.close();
+    if (revenueHttp != null) {
+      revenueHttp.close();
+    }
   }
 
   @Test

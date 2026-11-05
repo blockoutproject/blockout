@@ -107,6 +107,7 @@ function PublicLinkAction({
     </Pressable>
   );
 }
+
 const styles = StyleSheet.create({
   links: {
     flexDirection: "row",

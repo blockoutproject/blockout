@@ -47,8 +47,9 @@ public class EstablishMatchIdentity {
           "A future place or bye is not an identified encounter");
     }
     PoolView pool = store.pool(poolId).orElseThrow();
-    if (pool.classification() == null)
+    if (pool.classification() == null) {
       throw new UnresolvedSportingIdentityException("Pool has no accepted classification");
+    }
     MatchView existing = store.match(poolId, reference).orElse(null);
     TeamView homeTeam = resolveTeam(pool, home, existing == null ? null : existing.homeTeamId());
     TeamView awayTeam = resolveTeam(pool, away, existing == null ? null : existing.awayTeamId());
@@ -86,13 +87,16 @@ public class EstablishMatchIdentity {
         throw new UnresolvedSportingIdentityException(
             "Known participant has an unrecognized club reference");
       }
-      if (club == null)
+      if (club == null) {
         club =
             store.createClub(
                 CollectionProviderEnum.FFVB, candidate.clubReference(), candidate.clubSourceName());
+      }
       clubId = club.id();
       known = store.ffvbTeam(pool.key().seasonId(), clubId, pool.classification(), name);
-      if (known.isEmpty()) known = store.teamAlias(pool, clubId, name);
+      if (known.isEmpty()) {
+        known = store.teamAlias(pool, clubId, name);
+      }
     } else {
       if (candidate.nativeReference() == null || candidate.nativeReference().isBlank()) {
         throw new UnresolvedSportingIdentityException(

@@ -199,12 +199,13 @@ function StandingCard({
         borderColor: podium ? rank.fill : colors.border,
       },
     ];
-    if (!row.team)
+    if (!row.team) {
       return (
         <View accessible accessibilityLabel={label} style={style}>
           {content}
         </View>
       );
+    }
     const teamId = row.team.id;
     return (
       <Pressable

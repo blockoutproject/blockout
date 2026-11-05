@@ -69,24 +69,34 @@ export function useImageSelection({
         selectionLimit: allowsMultipleSelection ? selectionLimit : 1,
       });
       assets = result.assets ?? [];
-      if (active.current && !result.canceled) await onSelect(assets, replaceId);
+      if (active.current && !result.canceled) {
+        await onSelect(assets, replaceId);
+      }
     } catch {
       feedback.error();
     } finally {
-      if (active.current) setPending(false);
+      if (active.current) {
+        setPending(false);
+      }
       assets.forEach(({ uri }) => {
-        if (isPickerCacheCopy(uri)) deleteOwnedImage(uri);
+        if (isPickerCacheCopy(uri)) {
+          deleteOwnedImage(uri);
+        }
       });
     }
   }
 
   /** Reserves the native operation synchronously; no selection or preparation is queued or replayed. */
   function select(replaceId?: string) {
-    if (!active.current || operation.current || canSelect?.() === false) return;
+    if (!active.current || operation.current || canSelect?.() === false) {
+      return;
+    }
     feedback.clear();
     setPending(true);
     const selection = choose(replaceId).finally(() => {
-      if (operation.current === selection) operation.current = undefined;
+      if (operation.current === selection) {
+        operation.current = undefined;
+      }
     });
     operation.current = selection;
   }
@@ -108,8 +118,9 @@ function isPickerCacheCopy(uri: string): boolean {
       selected.host !== cache.host ||
       selected.search ||
       selected.hash
-    )
+    ) {
       return false;
+    }
     const selectedPath = Paths.normalize(decodeURIComponent(selected.pathname));
     const cachePath = Paths.normalize(
       decodeURIComponent(cache.pathname),

@@ -126,8 +126,11 @@ it.each(["completed", "failed"])(
     expect(Purchases.getCustomerInfo).toHaveBeenCalledTimes(reads);
 
     // When
-    if (outcome === "completed") earlier.resolve(info);
-    else earlier.reject(new Error("Obsolete native read"));
+    if (outcome === "completed") {
+      earlier.resolve(info);
+    } else {
+      earlier.reject(new Error("Obsolete native read"));
+    }
     await reading;
 
     // Then
@@ -186,7 +189,9 @@ it.each([a, b])(
       expect(owner.getSnapshot().evidence?.customerInfo).toBe(info),
     );
     expect(Purchases.logIn).toHaveBeenCalledTimes(target === a ? 0 : 1);
-    if (target !== a) expect(Purchases.logIn).toHaveBeenCalledWith(target);
+    if (target !== a) {
+      expect(Purchases.logIn).toHaveBeenCalledWith(target);
+    }
     expect(Purchases.logOut).not.toHaveBeenCalled();
   },
 );

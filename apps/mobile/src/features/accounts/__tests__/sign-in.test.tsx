@@ -92,8 +92,11 @@ afterEach(async () => {
   queryClient.clear();
   jest.restoreAllMocks();
   for (const [key, value] of Object.entries(configuration)) {
-    if (value === undefined) delete process.env[key];
-    else process.env[key] = value;
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
   }
 });
 
@@ -196,7 +199,9 @@ it.each(["rejected", "lost"] as const)(
     // Given
     mockFetch.mockImplementation(async (_url, options) => {
       if (options?.method === "POST") {
-        if (outcome === "lost") throw new TypeError("Response lost");
+        if (outcome === "lost") {
+          throw new TypeError("Response lost");
+        }
         return problem(422, "provider-email-unavailable");
       }
       return json(account);
@@ -274,6 +279,7 @@ it("does not start hosted login or establishment behind F12 admission", async ()
 function json(body: unknown, status = 200) {
   return Response.json(body, { status });
 }
+
 /** Safe canonical Problem Details without provider diagnostics. */
 function problem(status: number, type: string) {
   return new Response(

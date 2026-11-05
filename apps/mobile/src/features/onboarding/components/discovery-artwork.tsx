@@ -43,7 +43,9 @@ export function DiscoveryExample({ step }: { step: number }) {
     scheme === "dark"
       ? { border: "#F2A9006B", subtle: "#F2A90014", accent: "#F2A900" }
       : { border: "#F2A9004D", subtle: "#F2A9000F", accent: "#91680A" };
-  if (step !== 1 && step !== 2) return null;
+  if (step !== 1 && step !== 2) {
+    return null;
+  }
   const notification = step === 1;
   return (
     <View

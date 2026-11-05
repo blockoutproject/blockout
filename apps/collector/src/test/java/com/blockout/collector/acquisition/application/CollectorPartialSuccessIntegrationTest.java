@@ -87,7 +87,9 @@ class CollectorPartialSuccessIntegrationTest {
    */
   @AfterAll
   static void stopBackend() throws Exception {
-    if (runtime != null) runtime.close();
+    if (runtime != null) {
+      runtime.close();
+    }
   }
 
   /**
@@ -103,7 +105,9 @@ class CollectorPartialSuccessIntegrationTest {
     transport =
         runtime.connect(
             (request, body, execution) -> {
-              if (request.getMethod() == HttpMethod.POST) writes.add(request.getURI().getPath());
+              if (request.getMethod() == HttpMethod.POST) {
+                writes.add(request.getURI().getPath());
+              }
               return execution.execute(request, body);
             });
     backend =
@@ -125,7 +129,9 @@ class CollectorPartialSuccessIntegrationTest {
    */
   @AfterEach
   void closeTransport() throws Exception {
-    if (transport != null) transport.close();
+    if (transport != null) {
+      transport.close();
+    }
   }
 
   @ParameterizedTest
@@ -142,8 +148,9 @@ class CollectorPartialSuccessIntegrationTest {
         context(cycle),
         complete(match("M100", ORIGINAL_DATE), match("RETAINED", ORIGINAL_DATE)));
     List<SportingObservation.Match> matches = new ArrayList<>();
-    for (int index = 1; index < 100; index++)
+    for (int index = 1; index < 100; index++) {
       matches.add(match("M" + index, ORIGINAL_DATE.plusDays(1)));
+    }
     List<SportingObservation.Failure> failures = List.of();
     if (acquisitionFailure) {
       failures =
@@ -277,16 +284,18 @@ class CollectorPartialSuccessIntegrationTest {
         .thenAnswer(
             call -> {
               CollectionBackend.Target target = call.getArgument(0);
-              if (target.poolId().equals(POOL))
+              if (target.poolId().equals(POOL)) {
                 throw new FfvbAcquisitionException("Synthetic unreadable calendar");
+              }
               return new FfvbAcquisition.Read<>(complete(match("OTHER", ORIGINAL_DATE)), NOW);
             });
     when(source.standings(any()))
         .thenAnswer(
             call -> {
               CollectionBackend.Target target = call.getArgument(0);
-              if (target.poolId().equals(OTHER_POOL))
+              if (target.poolId().equals(OTHER_POOL)) {
                 throw new FfvbAcquisitionException("Synthetic unreadable standings");
+              }
               return new FfvbAcquisition.Read<>(table("Official unlinked row"), NOW);
             });
 
@@ -444,7 +453,9 @@ class CollectorPartialSuccessIntegrationTest {
           case "Unreadable structure" -> "<html><body>Synthetic error page</body></html>";
           default -> html;
         };
-    if (failure.equals("Header only")) csv = csv.lines().findFirst().orElseThrow() + "\n";
+    if (failure.equals("Header only")) {
+      csv = csv.lines().findFirst().orElseThrow() + "\n";
+    }
     byte[] pageBytes = html.getBytes(Charset.forName("windows-1252"));
     byte[] exportBytes = csv.getBytes(Charset.forName("windows-1252"));
     FfvbAcquisition.Resource source = mock(FfvbAcquisition.Resource.class);

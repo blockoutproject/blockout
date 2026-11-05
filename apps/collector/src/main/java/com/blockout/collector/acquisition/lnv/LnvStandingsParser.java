@@ -26,28 +26,41 @@ public class LnvStandingsParser {
    */
   public SportingObservation.Standings parse(byte[] bytes, URI url, String group) {
     Element container = LnvPage.parse(bytes, url).getElementById("Content_Main_" + group);
-    if (container == null) throw LnvPage.invalid();
+    if (container == null) {
+      throw LnvPage.invalid();
+    }
     Element table = container.selectFirst("table.rgMasterTable");
     if (table == null) {
       Element playoff = container.selectFirst("[id$=_RPL_POGrid]");
       Element championship = container.selectFirst("input[id$=_HiddenChampionship]");
       if (container.text().matches("(?is).*aucun classement.*")
-          || (playoff != null && championship != null && group.equals(championship.attr("value"))))
+          || (playoff != null
+              && championship != null
+              && group.equals(championship.attr("value")))) {
         return new SportingObservation.Standings(
             StandingsPublicationStateEnum.NOT_PUBLISHED, List.of(), List.of());
+      }
       throw LnvPage.invalid();
     }
     List<Element> headers = table.select("thead tr");
-    if (headers.isEmpty()) throw LnvPage.invalid();
+    if (headers.isEmpty()) {
+      throw LnvPage.invalid();
+    }
     List<String> groups = new ArrayList<>();
     for (Element cell : headers.getFirst().children()) {
       int span = cell.hasAttr("colspan") ? Integer.parseInt(cell.attr("colspan")) : 1;
-      if (span < 1 || span > 50) throw LnvPage.invalid();
-      for (int index = 0; index < span; index++) groups.add(cell.text());
+      if (span < 1 || span > 50) {
+        throw LnvPage.invalid();
+      }
+      for (int index = 0; index < span; index++) {
+        groups.add(cell.text());
+      }
     }
     List<String> columns = new ArrayList<>();
     List<Element> leaves = headers.getLast().children();
-    if (groups.size() != leaves.size()) throw LnvPage.invalid();
+    if (groups.size() != leaves.size()) {
+      throw LnvPage.invalid();
+    }
     for (int index = 0; index < groups.size(); index++) {
       String leaf = leaves.get(index).text().strip();
       columns.add(
@@ -55,19 +68,27 @@ public class LnvStandingsParser {
               ? groups.get(index)
               : groups.get(index) + " / " + leaf);
     }
-    if (columns.size() < 2 || !columns.getFirst().equals("Equipe")) throw LnvPage.invalid();
+    if (columns.size() < 2 || !columns.getFirst().equals("Equipe")) {
+      throw LnvPage.invalid();
+    }
     List<SportingObservation.Standing> rows = new ArrayList<>();
     for (Element row : table.select("> tbody > tr")) {
       List<Element> cells = row.children();
-      if (cells.size() != columns.size()) throw LnvPage.invalid();
+      if (cells.size() != columns.size()) {
+        throw LnvPage.invalid();
+      }
       Element name = cells.getFirst().selectFirst("[id=TeamName]");
       Element team = cells.getFirst().selectFirst("[id=HF_TeamID]");
       String label = name == null ? cells.getFirst().text().strip() : name.text().strip();
-      if (label.isBlank()) throw LnvPage.invalid();
+      if (label.isBlank()) {
+        throw LnvPage.invalid();
+      }
       Map<String, String> statistics = new LinkedHashMap<>();
       for (int index = 1; index < cells.size(); index++) {
         String value = cells.get(index).text().strip();
-        if (!value.isBlank()) statistics.put(columns.get(index), value);
+        if (!value.isBlank()) {
+          statistics.put(columns.get(index), value);
+        }
       }
       // A native position is only sent when explicitly printed; source order is always preserved.
       rows.add(

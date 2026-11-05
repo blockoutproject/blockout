@@ -31,8 +31,11 @@ function Actions({
         accessibilityRole="button"
         accessibilityLabel="Technical failure"
         onPress={() => {
-          if (response) void response.catch(() => feedback.error());
-          else feedback.error();
+          if (response) {
+            void response.catch(() => feedback.error());
+          } else {
+            feedback.error();
+          }
         }}
       >
         <Text>Technical failure</Text>

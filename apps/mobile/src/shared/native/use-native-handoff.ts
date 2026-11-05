@@ -12,7 +12,9 @@ export function useNativeHandoff(destination?: string) {
 
   /** Dispatches one explicit native opening; failures permit only a later explicit attempt. */
   async function open() {
-    if (!destination || pending) return;
+    if (!destination || pending) {
+      return;
+    }
     feedback.clear();
     setPending(true);
     try {

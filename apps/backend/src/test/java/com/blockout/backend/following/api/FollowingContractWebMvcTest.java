@@ -155,8 +155,11 @@ public class FollowingContractWebMvcTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.items").isEmpty())
         .andExpect(jsonPath("$.nextPage").doesNotExist());
-    if (kind.equals("team")) verify(lists).teams(UUID.fromString(ACCOUNT), null, 0L);
-    else verify(lists).pools(UUID.fromString(ACCOUNT), null, 0L);
+    if (kind.equals("team")) {
+      verify(lists).teams(UUID.fromString(ACCOUNT), null, 0L);
+    } else {
+      verify(lists).pools(UUID.fromString(ACCOUNT), null, 0L);
+    }
 
     // When
     ResultActions selected =
@@ -164,9 +167,11 @@ public class FollowingContractWebMvcTest {
 
     // Then
     selected.andExpect(status().isOk());
-    if (kind.equals("team"))
+    if (kind.equals("team")) {
       verify(lists).teams(UUID.fromString(ACCOUNT), UUID.fromString(TARGET), 107374182L);
-    else verify(lists).pools(UUID.fromString(ACCOUNT), UUID.fromString(TARGET), 107374182L);
+    } else {
+      verify(lists).pools(UUID.fromString(ACCOUNT), UUID.fromString(TARGET), 107374182L);
+    }
   }
 
   @ParameterizedTest

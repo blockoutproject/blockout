@@ -62,8 +62,9 @@ export function SupportVisitProvider({
       !state.isDirty &&
       !state.isTouched &&
       !getValues("replyEmail")
-    )
+    ) {
       setValue("replyEmail", replyEmail);
+    }
   }, [replyEmail, getFieldState, getValues, setValue]);
   return (
     <SupportVisitContext value={{ form, context }}>
@@ -75,6 +76,8 @@ export function SupportVisitProvider({
 /** Requires this route-owned visit; no private draft is shared with another feature or restart. */
 export function useSupportVisit() {
   const visit = useContext(SupportVisitContext);
-  if (!visit) throw new Error("Support visit provider is required");
+  if (!visit) {
+    throw new Error("Support visit provider is required");
+  }
   return visit;
 }

@@ -19,7 +19,9 @@ export function AdministrationEntry() {
   const { permissions, hasCommands } = useAdministrationCapabilities();
   const { colors } = useTheme();
   const canModerate = permissions?.moderateStreamLinks === true;
-  if (!hasCommands && !canModerate) return null;
+  if (!hasCommands && !canModerate) {
+    return null;
+  }
 
   return (
     <View style={styles.group}>

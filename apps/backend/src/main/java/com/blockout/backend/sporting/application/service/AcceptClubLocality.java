@@ -48,12 +48,13 @@ public class AcceptClubLocality {
     String reference = store.club(clubId).orElseThrow().reference();
     ObservationOutcomeEnum status;
     if (!current.revision().equals(observation.localityRevision())
-        || current.order() != null && order.compareTo(current.order()) < 0)
+        || current.order() != null && order.compareTo(current.order()) < 0) {
       status = ObservationOutcomeEnum.STALE;
-    else if (current.order() != null && order.compareTo(current.order()) == 0)
+    } else if (current.order() != null && order.compareTo(current.order()) == 0) {
       status = ObservationOutcomeEnum.UNCHANGED;
-    else if (current.city() == null) status = ObservationOutcomeEnum.REJECTED;
-    else {
+    } else if (current.city() == null) {
+      status = ObservationOutcomeEnum.REJECTED;
+    } else {
       boolean changed =
           !Objects.equals(current.latitude(), observation.latitude())
               || !Objects.equals(current.longitude(), observation.longitude());
@@ -76,8 +77,11 @@ public class AcceptClubLocality {
           || !Double.isFinite(observation.latitude())
           || !Double.isFinite(observation.longitude())
           || Math.abs(observation.latitude()) > 90
-          || Math.abs(observation.longitude()) > 180) throw new SportingValidationException();
-    } else if (observation.latitude() != null || observation.longitude() != null)
+          || Math.abs(observation.longitude()) > 180) {
+        throw new SportingValidationException();
+      }
+    } else if (observation.latitude() != null || observation.longitude() != null) {
       throw new SportingValidationException();
+    }
   }
 }

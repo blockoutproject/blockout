@@ -105,7 +105,9 @@ public class UpdateAccessSettings {
     } catch (IllegalArgumentException invalid) {
       throw new InvalidAccessSettingsException();
     }
-    if (current.equals(result)) return current;
+    if (current.equals(result)) {
+      return current;
+    }
     canAdvance(current.revision());
     return store.saveVersions(result);
   }
@@ -118,7 +120,9 @@ public class UpdateAccessSettings {
    * @return unchanged state for a no-op, otherwise the flushed managed state
    */
   private MaintenanceSettings save(MaintenanceSettings current, MaintenanceSettings result) {
-    if (current.equals(result)) return current;
+    if (current.equals(result)) {
+      return current;
+    }
     canAdvance(current.revision());
     return store.saveMaintenance(result);
   }
@@ -153,7 +157,9 @@ public class UpdateAccessSettings {
     } catch (IllegalArgumentException invalid) {
       throw new InvalidAccessSettingsException();
     }
-    if (submitted != current) throw new StaleSettingsRevisionException();
+    if (submitted != current) {
+      throw new StaleSettingsRevisionException();
+    }
   }
 
   /**
@@ -163,7 +169,8 @@ public class UpdateAccessSettings {
    * @throws InvalidAccessSettingsException if the next revision would be unsafe
    */
   private static void canAdvance(long revision) {
-    if (revision == AccessSettingsValidation.MAX_REVISION)
+    if (revision == AccessSettingsValidation.MAX_REVISION) {
       throw new InvalidAccessSettingsException();
+    }
   }
 }

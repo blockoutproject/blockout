@@ -170,7 +170,9 @@ it("updates retained match detail to the current phone zone on foreground return
   deviceZone = "America/New_York";
   await act(() => {
     events.mock.calls.forEach(([event, listener]) => {
-      if (event === "change") listener("active");
+      if (event === "change") {
+        listener("active");
+      }
     });
   });
 

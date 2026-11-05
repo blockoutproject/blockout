@@ -45,7 +45,9 @@ public class ReadOwnContributions {
    * @throws SportingResourceNotFoundException when the exact match is unknown or hidden
    */
   public Page read(UUID owner, UUID matchId, long page) {
-    if (page < 0 || page > 107374182) throw new IllegalArgumentException("Invalid page");
+    if (page < 0 || page > 107374182) {
+      throw new IllegalArgumentException("Invalid page");
+    }
     Facts facts = require(owner, matchId);
     ContributionState state = store.state(matchId);
     Instant now = clock.instant();
@@ -104,9 +106,13 @@ public class ReadOwnContributions {
    * @throws SportingResourceNotFoundException for an unknown or hidden match
    */
   private Facts require(UUID owner, UUID matchId) {
-    if (!accounts.exists(owner)) throw new AccountNotFoundException();
+    if (!accounts.exists(owner)) {
+      throw new AccountNotFoundException();
+    }
     Facts facts = sporting.read(matchId);
-    if (!facts.viewable()) throw new SportingResourceNotFoundException();
+    if (!facts.viewable()) {
+      throw new SportingResourceNotFoundException();
+    }
     return facts;
   }
 

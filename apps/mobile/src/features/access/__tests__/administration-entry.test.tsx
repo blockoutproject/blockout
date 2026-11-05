@@ -106,7 +106,9 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await cleanup();
-  for (const cache of clients) cache.clear();
+  for (const cache of clients) {
+    cache.clear();
+  }
   clients.clear();
   jest.restoreAllMocks();
   process.env = { ...environment };
@@ -600,14 +602,15 @@ it.each([
     expect(
       await screen.findAllByRole("link", { name: "Divisions" }),
     ).toHaveLength(2);
-    if (grant === "manageSportingClassification")
+    if (grant === "manageSportingClassification") {
       expect(
         screen.getByRole("link", { name: "Mapping des poules" }),
       ).toBeDisabled();
-    else
+    } else {
       expect(
         screen.queryByRole("link", { name: "Mapping des poules" }),
       ).not.toBeOnTheScreen();
+    }
     expect(
       screen.queryByRole("link", { name: "Liens vidéo" }),
     ).not.toBeOnTheScreen();

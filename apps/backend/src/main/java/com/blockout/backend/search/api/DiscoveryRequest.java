@@ -36,8 +36,12 @@ public class DiscoveryRequest {
         && (!context.examples()
             || cursor != null
             || exampleIds.isEmpty()
-            || exampleIds.contains(null))) throw invalid();
-    if (cursor != null && context.examples()) throw invalid();
+            || exampleIds.contains(null))) {
+      throw invalid();
+    }
+    if (cursor != null && context.examples()) {
+      throw invalid();
+    }
     return new Bound(
         context,
         exampleIds == null ? null : List.copyOf(exampleIds),
@@ -71,7 +75,9 @@ public class DiscoveryRequest {
           || value.score() == null
           || !Double.isFinite(value.score())
           || value.score() < 0
-          || value.id() == null) throw invalid();
+          || value.id() == null) {
+        throw invalid();
+      }
       return value;
     } catch (IllegalArgumentException | JacksonException exception) {
       throw invalid();

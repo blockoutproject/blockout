@@ -141,6 +141,7 @@ async function renderSettings(content = <MaintenanceSettingsScreen />) {
     ),
   });
 }
+
 /** Returns a real Fetch representation consumed by the canonical generated schema. */
 function json(value: unknown, status = 200) {
   return new Response(JSON.stringify(value), {
@@ -309,9 +310,12 @@ it("sends the desired active state independently of dirty content", async () => 
     "Mon brouillon",
   );
   mockFetch.mockImplementation(async (url, options) => {
-    if (String(url).endsWith("/accounts/me")) return json(account);
-    if (options?.method === "PUT")
+    if (String(url).endsWith("/accounts/me")) {
+      return json(account);
+    }
+    if (options?.method === "PUT") {
       stored = { ...stored, revision: 3, active: true };
+    }
     return json(stored);
   });
 
@@ -431,7 +435,9 @@ it("preserves a dirty draft after a newer background response", async () => {
     .getQueryCache()
     .findAll()
     .find((q) => q.queryKey.includes(getGetMaintenanceSettingsQueryKey()[0]));
-  if (!query) throw new Error("The real settings query is missing");
+  if (!query) {
+    throw new Error("The real settings query is missing");
+  }
   stored = { ...initial, revision: 3, message: "Autre éditeur" };
 
   // When
@@ -655,11 +661,15 @@ it.each(["conflict", "lost"])(
     );
     let writes = 0;
     mockFetch.mockImplementation(async (url, options) => {
-      if (String(url).endsWith("/accounts/me")) return json(account);
+      if (String(url).endsWith("/accounts/me")) {
+        return json(account);
+      }
       if (options?.method === "PATCH") {
         writes++;
         if (writes === 1) {
-          if (outcome === "lost") throw new TypeError("Lost response");
+          if (outcome === "lost") {
+            throw new TypeError("Lost response");
+          }
           return json(
             {
               type: "urn:blockout:problem:stale-revision",
@@ -672,8 +682,9 @@ it.each(["conflict", "lost"])(
         stored = { ...stored, revision: 4, message: "Mon brouillon" };
         return json(stored);
       }
-      if (stored.revision < 3)
+      if (stored.revision < 3) {
         stored = { ...stored, revision: 3, message: "Autre éditeur" };
+      }
       return json(stored);
     });
 
@@ -848,8 +859,9 @@ it("retains a draft through a failed permission refresh", async () => {
     .getQueryCache()
     .findAll()
     .find((query) => query.queryKey.includes("/accounts/me"));
-  if (!accountQuery)
+  if (!accountQuery) {
     throw new Error("The real current-account query is missing");
+  }
   mockFetch.mockImplementation(async (url) =>
     String(url).endsWith("/accounts/me")
       ? json(

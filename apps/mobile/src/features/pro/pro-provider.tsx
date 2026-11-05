@@ -16,6 +16,7 @@ import type { CustomerInfo } from "react-native-purchases";
 import { useAccountSession } from "../accounts/current-account";
 import { getProState, type ProOperation, type ProState } from "./pro-state";
 import { proSession } from "./pro-session";
+
 /** Current-session presentation and explicit commands; callbacks retain their rendering session. */
 export interface ProContext {
   state: ProState;
@@ -44,7 +45,9 @@ export interface ProContext {
   /** Records an interrupted purchase/restoration as uncertain without cancelling the store transaction. */
   dismissPresentation(): Promise<void>;
 }
+
 const ProSessionContext = createContext<ProContext | null>(null);
+
 /**
  * Connects the process-wide native owner to F05 without gating navigation or local logout.
  * SDK listeners signal reads only; provider removal detaches subscriptions and clears presentation.
@@ -78,7 +81,9 @@ export function ProProvider({ children }: PropsWithChildren) {
     const listener = () => readCurrent();
     Purchases.addCustomerInfoUpdateListener(listener);
     const foreground = AppState.addEventListener("change", (state) => {
-      if (state === "active") readCurrent();
+      if (state === "active") {
+        readCurrent();
+      }
     });
     return () => {
       Purchases.removeCustomerInfoUpdateListener(listener);
@@ -137,9 +142,12 @@ export function ProProvider({ children }: PropsWithChildren) {
     </ProSessionContext>
   );
 }
+
 /** Reads F09's narrow current-session API; consumers own navigation, ads and provider UI. */
 export function usePro(): ProContext {
   const value = useContext(ProSessionContext);
-  if (!value) throw new Error("usePro requires ProProvider");
+  if (!value) {
+    throw new Error("usePro requires ProProvider");
+  }
   return value;
 }

@@ -38,7 +38,9 @@ public class IgnClubGeocoder implements ClubGeocoder {
   @Override
   public SportingObservation.Locality read(
       String address, String municipality, String postalCode, String revision) {
-    if (municipality == null || municipality.isBlank()) throw invalid();
+    if (municipality == null || municipality.isBlank()) {
+      throw invalid();
+    }
     if (address != null && !address.isBlank()) {
       String fullAddress =
           address.strip() + " " + (postalCode == null ? "" : postalCode + " ") + municipality;
@@ -46,7 +48,9 @@ public class IgnClubGeocoder implements ClubGeocoder {
           search(fullAddress, municipality, postalCode, false);
       SportingObservation.Locality point =
           parse(response.status(), response.body(), revision, false);
-      if (point.outcome() == GeocodingOutcomeEnum.LOCATED) return point;
+      if (point.outcome() == GeocodingOutcomeEnum.LOCATED) {
+        return point;
+      }
     }
     ProviderHttpClient.StatusResponse response =
         search(municipality, municipality, postalCode, true);
@@ -72,8 +76,12 @@ public class IgnClubGeocoder implements ClubGeocoder {
               .setParameter("index", "address")
               .setParameter("autocomplete", "0")
               .setParameter("limit", "50");
-      if (municipal) uri.setParameter("type", "municipality");
-      if (postalCode != null) uri.setParameter("postcode", postalCode);
+      if (municipal) {
+        uri.setParameter("type", "municipality");
+      }
+      if (postalCode != null) {
+        uri.setParameter("postcode", postalCode);
+      }
       return http.getWithBadRequest(uri.build());
     } catch (URISyntaxException invalid) {
       throw invalid();
@@ -104,19 +112,27 @@ public class IgnClubGeocoder implements ClubGeocoder {
     } catch (RuntimeException malformed) {
       throw invalid();
     }
-    if (response == null || !response.isObject()) throw invalid();
+    if (response == null || !response.isObject()) {
+      throw invalid();
+    }
     if (status == 400 && response.path("code").asInt() == 400) {
       JsonNode details = response.path("detail");
-      if (details.isMissingNode()) details = response.path("details");
-      else if (response.has("details")) throw invalid();
+      if (details.isMissingNode()) {
+        details = response.path("details");
+      } else if (response.has("details")) {
+        throw invalid();
+      }
       if (details.isArray()
           && details.size() == 1
-          && details.get(0).asString().equals("city: No matching cities found"))
+          && details.get(0).asString().equals("city: No matching cities found")) {
         return new SportingObservation.Locality(revision, GeocodingOutcomeEnum.EMPTY, null, null);
+      }
     }
     if (status != 200
         || !response.path("type").asString().equals("FeatureCollection")
-        || !response.path("features").isArray()) throw invalid();
+        || !response.path("features").isArray()) {
+      throw invalid();
+    }
     Map<String, SportingObservation.Locality> candidates = new LinkedHashMap<>();
     boolean municipalCandidate = false;
     for (JsonNode feature : response.path("features")) {
@@ -133,13 +149,17 @@ public class IgnClubGeocoder implements ClubGeocoder {
           || !coordinates.isArray()
           || coordinates.size() != 2
           || !coordinates.get(0).isNumber()
-          || !coordinates.get(1).isNumber()) throw invalid();
+          || !coordinates.get(1).isNumber()) {
+        throw invalid();
+      }
       double longitude = coordinates.get(0).asDouble();
       double latitude = coordinates.get(1).asDouble();
       if (!Double.isFinite(latitude)
           || !Double.isFinite(longitude)
           || Math.abs(latitude) > 90
-          || Math.abs(longitude) > 180) throw invalid();
+          || Math.abs(longitude) > 180) {
+        throw invalid();
+      }
       SportingObservation.Locality point =
           new SportingObservation.Locality(
               revision, GeocodingOutcomeEnum.LOCATED, latitude, longitude);
@@ -148,14 +168,20 @@ public class IgnClubGeocoder implements ClubGeocoder {
         continue;
       }
       String identity = municipal ? code : properties.path("id").asString();
-      if (identity.isBlank()) throw invalid();
+      if (identity.isBlank()) {
+        throw invalid();
+      }
       SportingObservation.Locality previous = candidates.putIfAbsent(identity, point);
-      if (previous != null && !previous.equals(point)) throw invalid();
+      if (previous != null && !previous.equals(point)) {
+        throw invalid();
+      }
     }
-    if (candidates.isEmpty())
+    if (candidates.isEmpty()) {
       return new SportingObservation.Locality(revision, GeocodingOutcomeEnum.EMPTY, null, null);
-    if (!municipalCandidate && candidates.size() == 1 && response.path("features").size() < 50)
+    }
+    if (!municipalCandidate && candidates.size() == 1 && response.path("features").size() < 50) {
       return candidates.values().iterator().next();
+    }
     return new SportingObservation.Locality(revision, GeocodingOutcomeEnum.AMBIGUOUS, null, null);
   }
 

@@ -103,8 +103,9 @@ class RetentionErasureIntegrationTest {
   void refusesOperationsAfterSnapshotErasure(String operation) throws Exception {
     // Given
     UUID first = entry(sql, 1, ACCOUNT, NOW.minusSeconds(1));
-    for (int number = 2; number <= 25; number++)
+    for (int number = 2; number <= 25; number++) {
       entry(sql, number, ACCOUNT, NOW.minusSeconds(number));
+    }
     consumedFacts(first);
     JsonNode original = page(null);
     CompletableFuture<Void> selected = new CompletableFuture<>();
@@ -173,8 +174,9 @@ class RetentionErasureIntegrationTest {
                 patch(COLLECTION + "/" + first)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{\"read\":true}"));
-        for (MockHttpServletRequestBuilder request : requests)
+        for (MockHttpServletRequestBuilder request : requests) {
           mvc.perform(request.with(principal())).andExpect(status().isForbidden());
+        }
         assertThat(sql.queryForObject("SELECT COUNT(*) FROM notification", Long.class)).isZero();
         assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Long.class))
             .isEqualTo(25);
@@ -351,7 +353,9 @@ class RetentionErasureIntegrationTest {
    */
   private JsonNode page(String cursor) throws Exception {
     MockHttpServletRequestBuilder request = get(COLLECTION).with(principal());
-    if (cursor != null) request.queryParam("cursor", cursor);
+    if (cursor != null) {
+      request.queryParam("cursor", cursor);
+    }
     return json.readTree(
         mvc.perform(request)
             .andExpect(status().isOk())

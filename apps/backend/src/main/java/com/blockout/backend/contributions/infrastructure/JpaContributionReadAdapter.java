@@ -37,7 +37,9 @@ public class JpaContributionReadAdapter implements ModerationStore {
   /** {@inheritDoc} */
   @Override
   public Map<UUID, Activity> activities(Set<UUID> ids) {
-    if (ids.isEmpty()) return Map.of();
+    if (ids.isEmpty()) {
+      return Map.of();
+    }
     return reads.activities(ids).stream()
         .collect(
             Collectors.toUnmodifiableMap(
@@ -67,7 +69,9 @@ public class JpaContributionReadAdapter implements ModerationStore {
   /** {@inheritDoc} */
   @Override
   public Map<UUID, Long> reportCounts(Set<UUID> ids) {
-    if (ids.isEmpty()) return Map.of();
+    if (ids.isEmpty()) {
+      return Map.of();
+    }
     return reads.reportCounts(ids).stream()
         .collect(
             Collectors.toUnmodifiableMap(

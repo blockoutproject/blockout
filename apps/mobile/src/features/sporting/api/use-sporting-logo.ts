@@ -55,7 +55,9 @@ export function useSportingLogo(
 
 /** Resolves only credential-free references on the configured backend; malformed or foreign URLs stay absent. */
 function publicLogoUrl(value: string | undefined): string | undefined {
-  if (!value) return undefined;
+  if (!value) {
+    return undefined;
+  }
   try {
     const base = new URL(process.env.EXPO_PUBLIC_API_URL ?? "");
     const destination = new URL(value, base);
@@ -66,8 +68,9 @@ function publicLogoUrl(value: string | undefined): string | undefined {
       base.password ||
       destination.username ||
       destination.password
-    )
+    ) {
       return undefined;
+    }
     return destination.href;
   } catch {
     return undefined;

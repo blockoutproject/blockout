@@ -107,14 +107,23 @@ beforeEach(async () => {
 afterEach(async () => {
   await cleanup();
   jest.restoreAllMocks();
-  if (originalDomain === undefined) delete process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
-  else process.env.EXPO_PUBLIC_AUTH0_DOMAIN = originalDomain;
-  if (originalClient === undefined)
+  if (originalDomain === undefined) {
+    delete process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
+  } else {
+    process.env.EXPO_PUBLIC_AUTH0_DOMAIN = originalDomain;
+  }
+  if (originalClient === undefined) {
     delete process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID;
-  else process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = originalClient;
-  if (originalApiUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
-  else process.env.EXPO_PUBLIC_API_URL = originalApiUrl;
+  } else {
+    process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = originalClient;
+  }
+  if (originalApiUrl === undefined) {
+    delete process.env.EXPO_PUBLIC_API_URL;
+  } else {
+    process.env.EXPO_PUBLIC_API_URL = originalApiUrl;
+  }
 });
+
 /** Reads public presentation contracts; text exposes semantic values without style assertions. */
 function AppearanceValues() {
   const theme = useTheme();
@@ -132,6 +141,7 @@ function AppearanceValues() {
     </>
   );
 }
+
 /** Stateful route double; root Query, Auth0/session, Pro and theme owners stay real. */
 function AppearanceRoute() {
   const currentAccount = useAccountSession();
@@ -159,10 +169,12 @@ function AppearanceRoute() {
     </>
   );
 }
+
 /** Mounts only the real owners; each scenario publishes and awaits its account explicitly. */
 async function renderAccount() {
   await render(<RootLayout />);
 }
+
 /** Builds only synthetic SDK evidence; the provider's active map remains authoritative. */
 function activeInfo(store: "APP_STORE" | "PROMOTIONAL" = "APP_STORE") {
   const active = { "Blockout Pro": entitlement({ store }) };
@@ -172,6 +184,7 @@ function activeInfo(store: "APP_STORE" | "PROMOTIONAL" = "APP_STORE") {
     verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
   });
 }
+
 it.each(["light", "dark"] as const)(
   "projects current paid and gifted SDK-active rights without changing neutral context in %s",
   async (scheme) => {
@@ -391,8 +404,9 @@ it("follows live system appearance without resetting the mounted route or draft 
   for (const scheme of ["dark", "light"] as const) {
     jest.mocked(Appearance.getColorScheme).mockReturnValue(scheme);
     await act(() => {
-      for (const [listener] of subscribe.mock.calls)
+      for (const [listener] of subscribe.mock.calls) {
         listener({ colorScheme: scheme });
+      }
     });
     // Then
     expect(screen.getByLabelText("Apparence")).toHaveTextContent(scheme);
@@ -411,8 +425,9 @@ it("follows live system appearance without resetting the mounted route or draft 
   await act(() => pro.refresh());
   jest.mocked(Appearance.getColorScheme).mockReturnValue("dark");
   await act(() => {
-    for (const [listener] of subscribe.mock.calls)
+    for (const [listener] of subscribe.mock.calls) {
       listener({ colorScheme: "dark" });
+    }
   });
   // Then
   expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(

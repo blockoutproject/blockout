@@ -48,7 +48,9 @@ public class ReportContribution {
   @Transactional
   public boolean report(UUID reporter, UUID versionId, String reason) {
     String trimmed = reason.strip();
-    if (trimmed.isEmpty()) throw new InvalidReason();
+    if (trimmed.isEmpty()) {
+      throw new InvalidReason();
+    }
     UUID matchId =
         store.matchForVersion(versionId).orElseThrow(SportingResourceNotFoundException::new);
     Facts facts = sporting.lock(matchId);
@@ -56,15 +58,24 @@ public class ReportContribution {
     affected.add(reporter);
     for (UUID account : affected.stream().sorted().toList()) {
       boolean exists = accounts.lock(account);
-      if (account.equals(reporter) && !exists) throw new AccountNotFoundException();
+      if (account.equals(reporter) && !exists) {
+        throw new AccountNotFoundException();
+      }
     }
-    if (!facts.viewable()) throw new SportingResourceNotFoundException();
+    if (!facts.viewable()) {
+      throw new SportingResourceNotFoundException();
+    }
     ContributionVersion version =
         store.version(versionId).orElseThrow(SportingResourceNotFoundException::new);
-    if (store.reported(versionId, reporter)) return false;
-    if (reporter.equals(version.ownerId()))
+    if (store.reported(versionId, reporter)) {
+      return false;
+    }
+    if (reporter.equals(version.ownerId())) {
       throw new AccessDeniedException("Action is not permitted");
-    if (version.state() != State.ACTIVE) throw new ContributionConflictException();
+    }
+    if (version.state() != State.ACTIVE) {
+      throw new ContributionConflictException();
+    }
     Instant now = clock.instant();
     long total = store.report(versionId, reporter, trimmed, now);
     store.advance(matchId, false);

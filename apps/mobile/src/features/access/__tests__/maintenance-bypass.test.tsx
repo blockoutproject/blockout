@@ -77,8 +77,12 @@ beforeEach(() => {
     .mockReset()
     .mockResolvedValue(credentialsFor("auth0|operator180"));
   mockFetch.mockReset().mockImplementation(async (url) => {
-    if (String(url).endsWith("/application-access")) return Response.json(full);
-    if (String(url).endsWith("/accounts/me")) return Response.json(account);
+    if (String(url).endsWith("/application-access")) {
+      return Response.json(full);
+    }
+    if (String(url).endsWith("/accounts/me")) {
+      return Response.json(account);
+    }
     return new Response("photo", { headers: { "Content-Type": "image/png" } });
   });
 });

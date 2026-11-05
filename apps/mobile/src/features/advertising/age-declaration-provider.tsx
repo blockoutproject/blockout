@@ -78,7 +78,9 @@ export function AgeDeclarationProvider({
     ready,
   ]);
   useEffect(() => {
-    if (ready) void privacy.synchronize()?.catch(() => undefined);
+    if (ready) {
+      void privacy.synchronize()?.catch(() => undefined);
+    }
   }, [
     privacy,
     ready,
@@ -101,7 +103,9 @@ export function AgeDeclarationProvider({
   }, []);
 
   useEffect(() => {
-    if (!enabled || state.status !== "loading") return;
+    if (!enabled || state.status !== "loading") {
+      return;
+    }
     let active = true;
     readAgeDeclaration().then(
       (value) => {
@@ -129,24 +133,31 @@ export function AgeDeclarationProvider({
 
   /** Explicit recovery preserves storage ownership; no automatic retries or guessed declaration. */
   function retryRead() {
-    if (state.status === "read-error")
+    if (state.status === "read-error") {
       setState({ status: "loading", evaluatedAt: state.evaluatedAt });
+    }
   }
 
   /** Completes after persisted category acknowledgement; the effect prepares consent independently. */
   function confirm(age: number): Promise<boolean> | undefined {
-    if (!mounted.current || pending || privacy.getSnapshot().pending) return;
+    if (!mounted.current || pending || privacy.getSnapshot().pending) {
+      return;
+    }
     privacy.suspend();
     setPending(true);
     const now = new Date();
     return submitAgeDeclaration(age, now)
       .then((declaration) => {
-        if (!mounted.current) return false;
+        if (!mounted.current) {
+          return false;
+        }
         setState({ status: "ready", evaluatedAt: now, declaration });
         return true;
       })
       .finally(() => {
-        if (mounted.current) setPending(false);
+        if (mounted.current) {
+          setPending(false);
+        }
       });
   }
 

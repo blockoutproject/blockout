@@ -51,7 +51,9 @@ public class FollowingRequest {
    * @throws ResponseStatusException when the name is not an available IANA zone
    */
   public ZoneId calendarZone(String value) {
-    if (!ZoneId.getAvailableZoneIds().contains(value)) throw invalid();
+    if (!ZoneId.getAvailableZoneIds().contains(value)) {
+      throw invalid();
+    }
     return ZoneId.of(value);
   }
 

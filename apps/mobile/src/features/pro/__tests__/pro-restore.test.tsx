@@ -100,6 +100,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
   process.env = { ...previousEnvironment };
 });
+
 /** Observes real session/SDK owners; native I/O and provider views are the only doubles. */
 function Journey() {
   useQueryClient().setQueryDefaults([], { retry: false, gcTime: Infinity });
@@ -116,6 +117,7 @@ function Journey() {
     </ActionFeedbackProvider>
   );
 }
+
 /** Establishes the scenario's usable account through the real F05 boundary. */
 async function mount() {
   await renderRouter(
@@ -150,6 +152,7 @@ async function mount() {
     .setup()
     .press(screen.getByRole("button", { name: "Blockout Pro" }));
 }
+
 it.each(["none", "expired", "active"])(
   "consumes native paywall restore with %s rights without purchasing",
   async (outcome) => {
@@ -378,7 +381,7 @@ it.each(["empty", "cancelled"])(
     await screen.findByText("Native paywall");
     await act(() => pro.completeOperation("purchased"));
     await screen.findByText(/Paiement confirmé/);
-    if (result === "empty")
+    if (result === "empty") {
       mockPurchases.restorePurchases.mockResolvedValueOnce(
         customerInfo({
           active: {},
@@ -386,10 +389,11 @@ it.each(["empty", "cancelled"])(
           verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
         }),
       );
-    else
+    } else {
       mockPurchases.restorePurchases.mockRejectedValueOnce({
         code: mockPurchases.PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR,
       });
+    }
 
     // When
     await user.press(
@@ -485,11 +489,11 @@ it.each(["direct", "customer center"])(
     await act(() => pro.completeOperation("uncertain"));
     const result = Promise.withResolvers<CustomerInfo>();
     mockPurchases.restorePurchases.mockReturnValueOnce(result.promise);
-    if (source === "direct")
+    if (source === "direct") {
       await user.press(
         screen.getByRole("button", { name: "Restaurer mes achats" }),
       );
-    else {
+    } else {
       await user.press(
         screen.getByRole("button", { name: "Gérer ou restaurer mes achats" }),
       );
@@ -504,9 +508,11 @@ it.each(["direct", "customer center"])(
       all: {},
       verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
     });
-    if (source === "direct") await act(() => result.resolve(empty));
-    else
+    if (source === "direct") {
+      await act(() => result.resolve(empty));
+    } else {
       await act(() => mockCenter.onRestoreCompleted!({ customerInfo: empty }));
+    }
 
     // Then
     expect(await screen.findByText(/Paiement confirmé/)).toBeOnTheScreen();

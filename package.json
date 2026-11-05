@@ -13,6 +13,8 @@
   "scripts": {
     "format:check": "prettier --check .",
     "format": "prettier --write .",
+    "lint:fix": "npm run lint:fix --workspace=@blockout/mobile",
+    "style:fix": "npm run lint:fix && npm run format && ./mvnw -B -ntp spotless:apply",
     "lint:contracts": "redocly lint --config .redocly.yaml",
     "lint": "nx run-many -t lint",
     "typecheck": "nx run-many -t typecheck",

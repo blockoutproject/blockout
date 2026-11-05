@@ -32,13 +32,16 @@ public class LnvDetailParser {
    */
   public Read inspect(byte[] bytes, URI url, String match, String competition) {
     Map<String, String> query = LnvPage.query(url);
-    if (!match.equals(query.get("mID")) || !competition.equals(query.get("ID")))
+    if (!match.equals(query.get("mID")) || !competition.equals(query.get("ID"))) {
       throw LnvPage.invalid();
+    }
     Document page = LnvPage.parse(bytes, url);
     Element date = page.getElementById("Content_Main_LB_DateTime");
     if (date == null
         && page.getElementById("Content_Main_LBL_WonSetHome") == null
-        && page.getElementById("Content_Main_LB_SetsPartials") == null) throw LnvPage.invalid();
+        && page.getElementById("Content_Main_LB_SetsPartials") == null) {
+      throw LnvPage.invalid();
+    }
     boolean complete = true;
     SportingObservation.Facts time = SportingObservation.Facts.builder().build();
     if (date != null) {
@@ -71,7 +74,9 @@ public class LnvDetailParser {
             new SportingObservation.SetScore(
                 Integer.parseInt(points[0]), Integer.parseInt(points[1])));
       }
-      if (!parsed.isEmpty()) sets = JsonNullable.of(List.copyOf(parsed));
+      if (!parsed.isEmpty()) {
+        sets = JsonNullable.of(List.copyOf(parsed));
+      }
     }
     Element venue = page.getElementById("Content_Main_LB_Stadium");
     return new Read(

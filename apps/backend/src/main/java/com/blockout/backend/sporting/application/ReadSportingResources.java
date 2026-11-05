@@ -103,7 +103,9 @@ public class ReadSportingResources {
    */
   public ConsultationViews.ClubTeams clubTeams(ClubSeasonRequest request) {
     clubIdentity(request.clubId());
-    if (owners.season(request.seasonId()).isEmpty()) throw new SportingResourceNotFoundException();
+    if (owners.season(request.seasonId()).isEmpty()) {
+      throw new SportingResourceNotFoundException();
+    }
     List<TeamView> selected = owners.publicClubTeams(request.clubId(), request.seasonId());
     List<ConsultationViews.TeamSummary> teams =
         composeTeams(selected).values().stream()
@@ -325,7 +327,9 @@ public class ReadSportingResources {
    * @return current summaries keyed by original identity, without a second paging boundary
    */
   public Map<UUID, ConsultationViews.MatchSummary> matchSummaries(Set<UUID> ids, Instant now) {
-    if (ids.size() > 20) throw new IllegalArgumentException("At most twenty matches per read");
+    if (ids.size() > 20) {
+      throw new IllegalArgumentException("At most twenty matches per read");
+    }
     return composeMatchSummaries(reads.matches(ids).values(), now);
   }
 

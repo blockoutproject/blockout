@@ -21,6 +21,7 @@ export interface CloseSeasonFormProps {
   season: CollectionSeasonResponse;
   editing: ReturnType<typeof useCloseCollectionSeason>;
 }
+
 /** A closure decision owns its original revision; background results cannot replace the user's typed confirmation. */
 export function CloseSeasonForm({ season, editing }: CloseSeasonFormProps) {
   const { authority } = editing;
@@ -47,6 +48,7 @@ export function CloseSeasonForm({ season, editing }: CloseSeasonFormProps) {
       mounted.current = false;
     };
   }, []);
+
   /** Exact equality and the original revision are checked before sending; the backend atomically rechecks both. */
   async function close(values: CloseSeasonValues) {
     if (
@@ -56,8 +58,9 @@ export function CloseSeasonForm({ season, editing }: CloseSeasonFormProps) {
       editing.season.isError ||
       values.confirmation !== current.label ||
       values.confirmation !== baseline.label
-    )
+    ) {
       return;
+    }
     editor.update({ ...editor.state, feedback: undefined });
     try {
       const attempt = editing.close.mutateAsync({
@@ -68,19 +71,26 @@ export function CloseSeasonForm({ season, editing }: CloseSeasonFormProps) {
       const accepted = await attempt;
       editor.update({ baseline: accepted });
     } catch (error) {
-      if (error instanceof ApiError && error.status === 409)
+      if (error instanceof ApiError && error.status === 409) {
         editor.update({
           ...editor.state,
           feedback: "Le résultat doit être vérifié avant une nouvelle action.",
         });
-      else actionFeedback.error();
+      } else {
+        actionFeedback.error();
+      }
     }
   }
+
   /** Reads the actual lifecycle before any explicit retry; entered text stays RHF-owned and unchanged. */
   async function reread() {
-    if (busy) return;
+    if (busy) {
+      return;
+    }
     const read = await (() => editing.season.refetch())();
-    if (!mounted.current) return;
+    if (!mounted.current) {
+      return;
+    }
     if (read.isError || !read.data || read.data.revision < baseline.revision) {
       actionFeedback.error();
       return;
@@ -91,6 +101,7 @@ export function CloseSeasonForm({ season, editing }: CloseSeasonFormProps) {
         "État relu. Vérifiez le nom de la saison avant une nouvelle action.",
     });
   }
+
   return (
     <View style={styles.form}>
       <SeasonIdentity season={current} />
@@ -184,11 +195,14 @@ export function CloseSeasonForm({ season, editing }: CloseSeasonFormProps) {
         label={closed ? "Retour à la saison" : "Annuler"}
         variant="secondary"
         onPress={() => {
-          if (!isDirty || closed) editor.discard();
+          if (!isDirty || closed) {
+            editor.discard();
+          }
           router.back();
         }}
       />
     </View>
   );
 }
+
 const styles = StyleSheet.create({ form: { gap: tokens.layout.form.gap } });

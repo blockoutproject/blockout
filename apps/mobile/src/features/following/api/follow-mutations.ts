@@ -27,6 +27,7 @@ import { withdrawRefusedFollowingQuery } from "./follow-queries";
 export function isFollowRestriction(error: unknown): error is ApiError {
   return error instanceof ApiError && [403, 404].includes(error.status ?? 0);
 }
+
 /**
  * Applies a known current restriction to the shared member Query after cancelling older reads.
  * Refused member data is withdrawn; a later technical failure cannot restore it. The persisted relation is unchanged.
@@ -40,6 +41,7 @@ export async function restrictFollowTarget(
   const queryKey = followStateKey(owner, target);
   await withdrawRefusedFollowingQuery(client, queryKey, error);
 }
+
 /**
  * Accepts a confirmed replacement into the captured private cache and resets personal traversal,
  * retaining the component-owned season/category. Known refusals stay withdrawn until a successful
@@ -61,7 +63,9 @@ export function useFollowMutation(
     retry: false,
     networkMode: "always",
     mutationFn: async (following: boolean) => {
-      if (!owner || !context.usable) throw new ApiError("cancelled");
+      if (!owner || !context.usable) {
+        throw new ApiError("cancelled");
+      }
       const options = await request();
       return target.type === "team"
         ? replaceTeamFollowState(
@@ -87,11 +91,14 @@ export function useFollowMutation(
         owner &&
         error instanceof ApiError &&
         (isAccessDenied(error) || isFollowRestriction(error))
-      )
+      ) {
         await restrictFollowTarget(client, owner, target, error);
+      }
     },
     onSettled: (_data, error) => {
-      if (!owner) return;
+      if (!owner) {
+        return;
+      }
       void client.invalidateQueries({ queryKey: stateKey, exact: true });
       void client.invalidateQueries({
         queryKey: getGetFollowOptionsQueryKey(owner.accountId),
@@ -102,8 +109,11 @@ export function useFollowMutation(
         getListPoolFollowsQueryKey(owner.accountId),
         getListPersonalMatchesQueryKey(owner.accountId),
       ]) {
-        if (error) void client.invalidateQueries({ queryKey });
-        else void client.resetQueries({ queryKey });
+        if (error) {
+          void client.invalidateQueries({ queryKey });
+        } else {
+          void client.resetQueries({ queryKey });
+        }
       }
     },
   });

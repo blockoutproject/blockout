@@ -21,8 +21,9 @@ final class AcquisitionFailure {
   static URI reasonType(RuntimeException failure) {
     // LNV passage-local completed futures retain one original XML failure without scheduling work.
     Throwable cause = failure;
-    while (cause instanceof CompletionException && cause.getCause() != null)
+    while (cause instanceof CompletionException && cause.getCause() != null) {
       cause = cause.getCause();
+    }
     boolean structural =
         cause instanceof LnvAcquisitionException
             || cause instanceof IllegalArgumentException

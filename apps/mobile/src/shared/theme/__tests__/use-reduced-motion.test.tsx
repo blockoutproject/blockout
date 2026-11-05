@@ -24,7 +24,9 @@ it("keeps a live native change when the initial preference read finishes late", 
   const changeMotion = subscribe.mock.calls.find(
     ([event]) => event === "reduceMotionChanged",
   )?.[1];
-  if (!changeMotion) throw new Error("Missing native motion subscription");
+  if (!changeMotion) {
+    throw new Error("Missing native motion subscription");
+  }
 
   // When
   await act(async () => changeMotion(true));

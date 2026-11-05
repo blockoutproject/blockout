@@ -55,6 +55,7 @@ function page(
     ...(nextDay ? { nextDay } : {}),
   };
 }
+
 beforeEach(() => {
   client = createQueryClient();
   client.setQueryDefaults([], { retry: false });
@@ -63,8 +64,11 @@ beforeEach(() => {
 });
 afterEach(() => {
   client.clear();
-  if (originalUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
-  else process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  if (originalUrl === undefined) {
+    delete process.env.EXPO_PUBLIC_API_URL;
+  } else {
+    process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  }
 });
 
 it("uses native server cursors and refetches every retained page on explicit invalidation", async () => {

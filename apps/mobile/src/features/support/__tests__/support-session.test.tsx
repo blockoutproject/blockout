@@ -74,12 +74,14 @@ beforeEach(() => {
     idToken: `e30.${payload}.test-signature`,
   });
   mockFetch.mockReset().mockImplementation((url) => {
-    if (String(url).endsWith("/application-access"))
+    if (String(url).endsWith("/application-access")) {
       return Promise.resolve(Response.json(mockApplicationAccessResponse()));
-    if (String(url).endsWith("/accounts/me"))
+    }
+    if (String(url).endsWith("/accounts/me")) {
       return Promise.resolve(
         Response.json(accountResponse({ email: "sdk@example.invalid" })),
       );
+    }
     throw new Error("Support preparation must not send a ticket");
   });
 });

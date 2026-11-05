@@ -49,8 +49,9 @@ public class OpenSearchEngine implements SearchEngine {
   /** {@inheritDoc} */
   @Override
   public Batch examples(SearchContext context, List<UUID> identities) {
-    if (!context.examples() || identities.isEmpty() || identities.size() > 5)
+    if (!context.examples() || identities.isEmpty() || identities.size() > 5) {
       throw new IllegalArgumentException("Invalid retained examples");
+    }
     return execute(context, null, 5, identities);
   }
 
@@ -65,8 +66,12 @@ public class OpenSearchEngine implements SearchEngine {
    * @return fully evaluated native candidates; no total is requested
    */
   private Batch execute(SearchContext context, Position after, int size, List<UUID> identities) {
-    if (size < 1 || size > 200) throw new IllegalArgumentException("Invalid candidate batch");
-    if (client == null) throw new SearchUnavailableException();
+    if (size < 1 || size > 200) {
+      throw new IllegalArgumentException("Invalid candidate batch");
+    }
+    if (client == null) {
+      throw new SearchUnavailableException();
+    }
     try {
       SearchRequest.Builder request =
           new SearchRequest.Builder()
@@ -78,11 +83,14 @@ public class OpenSearchEngine implements SearchEngine {
               .query(query(context, identities))
               .sort(sort -> sort.score(score -> score.order(SortOrder.Desc)))
               .sort(sort -> sort.field(field -> field.field("id").order(SortOrder.Asc)));
-      if (after != null)
+      if (after != null) {
         request.searchAfter(
             List.of(FieldValue.of(after.score()), FieldValue.of(after.id().toString())));
+      }
       SearchResponse<IndexedCity> response = client.search(request.build(), IndexedCity.class);
-      if (response.timedOut()) throw new SearchUnavailableException();
+      if (response.timedOut()) {
+        throw new SearchUnavailableException();
+      }
       List<Candidate> candidates = new ArrayList<>();
       for (Hit<IndexedCity> hit : response.hits().hits()) {
         double score = hit.sort().get(0).doubleValue();
@@ -103,7 +111,9 @@ public class OpenSearchEngine implements SearchEngine {
           .log("Native search unavailable");
       // Engine exceptions can contain query/source values. The shared HTTP owner receives only
       // this safe failure and never logs the raw payload or treats failure as successful empty.
-      if (failure instanceof SearchUnavailableException unavailable) throw unavailable;
+      if (failure instanceof SearchUnavailableException unavailable) {
+        throw unavailable;
+      }
       throw new SearchUnavailableException(failure);
     }
   }
@@ -118,7 +128,7 @@ public class OpenSearchEngine implements SearchEngine {
    */
   private Query query(SearchContext context, List<UUID> identities) {
     BoolQuery.Builder query = new BoolQuery.Builder();
-    if (!context.examples())
+    if (!context.examples()) {
       query
           .must(
               required ->
@@ -168,14 +178,24 @@ public class OpenSearchEngine implements SearchEngine {
                           term.field("names.exact")
                               .value(FieldValue.of(context.text()))
                               .boost(4.0F)));
-    if (identities != null)
+    }
+    if (identities != null) {
       query.filter(
           filter ->
               filter.ids(ids -> ids.values(identities.stream().map(UUID::toString).toList())));
-    if (context.seasonId() != null) filter(query, "seasonId", context.seasonId().toString());
-    if (context.divisionId() != null) filter(query, "divisionId", context.divisionId().toString());
-    if (context.format() != null) filter(query, "format", context.format().getValue());
-    if (context.gender() != null) filter(query, "gender", context.gender().getValue());
+    }
+    if (context.seasonId() != null) {
+      filter(query, "seasonId", context.seasonId().toString());
+    }
+    if (context.divisionId() != null) {
+      filter(query, "divisionId", context.divisionId().toString());
+    }
+    if (context.format() != null) {
+      filter(query, "format", context.format().getValue());
+    }
+    if (context.gender() != null) {
+      filter(query, "gender", context.gender().getValue());
+    }
     return query.build().toQuery();
   }
 

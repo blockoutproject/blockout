@@ -44,7 +44,9 @@ class ContributionDecisionRaceIntegrationTest extends ContributionScenario {
           reporter,
           reporter.toString(),
           "RaceReporter" + index);
-      if (index < 10) reporting.report(reporter, source.version().id(), "Synthetic reason");
+      if (index < 10) {
+        reporting.report(reporter, source.version().id(), "Synthetic reason");
+      }
     }
     UUID lastReporter = new UUID(0, 10);
     moderator(OTHER);
@@ -66,29 +68,31 @@ class ContributionDecisionRaceIntegrationTest extends ContributionScenario {
                                           blockedPid.complete(
                                               sql.queryForObject(
                                                   "SELECT pg_backend_pid()", Integer.class));
-                                          if (reportFirst)
+                                          if (reportFirst) {
                                             moderation.change(
                                                 OTHER,
                                                 matchId,
                                                 pending.version().id(),
                                                 "11",
                                                 StreamModerationActionEnum.APPROVE);
-                                          else
+                                          } else {
                                             reporting.report(
                                                 lastReporter,
                                                 source.version().id(),
                                                 "Tenth reason");
+                                          }
                                         })));
                 PostgresTestDatabase.awaitBlocked(sql, blockedPid);
-                if (reportFirst)
+                if (reportFirst) {
                   reporting.report(lastReporter, source.version().id(), "Tenth reason");
-                else
+                } else {
                   moderation.change(
                       OTHER,
                       matchId,
                       pending.version().id(),
                       "11",
                       StreamModerationActionEnum.APPROVE);
+                }
                 return future;
               });
 

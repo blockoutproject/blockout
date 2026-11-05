@@ -59,7 +59,9 @@ export interface AccountSession extends SessionSnapshot {
   signOut(): Promise<void>;
   /** Clears this caller's native subject locally after bounded push removal; refuses a different current subject. */
   clearCredentials(): Promise<void>;
+  /** Retries installation/SDK initialization only in initialization-error; otherwise does nothing. */
   retryInitialization(): void;
+  /** Retries SDK credential restoration only in authentication-error; otherwise does nothing. */
   retryAuthentication(): void;
 }
 
@@ -97,33 +99,40 @@ export function AccountSessionProvider({
   const [restorationAttempt, setRestorationAttempt] = useState(0);
   useEffect(() => {
     let active = true;
+
     /** F14 exclusively owns first-install credential clearing and its installation marker. */
     async function initialize() {
       try {
         const domain = process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
         const clientId = process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID;
-        if (!domain || !clientId)
+        if (!domain || !clientId) {
           throw new Error("Native authentication is not configured");
+        }
         const client = new Auth0({ domain, clientId, useDPoP: false });
         await initializeV2Installation(client);
-        if (active)
+        if (active) {
           setInitialization({
             status: "ready",
             domain,
             clientId,
             credentialsManager: client.credentialsManager,
           });
+        }
       } catch (error) {
-        if (active)
+        if (active) {
           setInitialization({ status: "initialization-error", error });
+        }
       }
     }
+
     void initialize();
     return () => {
       active = false;
     };
   }, [initializationAttempt]);
-  if (initialization.status === "initializing") return fallback;
+  if (initialization.status === "initializing") {
+    return fallback;
+  }
   const content = (
     <SessionScope
       initialization={initialization}
@@ -174,11 +183,16 @@ function SessionScope({
   const [operation, setOperation] = useState<AccountSession["operation"]>();
   const credentialsFor = useCallback(
     async (original: string | null) => {
-      if (!original) throw new ApiError("http", 401);
-      if (!manager) throw new ApiError("configuration");
+      if (!original) {
+        throw new ApiError("http", 401);
+      }
+      if (!manager) {
+        throw new ApiError("configuration");
+      }
       const credentials = await manager.getCredentials();
-      if (!credentials || parseIdToken(credentials.idToken).sub !== original)
+      if (!credentials || parseIdToken(credentials.idToken).sub !== original) {
         throw new ApiError("cancelled");
+      }
       return credentials;
     },
     [manager],
@@ -188,14 +202,19 @@ function SessionScope({
     [credentialsFor, subject],
   );
   let status: AuthenticationStatus = "guest";
-  if (initialization.status === "initialization-error")
+  if (initialization.status === "initialization-error") {
     status = "initialization-error";
-  else if (operation) status = operation;
-  else if (auth.isLoading) status = "restoring";
-  else if (requiresReauthentication(auth.error))
+  } else if (operation) {
+    status = operation;
+  } else if (auth.isLoading) {
+    status = "restoring";
+  } else if (requiresReauthentication(auth.error)) {
     status = "reauthentication-required";
-  else if (subject) status = "authenticated";
-  else if (auth.error) status = "authentication-error";
+  } else if (subject) {
+    status = "authenticated";
+  } else if (auth.error) {
+    status = "authentication-error";
+  }
 
   const session: Omit<AccountSession, "accountId"> = {
     subject,
@@ -207,15 +226,22 @@ function SessionScope({
         : auth.error,
     getCredentials,
     retryInitialization() {
-      if (status === "initialization-error") retryInitialization();
+      if (status === "initialization-error") {
+        retryInitialization();
+      }
     },
     retryAuthentication() {
-      if (status === "authentication-error") retryAuthentication();
+      if (status === "authentication-error") {
+        retryAuthentication();
+      }
     },
     async signIn(audience) {
-      if (initialization.status !== "ready")
+      if (initialization.status !== "ready") {
         throw new Error("Native authentication is unavailable");
-      if (operation) return;
+      }
+      if (operation) {
+        return;
+      }
       const remove = preparePushRemoval?.();
       setOperation("authenticating");
       try {
@@ -234,25 +260,37 @@ function SessionScope({
       }
     },
     async signOut() {
-      if (operation) return;
+      if (operation) {
+        return;
+      }
       const remove = preparePushRemoval?.();
       setOperation("signing-out");
       try {
         await remove?.().catch(() => undefined);
-        if (initialization.status === "ready") await auth.clearSession();
+        if (initialization.status === "ready") {
+          await auth.clearSession();
+        }
       } finally {
         setOperation(undefined);
       }
     },
     async clearCredentials() {
-      if (currentSubject.current !== subject) throw new ApiError("cancelled");
-      if (operation) return;
+      if (currentSubject.current !== subject) {
+        throw new ApiError("cancelled");
+      }
+      if (operation) {
+        return;
+      }
       const remove = preparePushRemoval?.();
       setOperation("signing-out");
       try {
         await remove?.().catch(() => undefined);
-        if (currentSubject.current !== subject) throw new ApiError("cancelled");
-        if (initialization.status === "ready") await auth.clearCredentials();
+        if (currentSubject.current !== subject) {
+          throw new ApiError("cancelled");
+        }
+        if (initialization.status === "ready") {
+          await auth.clearCredentials();
+        }
       } finally {
         setOperation(undefined);
       }
@@ -288,7 +326,9 @@ function PrivateAccountLifetime({
     getCredentials,
     async signIn(audience: string) {
       const login = await session.signIn(audience);
-      if (login) setCredentialError(undefined);
+      if (login) {
+        setCredentialError(undefined);
+      }
       return login;
     },
     status:
@@ -333,7 +373,8 @@ function CurrentAccountIdentity({
 /** Reads the SDK-derived session and current private account; callers obtain credentials through this owner. */
 export function useAccountSession(): AccountSession {
   const session = useContext(AccountSessionContext);
-  if (!session)
+  if (!session) {
     throw new Error("useAccountSession requires AccountSessionProvider");
+  }
   return session;
 }

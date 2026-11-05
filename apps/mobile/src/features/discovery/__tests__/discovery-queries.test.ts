@@ -14,8 +14,11 @@ beforeEach(() => {
 });
 afterEach(() => {
   jest.restoreAllMocks();
-  if (originalUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
-  else process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  if (originalUrl === undefined) {
+    delete process.env.EXPO_PUBLIC_API_URL;
+  } else {
+    process.env.EXPO_PUBLIC_API_URL = originalUrl;
+  }
 });
 
 it("uses the returned cursor as pageParam inside one native infinite-query entry", async () => {
@@ -119,8 +122,9 @@ it("isolates type, normalized text, exact filters and deliberate bypass intent",
       },
       credentials,
     ),
-  ])
+  ]) {
     expect(other.queryKey).not.toEqual(options.queryKey);
+  }
 });
 
 it.each(["club", "team", "pool"] as const)(

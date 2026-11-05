@@ -64,24 +64,29 @@ public class AcceptClubDetails {
             observation.context().readOrdinal());
     Contacts current = store.clubContacts(clubId);
     String reference = store.club(clubId).orElseThrow().reference();
-    if (current.order() != null && order.compareTo(current.order()) <= 0)
+    if (current.order() != null && order.compareTo(current.order()) <= 0) {
       return outcome(
           reference,
           clubId,
           order.compareTo(current.order()) < 0
               ? ObservationOutcomeEnum.STALE
               : ObservationOutcomeEnum.UNCHANGED);
+    }
     Map<ContactField, ContactValue> fields = new EnumMap<>(current.fields());
     boolean rejectedFields = false;
     for (Map.Entry<ContactField, JsonNullable<String>> entry : observation.fields().entrySet()) {
       ContactValue previous = fields.get(entry.getKey());
-      if (previous.restricted() || !entry.getValue().isPresent()) continue;
+      if (previous.restricted() || !entry.getValue().isPresent()) {
+        continue;
+      }
       String proposed = entry.getValue().get();
-      if (proposed == null || values.valid(entry.getKey(), proposed))
+      if (proposed == null || values.valid(entry.getKey(), proposed)) {
         fields.put(
             entry.getKey(),
             new ContactValue(proposed, previous.manualValue(), previous.mode(), false));
-      else rejectedFields = true;
+      } else {
+        rejectedFields = true;
+      }
     }
     String name =
         observation.sourceName() == null || observation.sourceName().isBlank()

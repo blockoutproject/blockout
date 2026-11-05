@@ -19,9 +19,15 @@ export interface ReadFeedbackProps {
  * Disabled observations never start recovery here; their prerequisite belongs to the feature owner.
  */
 export function ReadFeedback({ query, loadingContent }: ReadFeedbackProps) {
-  if (query.isEnabled === false) return query.isError ? <ErrorState /> : null;
-  if (query.isPending && query.isFetching) return loadingContent;
-  if (!query.isError && !query.isPending) return null;
+  if (query.isEnabled === false) {
+    return query.isError ? <ErrorState /> : null;
+  }
+  if (query.isPending && query.isFetching) {
+    return loadingContent;
+  }
+  if (!query.isError && !query.isPending) {
+    return null;
+  }
   return (
     <ErrorState
       onRetry={() => void query.refetch()}

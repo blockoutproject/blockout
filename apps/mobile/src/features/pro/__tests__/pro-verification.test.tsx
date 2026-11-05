@@ -71,12 +71,18 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   jest.restoreAllMocks();
-  if (originalDomain === undefined) delete process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
-  else process.env.EXPO_PUBLIC_AUTH0_DOMAIN = originalDomain;
-  if (originalClient === undefined)
+  if (originalDomain === undefined) {
+    delete process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
+  } else {
+    process.env.EXPO_PUBLIC_AUTH0_DOMAIN = originalDomain;
+  }
+  if (originalClient === undefined) {
     delete process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID;
-  else process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = originalClient;
+  } else {
+    process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = originalClient;
+  }
 });
+
 /** Mounts only the real owners; each scenario publishes and awaits its account explicitly. */
 async function renderAccount() {
   await render(
@@ -89,6 +95,7 @@ async function renderAccount() {
     />,
   );
 }
+
 it("does not turn an initial read failure or a failed retry into inactivity", async () => {
   // Given
   mockPurchases.getCustomerInfo.mockRejectedValue(new Error("private receipt"));
@@ -297,10 +304,11 @@ it.each(["inactive", "unavailable"] as const)(
   async (status) => {
     // Given
     const user = userEvent.setup();
-    if (status === "unavailable")
+    if (status === "unavailable") {
       mockPurchases.getCustomerInfo.mockRejectedValue(
         new Error("initial unavailable"),
       );
+    }
     await renderAccount();
     await waitFor(() => expect(account.status).toBe("authenticated"));
     await act(() =>

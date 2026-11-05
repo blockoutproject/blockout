@@ -58,8 +58,9 @@ public class ReadModeration {
       long page) {
     require(actor);
     int index = page(page);
-    if (season != null && sporting.season(season).isEmpty())
+    if (season != null && sporting.season(season).isEmpty()) {
       throw new SportingResourceNotFoundException();
+    }
     ModerationStore.QueuePage selected =
         reads.queue(
             season,
@@ -89,13 +90,17 @@ public class ReadModeration {
     require(actor);
     int index = page(page);
     ReadPrivateMatches.Context context = contexts.read(Set.of(matchId)).get(matchId);
-    if (context == null) throw new SportingResourceNotFoundException();
+    if (context == null) {
+      throw new SportingResourceNotFoundException();
+    }
     boolean canPublish = context.publiclyViewable() && !eligibility.read(matchId).professional();
     ContributionStore.VersionPage found =
         reads.versions(matchId, state == null ? null : state.name(), index);
     ContributionVersion active = versions.active(matchId).orElse(null);
     List<ContributionVersion> selected = new ArrayList<>(found.items());
-    if (active != null) selected.add(active);
+    if (active != null) {
+      selected.add(active);
+    }
     Map<UUID, Version> enriched = enrich(selected, canPublish);
     return new Match(
         Long.toString(versions.state(matchId).revision()),
@@ -169,9 +174,12 @@ public class ReadModeration {
    * @throws AccessDeniedException when its current moderation grant is absent
    */
   private void require(UUID actor) {
-    if (!accounts.exists(actor)) throw new AccountNotFoundException();
-    if (!permissions.forAccount(actor).contains(Permission.MODERATE_STREAM_LINKS))
+    if (!accounts.exists(actor)) {
+      throw new AccountNotFoundException();
+    }
+    if (!permissions.forAccount(actor).contains(Permission.MODERATE_STREAM_LINKS)) {
       throw new AccessDeniedException("Action is not permitted");
+    }
   }
 
   /**
@@ -232,7 +240,9 @@ public class ReadModeration {
    * @throws IllegalArgumentException when its twenty-item offset cannot be represented
    */
   private int page(long page) {
-    if (page < 0 || page > 107374182) throw new IllegalArgumentException("Invalid page");
+    if (page < 0 || page > 107374182) {
+      throw new IllegalArgumentException("Invalid page");
+    }
     return (int) page;
   }
 
@@ -245,7 +255,9 @@ public class ReadModeration {
    * @throws IllegalArgumentException when the next offset cannot be represented
    */
   private Long next(long page, boolean hasNext) {
-    if (!hasNext) return null;
+    if (!hasNext) {
+      return null;
+    }
     page(page + 1);
     return page + 1;
   }

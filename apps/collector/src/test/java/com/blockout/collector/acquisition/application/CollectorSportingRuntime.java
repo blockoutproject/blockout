@@ -198,7 +198,9 @@ final class CollectorSportingRuntime implements AutoCloseable {
    */
   private static String required(String name) {
     String value = System.getProperty(name);
-    if (value == null || value.isBlank()) throw new IllegalArgumentException("Missing " + name);
+    if (value == null || value.isBlank()) {
+      throw new IllegalArgumentException("Missing " + name);
+    }
     return value;
   }
 

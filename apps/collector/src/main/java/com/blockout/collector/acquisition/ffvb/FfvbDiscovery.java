@@ -42,7 +42,9 @@ public class FfvbDiscovery {
     requireContext(url, season, organizer);
     Document page = Jsoup.parse(new String(bytes, ENCODING), url.toString());
     SportingObservation.Catalog round = round(page, url, season, organizer);
-    if (round != null) return round;
+    if (round != null) {
+      return round;
+    }
     Element menu = page.selectFirst("#menu");
     List<Element> links =
         menu == null ? page.select("select option[value]") : menu.select("a[href]");
@@ -52,7 +54,9 @@ public class FfvbDiscovery {
                 .anyMatch(
                     link ->
                         link.attr("value").contains("vbspo_calendrier.php") && pack(link) != null);
-    if (!recognized) throw invalid();
+    if (!recognized) {
+      throw invalid();
+    }
     boolean complete = true;
     boolean seasonProven =
         page.select("select[name=saison] option[selected], input[name=saison]").stream()
@@ -61,13 +65,19 @@ public class FfvbDiscovery {
     for (Element link : links) {
       String attribute = link.hasAttr("href") ? "href" : "value";
       String value = link.attr(attribute);
-      if (!value.contains("vbspo_calendrier.php")) continue;
+      if (!value.contains("vbspo_calendrier.php")) {
+        continue;
+      }
       String pack = pack(link);
-      if (excludedCompetition(pack + " " + link.text())) continue;
+      if (excludedCompetition(pack + " " + link.text())) {
+        continue;
+      }
       try {
         URI calendar = URI.create(link.absUrl(attribute));
         Map<String, String> fields = query(calendar);
-        if (EXCLUDED.contains(fields.getOrDefault("codent", ""))) continue;
+        if (EXCLUDED.contains(fields.getOrDefault("codent", ""))) {
+          continue;
+        }
         if (season.equals(fields.get("saison"))
             && organizer.equals(fields.get("codent"))
             && !fields.getOrDefault("division", "").isBlank()
@@ -84,7 +94,9 @@ public class FfvbDiscovery {
         seasonProven = true;
         String tour = optional(fields.get("tour"));
         String competition = optional(fields.get("coddiv"));
-        if (competition == null) competition = pack;
+        if (competition == null) {
+          competition = pack;
+        }
         if (pack == null || competition == null) {
           complete = false;
           continue;
@@ -99,12 +111,16 @@ public class FfvbDiscovery {
             List.of(competition == null ? "" : competition, tour == null ? "" : tour, pool)
                 .toString();
         SportingObservation.Pool previous = pools.putIfAbsent(key, candidate);
-        if (previous != null && !previous.equals(candidate)) complete = false;
+        if (previous != null && !previous.equals(candidate)) {
+          complete = false;
+        }
       } catch (IllegalArgumentException | URISyntaxException failure) {
         complete = false;
       }
     }
-    if (!seasonProven) throw invalid();
+    if (!seasonProven) {
+      throw invalid();
+    }
     return new SportingObservation.Catalog(complete, new ArrayList<>(pools.values()));
   }
 
@@ -128,11 +144,14 @@ public class FfvbDiscovery {
    * @param organizer expected supported organizer
    */
   public void requireContext(URI url, String season, String organizer) {
-    if (EXCLUDED.contains(organizer)) throw invalid();
+    if (EXCLUDED.contains(organizer)) {
+      throw invalid();
+    }
     Map<String, String> fields = query(url);
     if ((fields.containsKey("saison") && !season.equals(fields.get("saison")))
-        || (fields.containsKey("codent") && !organizer.equals(fields.get("codent"))))
+        || (fields.containsKey("codent") && !organizer.equals(fields.get("codent")))) {
       throw invalid();
+    }
   }
 
   /**
@@ -148,7 +167,9 @@ public class FfvbDiscovery {
   private SportingObservation.Catalog round(
       Document page, URI url, String season, String organizer) {
     if (!(page.selectFirst("form[action$=vbspo_calendrier_export.php]")
-        instanceof FormElement form)) return null;
+        instanceof FormElement form)) {
+      return null;
+    }
     Map<String, String> fields = new LinkedHashMap<>();
     form.formData().forEach(field -> fields.put(field.key(), field.value()));
     String division = fields.get("cal_coddiv");
@@ -157,11 +178,15 @@ public class FfvbDiscovery {
         || division == null
         || division.isBlank()
         || tour == null
-        || tour.isBlank()) return null;
+        || tour.isBlank()) {
+      return null;
+    }
     if (!season.equals(fields.get("cal_saison"))
         || !organizer.equals(fields.get("cal_codent"))
         || !division.equals(query(url).get("division"))
-        || !tour.equals(query(url).get("tour"))) throw invalid();
+        || !tour.equals(query(url).get("tour"))) {
+      throw invalid();
+    }
     URI calendar;
     try {
       calendar = new URIBuilder(url).setParameter("calend", "COMPLET").build();
@@ -224,8 +249,11 @@ public class FfvbDiscovery {
     List<URI> result = new ArrayList<>();
     for (Element link : page.select("frame[src], iframe[src], a[href], option[value]")) {
       String attribute = "value";
-      if (link.hasAttr("src")) attribute = "src";
-      else if (link.hasAttr("href")) attribute = "href";
+      if (link.hasAttr("src")) {
+        attribute = "src";
+      } else if (link.hasAttr("href")) {
+        attribute = "href";
+      }
       try {
         URI target = URI.create(link.absUrl(attribute));
         String path = target.getPath();
@@ -233,7 +261,9 @@ public class FfvbDiscovery {
             && path != null
             && path.startsWith("/ffvbapp/resu/")
             && !excludedCompetition(pack(link) + " " + link.text())
-            && !EXCLUDED.contains(query(target).getOrDefault("codent", ""))) result.add(target);
+            && !EXCLUDED.contains(query(target).getOrDefault("codent", ""))) {
+          result.add(target);
+        }
       } catch (IllegalArgumentException failure) {
         throw invalid();
       }
@@ -250,11 +280,14 @@ public class FfvbDiscovery {
   private String pack(Element link) {
     if (link.tagName().equals("option")) {
       Element group = link.closest("optgroup");
-      if (group != null && !group.attr("label").isBlank()) return group.attr("label");
+      if (group != null && !group.attr("label").isBlank()) {
+        return group.attr("label");
+      }
       Element select = link.closest("select");
       Element heading = select == null ? null : select.previousElementSibling();
-      if (heading != null && heading.tagName().equals("span") && !heading.text().isBlank())
+      if (heading != null && heading.tagName().equals("span") && !heading.text().isBlank()) {
         return heading.text();
+      }
     }
     Element parent = link.parent();
     while (parent != null) {
@@ -267,7 +300,9 @@ public class FfvbDiscovery {
                 .filter(child -> child.tagName().equals("a"))
                 .findFirst()
                 .orElse(null);
-        if (heading != null && !heading.text().equals("Compétitions")) return heading.text();
+        if (heading != null && !heading.text().equals("Compétitions")) {
+          return heading.text();
+        }
       }
       parent = grandparent;
     }
@@ -298,7 +333,9 @@ public class FfvbDiscovery {
     Map<String, String> fields = new LinkedHashMap<>();
     for (NameValuePair field : new URIBuilder(uri).getQueryParams()) {
       String previous = fields.putIfAbsent(field.getName(), field.getValue());
-      if (previous != null && !previous.equals(field.getValue())) throw invalid();
+      if (previous != null && !previous.equals(field.getValue())) {
+        throw invalid();
+      }
     }
     return fields;
   }

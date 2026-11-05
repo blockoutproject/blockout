@@ -56,12 +56,18 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   jest.restoreAllMocks();
-  if (originalDomain === undefined) delete process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
-  else process.env.EXPO_PUBLIC_AUTH0_DOMAIN = originalDomain;
-  if (originalClient === undefined)
+  if (originalDomain === undefined) {
+    delete process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
+  } else {
+    process.env.EXPO_PUBLIC_AUTH0_DOMAIN = originalDomain;
+  }
+  if (originalClient === undefined) {
     delete process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID;
-  else process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = originalClient;
+  } else {
+    process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = originalClient;
+  }
 });
+
 /** Mounts only the real owners; each scenario publishes and awaits its account explicitly. */
 async function renderAccount() {
   return render(
@@ -74,6 +80,7 @@ async function renderAccount() {
     />,
   );
 }
+
 it.each([
   "association",
   "explicit refresh",
@@ -97,8 +104,9 @@ it.each([
   const stateChange = foreground.mock.calls
     .filter(([event]) => event === "change")
     .at(-1)?.[1];
-  if (!stateChange)
+  if (!stateChange) {
     throw new Error("The Pro provider did not subscribe to AppState changes");
+  }
   const active = { "Blockout Pro": entitlement() };
   mockPurchases.getCustomerInfo.mockResolvedValueOnce(
     customerInfo({
@@ -147,8 +155,9 @@ it("removes native subscriptions when the provider unmounts", async () => {
   const subscriptionIndex = foreground.mock.calls.findIndex(
     ([event]) => event === "change",
   );
-  if (subscriptionIndex < 0)
+  if (subscriptionIndex < 0) {
     throw new Error("The Pro provider did not subscribe to AppState changes");
+  }
   const removeForeground = jest.spyOn(
     foreground.mock.results[subscriptionIndex].value,
     "remove",

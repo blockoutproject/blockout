@@ -274,13 +274,15 @@ class GitHubAttachmentProcessTest {
           evidence.resolve("credential-in-environment"),
           Boolean.toString("synthetic-token".equals(System.getenv("GH_TOKEN"))));
       List<Path> images = new ArrayList<>();
-      for (int index = 5; index < arguments.size(); index += 2)
+      for (int index = 5; index < arguments.size(); index += 2) {
         images.add(Path.of(arguments.get(index + 1)));
+      }
       boolean privateInputs = true;
-      for (Path image : images)
+      for (Path image : images) {
         privateInputs &=
             Files.getPosixFilePermissions(image)
                 .equals(PosixFilePermissions.fromString("rw-------"));
+      }
       Files.writeString(evidence.resolve("private-inputs"), Boolean.toString(privateInputs));
       System.out.print("raw-private-provider-output".repeat(10_000));
       System.err.print("raw-private-provider-error".repeat(10_000));
@@ -297,7 +299,9 @@ class GitHubAttachmentProcessTest {
                         Files.writeString(
                             evidence.resolve("files-at-termination"),
                             Boolean.toString(images.stream().allMatch(Files::exists)));
-                        if (mode.equals("force")) new CountDownLatch(1).await();
+                        if (mode.equals("force")) {
+                          new CountDownLatch(1).await();
+                        }
                       } catch (Exception failure) {
                         throw new IllegalStateException(failure);
                       }

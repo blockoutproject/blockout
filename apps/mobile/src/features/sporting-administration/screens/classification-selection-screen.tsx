@@ -48,6 +48,7 @@ export function ClassificationSelectionScreen({
     </Sheet>
   );
 }
+
 /** Choices preserve the draft but require a successful current classification read and grants before editing. */
 function Selection({
   editor,
@@ -98,13 +99,17 @@ function Selection({
     divisions.authority.permissions?.manageSportingClassification !== true ||
     denied ||
     !classification.query.isSuccess;
+
   /** Rereads the current remote choice owner while preserving static choices and the parent draft. */
   async function refresh() {
     const result = divisions.authority.enabled
       ? await divisions.query.refetch()
       : await divisions.authority.account.refetch();
-    if (result.isError && choices.length > 0) feedback.error();
+    if (result.isError && choices.length > 0) {
+      feedback.error();
+    }
   }
+
   return (
     <Sheet
       title={label}

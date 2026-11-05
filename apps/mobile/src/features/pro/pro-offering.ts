@@ -16,7 +16,9 @@ export function canPurchasePro(state: ProState): boolean {
 export async function loadProOffering(
   offeringId: string,
 ): Promise<PurchasesOffering | null> {
-  if (!offeringId) return null;
+  if (!offeringId) {
+    return null;
+  }
   try {
     const offerings = await Purchases.getOfferings();
     const offering = offerings.all[offeringId];

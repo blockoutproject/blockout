@@ -16,11 +16,13 @@ import { useAccountSession } from "../../accounts/current-account";
 /** Reads one settings group and lets normal Query invalidation refresh its server projections. */
 export function useMaintenanceSettings(enabled: boolean) {
   const session = useAccountSession();
+
   /** Uses captured native credentials; the server owns grant and revision validation. */
   async function request() {
     const credentials = await session.getCredentials();
     return { headers: { Authorization: `Bearer ${credentials.accessToken}` } };
   }
+
   const client = useQueryClient();
   const { invalidate: invalidateAccess } = useApplicationAccess();
   const options = createMaintenanceSettingsQueryOptions({
@@ -29,11 +31,13 @@ export function useMaintenanceSettings(enabled: boolean) {
   });
   const queryKey = options.queryKey;
   const query = useQuery(options);
+
   /** Refreshes the private editor and complete admission result after any explicit attempt. */
   function invalidate() {
     void client.invalidateQueries({ queryKey, exact: true });
     void invalidateAccess();
   }
+
   const content = useMutation({
     mutationKey: [...queryKey, ...getChangeMaintenanceSettingsMutationKey()],
     retry: false,

@@ -25,16 +25,22 @@ export function useFollowStateQuery(target: FollowingTarget) {
     profile.isSuccess &&
     profile.data.accountId === owner?.accountId;
   const bypass = Boolean(admission.bypass);
+
   /** Prepares each captured-owner request after native credentials so F12 rechecks current intent. */
   async function request(signal?: AbortSignal) {
-    if (!owner || !admission.admitted) throw new ApiError("cancelled");
+    if (!owner || !admission.admitted) {
+      throw new ApiError("cancelled");
+    }
     const credentials = await getCredentials();
-    if (!credentials) throw new ApiError("http", 401);
+    if (!credentials) {
+      throw new ApiError("http", 401);
+    }
     return admission.request({
       signal,
       headers: { Authorization: `Bearer ${credentials.accessToken}` },
     });
   }
+
   const options = createFollowStateQueryOptions(target, owner, request);
   const query = useQuery({
     ...options,

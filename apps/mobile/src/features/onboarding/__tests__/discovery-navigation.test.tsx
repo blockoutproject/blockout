@@ -295,8 +295,9 @@ it.each(["maintenance", "minimum version"])(
   async (gate) => {
     // Given
     const access = applicationAccessResponse();
-    if (gate === "maintenance") access.maintenance.active = true;
-    else {
+    if (gate === "maintenance") {
+      access.maintenance.active = true;
+    } else {
       access.versions.ios.minimumVersion = "9.0.0";
       access.versions.android.minimumVersion = "9.0.0";
     }

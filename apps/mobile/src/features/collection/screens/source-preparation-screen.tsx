@@ -17,6 +17,7 @@ export interface SourcePreparationScreenProps {
   seasonId: string;
   sourceId: string;
 }
+
 /** Retains a source draft read-only on grant/read failure; identity changes discard the obsolete editor. */
 export function SourcePreparationScreen({
   seasonId,
@@ -30,9 +31,12 @@ export function SourcePreparationScreen({
     current && season.data && current.seasonId === seasonId,
   );
   const feedback = useActionFeedback();
+
   /** Refreshes the admitted source and season together; one event reports their retained-draft failure. */
   async function refresh() {
-    if (editing.candidate.isPending) return;
+    if (editing.candidate.isPending) {
+      return;
+    }
     feedback.clear();
     const results = await Promise.all(
       !authority.enabled
@@ -42,8 +46,11 @@ export function SourcePreparationScreen({
             season.refetch({ cancelRefetch: false }),
           ],
     );
-    if (retained && results.some((result) => result.isError)) feedback.error();
+    if (retained && results.some((result) => result.isError)) {
+      feedback.error();
+    }
   }
+
   const pending =
     !retained &&
     (!authority.enabled

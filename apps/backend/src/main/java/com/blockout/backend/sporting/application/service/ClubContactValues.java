@@ -20,10 +20,15 @@ public class ClubContactValues {
    * @return whether this source/manual value is usable for its field
    */
   public boolean valid(ContactField field, String value) {
-    if (value == null || value.isBlank() || value.codePoints().anyMatch(Character::isISOControl))
+    if (value == null || value.isBlank() || value.codePoints().anyMatch(Character::isISOControl)) {
       return false;
-    if (field == ContactField.EMAIL) return validator.validate(new ContactEmail(value)).isEmpty();
-    if (field != ContactField.WEBSITE) return true;
+    }
+    if (field == ContactField.EMAIL) {
+      return validator.validate(new ContactEmail(value)).isEmpty();
+    }
+    if (field != ContactField.WEBSITE) {
+      return true;
+    }
     try {
       URI uri = URI.create(value);
       return ("https".equalsIgnoreCase(uri.getScheme()) || "http".equalsIgnoreCase(uri.getScheme()))

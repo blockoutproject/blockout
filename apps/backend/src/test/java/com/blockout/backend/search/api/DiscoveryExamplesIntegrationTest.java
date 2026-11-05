@@ -75,8 +75,9 @@ class DiscoveryExamplesIntegrationTest {
         Statement statement = connection.createStatement()) {
       statement.execute("TRUNCATE sporting_season, sporting_club, sporting_division CASCADE");
     }
-    if (nativeEngine.client.indices().exists(r -> r.index(PREFIX + "-*")).value())
+    if (nativeEngine.client.indices().exists(r -> r.index(PREFIX + "-*")).value()) {
       nativeEngine.client.indices().delete(r -> r.index(PREFIX + "-*"));
+    }
     sql.update(
         "INSERT INTO sporting_season(id,start_year,label) VALUES (?,2026,'2026/2027')", SEASON);
     sql.update(
@@ -113,9 +114,10 @@ class DiscoveryExamplesIntegrationTest {
     for (Kind kind : List.of(Kind.CLUB, Kind.TEAM, Kind.POOL)) {
       String index = PREFIX + "-" + kind.name().toLowerCase() + "s";
       nativeEngine.createIndex(index);
-      for (SportingPublicInput input : owners.publicInputs(kind, Set.copyOf(ids())))
+      for (SportingPublicInput input : owners.publicInputs(kind, Set.copyOf(ids()))) {
         nativeEngine.client.index(
             r -> r.index(index).id(input.id().toString()).document(SearchDocuments.from(input)));
+      }
       nativeEngine.client.indices().refresh(r -> r.index(index));
     }
   }
@@ -133,8 +135,9 @@ class DiscoveryExamplesIntegrationTest {
     // Then
     assertThat(identities(response, collection)).containsExactly(id(1), id(2), id(3), id(4), id(5));
     assertThat(response.propertyNames()).containsExactly(collection);
-    if (collection.equals("teams"))
+    if (collection.equals("teams")) {
       assertThat(response.path(collection).get(0).hasNonNull("club")).isFalse();
+    }
   }
 
   @ParameterizedTest
@@ -220,8 +223,9 @@ class DiscoveryExamplesIntegrationTest {
   @DisplayName("Initial selection skips stale cities before filling five current examples")
   void skipsStaleInitialCandidates() throws Exception {
     // Given
-    for (UUID identity : List.of(id(1), id(2), id(3)))
+    for (UUID identity : List.of(id(1), id(2), id(3))) {
       sql.update("UPDATE sporting_club SET municipality = 'Niort' WHERE id = ?", identity);
+    }
 
     // When
     JsonNode response = read(get("/clubs"));

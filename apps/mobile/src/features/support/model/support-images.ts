@@ -42,8 +42,9 @@ export async function prepareSupportImage(
       compress: 0.9,
     });
     file = new File(output.uri);
-    if (file.size < 1 || file.size > 5 * 1024 * 1024)
+    if (file.size < 1 || file.size > 5 * 1024 * 1024) {
       throw new Error("Prepared image exceeds support limit");
+    }
     return file;
   } catch (error) {
     deleteOwnedImage(file);
@@ -70,12 +71,14 @@ export function useSupportImages(
   /** An in-flight multipart send retains its original files even when navigation disposes the editor. */
   function release(file: File) {
     owned.current.delete(file);
-    if (upload.current)
+    if (upload.current) {
       void upload.current.then(
         () => deleteOwnedImage(file),
         () => deleteOwnedImage(file),
       );
-    else deleteOwnedImage(file);
+    } else {
+      deleteOwnedImage(file);
+    }
   }
 
   useEffect(() => {
@@ -84,12 +87,14 @@ export function useSupportImages(
     return () => {
       active.current = false;
       files.forEach((file) => {
-        if (upload.current)
+        if (upload.current) {
           void upload.current.then(
             () => deleteOwnedImage(file),
             () => deleteOwnedImage(file),
           );
-        else deleteOwnedImage(file);
+        } else {
+          deleteOwnedImage(file);
+        }
       });
       files.clear();
     };
@@ -111,7 +116,9 @@ export function useSupportImages(
       }
       setLimitError(undefined);
       for (const asset of assets) {
-        if (!active.current) break;
+        if (!active.current) {
+          break;
+        }
         const previous = replaceId
           ? getValues("images").find((image) => image.id === replaceId)
           : undefined;
@@ -121,7 +128,9 @@ export function useSupportImages(
           uri: "",
           status: "preparing",
         };
-        if (previous?.file) release(previous.file);
+        if (previous?.file) {
+          release(previous.file);
+        }
         update(image, replaceId);
         try {
           const file = await prepareSupportImage(asset);
@@ -132,7 +141,9 @@ export function useSupportImages(
           owned.current.add(file);
           update({ ...image, status: "ready", uri: file.uri, file }, image.id);
         } catch {
-          if (active.current) update({ ...image, status: "error" }, image.id);
+          if (active.current) {
+            update({ ...image, status: "error" }, image.id);
+          }
         }
       }
     },
@@ -152,10 +163,14 @@ export function useSupportImages(
 
   /** Removal is explicit, including an error item; borrowed library originals are never deleted. */
   function remove(id: string) {
-    if (!canSelect() || selection.isPending()) return;
+    if (!canSelect() || selection.isPending()) {
+      return;
+    }
     const current = getValues("images");
     const file = current.find((image) => image.id === id)?.file;
-    if (file) release(file);
+    if (file) {
+      release(file);
+    }
     setValue(
       "images",
       current.filter((image) => image.id !== id),
@@ -168,6 +183,7 @@ export function useSupportImages(
     images,
     selection: {
       ...selection,
+      /** Refuses additions at the five-image limit while allowing replacement of an existing image. */
       select(replaceId?: string) {
         if (!replaceId && getValues("images").length >= 5) {
           setLimitError("Vous pouvez joindre cinq images maximum.");
@@ -189,7 +205,9 @@ export function useSupportImages(
     retainUntil(promise: Promise<void>) {
       upload.current = promise;
       const done = () => {
-        if (upload.current === promise) upload.current = undefined;
+        if (upload.current === promise) {
+          upload.current = undefined;
+        }
       };
       void promise.then(done, done);
     },
