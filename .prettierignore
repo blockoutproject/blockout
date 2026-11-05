@@ -18,5 +18,4 @@ apps/mobile/assets/
 mvnw
 mvnw.cmd
 *.java
-# Preserve applied migration history, including embedded SQL.
-apps/backend/src/main/resources/db/changelog/
+*.xml

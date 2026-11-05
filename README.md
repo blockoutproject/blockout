@@ -98,16 +98,14 @@ together. Neither language mandates a blank line before every return or bans
 nested ternaries: simplify difficult expressions during review rather than
 rewriting readable conditions mechanically.
 
-The standard Prettier XML plugin formats Maven/Checkstyle files and test fixtures.
-Maven/Checkstyle use its documented whitespace-insensitive mode; other XML keeps
-the conservative default. Values and attribute order remain unchanged. Historical migrations, generated
-sources, upstream imports, licenses and protected artwork remain excluded.
+XML, generated sources, upstream imports, licenses and protected artwork remain
+excluded from Prettier.
 EditorConfig shares basic editor settings with matching protected-file exceptions.
 
 ```sh
 npm run style:fix       # Available ESLint fixes, Prettier and Java Spotless
 npm run lint:fix        # ESLint automatic fixes only
-npm run format         # Prettier, including XML
+npm run format         # Prettier
 ./mvnw -B -ntp spotless:apply # Java formatting
 npm run verify         # Formatting and application checks
 ```
@@ -118,8 +116,7 @@ arbitrary function-size limits, Git hooks or suppression baselines.
 
 Integration references: [Expo flat config](https://docs.expo.dev/guides/using-eslint/),
 [Prettier with linters](https://prettier.io/docs/integrating-with-linters),
-[Stylistic spacing](https://eslint.style/rules/padding-line-between-statements),
-and [Prettier XML](https://github.com/prettier/plugin-xml#configuration).
+and [Stylistic spacing](https://eslint.style/rules/padding-line-between-statements).
 
 ### Collector-to-sporting qualification
 
