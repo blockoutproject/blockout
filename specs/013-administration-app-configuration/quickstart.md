@@ -144,7 +144,7 @@ npm run test --workspace=@blockout/mobile -- \
   --runTestsByPath src/features/access/__tests__/maintenance-problem.test.ts
 ```
 
-No native screen, Auth0/RevenueCat/store operation or real source collection was exercised by this lot. Native gate implementation is recorded below; T031/T039, actual F07 handoff/inbox/purge and the existing iOS 17/text-scaling qualifications remain open with their owners. The F07 policy proof is recorded below; actual sender binding and provider qualification remain separate, without a provider stop/recall guarantee.
+No native screen, Auth0/RevenueCat/store operation or real source collection was exercised by this lot. Native gate implementation is recorded below; T031/T039 and the existing iOS 17/text-scaling qualifications remain open with their owners. The F07 policy and actual inbox/purge/handoff qualifications are recorded below, without a provider stop/recall guarantee.
 
 ## Sporting push maintenance policy — T032/T033
 
@@ -160,7 +160,54 @@ After dependency installation and contract bundling, run:
 
 The independent settings/mobile consumer boundary requires its explicit opt-in. A PostgreSQL connection timeout during collection-control initialization leaves its cause and production startup reliability unqualified; no test or timeout change is justified by that observation alone.
 
-These controlled cases prove only the policy boundary. The existing F12 PostgreSQL tests own SQL freshness, including activation inside a longer caller transaction. [F07 T035](../011-notifications-delivery/tasks.md) still owns actual sender binding; [T034](tasks.md) retains real inbox/purge/handoff continuity and provider qualification. No actual Expo send, native delivery, replay/recall guarantee across systems or final US4 acceptance is claimed.
+These controlled cases prove only the policy boundary. The existing F12 PostgreSQL tests own SQL freshness, including activation inside a longer caller transaction. [F07's after-commit sender](../011-notifications-delivery/quickstart.md#after-commit-push-construction) owns actual sender binding; the T034 qualification below exercises that implementation. Actual Expo/APNs/FCM receipt and physical devices remain [F07 T041](../011-notifications-delivery/tasks.md#phase-5-user-story-4--receive-best-effort-push-on-devices-priority-p1). No remote stop/recall guarantee is claimed.
+
+## Maintenance notification continuity — T034
+
+[The integrated PostgreSQL suite](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/MaintenanceNotificationIntegrationTest.java)
+uses the actual generated F12 management read/activation and public complete-read controllers,
+F02 result/calendar acceptance, F06 follows, F05 accounts, F08 current public-link reads and
+F07 transactional allocation, after-commit listener, pre-handoff sender and daily purge callback.
+Only the clock, execution of transient worker/receipt callbacks and external Expo boundary are
+controlled. Native Spring Security test principals supply synthetic validated identity claims.
+Each context owns its migrated PostgreSQL 18.6 container; automatic cron triggers are disabled
+and the production daily/minute entry points are invoked explicitly.
+
+| Scenario | Qualified boundary                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A23      | An actual eligible final result during maintenance commits one personal entry for each current recipient. Ordinary and bypass-capable operator destinations are both skipped. The operator's real inbox HTTP request succeeds with explicit bypass while the ordinary request receives typed maintenance; that personal exception never admits push.                                                                                                                                                                                                                      |
+| A24      | Reopening, repeating the result observation and running the ordinary due pass retain the same personal identities, original creation times and read state, without submitting skipped work again. At exactly 29 elapsed days, a still-persisted maintenance allocation disappears from member/count reads; the real daily callback then deletes it. Reopening and result withdrawal/restoration preserve that absence and the consumed result fact.                                                                                                                       |
+| A25      | A genuinely new match/result after maintenance uses current follows and sends only its new eligible allocation through the real sender. An operator who unfollowed keeps the retained earlier inbox entry but receives no new allocation/send. Existing [F07 current-owner visibility](../011-notifications-delivery/quickstart.md#current-sporting-and-link-visibility) and [pre-handoff checks](../011-notifications-delivery/quickstart.md#after-commit-push-construction) own the broader current visibility, original relation, account, destination and age matrix. |
+| A26      | One committed event produces two native provider batches. Activation during the controlled first provider call permits that admitted call to return acceptance, then prevents the second handoff. A receipt observation of the admitted batch remains possible during maintenance and creates no resend. Reopening submits neither the skipped batch nor the established success again.                                                                                                                                                                                   |
+
+[The old-push route cases](../../apps/mobile/src/features/notifications/__tests__/maintenance-push-navigation.test.tsx)
+mount the production root, Expo Router protected groups, F05 session/Query owners, generated
+F12/F07/F03 consumers, access gate and current match route. Controlled native SDK, credentials
+and HTTP responses retain an earlier tap while maintenance and then a minimum version keep
+ordinary access closed, for ordinary and operator accounts. After a successful complete read
+admits access, the remembered tap is consumed once and opens the current match. Consumption
+waits until Router has replaced the protected startup gate, so its redirect cannot overwrite
+the match destination. Push-carried identifiers confer no access and contain no trusted current
+match representation.
+
+After dependency installation and contract generation, run the focused boundaries:
+
+```sh
+./mvnw -B -ntp -pl apps/backend verify \
+  -Dtest=MaintenancePushAdmissionTest \
+  -Dit.test=MaintenanceNotificationIntegrationTest
+NX_LOAD_DOT_ENV_FILES=false EXPO_NO_DOTENV=1 \
+  npm run test --workspace=@blockout/mobile -- --runInBand --reporters=default \
+  --runTestsByPath src/features/notifications/__tests__/maintenance-push-navigation.test.tsx
+```
+
+This completes T034's admission/handoff, inbox/expiry and current JavaScript route-composition
+boundary. It reuses [F07's retention](../011-notifications-delivery/quickstart.md#retention-construction-and-isolated-restore-cases),
+[transport](../011-notifications-delivery/quickstart.md#after-commit-push-construction) and
+[physical push preparation](../011-notifications-delivery/quickstart.md#physical-push-preparation)
+without duplicating or completing their remaining tasks. No actual Expo/APNs/FCM delivery,
+physical receipt, hosted daily scheduling, production operation or atomic remote stop/recall is
+qualified. F07 T041 and F12 T031/T039 retain their broader native/provider obligations.
 
 ## Native access composition — T022–T024/T027–T029/T035/T038
 

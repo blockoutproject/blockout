@@ -1,7 +1,7 @@
 import { MutationObserver, useQueryClient } from "@tanstack/react-query";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
-import { useRootNavigationState, useRouter } from "expo-router";
+import { useRootNavigationState, useRouter, useSegments } from "expo-router";
 import { useEffect, useEffectEvent, useLayoutEffect, useRef } from "react";
 import { AppState } from "react-native";
 import { z } from "zod";
@@ -30,7 +30,7 @@ export interface NotificationLifecycleProps {
   registration: PushRegistration;
   enabled: boolean;
 }
-/** Connects ordinary native occasions, silent receipt refresh and one-time taps to existing session/Query owners. */
+/** Keeps registration and receipt with their session/Query owners, consuming taps only after root gate redirects settle. */
 export function NotificationLifecycle({
   registration,
   enabled,
@@ -41,6 +41,7 @@ export function NotificationLifecycle({
   const transition = useSportingTransition();
   const router = useRouter();
   const navigation = useRootNavigationState();
+  const [rootGroup] = useSegments();
   const feedback = useActionFeedback();
   const handled = useRef<string | undefined>(undefined);
   const projectId: unknown =
@@ -50,6 +51,8 @@ export function NotificationLifecycle({
   const ready =
     enabled &&
     !!navigation?.key &&
+    // Protected-route redirects settle before a remembered tap is consumed; operations retain ordinary tap access.
+    (rootGroup === "(ordinary)" || rootGroup === "(operations)") &&
     !["restoring", "authenticating", "signing-out"].includes(session.status) &&
     !(
       session.status === "authenticated" &&

@@ -246,15 +246,18 @@ async function openInbox() {
   return renderRouter(
     {
       _layout: Root,
-      "(tabs)/_layout": TabsLayout,
-      "(tabs)/index": () => <Text>Accueil</Text>,
-      "(tabs)/search/_layout": SearchLayout,
-      "(tabs)/search/index": SearchRoute,
-      "(tabs)/search/(sheets)/filters": SearchFiltersRoute,
-      "(tabs)/search/(sheets)/choice": SearchChoiceRoute,
-      "(tabs)/profile": () => <Text>Profil</Text>,
-      "(tabs)/notifications": NotificationsRoute,
-      "matches/[matchId]": MatchRoute,
+      "(ordinary)/_layout": () => (
+        <Stack screenOptions={{ headerShown: false }} />
+      ),
+      "(ordinary)/(tabs)/_layout": TabsLayout,
+      "(ordinary)/(tabs)/index": () => <Text>Accueil</Text>,
+      "(ordinary)/(tabs)/search/_layout": SearchLayout,
+      "(ordinary)/(tabs)/search/index": SearchRoute,
+      "(ordinary)/(tabs)/search/(sheets)/filters": SearchFiltersRoute,
+      "(ordinary)/(tabs)/search/(sheets)/choice": SearchChoiceRoute,
+      "(ordinary)/(tabs)/profile": () => <Text>Profil</Text>,
+      "(ordinary)/(tabs)/notifications": NotificationsRoute,
+      "(ordinary)/matches/[matchId]": MatchRoute,
     },
     { initialUrl: "/notifications" },
   );
