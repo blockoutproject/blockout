@@ -31,4 +31,4 @@
 
 ## Notes
 
-- Rechecked on 2026-10-12: FR-018 specifies which visible data refreshes and what survives failure without assigning an endpoint per tab. A17/A29 and SC-004 retain refresh, stale-response and context guarantees. API boundaries remain technical-planning choices.
+- FR-018 specifies which visible data refreshes and what survives failure without assigning an endpoint per tab. A17/A29 and SC-004 retain refresh, stale-response and context guarantees. API boundaries remain technical-planning choices.

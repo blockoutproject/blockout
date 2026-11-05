@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-23
 
-**Status**: Functional transition decisions accepted. Common V2 onboarding is reconciled with the approved prototype and the owner's explicit advance approval of its faithful Figma translation; [scoped evidence](plan.md#design-approval) records the result and limits. No runtime qualification is implied.
+**Status**: Accepted functional transition baseline. Common V2 onboarding follows the [approved design scope](plan.md#design-approval), including the owner's explicit advance approval of its faithful Figma translation. [Tasks](tasks.md) track implementation and qualification.
 
 **Input**: F14 transition scope. Define authorized reset outcomes, continuity, welcome and cutover conditions, consuming [F05 identity requirements](../005-accounts-identity/spec.md), [F09 paid-right continuity](../006-pro-subscriptions/spec.md) and [F13 protection/recovery](../003-shared-quality/spec.md), without executing migration or choosing its architecture.
 
@@ -210,11 +210,11 @@ F11 selects EU27 availability for new store downloads, without a geographic appl
 
 ## V1 evidence
 
-The owner accepted the monorepo as a functional reference but confirmed on 2026-10-04 that it is not deployed: running V1 instances come from independent repositories. Those historical inspections established no installed binary or complete deployed configuration. The dated, authorized independent-repository and console observations for transition research are recorded in [research](research.md#current-v1-evidence); they still do not establish integrated native qualification. These retained observations authorize no new source or provider inspection.
+Running V1 instances come from independent repositories; this monorepo is a functional reference, not the deployed V1 runtime. [Research](research.md#current-v1-evidence) owns source/configuration facts and their limits. Neither source inspection nor console presence establishes installed-binary compatibility or integrated native qualification, and retained references authorize no new source/provider inspection.
 
 The historical mobile manifest declared `1.3.5`; this is not proof of distributed or installed versions. Qualify actual supported store builds and signing/application-identifier continuity before cutover. The old architecture described intentions, not demonstrated implementation.
 
-The authorized read-only Auth0 inspection on **2026-09-15**, retained here as a `blockout-legacy` observation, showed one visible deployed post-login action, `assign-default-role`. For a principal without roles it calls the configured V1 internal role-assignment endpoint with a five-second timeout; failure throws a login-blocking error. Principals already holding roles follow a different path. No linking action was visible in this inspected flow, which does not exclude other automation; secrets were not opened. This observation motivates FR-031/A28 before retiring that endpoint, without proving present deployment or successful cutover. [F05 identity observations](../005-accounts-identity/spec.md#v1-evidence-and-limitations) and [F09 payment observations](../006-pro-subscriptions/spec.md#v1-evidence-and-limitations) retain their exact sample limits; no population reconciliation or production restoration/cutover was performed.
+The historical `blockout-legacy` default-role dependency motivates FR-031/A28 before retiring its endpoint. [F05 identity limits](../005-accounts-identity/spec.md#v1-evidence-and-limitations) and [F09 payment limits](../006-pro-subscriptions/spec.md#v1-evidence-and-limitations) remain applicable; neither sample establishes population continuity.
 
 V1 source contained club IDs, names, addresses/localities, logo URLs and coordinates. Their presence proves neither reliable production identity nor municipal precision. A point may be reused only with qualified club identity, matching effective locality, suitable precision and permitted storage/reuse; otherwise ordinary F01 geocoding applies. Missing coordinates do not prevent preserving a club/logo, and no full coordinate migration is required.
 

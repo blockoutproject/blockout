@@ -14,13 +14,7 @@ Reject another account, old erased account UUID, invalid session, ordinary user 
 
 ### Foundation boundary — T001–T005
 
-The [T001–T005 foundation](tasks.md) uses the existing pinned F13 stack, generators and ignored outputs. The existing XML master and README retain the disposable-baseline/freeze rule and separate migration/application roles; this lot changes no schema or environment. `ContributionContractWebMvcTest` exercises generated Java request binding and response serialization/constraints; `contribution-contract.test.ts` exercises actual Orval calls through F13 and Query, including one JSON read/schema parse, rejected responses, erased attribution, hidden/dateless private context, finite enums, twenty-item pages, numeric bounds and opaque revisions. Public stream fixtures qualify URL/version-ID serialization and consumption only; actual F03/F08 pair selection remains future business mapping.
-
-`ContributionAccessWebMvcTest` composes real signature/environment checks, F05 identity resolution and F12 admission/grants against controlled account/settings/transaction adapters. `contribution-context.test.ts` uses the real session owner, generated calls and Query to qualify keys, native infinite-query page parameters and late reads/writes across A → guest/B → A even without effective cancellation. Strict unknown-command rejection is proved at MVC; Orval's request schemas check known fields, while generated Fetch validates consumed responses once. These are contract/context proofs, not business endpoints, SQL locking/erasure, device, design or provider qualification. Later mutations must recheck identity/grants under their ordered locks.
-
-Run the full README verification for current generator, application and Expo Doctor results;
-revision-specific execution results belong to the delivery PR. Foundation evidence alone does not
-qualify the command, SQL or native boundaries below.
+Generate Java interfaces/DTOs and Orval consumers from the same canonical source. Exercise actual request binding, response serialization/validation, no-store errors, private context keys and late reads/writes across subject changes. Controlled contract tests do not qualify the commands, SQL locks or native boundaries below.
 
 ## Versions, quotas and concurrency
 
@@ -33,62 +27,19 @@ With JUnit/Spring MVC/Testcontainers PostgreSQL and the real mappings/schema:
 - Report one exact version; test duplicates, self-report refusal, erased-owner link, thresholds 3/10 and result changes without a new report. Erase several reporters: every fact remains counted, each reason/author is removed. Repeated reports never target the new active version.
 - Verify approved/rejected/withdrawn paths leave or resolve the report hold as specified. F07 announcement allowances do not reset with reactivation or report counts; result composition observes the serialized current link.
 
-T023/T026/T033/T045 (A10–A34) are qualified by the existing PostgreSQL suites and
-`ContributionLifecycleQualificationIntegrationTest`, `ContributionDecisionRaceIntegrationTest`
-and `ContributionQualificationIntegrationTest`, using real local F02/F05/F07/F12 owners and
-generated HTTP bindings. Server and generated/Jest consumer checks use controlled time, identity
-and transport; historical report pagination beyond twenty uses retained SQL fixtures, while
-[T046/T050](#original-account-attribution-erasure-t046t050) exercise actual local F05 erasure.
-These checks establish no native/provider or global acceptance. T017 and T056 remain open.
-
 ### Local policies and persistence — T007/T010/T011
 
-`StreamAddressTest`, `ContributionEligibilityTest` and `ContributionQuotaTest` qualify local literal URI recognition, current authorization/revision before unchanged submission, seven elapsed days, confirmed H−1, definitive-result/report-hold approval and the limited moderator exceptions. Inputs are controlled current owner facts; these tests do not qualify F02/F05/F12 read composition or provider availability.
-
-`ContributionPersistenceJpaTest` applies the complete master changelog to isolated PostgreSQL 18.6 using the existing role setup, then validates actual JPA mappings, conditional active/pending uniqueness, same-match lineage/hold, nullable ownership/decision attribution, preserved publication/later decisions and replacement flush ordering. One Hibernate filtered-aggregate query returns lifetime participating versions and distinct daily matches from one SQL statement snapshot, using successive Paris-midnight boundaries. Cases include empty usage, both DST changes, yesterday's match, same-day continuation and later state/grant changes. Pending ownerless versions coexist; report schema/deduplication remains T029.
-
-These suites establish the local model and policies. The following qualification covers the
-implemented store, submission/read endpoints, ordered locks and required F02/F07 atomicity;
-actual account erasure, remaining lifecycle commands and mobile journeys retain their owning tasks.
+Use controlled current owner facts for exact seven elapsed days, confirmed H−1, definitive-result/report-hold approval and moderator exceptions. Apply the complete master changelog to isolated PostgreSQL with the restricted application role. Verify one active version, one pending version per non-null owner, same-match lineage/hold, nullable attribution and preserved publication/later decisions. Derive quota usage from participating versions between successive Paris midnights, including both DST changes; no lifecycle/grant change refunds usage.
 
 ### Submission and atomic announcements
 
-T006/T008/T012–T014/T054 bind real F02 sporting roots, F05 original-account locks,
-F06 confirmed relation unions and F07 inbox/allowance persistence. `SubmitContribution`
-gathers current version-attribution accounts together with the actor/audience before sorted locking, rereads current grants,
-age, ownership and quotas, and publishes only accepted active transitions. The same JPA store
-supplies native twenty-item `Slice` reads in a short repeatable-read application transaction.
-The generated submission interface supplies owner POST/GET and direct moderator POST without
-exposing later lifecycle commands. [HTTP cases](../../apps/backend/src/test/java/com/blockout/backend/contributions/api/ContributionSubmissionWebMvcTest.java)
-cover completed creation/current repetition, exact Locations, private reads, strict requests,
-original owner/actor, current privileges and safe refusal/outage responses.
-
-[Submission cases](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/SubmitContributionIntegrationTest.java),
-[private reads](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ReadOwnContributionsIntegrationTest.java),
-[attribution-lock races](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAttributionIntegrationTest.java)
-and [cross-owner cases](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAnnouncementsIntegrationTest.java)
-use the actual migrated PostgreSQL 18.6 mappings and separately proxied production services.
-They qualify replacement flush ordering, immutable quota participation, third/fourth limits,
-same-day continuation, stale no-ops, current private visibility, both concurrent result/publication
-orders, complete sorted account locking, concurrent same/different-match submissions, actor-row
-removal, grant withdrawal and rollback on real required inbox constraint failure. Shared persisted
-quota/DST qualifications remain in the preceding T007/T010/T011 evidence.
-
-The cross-owner fixture controls time and the after-commit external observer; no provider request
-occurs. Commit proofs run outside an enclosing test transaction, with PostgreSQL-observed lock
-exclusion and an independent transaction checking committed entry visibility.
-
-The [F07 qualification](../011-notifications-delivery/quickstart.md#atomic-producer-and-link-qualification)
-owns announcement timing, handoff and allowance evidence. Controlled hiding/new exempt-version
-and personal-row deletion fixtures are not real moderation-command or scheduled-purge
-qualification; those remain [F07 T046 and T052](../011-notifications-delivery/tasks.md). Actual local F05 erasure is qualified in [T046/T050](#original-account-attribution-erasure-t046t050);
-full native/mobile journeys retain T056. F08 T016/F03 public projection is qualified separately below.
+Exercise the generated submission/read routes with actual F02/F05/F06/F07/F12 owners and migrated PostgreSQL. Race result acceptance against publication, same/different-match submissions, grant withdrawal and account erasure. Expect sorted sporting/account locks, current facts reread after locking, no stale overwrite and rollback of the command plus required inbox/allowance effects on failure. External push follows commit; no SQL transaction spans provider I/O. Follow [F07's announcement boundary](../011-notifications-delivery/plan.md#announcement-processing).
 
 ## Reads and mobile
 
 Use more than twenty versions/reports/matches where applicable, including identical timestamps, hidden matches and erased authors. Check deterministic tie-breaks, literal search, combined filters, current counts and clean offset bounds. Concurrent changes may move pages; refresh restarts at zero. “To review” retains reported active links until their situation changes, without a dismissal action. After resolving a hiding wait, old reports and masked versions leave the current badges but remain in version history; rejected-version totals remain correct beyond one page.
 
-For [A29/FR-028](spec.md#moderation-and-transitions), qualify the dedicated report page from the active editor and pending/historical version cards. Older versions use “Historique”, with no direct source/replacement shortcut or separate version sheet. Ordinary native Back must restore the same caller and dirty address/disclosure state. Hold the next read, fail it, repeat list-edge events, explicitly retry and exhaust a multi-page traversal, then open another version. Check the admitted server total, received ordering/latest overlapping report representation, erased reason, retained authorized rows and the existing [F13 feedback outcomes](../003-shared-quality/quickstart.md#feedback-and-read-recovery). Exercise a temporary profile-read failure separately from permission refusal. Compare the retained approved report-page [Figma anatomy](plan.md#approved-design-and-evidence) on iOS/Android, compact widths, both themes and enlarged text. The bounded [observations and checks](#private-moderation-construction--t034t044) complete T062 only for this scoped destination; wider native and provider obligations remain separate. Earlier sheet captures do not qualify the current navigation.
+For [A29/FR-028](spec.md#moderation-and-transitions), qualify the dedicated report page from the active editor and pending/historical version cards. Older versions use “Historique”, with no direct source/replacement shortcut or separate version sheet. Ordinary native Back must restore the same caller and dirty address/disclosure state. Hold the next read, fail it, repeat list-edge events, explicitly retry and exhaust a multi-page traversal, then open another version. Check the admitted server total, received ordering/latest overlapping report representation, erased reason, retained authorized rows and the existing [F13 feedback outcomes](../003-shared-quality/quickstart.md#feedback-and-read-recovery). Exercise a temporary profile-read failure separately from permission refusal. Compare the retained approved report-page [Figma anatomy](plan.md#approved-design-and-evidence) on iOS/Android, compact widths, both themes and enlarged text. Exercise the current report-page navigation separately from the broader native/provider matrix.
 
 With Jest Expo/React Native Testing Library and native device checks, preserve drafts on refusal, disable duplicate in-flight actions and reread affected views after confirmation. For version-change commands, lose a response, delay its completion and fail the bounded read: show ordinary error/retry without replay or invented historical success. Exact-version reports instead keep one reason form and ordinary error feedback after refusal or response loss; a later explicit retry retains the original version and is deduplicated by the server. Verify no match-refresh action, stale-target screen, recovery control or automatic write replay. A failed refresh after confirmed success must not undo that success. Sign out/change accounts during reads/writes and reject old callbacks, including returning to the same account. No reconnect replay, polling or offline queue.
 
@@ -97,8 +48,7 @@ Qualify ordinary contribution/replacement, personal-contribution and report scre
 ### Prepared interruption and accessibility cases — T049
 
 Execute these cases under T056 on compatible native iOS and Android development builds generated
-from the tested candidate. Keep exact source/build associations and detailed results in delivery evidence;
-declare the qualified OS, device/viewport, appearance and text scale with their scope and limits. Use the existing F05 native session/private QueryClient, F12 admission and stream
+from the tested candidate. Use the required OS/device, appearance and text-size matrix. Use the existing F05 native session/private QueryClient, F12 admission and stream
 moderation grant, F03 public match projection and F13 controls/feedback. Keep fictional addresses,
 private report reasons and synthetic accounts in task-owned fixtures outside Git. A transport double
 can control a lost response, an explicitly delayed completion or a failed GET; it establishes only
@@ -123,80 +73,22 @@ physical-device/provider qualification or design acceptance.
 
 ### Ordinary interruption and diagnostic boundaries — T047/T048/T051–T053
 
-[Recovery tests](../../apps/mobile/src/features/contributions/__tests__/contribution-recovery.test.tsx)
-use actual generated calls, F05/F12 providers, private QueryClients and RHF forms with only HTTP,
-native credential I/O and navigation controlled. Version mutations keep ordinary Query settlement
-invalidation, including exact private moderation members and public F03 reads; a failed read neither
-proves rollback nor overturns acknowledged success. Report acknowledgement is displayed directly
-from the mutation when its dependent read fails; a transport outage permits another deliberate
-same-target submission without adding a recovery control. A current read observing an existing report after response loss does not discard the failed attempt’s draft or replace its ordinary feedback. Known authorization refusals remove
-private owner data before a subsequent outage can retain it. A refused F03 match removes the captured report address and disables sending while preserving the local reason; a refusal of only the old report member keeps its exact-target retry. The confirmed report result remains distinct from a pending explicit retry.
+Lose a version-mutation response and fail its dependent read: ordinary settlement invalidation neither proves rollback nor undoes acknowledged success. A report acknowledgement remains distinct from read success. After response loss, retain its reason and permit deliberate retry of the same account/version; observing an existing report is not the missing acknowledgement. Current authorization refusal removes private data before an outage. F03 match refusal removes the report address and disables sending while preserving the local reason; refusal of only the old report member keeps its exact-target retry.
 
-[Mobile diagnostics](../../apps/mobile/src/features/contributions/__tests__/contribution-diagnostics.test.ts)
-check the generated F13 transport classification, safe local feedback and F13 Sentry privacy filter
-with event correlation and packaged source coordinates. [MVC logging tests](../../apps/backend/src/test/java/com/blockout/backend/contributions/api/ContributionFailureLoggingTest.java)
-exercise real generated routes, contribution/shared advice and the native Boot ECS encoder:
-business refusal/conflict emits no unexpected-failure event; unexpected SQL/read faults have one
-shared HTTP diagnostic with bounded operation/outcome/type. URLs, query strings, private reasons,
-identities, credentials and payloads are excluded. F08 adds no capture sink, duplicate diagnostic or
-cleanup-content exception. F13 activation/symbolication and actual provider telemetry remain with
-[F13 qualification](../003-shared-quality/quickstart.md#delivery-and-operations).
+Inspect safe local feedback and shared diagnostics: business refusal/conflict emits no unexpected-failure event; unexpected SQL/read failure has one bounded shared HTTP diagnostic. Exclude URLs, query strings, reasons, identities, credentials and payloads. F08 adds no telemetry sink or cleanup-content exception; [F13](../003-shared-quality/plan.md#manual-delivery-and-operations) owns activation and symbolication.
 
 ### Native submission and public entry — T009/T015/T016
 
-The ordinary match contribution route composes F03's current match summary and the F08
-owner collection through the existing F05 session, F12 admission and single QueryClient.
-`submit-contribution.test.tsx` exercises the real screen, RHF form, generated transport and
-Query with controlled native credentials, HTTP and navigation. Cases cover unavailable eligibility, guest/profile distinctions, concise form copy, local URL validation, retained dirty input after refresh
-and refusal, duplicate suppression, moderator eligibility without a Pro condition, invalid
-response rejection, late-session rejection, conflict observation and confirmed acknowledgement
-independent of derivative-read failure. `contribution-entry.test.tsx` reads current eligibility through the same original-account Query owner, omits an unavailable match entry (including account-age refusal), keeps the guest invitation distinct from support and carries no post-authentication command. Its real-match refresh cases recover from changed eligibility, an owner-read outage and a profile-read outage without remounting.
+Exercise the actual Match entry, contribution route, F05 session and F12 admission with generated transport. Verify guest invitation without replay, unavailable eligibility/entry omission, moderator eligibility independent of Pro, URL validation, retained dirty input on refusal, duplicate suppression and acknowledgement independent of derivative reads. Public F03 exposes a contribution ID only beside its exact active contributed URL; professional URLs and public responses expose no private contribution data.
 
-`PublicContributionIntegrationTest` exercises actual submitted active/pending versions and
-F03's generated response, including current match withdrawal. The existing
-`ConsultationContractJsonTest` separately qualifies omission of contribution identity for
-professional URLs and private-field absence. Version identity is supplied only with the exact
-active contributed URL; no private owner, quota, report or moderation data enters F03.
-
-The form uses the current F13 page/scroll/keyboard composition and the compact F03 match-context variant. `contribution-navigation.test.tsx` mounts actual protected native routes to verify draft/recovery retention after a F12 503 detour and a clean return after acknowledgement. Native interaction and design
-evidence must identify the executed revision, platform and exact
-[approved nodes](plan.md#approved-design-and-evidence); controlled JavaScript evidence
-alone does not qualify native networking, provider behavior or screen-reader announcements.
-Full moderation/lifecycle and extended uncertain-response recovery retain their owning tasks.
+Use the shared page/scroll/keyboard composition and compact match context. Verify keyboard/back, F12 detour, acknowledged return and the exact [approved design](plan.md#approved-design-and-evidence) on both native platforms. Controlled JavaScript checks do not establish native networking, provider behavior or reader speech.
 
 ### Personal contribution lifecycle — T018–T022
 
-`OwnContributionLifecycleWebMvcTest` exercises generated PATCH binding, strict commands,
-original-account scope, ordinary admission, conflicts and private headers.
-`OwnContributionLifecycleIntegrationTest` executes production commands over HTTP with migrated
-PostgreSQL mappings and real F02/F05 owners. It covers independent active/pending versions,
-current-condition replacement, exact terminal repetition, stale revision before no-op,
-immutable addresses/quota participation and report holds. An account-lock race verifies that
-withdrawal cannot restore a publication actor erased while the command waits. The retained
-backend cancellation command is separately qualified; the current native history exposes no
-such action. Historical decision/erasure fixtures do not qualify actual US5/F05 orchestration.
+Verify independent active/pending versions, current-condition replacement, stale revision before no-op, immutable addresses/quota participation and report holds. Race withdrawal with F05 erasure: an erased actor must not return. History is read-only in the native app; the retained API cancellation command is validated separately. Current owned active projection and all-state total remain independent of loaded pages and omit other owners.
 
-`ReadOwnContributionsIntegrationTest` qualifies all-state totals independently of twenty-item
-pages and ordinary quotas, true-empty zero, isolation and the exact owned active projection
-outside the first page. Other owners' active versions are omitted. Contract/generated-client
-checks qualify the optional member and safe integer total.
+Current 401/403/404 removes private data; a later outage cannot restore it. Ordinary outages preserve authorized pages and explicit retry. Successful refresh restarts at page zero; failed refresh retains accepted pages. Continuation stops on error or outside active focus. Acknowledged withdrawal clears the exact active projection even when its dependent read fails, without changing old aggregate eligibility/revision or undoing acknowledgement.
 
-The contribution suites exercise the real screens, RHF, generated transport, Query and session
-owners with controlled native I/O and HTTP. The current match card opens an initial proposal
-form directly, or a distinct prefilled editor for the exact owned public version. Replacement,
-withdrawal and initial submission require one native confirmation and return to the exact
-match only after acknowledgement. Cancelled dialogs preserve drafts and send nothing. Tests
-cover captured revisions/addresses, pristine active-version refresh, dirty refetch retention, duplicate suppression and late
-callbacks after session change or departure. The exhaustive history has no row commands;
-textual badges, addresses, separators and “Mes propositions (number)” remain visible, including
-zero and totals beyond loaded pages.
-
-Current 401/403/404 refuses and removes private data, including an F03 refusal observed before
-navigation; a later technical failure cannot restore it. Ordinary outages preserve authorized
-pages and explicit retry. A successful refresh replaces traversal from page zero; failed
-refresh retains all accepted pages. Continuation stops on error or outside active focus. An
-acknowledged withdrawal clears its exact active projection even if the derivative read fails,
-without advancing old aggregate revision/eligibility or undoing acknowledgement. These tests do
 not establish native networking, keyboard behavior or assistive-technology execution.
 
 Use fictional accounts/addresses on compatible iOS and Android development clients. More than
@@ -217,168 +109,25 @@ versions retain their real consumption. Check the following construction boundar
   text on both platforms. Record actual reader speech/focus separately from accessibility
   semantics in an inspection tree.
 
-The row/lifecycle and entry captures establish only their captured lifecycle cases.
-The native evidence supplies the reviewed three-card-state,
-ordinary-editor and read-only-history experience. The owner authorized Figma/prototype
-synchronization after reviewing this experience, within the [approved scope](plan.md#approved-design-and-evidence).
-
-The [Figma journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5511-51086)
-uses editable screens, live library references without broken instances and Outfit product text.
-The approved prototype browser checks cover the three card entries, prefilled replacement,
-cancelled confirmation, acknowledged returns, withdrawal, read-only/zero history, report
-cancellation, narrow/dark layouts and the header inset regression. This prototype uses only
-fictional local services; its dialogs represent native confirmations and do not qualify native
-platform execution. The existing build chunk-size advisory remains. US4 native reporting and
-the wider qualification matrix retain their own scope.
-
-The current native captures and observations
-use production screens on compatible iOS 27.0 and Android 17/API 37 development clients with
-fictional Auth0/storage and a controlled HTTP peer. Both platforms exercise direct first
-proposal, prefilled own-link editing, native replacement and withdrawal confirmations, and
-return to the exact match after one acknowledged write. Android replacement cancellation and
-iOS initial-submission cancellation preserve the draft and send nothing. Pending replacements
-retain the public version until its independent confirmed withdrawal; the peer records the
-pending row and consumed quota afterward. iOS also verifies the non-owned public opening
-action and readable dark presentation at extra-extra-extra-large text, then restores light/large.
-Android traverses twenty-five read-only versions through pages zero/one, then refreshes to
-an empty collection with “Mes propositions (0)” still visible. Its real software keyboard
-leaves the editor and submission action reachable. This run does not establish iOS
-software-keyboard presentation, real provider behavior or reader speech.
-
-The [integrated command/SQL qualification](#versions-quotas-and-concurrency) is separate from these
-native observations. T049/T056 retain the minimum-OS/narrow-device and screen-reader matrix.
-A synthetic peer establishes only its rendering, transport and interaction boundaries; it is not provider or global design approval.
-
-Scoped iOS/Android observations, including builds and controlled fixtures, are recorded in the native contribution evidence. Available-entry/form composition, keyboard/back, retained drafts, real refusal/explicit retry, acknowledgement and exact active public projection were observed. That run also reported cropped labels after live Android text enlargement and development navigation warnings; its missing screen-reader and minimum-OS evidence remains explicitly unqualified.
-
-The integrated native evidence exercises the contribution flow on compatible iOS 27.1 and Android API 37 development clients. iOS keyboard dismissal and cancelling the native discard confirmation preserve the exact draft; the captured future-match form is ineligible for ordinary submission and supplies no new acknowledgement proof. Android font enlargement recreates the Activity without changing the process, returns to the home route and yields a readable empty form on explicit reopening. This establishes neither retained-context cropping nor draft persistence across recreation, and does not erase the earlier failed observation. The real Stream link panel is exercised on both platforms; native external handoff and return are observed on Android. The iOS handoff remains unqualified. The compact contribution summary remains informational and has no navigation dependency. Real TalkBack 17.0 speech captions verify the link field name/hint and the empty-value validation alert in this flow; no POST is issued. These two cases do not qualify complete reader traversal or VoiceOver.
-
-T009/T015/T016 construction is complete with the generated/RHF/Query tests, public projection proof and these scoped native observations. The full F03 match status still truncates after a live Android theme change at 130% text; it is absent from the compact F08 context and retains its failed result under [F13 native qualification](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets). This grants no Android exception or global native acceptance. T017 retains the complete US1 acceptance execution; T049/T056 and F13 T073 retain the broader journeys, runtime matrix and assistive-technology qualification.
+Compare the [broadcast-link journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5511-51086) and current [approved composition](plan.md#approved-design-and-evidence). Prototype dialogs represent native confirmations; native keyboard, narrow/minimum-OS and screen-reader checks remain separate.
 
 ### Exact-version reporting — T027–T032
 
-`ReportContributionIntegrationTest` executes the generated report routes over the real migrated
-PostgreSQL mappings and F02/F05 lock owners. It covers trimmed private reasons, self-report refusal,
-ownerless links, exhausted publication quota/unknown age/time without a reporting restriction,
-thresholds three/ten from current definitive-result evidence, correction without immediate hiding,
-unchanged duplicates after hiding and first-reason retention. PostgreSQL cases qualify exact-version
-foreign keys, non-null reporter uniqueness, independently counted anonymous rows, root-before-account
-locking and both report/replacement orders without retargeting. The unresolved hold remains effective
-for different authors and addresses. Anonymous attribution/reason updates are controlled SQL fixtures;
-actual F05 erasure and US5 selection/reactivation are qualified separately in
-[the integrated scenarios](#versions-quotas-and-concurrency) and T046/T050.
+Report one viewed version with a required trimmed reason. Verify self-report refusal, ownerless links, reporting independent of publication age/quota, thresholds three/ten, correction without a new report and unchanged repetition after hiding. Concurrent report/replacement must never retarget the report; first reason and anonymous counted rows remain intact. Current ordinary admission, reason-only binding, exact Location and no-store apply.
 
-`ContributionReportsWebMvcTest` exercises reason-only generated binding, rejection of invented
-revision/unknown fields, original-account scope, current ordinary admission, canonical conflicts,
-201 exact account/version Location, unchanged 200 and no-store. Own-report GET exposes only
-`reported`, including a prior report on an inactive version while the match remains viewable.
+On native iOS/Android, open the [report form](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5534-59410), cancel without a write, then lose acknowledgement and retry deliberately on the same version. Retain reason and ordinary error feedback without a match-refresh action, stale-target explanation or recovery screen. Confirmed success survives dependent-read failure; departure/session change publishes no obsolete success.
 
-The report and entry suites use the real RHF form, Query, generated transport and F05/F12 providers
-with controlled HTTP/native I/O. They cover the viewed version and address, guest invitation without
-replay, validation, retained drafts, in-flight duplicate suppression, ordinary errors after conflict
-or invalid acknowledgement, and a later explicit retry on the same target. No match-refresh action,
-stale-target explanation or special report recovery state is added. Confirmed success is independent
-of derivative-read failure; old session/departure callbacks cannot publish a success to another view.
+### Private moderation — T034–T044
 
-The owner-approved [report composition](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5534-59410)
-contains the required reason and Send/Cancel actions, with ordinary failure feedback and retained input. The matching
-[approved prototype experience](plan.md#approved-design-and-evidence)
-uses ordinary errors after report response loss and preserves its exact target/first recorded reason
-on a later explicit retry. These prototype/design checks do not qualify native or provider behavior.
+Exercise approval, rejection, withdrawal and new-version reactivation with real PostgreSQL/F02/F05/F07 boundaries. Preserve source ownership, decision lineage, holds and immutable quota participation. Competing decisions preserve the first accepted revision; required notification failure rolls back version/revision/allowance. Verify literal escaped search, combined criteria, hidden/dateless context, tied activity and version/report pages beyond twenty with SQL totals independent of pagination.
 
-Scoped native captures use reused
-`com.blockout.local` development clients, production screens/the native report route and real
-Query/F05/F12 providers, with fictional auth/storage and a local HTTP peer. iOS 27.0 presents the
-ordinary light report form from the exact match entry; Android API 37 presents the dark enlarged-text
-form and ordinary error toast with the viewed address/reason retained and no extra refresh action.
-The run separately observes cancellation without a write and an obsolete-target POST remaining on its
-captured version. The peer records only write metadata, never the private reason. These observations
-establish neither full protected-root/deep-link startup, minimum-OS coverage, reader speech, actual
-moderation/erasure, provider/production operation nor global design/native approval. T055/T056 retain
-the remaining full-story/session/accessibility qualification.
+On both native platforms, open queue/detail, change tabs with a dirty address, cancel replacement/withdrawal and confirm one deliberate command. Background reads do not animate explicit refresh. A successful active-page refresh may adopt current revision/address as the command baseline while retaining dirty input. Use the [approved moderation and report-page references](plan.md#approved-design-and-evidence), including initial skeletons, shared filters, grouped rows and disclosures.
 
-### Private moderation construction — T034–T044
-
-`ModerateContributionIntegrationTest` exercises production approval, rejection, withdrawal and
-new-version reactivation over migrated PostgreSQL, retaining source ownership, useful decisions,
-independent holds and immutable quota participation. Actual F05 account locks coordinate controlled
-owner deletion and grant withdrawal; concurrent decisions preserve the first accepted revision.
-Real F07 inbox constraint failures roll back approval/reactivation, version changes, revision and
-announcement allowance. These controlled account deletions do not qualify F05's complete erasure
-or reason-clearing orchestration, which remains with T050/T055 and F05's owning qualification.
-
-`ModerationReadIntegrationTest` qualifies PostgreSQL literal escaped ILIKE, combined version
-criteria, hidden/dateless and unclassified context, distinct tied-activity match pages, version/report
-pages beyond twenty, SQL totals, independent active members and historical reports after hold
-resolution. Bounded query-count evidence checks sporting hydration without N+1. A controlled
-concurrent report between page selection and aggregate reads proves the actual short repeatable-read
-snapshot; subsequent requests may observe newer facts. Canonical private season choices do not
-require collection-management permission.
-
-`ContributionModerationWebMvcTest` checks generated command grammar, original actor, current
-complete grant, ordinary admission, no-store/Accept-Patch, the new-member reactivation Location,
-useful decision lineage and required null erased reasons without reporter identity.
-`moderation.test.tsx` uses real screens, RHF, generated transport, private Query/session/admission
-owners and controlled HTTP/native I/O for content-shaped initial skeletons, exact confirmations, cancellation, literal filtered
-pagination/first-page refresh, failed versus empty queues, private hidden context, historical reports,
-retained drafts/editing revision across tab changes, acknowledged success despite a later read failure,
-visible continuation failures with retained pages, refusal cancellation of concurrent reads, and no polling.
-Background reads never animate the native refresh indicator; only the explicit refresh gesture owns
-that indicator, following the existing sporting-calendar composition. A successful explicit active-page
-refresh preserves the address while adopting the current revision/address for a new intentional
-confirmation after conflict. The earlier exact-lineage navigation and read-only-sheet checks distinguished same-address
-versions even when the related source was outside loaded history pages; this is historical evidence for the removed shortcut, not the current “Historique” navigation. Administrative
-queries use generated resource keys within the existing principal-owned private QueryClient.
-
-Local native construction checks ran on the reused `com.blockout.local` development clients:
-iPhone 18 Pro / iOS 27.0 (402 × 874 points)
-and Android `Pixel_9` (1080 × 2424 pixels). Production routes/components, F05 private Query/session and the Auth0 JavaScript
-SDK were retained; an external temporary launcher controlled only the native credential boundary
-and a fictional HTTP peer. This does not
-qualify the full product root/onboarding or actual identity/provider operations. No temporary launcher or native-credential fixture is shipped.
-
-The final composition follows the owner's existing-application priority in the
-[design reconciliation](plan.md#approved-design-and-evidence): the shared native paged scenes
-and virtualized lists, search filter/season controls, personal contribution editor and ordinary
-grouped rows/buttons. Final iOS and Android observations exercise horizontal swipes, returning to
-the active page with the exact dirty address retained, and tab entry without an automatic native
-refresh animation. iOS complete address replacement and cancellation of the native replacement
-dialog preserve the original/new address pair and send no write. Its historical report disclosure
-retains three exact-version reports, including the unavailable erased reason. Android's real
-software keyboard leaves the field and final action reachable; cancelling withdrawal sends no
-command, and one explicitly confirmed replacement sends one command and shows acknowledgement.
-Android season selection/apply returns to the queue; final filter/season captures verify full-width
-apply/reset buttons and the same grouped choices and spacing tokens as search.
-
-The iOS run used a hardware keyboard and does not establish software-keyboard occlusion behavior.
-Screen-reader speech, enlarged-text/minimum-OS coverage and full session/erasure scenarios remain
-with T056. Representative captures belong in the delivery PR Conversation with their platform, state and native-boundary scope; no screenshot is committed. The owner-approved native composition is reconciled in
-[the moderation journey](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1240-1876),
-preserving the queue `1293:3968`, active `1240:1882`, pending `1310:6016`, historical
-reports `4736:32107` and constrained dark editor `1270:3237`. Search-style filter evidence
-is `7524:8064`; initial queue/editor skeletons are `7526:8249` and `7526:8859`. The UI Library `surface/inset` role (`3999:4`) and its two primitive references
-are published current, with Light `#20212408` and Dark `#FFFFFF08`; reports retain `surface/default`.
-Structural inspection finds live instances, editable Outfit text and discrete sporting logos, without
-a flattened screen image. The constrained field uses intrinsic height for enlarged text.
-
-The [approved prototype experience](plan.md#approved-design-and-evidence)
-reuses its existing pager, native-refresh review control, filters and ordinary buttons. Its shared match
-card, always-mounted prefilled editor, grouped disclosures and
-initial skeletons retain their approved presentation. The earlier exact-source version sheet remains historical evidence only. The separately approved dedicated report page replaces inline reasons and is reached from active and proposal/history versions; older versions use “Historique”. Fictional prototype checks cover draft retention across tabs, exact-address cancellation,
-source-report separation and shared sporting-media fallback at 320 points / enlarged text in both themes.
-These checks qualify the standalone fictional prototype only. T045's integrated current-owner
-qualification, T050/T055 erasure and T056's complete platform/accessibility matrix remain separate;
-controlled SQL, JavaScript or native fixtures establish no provider/production or global design approval.
-
-The dedicated report page has bounded evidence on reused Android API 37 and iPhone SE (3rd generation) / iOS 17 clients, with a 375-point iOS viewport and fictional HTTP responses. Both display the server total of twenty-one reports beside twenty initially admitted rows. Android keeps those rows visible during append with the small native continuation indicator. After four configured Query attempts settle on HTTP 503, repeated list-edge gestures issue no additional read; one explicit Retry accepts the twenty-first row and removes the continuation footer. iOS likewise retains the first twenty rows on append failure, keeps the erased-reason fallback and complete local Retry reachable in dark appearance with enlarged text, then reaches the twenty-first row without a terminal footer after explicit Retry. A separate Android active-version entry displays its single-report collection. These observations establish the exercised exact-version and continuation behavior, not a server/provider qualification.
-
-Live light-to-dark switching on iOS updates already rendered report rows through LegendList's public `extraData` presentation input. The report page uses the existing `PageScrollView` for initial/Error/Empty feedback and the existing `PageList` for populated data, without a layout controller or mirrored request state. Android's initial pending read shows three decorative date/reason skeleton rows below the actual navigation; append retains its compact indicator rather than a skeleton. Android ordinary Back preserves the dirty editor address and restores the expanded historical Twitch version with its “Signalements (21)” entry; no direct source/replacement shortcuts remain. The iOS successful Empty card and its complete “Actualiser” action are visible below the actual header. The iOS accessibility inspection surface was unavailable, so screenshot/coordinate-driven observations establish no VoiceOver, TalkBack or screen-reader announcement qualification. Broader F08/F13 native, minimum-runtime, identity, privacy-erasure and provider obligations remain open.
-
-Final `mobile:verify` and its dependencies pass: 172 Jest suites and 2,353 tests, with six pre-existing skipped tests; TypeScript and ESLint report no errors, with four pre-existing lint warnings. Native-platform JavaScript exports succeed for iOS and Android, and Expo Doctor passes all twenty checks. Repository formatting and diff checks pass. The changed handwritten tests were independently reviewed against the Expo testing guidance and its canonical examples. These checks and the bounded native observations qualify T060–T062 only; broader F08/F13 and provider qualification retain their separate scope.
+From the active editor and pending/historical versions, open the dedicated report page and return to the same caller/draft/disclosure. Load twenty-one reports over multiple pages, retain admitted rows after append failure, reject repeated list-edge retries while failed, then accept the final row only on explicit Retry. Verify erased-reason fallback, exact server total, no terminal footer, theme changes, initial Error/Empty/Skeleton and enlarged-text reachability. Older versions use “Historique”, without source/replacement shortcuts or a separate version sheet. Include VoiceOver/TalkBack, software keyboards, minimum OSes and full session/erasure cases under T056.
 
 ## Original-account attribution erasure (T046/T050)
 
-`ContributionErasureIntegrationTest` runs actual F05 erasure with F08 submission, reporting and moderation over the migrated database. Hidden versions, ownerless pending proposals, report counts/distinct anonymous rows, holds, decision chronology, quota flags and lineage remain unchanged while owner/publication/decision actors and each erased reporter's reason disappear. Re-registration recovers no ownership. Submission/report/reactivation races hold their real sporting roots before the account phase: erasure completes without those roots and the resumed writer refuses the old actor or rereads anonymous source ownership. [F05's rollback cases](../005-accounts-identity/quickstart.md#server-erasure-construction) additionally reject required participant SQL and final account deletion, preserving all local owners and suppressing external cleanup. Controlled provider boundaries and synthetic fixtures establish no native, live-provider or wider T055/T056 acceptance.
+Run actual F05 erasure with F08 submission/reporting/moderation. Preserve hidden/ownerless versions, counted reports, holds, decisions, quota flags and lineage while clearing owner/decision/reporter attribution and erased reasons. Re-registration restores no ownership. Race commands holding sporting roots with erasure before their account-lock phase: resumed commands refuse the old actor or reread anonymous ownership. Required participant/final-delete failures roll back local owners and suppress external cleanup.
 
 For T055, install the locked npm dependencies and run `npm run generate`, then use Docker and a free local port 8289 to execute the real-server contribution consumer alongside the backend suites:
 
@@ -386,4 +135,4 @@ For T055, install the locked npm dependencies and run `npm run generate`, then u
 BLOCKOUT_CONTRIBUTION_CONSUMERS_TEST=true ./mvnw -B -ntp -pl apps/backend verify
 ```
 
-Expect anonymized contribution/report history, preserved ownerless links and restrictions, and refused stale or erased-actor commands through the generated consumers. The suite controls identity/time and uses Node networking with provider cleanup disabled; native and live-provider qualification remain separate.
+Expect anonymized contribution/report history, preserved ownerless links and restrictions, and refused stale or erased-actor commands through the generated consumers. This controlled run uses identity/time doubles and Node networking with provider cleanup disabled; native and live-provider qualification remain separate.

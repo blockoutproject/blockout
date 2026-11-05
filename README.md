@@ -81,7 +81,7 @@ Validate local links, anchors and source ownership against the final tree. [CI](
 
 `CollectorSportingBoundaryIntegrationTest` is an opt-in Failsafe suite spanning the actual collector clients and a separately launched backend JAR. It requires an explicitly selected **disposable migrated PostgreSQL database**: its fixture truncates sporting/source data between cases. Use an isolated Compose project and free ports; never point it at a retained or shared database. The backend uses the restricted application role. The migration role is used only for fixture reset and scoped failure injection. The suite owns its backend process and ephemeral local signing-key endpoint, and closes both. Provider interpretation is synthetic; no provider or Auth0 request is made.
 
-The suites share that runtime and fixture. Their owning quickstarts define the cases, executed results and limits for [F01 partial commits, contextual identities and absence](specs/001-source-acquisition/quickstart.md#collector-partial-success-and-absence-t032) and [F02 generated facts through F03 public reads](specs/002-sporting-data/quickstart.md#generated-facts-and-public-reads-t034).
+The suites share that runtime and fixture. Their owning quickstarts define reproducible cases and expected outcomes for [F01 partial commits, contextual identities and absence](specs/001-source-acquisition/quickstart.md#collector-partial-success-and-absence) and [F02 generated facts through F03 public reads](specs/002-sporting-data/quickstart.md#generated-facts-and-public-reads).
 
 For example, from the repository root, with ports 5484 and 8184 available:
 
@@ -105,7 +105,7 @@ LIQUIBASE_USERNAME=blockout_migration LIQUIBASE_PASSWORD=local-migration-only \
 docker compose -p blockout-collector-sporting stop postgres
 ```
 
-Repackage the backend after every backend source change; the suite executes that supplied JAR. Its ignored backend log is `apps/collector/target/collector-sporting-backend.log`. Ordinary module/CI verification compiles the suite but skips execution unless explicitly enabled. [F02's quickstart](specs/002-sporting-data/quickstart.md#collector-to-sporting-boundary) records its evidence and limits.
+Repackage the backend after every backend source change; the suite executes that supplied JAR. Its ignored backend log is `apps/collector/target/collector-sporting-backend.log`. Ordinary module/CI verification compiles the suite but skips execution unless explicitly enabled. [F02's quickstart](specs/002-sporting-data/quickstart.md#collector-to-sporting-boundary) defines the validation scenarios and expected outcomes.
 
 ## Local development
 

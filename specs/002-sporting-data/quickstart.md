@@ -4,7 +4,7 @@
 
 ## Prerequisites
 
-Use the executable Maven/npm targets and focused sporting test commands in [README verification](../../README.md#verification). The boundary suites exercise generated MVC binding/mapping, collector serialization and mobile response validation before Query admission. They use controlled HTTP peers and synthetic data; the business, database and native journeys below require their owning implementations.
+Use the executable Maven/npm targets and focused sporting test commands in [README verification](../../README.md#verification). Use controlled HTTP peers and synthetic data for automated boundary checks; the business, database and native journeys below require their actual owning implementations.
 
 Use isolated PostgreSQL at the [F13-selected version](../003-shared-quality/plan.md#technical-context), the F13 contract toolchain and synthetic/minimized supplier observations. Keep raw supplier documents and personal contact data outside public fixtures. Prototype/browser evidence does not establish native or provider behavior.
 
@@ -28,22 +28,15 @@ Carry supplied and omitted `providerPublishedAt` through the actual generated co
 
 ### Collector-to-sporting boundary
 
-T026 uses [CollectorSportingBoundaryIntegrationTest](../../apps/collector/src/test/java/com/blockout/collector/acquisition/application/CollectorSportingBoundaryIntegrationTest.java) with the [explicit disposable-runtime command](../../README.md#collector-to-sporting-qualification). The production collector lifecycle, passage, generated RestClient APIs and mappers call a separately packaged backend. Its real security filters validate locally signed synthetic collector credentials, and its real F01/F02 services commit against the Liquibase-migrated PostgreSQL 18.6 baseline under the restricted application role. Only supplier interpretation/discovery and response-loss injection are controlled.
+Run the [opt-in collector-to-sporting command](../../README.md#collector-to-sporting-qualification) with a separately packaged backend, generated clients, synthetic supplier/token peers and disposable migrated PostgreSQL under the restricted application role.
 
-The suite covers confirmed admission before provider work, pre-read ordinal allocation, backend-owned initial-import suppression through the real announcement participant, stable match/team/participation identities through late reads and postponement, and acquisition success remaining distinct from uncertain sporting integration. Lost admission and completion acknowledgements use a read of the original cycle; an unavailable confirmation stays uncertain, with no mutation replay. A collected response submitted after incarnation replacement is refused without new identities or completion, while already committed data survives. PostgreSQL connection-level blocking evidence verifies replacement waiting for an in-flight match transaction; subsequent old-context writes are refused.
+Verify confirmed admission before provider work, pre-read ordinal allocation, stable identities through late reads/postponement and initial-import announcement suppression. Lose admission/completion acknowledgements and check the [F01 uncertainty cases](../001-source-acquisition/quickstart.md#ordered-uncertainty-cases) without mutation replay. Hold an in-flight match transaction while replacing the collector: replacement waits, committed facts survive and subsequent old-incarnation writes are refused.
 
-This is synthetic cross-owner runtime evidence. The broader partial-success/absence qualification remains [F01 T032](../001-source-acquisition/tasks.md) under the separately owned [collector-to-sporting qualification](../001-source-acquisition/quickstart.md#collector-partial-success-and-absence-t032) scope; this suite does not qualify live supplier contents, club/geocoding acquisition, actual Auth0, mobile, push delivery or production operations. Ordinary CI compiles this opt-in suite and skips execution without its explicit runtime inputs.
+Use [F01 partial-success/absence cases](../001-source-acquisition/quickstart.md#collector-partial-success-and-absence) for that broader boundary. Ordinary CI skips the opt-in runtime without its explicit inputs; synthetic peers establish no live supplier/Auth0 or native-push result.
 
 ### Result announcement transaction
 
-T029/T033 bind `AcceptMatchObservation` to the real F08 current-public-link and F07 required
-announcement participant. [The result-producer regression](../../apps/backend/src/test/java/com/blockout/backend/sporting/application/ResultAnnouncementIntegrationTest.java)
-and [cross-owner cases](../../apps/backend/src/test/java/com/blockout/backend/contributions/application/ContributionAnnouncementsIntegrationTest.java)
-qualify both concurrent publication/result orders, real inbox-constraint rollback, zero recipients,
-initial finished discovery/trusted reconstruction, corrections, withdrawal/restoration and
-post-commit failure. [F07's qualification](../011-notifications-delivery/quickstart.md#atomic-producer-and-link-qualification)
-owns the detailed allowance and delivery limits. These are synthetic SQL/producer proofs, not
-provider-content, native-push, real moderation or operational purge qualification.
+Race real F08 publication with first final-result acceptance in both orders. Expect the F07 allowance/inbox participant to share the match transaction: inbox failure rolls it back; post-commit push failure does not. Include zero recipients, initial finished discovery/reconstruction, corrections and withdrawal/restoration. Use [F07's producer cases](../011-notifications-delivery/quickstart.md#atomic-producer-and-link-qualification) for allowance and delivery boundaries.
 
 ## Contracts and fields
 
@@ -55,80 +48,31 @@ Verify `Cache-Control: no-store` on administration/ingestion successes and error
 
 Try wrong-environment M2M tokens and unauthorized/stale administrative commands. Expect no effects. Lose a response and read current state before an explicit retry; no automatic mutation replay. Exceed the calendar/image bounds and verify explicit refusal, never truncation or deletion of valid images. Qualify a complete source-season catalog against the 8-MiB JSON bound; include repeated pool labels under distinct compound contexts and identical duplicates. Expect positional result correlation, one atomic catalog commit, and no absence change for stale, invalid or oversized input.
 
-### Generated facts and public reads (T034)
+### Generated facts and public reads
 
-[CollectorSportingReadIntegrationTest](../../apps/collector/src/test/java/com/blockout/collector/acquisition/application/CollectorSportingReadIntegrationTest.java)
-extends the [existing opt-in runtime](../../README.md#collector-to-sporting-qualification),
-with the same explicit disposable database, repackaged backend and local signed
-collector credentials. The production collector mapper and generated RestClient
-submit facts to the backend's generated ingestion interfaces. Anonymous HTTP
-reads then exercise F03's real generated-interface adapters and response mapping;
-no response DTO is constructed to replace those reads.
+Use the [opt-in runtime](../../README.md#collector-to-sporting-qualification) to submit facts through the generated collector mapper/RestClient and ingestion interface, then read anonymous F03 HTTP responses through the generated mobile schemas. Do not replace those reads with constructed response DTOs.
 
-The cases cover numeric final/provisional/unconfirmed results; synthetic `F`, `P`,
-`3/F`, `3/P`, `F/F` and `2/F`; partial date-only facts and FFVB `00:00`; unusable
-sets beside a usable overall result; retained compatible sets with independent
-freshness; supplied versus unknown publication time; stale whole observations;
-and a newer logical read containing an older supplier publication. The last case
-preserves the accepted publication-age limitation rather than introducing page
-priority or publication-time ordering.
+Exercise numeric final/provisional/unconfirmed results; synthetic `F`, `P`, `3/F`, `3/P`, `F/F` and `2/F`; date-only facts and FFVB `00:00`; unusable sets beside a usable overall result; retained compatible sets with independent freshness; supplied/unknown publication time; stale whole observations; and a newer logical read containing older supplier publication. Expect the accepted publication-age limitation without page-priority or publication-time ordering.
 
-The binary image case submits a generated logo request with supplied or omitted
-publication metadata, checks the retained timestamp and compares the real F03
-logo response to the original synthetic PNG bytes.
+Submit a logo with supplied/omitted publication metadata and compare the actual F03 binary response to the synthetic PNG. Verify private qualified document locators, information independent of result, professional finality, withdrawal/restoration and rescheduling under stable identity. F03 exposes only backend document subresources; ineligible binary requests return NotFound before supplier access.
 
-Document cases cover private qualified locators, information independent of a
-result, professional scoresheet/statistics finality, result withdrawal/restoration
-and rescheduling under the same identity. F03 responses expose backend document
-subresources only. Ineligible binary requests return NotFound before supplier
-fetching. Eligible PDF bytes are not requested. Standings retain official row and
-column order, absent rank/statistics, nonnumeric ratios, exact participant links,
-unmatched rows and original table freshness through non-publication or a recorded
-acquisition failure. No-table, not-published and published-empty remain distinct.
-
-All input facts and publication timestamps in this suite are synthetic regression
-evidence, including every special notation; they add no provider-observed sample
-or coverage claim. Existing [source interpretation limits](research.md#supplier-interpretation-limits)
-remain applicable. Actual source association, PDF relay and physical/native
-qualification remain with [F03 T057/T058](../007-sporting-consultation/tasks.md),
-and this qualification completes no other F02 task or release gate.
-
-The isolated qualification uses a separately packaged Spring Boot backend, local signed identities and disposable PostgreSQL 18.6 with explicit Liquibase migration and the restricted application role. The Java 25.0.4 runtime was Microsoft OpenJDK; CI uses Temurin. The suite establishes only T034's synthetic HTTP/SQL/reference boundaries. Actual source association, provider/native and publication-age qualifications remain separate; execution creates no production effect.
+For standings, preserve official order, unknown rank/statistics, nonnumeric ratios, exact/absent participant links and the usable table's own freshness through non-publication/failure. Distinguish no table, `not-published` and published Empty. Synthetic special notations establish no provider-observed sample; [source interpretation](research.md#supplier-interpretation-limits) and [F03 document/native cases](../007-sporting-consultation/tasks.md) retain their own requirements.
 
 ## Classification and division editors
 
-T014/T018 use the existing F05 session and F12 operational admission. Enter pack/pool
-classification from the discovered collection children with both the collection
-read and classification action grants. `manageSportingClassification` and
-`manageDivisionLifecycle` independently admit technical administration and the
-division list; collection, presentation and activity remain separate grants.
-Routes live under `apps/mobile/src/app/(operations)/administration/`.
+Use the existing F05 session and F12 operational admission. Enter pack/pool classification from discovered collection children with collection-read and classification-action grants. `manageSportingClassification` and `manageDivisionLifecycle` independently admit technical administration and the division list; collection, presentation and activity retain separate grants. Routes live under `apps/mobile/src/app/(operations)/administration/`.
 
-The [classification suite](../../apps/mobile/src/features/sporting-administration/__tests__/classification.test.tsx)
-exercises complete overrides, explicit null/inheritance, incomplete/inactive
-choices, all-request conflict feedback, retained dirty values, failed and
-successful current-state recovery, distinct canonical conflict reasons, invalidation
-of previously loaded club teams, independent activity and real protected-route
-removal/reentry. The [presentation suite](../../apps/mobile/src/features/sporting-administration/__tests__/presentation.test.tsx)
-adds division creation through the same RHF/Zod name/color/logo form and generated
-multipart client with an `application/json` metadata part, native confirmation, duplicate-name handling after a lost
-response and no activity write. Native SDK credentials and HTTP are controlled in
-Jest; these tests do not qualify backend transaction outcomes, provider identity
-or native rendering.
+Exercise complete overrides, explicit null/inheritance, incomplete/inactive choices, all-request conflict refusal, retained dirty input, failed then successful current-state recovery and protected-route withdrawal/reentry. Create a division through the name/color/logo form with generated multipart metadata, native confirmation and no activity write. A lost response must not cause automatic duplicate creation; reread before another explicit command.
 
-[T014/T018](tasks.md) cover the bounded mobile editor, its administration entry and controlled tests. It adds no global mapping projection, catalogue API or broader acceptance requirement to T018.
-
-Implementation inputs include [Product Design mapping controls](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4652-28674), [division catalogue](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1340-9338), [creation](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1370-10242) and [gradient/lifecycle](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1368-10291). These identify design sources, not a passed fidelity comparison. The implementation uses F13 native stack sheets and the existing RHF control; lifecycle and presentation retain independent commands with one revision/recovery owner.
-
-The retained captures for [T014/T018](tasks.md) are implementation illustrations only. They are not native, visual, provider or integrated-journey evidence and must not be reused as acceptance, passed scenarios or partial qualification. T055 remains wholly unexecuted for completion purposes and must be performed afresh using its owning specification, approved plan and [prepared scenarios](#presentation-contacts-and-continuity). Future agents must assess the current implementation independently, without inheriting conclusions from that exploration. Related [F13 live Dynamic Type and iOS input qualifications](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) remain with their owner.
+Compare the [mapping controls](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4652-28674), [division catalogue](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1340-9338), [creation](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1370-10242) and [gradient/lifecycle](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1368-10291). T055 requires actual native/visual/integrated journeys; implementation illustrations and controlled native SDK/HTTP inputs cannot establish that qualification.
 
 ## Presentation, contacts and continuity
 
-Team editing checks its own presentation revision while inherited artwork remains current across seasons. KEEP and an own-name edit remain valid after a parent-only artwork change; REPLACE preserves precedence and AUTOMATIC resolves the latest fallback. The inherited preview may change during editing. Controlled PostgreSQL presentation cases establish this behavior, an edit completing while a separate parent club row lock remains held, and retained own-team stale/no-op, season/current-grant, classification/locality and club-contact privacy protections. This does not qualify native editor rendering, provider image acquisition or real V1-logo operations.
+Edit a team while its parent club artwork changes. Expect KEEP and own-name edits to use the team's presentation revision, REPLACE to preserve precedence and AUTOMATIC to resolve the latest fallback. Hold a separate parent-club row lock and verify the independent team edit can complete. Preserve own-team stale/no-op protection, current grants and privacy restrictions.
 
-A task-owned PostgreSQL 18.6/Liquibase upgrade from the previously applied change-set chain preserves every earlier applied checksum, synthetic club bytes/media type/name and own presentation/locality/contact revisions. Only the obsolete club-logo counter is removed from sporting data; the coordinated F01 migration preserves its useful current evidence while dropping its two outage clocks. Clean creation is also exercised by the application suites. This is isolated retained-data evidence, not production migration or rollback approval. Incompatible writers must stop before the contract change; removed counters/clocks are unrecoverable and require compatible forward repair rather than a claimed schema rollback.
+For a retained-chain upgrade, preserve applied checksums, accepted image bytes/media type/name and own presentation/locality/contact revisions. Stop incompatible writers before the contract change; removed club-logo counters and F01 outage clocks require compatible forward repair rather than a claimed schema rollback. Check clean creation separately on a disposable database.
 
-The bounded native preparation check invokes actual `prepareSportingLogo` and Expo FileSystem on compatible iOS 27.0 and Android 17/API 37 clients. The accepted public PNG copy preserves all source bytes, then disposes only the owned output. This direct operation check establishes copy completion/ownership; full picker, editor and upload qualification remains with T045/T055, without a native-provider or accessibility claim.
+Invoke `prepareSportingLogo` with the actual native file owner: await copy completion, preserve borrowed input bytes and dispose only owned output. Qualify picker/editor/upload separately on the native platforms.
 
 In existing native journeys, verify a professional team with no club remains readable/followable without a club link or invented point. Exercise team override → LNV → optional club → missing artwork, plus unchanged nonprofessional inheritance. Fail logo retrieval/replacement and retain the last valid presentation. Check both themes, enlarged text, focus and meaningful accessible action labels.
 
@@ -175,111 +119,34 @@ Exercise standings with and without a retained usable table: `published` with em
 
 ### Collector logo and locality acceptance
 
-T054 uses [CollectorPresentationBoundaryIntegrationTest](../../apps/collector/src/test/java/com/blockout/collector/acquisition/application/CollectorPresentationBoundaryIntegrationTest.java)
-with the [disposable-runtime procedure](../../README.md#collector-to-sporting-qualification).
-Package and migrate the backend as documented, then select
-`-Dit.test=CollectorPresentationBoundaryIntegrationTest,CollectorSportingBoundaryIntegrationTest`
-with `-Dblockout.qualify-collector-sporting=true`. Both suites run serially against the
-explicit database/backend properties. Ordinary CI compiles them and skips execution
-without these opt-in inputs. The dedicated `collector-presentation.sql` supplements
-the existing reset fixture only in that disposable database.
+Use the [disposable-runtime procedure](../../README.md#collector-to-sporting-qualification), package/migrate the backend, then select `-Dit.test=CollectorPresentationBoundaryIntegrationTest,CollectorSportingBoundaryIntegrationTest` with `-Dblockout.qualify-collector-sporting=true`. Run against explicit database/backend properties; ordinary CI skips execution without these inputs.
 
-The collector lifecycle, passage, generated ingestion clients/mappers and backend
-security/controllers exercise F01/F02 commits on explicitly migrated disposable
-PostgreSQL 18.6 under the restricted application role.
+Exercise repeated matches/pools and two teams sharing one image URL. Expect one acquisition per distinct resolved team per passage, including failed attempts. Detect PNG bytes independently of a JPEG name/type. HTTP 404, corrupt data, unsupported GIF and oversized/hostile-dimension images preserve accepted source/manual presentation while valid matches commit.
 
-The cases establish:
+Read current locality targets after admission and submit that revision. Change effective address/city/postcode or return to source while the provider is in flight: expect stale-result refusal, no forbidden context publication and no withdrawal after technical acquisition failure. Manual locality and intentional absence survive recollection; masked source changes preserve point/revision. An unambiguous municipality fallback remains located without recalculation.
 
-- One image acquisition per distinct resolved team across repeated matches and
-  pools with distinct calendar URLs in a passage, including failed attempts. Two teams sharing one URL still
-  receive their independent acquisition. PNG content served under a JPEG name/type
-  is retained as PNG.
-- HTTP 404, corrupt bytes, a valid unsupported GIF and a decodable PNG above 5,242,880 bytes preserve the last
-  accepted source image, manual logo and name while every usable match commits.
-  The oversized PNG remains below the decoded-pixel and 8-MiB transport bounds.
-- Target reads resolve a correction made after admission. The generated locality
-  request carries that current revision; a correction while acquisition is in flight
-  or an explicit return to source rejects the earlier point. Technical acquisition
-  failure sends no further locality proposal and preserves a valid current point.
-- Current restrictions prevent forbidden acquisition and source-field republication.
-  Manual locality and deliberate absence survive club recollection; source changes
-  masked by corrections preserve the point and locality revision. Effective address
-  changes, including street-only edits and restrictions, invalidate
-  that state under T075; the current-target address and fallback cases are exercised
-  by T077 with [F01 T083](../001-source-acquisition/tasks.md).
-- Real Servlet multipart PATCH binds JSON metadata with explicit nulls and image
-  bytes. Invalid replacement preserves the whole previous form/revision; automatic
-  restoration serves the accepted source bytes through the real image read.
-
-Calendar, club-page and municipality interpretation are controlled inputs; they do not qualify live full-address resolution. Image GETs
-use the production LNV image/Apache transport against a loopback HTTP server;
-locally signed credentials exercise real security without Auth0 access. Contact
-corrections use the real administrative HTTP API. The no-public-endpoint F11
-restriction is seeded as current SQL state, so these cases do not qualify the manual
-rights procedure itself. Administrative multipart uses Spring RestClient, not the
-native mobile networking stack. No live FFVB/IGN/LNV reads, provider coverage,
-native design/accessibility, production or protected-logo recovery are certified;
-those remain with their owning tasks, including T055/T056 and [F01 T058](../001-source-acquisition/tasks.md). The
-retained [F13 live Dynamic Type and iOS 17 input limits](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) are unchanged.
+Send actual Servlet multipart PATCH with explicit-null JSON metadata and image bytes. Invalid replacement preserves the entire previous form/revision; automatic restoration returns accepted source bytes. Keep loopback supplier/identity checks distinct from live provider reads, native networking, private rights handling and protected-logo recovery.
 
 ### Current visibility and projection boundary
 
-F02 T035–T040 are exercised by `SportingVisibilityIntegrationTest`, `SportingProjectionIntegrationTest` and `ReadSportingDataTest`, alongside the existing calendar/identity/classification suites. The integration suites use the real F01 admission, closure and completion services with explicitly migrated disposable PostgreSQL 18.6 and the restricted application role.
+Verify current canonical visibility and permitted presentation on every public read, independently of index catch-up. Retained internal identity reads remain available to acquisition. Known date without time remains eligible; dateless/withdrawn matches do not. Preserve standings labels/order/statistics while removing links to unavailable participants.
 
-Current public reads recheck canonical visibility, permitted municipality, qualified aliases and participation; they never hydrate from an index document. Retained internal identity reads remain available to acquisition. A known date without a time remains eligible; a dateless or withdrawn match does not. Official standings retain labels, order and statistics while dropping links to unavailable participants. `SportingProjectionChanges.Changed` carries only identities/scopes after commit; `projectionDependents` expands current retained relations in batches, including hidden identities needing index removal. Rollback emits no handoff and score-only changes submit no search work. No request queue or recovery state is stored.
+Exercise source/manual/hidden contact modes, restrictions and restored prohibited values through actual owner reads. Restricted source/manual values remain cleared or absent; no index document supplies authoritative hydration. After commit, hand off only affected identities/scopes; rollback emits no projection work and score-only changes add none.
 
-Presentation inputs now include independent current full/short names and permitted effective city, with current club names in dependent team reads. `SportingPresentationIntegrationTest` exercises atomic names/images, independent contact modes, current field restrictions, locality revisions, cross-season logo inheritance and LNV/manual precedence against the migrated PostgreSQL baseline. It also checks account-grant withdrawal, restriction/collection exclusion and the F01 incarnation fence through the source-image commit. Restricted source/manual contact columns are cleared; a synthetic restored value behind a retained restriction remains absent from owner reads. This is controlled backend evidence, not a backup-restoration or F14 qualification.
+For T076, create fresh disposable PostgreSQL from the unchanged Liquibase schema definitions and use ordinary collector admission/targets/F02 acceptance for a representative classified pool and its encountered club sheets/geocoding. Verify address-first results, valid municipality fallback, current-target restrictions and subsequent effective-context changes rejecting old responses. Existing fields support this behavior without a data-update change set or requalification of old municipality results. Task-local recreation requires verified ownership and grants no production reset. The [plan](plan.md#presentation-administration-and-locality) owns that scope.
 
-`SportingPresentationWebMvcTest`, the extended `SportingIngestionWebMvcTest` and `DivisionAdministrationWebMvcTest` exercise generated request/response binding, explicit nulls, media types, current permissions, safe errors and atomic save admission. `SportingPresentationMultipartIntegrationTest` sends real multipart PATCH requests over loopback to the selected Servlet runtime with the production controller and controlled use cases. It verifies required-null metadata, original image bytes and the exact 5,242,880-byte boundary. The actual PNG/JPEG decoder and 4,194,304-pixel ceiling remain the shared JDK validator's responsibility. `IngestionBodyLimitAdviceTest` proves the source-image cutoff before native `Resource` conversion with declared and unknown body lengths; the ingestion MVC suite verifies refusal before any image use case. The professional artwork case also reads distinct effective/manual and automatic bytes before removing the manual image. These cases establish Servlet binding and the bounded owner transactions separately; they do not qualify a native mobile transport.
+### Current restrictions and presentation
 
-F01 consumes current permitted address/city/optional postcode and their locality revision through the existing read boundary, resolved after admission rather than copied into a cycle. A missing/restricted effective city suppresses the complete served context, including address. T075–T077 qualify all effective component changes, including street-only correction, clearing the old point and advancing revision, while masked source changes do neither. The final unambiguous address result or municipality fallback supplies the unchanged public point shape; no precision flag is added. F01 retains all attempts, cadence, one-hour deadline, pauses and unresolved-only relaunch ownership. The owner-only suites above do not themselves complete T041; its implemented consumer evidence is recorded below. These municipal boundary observations establish no full-address provider, native-device or production qualification.
+Use disposable migrated PostgreSQL and TLS OpenSearch with real F01/F02/F03/F04/F06 owners. Delay projection, perform current public/personal reads against old candidates, then consume committed scopes and publish catch-up/full replacement.
 
-T076 exercises fresh task-local PostgreSQL from the unchanged existing Liquibase schema definitions and the ordinary collector path through generated F01 admission/targets and F02 acceptance for a representative classified pool, followed by its encountered club sheets and geocoding. The generated HTTP and PostgreSQL suites independently exercise restrictions and effective-context invalidation on disposable baselines. A secondary-field refusal remains partial integration without discarding accepted address/location facts. Verify address-first results, valid municipality fallback, current-target restrictions and subsequent effective address/city/postcode changes rejecting old responses. Existing schema fields support this behavior without a schema/data-update change set or requalification of old municipal results. Controlled provider fixtures and separately authorized representative source reads retain distinct evidence scopes. Current final evidence must describe the freshly ingested dataset; earlier preservation observations establish only their exercised boundary, not the contents of a recreated environment. Task-local cleanup and recreation require verified ownership under the explicit operational authorization; they imply no production reset. The [plan](plan.md#presentation-administration-and-locality) owns this fresh-creation qualification without an additional retention or backfill mechanism.
+1. Withdraw catalog presence, accept a qualified current empty calendar and deactivate a division independently. Expect public lists/search/examples, old detail/calendar/image links, club teams and personal reads to refuse hidden targets before catch-up.
+2. Restore each cause separately. Expect stable identities/follow tuples, no transfer to a same-named team in another season and no restoration while another hiding cause remains. Another admitted participation may keep the original team usable.
+3. Pause/close a season. Expect retained consultation/follows and only already-admitted work to drain.
+4. Change source/manual full/short names, technical aliases, permitted locality and contact restrictions. Expect current F03 responses and hydrated search to use current accepted values, reject stale-city candidates before reindexing and never republish restricted values through recollection/restoration.
+5. Compare effective address/city/postcode changes with masked source changes. Expect only effective changes to invalidate the point/revision and old in-flight results; verify the revised boundary through fresh collector ingestion as above.
+6. Read inherited club logos across seasons, manual/LNV priority and optional professional-club associations through public binary reads. Expect no copied team image or invented identity.
 
-### T041 current restrictions and presentation
-
-[CurrentRestrictionsIntegrationTest](../../apps/backend/src/test/java/com/blockout/backend/search/application/CurrentRestrictionsIntegrationTest.java)
-uses actual admitted F01 cycles, F02 catalog/calendar/division commands, F03 public
-HTTP reads and F06 desired-state follows, personal lists, season options and the
-personal calendar. The real F04 `ProjectSearch`, matching adapter and native
-projection writer use disposable TLS OpenSearch 3.9.0 alongside explicitly
-Liquibase-migrated PostgreSQL 18.6 under the restricted application role.
-Projection execution is delayed explicitly; catch-up consumes the actual committed
-identity scopes since the preceding publication and rereads current SQL. Consumed
-events and rebuild preparation events are cleared between observations. No sporting, follow, hydration or projection
-owner is replaced by a double.
-
-The cases observe old native candidates before catch-up and separately verify
-targeted deletion/return and complete generation replacement. Catalog absence,
-one qualified empty current calendar and division inactivity exclude retained
-targets from fresh public/personal requests, old detail/calendar/image links,
-club teams and search examples. Catalog rediscovery, calendar return and division
-reactivation remove only their own cause. Individual match withdrawal also
-defeats completed-calendar selection despite a retained accepted final score.
-Another admitted participation keeps the original team usable. Every transition
-preserves complete original follow tuples; an identically named team in another
-season acquires no implicit relation. Real pause/closure retain consultation and
-follows while the already-running cycle finishes once and further acquisition
-is refused.
-
-[CurrentPresentationIntegrationTest](../../apps/backend/src/test/java/com/blockout/backend/search/application/CurrentPresentationIntegrationTest.java)
-completes T053's consumer chain: current source and independent manual full/short
-names, a qualified technical alias, permitted locality and field restrictions
-reach effective F03 responses and actual native F04 documents. A stale city
-candidate is rejected before reindexing, even when its name also matches. The
-existing private F11 operation is exercised with fictitious inputs; source
-restoration and recollection cannot republish a restricted field. Masked source
-changes preserve the point/revision and produce no new F01 geocoding need; a
-changed effective context rejects an old in-flight result. The extended
-address/city/postcode comparison, street-only invalidation and fresh
-collector ingestion are qualified separately by T075–T077; these earlier consumer observations do not
-by themselves establish the revised address behavior.
-Current club-logo inheritance spans two seasons without copied team bytes,
-while manual team and accepted LNV priority are checked through actual public
-binary reads and search hydration. Exact synthetic optional-club association
-preserves the professional team's native identity.
-
-Run after the existing contract bundle target:
+Run after contract bundling:
 
 ```sh
 NX_LOAD_DOT_ENV_FILES=false npx nx run http-contracts:bundle
@@ -289,25 +156,4 @@ NX_LOAD_DOT_ENV_FILES=false npx nx run http-contracts:bundle
 NX_LOAD_DOT_ENV_FILES=false npx nx run backend:test
 ```
 
-The [existing owner cases](#identities-and-useful-partial-success)
-retain partial/failed/wrong-context input, source-authority, historical-empty
-reconstruction and standings limits. `SportingPresentationIntegrationTest`,
-`SearchCurrentDataIntegrationTest`, `ProjectSearchTransactionIntegrationTest`,
-`SearchProjectionIntegrationTest`, `FollowListsIntegrationTest`,
-`FollowOptionsIntegrationTest` and `PersonalCalendarIntegrationTest` retain their
-own transaction, matching, publication/failure and composition boundaries.
-Freshly integrated [F13 current-truth evidence](../003-shared-quality/quickstart.md#current-sporting-truth-qualification-a01a03-t021)
-and [T034 generated facts/public reads](#generated-facts-and-public-reads-t034)
-remain complementary; no collector/provider result is inferred from these new
-in-process scenarios.
-
-Clock, source facts, image/geocoding inputs, test JWT principal, exact technical
-alias/club associations and authorization of the private rights operation are
-controlled. This qualifies fresh server reads and real local SQL/index catch-up;
-it does not establish retained native-screen behavior, live scheduler timing,
-actual IGN/LNV/FFVB responses, private rights handling, backup restoration,
-physical/native accessibility, protected V1 logo recovery or production approval.
-T055/T056, F01 provider qualifications and the other owners' native/operational
-tasks remain separate and unchecked where unfinished.
-
-The local SQL qualification uses compiled application classes, disposable migrated PostgreSQL 18.6 and Microsoft OpenJDK 25.0.4; CI uses Temurin. The controlled cross-owner scenarios establish T041's server/current-data boundary and provide T053 consumer evidence without changing their product contracts. Unfinished native/provider/operations tasks retain the limits above.
+Use [F13 current-truth scenarios](../003-shared-quality/quickstart.md#current-sporting-truth) and [generated facts/public reads](#generated-facts-and-public-reads) for complementary boundaries. Controlled clocks, provider facts, identities and private-rights inputs do not establish actual providers, native accessibility, protected V1-logo recovery, backup restoration or production qualification.

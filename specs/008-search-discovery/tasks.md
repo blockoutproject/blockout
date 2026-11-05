@@ -6,7 +6,7 @@ description: "Implementation tasks for F04 search and discovery"
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md).
 
-**Prerequisites**: Accepted owning artifacts, [constitution](../../.specify/memory/constitution.md) and [agent guidance](../../AGENTS.md). The [quickstart](quickstart.md#contracts-and-access) records dependency and request/context qualification; business, native-device, deployment and restoration tasks retain their own evidence boundaries.
+**Prerequisites**: Accepted owning artifacts, [constitution](../../.specify/memory/constitution.md) and [agent guidance](../../AGENTS.md). The [quickstart](quickstart.md#contracts-and-access) defines dependency and request/context validation scenarios; business, native-device, deployment and restoration tasks retain their own evidence boundaries.
 
 **Tests**: A01–A29 and SC-001–007 explicitly require qualification. Write automated tests first and observe a meaningful failure before their associated implementation. Prepare manual/native cases before configuration; execute them only with actual prerequisites and authorization. Real analyzer and large-set traversal checks establish functional correctness, not a benchmark or capacity commitment.
 
@@ -32,7 +32,7 @@ description: "Implementation tasks for F04 search and discovery"
 - [x] T001 Verify F13 T001–T017 through `apps/backend/pom.xml`, `apps/mobile/orval.config.ts` and `README.md`: Java 25 Temurin/Spring Boot 4.1.1, PostgreSQL 18.6, Expo SDK 58/React Native 0.88/React 19.3.0, canonical generation and existing JUnit/Testcontainers/Jest tooling. Reuse the three applications and owner conventions; no new search service, database or framework initialization.
 - [x] T002 Write failing Java/client integration cases in `apps/backend/src/test/java/com/blockout/backend/search/infrastructure/OpenSearchClientIntegrationTest.java` against OpenSearch 3.9.0: verified TLS/trust refusal, official client serialization, native query, bulk item outcomes, refresh and atomic aliases under Java 25. Use isolated synthetic indexes and credentials; the published client matrix is not proof of Java 25 compatibility.
 - [x] T003 Configure official `opensearch-java` 3.10.0 with Apache HttpClient 5 in `apps/backend/pom.xml` and `apps/backend/src/main/java/com/blockout/backend/search/infrastructure/OpenSearchConfiguration.java`; add bounded connection/request configuration in `apps/backend/src/main/resources/application.yaml`, safe inputs in `apps/backend/.env.example` and local OpenSearch infrastructure in `compose.yaml`. Use trusted TLS, explicit environment loading and backend-only credentials; keep local application processes host-run, without Spring Data OpenSearch, demo credentials or a trust-all client.
-- [x] T004 Run T002 using the actual selected Java/client/engine combination and validate the affected Compose configuration without exposing secrets; record executable commands in `README.md` and safe results against `specs/008-search-discovery/quickstart.md#contracts-and-access`. Failed compatibility blocks adopting this integration, not permission to change the accepted Java baseline or invent a compatibility layer.
+- [x] T004 Run T002 using the actual selected Java/client/engine combination and validate the affected Compose configuration without exposing secrets; record executable commands in `README.md` and safe results in normal delivery evidence. Failed compatibility blocks adopting this integration, not permission to change the accepted Java baseline or invent a compatibility layer.
 
 ---
 
@@ -121,7 +121,7 @@ description: "Implementation tasks for F04 search and discovery"
 
 ---
 
-- [x] T072 [US4] Implement one hydration per nonempty native batch of at most 200 candidates in `apps/backend/src/main/java/com/blockout/backend/search/application/ReadSearch.java`, preserving examples/order/lookahead/cursor/evaluation-bound/current restrictions. Qualify direct traversal and the real bounded SQL hydration in existing search integration tests; record scoped evidence in `specs/008-search-discovery/quickstart.md`.
+- [x] T072 [US4] Implement one hydration per nonempty native batch of at most 200 candidates in `apps/backend/src/main/java/com/blockout/backend/search/application/ReadSearch.java`, preserving examples/order/lookahead/cursor/evaluation-bound/current restrictions. Qualify direct traversal and the real bounded SQL hydration in existing search integration tests; record scoped outcomes in normal delivery evidence.
 
 ## Phase 6: User Story 5 — Understand errors and retry search (Priority: P1)
 
@@ -219,7 +219,7 @@ The graph describes integrated increments, not a requirement to wait for every d
 ### Parallel Opportunities and Examples
 
 - **Foundation**: T005 contract cases and T006 access cases touch distinct files after setup.
-- **US2**: T008 matching, T009 current-data, T010 traversal, T011 lifecycle and T012 screen cases can be prepared together. Implement engine/current reads before their consuming controller; serialize shared search values/configuration and final quickstart evidence.
+- **US2**: T008 matching, T009 current-data, T010 traversal, T011 lifecycle and T012 screen cases can be prepared together. Implement engine/current reads before their consuming controller; serialize shared search values/configuration and quickstart updates.
 - **US3**: T022 backend options and T023 mobile filter cases can run together. T024/T025 backend options and prepared native filter composition may then advance independently, joining at T026/T027 with generated consumers.
 - **US4**: Backend traversal cases T010 are written in US2 before their implementation. T028 prepares mobile paging/navigation cases; no separate intra-story parallel batch is claimed. T029/T031 share the card and T030 shares the query/list owners, so integrate in order.
 - **US5**: T033 backend/diagnostic and T034 mobile recovery cases are independent after their owner boundaries exist. T035 modifies the shared quickstart and must be serialized with other qualification edits. Environment configuration and mobile recovery may progress separately; T041/T042 wait only for their explicit prerequisites.

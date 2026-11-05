@@ -6,7 +6,7 @@
 
 **Created**: 2026-09-16
 
-**Status**: Accepted functional baseline; technical design is recorded in [plan.md](plan.md); runtime qualification remains pending.
+**Status**: Accepted functional baseline; [plan.md](plan.md) owns technical design and [tasks.md](tasks.md) tracks implementation.
 
 **Input**: Functional scope approved by the product owner, including proportionate reliability decisions: trust official sporting content, establish its identity and context, isolate local anomalies and preserve successful useful updates. This document defines F02 in the [specification navigation](../../README.md#specifications).
 

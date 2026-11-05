@@ -4,7 +4,7 @@
 
 **Input**: [spec.md](spec.md), [F13 foundation](../003-shared-quality/plan.md), [F05 account lifecycle](../005-accounts-identity/plan.md) and [F11 advertising](../004-advertising-privacy-legal/plan.md).
 
-**Status**: Native SDK integration and Account composition have scoped implementations under [tasks](tasks.md). The guest-entry prototype/Figma approval and subsequent Account decision are recorded in [design evidence](spec.md#assumptions-and-dependencies). Provider configuration, real billing and release qualification remain separate pending work.
+**Status**: Approved technical plan; [tasks](tasks.md) track implementation and qualification. The approved guest-entry and Account presentation constraints are defined in the [specification](spec.md#assumptions-and-dependencies).
 
 ## Summary
 
@@ -105,7 +105,7 @@ Use official `RevenueCatUI.CustomerCenterView` alone in the same native route ho
 
 Configure the native management and no-active-purchase paths with restoration and the F10 Custom Action where supported. Leave the Customer Center purchase offering unset: purchasing uses the explicitly selected V2 paywall, never an implicit `current` offering from another entry. Disable the built-in Contact Support action and in-app tickets so they do not create a second support channel. Qualify shared configuration changes against V1 during coexistence before publishing them. If Customer Center cannot load, the person can close it and use the existing F10 entry from the profile; assistance does not depend on RevenueCat availability. No custom provider error screen is added.
 
-Prototype/Figma contain only fictitious text identifying the RevenueCat handoff; no offer, purchase, restoration or provider error UI is drawn. Updated captures are tracked by [F13 presentation evidence](../003-shared-quality/quickstart.md#native-ui-and-approved-design). Those mocks establish navigation intent, not provider or store acceptance.
+Prototype/Figma contain only fictitious text identifying the RevenueCat handoff; no offer, purchase, restoration or provider error UI is drawn. Those mocks establish navigation intent, not provider or store acceptance.
 
 No receipts, complete SDK objects or customer payloads are automatically attached to support. Operator verification and private records follow F10/F11. Unsupported cross-store restoration uses that process without forced repurchase, identity merging or an automatic gift.
 
@@ -121,6 +121,6 @@ F05's local-first deletion and bounded provider attempts remain unchanged. Failu
 
 ## Verification and completion boundary
 
-[Research](research.md) records official documentation, source inspection and bounded console observations. [Quickstart](quickstart.md) owns integrated qualification scenarios and their scoped results. Controlled local tests establish only Blockout-owned composition and lifecycle behavior. Actual purchases, restoration, provider rendering and account-switch transactions require their separate native/store evidence.
+[Research](research.md) explains the selected native APIs and alternatives. [Quickstart](quickstart.md) defines integrated validation scenarios, prerequisites and expected outcomes. Controlled local tests establish only Blockout-owned composition and lifecycle behavior. Actual purchases, restoration, provider rendering and account-switch transactions require their separate native/store evidence.
 
-The scoped prototype and Figma approvals are recorded in the specification. Check specifications and native planning artifacts together for documentary consistency and owner/consumer coverage. Publication follows [repository delivery policy](../../AGENTS.md#git-delivery); these artifacts establish no provider or runtime qualification.
+The scoped prototype and Figma approvals are recorded in the specification. Check specifications and native planning artifacts together for documentary consistency and owner/consumer coverage. These artifacts establish no provider or runtime qualification.

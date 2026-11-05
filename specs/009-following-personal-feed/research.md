@@ -12,7 +12,7 @@ Selected-season NotFound uses ordinary error/retry without automatically rereadi
 
 **Rationale and evidence**: [QueryClient.resetQueries](https://tanstack.com/query/latest/docs/framework/react/reference/classes/QueryClient#resetqueries) resets cached traversal, cancels its pending reads and refetches active queries. Installed query-core 5.104.3 supplies this native implementation. Personal views derive `enabled` from actual visibility and retain `staleTime: Infinity`, so reset hidden views load their first page when displayed. No old `initialData` or `placeholderData` is supplied. The generated query prefixes cover both list kinds and all season/category/zone selections on the captured private client.
 
-Ordinary calendar refresh keeps [F03's current native Query/grouping policy](../007-sporting-consultation/plan.md#mobile-state-and-navigation), including retained traversal refetch and separate loading-zone contexts. The confirmed-follow reset is a separate accepted interaction. The [qualification](quickstart.md#integrated-personal-season-and-calendar-t022t037) distinguishes these paths using actual personal views and generated consumers.
+Ordinary calendar refresh keeps [F03's current native Query/grouping policy](../007-sporting-consultation/plan.md#mobile-state-and-navigation), including retained traversal refetch and separate loading-zone contexts. The confirmed-follow reset is a separate accepted interaction. The [validation scenarios](quickstart.md#integrated-personal-season-and-calendar-t022t037) distinguish these paths using actual personal views and generated consumers.
 
 **Alternatives**: Retaining old personal rows after a confirmed follow change can present the former selection after a failed reload. Copying per-match origins or building a synchronization/recovery store is unnecessary; the native reset preserves the component-owned season/category and leaves ordinary loading/error/retry to the existing views. Optimistic full-list/count rewrites and automatic mutation replay remain excluded.
 
@@ -44,7 +44,7 @@ all follow targets or exposing managed entities/repositories, and adds no query 
 
 **Rationale**: [HTTP PUT semantics](https://www.rfc-editor.org/rfc/rfc9110.html#name-put) permit replacement of the identified state; false is a valid representation without a persisted negative relation. This makes read/replace/idempotence explicit without a toggle command or additional removal protocol. The existing API is resource-oriented for generated clients, not a newly claimed hypermedia system.
 
-Existing accepted Home/Sport journeys cover season changes, empty states, bounded reconciliation and ordinary errors. Live Figma inspection found the shared compact button's loading capsule. The follow-specific native spinner and retained confirmed label/selection are a scoped control adaptation, leaving other buttons and the surrounding journey unchanged. Qualification remains described in [quickstart](quickstart.md), not claimed from the design or library documentation.
+Existing accepted Home/Sport journeys cover season changes, empty states, bounded reconciliation and ordinary errors. The shared compact button uses a loading capsule. The follow-specific native spinner and retained confirmed label/selection are a scoped control adaptation, leaving other buttons and the surrounding journey unchanged. Qualification remains described in [quickstart](quickstart.md), not claimed from the design or library documentation.
 
 ## Intrinsic personal-season presentation
 
