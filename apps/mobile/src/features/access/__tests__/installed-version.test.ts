@@ -52,10 +52,11 @@ it.each([
 });
 
 it("accepts three safe integer components including the maximum", () => {
-  // Given: the table supplies the version inputs.
+  // Given
+  const version = "9007199254740991.0.12";
 
   // When
-  const result = parsePublishedVersion("9007199254740991.0.12");
+  const result = parsePublishedVersion(version);
 
   // Then
   expect(result).toEqual([9007199254740991, 0, 12]);

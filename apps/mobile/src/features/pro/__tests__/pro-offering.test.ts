@@ -35,9 +35,15 @@ it("selects only the configured V2 offering and preserves its native localized p
 });
 
 it("allows a new explicit purchase after cancellation or definite failure only for inactive rights", () => {
-  // Given / When / Then
   for (const operation of ["idle", "cancelled", "failed"] as const) {
-    expect(canPurchasePro({ status: "inactive", operation })).toBe(true);
+    // Given
+    const state = { status: "inactive", operation } as const;
+
+    // When
+    const allowed = canPurchasePro(state);
+
+    // Then
+    expect(allowed).toBe(true);
   }
 });
 
@@ -45,22 +51,45 @@ it("distinguishes missing configuration or offer from failed retrieval without a
   // Given
   mockPurchases.getOfferings.mockResolvedValue({ current: null, all: {} });
 
-  // When / Then
-  await expect(loadProOffering("")).resolves.toBeNull();
+  // When
+  const unconfiguredOffering = await loadProOffering("");
+
+  // Then
+  expect(unconfiguredOffering).toBeNull();
   expect(Purchases.getOfferings).not.toHaveBeenCalled();
-  await expect(loadProOffering("v2")).resolves.toBeNull();
+
+  // When
+  const missingOffering = await loadProOffering("v2");
+
+  // Then
+  expect(missingOffering).toBeNull();
+
+  // Given
   mockPurchases.getOfferings.mockRejectedValue(
     new Error("private provider data"),
   );
-  await expect(loadProOffering("v2")).rejects.toThrow(
-    "Pro offering unavailable",
-  );
+
+  // When
+  const failedOffering = loadProOffering("v2");
+
+  // Then
+  await expect(failedOffering).rejects.toThrow("Pro offering unavailable");
 });
 
 it.each([
-  { status: "guest" },
-  { status: "unavailable", reason: "customer-info", operation: "idle" },
-  { status: "active", entitlement: entitlement(), operation: "idle" },
+  { label: "guest rights", state: { status: "guest" } },
+  {
+    label: "unavailable rights",
+    state: {
+      status: "unavailable",
+      reason: "customer-info",
+      operation: "idle",
+    },
+  },
+  {
+    label: "active rights",
+    state: { status: "active", entitlement: entitlement(), operation: "idle" },
+  },
   ...(
     [
       "purchasing",
@@ -69,11 +98,19 @@ it.each([
       "purchased",
       "already-owned",
     ] as const
-  ).map((operation) => ({ status: "inactive" as const, operation })),
-] satisfies ProState[])(
-  "does not encourage purchase for $status / $operation",
-  (state) => {
-    // Given / When / Then
-    expect(canPurchasePro(state)).toBe(false);
+  ).map((operation) => ({
+    label: `inactive rights during ${operation}`,
+    state: { status: "inactive" as const, operation },
+  })),
+] satisfies { label: string; state: ProState }[])(
+  "does not encourage purchase for $label",
+  ({ state }) => {
+    // Given: the table supplies the rights and operation state.
+
+    // When
+    const allowed = canPurchasePro(state);
+
+    // Then
+    expect(allowed).toBe(false);
   },
 );

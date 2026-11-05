@@ -114,14 +114,17 @@ it.each([
 
 it.each([
   [
+    "submission",
     CreateStreamContributionRequest,
     { revision: "opaque:a", url: "https://twitch.tv/synthetic" },
   ],
   [
+    "owner update",
     UpdateOwnStreamContributionRequest,
     { revision: "opaque:a", action: "cancel" },
   ],
   [
+    "moderated submission",
     CreateModeratedStreamContributionRequest,
     {
       actorAccountId: id,
@@ -130,31 +133,42 @@ it.each([
     },
   ],
   [
+    "moderated update",
     UpdateModeratedStreamContributionRequest,
     { actorAccountId: id, revision: "opaque:a", action: "approve" },
   ],
   [
+    "reactivation",
     CreateStreamReactivationRequest,
     { actorAccountId: id, revision: "opaque:a" },
   ],
-  [CreateStreamReportRequest, { reason: "Synthetic reason" }],
+  ["report", CreateStreamReportRequest, { reason: "Synthetic reason" }],
 ])(
-  "validates required command fields with the generated mobile schema",
-  (schema, body) => {
+  "validates required %s fields with the generated mobile schema",
+  (_command, schema, body) => {
     // Given
     const valid = body;
 
     // When
+    const accepted = schema.safeParse(valid);
+
     // Then: MVC proves strict rejection; Orval request schemas check known field shapes.
-    expect(schema.safeParse(valid).success).toBe(true);
+    expect(accepted.success).toBe(true);
     for (const field of Object.keys(body)) {
-      expect(schema.safeParse({ ...body, [field]: null }).success).toBe(false);
-      expect(schema.safeParse({ ...body, [field]: undefined }).success).toBe(
-        false,
-      );
+      // When
+      const nullField = schema.safeParse({ ...body, [field]: null });
+      const missingField = schema.safeParse({ ...body, [field]: undefined });
+
+      // Then
+      expect(nullField.success).toBe(false);
+      expect(missingField.success).toBe(false);
     }
     if ("revision" in body) {
-      expect(schema.safeParse({ ...body, revision: "" }).success).toBe(false);
+      // When
+      const emptyRevision = schema.safeParse({ ...body, revision: "" });
+
+      // Then
+      expect(emptyRevision.success).toBe(false);
     }
   },
 );
@@ -327,9 +341,10 @@ it.each([
   { moderateStreamLinks: false },
   { moderateStreamLinks: true, future: true },
 ])(
-  "grants moderation only through literal true in the additive account projection",
+  "grants moderation only through literal true in additive account projection %j",
   (permissions) => {
-    // Given
+    // Given: the table supplies the account permission projection.
+
     // When
     const result = AccountPermissionsResponse.parse(permissions);
 

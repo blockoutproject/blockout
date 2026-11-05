@@ -41,7 +41,6 @@ afterEach(() => {
   }
 });
 
-// Given
 it.each([
   ["network failure", new ApiError("network"), true],
   ["unreadable response", new ApiError("schema"), true],
@@ -55,6 +54,8 @@ it.each([
   ["unclassified error", new Error("unexpected"), false],
   ["no error", null, false],
 ])("classifies mutation uncertainty for %s", (_case, error, expected) => {
+  // Given: this row supplies the error and its expected uncertainty.
+
   // When
   const uncertain = isUncertainMutationFailure(error);
 

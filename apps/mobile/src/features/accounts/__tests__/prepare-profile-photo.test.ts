@@ -50,7 +50,7 @@ beforeEach(() => {
 });
 
 it("adapts a large cropped source once and checks the prepared PNG instead of the original size", async () => {
-  // Given
+  // Given: the square native source is larger than the accepted prepared output.
 
   // When
   const result = await prepareProfilePhoto(asset);
@@ -90,8 +90,11 @@ it.each([0, 5 * 1024 * 1024 + 1])(
       .mocked(File)
       .mockImplementation(() => ({ ...prepared, size }) as unknown as File);
 
-    // When / Then
-    await expect(prepareProfilePhoto(asset)).rejects.toThrow();
+    // When
+    const preparation = prepareProfilePhoto(asset);
+
+    // Then
+    await expect(preparation).rejects.toThrow();
     expect(prepared.delete).toHaveBeenCalledTimes(1);
   },
 );
@@ -100,9 +103,13 @@ it.each([
   [1200, 900],
   [0, 0],
 ])("refuses a non-square crop %i x %i", async (width, height) => {
-  // Given / When / Then
-  await expect(
-    prepareProfilePhoto({ ...asset, width, height }),
-  ).rejects.toThrow();
+  // Given
+  const crop = { ...asset, width, height };
+
+  // When
+  const preparation = prepareProfilePhoto(crop);
+
+  // Then
+  await expect(preparation).rejects.toThrow();
   expect(ImageManipulator.manipulate).not.toHaveBeenCalled();
 });

@@ -13,16 +13,22 @@ const owner = { subject: "auth0|a", accountId };
 it("leaves guests and unavailable accounts without a private follow context", () => {
   // Given
   const session = { subject: null, accountId: null };
-  // When / Then
-  expect(captureFollowingOwner(session)).toBeNull();
+
+  // When
+  const captured = captureFollowingOwner(session);
+
+  // Then
+  expect(captured).toBeNull();
 });
 
 it("captures the original business account independently of a later input change", () => {
   // Given
   const input = { ...owner };
+
   // When
   const captured = captureFollowingOwner(input);
   input.accountId = otherId;
+
   // Then
   expect(captured).toEqual(owner);
 });
@@ -30,8 +36,10 @@ it("captures the original business account independently of a later input change
 it("separates follow resources by original account, target type and target UUID", () => {
   // Given
   const target = { type: "team", id: otherId } as const;
+
   // When
   const key = followStateKey(owner, target);
+
   // Then
   expect(key).not.toEqual(
     followStateKey({ ...owner, accountId: otherId }, target),
@@ -48,15 +56,21 @@ it("separates list, calendar selection and public count admission inputs", () =>
     timeZone: "Europe/Paris",
   } as const;
   const target = { type: "team", id: otherId } as const;
-  // When / Then
-  expect(followListKey(owner, "team", { seasonId: accountId })).not.toEqual(
+
+  // When
+  const listKey = followListKey(owner, "team", { seasonId: accountId });
+  const calendarKey = personalCalendarKey(owner, selection);
+  const publicCountKey = followerCountKey(target);
+
+  // Then
+  expect(listKey).not.toEqual(
     followListKey(owner, "team", { seasonId: otherId }),
   );
-  expect(personalCalendarKey(owner, selection)).not.toEqual(
+  expect(calendarKey).not.toEqual(
     personalCalendarKey(owner, { ...selection, timeZone: "UTC" }),
   );
-  expect(personalCalendarKey(owner, selection)).not.toEqual(
+  expect(calendarKey).not.toEqual(
     personalCalendarKey(owner, { ...selection, category: "completed" }),
   );
-  expect(followerCountKey(target)).not.toEqual(followerCountKey(target, owner));
+  expect(publicCountKey).not.toEqual(followerCountKey(target, owner));
 });

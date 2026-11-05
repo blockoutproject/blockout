@@ -370,8 +370,11 @@ it.each([undefined, older.id])(
       timeZone: "Europe/Paris",
     });
 
-    // When / Then
-    await expect(client.fetchInfiniteQuery(options)).rejects.toMatchObject({
+    // When
+    const calendar = client.fetchInfiniteQuery(options);
+
+    // Then
+    await expect(calendar).rejects.toMatchObject({
       status: 404,
     });
     expect(optionReads()).toBe(0);

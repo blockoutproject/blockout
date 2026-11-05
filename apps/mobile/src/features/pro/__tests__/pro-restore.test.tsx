@@ -190,6 +190,7 @@ it.each(["none", "expired", "active"])(
     }
   },
 );
+
 it("restores explicitly without an offer or prior purchase and preserves receipt scope information", async () => {
   // Given
   const user = userEvent.setup();
@@ -218,6 +219,7 @@ it("restores explicitly without an offer or prior purchase and preserves receipt
   ).toBeOnTheScreen();
   expect(pro.state.status).toBe("inactive");
 });
+
 it("keeps unknown rights restorable after association, without an offering read", async () => {
   // Given
   const user = userEvent.setup();
@@ -242,9 +244,16 @@ it("keeps unknown rights restorable after association, without an offering read"
   await waitFor(() => expect(pro.state.status).toBe("active"));
   expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
 });
-it.each([accountA, "00000000-0000-4000-8000-000000000319"])(
-  "rejects an interrupted restore across guest and return to %s without replay",
-  async (nextAccount) => {
+
+it.each([
+  { label: "the same account", nextAccount: accountA },
+  {
+    label: "another account",
+    nextAccount: "00000000-0000-4000-8000-000000000319",
+  },
+])(
+  "rejects an interrupted restore across guest and return to $label without replay",
+  async ({ nextAccount }) => {
     // Given
     const user = userEvent.setup();
     mockPurchases.getOfferings.mockResolvedValue({ current: null, all: {} });
@@ -276,6 +285,7 @@ it.each([accountA, "00000000-0000-4000-8000-000000000319"])(
     expect(mockPurchases.restorePurchases).toHaveBeenCalledTimes(1);
   },
 );
+
 it("consumes restoration from active native management without purchasing", async () => {
   // Given
   const active = { "Blockout Pro": entitlement() };
@@ -317,6 +327,7 @@ it("disables restoration until explicit association retry succeeds", async () =>
   expect(await screen.findByText("Native paywall")).toBeOnTheScreen();
   expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
 });
+
 it("keeps an uncertain restore distinct from no active rights and never replays it on verification", async () => {
   // Given
   const user = userEvent.setup();
@@ -342,9 +353,16 @@ it("keeps an uncertain restore distinct from no active rights and never replays 
   expect(mockPurchases.restorePurchases).toHaveBeenCalledTimes(1);
   expect(pro.state.status).toBe("inactive");
 });
-it.each([accountA, "00000000-0000-4000-8000-000000000319"])(
-  "rejects retired native restore callbacks after guest and return to %s",
-  async (nextAccount) => {
+
+it.each([
+  { label: "the same account", nextAccount: accountA },
+  {
+    label: "another account",
+    nextAccount: "00000000-0000-4000-8000-000000000319",
+  },
+])(
+  "rejects retired native restore callbacks after guest and return to $label",
+  async ({ nextAccount }) => {
     // Given
     await mount();
     await screen.findByText("Native paywall");
@@ -372,6 +390,7 @@ it.each([accountA, "00000000-0000-4000-8000-000000000319"])(
     expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
   },
 );
+
 it.each(["empty", "cancelled"])(
   "preserves confirmed payment across an %s restoration and reopening",
   async (result) => {
@@ -415,6 +434,7 @@ it.each(["empty", "cancelled"])(
     expect(screen.queryByText("Native paywall")).not.toBeOnTheScreen();
   },
 );
+
 it("consumes current native restore evidence while preserving a pending payment", async () => {
   // Given
   const user = userEvent.setup();
@@ -446,6 +466,7 @@ it("consumes current native restore evidence while preserving a pending payment"
   ).toBeOnTheScreen();
   expect(screen.queryByText("Native paywall")).not.toBeOnTheScreen();
 });
+
 it("keeps confirmed payment visible when a restore is still unfinished after route removal", async () => {
   // Given
   const user = userEvent.setup();
@@ -479,6 +500,7 @@ it("keeps confirmed payment visible when a restore is still unfinished after rou
   );
   expect(screen.getByText(/Paiement confirmé/)).toBeOnTheScreen();
 });
+
 it.each(["direct", "customer center"])(
   "preserves a payment confirmed while %s restoration is in flight",
   async (source) => {

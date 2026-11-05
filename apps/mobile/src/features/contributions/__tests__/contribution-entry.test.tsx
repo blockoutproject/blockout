@@ -467,6 +467,8 @@ it.each(["exact owner", "different owner", "missing projection"] as const)(
       return boundary(url, init);
     });
     const user = userEvent.setup();
+
+    // When
     await render(
       <QueryClientProvider client={client}>
         <ThemeProvider>
@@ -504,7 +506,15 @@ it.each(["exact owner", "different owner", "missing projection"] as const)(
     expect(
       screen.queryByRole("button", { name: "Proposer un lien" }),
     ).not.toBeOnTheScreen();
-    expect(screen.queryByText("Signaler")).not.toBeOnTheScreen();
+    if (ownership === "exact owner") {
+      expect(
+        screen.queryByRole("button", { name: "Signaler le lien" }),
+      ).not.toBeOnTheScreen();
+    } else {
+      expect(
+        screen.getByRole("button", { name: "Signaler le lien" }),
+      ).toBeOnTheScreen();
+    }
 
     // When
     await user.press(entry);

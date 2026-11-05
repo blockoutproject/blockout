@@ -206,7 +206,7 @@ it("shows the whole confirmed count while displaying one unread card and never m
   );
 });
 
-it("keeps four family choices in server order through refresh and reopening", async () => {
+it("keeps the displayed order and accessible names through refresh and reopening", async () => {
   // Given: generated clients validate these server examples into the real private Query cache.
   rows = notificationMessageSamples
     .filter((_, index) => index % 3 === 0)

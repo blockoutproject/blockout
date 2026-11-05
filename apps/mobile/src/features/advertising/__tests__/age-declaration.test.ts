@@ -53,8 +53,11 @@ it.each([-1, 101, 15.5, NaN, Infinity])(
     // Given
     const previous = await submitAgeDeclaration(18);
 
-    // When / Then
-    await expect(submitAgeDeclaration(age)).rejects.toThrow();
+    // When
+    const submission = submitAgeDeclaration(age);
+
+    // Then
+    await expect(submission).rejects.toThrow();
     expect(await readAgeDeclaration()).toEqual(previous);
   },
 );
@@ -101,11 +104,13 @@ it.each([
     } as const;
     const launch = new Date(`${today}T12:00:00`);
 
-    // When / Then
-    expect(getAgeDeclarationStatus(declaration, launch)).toBe(status);
-    expect(getAdvertisingAgeCategory(declaration, launch)).toBe(
-      status === "current" ? "16–17" : "under16",
-    );
+    // When
+    const declarationStatus = getAgeDeclarationStatus(declaration, launch);
+    const category = getAdvertisingAgeCategory(declaration, launch);
+
+    // Then
+    expect(declarationStatus).toBe(status);
+    expect(category).toBe(status === "current" ? "16–17" : "under16");
     expect(declaration.category).toBe("16–17");
   },
 );
@@ -117,13 +122,19 @@ it("uses the last February day for a leap-day minor anniversary", () => {
     declaredAt: "2024-02-29",
   } as const;
 
-  // When / Then
-  expect(getAgeDeclarationStatus(declaration, new Date(2025, 1, 27))).toBe(
-    "current",
+  // When
+  const beforeAnniversary = getAgeDeclarationStatus(
+    declaration,
+    new Date(2025, 1, 27),
   );
-  expect(getAgeDeclarationStatus(declaration, new Date(2025, 1, 28))).toBe(
-    "expired",
+  const onAnniversary = getAgeDeclarationStatus(
+    declaration,
+    new Date(2025, 1, 28),
   );
+
+  // Then
+  expect(beforeAnniversary).toBe("current");
+  expect(onAnniversary).toBe("expired");
 });
 
 it("never annually reprompts adults and rejects a future declaration date", () => {
@@ -131,11 +142,16 @@ it("never annually reprompts adults and rejects a future declaration date", () =
   const adult = { category: "adult", declaredAt: "2000-01-01" } as const;
   const future = { ...adult, declaredAt: "2027-01-01" };
 
-  // When / Then
-  expect(getAgeDeclarationStatus(adult, new Date(2026, 9, 25))).toBe("current");
-  expect(getAdvertisingAgeCategory(future, new Date(2026, 9, 25))).toBe(
-    "under16",
+  // When
+  const adultStatus = getAgeDeclarationStatus(adult, new Date(2026, 9, 25));
+  const futureCategory = getAdvertisingAgeCategory(
+    future,
+    new Date(2026, 9, 25),
   );
+
+  // Then
+  expect(adultStatus).toBe("current");
+  expect(futureCategory).toBe("under16");
 });
 
 it("propagates storage failures without fictional confirmation or replacement", async () => {
@@ -145,11 +161,21 @@ it("propagates storage failures without fictional confirmation or replacement", 
     .spyOn(AsyncStorage, "setItem")
     .mockRejectedValueOnce(new Error("Storage"));
 
-  // When / Then
-  await expect(submitAgeDeclaration(18)).rejects.toThrow("Storage");
+  // When
+  const submission = submitAgeDeclaration(18);
+
+  // Then
+  await expect(submission).rejects.toThrow("Storage");
   expect(await readAgeDeclaration()).toEqual(previous);
+
+  // Given
   jest
     .spyOn(AsyncStorage, "getItem")
     .mockRejectedValueOnce(new Error("Storage"));
-  await expect(readAgeDeclaration()).rejects.toThrow("Storage");
+
+  // When
+  const reading = readAgeDeclaration();
+
+  // Then
+  await expect(reading).rejects.toThrow("Storage");
 });

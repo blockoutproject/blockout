@@ -228,8 +228,11 @@ it("rejects an invalid explanation instead of caching an empty success", async (
     Response.json({ calendar: page("2026-10-29").calendar }),
   );
 
-  // When / Then
-  await expect(client.infiniteQuery(options)).rejects.toMatchObject({
+  // When
+  const calendar = client.infiniteQuery(options);
+
+  // Then
+  await expect(calendar).rejects.toMatchObject({
     kind: "schema",
   });
   expect(client.getQueryData(options.queryKey)).toBeUndefined();
