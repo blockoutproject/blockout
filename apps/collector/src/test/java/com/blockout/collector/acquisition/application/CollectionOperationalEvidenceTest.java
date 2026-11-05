@@ -1,5 +1,6 @@
 package com.blockout.collector.acquisition.application;
 
+import static com.blockout.collector.acquisition.application.CollectionCycleFixture.runningControl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -79,7 +80,7 @@ class CollectionOperationalEvidenceTest {
     when(backend.register(0, lifecycle.getIncarnationId()))
         .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
     lifecycle.start();
-    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+    when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
     when(backend.complete(cycle.getCycle().id(), NOW))
         .thenReturn(
@@ -134,7 +135,7 @@ class CollectionOperationalEvidenceTest {
     when(backend.register(0, lifecycle.getIncarnationId()))
         .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
     lifecycle.start();
-    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+    when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
     when(backend.complete(cycle.getCycle().id(), NOW))
         .thenReturn(
@@ -189,7 +190,7 @@ class CollectionOperationalEvidenceTest {
     when(backend.register(0, lifecycle.getIncarnationId()))
         .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
     lifecycle.start();
-    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+    when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
     when(backend.complete(cycle.getCycle().id(), NOW))
         .thenReturn(
@@ -267,24 +268,5 @@ class CollectionOperationalEvidenceTest {
         Arguments.of(
             new CompletionException(new java.io.IOException("private-provider-body")),
             "technical"));
-  }
-
-  /**
-   * Returns the backend's running response correlated to the generated admission identity.
-   *
-   * @param command explicit control request sent by the real lifecycle
-   * @return runnable response with no side effects or installed stubs
-   */
-  private static CollectionBackend.Cycle runningCycle(CollectionBackend.StartCycle command) {
-    return new CollectionBackend.Cycle(
-        command.cycleId(),
-        command.incarnationId(),
-        command.controlId(),
-        command.sourceBindingId(),
-        1,
-        CollectionModeEnum.PERIODIC,
-        CollectionCycleStateEnum.RUNNING,
-        null,
-        null);
   }
 }

@@ -78,7 +78,11 @@ class PushDeliveryIntegrationTest {
   private Target target;
   private static final UUID RELATION = UUID.fromString("00000000-0000-4000-8000-000000000090");
 
-  /** Prepares only this suite's disposable database and explicit synthetic original targets. */
+  /**
+   * Prepares only this suite's disposable database and explicit synthetic original targets.
+   *
+   * @throws Exception when the isolated database fixture cannot be reset
+   */
   @BeforeEach
   void owners() throws Exception {
     reset(database, sql);
@@ -86,11 +90,13 @@ class PushDeliveryIntegrationTest {
     notification = entry(sql, 1, ACCOUNT, NOW.minusSeconds(60));
     sql.update(
         "INSERT INTO team_follow(id,account_id,team_id) VALUES (?,?,?)", RELATION, ACCOUNT, HOME);
+    UUID subscriptionId = UUID.fromString("00000000-0000-4000-8000-000000002831");
+    UUID installationId = UUID.fromString("00000000-0000-4000-8000-000000002832");
     sql.update(
         "INSERT INTO push_subscription(id,subscription_id,installation_id,account_id,expo_push_token,revision) VALUES (?,?,?,?,?,4)",
         RELATION,
-        UUID.randomUUID(),
-        UUID.randomUUID(),
+        subscriptionId,
+        installationId,
         ACCOUNT,
         "ExponentPushToken[synthetic]");
     target = new Target(RELATION, 4, "ExponentPushToken[synthetic]");
@@ -158,10 +164,11 @@ class PushDeliveryIntegrationTest {
   @DisplayName("Recreated follows cannot preserve an original relation incarnation")
   void refusesRecreatedFollow() {
     // Given
+    UUID recreatedRelation = UUID.fromString("00000000-0000-4000-8000-000000002833");
     sql.update("DELETE FROM team_follow WHERE id=?", RELATION);
     sql.update(
         "INSERT INTO team_follow(id,account_id,team_id) VALUES (?,?,?)",
-        UUID.randomUUID(),
+        recreatedRelation,
         ACCOUNT,
         HOME);
 
@@ -362,9 +369,10 @@ class PushDeliveryIntegrationTest {
             ? null
             : java.sql.Timestamp.from(state.equals("before") ? NOW.plusSeconds(3600) : NOW),
         notification);
+    UUID version = UUID.fromString("00000000-0000-4000-8000-000000002834");
     sql.update(
         "INSERT INTO contribution_version(id,match_id,address,platform,state,created_at,quota_participating) VALUES (?,?,'https://youtube.com/watch?v=demo','YOUTUBE',?,?,FALSE)",
-        UUID.randomUUID(),
+        version,
         notification,
         state.equals("withdrawn") ? "HIDDEN" : "ACTIVE",
         java.sql.Timestamp.from(NOW));

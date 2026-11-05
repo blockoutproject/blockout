@@ -1,5 +1,7 @@
 package com.blockout.collector.acquisition.application;
 
+import static com.blockout.collector.acquisition.application.CollectionCycleFixture.runningCandidate;
+import static com.blockout.collector.acquisition.application.CollectionCycleFixture.runningControl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
@@ -11,7 +13,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
@@ -194,7 +195,7 @@ class AcquisitionSchedulerTest {
     when(backend.register(0, lifecycle.getIncarnationId()))
         .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
     lifecycle.start();
-    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+    when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
     AcquisitionScheduler scheduler =
         new AcquisitionScheduler(
             timer, new SyncTaskExecutor(), lifecycle, discovery, passages, qualification);
@@ -251,7 +252,20 @@ class AcquisitionSchedulerTest {
     when(backend.register(0, lifecycle.getIncarnationId()))
         .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
     lifecycle.start();
-    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+    CollectionBackend.Candidate candidate =
+        new CollectionBackend.Candidate(
+            URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901"),
+            "2026/2027",
+            CollectionProviderEnum.LNV,
+            "901");
+    when(backend.admit(any()))
+        .thenAnswer(
+            call -> {
+              CollectionBackend.StartCycle command = call.getArgument(0);
+              return command.sourceBindingId() == null
+                  ? runningControl(command)
+                  : runningCandidate(command, candidate);
+            });
     AcquisitionScheduler scheduler =
         new AcquisitionScheduler(
             timer, new SyncTaskExecutor(), lifecycle, discovery, passages, qualification);
@@ -311,7 +325,7 @@ class AcquisitionSchedulerTest {
     when(backend.register(0, lifecycle.getIncarnationId()))
         .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
     lifecycle.start();
-    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+    when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
     AcquisitionScheduler scheduler =
         new AcquisitionScheduler(
             timer, new SyncTaskExecutor(), lifecycle, discovery, passages, qualification);
@@ -385,32 +399,6 @@ class AcquisitionSchedulerTest {
     // Then
     verify(backend, never()).admit(any());
     verifyNoInteractions(passages, qualification);
-  }
-
-  /**
-   * Correlates an accepted backend response to the generated request identity.
-   *
-   * @param command explicit control or candidate request
-   * @return running context without installing collaborators or starting the lifecycle
-   */
-  private static CollectionBackend.Cycle runningCycle(CollectionBackend.StartCycle command) {
-    boolean candidate = command.sourceBindingId() != null;
-    return new CollectionBackend.Cycle(
-        command.cycleId(),
-        command.incarnationId(),
-        command.controlId(),
-        command.sourceBindingId(),
-        1,
-        candidate ? null : CollectionModeEnum.PERIODIC,
-        CollectionCycleStateEnum.RUNNING,
-        candidate
-            ? new CollectionBackend.Candidate(
-                URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901"),
-                "2026/2027",
-                CollectionProviderEnum.LNV,
-                "901")
-            : null,
-        null);
   }
 
   @Test

@@ -33,6 +33,11 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 @DisplayName("Best-effort committed push work")
 class PushDeliveryTest {
   private static final UUID OWNER = UUID.fromString("00000000-0000-4000-8000-000000000001");
+  private static final UUID SUBSCRIPTION_ID =
+      UUID.fromString("00000000-0000-4000-8000-000000002821");
+  private static final UUID NOTIFICATION_ID =
+      UUID.fromString("00000000-0000-4000-8000-000000002822");
+  private static final UUID MATCH_ID = UUID.fromString("00000000-0000-4000-8000-000000002823");
   private static final Instant NOW = Instant.parse("2026-10-30T12:00:00Z");
   private final ReadPushEligibility eligibility = mock(ReadPushEligibility.class);
   private final PushSubscriptionStore subscriptions = mock(PushSubscriptionStore.class);
@@ -50,13 +55,13 @@ class PushDeliveryTest {
           scheduler,
           Clock.fixed(NOW, ZoneOffset.UTC),
           true);
-  private final Target target = new Target(UUID.randomUUID(), 7, "ExponentPushToken[synthetic]");
+  private final Target target = new Target(SUBSCRIPTION_ID, 7, "ExponentPushToken[synthetic]");
   private final Created created =
       new Created(
           new AllocateAnnouncements.Entry(
-              UUID.randomUUID(),
+              NOTIFICATION_ID,
               OWNER,
-              UUID.randomUUID(),
+              MATCH_ID,
               com.blockout.backend.notifications.domain.NotificationFamily.PLAIN_RESULT,
               com.blockout.backend.notifications.domain.NotificationVariant.FIRST,
               NOW),

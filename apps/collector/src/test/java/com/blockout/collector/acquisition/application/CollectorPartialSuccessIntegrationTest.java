@@ -1,5 +1,6 @@
 package com.blockout.collector.acquisition.application;
 
+import static com.blockout.collector.acquisition.application.SportingObservationFixture.ffvbMatch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -146,10 +147,10 @@ class CollectorPartialSuccessIntegrationTest {
     sporting.calendar(
         POOL,
         context(cycle),
-        complete(match("M100", ORIGINAL_DATE), match("RETAINED", ORIGINAL_DATE)));
+        complete(ffvbMatch("M100", ORIGINAL_DATE), ffvbMatch("RETAINED", ORIGINAL_DATE)));
     List<SportingObservation.Match> matches = new ArrayList<>();
     for (int index = 1; index < 100; index++) {
-      matches.add(match("M" + index, ORIGINAL_DATE.plusDays(1)));
+      matches.add(ffvbMatch("M" + index, ORIGINAL_DATE.plusDays(1)));
     }
     List<SportingObservation.Failure> failures = List.of();
     if (acquisitionFailure) {
@@ -226,8 +227,8 @@ class CollectorPartialSuccessIntegrationTest {
     sporting.calendar(
         POOL,
         context(cycle),
-        complete(match("BAD", ORIGINAL_DATE), match("RETAINED", ORIGINAL_DATE)));
-    SportingObservation.Match duplicate = match("GOOD", ORIGINAL_DATE);
+        complete(ffvbMatch("BAD", ORIGINAL_DATE), ffvbMatch("RETAINED", ORIGINAL_DATE)));
+    SportingObservation.Match duplicate = ffvbMatch("GOOD", ORIGINAL_DATE);
 
     // When
     SportingObservation.CalendarOutcome outcome =
@@ -237,9 +238,9 @@ class CollectorPartialSuccessIntegrationTest {
             complete(
                 duplicate,
                 duplicate,
-                match("BAD", ORIGINAL_DATE.plusDays(1)),
-                match("BAD", ORIGINAL_DATE.plusDays(2)),
-                match("OTHER", ORIGINAL_DATE)));
+                ffvbMatch("BAD", ORIGINAL_DATE.plusDays(1)),
+                ffvbMatch("BAD", ORIGINAL_DATE.plusDays(2)),
+                ffvbMatch("OTHER", ORIGINAL_DATE)));
 
     // Then
     assertThat(outcome.acceptedCount()).isEqualTo(2);
@@ -277,7 +278,7 @@ class CollectorPartialSuccessIntegrationTest {
         OTHER_POOL,
         POOL);
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
-    sporting.calendar(POOL, context(cycle), complete(match("RETAINED", ORIGINAL_DATE)));
+    sporting.calendar(POOL, context(cycle), complete(ffvbMatch("RETAINED", ORIGINAL_DATE)));
     sporting.standings(OTHER_POOL, context(cycle), table("Retained official row"));
     FfvbAcquisition.Resource source = mock(FfvbAcquisition.Resource.class);
     when(source.calendar(any()))
@@ -287,7 +288,7 @@ class CollectorPartialSuccessIntegrationTest {
               if (target.poolId().equals(POOL)) {
                 throw new FfvbAcquisitionException("Synthetic unreadable calendar");
               }
-              return new FfvbAcquisition.Read<>(complete(match("OTHER", ORIGINAL_DATE)), NOW);
+              return new FfvbAcquisition.Read<>(complete(ffvbMatch("OTHER", ORIGINAL_DATE)), NOW);
             });
     when(source.standings(any()))
         .thenAnswer(
@@ -353,7 +354,7 @@ class CollectorPartialSuccessIntegrationTest {
                 new SportingObservation.Standing("Synthetic refused row", null, 1, Map.of())));
     FfvbAcquisition.Resource source = mock(FfvbAcquisition.Resource.class);
     when(source.calendar(any()))
-        .thenReturn(new FfvbAcquisition.Read<>(complete(match("GOOD", ORIGINAL_DATE)), NOW));
+        .thenReturn(new FfvbAcquisition.Read<>(complete(ffvbMatch("GOOD", ORIGINAL_DATE)), NOW));
     when(source.standings(any()))
         .thenReturn(new FfvbAcquisition.Read<>(replacement, NOW.plusSeconds(60)));
     try (Connection migration = migrationConnection();
@@ -435,7 +436,7 @@ class CollectorPartialSuccessIntegrationTest {
   void preservesDataAfterUnqualifiedAcquisition(String failure) throws Exception {
     // Given
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
-    sporting.calendar(POOL, context(cycle), complete(match("RETAINED", ORIGINAL_DATE)));
+    sporting.calendar(POOL, context(cycle), complete(ffvbMatch("RETAINED", ORIGINAL_DATE)));
     String html =
         new ClassPathResource("acquisition/ffvb/calendar.html")
             .getContentAsString(StandardCharsets.UTF_8)
@@ -506,7 +507,7 @@ class CollectorPartialSuccessIntegrationTest {
   void recordsQualifiedEmptySuccess() {
     // Given
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
-    sporting.calendar(POOL, context(cycle), complete(match("RETAINED", ORIGINAL_DATE)));
+    sporting.calendar(POOL, context(cycle), complete(ffvbMatch("RETAINED", ORIGINAL_DATE)));
     FfvbAcquisition.Resource source = mock(FfvbAcquisition.Resource.class);
     when(source.calendar(any())).thenReturn(new FfvbAcquisition.Read<>(complete(), NOW));
 
@@ -529,7 +530,7 @@ class CollectorPartialSuccessIntegrationTest {
   void rejectsWrongBackendContext() {
     // Given
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
-    sporting.calendar(POOL, context(cycle), complete(match("RETAINED", ORIGINAL_DATE)));
+    sporting.calendar(POOL, context(cycle), complete(ffvbMatch("RETAINED", ORIGINAL_DATE)));
 
     // When / Then
     assertThatThrownBy(() -> sporting.calendar(OTHER_POOL, context(cycle), complete()))
@@ -552,7 +553,7 @@ class CollectorPartialSuccessIntegrationTest {
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
     SportingObservation.Outcome first =
         sporting
-            .calendar(POOL, context(cycle), complete(match("M1", ORIGINAL_DATE)))
+            .calendar(POOL, context(cycle), complete(ffvbMatch("M1", ORIGINAL_DATE)))
             .outcomes()
             .getFirst();
     List<UUID> participations =
@@ -589,7 +590,7 @@ class CollectorPartialSuccessIntegrationTest {
     runtime.sql.update("UPDATE sporting_division SET active=FALSE");
     SportingObservation.Outcome returned =
         sporting
-            .calendar(POOL, context(cycle), complete(match("M1", ORIGINAL_DATE)))
+            .calendar(POOL, context(cycle), complete(ffvbMatch("M1", ORIGINAL_DATE)))
             .outcomes()
             .getFirst();
     assertThat(returned.resourceId()).isEqualTo(first.resourceId());
@@ -625,11 +626,13 @@ class CollectorPartialSuccessIntegrationTest {
     // Given
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
     sporting.calendar(
-        POOL, context(cycle), complete(match("M1", ORIGINAL_DATE), match("M2", ORIGINAL_DATE)));
+        POOL,
+        context(cycle),
+        complete(ffvbMatch("M1", ORIGINAL_DATE), ffvbMatch("M2", ORIGINAL_DATE)));
 
     // When
     SportingObservation.CalendarOutcome outcome =
-        sporting.calendar(POOL, context(cycle), complete(match("M1", ORIGINAL_DATE)));
+        sporting.calendar(POOL, context(cycle), complete(ffvbMatch("M1", ORIGINAL_DATE)));
 
     // Then
     assertThat(outcome.absenceReconciled()).isTrue();
@@ -650,7 +653,7 @@ class CollectorPartialSuccessIntegrationTest {
   void preservesHistoricalEmptiness() {
     // Given
     CollectorLifecycle.AdmittedCycle previous = lifecycle.admit(CONTROL, null, 0, null);
-    sporting.calendar(POOL, context(previous), complete(match("RETAINED", ORIGINAL_DATE)));
+    sporting.calendar(POOL, context(previous), complete(ffvbMatch("RETAINED", ORIGINAL_DATE)));
     lifecycle.complete(previous, Instant.now());
     runtime.sql.update(
         "UPDATE sporting_season SET collection_state='PREPARING' WHERE id=?", SEASON);
@@ -692,7 +695,7 @@ class CollectorPartialSuccessIntegrationTest {
   void preservesClosedHistory() {
     // Given
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
-    sporting.calendar(POOL, context(cycle), complete(match("RETAINED", ORIGINAL_DATE)));
+    sporting.calendar(POOL, context(cycle), complete(ffvbMatch("RETAINED", ORIGINAL_DATE)));
     lifecycle.complete(cycle, Instant.now());
     runtime.sql.update("UPDATE sporting_season SET collection_state='CLOSED' WHERE id=?", SEASON);
     long revision =
@@ -746,22 +749,6 @@ class CollectorPartialSuccessIntegrationTest {
   private SportingObservation.Context context(CollectorLifecycle.AdmittedCycle cycle) {
     return new SportingObservation.Context(
         cycle.getCycle().id(), cycle.nextReadOrdinal(), NOW, null);
-  }
-
-  /**
-   * Creates one attributable FFVB encounter with exact leading-zero club references.
-   *
-   * @param reference contextual native match code
-   * @param date known source date
-   * @return synthetic identifiable match
-   */
-  private SportingObservation.Match match(String reference, LocalDate date) {
-    return new SportingObservation.Match(
-        reference,
-        new SportingObservation.Team("Home", null, "000192", null),
-        new SportingObservation.Team("Away", null, "000193", null),
-        SportingObservation.Facts.builder().localDate(JsonNullable.of(date)).build(),
-        null);
   }
 
   /**
