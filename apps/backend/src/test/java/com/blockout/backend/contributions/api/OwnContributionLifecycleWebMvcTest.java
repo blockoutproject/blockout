@@ -1,5 +1,6 @@
 package com.blockout.backend.contributions.api;
 
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -36,6 +37,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -95,6 +97,8 @@ class OwnContributionLifecycleWebMvcTest {
   @ValueSource(
       strings = {
         "{}",
+        "{\"action\":\"cancel\"}",
+        "{\"revision\":\"opaque:a\"}",
         "{\"revision\":null,\"action\":\"cancel\"}",
         "{\"revision\":\"1\",\"action\":null}",
         "{\"revision\":\"\",\"action\":\"cancel\"}",
@@ -176,9 +180,9 @@ class OwnContributionLifecycleWebMvcTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"cancel", "withdraw"})
+  @CsvSource({"cancel,opaque:a", "withdraw,opaque:current"})
   @DisplayName("Returns the exact acknowledged version and current revision without a Location")
-  void returnsExactAcknowledgement(String action) throws Exception {
+  void returnsExactAcknowledgement(String action, String revision) throws Exception {
     // Given
     StreamOwnerActionEnum command = StreamOwnerActionEnum.fromValue(action);
     ContributionVersion.State state =
@@ -198,7 +202,7 @@ class OwnContributionLifecycleWebMvcTest {
             null,
             null,
             null);
-    when(changes.change(OWNER, MATCH, VERSION, "opaque:current", command))
+    when(changes.change(OWNER, MATCH, VERSION, revision, command))
         .thenReturn(new ReadOwnContributions.Detail("opaque:next", version));
 
     // When
@@ -207,7 +211,7 @@ class OwnContributionLifecycleWebMvcTest {
             patch(PATH)
                 .with(mobile())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":\"opaque:current\",\"action\":\"" + action + "\"}"));
+                .content("{\"revision\":\"" + revision + "\",\"action\":\"" + action + "\"}"));
 
     // Then
     response
@@ -220,6 +224,7 @@ class OwnContributionLifecycleWebMvcTest {
         .andExpect(jsonPath("$.contribution.url").value("https://youtu.be/literal?keep=1#time"))
         .andExpect(jsonPath("$.contribution.canCancel").value(false))
         .andExpect(jsonPath("$.contribution.canWithdraw").value(false));
+    verify(changes).change(OWNER, MATCH, VERSION, revision, command);
     verifyNoInteractions(submissions, reads);
   }
 

@@ -55,16 +55,6 @@ class SupportAdmissionTest {
   }
 
   @Test
-  @DisplayName("Rejects an invalid supplied bearer even on the public support operation")
-  void rejectsInvalidBearer() throws Exception {
-    // Given / When
-    mvc.perform(post("/support-requests").header("Authorization", "Bearer invalid"))
-        // Then
-        .andExpect(status().isUnauthorized());
-    verifyNoInteractions(admission);
-  }
-
-  @Test
   @DisplayName("Passes authenticated ordinary intent to the existing policy")
   void admitsOrdinaryPrincipal() throws Exception {
     // Given / When

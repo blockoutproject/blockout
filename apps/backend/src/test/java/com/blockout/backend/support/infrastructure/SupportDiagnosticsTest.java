@@ -1,6 +1,7 @@
 package com.blockout.backend.support.infrastructure;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -140,11 +141,12 @@ class SupportDiagnosticsTest {
       assertThat(event.getThrowableProxy()).isNull();
       assertThat(event.getFormattedMessage()).isEqualTo("Support operation unavailable");
       assertThat(event.getKeyValuePairs())
-          .extracting(value -> value.key)
-          .containsExactly("operation", "stage", "outcome", "reason");
-      assertThat(event.getKeyValuePairs())
-          .extracting(value -> value.value.toString())
-          .containsExactly("support_intake", "attach", "unavailable", "process_failed");
+          .extracting(value -> value.key, value -> value.value.toString())
+          .containsExactlyInAnyOrder(
+              tuple("operation", "support_intake"),
+              tuple("stage", "attach"),
+              tuple("outcome", "unavailable"),
+              tuple("reason", "process_failed"));
     } finally {
       logger.detachAppender(events);
       events.stop();

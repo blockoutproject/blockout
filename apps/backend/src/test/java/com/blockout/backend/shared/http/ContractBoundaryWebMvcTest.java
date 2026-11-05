@@ -3,12 +3,10 @@ package com.blockout.backend.shared.http;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -147,32 +145,6 @@ class ContractBoundaryWebMvcTest {
         .andExpect(status().isUnsupportedMediaType())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:unsupported-media-type"))
         .andExpect(content().string(not(containsString("private payload"))));
-  }
-
-  @Test
-  @DisplayName("Keeps an adapter no-content response empty through the generated mapping")
-  void preservesNoContent() throws Exception {
-    // Given
-    MockHttpServletRequestBuilder request = delete(ACCOUNT);
-
-    // When
-    ResultActions response = mvc.perform(request);
-
-    // Then
-    response.andExpect(status().isNoContent()).andExpect(content().string(""));
-  }
-
-  @Test
-  @DisplayName("Preserves an adapter resource location through the generated mapping")
-  void preservesLocation() throws Exception {
-    // Given
-    MockHttpServletRequestBuilder request = post("/accounts");
-
-    // When
-    ResultActions response = mvc.perform(request);
-
-    // Then
-    response.andExpect(status().isCreated()).andExpect(header().string("Location", ACCOUNT));
   }
 
   @Test

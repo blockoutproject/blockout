@@ -1,5 +1,6 @@
 package com.blockout.backend.contributions.api;
 
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -23,6 +24,7 @@ import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.contributions.application.ModerateContribution;
 import com.blockout.backend.contributions.application.ReadModeration;
+import com.blockout.backend.generated.mobile.model.StreamModerationActionEnum;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import com.blockout.backend.sporting.api.ConsultationApiMapperImpl;
 import java.util.List;
@@ -33,6 +35,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -120,6 +123,10 @@ class ContributionModerationWebMvcTest {
   @ValueSource(
       strings = {
         "{}",
+        "{\"revision\":\"opaque:a\",\"action\":\"approve\"}",
+        "{\"actorAccountId\":\"00000000-0000-4000-8000-000000000223\",\"action\":\"approve\"}",
+        "{\"actorAccountId\":\"00000000-0000-4000-8000-000000000223\",\"revision\":\"opaque:a\"}",
+        "{\"actorAccountId\":\"00000000-0000-4000-8000-000000000223\",\"revision\":\"opaque:a\",\"action\":null}",
         "{\"actorAccountId\":null,\"revision\":\"1\",\"action\":\"approve\"}",
         "{\"actorAccountId\":\"00000000-0000-4000-8000-000000000001\",\"revision\":null,\"action\":\"reject\"}",
         "{\"actorAccountId\":\"00000000-0000-4000-8000-000000000001\",\"revision\":\"1\",\"action\":\"approve\",\"reporter\":\"forbidden\"}"
@@ -137,6 +144,30 @@ class ContributionModerationWebMvcTest {
     response
         .andExpect(status().isBadRequest())
         .andExpect(header().string("Cache-Control", "no-store"));
+    verifyNoInteractions(reads, commands);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "{\"actorAccountId\":\"00000000-0000-4000-8000-000000000223\",\"revision\":\"opaque:a\",\"future\":true}",
+        "{\"revision\":\"opaque:a\"}",
+        "{\"actorAccountId\":\"00000000-0000-4000-8000-000000000223\"}",
+        "{\"actorAccountId\":null,\"revision\":\"opaque:a\"}",
+        "{\"actorAccountId\":\"00000000-0000-4000-8000-000000000223\",\"revision\":null}"
+      })
+  @DisplayName("Rejects unknown, omitted and null reactivation fields before application effects")
+  void refusesMalformedReactivation(String body) throws Exception {
+    // Given
+    String path = MEMBER + "/reactivations";
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            post(path).with(mobile()).contentType(MediaType.APPLICATION_JSON).content(body));
+
+    // Then
+    response.andExpect(status().isBadRequest());
     verifyNoInteractions(reads, commands);
   }
 
@@ -188,7 +219,7 @@ class ContributionModerationWebMvcTest {
     com.blockout.backend.contributions.application.SubmitContribution.Outcome outcome =
         new com.blockout.backend.contributions.application.SubmitContribution.Outcome(
             detail.contribution().version(), "2", true);
-    when(commands.reactivate(ACTOR, MATCH, ACTOR, "1")).thenReturn(outcome);
+    when(commands.reactivate(ACTOR, MATCH, ACTOR, "opaque:a")).thenReturn(outcome);
     when(reads.result(ACTOR, outcome)).thenReturn(detail);
 
     // When
@@ -197,13 +228,14 @@ class ContributionModerationWebMvcTest {
             post(MEMBER.replace(VERSION.toString(), ACTOR.toString()) + "/reactivations")
                 .with(mobile())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"actorAccountId\":\"" + ACTOR + "\",\"revision\":\"1\"}"));
+                .content("{\"actorAccountId\":\"" + ACTOR + "\",\"revision\":\"opaque:a\"}"));
 
     // Then
     response
         .andExpect(status().isCreated())
         .andExpect(header().string("Location", MEMBER))
         .andExpect(header().string("Cache-Control", "no-store"));
+    verify(commands).reactivate(ACTOR, MATCH, ACTOR, "opaque:a");
   }
 
   @Test
@@ -300,21 +332,17 @@ class ContributionModerationWebMvcTest {
         .andExpect(jsonPath("$.items[0].id").value(VERSION.toString()));
   }
 
-  @Test
-  @DisplayName("An exact acknowledged terminal decision returns 200 without changing its revision")
-  void acknowledgesExactTerminalDecision() throws Exception {
+  @ParameterizedTest
+  @CsvSource({"withdraw,2", "approve,opaque:a"})
+  @DisplayName("Returns the acknowledged moderator decision through the generated PATCH")
+  void acknowledgesExactDecision(String action, String revision) throws Exception {
     // Given
     ReadModeration.Detail detail = detail();
     com.blockout.backend.contributions.application.SubmitContribution.Outcome outcome =
         new com.blockout.backend.contributions.application.SubmitContribution.Outcome(
             detail.contribution().version(), "2", false);
-    when(commands.change(
-            ACTOR,
-            MATCH,
-            VERSION,
-            "2",
-            com.blockout.backend.generated.mobile.model.StreamModerationActionEnum.WITHDRAW))
-        .thenReturn(outcome);
+    StreamModerationActionEnum decision = StreamModerationActionEnum.fromValue(action);
+    when(commands.change(ACTOR, MATCH, VERSION, revision, decision)).thenReturn(outcome);
     when(reads.result(ACTOR, outcome)).thenReturn(detail);
 
     // When
@@ -326,13 +354,18 @@ class ContributionModerationWebMvcTest {
                 .content(
                     "{\"actorAccountId\":\""
                         + ACTOR
-                        + "\",\"revision\":\"2\",\"action\":\"withdraw\"}"));
+                        + "\",\"revision\":\""
+                        + revision
+                        + "\",\"action\":\""
+                        + action
+                        + "\"}"));
 
     // Then
     response
         .andExpect(status().isOk())
         .andExpect(header().string("Accept-Patch", "application/json"))
         .andExpect(header().string("Cache-Control", "no-store"));
+    verify(commands).change(ACTOR, MATCH, VERSION, revision, decision);
   }
 
   @Test

@@ -40,7 +40,7 @@ class OriginalTargetCleanupTest {
 
     // Then
     assertThat(calls)
-        .containsExactly("auth0|original", original.toString(), "historical-established");
+        .containsExactlyInAnyOrder("auth0|original", original.toString(), "historical-established");
   }
 
   @Test

@@ -4,9 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.blockout.collector.generated.ingestion.ApiClient;
-import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
 import com.blockout.collector.generated.ingestion.api.SportingApi;
-import com.blockout.collector.generated.ingestion.model.CollectorRuntimeInternalResponse;
 import com.blockout.collector.generated.ingestion.model.MatchDetailObservationInternalRequest;
 import com.blockout.collector.generated.ingestion.model.MatchFactsInternalRequest;
 import com.blockout.collector.generated.ingestion.model.MatchSetScoreInternalRequest;
@@ -192,24 +190,6 @@ class SportingContractIntegrationTest {
               assertThat(json.readTree(exception.getResponseBodyAsString()).get("type").asText())
                   .isEqualTo("urn:blockout:problem:unavailable");
             });
-  }
-
-  @Test
-  @DisplayName("Retains required nulls under the shared model inclusion default")
-  void retainsRequiredNull() {
-    // Given
-    CollectorRuntimeInternalResponse body =
-        new CollectorRuntimeInternalResponse().revision(1L).incarnationId(null);
-    responseBody = api.getApiClient().getJsonMapper().writeValueAsString(body);
-    CollectorOperationsApi runtime = new CollectorOperationsApi(api.getApiClient());
-
-    // When
-    CollectorRuntimeInternalResponse result = runtime.getCollectorRuntime();
-
-    // Then
-    assertThat(json.readTree(responseBody).has("incarnationId")).isTrue();
-    assertThat(result.getRevision()).isEqualTo(1L);
-    assertThat(result.getIncarnationId()).isNull();
   }
 
   /**

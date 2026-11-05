@@ -100,6 +100,9 @@ class PushSubscriptionsWebMvcTest {
   @ValueSource(
       strings = {
         "{}",
+        "null",
+        "{\"installationId\":\"invalid\",\"expoPushToken\":\"synthetic\"}",
+        "{\"installationId\":\"00000000-0000-4000-8000-000000000237\",\"expoPushToken\":\"synthetic\",\"accountId\":\"foreign\"}",
         "{\"installationId\":null,\"expoPushToken\":\"x\"}",
         "{\"installationId\":\"20000000-0000-4000-8000-000000000001\",\"expoPushToken\":null}",
         "{\"installationId\":\"20000000-0000-4000-8000-000000000001\",\"expoPushToken\":\"\"}",

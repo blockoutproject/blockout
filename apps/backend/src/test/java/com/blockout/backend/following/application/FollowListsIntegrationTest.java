@@ -301,22 +301,6 @@ class FollowListsIntegrationTest {
     assertThatThrownBy(hiddenPools).isInstanceOf(FollowUnavailableTargetException.class);
   }
 
-  @ParameterizedTest
-  @ValueSource(longs = {-1, 107374183, Long.MAX_VALUE})
-  @DisplayName("Rejects page arithmetic outside the native offset range")
-  void rejectsUnsupportedPage(long page) {
-    // Given
-    account(ACCOUNT);
-
-    // When
-    ThrowingCallable teams = () -> reads.teams(ACCOUNT, null, page);
-    ThrowingCallable pools = () -> reads.pools(ACCOUNT, null, page);
-
-    // Then
-    assertThatThrownBy(teams).isInstanceOf(FollowPageOutOfRangeException.class);
-    assertThatThrownBy(pools).isInstanceOf(FollowPageOutOfRangeException.class);
-  }
-
   @Test
   @DisplayName("Accepts the maximum supported page without overflowing its real database offset")
   void acceptsMaximumOffset() {

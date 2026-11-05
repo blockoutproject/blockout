@@ -1,5 +1,6 @@
 package com.blockout.backend.contributions.api;
 
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -107,7 +108,7 @@ class ContributionReportsWebMvcTest {
   @DisplayName("Creation identifies its exact report resource while duplicates stay 200")
   void returnsCurrentState(boolean created) throws Exception {
     // Given
-    when(reports.report(ACCOUNT, VERSION, "Reason")).thenReturn(created);
+    when(reports.report(ACCOUNT, VERSION, "Synthetic reason")).thenReturn(created);
 
     // When
     ResultActions response =
@@ -115,7 +116,7 @@ class ContributionReportsWebMvcTest {
             post(PATH)
                 .with(mobile())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"reason\":\"Reason\"}"));
+                .content("{\"reason\":\"Synthetic reason\"}"));
 
     // Then
     response
@@ -123,6 +124,7 @@ class ContributionReportsWebMvcTest {
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.reported").value(true))
         .andExpect(jsonPath("$.reason").doesNotExist());
+    verify(reports).report(ACCOUNT, VERSION, "Synthetic reason");
     if (created) {
       response.andExpect(header().string("Location", PATH));
     } else {
