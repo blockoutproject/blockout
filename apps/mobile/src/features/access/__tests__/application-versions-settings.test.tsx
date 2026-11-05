@@ -30,6 +30,7 @@ import {
   mockAuth0,
 } from "../../accounts/test-support/native-auth0";
 import { getGetApplicationVersionSettingsQueryKey } from "../../../../.generated/mobile";
+import type { ApplicationVersionsResponse } from "../../../../.generated/schemas/index.zod";
 import { ApplicationVersionsSettingsScreen } from "../screens/application-versions-settings-screen";
 import ApplicationVersionsRoute from "../../../app/(operations)/administration/application-versions";
 
@@ -83,15 +84,14 @@ const initial = {
       "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout",
   },
   message: "Message préparé",
-};
+} satisfies ApplicationVersionsResponse;
 const account = accountResponse({
   accountId: "00000000-0000-4000-8000-000000000185",
   username: "Operator_185",
   email: "operator@example.invalid",
   permissions: { manageApplicationVersions: true },
 });
-let stored: import("../../../../.generated/schemas/index.zod").ApplicationVersionsResponse =
-  { ...initial };
+let stored: ApplicationVersionsResponse = { ...initial };
 beforeEach(() => {
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
   publicClient = createQueryClient();

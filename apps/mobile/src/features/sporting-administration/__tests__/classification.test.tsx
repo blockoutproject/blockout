@@ -2,6 +2,13 @@ import { useLayoutEffect } from "react";
 import { ClassificationVisitProvider } from "../forms/classification-visit";
 import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
+import { accountResponse } from "../../accounts/test-support/account-response";
+import type {
+  AccountPermissionsResponse,
+  AcquisitionClassificationResponse,
+  ClassificationDetailResponse,
+  DivisionResponse,
+} from "../../../../.generated/schemas/index.zod";
 import {
   QueryClientProvider,
   useQueryClient,
@@ -95,7 +102,7 @@ const mockFetch = jest.fn<
 const id = "00000000-0000-4000-8000-000000000178";
 const divisionId = "00000000-0000-4000-8000-000000000179";
 const inactiveId = "00000000-0000-4000-8000-000000000180";
-const division = {
+const division: DivisionResponse = {
   id: divisionId,
   revision: "d1",
   name: "National 2",
@@ -104,14 +111,18 @@ const division = {
   logo: { effectiveUrl: null, automaticUrl: null, manualUrl: null },
   active: true,
 };
-const classification = { divisionId, format: "6x6", gender: "female" };
-let stored = {
+const classification: NonNullable<AcquisitionClassificationResponse> = {
+  divisionId,
+  format: "6x6",
+  gender: "female",
+};
+let stored: ClassificationDetailResponse = {
   id,
   revision: "r1",
-  setting: null as typeof classification | null,
-  effective: classification as typeof classification | null,
+  setting: null,
+  effective: classification,
 };
-let permissions: Record<string, boolean>;
+let permissions: AccountPermissionsResponse;
 let client: QueryClient;
 let publicClient = createQueryClient();
 const environment = { ...process.env };
@@ -134,14 +145,12 @@ async function respond(
 ): Promise<Response> {
   return json(
     String(url).endsWith("/accounts/me")
-      ? {
+      ? accountResponse({
           accountId: "00000000-0000-4000-8000-000000000001",
           username: "Operator",
           email: "operator@example.invalid",
-          principalCreatedAt: null,
-          hasPhoto: false,
           permissions,
-        }
+        })
       : String(url).includes("/divisions?")
         ? {
             items: [

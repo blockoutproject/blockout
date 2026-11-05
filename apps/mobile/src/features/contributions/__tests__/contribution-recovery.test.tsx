@@ -19,7 +19,11 @@ import {
   getGetMatchQueryKey,
   getGetModeratedStreamContributionQueryKey,
 } from "../../../../.generated/mobile";
-import type { ModeratedStreamContributionsResponse } from "../../../../.generated/schemas/index.zod";
+import type {
+  ModeratedStreamContributionResponse,
+  ModeratedStreamContributionsResponse,
+  OwnStreamContributionResponse,
+} from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
@@ -82,15 +86,20 @@ const version = {
   submittedAt: "2026-10-28T10:00:00Z",
   canCancel: false,
   canWithdraw: true,
-} as const;
+} satisfies OwnStreamContributionResponse;
 const moderatedVersion = {
-  ...version,
+  id: version.id,
+  url: version.url,
+  platform: version.platform,
+  state: version.state,
+  submittedAt: version.submittedAt,
+  canWithdraw: version.canWithdraw,
   reportCount: 0,
   canApprove: false,
   canReject: false,
   canReactivate: false,
   decisions: [],
-};
+} satisfies ModeratedStreamContributionResponse;
 let profile = account;
 let owner = ownContributions();
 let detail: ModeratedStreamContributionsResponse;

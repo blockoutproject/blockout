@@ -29,6 +29,7 @@ import { applicationAccessResponse } from "../../../shared/api/test-support/appl
 import { accountResponse } from "../../accounts/test-support/account-response";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { notificationResponse } from "../test-support/notification-data";
+import { nativeNotificationResponse } from "../test-support/native-notification-data";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
@@ -98,38 +99,6 @@ let client = createQueryClient();
 let privateClient: ReturnType<typeof createQueryClient>;
 let session: AccountSession;
 let push = createPushRegistration();
-
-/** Synthetic native response with only canonical routing IDs; text and platform presentation stay SDK-owned. */
-function response(
-  ownerAccountId = ownerId,
-): Notifications.NotificationResponse {
-  return {
-    actionIdentifier: "default",
-    notification: {
-      date: Date.now(),
-      request: {
-        identifier: "system-response",
-        trigger: { type: "push" },
-        content: {
-          title: null,
-          subtitle: null,
-          body: null,
-          categoryIdentifier: null,
-          sound: null,
-          launchImageName: null,
-          badge: null,
-          attachments: [],
-          threadIdentifier: null,
-          data: {
-            ownerAccountId,
-            notificationId: row.id,
-            matchId: row.match.id,
-          },
-        },
-      },
-    },
-  };
-}
 
 /** Real session, Query transport, inbox and badge consumers; native events and navigation are boundary doubles. */
 function Capture() {
@@ -294,8 +263,22 @@ it("sets explicit foreground silence and refreshes summary without creating an a
   ).length;
 
   // When
-  const behavior = await handler.handleNotification(response().notification);
-  await act(async () => receive(response().notification));
+  const behavior = await handler.handleNotification(
+    nativeNotificationResponse("system-response", Date.now(), {
+      ownerAccountId: ownerId,
+      notificationId: row.id,
+      matchId: row.match.id,
+    }).notification,
+  );
+  await act(async () =>
+    receive(
+      nativeNotificationResponse("system-response", Date.now(), {
+        ownerAccountId: ownerId,
+        notificationId: row.id,
+        matchId: row.match.id,
+      }).notification,
+    ),
+  );
 
   // Then
   expect(behavior).toEqual({
@@ -318,9 +301,13 @@ it("sets explicit foreground silence and refreshes summary without creating an a
 
 it("handles cold response and duplicate tap once, clears it, and reads even if navigation fails", async () => {
   // Given
-  jest
-    .mocked(Notifications.getLastNotificationResponse)
-    .mockReturnValue(response());
+  jest.mocked(Notifications.getLastNotificationResponse).mockReturnValue(
+    nativeNotificationResponse("system-response", Date.now(), {
+      ownerAccountId: ownerId,
+      notificationId: row.id,
+      matchId: row.match.id,
+    }),
+  );
   mockOpen.mockImplementation(() => {
     throw new Error("Navigation unavailable");
   });
@@ -334,7 +321,15 @@ it("handles cold response and duplicate tap once, clears it, and reads even if n
   }
 
   // When
-  await act(async () => tap(response()));
+  await act(async () =>
+    tap(
+      nativeNotificationResponse("system-response", Date.now(), {
+        ownerAccountId: ownerId,
+        notificationId: row.id,
+        matchId: row.match.id,
+      }),
+    ),
+  );
 
   // Then
   await waitFor(() =>
@@ -378,7 +373,15 @@ it("reports one native tap failure when navigation and marking the same notifica
   }
 
   // When
-  await act(async () => tap(response()));
+  await act(async () =>
+    tap(
+      nativeNotificationResponse("system-response", Date.now(), {
+        ownerAccountId: ownerId,
+        notificationId: row.id,
+        matchId: row.match.id,
+      }),
+    ),
+  );
   await waitFor(() => expect(announce).toHaveBeenCalledTimes(1));
 
   // Then
@@ -412,7 +415,13 @@ it("installs foreground silence before asynchronous installation initialization 
   // Then
   expect(foregroundHandler).toBeDefined();
   expect(
-    await foregroundHandler?.handleNotification(response().notification),
+    await foregroundHandler?.handleNotification(
+      nativeNotificationResponse("system-response", Date.now(), {
+        ownerAccountId: ownerId,
+        notificationId: row.id,
+        matchId: row.match.id,
+      }).notification,
+    ),
   ).toEqual({
     shouldShowBanner: false,
     shouldShowList: false,
@@ -433,9 +442,13 @@ it("reports a failed read action without cancelling its successful match navigat
       ? Promise.resolve(new Response(null, { status: 503 }))
       : ordinary(url, init),
   );
-  jest
-    .mocked(Notifications.getLastNotificationResponse)
-    .mockReturnValue(response());
+  jest.mocked(Notifications.getLastNotificationResponse).mockReturnValue(
+    nativeNotificationResponse("system-response", Date.now(), {
+      ownerAccountId: ownerId,
+      notificationId: row.id,
+      matchId: row.match.id,
+    }),
+  );
 
   // When
   await render(<Root />);
@@ -472,7 +485,15 @@ it("keeps a failed passive receive refresh discreet", async () => {
   );
 
   // When
-  await act(async () => receive(response().notification));
+  await act(async () =>
+    receive(
+      nativeNotificationResponse("system-response", Date.now(), {
+        ownerAccountId: ownerId,
+        notificationId: row.id,
+        matchId: row.match.id,
+      }).notification,
+    ),
+  );
 
   // Then
   await waitFor(() =>
@@ -548,7 +569,13 @@ it.each(["guest", "other-account"])(
 
     // When
     await act(async () =>
-      tap(response("00000000-0000-4000-8000-000000000099")),
+      tap(
+        nativeNotificationResponse("system-response", Date.now(), {
+          ownerAccountId: "00000000-0000-4000-8000-000000000099",
+          notificationId: row.id,
+          matchId: row.match.id,
+        }),
+      ),
     );
 
     // Then
@@ -595,9 +622,13 @@ it("leaves an old system tap blocked by current maintenance without reading or n
       ? Promise.resolve(Response.json(access))
       : ordinary(url, init),
   );
-  jest
-    .mocked(Notifications.getLastNotificationResponse)
-    .mockReturnValue(response());
+  jest.mocked(Notifications.getLastNotificationResponse).mockReturnValue(
+    nativeNotificationResponse("system-response", Date.now(), {
+      ownerAccountId: ownerId,
+      notificationId: row.id,
+      matchId: row.match.id,
+    }),
+  );
 
   // When
   await render(<Root />);

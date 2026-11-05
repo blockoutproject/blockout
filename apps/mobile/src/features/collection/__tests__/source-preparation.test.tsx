@@ -2,6 +2,7 @@ import { useLayoutEffect, type PropsWithChildren } from "react";
 import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
+import { accountResponse } from "../../accounts/test-support/account-response";
 import {
   cleanup,
   act,
@@ -73,14 +74,12 @@ const candidateUrl =
   "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=137";
 const draftUrl =
   "https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=139";
-const account = {
+const account = accountResponse({
   accountId: "00000000-0000-4000-8000-000000000181",
   username: "Operator_179",
   email: "operator@example.invalid",
-  principalCreatedAt: null,
-  hasPhoto: false,
   permissions: { manageCollection: true },
-};
+});
 let publicClient = createQueryClient();
 let client = publicClient;
 // Failure presentation is isolated here; native retry defaults have their own Query suite.

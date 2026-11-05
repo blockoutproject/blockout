@@ -9,6 +9,7 @@ import {
 } from "@testing-library/react-native";
 import { setBadgeCountAsync } from "expo-notifications";
 import type { PropsWithChildren } from "react";
+import type { TeamFollowsResponse } from "../../../../.generated/schemas/index.zod";
 import { accountResponse } from "../../accounts/test-support/account-response";
 import {
   credentialsFor,
@@ -134,7 +135,7 @@ async function transport(url: string, options?: RequestInit) {
             },
           ]
         : [],
-    });
+    } satisfies TeamFollowsResponse);
   }
   if (path.endsWith("/pool-follows")) {
     return Response.json({ items: [] });

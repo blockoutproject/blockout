@@ -33,6 +33,7 @@ import { useOwnContributions } from "../api/own-contributions";
 import { ContributionScreen } from "../screens/contribution-screen";
 import { ownContributions } from "../test-support/contribution-data";
 import { matchDetail } from "../../sporting/test-support/consultation-data";
+import type { OwnStreamContributionDetailResponse } from "../../../../.generated/schemas/index.zod";
 
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),
@@ -92,7 +93,7 @@ const accepted = {
     canCancel: false,
     canWithdraw: true,
   },
-} as const;
+} satisfies OwnStreamContributionDetailResponse;
 let publicClient = createQueryClient();
 let client = publicClient;
 // Failure presentation is isolated here; native retry defaults have their own Query suite.

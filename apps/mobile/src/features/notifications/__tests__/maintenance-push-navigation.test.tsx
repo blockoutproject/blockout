@@ -19,6 +19,7 @@ import { submitAgeDeclaration } from "../../advertising/age-declaration";
 import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
 import * as proSessionModule from "../../pro/pro-session";
 import { notificationResponse } from "../test-support/notification-data";
+import { nativeNotificationResponse } from "../test-support/native-notification-data";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
   jest.requireActual(
@@ -69,36 +70,6 @@ const environment = { ...process.env };
 const row = notificationResponse();
 const ownerId = "00000000-0000-4000-8000-000000000272";
 
-/** A remembered SDK tap carries original routing IDs, never an admission decision or a current match representation. */
-function oldPush(): Notifications.NotificationResponse {
-  return {
-    actionIdentifier: "default",
-    notification: {
-      date: new Date("2026-10-27T11:00:00Z").getTime(),
-      request: {
-        identifier: "before-maintenance",
-        trigger: { type: "push" },
-        content: {
-          title: null,
-          subtitle: null,
-          body: null,
-          categoryIdentifier: null,
-          sound: null,
-          launchImageName: null,
-          badge: null,
-          attachments: [],
-          threadIdentifier: null,
-          data: {
-            ownerAccountId: ownerId,
-            notificationId: row.id,
-            matchId: row.match.id,
-          },
-        },
-      },
-    },
-  };
-}
-
 /** Mounts production root guards, SDK lifecycle and the current F03 match route; unrelated destinations are probes. */
 async function openApplication() {
   return renderRouter({
@@ -140,7 +111,17 @@ beforeEach(async () => {
   jest
     .mocked(Notifications.getLastNotificationResponse)
     .mockReset()
-    .mockReturnValue(oldPush());
+    .mockReturnValue(
+      nativeNotificationResponse(
+        "before-maintenance",
+        new Date("2026-10-27T11:00:00Z").getTime(),
+        {
+          ownerAccountId: ownerId,
+          notificationId: row.id,
+          matchId: row.match.id,
+        },
+      ),
+    );
   mockFetch.mockReset();
 });
 
@@ -285,7 +266,19 @@ it.each(["owner", "operator", "guest"] as const)(
     if (!tap) {
       throw new Error("The native response listener must be mounted");
     }
-    await act(async () => tap(oldPush()));
+    await act(async () =>
+      tap(
+        nativeNotificationResponse(
+          "before-maintenance",
+          new Date("2026-10-27T11:00:00Z").getTime(),
+          {
+            ownerAccountId: ownerId,
+            notificationId: row.id,
+            matchId: row.match.id,
+          },
+        ),
+      ),
+    );
 
     // Then: consuming a remembered tap is not a provider resend or personal-entry recreation.
     expect(Notifications.clearLastNotificationResponse).toHaveBeenCalledTimes(
@@ -339,7 +332,19 @@ it("opens an old tap from an admitted operational destination", async () => {
   }
 
   // When
-  await act(async () => tap(oldPush()));
+  await act(async () =>
+    tap(
+      nativeNotificationResponse(
+        "before-maintenance",
+        new Date("2026-10-27T11:00:00Z").getTime(),
+        {
+          ownerAccountId: ownerId,
+          notificationId: row.id,
+          matchId: row.match.id,
+        },
+      ),
+    ),
+  );
 
   // Then: operational navigation has no extra tap restriction when ordinary admission is satisfied.
   expect(

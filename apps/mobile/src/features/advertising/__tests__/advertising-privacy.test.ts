@@ -101,33 +101,23 @@ beforeEach(() => {
   jest
     .mocked(AdsConsent.showPrivacyOptionsForm)
     .mockReset()
-    .mockResolvedValue(
-      consentInfo as Awaited<
-        ReturnType<typeof AdsConsent.showPrivacyOptionsForm>
-      >,
-    );
+    .mockResolvedValue(consentInfo);
   jest
     .mocked(AdsConsent.getUserChoices)
     .mockReset()
     .mockResolvedValue(personalized);
-  jest
-    .mocked(getTrackingPermissionsAsync)
-    .mockReset()
-    .mockResolvedValue({
-      status: PermissionStatus.UNDETERMINED,
-      granted: false,
-      expires: "never",
-      canAskAgain: true,
-    } as Awaited<ReturnType<typeof getTrackingPermissionsAsync>>);
-  jest
-    .mocked(requestTrackingPermissionsAsync)
-    .mockReset()
-    .mockResolvedValue({
-      status: PermissionStatus.GRANTED,
-      granted: true,
-      expires: "never",
-      canAskAgain: false,
-    } as Awaited<ReturnType<typeof requestTrackingPermissionsAsync>>);
+  jest.mocked(getTrackingPermissionsAsync).mockReset().mockResolvedValue({
+    status: PermissionStatus.UNDETERMINED,
+    granted: false,
+    expires: "never",
+    canAskAgain: true,
+  });
+  jest.mocked(requestTrackingPermissionsAsync).mockReset().mockResolvedValue({
+    status: PermissionStatus.GRANTED,
+    granted: true,
+    expires: "never",
+    canAskAgain: false,
+  });
   jest
     .mocked(InterstitialAd.createForAdRequest)
     .mockReset()
@@ -192,7 +182,7 @@ it("requests iOS ATT only after applicable adult UMP, without a duplicate even i
     granted: false,
     expires: "never",
     canAskAgain: true,
-  } as Awaited<ReturnType<typeof requestTrackingPermissionsAsync>>);
+  });
   const privacy = createAdvertisingPrivacy({ getContext: () => context });
 
   // When
@@ -230,7 +220,7 @@ it.each([
       granted: false,
       expires: "never",
       canAskAgain: false,
-    } as Awaited<ReturnType<typeof getTrackingPermissionsAsync>>);
+    });
   }
   if (scenario === "refused-personalization") {
     jest.mocked(AdsConsent.getUserChoices).mockResolvedValue({
@@ -278,9 +268,7 @@ it.each([
     if (failure === "native-refusal") {
       jest
         .mocked(AdsConsent.gatherConsent)
-        .mockResolvedValue({ ...consentInfo, canRequestAds: false } as Awaited<
-          ReturnType<typeof AdsConsent.gatherConsent>
-        >);
+        .mockResolvedValue({ ...consentInfo, canRequestAds: false });
     }
     if (failure === "configuration-error") {
       mockAds.setRequestConfiguration.mockRejectedValueOnce(error);
@@ -501,11 +489,7 @@ it("keeps SDK privacy options conditional and refreshes authorization after a su
     ...personalized,
     selectPersonalisedAds: false,
   });
-  form.resolve(
-    consentInfo as Awaited<
-      ReturnType<typeof AdsConsent.showPrivacyOptionsForm>
-    >,
-  );
+  form.resolve(consentInfo);
   await change;
   expect(privacy.getSnapshot().choices?.authorizedMode).toBe("contextual");
   jest.mocked(AdsConsent.getConsentInfo).mockResolvedValue({

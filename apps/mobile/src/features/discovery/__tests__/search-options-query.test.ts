@@ -1,13 +1,14 @@
 import { createSearchOptionsQueryOptions } from "../api/discovery-queries";
 import { createQueryClient } from "../../../shared/query/query-client";
 import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
+import type { SportingSearchOptionsResponse } from "../../../../.generated/schemas/index.zod";
 
 const mockFetch = jest.fn();
 jest.mock("expo/fetch", () => ({
   fetch: (...args: unknown[]) => mockFetch(...args),
 }));
 const originalUrl = process.env.EXPO_PUBLIC_API_URL;
-const catalogue = {
+const catalogue: SportingSearchOptionsResponse = {
   resourceType: "team",
   seasons: [],
   divisions: [],

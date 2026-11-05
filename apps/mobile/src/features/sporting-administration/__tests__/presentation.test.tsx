@@ -1,6 +1,14 @@
 import { useLayoutEffect } from "react";
 import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
+import { accountResponse } from "../../accounts/test-support/account-response";
+import type {
+  AccountPermissionsResponse,
+  DivisionListResponse,
+  DivisionResponse,
+  PoolPresentationResponse,
+  SportingPresentationResponse,
+} from "../../../../.generated/schemas/index.zod";
 import {
   QueryClientProvider,
   useQueryClient,
@@ -128,14 +136,12 @@ const mockFetch = jest.fn<
   [RequestInfo | URL, RequestInit?]
 >();
 const resourceId = "00000000-0000-4000-8000-000000000196";
-const account = {
+const account = accountResponse({
   accountId: "00000000-0000-4000-8000-000000000001",
   username: "Operator",
   email: "operator@example.invalid",
-  principalCreatedAt: null,
-  hasPhoto: false,
   permissions: { manageSportingPresentation: true },
-};
+});
 const names = {
   sourceName: "Source name",
   effectiveName: "Current name",
@@ -144,11 +150,21 @@ const names = {
   manualShortName: null,
 };
 const logo = { effectiveUrl: null, manualUrl: null, automaticUrl: null };
-const initial = { id: resourceId, kind: "team", revision: "r1", names, logo };
+const initial: SportingPresentationResponse = {
+  id: resourceId,
+  kind: "team",
+  revision: "r1",
+  names,
+  logo,
+};
 let client: QueryClient;
 let publicClient = createQueryClient();
-let stored: unknown = initial;
-let permissions: unknown = account.permissions;
+let stored:
+  | SportingPresentationResponse
+  | PoolPresentationResponse
+  | DivisionResponse
+  | DivisionListResponse = initial;
+let permissions: AccountPermissionsResponse = account.permissions;
 let mockMaintenance = false;
 const environment = { ...process.env };
 

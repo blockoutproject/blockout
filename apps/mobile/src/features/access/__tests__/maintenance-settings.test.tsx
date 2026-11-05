@@ -29,6 +29,7 @@ import {
   mockAuth0,
 } from "../../accounts/test-support/native-auth0";
 import { getGetMaintenanceSettingsQueryKey } from "../../../../.generated/mobile";
+import type { MaintenanceSettingsResponse } from "../../../../.generated/schemas/index.zod";
 import { MaintenanceSettingsScreen } from "../screens/maintenance-settings-screen";
 import MaintenanceRoute from "../../../app/(operations)/administration/maintenance";
 
@@ -69,15 +70,14 @@ const initial = {
   active: false,
   message: "Message préparé",
   imageUrl: null,
-};
+} satisfies MaintenanceSettingsResponse;
 const account = accountResponse({
   accountId: "00000000-0000-4000-8000-000000000175",
   username: "Operator_175",
   email: "operator@example.invalid",
   permissions: { manageMaintenance: true },
 });
-let stored: import("../../../../.generated/schemas/index.zod").MaintenanceSettingsResponse =
-  { ...initial };
+let stored: MaintenanceSettingsResponse = { ...initial };
 beforeEach(() => {
   jest.useFakeTimers();
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
