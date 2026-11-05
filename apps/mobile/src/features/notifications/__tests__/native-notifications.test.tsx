@@ -59,6 +59,7 @@ jest.mock("expo/fetch", () => ({
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRootNavigationState: () => ({ key: "root" }),
+  useSegments: () => ["(ordinary)"],
   useRouter: () => ({ push: mockOpen }),
 }));
 jest.mock("expo-constants", () => ({
