@@ -12,6 +12,7 @@ import {
   CreateStreamReactivationRequest,
   CreateStreamReportRequest,
   ListOwnStreamContributionsParams,
+  type ModeratedStreamContributionResponse,
   ModeratedStreamContributionsResponse,
   StreamContributionStateEnum,
   StreamDecisionEnum,
@@ -40,7 +41,7 @@ const version = {
   canWithdraw: false,
   canReactivate: true,
   decisions: [{ kind: "hide", at: instant }],
-} as const;
+} satisfies ModeratedStreamContributionResponse;
 const match = {
   id,
   seasonId: id,
@@ -52,7 +53,7 @@ const match = {
     classification: {},
   },
   publiclyViewable: false,
-};
+} satisfies ModeratedStreamContributionsResponse["match"];
 const moderation = {
   revision: "opaque:α/not-a-counter",
   match,
@@ -66,7 +67,7 @@ const moderation = {
   approvalRequiredAfterReports: true,
   canPublish: false,
   items: [version],
-};
+} satisfies ModeratedStreamContributionsResponse;
 const originalApiUrl = process.env.EXPO_PUBLIC_API_URL;
 const mockFetch = jest.fn<
   Promise<Response>,

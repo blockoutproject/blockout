@@ -1,13 +1,24 @@
 import { SupportRequestSubjectEnum } from "../../../../.generated/schemas/index.zod";
-import { supportSchema } from "../schemas/support-schema";
+import { supportSchema, type SupportValues } from "../schemas/support-schema";
 import { supportValues } from "../forms/support-values";
 import { toSupportRequest } from "../api/support-request";
 import { supportContext, supportHref } from "../model/support-context";
-import { supportMetadata } from "./fixtures";
+
+/** Builds valid editing values independently of transport-only context metadata. */
+function validSupportValues(): SupportValues {
+  return {
+    images: [],
+    kind: "problem",
+    subject: "",
+    title: "Écran de démonstration 🏐",
+    description: "Fixture synthétique : la deuxième ligne\nne s’affiche pas.",
+    replyEmail: "support-fixture@example.invalid",
+  };
+}
 
 it.each(["problem", "suggestion"])("accepts %s without a subject", (kind) => {
   // Given
-  const draft = { ...supportMetadata, images: [], kind, subject: "" };
+  const draft = { ...validSupportValues(), kind, subject: "" };
 
   // When
   const request = toSupportRequest(supportSchema.parse(draft), {});
@@ -21,7 +32,7 @@ it.each(SupportRequestSubjectEnum.options)(
   "retains optional canonical subject %s",
   (subject) => {
     // Given
-    const draft = { ...supportMetadata, images: [], subject };
+    const draft = { ...validSupportValues(), subject };
 
     // When
     const request = toSupportRequest(supportSchema.parse(draft), {});
@@ -34,8 +45,7 @@ it.each(SupportRequestSubjectEnum.options)(
 it.each(["title", "description", "replyEmail"])("refuses blank %s", (field) => {
   // Given
   const draft = {
-    ...supportMetadata,
-    images: [],
+    ...validSupportValues(),
     subject: "",
     [field]: " \n\u00a0 ",
   };
@@ -56,8 +66,7 @@ it.each([
     // Given
     const exact = "🏐".repeat(maximum / 2);
     const draft = {
-      ...supportMetadata,
-      images: [],
+      ...validSupportValues(),
       subject: "",
       [field]: exact,
     };
@@ -75,8 +84,7 @@ it.each([
 it("trims only the outer title/contact whitespace and preserves explanation", () => {
   // Given
   const draft = {
-    ...supportMetadata,
-    images: [],
+    ...validSupportValues(),
     subject: "",
     title: " Titre ",
     description: " Ligne 1\nLigne 2 ",
@@ -99,7 +107,7 @@ it.each([
   ["oversized", "x".repeat(243) + "@example.invalid"],
 ])("refuses a %s reply contact", (_case, replyEmail) => {
   // Given
-  const draft = { ...supportMetadata, images: [], subject: "", replyEmail };
+  const draft = { ...validSupportValues(), subject: "", replyEmail };
 
   // When
   const result = supportSchema.safeParse(draft);
@@ -119,7 +127,7 @@ it("accepts exactly 254 email code units and refuses 255", () => {
     "." +
     "d".repeat(56) +
     ".test";
-  const draft = { ...supportMetadata, images: [], subject: "", replyEmail };
+  const draft = { ...validSupportValues(), subject: "", replyEmail };
 
   // When
   const exact = supportSchema.safeParse(draft);

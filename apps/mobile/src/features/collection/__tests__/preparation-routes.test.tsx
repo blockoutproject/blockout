@@ -1,6 +1,7 @@
 import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useCurrentAccount } from "../../accounts/api/use-current-account";
+import { accountResponse } from "../../accounts/test-support/account-response";
 import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
 import {
   cleanup,
@@ -228,20 +229,21 @@ function responses(
     storeUrl:
       "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout",
   };
+  /** Serves the selected admission and collection projections; unexpected routes fail the scenario. */
   const serve = async (url: RequestInfo | URL) => {
     const path = new URL(String(url)).pathname;
     if (path.endsWith("/application-access")) {
       return Response.json(access);
     }
     if (path.endsWith("/accounts/me")) {
-      return Response.json({
-        accountId: "00000000-0000-4000-8000-000000000181",
-        username: "Operator_179",
-        email: "operator@example.invalid",
-        principalCreatedAt: null,
-        hasPhoto: false,
-        permissions,
-      });
+      return Response.json(
+        accountResponse({
+          accountId: "00000000-0000-4000-8000-000000000181",
+          username: "Operator_179",
+          email: "operator@example.invalid",
+          permissions,
+        }),
+      );
     }
     if (path.endsWith("/source-bindings")) {
       return Response.json({ items: [] });
@@ -443,6 +445,7 @@ it("uses the current ready launch selection after its prior route was removed", 
   const permissions = Promise.withResolvers<Response>();
   let expanded = false;
   let writes = 0;
+  /** Advances the retained launch selection after a stale revision while preserving ordinary reads. */
   const peer = async (url: RequestInfo | URL, options?: RequestInit) => {
     const path = new URL(String(url)).pathname;
     if (options?.method === "POST") {

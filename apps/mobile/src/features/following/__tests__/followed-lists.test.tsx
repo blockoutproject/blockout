@@ -8,6 +8,7 @@ import {
   createFollowOptionsQueryOptions,
 } from "../api/personal-queries";
 import type { FollowingOwner } from "../api/following-keys";
+import type { TeamSummaryResponse } from "../../../../.generated/schemas/index.zod";
 
 jest.mock("expo/fetch", () => ({
   fetch: (url: string, request?: RequestInit) => mockFetch(url, request),
@@ -29,7 +30,7 @@ async function request(signal?: AbortSignal) {
 }
 
 /** A current public summary; the page's continuation and identities remain explicit in scenarios. */
-function team(id: number, name = `Équipe ${id}`) {
+function team(id: number, name = `Équipe ${id}`): TeamSummaryResponse {
   return {
     team: {
       id: `00000000-0000-4000-8000-${String(id).padStart(12, "0")}`,

@@ -1,4 +1,5 @@
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
+import { accountResponse } from "../../accounts/test-support/account-response";
 import {
   QueryClientProvider,
   useQueryClient,
@@ -30,14 +31,12 @@ import { AccountSessionProvider } from "../../accounts/session/account-session-p
 export const seasonId = "00000000-0000-4000-8000-000000000187";
 
 /** The current operator projection exercises F12's actual capability owner. */
-export const operator = {
+export const operator = accountResponse({
   accountId: "00000000-0000-4000-8000-000000000188",
   username: "Operator_187",
   email: "operator@example.invalid",
-  principalCreatedAt: null,
-  hasPhoto: false,
   permissions: { manageCollection: true },
-};
+});
 
 /** Complete valid control; each scenario specifies the behavior-bearing lifecycle fields. */
 export function control(

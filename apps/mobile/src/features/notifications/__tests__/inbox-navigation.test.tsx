@@ -36,6 +36,7 @@ import { initializeV2Installation } from "../../onboarding/initialize-v2-install
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { notificationResponse } from "../test-support/notification-data";
+import { nativeNotificationResponse } from "../test-support/native-notification-data";
 import { createInboxQueries } from "../api/inbox-queries";
 import { currentAccountQuery } from "../../accounts/api/current-account-query";
 import type { MatchDetailResponse } from "../../../../.generated/schemas/index.zod";
@@ -365,35 +366,16 @@ it.each(["owner", "foreign", "guest"] as const)(
     if (!tap) {
       throw new Error("The native tap listener must be mounted");
     }
-    const notification: Notifications.NotificationResponse = {
-      actionIdentifier: "default",
-      notification: {
-        date: Date.now(),
-        request: {
-          identifier: "old-missing-entry",
-          trigger: { type: "push" },
-          content: {
-            title: null,
-            subtitle: null,
-            body: null,
-            categoryIdentifier: null,
-            sound: null,
-            launchImageName: null,
-            badge: null,
-            attachments: [],
-            threadIdentifier: null,
-            data: {
-              ownerAccountId:
-                actor === "owner"
-                  ? row.id
-                  : "00000000-0000-4000-8000-000000000991",
-              notificationId: row.id,
-              matchId: row.match.id,
-            },
-          },
-        },
+    const notification = nativeNotificationResponse(
+      "old-missing-entry",
+      Date.now(),
+      {
+        ownerAccountId:
+          actor === "owner" ? row.id : "00000000-0000-4000-8000-000000000991",
+        notificationId: row.id,
+        matchId: row.match.id,
       },
-    };
+    );
     const before = mockFetch.mock.calls.length;
 
     // When

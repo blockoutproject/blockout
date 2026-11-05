@@ -27,6 +27,10 @@ import type {
   MatchDetailResponse,
   PoolStandingsResponse,
   PoolParticipantsResponse,
+  PoolFollowsResponse,
+  TeamDetailResponse,
+  TeamFollowsResponse,
+  TeamSearchResponse,
 } from "../../../../.generated/schemas/index.zod";
 import {
   AccountSessionProvider,
@@ -234,7 +238,7 @@ beforeEach(async () => {
               professional: false,
             },
           ],
-        });
+        } satisfies TeamSearchResponse);
       }
       if (path === "/pools") {
         return Response.json({
@@ -262,7 +266,7 @@ beforeEach(async () => {
               professional: false,
             },
           ],
-        });
+        } satisfies TeamFollowsResponse);
       }
       if (path.endsWith("/pool-follows")) {
         return Response.json({
@@ -272,7 +276,7 @@ beforeEach(async () => {
               pool: { ...match.pool.pool, name: "Followed pool" },
             },
           ],
-        });
+        } satisfies PoolFollowsResponse);
       }
       if (path === `/accounts/${inboxRow.id}/matches`) {
         return Response.json({
@@ -308,7 +312,7 @@ beforeEach(async () => {
             professional: false,
           },
           participations: [matchDetail().match.pool],
-        });
+        } satisfies TeamDetailResponse);
       }
       if (path === "/matches") {
         return Response.json({

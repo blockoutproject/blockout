@@ -11,7 +11,10 @@ import { router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import { useEffect, type ComponentProps, type ComponentType } from "react";
 import { AdEventType, InterstitialAd } from "react-native-google-mobile-ads";
-import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
+import type {
+  AccountResponse,
+  PoolParticipantsResponse,
+} from "../../../../.generated/schemas/index.zod";
 import RevenueCatUI from "react-native-purchases-ui";
 import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
 import OrdinaryLayout from "../../../app/(ordinary)/_layout";
@@ -232,7 +235,7 @@ beforeEach(async () => {
             },
           },
         ],
-      });
+      } satisfies PoolParticipantsResponse);
     }
     if (path === "/matches") {
       const category = parsed.searchParams.get("category");

@@ -1,4 +1,5 @@
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import { accountResponse } from "../../accounts/test-support/account-response";
 import {
   changeApplicationVersionSettings,
   getAccount,
@@ -6,7 +7,6 @@ import {
   getGetApplicationAccessQueryOptions,
   getMyAccount,
 } from "../../../../.generated/mobile";
-import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import { createQueryClient } from "../../../shared/query/query-client";
 
 const accountId = "00000000-0000-4000-8000-000000000001";
@@ -20,17 +20,12 @@ jest.mock("expo/fetch", () => ({
     mockFetch(url, options),
 }));
 
-/** Supplies an existing account with no projected privilege. */
-function accountResponse(): AccountResponse {
-  return {
-    accountId,
-    username: "Synthetic",
-    email: "fixture@example.invalid",
-    principalCreatedAt: null,
-    hasPhoto: false,
-    permissions: {},
-  };
-}
+const account = accountResponse({
+  accountId,
+  username: "Synthetic",
+  email: "fixture@example.invalid",
+  permissions: {},
+});
 
 beforeEach(() => {
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
@@ -137,7 +132,7 @@ it.each([
     mockFetch.mockResolvedValue(
       new Response(
         JSON.stringify({
-          ...accountResponse(),
+          ...account,
           permissions: { ...permissions, future: true },
           future: true,
         }),
@@ -163,7 +158,7 @@ it.each([
 ])("rejects %s instead of granting access", async (_scenario, permissions) => {
   // Given
   mockFetch.mockResolvedValue(
-    new Response(JSON.stringify({ ...accountResponse(), permissions }), {
+    new Response(JSON.stringify({ ...account, permissions }), {
       headers: { "Content-Type": "application/json" },
     }),
   );

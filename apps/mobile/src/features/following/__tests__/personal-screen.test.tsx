@@ -35,6 +35,7 @@ import {
   type AccountSession,
 } from "../../accounts/session/account-session-provider";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
+import { accountResponse } from "../../accounts/test-support/account-response";
 import {
   mockAuth0,
   credentialsFor,
@@ -141,23 +142,11 @@ const team = {
   type: "team",
   id: "00000000-0000-4000-8000-000000000004",
 } as const;
-const profile = {
+const profile = accountResponse({
   accountId,
   username: "Synthetic",
   email: "synthetic@example.invalid",
-  principalCreatedAt: null,
-  hasPhoto: false,
-  permissions: {
-    manageMaintenance: false,
-    manageApplicationVersions: false,
-    bypassMaintenance: false,
-    manageSportingPresentation: false,
-    manageSportingClassification: false,
-    manageDivisionLifecycle: false,
-    manageCollection: false,
-    moderateStreamLinks: false,
-  },
-};
+});
 const environment = { ...process.env };
 let publicClient = createQueryClient();
 let client = publicClient;

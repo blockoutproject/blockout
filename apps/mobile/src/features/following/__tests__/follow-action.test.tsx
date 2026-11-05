@@ -9,6 +9,7 @@ import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import "../../../shared/native/test-support/tab-view-native";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
+import { accountResponse } from "../../accounts/test-support/account-response";
 import {
   act,
   cleanup,
@@ -81,23 +82,11 @@ const season = {
   label: "2026/2027",
   startYear: 2026,
 };
-const profile = {
+const profile = accountResponse({
   accountId,
   username: "Demo",
   email: "demo@example.invalid",
-  principalCreatedAt: null,
-  hasPhoto: false,
-  permissions: {
-    manageMaintenance: false,
-    manageApplicationVersions: false,
-    bypassMaintenance: false,
-    manageSportingPresentation: false,
-    manageSportingClassification: false,
-    manageDivisionLifecycle: false,
-    manageCollection: false,
-    moderateStreamLinks: false,
-  },
-};
+});
 const mockFollowStates = new Map<string, boolean>();
 let publicClient = createQueryClient();
 let client = publicClient;
