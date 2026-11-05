@@ -273,10 +273,11 @@ Reproduce the automated boundary through the repository toolchain:
 
 The generated server DTO decoder is outside the selected mobile response boundary: HTTP assertions use actual serialized JSON and mobile Zod validation remains unchanged. A parallel Jest worker has exited with `SIGSEGV`; its cause and worker/startup reliability remain unqualified. No production dependency or assertion is weakened to hide that limitation.
 
-T025 is complete within these generated/SQL/navigation boundaries.
-Physical system badges, APNs/FCM/Expo receipt and real credentials remain T041; full
-purge/restore/erasure races remain T051/T052. No complete US4/US7 or provider/production
-qualification is inferred.
+T025 is complete within these generated/SQL/navigation boundaries. T052 additionally qualifies
+actual scheduled-purge/F05 erasure races with generated reads, plus active/API-unavailable expiry
+and tab-badge removal in the real iOS/Android inbox. Physical system badges, APNs/FCM/Expo receipt
+and real credentials remain T041; operational restoration remains T051. No complete US4/US7 or
+provider/production qualification is inferred.
 
 ## Native inbox construction
 

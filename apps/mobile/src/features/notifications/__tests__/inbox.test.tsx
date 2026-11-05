@@ -298,6 +298,91 @@ it.each(["inbox", "summary"] as const)(
   },
 );
 
+it("keeps an erased owner's inbox unavailable when an earlier refresh and read finish", async () => {
+  // Given: the real generated clients retain their original owner; only HTTP completion is controlled.
+  const { owner, queries } = context();
+  client.setQueryData(queries.inbox.queryKey, {
+    pages: [{ notifications: [row] }],
+    pageParams: [undefined],
+  });
+  client.setQueryData(queries.summary.queryKey, {
+    unreadCount: 7,
+    nextExpiryAt: "2026-11-01T00:00:00Z",
+  });
+  const delayedPage = Promise.withResolvers<Response>();
+  const delayedRead = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url: string, init: RequestInit) => {
+    if (init.method === "PATCH") return delayedRead.promise;
+    if (url.endsWith("/notifications")) return delayedPage.promise;
+    return Promise.resolve(new Response(null, { status: 404 }));
+  });
+  const refresh = client
+    .fetchInfiniteQuery(queries.inbox)
+    .catch(() => undefined);
+  const command = new MutationObserver(
+    client,
+    createReadNotificationOptions(client, owner, queries),
+  );
+  const read = command.mutate(row.id);
+  await jest.advanceTimersByTimeAsync(0);
+
+  // When: a current owner read proves absence before the old successful responses arrive.
+  await client.fetchQuery(queries.summary).catch(() => undefined);
+  delayedPage.resolve(Response.json({ notifications: [row] }));
+  delayedRead.resolve(Response.json({ ...row, read: true }));
+  await Promise.all([refresh, read]);
+
+  // Then: read success invalidates only; neither old response recreates private data or a badge.
+  expect(client.getQueryData(queries.inbox.queryKey)).toBeUndefined();
+  expect(client.getQueryData(queries.summary.queryKey)).toBeUndefined();
+  expect(client.getQueryState(queries.inbox.queryKey)?.status).toBe("error");
+  expect(
+    mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
+  ).toHaveLength(1);
+});
+
+it("discards a pending page and total after their original 29-day deadline", async () => {
+  // Given
+  const { queries } = context();
+  const deadline = Date.now() + 1000;
+  const expiring = {
+    ...row,
+    createdAt: new Date(deadline - 29 * 86_400_000).toISOString(),
+  };
+  const summary = {
+    unreadCount: 7,
+    nextExpiryAt: new Date(deadline).toISOString(),
+  };
+  client.setQueryData(queries.inbox.queryKey, {
+    pages: [{ notifications: [expiring] }],
+    pageParams: [undefined],
+  });
+  client.setQueryData(queries.summary.queryKey, summary);
+  const delayedPage = Promise.withResolvers<Response>();
+  const delayedSummary = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url: string) =>
+    url.endsWith("/notifications")
+      ? delayedPage.promise
+      : delayedSummary.promise,
+  );
+  const page = client.fetchInfiniteQuery(queries.inbox).catch(() => undefined);
+  const total = client.fetchQuery(queries.summary).catch(() => undefined);
+  await jest.advanceTimersByTimeAsync(0);
+
+  // When
+  jest.setSystemTime(deadline);
+  await expireInbox(client, queries);
+  delayedPage.resolve(Response.json({ notifications: [expiring] }));
+  delayedSummary.resolve(Response.json(summary));
+  await Promise.all([page, total]);
+
+  // Then
+  expect(
+    client.getQueryData(queries.inbox.queryKey)?.pages[0].notifications,
+  ).toEqual([]);
+  expect(client.getQueryData(queries.summary.queryKey)).toBeUndefined();
+});
+
 it("keeps other notifications but invalidates the exact total when a member is missing and refresh fails", async () => {
   // Given
   const { owner, queries } = context();
