@@ -23,7 +23,7 @@ These are additive routes; existing F03 routes and wire meanings remain unchange
 
 Use F13's OpenAPI YAML 3.0.4 → Redocly validation/bundle → OpenAPI Generator Java interfaces/DTOs and Orval mobile functions/types/Zod. One validated JSON response enters Query once. The collector consumes no F04 HTTP endpoint; after-commit projection requests and current sporting reads are in-process application interfaces, with no extra REST surface. UUID-based detail routes remain the mobile's existing navigation contract; these additions do not claim a hypermedia API.
 
-The [qualification boundary](../quickstart.md#contracts-and-access) records scoped generated compilation, query-array encoding, Unicode length handling and response validation. Discovery's generator tag isolates its four operations; story adapters still supply the business responses and shared access admission. Generated files remain ignored outputs.
+Use the [validation guide](../quickstart.md#contracts-and-access) for generated compilation, query-array encoding, Unicode length and response validation. Discovery's generator tag isolates its four operations; story adapters supply business responses and shared access admission. Generated files remain ignored outputs.
 
 ## Existing support navigation boundary
 

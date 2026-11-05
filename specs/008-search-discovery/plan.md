@@ -16,7 +16,7 @@ Provide public club, team and pool discovery through the existing backend and mo
 
 **Storage**: PostgreSQL 18.6 owns sporting facts, verified identity aliases and division terms. Three derived OpenSearch indexes per environment; mobile visit state stays in memory. No search history, persistent mobile search cache or server cursor store.
 
-**Testing**: JUnit/Spring MVC, Testcontainers with PostgreSQL and the selected OpenSearch image, generated Java/TypeScript integration, Jest Expo/React Native Testing Library, repository documentation/contract checks and native accessibility qualification. [Quickstart](quickstart.md) records actual results and limits.
+**Testing**: JUnit/Spring MVC, Testcontainers with PostgreSQL and the selected OpenSearch image, generated Java/TypeScript integration, Jest Expo/React Native Testing Library, repository documentation/contract checks and native accessibility qualification. [Quickstart](quickstart.md) defines runnable validation scenarios and expected outcomes.
 
 **Target Platform**: Existing Linux backend and native iOS/Android app. Separate private production/preproduction OpenSearch instances and volumes on the existing VPS, sharing its host-failure boundary.
 
@@ -132,4 +132,4 @@ Run one isolated OpenSearch instance per environment with its own volume/configu
 
 Search indexes are disposable derivatives. PostgreSQL backups preserve the authoritative inputs; restoration rebuilds indexes before search is usable. No extra backup chain, Dashboards deployment or operator screen. Existing private logs/metrics and native Grafana alerts expose failed targeted/rebuild work and last successful rebuild; an alert closure is not proof of search recovery. Exclude query text, city values, credentials and raw engine/provider payloads from telemetry.
 
-[Research](research.md) records decision rationale; [quickstart](quickstart.md) distinguishes implemented engine/client and contract checks from outstanding business, native, restoration and deployment qualifications. Run the [README verification commands](../../README.md#verification) for affected boundaries; [tasks](tasks.md) track the remaining work.
+[Research](research.md) records decision rationale; [quickstart](quickstart.md) defines engine/client, business, native, restoration and deployment validation scenarios. Run the [README verification commands](../../README.md#verification) for affected boundaries; [tasks](tasks.md) track the remaining work.

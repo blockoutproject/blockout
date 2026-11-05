@@ -2,7 +2,7 @@
 
 ## Authority and evidence
 
-The [specification](spec.md), accepted F13/F05/F02/F11 plans and owner decisions recorded below govern these technical decisions. Documentation establishes feasibility; [quickstart](quickstart.md) records actual boundary/native results and remaining qualifications. Withdrawn technical dossiers are not inputs.
+The [specification](spec.md), accepted F13/F05/F02/F11 plans and owner decisions recorded below govern these technical decisions. Documentation establishes feasibility; [quickstart](quickstart.md) provides boundary/native validation scenarios and prerequisites. Withdrawn technical dossiers are not inputs.
 
 ## Current business permissions
 
@@ -48,9 +48,9 @@ The [specification](spec.md), accepted F13/F05/F02/F11 plans and owner decisions
 
 ## Native versions, stores and optional media
 
-The unsaved full-screen update preview gives its native Modal a local `SafeAreaProvider`, as [documented for modal roots](https://appandflow.github.io/react-native-safe-area-context/docs/api/safe-area-provider/). The iPhone Duo closed display exposed that inheriting the ordinary form’s insets placed the close action under the system rail; native captures and successful return to the form verify this scoped correction. It adds no keyboard or viewport calculation.
+The unsaved full-screen update preview gives its native Modal a local `SafeAreaProvider`, as [documented for modal roots](https://appandflow.github.io/react-native-safe-area-context/docs/api/safe-area-provider/). A modal inheriting the ordinary form’s insets can place its close action under the system rail; local modal insets keep the action reachable. It adds no keyboard or viewport calculation.
 
-At enlarged native text size, the versions editor stacks its platform cards and actions using the existing full-width style. Android API 37 at font scale 1.75 exposed a split platform label and a truncated save label in the two-column layout; the stacked layout preserves both labels and keeps the final action reachable with Gboard open. `useWindowDimensions().fontScale` supplies the native preference; no keyboard measurement or alternate form shell is needed.
+At enlarged native text size, the versions editor stacks its platform cards and actions using the existing full-width style. The two-column layout can split platform labels and truncate the save label; stacking keeps labels and the final action reachable with the software keyboard open. `useWindowDimensions().fontScale` supplies the native preference; no keyboard measurement or alternate form shell is needed.
 
 **Decision:** Compare three numeric components of the published native version, without build numbers, suffixes or version ranges. `expo-application.nativeApplicationVersion` supplies Android versionName and iOS CFBundleShortVersionString. Use ordinary parsing/comparison of validated numeric components; no version-range library is needed. Use native Linking for approved HTTPS store URLs. The operator checks actual download availability manually before raising a threshold. [Expo Application SDK 58](https://docs.expo.dev/versions/v58.0.0/sdk/application/), [Expo Linking SDK 58](https://docs.expo.dev/versions/v58.0.0/sdk/linking/).
 
@@ -66,7 +66,7 @@ At enlarged native text size, the versions editor stacks its platform cards and 
 
 **Implementation binding:** The mobile security chain applies admission after native authentication/authorization. Explicit method/resource matches leave operational action checks with their owners; unknown administration routes and F08 moderation remain ordinary. Exact implemented F05 account methods keep their existing `AccountAdmission` binding, so admission is not repeated around provider I/O. One F12 header parser supplies canonical intent to both adapters. The filter delegates failures to the existing MVC Problem Details mapping; ingestion, health and the legacy read keep their separate security chains. [Spring filter placement](https://docs.spring.io/spring-security/reference/servlet/architecture.html), [MVC exception resolution](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-servlet/exceptionhandlers.html).
 
-The in-process current-maintenance read uses a short native `REQUIRES_NEW` read transaction. A PostgreSQL regression demonstrated that joining an existing caller transaction can reuse its hydrated settings entity after a separately committed activation. The independent persistence context avoids that stale read without changing the accepted-operation boundary or implementing the F07 handoff consumer.
+The in-process current-maintenance read uses a short native `REQUIRES_NEW` read transaction. Joining an existing caller transaction can reuse its hydrated settings entity after a separately committed activation. The independent persistence context avoids that stale read without changing the accepted-operation boundary or implementing the F07 handoff consumer.
 
 ## First production preparation
 
@@ -80,7 +80,7 @@ The in-process current-maintenance read uses a short native `REQUIRES_NEW` read 
 
 TanStack supports passing an AbortSignal to fetch and cancelling queries; cancellation is not proof that a server mutation was cancelled. F05 binds the private Query cache to the native principal's mounted lifetime. Use ordinary read cancellation and server-side editing revisions; there is no client epoch or cross-endpoint observation ledger. [Query cancellation](https://tanstack.com/query/latest/docs/framework/react/guides/query-cancellation).
 
-The [quickstart](quickstart.md) owns qualification scenarios, actual results and remaining evidence. Documentary feasibility does not waive generator, database, native or design gates; failed qualification must be resolved before the affected implementation is adopted.
+The [quickstart](quickstart.md) provides runnable qualification scenarios, prerequisites and expected outcomes. Documentary feasibility does not waive generator, database, native or design gates; failed qualification must be resolved before the affected implementation is adopted.
 
 ## Direct Profile operational destinations
 

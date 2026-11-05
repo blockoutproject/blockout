@@ -1,14 +1,10 @@
-# Qualification guide: administration and access
+# Quickstart: Validate administration and application access
 
-Commands available for this repository are in [README verification](../../README.md#verification). The scenarios below remain future qualification unless explicitly covered by the scoped evidence at the end of this guide. Use F13's selected test tools and generated consumers, not invented Nx targets or an additional E2E framework.
-
-## Current native ownership qualification
-
-The latest complete Query read owns current access presentation, with ordinary library recovery and native mutation invalidation. Form drafts belong to their mounted RHF visit. F05 owns a private cache per native principal; the public access query remains above that lifetime. Backend maintenance, permissions and concurrent-edit revisions remain authoritative. Dated observations qualify only their named revisions and controlled boundaries; current execution results and unavailable provider/native inputs remain explicit.
+Use the [README verification commands](../../README.md#verification), [canonical operations](contracts/README.md#operations-and-semantics) and [data constraints](data-model.md). F13 supplies the generated consumers and selected test tools.
 
 ## Prerequisites
 
-Use isolated PostgreSQL and native development builds with valid environment-specific Auth0 configuration. Prepare a guest, ordinary usable accounts and operators with separate grants; use no production credentials in committed fixtures. Have both settings groups loaded and controllable. Use F13's [contract qualification](../003-shared-quality/quickstart.md#contract-boundary), the [canonical operations](contracts/README.md#operations-and-semantics) and [data constraints](data-model.md), rather than duplicating their setup here.
+Use isolated migrated PostgreSQL and native development builds with valid environment-specific Auth0 configuration. Prepare a guest, ordinary usable accounts and operators with separate grants; use fictional identities and no production credentials in committed fixtures. Make both settings groups controllable. Provider/store operations require authorization for their actual environment.
 
 ## Focused scenarios
 
@@ -29,24 +25,9 @@ Use isolated PostgreSQL and native development builds with valid environment-spe
 | Contract boundary        | Generate/compile Java and TypeScript, run response validation and wrong-token cases.                                                                                                          | Null/absence, numeric range, additional fields, capabilities and Problem Details behave as authored; ordinary maintenance refusals carry current maintenance, exempt operations only technical unavailability; deterministic generated output stays outside Git. |
 | Accessibility            | Physical iOS/Android with screen readers, text scaling, reduced motion and deep-link/back navigation.                                                                                         | Approved actions remain reachable; focus and labels understandable; decoration never carries the only information.                                                                                                                                               |
 
-## Direct authorization and manual grant lifecycle — T011
+## Direct authorization and manual grant lifecycle
 
-The [owner-only grant/revoke procedure](../../infra/operations/README.md#owner-only-action-grants) uses native psql batches against a separately authorized connection. Assignment is an owner operation, never an application capability. The eight exact action values stay independent; F09 console operations and F11 legal publication remain owner-only. No provider/production operation or delegated SQL access is authorized by this qualification.
-
-The direct-command and native psql cases run on disposable PostgreSQL 18.6 migrated through the real Liquibase baseline. T011 is complete within this local synthetic-data boundary; these tests establish neither production grant operations nor provider/native qualification.
-
-The [direct authorization suite](../../apps/backend/src/test/java/com/blockout/backend/access/application/DirectAuthorizationIntegrationTest.java) uses the actual F01 controls, F02 presentation/classification/division commands, F05 establishment/erasure and F08 submission, with real F12 grants, account locks and migrated PostgreSQL. Only time, provider establishment evidence and validated test JWT principals are controlled; the real cleanup adapters are explicitly disabled. It replaces no authorization policy. The [manual SQL suite](../../apps/backend/src/test/java/com/blockout/backend/access/infrastructure/ManualGrantOperationsIntegrationTest.java) executes the runbook's two SQL blocks unchanged with native psql in its own migrated container, using fictitious fixture identities.
-
-| Boundary                     | Qualification                                                                                                                                                                                                                                                                                                                                                                    |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A01, ordinary eligibility    | Explicit F05 establishment grants no privilege; F08 rejects unknown age and seven days minus one second, accepts exactly seven days, and retains its sole moderation exception. Existing F08 suites cover ownership, resource restrictions and lifetime/daily quotas.                                                                                                            |
-| A02–A04, independent actions | Each single grant and no-grant account calls all eight actual action owners; only its exact command succeeds. `/accounts/me` exposes the corresponding independent boolean. The runbook retains owner-only SQL, F09 and F11 responsibilities.                                                                                                                                    |
-| A05, direct refusal          | Guest and ordinary real HTTP commands return 401/403. Previously projected but manually withdrawn grants refuse direct service calls without changing the affected settings, control intent, sporting edits or contribution/announcement state.                                                                                                                                  |
-| Withdrawal ordering          | Real F01/F02/F08 commands and a manual target-account-lock withdrawal execute in both orders. PostgreSQL blocking is observed before release: an admitted short command commits before withdrawal, or the post-lock current-grant read refuses without effects. Existing owner integration suites retain their domain-root and sorted-account cases.                             |
-| Erasure/recreation           | Actual F05 erasure removes original grants, preserves global settings, and returns 404 for the original current-account read. Explicit establishment creates a fresh UUID without inherited grants; old UUID commands fail. A still-valid same-subject test principal identifies only the replacement's current rights, and its ordinary eligible contribution remains possible. |
-| Manual batches               | Native psql proves repeated grant/revoke no-ops on an existing account, current persisted projection, and exit code 3 for either absent-original target, preserving a same-principal replacement.                                                                                                                                                                                |
-
-After dependency installation and contract bundling, the focused repository commands are:
+Use the [owner-only grant/revoke procedure](../../infra/operations/README.md#owner-only-action-grants) against an authorized disposable connection. Exercise actual F01/F02/F05/F08 commands and all eight independent action values, including withdrawal ordered before/after a short protected mutation and erase/recreate. Expect current grants, no inferred permission and no old-UUID reassignment. Assignment remains an owner operation, never an application capability.
 
 ```sh
 ./mvnw -B -ntp -pl apps/backend verify \
@@ -56,37 +37,15 @@ NX_LOAD_DOT_ENV_FILES=false NX_DAEMON=false NX_ISOLATE_PLUGINS=false \
   npx nx run backend:verify --output-style=static
 ```
 
-Backend qualification uses Node 24.18.0, npm 12.0.1, the Maven 3.9.16 wrapper, Microsoft OpenJDK 25.0.4 and disposable PostgreSQL 18.6; CI retains Temurin 25. The independent settings-consumer boundary is unavailable when `BLOCKOUT_ACCESS_CONSUMERS_TEST` is absent. Ordinary application verification does not replace T020's generated-consumer/provider qualification.
-
-These local tests exercise actual owner commands and SQL, with synthetic identities and no external sign-in, source collection or provider mutation. They do not qualify native credential restoration, physical devices, real owner access controls, store/provider journeys or production assignments. Backend inspection retains domain roots before accounts, UUID ordering for the account union and no later sporting lock; erasure acquires no sporting root. Existing [F05 lifecycle limits](../005-accounts-identity/plan.md#erasure-and-manual-resolution), T031/T039/T041/T045 and other untouched tasks remain applicable.
-
 ## First-environment rehearsal
 
 Before public distribution, establish the owner normally with the production binary in its test channel, manually grant only required actions, verify management/bypass, and activate maintenance if opening is deferred. Confirm that a second ordinary account remains blocked and that an outdated operator cannot bypass its minimum. Inspect the pre-public exposure boundary separately; a test channel is not a backend access control.
 
 Restart/deploy again and verify that saved settings survive. In an isolated rehearsal, correct an invalidating operator mistake using ordinary authorized SQL, advancing the edited revision and validating the complete result. No hidden bootstrap endpoint, reset or dedicated recovery tool is expected.
 
-Record actual native/provider/concurrency outcomes when these scenarios run. Documentation formatting, link checks and OpenAPI lint alone establish none of those outcomes.
+## Atomic settings
 
-## Permission presentation — T006/T010
-
-The semantic cases in `apps/mobile/src/features/access/__tests__/administration-entry.test.tsx` use real F05 session/Query owners and generated transport, with controlled native credentials and HTTP. They cover absent/false/literal-true/additive capabilities, invalid known values, independent technical commands, revocation, failed refresh and explicit retry, guest access, retired private lifetimes and return to the same account, closed default route admission, back navigation and preservation of profile/public links. No protected mutation or bypass header is produced by presentation.
-
-Profile composes `AdministrationEntry`; the dedicated F05 `current-account.ts` export preserves the pure session entry point used by other consumers.
-
-An unsigned local iOS development build succeeded for the reserved iOS 17 simulator, with Sentry's native `SENTRY_DISABLE_AUTO_UPLOAD=true` option. A direct `/administration` link rendered the existing closed-admission refusal in light and dark appearances. This proves local compilation and the bounded refusal only, not operator, provider, physical-device or complete design qualification. The technical entry follows approved [Account 4868:5908](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4868-5908), F13 tokens and bundled Outfit; no operator-session visual acceptance is claimed. Text scaling retains the accepted [F13 iOS limitation](../003-shared-quality/quickstart.md#native-ui-and-approved-design), without a remount or local dependency patch.
-
-Admission remains closed by default through the existing F05 composition boundary. T028 owns separate operational routes and version/maintenance guards; T019, T037 and F01 own the linked destination screens. T011's direct-command qualification is recorded above; T031 and the remaining integrated/native scenarios retain their separate qualification obligations. Entry visibility supplies no domain grant, temporary bypass, F09 owner power or F11 legal publication.
-
-## Atomic settings — T012–T020
-
-Generated-interface MVC/value and migrated PostgreSQL cases exercise required/current revisions, shape and whole-result validation, safe integer limits, independent grants, omission/null/value, stale and matching no-ops, simultaneous same-group commits, independent groups, shared iOS/Android revisions, content versus activation, commit-time no-op checks and both account-lock/revocation orders. Complete public reads use one SQL statement and hide inactive prepared content. Missing, invalid and inaccessible settings return the canonical 503; one structured diagnostic records only the bounded settings operation, outcome and failure category, without rejected values or dependency messages.
-
-The semantic maintenance tests use the real form, RHF, Query and F05 session owners with controlled native credentials and HTTP. They cover initial loading/failure, dirty drafts, explicit removal, URL/blank-text refusals, image display failure, independent activation, confirmation cancellation, failed permission refresh, successful grant revocation, conflicts and failed rereads. A revoked grant retains an existing draft read-only with both commands disabled; even a previously opened native confirmation sends no mutation after revocation. These tests establish JavaScript behavior, not native rendering or provider sign-in.
-
-T020 runs the generated TypeScript/form cases against the actual Spring HTTP provider and isolated migrated PostgreSQL. The standalone mobile provider suite writes maintenance and version settings: run it through the disposable `AccessSettingsConsumersIntegrationTest` orchestrator below, never against a retained or shared backend/database. Without its explicit opt-in configuration, skipped cases are unavailable evidence. Only native credential I/O and the short-lived test JWT issuer/JWKS are controlled; settings/account HTTP is real. Two editors exercise concurrent conflicts, independent groups, shared platform revisions, active content changes and invalid whole-result refusal. The lost-response case drops the response after the server commits, preserves the draft, rereads without replay, then requires explicit resubmission. A partial save invalidates the complete public read without becoming an admission source. The Java integration test launches the existing Jest runner; it adds no E2E framework or external Auth0 dependency.
-
-After dependency installation and generation, run this boundary with Docker available:
+Run the generated TypeScript/form consumer boundary through the disposable `AccessSettingsConsumersIntegrationTest` orchestrator, never against a retained/shared backend or database. Its explicit opt-in enables settings writes; skipped cases provide no qualification. Exercise the settings/concurrency rows with actual HTTP/PostgreSQL and ordinary native forms.
 
 ```sh
 BLOCKOUT_ACCESS_CONSUMERS_TEST=true ./mvnw -B -ntp -pl apps/backend verify \
@@ -102,39 +61,11 @@ For the complete repository check when private per-application `.env.local` file
 NX_LOAD_DOT_ENV_FILES=false NX_DAEMON=false BLOCKOUT_ACCESS_CONSUMERS_TEST=true npm run verify
 ```
 
-The native component follows the approved maintenance controls in [inactive light 1450:14015](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1450-14015), [inactive dark 1470:13907](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1470-13907) and [active control 5978:48721](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5978-48721), using F13 tokens, named Lucide `ChevronLeft`, `Wrench` and `FileText` icons, inline URL preview and native confirmations. The icons retain their semantic color, 24-point size and decorative accessibility under F13's [shared icon decision](../003-shared-quality/plan.md#native-ui-and-approved-design).
+The minimum-iOS simulator input journey remains required for final native acceptance. Its owner-authorized scoped deferral permits delivery of the atomic settings implementation without changing compatibility requirements or completing final F12 acceptance. Preserve the deployment minimum and use the installed supported toolchain; no native input patch or implicit prerelease installation is selected. [F13](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) owns shared text-size/input limits.
 
-Native component qualification uses Expo 58.0.17, React Native 0.88.0, React 19.3.0 and Auth0 5.11.3. The Android optimized release preserves the reflected WorkManager constructor in Android release builds. The temporary native-stack entry mounted the production maintenance route with real session, current account permissions, Query, generated HTTP and isolated PostgreSQL. The fixture supplied only the unfinished root-admission state; its mounts were removed before delivery.
+## Shared maintenance admission
 
-| Runtime                             | Passed component observations                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Android 10 / API 29, Pixel 5        | Chrome 145.0.7632.218 real sign-in/return with stock system trust; first/last input, Gboard, final save above the open keyboard, invalid URL with retained draft, corrected content save without activation, activation cancellation/confirmation and deactivation, light/dark, dirty-back cancellation/discard.                                                                                                                                        |
-| Android API 37, Pixel 5             | Real Auth0 browser return, keyboard-first Back, dirty-back cancellation/discard and dark rendering. At `accessibility-large` text size, Gboard remains open, the final save is reachable and invalid URL validation retains the draft. The original `large` setting was restored.                                                                                                                                                                       |
-| iOS 27.1, iPhone Duo closed display | Real Auth0 system-browser return, first/last focused input and software-keyboard entry, scrolling to and activating the final action with the keyboard open, invalid URL with retained draft, corrected content save without activation, activation cancellation/confirmation and deactivation. Dirty input survives live light/dark change, background/foreground return and cancellation of departure; explicit discard returns to the fixture entry. |
-
-The optimized release also starts on API 29 and API 37 with R8 enabled. Its narrow constructor keep rule is owned by the [advertising dependency decision](../004-advertising-privacy-legal/research.md#native-mediation-rather-than-parallel-ad-integrations). This startup evidence does not qualify business routes. Runnable iOS simulator builds use Xcode's normal local signing, which generates the Keychain entitlement; compilation with signing disabled does not establish a runnable authentication client. No certificate override or Auth0 dependency patch remains.
-
-The SDK 58 native captures show Android API 29 dark/inactive, API 37 dark/enlarged-text validation with Gboard, and iOS light/open-keyboard and dark/active. Android captures are 1080×2340 px; iOS captures are 466×678 px at 1× for the closed Duo display. Device Hub supplied unsupported host/dialog interactions when the CLI did not activate them. Captures contain demonstration data only, remain outside Git and do not constitute visual-fidelity or accessibility acceptance.
-
-The unavailable iOS 17 Simulator input journey remains deferred under the owner's scoped decision retained by [T012–T020](tasks.md#phase-4-user-story-2--prepare-and-publish-settings-without-unintended-effects-priority-p1). The expected behavior remains in the [native editing and accessibility scenarios](#focused-scenarios). That separate tooling follow-up does not block the scoped T012–T020 delivery; compatibility expectations remain unchanged and no passing iOS 17 form journey is claimed. It is separate from [F13 T077](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets), which owns live iOS text-size truncation.
-
-The prerequisite F05/F12 account-admission binding is covered by Spring/PostgreSQL integration cases: inactive first establishment, active maintenance refusals, current identification and bypass grants, original ownership, invalid data/header syntax and activation ordering. Active bypass retains the exact admitted business UUID through F05 capture; disappearance or same-principal replacement refuses before provider access. These cases qualify the account boundary, not complete mobile root admission.
-
-The earlier Lucide receipt retains the initial light/inactive and dark/active icon comparison on both platforms. Current SDK qualification is recorded above.
-
-T019's component implementation and the scoped native interactions above are complete. T020's real generated/provider/PostgreSQL evidence is complete; full root/admission integration remains with T028/T031 and US5. Physical-device, screen-reader and store/provider qualification, the deferred iOS minimum-endpoint form journey and the accepted F13 iOS text-scaling limit remain outside this evidence.
-
-## Shared maintenance admission — T021/T025/T026
-
-The shared HTTP matrix covers ordinary direct calls, exact method/resource exceptions, canonical single-valued bypass intent, typed versus generic unavailability, inconsistent inactive refusals, no-store and absence of Retry-After. Existing MVC slices explicitly isolate the added SQL policy collaborator; the account suites retain the same admission binding.
-
-The Spring/PostgreSQL suite uses actual migrated settings, current account/grant queries, security, F12 writes, F02 authorization, health and F14 legacy serialization. Its test-owned ordinary read proves the shared admission boundary without simulating the unfinished discovery implementation. Cases cover explicit intent on otherwise public reads, guests, current/revoked/missing account grants, independent management/domain rights, committed activation, generic invalid settings, separate ingestion authorization and the in-process read. A short separate read transaction observes committed activation independently of cached JPA state inside the caller transaction. The account integration cases continue to own profile/photo/establishment/erasure refusal, original-lifecycle binding and already-admitted short-operation ordering.
-
-The mobile parser is exercised through the actual generated-schema Fetch boundary: only maintenance type, matching HTTP/body status 503, active maintenance and nonblank text yield a restriction. Generic/unknown categories, missing/inactive/malformed data, unsafe revisions and non-HTTP failures remain unavailability. It returns no minimum-version or admission decision. It intentionally leaves observation ordering and root/transport bypass composition to [T027–T029](tasks.md).
-
-The mobile standalone run skips the settings-provider cases; the enabled Spring consumer runner exercises them against actual HTTP/PostgreSQL. Generated outputs remain ignored. The shared HTTP, parser and account-admission boundaries remain separate from native/provider/design approval.
-
-Run the focused boundaries after dependency installation and contract generation:
+Exercise the exact ordinary/operational method/resource boundary, complete public read, typed maintenance refusal and current-account identification exception:
 
 ```sh
 ./mvnw -B -ntp -pl apps/backend verify \
@@ -144,13 +75,9 @@ npm run test --workspace=@blockout/mobile -- \
   --runTestsByPath src/features/access/__tests__/maintenance-problem.test.ts
 ```
 
-No native screen, Auth0/RevenueCat/store operation or real source collection was exercised by this lot. Native gate implementation is recorded below; T031/T039 and the existing iOS 17/text-scaling qualifications remain open with their owners. The F07 policy and actual inbox/purge/handoff qualifications are recorded below, without a provider stop/recall guarantee.
+Expect canonical no-store 401/403/503 responses, current grants and no permissive configuration fallback. Generic/inconsistent unavailable data must not fabricate maintenance or admission. Native gates and provider behavior require their own setup.
 
-## Sporting push maintenance policy — T032/T033
-
-`SportingPushAdmission.allowsHandoff()` consumes the actual F12 `MaintenanceAdmission.currentMaintenance()` read on every decision. It accepts no recipient privilege or bypass input. The sender must check it immediately before each new provider handoff, discard a skipped attempt and keep recipient eligibility, inbox creation and purge under F07 ownership. Unavailable current state propagates F12's existing exception and diagnostic without granting admission. A previously admitted handoff may finish after activation.
-
-`MaintenancePushAdmissionTest` directly constructs the production policy with a controlled `MaintenanceAdmission` collaborator and real immutable settings. Its cases cover inactive admission, active refusal, activation before the next decision, reopening for a new decision and unavailable current state after an earlier admission. The assertions concern the returned decision or propagated failure. Test-only sender callbacks have been removed: they did not establish provider handoff, replay, recall or operator-bypass behavior. The existing F12 admission suites own current grant and bypass checks; actual sender binding remains with F07. No notification storage, provider adapter or deferred-work mechanism is introduced.
+## Sporting push maintenance policy
 
 After dependency installation and contract bundling, run:
 
@@ -158,19 +85,11 @@ After dependency installation and contract bundling, run:
 ./mvnw -B -ntp -pl apps/backend test -Dtest=MaintenancePushAdmissionTest
 ```
 
-The independent settings/mobile consumer boundary requires its explicit opt-in. A PostgreSQL connection timeout during collection-control initialization leaves its cause and production startup reliability unqualified; no test or timeout change is justified by that observation alone.
+Exercise current maintenance before each handoff decision without recipient privilege/bypass input. Expect active maintenance or unavailable state to prevent a new handoff, while an earlier admitted handoff may finish. This policy check alone does not establish actual sender binding or receipt.
 
-These controlled cases prove only the policy boundary. The existing F12 PostgreSQL tests own SQL freshness, including activation inside a longer caller transaction. [F07's after-commit sender](../011-notifications-delivery/quickstart.md#after-commit-push-construction) owns actual sender binding; the T034 qualification below exercises that implementation. Actual Expo/APNs/FCM receipt and physical devices remain [F07 T041](../011-notifications-delivery/tasks.md#phase-5-user-story-4--receive-best-effort-push-on-devices-priority-p1). No remote stop/recall guarantee is claimed.
+## Maintenance notification continuity
 
-## Maintenance notification continuity — T034
-
-[MaintenanceNotificationIntegrationTest](../../apps/backend/src/test/java/com/blockout/backend/notifications/application/MaintenanceNotificationIntegrationTest.java) exercises the generated F12 settings controllers/current SQL maintenance read and the actual F07 producer, inbox, after-commit sender and daily purge with migrated PostgreSQL and real owner reads. Time, worker/receipt triggering and external Expo I/O are controlled.
-
-A23–A25 pass: ordinary and bypass-capable operator recipients retain eligible entries without a new handoff during maintenance. Reopening preserves original entries without replay; exact age-29 exclusion and the daily purge continue, and result withdrawal/restoration cannot resurrect purged entries. A new post-maintenance match/result uses current follows and sends only its new allocation. [F07 visibility](../011-notifications-delivery/quickstart.md#current-sporting-and-link-visibility), [retention](../011-notifications-delivery/quickstart.md#retention-construction-and-isolated-restore-cases) and [sender evidence](../011-notifications-delivery/quickstart.md#after-commit-push-construction) retain their broader matrices.
-
-A26 passes at the controlled handoff boundary: activation during the first admitted batch permits its acceptance to finish but skips the next batch. Receipt observation and reopening create no resend. [The old-push route cases](../../apps/mobile/src/features/notifications/__tests__/maintenance-push-navigation.test.tsx) mount the production root, protected routes, generated consumers and current match destination with controlled native/HTTP I/O. Maintenance and minimum versions block owner/operator/guest taps; after admission, Router settles before the remembered tap is consumed once. An admitted operational route remains usable, and guests issue no original-owner read command.
-
-Run after dependency installation and contract generation:
+Run the actual F07 producer/inbox/sender/purge and current F12 SQL admission boundaries:
 
 ```sh
 ./mvnw -B -ntp -pl apps/backend verify \
@@ -181,33 +100,17 @@ NX_LOAD_DOT_ENV_FILES=false EXPO_NO_DOTENV=1 \
   --runTestsByPath src/features/notifications/__tests__/maintenance-push-navigation.test.tsx
 ```
 
-T034 is complete within these admission/handoff, inbox/expiry and JavaScript composition boundaries. Actual Expo/APNs/FCM receipt and physical devices remain F07 T041; installed-native journeys, hosted scheduling and production are unqualified here. No atomic remote stop/recall is promised.
+For A23–A26, expect eligible retained inbox entries during maintenance, no new handoff for ordinary or operator recipients, continued age-29 exclusion/purge, no replay on reopening and current access on old-push taps. Activation during an admitted batch may allow that batch to finish but must prevent the next handoff. Controlled Expo/native I/O does not establish physical receipt or an atomic remote stop/recall.
 
-## Native access composition — T022–T024/T027–T029/T035/T038
+## Native access composition
 
-[T027–T029 and T035/T038](tasks.md) supply the public complete-check Query, separate ordinary/operational Expo Router groups, native published-version comparison, explicit store action and F05-principal-scoped personal bypass. Root starts public checking independently of F14 credential initialization and Auth0 restoration. A failed initial read keeps ordinary access closed; Retry recovers the complete check and existing-account identification or failed SDK restoration without account establishment or interactive login. Partial administrative changes invalidate the complete public read and never grant admission. [Consumer-owned request boundaries](plan.md#mobile-state-and-native-behavior) select ordinary versus operational admission; backend classification remains authoritative.
+Use actual iOS/Android builds with the F05/F14 owners and [approved design sources](spec.md#design-evidence). Exercise cold-start public/identity failures independently, explicit retry, partial/late responses, direct links, grant withdrawal and minimum versions. Expect the public complete check to remain independent of credential initialization, ordinary closure without a successful check, separate operational admission and no minimum-version bypass.
 
-Focused Jest cases use actual Query, F05 session, generated transport, route guards and gate components with controlled credentials, HTTP and store I/O. They cover failed retry, private-lifetime isolation, maintenance-first/outdated-operator behavior, current manager access without bypass, personal opt-in, grant/account clearing, private photos, external-destination refusal, numeric safe-integer versions and store retry. The documented [router plugin option](https://docs.expo.dev/router/reference/sitemap/) disables the sitemap; unknown links return to their guarded destination. Generated outputs remain ignored.
+Verify both themes, keyboard/navigation, screen readers, enlarged text and reduced motion. Confirmed maintenance/update retains native refresh; failed admission uses Retry alone under F13. Store opening is a native action, never proof that a required binary is downloadable.
 
-Controlled transport cases verify that independently admitted legal/health/operational calls obtain no bypass credentials, while unknown methods/routes and F08 moderation retain ordinary admission. Spring-driven settings-provider cases remain skipped in standalone Jest; actual HTTP/PostgreSQL qualification belongs to T020. These mobile checks establish no provider setting or deployment result.
+Compare the blocking-screen backdrop with the [native composition](plan.md#mobile-state-and-native-behavior): the compact rail stack stays centered as a whole, the one-way loop joins seamlessly, and reduced motion stays still.
 
-Native component observations use development clients with SDK-compatible `expo-application` on iOS 27.1 (iPhone Duo, closed display) and Android API 37 (Pixel_9). Canonical public demonstration responses from isolated local HTTP qualify the exercised rendering and native module loading only; no PostgreSQL, actual Blockout backend/operator or provider/store journey is included. Source/build associations and review media remain in delivery evidence.
-
-The approved backdrop shares one full-width stage between the foreground and a compact stack of three decorative rails. The stack retains its intrinsic height and the existing `spacing.lg` gap (16 points), matching the [approved backdrop instance](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4989-590) within the approved scope; it is centered as a whole rather than distributing rows across the stage height. Native layout measures the motif period and rotated coverage instead of imposing a fixed strip width or vertical offset. Each 12-second linear loop travels six motifs and joins identical copies without reversing; reduced motion remains still. Native captures on both clients cover update and taller maintenance cards, themes and edge coverage; the motion recording spans more than two cycles. Standalone settings-provider cases require the separate T020 orchestrator. An Android focus-timeout ANR before JavaScript mounted leaves startup reliability and performance unqualified.
-
-[T031 and T039](tasks.md) remain unchecked: physical devices, screen readers, complete F05/F14/provider/operator journeys and actual downloadable Blockout store binaries are not qualified here. The existing [F13 live iOS text-size and minimum-iOS simulator-input limitations](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) retain their accepted scope. No native patch, lowered deployment minimum, provider operation or production opening is implied.
-
-The structural comparison with [System design sources](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03?node-id=4768-125) and the [maintenance gate](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03?node-id=810-3) preserves [FR-013](spec.md#design-evidence), global route guards and the plain-text authorized-administrator action. This is design-source evidence, not native or provider qualification.
-
-## Native versions editor — T036/T037
-
-[T036/T037](tasks.md) add the ordinary operational versions route using the existing atomic generated settings operations and process observations. iOS and Android retain separate minimum/link fields under one revision, with a shared optional message. Only dirty fields are sent; an empty optional field becomes null. Local resulting-state validation refuses a retained minimum without its store link. Raising a minimum requires the existing explicit store-availability acknowledgement; neither URL validation nor this acknowledgement verifies a provider. The shared update fallback and gate presentation also supply the unsaved preview, using the existing native store action for the validated current-platform destination; absent or invalid destinations disable that action.
-
-The approved inputs within the approved scope are [pristine light 1563:16268](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1563-16268), [expanded invalid minimum 1578:17522](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1578-17522) and [full-screen preview 4788:34329](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4788-34329), together with [F13 ordinary form composition](../003-shared-quality/plan.md#native-ui-and-approved-design). The existing operational navigation and maintenance form shell are reused; no keyboard form sheet, fixed footer or private resize calculation is introduced.
-
-The focused JavaScript suites use real Query, session, generated HTTP validation, RHF/Zod, controls and production route composition. Only HTTP/native credential inputs are controlled. Cases exercise atomic platform edits, omitted/null fields, invalid resulting state, optional fallback/preview, dirty refetch, failed loading/rereading, refusals, 409, lost or malformed responses, explicit resubmission, permission loss and held confirmations, current-manager admission without bypass, outdated-client refusal, partial observations and explicit draft discard. They establish no Auth0 operator, SQL, store or physical-device qualification.
-
-Use the [README verification commands](../../README.md#verification) for generation, lint, TypeScript, Jest, native-platform JavaScript exports and unsuppressed Doctor. Editor/route/lifecycle cases exercise numeric increase, decrease, equality, first minimum and removal for store acknowledgement. Spring-driven settings-provider cases remain unavailable in standalone Jest and retain T020's separate HTTP/PostgreSQL boundary.
+## Native versions editor
 
 ```sh
 npm run test --workspace=@blockout/mobile -- --runTestsByPath \
@@ -218,20 +121,8 @@ NX_LOAD_DOT_ENV_FILES=false NX_DAEMON=false NX_ISOLATE_PLUGINS=false \
   npx nx run mobile:verify --output-style=static
 ```
 
-Native component checks reuse the compatible development clients on iOS 27.1 (iPhone Duo, closed display, 466×678 px at 1×) and Android API 37 (Pixel_9, 1080×2424 px). The temporary ignored host mounts the production form, controls, theme, session provider and generated HTTP consumer against canonical demonstration responses on loopback. It supplies the editing props without a real authenticated operator; production route admission and guard-removal behavior are covered by the JavaScript suites.
+On native builds, exercise first/last fields and final action with the software keyboard open, both themes and enlarged text. Expect omitted fields to remain unchanged, explicit null removal, independent platform values under one revision, retained failed-save drafts, explicit reread after conflict and a reachable full-screen preview close action. Use [the plan's form/design decisions](plan.md#mobile-state-and-native-behavior); actual operator authentication, SQL, stores and physical accessibility retain their distinct qualification boundaries.
 
-iOS checks cover first-field validation, actual last-field input, scrolling to and activating the final action with the software keyboard open, refused save with retained input, light/dark rendering and full-screen preview close/return. Android checks cover both themes, real Gboard, the final action at native font scale 1.75, controlled 409 with retained draft and required reread, explicit reread/resubmission followed by success, preview close/return and initial-load failure followed by explicit retry. Enlarged text stacks cards/actions; the native Modal owns its safe-area provider. These observations qualify component behavior with controlled HTTP, not the full authenticated route, backend SQL, store download, physical device or screen-reader journey. Representative captures remain outside Git and accompany the delivery PR.
+## Direct Profile operational navigation
 
-[T039/T041](tasks.md) and the existing [F13 iOS text-size/input limits](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) remain separate qualifications; no threshold increase, store publication, provider change or production operation is authorized by these checks.
-
-The current gate/editor interaction convention and its iOS/Android evidence are recorded in the [F13 interaction qualification](../003-shared-quality/quickstart.md#feedback-and-read-recovery). Admission, identity and minimum-version safeguards retain their owners.
-
-## Direct Profile operational navigation — T047
-
-Administration presents independently granted “Collectes”, “Maintenance” and “Versions minimales”. Controlled Router and access-gate cases preserve sporting-only visibility, literal grants, malformed/refused/stale reads, session boundaries and the separate `/administration` gate destination.
-
-Native observations on `com.blockout.local`, Pixel 9 / Android 17 API 37, 1080×2424 pixels and font scale 1.0 exercise the production routes against the ignored [native HTTP/SDK fixture boundary](../003-shared-quality/quickstart.md#paging-chrome-and-navigation). From Profile, “Collectes” opened the collection dashboard directly, showing its season, club-sheet and geocoding entries without an intermediate index; Back returns to Profile. A current-account pull with only `manageSportingClassification` removed all three operational entries. Adding the two settings grants exposed Maintenance and Versions; each tap directly issued its own settings GET and Back returned to Profile. The fixture does not implement those settings responses and returned controlled 404s, so these two observations qualify navigation and the existing blocking read state, not loaded settings forms or writes. Their earlier form qualifications remain separate above.
-
-Native observations also cover direct Collectes on iOS 27.1 iPhone Duo outer 466×678 and Profile in both themes. A stale iOS accessibility tree required screenshot/coordinate observation, so it supplies no screen-reader proof. [F13 qualification](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) retains the shared environment limits. These navigation observations perform no settings mutation, provider operation, real backend authorization or integrated gate qualification. T031/T039/T041 retain their broader obligations; exact captures, request traces and execution records remain in delivery evidence.
-
-The native-only [F13 A34 qualification](../003-shared-quality/quickstart.md#feedback-and-read-recovery) owns blocking-gate recovery: checking and failed admission mount no refresh control, and Retry alone repeats the complete check. Confirmed maintenance/update and retained usable settings keep their existing refresh. Controlled gate/settings regressions establish this construction without widening the integrated gate/provider limits above.
+From Profile, activate “Collectes”, “Maintenance” and “Versions minimales” under each literal current grant. Expect their existing destinations directly and Back to Profile, with no intermediate index or sporting-only access. Verify revoked/malformed/stale account reads and account changes. Retain the separate `/administration` gate destination and current ordinary/operational admission.

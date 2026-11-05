@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-18
 
-**Status**: Accepted functional baseline; technical planning is documented in [plan.md](plan.md), with implementation qualification pending.
+**Status**: Accepted functional baseline; [plan.md](plan.md) owns technical planning and [tasks.md](tasks.md) tracks implementation.
 
 **Input**: Approved functional rules, F11 in the [specification navigation](../../README.md#specifications). Define age-appropriate advertising, its frequency and relationship with Pro, public consultation and versioned publication of legal documents, and shared privacy obligations. Detailed reporting journeys belong to F10; their shared constraints and decisions needed to write them are explicit here.
 

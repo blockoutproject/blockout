@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-22
 
-**Status**: Accepted functional baseline; technical planning is documented in [plan.md](plan.md), with implementation qualification pending.
+**Status**: Accepted functional baseline. [Plan.md](plan.md) owns technical planning and [tasks.md](tasks.md) tracks implementation and qualification.
 
 **Input**: F07 in the [specification navigation](../../README.md#specifications). Define result and stream-link announcements, their recipients, the personal inbox, reading, badges and device delivery. [F02](../002-sporting-data/spec.md) owns sporting truth, [F03](../007-sporting-consultation/spec.md) viewing, [F05](../005-accounts-identity/spec.md) identity, [F06](../009-following-personal-feed/spec.md) follows, [F08](../010-live-contributions-moderation/spec.md) contributions, [F11](../004-advertising-privacy-legal/spec.md) privacy and [F13](../003-shared-quality/spec.md) shared quality. This specification expresses V2 behavior; it chooses no contract, storage, transport or mockup.
 

@@ -4,7 +4,7 @@
 
 **Input**: [spec.md](spec.md), [F01 acquisition](../001-source-acquisition/plan.md), [F04 discovery](../008-search-discovery/plan.md), [F07 notifications](../011-notifications-delivery/plan.md) and [F10 support](../012-reports-feature-suggestions/plan.md).
 
-**Status**: Transition and implementation decisions. The common discovery prototype is approved and its faithfully reconciled Figma scope is covered by the owner's explicit advance approval. [Tasks](tasks.md) and [quickstart](quickstart.md) distinguish implemented increments from pending native/provider and release qualifications.
+**Status**: Transition and implementation decisions. The common discovery prototype is approved and its faithfully reconciled Figma scope is covered by the owner's explicit advance approval. [Tasks](tasks.md) track implementation and qualification; [quickstart](quickstart.md) guides native/provider and release validation.
 
 ## Summary
 
@@ -120,17 +120,17 @@ Manual operations are sufficient; no release orchestrator, store monitor, countd
 
 ## Design approval
 
-The owner approved prototype on 2026-10-15 and explicitly approved its faithful Figma translation in advance. This owner instruction changes only the timing of the second validation for this scope; it is not a standing exception or an approval of new design choices.
+The owner approved the common discovery prototype and explicitly approved its faithful Figma translation in advance. This owner instruction changes only the timing of the second validation for this scope; it is not a standing exception or an approval of new design choices.
 
-Common discovery includes former-user information in its last step. Existing sign-in, Pro, age and global-gate journeys remain in place. The corresponding Figma [light](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=804-148), [dark](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=831-382) and [320 px](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=6705-5025) states were reconciled and visually checked against that prototype, retaining editable text, Outfit typography, library instances and existing tokens. The journey uses the existing UI library and excludes provider interfaces.
+Common discovery includes former-user information in its last step. Existing sign-in, Pro, age and global-gate journeys remain in place. The corresponding Figma [light](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=804-148), [dark](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=831-382) and [320 px](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=6705-5025) states retain the approved prototype’s editable text, Outfit typography, library instances and existing tokens. The journey uses the existing UI library and excludes provider interfaces.
 
-Prototype browser review covers completion, skipping, the independent age gate and 320 px with 150% text; Figma review covered the static states linked above. These checks do not qualify native accessibility, secure storage, signed upgrade or provider continuity.
+The approved scope covers completion, skipping, the independent age gate and 320 px with 150% text. Native accessibility, secure storage, signed upgrade and provider continuity require their own qualification.
 
 ## Verification and evidence limits
 
 [Research](research.md) separates current source/console observations from provider capabilities and unqualified outcomes. [Data model](data-model.md) identifies retained/reset data without inventing migration tables. [Contracts](contracts/README.md) owns the legacy wire boundary and generation implications. [Quickstart](quickstart.md) specifies the release qualifications, including interruption and direct old-call cases.
 
-No signed V1-to-V2 upgrade, real restoration, price change, reconstructed production season, migrated logo or actual retirement has been executed by this dossier. Those are implementation/release gates; document and schema checks cannot replace them.
+Signed V1-to-V2 upgrades, real restoration, price changes, production reconstruction, protected-logo preservation and actual retirement require their implementation/release qualifications; document and schema checks cannot replace them.
 
 ## Complexity Tracking
 

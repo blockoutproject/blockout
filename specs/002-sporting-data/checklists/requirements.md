@@ -31,4 +31,4 @@
 
 ## Notes
 
-- Reviewed against the existing accepted specification on 2026-10-13. This checklist assesses requirements quality, not implementation or design approval.
+- This checklist assesses requirements quality, not implementation or design approval.

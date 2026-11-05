@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-22
 
-**Status**: Accepted functional baseline. [Plan.md](plan.md) owns technical decisions, [tasks.md](tasks.md) implementation state and [quickstart.md](quickstart.md) qualification results and remaining limits.
+**Status**: Accepted functional baseline. [Plan.md](plan.md) owns technical decisions, [tasks.md](tasks.md) implementation state and [quickstart.md](quickstart.md) validation scenarios and prerequisites.
 
 **Input**: F10, Reports and suggestions in the [specification navigation](../../README.md#specifications). Enable a signed-in person or guest to send a complete, private request to support, without in-app conversation or resolution tracking.
 
@@ -192,4 +192,4 @@ Reporting and the approved extension to suggestions use the [shared form and com
 
 ## Applicable design evidence
 
-The owner approved the support experience and its [Figma support reconciliation](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1087-7) on 2026-10-15: complete confirmation or ordinary error with retained editable input and explicit retry, without receipt lookup or recovery on return. [The plan](plan.md#design-and-qualification) identifies the affected screens. Unchanged interactions retain their existing approvals. These approvals establish the reviewed experience, not native or provider qualification.
+The support experience and its [Figma support reconciliation](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1087-7) have explicit owner approval: complete confirmation or ordinary error with retained editable input and explicit retry, without receipt lookup or recovery on return. [The plan](plan.md#design-and-qualification) identifies the affected screens. Unchanged interactions retain their existing approvals. These approvals establish the reviewed experience, not native or provider qualification.
