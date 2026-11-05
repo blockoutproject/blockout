@@ -2,6 +2,7 @@ package com.blockout.backend.contributions.api;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -31,6 +32,7 @@ import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.contributions.domain.StreamAddress;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
+import java.net.URI;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -132,6 +134,9 @@ class ContributionSubmissionWebMvcTest {
   @ValueSource(
       strings = {
         "{}",
+        "{\"revision\":\"\",\"url\":\"https://twitch.tv/synthetic\"}",
+        "{\"url\":\"https://twitch.tv/synthetic\"}",
+        "{\"revision\":\"opaque:a\"}",
         "{\"revision\":null,\"url\":\"https://youtube.com/a\"}",
         "{\"revision\":\"0\",\"url\":null}",
         "{\"revision\":\"0\",\"url\":\"https://youtube.com/a\",\"unexpected\":true}"
@@ -148,6 +153,56 @@ class ContributionSubmissionWebMvcTest {
     // Then
     response.andExpect(status().isBadRequest());
     verifyNoInteractions(submissions);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"0", "opaque:a", "opaque:α/not-a-counter"})
+  @DisplayName("Passes nonempty opaque revisions unchanged to the submission owner")
+  void bindsOpaqueRevision(String revision) throws Exception {
+    // Given
+    URI address = URI.create("https://twitch.tv/synthetic");
+    when(submissions.submit(OWNER, MATCH, revision, address, false))
+        .thenReturn(new SubmitContribution.Outcome(version(), "1", true));
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            post(PATH)
+                .with(mobile())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"revision\":\"" + revision + "\",\"url\":\"" + address + "\"}"));
+
+    // Then
+    response.andExpect(status().isCreated()).andExpect(jsonPath("$.revision").value("1"));
+    verify(submissions).submit(OWNER, MATCH, revision, address, false);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "{\"actorAccountId\":\"00000000-0000-4000-8000-000000000223\",\"revision\":\"opaque:a\",\"url\":\"https://fb.watch/synthetic\",\"future\":true}",
+        "{\"revision\":\"opaque:a\",\"url\":\"https://fb.watch/synthetic\"}",
+        "{\"actorAccountId\":\"00000000-0000-4000-8000-000000000223\",\"url\":\"https://fb.watch/synthetic\"}",
+        "{\"actorAccountId\":\"00000000-0000-4000-8000-000000000223\",\"revision\":\"opaque:a\"}",
+        "{\"actorAccountId\":null,\"revision\":\"opaque:a\",\"url\":\"https://fb.watch/synthetic\"}",
+        "{\"actorAccountId\":\"00000000-0000-4000-8000-000000000223\",\"revision\":null,\"url\":\"https://fb.watch/synthetic\"}",
+        "{\"actorAccountId\":\"00000000-0000-4000-8000-000000000223\",\"revision\":\"opaque:a\",\"url\":null}"
+      })
+  @DisplayName("Rejects unknown, omitted and null publication fields before application effects")
+  void rejectsInvalidModeratedBody(String body) throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request =
+        post("/administration/matches/" + MATCH + "/stream-contributions")
+            .with(mobile())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body);
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isBadRequest());
+    verifyNoInteractions(submissions, moderationReads);
   }
 
   @ParameterizedTest
@@ -318,9 +373,10 @@ class ContributionSubmissionWebMvcTest {
         .andExpect(jsonPath("$.contribution.id").value(VERSION.toString()));
   }
 
-  @Test
+  @ParameterizedTest
+  @CsvSource({"0,https://youtube.com/a", "opaque:a,https://fb.watch/synthetic"})
   @DisplayName("Creates a direct moderator publication with its administrative member Location")
-  void publishesAsModerator() throws Exception {
+  void publishesAsModerator(String revision, String address) throws Exception {
     // Given
     when(permissions.findByAccountId(OWNER))
         .thenReturn(
@@ -339,7 +395,11 @@ class ContributionSubmissionWebMvcTest {
                 .content(
                     "{\"actorAccountId\":\""
                         + OWNER
-                        + "\",\"revision\":\"0\",\"url\":\"https://youtube.com/a\"}"));
+                        + "\",\"revision\":\""
+                        + revision
+                        + "\",\"url\":\""
+                        + address
+                        + "\"}"));
 
     // Then
     response
@@ -352,6 +412,7 @@ class ContributionSubmissionWebMvcTest {
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.contribution.authorName").value("Synthetic"))
         .andExpect(jsonPath("$.contribution.decisions[0].kind").value("publish"));
+    verify(submissions).submit(OWNER, MATCH, revision, URI.create(address), true);
   }
 
   @Test
@@ -402,7 +463,7 @@ class ContributionSubmissionWebMvcTest {
 
   /**
    * Supplies a validated mobile authentication; signature/environment qualification is in
-   * ContributionAccessTest.
+   * ContributionAccessWebMvcTest.
    */
   private RequestPostProcessor mobile() {
     return jwt()

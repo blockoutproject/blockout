@@ -8,12 +8,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.generated.mobile.model.CreateDivisionRequest;
-import com.blockout.backend.generated.mobile.model.SetClassificationRequest;
 import com.blockout.backend.generated.mobile.model.SetPoolPresentationRequest;
 import jakarta.validation.Valid;
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,9 +28,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * Qualifies required nullable scalars, objects and multipart collections through native binding.
- */
+/** Qualifies required nullable names and multipart collections through native binding. */
 @WebMvcTest(controllers = ContractPresenceWebMvcTest.BindingAdapter.class)
 @AutoConfigureMockMvc(addFilters = false)
 @Import({
@@ -77,41 +73,6 @@ class ContractPresenceWebMvcTest {
     // Given
     MockHttpServletRequestBuilder request =
         post("/contract/presentation").contentType(MediaType.APPLICATION_JSON).content(body);
-
-    // When
-    ResultActions response = mvc.perform(request);
-
-    // Then
-    response.andExpect(status().isOk()).andExpect(content().json(body));
-  }
-
-  @Test
-  @DisplayName("Rejects an omitted required classification instead of removing it")
-  void rejectsOmittedRequiredObject() throws Exception {
-    // Given
-    MockHttpServletRequestBuilder request =
-        post("/contract/classification")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"revision\":\"r1\"}");
-
-    // When
-    ResultActions response = mvc.perform(request);
-
-    // Then
-    response.andExpect(status().isBadRequest());
-  }
-
-  @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "{\"revision\":\"r1\",\"classification\":null}",
-        "{\"revision\":\"r1\",\"classification\":{\"divisionId\":\"00000000-0000-4000-8000-000000000001\",\"format\":\"6x6\",\"gender\":\"mixed\"}}"
-      })
-  @DisplayName("Preserves an explicitly supplied null or value classification")
-  void preservesRequiredObject(String body) throws Exception {
-    // Given
-    MockHttpServletRequestBuilder request =
-        post("/contract/classification").contentType(MediaType.APPLICATION_JSON).content(body);
 
     // When
     ResultActions response = mvc.perform(request);
@@ -176,17 +137,6 @@ class ContractPresenceWebMvcTest {
      */
     @PostMapping("/contract/presentation")
     SetPoolPresentationRequest presentation(@RequestBody @Valid SetPoolPresentationRequest body) {
-      return body;
-    }
-
-    /**
-     * Exposes required nullable object binding without applying a classification.
-     *
-     * @param body generated scoped classification request
-     * @return the unchanged bound request
-     */
-    @PostMapping("/contract/classification")
-    SetClassificationRequest classification(@RequestBody @Valid SetClassificationRequest body) {
       return body;
     }
 

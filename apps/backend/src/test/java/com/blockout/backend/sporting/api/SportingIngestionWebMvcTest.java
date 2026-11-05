@@ -1,11 +1,14 @@
 package com.blockout.backend.sporting.api;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -41,10 +44,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -68,7 +73,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
   SportingPresentationValidator.class,
   IngestionBodyLimitAdvice.class
 })
-@DisplayName("Sporting ingestion request limits")
+@DisplayName("Sporting ingestion HTTP boundary")
 @MockitoBean(types = com.blockout.backend.access.application.MaintenanceAdmission.class)
 class SportingIngestionWebMvcTest {
   @Autowired private MockMvc mvc;
@@ -152,6 +157,113 @@ class SportingIngestionWebMvcTest {
     // Then
     response.andExpect(status().isBadRequest());
     verifyNoInteractions(calendars, catalogs, matches, standings, clubObservations, localities);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "{\"future\":\"private-synthetic-value\"}",
+        "{\"result\":{\"state\":\"final\",\"future\":true}}",
+        "{\"sets\":[{\"home\":25,\"away\":20,\"future\":true}]}",
+        "{\"sets\":[{\"home\":25}]}",
+        "{\"sets\":[null]}",
+        "{\"referees\":[null]}",
+        "{\"result\":{\"state\":\"future\"}}",
+        "{\"result\":{}}",
+        "{\"result\":{\"state\":\"final\",\"homeSets\":\"3\"}}",
+        "{\"localDate\":\"2026-02-31\"}",
+        "{\"localTime\":\"25:00\"}",
+        "{\"timeZone\":null}"
+      })
+  @DisplayName("Rejects invalid or unknown nested facts before application mapping")
+  void rejectsInvalidFacts(String facts) throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request =
+        post("/ingestion/matches/00000000-0000-4000-8000-000000000001/detail-observations")
+            .with(collector())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                """
+            {"context":{"cycleId":"00000000-0000-4000-8000-000000000002","readOrdinal":7,
+            "observedAt":"2026-10-18T18:00:00Z"},"facts":%s}
+            """
+                    .formatted(facts));
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response
+        .andExpect(status().isBadRequest())
+        .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:invalid-request"))
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(content().string(not(containsString("private-synthetic-value"))));
+    verifyNoInteractions(matches);
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "{\"facts\":{}}",
+        "{\"context\":null,\"facts\":{}}",
+        "{\"context\":{},\"facts\":{}}",
+        "{\"context\":{\"cycleId\":\"00000000-0000-4000-8000-000000000002\",\"readOrdinal\":7,\"observedAt\":\"bad-date\"},\"facts\":{}}",
+        "{\"context\":{\"cycleId\":\"00000000-0000-4000-8000-000000000002\",\"readOrdinal\":7,\"observedAt\":\"2026-10-18T18:00:00Z\",\"future\":true},\"facts\":{}}"
+      })
+  @DisplayName("Requires valid collection context independently from optional facts")
+  void rejectsInvalidContext(String body) throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request =
+        post("/ingestion/matches/00000000-0000-4000-8000-000000000001/detail-observations")
+            .with(collector())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body);
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isBadRequest());
+    verifyNoInteractions(matches);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"null", "[]"})
+  @DisplayName("Keeps omitted and withdrawn facts distinct through binding and mapping")
+  void preservesPresenceThroughHttp(String sets) throws Exception {
+    // Given
+    UUID matchId = UUID.fromString("00000000-0000-4000-8000-000000000001");
+    when(matches.detail(any()))
+        .thenReturn(
+            new ObservationOutcome(
+                "M1", ObservationOutcomeEnum.ACCEPTED, matchId, null, null, null));
+    MockHttpServletRequestBuilder request =
+        post("/ingestion/matches/00000000-0000-4000-8000-000000000001/detail-observations")
+            .with(collector())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(
+                """
+            {"context":{"cycleId":"00000000-0000-4000-8000-000000000002","readOrdinal":7,
+            "observedAt":"2026-10-18T18:00:00Z"},"facts":{"result":null,"sets":%s,"referees":null}}
+            """
+                    .formatted(sets));
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"));
+    ArgumentCaptor<MatchObservation> submitted = ArgumentCaptor.forClass(MatchObservation.class);
+    Mockito.verify(matches).detail(submitted.capture());
+    MatchObservation observation = submitted.getValue();
+    Assertions.assertThat(observation.matchId()).isEqualTo(matchId);
+    Assertions.assertThat(observation.context().readOrdinal()).isEqualTo(7L);
+    Assertions.assertThat(observation.facts().localDate().isUndefined()).isTrue();
+    Assertions.assertThat(observation.facts().result()).isEqualTo(JsonNullable.of(null));
+    Assertions.assertThat(observation.facts().referees()).isEqualTo(JsonNullable.of(null));
+    Assertions.assertThat(observation.facts().sets())
+        .isEqualTo(sets.equals("null") ? JsonNullable.of(null) : JsonNullable.of(List.of()));
   }
 
   @ParameterizedTest

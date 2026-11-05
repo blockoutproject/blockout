@@ -237,12 +237,12 @@ class FollowStateWebMvcTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"erased", "other", "replacement"})
-  @DisplayName("Hides unavailable original accounts despite an administrator claim")
-  void rejectsUnavailableOwner(String lifecycle) throws Exception {
+  @ValueSource(strings = {"absent", "foreign"})
+  @DisplayName("Hides absent or foreign current accounts despite an administrator claim")
+  void rejectsUnavailableOwner(String ownerState) throws Exception {
     // Given
     when(accounts.currentId(ISSUER, "subject"))
-        .thenReturn(lifecycle.equals("erased") ? Optional.empty() : Optional.of(TARGET));
+        .thenReturn(ownerState.equals("absent") ? Optional.empty() : Optional.of(TARGET));
 
     // When
     ResultActions response =

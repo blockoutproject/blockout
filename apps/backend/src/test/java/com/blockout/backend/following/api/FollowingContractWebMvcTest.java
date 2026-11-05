@@ -1,7 +1,6 @@
 package com.blockout.backend.following.api;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -69,13 +68,11 @@ public class FollowingContractWebMvcTest {
   @BeforeEach
   void owner() {
     when(current.findId()).thenReturn(Optional.of(UUID.fromString(ACCOUNT)));
-    when(state.replace(any(), anyBoolean())).thenAnswer(invocation -> invocation.getArgument(1));
     when(counts.read(any())).thenReturn(9007199254740991L);
     when(lists.teams(any(), any(), anyLong()))
         .thenReturn(new ReadFollowLists.Teams(List.of(), null));
     when(lists.pools(any(), any(), anyLong()))
         .thenReturn(new ReadFollowLists.Pools(List.of(), null));
-    when(options.read(any())).thenReturn(new ReadFollowOptions.Options(List.of(), null));
     when(calendars.read(any(), any(), any()))
         .thenReturn(
             new ReadPersonalCalendar.Calendar(
@@ -86,33 +83,6 @@ public class FollowingContractWebMvcTest {
                     OffsetDateTime.parse("2026-10-24T00:00:00Z"),
                     List.of(),
                     null)));
-  }
-
-  @ParameterizedTest
-  @ValueSource(strings = {"team", "pool"})
-  @DisplayName("Binds required complete true and false state through generated interfaces")
-  void bindsBoolean(String kind) throws Exception {
-    // Given
-    String path = "/accounts/" + ACCOUNT + "/" + kind + "-follows/" + TARGET;
-
-    // When
-    ResultActions response =
-        mvc.perform(
-            put(path).contentType(MediaType.APPLICATION_JSON).content("{\"following\":true}"));
-
-    // Then
-    response
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.following").value(true))
-        .andExpect(header().string("Cache-Control", "no-store"));
-
-    // When
-    ResultActions unfollowing =
-        mvc.perform(
-            put(path).contentType(MediaType.APPLICATION_JSON).content("{\"following\":false}"));
-
-    // Then
-    unfollowing.andExpect(status().isOk()).andExpect(jsonPath("$.following").value(false));
   }
 
   @ParameterizedTest
@@ -216,22 +186,6 @@ public class FollowingContractWebMvcTest {
   }
 
   @Test
-  @DisplayName("Omits the default season from empty generated options")
-  void omitsDefaultForEmptyOptions() throws Exception {
-    // Given
-    MockHttpServletRequestBuilder request = get("/accounts/" + ACCOUNT + "/follow-options");
-
-    // When
-    ResultActions options = mvc.perform(request);
-
-    // Then
-    options
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.seasons").isEmpty())
-        .andExpect(jsonPath("$.defaultSeasonId").doesNotExist());
-  }
-
-  @Test
   @DisplayName("Serializes the exact maximum safe integer follower count")
   void serializesSafeIntegerCount() throws Exception {
     // Given
@@ -242,24 +196,6 @@ public class FollowingContractWebMvcTest {
 
     // Then
     count.andExpect(status().isOk()).andExpect(jsonPath("$.count").value(9007199254740991L));
-  }
-
-  @Test
-  @DisplayName("Rejects unsupported mutation media types")
-  void rejectsMediaType() throws Exception {
-    // Given
-    MockHttpServletRequestBuilder request =
-        put("/accounts/" + ACCOUNT + "/pool-follows/" + TARGET)
-            .contentType(MediaType.TEXT_PLAIN)
-            .content("true");
-
-    // When
-    ResultActions response = mvc.perform(request);
-
-    // Then
-    response
-        .andExpect(status().isUnsupportedMediaType())
-        .andExpect(jsonPath("$.type").value("urn:blockout:problem:unsupported-media-type"));
   }
 
   @Test

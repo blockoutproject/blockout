@@ -118,15 +118,16 @@ class IgnClubGeocoderTest {
     assertThat(result.outcome()).isEqualTo(GeocodingOutcomeEnum.EMPTY);
   }
 
-  @Test
-  @DisplayName("The published singular city-filter error is an ordinary no candidate")
-  void qualifiesSingularCityFilterError() {
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "{\"code\":400,\"message\":\"Failed to parse query\",\"detail\":[\"city: No matching cities found\"]}",
+        "{\"code\":400,\"message\":\"Failed to parse query\",\"details\":[\"city: No matching cities found\"]}"
+      })
+  @DisplayName("Qualified singular or plural city-filter errors are ordinary no candidates")
+  void qualifiesCityFilterError(String json) {
     // Given
-    byte[] response =
-        bytes(
-            """
-        {"code":400,"message":"Failed to parse query","detail":["city: No matching cities found"]}
-        """);
+    byte[] response = bytes(json);
 
     // When
     SportingObservation.Locality result = IgnClubGeocoder.parse(400, response, "7", true);
@@ -136,23 +137,6 @@ class IgnClubGeocoderTest {
     assertThat(result.outcome()).isEqualTo(GeocodingOutcomeEnum.EMPTY);
     assertThat(result.latitude()).isNull();
     assertThat(result.longitude()).isNull();
-  }
-
-  @Test
-  @DisplayName("The qualified plural city-filter error remains an ordinary no candidate")
-  void qualifiesPluralCityFilterError() {
-    // Given
-    byte[] response =
-        bytes(
-            """
-        {"code":400,"message":"Failed to parse query","details":["city: No matching cities found"]}
-        """);
-
-    // When
-    SportingObservation.Locality result = IgnClubGeocoder.parse(400, response, "7", true);
-
-    // Then
-    assertThat(result.outcome()).isEqualTo(GeocodingOutcomeEnum.EMPTY);
   }
 
   @ParameterizedTest

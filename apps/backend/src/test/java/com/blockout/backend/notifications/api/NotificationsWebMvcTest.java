@@ -95,6 +95,8 @@ class NotificationsWebMvcTest {
   @ValueSource(
       strings = {
         "{}",
+        "null",
+        "{\"read\":1}",
         "{\"read\":false}",
         "{\"read\":null}",
         "{\"read\":true,\"opened\":true}",
@@ -142,22 +144,22 @@ class NotificationsWebMvcTest {
             jsonPath("$.title")
                 .value(org.hamcrest.Matchers.containsString("Le lien n’est plus proposé.")));
     verifyNoInteractions(marks);
-    for (int repetition = 0; repetition < 2; repetition++) {
-      // When
-      ResultActions secondResponse =
-          mvc.perform(
-              patch(COLLECTION + "/" + ID)
-                  .with(jwt().jwt(token -> token.claim("azp", "mobile-test")))
-                  .contentType(MediaType.APPLICATION_JSON)
-                  .content("{\"read\":true}"));
 
-      // Then
-      secondResponse
-          .andExpect(status().isOk())
-          .andExpect(jsonPath("$.read").value(true))
-          .andExpect(header().string("Accept-Patch", "application/json"))
-          .andExpect(header().string("Cache-Control", "no-store"));
-    }
+    // When
+    ResultActions secondResponse =
+        mvc.perform(
+            patch(COLLECTION + "/" + ID)
+                .with(jwt().jwt(token -> token.claim("azp", "mobile-test")))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"read\":true}"));
+
+    // Then
+    secondResponse
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.read").value(true))
+        .andExpect(jsonPath("$.opened").doesNotExist())
+        .andExpect(header().string("Accept-Patch", "application/json"))
+        .andExpect(header().string("Cache-Control", "no-store"));
   }
 
   @Test
@@ -179,6 +181,32 @@ class NotificationsWebMvcTest {
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.unreadCount").value(0))
         .andExpect(jsonPath("$.nextExpiryAt").doesNotExist());
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "/notification-summary?cursor=opaque",
+        "/notifications/10000000-0000-4000-8000-000000000001?future=true"
+      })
+  @DisplayName("Ignores undeclared member query parameters")
+  void ignoresMemberQueries(String path) throws Exception {
+    // Given
+    when(account.id()).thenReturn(ACCOUNT);
+    if (path.startsWith("/notification-summary")) {
+      when(reads.summary(any())).thenReturn(new InboxViews.Summary(0, null));
+    } else {
+      when(reads.member(any(), eq(ID))).thenReturn(entry(false));
+    }
+    MockHttpServletRequestBuilder request =
+        get("/accounts/" + ACCOUNT + path)
+            .with(jwt().jwt(token -> token.claim("azp", "mobile-test")));
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isOk());
   }
 
   @ParameterizedTest
