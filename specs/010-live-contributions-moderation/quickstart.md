@@ -73,8 +73,45 @@ exclusion and an independent transaction checking committed entry visibility.
 The [F07 qualification](../011-notifications-delivery/quickstart.md#atomic-producer-and-link-qualification)
 owns announcement timing, handoff and allowance evidence. Controlled hiding/new exempt-version
 and personal-row deletion fixtures are not real moderation-command or scheduled-purge
-qualification; those remain [F07 T046 and T052](../011-notifications-delivery/tasks.md). Actual F05 erasure and native/mobile
-journeys remain with their existing tasks. F08 T016/F03 public projection is qualified separately below.
+qualification; those remain [F07 T046 and T052](../011-notifications-delivery/tasks.md). Actual F05 erasure is exercised in
+[the integrated qualification](#integrated-lifecycle--t023t026t033t045) and
+[T046/T050](#original-account-attribution-erasure-t046t050); full native/mobile journeys retain their existing tasks.
+F08 T016/F03 public projection is qualified separately below.
+
+### Integrated lifecycle — T023/T026/T033/T045
+
+The following qualification combines production commands, reads, generated MVC bindings and
+current F02/F05/F07/F12 PostgreSQL owners. It closes these four integrated tasks for A10–A34;
+the complete native/platform matrix remains T056. Tests use the existing Spring-owned disposable
+PostgreSQL 18.6 configuration, real migrations and restricted application role. Time, validated
+JWT claims and sporting/account setup are controlled; no identity or video provider is contacted.
+
+| Scenarios | Executed evidence and boundary                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A10–A16   | `OwnContributionLifecycleIntegrationTest` retains exact withdrawal/repetition, ownership, active/pending coexistence and real F02 correction/third-submission refusals. `ContributionLifecycleQualificationIntegrationTest` adds real report-created holds, cancellation/rejection without refund, and actual approval/reactivation/direct selection. `ContributionQualificationIntegrationTest` traverses generated HTTP commands, selection and public F03 reads after real F05 erasure and registration without recovered ownership.                                                                                                                                                                                                                                                             |
+| A17–A21   | T008 and the persistence/policy suites retain third/fourth limits, concurrent quotas, Paris-midnight/DST and same-day continuation. The integrated lifecycle suite reaches both ordinary limits using real submissions, then repeats active/pending addresses before quota refusal and performs approval, withdrawal, reactivation and current grant changes. Ordinary flags stay true, new moderator versions stay exempt, neither author's quota changes through selection, and refusal preserves current versions.                                                                                                                                                                                                                                                                               |
+| A22–A28   | `ReportContributionIntegrationTest` retains exact targeting, first-reason deduplication, current F02 thresholds and result correction without automatic hiding. The integrated lifecycle suite creates holds with actual reports, verifies every selecting moderator action resolves them, retains post-result approval, and lets a former reporter report the new reactivation once without changing source reports. `ContributionErasureIntegrationTest` and the HTTP qualification erase real original accounts/reporters through F05, preserving distinct anonymous facts while clearing reasons and attribution.                                                                                                                                                                               |
+| A29–A34   | `ModerateContributionIntegrationTest` and `ModerationReadIntegrationTest` retain concurrent decisions, current grants, hidden/private restrictions, distinct match pages, SQL totals and short repeatable-read evidence. The HTTP qualification sends season, literal text, platform and state together through generated bindings, traverses twenty-five actually created exempt versions and all-state own totals, and refuses reads/decisions after a locked current-grant revocation despite an earlier authorized read. `ContributionDecisionRaceIntegrationTest` observes PostgreSQL exclusion in both tenth-report/approval orders: the obsolete action fails without retargeting or overwriting the accepted decision. Actual F05 report/submission/reactivation races remain in T046/T050. |
+
+The HTTP filter regression first observes 400 for canonical values such as `historical` and
+`youtube`, before any SQL filtering. The feature's native MVC converter registration makes those
+values reach the existing query owner; combined literal `%`/`_`/`!` criteria stay escaped and match
+the same version. Unknown queue/platform/version filters remain ordinary 400 responses.
+
+More-than-twenty historical reports use explicitly retained SQL facts: normal current thresholds
+cannot create twenty-four reports on a still-active version. The HTTP test qualifies both report
+pages, ordering, required null reasons, exact totals and their exclusion from current badges after
+selection; it does not claim those fixtures were produced through normal reporting or erasure.
+Actual report creation and distinct anonymous erasure facts have their separate real-command cases.
+
+Canonical mobile generation and TypeScript compilation exercise the current Orval/Zod consumers.
+The contribution Jest suites use real Query/session/form owners and controlled transport/native I/O,
+including T051 response loss, delayed completion, explicit retry, retained drafts and confirmed
+success despite failed reads. These consumer and server checks qualify their respective boundaries,
+not live native networking or a single end-to-end device/provider run. T054 retains its real
+F02/F07 atomic rollback/allowance scope; its controlled purge/reactivation fixtures grant no wider
+notification qualification. A submission setup fixture supplies no A01–A09/T017 acceptance.
+T055, T056 and global F08 acceptance remain open.
 
 ## Reads and mobile
 
@@ -237,8 +274,9 @@ an empty collection with “Mes propositions (0)” still visible. Its real soft
 leaves the editor and submission action reachable. This run does not establish iOS
 software-keyboard presentation, real provider behavior or reader speech.
 
-T023, US4 reporting, actual US5/US6 moderation/erasure, T049/T056 and the minimum-OS/narrow-device
-and screen-reader matrix retain their own qualification. A synthetic peer establishes only its
+The [integrated lifecycle qualification](#integrated-lifecycle--t023t026t033t045) supplies the separate
+T023/T033/T045 command/SQL evidence, with actual T050 erasure below. T049/T056 retain the full
+minimum-OS/narrow-device and screen-reader matrix. This synthetic peer establishes only its
 rendering, transport and interaction boundaries; it is not provider or global design approval.
 
 Scoped iOS/Android observations, including builds and controlled fixtures, are recorded in the native contribution evidence. Available-entry/form composition, keyboard/back, retained drafts, real refusal/explicit retry, acknowledgement and exact active public projection were observed. That run also reported cropped labels after live Android text enlargement and development navigation warnings; its missing screen-reader and minimum-OS evidence remains explicitly unqualified.
@@ -257,7 +295,8 @@ unchanged duplicates after hiding and first-reason retention. PostgreSQL cases q
 foreign keys, non-null reporter uniqueness, independently counted anonymous rows, root-before-account
 locking and both report/replacement orders without retargeting. The unresolved hold remains effective
 for different authors and addresses. Anonymous attribution/reason updates are controlled SQL fixtures;
-actual F05 erasure and US5 selection/reactivation remain T033/T050 and their owning qualification.
+actual F05 erasure and US5 selection/reactivation are exercised separately by
+[the integrated lifecycle qualification](#integrated-lifecycle--t023t026t033t045) and T046/T050 below.
 
 `ContributionReportsWebMvcTest` exercises reason-only generated binding, rejection of invented
 revision/unknown fields, original-account scope, current ordinary admission, canonical conflicts,
@@ -285,8 +324,9 @@ form and ordinary error toast with the viewed address/reason retained and no ext
 The run separately observes cancellation without a write and an obsolete-target POST remaining on its
 captured version. The peer records only write metadata, never the private reason. These observations
 establish neither full protected-root/deep-link startup, minimum-OS coverage, reader speech, actual
-moderation/erasure, provider/production operation nor global design/native approval. T033 and the
-remaining full-story/session/accessibility qualification remain open.
+moderation/erasure, provider/production operation nor global design/native approval.
+[T033](#integrated-lifecycle--t023t026t033t045) supplies separate integrated command evidence;
+T055/T056 retain the remaining full-story/session/accessibility qualification.
 
 ### Private moderation construction — T034–T044
 
@@ -296,7 +336,9 @@ independent holds and immutable quota participation. Actual F05 account locks co
 owner deletion and grant withdrawal; concurrent decisions preserve the first accepted revision.
 Real F07 inbox constraint failures roll back approval/reactivation, version changes, revision and
 announcement allowance. These controlled account deletions do not qualify F05's complete erasure
-or reason-clearing orchestration, which remains with T050/T055 and F05's owning qualification.
+or reason-clearing orchestration. [T046/T050](#original-account-attribution-erasure-t046t050) and
+[the integrated qualification](#integrated-lifecycle--t023t026t033t045) exercise actual local F05 erasure;
+T055 and F05's wider owning qualification retain their remaining scope.
 
 `ModerationReadIntegrationTest` qualifies PostgreSQL literal escaped ILIKE, combined version
 criteria, hidden/dateless and unclassified context, distinct tied-activity match pages, version/report
@@ -357,15 +399,17 @@ reuses its existing pager, native-refresh review control, filters and ordinary b
 card, always-mounted prefilled editor, grouped disclosures and
 initial skeletons retain their approved presentation. The earlier exact-source version sheet remains historical evidence only. The separately approved dedicated report page replaces inline reasons and is reached from active and proposal/history versions; older versions use “Historique”. Fictional prototype checks cover draft retention across tabs, exact-address cancellation,
 source-report separation and shared sporting-media fallback at 320 points / enlarged text in both themes.
-These checks qualify the standalone fictional prototype only. T045's integrated current-owner
-qualification, T050/T055 erasure and T056's complete platform/accessibility matrix remain separate;
-controlled SQL, JavaScript or native fixtures establish no provider/production or global design approval.
+These checks qualify the standalone fictional prototype only.
+[T045's integrated current-owner qualification](#integrated-lifecycle--t023t026t033t045) and
+[T046/T050 local erasure](#original-account-attribution-erasure-t046t050) have separate real-owner evidence.
+T055 and T056's complete platform/accessibility matrix remain open; controlled SQL, JavaScript or
+native fixtures establish no provider/production or global design approval.
 
 The dedicated report page has bounded evidence on reused Android API 37 and iPhone SE (3rd generation) / iOS 17 clients, with a 375-point iOS viewport and fictional HTTP responses. Both display the server total of twenty-one reports beside twenty initially admitted rows. Android keeps those rows visible during append with the small native continuation indicator. After four configured Query attempts settle on HTTP 503, repeated list-edge gestures issue no additional read; one explicit Retry accepts the twenty-first row and removes the continuation footer. iOS likewise retains the first twenty rows on append failure, keeps the erased-reason fallback and complete local Retry reachable in dark appearance with enlarged text, then reaches the twenty-first row without a terminal footer after explicit Retry. A separate Android active-version entry displays its single-report collection. These observations establish the exercised exact-version and continuation behavior, not a server/provider qualification.
 
 Live light-to-dark switching on iOS updates already rendered report rows through LegendList's public `extraData` presentation input. The report page uses the existing `PageScrollView` for initial/Error/Empty feedback and the existing `PageList` for populated data, without a layout controller or mirrored request state. Android's initial pending read shows three decorative date/reason skeleton rows below the actual navigation; append retains its compact indicator rather than a skeleton. Android ordinary Back preserves the dirty editor address and restores the expanded historical Twitch version with its “Signalements (21)” entry; no direct source/replacement shortcuts remain. The iOS successful Empty card and its complete “Actualiser” action are visible below the actual header. The iOS accessibility inspection surface was unavailable, so screenshot/coordinate-driven observations establish no VoiceOver, TalkBack or screen-reader announcement qualification. Broader F08/F13 native, minimum-runtime, identity, privacy-erasure and provider obligations remain open.
 
-Final `mobile:verify` and its dependencies pass: 172 Jest suites and 2,353 tests, with six pre-existing skipped tests; TypeScript and ESLint report no errors, with four pre-existing lint warnings. Native-platform JavaScript exports succeed for iOS and Android, and Expo Doctor passes all twenty checks. Repository formatting and diff checks pass. The changed handwritten tests were independently reviewed against the Expo testing guidance and its canonical examples. These checks and the bounded native observations complete T060–T062 without closing T045, T055, T056 or broader F13/provider qualification.
+Final `mobile:verify` and its dependencies pass: 172 Jest suites and 2,353 tests, with six pre-existing skipped tests; TypeScript and ESLint report no errors, with four pre-existing lint warnings. Native-platform JavaScript exports succeed for iOS and Android, and Expo Doctor passes all twenty checks. Repository formatting and diff checks pass. The changed handwritten tests were independently reviewed against the Expo testing guidance and its canonical examples. These checks and the bounded native observations complete T060–T062. They do not establish [T045’s separate integrated qualification](#integrated-lifecycle--t023t026t033t045), T055, T056 or broader F13/provider acceptance.
 
 ## Original-account attribution erasure (T046/T050)
 
