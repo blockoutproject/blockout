@@ -730,61 +730,6 @@ class SportingPresentationIntegrationTest {
   }
 
   @Test
-  @DisplayName("Collection waiting on a restriction cannot persist any of the six contact fields")
-  void rejectsCollectedValuesWaitingOnRestriction() throws Exception {
-    // Given
-    CollectionState.Cycle sheets = admitFamily("CLUB_SHEETS");
-    Map<ContactField, JsonNullable<String>> proposals =
-        Map.of(
-            ContactField.ADDRESS, JsonNullable.of("326 Synthetic street"),
-            ContactField.CITY, JsonNullable.of("Synthetic municipality"),
-            ContactField.POSTAL_CODE, JsonNullable.of("75001"),
-            ContactField.EMAIL, JsonNullable.of("collection326@example.invalid"),
-            ContactField.PHONE, JsonNullable.of("0100000326"),
-            ContactField.WEBSITE, JsonNullable.of("https://collection326.example.invalid/"));
-    CompletableFuture<Integer> pid = new CompletableFuture<>();
-    TransactionTemplate transaction = new TransactionTemplate(transactions);
-    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
-      // When: observe the competing PostgreSQL lock before committing the restriction.
-      Future<?> pending =
-          transaction.execute(
-              status -> {
-                contactRestrictions.restrict(club, Set.of(ContactField.values()));
-                Future<?> collection =
-                    worker.submit(
-                        () ->
-                            transaction.executeWithoutResult(
-                                other -> {
-                                  pid.complete(
-                                      sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
-                                  clubObservations.accept(
-                                      club,
-                                      new ClubObservation(
-                                          context(sheets, 1), "Retained club", proposals));
-                                }));
-                PostgresTestDatabase.awaitBlocked(sql, pid);
-                return collection;
-              });
-      pending.get(15, TimeUnit.SECONDS);
-
-      // Then
-      assertThat(configurationReads.clubContacts(account, club).fields().values())
-          .containsOnly(new ContactValue(null, null, ContactModeEnum.SOURCE, true));
-      assertThat(
-              sql.queryForMap(
-                      "SELECT address,address_manual,municipality,municipality_manual,postal_code,postal_code_manual,email,email_manual,phone,phone_manual,website,website_manual FROM sporting_club WHERE id=?",
-                      club)
-                  .values())
-          .containsOnlyNulls();
-      assertThat(reads.publicClubContacts(club).values()).containsOnlyNulls();
-      assertThat(acquisitionReads.team(team).orElseThrow().clubId()).isEqualTo(club);
-      assertThat(reads.publicInputs(Kind.CLUB, Set.of(club)))
-          .singleElement()
-          .satisfies(value -> assertThat(value.effectiveName()).isEqualTo("Retained club"));
-    }
-  }
-
-  @Test
   @DisplayName("A restriction waiting on a manual edit clears the newly committed personal value")
   void restrictsLatestManualValues() throws Exception {
     // Given
@@ -1154,19 +1099,26 @@ class SportingPresentationIntegrationTest {
   }
 
   @Test
-  @DisplayName(
-      "Source collection waiting on a rights restriction cannot reintroduce the private field")
+  @DisplayName("Collection waiting on a restriction cannot persist any of the six contact fields")
   void serializesRestrictionAndCollection() throws Exception {
     // Given
     CollectionState.Cycle sheets = admitFamily("CLUB_SHEETS");
+    Map<ContactField, JsonNullable<String>> proposals =
+        Map.of(
+            ContactField.ADDRESS, JsonNullable.of("326 Synthetic street"),
+            ContactField.CITY, JsonNullable.of("Synthetic municipality"),
+            ContactField.POSTAL_CODE, JsonNullable.of("75001"),
+            ContactField.EMAIL, JsonNullable.of("collection326@example.invalid"),
+            ContactField.PHONE, JsonNullable.of("0100000326"),
+            ContactField.WEBSITE, JsonNullable.of("https://collection326.example.invalid/"));
     CompletableFuture<Integer> pid = new CompletableFuture<>();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
     try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
-      // When
+      // When: observe the competing PostgreSQL lock before committing the restriction.
       Future<?> pending =
           transaction.execute(
               status -> {
-                contactRestrictions.restrict(club, Set.of(ContactField.EMAIL));
+                contactRestrictions.restrict(club, Set.of(ContactField.values()));
                 Future<?> collection =
                     worker.submit(
                         () ->
@@ -1177,11 +1129,7 @@ class SportingPresentationIntegrationTest {
                                   clubObservations.accept(
                                       club,
                                       new ClubObservation(
-                                          context(sheets, 1),
-                                          null,
-                                          Map.of(
-                                              ContactField.EMAIL,
-                                              JsonNullable.of("late@example.invalid"))));
+                                          context(sheets, 1), "Retained club", proposals));
                                 }));
                 PostgresTestDatabase.awaitBlocked(sql, pid);
                 return collection;
@@ -1189,11 +1137,19 @@ class SportingPresentationIntegrationTest {
       pending.get(15, TimeUnit.SECONDS);
 
       // Then
-      assertThat(configurationReads.clubContacts(account, club).fields().get(ContactField.EMAIL))
-          .isEqualTo(new ContactValue(null, null, ContactModeEnum.SOURCE, true));
+      assertThat(configurationReads.clubContacts(account, club).fields().values())
+          .containsOnly(new ContactValue(null, null, ContactModeEnum.SOURCE, true));
       assertThat(
-              sql.queryForObject("SELECT email FROM sporting_club WHERE id=?", String.class, club))
-          .isNull();
+              sql.queryForMap(
+                      "SELECT address,address_manual,municipality,municipality_manual,postal_code,postal_code_manual,email,email_manual,phone,phone_manual,website,website_manual FROM sporting_club WHERE id=?",
+                      club)
+                  .values())
+          .containsOnlyNulls();
+      assertThat(reads.publicClubContacts(club).values()).containsOnlyNulls();
+      assertThat(acquisitionReads.team(team).orElseThrow().clubId()).isEqualTo(club);
+      assertThat(reads.publicInputs(Kind.CLUB, Set.of(club)))
+          .singleElement()
+          .satisfies(value -> assertThat(value.effectiveName()).isEqualTo("Retained club"));
     }
   }
 
