@@ -29,13 +29,11 @@ import com.blockout.backend.sporting.application.model.SportingPresentation.Imag
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
 import com.blockout.backend.sporting.application.service.ChangeDivisionLifecycle;
 import com.blockout.backend.sporting.application.service.ReadSportingConfiguration;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
+import com.blockout.backend.sporting.support.SportingImageFixture;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import javax.imageio.ImageIO;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -204,9 +202,7 @@ class DivisionAdministrationWebMvcTest {
       "Accepts decodable supported bytes and derives media type independently from the upload label")
   void acceptsActualImage(String format) throws Exception {
     // Given
-    ByteArrayOutputStream output = new ByteArrayOutputStream();
-    ImageIO.write(new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB), format, output);
-    byte[] bytes = output.toByteArray();
+    byte[] bytes = SportingImageFixture.image(format, 0);
     String mediaType = format.equals("PNG") ? "image/png" : "image/jpeg";
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     when(divisions.create(

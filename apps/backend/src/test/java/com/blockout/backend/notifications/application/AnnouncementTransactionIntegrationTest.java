@@ -129,19 +129,19 @@ class AnnouncementTransactionIntegrationTest {
           HOME,
           AWAY);
     }
+    UUID homeFollow = UUID.fromString("00000000-0000-4000-8000-000000002851");
+    UUID awayFollow = UUID.fromString("00000000-0000-4000-8000-000000002852");
+    UUID poolFollow = UUID.fromString("00000000-0000-4000-8000-000000002853");
     sql.update(
         "INSERT INTO team_follow(id,account_id,team_id) VALUES (?,?,?),(?,?,?)",
-        UUID.randomUUID(),
+        homeFollow,
         ACCOUNT,
         HOME,
-        UUID.randomUUID(),
+        awayFollow,
         ACCOUNT,
         AWAY);
     sql.update(
-        "INSERT INTO pool_follow(id,account_id,pool_id) VALUES (?,?,?)",
-        UUID.randomUUID(),
-        ACCOUNT,
-        POOL);
+        "INSERT INTO pool_follow(id,account_id,pool_id) VALUES (?,?,?)", poolFollow, ACCOUNT, POOL);
   }
 
   @Test
@@ -234,6 +234,7 @@ class AnnouncementTransactionIntegrationTest {
       "Rolls back one producer's sporting state, facts and entries on required SQL failure")
   void rollsBackOnlyFailedMatch() {
     // Given
+    UUID conflictingNotification = UUID.fromString("00000000-0000-4000-8000-000000002854");
     TransactionTemplate transaction = new TransactionTemplate(transactions);
     transaction.executeWithoutResult(
         status -> {
@@ -254,7 +255,7 @@ class AnnouncementTransactionIntegrationTest {
                       // A distinct UUID still violates the required owner/match/family invariant.
                       notifications.create(
                           new AllocateAnnouncements.Entry(
-                              UUID.randomUUID(),
+                              conflictingNotification,
                               ACCOUNT,
                               MATCH,
                               NotificationFamily.PLAIN_RESULT,
@@ -290,6 +291,7 @@ class AnnouncementTransactionIntegrationTest {
                       processor.process(transition(MATCH, false));
                       TransactionSynchronizationManager.registerSynchronization(
                           new TransactionSynchronization() {
+                            /** {@inheritDoc} */
                             @Override
                             public void afterCommit() {
                               throw new IllegalStateException("Controlled after-commit failure");
@@ -461,6 +463,7 @@ class AnnouncementTransactionIntegrationTest {
   @DisplayName("Zero-recipient processing cannot backfill a follow added later")
   void recordsEmptyAudience() {
     // Given
+    UUID laterFollow = UUID.fromString("00000000-0000-4000-8000-000000002855");
     sql.update("DELETE FROM team_follow");
     sql.update("DELETE FROM pool_follow");
     TransactionTemplate transaction = new TransactionTemplate(transactions);
@@ -472,10 +475,7 @@ class AnnouncementTransactionIntegrationTest {
 
     // When
     sql.update(
-        "INSERT INTO pool_follow(id,account_id,pool_id) VALUES (?,?,?)",
-        UUID.randomUUID(),
-        OTHER,
-        POOL);
+        "INSERT INTO pool_follow(id,account_id,pool_id) VALUES (?,?,?)", laterFollow, OTHER, POOL);
     transaction.executeWithoutResult(
         status -> {
           roots(MATCH);
@@ -540,11 +540,9 @@ class AnnouncementTransactionIntegrationTest {
   @DisplayName("Locks the complete candidate set in sorted account UUID order")
   void sortsAccountLocks() throws Exception {
     // Given
+    UUID otherFollow = UUID.fromString("00000000-0000-4000-8000-000000002856");
     sql.update(
-        "INSERT INTO pool_follow(id,account_id,pool_id) VALUES (?,?,?)",
-        UUID.randomUUID(),
-        OTHER,
-        POOL);
+        "INSERT INTO pool_follow(id,account_id,pool_id) VALUES (?,?,?)", otherFollow, OTHER, POOL);
     CompletableFuture<Integer> waitingPid = new CompletableFuture<>();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
     TransactionTemplate independent = new TransactionTemplate(transactions);
@@ -645,21 +643,24 @@ class AnnouncementTransactionIntegrationTest {
         });
     String insert =
         "INSERT INTO notification(id,account_id,match_id,family,variant,created_at,is_read) VALUES (?,?,?,'PLAIN_RESULT','FIRST',?,FALSE)";
+    UUID duplicateAllocation = UUID.fromString("00000000-0000-4000-8000-000000002857");
+    UUID undatedAllocation = UUID.fromString("00000000-0000-4000-8000-000000002858");
+    UUID unownedAllocation = UUID.fromString("00000000-0000-4000-8000-000000002859");
+    UUID missingOwner = UUID.fromString("00000000-0000-4000-8000-000000002860");
 
     // When / Then: independent statements reach PostgreSQL, rather than parsing migration text.
     assertThatThrownBy(
-            () -> sql.update(insert, UUID.randomUUID(), ACCOUNT, MATCH, Timestamp.from(ORIGIN)))
+            () -> sql.update(insert, duplicateAllocation, ACCOUNT, MATCH, Timestamp.from(ORIGIN)))
         .isInstanceOf(DataIntegrityViolationException.class);
 
     // When / Then
-    assertThatThrownBy(() -> sql.update(insert, UUID.randomUUID(), OTHER, MATCH, null))
+    assertThatThrownBy(() -> sql.update(insert, undatedAllocation, OTHER, MATCH, null))
         .isInstanceOf(DataIntegrityViolationException.class);
 
     // When / Then
     assertThatThrownBy(
             () ->
-                sql.update(
-                    insert, UUID.randomUUID(), UUID.randomUUID(), MATCH, Timestamp.from(ORIGIN)))
+                sql.update(insert, unownedAllocation, missingOwner, MATCH, Timestamp.from(ORIGIN)))
         .isInstanceOf(DataIntegrityViolationException.class);
     assertThat(count("notification")).isEqualTo(1);
   }

@@ -1,5 +1,6 @@
 package com.blockout.collector.acquisition.application;
 
+import static com.blockout.collector.acquisition.application.SportingObservationFixture.ffvbMatch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
@@ -642,7 +643,7 @@ class CollectorSportingBoundaryIntegrationTest {
     CollectorLifecycle.AdmittedCycle context = lifecycle.admit(CONTROL, null, 0, null);
     List<SportingObservation.Match> initial =
         java.util.stream.IntStream.rangeClosed(1, 3)
-            .mapToObj(index -> match("M" + index, LocalDate.of(2026, 10, 24)))
+            .mapToObj(index -> ffvbMatch("M" + index, LocalDate.of(2026, 10, 24)))
             .toList();
     sporting.calendar(
         POOL,
@@ -650,7 +651,7 @@ class CollectorSportingBoundaryIntegrationTest {
         new SportingObservation.Calendar(true, initial, List.of(), List.of()));
     List<SportingObservation.Match> updated =
         java.util.stream.IntStream.rangeClosed(1, 3)
-            .mapToObj(index -> match("M" + index, LocalDate.of(2026, 10, 25)))
+            .mapToObj(index -> ffvbMatch("M" + index, LocalDate.of(2026, 10, 25)))
             .toList();
     UUID blocked =
         runtime.sql.queryForObject(
@@ -786,8 +787,8 @@ class CollectorSportingBoundaryIntegrationTest {
   void supersedesCalendarBeforeFinalization() throws Exception {
     // Given
     CollectorLifecycle.AdmittedCycle context = lifecycle.admit(CONTROL, null, 0, null);
-    SportingObservation.Match retained = match("M2", LocalDate.of(2026, 10, 24));
-    SportingObservation.Match first = match("M1", LocalDate.of(2026, 10, 24));
+    SportingObservation.Match retained = ffvbMatch("M2", LocalDate.of(2026, 10, 24));
+    SportingObservation.Match first = ffvbMatch("M1", LocalDate.of(2026, 10, 24));
     UUID match =
         sporting
             .calendar(
@@ -817,7 +818,7 @@ class CollectorSportingBoundaryIntegrationTest {
                         context(context, 3),
                         new SportingObservation.Calendar(
                             true,
-                            List.of(match("M1", LocalDate.of(2026, 10, 26)), retained),
+                            List.of(ffvbMatch("M1", LocalDate.of(2026, 10, 26)), retained),
                             List.of(),
                             List.of())));
 
@@ -931,23 +932,7 @@ class CollectorSportingBoundaryIntegrationTest {
    */
   private SportingObservation.Calendar calendar(String reference, LocalDate date) {
     return new SportingObservation.Calendar(
-        true, List.of(match(reference, date)), List.of(), List.of());
-  }
-
-  /**
-   * Creates one attributable FFVB encounter with the fixture's exact club references.
-   *
-   * @param reference contextual native match identity
-   * @param date proposed known date
-   * @return synthetic encounter with the usual qualified participants
-   */
-  private SportingObservation.Match match(String reference, LocalDate date) {
-    return new SportingObservation.Match(
-        reference,
-        team("Home", "000192"),
-        team("Away", "000193"),
-        SportingObservation.Facts.builder().localDate(JsonNullable.of(date)).build(),
-        null);
+        true, List.of(ffvbMatch(reference, date)), List.of(), List.of());
   }
 
   /**

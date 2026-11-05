@@ -1,5 +1,7 @@
 package com.blockout.collector.acquisition.application;
 
+import static com.blockout.collector.acquisition.application.CollectionCycleFixture.completed;
+import static com.blockout.collector.acquisition.application.CollectionCycleFixture.runningControl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -98,7 +100,7 @@ class CollectPassageTest {
       when(backend.register(0, lifecycle.getIncarnationId()))
           .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
       lifecycle.start();
-      when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
       CollectionBackend.Target target =
           CollectionBackend.Target.builder()
@@ -124,7 +126,8 @@ class CollectPassageTest {
                   URI.create("urn:blockout:problem:unprocessable-content"),
                   null,
                   null));
-      when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+      when(backend.complete(admitted.getCycle().id(), NOW))
+          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -150,7 +153,7 @@ class CollectPassageTest {
       when(backend.register(0, lifecycle.getIncarnationId()))
           .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
       lifecycle.start();
-      when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
       CollectionBackend.Target target =
           CollectionBackend.Target.builder()
@@ -162,7 +165,8 @@ class CollectPassageTest {
               .build();
       when(backend.targets(admitted.getCycle().id(), 0))
           .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
-      when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+      when(backend.complete(admitted.getCycle().id(), NOW))
+          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -187,7 +191,7 @@ class CollectPassageTest {
       when(backend.register(0, lifecycle.getIncarnationId()))
           .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
       lifecycle.start();
-      when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
       CollectionBackend.Target target =
           CollectionBackend.Target.builder()
@@ -208,7 +212,8 @@ class CollectPassageTest {
           .thenReturn(
               new SportingObservation.Outcome(
                   "000042", ObservationOutcomeEnum.UNCHANGED, POOL, null, null, null));
-      when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+      when(backend.complete(admitted.getCycle().id(), NOW))
+          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -236,7 +241,7 @@ class CollectPassageTest {
       when(backend.register(0, lifecycle.getIncarnationId()))
           .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
       lifecycle.start();
-      when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
       CollectionBackend.Target target =
           CollectionBackend.Target.builder()
@@ -250,7 +255,8 @@ class CollectPassageTest {
           .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
       when(geocoder.read(null, "Paris", null, "9"))
           .thenThrow(new IllegalStateException("private-provider-response"));
-      when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+      when(backend.complete(admitted.getCycle().id(), NOW))
+          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -275,7 +281,7 @@ class CollectPassageTest {
       when(backend.register(0, lifecycle.getIncarnationId()))
           .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
       lifecycle.start();
-      when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
       CollectionBackend.Target target =
           CollectionBackend.Target.builder()
@@ -290,7 +296,8 @@ class CollectPassageTest {
           .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
       when(clubs.read("000042")).thenReturn(sheet);
       when(sporting.club(eq(POOL), any(), eq(sheet))).thenThrow(uncertain());
-      when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+      when(backend.complete(admitted.getCycle().id(), NOW))
+          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -314,7 +321,7 @@ class CollectPassageTest {
       when(backend.register(0, lifecycle.getIncarnationId()))
           .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
       lifecycle.start();
-      when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
       CollectionBackend.Target target =
           CollectionBackend.Target.builder()
@@ -326,7 +333,8 @@ class CollectPassageTest {
               .build();
       when(backend.targets(admitted.getCycle().id(), 0))
           .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
-      when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+      when(backend.complete(admitted.getCycle().id(), NOW))
+          .thenReturn(completed(admitted.getCycle(), NOW));
 
       SportingObservation.Club sheet =
           SportingObservation.Club.builder().sourceName("Synthetic club").build();
@@ -357,7 +365,7 @@ class CollectPassageTest {
       when(backend.register(0, lifecycle.getIncarnationId()))
           .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
       lifecycle.start();
-      when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
       CollectionBackend.Target source =
           CollectionBackend.Target.builder()
@@ -375,7 +383,8 @@ class CollectPassageTest {
           .thenReturn(new DiscoverSeasonSources.Read(empty, NOW));
       when(sporting.catalog(eq(CONTROL), any(), eq(empty)))
           .thenReturn(new SportingObservation.CatalogOutcome(List.of(), true));
-      when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+      when(backend.complete(admitted.getCycle().id(), NOW))
+          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -393,7 +402,7 @@ class CollectPassageTest {
       when(backend.register(0, lifecycle.getIncarnationId()))
           .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
       lifecycle.start();
-      when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
       CollectionBackend.Target source =
           CollectionBackend.Target.builder()
@@ -415,7 +424,8 @@ class CollectPassageTest {
       when(resource.calendar(calendar)).thenReturn(new FfvbAcquisition.Read<>(empty, NOW));
       when(sporting.calendar(eq(POOL), any(), eq(empty)))
           .thenReturn(new SportingObservation.CalendarOutcome(List.of(), 0, 0, 0, 0, true));
-      when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+      when(backend.complete(admitted.getCycle().id(), NOW))
+          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -484,7 +494,8 @@ class CollectPassageTest {
           .thenReturn(
               new SportingObservation.Outcome(
                   "100", ObservationOutcomeEnum.ACCEPTED, team, null, null, null));
-      when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+      when(backend.complete(admitted.getCycle().id(), NOW))
+          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -510,7 +521,7 @@ class CollectPassageTest {
       when(backend.register(0, lifecycle.getIncarnationId()))
           .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
       lifecycle.start();
-      when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
       UUID newMatch = UUID.fromString("00000000-0000-4000-8000-000000000171");
       UUID oldMatch = UUID.fromString("00000000-0000-4000-8000-000000000172");
@@ -595,7 +606,8 @@ class CollectPassageTest {
                 new SportingObservation.Outcome(
                     null, ObservationOutcomeEnum.ACCEPTED, null, null, null, null));
       }
-      when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+      when(backend.complete(admitted.getCycle().id(), NOW))
+          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -638,7 +650,7 @@ class CollectPassageTest {
       when(backend.register(0, lifecycle.getIncarnationId()))
           .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
       lifecycle.start();
-      when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
       URI page =
           URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902");
@@ -705,7 +717,8 @@ class CollectPassageTest {
                       new SportingObservation.Outcome(
                           "902", ObservationOutcomeEnum.ACCEPTED, POOL, null, null, null)),
                   true));
-      when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+      when(backend.complete(admitted.getCycle().id(), NOW))
+          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       sharedPassage.execute(admitted);
@@ -728,7 +741,7 @@ class CollectPassageTest {
       when(backend.register(0, lifecycle.getIncarnationId()))
           .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
       lifecycle.start();
-      when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
       UUID match = UUID.fromString("00000000-0000-4000-8000-000000000171");
       URI page =
@@ -796,7 +809,8 @@ class CollectPassageTest {
           .thenReturn(
               new SportingObservation.Outcome(
                   "990", ObservationOutcomeEnum.ACCEPTED, match, null, null, null));
-      when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+      when(backend.complete(admitted.getCycle().id(), NOW))
+          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -840,7 +854,7 @@ class CollectPassageTest {
       when(backend.register(0, lifecycle.getIncarnationId()))
           .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
       lifecycle.start();
-      when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
       CollectionBackend.Target calendar = target(CollectionTargetKindEnum.CALENDAR);
       CollectionBackend.Target table = target(CollectionTargetKindEnum.STANDINGS);
@@ -858,7 +872,8 @@ class CollectPassageTest {
           .thenReturn(
               new SportingObservation.Outcome(
                   "TST", ObservationOutcomeEnum.ACCEPTED, POOL, null, null, null));
-      when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+      when(backend.complete(admitted.getCycle().id(), NOW))
+          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -893,7 +908,7 @@ class CollectPassageTest {
       when(backend.register(0, lifecycle.getIncarnationId()))
           .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
       lifecycle.start();
-      when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
       CollectionBackend.Target target = target(CollectionTargetKindEnum.CALENDAR);
       when(backend.targets(admitted.getCycle().id(), 0))
@@ -902,7 +917,8 @@ class CollectPassageTest {
           new SportingObservation.Calendar(true, List.of(), List.of(), List.of());
       when(resource.calendar(target)).thenReturn(new FfvbAcquisition.Read<>(calendar, NOW));
       when(sporting.calendar(eq(POOL), any(), eq(calendar))).thenThrow(uncertain());
-      when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+      when(backend.complete(admitted.getCycle().id(), NOW))
+          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -930,7 +946,7 @@ class CollectPassageTest {
       when(backend.register(0, lifecycle.getIncarnationId()))
           .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
       lifecycle.start();
-      when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
       CollectionBackend.Target target = target(CollectionTargetKindEnum.CALENDAR);
       when(backend.targets(admitted.getCycle().id(), 0))
@@ -954,7 +970,8 @@ class CollectPassageTest {
                   new SportingObservation.Calendar(true, matches, List.of(), List.of()), NOW));
       when(sporting.calendar(eq(POOL), any(), any()))
           .thenReturn(new SportingObservation.CalendarOutcome(outcomes, 1, 0, 0, 1, false));
-      when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+      when(backend.complete(admitted.getCycle().id(), NOW))
+          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -979,7 +996,7 @@ class CollectPassageTest {
       when(backend.register(0, lifecycle.getIncarnationId()))
           .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
       lifecycle.start();
-      when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
       CollectionBackend.Target calendar = target(CollectionTargetKindEnum.CALENDAR);
       CollectionBackend.Target standings = target(CollectionTargetKindEnum.STANDINGS);
@@ -1015,7 +1032,7 @@ class CollectPassageTest {
       when(backend.register(0, lifecycle.getIncarnationId()))
           .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
       lifecycle.start();
-      when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
       when(backend.targets(admitted.getCycle().id(), 0))
           .thenThrow(new CollectionBackendFailure(CollectionBackendFailure.Kind.CONFLICT, null));
@@ -1039,14 +1056,15 @@ class CollectPassageTest {
       when(backend.register(0, lifecycle.getIncarnationId()))
           .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
       lifecycle.start();
-      when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
       CollectionBackend.Target target = target(CollectionTargetKindEnum.CALENDAR);
       when(backend.targets(admitted.getCycle().id(), 0))
           .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
       when(ffvb.resourceUrl(target)).thenReturn(SOURCE);
       when(ffvb.read(SOURCE)).thenThrow(new IllegalStateException("PRIVATE_PROVIDER_PAYLOAD"));
-      when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+      when(backend.complete(admitted.getCycle().id(), NOW))
+          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -1069,7 +1087,7 @@ class CollectPassageTest {
       when(backend.register(0, lifecycle.getIncarnationId()))
           .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
       lifecycle.start();
-      when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
       CollectionBackend.Target calendar = target(CollectionTargetKindEnum.CALENDAR);
       CollectionBackend.Target standings = target(CollectionTargetKindEnum.STANDINGS);
@@ -1102,11 +1120,12 @@ class CollectPassageTest {
       when(backend.register(0, lifecycle.getIncarnationId()))
           .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
       lifecycle.start();
-      when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
       CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
       when(backend.targets(admitted.getCycle().id(), 0))
           .thenReturn(new CollectionBackend.TargetPage(List.of(), 0, false));
-      when(backend.complete(admitted.getCycle().id(), NOW)).thenReturn(completed(admitted, NOW));
+      when(backend.complete(admitted.getCycle().id(), NOW))
+          .thenReturn(completed(admitted.getCycle(), NOW));
 
       // When
       passage.execute(admitted);
@@ -1116,47 +1135,6 @@ class CollectPassageTest {
       verify(backend, never()).record(any(), any());
       verify(backend).complete(admitted.getCycle().id(), NOW);
     }
-  }
-
-  /**
-   * Returns the backend's running response correlated to the generated admission identity.
-   *
-   * @param command explicit control request sent by the real lifecycle
-   * @return runnable response with no side effects or installed stubs
-   */
-  private static CollectionBackend.Cycle runningCycle(CollectionBackend.StartCycle command) {
-    return new CollectionBackend.Cycle(
-        command.cycleId(),
-        command.incarnationId(),
-        command.controlId(),
-        command.sourceBindingId(),
-        1,
-        CollectionModeEnum.PERIODIC,
-        CollectionCycleStateEnum.RUNNING,
-        null,
-        null);
-  }
-
-  /**
-   * Returns the original context with the exact terminal timestamp.
-   *
-   * @param admitted original capability
-   * @param completedAt accepted backend terminal time
-   * @return the same context with its actual accepted completion
-   */
-  private CollectionBackend.Cycle completed(
-      CollectorLifecycle.AdmittedCycle admitted, Instant completedAt) {
-    CollectionBackend.Cycle cycle = admitted.getCycle();
-    return new CollectionBackend.Cycle(
-        cycle.id(),
-        cycle.incarnationId(),
-        cycle.controlId(),
-        cycle.sourceBindingId(),
-        cycle.cycleOrder(),
-        cycle.mode(),
-        CollectionCycleStateEnum.COMPLETED,
-        cycle.candidate(),
-        completedAt);
   }
 
   /**

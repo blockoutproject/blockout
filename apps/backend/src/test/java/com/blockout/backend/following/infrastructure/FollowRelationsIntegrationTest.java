@@ -235,22 +235,29 @@ class FollowRelationsIntegrationTest {
     String table = type == TargetType.TEAM ? "team_follow" : "pool_follow";
     String column = type == TargetType.TEAM ? "team_id" : "pool_id";
     String insert = "INSERT INTO " + table + "(id, account_id, " + column + ") VALUES (?, ?, ?)";
+    UUID duplicateRelationId = UUID.fromString("00000000-0000-4000-8000-000000000111");
+    UUID nullOwnerRelationId = UUID.fromString("00000000-0000-4000-8000-000000000112");
+    UUID nullTargetRelationId = UUID.fromString("00000000-0000-4000-8000-000000000113");
+    UUID missingOwnerRelationId = UUID.fromString("00000000-0000-4000-8000-000000000114");
+    UUID missingOwner = UUID.fromString("00000000-0000-4000-8000-000000000115");
+    UUID missingTargetRelationId = UUID.fromString("00000000-0000-4000-8000-000000000116");
+    UUID missingTarget = UUID.fromString("00000000-0000-4000-8000-000000000117");
     state.replace(context(type), true);
 
     // When / Then: each statement commits independently, so every rejection reaches SQL.
-    assertThatThrownBy(() -> sql.update(insert, UUID.randomUUID(), ACCOUNT, TARGET))
+    assertThatThrownBy(() -> sql.update(insert, duplicateRelationId, ACCOUNT, TARGET))
         .isInstanceOf(DataIntegrityViolationException.class);
 
-    assertThatThrownBy(() -> sql.update(insert, UUID.randomUUID(), null, TARGET))
+    assertThatThrownBy(() -> sql.update(insert, nullOwnerRelationId, null, TARGET))
         .isInstanceOf(DataIntegrityViolationException.class);
 
-    assertThatThrownBy(() -> sql.update(insert, UUID.randomUUID(), ACCOUNT, null))
+    assertThatThrownBy(() -> sql.update(insert, nullTargetRelationId, ACCOUNT, null))
         .isInstanceOf(DataIntegrityViolationException.class);
 
-    assertThatThrownBy(() -> sql.update(insert, UUID.randomUUID(), UUID.randomUUID(), TARGET))
+    assertThatThrownBy(() -> sql.update(insert, missingOwnerRelationId, missingOwner, TARGET))
         .isInstanceOf(DataIntegrityViolationException.class);
 
-    assertThatThrownBy(() -> sql.update(insert, UUID.randomUUID(), ACCOUNT, UUID.randomUUID()))
+    assertThatThrownBy(() -> sql.update(insert, missingTargetRelationId, ACCOUNT, missingTarget))
         .isInstanceOf(DataIntegrityViolationException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM " + table, Long.class)).isEqualTo(1L);
   }
@@ -331,7 +338,8 @@ class FollowRelationsIntegrationTest {
   @DisplayName("Rejects unknown targets without creating a relationship")
   void refusesMissingTarget(TargetType type) {
     // Given
-    FollowContext missing = new FollowContext(ACCOUNT, new Target(type, UUID.randomUUID()));
+    UUID missingTarget = UUID.fromString("00000000-0000-4000-8000-000000000118");
+    FollowContext missing = new FollowContext(ACCOUNT, new Target(type, missingTarget));
 
     // When / Then
     assertThatThrownBy(() -> state.replace(missing, true))

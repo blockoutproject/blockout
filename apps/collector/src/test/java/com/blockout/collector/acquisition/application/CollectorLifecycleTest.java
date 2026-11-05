@@ -1,5 +1,8 @@
 package com.blockout.collector.acquisition.application;
 
+import static com.blockout.collector.acquisition.application.CollectionCycleFixture.completed;
+import static com.blockout.collector.acquisition.application.CollectionCycleFixture.runningCandidate;
+import static com.blockout.collector.acquisition.application.CollectionCycleFixture.runningControl;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -8,8 +11,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum;
-import com.blockout.collector.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
 import java.io.IOException;
@@ -38,7 +39,7 @@ class CollectorLifecycleTest {
     when(backend.register(0, lifecycle.getIncarnationId()))
         .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
     lifecycle.start();
-    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+    when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
     CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
     CollectionBackendFailure failure = uncertain();
     when(backend.complete(admitted.getCycle().id(), NOW)).thenThrow(failure);
@@ -56,11 +57,11 @@ class CollectorLifecycleTest {
     when(backend.register(0, lifecycle.getIncarnationId()))
         .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
     lifecycle.start();
-    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+    when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
     CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
     Instant actualEnd = NOW.plusNanos(123_456_789);
     when(backend.complete(admitted.getCycle().id(), actualEnd))
-        .thenReturn(completed(admitted, actualEnd));
+        .thenReturn(completed(admitted.getCycle(), actualEnd));
 
     // When
     lifecycle.complete(admitted, actualEnd);
@@ -77,7 +78,13 @@ class CollectorLifecycleTest {
     when(backend.register(0, lifecycle.getIncarnationId()))
         .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
     lifecycle.start();
-    when(backend.admit(any())).thenAnswer(call -> runningCycle(call.getArgument(0)));
+    CollectionBackend.Candidate candidate =
+        new CollectionBackend.Candidate(
+            URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901"),
+            "2026/2027",
+            CollectionProviderEnum.LNV,
+            "901");
+    when(backend.admit(any())).thenAnswer(call -> runningCandidate(call.getArgument(0), candidate));
     CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(null, CONTROL, 0, null);
     CollectionBackend.Validation result =
         new CollectionBackend.Validation(
@@ -94,54 +101,6 @@ class CollectorLifecycleTest {
     assertThatThrownBy(() -> lifecycle.validate(admitted, result)).isSameAs(failure);
     verify(backend).validate(CONTROL, result);
     verify(backend, never()).complete(any(), any());
-  }
-
-  /**
-   * Returns the backend's running response correlated to the generated admission identity.
-   *
-   * @param command explicit control or candidate request sent by the real lifecycle
-   * @return runnable response with no side effects or installed stubs
-   */
-  private static CollectionBackend.Cycle runningCycle(CollectionBackend.StartCycle command) {
-    boolean candidate = command.sourceBindingId() != null;
-    return new CollectionBackend.Cycle(
-        command.cycleId(),
-        command.incarnationId(),
-        command.controlId(),
-        command.sourceBindingId(),
-        1,
-        candidate ? null : CollectionModeEnum.PERIODIC,
-        CollectionCycleStateEnum.RUNNING,
-        candidate
-            ? new CollectionBackend.Candidate(
-                URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=901"),
-                "2026/2027",
-                CollectionProviderEnum.LNV,
-                "901")
-            : null,
-        null);
-  }
-
-  /**
-   * Returns the original context with the exact terminal timestamp.
-   *
-   * @param admitted original capability
-   * @param completedAt accepted backend terminal time
-   * @return the same context with its actual accepted completion
-   */
-  private CollectionBackend.Cycle completed(
-      CollectorLifecycle.AdmittedCycle admitted, Instant completedAt) {
-    CollectionBackend.Cycle cycle = admitted.getCycle();
-    return new CollectionBackend.Cycle(
-        cycle.id(),
-        cycle.incarnationId(),
-        cycle.controlId(),
-        cycle.sourceBindingId(),
-        cycle.cycleOrder(),
-        cycle.mode(),
-        CollectionCycleStateEnum.COMPLETED,
-        cycle.candidate(),
-        completedAt);
   }
 
   /**

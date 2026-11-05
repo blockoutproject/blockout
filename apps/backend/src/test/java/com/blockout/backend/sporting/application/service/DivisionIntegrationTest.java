@@ -18,11 +18,10 @@ import com.blockout.backend.sporting.application.model.SportingViews.DivisionDet
 import com.blockout.backend.sporting.application.model.SportingViews.PoolView;
 import com.blockout.backend.sporting.infrastructure.DivisionEntity;
 import com.blockout.backend.sporting.support.SportingIdentityFixture;
+import com.blockout.backend.sporting.support.SportingImageFixture;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.persistence.EntityManagerFactory;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
@@ -33,7 +32,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import javax.imageio.ImageIO;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
@@ -143,9 +141,7 @@ class DivisionIntegrationTest {
   @DisplayName("Rejects case-insensitive duplicate names through the actual unique index")
   void refusesDuplicateName() throws Exception {
     // Given
-    ByteArrayOutputStream output = new ByteArrayOutputStream();
-    ImageIO.write(new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB), "PNG", output);
-    byte[] image = output.toByteArray();
+    byte[] image = SportingImageFixture.image("PNG", 0);
     DivisionDetail original =
         divisions.create(
             account,

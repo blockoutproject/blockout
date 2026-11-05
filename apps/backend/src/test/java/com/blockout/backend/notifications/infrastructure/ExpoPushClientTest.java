@@ -31,15 +31,21 @@ import org.mockito.ArgumentCaptor;
 /** Real generated SDK mapping with controlled SDK I/O; native HTTP is qualified separately. */
 @DisplayName("Expo Java SDK adapter")
 class ExpoPushClientTest {
+  private static final UUID SUBSCRIPTION_ID =
+      UUID.fromString("00000000-0000-4000-8000-000000002811");
+  private static final UUID OWNER = UUID.fromString("00000000-0000-4000-8000-000000002812");
+  private static final UUID NOTIFICATION_ID =
+      UUID.fromString("00000000-0000-4000-8000-000000002813");
+  private static final UUID MATCH_ID = UUID.fromString("00000000-0000-4000-8000-000000002814");
   private final ExpoPushNotificationClient sdk = mock(ExpoPushNotificationClient.class);
   private final ExpoPushClient client =
       new ExpoPushClient(sdk, Mappers.getMapper(ExpoPushMapper.class));
   private final Message message =
       new Message(
-          new Target(UUID.randomUUID(), 3, "ExponentPushToken[synthetic]"),
-          UUID.randomUUID(),
-          UUID.randomUUID(),
-          UUID.randomUUID(),
+          new Target(SUBSCRIPTION_ID, 3, "ExponentPushToken[synthetic]"),
+          OWNER,
+          NOTIFICATION_ID,
+          MATCH_ID,
           new NotificationMessage("Sport", "Faits actuels"));
 
   @Test

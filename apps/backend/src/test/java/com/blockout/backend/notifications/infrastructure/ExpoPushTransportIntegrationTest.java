@@ -30,6 +30,11 @@ import tools.jackson.databind.json.JsonMapper;
 /** Actual SDK, production native transport and serialization against disposable loopback HTTP. */
 @DisplayName("Expo Java SDK single native HTTP attempt")
 class ExpoPushTransportIntegrationTest {
+  private static final UUID SUBSCRIPTION = UUID.fromString("00000000-0000-4000-8000-000000002801");
+  private static final UUID OWNER = UUID.fromString("00000000-0000-4000-8000-000000002802");
+  private static final UUID NOTIFICATION = UUID.fromString("00000000-0000-4000-8000-000000002803");
+  private static final UUID MATCH = UUID.fromString("00000000-0000-4000-8000-000000002804");
+
   @ParameterizedTest
   @CsvSource({"send,429", "send,503", "getReceipts,429", "getReceipts,503"})
   @DisplayName("A native refusal never replays a send or receipt POST")
@@ -73,10 +78,10 @@ class ExpoPushTransportIntegrationTest {
       PushProvider provider = new ExpoPushClient(sdk, Mappers.getMapper(ExpoPushMapper.class));
       Message message =
           new Message(
-              new Target(UUID.randomUUID(), 1, "ExponentPushToken[synthetic]"),
-              UUID.randomUUID(),
-              UUID.randomUUID(),
-              UUID.randomUUID(),
+              new Target(SUBSCRIPTION, 1, "ExponentPushToken[synthetic]"),
+              OWNER,
+              NOTIFICATION,
+              MATCH,
               new NotificationMessage("Sport", "Faits actuels"));
 
       // When
@@ -148,10 +153,10 @@ class ExpoPushTransportIntegrationTest {
       PushProvider provider = new ExpoPushClient(sdk, Mappers.getMapper(ExpoPushMapper.class));
       Message message =
           new Message(
-              new Target(UUID.randomUUID(), 1, "ExponentPushToken[synthetic]"),
-              UUID.randomUUID(),
-              UUID.randomUUID(),
-              UUID.randomUUID(),
+              new Target(SUBSCRIPTION, 1, "ExponentPushToken[synthetic]"),
+              OWNER,
+              NOTIFICATION,
+              MATCH,
               new NotificationMessage("Sport", "Faits actuels"));
 
       // When

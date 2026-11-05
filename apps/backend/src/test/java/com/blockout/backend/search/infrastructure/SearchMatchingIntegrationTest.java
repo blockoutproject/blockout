@@ -20,13 +20,21 @@ class SearchMatchingIntegrationTest {
   private OpenSearchEngine engine;
   private String prefix;
 
-  /** Starts this suite's isolated engine; each scenario owns its mapped team index. */
+  /**
+   * Starts this suite's isolated engine; each scenario owns its mapped team index.
+   *
+   * @throws Exception when the disposable engine or its native client cannot start
+   */
   @BeforeAll
   static void start() throws Exception {
     NATIVE.startEngine();
   }
 
-  /** Gives each scenario an empty mapped index; no ranking evidence inherits earlier documents. */
+  /**
+   * Gives each scenario an empty mapped index; no ranking evidence inherits earlier documents.
+   *
+   * @throws Exception when the native index cannot be created
+   */
   @BeforeEach
   void createIndex() throws Exception {
     prefix = "blockout-local-search-" + UUID.randomUUID();
@@ -34,13 +42,21 @@ class SearchMatchingIntegrationTest {
     engine = new OpenSearchEngine(NATIVE.client, new SearchIndexProperties(prefix));
   }
 
-  /** Removes this scenario's index after every outcome. */
+  /**
+   * Removes this scenario's index after every outcome.
+   *
+   * @throws Exception when the native index cannot be removed
+   */
   @AfterEach
   void deleteIndex() throws Exception {
     NATIVE.client.indices().delete(request -> request.index(prefix + "-teams"));
   }
 
-  /** Releases only this suite's native client and engine. */
+  /**
+   * Releases only this suite's native client and engine.
+   *
+   * @throws Exception when the suite-owned client or engine cannot close
+   */
   @AfterAll
   static void stop() throws Exception {
     NATIVE.close();
@@ -92,6 +108,7 @@ class SearchMatchingIntegrationTest {
    * @param id stable synthetic identity
    * @param name scenario matching text
    * @param city scenario authorized city, or null
+   * @throws Exception when the native engine cannot index the synthetic document
    */
   private void index(UUID id, String name, String city) throws Exception {
     SearchDocuments document =
@@ -121,6 +138,8 @@ class SearchMatchingIntegrationTest {
     UUID id = UUID.fromString("00000000-0000-4000-8000-000000000004");
     UUID season = UUID.fromString("00000000-0000-4000-8000-000000000010");
     UUID division = UUID.fromString("00000000-0000-4000-8000-000000000020");
+    UUID otherSeason = UUID.fromString("00000000-0000-4000-8000-000000000011");
+    UUID otherDivision = UUID.fromString("00000000-0000-4000-8000-000000000021");
     SearchDocuments document =
         new SearchDocuments(
             id,
@@ -157,7 +176,7 @@ class SearchMatchingIntegrationTest {
             new SearchContext(
                 SearchContext.Resource.TEAM,
                 exact.text(),
-                UUID.randomUUID(),
+                otherSeason,
                 division,
                 exact.format(),
                 exact.gender(),
@@ -166,7 +185,7 @@ class SearchMatchingIntegrationTest {
                 SearchContext.Resource.TEAM,
                 exact.text(),
                 season,
-                UUID.randomUUID(),
+                otherDivision,
                 exact.format(),
                 exact.gender(),
                 false),

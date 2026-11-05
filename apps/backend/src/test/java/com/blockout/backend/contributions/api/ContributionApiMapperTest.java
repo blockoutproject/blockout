@@ -78,10 +78,13 @@ class ContributionApiMapperTest {
     // Given
     java.util.UUID owner = java.util.UUID.fromString("00000000-0000-4000-8000-000000000001");
     java.util.UUID moderator = java.util.UUID.fromString("00000000-0000-4000-8000-000000000002");
+    java.util.UUID contributionId =
+        java.util.UUID.fromString("00000000-0000-4000-8000-000000000003");
+    java.util.UUID matchId = java.util.UUID.fromString("00000000-0000-4000-8000-000000000004");
     com.blockout.backend.contributions.domain.ContributionVersion version =
         new com.blockout.backend.contributions.domain.ContributionVersion(
-            java.util.UUID.randomUUID(),
-            java.util.UUID.randomUUID(),
+            contributionId,
+            matchId,
             new com.blockout.backend.contributions.domain.StreamAddress(
                 "https://youtu.be/approved"),
             owner,

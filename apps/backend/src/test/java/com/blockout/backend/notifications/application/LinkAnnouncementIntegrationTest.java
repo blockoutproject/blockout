@@ -161,9 +161,10 @@ class LinkAnnouncementIntegrationTest extends ContributionScenario {
         matchId);
     submissions.submit(AUTHOR, second, "0", URI.create("https://youtube.com/second"), true);
     follow(FOLLOWER);
+    UUID existingNotification = UUID.fromString("00000000-0000-4000-8000-000000002841");
     sql.update(
         "INSERT INTO notification(id,account_id,match_id,family,variant,created_at,is_read) VALUES (?,?,?,'LIVE_LINK','FIRST',?,FALSE)",
-        UUID.randomUUID(),
+        existingNotification,
         FOLLOWER,
         matchId,
         Timestamp.from(NOW));
