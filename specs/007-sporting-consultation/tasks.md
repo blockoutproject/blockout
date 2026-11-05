@@ -99,8 +99,6 @@ description: "Implementation tasks for F03 sporting consultation and navigation"
 - [x] T022 [US2] Add the actual zone/date grouping inputs and semantics to `apps/backend/src/main/java/com/blockout/backend/sporting/application/ConsultationViews.java` and `ConsultationStore.java`; complete T020 against T028's single Hibernate/PostgreSQL calendar implementation. Preserve the model rule “Convert an established instant into the requested IANA grouping zone. A date alone keeps its sporting date.” Validate the zone at the canonical boundary and do not duplicate source-time resolution, calendar-year season assignment or hidden-date decisions.
 - [ ] T023 [US2] Execute the calendar-time and retained-navigation cases in `specs/007-sporting-consultation/quickstart.md#scenarios-and-expected-outcomes` after US3's actual calendar exists, on native iOS/Android across Paris/New York, DST and changed device zones. Verify known-time conversion with retained loading-zone groups, date-only labels and dateless old-link refusal; record actual device/runtime evidence separately from T019/T020.
 
-  Partial qualification exposed and corrected stale recycled clock text through the existing native list's display-zone input. The [native time cases](quickstart.md#native-time-presentation) distinguish the exercised Android journey and current-Paris iOS reads from pending iOS travel and unexecuted failure cases. Keep T023 unchecked until its complete two-platform scope is demonstrated; T019/T020 and native launches do not fill that gap.
-
 **Checkpoint**: Formatting is independently testable; database grouping and native calendar qualification complete with the actual US3 query, without an additional time authority.
 
 ---
