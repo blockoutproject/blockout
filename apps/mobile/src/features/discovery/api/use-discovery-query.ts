@@ -30,7 +30,12 @@ export function useDiscoveryQuery(
   return useInfiniteQuery({ ...options, subscribed: active });
 }
 
-/** Each filter visit has one native page; its accepted UUIDs supply subsequent refresh selection. */
+/**
+ * Each filter visit retains one observed page even while text or another tab disables its reads.
+ * The mounted observer prevents unused-cache collection from resampling examples during the visit;
+ * changing filters or leaving Search releases that page to Query's ordinary collection lifecycle.
+ * Accepted UUIDs supply subsequent refresh selection without another response store.
+ */
 export function useSearchExamplesQuery(
   resource: DiscoveryResource,
   input: Omit<ListTeamsParams, "cursor" | "exampleIds">,
@@ -54,6 +59,6 @@ export function useSearchExamplesQuery(
     admission,
     session.getCredentials,
   );
-  const query = useQuery({ ...options, enabled: active, subscribed: active });
+  const query = useQuery({ ...options, enabled: active });
   return query;
 }
