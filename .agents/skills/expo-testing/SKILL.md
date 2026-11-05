@@ -79,8 +79,9 @@ add IDs to every nested view or expose implementation structure through selector
   same setup is genuinely reused.
 - Use deterministic transport examples. Freeze or stub time only when time affects visible behavior, and restore timers
   and spies after each test.
-- Await asynchronous rendering and supported user interactions. Use `findBy*` or `waitFor` for state that appears later;
-  do not add sleeps or leave unresolved `act` scopes.
+- Follow the APIs documented for the installed React Native Testing Library version. Await operations that return
+  promises, including rendering, updates, interactions and cleanup. Use `findBy*` or `waitFor` for state that appears
+  later; do not add sleeps or leave unresolved `act` scopes.
 - Assert loading, success, empty, error, retry, disabled, and optimistic rollback states when the touched flow owns them.
 - Keep tests independent of real credentials, production data, network availability, and external provider sessions.
 - Test pure schemas, mappers, formatters and view-model derivation directly. Test a custom hook separately only when
@@ -110,11 +111,11 @@ For affected data/form behavior, prove dirty values survive background refetch, 
 
 ## Readable scenarios and reusable data
 
-The test name, scenario-determining inputs, action and expected result must be visible together. One behavior may need several assertions; do not split one outcome mechanically. Integration tests stay near their boundary owner; reserve transversal locations for truly cross-boundary behavior. Identify which collaborators are real and which are controlled doubles. Helpers must not hide the action, database writes, installed mocks or unrelated setup.
+The test name, scenario-determining inputs, action and expected result must be visible together. One behavior may need several assertions; do not split one outcome mechanically. Parameterize input variants of the same behavior with native Jest tables and identifiable case names; keep boundary values explicit and distinct behaviors separate. Integration tests stay near their boundary owner; reserve transversal locations for truly cross-boundary behavior. Identify which collaborators are real and which are controlled doubles. Helpers must not hide the action, database writes, installed mocks or unrelated setup.
 
 Keep simple values inline. Use targeted typed factories for rich valid objects that are actually reused, with explicit overrides for the scenario's decisive fields. Search existing factories before adding one, and share only identical meaning at the narrowest owner. A private helper may name one coherent step, and a public boundary may have one consumer; neither permits speculative test DSLs, generic object mothers or automatic reflection-based object graphs.
 
-Use `@faker-js/faker` when generated secondary values are useful, as a test dependency with a project-owned compatible version. Use a native fixed seed per test and explicit construction; never mutable random state shared across parallel tests. Control the clock for time-sensitive data. Assert scenario values, not a hard-coded string tied to a Faker version or call order. Keep boundary cases explicit and parameterized. Small tests do not require a data library, and installing this skill does not add dependencies.
+Use `@faker-js/faker` when generated secondary values are useful, as a test dependency with a project-owned compatible version. Use a native fixed seed per test and explicit construction; never mutable random state shared across parallel tests. Control the clock for time-sensitive data. Assert scenario values, not a hard-coded string tied to a Faker version or call order. Small tests do not require a data library, and installing this skill does not add dependencies.
 
 Read [canonical examples](references/examples.md) when adding or substantially restructuring tests or factories. They show a unit test, an integration boundary and a rich typed factory, not a new test framework. No new E2E infrastructure is introduced by this policy.
 
