@@ -92,6 +92,7 @@ class CollectorPresentationBoundaryIntegrationTest {
   private static CollectorSportingRuntime runtime;
   private final Clock clock = Clock.systemUTC();
   private final List<String> submissions = new ArrayList<>();
+  private final List<String> clubSubmissions = new ArrayList<>();
   private IngestionTestClient transport;
   private CollectionBackend backend;
   private SportingBackend sporting;
@@ -159,6 +160,12 @@ class CollectorPresentationBoundaryIntegrationTest {
             (request, body, execution) -> {
               if (request.getURI().getPath().endsWith("/locality-observations")) {
                 submissions.add(new String(body, StandardCharsets.UTF_8));
+              }
+              if (request
+                  .getURI()
+                  .getPath()
+                  .equals("/ingestion/clubs/" + CLUB + "/detail-observations")) {
+                clubSubmissions.add(new String(body, StandardCharsets.UTF_8));
               }
               return execution.execute(request, body);
             });
@@ -645,6 +652,99 @@ class CollectorPresentationBoundaryIntegrationTest {
             runtime.sql.queryForObject(
                 "SELECT latitude FROM sporting_club WHERE id=?", Double.class, CLUB))
         .isNull();
+  }
+
+  @Test
+  @DisplayName("Actual club recollection cannot persist or expose any restricted contact field")
+  void rejectsRestrictedContactProposals() {
+    // Given: seed only the durable result of the manual restriction, which has no public API.
+    runtime.sql.update(
+        """
+        UPDATE sporting_club SET
+          address=NULL,address_manual=NULL,address_restricted=TRUE,
+          municipality=NULL,municipality_manual=NULL,municipality_restricted=TRUE,
+          postal_code=NULL,postal_code_manual=NULL,postal_code_restricted=TRUE,
+          email=NULL,email_manual=NULL,email_restricted=TRUE,
+          phone=NULL,phone_manual=NULL,phone_restricted=TRUE,
+          website=NULL,website_manual=NULL,website_restricted=TRUE,
+          latitude=NULL,longitude=NULL,locality_revision=2,contacts_revision=1
+        WHERE id=?
+        """,
+        CLUB);
+    Map<String, String> proposals =
+        Map.of(
+            "address", "17 rue Synthétique Restriction",
+            "city", "Synthetic Restricted Municipality",
+            "postalCode", "75017",
+            "email", "restricted-contact@example.invalid",
+            "phone", "0102030499",
+            "website", "https://restricted-contact.example.invalid");
+    ClubSheets sheets = mock(ClubSheets.class);
+    when(sheets.read("000200"))
+        .thenReturn(
+            new SportingObservation.Club(
+                "Synthetic restricted contact club",
+                JsonNullable.of(proposals.get("address")),
+                JsonNullable.of(proposals.get("city")),
+                JsonNullable.of(proposals.get("postalCode")),
+                JsonNullable.of(proposals.get("email")),
+                JsonNullable.of(proposals.get("phone")),
+                JsonNullable.of(proposals.get("website"))));
+    CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(SHEETS, null, 0, null);
+
+    // When: production orchestration and generated ingestion submit every synthetic proposal.
+    passageWithStubbedDiscovery(mock(LnvAcquisition.class), sheets, mock(ClubGeocoder.class))
+        .execute(cycle);
+
+    // Then: verify actual wire values, stored copies, administration and public consumption.
+    verify(sheets).read("000200");
+    assertThat(clubSubmissions).hasSize(1);
+    JsonNode submitted = transport.api().getJsonMapper().readTree(clubSubmissions.getFirst());
+    JsonNode current = contacts();
+    JsonNode publicClub = mobile.get().uri("/clubs/{id}", CLUB).retrieve().body(JsonNode.class);
+    for (Map.Entry<String, String> proposal : proposals.entrySet()) {
+      String field = proposal.getKey();
+      assertThat(submitted.path(field).asString()).isEqualTo(proposal.getValue());
+      assertThat(current.at("/" + field + "/sourceValue").isNull()).isTrue();
+      assertThat(current.at("/" + field + "/manualValue").isNull()).isTrue();
+      assertThat(current.at("/" + field + "/effectiveValue").isNull()).isTrue();
+      assertThat(publicClub.path("contacts").hasNonNull(field)).isFalse();
+    }
+    assertThat(
+            runtime
+                .sql
+                .queryForMap(
+                    """
+                    SELECT address,address_manual,municipality,municipality_manual,
+                      postal_code,postal_code_manual,email,email_manual,phone,phone_manual,
+                      website,website_manual
+                    FROM sporting_club WHERE id=?
+                    """,
+                    CLUB)
+                .values())
+        .containsOnlyNulls();
+    assertThat(
+            runtime
+                .sql
+                .queryForMap(
+                    """
+                    SELECT address_restricted,municipality_restricted,postal_code_restricted,
+                      email_restricted,phone_restricted,website_restricted
+                    FROM sporting_club WHERE id=?
+                    """,
+                    CLUB)
+                .values())
+        .containsOnly(true);
+    assertThat(publicClub.at("/club/id").asString()).isEqualTo(CLUB.toString());
+    assertThat(publicClub.at("/club/name").asString())
+        .isEqualTo("Synthetic restricted contact club");
+    assertThat(publicClub.hasNonNull("location")).isFalse();
+    assertThat(
+            runtime.sql.queryForList(
+                "SELECT outcome FROM collection_result WHERE scope_id=? AND phase='INTEGRATION'",
+                String.class,
+                CLUB))
+        .containsExactly("SUCCESS");
   }
 
   @Test

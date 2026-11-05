@@ -2,10 +2,17 @@ package com.blockout.backend.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.blockout.backend.accounts.application.AccountCleanup.Outcome;
+import com.blockout.backend.accounts.application.OriginalAccountTargets;
+import com.blockout.backend.accounts.application.OriginalTargetCleanup;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -131,6 +138,60 @@ class LoggingIntegrationTest {
         .isEqualTo("auth0|harmless-original");
     assertThat(event.path("account_cleanup").path("revenuecat_app_user_id").asText())
         .isEqualTo("harmless-original");
+  }
+
+  @ParameterizedTest(name = "Encodes the original {0} target without provider content")
+  @ValueSource(strings = {"auth0", "revenuecat"})
+  @DisplayName("Encodes actual cleanup failures with only the necessary original target")
+  void encodesOriginalTargetCleanup(String provider, CapturedOutput output) {
+    // Given: provider boundaries are controlled; the cleanup owner and ECS encoder are real.
+    UUID original = UUID.fromString("00000000-0000-4000-8000-000000000280");
+    OriginalTargetCleanup cleanup =
+        new OriginalTargetCleanup(
+            (issuer, subject) -> {
+              if (provider.equals("auth0")) {
+                throw new IllegalStateException(
+                    "synthetic-private-email@example.invalid synthetic-token synthetic-payload");
+              }
+              return Outcome.REMOVED;
+            },
+            customer -> {
+              if (provider.equals("revenuecat")) {
+                throw new IllegalStateException(
+                    "synthetic-private-photo synthetic-token synthetic-payload");
+              }
+              return Outcome.QUEUED;
+            },
+            "preproduction");
+
+    // When
+    cleanup.clean(
+        new OriginalAccountTargets(
+            original,
+            "https://synthetic-private-issuer.example.invalid/",
+            "auth0|synthetic-original",
+            List.of("synthetic-original-customer")));
+
+    // Then: the object emitted by production keeps its provider-specific private exception.
+    JsonMapper mapper = JsonMapper.builder().build();
+    JsonNode event = mapper.readTree(output.getOut().strip());
+    assertThat(event.path("operation").asText()).isEqualTo("account_cleanup");
+    assertThat(event.path("scope").asText()).isEqualTo("preproduction");
+    assertThat(event.path("provider").asText()).isEqualTo(provider);
+    assertThat(event.path("outcome").asText()).isEqualTo("manual_attention");
+    assertThat(event.path("reason").asText()).isEqualTo("unavailable_or_uncertain");
+    assertThat(event.path("account_cleanup"))
+        .isEqualTo(
+            mapper.valueToTree(
+                Map.of(
+                    "original_account_id",
+                    original.toString(),
+                    provider.equals("auth0") ? "auth0_subject" : "revenuecat_app_user_id",
+                    provider.equals("auth0")
+                        ? "auth0|synthetic-original"
+                        : "synthetic-original-customer")));
+    assertThat(output.getAll())
+        .doesNotContain("synthetic-private-", "synthetic-token", "synthetic-payload");
   }
 
   /** Supplies only a configuration source; Boot itself owns logging initialization. */

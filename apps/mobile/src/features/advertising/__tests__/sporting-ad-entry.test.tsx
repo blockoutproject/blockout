@@ -6,7 +6,13 @@ import {
 } from "react";
 import { createInstallationAdvertisingPrivacy } from "../advertising-privacy";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { PermissionStatus } from "expo";
+import * as Tracking from "expo-tracking-transparency";
+import {
+  QueryClientProvider,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import {
   act,
   cleanup,
@@ -21,8 +27,14 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import * as Notifications from "expo-notifications";
-import { AdEventType } from "react-native-google-mobile-ads";
+import {
+  AdEventType,
+  AdsConsent,
+  InterstitialAd,
+} from "react-native-google-mobile-ads";
+import { getGetClubQueryKey } from "../../../../.generated/mobile";
 import type {
+  ClubDetailResponse,
   MatchDetailResponse,
   PoolStandingsResponse,
   PoolParticipantsResponse,
@@ -53,13 +65,18 @@ import { createQueryClient } from "../../../shared/query/query-client";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { CalendarMatch } from "../../sporting/components/calendar-match";
 import { MatchLinks } from "../../sporting/components/match-links";
+import { ClubScreen } from "../../sporting/screens/club-screen";
 import { PoolScreen } from "../../sporting/screens/pool-screen";
 import { TeamScreen } from "../../sporting/screens/team-screen";
 import { SportingLink } from "../../sporting/components/sporting-identity";
-import { matchDetail } from "../../sporting/test-support/consultation-data";
+import {
+  clubDetail,
+  matchDetail,
+} from "../../sporting/test-support/consultation-data";
 import { AgeDeclarationProvider } from "../age-declaration-provider";
 import { submitAgeDeclaration } from "../age-declaration";
 import { controlledInterstitial } from "../test-support/interstitial";
+import { nativeUserChoices } from "../test-support/native-privacy";
 import { NotificationsScreen } from "../../notifications/screens/notifications-screen";
 import { NotificationLifecycle } from "../../notifications/native/notification-lifecycle";
 import { createPushRegistration } from "../../notifications/native/push-registration";
@@ -157,6 +174,7 @@ const mockNavigation = {
 };
 const environment = { ...process.env };
 let client = createQueryClient();
+let privateClient: QueryClient;
 let session: AccountSession;
 let ad = controlledInterstitial();
 let push = createPushRegistration();
@@ -167,6 +185,7 @@ const nativeMatchId = "00000000-0000-4000-8000-000000000289";
 let failNativeRead = false;
 let table: PoolStandingsResponse;
 let participants: PoolParticipantsResponse;
+let club: ClubDetailResponse;
 beforeEach(async () => {
   accountProfile = accountResponse({ accountId: inboxRow.id });
   // Inbox retention and native-ad freshness use a fixed current instant; native Query timers stay controlled.
@@ -190,6 +209,7 @@ beforeEach(async () => {
   push = createPushRegistration();
   mockFocused = true;
   failNativeRead = false;
+  club = clubDetail("Synthetic sporting club");
   participants = { poolId: matchDetail().match.pool.pool.id, items: [] };
   table = {
     poolId: matchDetail().match.pool.pool.id,
@@ -230,6 +250,22 @@ beforeEach(async () => {
       if (path === "/clubs") {
         return Response.json({
           clubs: [{ club: { id: match.home.id, name: "Search club" } }],
+        });
+      }
+      if (path === `/clubs/${club.club.id}`) {
+        return Response.json(club);
+      }
+      if (path === `/clubs/${club.club.id}/teams`) {
+        return Response.json({
+          seasonId: match.pool.season.id,
+          items: [
+            {
+              team: match.home,
+              season: match.pool.season,
+              classification: {},
+              professional: false,
+            },
+          ],
         });
       }
       if (path === "/teams") {
@@ -381,12 +417,14 @@ function Entries({
   detail?: MatchDetailResponse;
   notifications?: boolean;
   calendarActive?: boolean;
-  resourcePage?: "pool" | "team";
+  resourcePage?: "club" | "pool" | "team";
   consumer?: "search" | "personal" | "profile";
 }) {
   const current = useAccountSession();
+  const currentClient = useQueryClient();
   useLayoutEffect(() => {
     session = current;
+    privateClient = currentClient;
   });
   return (
     <>
@@ -427,6 +465,7 @@ function Entries({
       {resourcePage === "pool" && (
         <PoolScreen poolId={matchDetail().match.pool.pool.id} />
       )}
+      {resourcePage === "club" && <ClubScreen clubId={club.club.id} />}
       {resourcePage === "team" && (
         <TeamScreen teamId={matchDetail().match.home.id} />
       )}
@@ -487,10 +526,132 @@ async function mount(props: Parameters<typeof Entries>[0] = {}) {
   if (props.resourcePage) {
     await screen.findAllByRole("tab");
     await layoutNativeTabs();
-    await screen.findByRole("link", { name: /Original standings team/ });
+    if (props.resourcePage !== "club") {
+      await screen.findByRole("link", { name: /Original standings team/ });
+    }
   }
   return result;
 }
+
+it.each([
+  ["limited", false],
+  ["personalized", true],
+] as const)(
+  "removes current restricted contacts without reusing club, location or account data in active %s advertising",
+  async (_mode, personalized) => {
+    // Given: real owners, ClubScreen, generated reads and Query; only HTTP/native I/O is controlled.
+    jest.spyOn(AdsConsent, "getUserChoices").mockResolvedValue(
+      nativeUserChoices({
+        storeAndAccessInformationOnDevice: personalized,
+        createAPersonalisedAdsProfile: personalized,
+        selectPersonalisedAds: personalized,
+        selectBasicAds: personalized,
+      }),
+    );
+    jest.spyOn(Tracking, "getTrackingPermissionsAsync").mockResolvedValue({
+      status: PermissionStatus.GRANTED,
+      granted: true,
+      canAskAgain: true,
+      expires: "never",
+    });
+    mockAuth0.hasValidCredentials.mockResolvedValue(true);
+    accountProfile = accountResponse({
+      accountId: inboxRow.id,
+      username: "SyntheticPrivacy193",
+      email: "synthetic-account-193@example.invalid",
+    });
+    const contacts = {
+      address: "193 Synthetic contact street",
+      city: "Synthetic contact municipality",
+      postalCode: "79193",
+      email: "synthetic-club-193@example.invalid",
+      phone: "+33 1 00 00 01 93",
+      website: "https://synthetic-club-193.example.invalid/contact",
+    };
+    club = {
+      ...club,
+      contacts,
+      seasons: [matchDetail().match.pool.season],
+      location: {
+        latitude: 46.193,
+        longitude: -0.193,
+        label: contacts.city,
+      },
+    };
+    const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue();
+    const user = userEvent.setup();
+    await mount({ resourcePage: "club" });
+    await screen.findByRole("link", { name: `Téléphone : ${contacts.phone}` });
+    expect(
+      privateClient.getQueryData(getGetClubQueryKey(club.club.id)),
+    ).toEqual(club);
+    const nextAd = controlledInterstitial();
+    mockCreateAd.mockReturnValueOnce(nextAd);
+
+    // When: contact actions use their intended recipients, then a sporting opening shows an ad.
+    await user.press(
+      screen.getByRole("link", { name: `Téléphone : ${contacts.phone}` }),
+    );
+    await user.press(
+      screen.getByRole("link", { name: `E-mail du club : ${contacts.email}` }),
+    );
+    await user.press(
+      screen.getByRole("link", { name: `Site web : ${contacts.website}` }),
+    );
+    expect(openURL.mock.calls.map(([url]) => url)).toEqual([
+      "tel:+33100000193",
+      `mailto:${encodeURIComponent(contacts.email)}`,
+      contacts.website,
+    ]);
+    for (let index = 0; index < 10; index++) {
+      await user.press(screen.getByRole("link", { name: "Club" }));
+    }
+    expect(ad.show).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      ad.emit(AdEventType.OPENED);
+      ad.emit(AdEventType.CLOSED);
+      nextAd.emit(AdEventType.LOADED);
+    });
+
+    // Current server restrictions remove all contact fields and the obsolete point on actual refresh.
+    club = { club: club.club, contacts: {}, seasons: club.seasons };
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await screen.findByText("Adresse non renseignée");
+
+    // Then: the successful generated read replaces sensitive cache data; sporting identity remains usable.
+    expect(screen.getByText("Commune non renseignée")).toBeOnTheScreen();
+    for (const value of Object.values(contacts)) {
+      expect(screen.queryByText(value, { exact: false })).not.toBeOnTheScreen();
+    }
+    expect(
+      screen.queryByRole("link", {
+        name: /^(Téléphone|E-mail du club|Site web|Ouvrir la commune sur la carte) :/,
+      }),
+    ).not.toBeOnTheScreen();
+    expect(
+      privateClient.getQueryData(getGetClubQueryKey(club.club.id)),
+    ).toEqual(club);
+    for (let index = 0; index < 9; index++) {
+      await user.press(screen.getByRole("link", { name: "Club" }));
+    }
+    await user.press(screen.getByRole("tab", { name: "Équipes" }));
+    await user.press(await screen.findByRole("link", { name: "Home" }));
+    expect(nextAd.show).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      nextAd.emit(AdEventType.OPENED);
+      nextAd.emit(AdEventType.CLOSED);
+    });
+    expect(mockPush).toHaveBeenLastCalledWith({
+      pathname: "/teams/[teamId]",
+      params: { teamId: matchDetail().match.home.id },
+    });
+    expect(jest.mocked(InterstitialAd.createForAdRequest).mock.calls).toEqual([
+      ["synthetic-unit", { requestNonPersonalizedAdsOnly: !personalized }],
+      ["synthetic-unit", { requestNonPersonalizedAdsOnly: !personalized }],
+      ["synthetic-unit", { requestNonPersonalizedAdsOnly: !personalized }],
+    ]);
+  },
+);
 
 it("shares nine real club/team/pool openings with the tenth calendar opening and deduplicates pending taps", async () => {
   // Given
