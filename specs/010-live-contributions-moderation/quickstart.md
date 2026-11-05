@@ -94,9 +94,10 @@ JWT claims and sporting/account setup are controlled; no identity or video provi
 | A29–A34   | `ModerateContributionIntegrationTest` and `ModerationReadIntegrationTest` retain concurrent decisions, current grants, hidden/private restrictions, distinct match pages, SQL totals and short repeatable-read evidence. The HTTP qualification sends season, literal text, platform and state together through generated bindings, traverses twenty-five actually created exempt versions and all-state own totals, and refuses reads/decisions after a locked current-grant revocation despite an earlier authorized read. `ContributionDecisionRaceIntegrationTest` observes PostgreSQL exclusion in both tenth-report/approval orders: the obsolete action fails without retargeting or overwriting the accepted decision. Actual F05 report/submission/reactivation races remain in T046/T050. |
 
 The HTTP filter regression first observes 400 for canonical values such as `historical` and
-`youtube`, before any SQL filtering. The feature's native MVC converter registration makes those
+`youtube`, before any SQL filtering. The feature's request-scoped native MVC editors make those
 values reach the existing query owner; combined literal `%`/`_`/`!` criteria stay escaped and match
-the same version. Unknown queue/platform/version filters remain ordinary 400 responses.
+the same version. Real HTTP regressions reject unknown, uppercase, blank and space-padded filters
+without Spring's enum-name/null fallback. Explicit `to-review` retains a reported active link.
 
 More-than-twenty historical reports use explicitly retained SQL facts: normal current thresholds
 cannot create twenty-four reports on a still-active version. The HTTP test qualifies both report

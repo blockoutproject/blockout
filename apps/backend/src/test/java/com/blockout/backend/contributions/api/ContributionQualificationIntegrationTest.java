@@ -295,8 +295,18 @@ class ContributionQualificationIntegrationTest extends ContributionScenario {
   }
 
   @ParameterizedTest
-  @CsvSource({"platform,unsupported", "state,unknown"})
-  @DisplayName("Private queue filters reject unknown values")
+  @CsvSource({
+    "platform,unsupported",
+    "platform,YOUTUBE",
+    "platform,''",
+    "platform,' youtube '",
+    "state,unknown",
+    "state,TO_REVIEW",
+    "state,ACTIVE",
+    "state,''",
+    "state,' active '"
+  })
+  @DisplayName("Private queue filters reject noncanonical enum values")
   void refusesInvalidQueueFilter(String parameter, String value) throws Exception {
     // Given
     moderator(OTHER);
@@ -312,17 +322,47 @@ class ContributionQualificationIntegrationTest extends ContributionScenario {
     assertThat(count("contribution_version")).isZero();
   }
 
-  @Test
-  @DisplayName("Private version filters reject unknown values")
-  void refusesInvalidVersionFilter() throws Exception {
+  @ParameterizedTest
+  @CsvSource({"unknown", "HISTORICAL", "''", "' historical '"})
+  @DisplayName("Private version filters reject noncanonical enum values")
+  void refusesInvalidVersionFilter(String value) throws Exception {
     // Given
     moderator(OTHER);
 
     // When
-    mvc.perform(get(collection()).queryParam("state", "unknown").with(principal(OTHER)))
+    mvc.perform(get(collection()).queryParam("state", value).with(principal(OTHER)))
         // Then
         .andExpect(status().isBadRequest());
     assertThat(count("contribution_version")).isZero();
+  }
+
+  @Test
+  @DisplayName("The hyphenated attention filter retains a reported active link")
+  void readsReportedActiveAttention() throws Exception {
+    // Given
+    moderator(OTHER);
+    SubmitContribution.Outcome active = submit(AUTHOR, "0", "https://youtu.be/attention", false);
+    mvc.perform(
+            post("/accounts/"
+                    + FOLLOWER
+                    + "/stream-contributions/"
+                    + active.version().id()
+                    + "/report")
+                .with(principal(FOLLOWER))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"reason\":\"Synthetic reason\"}"))
+        .andExpect(status().isCreated());
+
+    // When
+    JsonNode queue =
+        read(get("/administration/stream-moderation").queryParam("state", "to-review"), OTHER);
+
+    // Then
+    assertThat(queue.path("items")).hasSize(1);
+    assertThat(queue.at("/items/0/match/id").asString()).isEqualTo(matchId.toString());
+    assertThat(queue.at("/items/0/counts/active").asLong()).isEqualTo(1);
+    assertThat(queue.at("/items/0/counts/reports").asLong()).isEqualTo(1);
+    assertThat(contributions.active(matchId).orElseThrow().id()).isEqualTo(active.version().id());
   }
 
   /**
