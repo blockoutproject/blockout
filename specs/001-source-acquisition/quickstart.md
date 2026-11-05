@@ -68,6 +68,40 @@ native operator journey and real acquisition/F02 handoff separately. It does not
 M2M collector deployment, physical devices or a combined production environment. No SDK
 injection, debug login or provider configuration change supplies the native proof.
 
+**Bounded repeat and retained-data isolation**: A separate, freshly migrated PostgreSQL 18.6
+database repeats preparation and exact-source initial passages without changing the retained
+1,234-match dataset, its source locks or paused controls. The selected bindings are ABCCS in
+2026/2027 and 2024/2025, LNV championship 135 in 2026/2027 and championship 113 in 2024/2025.
+The first discovery-only passages create 74 contextual pools and no matches. Individual F02
+overrides then admit only the two E.Fém.A pools and the two regular-season professional groups;
+all pack defaults remain absent. Subsequent passages integrate 538 matches, with no neighboring
+pool calendar. The generated mobile schemas accept their pool/participant reads, all 21 calendar
+pages and representative Match details, without duplicate or cross-season identities. The two
+FFVB tables and the current LNV table retain all 17 source columns.
+
+The packaged collector completes both FFVB passages and the current LNV passage. The historical
+LNV calendar integrates 182 matches, but its passage is explicitly interrupted before the next
+general discovery tick. Its official table is still unavailable, without a failed table attempt;
+neither its complete details/documents nor a complete historical passage are claimed by this
+repeat. This is an interrupted execution, not evidence of an unsupported historical format.
+The earlier, separately qualified [T040 scope](#professional-source-qualification-t040) remains
+unchanged; T023 does not broaden or repeat that entire document qualification.
+
+On this fresh dataset, the existing native Auth0 client launches only ABCCS for 2026/2027,
+then adds, edits and requests validation of PTCA06 while that season is already ACTIVE.
+Its draft is UNVALIDATED before the edit: this repeats native save/PENDING behavior, not the
+native clearing of an earlier qualification. The latter invariant remains covered by
+`SourcePreparationIntegrationTest` and the earlier observation above. A private one-shot runner
+invokes the unchanged `CollectorLifecycle` and `QualifySource` components, their real generated
+HTTP clients and the selected FFVB URL for this one pending binding. It proves that validation
+boundary, not the packaged scheduler or Auth0 M2M deployment. Backend signing is staged separately
+and restored to real Auth0 before native actions. The native reread then shows PTCA06 qualified;
+its confirmation names only PTCA06, launch succeeds and the source exposes no URL editor.
+ABCCS packs/pools remain consultative, 2024/2025 remains PREPARING, all periodic controls stay
+disabled and PTCA06 imports no calendar. Native visual interaction is observed on the existing
+iOS simulator client; unavailable automation accessibility snapshots do not establish screen-reader
+or physical-device qualification.
+
 **Controlled failure and eligibility boundaries**: No supplier outage or catalog removal is induced.
 The existing suites below use controlled supplier evidence with real owner transactions/reads,
 plus explicitly identified collector unit boundaries: The real Router/session/generated-consumer/Query
