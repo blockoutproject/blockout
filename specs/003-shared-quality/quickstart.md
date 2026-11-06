@@ -87,6 +87,8 @@ Expect bounded scalar hydration: compare one/twenty search summaries, retain the
 
 ### Authorization and private resources
 
+Before real backend/collector deployment, complete [T213 tenant/API/M2M preparation](tasks.md#implementation-and-qualification-for-user-story-3) together with [F05 T075](../005-accounts-identity/tasks.md#implementation-and-qualification-for-user-story-1). With separately authorized synthetic inputs, verify actual issued issuer/audience/client/scope and wrong-environment refusal, plus the Management API's minimum grants and non-destructive principal read. Keep credentials/token bodies and prior console configuration private. This setup precedes deployment/builds and requires no ingestion write, account deletion or physical sign-in; controlled JWT/OAuth tests remain narrower evidence.
+
 Run `npx nx run backend:test` and `npx nx run collector:test` for the shared security boundary. Exercise actual JWT signatures and generated OAuth/HTTP clients with controlled token/business endpoints: issuer/audience/expiry, client/scope refusal, bounded renewal failure, token reuse and no rejected/uncertain write replay. Qualify live Auth0 configuration separately.
 
 Use visitor, ordinary, authorized and different-owner identities. Missing/invalid credentials return 401 with Bearer challenge; authenticated client/scope refusals return 403, with no forbidden effect/disclosure. F05's token-validity and same-subject limits remain applicable; F09 owns entitlement evidence.

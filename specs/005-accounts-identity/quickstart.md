@@ -6,6 +6,8 @@ Use the [README verification commands](../../README.md#verification) for impleme
 
 Prepare synthetic principals for shared email, existing linked identities, missing email/age and dedicated preproduction signup, plus two devices and qualification purchase/gift accounts. Keep private evidence outside the repository. Destructive provider tests require authorization and must not target social or cross-connection principals from preproduction.
 
+Complete [F13 T213](../003-shared-quality/tasks.md#implementation-and-qualification-for-user-story-3) and [F05 T075](tasks.md#implementation-and-qualification-for-user-story-1) together before requesting signed F14 candidates: prepare APIs/audiences and registrations, then verify final tenant/client bindings, exact variant callback/logout allowlists, production versus preproduction connection access and bounded server Management API grants. Hand off public inputs and private credentials through the existing environment stores. Record safe readiness outcomes separately from the physical sign-in/deletion cases below; no build or deletion is required to finish setup.
+
 ## Contracts and profile data
 
 1. **Generate and compile** the canonical mobile contract through the [F13 toolchain](../003-shared-quality/quickstart.md#contract-boundary). Exercise multipart binding, omission/null, the photo-action enum, username normalization, shared Problem Details, bodyless 204 and binary responses. **Expected:** valid requests/responses cross the Java/TypeScript boundary; invalid ones are refused before persistence or caching.

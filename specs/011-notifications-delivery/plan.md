@@ -110,6 +110,8 @@ Logout attempts one bounded DELETE before discarding credentials, then clears pr
 
 Future configuration enables Expo's server access-token protection and native iOS/Android credentials/channels. No token, address, ticket payload or notification content enters logs; ordinary safe error categories/counts support F13 diagnostics and configuration alerts. Keep provider default delivery lifetime, which may reach four weeks; a delayed message never claims a stream is currently active. No native image extension, interactive push action or background synchronization task.
 
+[T074](tasks.md#implementation-and-qualification-for-user-story-4) owns actual Expo/EAS/APNs/FCM preparation and its private handoff before F14 builds. It consumes the implemented T039 inputs and [existing runbook](../../infra/operations/README.md#sporting-push-inputs-and-failure-limits); console/credential readiness is distinct from T041's physical receipt qualification. Verify protection in an authorized isolated project first. Changing protection on the retained production project requires demonstrated V1 sender compatibility; otherwise hand the deferred switch to the authorized F14 cutover while preserving V1. V2 sends remain disabled outside an explicitly authorized qualification environment.
+
 ## Interfaces and compatibility
 
 The [contract guide](contracts/README.md) identifies canonical resources, owner boundaries and generated consumers. Use named shared Problem Details, private `no-store`, strict request properties and additive response properties. Read intent accepts only true. Registration returns 201 with Location for creation, 200 for replacement; removal returns 204 without content, including an already absent association. No asynchronous job resource or 202.
