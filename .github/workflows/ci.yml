@@ -56,13 +56,28 @@ jobs:
             "$telemetry_image" validate /etc/alloy/config.alloy
 
   applications:
-    name: ${{ matrix.project }}
+    name: ${{ matrix.name }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    env:
+      MAVEN_ARGS: ${{ matrix.mavenArgs }}
     strategy:
       fail-fast: false
       matrix:
-        project: [backend, collector, mobile]
+        include:
+          # Backend integration partitions cover search and its complement.
+          - project: backend
+            name: backend (1/2)
+            mavenArgs: -Dbackend.integration.forks=2 -Dit.test=com/blockout/backend/search/**/*IntegrationTest.java,com/blockout/backend/search/**/*JpaTest.java
+          - project: backend
+            name: backend (2/2)
+            mavenArgs: -Dbackend.integration.forks=2 -Dit.test=**/*IntegrationTest.java,**/*JpaTest.java,!com/blockout/backend/search/**
+          - project: collector
+            name: collector
+            mavenArgs: ""
+          - project: mobile
+            name: mobile
+            mavenArgs: ""
     steps:
       - name: Check out the exact revision and its comparison history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

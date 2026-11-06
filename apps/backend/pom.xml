@@ -9,6 +9,7 @@
   </parent>
   <artifactId>backend</artifactId>
   <properties>
+    <backend.integration.forks>1</backend.integration.forks>
     <mapstruct.version>1.6.3</mapstruct.version>
   </properties>
   <dependencies>
@@ -134,6 +135,14 @@
       </testResource>
     </testResources>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <configuration>
+          <forkCount>${backend.integration.forks}</forkCount>
+          <reuseForks>true</reuseForks>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>

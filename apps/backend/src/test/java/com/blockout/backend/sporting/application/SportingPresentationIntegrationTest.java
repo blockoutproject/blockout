@@ -3,6 +3,7 @@ package com.blockout.backend.sporting.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -443,7 +444,8 @@ class SportingPresentationIntegrationTest {
   })
   @DisplayName(
       "Clears restricted source/manual values and prevents collection or ordinary restoration from republishing them")
-  void preservesRestrictions(ContactField field, String sourceValue, String manualValue) {
+  void preservesRestrictions(ContactField field, String sourceValue, String manualValue)
+      throws Exception {
     // Given
     CollectionState.Cycle sheets = admitFamily("CLUB_SHEETS");
     ContactField unrelated =
@@ -520,6 +522,16 @@ class SportingPresentationIntegrationTest {
     assertThat(reconstructedTeam).isEqualTo(team);
     assertThat(acquisitionReads.team(team).orElseThrow().clubId()).isEqualTo(club);
     assertThat(acquisitionReads.match(match).orElseThrow().homeTeamId()).isEqualTo(team);
+    String property =
+        field == ContactField.POSTAL_CODE ? "postalCode" : field.name().toLowerCase(Locale.ROOT);
+    mvc.perform(get("/administration/clubs/{id}/contacts", club).with(operator()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$." + property + ".sourceValue").value(nullValue()))
+        .andExpect(jsonPath("$." + property + ".manualValue").value(nullValue()))
+        .andExpect(jsonPath("$." + property + ".effectiveValue").value(nullValue()));
+    mvc.perform(get("/clubs/{id}", club))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.contacts." + property).doesNotExist());
   }
 
   @ParameterizedTest
@@ -714,6 +726,55 @@ class SportingPresentationIntegrationTest {
       assertThat(configurationReads.clubContacts(account, club).fields().get(ContactField.EMAIL))
           .isEqualTo(new ContactValue(null, null, ContactModeEnum.SOURCE, true));
       assertThat(reads.publicClubContacts(club).get(ContactField.PHONE)).isNull();
+    }
+  }
+
+  @Test
+  @DisplayName("A restriction waiting on a manual edit clears the newly committed personal value")
+  void restrictsLatestManualValues() throws Exception {
+    // Given
+    CompletableFuture<Integer> pid = new CompletableFuture<>();
+    TransactionTemplate transaction = new TransactionTemplate(transactions);
+    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
+      // When
+      Future<?> pending =
+          transaction.execute(
+              status -> {
+                details.correct(
+                    account,
+                    club,
+                    "0",
+                    Map.of(
+                        ContactField.EMAIL,
+                        new ContactEdit(ContactModeEnum.MANUAL, "manual326@example.invalid"),
+                        ContactField.PHONE,
+                        new ContactEdit(ContactModeEnum.MANUAL, "0100000326")));
+                Future<?> restriction =
+                    worker.submit(
+                        () ->
+                            transaction.executeWithoutResult(
+                                other -> {
+                                  pid.complete(
+                                      sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
+                                  contactRestrictions.restrict(club, Set.of(ContactField.EMAIL));
+                                }));
+                PostgresTestDatabase.awaitBlocked(sql, pid);
+                return restriction;
+              });
+      pending.get(15, TimeUnit.SECONDS);
+
+      // Then
+      Contacts current = configurationReads.clubContacts(account, club);
+      assertThat(current.revision()).isEqualTo(2);
+      assertThat(current.fields().get(ContactField.EMAIL))
+          .isEqualTo(new ContactValue(null, null, ContactModeEnum.MANUAL, true));
+      assertThat(
+              sql.queryForMap(
+                  "SELECT email,email_manual,email_restricted FROM sporting_club WHERE id=?", club))
+          .containsEntry("email", null)
+          .containsEntry("email_manual", null)
+          .containsEntry("email_restricted", true);
+      assertThat(reads.publicClubContacts(club).get(ContactField.PHONE)).isEqualTo("0100000326");
     }
   }
 
@@ -1038,19 +1099,26 @@ class SportingPresentationIntegrationTest {
   }
 
   @Test
-  @DisplayName(
-      "Source collection waiting on a rights restriction cannot reintroduce the private field")
+  @DisplayName("Collection waiting on a restriction cannot persist any of the six contact fields")
   void serializesRestrictionAndCollection() throws Exception {
     // Given
     CollectionState.Cycle sheets = admitFamily("CLUB_SHEETS");
+    Map<ContactField, JsonNullable<String>> proposals =
+        Map.of(
+            ContactField.ADDRESS, JsonNullable.of("326 Synthetic street"),
+            ContactField.CITY, JsonNullable.of("Synthetic municipality"),
+            ContactField.POSTAL_CODE, JsonNullable.of("75001"),
+            ContactField.EMAIL, JsonNullable.of("collection326@example.invalid"),
+            ContactField.PHONE, JsonNullable.of("0100000326"),
+            ContactField.WEBSITE, JsonNullable.of("https://collection326.example.invalid/"));
     CompletableFuture<Integer> pid = new CompletableFuture<>();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
     try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
-      // When
+      // When: observe the competing PostgreSQL lock before committing the restriction.
       Future<?> pending =
           transaction.execute(
               status -> {
-                contactRestrictions.restrict(club, Set.of(ContactField.EMAIL));
+                contactRestrictions.restrict(club, Set.of(ContactField.values()));
                 Future<?> collection =
                     worker.submit(
                         () ->
@@ -1061,11 +1129,7 @@ class SportingPresentationIntegrationTest {
                                   clubObservations.accept(
                                       club,
                                       new ClubObservation(
-                                          context(sheets, 1),
-                                          null,
-                                          Map.of(
-                                              ContactField.EMAIL,
-                                              JsonNullable.of("late@example.invalid"))));
+                                          context(sheets, 1), "Retained club", proposals));
                                 }));
                 PostgresTestDatabase.awaitBlocked(sql, pid);
                 return collection;
@@ -1073,11 +1137,19 @@ class SportingPresentationIntegrationTest {
       pending.get(15, TimeUnit.SECONDS);
 
       // Then
-      assertThat(configurationReads.clubContacts(account, club).fields().get(ContactField.EMAIL))
-          .isEqualTo(new ContactValue(null, null, ContactModeEnum.SOURCE, true));
+      assertThat(configurationReads.clubContacts(account, club).fields().values())
+          .containsOnly(new ContactValue(null, null, ContactModeEnum.SOURCE, true));
       assertThat(
-              sql.queryForObject("SELECT email FROM sporting_club WHERE id=?", String.class, club))
-          .isNull();
+              sql.queryForMap(
+                      "SELECT address,address_manual,municipality,municipality_manual,postal_code,postal_code_manual,email,email_manual,phone,phone_manual,website,website_manual FROM sporting_club WHERE id=?",
+                      club)
+                  .values())
+          .containsOnlyNulls();
+      assertThat(reads.publicClubContacts(club).values()).containsOnlyNulls();
+      assertThat(acquisitionReads.team(team).orElseThrow().clubId()).isEqualTo(club);
+      assertThat(reads.publicInputs(Kind.CLUB, Set.of(club)))
+          .singleElement()
+          .satisfies(value -> assertThat(value.effectiveName()).isEqualTo("Retained club"));
     }
   }
 
