@@ -74,10 +74,18 @@ function Surface({
   );
 }
 
-it("presents one accessible transient error and replaces it without a queue", async () => {
+it("keeps page actions accessible while transient errors replace and expire", async () => {
   // Given
   const user = userEvent.setup();
   await render(<Surface />);
+  // UIKit's window-level modal isolation requires separate native VoiceOver evidence.
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Technical failure" }),
+  ).toBeEnabled();
+  expect(
+    screen.getByRole("button", { name: "Functional failure" }),
+  ).toBeEnabled();
 
   // When
   await user.press(screen.getByRole("button", { name: "Technical failure" }));
@@ -105,6 +113,12 @@ it("presents one accessible transient error and replaces it without a queue", as
 
   // Then
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Technical failure" }),
+  ).toBeEnabled();
+  expect(
+    screen.getByRole("button", { name: "Functional failure" }),
+  ).toBeEnabled();
 });
 
 it("ignores a delayed failure after its originating interaction unmounts", async () => {
