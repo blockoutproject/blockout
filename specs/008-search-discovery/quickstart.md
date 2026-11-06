@@ -75,7 +75,7 @@ permit the host-run backend without a forwarding service. See Docker's
 [bridge options](https://docs.docker.com/engine/network/drivers/bridge/#options).
 These local controls do not establish the deployed isolation required above.
 
-Use a new ignored private directory and a fresh volume suffix for each execution.
+Use a new ignored private directory and a fresh suffix for all three volumes on each execution.
 Do not overwrite copied environments or reuse retained SQL as an empty fixture.
 The preparation script accepts an optional absolute output directory and refuses
 an existing destination. Its default remains `local/opensearch`.

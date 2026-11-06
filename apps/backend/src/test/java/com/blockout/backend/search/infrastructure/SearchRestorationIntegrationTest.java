@@ -43,12 +43,13 @@ class SearchRestorationIntegrationTest {
       runtime.start(runtime.prefix, "3s");
       awaitPublished(runtime, runtime.prefix);
       assertSearch(runtime, "Originalcity", false);
-      Map<String, String> original = aliases(runtime, runtime.prefix);
+      Map<String, String> original;
 
       // When: a native SQL lock holds a full run after its club/team reads. The HTTP commit
       // queues a targeted update on the same serving scheduler, then the process loses its queue.
       try (Connection held = holdFullRun(runtime)) {
         awaitBlockedFullRun(runtime);
+        original = aliases(runtime, runtime.prefix);
         runtime.changeCity(CLUB, "Recoveredcity");
         assertThat(document(runtime, runtime.prefix, "clubs", CLUB).city())
             .isEqualTo("Originalcity");

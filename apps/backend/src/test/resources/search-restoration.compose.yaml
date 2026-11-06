@@ -71,6 +71,7 @@ volumes:
   postgres-restore-data:
     name: "${COMPOSE_PROJECT_NAME}-restore-${QUALIFICATION_RUN:?Set a fresh disposable run name}"
   opensearch-data:
+    name: "${COMPOSE_PROJECT_NAME}-search-${QUALIFICATION_RUN:?Set a fresh disposable run name}"
 networks:
   source:
     driver: bridge
