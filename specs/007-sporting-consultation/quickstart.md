@@ -57,26 +57,6 @@ Record actual fixture results, generated-consumer compilation, selected package/
 
 Verify A07's instant: September 20, 2026 00:30 in Paris is September 19 18:30 in New York. Include date-specific DST offsets, unchanged date-only values, unknown FFVB 00:00 versus confirmed midnight and French relative labels. Change the display zone and return from the background: formatting updates without regrouping a retained calendar or changing its captured zone/cursor.
 
-Use accepted-state synthetic F02 fixtures in an isolated migrated PostgreSQL database, the host backend and the actual generated mobile consumers. Do not replace the calendar or Match responses with controlled HTTP. These fixtures qualify current F02 reads and native consumption, not collector/provider acquisition. Keep the running backend JAR separate from Maven's package output so verification cannot replace a live archive.
-
-| Established instant (UTC)            | Paris display             | New York display          |
-| ------------------------------------ | ------------------------- | ------------------------- |
-| `2026-09-19T22:30:00Z`               | September 20, 00:30       | September 19, 18:30       |
-| `2026-09-19T22:00:00Z`               | September 20, 00:00       | September 19, 18:00       |
-| `2026-03-08T06:30:00Z` / `07:30:00Z` | March 8, 07:30 / 08:30    | March 8, 01:30 / 03:30    |
-| `2026-03-15T19:00:00Z`               | March 15, 20:00           | March 15, 15:00           |
-| `2026-03-29T00:30:00Z` / `01:30:00Z` | March 29, 01:30 / 03:30   | March 28, 20:30 / 21:30   |
-| `2026-10-25T00:30:00Z` / `01:30:00Z` | October 25, 02:30 / 02:30 | October 24, 20:30 / 21:30 |
-| `2026-11-01T05:30:00Z` / `06:30:00Z` | November 1, 06:30 / 07:30 | November 1, 01:30 / 01:30 |
-
-A date-only `2026-09-20` keeps September 20 in either context, with “À définir” on the card and “Heure à définir” in detail. It has no instant. Unconfirmed FFVB 00:00 uses that case; confirmed midnight uses the second row above. Observe the March 15 five-hour difference as well as September's six-hour difference.
-
-On each platform, load a real calendar with more than seven nonempty days. Record its grouping zone, exclusive `nextDay`, category and a deep visible anchor. Background the app, change the actual system zone, then resume the existing application without a new development-client intent, Metro reload or process restart. Check the already visible cells and their position **before scrolling, appending or refreshing**. A later append can re-render stale recycled cells and conceal a failed foreground update. On a development client, resume its existing app-switcher card rather than reopening its launcher.
-
-Observe the backend's local access log alongside the native screen: travel alone starts no calendar request; continuation still sends the original zone and cursor; a newly opened detail uses the current zone; returning preserves the retained list. A successful explicit refresh selects the new zone, reconstructs its groups and uses the accepted viewport reset. Execute same-zone refresh/append failure and changed-zone loading/error separately; a narrow successful journey does not qualify these failure cases. Withdraw a previously accepted date in the synthetic owner state, then reopen its old link through the real backend: public detail must refuse it. Restore changed zone/preferences after the checks.
-
-Controlled T019/T020 evidence remains distinct: the native-tab test support replaces LegendList with FlatList and cannot establish the [retained-cell recycling boundary](plan.md#mobile-state-and-navigation). Complete T023 only after the whole journey is demonstrated on both platforms. Current-zone reads do not establish live travel. When a simulator follows its host and supplies no zone setting, the live check requires an available, authorized host setting or another suitable native target; a launch-time zone or status-bar clock override cannot substitute for it. Keep exact source/build/runtime identities, device/session IDs, captures, execution results and unavailable cases in normal delivery evidence outside `specs/`. These checks certify neither a store candidate, physical device, provider nor the separate F13 accessibility qualifications.
-
 ### Complete-day calendar qualification
 
 Prepare Paris/New York/Tokyo zones, known/date-only/absent times, both DST changes and Paris midnight. Cross all three selectors, multiple participations, 150 matches on one day, more than seven gapped days and equal/unknown-time ordering. Expect complete-day pages, exclusive continuation, one identity per page and a coherent response; a between-page change may require refresh.
