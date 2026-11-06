@@ -16,6 +16,7 @@
       "{workspaceRoot}/.prettierignore",
       "{workspaceRoot}/.editorconfig",
       "{workspaceRoot}/.redocly.yaml",
+      "{workspaceRoot}/.dockerignore",
       "{workspaceRoot}/pom.xml",
       "{workspaceRoot}/mvnw",
       "{workspaceRoot}/mvnw.cmd",

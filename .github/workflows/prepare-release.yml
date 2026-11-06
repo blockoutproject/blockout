@@ -3,29 +3,90 @@ name: Prepare release
 on:
   workflow_dispatch:
     inputs:
-      revision:
-        description: Exact develop commit SHA to prepare (must match the selected workflow ref)
-        type: string
-        required: true
       target:
-        description: Applications to prepare
+        description: Applications to prepare and validate in preproduction
         type: choice
         options: [Server, Mobile, Both]
+        default: Server
         required: true
+      previous_preparation_run_id:
+        description: Previous qualified server Prepare run for affected builds (empty builds both images)
+        type: string
+        required: false
 
 permissions:
   contents: read
+  actions: read
+
+# Serializes these workflows, not asynchronous Dokploy rollouts.
+# Confirm the preceding native rollout has finished before starting another release.
+concurrency:
+  group: release-preproduction
+  queue: max
+  cancel-in-progress: false
+
+env:
+  CI: "true"
+  NX_DAEMON: "false"
 
 jobs:
   source:
     runs-on: ubuntu-24.04
+    outputs:
+      affected: ${{ steps.affected.outputs.projects }}
     steps:
-      - name: Require the exact develop revision
+      - name: Require develop as the selected source
+        run: test "$GITHUB_REF" = refs/heads/develop
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate the selected comparison run
+        if: inputs.target != 'Mobile' && inputs.previous_preparation_run_id != ''
         env:
-          REQUESTED_REVISION: ${{ inputs.revision }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREVIOUS_RUN_ID: ${{ inputs.previous_preparation_run_id }}
         run: |
-          test "$GITHUB_REF" = refs/heads/develop
-          test "$REQUESTED_REVISION" = "$GITHUB_SHA"
+          [[ "$PREVIOUS_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PREVIOUS_RUN_ID" --jq '
+            if .event == "workflow_dispatch" and .path == ".github/workflows/prepare-release.yml"
+              and .head_branch == "develop" and .conclusion == "success"
+            then .head_sha
+            else error("Expected a successful, manually qualified Prepare release run from develop")
+            end' > previous-source.sha
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: inputs.target != 'Mobile' && inputs.previous_preparation_run_id != ''
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ inputs.previous_preparation_run_id }}
+          name: server-candidate
+          path: previous
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: inputs.target != 'Mobile' && inputs.previous_preparation_run_id != ''
+        with:
+          node-version: 24
+          cache: npm
+      - name: Use the workspace npm version
+        if: inputs.target != 'Mobile' && inputs.previous_preparation_run_id != ''
+        run: npm install --global npm@12.0.1
+      - name: Install locked workspace dependencies
+        if: inputs.target != 'Mobile' && inputs.previous_preparation_run_id != ''
+        run: npm ci --no-audit --no-fund
+      - name: Select affected server applications since the previous candidate
+        id: affected
+        if: inputs.target != 'Mobile'
+        env:
+          PREVIOUS_RUN_ID: ${{ inputs.previous_preparation_run_id }}
+        run: |
+          if test -z "$PREVIOUS_RUN_ID"; then
+            projects='["backend","collector"]'
+          else
+            base="$(cat previous/source.sha)"
+            test "$base" = "$(cat previous-source.sha)"
+            git merge-base --is-ancestor "$base" "$GITHUB_SHA"
+            projects="$(npx nx show projects --affected --base="$base" --head="$GITHUB_SHA" --json)"
+          fi
+          printf 'projects=%s\n' "$(jq -c 'map(select(. == "backend" or . == "collector"))' <<< "$projects")" >> "$GITHUB_OUTPUT"
 
   verify:
     needs: source
@@ -37,46 +98,93 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
+      actions: read
       packages: write
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - application: backend
-            dockerfile: apps/backend/Dockerfile
-          - application: collector
-            dockerfile: apps/collector/Dockerfile
-          - application: migration
-            dockerfile: apps/backend/Dockerfile.migration
+        application: [backend, collector]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: ${{ !contains(fromJSON(needs.source.outputs.affected), matrix.application) }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ inputs.previous_preparation_run_id }}
+          name: server-candidate
+          path: previous
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        if: contains(fromJSON(needs.source.outputs.affected), matrix.application)
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        if: contains(fromJSON(needs.source.outputs.affected), matrix.application)
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        if: contains(fromJSON(needs.source.outputs.affected), matrix.application)
+        id: build
+        with:
+          context: .
+          file: apps/${{ matrix.application }}/Dockerfile
+          push: true
+          tags: ghcr.io/${{ github.repository }}/${{ matrix.application }}:${{ github.sha }}
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+      - name: Retain the built or unchanged immutable image reference
+        env:
+          APPLICATION: ${{ matrix.application }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          if test -n "$DIGEST"; then
+            printf 'ghcr.io/%s/%s@%s\n' "$GITHUB_REPOSITORY" "$APPLICATION" "$DIGEST" > "$APPLICATION.image"
+          else
+            cp "previous/$APPLICATION.image" "$APPLICATION.image"
+          fi
+          cat "$APPLICATION.image" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ matrix.application }}-image
+          path: ${{ matrix.application }}.image
+          if-no-files-found: error
+
+  preproduction:
+    needs: server
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: "*-image"
+          merge-multiple: true
+          path: candidate
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
       - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
-        id: build
-        with:
-          context: .
-          file: ${{ matrix.dockerfile }}
-          push: true
-          tags: ghcr.io/${{ github.repository }}/${{ matrix.application }}:${{ github.sha }}
-          labels: org.opencontainers.image.revision=${{ github.sha }}
-      - name: Retain the immutable image reference
+      - name: Require the current develop revision before dispatch
         env:
-          APPLICATION: ${{ matrix.application }}
-          DIGEST: ${{ steps.build.outputs.digest }}
-        run: |
-          printf 'ghcr.io/%s/%s@%s\n' "$GITHUB_REPOSITORY" "$APPLICATION" "$DIGEST" > "$APPLICATION.image"
-          cat "$APPLICATION.image" >> "$GITHUB_STEP_SUMMARY"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/develop" --jq '.object.sha')" = "$GITHUB_SHA"
+      - name: Route the exact images and trigger native deployments
+        env:
+          BACKEND_WEBHOOK_URL: ${{ secrets.DOKPLOY_PREPRODUCTION_BACKEND_WEBHOOK_URL }}
+          COLLECTOR_WEBHOOK_URL: ${{ secrets.DOKPLOY_PREPRODUCTION_COLLECTOR_WEBHOOK_URL }}
+        run: bash .github/scripts/route-server-images.sh preproduction candidate
+      - name: Retain the complete set awaiting manual qualification
+        run: printf '%s\n' "$GITHUB_SHA" > candidate/source.sha
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: ${{ matrix.application }}-candidate
-          path: ${{ matrix.application }}.image
+          name: server-images
+          path: candidate/
           if-no-files-found: error
 
   mobile:
@@ -119,12 +227,23 @@ jobs:
 
   qualification:
     name: Record manual preproduction qualification
-    needs: [verify, source, server, mobile]
-    # Allow the unselected target to be skipped, but never qualify a failed or cancelled run.
+    needs: [verify, source, server, preproduction, mobile]
+    # Skipped targets are allowed; failed or cancelled preparations cannot be qualified.
     if: ${{ !cancelled() && !failure() }}
     runs-on: ubuntu-24.04
     environment: preproduction
     steps:
-      # The reviewer first deploys/tests these exact artifacts using Dokploy and native store tools.
-      - name: Record the approved candidate
-        run: printf 'Preproduction qualification approved for %s. Native deployment/build records retain the evidence.\n' "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+      # Approve only after native Dokploy health checks and the selected mobile tests finish.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: inputs.target != 'Mobile'
+        with:
+          name: server-images
+          path: candidate
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: inputs.target != 'Mobile'
+        with:
+          name: server-candidate
+          path: candidate/
+          if-no-files-found: error
+      - name: Record the human qualification
+        run: printf 'Manual qualification recorded for %s. Workflow dispatch alone does not establish native rollout health.\n' "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"

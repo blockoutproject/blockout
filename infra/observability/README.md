@@ -21,7 +21,7 @@ docker run --rm --env-file infra/observability/.env.example \
 
 Only after environment authorization, start that same Compose project with `up -d`. Use `BLOCKOUT_ENVIRONMENT=production` and project `blockout-observability-production` for production. Do not share their environment files, data volumes or credentials. The Docker socket gives Alloy Docker-engine access even with a read-only mount; approve this access on the target host before starting it. The configuration discovers only containers labelled `blockout.telemetry=enabled`, with the selected environment and service `blockout-backend` or `blockout-collector`.
 
-The [application release Compose](../dokploy/compose.yaml) supplies these labels on its backend/collector services, using the selected environment:
+Configure these **container** labels in each [native Dokploy application's Swarm settings](../dokploy/README.md#native-applications), using the selected environment:
 
 ```yaml
 labels:
@@ -30,7 +30,7 @@ labels:
   blockout.service: blockout-backend
 ```
 
-It uses `blockout-collector` for the collector. Both Compose projects join the environment's external `blockout-telemetry-preproduction` or `blockout-telemetry-production` network. Before starting either project, the operator provisions that network once with Docker's native `network create` command, or reuses it if already present. Neither project owns its removal; applications can start while Alloy activation remains pending. Application Compose sets the receiver URL and environment attributes below. Metrics export defaults to `false`; after receiver authorization and qualification, set `MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=true` in the application's private environment configuration. Log discovery begins when the authorized Alloy stack runs, independently of the metrics switch.
+Use `blockout-collector` for the collector. Both native applications and the Alloy Compose service join the environment's external `blockout-telemetry-preproduction` or `blockout-telemetry-production` attachable overlay network. Provision it once through Dokploy's native network management, or reuse the verified existing network. Neither application owns its removal; applications can start while Alloy activation remains pending. Configure the receiver URL and environment attributes below in each application's native environment panel. Metrics export defaults to `false`; after receiver authorization and qualification, set `MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=true`. Log discovery begins when the authorized Alloy stack runs, independently of the metrics switch.
 
 ```dotenv
 MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED=true

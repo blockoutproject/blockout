@@ -11,6 +11,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import javax.sql.DataSource;
 import liquibase.Contexts;
 import liquibase.LabelExpression;
 import liquibase.Liquibase;
@@ -34,23 +35,24 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * script.
  */
 @Testcontainers
-@DisplayName("Explicit database migration and application startup")
+@DisplayName("Startup database migration and application role separation")
 class DatabaseConfigurationIntegrationTest {
   @Container private static final PostgreSQLContainer DATABASE = PostgresTestDatabase.create();
 
   @Test
-  @DisplayName(
-      "Starts the real HTTP application after explicit migration with application credentials")
-  void startsAfterMigration() throws Exception {
+  @DisplayName("Migrates an empty schema before starting the real HTTP application")
+  void migratesBeforeStartup() throws Exception {
     // Given
     createSchema("migrated");
-    migrate("migrated", "db/changelog/db.changelog-master.xml");
-    migrate("migrated", "db/changelog/database-fixture.xml");
 
     // When
-    try (ConfigurableApplicationContext context = startApplication("migrated")) {
+    try (ConfigurableApplicationContext context =
+        startApplication("migrated", "db/changelog/database-startup.xml")) {
       // Then
       assertThat(((WebServerApplicationContext) context).getWebServer().getPort()).isPositive();
+      try (Connection connection = context.getBean(DataSource.class).getConnection()) {
+        assertThat(connection.getMetaData().getUserName()).isEqualTo("blockout_app");
+      }
     }
   }
 
@@ -76,21 +78,55 @@ class DatabaseConfigurationIntegrationTest {
   }
 
   @Test
-  @DisplayName("Refuses startup when a mapped table is missing without initializing its schema")
-  void rejectsMissingSchema() throws Exception {
+  @DisplayName("Refuses startup when the migrated schema does not match application mappings")
+  void rejectsIncompatibleSchema() throws Exception {
     // Given
     createSchema("missing");
 
     // When / Then
-    assertThatThrownBy(() -> startApplication("missing").close())
+    assertThatThrownBy(
+            () -> startApplication("missing", "db/changelog/database-fixture.xml").close())
         .hasStackTraceContaining("Schema validation: missing table");
     try (Connection connection = applicationConnection("missing");
         Statement sql = connection.createStatement();
         ResultSet tables =
             sql.executeQuery(
-                "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'missing'")) {
+                "SELECT COUNT(*) FROM information_schema.tables"
+                    + " WHERE table_schema = 'missing' AND table_name = 'access_settings'")) {
       assertThat(tables.next()).isTrue();
       assertThat(tables.getInt(1)).isZero();
+    }
+  }
+
+  @Test
+  @DisplayName("Refuses startup after a failed migration while retaining earlier committed data")
+  void rejectsFailedMigration() throws Exception {
+    // Given
+    createSchema("failed");
+    migrate("failed", "db/changelog/database-fixture.xml");
+    try (Connection connection = applicationConnection("failed");
+        Statement sql = connection.createStatement()) {
+      sql.executeUpdate("INSERT INTO startup_fixture(id, label) VALUES (1, 'retained')");
+    }
+
+    // When / Then
+    assertThatThrownBy(
+            () -> startApplication("failed", "db/changelog/database-startup-failure.xml").close())
+        .hasStackTraceContaining("intentional-startup-failure");
+    try (Connection connection = applicationConnection("failed");
+        Statement sql = connection.createStatement();
+        ResultSet state =
+            sql.executeQuery(
+                "SELECT (SELECT label FROM startup_fixture WHERE id = 1),"
+                    + " (SELECT COUNT(*) FROM databasechangelog WHERE id <> 'fixture'),"
+                    + " (SELECT COUNT(*) FROM databasechangelog"
+                    + " WHERE id = 'intentional-startup-failure'),"
+                    + " (SELECT locked FROM databasechangeloglock WHERE id = 1)")) {
+      assertThat(state.next()).isTrue();
+      assertThat(state.getString(1)).isEqualTo("retained");
+      assertThat(state.getInt(2)).isPositive();
+      assertThat(state.getInt(3)).isZero();
+      assertThat(state.getBoolean(4)).isFalse();
     }
   }
 
@@ -161,16 +197,21 @@ class DatabaseConfigurationIntegrationTest {
   /**
    * Starts the production entry point with only test-owned connection and entity inputs.
    *
-   * @param schema isolated schema to validate
+   * @param schema isolated schema for startup migration and Hibernate validation
+   * @param changelog classpath XML entry point selected by the scenario
    * @return a caller-owned running application context
    */
-  private ConfigurableApplicationContext startApplication(String schema) {
+  private ConfigurableApplicationContext startApplication(String schema, String changelog) {
     return new SpringApplicationBuilder(BackendApplication.class, FixtureConfiguration.class)
         .run(
             "--server.port=0",
             "--spring.datasource.url=" + url(schema),
             "--spring.datasource.username=blockout_app",
             "--spring.datasource.password=harmless-app",
+            "--spring.liquibase.url=" + url(schema),
+            "--spring.liquibase.user=blockout_migration",
+            "--spring.liquibase.password=harmless-migration",
+            "--spring.liquibase.change-log=classpath:" + changelog,
             "--spring.main.banner-mode=off");
   }
 

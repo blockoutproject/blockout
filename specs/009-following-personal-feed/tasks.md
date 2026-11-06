@@ -23,7 +23,7 @@ description: "Implementation tasks for F06 following and the personal feed"
 - Backend follows live in `apps/backend/src/main/java/com/blockout/backend/following/`, with mirrored `src/test/java/` paths. Application ports return immutable values; infrastructure may compose current sporting/follow projections without exposing managed entities or copying F02 rules.
 - Mobile follows and personal space live in `apps/mobile/src/features/following/`. Focused tests are co-located in `__tests__/`; the Home route in `apps/mobile/src/app/(ordinary)/(tabs)/(home)/index.tsx` stays thin. Expose only the actual follow-control boundary needed by F03; F13 owns shared UI/transport/Query and F14 owns installation/onboarding composition.
 - Canonical definitions remain `contracts/http/mobile/following/` and the existing mobile root. F13 generates Java interfaces/DTOs and mobile functions/types/validators into ignored outputs; reuse F03 summaries/calendar parameters and F02 sporting values.
-- Schema changes use `apps/backend/src/main/resources/db/changelog/` and the existing master include/baseline posture. No schema auto-update at application startup, new migration tool or reset is authorized.
+- Schema changes use `apps/backend/src/main/resources/db/changelog/` and the existing master include/baseline posture. F13 owns native startup Liquibase; Hibernate only validates. No automatic Hibernate schema update, new migration tool or reset is authorized.
 
 ## Phase 1: Setup (Shared Infrastructure)
 

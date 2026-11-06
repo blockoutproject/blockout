@@ -31,7 +31,7 @@ The quoted data-model constraints below remain literal. Concrete Java classes gr
 
 **Purpose**: Consume the shared executable foundation without recreating it.
 
-- [x] T001 Verify the F13 T001–T017 foundation through `README.md`, `apps/backend/pom.xml`, `apps/collector/pom.xml` and `apps/mobile/orval.config.ts`: generated canonical consumers compile, PostgreSQL tests run, migrations are explicit and generated output stays ignored. Wait only for this bounded foundation, not F13 deployment/restoration completion.
+- [x] T001 Verify the F13 T001–T017 foundation through `README.md`, `apps/backend/pom.xml`, `apps/collector/pom.xml` and `apps/mobile/orval.config.ts`: generated canonical consumers compile, PostgreSQL tests exercise native startup Liquibase and restricted JPA access, and generated output stays ignored. Wait only for this bounded foundation, not F13 deployment/restoration completion.
 - [x] T002 Configure only the F02-required MapStruct mapping/annotation processing in `apps/backend/pom.xml` under F13's accepted versions and existing Maven conventions; keep application values, transport DTOs and JPA entities distinct, and update actual F02 test commands in `README.md` when executable work first lands.
 
 ---

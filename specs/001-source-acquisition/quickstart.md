@@ -94,7 +94,7 @@ Verify that current `collection.manage` authorizes operational preparation durin
 
 Exercise bounded transport through controlled HTTP peers, including native retries/redirects, decoded limits, connection lease and request permits. Check one-attempt terminal calls and ordinary polling after failure without a second inhibition set. The [ordered uncertainty cases](#ordered-uncertainty-cases) define lost-response and replacement behavior.
 
-For retained-state upgrades, preserve applied checksums, current ordering/outcomes/reasons/counts and latest attempt/useful success. Stop incompatible writers and check admitted consumers before the [manual migration/start sequence](../003-shared-quality/quickstart.md#delivery-and-operations); application rollback cannot recreate removed outage-clock values. Use an isolated disposable database for fault injection. Prototype/Figma approval, synthetic peers and application checks do not establish live-provider or native qualification.
+For retained-state upgrades, preserve applied checksums, current ordering/outcomes/reasons/counts and latest attempt/useful success. Check admitted consumers before [manual delivery with stop-first backend replacement and startup migration](../003-shared-quality/quickstart.md#delivery-and-operations); application rollback cannot recreate removed outage-clock values. Use an isolated disposable database for fault injection. Prototype/Figma approval, synthetic peers and application checks do not establish live-provider or native qualification.
 
 ## Ordered uncertainty cases
 

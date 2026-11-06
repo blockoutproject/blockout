@@ -12,9 +12,10 @@ permissions:
   contents: read
   actions: read
 
-# Approval runs are serialized; actual deployments stay in Dokploy's native queue.
+# Serializes workflow dispatches; the operator first checks the preceding Dokploy rollout.
 concurrency:
-  group: production-release
+  group: release-production
+  queue: max
   cancel-in-progress: false
 
 jobs:
@@ -32,6 +33,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PREPARATION_RUN_ID: ${{ inputs.preparation_run_id }}
         run: |
+          [[ "$PREPARATION_RUN_ID" =~ ^[1-9][0-9]*$ ]]
           revision="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PREPARATION_RUN_ID" --jq '
             if .event == "workflow_dispatch" and .path == ".github/workflows/prepare-release.yml"
               and .head_branch == "develop" and .conclusion == "success"
@@ -45,7 +47,14 @@ jobs:
     needs: compare
     runs-on: ubuntu-24.04
     environment: production
+    permissions:
+      contents: read
+      actions: read
+      packages: write
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -53,11 +62,24 @@ jobs:
           pattern: "*-candidate"
           merge-multiple: true
           path: candidate
-      - name: Hand off the identical image digests to the Dokploy operator
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
         if: hashFiles('candidate/*.image') != ''
-        run: |
-          printf 'Set these exact references in Dokploy, then execute the documented native deployment command:\n' >> "$GITHUB_STEP_SUMMARY"
-          cat candidate/backend.image candidate/collector.image candidate/migration.image >> "$GITHUB_STEP_SUMMARY"
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        if: hashFiles('candidate/*.image') != ''
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Require the current main revision before dispatch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')" = "$GITHUB_SHA"
+      - name: Route the identical qualified server images and trigger native deployments
+        if: hashFiles('candidate/*.image') != ''
+        env:
+          BACKEND_WEBHOOK_URL: ${{ secrets.DOKPLOY_PRODUCTION_BACKEND_WEBHOOK_URL }}
+          COLLECTOR_WEBHOOK_URL: ${{ secrets.DOKPLOY_PRODUCTION_COLLECTOR_WEBHOOK_URL }}
+        run: bash .github/scripts/route-server-images.sh production candidate
       - name: Hand off the same qualified production builds to the store operator
         if: hashFiles('candidate/production.json') != ''
         run: |

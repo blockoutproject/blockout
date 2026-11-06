@@ -2,16 +2,9 @@ package com.blockout.backend.testsupport;
 
 import static org.awaitility.Awaitility.await;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import liquibase.Contexts;
-import liquibase.LabelExpression;
-import liquibase.Liquibase;
-import liquibase.database.jvm.JdbcConnection;
-import liquibase.resource.ClassLoaderResourceAccessor;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -41,30 +34,9 @@ public final class PostgresTestDatabase {
   }
 
   /**
-   * Applies the real disposable baseline explicitly before application startup.
+   * Supplies separate application and startup-migration connections to the calling Spring context.
    *
-   * @param database caller-owned running test container
-   * @throws Exception if migration credentials or the actual changelog fail
-   */
-  public static void migrate(PostgreSQLContainer database) throws Exception {
-    try (Connection connection =
-            DriverManager.getConnection(
-                database.getJdbcUrl().replace("/postgres", "/blockout"),
-                "blockout_migration",
-                "harmless-migration");
-        Liquibase liquibase =
-            new Liquibase(
-                "db/changelog/db.changelog-master.xml",
-                new ClassLoaderResourceAccessor(),
-                new JdbcConnection(connection))) {
-      liquibase.update(new Contexts(), new LabelExpression());
-    }
-  }
-
-  /**
-   * Supplies the restricted application connection to the calling suite's Spring context.
-   *
-   * @param database caller-owned running container, already migrated explicitly
+   * @param database caller-owned running container initialized with the repository's roles
    * @param properties native test configuration registry
    */
   public static void registerApplicationProperties(
@@ -73,6 +45,10 @@ public final class PostgresTestDatabase {
         "spring.datasource.url", () -> database.getJdbcUrl().replace("/postgres", "/blockout"));
     properties.add("spring.datasource.username", () -> "blockout_app");
     properties.add("spring.datasource.password", () -> "harmless-app");
+    properties.add(
+        "spring.liquibase.url", () -> database.getJdbcUrl().replace("/postgres", "/blockout"));
+    properties.add("spring.liquibase.user", () -> "blockout_migration");
+    properties.add("spring.liquibase.password", () -> "harmless-migration");
   }
 
   /**

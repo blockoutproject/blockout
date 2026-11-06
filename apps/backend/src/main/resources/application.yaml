@@ -10,6 +10,8 @@ spring:
       data-source-properties:
         # Actuator's JDBC check uses isValid(0), so pool timeouts alone cannot bound it.
         socketTimeout: 5
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
   servlet:
     multipart:
       max-file-size: 5242880B

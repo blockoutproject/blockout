@@ -7,8 +7,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Owns PostgreSQL with the Spring context so connection pools and application consumers close
- * before their database. The native registrar migrates eagerly before application beans are
- * created, then supplies restricted application credentials rather than container-admin access.
+ * before their database. The native registrar supplies restricted application credentials and a
+ * separate migration owner for Spring Boot's startup Liquibase integration.
  */
 @TestConfiguration(proxyBeanMethods = false)
 public class PostgresTestConfiguration {
@@ -23,15 +23,13 @@ public class PostgresTestConfiguration {
   }
 
   /**
-   * Migrates the running container before registering its restricted application connection.
+   * Registers the running container's separate application and startup-migration connections.
    *
    * @param database container already started by Spring Boot's Testcontainers lifecycle
-   * @return native eager registrar supplying only this context's application connection
-   * @throws Exception if role initialization or the production migration fails
+   * @return native eager registrar supplying only this context's isolated connections
    */
   @Bean
-  DynamicPropertyRegistrar postgresProperties(PostgreSQLContainer database) throws Exception {
-    PostgresTestDatabase.migrate(database);
+  DynamicPropertyRegistrar postgresProperties(PostgreSQLContainer database) {
     return properties -> PostgresTestDatabase.registerApplicationProperties(database, properties);
   }
 }

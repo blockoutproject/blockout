@@ -43,8 +43,8 @@ final class CollectorSportingRuntime implements AutoCloseable {
   final JdbcTemplate sql;
 
   /**
-   * Starts the already packaged backend against an explicitly supplied disposable migrated
-   * database.
+   * Starts the packaged backend against an explicitly supplied disposable database, with separate
+   * startup-migration and restricted application connections.
    *
    * @throws Exception if local keys, startup or the database connection cannot be established
    */
@@ -52,6 +52,8 @@ final class CollectorSportingRuntime implements AutoCloseable {
     String databaseUrl = required("qualification.database-url");
     String databaseUser = required("qualification.database-user");
     String databasePassword = required("qualification.database-password");
+    String migrationUser = required("qualification.migration-user");
+    String migrationPassword = required("qualification.migration-password");
     sql =
         new JdbcTemplate(new DriverManagerDataSource(databaseUrl, databaseUser, databasePassword));
     Path jar = Path.of(required("qualification.backend-jar")).toAbsolutePath();
@@ -85,6 +87,9 @@ final class CollectorSportingRuntime implements AutoCloseable {
             "--spring.datasource.url=" + databaseUrl,
             "--spring.datasource.username=" + databaseUser,
             "--spring.datasource.password=" + databasePassword,
+            "--spring.liquibase.url=" + databaseUrl,
+            "--spring.liquibase.user=" + migrationUser,
+            "--spring.liquibase.password=" + migrationPassword,
             "--blockout.security.issuer=" + issuer,
             "--blockout.security.mobile-audience=local-mobile",
             "--blockout.security.mobile-client-id=local-mobile",
