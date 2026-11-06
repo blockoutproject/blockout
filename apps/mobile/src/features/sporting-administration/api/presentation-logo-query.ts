@@ -13,10 +13,18 @@ import { binaryImagePreview } from "../../../shared/api/binary-image-preview";
 import type { PresentationTarget } from "./presentation";
 import type { SportingQueryAuthority } from "./sporting-administration-queries";
 
+/** A current HTTP refusal or missing binary withdraws the remote preview without changing the editable resource. */
+function isRefusedOrMissingPreview(error: unknown): boolean {
+  return (
+    isAccessDenied(error) ||
+    (error instanceof ApiError && error.kind === "http" && error.status === 404)
+  );
+}
+
 /**
  * Keeps an editor's selected binary preview with its original revision. Generated calls own HTTP;
  * the memory URI conversion consumes cancellation and rejects an obsolete session after FileReader.
- * A refused remote preview is removed until a successful read; local draft files belong to the form.
+ * A refused or missing remote preview is removed until a successful read; local draft files belong to the form.
  */
 export function createPresentationLogoQueryOptions(
   authority: SportingQueryAuthority,
@@ -64,12 +72,12 @@ export function createPresentationLogoQueryOptions(
         if (signal.aborted) {
           throw new ApiError("cancelled");
         }
-        if (isAccessDenied(error)) {
+        if (isRefusedOrMissingPreview(error)) {
           client.getQueryCache().find({ queryKey, exact: true })?.setState({
             data: null,
           });
         }
-        throw isAccessDenied(previousError) ? previousError : error;
+        throw isRefusedOrMissingPreview(previousError) ? previousError : error;
       }
     },
   });

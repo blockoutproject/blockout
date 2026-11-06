@@ -40,6 +40,8 @@ export interface PresentationFormProps {
   target: PresentationTarget;
   editing: ReturnType<typeof usePresentation>;
   disabled: boolean;
+  /** Current F03 team/pool context when publicly readable; absence never blocks editing. */
+  seasonLabel?: string;
 }
 
 /** Saves one revision atomically and retains dirty fields through refusals and explicit original-target rereads. */
@@ -48,6 +50,7 @@ export function PresentationForm({
   target,
   editing,
   disabled,
+  seasonLabel,
 }: PresentationFormProps) {
   const router = useRouter();
   const confirmAction = useActionConfirmation();
@@ -376,14 +379,14 @@ export function PresentationForm({
         <Text style={[tokens.typography.strong, { color: colors.text }]}>
           {isDivision ? draftName.trim() || "Nouvelle division" : title}
         </Text>
-        {isDivision && (
+        {(isDivision || seasonLabel) && (
           <Text
             style={[
               tokens.typography.metadata,
               { color: colors.secondaryText },
             ]}
           >
-            Aperçu
+            {isDivision ? "Aperçu" : seasonLabel}
           </Text>
         )}
       </View>
@@ -447,6 +450,7 @@ export function PresentationForm({
                 name="logo"
                 render={({ fieldState }) => (
                   <ImageField
+                    size="compact"
                     label={isDivision ? undefined : "Photo ou logo"}
                     images={uri ? [{ id: "logo", uri, label: "Logo" }] : []}
                     contentFit="contain"

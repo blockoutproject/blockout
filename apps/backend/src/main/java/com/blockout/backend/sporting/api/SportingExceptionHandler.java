@@ -2,6 +2,7 @@ package com.blockout.backend.sporting.api;
 
 import com.blockout.backend.generated.mobile.model.ProblemResponse;
 import com.blockout.backend.shared.http.HttpProblems;
+import com.blockout.backend.sporting.application.exception.InvalidSportingImageException;
 import com.blockout.backend.sporting.application.exception.MatchDocumentUnavailableException;
 import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
@@ -19,6 +20,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 @Order(0)
 public class SportingExceptionHandler {
+  /** Returns the contracted field-level category for invalid sporting image content. */
+  @ExceptionHandler(InvalidSportingImageException.class)
+  ResponseEntity<Object> invalidImage() {
+    return HttpProblems.response(
+        HttpStatus.UNPROCESSABLE_CONTENT, "urn:blockout:problem:invalid-image");
+  }
+
   /**
    * Rejects an unusable sporting command without exposing submitted values.
    *

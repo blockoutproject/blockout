@@ -721,131 +721,155 @@ it("keeps a dirty draft and the editing revision during background refetch", asy
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
 });
 
-it("refreshes the displayed logo, retaining technical failures but removing refused artwork until a successful read", async () => {
-  // Given
-  stored = {
-    ...initial,
-    logo: { ...logo, effectiveUrl: `/teams/${resourceId}/logo` },
-  };
-  const previousReader = Object.getOwnPropertyDescriptor(
-    globalThis,
-    "FileReader",
-  );
-
-  /** Controls only native binary decoding; the actual generated transport and Query owners remain mounted. */
-  class LogoReader {
-    result = "data:image/png;base64,sporting-logo";
-    onload?: () => void;
-
-    /** Makes an accepted binary response observable in the semantic image preview. */
-    readAsDataURL() {
-      this.onload?.();
-    }
-  }
-
-  Object.defineProperty(globalThis, "FileReader", {
-    configurable: true,
-    value: LogoReader,
-  });
-  let logoStatus = 200;
-  mockFetch.mockImplementation(async (url, options) => {
-    if (!String(url).includes(`/teams/${resourceId}/logo`)) {
-      return respond(url, options);
-    }
-    return logoStatus === 200
-      ? new Response(mockFile, { headers: { "Content-Type": "image/png" } })
-      : json({ title: "Logo unavailable", status: logoStatus }, logoStatus);
-  });
-  try {
-    const user = userEvent.setup();
-    await renderEditor();
-    await screen.findByRole("button", { name: "Aperçu : Logo" });
-    await user.clear(screen.getByLabelText("Nom complet personnalisé"));
-    await user.type(
-      screen.getByLabelText("Nom complet personnalisé"),
-      "Local name",
+it.each([403, 404])(
+  "refreshes the displayed logo, retaining technical failures but removing refused artwork (HTTP %i) until a successful read",
+  async (refusedStatus) => {
+    // Given
+    stored = {
+      ...initial,
+      logo: { ...logo, effectiveUrl: `/teams/${resourceId}/logo` },
+    };
+    const previousReader = Object.getOwnPropertyDescriptor(
+      globalThis,
+      "FileReader",
     );
 
-    // When
-    logoStatus = 503;
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    /** Controls only native binary decoding; the actual generated transport and Query owners remain mounted. */
+    class LogoReader {
+      result = "data:image/png;base64,sporting-logo";
+      onload?: () => void;
 
-    // Then
-    await screen.findByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-    });
-    expect(
-      screen.getByRole("button", { name: "Aperçu : Logo" }),
-    ).toBeOnTheScreen();
-    expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
-    expect(screen.getByDisplayValue("Local name")).toBeOnTheScreen();
-
-    // When
-    logoStatus = 403;
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-
-    // Then
-    await screen.findByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-    });
-    expect(screen.queryByText("Une erreur est survenue")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Aperçu : Logo" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
-    expect(screen.getByDisplayValue("Local name")).toBeEnabled();
-
-    // When
-    logoStatus = 503;
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-    await waitFor(() => expect(client.isFetching()).toBe(0));
-
-    // Then
-    expect(screen.queryByText("Une erreur est survenue")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Aperçu : Logo" })).toBeNull();
-
-    // When
-    logoStatus = 200;
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-
-    // Then
-    expect(
-      await screen.findByRole("button", { name: "Aperçu : Logo" }),
-    ).toBeOnTheScreen();
-    expect(screen.queryByText("Une erreur est survenue")).toBeNull();
-
-    // When
-    jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
-      canceled: false,
-      assets: [{ uri: "file:///picker.png", width: 120, height: 60 }],
-    });
-    await user.press(
-      screen.getByRole("button", { name: "Changer le logo : Logo" }),
-    );
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
-    );
-    logoStatus = 403;
-    mockFetch.mockClear();
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-    await waitFor(() => expect(client.isFetching()).toBe(0));
-
-    // Then
-    expect(
-      screen.getByRole("button", { name: "Aperçu : Logo" }),
-    ).toBeOnTheScreen();
-    expect(screen.getByDisplayValue("Local name")).toBeOnTheScreen();
-    expect(
-      mockFetch.mock.calls.some(([url]) =>
-        String(url).includes(`/teams/${resourceId}/logo`),
-      ),
-    ).toBe(false);
-  } finally {
-    if (previousReader) {
-      Object.defineProperty(globalThis, "FileReader", previousReader);
-    } else {
-      Reflect.deleteProperty(globalThis, "FileReader");
+      /** Makes an accepted binary response observable in the semantic image preview. */
+      readAsDataURL() {
+        this.onload?.();
+      }
     }
-  }
-});
+
+    Object.defineProperty(globalThis, "FileReader", {
+      configurable: true,
+      value: LogoReader,
+    });
+    let logoStatus = 200;
+    mockFetch.mockImplementation(async (url, options) => {
+      if (!String(url).includes(`/teams/${resourceId}/logo`)) {
+        return respond(url, options);
+      }
+      return logoStatus === 200
+        ? new Response(mockFile, { headers: { "Content-Type": "image/png" } })
+        : json({ title: "Logo unavailable", status: logoStatus }, logoStatus);
+    });
+    try {
+      const user = userEvent.setup();
+      await renderEditor();
+      await screen.findByRole("button", { name: "Aperçu : Logo" });
+      await user.clear(screen.getByLabelText("Nom complet personnalisé"));
+      await user.type(
+        screen.getByLabelText("Nom complet personnalisé"),
+        "Local name",
+      );
+
+      // When
+      logoStatus = 503;
+      await fireEvent(
+        screen.getByLabelText("Actualiser les données"),
+        "refresh",
+      );
+
+      // Then
+      await screen.findByRole("alert", {
+        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      });
+      expect(
+        screen.getByRole("button", { name: "Aperçu : Logo" }),
+      ).toBeOnTheScreen();
+      expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+      expect(screen.getByDisplayValue("Local name")).toBeOnTheScreen();
+
+      // When
+      logoStatus = refusedStatus;
+      await fireEvent(
+        screen.getByLabelText("Actualiser les données"),
+        "refresh",
+      );
+
+      // Then
+      await screen.findByRole("alert", {
+        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      });
+      expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+      expect(
+        screen.queryByRole("button", { name: "Aperçu : Logo" }),
+      ).toBeNull();
+      expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+      expect(screen.getByDisplayValue("Local name")).toBeEnabled();
+
+      // When
+      logoStatus = 503;
+      await fireEvent(
+        screen.getByLabelText("Actualiser les données"),
+        "refresh",
+      );
+      await waitFor(() => expect(client.isFetching()).toBe(0));
+
+      // Then
+      expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+      expect(
+        screen.queryByRole("button", { name: "Aperçu : Logo" }),
+      ).toBeNull();
+
+      // When
+      logoStatus = 200;
+      await fireEvent(
+        screen.getByLabelText("Actualiser les données"),
+        "refresh",
+      );
+
+      // Then
+      expect(
+        await screen.findByRole("button", { name: "Aperçu : Logo" }),
+      ).toBeOnTheScreen();
+      expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+
+      // When
+      jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+        canceled: false,
+        assets: [{ uri: "file:///picker.png", width: 120, height: 60 }],
+      });
+      await user.press(
+        screen.getByRole("button", { name: "Changer le logo : Logo" }),
+      );
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: "Enregistrer" }),
+        ).toBeEnabled(),
+      );
+      logoStatus = refusedStatus;
+      mockFetch.mockClear();
+      await fireEvent(
+        screen.getByLabelText("Actualiser les données"),
+        "refresh",
+      );
+      await waitFor(() => expect(client.isFetching()).toBe(0));
+
+      // Then
+      expect(
+        screen.getByRole("button", { name: "Aperçu : Logo" }),
+      ).toBeOnTheScreen();
+      expect(screen.getByDisplayValue("Local name")).toBeOnTheScreen();
+      expect(
+        mockFetch.mock.calls.some(([url]) =>
+          String(url).includes(`/teams/${resourceId}/logo`),
+        ),
+      ).toBe(false);
+    } finally {
+      if (previousReader) {
+        Object.defineProperty(globalThis, "FileReader", previousReader);
+      } else {
+        Reflect.deleteProperty(globalThis, "FileReader");
+      }
+    }
+  },
+);
 
 it("retains input and shows the invalid-image field refusal", async () => {
   // Given

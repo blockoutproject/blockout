@@ -52,6 +52,7 @@ export interface ActionFeedbackProviderProps extends PropsWithChildren {
 /**
  * Projects UI Library Error Toast 3326:321 above native navigation without moving content or focus.
  * The newest failure replaces the previous toast. Expiry and unmount never acknowledge an uncertain write.
+ * The iOS window overlay stays non-modal so VoiceOver can reach the page even when no toast is visible.
  */
 export function ActionFeedbackProvider({
   children,
@@ -124,7 +125,9 @@ export function ActionFeedbackProvider({
     <FeedbackContext value={{ error, clear }}>
       {children}
       {Platform.OS === "ios" ? (
-        <FullWindowOverlay>{overlay}</FullWindowOverlay>
+        <FullWindowOverlay unstable_accessibilityContainerViewIsModal={false}>
+          {overlay}
+        </FullWindowOverlay>
       ) : (
         overlay
       )}

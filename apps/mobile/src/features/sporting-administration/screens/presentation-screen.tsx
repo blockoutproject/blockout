@@ -1,4 +1,6 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
+import { Flag } from "lucide-react-native";
 import {
   getGetClubLogoQueryKey,
   getGetDivisionLogoQueryKey,
@@ -9,13 +11,19 @@ import { DataRefreshControl } from "../../../shared/components/data-refresh-cont
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { Page, PageContent } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
+import { IconButton } from "../../../shared/components/icon-button";
+import { useTheme } from "../../../shared/theme/theme-provider";
+import { tokens } from "../../../shared/theme/tokens";
 import { PresentationLoading } from "../components/sporting-editor-loading";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 
 import { ErrorState } from "../../../shared/components/state-card";
 import { useAdministrationCapabilities } from "../../access/api/use-administration-capabilities";
+import { useOrdinaryRequest } from "../../access/ordinary-request";
 import { useAccountSession } from "../../accounts/current-account";
+import { useConsultationQueries } from "../../sporting/api/use-consultation-queries";
+import { supportHref } from "../../support";
 import { usePresentation, type PresentationTarget } from "../api/presentation";
 import { PresentationForm } from "../forms/presentation-form";
 
@@ -24,12 +32,16 @@ export interface PresentationScreenProps {
   target: PresentationTarget;
 }
 
-/** Composes the approved editor using the platform's existing ordinary-form keyboard mechanism. */
+/** Optional public context never gates the administrative read, mounted draft or ordinary-form keyboard owner. */
 export function PresentationScreen({ target }: PresentationScreenProps) {
   const { permissions, account, sessionStatus } =
     useAdministrationCapabilities();
   const session = useAccountSession();
   const client = useQueryClient();
+  const router = useRouter();
+  const { colors } = useTheme();
+  const ordinary = useOrdinaryRequest();
+  const consultation = useConsultationQueries();
   const logoKey =
     target.kind === "team"
       ? getGetTeamLogoQueryKey(target.id)
@@ -49,6 +61,31 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
   const editing = usePresentation(target, canRead);
   const presentation =
     sessionStatus === "authenticated" ? editing.query.data : undefined;
+  const publicContextEnabled =
+    ordinary.admitted && canRead && presentation !== undefined;
+  const [teamContext, poolContext] = useQueries({
+    queries: [
+      {
+        ...consultation.team(target.id ?? ""),
+        enabled: publicContextEnabled && target.kind === "team",
+      },
+      {
+        ...consultation.pool(target.id ?? ""),
+        enabled: publicContextEnabled && target.kind === "pool",
+      },
+    ],
+  });
+  const seasonLabel = !publicContextEnabled
+    ? undefined
+    : target.kind === "team" && !teamContext.isError
+      ? teamContext.data?.team.season.label
+      : target.kind === "pool" && !poolContext.isError
+        ? poolContext.data?.pool.season.label
+        : undefined;
+  const supportKind =
+    target.kind === "team" || target.kind === "club" || target.kind === "pool"
+      ? target.kind
+      : undefined;
   const pending =
     sessionStatus === "restoring" ||
     (sessionStatus === "authenticated" && account.isLoading);
@@ -124,7 +161,35 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
       ? PageContent
       : ScreenState;
   return (
-    <Page header={<PageHeader title={title} />}>
+    <Page
+      header={
+        <PageHeader
+          title={title}
+          action={
+            ordinary.admitted && supportKind ? (
+              <IconButton
+                label="Signaler un problème"
+                onPress={() =>
+                  router.push(
+                    supportHref({
+                      screen: supportKind,
+                      targetType: supportKind,
+                      targetId: target.id,
+                    }),
+                  )
+                }
+              >
+                <Flag
+                  accessible={false}
+                  size={tokens.size.icon.lg}
+                  color={colors.icon}
+                />
+              </IconButton>
+            ) : undefined
+          }
+        />
+      }
+    >
       <FormScrollView
         refreshControl={
           !blockingState &&
@@ -148,6 +213,7 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
                 target={target}
                 editing={editing}
                 disabled={!canManage || editing.query.isError}
+                seasonLabel={seasonLabel}
               />
             )}
           </PageContent>
