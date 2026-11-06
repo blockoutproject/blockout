@@ -211,6 +211,24 @@ The integration suite creates its own TLS, credential, mapped port and disposabl
 
 Full backend verification remains `npx nx run backend:test`.
 
+The crash/restoration suite runs during ordinary backend verification and reuses the same
+Testcontainers engine and PostgreSQL fixtures, with a separately launched packaged backend.
+After contract generation, run it on its own with Java 25, Docker and OpenSSL:
+
+```sh
+./mvnw -B -ntp -pl apps/backend verify \
+  -Dtest=ProjectSearchTest,SearchProjectionSchedulerTest \
+  -Dit.test=SearchRestorationIntegrationTest
+```
+
+The suite chooses free ports, prepares its own TLS and disposable credentials, stops the source
+database without removing it, and restores a native custom/gzip dump into independent storage.
+It then rebuilds search and checks current filtered HTTP results and restrictions. Its containers
+are removed on exit; the archive and backend/native-tool logs remain ignored under
+`apps/backend/target/search-restoration-*`. No Compose setup or exported service credentials are
+needed. This local proof does not qualify deployed isolation, provider operations or F13/F14's
+complete restoration and cutover.
+
 ### Application processes
 
 Each application owns a safe `.env.example`. Copy it to `.env.local` when local values are needed. Spring does not read dotenv files: export the chosen application's file in its launching shell. From the repository root, in separate terminals:
