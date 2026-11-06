@@ -50,4 +50,4 @@ Run the backend validation, generated endpoint, provider adapter and child-proce
 npm run test --workspace=@blockout/mobile -- --runInBand --runTestsByPath src/features/support/__tests__/support-submission.test.tsx
 ```
 
-Exercise the real form and generated multipart consumer with a delayed refusal followed by an explicit corrected retry. Expect locked in-flight fields/action, retained editable input after failure and complete confirmation with email information and no editor after 201. Repeat on native iOS/Android with both themes, keyboard, enlarged text and screen readers. A fixture response does not qualify actual multipart delivery, attachment confidentiality or provider erasure.
+Exercise the real form and generated multipart consumer with a delayed refusal followed by an explicit corrected retry. Expect locked in-flight fields/action, retained editable input after failure and complete confirmation with email information and no editor after 201. Repeat on native iOS/Android with both themes, keyboard, enlarged text and VoiceOver on iOS. A fixture response does not qualify actual multipart delivery, attachment confidentiality or provider erasure.

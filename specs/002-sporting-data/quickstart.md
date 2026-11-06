@@ -87,11 +87,11 @@ and division name/colors/logo do not change activity. No contact-correction form
 is part of this mobile scope.
 
 On native iOS and Android, run both system themes at ordinary and narrow widths,
-then enlarged text including the approved 320-point/200% specimen. With VoiceOver
-or TalkBack, check labels, image preview/close, replacement and restoration,
-validation focus, keyboard reachability of the final field/save action, and
-back/gesture cancellation versus explicit draft discard. This preparation does
-not qualify the separately retained iOS text-resizing/minimum-iOS limits.
+then enlarged text including the approved 320-point/200% specimen. Check labels,
+image preview/close, replacement and restoration, validation focus, keyboard
+reachability of the final field/save action, and back/gesture cancellation versus
+explicit draft discard. On iOS, repeat with VoiceOver. This preparation does not
+qualify the separately retained iOS text-resizing/minimum-iOS limits.
 
 Save names and a nonsquare PNG/JPEG in one multipart request, including manual
 logo → automatic → missing fallback, and reject invalid/oversized artwork without

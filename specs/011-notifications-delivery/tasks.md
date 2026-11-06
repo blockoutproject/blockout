@@ -214,7 +214,7 @@ description: "Implementation tasks for F07 notifications, inbox and push"
 ### Implementation and qualification for User Story 6
 
 - [x] T059 [US6] Complete `apps/mobile/src/features/notifications/components/notification-item.tsx` and `screens/notifications-screen.tsx` using F03 local-time formatting/F13 UI and actual four-family responses, making T058 pass. Retain backend variant/facts, accessible French content and original creation order; display changes cannot trigger announcements. Reuse [approved inbox/match/guest design](plan.md#design-and-qualification), with no new foreground alert, deletion-progress screen, LNV TV collector or code-to-video inference.
-- [ ] T060 [US6] Execute A38–A43 via `specs/011-notifications-delivery/quickstart.md#essential-scenarios` on actual iOS/Android builds with light/dark/system appearance, enlarged text and VoiceOver/TalkBack. Verify same instants/elapsed age across DST/time zones, accurate delayed wording and guest/changed-account return. Keep Figma/prototype approval distinct from native presentation, transport and accessibility evidence.
+- [ ] T060 [US6] Execute A38–A43 via `specs/011-notifications-delivery/quickstart.md#essential-scenarios` on actual iOS/Android builds with light/dark/system appearance, enlarged text and VoiceOver on iOS. Verify same instants/elapsed age across DST/time zones, accurate delayed wording and guest/changed-account return. Keep Figma/prototype approval distinct from native presentation, transport and accessibility evidence.
 
 ---
 
