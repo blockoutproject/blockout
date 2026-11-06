@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
@@ -386,27 +385,20 @@ class SearchProjectionIntegrationTest {
     full();
     CountDownLatch blocked = new CountDownLatch(1);
     CountDownLatch release = new CountDownLatch(1);
-    tasks.execute(
-        () -> {
-          blocked.countDown();
-          try {
-            assertThat(release.await(15, TimeUnit.SECONDS)).isTrue();
-          } catch (InterruptedException failure) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException(failure);
-          }
-        });
+    OpenSearchProjectionWriter heldWriter = spy(writer);
+    doAnswer(
+            invocation -> {
+              blocked.countDown();
+              if (!release.await(20, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Fixture rebuild gate expired");
+              }
+              return invocation.callRealMethod();
+            })
+        .when(heldWriter)
+        .write(org.mockito.ArgumentMatchers.anyString(), any());
+    ProjectSearch heldProjection = new ProjectSearch(sporting, heldWriter);
+    java.util.concurrent.Future<?> rebuild = tasks.submit(heldProjection::rebuild);
     assertThat(blocked.await(5, TimeUnit.SECONDS)).isTrue();
-    CompletableFuture<Void> rebuild = new CompletableFuture<>();
-    tasks.execute(
-        () -> {
-          try {
-            projection.rebuild();
-            rebuild.complete(null);
-          } catch (RuntimeException failure) {
-            rebuild.completeExceptionally(failure);
-          }
-        });
 
     // When
     try {
@@ -554,6 +546,36 @@ class SearchProjectionIntegrationTest {
   }
 
   @Test
+  @DisplayName(
+      "A failed bulk request preserves useful aliases while current restrictions still win")
+  void preservesAliasesOnFailedBulkRequest() throws Exception {
+    // Given
+    participation();
+    full();
+    Map<String, ?> before = aliases();
+    sql.update("UPDATE sporting_division SET active = FALSE WHERE id = ?", DIVISION);
+    OpenSearchClient controlled = spy(nativeEngine.client);
+    doThrow(new IOException("synthetic bulk submission refusal"))
+        .when(controlled)
+        .bulk(any(BulkRequest.class));
+    OpenSearchProjectionWriter failedWriter =
+        new OpenSearchProjectionWriter(controlled, new SearchIndexProperties(PREFIX));
+    ProjectSearch failedProjection = new ProjectSearch(sporting, failedWriter);
+
+    // When
+    Throwable failure =
+        org.assertj.core.api.Assertions.catchThrowable(
+            () -> tasks.submit(failedProjection::rebuild).get(20, TimeUnit.SECONDS));
+
+    // Then
+    assertThat(failure).hasCauseInstanceOf(SearchUnavailableException.class);
+    assertThat(aliases().keySet()).containsExactlyInAnyOrderElementsOf(before.keySet());
+    assertThat(results("clubs", "Original").size()).isEqualTo(1);
+    assertThat(results("teams", "Eagles").isEmpty()).isTrue();
+    assertThat(results("pools", "Synthetic").isEmpty()).isTrue();
+  }
+
+  @Test
   @DisplayName("An unavailable refresh preserves the preceding complete generation")
   void preservesAliasesOnFailedRefresh() throws Exception {
     // Given
@@ -696,6 +718,43 @@ class SearchProjectionIntegrationTest {
     uncertain.cleanup();
     assertThat(aliases().keySet()).containsExactlyInAnyOrderElementsOf(before.keySet());
     assertThat(document("clubs", CLUB).names()).containsExactly("Original club");
+  }
+
+  @Test
+  @DisplayName("Refused cleanup deletion preserves active aliases and waits for a later full run")
+  void preservesGenerationsOnRefusedDeletion() throws Exception {
+    // Given
+    full();
+    Map<String, ?> before = aliases();
+    Map<Kind, String> inactive = writer.createGeneration();
+    OpenSearchIndicesClient indices = spy(nativeEngine.client.indices());
+    doThrow(new IOException("synthetic deletion refusal"))
+        .when(indices)
+        .delete(any(org.opensearch.client.opensearch.indices.DeleteIndexRequest.class));
+    OpenSearchClient controlled = mock(OpenSearchClient.class);
+    when(controlled.indices()).thenReturn(indices);
+    OpenSearchProjectionWriter failed =
+        new OpenSearchProjectionWriter(controlled, new SearchIndexProperties(PREFIX));
+
+    // When
+    failed.cleanup();
+
+    // Then
+    assertThat(aliases().keySet()).containsExactlyInAnyOrderElementsOf(before.keySet());
+    assertThat(results("clubs", "Original").size()).isEqualTo(1);
+    for (String index : inactive.values()) {
+      assertThat(nativeEngine.client.indices().exists(request -> request.index(index)).value())
+          .isTrue();
+    }
+
+    // When
+    full();
+
+    // Then
+    for (String index : inactive.values()) {
+      assertThat(nativeEngine.client.indices().exists(request -> request.index(index)).value())
+          .isFalse();
+    }
   }
 
   @Test

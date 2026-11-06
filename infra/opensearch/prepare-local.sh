@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Prepares new ignored local TLS and native security files; never changes an existing cluster.
+# Prepares fresh TLS/security in an optional private output directory; never replaces existing files.
 set -euo pipefail
 root=$(cd "$(dirname "$0")/../.." && pwd)
-output="$root/local/opensearch"
-mkdir -p "$root/local"
+output=${1:-"$root/local/opensearch"}
+mkdir -p "$(dirname "$output")"
 mkdir "$output"
 umask 077
 bash "$root/infra/opensearch/generate-certificates.sh" "$output/tls"
