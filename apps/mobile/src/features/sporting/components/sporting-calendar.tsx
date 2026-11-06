@@ -263,6 +263,8 @@ export function SportingCalendarView({
       alwaysBounceVertical
       contentContainerStyle={pageContentStyle}
       data={rows}
+      // Re-evaluate retained cells after travel without replacing their grouping or viewport.
+      extraData={displayZone}
       numColumns={columns}
       onLayout={({ nativeEvent }) => setListWidth(nativeEvent.layout.width)}
       overrideItemLayout={(layout, item, _index, columns) => {
