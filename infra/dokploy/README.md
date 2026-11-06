@@ -19,6 +19,26 @@ Before application startup, provision the environment's external telemetry netwo
 
 For each environment, create a native Dokploy Docker Compose application with **Raw** source. Copy [compose.yaml](compose.yaml) from the exact candidate revision and retain its native deployment record. Enable creation of Dokploy's `.env` file and supply private values using [.env.example](.env.example) as the field list. Set the three image references to qualified `ghcr.io/...@sha256:...` digests. Do not print resolved environment values. Configure the backend domain/HTTPS and port 8080 through Dokploy's native domain UI; collector uses that environment's HTTPS API origin. Keep automatic deployments and image-update hooks disabled.
 
+For private GHCR packages, verify registry access on the actual deployment server before delivery. Dokploy v0.31.0 uses the Docker login already present on that machine for Raw Compose custom commands; it does not log in to every saved registry before each deployment. Use [Settings → Registry](https://docs.dokploy.com/docs/core/registry) to test the authorized existing GHCR entry against that server, then verify pulls of all three exact digests. A successful login alone does not prove package access. [GHCR](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry) requires an authorized account and a classic PAT with `read:packages` for private pulls; the GitHub CLI's ordinary repository token may lack this scope. Registry login is shared by host/registry, not isolated by Compose environment: do not replace or remove historical credentials as part of an isolated qualification.
+
+### First account and operator access
+
+The release field list supplies JWT validation and collector authentication, but not the optional Auth0 Management registration used by account establishment. Before establishing the first operator normally, inject the existing account-provider inputs from [the backend environment example](../../apps/backend/.env.example) into **backend only**. Add the following entries to that environment's Raw Compose `backend.environment`, with their values supplied privately in Dokploy's `.env`:
+
+```yaml
+SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_AUTH0_CLIENTID: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_AUTH0_CLIENTID}
+SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_AUTH0_CLIENTSECRET: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_AUTH0_CLIENTSECRET}
+SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_AUTH0_AUTHORIZATIONGRANTTYPE: client_credentials
+SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_AUTH0_CLIENTAUTHENTICATIONMETHOD: client_secret_post
+SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_AUTH0_SCOPE: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_AUTH0_SCOPE}
+SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_AUTH0_TOKENURI: ${SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_AUTH0_TOKENURI}
+BLOCKOUT_ACCOUNTS_AUTH0_AUDIENCE: ${BLOCKOUT_ACCOUNTS_AUTH0_AUDIENCE}
+```
+
+Putting these values in `.env` alone does not inject them into Spring. Do not load the complete release `.env` into backend or collector: it also contains credentials belonging to other services. Account establishment needs the existing authorized Management client's `read:users`; provider deletion and cleanup remain subject to their separate F05 prerequisites and must stay disabled for a read-only qualification.
+
+Follow [F12 preparation](../../specs/013-administration-app-configuration/plan.md#production-preparation): sign in normally, establish the account, grant its required action permission through the owner's authorized database connection, then activate maintenance through F12 with the usable session. Auth0/Dokploy dashboard sessions are not application operator sessions. `maintenance.manage` and ordinary-access `maintenance.bypass` remain separate; maintenance does not stop collector writes.
+
 Backend health uses native Actuator readiness, including PostgreSQL. Collector starts only after backend health passes; it remains a non-web process. Compose reports its process start, which does not establish successful acquisition or integration. Those outcomes remain with F01's observations. The migration profile is excluded from ordinary service startup.
 
 ## Private search infrastructure
@@ -55,6 +75,8 @@ The [EAS lifecycle hooks](https://docs.expo.dev/build-reference/npm-hooks/) inst
 After explicit human promotion from `develop` to `main`, run **Promote release** from `main` with the successful, approved preparation run ID. It checks the native workflow's identity/result and compares the complete candidate/main source content, allowing a different merge-commit SHA only when the trees match. The `production` environment approval then releases the **same** digest/build-ID handoff to the operator. It rebuilds nothing and publishes nothing to stores.
 
 The operator enables F12 maintenance with an already usable authorized session, waits for any active Dokploy delivery to finish, sets the exact approved digest references and uses Dokploy's native deployment queue. Keep one delivery in flight per environment and do not cancel a migration. GitHub concurrency serializes approval runs; it does not lock an externally running migration. Do not enqueue a second candidate or edit its live configuration while the first is active.
+
+In [Dokploy v0.31.0](https://github.com/Dokploy/dokploy/blob/v0.31.0/apps/dokploy/server/queues/in-memory-queue.ts), native queue groups use the Compose resource ID, not its environment or Docker project name. Two different Compose resources targeting the same project do not provide an environment lock. A [queued job](https://github.com/Dokploy/dokploy/blob/v0.31.0/apps/dokploy/server/queues/queue-types.ts) contains no candidate snapshot; the worker reads current Raw Compose/environment configuration when it runs. For qualification, prepare both candidates privately, observe the active migration and native queue, and wait for completion before applying the next candidate. Repeated jobs with unchanged configuration can exercise FIFO behavior, but do not prove delivery of two distinct immutable queued candidates. Source inspection alone does not qualify the deployed queue.
 
 For **Raw** source, Dokploy writes `docker-compose.yml` and `.env` in its application directory. Set this **literal custom Command** for preproduction (Dokploy prepends the first `docker`):
 
