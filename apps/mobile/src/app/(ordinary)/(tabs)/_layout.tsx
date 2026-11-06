@@ -50,9 +50,9 @@ export default function TabsLayout() {
   const { session, queries } = useInboxQueries();
   const summary = useQuery({
     ...queries?.summary,
-    queryKey: getGetNotificationSummaryQueryKey(
-      session.accountId ?? "unavailable",
-    ),
+    queryKey:
+      queries?.summary.queryKey ??
+      getGetNotificationSummaryQueryKey("unavailable"),
     queryFn: queries?.summary.queryFn ?? skipToken,
     enabled: false,
   });

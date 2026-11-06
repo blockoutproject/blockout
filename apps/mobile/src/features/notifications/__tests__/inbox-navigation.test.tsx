@@ -25,7 +25,10 @@ import MatchRoute from "../../../app/(ordinary)/matches/[matchId]";
 import { NotificationState } from "../state/notification-state";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
+import {
+  AccountSessionProvider,
+  useAccountSession,
+} from "../../accounts/session/account-session-provider";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import { accountResponse } from "../../accounts/test-support/account-response";
 import {
@@ -100,6 +103,7 @@ const env = { ...process.env };
 const row = notificationResponse();
 let client = createQueryClient();
 let privateClient: ReturnType<typeof createQueryClient>;
+let privateSession: ReturnType<typeof useAccountSession>;
 let total = 7;
 const streamUrl =
   "https://www.youtube.com/watch?v=synthetic&edition=exact%2Fone";
@@ -112,10 +116,12 @@ function SessionRoutes({
   privacy: ReturnType<typeof createInstallationAdvertisingPrivacy>;
 }) {
   const cache = useQueryClient();
+  const session = useAccountSession();
   const [registration] = useState(createPushRegistration);
   useLayoutEffect(() => {
     privateClient = cache;
-  }, [cache]);
+    privateSession = session;
+  }, [cache, session]);
 
   return (
     <AccountFeedbackProvider>
@@ -270,6 +276,69 @@ async function openInbox() {
     { initialUrl: "/notifications" },
   );
 }
+
+it("withdraws the badge without replacing a retiring summary read with a skipped query", async () => {
+  // Given: the real tab badge observes the same private Query as notification synchronization.
+  await openInbox();
+  await screen.findByRole("button", { name: "Notifications, 7 non lues" });
+  const queries = createInboxQueries(
+    { subject: "synthetic-owner", accountId: row.id },
+    async () => ({}),
+  );
+  const pending = Promise.withResolvers<Response>();
+  const ordinary = mockFetch.getMockImplementation();
+  if (!ordinary) {
+    throw new Error("Synthetic HTTP implementation is required");
+  }
+  mockFetch.mockImplementation((url: string, init: RequestInit) =>
+    url.endsWith("notification-summary")
+      ? pending.promise
+      : ordinary(url, init),
+  );
+  const diagnostics = jest.spyOn(console, "error");
+  const summaryRequests =
+    mockFetch.mock.calls.filter(([url]) => url.endsWith("notification-summary"))
+      .length + 1;
+  const read = privateClient
+    .fetchQuery({ ...queries.summary, retry: 1, retryDelay: 0 })
+    .catch(() => undefined);
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        url.endsWith("notification-summary"),
+      ),
+    ).toHaveLength(summaryRequests),
+  );
+
+  // When: SDK credential loss suspends private reads while the original summary is still pending.
+  mockAuth0.getCredentials.mockRejectedValueOnce({ code: "NO_CREDENTIALS" });
+  await act(async () => {
+    await privateSession.getCredentials().catch(() => undefined);
+  });
+  await waitFor(() =>
+    expect(privateSession.status).toBe("reauthentication-required"),
+  );
+  await act(async () => {
+    pending.reject(
+      new TypeError("Original summary failed after credential loss"),
+    );
+    await jest.advanceTimersByTimeAsync(0);
+    await read;
+  });
+
+  // Then: the old count disappears and no retired attempt reaches a skipped function or another HTTP read.
+  expect(screen.queryByRole("button", { name: /Notifications, 7/ })).toBeNull();
+  expect(diagnostics).not.toHaveBeenCalledWith(
+    expect.stringContaining(
+      "Attempted to invoke queryFn when set to skipToken",
+    ),
+  );
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      url.endsWith("notification-summary"),
+    ),
+  ).toHaveLength(summaryRequests);
+});
 
 it.each([false, true])(
   "retains server reading after a detail failure with lost acknowledgement=%s",
