@@ -223,14 +223,16 @@ class CurrentPresentationIntegrationTest {
   void restrictsCurrentLocality() throws Exception {
     // Given: fictitious contact values; no real erased value is retained or published.
     CollectionState.Cycle sheets = admitFamily("CLUB_SHEETS");
+    Map<ContactField, JsonNullable<String>> proposedContacts =
+        Map.of(
+            ContactField.ADDRESS, JsonNullable.of("326 Synthetic street"),
+            ContactField.CITY, JsonNullable.of("Synthetic municipality"),
+            ContactField.POSTAL_CODE, JsonNullable.of("75001"),
+            ContactField.EMAIL, JsonNullable.of("synthetic326@example.invalid"),
+            ContactField.PHONE, JsonNullable.of("0100000326"),
+            ContactField.WEBSITE, JsonNullable.of("https://synthetic326.example.invalid/"));
     sources.accept(
-        club,
-        new ClubObservation(
-            context(sheets, 1),
-            "Synthetic club",
-            Map.of(
-                ContactField.CITY, JsonNullable.of("Synthetic municipality"),
-                ContactField.EMAIL, JsonNullable.of("synthetic@example.invalid"))));
+        club, new ClubObservation(context(sheets, 1), "Synthetic club", proposedContacts));
     correct(
         Map.of(
             ContactField.CITY, new ContactEdit(ContactModeEnum.MANUAL, "Synthetic municipality")));
@@ -245,20 +247,17 @@ class CurrentPresentationIntegrationTest {
     assertThat(read("/clubs?q=synthetic").get("clubs").size()).isEqualTo(1);
     events.clear();
 
-    // When: the existing manual F11 application operation clears the targeted fields.
-    restrictions.restrict(club, Set.of(ContactField.CITY, ContactField.EMAIL));
+    // When: the existing manual F11 application operation clears all six targeted fields.
+    restrictions.restrict(club, Set.of(ContactField.values()));
     correct(
         Map.of(
+            ContactField.ADDRESS, new ContactEdit(ContactModeEnum.SOURCE, null),
             ContactField.CITY, new ContactEdit(ContactModeEnum.SOURCE, null),
-            ContactField.EMAIL, new ContactEdit(ContactModeEnum.SOURCE, null)));
-    sources.accept(
-        club,
-        new ClubObservation(
-            context(sheets, 2),
-            null,
-            Map.of(
-                ContactField.CITY, JsonNullable.of("Synthetic municipality"),
-                ContactField.EMAIL, JsonNullable.of("synthetic@example.invalid"))));
+            ContactField.POSTAL_CODE, new ContactEdit(ContactModeEnum.SOURCE, null),
+            ContactField.EMAIL, new ContactEdit(ContactModeEnum.SOURCE, null),
+            ContactField.PHONE, new ContactEdit(ContactModeEnum.SOURCE, null),
+            ContactField.WEBSITE, new ContactEdit(ContactModeEnum.SOURCE, null)));
+    sources.accept(club, new ClubObservation(context(sheets, 2), null, proposedContacts));
     ObservationOutcome late =
         localities.accept(
             club,
@@ -274,8 +273,12 @@ class CurrentPresentationIntegrationTest {
     assertThat(read("/clubs?q=synthetic").get("clubs").isEmpty()).isTrue();
     assertThat(read("/teams?q=home").get("teams").isEmpty()).isTrue();
     JsonNode current = read("/clubs/" + club);
+    assertThat(current.get("contacts").hasNonNull("address")).isFalse();
     assertThat(current.get("contacts").hasNonNull("city")).isFalse();
+    assertThat(current.get("contacts").hasNonNull("postalCode")).isFalse();
     assertThat(current.get("contacts").hasNonNull("email")).isFalse();
+    assertThat(current.get("contacts").hasNonNull("phone")).isFalse();
+    assertThat(current.get("contacts").hasNonNull("website")).isFalse();
     assertThat(current.hasNonNull("location")).isFalse();
     assertThat(late.outcome()).isEqualTo(ObservationOutcomeEnum.STALE);
     assertThat(acquisition.acquisitionClubs(true, null))
@@ -290,6 +293,15 @@ class CurrentPresentationIntegrationTest {
     events.clear();
     assertThat(document("clubs", club).city()).isNull();
     assertThat(read("/clubs/" + club).hasNonNull("location")).isFalse();
+    assertThat(read("/teams/" + team).toString()).contains(team.toString(), club.toString());
+    assertThat(document("clubs", club).toString() + document("teams", team))
+        .doesNotContain(
+            "326 Synthetic street",
+            "Synthetic municipality",
+            "75001",
+            "synthetic326@example.invalid",
+            "0100000326",
+            "https://synthetic326.example.invalid/");
   }
 
   @Test
