@@ -12,17 +12,17 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.api.Timeout;
 import org.opensearch.client.opensearch.indices.get_alias.IndexAliases;
 import tools.jackson.databind.JsonNode;
 
 /**
- * Opt-in process/restore proof using a packaged serving backend and two disposable PostgreSQL
- * volumes. No Spring test context, mocked projection owner or provider replaces the serving path.
+ * Process/restore proof using a packaged serving backend and the existing disposable engine and
+ * PostgreSQL fixtures. No Spring test context or mocked projection replaces the serving path.
  */
-@EnabledIfSystemProperty(named = "qualification.search-restoration", matches = "true")
 @DisplayName("Packaged search process continuity and SQL restoration")
 class SearchRestorationIntegrationTest {
   private static final UUID CLUB = UUID.fromString("00000000-0000-4000-8000-000000000351");
@@ -33,6 +33,7 @@ class SearchRestorationIntegrationTest {
   private static final UUID DIVISION = UUID.fromString("00000000-0000-4000-8000-000000000356");
 
   @Test
+  @Timeout(value = 10, unit = TimeUnit.MINUTES)
   @DisplayName(
       "Recovers lost serving work and publishes current search from independently restored SQL")
   void restoresCurrentSearchThroughTheServingProcess() throws Exception {
@@ -59,7 +60,7 @@ class SearchRestorationIntegrationTest {
 
       // Then: the incomplete full run never replaced any usable alias. Startup alone catches up.
       assertThat(aliases(runtime, runtime.prefix)).isEqualTo(original);
-      runtime.start(runtime.prefix, "3s");
+      runtime.start(runtime.prefix, "1h");
       await()
           .atMost(Duration.ofSeconds(30))
           .untilAsserted(
@@ -71,6 +72,14 @@ class SearchRestorationIntegrationTest {
       assertSearch(runtime, "Recoveredcity", false);
 
       // When: an unsubmitted SQL change must be caught by the next ordinary fixed-delay run.
+      runtime.crash();
+      Map<String, String> beforePeriodicStartup = aliases(runtime, runtime.prefix);
+      runtime.start(runtime.prefix, "3s");
+      await()
+          .atMost(Duration.ofSeconds(30))
+          .untilAsserted(
+              () ->
+                  assertThat(aliases(runtime, runtime.prefix)).isNotEqualTo(beforePeriodicStartup));
       Map<String, String> restarted = aliases(runtime, runtime.prefix);
       runtime.sql.update(
           "UPDATE sporting_club SET source_name = 'Continuity periodic club' WHERE id = ?", CLUB);
@@ -83,7 +92,7 @@ class SearchRestorationIntegrationTest {
                     .contains("Continuity periodic club");
               });
 
-      // When: a held startup rebuild serializes two real commits. Its one-hour next-run delay
+      // When: a held startup rebuild serializes a queued edit. Its one-hour next-run delay
       // prevents a later full run from concealing a stale queued update.
       runtime.crash();
       Map<String, String> periodic = aliases(runtime, runtime.prefix);
@@ -91,7 +100,9 @@ class SearchRestorationIntegrationTest {
         runtime.start(runtime.prefix, "1h");
         awaitBlockedFullRun(runtime);
         runtime.changeCity(CLUB, "Intermediatecity");
-        runtime.changeCity(CLUB, "Latestcity");
+        // No second event can hide a queued snapshot of Intermediatecity.
+        runtime.sql.update(
+            "UPDATE sporting_club SET municipality_manual = 'Latestcity' WHERE id = ?", CLUB);
         assertThat(document(runtime, runtime.prefix, "clubs", CLUB).city())
             .isEqualTo("Recoveredcity");
         assertThat(runtime.results("/clubs?q=Recoveredcity", "clubs").isEmpty()).isTrue();

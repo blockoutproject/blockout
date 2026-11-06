@@ -410,12 +410,12 @@ class SearchProjectionIntegrationTest {
                     CLUB);
                 changes.submit(SportingProjectionChanges.Kind.CLUB, CLUB);
               });
+      // No second event: only the queued identity can discover this later committed value.
       new TransactionTemplate(transactions)
           .executeWithoutResult(
               status -> {
                 sql.update(
                     "UPDATE sporting_club SET source_name = 'Latest club' WHERE id = ?", CLUB);
-                changes.submit(SportingProjectionChanges.Kind.CLUB, CLUB);
               });
       assertThat(document("clubs", CLUB).names()).containsExactly("Original club");
     } finally {

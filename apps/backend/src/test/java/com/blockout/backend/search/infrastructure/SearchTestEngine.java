@@ -215,6 +215,22 @@ public final class SearchTestEngine implements AutoCloseable {
   }
 
   /**
+   * Supplies this fixture's verified TLS connection to a separately launched backend. The caller
+   * must stop that process before closing this fixture and deleting its private certificate.
+   *
+   * @param environment process environment receiving only the owned search connection
+   */
+  void registerBackendEnvironment(Map<String, String> environment) {
+    environment.put(
+        "BLOCKOUT_SEARCH_ENDPOINT", properties("trusted", password).endpoint().toString());
+    environment.put("BLOCKOUT_SEARCH_USERNAME", "blockout_search");
+    environment.put("BLOCKOUT_SEARCH_PASSWORD", password);
+    environment.put(
+        "SPRING_SSL_BUNDLE_PEM_OPENSEARCH_TRUSTSTORE_CERTIFICATE",
+        temporary.resolve("tls/ca.pem").toAbsolutePath().toString());
+  }
+
+  /**
    * Supplies native connection inputs for a deliberate trust/credential scenario.
    *
    * @param bundle trusted or untrusted fixture trust bundle

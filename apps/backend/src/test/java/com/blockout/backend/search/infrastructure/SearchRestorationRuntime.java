@@ -3,13 +3,15 @@ package com.blockout.backend.search.infrastructure;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
+import com.blockout.backend.testsupport.PostgresTestDatabase;
+import com.github.dockerjava.api.command.InspectContainerResponse.Mount;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.sun.net.httpserver.HttpServer;
-import java.io.InputStream;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -17,27 +19,15 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.KeyStore;
-import java.security.cert.CertificateFactory;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import liquibase.Contexts;
-import liquibase.LabelExpression;
-import liquibase.Liquibase;
-import liquibase.database.jvm.JdbcConnection;
-import liquibase.resource.ClassLoaderResourceAccessor;
 import org.opensearch.client.opensearch.OpenSearchClient;
-import org.opensearch.client.transport.OpenSearchTransport;
-import org.springframework.boot.ssl.DefaultSslBundleRegistry;
-import org.springframework.boot.ssl.SslBundle;
-import org.springframework.boot.ssl.SslStoreBundle;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
@@ -45,113 +35,108 @@ import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.testcontainers.containers.Container.ExecResult;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.utility.MountableFile;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Owns only the opt-in F04 serving process, local identity keys and private native restore files.
+ * Owns the F04 packaged process and disposable fixtures; archives and process logs remain ignored.
  */
 final class SearchRestorationRuntime implements AutoCloseable {
-  private final Path jar = Path.of(required("backend-jar")).toAbsolutePath();
-  private final Path compose = Path.of(required("compose-file")).toAbsolutePath();
-  private final String project = required("compose-project");
-  private final String databaseUrl = required("database-url");
-  private final String databaseUser = required("database-user");
-  private final String databasePassword = required("database-password");
-  private final String migrationUser = required("migration-user");
-  private final String migrationPassword = required("migration-password");
-  private final int port = Integer.parseInt(required("backend-port"));
+  private final Path jar =
+      Path.of(System.getProperty("qualification.backend-jar", "target/backend-0.0.0-SNAPSHOT.jar"))
+          .toAbsolutePath();
   private final Path output = Path.of("target", "search-restoration-" + UUID.randomUUID());
+  private final PostgreSQLContainer source = PostgresTestDatabase.create();
+  private final PostgreSQLContainer restored =
+      PostgresTestDatabase.create()
+          .withPassword("harmless-restore-admin")
+          .withEnv("BLOCKOUT_APP_PASSWORD", "harmless-restore-app")
+          .withEnv("BLOCKOUT_MIGRATION_PASSWORD", "harmless-restore-migration");
+  private final SearchTestEngine nativeEngine = new SearchTestEngine();
   private final HttpClient http = HttpClient.newHttpClient();
   private final JsonMapper json = JsonMapper.builder().build();
-  private final RSAKey signingKey;
-  private final HttpServer keys;
-  private final OpenSearchTransport transport;
+  private final int port;
+  private RSAKey signingKey;
+  private HttpServer keys;
+  private PostgreSQLContainer database = source;
+  private String applicationPassword = "harmless-app";
+  private String migrationPassword = "harmless-migration";
   private Process backend;
   private int incarnation;
   final OpenSearchClient engine;
   final String prefix = "blockout-local-search-351-" + UUID.randomUUID();
-  final JdbcTemplate sql;
+  JdbcTemplate sql;
 
   /**
-   * Connects to the explicitly owned loopback services without starting infrastructure.
+   * Starts the existing disposable database/engine fixtures and a local issuer for real HTTP edits.
    *
-   * @throws Exception when required inputs, local keys or verified TLS cannot be established
+   * @throws Exception if the packaged JAR, fixture startup or local identity keys are unavailable
    */
   SearchRestorationRuntime() throws Exception {
-    assertThat(project).isEqualTo("blockout-351-search");
-    assertThat(databaseUrl).isEqualTo("jdbc:postgresql://127.0.0.1:5551/blockout");
-    assertThat(port).isEqualTo(8151);
-    assertThat(jar).isRegularFile();
-    assertThat(compose).isRegularFile();
-    Files.createDirectories(output);
-    sql =
-        new JdbcTemplate(new DriverManagerDataSource(databaseUrl, databaseUser, databasePassword));
-    signingKey = new RSAKeyGenerator(2048).keyID("search-restoration-local").generate();
-    keys = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-    keys.createContext(
-        "/.well-known/jwks.json",
-        exchange -> {
-          byte[] body =
-              new JWKSet(signingKey.toPublicJWK()).toString().getBytes(StandardCharsets.UTF_8);
-          exchange.getResponseHeaders().add("Content-Type", "application/json");
-          exchange.sendResponseHeaders(200, body.length);
-          exchange.getResponseBody().write(body);
-          exchange.close();
-        });
-    KeyStore trust = KeyStore.getInstance(KeyStore.getDefaultType());
-    trust.load(null);
-    try (InputStream input =
-        Files.newInputStream(
-            Path.of(environment("SPRING_SSL_BUNDLE_PEM_OPENSEARCH_TRUSTSTORE_CERTIFICATE")))) {
-      trust.setCertificateEntry(
-          "local-ca", CertificateFactory.getInstance("X.509").generateCertificate(input));
+    try {
+      assertThat(jar).isRegularFile();
+      Files.createDirectories(output);
+      try (ServerSocket available = new ServerSocket()) {
+        available.bind(new InetSocketAddress("127.0.0.1", 0));
+        port = available.getLocalPort();
+      }
+      source.start();
+      sql =
+          new JdbcTemplate(
+              new DriverManagerDataSource(databaseUrl(), "blockout_app", applicationPassword));
+      nativeEngine.startEngine();
+      engine = nativeEngine.client;
+      signingKey = new RSAKeyGenerator(2048).keyID("search-restoration-local").generate();
+      keys = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+      keys.createContext(
+          "/.well-known/jwks.json",
+          exchange -> {
+            byte[] body =
+                new JWKSet(signingKey.toPublicJWK()).toString().getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+          });
+      keys.start();
+    } catch (Exception | AssertionError failure) {
+      try {
+        close();
+      } catch (Exception | AssertionError cleanup) {
+        failure.addSuppressed(cleanup);
+      }
+      throw failure;
     }
-    DefaultSslBundleRegistry bundles = new DefaultSslBundleRegistry();
-    bundles.registerBundle("trusted", SslBundle.of(SslStoreBundle.of(null, null, trust)));
-    URI endpoint = URI.create(environment("BLOCKOUT_SEARCH_ENDPOINT"));
-    assertThat(endpoint.getHost()).isIn("localhost", "127.0.0.1");
-    assertThat(endpoint.getPort()).isEqualTo(9251);
-    transport =
-        new OpenSearchConfiguration()
-            .openSearchTransport(
-                new OpenSearchProperties(
-                    endpoint,
-                    environment("BLOCKOUT_SEARCH_USERNAME"),
-                    environment("BLOCKOUT_SEARCH_PASSWORD"),
-                    "trusted",
-                    3000,
-                    5000),
-                bundles);
-    engine = new OpenSearchClient(transport);
-    keys.start();
   }
 
   /**
-   * Applies the committed migration chain under its normal owner to the disposable source.
+   * Applies the shared fixture's real migration chain to the disposable source before seeding.
    *
-   * @throws Exception if schema migration or the explicit connection fails
+   * @throws Exception if the normal migration owner cannot initialize the source
    */
   void migrate() throws Exception {
-    try (Connection connection = migrationConnection();
-        Liquibase liquibase =
-            new Liquibase(
-                "db/changelog/db.changelog-master.xml",
-                new ClassLoaderResourceAccessor(),
-                new JdbcConnection(connection))) {
-      liquibase.update(new Contexts(), new LabelExpression());
-    }
+    PostgresTestDatabase.migrate(source);
     assertThat(sql.queryForObject("SELECT count(*) FROM sporting_club", Integer.class)).isZero();
   }
 
   /**
-   * Opens a short migration-owner connection on whichever isolated volume currently owns port 5551.
+   * Opens a migration-owner connection on the currently selected source or restored database.
    *
-   * @return caller-owned connection; the test owns any transaction and lock
-   * @throws Exception when that explicit database is inaccessible
+   * @return caller-owned connection; the scenario owns any transaction and lock
+   * @throws Exception if the active disposable database is inaccessible
    */
   Connection migrationConnection() throws Exception {
-    return DriverManager.getConnection(databaseUrl, migrationUser, migrationPassword);
+    return DriverManager.getConnection(databaseUrl(), "blockout_migration", migrationPassword);
+  }
+
+  /**
+   * Returns the active fixture's mapped application database, without inherited connection inputs.
+   */
+  private String databaseUrl() {
+    return database.getJdbcUrl().replace("/postgres", "/blockout");
   }
 
   /**
@@ -179,9 +164,9 @@ final class SearchRestorationRuntime implements AutoCloseable {
     Map<String, String> environment = builder.environment();
     environment.clear();
     environment.put("PATH", System.getenv("PATH"));
-    environment.put("SPRING_DATASOURCE_URL", databaseUrl);
-    environment.put("SPRING_DATASOURCE_USERNAME", databaseUser);
-    environment.put("SPRING_DATASOURCE_PASSWORD", databasePassword);
+    environment.put("SPRING_DATASOURCE_URL", databaseUrl());
+    environment.put("SPRING_DATASOURCE_USERNAME", "blockout_app");
+    environment.put("SPRING_DATASOURCE_PASSWORD", applicationPassword);
     environment.put("BLOCKOUT_SECURITY_ISSUER", issuer());
     environment.put("BLOCKOUT_SECURITY_MOBILE_AUDIENCE", "local-mobile");
     environment.put("BLOCKOUT_SECURITY_MOBILE_CLIENT_ID", "local-mobile");
@@ -192,14 +177,7 @@ final class SearchRestorationRuntime implements AutoCloseable {
     environment.put("BLOCKOUT_SEARCH_PROJECTION_FULL_REBUILD_DELAY", delay);
     environment.put("BLOCKOUT_NOTIFICATIONS_RETENTION_CRON", "-");
     environment.put("BLOCKOUT_NOTIFICATIONS_LINK_ANNOUNCEMENTS_CRON", "-");
-    for (String key :
-        List.of(
-            "BLOCKOUT_SEARCH_ENDPOINT",
-            "BLOCKOUT_SEARCH_USERNAME",
-            "BLOCKOUT_SEARCH_PASSWORD",
-            "SPRING_SSL_BUNDLE_PEM_OPENSEARCH_TRUSTSTORE_CERTIFICATE")) {
-      environment.put(key, environment(key));
-    }
+    nativeEngine.registerBackendEnvironment(environment);
     backend = builder.redirectErrorStream(true).redirectOutput(log.toFile()).start();
     await()
         .atMost(Duration.ofSeconds(45))
@@ -315,79 +293,67 @@ final class SearchRestorationRuntime implements AutoCloseable {
   }
 
   /**
-   * Makes a real PostgreSQL 18 custom dump; the source password never enters process arguments.
+   * Creates a real custom-format PostgreSQL dump, gzips it and retains its binary archive locally.
    *
-   * @return private ignored archive, preserved after the check
-   * @throws Exception if native pg_dump fails
+   * @return ignored synthetic archive, preserved after fixture cleanup
+   * @throws Exception if native dump, gzip or the binary copy fails
    */
   Path dump() throws Exception {
-    Path dump = output.resolve("source.dump");
-    Path archive = output.resolve("source.dump.gz");
-    nativePostgres(
-        "postgres",
-        dump,
-        null,
+    assertThat(backend == null || !backend.isAlive()).isTrue();
+    execute(
+        source,
+        "dump.log",
         "pg_dump",
         "--format=custom",
         "--no-owner",
         "--no-acl",
-        "--username=" + migrationUser,
-        "--dbname=blockout");
-    run(
-        new ProcessBuilder("gzip", "-c", dump.toString())
-            .redirectOutput(archive.toFile())
-            .redirectError(output.resolve("gzip.log").toFile()));
+        "--username=blockout_migration",
+        "--dbname=blockout",
+        "--file=/tmp/source.dump");
+    execute(source, "gzip.log", "gzip", "/tmp/source.dump");
+    Path archive = output.resolve("source.dump.gz");
+    source.copyFileFromContainer("/tmp/source.dump.gz", archive.toString());
     assertThat(Files.size(archive)).isPositive();
     return archive;
   }
 
   /**
-   * Restores into the separately retained empty volume while the source and backend are stopped.
+   * Stops and preserves the source while restoring the archive into independent empty storage. Uses
+   * the destination's distinct credentials and reapplies application grants before reopening.
    *
-   * @param archive the successfully created native source archive
-   * @throws Exception if isolation, restore or ACL reapplication fails
+   * @param archive successful native source archive
+   * @throws Exception if source isolation, restoration or ACL reapplication fails
    */
   void restore(Path archive) throws Exception {
     assertThat(backend == null || !backend.isAlive()).isTrue();
-    run(
-        new ProcessBuilder("gzip", "-t", archive.toString())
-            .redirectError(output.resolve("gzip.log").toFile()));
-    Path dump = output.resolve("restored-input.dump");
-    run(
-        new ProcessBuilder("gzip", "-dc", archive.toString())
-            .redirectOutput(dump.toFile())
-            .redirectError(output.resolve("gzip.log").toFile()));
-    String source = composeOutput("ps", "-a", "-q", "postgres").strip();
-    composeRun("stop", "postgres");
-    assertThat(
-            commandOutput(List.of("docker", "inspect", "--format", "{{.State.Running}}", source))
-                .strip())
-        .isEqualTo("false");
-    composeRun("up", "-d", "--wait", "postgres-restore");
-    String destination = composeOutput("ps", "-a", "-q", "postgres-restore").strip();
-    String mount =
-        "{{range .Mounts}}{{if eq .Destination \"/var/lib/postgresql\"}}{{.Name}}{{end}}{{end}}";
-    String sourceVolume =
-        commandOutput(List.of("docker", "inspect", "--format", mount, source)).strip();
-    String destinationVolume =
-        commandOutput(List.of("docker", "inspect", "--format", mount, destination)).strip();
-    assertThat(sourceVolume).isNotBlank().isNotEqualTo(destinationVolume);
-    assertThat(destinationVolume).isNotBlank();
+    source.getDockerClient().stopContainerCmd(source.getContainerId()).exec();
+    assertThat(source.getCurrentContainerInfo().getState().getRunning()).isFalse();
+    restored.start();
+    assertThat(postgresVolume(source)).isNotEqualTo(postgresVolume(restored));
+    database = restored;
+    applicationPassword = "harmless-restore-app";
+    migrationPassword = "harmless-restore-migration";
+    sql =
+        new JdbcTemplate(
+            new DriverManagerDataSource(databaseUrl(), "blockout_app", applicationPassword));
     assertThat(
             sql.queryForObject(
                 "SELECT count(*) FROM pg_tables WHERE schemaname = 'public'", Integer.class))
         .isZero();
-    nativePostgres("postgres-restore", output.resolve("restore.toc"), dump, "pg_restore", "--list");
-    nativePostgres(
-        "postgres-restore",
-        null,
-        dump,
+    restored.copyFileToContainer(MountableFile.forHostPath(archive), "/tmp/source.dump.gz");
+    execute(restored, "gzip-check.log", "gzip", "-t", "/tmp/source.dump.gz");
+    execute(restored, "gzip-restore.log", "gzip", "-d", "/tmp/source.dump.gz");
+    execute(restored, "restore.toc", "pg_restore", "--list", "/tmp/source.dump");
+    execute(
+        restored,
+        "restore.log",
         "pg_restore",
         "--exit-on-error",
         "--no-owner",
         "--no-acl",
-        "--username=" + migrationUser,
-        "--dbname=blockout");
+        "--username=blockout_migration",
+        "--dbname=blockout",
+        "/tmp/source.dump");
     try (Connection connection = migrationConnection();
         java.sql.Statement statement = connection.createStatement()) {
       statement.execute(
@@ -401,150 +367,58 @@ final class SearchRestorationRuntime implements AutoCloseable {
   }
 
   /**
-   * Runs only the repository's PostgreSQL native tools inside the explicitly owned service.
+   * Reads the native PostgreSQL 18 volume identity to prove source and destination storage differ.
    *
-   * @param service source or restored PostgreSQL service
-   * @param stdout optional binary archive destination
-   * @param stdin optional binary archive source
-   * @param arguments native PostgreSQL command and options
-   * @throws Exception if the process fails or exceeds its local bound
+   * @param fixture this suite's source or restored database
+   * @return nonblank native data-volume name
    */
-  private void nativePostgres(String service, Path stdout, Path stdin, String... arguments)
+  private String postgresVolume(PostgreSQLContainer fixture) {
+    String volume =
+        fixture.getCurrentContainerInfo().getMounts().stream()
+            .filter(mount -> "/var/lib/postgresql".equals(mount.getDestination().getPath()))
+            .map(Mount::getName)
+            .findFirst()
+            .orElseThrow();
+    assertThat(volume).isNotBlank();
+    return volume;
+  }
+
+  /**
+   * Executes a native database/archive tool; local socket trust avoids secret command arguments.
+   * Binary archives use Testcontainers' file-copy API, while diagnostics remain in ignored files.
+   *
+   * @param fixture task-owned database container
+   * @param logName private output name for this operation
+   * @param command native tool and explicit arguments
+   * @throws Exception if execution, diagnostic capture or the native command fails
+   */
+  private void execute(PostgreSQLContainer fixture, String logName, String... command)
       throws Exception {
-    List<String> command =
-        composeCommand(
-            "exec",
-            "-T",
-            service,
-            "sh",
-            "-c",
-            "export PGPASSWORD=\"$BLOCKOUT_MIGRATION_PASSWORD\"; exec \"$@\"",
-            "pg-tool");
-    command.addAll(List.of(arguments));
-    ProcessBuilder builder =
-        new ProcessBuilder(command).redirectError(output.resolve("postgres.log").toFile());
-    if (stdout != null) {
-      builder.redirectOutput(stdout.toFile());
-    } else {
-      builder.redirectOutput(
-          ProcessBuilder.Redirect.appendTo(output.resolve("postgres.log").toFile()));
-    }
-    if (stdin != null) {
-      builder.redirectInput(stdin.toFile());
-    }
-    run(builder);
+    ExecResult result = fixture.execInContainer(command);
+    Path log = output.resolve(logName);
+    Files.writeString(log, result.getStdout() + result.getStderr());
+    assertThat(result.getExitCode()).as("Native command; inspect ignored log %s", log).isZero();
   }
 
   /**
-   * Runs an owned Compose lifecycle action with private ignored output.
-   *
-   * @param arguments explicit native Compose subcommand and service
-   * @throws Exception if the operation fails
-   */
-  private void composeRun(String... arguments) throws Exception {
-    run(
-        new ProcessBuilder(composeCommand(arguments))
-            .redirectErrorStream(true)
-            .redirectOutput(output.resolve("compose.log").toFile()));
-  }
-
-  /**
-   * Reads native Compose metadata without parsing a second configuration model.
-   *
-   * @param arguments explicit native metadata query
-   * @return stdout on successful completion
-   * @throws Exception if the query fails
-   */
-  private String composeOutput(String... arguments) throws Exception {
-    return commandOutput(composeCommand(arguments));
-  }
-
-  /**
-   * Selects only this task's explicit project and ignored Compose file.
-   *
-   * @param arguments native Compose subcommand
-   * @return mutable process argument list
-   */
-  private List<String> composeCommand(String... arguments) {
-    List<String> command =
-        new ArrayList<>(List.of("docker", "compose", "-p", project, "-f", compose.toString()));
-    command.addAll(List.of(arguments));
-    return command;
-  }
-
-  /**
-   * Reads bounded native metadata output after a successful process exit.
-   *
-   * @param command exact native command
-   * @return stdout; diagnostics remain private
-   * @throws Exception if execution fails
-   */
-  private String commandOutput(List<String> command) throws Exception {
-    Path captured = output.resolve("metadata.txt");
-    run(
-        new ProcessBuilder(command)
-            .redirectOutput(captured.toFile())
-            .redirectError(output.resolve("metadata.log").toFile()));
-    return Files.readString(captured);
-  }
-
-  /**
-   * Bounds owned native commands and terminates a timed-out child without leaking diagnostics.
-   *
-   * @param builder process with explicit redirections and no secret command arguments
-   * @throws Exception if the process fails or times out
-   */
-  private void run(ProcessBuilder builder) throws Exception {
-    Process process = builder.start();
-    if (!process.waitFor(60, TimeUnit.SECONDS)) {
-      process.destroyForcibly();
-      throw new IllegalStateException(
-          "Native qualification command timed out; inspect ignored logs");
-    }
-    assertThat(process.exitValue()).as("Native command; inspect ignored logs").isZero();
-  }
-
-  /**
-   * Requires one explicit opt-in suite property, with no inherited database default.
-   *
-   * @param key property suffix in the qualification namespace
-   * @return nonblank input
-   */
-  private static String required(String key) {
-    String value = System.getProperty("qualification." + key);
-    assertThat(value).as("Required qualification.%s", key).isNotBlank();
-    return value;
-  }
-
-  /**
-   * Requires one worktree-owned search input without echoing its value.
-   *
-   * @param key exact exported environment name
-   * @return nonblank input
-   */
-  private static String environment(String key) {
-    String value = System.getenv(key);
-    assertThat(value).as("Required environment input %s", key).isNotBlank();
-    return value;
-  }
-
-  /**
-   * Stops only this suite's process and local keys; infrastructure and private evidence persist.
+   * Stops the serving process and issuer, then closes every disposable fixture, even after failure.
+   * The original Compose resources are untouched; this suite's archive and process logs persist.
    */
   @Override
   public void close() throws Exception {
-    try {
-      if (backend != null && backend.isAlive()) {
-        backend.destroy();
-        if (!backend.waitFor(10, TimeUnit.SECONDS)) {
-          backend.destroyForcibly();
-          assertThat(backend.waitFor(10, TimeUnit.SECONDS)).isTrue();
+    try (source;
+        restored;
+        nativeEngine;
+        http) {
+      try {
+        if (backend != null && backend.isAlive()) {
+          crash();
+        }
+      } finally {
+        if (keys != null) {
+          keys.stop(0);
         }
       }
-    } finally {
-      keys.stop(0);
-      http.close();
-      transport.close();
     }
   }
 }
