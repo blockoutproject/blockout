@@ -190,14 +190,16 @@ class SportingPresentationWebMvcTest {
                 .with(operator()));
 
     // Then
-    response.andExpect(status().isUnprocessableEntity());
+    response
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:unprocessable-content"));
     verify(presentation, never()).set(any(), any(), any(), any());
   }
 
   @ParameterizedTest
-  @ValueSource(ints = {0, 1, 5_242_881})
-  @DisplayName("Refuses absent, invalid or oversized replacement before any part of the save")
-  void rejectsInvalidReplacement(int size) throws Exception {
+  @ValueSource(ints = {0, 5_242_881})
+  @DisplayName("Refuses empty or oversized replacement before any part of the save")
+  void rejectsInvalidReplacementSize(int size) throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
 
@@ -210,8 +212,40 @@ class SportingPresentationWebMvcTest {
                 .with(operator()));
 
     // Then
-    response.andExpect(status().is(size > 5_242_880 ? 413 : 422));
+    response
+        .andExpect(status().is(size > 5_242_880 ? 413 : 422))
+        .andExpect(
+            jsonPath("$.type")
+                .value(
+                    size > 5_242_880
+                        ? "urn:blockout:problem:payload-too-large"
+                        : "urn:blockout:problem:unprocessable-content"));
     verify(presentation, never()).set(any(), any(), any(), any());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"clubs", "teams", "divisions"})
+  @DisplayName("Identifies corrupt PNG content before any presentation change")
+  void rejectsCorruptImageWithSpecificProblem(String path) throws Exception {
+    // Given
+    when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
+    byte[] truncatedPng = {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a};
+
+    // When
+    ResultActions response =
+        mvc.perform(
+            multipart(HttpMethod.PATCH, "/administration/" + path + "/{id}/presentation", RESOURCE)
+                .file(metadata(path, "replace"))
+                .file(new MockMultipartFile("image", "synthetic.png", "image/png", truncatedPng))
+                .with(operator()));
+
+    // Then
+    response
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:invalid-image"));
+    verify(presentation, never()).set(any(), any(), any(), any());
+    verify(presentation, never()).setDivision(any(), any(), any());
   }
 
   @Test
@@ -228,7 +262,9 @@ class SportingPresentationWebMvcTest {
                 .with(operator()));
 
     // Then
-    response.andExpect(status().isUnprocessableEntity());
+    response
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:unprocessable-content"));
     verify(presentation, never()).set(any(), any(), any(), any());
   }
 
@@ -392,6 +428,8 @@ class SportingPresentationWebMvcTest {
   }
 
   /**
+   * Supplies an authenticated operator while keeping current grants at the controlled owner.
+   *
    * @return a synthetic current operator token without changing current application grants
    */
   private RequestPostProcessor operator() {
@@ -441,6 +479,8 @@ class SportingPresentationWebMvcTest {
   }
 
   /**
+   * Supplies a complete empty contact projection without private contact values.
+   *
    * @return all current empty source-managed fields, retaining explicit privacy-safe nulls
    */
   private SportingPresentation.Contacts contactState() {

@@ -2,7 +2,7 @@ package com.blockout.backend.sporting.application.service;
 
 import com.blockout.backend.shared.image.ImageDecoder;
 import com.blockout.backend.shared.image.ImageDecoder.DecodedImage;
-import com.blockout.backend.sporting.application.exception.SportingValidationException;
+import com.blockout.backend.sporting.application.exception.InvalidSportingImageException;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
 import java.io.IOException;
 import org.springframework.stereotype.Service;
@@ -23,12 +23,12 @@ public class ValidateSportingImage {
    *
    * @param bytes original bounded content, never an arbitrary URL
    * @return immutable original bytes with their detected content type
-   * @throws SportingValidationException for oversized, unsupported or undecodable content
+   * @throws InvalidSportingImageException for empty, oversized, unsupported or undecodable content
    */
   @Transactional(propagation = Propagation.NEVER)
   public Image validate(byte[] bytes) {
     if (bytes.length == 0 || bytes.length > MAX_BYTES) {
-      throw new SportingValidationException();
+      throw new InvalidSportingImageException();
     }
     try {
       DecodedImage image =
@@ -37,13 +37,13 @@ public class ValidateSportingImage {
               false,
               header -> {
                 if ((long) header.width() * header.height() > MAX_DECODED_PIXELS) {
-                  throw new SportingValidationException();
+                  throw new InvalidSportingImageException();
                 }
               });
       image.pixels().flush();
       return new Image(bytes, image.mediaType());
     } catch (IOException invalid) {
-      throw new SportingValidationException();
+      throw new InvalidSportingImageException();
     }
   }
 }

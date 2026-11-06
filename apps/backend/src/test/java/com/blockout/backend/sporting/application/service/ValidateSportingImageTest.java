@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.backend.shared.image.ImageFixture;
-import com.blockout.backend.sporting.application.exception.SportingValidationException;
+import com.blockout.backend.sporting.application.exception.InvalidSportingImageException;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
@@ -46,7 +46,7 @@ class ValidateSportingImageTest {
 
     // When / Then
     assertThatThrownBy(() -> validator.validate(bytes))
-        .isInstanceOf(SportingValidationException.class);
+        .isInstanceOf(InvalidSportingImageException.class);
   }
 
   @Test
@@ -85,7 +85,7 @@ class ValidateSportingImageTest {
 
     // When / Then
     assertThatThrownBy(() -> validator.validate(bytes))
-        .isInstanceOf(SportingValidationException.class);
+        .isInstanceOf(InvalidSportingImageException.class);
   }
 
   @Test
@@ -96,7 +96,7 @@ class ValidateSportingImageTest {
 
     // When / Then
     assertThatThrownBy(() -> validator.validate(bytes))
-        .isInstanceOf(SportingValidationException.class);
+        .isInstanceOf(InvalidSportingImageException.class);
   }
 
   @Test
@@ -107,7 +107,7 @@ class ValidateSportingImageTest {
 
     // When / Then
     assertThatThrownBy(() -> validator.validate(bytes))
-        .isInstanceOf(SportingValidationException.class);
+        .isInstanceOf(InvalidSportingImageException.class);
   }
 
   @Test
@@ -118,7 +118,7 @@ class ValidateSportingImageTest {
 
     // When / Then
     assertThatThrownBy(() -> validator.validate(bytes))
-        .isInstanceOf(SportingValidationException.class);
+        .isInstanceOf(InvalidSportingImageException.class);
   }
 
   @Test
@@ -129,7 +129,7 @@ class ValidateSportingImageTest {
 
     // When / Then
     assertThatThrownBy(() -> validator.validate(bytes))
-        .isInstanceOf(SportingValidationException.class);
+        .isInstanceOf(InvalidSportingImageException.class);
   }
 
   @Test
@@ -140,7 +140,7 @@ class ValidateSportingImageTest {
 
     // When / Then
     assertThatThrownBy(() -> validator.validate(bytes))
-        .isInstanceOf(SportingValidationException.class);
+        .isInstanceOf(InvalidSportingImageException.class);
   }
 
   /**
