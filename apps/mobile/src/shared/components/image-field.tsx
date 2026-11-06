@@ -37,6 +37,7 @@ export interface ImageFieldProps {
   onRemove?: (id: string) => void;
   multiple?: boolean;
   disabled?: boolean;
+  /** Uses the published standard or compact preview/action composition. */
   size?: "standard" | "compact";
   chooseLabel?: string;
   /** Thumbnail fitting only; use contain for logos. This does not transform selected assets or full previews. */
@@ -273,7 +274,9 @@ const styles = StyleSheet.create({
   compact: {
     minHeight: 84,
     flexDirection: "row",
-    padding: tokens.spacing.compact,
+    // Override standard directional insets; the native border occupies Figma's inset stroke.
+    paddingHorizontal: tokens.spacing.compact - tokens.border.thin,
+    paddingVertical: tokens.spacing.compact - tokens.border.thin,
     gap: tokens.spacing.md,
   },
   thumbnail: {
