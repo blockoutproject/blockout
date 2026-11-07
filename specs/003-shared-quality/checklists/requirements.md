@@ -1,4 +1,4 @@
-# Specification Quality Checklist: Shared quality and operations
+# Specification Quality Checklist: Shared application quality
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
 **Created**: 2026-09-17
@@ -32,4 +32,4 @@
 ## Notes
 
 - The reviewed markers retain their existing specification-quality scope. The current [FR-036–FR-038 convention](../spec.md#functional-requirements) owns principal useful-area centering, inline sections, intrinsic sheets, successful-Empty pull, cached-empty failure and local-only pagination feedback. Its [prototype and separate Figma approvals](../spec.md#evidence-scope) and affected native qualification remain pending; this checklist does not certify them.
-- data and images share the 30-minute/30-day backup policy, with one initial isolated restore and no backup notifications or recurring verification. Application alert closure is distinct from business recovery; ordinary mobile retries are explicit. The applicable [F05](../../005-accounts-identity/spec.md) and [F12](../../013-administration-app-configuration/spec.md) design prerequisites remain separate. This checklist establishes neither runtime qualification nor delivered software.
+- The current scope covers application diagnostics, privacy, current rights, data integrity and native behavior. Server hosting/release, external monitoring and backup policies are outside this specification; existing native build and store-continuity qualification remains applicable. The applicable [F05](../../005-accounts-identity/spec.md) and [F12](../../013-administration-app-configuration/spec.md) design prerequisites remain separate. This checklist establishes neither runtime qualification nor delivered software.

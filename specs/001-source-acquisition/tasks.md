@@ -23,7 +23,7 @@ description: "Implementation tasks for F01 acquisition and source operations"
 - Collector: `apps/collector/src/main/java/com/blockout/collector/acquisition/`, feature-local application/provider adapters and corresponding `src/test/java/` and `src/test/resources/acquisition/`. No direct database write or generic scraper/worker framework.
 - Backend: `apps/backend/src/main/java/com/blockout/backend/collection/`, corresponding tests and `src/main/resources/db/changelog/`. F02 owns canonical seasons, sporting facts and their seven ingestion operations; use application ports, never its entities/repositories.
 - Mobile: `apps/mobile/src/features/collection/` and thin routes under `apps/mobile/src/app/(operations)/collection/`. Reuse F13's generated transport, semantic UI and F05/F12 session/admission.
-- Canonical interfaces remain under `contracts/http/mobile/collection/`, `contracts/http/ingestion/collection/` and `contracts/http/common/collection-enums.yaml`. Generated Java/mobile outputs stay ignored under F13's pipeline. Operational instructions belong in existing `infra/operations/README.md` and `infra/observability/README.md`.
+- Canonical interfaces remain under `contracts/http/mobile/collection/`, `contracts/http/ingestion/collection/` and `contracts/http/common/collection-enums.yaml`. Generated Java/mobile outputs stay ignored under F13's pipeline. Useful local and business instructions belong in existing `infra/operations/README.md`.
 
 ## Phase 1: Setup (Shared Infrastructure)
 
@@ -201,19 +201,18 @@ description: "Implementation tasks for F01 acquisition and source operations"
 
 **Scope**: A29–A33, A45; FR-020–023/039–045; SC-006/009.
 
-**Independent Test**: First failed competition observations and structural/context errors activate the proper condition; club/geocoding failures are actionable on their first observation. Only new usable affected-scope evidence establishes recovery, independently of native alert closure.
+**Independent Test**: First failed competition observations and structural/context errors activate the proper condition; club/geocoding failures are actionable on their first observation. Only new usable affected-scope evidence establishes recovery, without inferring recovery from a pause or another scope.
 
 ### Tests for User Story 6
 
 - [x] T059 [P] [US6] Write failing evidence/diagnostic tests in `apps/backend/src/test/java/com/blockout/backend/collection/application/service/RecordCollectionResultsTest.java` for stable control/scope/stage/phase ordering, first competition failure, immediate club/geocoding failures across cycles, partial passes, pause/closure, valid empty/ambiguous outcomes and unrelated success. Verify separate acquisition/integration recovery, bounded counts/safe reasons and grouped new-season/classification needs; no raw documents, personal contacts or secret identifiers.
-- [x] T060 [P] [US6] Prepare native alert qualification cases in `specs/001-source-acquisition/quickstart.md` using [F13 observability](../003-shared-quality/tasks.md): first failure, structural/context anomaly, persistent club/geocoding failure, five-day reminders, native closure and actual affected-scope recovery. Include unresolved terminal writes while the collector is still alive; distinguish these from availability evidence and do not invent instant crash detection or notification-delivery guarantees.
+- [x] T060 [P] [US6] Prepare local diagnostic cases in `specs/001-source-acquisition/quickstart.md`: first failure, structural/context anomaly, persistent club/geocoding failure, pause and actual affected-scope recovery. Include unresolved terminal writes while the collector is still alive; distinguish current observations from availability evidence without inventing instant crash detection.
 
 ### Implementation and qualification for User Story 6
 
 - [x] T061 [US6] Complete current evidence and owned structured diagnostics in `apps/backend/src/main/java/com/blockout/backend/collection/application/service/RecordCollectionResults.java` and `apps/collector/src/main/java/com/blockout/collector/acquisition/application/CollectPassage.java`, making T059 pass. Keep current observation/outcome/order/latest useful success and exact-key recovery after a non-successful outcome; no outage-start clock or structural latch. New-season/classification reports use bounded aggregate counts and the existing administration destination grouped by provider/season/subject; no per-item report, sent-report ledger or outage classification for ordinary waiting. Follow F13/F11 redaction and retention, not the private F05 cleanup exception.
-- [x] T062 [US6] Configure the concrete F01 native Grafana/log conditions and concise interpretation in `infra/observability/README.md`, reusing F13's existing signals, grouping, five-day reminders and resolved notifications. First failed competition/structural observations are actionable; club/geocoding technical failures use that same immediate observed-failure policy, independently of refresh cadence. A pause or unrelated success cannot fabricate recovery, and a native resolved alert is not proof of business repair. Add no incident database, custom alert-transition engine, extra dashboard programme or recovery scheduler.
-- [x] T080 [US6] Persist independent current outcomes and emit committed exact-key failure/recovery diagnostics in the existing collection services, with generated consumers and native last-value conditions. Qualify immediate failed/partial/unconfirmed actionability and recovery after a non-successful outcome. Evolve retained databases through an immutable change set, preserving logical order, latest useful success, privacy and all retained fields except the deliberately discarded outage clocks.
-- [ ] T063 [US6] Run T060 in an authorized isolated environment with actual F13 diagnostics/alert configuration and current F01 result projections, using `specs/001-source-acquisition/quickstart.md` for the scenarios and expected outcomes. Show independent failures and recovery through the implemented mobile diagnostics, verify no private/raw values in public artifacts and retain native delivery limits. Leave unavailable external notification evidence pending rather than treating configuration inspection as delivered alerts.
+- [x] T080 [US6] Persist independent current outcomes and emit committed exact-key failure/recovery diagnostics in the existing collection services, with generated consumers and local diagnostics. Qualify immediate failed/partial/unconfirmed actionability and recovery after a non-successful outcome. Evolve retained databases through an immutable change set, preserving logical order, latest useful success, privacy and all retained fields except the deliberately discarded outage clocks.
+- [ ] T063 [US6] Run T060 through local backend/collector checks and the implemented mobile diagnostics with synthetic inputs and current F01 result projections. Show independent failures and affected-scope recovery, and verify no private/raw values in public artifacts. Local observations establish no external notification delivery.
 
 **Checkpoint**: Operational evidence remains current and scope-specific. No separate incident registry or exact-once notification/recovery promise is introduced.
 
@@ -259,7 +258,7 @@ description: "Implementation tasks for F01 acquisition and source operations"
 
 - [x] T077 Verify T074–T076 through the actual README/CI commands and isolated collector/backend/PostgreSQL boundary, including presentation, partial commits, contextual identities and absence safety. Independently review changed source/tests and deleted consumers; distinguish controlled checks, integrated owner behavior and unavailable provider qualification. Unrelated incomplete qualifications above remain open.
 
-- [x] T081 Verify T078–T080 through actual generation, collector/backend checks and retained PostgreSQL migration evidence. Independently review touched handwritten source/tests and preserve qualification boundaries and keep `quickstart.md` commands/scenarios current. Native Grafana/contact-point delivery retains its separate T063 qualification.
+- [x] T081 Verify T078–T080 through actual generation, collector/backend checks and retained PostgreSQL migration evidence. Independently review touched handwritten source/tests and preserve qualification boundaries and keep `quickstart.md` commands/scenarios current. External notification delivery is outside the current scope.
 
 ---
 
@@ -292,7 +291,7 @@ F13 T067 tokens/fonts → F13 T068 appearance → F13 T069 controls/T071 feedbac
 Delivered increments and remaining evidence → T070–T072
 ```
 
-The minimal F02 season/classification model and reads precede F01 persistence/admission; F02's later sporting-write transactions then consume F01's actual fence. This does not require full F02 ingestion to build F01 or full F01 providers to build F02. F05/F12 current grants and shared account locks remain one owner; F01 admission checks current domain/service conditions without retaining an operator session. F13 UI is an early bounded dependency for screens, not a requirement to finish every shared component, backup or device qualification first.
+The minimal F02 season/classification model and reads precede F01 persistence/admission; F02's later sporting-write transactions then consume F01's actual fence. This does not require full F02 ingestion to build F01 or full F01 providers to build F02. F05/F12 current grants and shared account locks remain one owner; F01 admission checks current domain/service conditions without retaining an operator session. F13 UI is an early bounded dependency for screens, not a requirement to finish every shared component, unrelated deployment or device qualification first.
 
 ### Within each story
 

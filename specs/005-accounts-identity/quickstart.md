@@ -73,7 +73,7 @@ Qualify the ordinary profile-to-erasure screen with the unchanged consequences, 
 2. **Fail each provider call or its target lookup after local commit.** **Expected:** other known targets are attempted once, business data stays deleted and 204 leads directly to guest home. Private diagnostics support manual repair without a pending record, polling or replay. A process stop between commit and logging demonstrates the accepted unreported-cleanup gap.
 3. **Lose the DELETE response and reread the original UUID.** **Expected:** ordinary reads resolve presence/absence without replay; unavailable reads permit local sign-out with an ordinary error and no false confirmation. Repeating DELETE for the absent original returns 404 without provider calls or effects on a replacement account.
 4. **Register again after successful and failed provider cleanup.** **Expected:** new business UUID with no old data/grants/gifts; actual current Auth0 date, including an unchanged date after failed identity removal. RevenueCat asynchronous success needs no polling. Check second-device SDK behavior, ordinary overlap errors/manual assistance and the accepted same-subject token limit in [FR-035](spec.md#deletion-and-return), without assuming immediate global revocation.
-5. **Inspect synthetic cleanup failures and the native alert.** **Expected:** only authorized original-target references in private 14-day logs; no email, profile, photo, credentials or raw payloads, and no personal references in Discord. Verify safe manual targeting and existing private support handling for an unresolved case beyond retention. Alert closure alone does not prove repair.
+5. **Inspect synthetic cleanup failures.** **Expected:** only authorized original-target references in private diagnostics; no email, profile, photo, credentials or raw payloads, and no personal references in public artifacts. Verify safe manual targeting and purpose-limited private handling of unresolved cases. A diagnostic is not proof of repair.
 
 ### Mobile erasure
 
@@ -109,13 +109,13 @@ Under a surviving subject, current baseline authority may operate on the new UUI
 
 ### Private cleanup operations
 
-Use the [native Grafana condition](../../infra/observability/README.md#private-account-cleanup-f05) for `manual_attention`, extracting only nonpersonal notification fields. Follow the [manual cleanup procedure](../../infra/operations/README.md#private-account-cleanup) for current-use checks, exact original provider targets, preproduction scope and still-justified private retention beyond 14 days.
+Inspect the local `manual_attention` diagnostic and follow the [manual cleanup procedure](../../infra/operations/README.md#private-account-cleanup) for current-use checks, exact original provider targets, dedicated test-identity scope and purpose-limited private handling.
 
-Exercise live Loki/Discord evaluation, host/provider retention and private support access only with their actual authorized tools. Local formatting, synthetic diagnostics and source consistency establish no destructive provider or operational outcome. Preserve the accepted unlogged post-commit interruption gap.
+Exercise actual provider cleanup and private support access only with their authorized tools. Local formatting, synthetic diagnostics and source consistency establish no destructive provider outcome. Preserve the accepted unlogged post-commit interruption gap.
 
 ## Integration with other owners
 
 - **F09 purchases:** restore a valid qualification purchase after business deletion on each original store. Verify current-account assignment without old data/gifts; use [F09 qualification](../006-pro-subscriptions/spec.md#success-criteria) for receipt-wide transfer and assisted exceptions.
 - **F14 continuity:** supply the necessary historical customer references and valid-gift evidence to the [transition qualification](../014-v1-v2-transition/spec.md#success-criteria). Native restoration does not prove population coverage or erase old customer records.
 - **F10/F11 private requests:** exercise the existing public privacy-page route under [FR-037–FR-038](spec.md#deletion-and-return); ownership verification precedes erasure and outcome communication remains truthful. Inspect diagnostics against the scoped F05/F11 exception and all remaining exclusions.
-- **F13 restoration:** include deleted business accounts and known outstanding provider cleanup in the [isolated restore qualification](../003-shared-quality/quickstart.md#initial-restore-and-activation-condition); current erasure, rights and expiry apply before affected access or push resumes.
+- **Current restrictions on reused data:** include deleted business accounts and known outstanding provider cleanup in disposable older-data fixtures under the [shared data-integrity boundary](../003-shared-quality/quickstart.md#retained-data-and-club-logo-continuity); current erasure, rights and expiry apply before affected access or push resumes.

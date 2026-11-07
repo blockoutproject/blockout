@@ -30,4 +30,4 @@ Three stable types: `imprint`, `privacy`, `terms`. Each complete static HTML doc
 
 ## Existing independent owners
 
-F05 owns business-account erasure and original-target provider cleanup; F09 owns RevenueCat rights, F10 private reports/attachments, F07 notification expiry and F13 backups/diagnostics. Advertising age is not account seniority. Their existing deletion, retention and restoration meanings remain authoritative.
+F05 owns business-account erasure and original-target provider cleanup; F09 owns RevenueCat rights, F10 private reports/attachments, F07 notification expiry and F13 safe diagnostics. Advertising age is not account seniority. Their existing deletion, retention and restoration meanings remain authoritative.

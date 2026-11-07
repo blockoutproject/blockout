@@ -31,4 +31,4 @@
 
 ## Notes
 
-The current F10 requirements integrate complete private sending, explicit retry without receipt lookup, ordinary manual GitHub handling and provider-owned support storage. F11 privacy and F13 backup/retry consumers are reconciled. F12 global gates still suppress support routes, while ordinary sign-in/loading failures retain access. This checklist assesses requirement quality; [plan.md](../plan.md) records the scoped design approvals and future qualification limits.
+The current F10 requirements integrate complete private sending, explicit retry without receipt lookup, ordinary manual GitHub handling and provider-owned support storage. F11 privacy and F13 diagnostic/retry consumers are reconciled. F12 global gates still suppress support routes, while ordinary sign-in/loading failures retain access. This checklist assesses requirement quality; [plan.md](../plan.md) records the scoped design approvals and future qualification limits.

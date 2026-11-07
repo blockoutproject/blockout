@@ -42,7 +42,7 @@ On iOS and Android native builds, select fictional landscape and portrait images
 
 ## Complete-receipt backend
 
-Run the backend validation, generated endpoint, provider adapter and child-process boundaries through [README verification](../../README.md#verification). Exercise partial attachments, ambiguous final marking, process timeout/interruption and cleanup. Expect 201 only after complete marking, no automatic replay, and private originals removed only after child termination is confirmed. Real CLI packaging, upload permissions, proxy limits and exceptional provider erasure require their actual deployment/private destination.
+Run the backend validation, generated endpoint, provider adapter and child-process boundaries through [README verification](../../README.md#verification). Exercise partial attachments, ambiguous final marking, process timeout/interruption and cleanup. Expect 201 only after complete marking, no automatic replay, and private originals removed only after child termination is confirmed. Local CLI execution uses the authorized host installation. Actual upload permissions and exceptional provider erasure require an authorized private test destination; controlled process tests need neither hosted deployment nor a reverse proxy.
 
 ## Explicit mobile submission
 

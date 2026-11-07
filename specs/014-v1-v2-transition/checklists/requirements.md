@@ -33,4 +33,4 @@
 
 [Design evidence and the owner's scoped approval](../plan.md#design-approval) are recorded in the plan. This checklist assesses requirements quality, not implementation or native/provider qualification.
 
-- identity/payment/age/logo retention, compatible devices and actual availability in both stores remain transition prerequisites. Simpler backups authorize no intentional loss or reset. [F12](../../013-administration-app-configuration/spec.md) governs blocked routes and access by an already authenticated administrator; F11 standalone public reading retains its scope.
+- identity/payment/age/logo retention, compatible devices and actual availability in both stores remain transition prerequisites. No infrastructure decision authorizes intentional loss or reset. [F12](../../013-administration-app-configuration/spec.md) governs blocked routes and access by an already authenticated administrator; F11 standalone public reading retains its scope.
