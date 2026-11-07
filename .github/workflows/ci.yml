@@ -48,6 +48,9 @@ jobs:
       - name: Check repository formatting
         run: npm run format:check
 
+      - name: Check deployment helper syntax
+        run: bash -n .github/scripts/deploy-preproduction.sh
+
       - name: Validate native telemetry configuration
         run: |
           telemetry_image=$(docker compose --env-file infra/observability/.env.example -f infra/observability/compose.yaml config --images)
