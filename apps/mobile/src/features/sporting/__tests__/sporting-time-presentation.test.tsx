@@ -8,13 +8,7 @@ import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
 import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 import { QueryClientProvider } from "@tanstack/react-query";
-import {
-  cleanup,
-  act,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react-native";
+import { cleanup, act, render, screen } from "@testing-library/react-native";
 import { AppState } from "react-native";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
@@ -138,9 +132,9 @@ it("renders a readable unchanged date and meaningful unknown-time label", async 
   await render(<MatchSummary match={match} />, { wrapper: Providers });
 
   // Then
-  expect(screen.getByText("20 sept. 2026")).toBeOnTheScreen();
+  expect(screen.getByText("20 septembre 2026")).toBeOnTheScreen();
   expect(screen.getByText("Heure à définir")).toBeOnTheScreen();
-  expect(screen.queryByText(/00:00/)).not.toBeOnTheScreen();
+  expect(screen.queryByText(/00h00/)).not.toBeOnTheScreen();
 });
 
 it("updates retained match detail to the current phone zone on foreground return", async () => {
@@ -163,7 +157,7 @@ it("updates retained match detail to the current phone zone on foreground return
   );
   const events = jest.spyOn(AppState, "addEventListener");
   await render(<MatchScreen matchId={sportingId} />, { wrapper: Providers });
-  await screen.findAllByText("20 sept. 2026 à 00:30");
+  await screen.findAllByText("20 septembre 2026 à 00h30");
   const requests = mockFetch.mock.calls.length;
 
   // When
@@ -177,41 +171,46 @@ it("updates retained match detail to the current phone zone on foreground return
   });
 
   // Then: formatting uses the current zone while the match owner also rereads on foreground.
-  expect(screen.getAllByText("19 sept. 2026 à 18:30")).toHaveLength(2);
-  expect(screen.queryByText("20 sept. 2026 à 00:30")).not.toBeOnTheScreen();
+  expect(screen.getAllByText("19 septembre 2026 à 18h30")).toHaveLength(2);
+  expect(screen.queryByText("20 septembre 2026 à 00h30")).not.toBeOnTheScreen();
   expect(mockFetch).toHaveBeenCalledTimes(requests + 1);
 });
 
-it("uses the rendering day when an initial match response crosses midnight", async () => {
-  // Given
-  jest.setSystemTime(new Date("2026-09-19T21:59:59Z"));
-  const detail = matchDetail();
-  detail.match.schedule.localDate = "2026-09-20";
-  const pendingMatch = Promise.withResolvers<Response>();
-  mockFetch.mockImplementation((url: string) =>
-    new URL(url).pathname.endsWith("/application-access")
-      ? Promise.resolve(Response.json(applicationAccessResponse()))
-      : pendingMatch.promise,
-  );
-  await render(<MatchScreen matchId={sportingId} />, { wrapper: Providers });
-  await waitFor(() =>
-    expect(
-      mockFetch.mock.calls.some(([url]) =>
-        new URL(url).pathname.includes("/matches/"),
+it.each([
+  "2026-11-06T12:00:00Z",
+  "2026-11-07T12:00:00Z",
+  "2026-11-08T12:00:00Z",
+])(
+  "shows the same concise schedule in summary and information on %s",
+  async (now) => {
+    // Given: the same kickoff must not gain a redundant tomorrow/today/yesterday prefix.
+    jest.setSystemTime(new Date(now));
+    const detail = matchDetail();
+    detail.match.schedule = {
+      localDate: "2026-11-07",
+      instant: "2026-11-07T19:40:00Z",
+      observedAt: "2026-11-01T12:00:00Z",
+    };
+    mockFetch.mockImplementation((url: string) =>
+      Promise.resolve(
+        Response.json(
+          new URL(url).pathname.endsWith("/application-access")
+            ? applicationAccessResponse()
+            : detail,
+        ),
       ),
-    ).toBe(true),
-  );
+    );
 
-  // When
-  jest.setSystemTime(new Date("2026-09-19T22:00:01Z"));
-  await act(async () => pendingMatch.resolve(Response.json(detail)));
+    // When
+    await render(<MatchScreen matchId={sportingId} />, { wrapper: Providers });
 
-  // Then
-  expect(
-    await screen.findByText("Aujourd’hui · 20 sept. 2026"),
-  ).toBeOnTheScreen();
-  expect(screen.queryByText("Demain · 20 sept. 2026")).not.toBeOnTheScreen();
-});
+    // Then
+    expect(await screen.findAllByText("7 novembre 2026 à 20h40")).toHaveLength(
+      2,
+    );
+    expect(screen.queryByText(/Aujourd’hui|Demain|Hier/)).not.toBeOnTheScreen();
+  },
+);
 
 it("keeps the summary pool heading informational instead of inventing a navigation control", async () => {
   // Given

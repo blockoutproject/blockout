@@ -16,7 +16,7 @@ Provide public club, team and pool discovery through the existing backend and mo
 
 **Storage**: PostgreSQL 18.6 owns sporting facts, verified identity aliases and division terms. Three derived OpenSearch indexes per environment; mobile visit state stays in memory. No search history, persistent mobile search cache or server cursor store.
 
-**Testing**: JUnit/Spring MVC, Testcontainers with PostgreSQL and the selected OpenSearch image, generated Java/TypeScript integration, Jest Expo/React Native Testing Library, repository documentation/contract checks and native accessibility qualification. [Quickstart](quickstart.md) defines runnable validation scenarios and expected outcomes.
+**Testing**: JUnit/Spring MVC, Testcontainers with PostgreSQL and the selected OpenSearch image, generated Java/TypeScript integration, Jest Expo/React Native Testing Library, repository documentation/contract checks and native accessibility checks within [F13 FR-030](../003-shared-quality/spec.md#platforms-accessibility-and-bounded-continuity). [Quickstart](quickstart.md) defines runnable validation scenarios and expected outcomes.
 
 **Target Platform**: Host-run backend and native iOS/Android app, with isolated local OpenSearch for development and Testcontainers qualification.
 

@@ -664,7 +664,7 @@ it("leaves the actual club-season and search-input owners unchanged", async () =
   ).findByRole("tab", { name: "Équipes" });
   await layoutNativeTabs();
   await user.press(clubTeams);
-  await screen.findByRole("button", { name: `Saison ${older.label}` });
+  await screen.findByRole("button", { name: "Saison du club" });
   await user.type(
     screen.getByPlaceholderText("Rechercher une équipe…"),
     "Volleyball",
@@ -677,8 +677,8 @@ it("leaves the actual club-season and search-input owners unchanged", async () =
 
   // Then
   expect(
-    screen.getByRole("button", { name: `Saison ${older.label}` }),
-  ).toBeOnTheScreen();
+    screen.getByRole("button", { name: "Saison du club" }),
+  ).toHaveAccessibilityValue({ text: older.label });
   expect(screen.getByDisplayValue("Volleyball")).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls

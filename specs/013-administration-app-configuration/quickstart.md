@@ -1,6 +1,6 @@
 # Quickstart: Validate administration and application access
 
-Use the [README verification commands](../../README.md#verification), [canonical operations](contracts/README.md#operations-and-semantics) and [data constraints](data-model.md). F13 supplies the generated consumers and selected test tools.
+Use the [README verification commands](../../README.md#verification), [canonical operations](contracts/README.md#operations-and-semantics) and [data constraints](data-model.md). F13 supplies the generated consumers and selected test tools; native accessibility verification follows [F13 FR-030](../003-shared-quality/spec.md#platforms-accessibility-and-bounded-continuity).
 
 ## Prerequisites
 
@@ -23,7 +23,7 @@ Use isolated migrated PostgreSQL and native development builds with valid enviro
 | Store/media failures     | Open each real platform store link; fail opening; display a broken optional image.                                                                                                            | No inferred installation; explicit store retry; message/actions remain usable without media.                                                                                                                                                                     |
 | Domain continuity        | Activate maintenance during a short accepted mutation; process ingestion/inbox/purge; admit a new sporting push.                                                                              | Accepted effects retained; collection/inbox/purge continue; new pushes skipped for all recipients without replay.                                                                                                                                                |
 | Contract boundary        | Generate/compile Java and TypeScript, run response validation and wrong-token cases.                                                                                                          | Null/absence, numeric range, additional fields, capabilities and Problem Details behave as authored; ordinary maintenance refusals carry current maintenance, exempt operations only technical unavailability; deterministic generated output stays outside Git. |
-| Accessibility            | Physical iOS/Android with VoiceOver on iOS, text scaling, reduced motion and deep-link/back navigation.                                                                                       | Approved actions remain reachable; focus and labels understandable; decoration never carries the only information.                                                                                                                                               |
+| Accessibility            | Physical iOS/Android with text scaling, reduced motion, ordinary form keyboard/focus and deep-link/back navigation.                                                                           | Approved actions remain reachable; ordinary field focus and labels understandable; decoration never carries the only information.                                                                                                                                |
 
 ## Direct authorization and manual grant lifecycle
 
@@ -106,7 +106,7 @@ For A23–A26, expect eligible retained inbox entries during maintenance, no new
 
 Use actual iOS/Android builds with the F05/F14 owners and [approved design sources](spec.md#design-evidence). Exercise cold-start public/identity failures independently, explicit retry, partial/late responses, direct links, grant withdrawal and minimum versions. Expect the public complete check to remain independent of credential initialization, ordinary closure without a successful check, separate operational admission and no minimum-version bypass.
 
-Verify both themes, keyboard/navigation, VoiceOver on iOS, enlarged text and reduced motion. Confirmed maintenance/update retains native refresh; failed admission uses Retry alone under F13. Store opening is a native action, never proof that a required binary is downloadable.
+Verify both themes, ordinary form keyboard/focus, navigation, enlarged text and reduced motion. Confirmed maintenance/update retains native refresh; failed admission uses Retry alone under F13. Store opening is a native action, never proof that a required binary is downloadable.
 
 Compare the blocking-screen backdrop with the [native composition](plan.md#mobile-state-and-native-behavior): the compact rail stack stays centered as a whole, the one-way loop joins seamlessly, and reduced motion stays still.
 

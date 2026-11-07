@@ -144,8 +144,6 @@ export function SportingCalendarView({
   useLayoutEffect(() => {
     currentActive.current = active;
   }, [active]);
-  const groupingZone =
-    calendar.data?.pages[0]?.timeZone ?? currentSportingTimeZone();
   const [listWidth, setListWidth] = useState(0);
   const { stacked, columns } = useCalendarLayout(listWidth);
   const days = useMemo(() => calendarDays(calendar.data), [calendar.data]);
@@ -288,11 +286,7 @@ export function SportingCalendarView({
       refreshControl={refreshControl}
       renderItem={({ item }) =>
         item.kind === "space" ? null : item.kind === "date" ? (
-          <CalendarDate
-            date={item.date}
-            timeZone={groupingZone}
-            stacked={stacked}
-          />
+          <CalendarDate date={item.date} stacked={stacked} />
         ) : item.kind === "pool" ? (
           <CalendarPoolHeader group={item.group} />
         ) : (
@@ -334,23 +328,15 @@ export function SportingCalendarView({
   );
 }
 
-/** Date-only sporting values stay on their original day; the full spoken heading uses the captured zone. */
-function CalendarDate({
-  date,
-  timeZone,
-  stacked,
-}: {
-  date: string;
-  timeZone: string;
-  stacked: boolean;
-}) {
+/** The full spoken heading retains the server-grouped civil day without a relative prefix. */
+function CalendarDate({ date, stacked }: { date: string; stacked: boolean }) {
   const { colors } = useTheme();
   const value = new Date(`${date}T12:00:00Z`);
   return (
     <View
       accessible
       accessibilityRole="header"
-      accessibilityLabel={formatSportingDay(date, timeZone)}
+      accessibilityLabel={formatSportingDay(date)}
       style={[
         styles.dateHeading,
         { backgroundColor: colors.canvas },

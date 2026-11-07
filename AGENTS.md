@@ -49,6 +49,8 @@ On `develop` and `main`, administrator enforcement is enabled (`isAdminEnforced:
 
 ## Verification
 
+Follow [F13 FR-030's accessibility qualification scope](specs/003-shared-quality/spec.md#platforms-accessibility-and-bounded-continuity): do not add VoiceOver/TalkBack qualification to current or future tasks without an explicit human request.
+
 Before delivery, review every added or modified handwritten test against the applicable testing skill and its canonical examples; passing checks alone do not establish compliance.
 
 For native UI checks, prefer the official [agent-device skill](.agents/skills/agent-device/SKILL.md) and [setup](README.md#native-ui-checks). Target the task's device and session explicitly; use desktop automation for host setup or unsupported interactions, and diagnose repeated unchanged failures.

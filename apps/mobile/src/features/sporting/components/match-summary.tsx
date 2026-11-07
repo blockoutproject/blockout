@@ -78,7 +78,11 @@ export function MatchSummary({
               accessible={false}
               style={[styles.dot, { backgroundColor: accent }]}
             />
-            <Text style={[styles.metadataText, { color: colors.text }]}>
+            {/* Keep the status in its measured line when Android redraws text after a theme change. */}
+            <Text
+              numberOfLines={1}
+              style={[styles.metadataText, { color: colors.text }]}
+            >
               {matchStatusLabel(match)}
             </Text>
           </View>
@@ -146,9 +150,11 @@ export function MatchSummary({
       </View>
       {result && result.state !== "final" && (
         <Text style={[styles.note, { color: colors.secondaryText }]}>
-          {result.state === "provisional"
-            ? "Résultat provisoire · Résultat définitif indisponible"
-            : "Résultat non confirmé · Résultat définitif indisponible"}
+          {!contextual
+            ? "Résultat définitif indisponible"
+            : result.state === "provisional"
+              ? "Résultat provisoire · Résultat définitif indisponible"
+              : "Résultat non confirmé · Résultat définitif indisponible"}
         </Text>
       )}
       {result?.specialLabel && (

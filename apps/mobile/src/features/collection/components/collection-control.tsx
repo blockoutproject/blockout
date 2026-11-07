@@ -174,7 +174,7 @@ export function CollectionControl({
         <Text
           style={[tokens.typography.metadata, { color: colors.secondaryText }]}
         >
-          Collecte demandée · en attente de démarrage
+          En attente de démarrage
         </Text>
       )}
       <Text style={[tokens.typography.strong, { color: colors.text }]}>

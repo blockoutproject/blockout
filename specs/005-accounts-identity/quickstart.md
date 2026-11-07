@@ -1,5 +1,7 @@
 # Quickstart: validate account lifecycle
 
+Native accessibility verification follows [F13 FR-030](../003-shared-quality/spec.md#platforms-accessibility-and-bounded-continuity).
+
 ## Prerequisites
 
 Use the [README verification commands](../../README.md#verification) for implemented boundaries. The scenarios below qualify the [F05 implementation](plan.md) as their owning tasks and native/provider prerequisites become available; passing controlled tests does not complete those scenarios.
@@ -63,7 +65,7 @@ Hold the initial account/session read and verify one whole-page skeleton/recover
 
 Keep the editor's initial-photo prerequisite and admitted-draft safeguards. Verify independent foreground/decorative decoding failures, replacement/removal and source/session withdrawal through the [F13 media/native scenarios](../003-shared-quality/quickstart.md#native-qualification-limits). Unknown Pro does not delay Profile readiness.
 
-Initial loading/full-body Error omits pull-to-refresh and uses safe Retry; retained content/drafts keep eligible native refresh. Check actual keyboard retention/discard, both themes and enlarged text. Use the [approved readiness scope](../003-shared-quality/spec.md#evidence-scope), not F12's separate admission gate, to assess Account rendering; provider cold start, crop, VoiceOver on iOS and the wider Account matrix need their actual native/provider inputs.
+Initial loading/full-body Error omits pull-to-refresh and uses safe Retry; retained content/drafts keep eligible native refresh. Check actual keyboard retention/discard, both themes and enlarged text. Use the [approved readiness scope](../003-shared-quality/spec.md#evidence-scope), not F12's separate admission gate, to assess Account rendering; provider cold start, crop and the wider Account matrix need their actual native/provider inputs.
 
 ## Erasure and return
 

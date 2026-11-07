@@ -2,6 +2,8 @@
 
 Follow the [local development setup](../../README.md#local-development) and run the [repository verification commands](../../README.md#verification). Use the prerequisites and scenarios below to qualify acquisition end-to-end; shared checks alone do not establish provider coverage or complete acquisition/integration.
 
+Native accessibility verification follows [F13 FR-030](../003-shared-quality/spec.md#platforms-accessibility-and-bounded-continuity).
+
 ## Prerequisites
 
 Use an isolated environment with the backend, PostgreSQL and single collector instance, generated consumers from the same [canonical contracts](contracts/README.md), a collection-authorized operator and accounts without that right. Prepare deterministic sanitized/synthetic FFVB, LNV and IGN fixtures, controlled transport responses and a controllable test clock. No personal provider payload belongs in Git. Live-source qualification requires its own authorized scope and is not a CI dependency.
@@ -88,7 +90,7 @@ Run the opt-in suites together as documented in the runtime command. Use the nat
 
 Use JUnit for source interpretation and clock-driven eligibility, Spring MVC for contract/authorization behavior, and Testcontainers PostgreSQL for real transaction ordering, incarnation replacement and constraints. Generate and compile Java server/client and mobile outputs; check enums, date/absence/null semantics, unknown request fields, additive response fields, deterministic regeneration and no generated files in Git. Carry the nullable validation failure category through both generated HTTP boundaries.
 
-On physical iOS/Android builds, verify preparation, dashboard and closure through their actual routes: pending versus running, exact seasonal confirmation and launch selection, retained input after refusal/uncertainty, explicit reread, permissions, light/dark, narrow widths, enlarged text and VoiceOver actions on iOS. Remove/restore admission during a draft and pending write; expect original-session ownership and no newly selected sources. Back/cancel creates no new write. Child pagination retries the failed page without dropping accepted rows.
+On physical iOS/Android builds, verify preparation, dashboard and closure through their actual routes: pending versus running, exact seasonal confirmation and launch selection, retained input after refusal/uncertainty, explicit reread, permissions, light/dark, narrow widths and enlarged text. Remove/restore admission during a draft and pending write; expect original-session ownership and no newly selected sources. Back/cancel creates no new write. Child pagination retries the failed page without dropping accepted rows.
 
 Verify that current `collection.manage` authorizes operational preparation during maintenance without a personal bypass grant; guests, unrelated/revoked grants and erased accounts must have no preparation effects. Ordinary business admission and minimum-version restrictions retain F12 ownership.
 

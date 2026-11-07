@@ -39,6 +39,9 @@ export function MatchInformation({
     (document) => document.kind === "information",
   );
   const schedule = formatSportingSchedule(match.schedule, displayTimeZone);
+  const venue = [detail.venueName, detail.venueAddress]
+    .filter(Boolean)
+    .join(" · ");
   return (
     <MatchSurface division={division}>
       <View style={styles.heading}>
@@ -75,12 +78,8 @@ export function MatchInformation({
       {information ? (
         <InformationRow
           label="Lieu"
-          value={
-            [detail.venueName, detail.venueAddress]
-              .filter(Boolean)
-              .join(" · ") || matchDocumentLabels.information
-          }
-          supporting="Fiche d’information (PDF)"
+          value={venue || matchDocumentLabels.information}
+          supporting={venue ? "Fiche d’information (PDF)" : "PDF"}
           icon={FileText}
           onPress={() => onDocumentOpen("information")}
         />
@@ -88,11 +87,7 @@ export function MatchInformation({
         <ContactLink
           presentation="information"
           label="Lieu"
-          value={
-            [detail.venueName, detail.venueAddress]
-              .filter(Boolean)
-              .join(" · ") || undefined
-          }
+          value={venue || undefined}
           destination={
             detail.venueAddress
               ? mapDestination(detail.venueAddress)

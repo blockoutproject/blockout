@@ -167,28 +167,47 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-it("opens the generated binary as a local-only full-screen PDF and releases it when returning to the same match", async () => {
-  // Given
-  const user = userEvent.setup();
-  await renderPage(<MatchScreen matchId={sportingId} />);
+it.each([
+  {
+    venue: "with a known venue",
+    venueName: "Gymnase fictif",
+    accessibleName: "Lieu : Gymnase fictif · Fiche d’information (PDF)",
+  },
+  {
+    venue: "without a known venue",
+    venueName: undefined,
+    accessibleName: "Lieu : Fiche d’information · PDF",
+  },
+])(
+  "opens the local-only PDF $venue and releases it when returning to the same match",
+  async ({ venueName, accessibleName }) => {
+    // Given
+    detail.venueName = venueName;
+    const user = userEvent.setup();
+    await renderPage(<MatchScreen matchId={sportingId} />);
 
-  // When
-  await user.press(
-    await screen.findByRole("link", { name: /Lieu.*Fiche d’information/ }),
-  );
-  await screen.findByTestId("native-pdf");
+    // When
+    await user.press(await screen.findByRole("link", { name: accessibleName }));
+    await screen.findByTestId("native-pdf");
 
-  // Then
-  expect(jest.mocked(Pdf).mock.lastCall?.[0].source).toEqual({
-    uri: documentFiles[0].uri,
-  });
-  expect(documentFiles[0].uri).toMatch(/^file:\/\/\//);
-  expect(mockAuth0.getCredentials).not.toHaveBeenCalled();
-  await user.press(screen.getByRole("button", { name: "Fermer le document" }));
-  expect(screen.queryByTestId("native-pdf")).not.toBeOnTheScreen();
-  expect(documentFiles[0].exists).toBe(false);
-  expect(screen.getByText("Home")).toBeOnTheScreen();
-});
+    // Then
+    expect(jest.mocked(Pdf).mock.lastCall?.[0].source).toEqual({
+      uri: documentFiles[0].uri,
+    });
+    expect(documentFiles[0].uri).toMatch(/^file:\/\/\//);
+    expect(mockAuth0.getCredentials).not.toHaveBeenCalled();
+
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Fermer le document" }),
+    );
+
+    // Then
+    expect(screen.queryByTestId("native-pdf")).not.toBeOnTheScreen();
+    expect(documentFiles[0].exists).toBe(false);
+    expect(screen.getByText("Home")).toBeOnTheScreen();
+  },
+);
 
 it("keeps ordinary failure retry explicit and preserves the match reporting context", async () => {
   // Given
