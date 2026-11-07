@@ -40,6 +40,7 @@ final class CollectorSportingRuntime implements AutoCloseable {
   private final String issuer;
   private final String baseUrl;
   private final Process backend;
+  private final Duration tokenLifetime;
   final JdbcTemplate sql;
 
   /**
@@ -49,6 +50,21 @@ final class CollectorSportingRuntime implements AutoCloseable {
    * @throws Exception if local keys, startup or the database connection cannot be established
    */
   CollectorSportingRuntime() throws Exception {
+    this(Duration.ofMinutes(10));
+  }
+
+  /**
+   * Starts the same isolated runtime with an explicit local fixture credential lifetime.
+   *
+   * @param tokenLifetime positive validity used only by this runtime's synthetic signing authority
+   * @throws IllegalArgumentException when the fixture lifetime is not positive
+   * @throws Exception if local keys, startup or the database connection cannot be established
+   */
+  CollectorSportingRuntime(Duration tokenLifetime) throws Exception {
+    if (tokenLifetime.isZero() || tokenLifetime.isNegative()) {
+      throw new IllegalArgumentException("Fixture token lifetime must be positive");
+    }
+    this.tokenLifetime = tokenLifetime;
     String databaseUrl = required("qualification.database-url");
     String databaseUser = required("qualification.database-user");
     String databasePassword = required("qualification.database-password");
@@ -164,7 +180,7 @@ final class CollectorSportingRuntime implements AutoCloseable {
   }
 
   /**
-   * Signs a short-lived principal against the suite-owned key endpoint.
+   * Signs a principal for the explicit fixture lifetime against the suite-owned key endpoint.
    *
    * @param subject synthetic principal identity
    * @param audience selected local API audience
@@ -183,7 +199,7 @@ final class CollectorSportingRuntime implements AutoCloseable {
                     .subject(subject)
                     .audience(List.of(audience))
                     .issuedAt(now)
-                    .expiresAt(now.plusSeconds(600))
+                    .expiresAt(now.plus(tokenLifetime))
                     .claim("azp", client)
                     .claim("scope", scope)
                     .build()))
