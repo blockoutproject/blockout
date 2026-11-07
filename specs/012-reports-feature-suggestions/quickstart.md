@@ -55,7 +55,7 @@ BLOCKOUT_SUPPORT_CONSUMERS_TEST=true ./mvnw -B -ntp -pl apps/backend verify \
   "-DargLine=-Djava.io.tmpdir=$PWD/apps/backend/target/tmp"
 ```
 
-With this flag, the backend suite runs the generated TypeScript consumer against its local server; otherwise that case is skipped.
+With this flag, the backend suite runs the generated TypeScript consumer and actual support form against its local server; otherwise those cases are skipped. Provider HTTP and child-process effects remain controlled: these checks do not establish real uploads, private permissions, manual provider closure or erasure.
 
 ## Explicit mobile submission
 

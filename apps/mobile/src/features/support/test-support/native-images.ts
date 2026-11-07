@@ -11,17 +11,28 @@ class NativeImageFile extends Blob {
     this.exists = false;
   });
 
-  constructor(uri: string, size = 32) {
-    super([new Uint8Array(size)], {
-      type: uri.endsWith(".jpg") ? "image/jpeg" : "image/png",
-    });
+  /** Keeps either scenario-owned image bytes or a synthetic exact-size buffer in native cache. */
+  constructor(uri: string, sizeOrBytes: number | Uint8Array<ArrayBuffer> = 32) {
+    super(
+      [
+        typeof sizeOrBytes === "number"
+          ? new Uint8Array(sizeOrBytes)
+          : sizeOrBytes,
+      ],
+      {
+        type: uri.endsWith(".jpg") ? "image/jpeg" : "image/png",
+      },
+    );
     this.uri = uri;
   }
 }
 
-/** Creates one fictional prepared native result, including exact byte boundary scenarios. */
-export function preparedImage(uri: string, size = 32) {
-  const file = new NativeImageFile(uri, size);
+/** Creates one fictional prepared native result from an exact size or supplied synthetic image bytes. */
+export function preparedImage(
+  uri: string,
+  sizeOrBytes: number | Uint8Array<ArrayBuffer> = 32,
+) {
+  const file = new NativeImageFile(uri, sizeOrBytes);
   files.set(uri, file);
   return file;
 }
