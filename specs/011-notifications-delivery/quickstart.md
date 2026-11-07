@@ -6,7 +6,7 @@ Follow the [local development setup](../../README.md#local-development) and use 
 
 Use migrated isolated PostgreSQL, fictional usable/deleted accounts, overlapping follows and accepted sporting transitions. Use F13's generated Java/mobile consumers with JUnit/Spring MVC/Testcontainers and Jest Expo/React Native Testing Library. Controlled provider I/O permits local qualification; it does not establish physical delivery.
 
-Physical push checks require development/release binaries on physical iOS and Android, isolated nonproduction credentials/destinations and known test accounts. Do not use real user payloads or Expo Go as delivery evidence. Restoration additionally requires an authorized source/destination, a qualified backup and masking under [F13](../003-shared-quality/quickstart.md#initial-restore-and-activation-condition).
+Physical push checks require development/release binaries on physical iOS and Android, isolated nonproduction credentials/destinations and known test accounts. Do not use real user payloads or Expo Go as delivery evidence. Older-data privacy cases use disposable local PostgreSQL fixtures; they select no infrastructure restoration setup.
 
 ## Essential scenarios
 
@@ -50,9 +50,9 @@ Use the real F02/F08 producers and F06 relation owner for composition, audience 
 
 Exercise withdrawal, hiding, link removal and retained reappearance through the actual F02/F03/F08 owners. Check inbox, summary, cached presentation, current match navigation and remaining sends against the restrictions in the scenario table. A controlled persisted state does not replace qualification of the actual moderation command.
 
-## Retention and isolated restore
+## Retention and current-obligation reconciliation
 
-Run age-boundary and failure cases with a controlled clock and migrated PostgreSQL. Expect one atomic fixed-cutoff pass, no confirmed count after an uncertain commit, strict age-29 exclusion despite physical cleanup failure and another attempt at the next ordinary daily pass. Use the [pre-reopen procedure](../../infra/operations/README.md#reconcile-before-access-or-sends) for the authorized isolated restore:
+Run age-boundary and failure cases with a controlled clock and migrated PostgreSQL. Expect one atomic fixed-cutoff pass, no confirmed count after an uncertain commit, strict age-29 exclusion despite physical cleanup failure and another attempt at the next ordinary daily pass. Use disposable older-data fixtures to exercise current business/privacy obligations before affected access or sends:
 
 | Restored case                                                                                 | Required observation before affected access/sends reopen                                                                                                                                                                                                                                                                                                     |
 | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -61,7 +61,7 @@ Run age-boundary and failure cases with a controlled clock and migrated PostgreS
 | Privacy restriction or current right unknown since backup                                     | Apply current F11/F09 restrictions and F12 admission. Unknown obligations keep affected access and sends closed; a usable SQL restore or old maintenance setting is insufficient.                                                                                                                                                                            |
 | Match facts preserved versus genuinely lost in the restored copy                              | Preserve available category/composition facts independently of inbox purge. Inspect no permanent recipient history. Lost facts may exceptionally repeat a sporting announcement, but permit no expired/erased personal data or renewed creation date.                                                                                                        |
 | Partial active/offline inbox, seven unread but two loaded, earliest expiry on an unloaded row | Use the actual native inbox: at age 29 remove loaded expired content before display/resume and while active, invalidate an unprovable whole count/badge, then reconcile through ordinary refresh. Fixtures/server-only checks do not qualify this mobile boundary.                                                                                           |
-| Evidence and cleanup                                                                          | Keep source backup time, original timestamps, isolated target, current-obligation decisions, per-case outcomes and remaining gaps in the existing private F13 operational evidence. No private attachments/diagnostics enter this public repository; restoration never renews backup retention.                                                              |
+| Evidence and cleanup                                                                          | Keep original timestamps, isolated fixture scope, current-obligation decisions, per-case outcomes and remaining gaps. No private attachments or diagnostics enter this public repository; using an older fixture never renews personal-data lifetime.                                                                                                        |
 
 ## After-commit push
 

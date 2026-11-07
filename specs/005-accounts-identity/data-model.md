@@ -4,16 +4,16 @@
 
 ## Active account
 
-| Field / relationship           | Meaning and constraint                                                                                                                                                                                 |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `accountId`                    | Generated business UUID; stable for this account lifecycle, never reused after voluntary erasure. RevenueCat's V2 App User ID is its string representation.                                            |
-| `issuer`, `subject`            | Exact validated Auth0 principal. Unique pair for concurrent bootstrap; no mapping by email or secondary purchase reference.                                                                            |
-| `username`                     | Outer whitespace trimmed; 3–32 ASCII letters, digits, dot, hyphen or underscore. Case-insensitive unique constraint; generated neutral candidate uses the same rules.                                  |
-| `email`                        | Usable provider value required at creation; not unique and not editable through profile PATCH. Missing later data does not clear it.                                                                   |
-| `principalCreatedAt`           | Nullable trustworthy Auth0 creation instant, preserved across business recreation for migration. Never inferred from local creation time.                                                              |
-| Optional photo                 | PNG/JPEG bytes with media type, byte length and square dimensions at most 1024 pixels; at most 5 MiB. No original metadata. Bytes and association share the profile transaction and PostgreSQL backup. |
-| Business relationships         | F06 follows, F07 destinations/inbox, F08 attribution and F12 rights reference the business UUID. Each owner defines its own model and accepted cleanup. F05 does not add those features' tables.       |
-| Historical customer references | Only established references needed for continuity or scoped erasure, discovered through F14's private evidence. No blanket copied customer profile or email-derived mapping.                           |
+| Field / relationship           | Meaning and constraint                                                                                                                                                                           |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `accountId`                    | Generated business UUID; stable for this account lifecycle, never reused after voluntary erasure. RevenueCat's V2 App User ID is its string representation.                                      |
+| `issuer`, `subject`            | Exact validated Auth0 principal. Unique pair for concurrent bootstrap; no mapping by email or secondary purchase reference.                                                                      |
+| `username`                     | Outer whitespace trimmed; 3–32 ASCII letters, digits, dot, hyphen or underscore. Case-insensitive unique constraint; generated neutral candidate uses the same rules.                            |
+| `email`                        | Usable provider value required at creation; not unique and not editable through profile PATCH. Missing later data does not clear it.                                                             |
+| `principalCreatedAt`           | Nullable trustworthy Auth0 creation instant, preserved across business recreation for migration. Never inferred from local creation time.                                                        |
+| Optional photo                 | PNG/JPEG bytes with media type, byte length and square dimensions at most 1024 pixels; at most 5 MiB. No original metadata. Bytes and association share the profile transaction in PostgreSQL.   |
+| Business relationships         | F06 follows, F07 destinations/inbox, F08 attribution and F12 rights reference the business UUID. Each owner defines its own model and accepted cleanup. F05 does not add those features' tables. |
+| Historical customer references | Only established references needed for continuity or scoped erasure, discovered through F14's private evidence. No blanket copied customer profile or email-derived mapping.                     |
 
 The unique username constraint handles competing accounts. Profile mutation and validation follow the [plan](plan.md#profile-photo-and-concurrent-changes).
 
@@ -44,4 +44,4 @@ V2 initialization and common-onboarding completion are distinct installation mar
 
 F08 retains useful links and moderation state without deleted-account attribution; it removes reporter attribution and free-text reasons in this local transaction while preserving counted report facts and moderation decisions. It owns contribution history and content-specific restrictions. F07 removes personal inbox/destinations; F12 removes personal grants. F10/F11 own private support and legal retention. RevenueCat store purchases remain distinct from customer records and gifts; Auth0 deletion does not delete Google/Apple global accounts.
 
-F14's transition evidence must keep required historical customer targets discoverable even after native purchase transfer. A returned user receives a new business UUID, and old cleanup never resolves its target through the current principal-to-account mapping. Restore of a PostgreSQL backup must apply current erasure, permission and expiry obligations before affected access or push resumes.
+F14's transition evidence must keep required historical customer targets discoverable even after native purchase transfer. A returned user receives a new business UUID, and old cleanup never resolves its target through the current principal-to-account mapping. Reusing an older retained copy must apply current erasure, permission and expiry obligations before affected access or push resumes.

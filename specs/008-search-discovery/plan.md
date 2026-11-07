@@ -18,7 +18,7 @@ Provide public club, team and pool discovery through the existing backend and mo
 
 **Testing**: JUnit/Spring MVC, Testcontainers with PostgreSQL and the selected OpenSearch image, generated Java/TypeScript integration, Jest Expo/React Native Testing Library, repository documentation/contract checks and native accessibility qualification. [Quickstart](quickstart.md) defines runnable validation scenarios and expected outcomes.
 
-**Target Platform**: Existing Linux backend and native iOS/Android app. Separate private production/preproduction OpenSearch instances and volumes on the existing VPS, sharing its host-failure boundary.
+**Target Platform**: Host-run backend and native iOS/Android app, with isolated local OpenSearch for development and Testcontainers qualification.
 
 **Project Type**: Search capability in the modular backend, a derived search engine and the existing mobile feature; no additional business service.
 
@@ -33,7 +33,7 @@ Provide public club, team and pool discovery through the existing backend and mo
 | Principle           | Before research / after design                                                                                                                                                                                                                                                  |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | I — Specification   | Accepted format/gender search, scoped division abbreviations and matching limits are integrated into F04. No revision journal or implicit behavioral replacement.                                                                                                               |
-| II — Ownership      | F02 owns identities, effective data, aliases, classification and visibility; F04 owns candidate matching and browsing; F03 owns destinations. F13 incorporates only the additional derived infrastructure.                                                                      |
+| II — Ownership      | F02 owns identities, effective data, aliases, classification and visibility; F04 owns candidate matching and browsing; F03 owns destinations. F13 retains the shared local runtime and diagnostic boundaries.                                                                   |
 | III — Design        | The [existing discovery approval](spec.md#user-scenarios--testing) covers the unchanged field, filters, examples, cards and retry states. Backend matching/indexing decisions introduce no material visual or interaction change; no new prototype or Figma approval is needed. |
 | IV — Contracts      | Extend the canonical mobile root. Reuse existing representations and errors where meanings match; no editable contract copy or committed generated output. Boundary suites qualify generation; owning tasks qualify business behavior.                                          |
 | V — Proportionality | Native search, transaction events, one scheduler and atomic aliases. No PIT lifecycle, durable outbox, distributed locks, custom relevance engine or separate operator UI. Alternatives and limits reside in [research](research.md).                                           |
@@ -106,7 +106,7 @@ For a rebuild, create new generation indexes for all three resources, read Postg
 
 Use short SQL reads; a rebuild is not a cross-resource business snapshot. Its temporary mixed-age projection is subject to the same current visibility guards and eventual catch-up as targeted indexing. Clean only inactive/temporary generations in this application's environment namespace, after a confirmed complete publication and a fresh alias read. An uncertain alias acknowledgement is a failed run, even if the switch already applied. Keep its candidates until the next successfully acknowledged full run; an old-state read cannot cancel an in-flight switch. Do not reclassify uncertainty as success through a second metadata protocol. A cleanup error is logged, not treated as a successful deletion or a reason to delete an active index. No persisted rebuild-state machine is required.
 
-Only the serving backend process starts this scheduler and writes indexes. Non-web operator/migration invocations do not start it; their relevant data changes are covered by the next full run. This assumes one serving backend instance per environment, consistent with stop-before-start deployment. Overlapping serving replicas or rolling deployment would require a new coordination decision.
+Only the serving backend process starts this scheduler and writes indexes. Non-web operator/migration invocations do not start it; their relevant data changes are covered by the next full run. Local execution uses one serving backend writer. Multiwriter coordination and deployment topology are outside this plan.
 
 ## Mobile state and navigation
 
@@ -128,8 +128,8 @@ F03 identity-based destinations and F11 opening counter remain unchanged; filter
 
 ## Operations and validation
 
-Run one isolated OpenSearch instance per environment with its own volume/configuration/secrets, on the existing VPS. Native security uses verified TLS, trusted certificates and backend credentials restricted to the necessary index/alias namespace and operations. No public port, demo credentials or trust-all client. The collector and mobile never access it. Both environments still share host loss; no extra availability promise is made.
+Run isolated local OpenSearch with verified TLS, trusted certificates and backend credentials restricted to the necessary index/alias namespace and operations. The collector and mobile never access the engine directly. [Local preparation and TLS renewal](../../README.md#local-search-infrastructure) preserve existing credentials and the retained security/data volume. The authenticated Compose healthcheck verifies TLS and allocated primary shards; application projection/current-data qualification remains separate. Hosted topology, environments and provisioning are outside the current plan.
 
-Search indexes are disposable derivatives. PostgreSQL backups preserve the authoritative inputs; restoration rebuilds indexes before search is usable. No extra backup chain, Dashboards deployment or operator screen. Existing private logs/metrics and native Grafana alerts expose failed targeted/rebuild work and last successful rebuild; an alert closure is not proof of search recovery. Exclude query text, city values, credentials and raw engine/provider payloads from telemetry.
+Search indexes are rebuildable derivatives of authoritative PostgreSQL data. Local reconstruction verifies current restrictions and complete aliases before search is usable. Existing application logs/metrics expose failed targeted/rebuild work and last successful rebuild; no external alerting or infrastructure backup policy is selected. Exclude query text, city values, credentials and raw engine/provider payloads from telemetry.
 
-[Research](research.md) records decision rationale; [quickstart](quickstart.md) defines engine/client, business, native, restoration and deployment validation scenarios. Run the [README verification commands](../../README.md#verification) for affected boundaries; [tasks](tasks.md) track the remaining work.
+[Research](research.md) records decision rationale; [quickstart](quickstart.md) defines engine/client, business, native and local reconstruction validation scenarios. Run the [README verification commands](../../README.md#verification) for affected boundaries; [tasks](tasks.md) track the remaining work.

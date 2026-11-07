@@ -35,4 +35,4 @@
 
 - FR-037 retains bounded provider work, the accepted retry limit and honest failure outcomes; A45 covers these obligations. Transport mechanisms remain technical-planning choices. Historical corpus review is not a new planning gate.
 
-- native alert grouping, five-day reminders and closure remain distinct from positive acquisition/integration recovery evidence. Existing failure thresholds and stage distinctions are preserved.
+- actionable current observations remain distinct from positive affected-scope acquisition/integration recovery evidence. No external notification or reminder policy is selected.

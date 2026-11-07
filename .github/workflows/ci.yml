@@ -1,7 +1,6 @@
 name: CI
 
 on:
-  workflow_call:
   pull_request:
     branches: [develop, main]
   push:
@@ -10,7 +9,7 @@ on:
 permissions:
   contents: read
 
-# Only superseded PR revisions cancel one another; pushes and release calls remain independent.
+# Only superseded PR revisions cancel one another; integration pushes remain independent.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -47,13 +46,6 @@ jobs:
 
       - name: Check repository formatting
         run: npm run format:check
-
-      - name: Validate native telemetry configuration
-        run: |
-          telemetry_image=$(docker compose --env-file infra/observability/.env.example -f infra/observability/compose.yaml config --images)
-          docker run --rm --env-file infra/observability/.env.example \
-            -v "$PWD/infra/observability/config.alloy:/etc/alloy/config.alloy:ro" \
-            "$telemetry_image" validate /etc/alloy/config.alloy
 
   applications:
     name: ${{ matrix.name }}
@@ -114,7 +106,7 @@ jobs:
         # Nx's documented project patterns intersect affected projects with this matrix entry.
         run: npx nx affected -t verify --exclude="*,!$PROJECT" --output-style=static
 
-      - name: Verify the complete application on integration pushes and release calls
+      - name: Verify the complete application on integration pushes
         if: github.event_name != 'pull_request'
         env:
           PROJECT: ${{ matrix.project }}

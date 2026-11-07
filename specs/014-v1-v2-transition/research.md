@@ -16,7 +16,7 @@ V1 stores the FFVB club reference as a string and a logo URL; the inspected scra
 
 The old gateway declares snake_case JSON fields and the mobile client converts them to camelCase; session guards are false without configuration and maintenance takes priority over the update screen. The [legacy contract](contracts/README.md#legacy-mobile-access) preserves those wire names and requires maintenance false at retirement. Qualify success/failure with and without retained configuration on store binaries; a failed read guarantees neither blocking nor the update action. Stop old business APIs independently.
 
-Apple's Paid Applications agreement requires owner action before the intended release. F13 also retains the Dokploy S3-secret-masking correction as a prerequisite before activating V2 backups with real credentials. Neither prerequisite is satisfied by this documentation.
+Apple's Paid Applications agreement was observed as requiring owner action before the intended release. This observation neither blocks local development nor authorizes store operations.
 
 ## Common discovery and local credentials
 
@@ -40,7 +40,7 @@ Apple's Paid Applications agreement requires owner action before the intended re
 
 ## Native application and provider configuration
 
-**Decision**: Retain production app identities, EAS project, valid signing/push credentials and monotonically increasing remote build counters. Adapt configuration to the selected V2 dependencies; do not copy V1 `eas.json`, Google JSON files or OTA channels blindly. F13 selects no EAS Update delivery.
+**Decision**: Retain production app identities, EAS project, valid signing/push credentials and monotonically increasing remote build counters. Local development reuses compatible native clients and the selected V2 dependencies. This continuity constraint selects no hosted build or release-delivery mechanism.
 
 **Rationale**: Expo documents [remote version management](https://docs.expo.dev/build-reference/app-versions/), [existing credentials](https://docs.expo.dev/app-signing/existing-credentials/) and [FCM credentials](https://docs.expo.dev/push-notifications/fcm-credentials/). These are ordinary continuity mechanisms. `google-services.json` describes the Firebase application; it is distinct from a service-account private key, the Android upload key, APNs key and store-submission credentials. They have different owners and validation paths.
 

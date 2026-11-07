@@ -1,14 +1,14 @@
 ---
-description: "Implementation tasks for F13 shared quality, operations and delivery"
+description: "Implementation tasks for F13 shared application quality"
 ---
 
-# Tasks: F13 shared quality, operations and delivery
+# Tasks: F13 shared application quality
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts/README.md](contracts/README.md) and [quickstart.md](quickstart.md).
 
 **Prerequisites**: Accepted owning artifacts, [constitution](../../.specify/memory/constitution.md) and [agent guidance](../../AGENTS.md). The selected versions and approved design remain the baseline; [quickstart](quickstart.md) defines runnable runtime/provider/native scenarios and expected outcomes.
 
-**Tests**: The specification explicitly requires qualification in A01–A37, FR-018 and the success criteria. Included automated tests are written first and must exhibit a meaningful failure before their associated implementation. Manual/native/provider cases are prepared before the affected setup and executed only with their actual prerequisites and authorization; inability to execute is not passing evidence.
+**Tests**: The current specification requires its retained application scenarios, FR-018 and success criteria. Included automated tests precede implementation and exhibit meaningful failure. Native/provider cases use actual prerequisites and authorization; inability to execute is not passing evidence.
 
 **Organization**: Native setup and foundational phases precede one phase per specification user story, in priority order. US7 remains US7 and precedes P2 US6. F13 provides common mechanisms and cross-owner qualification; business behavior remains with its owning feature. Checked tasks record their scoped completed work; unchecked qualifications remain required under their named prerequisites.
 
@@ -24,7 +24,7 @@ description: "Implementation tasks for F13 shared quality, operations and delive
 - Collector: `apps/collector/src/main/java/com/blockout/collector/` and corresponding `src/test/java/`.
 - Mobile: `apps/mobile/src/app/` for thin routes, `src/features/` for owners and `src/shared/` only for identical active technical/UI responsibilities; focused tests live in the owning `__tests__/` directory.
 - Canonical HTTP roots: `contracts/http/{mobile,ingestion,legacy-mobile}/openapi.yaml`; generated Java stays in owning Maven `target/`, mobile output in ignored `apps/mobile/.generated/`.
-- Native delivery/operations configuration: `.github/workflows/`, `infra/dokploy/`, `infra/observability/` and concise actual-operation instructions in `infra/operations/README.md`. These instructions are not a second specification, plan or task catalogue.
+- Local infrastructure: `compose.yaml`, `infra/postgres/` and `infra/opensearch/`. Concise implemented business-operation instructions live in `infra/operations/README.md`; they are not a second specification, plan or task catalogue.
 
 F13's data model contains logical responsibilities, not generic tables to scaffold. Its field/lifecycle constraints quoted below remain literal; domain schemas and their full constraints stay with their owners.
 
@@ -37,7 +37,7 @@ F13's data model contains logical responsibilities, not generic tables to scaffo
 - [x] T003 [P] Initialize the native Expo SDK 58 / React Native 0.88 / React 19.3.0 application in `apps/mobile/package.json`, `apps/mobile/app.config.ts`, `apps/mobile/tsconfig.json` and `apps/mobile/src/app/_layout.tsx`; use thin Expo Router composition and no web target, mock identity provider or generated business screens.
 - [x] T004 Configure PostgreSQL 18.6 infrastructure in `compose.yaml` and safe per-application examples in `apps/backend/.env.example`, `apps/collector/.env.example` and `apps/mobile/.env.example`; document actual environment loading, separate application/migration roles and host-run application development, with no collector database credentials.
 - [x] T005 Configure JUnit/Surefire/Failsafe and PostgreSQL Testcontainers in `pom.xml`, `apps/backend/pom.xml` and `apps/collector/pom.xml`, plus Jest Expo/React Native Testing Library in `apps/mobile/jest.config.cjs` and `apps/mobile/package.json`; discover the installed skills' test suffixes, add native npm/Maven formatting/lint/typecheck targets and no additional E2E framework.
-- [x] T006 Update `README.md`, `AGENTS.md`, `.github/workflows/ci.yml` and `apps/backend/project.json`, `apps/collector/project.json` and `apps/mobile/project.json` with the commands/paths actually created by T001–T005; run them from a clean checkout while preserving documentation checks, the `verify` gate and develop-only promotion to main. Deliver this with the first executable change; PRs/merges start no deployment or EAS build.
+- [x] T006 Update `README.md`, `AGENTS.md`, `.github/workflows/ci.yml` and `apps/backend/project.json`, `apps/collector/project.json` and `apps/mobile/project.json` with the commands/paths actually created by T001–T005; run them from a clean checkout while preserving documentation checks, the `verify` gate and develop-only promotion to main. Deliver this with the first executable change; CI performs application verification.
 
 ### Native dependency graph
 
@@ -62,10 +62,10 @@ F13's data model contains logical responsibilities, not generic tables to scaffo
 - [x] T013 [P] Configure the generated ingestion RestClient at `apps/collector/src/main/java/com/blockout/collector/ingestion/IngestionClientConfiguration.java`; make T010 pass with native bounded transport and generated Jackson decoding, keeping provider acquisition retries separate and adding no response validator, generated-code patches or silent enum fallback.
 - [x] T014 [P] Implement the focused generated mutator in `apps/mobile/src/shared/api/api-fetch.ts`; make T011 pass before Query admission, preserve caller cancellation, resolve backend URI references on the configured origin, and never forward credentials/bypass headers to an external origin. Do not turn validation failure or an uncertain write into success or replay.
 - [x] T015 Write failing database-startup/role tests in `apps/backend/src/test/java/com/blockout/backend/config/DatabaseConfigurationIntegrationTest.java` with PostgreSQL 18.6 and isolated test fixtures; prove explicit migration execution, application schema validation without initialization, and refusal of schema writes by application credentials.
-- [x] T016 Configure `apps/backend/src/main/resources/application.yaml` and `apps/backend/src/main/resources/db/changelog/db.changelog-master.xml` for separate Liquibase XML execution, Hibernate validation and disabled SQL initialization; keep Liquibase outside the application runtime. Domain owners add their actual tables to the mutable initial baseline; freeze it at the first preproduction/production version, then append immutable migrations. Make T015 pass without a synthetic production table, reset or checksum clearing.
+- [x] T016 Configure `apps/backend/src/main/resources/application.yaml` and `apps/backend/src/main/resources/db/changelog/db.changelog-master.xml` for explicit Liquibase XML execution, Hibernate validation and disabled SQL initialization. Preserve applied changesets and append data-preserving migrations under their owners. Keep Liquibase outside the application runtime and make T015 pass without a reset, volume erasure or checksum clearing.
 - [x] T017 Extend `.github/workflows/ci.yml`, `contracts/http/project.json` and `apps/backend/project.json`, `apps/collector/project.json` and `apps/mobile/project.json` to lint/bundle, generate, compile/typecheck and run T009–T015 through the actual consumers. Qualify clean deterministic regeneration and ignored outputs when introducing or changing a generator or its configuration, following [Contract boundary](quickstart.md#contract-boundary). Qualify required generator shapes before adoption; do not treat schema lint or generated default methods as application behavior.
 
-**Checkpoint**: Verify generated consumers, shared transport and schema-startup behavior through the local/CI checks. Feature owners can use the foundation without waiting for monitoring, restoration or cutover completion.
+**Checkpoint**: Verify generated consumers, shared transport and schema-startup behavior through the local/CI checks. Feature owners use this foundation with their concrete local application prerequisites.
 
 ---
 
@@ -91,33 +91,27 @@ F13's data model contains logical responsibilities, not generic tables to scaffo
 
 ---
 
-## Phase 4: User Story 2 — Understand incidents and intervene without mandatory on-call duty (Priority: P1)
+## Phase 4: User Story 2 — Understand application failures (Priority: P1)
 
-**Goal**: Expose meaningful private diagnostics and native external alerts that support ordinary manual investigation.
+**Goal**: Expose meaningful safe application diagnostics, native readiness and ordinary metrics.
 
-**Scope**: FR-006–014; A04–A07; SC-003–004.
+**Scope**: FR-006–008, FR-010–011, FR-013–014; A04–A07; SC-003–004.
 
-**Independent Test**: On an authorized isolated deployment, lose API/database/host access and exercise partial, paused, missing and failed domain observations; verify bounded native health, grouped private alerts and distinct alert closure/business recovery.
+**Independent Test**: Exercise local health/database failures, partial stages and missing/paused observations. Verify truthful outcomes and privacy at the actual encoder, metrics and application boundaries.
 
 ### Tests and qualification cases for User Story 2
 
-- [x] T022 [P] [US2] Write failing native health/security tests in `apps/backend/src/test/java/com/blockout/backend/config/HealthEndpointIntegrationTest.java` and `apps/backend/src/test/java/com/blockout/backend/config/HealthIntegrationTest.java`; cover anonymous main-port `/health`, aggregate-only 200/503, database failure, refusing readiness and unknown status, bounded waiting and denial of other Actuator diagnostics. Prepare the maintenance integration case in [quickstart](quickstart.md#delivery-and-operations) for execution with F12 T021's actual admission filter and the isolated T032 candidate; those integrated proofs remain pending their owning implementations.
-- [x] T023 [P] [US2] Write focused telemetry-safety tests in `apps/backend/src/test/java/com/blockout/backend/config/LoggingIntegrationTest.java` and `apps/collector/src/test/java/com/blockout/collector/config/LoggingIntegrationTest.java` using harmless fixtures; reject credentials, payloads and personal context, with only the accepted F05 original-target exception in private logs, never labels/Discord.
-- [x] T024 [P] [US2] Write failing event/breadcrumb filtering tests in `apps/mobile/src/shared/observability/__tests__/sentry.test.ts` for JavaScript errors, URLs/query strings and messages, and test the supported native capture configuration at its own boundary. The JavaScript filter does not process native reports. Preserve useful safe failure context with replay/tracing/profiling disabled, without console payload dumps; actual native emitted-data privacy is qualified by T033 before activation.
-- [x] T025 [P] [US2] Prepare actual host-loss, no-data, partial-stage and native firing/group/reminder/resolution cases in `specs/003-shared-quality/quickstart.md#delivery-and-operations`; identify harmless fixtures and expected evidence before enabling external monitoring, without a recurring benchmark or incident ledger.
+- [x] T022 [P] [US2] Write failing native health/security tests in `apps/backend/src/test/java/com/blockout/backend/config/HealthEndpointIntegrationTest.java` and `HealthIntegrationTest.java`; cover anonymous main-port `/health`, aggregate-only 200/503, database failure, refusing readiness and unknown status, bounded waiting and denial of other Actuator diagnostics. Use the [application health scenarios](quickstart.md#application-diagnostics-and-health) for F12's actual admission-filter integration; local health never grants business access.
+- [x] T023 [P] [US2] Write telemetry-safety tests in `apps/backend/src/test/java/com/blockout/backend/config/LoggingIntegrationTest.java` and `apps/collector/src/test/java/com/blockout/collector/config/LoggingIntegrationTest.java` using harmless fixtures. Reject credentials, payloads and personal context, retaining only the F05 original-target exception in private logs, never metric labels or public output.
+- [x] T024 [P] [US2] Write local event-filtering tests in `apps/mobile/src/shared/observability/__tests__/sentry.test.ts` for JavaScript errors, URLs/query strings, messages, breadcrumbs and attachments. Test the disabled native SDK configuration at its own boundary. The JavaScript filter does not process native reports; local tests make no remote-privacy or symbolication claim.
 
 ### Implementation and qualification for User Story 2
 
-- [x] T026 [US2] Configure Spring Boot Actuator's native readiness group in `apps/backend/src/main/resources/application.yaml` and `apps/backend/src/main/java/com/blockout/backend/config/SecurityConfiguration.java`: include `readinessState,db`, `additional-path=server:/health`, hidden details/components, membership validation, order `down,out-of-service,unknown,up` and explicit 503 mappings for all non-UP states. Make T022 pass; add no controller, custom indicator or generated health client.
-- [x] T027 [US2] Configure native structured SLF4J output and ordinary HTTP/JVM/pool metrics in `apps/backend/src/main/resources/application.yaml` and `apps/collector/src/main/resources/application.yaml`, making T023 pass. Domain owners emit stage/scope/outcome/last-success/partial counts at the meaningful boundary; preserve “Never-run, awaiting eligibility and paused are not successful executions.” No shared incident table or logging facade.
-- [x] T028 [US2] Configure ordinary Docker logs/metrics collection in `infra/observability/config.alloy` and `infra/observability/compose.yaml`; use native Grafana Cloud integration, private credentials and bounded metric labels. Document environment separation and manual setup in `infra/observability/README.md`; preserve “Logs retain 14 days.” and verify the current Free allowances before authorized activation.
-- [x] T029 [US2] Record and, when authorized, apply native Grafana external checks/alert rules/contact-point settings in `infra/observability/README.md`: one European probe per environment, production every minute and preproduction every five minutes, F01-owned thresholds, no-data not healthy, meaningful grouping, five-day reminders and native private Discord firing/resolution. Exclude backup alerts and personal references; native closure never asserts business repair.
-- [x] T030 [US2] Configure Sentry Free in `apps/mobile/src/shared/observability/sentry.ts`, `apps/mobile/app.config.ts` and `apps/mobile/src/app/_layout.tsx`, with source-map support and T024 filtering. Limit the configured capture surface to JS errors/native crashes, keeping secrets outside the repository. Complete the local configuration/filtering boundary here; operational sending remains disabled until T033 demonstrates FR-013 privacy and symbolication. Separately authorized T033 runs use harmless isolated fixtures to obtain that evidence; they do not authorize general activation. A JavaScript filter or server-side scrubbing alone cannot satisfy the native-data exclusions.
-- [x] T031 [US2] Write concise investigation/intervention guidance in `infra/observability/README.md` referencing current owner observations and F05's private cleanup procedure; distinguish detection, alert, intervention and observed recovery. Preserve the accepted unlogged post-commit crash gap and no guaranteed response time; do not build an exhaustive failure catalogue.
-- [ ] T032 [US2] Run the prepared external-probe and native alert cases from T025 against the authorized isolated server candidate; verify grouping/reminder configuration, host-loss/no-data behavior and domain outcomes using `specs/003-shared-quality/quickstart.md#delivery-and-operations`. A healthy Alloy process or resolved alert alone does not pass the proof.
-- [ ] T033 [US2] Qualify a harmless symbolicated JS error and native crash on both platform builds through `specs/003-shared-quality/quickstart.md#delivery-and-operations`; inspect actual emitted fields and source maps, retain only safe evidence, and leave unavailable device/provider results explicitly pending.
+- [x] T026 [US2] Configure Spring Boot Actuator's readiness group in `apps/backend/src/main/resources/application.yaml` and `apps/backend/src/main/java/com/blockout/backend/config/SecurityConfiguration.java`: include `readinessState,db`, `additional-path=server:/health`, hidden details/components, membership validation, order `down,out-of-service,unknown,up` and explicit 503 mappings for all non-UP states. Make T022 pass without a controller, custom indicator or generated health client.
+- [x] T027 [US2] Configure native structured SLF4J output and ordinary HTTP/JVM/pool metrics in `apps/backend/src/main/resources/application.yaml` and `apps/collector/src/main/resources/application.yaml`, making T023 pass. Domain owners emit safe stage/scope/outcome/last-success/partial counts at their meaningful boundary. Preserve never-run, awaiting-eligibility and paused distinctions; select no receiver, hosted retention or alerting policy.
+- [x] T030 [US2] Retain local Sentry SDK configuration and event filtering in `apps/mobile/src/shared/observability/sentry.ts`, `apps/mobile/app.config.ts` and `apps/mobile/src/app/_layout.tsx`, with capture disabled even when a DSN is provided. Keep replay, breadcrumbs, tracing and profiling disabled. Make T024 pass without a source-map upload workflow or remote activation; local filters do not prove native transmitted-data privacy.
 
-**Checkpoint**: US2 is complete only when its independent test has actual evidence. Unavailable owner/runtime/provider inputs leave the affected tasks pending; continue unrelated ready work using the dependencies below.
+**Checkpoint**: Local health, structured diagnostics, metrics and disabled mobile filtering retain their scoped evidence. Native/provider business qualifications remain with their owners.
 
 ---
 
@@ -169,34 +163,13 @@ F13's data model contains logical responsibilities, not generic tables to scaffo
 
 ---
 
-## Phase 7: User Story 5 — Restore retained data and files (Priority: P1)
+## Phase 7: User Story 5 — Reuse data without reviving prohibited state (Priority: P1)
 
-**Goal**: Package and qualify manual delivery, independent native backups and the initial isolated restore, with current rights reconciled before reopening.
+**Goal**: Preserve current rights, privacy, domain expiry and application/schema compatibility whenever retained data is reused.
 
-**Scope**: FR-022–028; A14–A18; SC-006.
+**Scope**: FR-024, FR-027–028; A17–A18; SC-006.
 
-**Independent Test**: A controlled failed migration blocks restart without data loss; an authorized initial restore recovers expected database/image associations and exposes gaps, and an incompatible older image is refused.
-
-### Tests and qualification cases for User Story 5
-
-- [x] T046 [P] [US5] Prepare failed-migration, serialized delivery and compatible/incompatible rollback cases in `specs/003-shared-quality/quickstart.md#delivery-and-operations`, using a harmless disposable migration fixture and exact candidate revisions/digests; no real environment is reset.
-- [ ] T047 [P] [US5] Prepare dummy-credential cases for the known command/error/log redaction paths in `infra/dokploy/README.md` before selecting a corrected Dokploy release; define safe expected observations and authorization for an isolated check. The inspected 0.30.8 is not proof of a fix, and real V2 S3 credentials must remain unused until qualification succeeds.
-- [x] T048 [US5] Prepare the initial isolated restore cases in `specs/003-shared-quality/quickstart.md#initial-restore-and-activation-condition`: database roles, F02 corrections, F05 accounts, F06 follows, F12 grants/settings, image bytes/associations, F04 rebuild and current F05/F09/F11/F07 obligations. Keep F10 GitHub attachments outside the PostgreSQL proof and leave unavailable evidence pending.
-
-### Implementation and qualification for User Story 5
-
-- [x] T049 [US5] Add source-built non-root application images in `apps/backend/Dockerfile`, `apps/collector/Dockerfile` and the dedicated `apps/backend/Dockerfile.migration`, with an appropriate root `.dockerignore`; include reproducible generation and locked Maven inputs, required runtime files and shutdown behavior, with no secrets or dependency on developer-built artifacts.
-- [x] T050 [US5] Configure `infra/dokploy/compose.yaml` and safe `infra/dokploy/.env.example` for separate environments and exact image digests; PostgreSQL stays outside the release application. Configure native health checks, explicit writer services and one-off migration execution; collector has no database credentials, and the backend cannot modify schema.
-- [x] T051 [US5] Create manual-only server/mobile/both preparation in `.github/workflows/prepare-release.yml` and `apps/mobile/eas.json`; require an exact source revision, publish backend/collector/migration images to GHCR, retain native digests/build IDs and qualify preproduction. Use the separate “Blockout Preprod” variant and production-identity store builds, with F14 owning existing identifiers/signing continuity and no OTA.
-- [x] T052 [US5] Create manual production promotion in `.github/workflows/promote-release.yml` and `infra/dokploy/README.md`; after authorized develop-to-main promotion, compare source content with the qualified candidate and require production-environment approval. Promote identical digests/build IDs, serialize deployment without cancelling migrations, and document the literal pull → stop writers → migrate → start/wait command and manual F12 maintenance prerequisites.
-- [x] T053 [US5] Build/smoke the images and execute T046 in isolated preproduction using `infra/dokploy/compose.yaml` and `specs/003-shared-quality/quickstart.md#delivery-and-operations`; prove migration failure blocks restart, roles/volumes remain intact, no automatic rollback occurs, and compatibility is checked before an older image is used. Real deployments need their environment authorization.
-- [ ] T054 [US5] Select and verify a corrected Dokploy release with T047's dummy-credential cases in an authorized isolated environment; record safe version/results in `infra/dokploy/README.md`. A missing or failed masking proof directly blocks T055 and its dependent restoration proof, not local code or other independent qualification; introduce no fork, custom sanitizer or notification-only workaround.
-- [ ] T055 [US5] After T054 succeeds and activation is authorized, configure native per-environment Dokploy PostgreSQL backups and private external S3 in `infra/dokploy/README.md`: every 30 minutes, SSE-S3, scoped access and 30-day lifecycle, with count cleanup disabled. Preserve “S3 expires copies using the 30-day rule; no exact deletion-at-720-hours guarantee.” Add no backup alerts, dashboard, verification schedule, versioning or replication.
-- [x] T056 [US5] Write the concise manual restore/rollback procedure in `infra/operations/README.md`; restore native logical dumps, recreate intended database ownership/ACLs, recover separately owned provider/deployment configuration and apply current rights/erasure/expiry before access or sends reopen. Preserve “Presence does not mean validated restoration.” and F10's provider-only recovery boundary.
-- [ ] T057 [US5] Perform the one initial isolated restoration from T048 after native backups, representative owner data/images and permissions are available, following `specs/003-shared-quality/quickstart.md#initial-restore-and-activation-condition`; make original storage unavailable to the check, compare recovered bytes/associations, rebuild derivatives and record actual scope, gaps and duration privately in appropriate delivery evidence. No recurring drill or loss/time guarantee.
-- [ ] T058 [US5] Qualify the actual production mobile binary in the store test circuits using `apps/mobile/eas.json` and `specs/003-shared-quality/quickstart.md#delivery-and-operations`; verify compatibility with admitted earlier clients and preserve the exact build for later explicitly authorized release. Coordinate actual downloadable availability and retirement with F14; preproduction builds do not replace this proof.
-
-**Checkpoint**: US5 is complete only when its independent test has actual evidence. Unavailable owner/runtime/provider inputs leave the affected tasks pending; continue unrelated ready work using the dependencies below.
+The existing application tasks own this proof: T015/T016 verify schema validation and separate migration roles; T041/T042 qualify current rights through actual F05/F09/F12 operations; T043–T045 exercise stale/retained data and current restrictions through F01/F02/F04/F07. Use [the retained-data scenarios](quickstart.md#current-restrictions-and-compatible-data). No separate infrastructure restoration task is introduced.
 
 ---
 
@@ -210,12 +183,12 @@ F13's data model contains logical responsibilities, not generic tables to scaffo
 
 ### Tests and qualification cases for User Story 7
 
-- [x] T059 [US7] Prepare the controlled A22 cases in `specs/003-shared-quality/quickstart.md#initial-restore-and-activation-condition`, linking the F02 image/identity rules and F14 protected-logo procedure; preserve “Missing bytes do not authorize reset.” and “No identity by name-only matching.” An old URL alone is not retained bytes; “This manual scope concerns club logos only; F14 decides concrete transition records and procedures, with F02 identity rules.”
+- [x] T059 [US7] Prepare the controlled A22 cases in `specs/003-shared-quality/quickstart.md#retained-data-and-club-logo-continuity`, linking the F02 image/identity rules and F14 protected-logo procedure; preserve “Missing bytes do not authorize reset.” and “No identity by name-only matching.” An old URL alone is not retained bytes; “This manual scope concerns club logos only; F14 decides concrete transition records and procedures, with F02 identity rules.”
 
 ### Implementation and qualification for User Story 7
 
 - [x] T060 [US7] Add the protection handoff in `infra/operations/README.md` referencing F14's existing preservation/reassociation steps: independently retained bytes and exact source associations, certain matches, private unmatched cases and missing-file refusal. Do not create a second exporter, migration store or general customization transfer.
-- [x] T061 [US7] Verify the controlled A22 outcomes using `specs/014-v1-v2-transition/quickstart.md` and the implemented F02 image paths; record F13's observed retention/restore scope in the authorized private delivery evidence. F14 still owns live preservation and cutover authorization; synthetic evidence cannot certify production retention or authorize a reset.
+- [x] T061 [US7] Verify the controlled A22 outcomes using `specs/014-v1-v2-transition/quickstart.md` and the implemented F02 image paths; record F13's observed controlled file/association scope in the authorized private delivery evidence. F14 still owns live preservation and cutover authorization; synthetic evidence cannot certify production retention or authorize a reset.
 
 **Checkpoint**: US7 is complete only when its independent test has actual evidence. Unavailable owner/runtime/provider inputs leave the affected tasks pending; continue unrelated ready work using the dependencies below.
 
@@ -248,6 +221,11 @@ F13's data model contains logical responsibilities, not generic tables to scaffo
 - [ ] T073 [US6] Run T066 incrementally on actual iOS/Android builds using `specs/003-shared-quality/quickstart.md#native-ui-and-approved-design`: compare each implemented shared control and owner pattern/screen with its exact Figma variant, qualify live appearance/accessibility and extend F09's existing session tests for accent invalidation. Verify F12 gates/retry/store handoff, readable essential content and honest offline states with the implemented owners. Review comparable component structure, narrow APIs and actual token/composition reuse. Record SDK/dependency versions, final Android floor, qualified devices and justified native adaptations; material design changes retain the existing approval gate. Leave unavailable consumers/proofs pending and block only affected adoption on failed native compatibility.
 
 - [ ] T077 [US6] Requalify live iOS system text enlargement when a supported Expo/React Native correction is available, using `specs/003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets`. Repeat the reproduced live size-change, keyboard-dismissal and later-layout sequence and compare cold launch at enlarged text. Record the actual compatible versions and result; add no remount, manual font/layout calculation or dependency patch. This qualification is not a prerequisite for T069, T070 or T071.
+
+### Native candidate preparation and qualification
+
+- [x] T051 [US6] Keep the existing `development`, `preview` and `production` profiles in `apps/mobile/eas.json` and build-time variants in `apps/mobile/app.config.ts`: native development client, separate internal “Blockout Preprod” variant and production-identity store builds. Preserve source revisions and native EAS build IDs in their ordinary build records, with F14 owning existing identifiers/signing continuity and no OTA. These mobile profiles are independent of server build/deployment workflows.
+- [ ] T058 [US6] Qualify the actual production mobile binary in the store test circuits using `apps/mobile/eas.json` and `specs/003-shared-quality/quickstart.md#native-build-candidates`; verify compatibility with admitted earlier clients and preserve the exact build for later explicitly authorized release. Coordinate actual downloadable availability and retirement with F14; preview/preproduction builds do not replace this proof.
 
 ### Page layout and feedback
 
@@ -377,9 +355,9 @@ F13's data model contains logical responsibilities, not generic tables to scaffo
 
 **Purpose**: Reconcile the implemented foundation and its actual evidence without claiming blocked external qualifications complete.
 
-- [ ] T074 Update `README.md`, `AGENTS.md`, `specs/003-shared-quality/quickstart.md`, `infra/operations/README.md` and `infra/observability/README.md` to the actual commands, owner links and applicable operating state; preserve native artifact responsibilities and keep runtime results in the delivery/test tools rather than a second task or architecture catalogue.
+- [ ] T074 Keep `README.md`, `AGENTS.md`, `specs/003-shared-quality/quickstart.md` and `infra/operations/README.md` aligned with actual local commands, owner links and implemented business operations. Runtime outcomes stay in delivery/test tools, without a second task or architecture catalogue.
 - [ ] T075 Run the actual repository formatting/lint/typecheck, Maven/mobile/contract checks and `git diff --check` from `README.md`; verify generated outputs/secrets stay ignored and touched handwritten code follows its documentation/language/testing skills. Run broader integration only where changed boundaries require it, retaining unavailable native/provider evidence explicitly.
-- [ ] T076 Review remaining qualification prerequisites against `specs/003-shared-quality/quickstart.md`, `specs/014-v1-v2-transition/quickstart.md` and the owning delivery records; leave incomplete tasks unchecked, confirm no speculative recovery/performance/availability/backup-monitoring work was introduced, and present the bounded F13 result for review without authorizing production/store operations.
+- [ ] T076 Review remaining application/native/provider prerequisites against `specs/003-shared-quality/quickstart.md` and the owning feature tasks. Leave unexecuted qualifications unchecked and present the bounded application-quality result without claiming provider, store or public-release acceptance.
 - [x] T176 Align `data-model.md` and `plan.md` with [F05's actual subject-mounted private lifetime](../005-accounts-identity/plan.md#mobile-session-and-shared-consumers), F12 read-grant checks and [F06 read-only follow snapshots](../009-following-personal-feed/plan.md); preserve original-account locks for writes and erasure.
 - [x] T177 Reconcile the purge transaction examples in `plan.md`, `research.md` and `quickstart.md` with [F07 retention](../011-notifications-delivery/plan.md), verifying one actual commit, rollback on definite failure, unconfirmed commit outcomes and no false completion diagnostic.
 - [x] T178 Remove the redundant `testing/` Markdown catalogue and reconcile its links in `README.md` and the existing owning quickstarts. Preserve only repository-specific execution/lifecycle guidance at its actual owner, retain qualification limits and leave scenario detail with executable tests; create no successor catalogue.
@@ -433,15 +411,15 @@ F13's data model contains logical responsibilities, not generic tables to scaffo
 
 ### User Story Dependencies
 
-| Story | Shared work available early                                                                                                            | Actual prerequisites for the remaining proof                                                                                                                                                                                                                                                                                                                        |
-| ----- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| US1   | T018–T020 establish Query behavior; T019 prepares owner integration cases.                                                             | T021 needs implemented F01 stage outcomes, F02 writes/visibility, F03 reads and F04 projection. A configured cache alone does not complete US1.                                                                                                                                                                                                                     |
-| US2   | T022–T031 establish health, safe telemetry, native configuration and operating instructions.                                           | T026 precedes T038 because they share security wiring. T032 uses the isolated server candidate from T049–T053, authorized Grafana/Discord settings and the relevant owner diagnostics. T033 needs actual platform builds and authorized Sentry configuration.                                                                                                       |
-| US3   | T034–T039 establish shared token controls; T036 can use controlled session inputs.                                                     | T040 needs F05's native SDK/session owner and F14's early credential initialization, not final cutover. T041/T042 need implemented F05/F09/F12 and the affected protected domain operations.                                                                                                                                                                        |
-| US4   | T043/T044 prepare bounded recovery cases and ordinary operation instructions.                                                          | T045 needs implemented F01/F02/F04/F07 recovery/announcement boundaries; it adds no competing recovery implementation.                                                                                                                                                                                                                                              |
-| US5   | T046–T053 provide cases, images and manual delivery; T048 prepares restoration.                                                        | T053 needs an authorized isolated environment and F12 operator access where maintenance is exercised. T054's verified masking fix gates T055 only. T057 needs T055/T056, representative F02/F05/F12 data/images and F04/F07/current-rights reconciliation. T058 uses the actual production-identity build and authorized store test access; F14 owns public launch. |
-| US7   | T059/T060 define the protection handoff without performing an export.                                                                  | T061 needs F02's implemented image rules and F14's controlled preservation/reassociation path. Live retention/reset/cutover stay with F14.                                                                                                                                                                                                                          |
-| US6   | T062–T066 prepare tests/cases; T067 tokens/fonts → T068 appearance → T069 initial controls. T070 image field and T071 feedback follow. | Owning patterns/screens wait only for their actual UI and business inputs. T072 needs T070/T071 plus F05/F02/F10 forms. T073 starts with available controls, then needs actual F09/F12 and owner journeys/platform builds for complete proof; it is not a prerequisite for creating those consumers.                                                                |
+| Story | Shared work available early                                                                                                            | Actual prerequisites for the remaining proof                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| US1   | T018–T020 establish Query behavior; T019 prepares owner integration cases.                                                             | T021 needs implemented F01 stage outcomes, F02 writes/visibility, F03 reads and F04 projection. A configured cache alone does not complete US1.                                                                                                                                                                                                                                                                                                         |
+| US2   | T022/T023/T024 prepare local health, telemetry and disabled mobile-filtering cases; T026/T027/T030 supply local implementation.        | T026 precedes T038 because security wiring is shared. F12 health admission uses its actual filter; no hosted candidate or external alerting input is required.                                                                                                                                                                                                                                                                                          |
+| US3   | T034–T039 establish shared token controls; T036 can use controlled session inputs.                                                     | T040 needs F05's native SDK/session owner and F14's early credential initialization, not final cutover. T041/T042 need implemented F05/F09/F12 and the affected protected domain operations.                                                                                                                                                                                                                                                            |
+| US4   | T043/T044 prepare bounded recovery cases and ordinary operation instructions.                                                          | T045 needs implemented F01/F02/F04/F07 recovery/announcement boundaries; it adds no competing recovery implementation.                                                                                                                                                                                                                                                                                                                                  |
+| US5   | Existing T015/T016 schema checks and US3/US4 current-rights/reuse checks cover the retained-data boundary.                             | T041/T042/T045 require their actual business owners; no backup activation or infrastructure restoration prerequisite applies.                                                                                                                                                                                                                                                                                                                           |
+| US7   | T059/T060 define the protection handoff without performing an export.                                                                  | T061 needs F02's implemented image rules and F14's controlled preservation/reassociation path. Live retention/reset/cutover stay with F14.                                                                                                                                                                                                                                                                                                              |
+| US6   | T062–T066 prepare tests/cases; T067 tokens/fonts → T068 appearance → T069 initial controls. T070 image field and T071 feedback follow. | Owning patterns/screens wait only for their actual UI and business inputs. T072 needs T070/T071 plus F05/F02/F10 forms. T073 starts with available controls, then needs actual F09/F12 and owner journeys/platform builds for complete proof; it is not a prerequisite for creating those consumers. T051 retains existing native build profiles; T058 separately requires the actual signed production candidate and authorized store/provider inputs. |
 
 The owners' accepted plans are already available. Refer to their current native tasks when produced; no future task ID is invented here. Implement each owning responsibility once:
 
@@ -458,21 +436,18 @@ The owners' accepted plans are already available. Refer to their current native 
 ```text
 Setup T001–T006 → Foundation T007–T017
 Foundation → US1 core T018–T020 → owning features → US1 proof T021
-Foundation → US2 configuration T022–T031 → authorized server/native inputs → T032–T033
+Foundation → US2 local checks T022–T024 → implementation T026/T027/T030
 Foundation → US3 controls T034–T039 → F05/F12/F14 inputs → T040–T042
 Foundation → US4 preparation T043–T044 → owner recovery paths → T045
-Foundation → US5 packaging/delivery T046–T053
-T047 cases → T054 verified masking → T055 backups → T057 restore qualification
-T056 restore instructions and F02/F04/F05/F06/F07/F09/F11/F12 inputs → T057
-Production build/store inputs → T058
 Foundation → US7 handoff T059–T060 → F02/F14 controlled proof → T061
+Existing native profiles T051 + owner signing/provider/store inputs → native candidate qualification T058
 Foundation → US6 tests/cases T062–T066; T067 tokens/fonts → T068 appearance → T069 controls
 T069 → T070 image field and T071 feedback → owning patterns → screens with business inputs
 Implemented controls + owning forms/journeys/native builds → US6 proofs T072–T073
 Delivered increments and explicit remaining limits → T074–T076
 ```
 
-T056's restore instructions can be prepared before activation; only T057 needs an actual backup. Missing masking evidence blocks T055, not server packaging or other stories. F14 initialization is an early mobile dependency, not a reason to wait for store retirement. F13's local transport/cache/configuration work is usable before cross-feature or external qualifications complete.
+F14 initialization is an early mobile dependency, not final cutover. F13 local transport, cache, diagnostics and current-rights checks use their actual application prerequisites; no hosted infrastructure is required to develop unrelated features.
 
 ### Shared technical prerequisites
 
@@ -482,7 +457,7 @@ The configured dependency graph (T078/T144/T157) and generated boundary (T007–
 
 Write the included automated tests first, establish meaningful failures, implement the corresponding behavior and rerun them. Prepare manual/native cases before the affected operations; execute them against their actual authorized inputs. Use native library configuration before a focused adapter, and reopen only the owning decision if a required qualification fails.
 
-Serialize edits to shared files: `apps/mobile/src/app/_layout.tsx` (T003/T020/T030/T040/T068), backend `application.yaml` (T016/T026/T027), `SecurityConfiguration.java` (T026/T038), `infra/observability/README.md` (T028/T029/T031), `infra/dokploy/README.md` (T047/T052/T054/T055), `infra/operations/README.md` (T044/T056/T060), `apps/mobile/app.config.ts` and `apps/mobile/package.json` (setup/native dependencies/T067/T068), and the shared quickstart. Story independence does not permit concurrent edits to the same file.
+Serialize edits to shared files: `apps/mobile/src/app/_layout.tsx` (T003/T020/T030/T040/T068), backend `application.yaml` (T016/T026/T027), `SecurityConfiguration.java` (T026/T038), `infra/operations/README.md` (T044/T060), `apps/mobile/app.config.ts`, `apps/mobile/package.json` and the shared quickstart. Story independence does not permit concurrent edits to the same file.
 
 ### Parallel Opportunities
 
@@ -492,10 +467,10 @@ Only the marked batches below are independent within their prepared context. Add
 
 - **Setup/foundation**: T002 + T003 after T001; T009 + T010 + T011 after generation inputs; T013 + T014 after their tests.
 - **US1**: T018 (Query tests) + T019 (owner qualification cases). T020 follows T018; T021 waits for the actual owners.
-- **US2**: T022 + T023 + T024 + T025 cover separate test/configuration sources. Keep subsequent shared application/security/layout edits serialized.
+- **US2**: T022 + T023 + T024 cover distinct local test boundaries. Serialize subsequent shared application/security/layout edits.
 - **US3**: T034 + T035 + T036 + T037 cover distinct boundary tests/cases. T040 remains dependent on its native identity/initialization owners.
 - **US4**: No independent intra-story batch is claimed: prepare T043, document the corresponding operations in T044, then run T045 when its owners exist. Unrelated ready work in other stories can continue.
-- **US5**: T046 (delivery cases) + T047 (masking cases); T048 also edits the quickstart and must be serialized with T046. Lack of masking proof does not delay independent packaging/delivery.
+- **US5**: Reuse the named schema/current-rights tasks rather than create a duplicate data-recovery implementation.
 - **US7**: No independent intra-story batch is claimed: T059 → T060 → T061. F14's live operations are not implicitly started by that sequence.
 - **US6**: T062 + T063 + T064 + T065 + T066 prepare distinct tests/cases. T067 → T068 → T069 establish the common UI; T070 (image field) and T071 (feedback) may then progress in distinct files. T072/T073 need implemented consumers and native builds; serialize their shared qualification sources.
 
@@ -510,7 +485,7 @@ Only the marked batches below are independent within their prepared context. Add
 
 ### Incremental Delivery
 
-Deliver common controls and corresponding tests in coherent increments, then integrate the actual owning features and qualify the affected story. US6 may start after T017 without waiting for observability, backups or cutover: shared UI is not an additional Foundational phase blocking all F13 stories. Tokens/fonts/theme precede shared controls; each owner then builds its patterns and screens after the specific UI and business dependencies. Do not require the complete library or all T073 evidence before the first functional screen. Keep manual operations, native-device evidence and activation prerequisites attached to their concrete tasks rather than blocking every unrelated increment. Story priority does not remove lower-priority launch obligations.
+Deliver common controls and corresponding tests in coherent increments, then integrate the actual owning features and qualify the affected story. US6 starts after T017 and its named UI/business prerequisites; it is not an additional Foundational phase blocking all F13 stories. Tokens/fonts/theme precede shared controls; each owner then builds its patterns and screens after the specific UI and business dependencies. Do not require the complete library or all T073 evidence before the first functional screen. Keep business operations and native/provider evidence attached to their concrete tasks rather than blocking every unrelated increment. Story priority does not remove lower-priority launch obligations.
 
 ### Parallel Team Strategy
 
@@ -519,7 +494,7 @@ When parallel work is explicitly authorized, use the distinct-file batches above
 ## Notes
 
 - Keep [Spec Kit's installed task/implementation procedures](../../.agents/skills/speckit-tasks/SKILL.md) authoritative. [AGENTS.md](../../AGENTS.md#select-by-task) selects the applicable technical, testing, documentation and delivery skills.
-- Preserve native mechanisms and accepted manual/exceptional recovery. FR-001–003 and FR-006–007 are exclusions, not work deferred to performance, capacity or monthly-availability tasks.
-- A fake/mocked boundary, formatted document or successful schema check proves only that boundary. Production generation/compilation, native builds, providers, deployment, backup restoration and live logo retention remain unchecked until performed.
+- Preserve native mechanisms, current rights and accepted domain-specific manual/exceptional recovery. No performance, capacity, hosted monitoring, backup or server release programme is defined by this task set. Native candidate/store qualification retains T051/T058 and F14 ownership.
+- A fake/mocked boundary, formatted document or schema check proves only that boundary. Generated-consumer compilation, actual databases, native builds, provider journeys and live V1 continuity each require their own evidence.
 - No credentials, real private cleanup references, support attachments or provider payloads belong in public fixtures or reports. Use harmless fixtures and the authorized private delivery tools for sensitive evidence.
 - Update native task completion only from actual results. Commit coherent work under the issue-owned delivery policy; this task file authorizes neither a merge nor a production/provider operation by itself.

@@ -75,7 +75,7 @@ physical-device/provider qualification or design acceptance.
 
 Lose a version-mutation response and fail its dependent read: ordinary settlement invalidation neither proves rollback nor undoes acknowledged success. A report acknowledgement remains distinct from read success. After response loss, retain its reason and permit deliberate retry of the same account/version; observing an existing report is not the missing acknowledgement. Current authorization refusal removes private data before an outage. F03 match refusal removes the report address and disables sending while preserving the local reason; refusal of only the old report member keeps its exact-target retry.
 
-Inspect safe local feedback and shared diagnostics: business refusal/conflict emits no unexpected-failure event; unexpected SQL/read failure has one bounded shared HTTP diagnostic. Exclude URLs, query strings, reasons, identities, credentials and payloads. F08 adds no telemetry sink or cleanup-content exception; [F13](../003-shared-quality/plan.md#manual-delivery-and-operations) owns activation and symbolication.
+Inspect safe local feedback and shared diagnostics: business refusal/conflict emits no unexpected-failure event; unexpected SQL/read failure has one bounded shared HTTP diagnostic. Exclude URLs, query strings, reasons, identities, credentials and payloads. F08 adds no telemetry sink or cleanup-content exception; [F13](../003-shared-quality/plan.md#application-diagnostics-and-health) owns the shared diagnostic boundary; crash reporting remains disabled.
 
 ### Native submission and public entry
 

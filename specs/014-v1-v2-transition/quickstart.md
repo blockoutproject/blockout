@@ -1,12 +1,14 @@
 # Quickstart: qualifying the V1-to-V2 transition
 
-Use the [plan's release sequence](plan.md#cutover-and-recovery). Repository tests do not authorize migration, provider changes or retirement; the native and operational scenarios below require their stated qualification setup.
+Use the [mobile preparation and continuity sequence](plan.md#cutover-and-recovery). Independent local checks use disposable migrated PostgreSQL and controlled HTTP/native SDK fixtures. Signed upgrades, real providers and store outcomes require the native inputs below only for their own qualification; they do not block local development. No server deployment or infrastructure-restoration procedure is selected.
 
 ## Prerequisites
 
+The following inputs apply to actual native/store/transition qualification. Controlled local owner, HTTP and fixture checks run independently with their ordinary local setup; no signed candidate or hosted server is needed to develop those boundaries.
+
 - Implemented V2 owners and the [legacy contract](contracts/README.md#legacy-mobile-access), signed production-identity binaries on physical iOS/Android devices, and installed store V1 binaries for upgrade testing.
 - Authorized qualification accounts covering the actual identity/purchase categories, both paying stores and linked sign-in methods. Current provider settings, credentials, build counters and release prerequisites verified privately.
-- Usable private logo/reference preservation with the owner's manual-edit freeze in force, current obligations available, and F13 recovery protections ready. Missing indispensable evidence blocks its destruction.
+- Usable private logo/reference preservation with the owner's manual-edit freeze in force, current obligations available, and current privacy/rights constraints established. Missing indispensable evidence blocks its destruction.
 - Approved common discovery prototype and Figma revision. Browser simulations do not qualify native upgrade, store or provider behavior.
 
 ## Scenarios and expected outcomes
@@ -46,7 +48,7 @@ Exercise the identity/Pro scenario row with actual F05/F09/F12 composition. Expe
 
 ## Auth0 default-role isolation
 
-Under actual provider authorization, use the [operations procedure](../../infra/operations/README.md#auth0-v1-default-role-isolation) to restrict `assign-default-role` to the exact retained V1 native registration. Test non-V1 clients with/without old roles and a prefix-sharing client, then V1 existing-role and roleless success/failure. Expect return before legacy access for every non-V1 client, unchanged V1 claims and login rejection if required roleless assignment fails. Qualify actual Google/Apple sign-in with and without a prior role before final dependency removal.
+The completed scoped `assign-default-role` isolation is described in the [business procedure](../../infra/operations/README.md#auth0-v1-default-role-isolation). Local V2 account/session checks use existing authorized native applications and dedicated test users without modifying that Action, its binding or the V1 application. Current local work grants no final dependency-removal authority.
 
 ## Protected-logo rehearsal
 
@@ -56,7 +58,7 @@ Use the [bounded preservation/reassociation procedure](../../infra/operations/RE
 ./mvnw -B -ntp -pl apps/backend verify -Dtest=ImageDecoderTest,ValidateSportingImageTest -Dit.test=TransitionLogoIntegrationTest
 ```
 
-Expect distinct exact FFVB strings such as `000339` and `339`, no name-based association, rejected missing/corrupt bytes without presentation changes and ordinary uniqueness/grant/revision protection. A clubless professional team receives no guessed club logo. [Private copy completeness and deployed V1 preservation](plan.md#protected-logos-and-sporting-reconstruction) require the actual authorized freeze, copy and source checks; a fixture lookup does not establish them.
+Expect distinct exact FFVB strings such as `000339` and `339`, no name-based association, rejected missing/corrupt bytes without presentation changes and ordinary uniqueness/grant/revision protection. A clubless professional team receives no guessed club logo. [Private copy completeness and deployed V1 preservation](plan.md#protected-logos-and-sporting-reconstruction) require T029’s actual authorized freeze, association-and-byte copy and source checks; the fictional rehearsal does not establish them. T029 remains incomplete until every affected source record/file has its required private evidence.
 
 ## Legacy status qualification
 
@@ -91,8 +93,8 @@ npm run test --workspace=@blockout/mobile -- --runInBand src/features/onboarding
 ./mvnw -B -ntp -pl apps/backend verify -Dtest=EstablishAccountAgeTest -Dit.test=TransitionResetIntegrationTest
 ```
 
-Exercise actual owner composition with fictional HTTP/storage/native SDK inputs and isolated SQL. Expect ordinary explicit first sign-in then restoration, honest empty profile/follows/inbox and zero badge for the new UUID, voluntary follows, retained installation age declaration and no old callback/private state reassignment across accounts. These checks do not perform a business reset, real support submission or external erasure. Signed upgrades, physical devices, providers, preservation, reconstruction and cutover require their stated setup and authorization.
+Exercise actual owner composition with fictional HTTP/storage/native SDK inputs and isolated SQL. Expect ordinary explicit first sign-in then restoration, honest empty profile/follows/inbox and zero badge for the new UUID, voluntary follows, retained installation age declaration and no old callback/private state reassignment across accounts. These checks do not perform a business reset, real support submission or external erasure. These controlled checks establish no signed upgrade, provider operation, real protected-source preservation or cutover.
 
 ## Current repository checks
 
-Run the [README verification commands](../../README.md#verification), including the legacy OpenAPI root and backend checks. Actual old-binary compatibility and deployment must be qualified separately. Source inspection, a scheduled price change, a present file or store submission alone does not establish the end-to-end outcome.
+Run the [README verification commands](../../README.md#verification), including the legacy OpenAPI root and backend checks. Actual old-binary compatibility, provider continuity and public transition outcomes are outside these local checks. Source inspection and document checks establish only their own boundaries.

@@ -5,6 +5,8 @@ services:
     environment:
       DISABLE_INSTALL_DEMO_CONFIG: "true"
       OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+    env_file:
+      - ./local/opensearch/backend.env
     ports:
       - "127.0.0.1:${OPENSEARCH_PORT:-9200}:9200"
     volumes:
@@ -15,9 +17,9 @@ services:
     healthcheck:
       test:
         - CMD-SHELL
-        - curl --silent --cacert config/tls/ca.pem -o /dev/null -w '%{http_code}' https://localhost:9200 | grep -q 401
+        - curl --fail --silent --show-error --max-time 10 --cacert config/tls/ca.pem --user "$${BLOCKOUT_SEARCH_USERNAME}:$${BLOCKOUT_SEARCH_PASSWORD}" --output /dev/null 'https://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s'
       interval: 5s
-      timeout: 5s
+      timeout: 15s
       retries: 30
       start_period: 30s
   postgres:
