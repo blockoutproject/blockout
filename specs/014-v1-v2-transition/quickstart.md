@@ -62,8 +62,6 @@ Expect distinct exact FFVB strings such as `000339` and `339`, no name-based ass
 
 ## Local reconstruction and silent initial mode
 
-This rehearsal owns T031/T032/T035 and uses disposable data only. The explicit fixture years are 2023/2024, 2024/2025, 2025/2026 and 2026/2027: the current season and three completed seasons for this fixture clock. For an actual authorized reconstruction, select the current years and individually available references explicitly through the [F01 bounded command](../001-source-acquisition/quickstart.md#bounded-initial-reconstruction); never substitute a current feed for unavailable history.
-
 ```sh
 npm run bundle:contracts
 ./mvnw -B -ntp -pl apps/backend verify \
@@ -71,45 +69,9 @@ npm run bundle:contracts
   -Dit.test=InitialReconstructionIntegrationTest,TransitionAnnouncementIntegrationTest
 ```
 
-`InitialReconstructionIntegrationTest` runs the packaged non-web preparation command for all four years against migrated PostgreSQL. Its native search case explicitly admits two initial passages for all four seasons through F01/F02, then invokes the real `ProjectSearch` and `OpenSearchProjectionWriter` serially against suite-owned TLS OpenSearch. Each complete replacement publishes three new aliases containing four pools, eight seasonal teams and two exact-reference clubs; SQL retains four matches across repetition. No manual pool approval or second importer participates. This directly qualifies generation replacement, not scheduling in an independently running serving process. Reuse the existing [F04 process/reconstruction proof](../008-search-discovery/quickstart.md#projection-and-privacy) and `SearchRestorationIntegrationTest` for startup/periodic catch-up, lost queued work, incomplete-generation alias preservation and current restrictions; do not duplicate that runtime here.
+Expect two four-season passages with stable sporting identities and complete native search-generation replacement, distinct per-scope acquisition/integration outcomes and counts, initial/repeated announcement silence, then an eligible ordinary V2 announcement. Use the existing [F01 bounded reconstruction](../001-source-acquisition/quickstart.md#bounded-initial-reconstruction), [collector/backend qualification](../../README.md#collector-to-sporting-qualification) and [F04 process/rebuild checks](../008-search-discovery/quickstart.md#projection-and-privacy).
 
-Read the actual F01 report by source, scope, stage and phase. Expected controlled outcomes are:
-
-| Outcome     | Local witness and interpretation                                                                                                                                                                                                                                                                       |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Requested   | Exact selected sources/scopes retained by the F01 request; the partial-integration case observes `REQUESTED` before recording results.                                                                                                                                                                 |
-| Obtained    | Successful acquisition is separate from integration. The partial case records three acquired rows; this does not certify three accepted matches or exhaustive archives.                                                                                                                                |
-| Integrated  | Current F02 SQL facts and `INTEGRATION` evidence establish acceptance. Four-season repetition preserves identities rather than duplicating matches.                                                                                                                                                    |
-| Rejected    | Wrong-season qualification, incompatible F02 content and unauthorized contexts are explicit refusals. They do not become source absence or successful reconstruction.                                                                                                                                  |
-| Partial     | One valid match commits while contradictory observations for another are refused, with no absence reconciliation. `collection_result.outcome=PARTIAL`; initial coverage retains `REJECTED` with obtained/rejected counts of 1/1. F01's coverage enum has no separate `PARTIAL` or `INTEGRATED` status. |
-| Unavailable | Technical/unqualified candidates, interrupted passages and unselected failed neighbors retain their source/scope gaps. Unknown counts remain absent; a measured zero is different.                                                                                                                     |
-
-`TransitionAnnouncementIntegrationTest` keeps actual F01/F02/F06/F07 transactions and SQL, including after-commit handling and send-time eligibility. Only the clock, push worker execution and external transport are controlled. Push is enabled with fictional registration/configuration. Initial result and source-media acceptance, correction and a separate repeated initial cycle produce no inbox, ready event or push work. A completed initial context is rejected before writes. After ordinary launch/admission, correcting consumed history stays silent; an eligible final on another known match creates exactly one unread V2 notification and one provider attempt. Removing the voluntary follow before the pending worker executes cancels that attempt. No V1 follows, read states, contributions, recipients or pending sends are loaded. A source-media fact is not an F08 publication and imports no contribution.
-
-For real generated collector/backend HTTP composition, follow the [existing qualification setup](../../README.md#collector-to-sporting-qualification), with resources owned by this worktree. A reproducible isolated allocation is:
-
-```sh
-POSTGRES_PORT=15456 docker compose -p blockout-356 up -d --wait postgres
-./mvnw -B -ntp -pl apps/backend package -DskipTests
-LIQUIBASE_URL=jdbc:postgresql://127.0.0.1:15456/blockout \
-LIQUIBASE_USERNAME=blockout_migration LIQUIBASE_PASSWORD=local-migration-only \
-./mvnw -B -ntp -pl apps/backend liquibase:update
-./mvnw -B -ntp -pl apps/collector verify \
-  -Dit.test=CollectorSportingBoundaryIntegrationTest,CollectorPartialSuccessIntegrationTest,CollectorContextIdentityIntegrationTest,CollectorSportingReadIntegrationTest \
-  -Dblockout.qualify-collector-sporting=true \
-  -Dqualification.backend-jar="$PWD/apps/backend/target/backend-0.0.0-SNAPSHOT.jar" \
-  -Dqualification.backend-port=18356 \
-  -Dqualification.database-url=jdbc:postgresql://127.0.0.1:15456/blockout \
-  -Dqualification.database-user=blockout_app \
-  -Dqualification.database-password=local-app-only \
-  -Dqualification.migration-user=blockout_migration \
-  -Dqualification.migration-password=local-migration-only
-docker compose -p blockout-356 stop postgres
-```
-
-Run backend packaging to completion before launching the collector suites; their backend reads that JAR. These opt-in suites use generated clients, real authentication at an isolated local signing endpoint, restricted application-role SQL, actual F01/F02 transactions and controlled supplier inputs. They cover initial content refusal and ordinary partial commits, independent scopes, stale contexts, empty historical preservation and current public hydration. Never select a retained/shared database: their explicit fixtures truncate their own disposable state.
-
-Reference qualification remains bounded. FFVB/LNV parser and source-qualification fixtures exercise representative provider formats, expected organizers/championships and seasonal evidence locally; the four-season owner test supplies synthetic validation evidence for official-shaped URLs. Neither establishes that those four official archives were obtained or are currently available. No live provider/archive request is made by this rehearsal; actual acquisition availability remains unqualified, distinct from the deliberately unavailable fixture cases. Do not inspect V1 or obtain new provider access to fill a gap. Missing sources authorize neither protected identity/right/logo loss nor erasure of ordinary V2 history. Current permissions, visibility, erasure and push restrictions stay with their existing owners; T029/T036 and actual native/provider/store qualification remain separate.
+These checks use disposable PostgreSQL/OpenSearch and controlled source/push inputs; they establish no official-archive availability, physical push delivery or actual transition qualification.
 
 ## Legacy status qualification
 
