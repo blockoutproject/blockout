@@ -8,16 +8,21 @@ import com.blockout.backend.collection.application.exception.CollectionNotFoundE
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.CollectionState.Admission;
 import com.blockout.backend.collection.application.model.CollectionState.StartCycle;
+import com.blockout.backend.collection.application.model.RecordCollectionResult;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
 import com.blockout.backend.collection.application.service.CollectionCycleAccess;
 import com.blockout.backend.collection.application.service.CollectorRuntimeAccess;
 import com.blockout.backend.collection.application.service.ReadCollectionWork;
+import com.blockout.backend.collection.application.service.RecordCollectionResults;
 import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
 import com.blockout.backend.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
@@ -88,6 +93,7 @@ class CollectionAdmissionIntegrationTest {
   @Autowired private ReadCollectionWork collectionWork;
   @Autowired private AdmitCollectionCycle cycles;
   @Autowired private CollectionCycleAccess cycleAccess;
+  @Autowired private RecordCollectionResults results;
 
   @Autowired private ChangeCollectionSeasons seasons;
   @Autowired private JdbcTemplate sql;
@@ -279,20 +285,22 @@ class CollectionAdmissionIntegrationTest {
   }
 
   @Test
-  @DisplayName("Uses actual attempt age without making an empty admission successful")
+  @DisplayName("Keeps attempted competition targets out of the same scheduled period")
   void selectsDueTargets() {
     // Given
     UUID pool = classifiedPool();
+    Instant observedAt = Instant.parse("2026-10-19T10:00:01Z");
+    Mockito.when(clock.instant()).thenReturn(Instant.parse("2026-10-19T10:05:00Z"));
     sql.update(
         "INSERT INTO collection_result(control_id,scope_id,stage,phase,last_attempt_at,cycle_order,read_ordinal,outcome) VALUES (?,?,'CALENDAR','ACQUISITION',?,1,1,'SUCCESS')",
         CONTROL,
         pool,
-        Timestamp.from(NOW.minusSeconds(60)));
+        Timestamp.from(observedAt));
     sql.update(
         "INSERT INTO collection_result(control_id,scope_id,stage,phase,last_attempt_at,cycle_order,read_ordinal,outcome) VALUES (?,?,'DISCOVERY','ACQUISITION',?,1,1,'SUCCESS')",
         CONTROL,
         SOURCE,
-        Timestamp.from(NOW.minusSeconds(60)));
+        Timestamp.from(observedAt));
 
     // When
     cycles.admit(new StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null));
@@ -307,6 +315,56 @@ class CollectionAdmissionIntegrationTest {
         .isNull();
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_result", Long.class))
         .isEqualTo(2);
+  }
+
+  @Test
+  @DisplayName("Persisted acquisition times do not postpone the next scheduled competition read")
+  void selectsNextScheduledPeriodAfterObservedRead() {
+    // Given
+    UUID pool = classifiedPool();
+    Instant observedAt = Instant.parse("2026-10-19T10:00:01Z");
+    cycles.admit(new StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null));
+    results.record(
+        CYCLE,
+        new RecordCollectionResult(
+            pool,
+            CollectionStageEnum.CALENDAR,
+            CollectionPhaseEnum.ACQUISITION,
+            1,
+            observedAt,
+            CollectionOutcomeEnum.SUCCESS,
+            null,
+            null,
+            null,
+            null));
+    results.record(
+        CYCLE,
+        new RecordCollectionResult(
+            SOURCE,
+            CollectionStageEnum.DISCOVERY,
+            CollectionPhaseEnum.ACQUISITION,
+            2,
+            observedAt,
+            CollectionOutcomeEnum.SUCCESS,
+            null,
+            null,
+            null,
+            null));
+    results.complete(CYCLE, Instant.parse("2026-10-19T10:00:02Z"));
+    Mockito.when(clock.instant()).thenReturn(Instant.parse("2026-10-19T10:30:00Z"));
+    UUID nextCycle = UUID.fromString("00000000-0000-4000-8000-000000000181");
+    long revision = collectionWork.work(STARTUP).controls().getFirst().revision();
+
+    // When
+    cycles.admit(new StartCycle(nextCycle, STARTUP, CONTROL, null, revision, null));
+
+    // Then
+    CollectionState.TargetPage targets = collectionWork.targets(nextCycle, 0, 50);
+    assertThat(targets.items())
+        .extracting(item -> item.target().scopeId())
+        .containsExactly(pool, SOURCE);
+    assertThat(targets.items())
+        .allSatisfy(item -> assertThat(item.target().lastAttemptAt()).isEqualTo(observedAt));
   }
 
   @Test
