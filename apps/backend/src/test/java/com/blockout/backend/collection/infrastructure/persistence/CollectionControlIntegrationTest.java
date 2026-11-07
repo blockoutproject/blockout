@@ -281,6 +281,9 @@ class CollectionControlIntegrationTest {
     long revision = configurationReads.control(ACCOUNT, CONTROL).control().revision();
     activity(revision, false).andExpect(status().isOk());
     CollectionState.Control paused = configurationReads.control(ACCOUNT, CONTROL).control();
+    UUID activeControl = UUID.fromString("00000000-0000-4000-8000-000000000001");
+    CollectionState.Control active = configurationReads.control(ACCOUNT, activeControl).control();
+    assertThat(active.enabled()).isTrue();
     long maintenanceRevision =
         sql.queryForObject(
             "SELECT revision FROM access_settings WHERE id='maintenance'", Long.class);
@@ -292,12 +295,16 @@ class CollectionControlIntegrationTest {
                 .contentType("application/json")
                 .content("{\"revision\":" + maintenanceRevision + ",\"active\":false}"))
         .andExpect(status().isOk());
+    assertThat(configurationReads.control(ACCOUNT, CONTROL).control()).isEqualTo(paused);
+    assertThat(configurationReads.control(ACCOUNT, activeControl).control()).isEqualTo(active);
     mvc.perform(
             put("/administration/maintenance/activation")
                 .with(operator())
                 .contentType("application/json")
                 .content("{\"revision\":" + (maintenanceRevision + 1) + ",\"active\":true}"))
         .andExpect(status().isOk());
+    assertThat(configurationReads.control(ACCOUNT, CONTROL).control()).isEqualTo(paused);
+    assertThat(configurationReads.control(ACCOUNT, activeControl).control()).isEqualTo(active);
     results.complete(CYCLE, Instant.now().plusSeconds(1));
 
     // Then
