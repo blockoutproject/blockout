@@ -2,6 +2,8 @@
 
 **Scope**: [plan](plan.md), [data model](data-model.md), [contracts](contracts/README.md).
 
+Native accessibility verification follows [F13 FR-030](../003-shared-quality/spec.md#platforms-accessibility-and-bounded-continuity).
+
 ## Prerequisites
 
 Use the executable Maven/npm targets and focused sporting test commands in [README verification](../../README.md#verification). Use controlled HTTP peers and synthetic data for automated boundary checks; the business, database and native journeys below require their actual owning implementations.
@@ -90,7 +92,7 @@ On native iOS and Android, run both system themes at ordinary and narrow widths,
 then enlarged text including the approved 320-point/200% specimen. Check labels,
 image preview/close, replacement and restoration, validation focus, keyboard
 reachability of the final field/save action, and back/gesture cancellation versus
-explicit draft discard. On iOS, repeat with VoiceOver. This preparation does not
+explicit draft discard. This preparation does not
 qualify the separately retained iOS text-resizing/minimum-iOS limits.
 
 Save names and a nonsquare PNG/JPEG in one multipart request, including manual

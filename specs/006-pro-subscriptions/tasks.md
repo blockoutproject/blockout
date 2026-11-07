@@ -193,7 +193,7 @@ The approved Account composition covers A02, A16–A17, FR-004/FR-017 and SC-009
 ### Tests and qualification cases for User Story 6
 
 - [x] T039 [P] [US6] Write failing current-session appearance tests in `apps/mobile/src/features/pro/__tests__/pro-appearance.test.tsx`, using the actual Pro state and F13 theme boundary. Verify accent removal on sign-out, accepted deletion, failed reassociation, A → guest → A and reliable entitlement loss; unknown/inactive/guest never inherit gold, cached SDK-active remains active, and system appearance changes preserve navigation/forms without changing sporting context or capabilities. Extend existing session assertions rather than create a second entitlement cache/test framework.
-- [x] T040 [P] [US6] Prepare exact approved guest/Pro entry and neutral/sporting comparison cases in `specs/006-pro-subscriptions/quickstart.md#scenarios-and-expected-outcomes`, using the specification's Figma references and F13 T066/T073. Cover both platforms/themes, live system changes, compact width, enlarged French text, VoiceOver on iOS, reduced motion, safe areas/back/focus and native provider layouts; provider rendering is qualification evidence, not a reason to rebuild it.
+- [x] T040 [P] [US6] Prepare exact approved guest/Pro entry and neutral/sporting comparison cases in `specs/006-pro-subscriptions/quickstart.md#scenarios-and-expected-outcomes`, using the specification's Figma references and F13 T066/T073. Cover both platforms/themes, live system changes, compact width, enlarged French text, reduced motion, safe areas/back/ordinary form focus and native provider layouts; provider rendering is qualification evidence, not a reason to rebuild it.
 
 ### Implementation and qualification for User Story 6
 

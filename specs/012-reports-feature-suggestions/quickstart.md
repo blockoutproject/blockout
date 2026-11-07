@@ -1,6 +1,6 @@
 # Quickstart: Validate private support and suggestions
 
-Use the [repository verification commands](../../README.md#verification) and the [canonical contract](contracts/README.md). The [plan](plan.md) and [data model](data-model.md) own implementation decisions and lifetimes.
+Use the [repository verification commands](../../README.md#verification) and the [canonical contract](contracts/README.md). The [plan](plan.md) and [data model](data-model.md) own implementation decisions and lifetimes. Native accessibility verification follows [F13 FR-030](../003-shared-quality/spec.md#platforms-accessibility-and-bounded-continuity).
 
 ## Prerequisites
 
@@ -22,7 +22,7 @@ Controlled application checks use fictional contact, text and images with native
 | Discord and diagnostics | Fail the webhook after successful receipt; inspect logs and process invocation.                                                                        | User acceptance unchanged. Generic signal only; no personal content, token, raw CLI output or attachment bytes in diagnostics/arguments.                                            |
 | Temporary files         | Normal completion, validation refusal, CLI failure and timeout.                                                                                        | Fixed repository and separate arguments, private temporary files, terminated timed-out process and cleanup; no durable support volume.                                              |
 | Contract integration    | Bundle/lint, generate and compile Java/TypeScript; exercise metadata JSON, repeated file parts and named errors.                                       | Standard generated bindings/FormData work without output patches; complete response validated once, additive fields tolerated.                                                      |
-| Design                  | Approved affected screens in both themes, narrow width, keyboard, reader labels and large text.                                                        | Sending is bounded, errors ordinary and draft retained. No recovery/history journey or third-party console recreated.                                                               |
+| Design                  | Approved affected screens in both themes, narrow width, keyboard, accessible labels and large text.                                                    | Sending is bounded, errors ordinary and draft retained. No recovery/history journey or third-party console recreated.                                                               |
 
 Use JUnit/Spring MVC with controlled provider/process I/O and Jest Expo/React Native Testing Library for application behavior. Actual CLI uploads, private permissions and native image handling require their corresponding provider/device setup. No database ticket exists to justify an F10 persistence suite, and no additional E2E framework is selected.
 
@@ -63,4 +63,4 @@ With this flag, the backend suite runs the generated TypeScript consumer and act
 npm run test --workspace=@blockout/mobile -- --runInBand --runTestsByPath src/features/support/__tests__/support-submission.test.tsx
 ```
 
-Exercise the real form and generated multipart consumer with a delayed refusal followed by an explicit corrected retry. Expect locked in-flight fields/action, retained editable input after failure and complete confirmation with email information and no editor after 201. Repeat on native iOS/Android with both themes, keyboard, enlarged text and VoiceOver on iOS. A fixture response does not qualify actual multipart delivery, attachment confidentiality or provider erasure.
+Exercise the real form and generated multipart consumer with a delayed refusal followed by an explicit corrected retry. Expect locked in-flight fields/action, retained editable input after failure and complete confirmation with email information and no editor after 201. Repeat on native iOS/Android with both themes, ordinary form keyboard/focus and enlarged text. A fixture response does not qualify actual multipart delivery, attachment confidentiality or provider erasure.

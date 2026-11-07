@@ -2,6 +2,8 @@
 
 Use the [runtime composition](plan.md#runtime-composition) and scenarios below to validate advertising/privacy with the actual owning features. Controlled SDK/HTTP inputs do not establish real serving, mediation, consent or store qualification.
 
+Native accessibility verification follows [F13 FR-030](../003-shared-quality/spec.md#platforms-accessibility-and-bounded-continuity).
+
 ## Advertising eligibility
 
 After README installation/mobile generation, run:
@@ -41,7 +43,7 @@ Open the real root as guest/free/known-active Pro. Expect ordinary home to requi
 
 Read installation storage: only `category` (`under16`, `16–17`, `adult`) and local `declaredAt` day may persist after confirmation. Missing/invalid/future declarations use child protection without a fabricated record. A minor renews at the next installation-tree launch after one calendar year, including February 29 → February 28; no timer, category promotion or annual adult prompt. A known-active Pro exemption does not survive logout.
 
-Compare the approved age journey/artwork in both themes, narrow widths, enlarged text, reduced motion and VoiceOver on iOS. Check native slider touch/accessibility and action reachability. Independent sign-in/legal/support destinations retain F12 gates. Actual storage, consent/ATT and provider entitlement require native/provider checks; controlled I/O supplies no such approval.
+Compare the approved age journey/artwork in both themes, narrow widths, enlarged text and reduced motion. Check native slider touch/accessibility and action reachability. Independent sign-in/legal/support destinations retain F12 gates. Actual storage, consent/ATT and provider entitlement require native/provider checks; controlled I/O supplies no such approval.
 
 ## Native privacy choices
 
@@ -86,7 +88,7 @@ Use the F13 development setup and test tools, physical iOS/Android devices, supp
 | Public documents | Read all three as guest and Pro; external privacy/deletion link; missing page; network failure; return                                                                        | Same complete public HTML, native browser controls, truthful metadata, no ad/acceptance side effect or authenticated-only document. F12 in-app gates remain effective.                                                                                                                                                                                                                                                              |
 | Club restriction | Restrict one field while collection/editing races; recollect, switch source/manual mode, restore an old copy                                                                  | Source/manual/effective values cleared, revision checked and restriction retained. No reimport or indiscriminate club deletion. Apply current rights before restored access.                                                                                                                                                                                                                                                        |
 | Distribution     | EU27 store and Pro availability; existing non-EU user and traveler; supported V1 coexistence                                                                                  | No runtime geo gate or lost rights; truthful store declarations and usable update/redownload path. Preserve active V1 provider units/sellers until no longer used.                                                                                                                                                                                                                                                                  |
-| Accessibility    | Light/dark, narrow screen, enlarged text, VoiceOver on iOS, keyboard/focus and return paths                                                                                   | Age, correction and privacy/legal actions remain understandable and usable; native supplier screens are qualified on devices.                                                                                                                                                                                                                                                                                                       |
+| Accessibility    | Light/dark, narrow screen, enlarged text, keyboard/focus and return paths                                                                                                     | Age, correction and privacy/legal actions remain understandable and usable; native supplier screens are qualified on devices.                                                                                                                                                                                                                                                                                                       |
 
 Use focused Jest/RNTL checks for mobile behavior and existing Java/PostgreSQL tools for contact enforcement. Review actual legal text and private diagnostic filtering before publication.
 
