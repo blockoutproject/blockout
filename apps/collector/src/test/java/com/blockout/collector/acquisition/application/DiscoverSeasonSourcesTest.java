@@ -16,6 +16,7 @@ import com.blockout.collector.acquisition.lnv.LnvDiscovery;
 import com.blockout.collector.generated.ingestion.model.CollectionProviderEnum;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.time.Clock;
@@ -24,6 +25,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.apache.hc.client5.http.HttpResponseException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -31,6 +33,41 @@ import org.mockito.ArgumentCaptor;
 /** Native navigation over controlled HTTP responses; no external provider or backend write. */
 @DisplayName("Bound-source discovery traversal")
 class DiscoverSeasonSourcesTest {
+  @Test
+  @DisplayName("An unavailable seasonal catalog retains its technical failure category")
+  void retainsCatalogTransportFailure() {
+    // Given
+    URI root = URI.create("https://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php");
+    UncheckedIOException unavailable =
+        new UncheckedIOException(new HttpResponseException(500, "Synthetic unavailable source"));
+    ProviderPages http = mock(ProviderPages.class);
+    doThrow(unavailable).when(http).page(root);
+    DiscoverSeasonSources service =
+        new DiscoverSeasonSources(
+            http,
+            http,
+            new FfvbDiscovery(),
+            new LnvDiscovery(),
+            mock(CollectionBackend.class),
+            mock(CollectorLifecycle.class),
+            Clock.fixed(Instant.EPOCH, ZoneOffset.UTC));
+    CollectionBackend.Target target =
+        CollectionBackend.Target.builder()
+            .provider(CollectionProviderEnum.FFVB)
+            .url(root)
+            .seasonLabel("2026/2027")
+            .organizerReference("ABCCS")
+            .build();
+
+    // When / Then
+    assertThatThrownBy(() -> service.catalog(target))
+        .isInstanceOfSatisfying(
+            RuntimeException.class,
+            failure ->
+                assertThat(AcquisitionFailure.reasonType(failure))
+                    .isEqualTo(URI.create("urn:blockout:acquisition:technical")));
+  }
+
   @Test
   @DisplayName("An unavailable frame preserves discovered siblings as a partial catalog")
   void retainsPartialFrameCatalog() {
@@ -115,7 +152,12 @@ class DiscoverSeasonSourcesTest {
             .build();
 
     // When / Then
-    assertThatThrownBy(() -> service.catalog(target)).isInstanceOf(FfvbAcquisitionException.class);
+    assertThatThrownBy(() -> service.catalog(target))
+        .isInstanceOf(FfvbAcquisitionException.class)
+        .satisfies(
+            failure ->
+                assertThat(AcquisitionFailure.reasonType((RuntimeException) failure))
+                    .isEqualTo(URI.create("urn:blockout:acquisition:structure")));
   }
 
   @Test

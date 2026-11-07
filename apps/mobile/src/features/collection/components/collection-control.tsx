@@ -231,5 +231,10 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: tokens.spacing.compact,
   },
-  action: { flex: 1, minWidth: 110 },
+  action: {
+    flexBasis: "auto",
+    flexGrow: 1,
+    minWidth: 110,
+    maxWidth: "100%",
+  },
 });

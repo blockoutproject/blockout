@@ -271,6 +271,54 @@ class CollectionControlIntegrationTest {
   }
 
   @Test
+  @DisplayName("Maintenance activation changes neither paused collection nor admitted work")
+  void keepsMaintenanceIndependent() throws Exception {
+    // Given
+    sql.update(
+        "INSERT INTO account_permission(account_id, permission) VALUES (?, 'maintenance.manage')",
+        ACCOUNT);
+    cycles.admit(new CollectionState.StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null));
+    long revision = configurationReads.control(ACCOUNT, CONTROL).control().revision();
+    activity(revision, false).andExpect(status().isOk());
+    CollectionState.Control paused = configurationReads.control(ACCOUNT, CONTROL).control();
+    UUID activeControl = UUID.fromString("00000000-0000-4000-8000-000000000001");
+    CollectionState.Control active = configurationReads.control(ACCOUNT, activeControl).control();
+    assertThat(active.enabled()).isTrue();
+    long maintenanceRevision =
+        sql.queryForObject(
+            "SELECT revision FROM access_settings WHERE id='maintenance'", Long.class);
+
+    // When
+    mvc.perform(
+            put("/administration/maintenance/activation")
+                .with(operator())
+                .contentType("application/json")
+                .content("{\"revision\":" + maintenanceRevision + ",\"active\":false}"))
+        .andExpect(status().isOk());
+    assertThat(configurationReads.control(ACCOUNT, CONTROL).control()).isEqualTo(paused);
+    assertThat(configurationReads.control(ACCOUNT, activeControl).control()).isEqualTo(active);
+    mvc.perform(
+            put("/administration/maintenance/activation")
+                .with(operator())
+                .contentType("application/json")
+                .content("{\"revision\":" + (maintenanceRevision + 1) + ",\"active\":true}"))
+        .andExpect(status().isOk());
+    assertThat(configurationReads.control(ACCOUNT, CONTROL).control()).isEqualTo(paused);
+    assertThat(configurationReads.control(ACCOUNT, activeControl).control()).isEqualTo(active);
+    results.complete(CYCLE, Instant.now().plusSeconds(1));
+
+    // Then
+    assertThat(configurationReads.control(ACCOUNT, CONTROL).control()).isEqualTo(paused);
+    assertThat(collectionWork.get(CYCLE).state()).isEqualTo(CollectionCycleStateEnum.COMPLETED);
+    assertThat(sql.queryForObject("SELECT count(*) FROM collection_cycle", Integer.class))
+        .isEqualTo(1);
+    assertThat(
+            sql.queryForObject(
+                "SELECT active FROM access_settings WHERE id='maintenance'", Boolean.class))
+        .isTrue();
+  }
+
+  @Test
   @DisplayName(
       "Running work is returned once but pausing refuses the duplicate and lets admitted work finish")
   void drainsRunning() throws Exception {

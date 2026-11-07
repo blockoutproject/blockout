@@ -142,6 +142,8 @@ public class DiscoverSeasonSources {
    *
    * @param target admitted discovery binding and season
    * @return complete or partial catalog; unsupported roots throw rather than fabricate emptiness
+   * @throws RuntimeException if no seasonal catalog is recognized; failed reads retain their
+   *     original category
    */
   public Read catalog(CollectionBackend.Target target) {
     return catalog(target, () -> 0, page -> {});
@@ -154,6 +156,8 @@ public class DiscoverSeasonSources {
    * @param nextOrdinal allocator called before every actual page read
    * @param consume immediate consumer; must not retain raw pages or ineligible sporting rows
    * @return aggregated catalog with actual final discovery read time
+   * @throws RuntimeException if no seasonal catalog is recognized; failed reads retain their
+   *     original category
    */
   public Read catalog(
       CollectionBackend.Target target, LongSupplier nextOrdinal, Consumer<PageRead> consume) {
@@ -166,6 +170,7 @@ public class DiscoverSeasonSources {
     List<SportingObservation.Pool> pools = new ArrayList<>();
     boolean complete = true;
     boolean recognized = false;
+    RuntimeException firstFailure = null;
     Instant observedAt = clock.instant();
     while (!pending.isEmpty()) {
       URI url = pending.removeFirst();
@@ -210,9 +215,15 @@ public class DiscoverSeasonSources {
         throw failure;
       } catch (RuntimeException failure) {
         complete = false;
+        if (firstFailure == null) {
+          firstFailure = failure;
+        }
       }
     }
     if (!recognized) {
+      if (firstFailure != null) {
+        throw firstFailure;
+      }
       throw new FfvbAcquisitionException("No qualified FFVB catalog");
     }
     return new Read(
