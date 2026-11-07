@@ -61,7 +61,7 @@ For the complete repository check when private per-application `.env.local` file
 NX_LOAD_DOT_ENV_FILES=false NX_DAEMON=false BLOCKOUT_ACCESS_CONSUMERS_TEST=true npm run verify
 ```
 
-The minimum-iOS simulator input journey remains required for final native acceptance. Its owner-authorized scoped deferral permits delivery of the atomic settings implementation without changing compatibility requirements or completing final F12 acceptance. Preserve the deployment minimum and use the installed supported toolchain; no native input patch or implicit prerelease installation is selected. [F13](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets) owns shared text-size/input limits.
+Use the oldest compatible installed iOS Simulator with a client matching the current native dependency/configuration graph. Maintenance has no secure field: qualify secure entry through a temporary mount of the existing `TextField` with `secureTextEntry`, then exercise the real maintenance route under its ordinary providers. Follow [F13’s temporary-mount and native qualification guidance](../003-shared-quality/quickstart.md#profile-forms-and-contextual-sheets); controlled HTTP/Auth0 does not qualify providers. Check enlarged text from a cold launch separately from the live-setting limitation. Keep exact runtime/build/toolchain, captures and observed limits in the PR; a substitute runtime does not qualify iOS 16.4 or complete general F13/F12 acceptance.
 
 ## Shared maintenance admission
 
