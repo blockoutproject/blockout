@@ -675,12 +675,28 @@ it("shares the newest/selected club season between teams and both calendar entri
   // When
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
   await screen.findByRole("link", { name: team.team.team.name });
-  await user.press(screen.getByRole("button", { name: "Saison 2027/2028" }));
-  await user.press(screen.getByRole("button", { name: "2026/2027" }));
+  const selector = screen.getByRole("button", {
+    name: "Saison du club",
+    expanded: false,
+  });
+  expect(selector).toHaveAccessibilityValue({ text: season.label });
+  await user.press(selector);
+  expect(
+    screen.getByRole("button", { name: "Saison du club", expanded: true }),
+  ).toHaveAccessibilityValue({ text: season.label });
+  expect(
+    screen.getByRole("radio", { name: season.label, checked: true }),
+  ).toBeOnTheScreen();
+  await user.press(
+    screen.getByRole("radio", { name: olderSeason.label, checked: false }),
+  );
   await layoutNativeTabs();
   await user.press(screen.getByRole("tab", { name: "À venir" }));
 
   // Then
+  expect(
+    screen.getByRole("button", { name: "Saison du club", expanded: false }),
+  ).toHaveAccessibilityValue({ text: olderSeason.label });
   await screen.findByText("Aucun match pour cette sélection");
   // When
   await user.press(screen.getByRole("tab", { name: "Terminés" }));
@@ -717,13 +733,13 @@ it("replaces the club's native scroll context on season change while retaining i
   const originalPager = screen.getByTestId("native-tabs-pager");
 
   // When: opening choices does not change the season or dispose its scroll context.
-  await user.press(screen.getByRole("button", { name: "Saison 2027/2028" }));
+  await user.press(screen.getByRole("button", { name: "Saison du club" }));
 
   // Then
   expect(originalPager).toBeOnTheScreen();
 
   // When: applying another season starts a new native context, not a restoration of the old offset.
-  await user.press(screen.getByRole("button", { name: "2026/2027" }));
+  await user.press(screen.getByRole("radio", { name: olderSeason.label }));
   await layoutNativeTabs();
 
   // Then: native pager disposal is observed at its host boundary; shared scene ownership remains real.
@@ -759,8 +775,8 @@ it("retains a valid season through failed retrieval and falls back only after su
   await layoutNativeTabs();
   await screen.findByText(club.club.name);
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
-  await user.press(screen.getByRole("button", { name: "Saison 2027/2028" }));
-  await user.press(screen.getByRole("button", { name: "2026/2027" }));
+  await user.press(screen.getByRole("button", { name: "Saison du club" }));
+  await user.press(screen.getByRole("radio", { name: olderSeason.label }));
   await layoutNativeTabs();
   const selectedPager = screen.getByTestId("native-tabs-pager");
   mockFetch.mockRejectedValue(new TypeError("offline"));
@@ -777,8 +793,8 @@ it("retains a valid season through failed retrieval and falls back only after su
 
   // Then
   expect(
-    screen.getByRole("button", { name: "Saison 2026/2027" }),
-  ).toBeOnTheScreen();
+    screen.getByRole("button", { name: "Saison du club" }),
+  ).toHaveAccessibilityValue({ text: olderSeason.label });
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   club = { ...club, seasons: [season] };
   mockFetch.mockImplementation(reads);
@@ -794,8 +810,8 @@ it("retains a valid season through failed retrieval and falls back only after su
   // Then
   await waitFor(() =>
     expect(
-      screen.getByRole("button", { name: "Saison 2027/2028" }),
-    ).toBeOnTheScreen(),
+      screen.getByRole("button", { name: "Saison du club" }),
+    ).toHaveAccessibilityValue({ text: season.label }),
   );
 });
 
@@ -829,10 +845,8 @@ it.each(["empty", "populated"] as const)(
     });
 
     // When
-    await user.press(
-      screen.getByRole("button", { name: `Saison ${season.label}` }),
-    );
-    await user.press(screen.getByRole("button", { name: olderSeason.label }));
+    await user.press(screen.getByRole("button", { name: "Saison du club" }));
+    await user.press(screen.getByRole("radio", { name: olderSeason.label }));
     await layoutNativeTabs();
     const currentContent =
       currentState === "empty"
@@ -853,8 +867,8 @@ it.each(["empty", "populated"] as const)(
     // Then
     expect(screen.queryByText("Obsolete team")).not.toBeOnTheScreen();
     expect(
-      screen.getByRole("button", { name: `Saison ${olderSeason.label}` }),
-    ).toBeOnTheScreen();
+      screen.getByRole("button", { name: "Saison du club" }),
+    ).toHaveAccessibilityValue({ text: olderSeason.label });
     if (currentState === "populated") {
       expect(
         screen.getByRole("link", { name: currentContent }),
@@ -1778,8 +1792,8 @@ it("refreshes the active club team tab only and preserves the selected season", 
   await screen.findByText(club.club.name);
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
   await screen.findByRole("link", { name: team.team.team.name });
-  await user.press(screen.getByRole("button", { name: "Saison 2027/2028" }));
-  await user.press(screen.getByRole("button", { name: "2026/2027" }));
+  await user.press(screen.getByRole("button", { name: "Saison du club" }));
+  await user.press(screen.getByRole("radio", { name: olderSeason.label }));
   await layoutNativeTabs();
   await waitFor(() =>
     expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy(),
@@ -1795,8 +1809,8 @@ it("refreshes the active club team tab only and preserves the selected season", 
   expect(request.pathname).toBe(`/clubs/${sportingId}/teams`);
   expect(request.searchParams.get("seasonId")).toBe(olderSeason.id);
   expect(
-    screen.getByRole("button", { name: "Saison 2026/2027" }),
-  ).toBeOnTheScreen();
+    screen.getByRole("button", { name: "Saison du club" }),
+  ).toHaveAccessibilityValue({ text: olderSeason.label });
   expect(
     screen.getByRole("tab", { name: "Équipes", selected: true }),
   ).toBeOnTheScreen();

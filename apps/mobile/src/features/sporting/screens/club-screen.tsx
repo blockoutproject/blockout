@@ -30,6 +30,9 @@ import { StyleSheet, View } from "react-native";
 import { tokens } from "../../../shared/theme/tokens";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { Button } from "../../../shared/components/button";
+import { EntryGroup } from "../../../shared/components/entry-group";
+import { SeasonSelector } from "../../../shared/components/season-selector";
+import { SelectionRow } from "../../../shared/components/selection-row";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 
 import {
@@ -136,23 +139,29 @@ function ClubPage({ clubId }: ClubScreenProps) {
   ] as const;
   const seasonControls = season ? (
     <View style={styles.season}>
-      <Button
-        variant="secondary"
-        label={`Saison ${season.label}`}
-        onPress={() => setChoosingSeason(!choosingSeason)}
-      />
-      {choosingSeason &&
-        seasons.map((item) => (
-          <Button
-            key={item.id}
-            variant="secondary"
-            label={item.label}
-            onPress={() => {
-              setSelectedSeason(item.id);
-              setChoosingSeason(false);
-            }}
-          />
-        ))}
+      <View style={styles.seasonRow}>
+        <SeasonSelector
+          label={season.label}
+          accessibilityLabel="Saison du club"
+          expanded={choosingSeason}
+          onPress={() => setChoosingSeason(!choosingSeason)}
+        />
+      </View>
+      {choosingSeason && (
+        <EntryGroup>
+          {seasons.map((item) => (
+            <SelectionRow
+              key={item.id}
+              label={item.label}
+              selected={item.id === season.id}
+              onPress={() => {
+                setSelectedSeason(item.id);
+                setChoosingSeason(false);
+              }}
+            />
+          ))}
+        </EntryGroup>
+      )}
     </View>
   ) : undefined;
   const blockingState = !data ? (
@@ -314,7 +323,12 @@ function ClubPage({ clubId }: ClubScreenProps) {
                     </Surface>
                   )}
                   ListHeaderComponent={
-                    <View style={styles.header}>
+                    <View
+                      style={[
+                        styles.header,
+                        value !== "info" && styles.seasonHeader,
+                      ]}
+                    >
                       {value !== "info" && seasonControls}
                       {data && value === "info" && (
                         <>
@@ -388,8 +402,16 @@ function ClubPage({ clubId }: ClubScreenProps) {
 const styles = StyleSheet.create({
   stateControls: { paddingBottom: 0 },
   header: { gap: tokens.spacing.lg, marginBottom: tokens.layout.list.gap },
+  seasonHeader: { marginBottom: tokens.spacing.lg },
   season: {
+    gap: tokens.spacing.lg,
+    paddingTop: tokens.spacing.sm,
+  },
+  seasonRow: {
+    minHeight: tokens.touch.minimum,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
     gap: tokens.spacing.sm,
-    paddingBottom: tokens.spacing.sm,
   },
 });
