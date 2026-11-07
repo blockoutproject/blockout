@@ -18,7 +18,7 @@
 
 The [attachment client](https://github.com/cli/cli/blob/v2.102.0/internal/attachments/client.go) accepts fine-grained personal access tokens and requires repository write access. GitHub App installation tokens are not supported by that path. Use a server token restricted to the dedicated private repository; qualify the real minimum permissions and upload behavior before activation. No repository, token, label or provider setting is created by this planning delivery.
 
-**Alternatives considered:** Undocumented direct Java upload calls would duplicate provider internals. Separate object storage would introduce another privacy, retention and association boundary. The official CLI in the backend image adds a binary dependency but avoids both mechanisms; no extra service is needed.
+**Alternatives considered:** Undocumented direct Java upload calls would duplicate provider internals. Separate object storage would introduce another privacy, retention and association boundary. The official CLI available to the host-run backend adds a binary dependency but avoids both mechanisms; no extra service is needed.
 
 ## Confidentiality, closure and exceptional erasure
 

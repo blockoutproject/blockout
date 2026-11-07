@@ -161,6 +161,39 @@ Use [F10's existing private intake](../../specs/012-reports-feature-suggestions/
 4. **Reply to the supplied address.** Use the request's `replyEmail` for necessary handling and response, not marketing or advertising. Format validation and prefill prove neither mailbox possession nor deliverability. Limit the reply to the request and withhold third-party/private account information until the proportionate verification above permits disclosure. A declared email, UUID or purchase claim authorizes no recovery, linking, erasure or entitlement transfer. Continue necessary exchanges through the authorized email channel; no automatic acknowledgement, application dialogue/status, guaranteed ordinary response time or promise to implement a suggestion is added. Close the issue manually after handling. If only the generic secondary alert failed after complete receipt, investigate the safe operational signal without requesting another submission.
 5. **Treat closure and erasure separately.** GitHub remains working history with no periodic purge or automatic post-closure deletion deadline; this does not justify unlimited personal-data retention. For an applicable rights request, use the manual rights procedure above to identify the ticket, every affected file/copy and authorized recipient, including distinct provider locations and already-closed cases. Verify the authorized ticket operation and file-byte erasure independently through the applicable provider procedure. Removing a link, closing/deleting an issue or deleting/unlinking a business account alone proves no attachment-byte erasure. Keep failed, unavailable or unconfirmed recipient/file actions pending, communicate confirmed results and justified limits separately, and retain only necessary private evidence while its purpose remains justified. F10 cases and attachment bytes remain provider-owned; the application database proves neither their availability nor their erasure.
 
+### Local support attachment CLI
+
+The host-run backend resolves `gh` through the `PATH` inherited when its JVM starts. Use the [official GitHub CLI 2.102.0 release](https://github.com/cli/cli/releases/tag/v2.102.0), without replacing another task's global CLI. From this worktree's repository root, this macOS arm64 example installs an isolated copy in ignored `local/` and verifies its published checksum:
+
+```sh
+support_cli_dir="$PWD/local/tools/gh-2.102.0"
+mkdir -p "$support_cli_dir"
+curl --fail --location --connect-timeout 10 --max-time 120 \
+  https://github.com/cli/cli/releases/download/v2.102.0/gh_2.102.0_macOS_arm64.zip \
+  --output "$support_cli_dir/gh_2.102.0_macOS_arm64.zip"
+curl --fail --location --connect-timeout 10 --max-time 60 \
+  https://github.com/cli/cli/releases/download/v2.102.0/gh_2.102.0_checksums.txt \
+  --output "$support_cli_dir/gh_2.102.0_checksums.txt"
+(
+  cd "$support_cli_dir" || exit 1
+  awk '$2 == "gh_2.102.0_macOS_arm64.zip" {print}' gh_2.102.0_checksums.txt > selected-checksum.txt
+  test -s selected-checksum.txt && shasum -a 256 --check selected-checksum.txt && \
+    unzip -oq gh_2.102.0_macOS_arm64.zip
+)
+export PATH="$support_cli_dir/gh_2.102.0_macOS_arm64/bin:$PATH"
+command -v gh
+gh --version
+gh issue edit --help
+```
+
+For another host, select that host's archive from the same official release and verify its matching checksum before extraction. Check that the resolved executable is the isolated copy, `gh --version` reports `2.102.0`, and `gh issue edit --help` exposes `--attach`. Start the task-owned backend or its Maven checks from this same environment; changing a later shell's `PATH` does not update an already-running JVM. The [local backend workflow](../../README.md#local-development) remains the launcher, with no support service, deployment image or durable upload volume added.
+
+Supply the support destination and its repository-scoped token through private Spring external configuration only after the separate private-provider authorization and qualification. `GitHubAttachmentProcess` passes the token as `GH_TOKEN`, fixes `GH_HOST=github.com` and disables prompts; the [official environment documentation](https://cli.github.com/manual/gh_help_environment) describes credential precedence. Never put credentials in arguments or a shell command history, or print the process environment. Controlled checks use fictional credentials and do not contact a real support destination.
+
+The committed support settings bound HTTP connection/read waits to 3/5 seconds and the CLI completion wait to 30 seconds. The adapter then allows one second for normal child termination and five for forced exit before allowing temporary-input cleanup. These process limits also bound a stalled CLI network operation; the REST client uses its own HTTP waits, disables automatic retries and refuses redirects. A nonzero result, timeout or interruption refuses complete receipt even when private partial effects may exist. The CLI's documented partial-upload behavior is not a rollback guarantee.
+
+Run the [F10 controlled qualification](../../specs/012-reports-feature-suggestions/quickstart.md#complete-receipt-backend) before delivery. Existing `GitHubAttachmentProcessTest` exercises a real controlled Java child, environment credentials, separate arguments, all five private originals, bounded wait/termination and cleanup; `GitHubSupportClientTest` exercises real loopback HTTP waits and refusal of redirects. A `--version`/`--help` check verifies the installed official binary and attachment command availability only. Neither those checks nor the controlled child establish actual CLI uploads, repository permissions, attachment confidentiality or provider erasure; those remain the separately authorized private-provider qualification.
+
 ### Apply an authorized club-field restriction
 
 The existing [F02 application operation](../../apps/backend/src/main/java/com/blockout/backend/sporting/application/service/RestrictClubContacts.java) is `RestrictClubContacts.restrict(UUID, Set<ContactField>)`. It is a trusted Spring transactional bean method, **not an HTTP endpoint or an installed operator CLI**. Prepare a separately reviewed, environment-specific invocation of this existing bean with the authorized backend operator; this guide supplies no production launcher. Without a safe approved invocation, leave execution pending. Do not instantiate the service directly, bypass its Spring transaction with SQL, or use ordinary contact editing as erasure.

@@ -42,7 +42,20 @@ On iOS and Android native builds, select fictional landscape and portrait images
 
 ## Complete-receipt backend
 
-Run the backend validation, generated endpoint, provider adapter and child-process boundaries through [README verification](../../README.md#verification). Exercise partial attachments, ambiguous final marking, process timeout/interruption and cleanup. Expect 201 only after complete marking, no automatic replay, and private originals removed only after child termination is confirmed. Local CLI execution uses the authorized host installation. Actual upload permissions and exceptional provider erasure require an authorized private test destination; controlled process tests need neither hosted deployment nor a reverse proxy.
+Run the backend validation, generated endpoint, provider adapter and child-process boundaries through [README verification](../../README.md#verification). Exercise partial attachments, ambiguous final marking, process timeout/interruption and cleanup. Expect 201 only after complete marking, no automatic replay, and private originals removed only after child termination is confirmed. Local CLI execution uses the [authorized host installation](../../infra/operations/README.md#local-support-attachment-cli). Actual upload permissions and exceptional provider erasure require an authorized private test destination; controlled process tests need neither hosted deployment nor a reverse proxy.
+
+After `npm ci`, generate the TypeScript consumer and enable the generated-consumer integration case:
+
+```sh
+npx nx run mobile:generate --output-style=static
+mkdir -p apps/backend/target/tmp
+BLOCKOUT_SUPPORT_CONSUMERS_TEST=true ./mvnw -B -ntp -pl apps/backend verify \
+  '-Dtest=Support*Test,CreateSupportRequestTest,GitHub*Test,DiscordSupportSignalTest,!*IntegrationTest' \
+  '-Dit.test=Support*IntegrationTest' \
+  "-DargLine=-Djava.io.tmpdir=$PWD/apps/backend/target/tmp"
+```
+
+With this flag, the backend suite runs the generated TypeScript consumer against its local server; otherwise that case is skipped.
 
 ## Explicit mobile submission
 

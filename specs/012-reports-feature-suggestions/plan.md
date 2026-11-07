@@ -14,7 +14,7 @@ Provide one shared private problem/suggestion form to guests and signed-in peopl
 
 **Language/Version**: Java 25 / Spring Boot 4.1.1; TypeScript / Expo SDK 58 / React Native 0.88 / React 19.3.0, under [F13](../003-shared-quality/plan.md).
 
-**Primary Dependencies**: Spring MVC/RestClient, Java ProcessBuilder and ordinary image decoding; official GitHub CLI 2.102.0 in the backend image. Existing React Hook Form/Zod, TanStack Query and SDK-compatible Expo ImagePicker/ImageManipulator. The CLI is an invoked binary, not a new service or Java SDK.
+**Primary Dependencies**: Spring MVC/RestClient, Java ProcessBuilder and ordinary image decoding; official GitHub CLI 2.102.0 available through the host-run backend process's explicit `PATH`. Existing React Hook Form/Zod, TanStack Query and SDK-compatible Expo ImagePicker/ImageManipulator. The CLI is an invoked binary, not a new service or Java SDK.
 
 **Storage**: GitHub private issues and native attachments only. Current mobile draft and private backend temporary files are transient. No SQL ticket table, parallel image store, support backup or migration.
 
