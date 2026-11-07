@@ -18,6 +18,9 @@ import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
 import com.blockout.collector.generated.ingestion.api.SportingApi;
 import com.blockout.collector.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.collector.generated.ingestion.model.CollectionModeEnum;
+import com.blockout.collector.generated.ingestion.model.CollectionOutcomeEnum;
+import com.blockout.collector.generated.ingestion.model.CollectionPhaseEnum;
+import com.blockout.collector.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.collector.generated.ingestion.model.ObservationOutcomeEnum;
 import com.blockout.collector.generated.ingestion.model.ResultStateEnum;
 import com.blockout.collector.generated.ingestion.model.SourceValidationStateEnum;
@@ -623,6 +626,52 @@ class CollectorSportingBoundaryIntegrationTest {
                         .isEqualTo(CollectionBackendFailure.Kind.CONFLICT));
         assertThat(runtime.sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Integer.class))
             .isEqualTo(1);
+        assertThatThrownBy(
+                () ->
+                    sporting.detail(
+                        match,
+                        context(context, 4),
+                        SportingObservation.Facts.builder()
+                            .localDate(JsonNullable.of(LocalDate.of(2026, 10, 26)))
+                            .build()))
+            .isInstanceOfSatisfying(
+                CollectionBackendFailure.class,
+                failure ->
+                    assertThat(failure.getKind())
+                        .isEqualTo(CollectionBackendFailure.Kind.CONFLICT));
+        assertThatThrownBy(
+                () ->
+                    backend.record(
+                        context.getCycle().id(),
+                        new CollectionBackend.Result(
+                            POOL,
+                            CollectionStageEnum.CALENDAR,
+                            CollectionPhaseEnum.INTEGRATION,
+                            5,
+                            Instant.now(),
+                            CollectionOutcomeEnum.SUCCESS,
+                            null,
+                            null,
+                            1L,
+                            0L)))
+            .isInstanceOfSatisfying(
+                CollectionBackendFailure.class,
+                failure ->
+                    assertThat(failure.getKind())
+                        .isEqualTo(CollectionBackendFailure.Kind.CONFLICT));
+        assertThatThrownBy(() -> lifecycle.complete(context, Instant.now()))
+            .isInstanceOfSatisfying(
+                CollectionBackendFailure.class,
+                failure ->
+                    assertThat(failure.getKind())
+                        .isEqualTo(CollectionBackendFailure.Kind.CONFLICT));
+        assertThat(
+                runtime.sql.queryForObject(
+                    "SELECT local_date FROM sporting_match WHERE id=?", LocalDate.class, match))
+            .isEqualTo(LocalDate.of(2026, 10, 25));
+        assertThat(
+                runtime.sql.queryForObject("SELECT COUNT(*) FROM collection_result", Integer.class))
+            .isZero();
         assertThat(
                 runtime.sql.queryForObject(
                     "SELECT c.incarnation_id <> r.incarnation_id AND c.completed_at IS NULL FROM collection_cycle c CROSS JOIN collector_runtime r WHERE c.id=? AND r.id=1",
