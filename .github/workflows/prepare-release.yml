@@ -161,6 +161,6 @@ jobs:
     runs-on: ubuntu-24.04
     environment: preproduction
     steps:
-      # The reviewer first deploys/tests these exact artifacts using Dokploy and native store tools.
+      # The reviewer tests the deployed server and selected native builds before approval.
       - name: Record the approved candidate
         run: printf 'Preproduction qualification approved for %s. Native deployment/build records retain the evidence.\n' "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
