@@ -180,7 +180,7 @@ The [XML entry point](apps/backend/src/main/resources/db/changelog/db.changelog-
 
 ### Local search infrastructure
 
-The optional `search` profile runs OpenSearch 3.9.0 on loopback port 9200. With Docker and OpenSSL available, prepare fresh disposable TLS and a random backend credential, then start only this service:
+The optional `search` profile runs OpenSearch 3.9.0 on loopback port 9200. With Docker and OpenSSL available, prepare the local TLS and a random backend credential once, then start only this service:
 
 ```sh
 bash infra/opensearch/prepare-local.sh
@@ -192,7 +192,19 @@ set -a
 set +a
 ```
 
-Create `apps/backend/.env.local` from its example first. Spring reads the exported values; it does not read either file automatically. The generated private files remain under ignored `local/opensearch/`. Preparation refuses to overwrite that directory. Certificates expire after seven days and are only for disposable local use. The OpenSearch volume retains its security index and derived data: editing initial YAML does not change an initialized security index.
+Create `apps/backend/.env.local` from its example first. Spring reads the exported values; it does not read either file automatically. Generated credentials and TLS stay under ignored `local/opensearch/`. Preparation publishes that directory only after all files are ready and refuses to overwrite an existing environment. A failed first preparation can be retried after its temporary files are cleaned automatically. The OpenSearch volume retains its security index and derived data: editing initial YAML does not change an initialized security index.
+
+Compose loads the same generated `local/opensearch/backend.env` through native [env_file](https://docs.docker.com/reference/compose-file/services/#env_file). Its [curl healthcheck](https://curl.se/docs/manpage.html#--user) verifies TLS, the backend credential and [cluster health](https://docs.opensearch.org/latest/api-reference/cluster-api/cluster-health/) at yellow or green, when all primary shards are allocated. This probe establishes engine availability; the application suites below separately verify projection, current data and search behavior.
+
+The local certificates are valid for 365 days. To renew them, stop only this worktree's backend foreground process with Ctrl-C, then run:
+
+```sh
+docker compose --profile search stop opensearch
+bash infra/opensearch/prepare-local.sh --renew-tls
+docker compose --profile search up -d --force-recreate --wait opensearch
+```
+
+The renewal generates a complete fresh CA/node bundle before replacing the three TLS files. It preserves the shared search environment, security configuration, password and data volume. Reload the same environment files in the backend shell and relaunch its [application process](#application-processes) so the SSL transport trusts the new CA. No volume reset is needed. The helpers use native [OpenSSL certificate requests](https://docs.openssl.org/4.0/man1/openssl-req/), [certificate signing](https://docs.openssl.org/4.0/man1/openssl-x509/), explicit [X.509 extensions](https://docs.openssl.org/4.0/man5/x509v3_config/) and [OpenSearch TLS configuration](https://docs.opensearch.org/latest/security/configuration/tls/).
 
 Set `OPENSEARCH_PORT` on Compose and `BLOCKOUT_SEARCH_ENDPOINT` in the backend shell when using another port. Separate worktrees should use their own Compose project (`-p <project>`) and port. No mobile or collector credential is configured. The native backend role is limited to `blockout-local-search-*`; no demo installer or trust-all client is used. Search connection creation is opt-in with `BLOCKOUT_SEARCH_ENABLED=true`; it makes no engine request and installs no search endpoint or scheduler.
 

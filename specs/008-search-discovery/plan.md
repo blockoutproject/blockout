@@ -128,7 +128,7 @@ F03 identity-based destinations and F11 opening counter remain unchanged; filter
 
 ## Operations and validation
 
-Run isolated local OpenSearch with verified TLS, trusted certificates and backend credentials restricted to the necessary index/alias namespace and operations. The collector and mobile never access the engine directly. Hosted topology, environments and provisioning are outside the current plan.
+Run isolated local OpenSearch with verified TLS, trusted certificates and backend credentials restricted to the necessary index/alias namespace and operations. The collector and mobile never access the engine directly. [Local preparation and TLS renewal](../../README.md#local-search-infrastructure) preserve existing credentials and the retained security/data volume. The authenticated Compose healthcheck verifies TLS and allocated primary shards; application projection/current-data qualification remains separate. Hosted topology, environments and provisioning are outside the current plan.
 
 Search indexes are rebuildable derivatives of authoritative PostgreSQL data. Local reconstruction verifies current restrictions and complete aliases before search is usable. Existing application logs/metrics expose failed targeted/rebuild work and last successful rebuild; no external alerting or infrastructure backup policy is selected. Exclude query text, city values, credentials and raw engine/provider payloads from telemetry.
 
