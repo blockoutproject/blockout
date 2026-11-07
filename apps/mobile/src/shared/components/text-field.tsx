@@ -37,7 +37,11 @@ export function TextField({
   const [focused, setFocused] = useState(false);
   const isEditable = readOnly !== undefined ? !readOnly : editable;
   return (
-    <View style={[styles.field, !isEditable && styles.disabled]}>
+    <View
+      // Keep label and input parentage stable when the disabled opacity ends during a native save transition.
+      collapsable={false}
+      style={[styles.field, !isEditable && styles.disabled]}
+    >
       <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
       <TextInput
         {...input}
