@@ -3,9 +3,6 @@ package com.blockout.backend.collection.application;
 import static com.blockout.backend.sporting.support.SportingIngestionFixture.candidate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.blockout.backend.BackendApplication;
@@ -43,10 +40,13 @@ import com.blockout.backend.generated.ingestion.model.StandingsPublicationStateE
 import com.blockout.backend.notifications.application.AfterCommitAnnouncements;
 import com.blockout.backend.search.application.ProjectSearch;
 import com.blockout.backend.search.application.SearchDocuments;
-import com.blockout.backend.search.application.SearchProjectionWriter;
+import com.blockout.backend.search.infrastructure.OpenSearchProjectionWriter;
+import com.blockout.backend.search.infrastructure.SearchIndexProperties;
+import com.blockout.backend.search.infrastructure.SearchTestEngine;
 import com.blockout.backend.sporting.api.SportingObservationMapper;
 import com.blockout.backend.sporting.application.model.CalendarObservation;
 import com.blockout.backend.sporting.application.model.MatchObservation;
+import com.blockout.backend.sporting.application.model.ObservationOutcome;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
@@ -75,6 +75,7 @@ import java.sql.Statement;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -85,7 +86,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.ArgumentCaptor;
+import org.opensearch.client.opensearch.indices.get_alias.IndexAliases;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.builder.SpringApplicationBuilder;
@@ -933,40 +934,161 @@ class InitialReconstructionIntegrationTest {
   }
 
   @Test
-  @DisplayName("The ordinary F04 full rebuild rereads facts accepted by initial reconstruction")
-  void handsCurrentFactsToServingRebuild() {
+  @DisplayName("Partial initial integration retains usable facts and both measured counts")
+  void reportsPartialInitialIntegration() {
     // Given
     Source source = qualified(2023, "ABCCS");
     UUID pool = pool(source, "P1");
     Cycle cycle = admit(request(source, Set.of()));
-    calendars.accept(
-        pool,
-        new CalendarObservation(
-            context(cycle, 1),
-            true,
-            List.of(candidate("M1", "Synthetic home", LocalDate.of(2023, 10, 1))),
-            List.of(),
-            List.of()));
-    SearchProjectionWriter writer = mock(SearchProjectionWriter.class);
-    Map<Kind, String> generation =
-        Map.of(Kind.CLUB, "clubs", Kind.TEAM, "teams", Kind.POOL, "pools");
-    when(writer.createGeneration()).thenReturn(generation);
-    ProjectSearch servingRebuild = new ProjectSearch(sportingReads, writer);
-    ArgumentCaptor<List<SearchDocuments>> published = ArgumentCaptor.captor();
+    assertThat(reconstruction.coverage(OPERATOR, source.seasonId(), 0, 200).items())
+        .allSatisfy(row -> assertThat(row.status()).isEqualTo(InitialCoverage.Status.REQUESTED));
 
-    // When
-    servingRebuild.rebuild();
+    // When: contradictory observations reject only their native encounter, not its neighbor.
+    ObservationOutcome.Calendar accepted =
+        calendars.accept(
+            pool,
+            new CalendarObservation(
+                context(cycle, 1),
+                true,
+                List.of(
+                    candidate("GOOD", "Synthetic home", LocalDate.of(2023, 10, 1)),
+                    candidate("BAD", "Synthetic home", LocalDate.of(2023, 10, 2)),
+                    candidate("BAD", "Synthetic home", LocalDate.of(2023, 10, 3))),
+                List.of(),
+                List.of()));
+    results.record(
+        cycle.id(),
+        evidence(
+            pool,
+            CollectionStageEnum.CALENDAR,
+            CollectionPhaseEnum.ACQUISITION,
+            CollectionOutcomeEnum.SUCCESS,
+            1,
+            3L));
+    results.record(
+        cycle.id(),
+        new RecordCollectionResult(
+            pool,
+            CollectionStageEnum.CALENDAR,
+            CollectionPhaseEnum.INTEGRATION,
+            1,
+            NOW,
+            CollectionOutcomeEnum.PARTIAL,
+            null,
+            null,
+            (long) accepted.acceptedCount(),
+            (long) accepted.rejectedCount()));
+    results.complete(cycle.id(), NOW.plusSeconds(60));
 
-    // Then
-    verify(writer).write(eq("pools"), published.capture());
-    assertThat(published.getValue())
-        .anySatisfy(
-            document -> {
-              assertThat(document.id()).isEqualTo(pool);
-              assertThat(document.seasonId()).isEqualTo(source.seasonId());
-              assertThat(document.names()).contains("Synthetic P1");
+    // Then: phase and counts distinguish partial acceptance from acquisition or total refusal.
+    assertThat(accepted.acceptedCount()).isEqualTo(1);
+    assertThat(accepted.rejectedCount()).isEqualTo(1);
+    assertThat(accepted.absenceReconciled()).isFalse();
+    assertThat(sql.queryForList("SELECT reference FROM sporting_match", String.class))
+        .containsExactly("GOOD");
+    assertThat(
+            sql.queryForObject(
+                "SELECT outcome FROM collection_result WHERE scope_id=? AND stage='CALENDAR' AND phase='INTEGRATION'",
+                String.class,
+                pool))
+        .isEqualTo("PARTIAL");
+    assertThat(reconstruction.coverage(OPERATOR, source.seasonId(), 0, 200).items())
+        .filteredOn(
+            row -> row.scopeId().equals(pool) && row.stage() == CollectionStageEnum.CALENDAR)
+        .satisfiesExactlyInAnyOrder(
+            row -> {
+              assertThat(row.phase()).isEqualTo(CollectionPhaseEnum.ACQUISITION);
+              assertThat(row.status()).isEqualTo(InitialCoverage.Status.OBTAINED);
+              assertThat(row.obtainedCount()).isEqualTo(3);
+            },
+            row -> {
+              assertThat(row.phase()).isEqualTo(CollectionPhaseEnum.INTEGRATION);
+              assertThat(row.status()).isEqualTo(InitialCoverage.Status.REJECTED);
+              assertThat(row.obtainedCount()).isEqualTo(1);
+              assertThat(row.rejectedCount()).isEqualTo(1);
             });
-    verify(writer).publish(generation);
+  }
+
+  @Test
+  @DisplayName("Repeated four-season reconstruction replaces all native search generations")
+  void handsCurrentFactsToServingRebuild() throws Exception {
+    // Given: qualified synthetic references and actual owner transactions, without live reads.
+    List<Source> sources = new ArrayList<>();
+    List<UUID> pools = new ArrayList<>();
+    for (long year : List.of(2023L, 2024L, 2025L, 2026L)) {
+      Source source = qualified(year, "ABCCS");
+      sources.add(source);
+      pools.add(pool(source, "P1"));
+    }
+    String prefix = "blockout-local-search-reconstruction-356";
+    SearchIndexProperties indexes = new SearchIndexProperties(prefix);
+    try (SearchTestEngine engine = new SearchTestEngine()) {
+      engine.startEngine();
+      ProjectSearch servingRebuild =
+          new ProjectSearch(sportingReads, new OpenSearchProjectionWriter(engine.client, indexes));
+      Set<String> previous = Set.of();
+      for (int passage = 0; passage < 2; passage++) {
+        // When: each explicitly selected initial passage goes through F01 and F02 again.
+        for (int index = 0; index < sources.size(); index++) {
+          Source source = sources.get(index);
+          UUID pool = pools.get(index);
+          Cycle cycle = admit(request(source, Set.of()));
+          calendars.accept(
+              pool,
+              new CalendarObservation(
+                  context(cycle, 1),
+                  true,
+                  List.of(candidate("M1", "Synthetic home", LocalDate.of(2023 + index, 10, 1))),
+                  List.of(),
+                  List.of()));
+          results.record(
+              cycle.id(),
+              evidence(
+                  pool,
+                  CollectionStageEnum.CALENDAR,
+                  CollectionPhaseEnum.INTEGRATION,
+                  CollectionOutcomeEnum.SUCCESS,
+                  1,
+                  1L));
+          results.complete(cycle.id(), NOW.plusSeconds(60));
+        }
+        servingRebuild.rebuild();
+
+        // Then: all three native aliases move together to new generations with current facts.
+        Map<String, IndexAliases> generation =
+            engine.client.indices().getAlias(request -> request.index(prefix + "-*")).result();
+        assertThat(generation).hasSize(3);
+        assertThat(previous).doesNotContainAnyElementsOf(generation.keySet());
+        assertThat(
+                generation.values().stream()
+                    .flatMap(value -> value.aliases().keySet().stream())
+                    .toList())
+            .containsExactlyInAnyOrder(
+                indexes.alias(Kind.CLUB), indexes.alias(Kind.TEAM), indexes.alias(Kind.POOL));
+        for (int index = 0; index < sources.size(); index++) {
+          UUID pool = pools.get(index);
+          SearchDocuments document =
+              engine
+                  .client
+                  .get(
+                      request -> request.index(indexes.alias(Kind.POOL)).id(pool.toString()),
+                      SearchDocuments.class)
+                  .source();
+          assertThat(document).isNotNull();
+          assertThat(document.seasonId()).isEqualTo(sources.get(index).seasonId());
+          assertThat(document.names()).contains("Synthetic P1");
+        }
+        assertThat(engine.client.count(request -> request.index(indexes.alias(Kind.POOL))).count())
+            .isEqualTo(4);
+        assertThat(engine.client.count(request -> request.index(indexes.alias(Kind.TEAM))).count())
+            .isEqualTo(8);
+        assertThat(engine.client.count(request -> request.index(indexes.alias(Kind.CLUB))).count())
+            .isEqualTo(2);
+        assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Long.class))
+            .isEqualTo(4);
+        previous = Set.copyOf(generation.keySet());
+      }
+    }
   }
 
   @Test

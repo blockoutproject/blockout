@@ -60,6 +60,19 @@ Use the [bounded preservation/reassociation procedure](../../infra/operations/RE
 
 Expect distinct exact FFVB strings such as `000339` and `339`, no name-based association, rejected missing/corrupt bytes without presentation changes and ordinary uniqueness/grant/revision protection. A clubless professional team receives no guessed club logo. [Private copy completeness and deployed V1 preservation](plan.md#protected-logos-and-sporting-reconstruction) require T029’s actual authorized freeze, association-and-byte copy and source checks; the fictional rehearsal does not establish them. T029 remains incomplete until every affected source record/file has its required private evidence.
 
+## Local reconstruction and silent initial mode
+
+```sh
+npm run bundle:contracts
+./mvnw -B -ntp -pl apps/backend verify \
+  -Dtest=InitialReconstructionTest,InitialReconstructionRunnerTest \
+  -Dit.test=InitialReconstructionIntegrationTest,TransitionAnnouncementIntegrationTest
+```
+
+Expect two four-season passages with stable sporting identities and complete native search-generation replacement, distinct per-scope acquisition/integration outcomes and counts, initial/repeated announcement silence, then an eligible ordinary V2 announcement. Use the existing [F01 bounded reconstruction](../001-source-acquisition/quickstart.md#bounded-initial-reconstruction), [collector/backend qualification](../../README.md#collector-to-sporting-qualification) and [F04 process/rebuild checks](../008-search-discovery/quickstart.md#projection-and-privacy).
+
+These checks use disposable PostgreSQL/OpenSearch and controlled source/push inputs; they establish no official-archive availability, physical push delivery or actual transition qualification.
+
 ## Legacy status qualification
 
 Use both supported installed V1 store builds and the actual first V2 release for each platform. Refresh the [V1 inventory](research.md#current-v1-evidence) before qualification rather than assuming that its observed builds cover the supported population.
