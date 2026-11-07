@@ -44,6 +44,27 @@ On iOS and Android native builds, select fictional landscape and portrait images
 
 Run the backend validation, generated endpoint, provider adapter and child-process boundaries through [README verification](../../README.md#verification). Exercise partial attachments, ambiguous final marking, process timeout/interruption and cleanup. Expect 201 only after complete marking, no automatic replay, and private originals removed only after child termination is confirmed. Local CLI execution uses the authorized host installation. Actual upload permissions and exceptional provider erasure require an authorized private test destination; controlled process tests need neither hosted deployment nor a reverse proxy.
 
+### Controlled local multipart and attachment tooling
+
+Install and resolve the isolated official CLI using [local support attachment CLI](../../infra/operations/README.md#local-support-attachment-cli) before starting the JVM. Check its resolved path, exact `2.102.0` version and `issue edit --attach` availability. These checks use no upload credentials and establish no real attachment behavior.
+
+After `npm ci`, generate the actual TypeScript consumer and run the existing support suites, including the cross-language case:
+
+```sh
+npx nx run mobile:generate --output-style=static
+mkdir -p apps/backend/target/tmp
+BLOCKOUT_SUPPORT_CONSUMERS_TEST=true ./mvnw -B -ntp -pl apps/backend verify \
+  '-Dtest=Support*Test,CreateSupportRequestTest,GitHub*Test,DiscordSupportSignalTest,!*IntegrationTest' \
+  '-Dit.test=Support*IntegrationTest' \
+  "-DargLine=-Djava.io.tmpdir=$PWD/apps/backend/target/tmp"
+```
+
+`SupportMultipartIntegrationTest` starts the actual servlet, generated Java binding, controller, validation and complete-send use case on a random loopback port. Only provider effects, current admission and an isolated signing-key issuer are controlled. It asserts every metadata field and all five original PNG/JPEG byte sequences before complete marking, exact **27262976-byte** acceptance and **27262977-byte** refusal, and exact **5242880-byte** file acceptance and **5242881-byte** refusal. Legal trailing JSON whitespace supplies request padding; Spring owns multipart encoding, including overhead. Refusals assert canonical problem bodies/no-store headers and no provider effects. Each case checks private-original cleanup.
+
+The opt-in method launches `support-multipart-integration.test.ts` with the existing Jest Expo runner and the server's random URL. The real Orval client, FormData hook, Fetch adapter and generated success validator reach that same backend; only native Expo networking is replaced with Node's ordinary Fetch/FormData. It checks complete metadata/five distinct originals, one success validation, 400/401/403/413/415/422/503 and privacy/authentication headers. The controlled 403 is a real locally signed principal refused by the admission double; 503 is a controlled provider refusal. Without the opt-in flag the backend skips this method, and ordinary mobile Jest skips the suite without its Java-owned server URL. Generate mobile output first: backend-only verification normally generates Java, not TypeScript. Child output stays in ignored `apps/backend/target/support-multipart-consumers.log`; no fixed port, database, proxy or native device is needed.
+
+Existing provider/process suites qualify fictional credentials in the child environment, bounded HTTP/process waits, separate arguments, private temporary permissions, termination before cleanup and partial-failure refusal. The controlled child is Java, not an actual `gh` upload. Official binary/version checks, these controlled suites and the local roundtrip do not complete T033, T041 or F10: actual private attachment permissions/erasure and native networking/image preparation remain separately qualified.
+
 ## Explicit mobile submission
 
 ```sh
