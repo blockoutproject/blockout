@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
     borderRadius: tokens.radius.panel,
     borderWidth: tokens.border.thin,
   },
-  expandedCard: { flexBasis: "100%" },
+  expandedCard: { flexBasis: "auto", width: "100%" },
   fields: {
     paddingHorizontal: tokens.spacing.lg,
     paddingBottom: tokens.spacing.lg,
@@ -437,8 +437,12 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.sm,
     minHeight: tokens.touch.minimum,
   },
-  platform: { ...tokens.typography.strong, flex: 1 },
-  minimum: { ...tokens.typography.metadata, flexShrink: 1 },
+  platform: tokens.typography.strong,
+  minimum: {
+    ...tokens.typography.metadata,
+    flex: 1,
+    textAlign: "right",
+  },
   hidden: { display: "none" },
   acknowledgement: {
     flexDirection: "row",

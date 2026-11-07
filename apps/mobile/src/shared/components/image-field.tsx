@@ -72,7 +72,11 @@ export function ImageField({
   const compact = size === "compact";
 
   return (
-    <View style={[styles.field, disabled && styles.disabled]}>
+    <View
+      // Keep preview and action parentage stable as the disabled opacity ends during a native save transition.
+      collapsable={false}
+      style={[styles.field, disabled && styles.disabled]}
+    >
       {label && (
         <Text style={[tokens.typography.label, { color: colors.text }]}>
           {label}

@@ -78,7 +78,11 @@ export function MatchSummary({
               accessible={false}
               style={[styles.dot, { backgroundColor: accent }]}
             />
-            <Text style={[styles.metadataText, { color: colors.text }]}>
+            {/* Keep the status in its measured line when Android redraws text after a theme change. */}
+            <Text
+              numberOfLines={1}
+              style={[styles.metadataText, { color: colors.text }]}
+            >
               {matchStatusLabel(match)}
             </Text>
           </View>
