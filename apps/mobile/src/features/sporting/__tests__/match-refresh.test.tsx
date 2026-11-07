@@ -141,7 +141,7 @@ it("rereads the current match when its route regains focus and applies accepted 
   expect(
     await screen.findByRole("link", { name: "Home · Score domicile : 3" }),
   ).toBeOnTheScreen();
-  expect(screen.getAllByText(/2 nov. 2026/).length).toBeGreaterThan(0);
+  expect(screen.getAllByText(/2 novembre 2026/).length).toBeGreaterThan(0);
   expect(screen.getByText("Stream link")).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) =>

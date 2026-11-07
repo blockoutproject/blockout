@@ -58,20 +58,15 @@ it("keeps captured calendar days and continuation inputs while display uses the 
 
     // When: formatting travels, while the retained response supplies the grouping context.
     const displayZone = "America/New_York";
-    const now = new Date("2026-09-19T22:45:00Z");
-    const formatted = formatSportingSchedule(match.schedule, displayZone, now);
-    const groupLabel = formatSportingDay(
-      loaded.days[0].date,
-      loaded.timeZone,
-      now,
-    );
+    const formatted = formatSportingSchedule(match.schedule, displayZone);
+    const groupLabel = formatSportingDay(loaded.days[0].date);
 
     // Then
     expect(formatted).toEqual({
-      date: "Aujourd’hui · 19 sept. 2026",
-      time: "18:30",
+      date: "19 septembre 2026",
+      time: "18h30",
     });
-    expect(groupLabel).toBe("Aujourd’hui · 20 sept. 2026");
+    expect(groupLabel).toBe("20 septembre 2026");
     expect(client.getQueryData(options.queryKey)).toBe(loaded);
     expect(loaded.days).toEqual(page.days);
     expect(mockFetch).toHaveBeenCalledTimes(1);

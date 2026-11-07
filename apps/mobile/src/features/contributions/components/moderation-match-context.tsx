@@ -78,7 +78,9 @@ export function ModerationMatchContext({
         <Text
           style={[tokens.typography.metadata, { color: colors.secondaryText }]}
         >
-          {schedule ? `${schedule.date} ${schedule.time}` : "Date indisponible"}
+          {schedule
+            ? `${schedule.date}${match.schedule?.instant ? " à " : "\n"}${schedule.time}`
+            : "Date indisponible"}
         </Text>
         {[
           { team: match.home, score: match.result?.homeSets },

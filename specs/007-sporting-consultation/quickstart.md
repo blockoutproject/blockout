@@ -55,7 +55,7 @@ Record actual fixture results, generated-consumer compilation, selected package/
 
 ### Native time presentation
 
-Verify A07's instant: September 20, 2026 00:30 in Paris is September 19 18:30 in New York. Include date-specific DST offsets, unchanged date-only values, unknown FFVB 00:00 versus confirmed midnight and French relative labels. Change the display zone and return from the background: formatting updates without regrouping a retained calendar or changing its captured zone/cursor.
+Verify A07's instant: September 20, 2026 00:30 in Paris is September 19 18:30 in New York. Include date-specific DST offsets, unchanged date-only values, unknown FFVB 00:00 versus confirmed midnight and absolute French dates without relative-day prefixes. The same match instant must use a concise date and time in its summary and information section, for example “7 novembre 2026 à 20h40”. Change the display zone and return from the background: formatting updates without regrouping a retained calendar or changing its captured zone/cursor.
 
 ### Complete-day calendar qualification
 

@@ -183,7 +183,7 @@ export function SupportForm({ onSubmit }: SupportFormProps) {
         error={attachments.error}
         disabled={isSubmitting}
       />
-      <FieldMessage helper="Évitez les informations personnelles inutiles, mots de passe et justificatifs de paiement. Aucune capture n’est obligatoire." />
+      <FieldMessage helper="Évitez les informations personnelles inutiles, mots de passe et justificatifs de paiement." />
       <Button
         label="Envoyer la demande"
         loading={isSubmitting}

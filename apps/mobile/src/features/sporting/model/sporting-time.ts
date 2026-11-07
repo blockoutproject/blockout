@@ -21,7 +21,9 @@ export function formatSportingTime(
     hour: "2-digit",
     minute: "2-digit",
     hourCycle: "h23",
-  }).format(new Date(instant));
+  })
+    .format(new Date(instant))
+    .replace(":", "h");
 }
 
 /** Extracts a Gregorian day with Intl's date-specific zone rules, including DST. */
@@ -54,33 +56,17 @@ export function sportingDay(
 }
 
 /**
- * Labels a validated sporting/calendar date relative to today in its own context zone.
- * UTC is only a carrier for Gregorian date formatting and day arithmetic, never a kickoff instant.
- * Retained calendar headings must pass the captured grouping zone, not the current display zone.
+ * Formats a validated sporting/calendar day without duplicating it with a relative label.
+ * Callers retain their accepted display/grouping day; UTC only carries the civil date, never a kickoff instant.
  */
-export function formatSportingDay(
-  day: string,
-  timeZone: string,
-  now = new Date(),
-): string {
+export function formatSportingDay(day: string): string {
   const date = new Date(`${day}T00:00:00Z`);
-  const today = new Date(`${dayInZone(now, timeZone)}T00:00:00Z`);
-  const difference = (date.getTime() - today.getTime()) / 86_400_000;
-  const relative =
-    difference === 0
-      ? "Aujourd’hui"
-      : difference === -1
-        ? "Hier"
-        : difference === 1
-          ? "Demain"
-          : undefined;
-  const absolute = new Intl.DateTimeFormat("fr-FR", {
+  return new Intl.DateTimeFormat("fr-FR", {
     timeZone: "UTC",
     day: "numeric",
-    month: "short",
+    month: "long",
     year: "numeric",
   }).format(date);
-  return relative ? `${relative} · ${absolute}` : absolute;
 }
 
 /**
@@ -91,14 +77,9 @@ export function formatSportingDay(
 export function formatSportingSchedule(
   schedule: MatchScheduleResponse,
   displayTimeZone = currentSportingTimeZone(),
-  now = new Date(),
 ): SportingTimePresentation {
   return {
-    date: formatSportingDay(
-      sportingDay(schedule, displayTimeZone),
-      displayTimeZone,
-      now,
-    ),
+    date: formatSportingDay(sportingDay(schedule, displayTimeZone)),
     time: schedule.instant
       ? formatSportingTime(schedule.instant, displayTimeZone)
       : "Heure à définir",

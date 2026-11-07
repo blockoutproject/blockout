@@ -306,11 +306,11 @@ function ClubPage({ clubId }: ClubScreenProps) {
                         identity={item.team}
                         label={item.team.name}
                       />
-                      <ResourceText>
-                        {[item.classification.division?.name, item.season.label]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </ResourceText>
+                      {item.classification.division && (
+                        <ResourceText>
+                          {item.classification.division.name}
+                        </ResourceText>
+                      )}
                     </Surface>
                   )}
                   ListHeaderComponent={

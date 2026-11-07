@@ -150,9 +150,11 @@ export function MatchSummary({
       </View>
       {result && result.state !== "final" && (
         <Text style={[styles.note, { color: colors.secondaryText }]}>
-          {result.state === "provisional"
-            ? "Résultat provisoire · Résultat définitif indisponible"
-            : "Résultat non confirmé · Résultat définitif indisponible"}
+          {!contextual
+            ? "Résultat définitif indisponible"
+            : result.state === "provisional"
+              ? "Résultat provisoire · Résultat définitif indisponible"
+              : "Résultat non confirmé · Résultat définitif indisponible"}
         </Text>
       )}
       {result?.specialLabel && (

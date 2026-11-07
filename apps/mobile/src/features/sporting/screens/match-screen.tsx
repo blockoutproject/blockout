@@ -40,9 +40,9 @@ export interface MatchScreenProps {
 
 /** Presents accepted facts and rereads only this match on route focus and foreground return. */
 export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
-  const [presentation, setPresentation] = useState(() => ({
-    timeZone: currentSportingTimeZone(),
-  }));
+  const [displayTimeZone, setDisplayTimeZone] = useState(
+    currentSportingTimeZone,
+  );
   const queries = useConsultationQueries();
   const match = useQuery(queries.match(matchId));
   const { refetch } = match;
@@ -56,10 +56,7 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") {
-        // A fresh context also rerenders relative dates when the phone zone is unchanged.
-        setPresentation({
-          timeZone: currentSportingTimeZone(),
-        });
+        setDisplayTimeZone(currentSportingTimeZone());
         if (focused) {
           void refetch({ cancelRefetch: false });
         }
@@ -141,7 +138,7 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
               <>
                 <MatchSummary
                   match={data.match}
-                  displayTimeZone={presentation.timeZone}
+                  displayTimeZone={displayTimeZone}
                 />
                 <MatchSetScores match={data.match} sets={data.sets} />
                 <MatchLinks
@@ -180,7 +177,7 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
                 <MatchInformation
                   onDocumentOpen={(kind) => setDocument({ matchId, kind })}
                   detail={data}
-                  displayTimeZone={presentation.timeZone}
+                  displayTimeZone={displayTimeZone}
                 />
               </>
             )}

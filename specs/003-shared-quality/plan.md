@@ -252,6 +252,8 @@ F05 establishment creates a native MutationObserver only after explicit Auth0 lo
 
 ## Native UI and approved design
 
+Under FR-030, feature owners keep visible copy concise within the existing composition: remove repeated wording or context already supplied by the section/selection, while preserving complementary facts, identity, result uncertainty and useful validation/recovery. Apply this directly at the existing text owner; no shared separator processor or copy framework is needed.
+
 F13 owns the shared native UI foundation under `apps/mobile/src/shared/`; it is not a separate package or a second design catalogue. [FR-034/FR-035 and US6](spec.md#user-story-6--use-the-application-with-the-phones-capabilities-priority-p2) own observable fidelity and system appearance. The approved UI Library supplies foundations and reusable controls; Product Design supplies domain patterns and screen compositions. Exact comparison sources and expected outcomes belong to [quickstart](quickstart.md#native-ui-and-approved-design), while [research](research.md#native-ui-projection-and-system-appearance) records the technical rationale and native limits.
 
 ### Tokens and appearance

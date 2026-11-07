@@ -61,6 +61,7 @@ import { ClubScreen } from "../screens/club-screen";
 import { TeamScreen } from "../screens/team-screen";
 import { PoolScreen } from "../screens/pool-screen";
 import { MatchScreen } from "../screens/match-screen";
+import { MatchSummary } from "../components/match-summary";
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("react-native-keyboard-controller", () =>
@@ -1174,11 +1175,49 @@ it.each(["provisional", "unconfirmed", "final"] as const)(
         state === "final"
           ? "Terminé"
           : state === "provisional"
-            ? "Résultat provisoire · Résultat définitif indisponible"
-            : "Résultat non confirmé · Résultat définitif indisponible",
+            ? "Score provisoire"
+            : "Résultat non confirmé",
       ),
     ).toBeOnTheScreen();
+    if (state !== "final") {
+      expect(
+        screen.getByText("Résultat définitif indisponible"),
+      ).toBeOnTheScreen();
+      expect(
+        screen.queryByText(/ · Résultat définitif indisponible/),
+      ).not.toBeOnTheScreen();
+    }
     expect(screen.getByText("Détail des sets indisponible")).toBeOnTheScreen();
+  },
+);
+
+it.each(["provisional", "unconfirmed"] as const)(
+  "retains the full %s uncertainty when the contribution context has no status band",
+  async (state) => {
+    // Given
+    match.match.result = {
+      state,
+      homeSets: 2,
+      awaySets: 1,
+      observedAt: "2026-10-24T14:00:00Z",
+    };
+
+    // When
+    await renderPage(
+      <MatchSummary match={match.match} presentation="context" />,
+    );
+
+    // Then
+    expect(
+      screen.getByText(
+        state === "provisional"
+          ? "Résultat provisoire · Résultat définitif indisponible"
+          : "Résultat non confirmé · Résultat définitif indisponible",
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.getByLabelText("Score domicile : 2")).toHaveTextContent("2");
+    expect(screen.getByLabelText("Score extérieur : 1")).toHaveTextContent("1");
+    expect(screen.queryByRole("link")).not.toBeOnTheScreen();
   },
 );
 

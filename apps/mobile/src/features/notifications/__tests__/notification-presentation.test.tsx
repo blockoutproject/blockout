@@ -111,7 +111,7 @@ it.each(notificationMessageSamples)(
     // Then
     expect(screen.getByText(title)).toBeOnTheScreen();
     expect(screen.getByRole("link")).toHaveAccessibleName(
-      `${title} Poule A. Nantes, Score domicile : 3. Tours, Score extérieur : 1. 24 oct. 2026 à 03:02 — non lue`,
+      `${title} Poule A. Nantes, Score domicile : 3. Tours, Score extérieur : 1. 24 oct. 2026 à 03h02 — non lue`,
     );
     expect(screen.getByText("3")).toBeOnTheScreen();
     expect(screen.getByText("1")).toBeOnTheScreen();
@@ -257,10 +257,10 @@ it.each([{ homeSets: 0 }, { awaySets: 3 }])(
 );
 
 it.each([
-  ["2026-03-15T19:00:00Z", "15 mars 2026 à 20:00", "15 mars 2026 à 15:00"],
-  ["2026-03-29T01:30:00Z", "29 mars 2026 à 03:30", "28 mars 2026 à 21:30"],
-  ["2026-10-25T01:30:00Z", "25 oct. 2026 à 02:30", "24 oct. 2026 à 21:30"],
-  ["2026-11-01T06:30:00Z", "1 nov. 2026 à 07:30", "1 nov. 2026 à 01:30"],
+  ["2026-03-15T19:00:00Z", "15 mars 2026 à 20h00", "15 mars 2026 à 15h00"],
+  ["2026-03-29T01:30:00Z", "29 mars 2026 à 03h30", "28 mars 2026 à 21h30"],
+  ["2026-10-25T01:30:00Z", "25 oct. 2026 à 02h30", "24 oct. 2026 à 21h30"],
+  ["2026-11-01T06:30:00Z", "1 nov. 2026 à 07h30", "1 nov. 2026 à 01h30"],
 ])(
   "presents original instant %s in Paris then New York without changing editorial or reading",
   async (createdAt, paris, newYork) => {

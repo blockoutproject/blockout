@@ -441,9 +441,7 @@ it.each([202, 200])(
     // Then
     expect(
       await screen.findByText(
-        status === 202
-          ? "Collecte demandée · en attente de démarrage"
-          : "Collecte en cours",
+        status === 202 ? "En attente de démarrage" : "Collecte en cours",
       ),
     ).toBeOnTheScreen();
     expect(
@@ -709,9 +707,7 @@ it("ignores an old-session command response without presenting a new success", a
   await waitFor(() => expect(privateClient.isMutating()).toBe(0));
 
   // Then
-  expect(
-    screen.queryByText("Collecte demandée · en attente de démarrage"),
-  ).toBeNull();
+  expect(screen.queryByText("En attente de démarrage")).toBeNull();
 });
 
 it("keeps a closed season navigable with no collection command", async () => {
@@ -813,9 +809,7 @@ it("retains running evidence while pause cancels an unstarted request", async ()
       privateClient = cache;
     },
   );
-  expect(
-    await screen.findByText("Collecte demandée · en attente de démarrage"),
-  ).toBeOnTheScreen();
+  expect(await screen.findByText("En attente de démarrage")).toBeOnTheScreen();
 
   // When
   await user.press(
@@ -826,9 +820,7 @@ it("retains running evidence while pause cancels an unstarted request", async ()
   // Then
   expect(await screen.findByText("Mise en pause en cours")).toBeOnTheScreen();
   expect(screen.getByText("Collecte en cours")).toBeOnTheScreen();
-  expect(
-    screen.queryByText("Collecte demandée · en attente de démarrage"),
-  ).toBeNull();
+  expect(screen.queryByText("En attente de démarrage")).toBeNull();
   expect(screen.getByRole("button", { name: "En cours" })).toBeDisabled();
 });
 
@@ -1080,9 +1072,7 @@ it("rejects a malformed acknowledgement without inventing success and shows a fa
     ),
   ).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Relancer" })).toBeDisabled();
-  expect(
-    screen.queryByText("Collecte demandée · en attente de démarrage"),
-  ).toBeNull();
+  expect(screen.queryByText("En attente de démarrage")).toBeNull();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
   ).toHaveLength(1);
@@ -1208,9 +1198,7 @@ it("keeps a newer running read when an older accepted pending acknowledgement ar
 
   // Then
   expect(screen.getByText("Collecte en cours")).toBeOnTheScreen();
-  expect(
-    screen.queryByText("Collecte demandée · en attente de démarrage"),
-  ).toBeNull();
+  expect(screen.queryByText("En attente de démarrage")).toBeNull();
   expect(screen.getByRole("button", { name: "En cours" })).toBeDisabled();
 });
 
@@ -1387,8 +1375,6 @@ it("blocks refresh and automatic paging while a collection command is awaiting a
   );
 
   // Then
-  expect(
-    await screen.findByText("Collecte demandée · en attente de démarrage"),
-  ).toBeOnTheScreen();
+  expect(await screen.findByText("En attente de démarrage")).toBeOnTheScreen();
   expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
 });
