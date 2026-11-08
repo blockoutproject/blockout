@@ -50,7 +50,6 @@ function SignInJourney() {
   const feedback = useActionFeedback();
   const guest = useGuestNavigation();
   const mounted = useRef(false);
-  // This journey owns explicit login feedback; the SDK still owns the resulting session error.
   const [loginAttempted, setLoginAttempted] = useState(false);
   const [supportOrigin, setSupportOrigin] = useState<SupportOrigin>({
     screen: "sign-in",
@@ -60,6 +59,8 @@ function SignInJourney() {
     session.status === "signing-out" ||
     establishment.isPending ||
     session.status === "restoring";
+  const retryRestoration =
+    session.status === "authentication-error" && !loginAttempted;
 
   useEffect(() => {
     mounted.current = true;
@@ -68,13 +69,21 @@ function SignInJourney() {
     };
   }, []);
 
-  /** Starts either hosted authentication or a targeted retry using still-valid SDK credentials. */
+  /** Retries native preparation or starts explicit authentication/establishment; failures use the shared toast. */
   async function signIn() {
     if (busy || session.operation) {
       return;
     }
     setSupportOrigin({ screen: "sign-in" });
     feedback.clear();
+    if (session.status === "initialization-error") {
+      session.retryInitialization();
+      return;
+    }
+    if (retryRestoration) {
+      session.retryAuthentication();
+      return;
+    }
     const audience = process.env.EXPO_PUBLIC_AUTH0_AUDIENCE;
     if (session.status !== "authenticated" && !audience) {
       feedback.error();
@@ -187,28 +196,23 @@ function SignInJourney() {
           ))}
         </View>
         <View style={[styles.inset, styles.actions]}>
-          {session.status === "initialization-error" ? (
-            <ErrorState onRetry={session.retryInitialization} />
-          ) : (
-            <Button
-              label={
-                (session.status === "authenticated" && !session.accountId) ||
-                (establishment.status === "error" &&
-                  !(
-                    establishment.error instanceof ApiError &&
-                    establishment.error.kind === "cancelled"
-                  ))
-                  ? "Réessayer"
-                  : "Se connecter"
-              }
-              onPress={() => void signIn()}
-              loading={busy}
-              fullWidth
-            />
-          )}
-          {session.status === "authentication-error" && !loginAttempted && (
-            <ErrorState onRetry={session.retryAuthentication} />
-          )}
+          <Button
+            label={
+              session.status === "initialization-error" ||
+              retryRestoration ||
+              (session.status === "authenticated" && !session.accountId) ||
+              (establishment.status === "error" &&
+                !(
+                  establishment.error instanceof ApiError &&
+                  establishment.error.kind === "cancelled"
+                ))
+                ? "Réessayer"
+                : "Se connecter"
+            }
+            onPress={() => void signIn()}
+            loading={busy}
+            fullWidth
+          />
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Continuer en tant qu’invité"

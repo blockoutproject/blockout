@@ -1,5 +1,5 @@
 import { Link } from "expo-router";
-import { FileText, ShieldCheck } from "lucide-react-native";
+import { FileText } from "lucide-react-native";
 import {
   Pressable,
   StyleSheet,
@@ -12,20 +12,28 @@ import { EntryGroup } from "../../../shared/components/entry-group";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { supportHref, type SupportOrigin } from "../../support";
+import { useLegalDocuments } from "../../privacy/use-legal-documents";
 
 /** Existing account consumers supply only known navigation or safe failed-sign-in facts. */
 export interface PublicAccountLinksProps {
   supportOrigin?: SupportOrigin;
 }
 
-/** Footer navigation retains support; F11 owns future browser-backed legal documents, so no fictitious route is activated. */
+/** Public sign-in footer opens legal HTML in the native browser and retains the shared support route. */
 export function PublicAccountLinks({
   supportOrigin = { screen: "profile" },
 }: PublicAccountLinksProps = {}) {
+  const open = useLegalDocuments();
   return (
     <View style={styles.links}>
-      <PublicLinkAction label="Conditions d’utilisation" disabled />
-      <PublicLinkAction label="Politique de confidentialité" privacy disabled />
+      <PublicLinkAction
+        label="Conditions d’utilisation"
+        onPress={() => open("terms")}
+      />
+      <PublicLinkAction
+        label="Politique de confidentialité"
+        onPress={() => open("privacy")}
+      />
       <Link href={supportHref(supportOrigin)} asChild>
         <PublicLinkAction label="Besoin d’aide ?" />
       </Link>
@@ -33,17 +41,20 @@ export function PublicAccountLinks({
   );
 }
 
-/** Approved overview grouping; document actions stay explicitly unavailable until F11 supplies verified documents and browser entry. */
+/** Existing profile grouping opens the three public documents independently of account and Pro status. */
 export function ProfileLegalLinks() {
   const { colors } = useTheme();
+  const open = useLegalDocuments();
   return (
     <View style={styles.legalGroup}>
       <EntryGroup>
-        {[
-          "Mentions légales",
-          "Conditions d’utilisation",
-          "Politique de confidentialité",
-        ].map((label) => (
+        {(
+          [
+            { label: "Mentions légales", kind: "imprint" },
+            { label: "Conditions d’utilisation", kind: "terms" },
+            { label: "Politique de confidentialité", kind: "privacy" },
+          ] as const
+        ).map(({ label, kind }) => (
           <EntryRow
             key={label}
             label={label}
@@ -56,25 +67,19 @@ export function ProfileLegalLinks() {
               />
             }
             disclosure
-            disabled
+            onPress={() => open(kind)}
           />
         ))}
       </EntryGroup>
-      <Text
-        style={[tokens.typography.metadata, { color: colors.secondaryText }]}
-      >
-        Documents indisponibles pour le moment.
-      </Text>
     </View>
   );
 }
 
-/** Preserves the native Link target while giving inactive legal entries their actual disabled semantics. */
+/** Preserves native support Link forwarding and the accessible browser-action semantics. */
 function PublicLinkAction({
   label,
-  privacy = false,
   ...props
-}: PressableProps & { label: string; privacy?: boolean }) {
+}: PressableProps & { label: string }) {
   const { colors } = useTheme();
   return (
     <Pressable
@@ -93,14 +98,6 @@ function PublicLinkAction({
         },
       ]}
     >
-      {privacy && (
-        <ShieldCheck
-          accessible={false}
-          size={tokens.size.icon.md}
-          color={colors.icon}
-          nonScalingStroke
-        />
-      )}
       <Text style={[styles.label, { color: colors.secondaryText }]}>
         {label}
       </Text>

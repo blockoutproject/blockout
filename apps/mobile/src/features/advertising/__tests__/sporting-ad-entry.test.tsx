@@ -23,6 +23,7 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { Linking } from "react-native";
+import * as WebBrowser from "expo-web-browser";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
@@ -89,6 +90,11 @@ import { SearchScreen } from "../../discovery/screens/search-screen";
 import { SearchVisitProvider } from "../../discovery/forms/search-visit";
 import { PersonalScreen } from "../../following/screens/personal-screen";
 import { PersonalSeasonProvider } from "../../following/components/personal-season-provider";
+
+jest.mock("expo-web-browser", () => ({
+  openBrowserAsync: jest.fn(async () => ({ type: "cancel" })),
+  WebBrowserResultType: { LOCKED: "locked" },
+}));
 
 jest.mock("@react-native-async-storage/async-storage", () =>
   jest.requireActual(
@@ -770,16 +776,17 @@ it.each([
       await user.press(screen.getByRole("link", { name: "Club" }));
     }
 
-    // When: actual non-sporting entries keep their own navigation; legal actions retain their current unavailable boundary.
+    // When: public legal documents use the native browser; the other excluded entries keep their own navigation.
     for (const name of [
       "Mentions légales",
       "Conditions d’utilisation",
       "Politique de confidentialité",
     ]) {
       const link = screen.getByRole("link", { name });
-      expect(link).toBeDisabled();
+      expect(link).toBeEnabled();
       await user.press(link);
     }
+    expect(WebBrowser.openBrowserAsync).toHaveBeenCalledTimes(3);
     await user.press(screen.getByRole("button", { name: "Besoin d’aide ?" }));
     expect(mockPush).toHaveBeenLastCalledWith(
       expect.objectContaining({ pathname: "/support" }),
