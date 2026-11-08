@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 import { View } from "react-native";
 
-/** Content clearance is supplied by the measured tab capsule or the page’s native bottom safe area. */
+/** Content clearance comes from the measured offer/tab-capsule group or the page’s native bottom safe area. */
 export const BottomContentInsetContext = createContext(0);
 
 /** Reads one trailing-content reservation without owning focus, keyboard, scrolling or navigation state. */

@@ -2,3 +2,5 @@
 export { ProProvider, usePro, type ProContext } from "./pro-provider";
 
 export type { ProState } from "./pro-state";
+
+export { ProOffer } from "./components/pro-offer";

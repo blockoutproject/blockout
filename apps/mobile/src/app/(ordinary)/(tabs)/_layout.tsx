@@ -43,8 +43,9 @@ import { tokens } from "../../../shared/theme/tokens";
 import { useReducedMotion } from "../../../shared/theme/use-reduced-motion";
 import { SelectionIndicator } from "../../../shared/components/selection-indicator";
 import { BottomContentInsetContext } from "../../../shared/components/bottom-content-inset";
+import { ProOffer } from "../../../features/pro";
 
-/** Expo owns focus/history; the measured floating capsule retains native two-row layout for enlarged text. */
+/** Expo owns focus/history; the measured offer/capsule group shares visibility and enlarged-text clearance. */
 export default function TabsLayout() {
   const sheetVisible = useSegments().includes("(sheets)");
   const { session, queries } = useInboxQueries();
@@ -57,20 +58,20 @@ export default function TabsLayout() {
     enabled: false,
   });
   const count = queries ? confirmedUnreadCount(summary.data) : undefined;
-  const { colors, membership } = useTheme();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
   const reducedMotion = useReducedMotion();
   const [selectionLayout, setSelectionLayout] = useState<LayoutRectangle>();
-  const [capsuleHeight, setCapsuleHeight] = useState(0);
+  const [navigationHeight, setNavigationHeight] = useState(0);
   const guest = session.status === "guest";
   const columns =
     fontScale >= 1.5 && !guest ? styles.twoColumns : styles.oneRow;
   return (
     <BottomContentInsetContext
       value={
-        capsuleHeight > 0
-          ? capsuleHeight + insets.bottom + tokens.spacing.sm
+        navigationHeight > 0
+          ? navigationHeight + insets.bottom + tokens.spacing.sm
           : 0
       }
     >
@@ -83,7 +84,7 @@ export default function TabsLayout() {
           <NavigationCapsule
             onLayout={({ nativeEvent }) => {
               if (nativeEvent.layout.height > 0) {
-                setCapsuleHeight(nativeEvent.layout.height);
+                setNavigationHeight(nativeEvent.layout.height);
               }
             }}
             layout={selectionLayout}
@@ -92,8 +93,6 @@ export default function TabsLayout() {
               marginBottom: insets.bottom + tokens.spacing.sm,
               marginHorizontal:
                 fontScale >= 1.5 ? tokens.spacing.lg : tokens.spacing.sm,
-              borderColor: membership.border,
-              backgroundColor: colors.raised,
               display: sheetVisible ? "none" : "flex",
             }}
           >
@@ -143,13 +142,13 @@ export default function TabsLayout() {
   );
 }
 
-/** TabList's public slot retains direct trigger discovery while a borderless inner view owns measurement. */
+/** TabList's public slot retains direct trigger discovery while the full floating group owns measurement. */
 interface NavigationCapsuleProps extends ComponentPropsWithRef<typeof View> {
   layout?: LayoutRectangle;
   reducedMotion: boolean;
 }
 
-/** Insets the capsule through native margins, keeping its decoration inside the horizontal safe area. */
+/** Keeps the eligible Pro offer above the capsule inside one visibility, measurement and safe-area owner. */
 function NavigationCapsule({
   children,
   layout,
@@ -157,20 +156,29 @@ function NavigationCapsule({
   style,
   ...props
 }: NavigationCapsuleProps) {
+  const { colors, membership } = useTheme();
   return (
     <SafeAreaView
       {...props}
       mode="margin"
       edges={{ left: "additive", right: "additive" }}
-      style={[style, styles.capsule]}
+      style={[style, styles.navigation]}
     >
-      <View style={styles.row}>
-        <SelectionIndicator
-          layout={layout}
-          reducedMotion={reducedMotion}
-          radius={tokens.radius.panelInset}
-        />
-        {children}
+      <ProOffer />
+      <View
+        style={[
+          styles.capsule,
+          { borderColor: membership.border, backgroundColor: colors.raised },
+        ]}
+      >
+        <View style={styles.row}>
+          <SelectionIndicator
+            layout={layout}
+            reducedMotion={reducedMotion}
+            radius={tokens.radius.panelInset}
+          />
+          {children}
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -302,12 +310,16 @@ function TabButton({
 
 const styles = StyleSheet.create({
   tabs: { flex: 1 },
-  capsule: {
+  navigation: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
     zIndex: 1,
+    flexDirection: "column",
+    gap: tokens.spacing.sm,
+  },
+  capsule: {
     flexDirection: "column",
     padding: tokens.spacing.xs,
     borderRadius: tokens.radius.panel,
