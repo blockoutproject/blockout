@@ -1,5 +1,8 @@
 import { accountResponse } from "../test-support/account-response";
-import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
+import {
+  TECHNICAL_ERROR,
+  TECHNICAL_ERROR_TITLE,
+} from "../../../shared/components/error-copy";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
@@ -278,6 +281,63 @@ it("keeps explicit guest recovery when F14 initialization fails", async () => {
   // Then
   expect(mockNavigate).toHaveBeenCalledWith("/");
   expect(mockAuth0.hasValidCredentials).not.toHaveBeenCalled();
+  expect(mockFetch).not.toHaveBeenCalled();
+});
+
+it("keeps the sign-in footer free of a state card after credential restoration fails", async () => {
+  // Given
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  mockAuth0.getCredentials.mockRejectedValueOnce(
+    new Error("Private restoration failure"),
+  );
+  mockAuth0.webAuth.mockRejectedValueOnce({
+    code: "a0.network_error",
+    message: "Private provider detail",
+  });
+  const user = userEvent.setup();
+  await renderJourney();
+  await waitFor(() => expect(mockAuth0.hasValidCredentials).toHaveBeenCalled());
+  await screen.findByRole("button", { name: "Se connecter", busy: false });
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+
+  // When
+  await user.press(
+    await screen.findByRole("button", { name: "Se connecter", busy: false }),
+  );
+
+  // Then: interactive failure uses the existing toast, without an additional retry card.
+  expect(
+    await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+  expect(
+    screen.getByRole("link", { name: "Politique de confidentialité" }),
+  ).toBeEnabled();
+  expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
+  expect(mockFetch).not.toHaveBeenCalled();
+});
+
+it("retries initialization from the single primary action without a state card", async () => {
+  // Given
+  jest
+    .mocked(initializeV2Installation)
+    .mockRejectedValueOnce(new Error("Private initialization failure"));
+  const user = userEvent.setup();
+  await renderJourney();
+  const retry = await screen.findByRole("button", { name: "Réessayer" });
+  expect(
+    screen.queryByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
+  ).toBeNull();
+
+  // When
+  await user.press(retry);
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Se connecter", busy: false }),
+  ).toBeEnabled();
+  expect(initializeV2Installation).toHaveBeenCalledTimes(2);
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
   expect(mockFetch).not.toHaveBeenCalled();
 });
 

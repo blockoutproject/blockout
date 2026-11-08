@@ -1,5 +1,5 @@
 import { Link } from "expo-router";
-import { FileText, ShieldCheck } from "lucide-react-native";
+import { FileText } from "lucide-react-native";
 import {
   Pressable,
   StyleSheet,
@@ -32,7 +32,6 @@ export function PublicAccountLinks({
       />
       <PublicLinkAction
         label="Politique de confidentialité"
-        privacy
         onPress={() => open("privacy")}
       />
       <Link href={supportHref(supportOrigin)} asChild>
@@ -79,9 +78,8 @@ export function ProfileLegalLinks() {
 /** Preserves native support Link forwarding and the accessible browser-action semantics. */
 function PublicLinkAction({
   label,
-  privacy = false,
   ...props
-}: PressableProps & { label: string; privacy?: boolean }) {
+}: PressableProps & { label: string }) {
   const { colors } = useTheme();
   return (
     <Pressable
@@ -100,14 +98,6 @@ function PublicLinkAction({
         },
       ]}
     >
-      {privacy && (
-        <ShieldCheck
-          accessible={false}
-          size={tokens.size.icon.md}
-          color={colors.icon}
-          nonScalingStroke
-        />
-      )}
       <Text style={[styles.label, { color: colors.secondaryText }]}>
         {label}
       </Text>
