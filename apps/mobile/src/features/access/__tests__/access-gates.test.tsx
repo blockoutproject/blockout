@@ -17,6 +17,7 @@ import NotFoundRoute from "../../../app/+not-found";
 import OperationsLayout from "../../../app/(operations)/_layout";
 import AdministrationRoute from "../../../app/(operations)/administration";
 import RootLayout from "../../../app/_layout";
+import ImageChoicesRoute from "../../../app/image-choices";
 import OnboardingRoute from "../../../app/onboarding";
 import SupportLayout from "../../../app/(ordinary)/support/_layout";
 import SupportRoute from "../../../app/(ordinary)/support/index";
@@ -120,6 +121,7 @@ async function openRoute(path: string) {
   const view = await renderRouter(
     {
       _layout: () => <RootLayout />,
+      "image-choices": ImageChoicesRoute,
       onboarding: OnboardingRoute,
       "age-declaration": () => <Text>Age declaration</Text>,
       "(ordinary)/_layout": () => <Stack />,

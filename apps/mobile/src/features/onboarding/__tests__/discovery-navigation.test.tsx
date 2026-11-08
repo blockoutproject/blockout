@@ -10,6 +10,7 @@ import { renderRouter } from "expo-router/testing-library";
 import type { ComponentType } from "react";
 import { Linking, Pressable, Text } from "react-native";
 import RootLayout from "../../../app/_layout";
+import ImageChoicesRoute from "../../../app/image-choices";
 import OnboardingRoute from "../../../app/onboarding";
 import SignInRoute from "../../../app/(ordinary)/sign-in";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
@@ -93,6 +94,7 @@ async function openInstallation(initialUrl = "/", SignIn = OrdinarySession) {
   return renderRouter(
     {
       _layout: () => <RootLayout />,
+      "image-choices": ImageChoicesRoute,
       onboarding: OnboardingRoute,
       access: AccessGateScreen,
       "age-declaration": AgeDeclarationRoute,

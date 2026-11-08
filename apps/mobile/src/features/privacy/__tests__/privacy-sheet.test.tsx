@@ -18,6 +18,7 @@ import {
   type AdsConsentInfo,
 } from "react-native-google-mobile-ads";
 import RootLayout from "../../../app/_layout";
+import ImageChoicesRoute from "../../../app/image-choices";
 import OrdinaryLayout from "../../../app/(ordinary)/_layout";
 import PrivacyRoute from "../../../app/(ordinary)/privacy";
 import CorrectionRoute from "../../../app/(ordinary)/privacy-age";
@@ -157,6 +158,7 @@ async function mountJourney(initialUrl = "/", caller = ProfileCaller) {
   await renderRouter(
     {
       _layout: () => <RootLayout />,
+      "image-choices": ImageChoicesRoute,
       onboarding: () => null,
       "age-declaration": () => null,
       "(operations)/_layout": () => <Stack />,

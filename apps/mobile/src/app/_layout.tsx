@@ -20,6 +20,8 @@ import { createQueryClient } from "../shared/query/query-client";
 import { initializeSentry } from "../shared/observability/sentry";
 import { ThemeProvider, useTheme } from "../shared/theme/theme-provider";
 import { ActionFeedbackProvider } from "../shared/components/action-feedback";
+import { ImageChoicesProvider } from "../shared/components/image-choices";
+import { sheetScreenOptions } from "../shared/components/sheet";
 import { ProProvider, usePro } from "../features/pro";
 import {
   DiscoveryProvider,
@@ -55,32 +57,47 @@ function Navigation({ registration }: { registration: PushRegistration }) {
       {discovery.loading || (!access.snapshot.complete && access.checking) ? (
         <StartupAccessGate />
       ) : (
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Protected guard={!access.ordinary}>
-            <Stack.Screen name="access" />
-          </Stack.Protected>
-          <Stack.Protected
-            guard={access.ordinary && !discovery.complete}
-            redirectTo={access.ordinary ? "/sign-in" : "/access"}
-          >
-            <Stack.Screen name="onboarding" />
-          </Stack.Protected>
-          <Stack.Protected guard={access.ordinary && discovery.complete}>
-            <Stack.Screen name="(ordinary)" />
-          </Stack.Protected>
-          <Stack.Protected
-            guard={access.ordinary && discovery.complete && age.required}
-            redirectTo={access.ordinary ? "/" : "/access"}
-          >
-            <Stack.Screen
-              name="age-declaration"
-              options={{ gestureEnabled: false }}
-            />
-          </Stack.Protected>
-          <Stack.Protected guard={access.operations}>
-            <Stack.Screen name="(operations)" />
-          </Stack.Protected>
-        </Stack>
+        <ImageChoicesProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Protected guard={!access.ordinary}>
+              <Stack.Screen name="access" />
+            </Stack.Protected>
+            <Stack.Protected
+              guard={access.ordinary && !discovery.complete}
+              redirectTo={access.ordinary ? "/sign-in" : "/access"}
+            >
+              <Stack.Screen name="onboarding" />
+            </Stack.Protected>
+            <Stack.Protected guard={access.ordinary && discovery.complete}>
+              <Stack.Screen name="(ordinary)" />
+            </Stack.Protected>
+            <Stack.Protected
+              guard={access.ordinary && discovery.complete && age.required}
+              redirectTo={access.ordinary ? "/" : "/access"}
+            >
+              <Stack.Screen
+                name="age-declaration"
+                options={{ gestureEnabled: false }}
+              />
+            </Stack.Protected>
+            <Stack.Protected guard={access.operations}>
+              <Stack.Screen name="(operations)" />
+            </Stack.Protected>
+            <Stack.Protected
+              guard={
+                (access.ordinary && discovery.complete) || access.operations
+              }
+            >
+              <Stack.Screen
+                name="image-choices"
+                options={{
+                  ...sheetScreenOptions,
+                  contentStyle: { backgroundColor: theme.colors.surface },
+                }}
+              />
+            </Stack.Protected>
+          </Stack>
+        </ImageChoicesProvider>
       )}
     </>
   );

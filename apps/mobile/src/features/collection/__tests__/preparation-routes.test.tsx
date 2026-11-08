@@ -16,6 +16,7 @@ import { renderRouter } from "expo-router/testing-library";
 import { useState, useLayoutEffect, type ComponentType } from "react";
 import { Alert, Text } from "react-native";
 import RootLayout from "../../../app/_layout";
+import ImageChoicesRoute from "../../../app/image-choices";
 import OnboardingRoute from "../../../app/onboarding";
 import { completeDiscovery } from "../../onboarding/discovery-state";
 import OperationsLayout from "../../../app/(operations)/_layout";
@@ -173,6 +174,7 @@ async function openRoute(path: string) {
           <RouteLocation />
         </>
       ),
+      "image-choices": ImageChoicesRoute,
       onboarding: OnboardingRoute,
       "age-declaration": () => null,
       "(ordinary)/_layout": () => <Stack />,

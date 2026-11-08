@@ -1,4 +1,3 @@
-import { ErrorState } from "../../../shared/components/state-card";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
 import { useImageSelection } from "../../../shared/images/use-image-selection";
@@ -16,7 +15,7 @@ import { StyleSheet, Text, View } from "react-native";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { DivisionActivityAction } from "../components/division-activity-action";
 import { Button } from "../../../shared/components/button";
-import { ImageField } from "../../../shared/components/image-field";
+import { SingleImageField } from "../../../shared/components/single-image-field";
 import { LoadingGroup } from "../../../shared/components/loading-group";
 import { Skeleton } from "../../../shared/components/skeleton";
 import { TextField } from "../../../shared/components/text-field";
@@ -42,6 +41,8 @@ export interface PresentationFormProps {
   disabled: boolean;
   /** Current F03 team/pool context when publicly readable; absence never blocks editing. */
   seasonLabel?: string;
+  /** Known public team context refines automatic-logo copy without gating the administrative editor. */
+  professionalTeam?: boolean;
 }
 
 /** Saves one revision atomically and retains dirty fields through refusals and explicit original-target rereads. */
@@ -51,6 +52,7 @@ export function PresentationForm({
   editing,
   disabled,
   seasonLabel,
+  professionalTeam,
 }: PresentationFormProps) {
   const router = useRouter();
   const confirmAction = useActionConfirmation();
@@ -66,7 +68,8 @@ export function PresentationForm({
   const feedback = state.feedback ?? undefined;
   const { control, handleSubmit, setError, setValue } = editor.form;
   const imageSelection = useImageSelection({
-    canSelect: () => !editing.save.isPending,
+    canSelect: () =>
+      !disabled && !editing.save.isPending && !activity.save.isPending,
     onSelect: async (assets) => {
       const asset = assets[0];
       if (!asset) {
@@ -106,8 +109,9 @@ export function PresentationForm({
   const previewColor = /^#[0-9a-fA-F]{6}$/.test(draftColor)
     ? draftColor
     : colors.mediaPlaceholder;
-  // Subscribing to dirty fields is required by RHF's native keepDirtyValues reset option.
-  const dirtyLogo = dirtyFields.logo !== undefined;
+  // This subscription also lets RHF retain all dirty fields during the explicit reread reset.
+  const selectedLogo =
+    dirtyFields.logo !== undefined && draft.action === "replace";
   const changed =
     presentation.kind !== "division-creation" &&
     baseline.kind !== "division-creation" &&
@@ -435,51 +439,43 @@ export function PresentationForm({
       <Surface>
         <View style={styles.form}>
           {target.kind !== "pool" && (
-            <>
-              {draft.action !== "replace" &&
-                hasLogo &&
-                artwork.isError &&
-                artwork.dataUpdatedAt === 0 && (
-                  <ErrorState
-                    onRetry={() => void artwork.refetch()}
-                    retrying={artwork.isFetching}
-                  />
-                )}
-              <Controller
-                control={control}
-                name="logo"
-                render={({ fieldState }) => (
-                  <ImageField
-                    size="compact"
-                    label={isDivision ? undefined : "Photo ou logo"}
-                    images={uri ? [{ id: "logo", uri, label: "Logo" }] : []}
-                    contentFit="contain"
-                    disabled={busy}
-                    helper="PNG/JPEG, jusqu’à 5 Mio"
-                    chooseLabel="Choisir un logo"
-                    replaceLabel="Changer le logo"
-                    removeLabel="Rétablir le logo automatique"
-                    error={fieldState.error?.message}
-                    onRemove={
-                      !isDivision ||
-                      currentLogo?.manualUrl != null ||
-                      draft.action === "replace"
-                        ? restoreLogo
-                        : undefined
-                    }
-                    selection={imageSelection}
-                  />
-                )}
-              />
-              {!uri && (currentLogo?.manualUrl != null || dirtyLogo) && (
-                <Button
-                  label="Rétablir le logo automatique"
-                  variant="secondary"
-                  onPress={restoreLogo}
+            <Controller
+              control={control}
+              name="logo"
+              render={({ fieldState }) => (
+                <SingleImageField
+                  label="Logo"
+                  image={uri ? { id: "logo", uri, label: "Logo" } : undefined}
+                  readRevision={
+                    draft.action !== "replace"
+                      ? artwork.dataUpdatedAt
+                      : undefined
+                  }
+                  hasImage={draft.action === "replace" || hasLogo}
+                  loading={logoPending}
                   disabled={busy}
+                  helper="PNG/JPEG · 5 Mio maximum"
+                  addLabel="Ajouter un logo"
+                  editLabel="Modifier le logo"
+                  chooseLabel="Choisir un logo"
+                  removeLabel={
+                    target.kind === "team"
+                      ? professionalTeam === false
+                        ? "Rétablir le logo du club"
+                        : "Rétablir le logo automatique"
+                      : "Retirer le logo personnalisé"
+                  }
+                  error={fieldState.error?.message}
+                  onRemove={
+                    selectedLogo ||
+                    (draft.action === "keep" && currentLogo?.manualUrl != null)
+                      ? restoreLogo
+                      : undefined
+                  }
+                  selection={imageSelection}
                 />
               )}
-            </>
+            />
           )}
           <Controller
             control={control}

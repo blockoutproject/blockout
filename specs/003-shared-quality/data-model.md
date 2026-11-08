@@ -45,3 +45,7 @@ Admission state is transient under [F12](../013-administration-app-configuration
 ## Schema lifecycle
 
 Schema authoring and migration execution follow the [plan](plan.md#runtime-data-and-consistency). This logical model introduces no additional persistence or migration mechanism.
+
+## Single-image presentation lifetime
+
+A mounted photo/logo field owns a transient reference to the one currently presented contextual choice request. The field supplies current authorized capability, preparation state and owner callbacks; the route contains none of those values. Dismissal, field unmount or session retirement clears that original request. It is neither a persisted entity nor an upload, form, cache or command ledger. Known image presence, a usable preview URI and permission to remove/reset remain distinct; actual keep/remove/replace state and file ownership stay with F05/F02. Multi-image F10 attachments retain their existing lifetime.

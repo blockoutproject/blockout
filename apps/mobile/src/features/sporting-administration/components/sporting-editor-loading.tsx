@@ -3,6 +3,7 @@ import { FieldSkeleton } from "../../../shared/components/form-loading";
 import { LoadingGroup } from "../../../shared/components/loading-group";
 import { Skeleton } from "../../../shared/components/skeleton";
 import { TextSkeleton } from "../../../shared/components/text-skeleton";
+import { SingleImageFieldSkeleton } from "../../../shared/components/single-image-field";
 import { Surface } from "../../../shared/components/surface";
 import { tokens } from "../../../shared/theme/tokens";
 import type { PresentationTarget } from "../api/presentation";
@@ -49,17 +50,13 @@ export function PresentationLoading({
         </View>
       </Surface>
       <Surface>
-        {kind !== "pool" && (
-          <Skeleton
-            width={tokens.size.media.profile}
-            height={tokens.size.media.profile}
-            shape="rectangle"
-          />
-        )}
-        <FieldSkeleton labelWidth="45%" />
-        {(kind === "team" || kind === "pool") && (
-          <FieldSkeleton labelWidth="38%" />
-        )}
+        <View style={styles.form}>
+          {kind !== "pool" && <SingleImageFieldSkeleton />}
+          <FieldSkeleton labelWidth="45%" />
+          {(kind === "team" || kind === "pool") && (
+            <FieldSkeleton labelWidth="38%" />
+          )}
+        </View>
       </Surface>
       {division && (
         <>

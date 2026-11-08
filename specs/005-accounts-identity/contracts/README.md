@@ -30,6 +30,10 @@ DELETE targets the original business UUID. After a lost response, read that orig
 
 Shared Problem Details remain unchanged. Qualify multipart metadata/file binding and bodyless 204 handling in the generated Spring/Jackson and Orval/Zod consumers; source validation alone is not compilation/runtime evidence.
 
+## Profile presentation boundary
+
+Current authorized account/session data admits the editor independently of private photo decoding. `hasPhoto: true` means an existing image can be explicitly removed even when no preview URI is available. Keeping that image omits `photoAction` and image bytes from the multipart save; no client-side preview failure changes the transport intent. F13 owns the shared contextual choices, while F05 retains square preparation, original UUID, atomic Save and prepared-file lifetime. This UI change adds no endpoint or recovery protocol.
+
 ## Other boundaries and coordinated consumers
 
 | Boundary                              | Authority and integration                                                                                                                                                                                                                                                                                                            |

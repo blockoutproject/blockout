@@ -55,8 +55,6 @@ export function ProfileEditScreen({ admitted }: ProfileEditScreenProps) {
           }
           account={account.data}
           disabled={!account.isSuccess}
-          onRetryRead={() => void account.refetch()}
-          retryingRead={account.isFetching}
           onCancel={close}
           onSaved={close}
         />

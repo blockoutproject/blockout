@@ -5,6 +5,7 @@ import { EntryRowSkeleton } from "../../../shared/components/list-loading";
 import { LoadingGroup } from "../../../shared/components/loading-group";
 import { Skeleton } from "../../../shared/components/skeleton";
 import { TextSkeleton } from "../../../shared/components/text-skeleton";
+import { SingleImageFieldSkeleton } from "../../../shared/components/single-image-field";
 import { Surface } from "../../../shared/components/surface";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -25,7 +26,7 @@ export function ProfileLoading({ editor = false }: ProfileLoadingProps) {
     <LoadingGroup label="Chargement du profil" style={styles.body}>
       {editor ? (
         <>
-          <PhotoSkeleton />
+          <SingleImageFieldSkeleton appearance="photo" />
           <EditorFieldsSkeleton />
           <Skeleton height={actionHeight} shape="rectangle" />
           <Skeleton height={actionHeight} shape="rectangle" />
@@ -97,51 +98,6 @@ function ProfileIdentitySkeleton() {
   );
 }
 
-/** Mirrors the compact 64-point preview, dashed picker and separate trailing removal action. */
-function PhotoSkeleton() {
-  const { colors } = useTheme();
-  const { fontScale } = useWindowDimensions();
-  const enlarged = fontScale >= 1.6;
-  return (
-    <Surface>
-      <View style={styles.photo}>
-        <TextSkeleton role="title" width={126 * fontScale} />
-        <View style={styles.field}>
-          <View style={styles.field}>
-            <View
-              style={[
-                styles.imageField,
-                { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}
-            >
-              <Skeleton
-                width={tokens.size.media.profile}
-                height={tokens.size.media.profile}
-                shape="rectangle"
-              />
-              <View style={styles.photoAction}>
-                <TextSkeleton role="label" width={112 * fontScale} />
-                {enlarged && (
-                  <TextSkeleton role="label" width={86 * fontScale} />
-                )}
-              </View>
-            </View>
-            <View style={styles.removeAction}>
-              <TextSkeleton width={94 * fontScale} />
-            </View>
-          </View>
-          <View>
-            <TextSkeleton role="metadata" width={228 * fontScale} />
-            {enlarged && (
-              <TextSkeleton role="metadata" width={150 * fontScale} />
-            )}
-          </View>
-        </View>
-      </View>
-    </Surface>
-  );
-}
-
 /** Keeps the editable username and disabled email group at the real text-field and helper sizes. */
 function EditorFieldsSkeleton() {
   const { fontScale } = useWindowDimensions();
@@ -184,33 +140,7 @@ const styles = StyleSheet.create({
   legalLinks: { gap: tokens.spacing.sm },
   identity: { gap: tokens.spacing.sm },
   version: { alignItems: "center" },
-  photo: { gap: tokens.spacing.md },
   form: { gap: tokens.layout.form.gap },
   field: { gap: tokens.layout.form.labelGap },
   readOnly: { opacity: tokens.opacity.disabled },
-  imageField: {
-    flexDirection: "row",
-    alignItems: "center",
-    minHeight: 84,
-    gap: tokens.spacing.md,
-    padding: tokens.spacing.compact,
-    // ImageField's explicit vertical padding takes precedence over its compact padding shorthand.
-    paddingVertical: tokens.spacing["2xl"],
-    borderWidth: tokens.border.thin,
-    borderStyle: "dashed",
-    borderRadius: tokens.radius.lg,
-  },
-  photoAction: {
-    flex: 1,
-    minWidth: 0,
-    minHeight: tokens.size.control.default,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  removeAction: {
-    minHeight: tokens.size.control.default,
-    paddingVertical: tokens.spacing.sm,
-    alignItems: "flex-end",
-    justifyContent: "center",
-  },
 });

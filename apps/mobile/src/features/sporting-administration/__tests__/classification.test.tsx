@@ -31,6 +31,7 @@ import { Stack, router, useLocalSearchParams } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { ComponentType, PropsWithChildren } from "react";
 import RootLayout from "../../../app/_layout";
+import ImageChoicesRoute from "../../../app/image-choices";
 import OnboardingRoute from "../../../app/onboarding";
 import OperationsLayout from "../../../app/(operations)/_layout";
 import ClassificationRoute from "../../../app/(operations)/administration/classification/[kind]/[id]";
@@ -749,6 +750,7 @@ async function openRoutes() {
     {
       _layout: () => <RootLayout />,
       access: PermissionRefresh,
+      "image-choices": ImageChoicesRoute,
       onboarding: OnboardingRoute,
       "age-declaration": () => null,
       "(ordinary)/_layout": () => (

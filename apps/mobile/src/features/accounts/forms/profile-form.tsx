@@ -1,28 +1,24 @@
-import { ErrorState } from "../../../shared/components/state-card";
 import { ImageValidationError } from "../../../shared/images/image-validation-error";
 import type { File } from "expo-file-system";
 import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
 import { useImageSelection } from "../../../shared/images/use-image-selection";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
-import { ImageField } from "../../../shared/components/image-field";
+import { SingleImageField } from "../../../shared/components/single-image-field";
 import { PageContent } from "../../../shared/components/page";
 import {
   FormScrollView,
   type FormScrollViewProps,
 } from "../../../shared/components/form-scroll-view";
 
-import { ScreenState } from "../../../shared/components/screen-state";
-import { ProfileLoading } from "../components/profile-loading";
 import { TextField } from "../../../shared/components/text-field";
 import { Surface } from "../../../shared/components/surface";
-import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useProfileEditing, useProfilePhoto } from "../api/use-profile-editing";
 import { prepareProfilePhoto } from "../profile/prepare-profile-photo";
@@ -33,14 +29,11 @@ import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 
 /** An editable snapshot of this original account; parent native principal changes remount it. */
 export interface ProfileFormProps {
-  /** Native refresh stays withheld until the initial photo admits the mounted draft. */
+  /** Native refresh remains available for an authorized account independently of its optional photo. */
   refreshControl: FormScrollViewProps["refreshControl"];
   account: AccountResponse;
   /** Keeps the local draft visible while the current account read cannot authorize personal edits. */
   disabled: boolean;
-  /** Restores the current account if its read fails before the initial photo has admitted editing. */
-  onRetryRead: () => void;
-  retryingRead: boolean;
   /** Ordinary route departure; the shared dirty-form guard owns cancellation confirmation. */
   onCancel: () => void;
   /** Called only after a current acknowledged save resets the draft. */
@@ -52,13 +45,10 @@ export function ProfileForm({
   refreshControl,
   account,
   disabled,
-  onRetryRead,
-  retryingRead,
   onCancel,
   onSaved,
 }: ProfileFormProps) {
   const feedback = useActionFeedback();
-  const { colors } = useTheme();
   const { save } = useProfileEditing(account.accountId);
   const active = useRef(true);
   const uploading = useRef<File | undefined>(undefined);
@@ -123,22 +113,18 @@ export function ProfileForm({
     account.accountId,
     !disabled && account.hasPhoto && draft.action === "keep",
   );
-  const photoReady = !account.hasPhoto || !!photo.data;
-  // This admission belongs to the original mounted draft, not to each subsequent Query status.
-  const [admitted, setAdmitted] = useState(photoReady);
-  if (!admitted && photoReady) {
-    setAdmitted(true);
-  }
   let photoUri: string | undefined;
   if (draft.action === "replace") {
     photoUri = draft.prepared.uri;
   } else if (draft.action === "keep" && account.hasPhoto && photo.data) {
     photoUri = photo.data;
   }
-  const images =
+  const image =
     photoUri === undefined
-      ? []
-      : [{ id: "profile-photo", uri: photoUri, label: "Photo de profil" }];
+      ? undefined
+      : { id: "profile-photo", uri: photoUri, label: "Photo de profil" };
+  const hasPhoto =
+    draft.action === "replace" || (draft.action === "keep" && account.hasPhoto);
   useEffect(() => {
     active.current = true;
 
@@ -223,99 +209,89 @@ export function ProfileForm({
   }
 
   return (
-    <FormScrollView
-      refreshControl={admitted || photoReady ? refreshControl : undefined}
-    >
-      {!admitted && !photoReady ? (
-        photo.isError || disabled ? (
-          <ScreenState>
-            <ErrorState
-              onRetry={disabled ? onRetryRead : () => void photo.refetch()}
-              retrying={retryingRead || photo.isFetching}
-            />
-          </ScreenState>
-        ) : (
-          <PageContent>
-            <ProfileLoading editor />
-          </PageContent>
-        )
-      ) : (
-        <PageContent>
-          <View style={styles.form}>
-            <Surface>
-              <View style={styles.photo}>
-                <Text style={[tokens.typography.title, { color: colors.text }]}>
-                  Photo de profil
-                </Text>
-                <Controller
-                  control={control}
-                  name="photo"
-                  render={({ fieldState }) => (
-                    <ImageField
-                      images={images}
-                      selection={selection}
-                      size="compact"
-                      disabled={disabled || busy}
-                      chooseLabel="Choisir une photo de profil"
-                      helper="Facultatif. PNG/JPEG, jusqu’à 5 Mio."
-                      error={fieldState.error?.message}
-                      onRemove={() => replacePhoto({ action: "remove" })}
-                    />
-                  )}
-                />
-              </View>
-            </Surface>
-            <Surface>
-              <View style={styles.form}>
-                <Controller
-                  control={control}
-                  name="username"
-                  render={({ field, fieldState }) => (
-                    <TextField
-                      ref={field.ref}
-                      label="Pseudo"
-                      value={field.value}
-                      onChangeText={field.onChange}
-                      onBlur={field.onBlur}
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      editable={!disabled && !busy}
-                      helper="3 à 32 caractères : lettres sans accent, chiffres, point, tiret ou soulignement. Les espaces autour sont retirés."
-                      error={fieldState.error?.message}
-                    />
-                  )}
-                />
-                <TextField
-                  label="Adresse e-mail"
-                  value={account.email}
-                  readOnly
-                  helper="L’adresse e-mail est liée au compte et ne peut pas être modifiée ici."
-                />
-              </View>
-            </Surface>
+    <FormScrollView refreshControl={refreshControl}>
+      <PageContent>
+        <View style={styles.form}>
+          <Controller
+            control={control}
+            name="photo"
+            render={({ fieldState }) => (
+              <SingleImageField
+                label="Photo de profil"
+                appearance="photo"
+                image={image}
+                readRevision={
+                  draft.action === "keep" ? photo.dataUpdatedAt : undefined
+                }
+                hasImage={hasPhoto}
+                loading={
+                  draft.action === "keep" && account.hasPhoto && photo.isLoading
+                }
+                selection={selection}
+                disabled={disabled || busy}
+                addLabel="Ajouter une photo"
+                editLabel="Modifier la photo"
+                chooseLabel="Choisir une photo"
+                removeLabel="Supprimer la photo"
+                helper="PNG/JPEG · 5 Mio maximum"
+                error={fieldState.error?.message}
+                onRemove={
+                  hasPhoto
+                    ? () => replacePhoto({ action: "remove" })
+                    : undefined
+                }
+              />
+            )}
+          />
+          <Surface>
+            <View style={styles.form}>
+              <Controller
+                control={control}
+                name="username"
+                render={({ field, fieldState }) => (
+                  <TextField
+                    ref={field.ref}
+                    label="Pseudo"
+                    value={field.value}
+                    onChangeText={field.onChange}
+                    onBlur={field.onBlur}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!disabled && !busy}
+                    helper="3 à 32 caractères : lettres sans accent, chiffres, point, tiret ou soulignement. Les espaces autour sont retirés."
+                    error={fieldState.error?.message}
+                  />
+                )}
+              />
+              <TextField
+                label="Adresse e-mail"
+                value={account.email}
+                readOnly
+                helper="L’adresse e-mail est liée au compte et ne peut pas être modifiée ici."
+              />
+            </View>
+          </Surface>
 
-            <Button
-              label="Enregistrer"
-              fullWidth
-              onPress={() => void handleSubmit(submit)()}
-              disabled={!isDirty || disabled || busy}
-              loading={save.isPending}
-            />
-            <Button
-              label="Annuler"
-              variant="secondary"
-              fullWidth
-              disabled={busy}
-              onPress={onCancel}
-            />
-          </View>
-        </PageContent>
-      )}
+          <Button
+            label="Enregistrer"
+            fullWidth
+            onPress={() => void handleSubmit(submit)()}
+            disabled={!isDirty || disabled || busy}
+            loading={save.isPending}
+          />
+          <Button
+            label="Annuler"
+            variant="secondary"
+            fullWidth
+            disabled={busy}
+            onPress={onCancel}
+          />
+        </View>
+      </PageContent>
     </FormScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   form: { gap: tokens.layout.form.gap },
-  photo: { gap: tokens.spacing.md },
 });

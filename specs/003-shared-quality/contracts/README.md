@@ -61,3 +61,7 @@ Required fields, enum additions, changed null semantics, error meaning and autho
 ## Proof required before adoption
 
 [Quickstart](../quickstart.md) covers actual generator configuration/output, Java/TypeScript compilation, serialization, unknown fields, null/empty, enum/date behavior, errors, 204, cancellation, deterministic regeneration, authorization and cache admission. The executable boundary suites and CI commands are linked from the [README](../../../README.md#verification). Their controlled HTTP, Jest and PostgreSQL evidence does not qualify native networking, provider access, authorization or later business implementations. Domain-specific contracts need their own relevant cases.
+
+## Single-image presentation interface
+
+The shared native `SingleImageField` serves F05 photo and existing F02 club/team/division logo editors. Owners supply known presence, optional preview, current authorization/preparation, safe selection and applicable removal/reset callbacks. One admitted root-stack `image-choices` formSheet consumes only the active field’s transient request; no callbacks, files, image URI or draft are serialized in navigation parameters. Selection/removal updates the owning draft, never an upload or accepted association by itself. Dismissal/retirement is scoped to the original mounted owner. F10 multi-image attachments and pool/name-only editing retain their existing interfaces. This adds no HTTP operation or domain persistence.

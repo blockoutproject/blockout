@@ -128,11 +128,11 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
       { queryKey: logoKey, type: "active" },
       { cancelRefetch: false },
     );
-    const retainedFailure = client
+    const logoFailure = client
       .getQueryCache()
       .findAll({ queryKey: logoKey, type: "active" })
-      .some(({ state }) => state.status === "error" && state.dataUpdatedAt > 0);
-    if (retainedFailure) {
+      .some(({ state }) => state.status === "error");
+    if (result.data && logoFailure) {
       feedback.error();
     }
   }
@@ -214,6 +214,13 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
                 editing={editing}
                 disabled={!canManage || editing.query.isError}
                 seasonLabel={seasonLabel}
+                professionalTeam={
+                  publicContextEnabled &&
+                  target.kind === "team" &&
+                  !teamContext.isError
+                    ? teamContext.data?.team.professional
+                    : undefined
+                }
               />
             )}
           </PageContent>
