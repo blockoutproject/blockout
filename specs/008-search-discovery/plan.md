@@ -24,7 +24,7 @@ Provide public club, team and pool discovery through the existing backend and mo
 
 **Performance Goals**: None beyond correct bounded operations and the accepted propagation behavior. No latency, load, capacity or monthly availability programme.
 
-**Constraints**: Public free access; current restrictions override indexed or retained data; all meaningful query terms count; no silent result cap or failure-as-empty; no provider/engine call inside a business SQL transaction; no automatic ordinary mobile retry.
+**Constraints**: Public free access; current restrictions override indexed or retained data; all meaningful query terms count; no silent result cap or failure-as-empty; no provider/engine call inside a business SQL transaction; ordinary mobile read recovery follows [F13](../003-shared-quality/plan.md#frontend-server-read-conventions).
 
 **Scale/Scope**: Clubs, seasonal teams and pools only. Five empty-text examples, up to twenty textual results per page, no total limit. Input remains at most 200 Unicode characters, without a visible counter or another token-count limit.
 
