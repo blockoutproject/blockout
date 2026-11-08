@@ -71,10 +71,35 @@ class CollectionCadenceTest {
     // When
     boolean samePeriod = FreezeCollectionTargets.due(target, tick.plusSeconds(seconds - 1));
     boolean nextPeriod = FreezeCollectionTargets.due(target, tick.plusSeconds(seconds));
+    boolean delayedAdmission = FreezeCollectionTargets.due(target, tick.plusSeconds(seconds + 1));
 
     // Then
     assertThat(samePeriod).isFalse();
     assertThat(nextPeriod).isTrue();
+    assertThat(delayedAdmission).isTrue();
+  }
+
+  @ParameterizedTest(name = "{0} skips 09:05 and resumes at {2}")
+  @CsvSource({
+    "DISCOVERY,2026-10-24T08:30:01Z,2026-10-24T09:30:00Z",
+    "CALENDAR,2026-10-24T08:30:01Z,2026-10-24T09:30:00Z",
+    "STANDINGS,2026-10-24T08:30:01Z,2026-10-24T09:30:00Z",
+    "DETAILS,2026-10-24T08:00:01Z,2026-10-24T10:00:00Z"
+  })
+  @DisplayName("A missed slow opportunity waits for the next scheduled cadence slot")
+  void skipsMissedSlowOpportunity(
+      CollectionTargetKindEnum kind, String observedAt, String nextScheduledAt) {
+    // Given
+    Target target = Target.builder().kind(kind).lastAttemptAt(Instant.parse(observedAt)).build();
+
+    // When
+    boolean delayedPoll =
+        FreezeCollectionTargets.due(target, Instant.parse("2026-10-24T09:05:00Z"));
+    boolean nextOpportunity = FreezeCollectionTargets.due(target, Instant.parse(nextScheduledAt));
+
+    // Then
+    assertThat(delayedPoll).isFalse();
+    assertThat(nextOpportunity).isTrue();
   }
 
   @Test

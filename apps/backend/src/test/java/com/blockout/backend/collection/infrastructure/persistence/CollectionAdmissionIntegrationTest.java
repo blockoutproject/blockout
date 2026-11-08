@@ -55,6 +55,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
@@ -317,13 +318,19 @@ class CollectionAdmissionIntegrationTest {
         .isEqualTo(2);
   }
 
-  @Test
-  @DisplayName("Persisted acquisition times do not postpone the next scheduled competition read")
-  void selectsNextScheduledPeriodAfterObservedRead() {
+  @ParameterizedTest(name = "Completion {0}, skipped poll {1}, next opportunity {2}")
+  @CsvSource({
+    "2026-10-19T10:00:02Z,2026-10-19T10:05:00Z,2026-10-19T10:30:00Z",
+    "2026-10-19T10:30:01Z,2026-10-19T10:35:00Z,2026-10-19T11:00:01Z"
+  })
+  @DisplayName("Scheduled competition reads skip missed ticks while retaining observed freshness")
+  void selectsNextScheduledPeriodAfterObservedRead(
+      String completedAt, String skippedPollAt, String nextOpportunityAt) {
     // Given
     UUID pool = classifiedPool();
     Instant observedAt = Instant.parse("2026-10-19T10:00:01Z");
     cycles.admit(new StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null));
+    Mockito.when(clock.instant()).thenReturn(observedAt);
     results.record(
         CYCLE,
         new RecordCollectionResult(
@@ -350,15 +357,25 @@ class CollectionAdmissionIntegrationTest {
             null,
             null,
             null));
-    results.complete(CYCLE, Instant.parse("2026-10-19T10:00:02Z"));
-    Mockito.when(clock.instant()).thenReturn(Instant.parse("2026-10-19T10:30:00Z"));
-    UUID nextCycle = UUID.fromString("00000000-0000-4000-8000-000000000181");
+    Mockito.when(clock.instant()).thenReturn(Instant.parse(completedAt));
+    results.complete(CYCLE, Instant.parse(completedAt));
+    Mockito.when(clock.instant()).thenReturn(Instant.parse(skippedPollAt));
+    UUID skippedCycle = UUID.fromString("00000000-0000-4000-8000-000000000181");
     long revision = collectionWork.work(STARTUP).controls().getFirst().revision();
+    cycles.admit(new StartCycle(skippedCycle, STARTUP, CONTROL, null, revision, null));
+    CollectionState.TargetPage skippedTargets = collectionWork.targets(skippedCycle, 0, 50);
+    Instant skippedCompletedAt = Instant.parse(skippedPollAt).plusSeconds(1);
+    Mockito.when(clock.instant()).thenReturn(skippedCompletedAt);
+    results.complete(skippedCycle, skippedCompletedAt);
+    Mockito.when(clock.instant()).thenReturn(Instant.parse(nextOpportunityAt));
+    UUID nextCycle = UUID.fromString("00000000-0000-4000-8000-000000000182");
+    revision = collectionWork.work(STARTUP).controls().getFirst().revision();
 
     // When
     cycles.admit(new StartCycle(nextCycle, STARTUP, CONTROL, null, revision, null));
 
     // Then
+    assertThat(skippedTargets.items()).isEmpty();
     CollectionState.TargetPage targets = collectionWork.targets(nextCycle, 0, 50);
     assertThat(targets.items())
         .extracting(item -> item.target().scopeId())

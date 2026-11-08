@@ -264,8 +264,9 @@ public class FreezeCollectionTargets {
   }
 
   /**
-   * Selects competition work in the next scheduled period without shifting ticks by read duration.
-   * Seasonless work retains its full delay after the actual attempt; no missed periods are queued.
+   * Selects attempted competition work only at its scheduled cadence opportunity, allowing
+   * admission delay within the current five-minute poll. Read duration never shifts that schedule,
+   * and missed opportunities are skipped. Seasonless work retains its full actual-attempt delay.
    *
    * @param target qualified target with actual prior attempt
    * @param now current admission instant
@@ -290,8 +291,11 @@ public class FreezeCollectionTargets {
       return !now.isBefore(target.lastAttemptAt().plus(cadence));
     }
     long periodSeconds = cadence.toSeconds();
-    return Math.floorDiv(now.getEpochSecond(), periodSeconds)
-        > Math.floorDiv(target.lastAttemptAt().getEpochSecond(), periodSeconds);
+    long opportunitySeconds = Duration.ofMinutes(5).toSeconds();
+    long opportunity = Math.floorDiv(now.getEpochSecond(), opportunitySeconds);
+    return Math.floorMod(opportunity, periodSeconds / opportunitySeconds) == 0
+        && Math.floorDiv(now.getEpochSecond(), periodSeconds)
+            > Math.floorDiv(target.lastAttemptAt().getEpochSecond(), periodSeconds);
   }
 
   /** Scope/stage distinguishes independent actual attempts in one bounded lookup. */
