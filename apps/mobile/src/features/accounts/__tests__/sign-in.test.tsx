@@ -182,6 +182,12 @@ it.each([
     screen.getByRole("link", { name: "Besoin d’aide ?" }),
   ).toBeOnTheScreen();
   expect(mockFetch).not.toHaveBeenCalled();
+
+  // When: a new explicit interactive attempt must reopen hosted login, not restore credentials.
+  await user.press(screen.getByRole("button", { name: "Se connecter" }));
+
+  // Then
+  await waitFor(() => expect(mockAuth0.webAuth).toHaveBeenCalledTimes(2));
 });
 
 it("reports native persistence failure without submitting establishment", async () => {
@@ -284,37 +290,32 @@ it("keeps explicit guest recovery when F14 initialization fails", async () => {
   expect(mockFetch).not.toHaveBeenCalled();
 });
 
-it("keeps the sign-in footer free of a state card after credential restoration fails", async () => {
+it("retries credential restoration from the primary action without a state card or hosted login", async () => {
   // Given
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   mockAuth0.getCredentials.mockRejectedValueOnce(
     new Error("Private restoration failure"),
   );
-  mockAuth0.webAuth.mockRejectedValueOnce({
-    code: "a0.network_error",
-    message: "Private provider detail",
-  });
   const user = userEvent.setup();
   await renderJourney();
-  await waitFor(() => expect(mockAuth0.hasValidCredentials).toHaveBeenCalled());
-  await screen.findByRole("button", { name: "Se connecter", busy: false });
-  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+  const retry = await screen.findByRole("button", { name: "Réessayer" });
+  expect(
+    screen.queryByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
+  ).toBeNull();
 
   // When
-  await user.press(
-    await screen.findByRole("button", { name: "Se connecter", busy: false }),
-  );
+  await user.press(retry);
 
-  // Then: interactive failure uses the existing toast, without an additional retry card.
-  expect(
-    await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
-  ).toBeOnTheScreen();
-  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+  // Then: restoring usable credentials never establishes an account or opens hosted login.
+  await screen.findByRole("button", { name: "Se connecter", busy: false });
   expect(
     screen.getByRole("link", { name: "Politique de confidentialité" }),
   ).toBeEnabled();
-  expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
-  expect(mockFetch).not.toHaveBeenCalled();
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "POST"),
+  ).toBe(false);
 });
 
 it("retries initialization from the single primary action without a state card", async () => {

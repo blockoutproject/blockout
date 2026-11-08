@@ -50,6 +50,7 @@ function SignInJourney() {
   const feedback = useActionFeedback();
   const guest = useGuestNavigation();
   const mounted = useRef(false);
+  const [loginAttempted, setLoginAttempted] = useState(false);
   const [supportOrigin, setSupportOrigin] = useState<SupportOrigin>({
     screen: "sign-in",
   });
@@ -58,6 +59,8 @@ function SignInJourney() {
     session.status === "signing-out" ||
     establishment.isPending ||
     session.status === "restoring";
+  const retryRestoration =
+    session.status === "authentication-error" && !loginAttempted;
 
   useEffect(() => {
     mounted.current = true;
@@ -77,6 +80,10 @@ function SignInJourney() {
       session.retryInitialization();
       return;
     }
+    if (retryRestoration) {
+      session.retryAuthentication();
+      return;
+    }
     const audience = process.env.EXPO_PUBLIC_AUTH0_AUDIENCE;
     if (session.status !== "authenticated" && !audience) {
       feedback.error();
@@ -88,6 +95,7 @@ function SignInJourney() {
       if (session.status === "authenticated") {
         authenticated = session;
       } else {
+        setLoginAttempted(true);
         authenticated = await session.signIn(audience ?? "");
       }
       if (!authenticated?.subject) {
@@ -191,6 +199,7 @@ function SignInJourney() {
           <Button
             label={
               session.status === "initialization-error" ||
+              retryRestoration ||
               (session.status === "authenticated" && !session.accountId) ||
               (establishment.status === "error" &&
                 !(
