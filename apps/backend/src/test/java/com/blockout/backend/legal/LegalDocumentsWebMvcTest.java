@@ -7,6 +7,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -41,8 +42,8 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 
 /**
- * Exercises real routing, security and maintenance admission with test-only HTML and controlled
- * SQL. No fixture occupies a deployable static/legals path or represents reviewed legal content.
+ * Exercises real routing, security and maintenance admission with bundled HTML, isolated fixtures
+ * and controlled SQL. Synthetic fixtures never occupy a deployable static/legals path.
  */
 @WebMvcTest(controllers = LegalDocumentsController.class)
 @Import({SecurityConfiguration.class, ApiExceptionHandler.class, MaintenanceAdmission.class})
@@ -80,6 +81,23 @@ class LegalDocumentsWebMvcTest {
         .andExpect(status().isOk())
         .andExpect(content().contentType("text/html;charset=UTF-8"))
         .andExpect(content().bytes(fixture.getContentAsByteArray()));
+    verifyNoInteractions(settings, accounts, authorization, transactions);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"imprint", "privacy", "terms"})
+  @DisplayName("Returns each actual bundled document unchanged at its public URL")
+  void returnsBundledDocument(String kind) throws Exception {
+    // Given
+    ClassPathResource document = new ClassPathResource("static/legals/" + kind + ".html");
+    when(resources.getResource("classpath:static/legals/" + kind + ".html")).thenReturn(document);
+
+    // When / Then
+    mvc.perform(get("/legals/" + kind))
+        .andExpect(status().isOk())
+        .andExpect(content().contentType("text/html;charset=UTF-8"))
+        .andExpect(content().bytes(document.getContentAsByteArray()))
+        .andExpect(header().doesNotExist("Set-Cookie"));
     verifyNoInteractions(settings, accounts, authorization, transactions);
   }
 

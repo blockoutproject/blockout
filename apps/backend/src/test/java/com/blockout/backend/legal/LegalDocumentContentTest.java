@@ -11,6 +11,8 @@ import java.util.stream.Stream;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathFactory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -24,12 +26,50 @@ import org.xml.sax.InputSource;
 import org.xml.sax.helpers.DefaultHandler;
 
 /**
- * Prepares complete-resource validation with synthetic fixtures only. The three deployable legal
- * resources still need verified facts and their own checks; this suite proves neither publication
- * nor the accuracy of a modification date. Fixtures use XML-compatible HTML for the JDK DOM parser.
+ * Validates complete bundled resources and isolated synthetic fixtures. Syntax/completeness checks
+ * prove neither publication nor the accuracy of legal facts or dates. Documents use XML-compatible
+ * HTML for the JDK DOM parser.
  */
-@DisplayName("Legal document content validation fixtures")
+@DisplayName("Legal document content validation")
 class LegalDocumentContentTest {
+  @ParameterizedTest
+  @org.junit.jupiter.params.provider.ValueSource(strings = {"imprint", "privacy", "terms"})
+  @DisplayName("Validates each complete bundled legal document before publication")
+  void validatesBundledDocument(String kind) throws Exception {
+    // Given
+    String html =
+        new ClassPathResource("static/legals/" + kind + ".html")
+            .getContentAsString(StandardCharsets.UTF_8);
+
+    // When / Then
+    assertThatCode(() -> validate(html)).doesNotThrowAnyException();
+  }
+
+  @Test
+  @DisplayName("Publishes an independently linkable deletion direction with the maintained email")
+  void publishesExternalDeletionDirection() throws Exception {
+    // Given
+    String html =
+        new ClassPathResource("static/legals/privacy.html")
+            .getContentAsString(StandardCharsets.UTF_8);
+
+    // When
+    Document document = validate(html);
+    Element section =
+        (Element)
+            XPathFactory.newInstance()
+                .newXPath()
+                .evaluate("//*[@id='account-deletion']", document, XPathConstants.NODE);
+
+    // Then
+    assertThat(section).as("the standalone privacy deletion anchor").isNotNull();
+    Element contact = (Element) section.getElementsByTagName("a").item(0);
+    assertThat(contact).as("a direct email action without application authentication").isNotNull();
+    assertThat(contact.getAttribute("href"))
+        .isEqualTo("mailto:blockoutproject@gmail.com?subject=Suppression%20de%20compte%20Blockout");
+    assertThat(section.getElementsByTagName("form").getLength()).isZero();
+  }
+
   @Test
   @DisplayName("Accepts a complete UTF-8 document with a free-form version")
   void acceptsCompleteDocument() throws Exception {
@@ -145,10 +185,11 @@ class LegalDocumentContentTest {
    * requires human review.
    *
    * @param html complete source text using closed HTML tags
+   * @return the complete document for focused semantic checks
    * @throws Exception for malformed HTML or an invalid ISO modification date
    * @throws AssertionError for missing, blank or inconsistent document content
    */
-  private static void validate(String html) throws Exception {
+  private static Document validate(String html) throws Exception {
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
     factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
     factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
@@ -167,6 +208,7 @@ class LegalDocumentContentTest {
     assertThat(title).isNotBlank();
     assertThat(element(document, "h1").getTextContent().strip()).isEqualTo(title);
     assertThat(element(document, "article").getTextContent()).isNotBlank();
+    assertThat(document.getElementsByTagName("script").getLength()).isZero();
     NodeList versions = document.getElementsByTagName("p");
     Element version = null;
     for (int index = 0; index < versions.getLength(); index++) {
@@ -183,6 +225,7 @@ class LegalDocumentContentTest {
     Element modified = element(document, "time");
     assertThat(modified.getTextContent()).isNotBlank();
     LocalDate.parse(modified.getAttribute("datetime"));
+    return document;
   }
 
   /**
