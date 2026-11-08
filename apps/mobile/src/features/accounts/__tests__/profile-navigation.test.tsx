@@ -354,7 +354,7 @@ it("offers sign-in and independent public links to a guest without profile-editi
   // Then
   expect(
     screen.getByRole("link", { name: "Politique de confidentialité" }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   expect(
     screen.queryByRole("button", { name: "Modifier mon profil" }),
   ).not.toBeOnTheScreen();
