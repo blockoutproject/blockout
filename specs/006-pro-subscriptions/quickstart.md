@@ -86,6 +86,8 @@ For each run, record platform/build, provider environment, scenario and observed
 
 ### Current-account appearance comparison
 
+For an SDK-inactive usable account with a settled safe operation, inspect every currently visible bottom tab bar: exactly one “Blockout Pro” banner sits above it, using [Pattern / Pro Offer 5116:12765](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5116-12765) and [Search instance 5137:73188](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5137-73188). Check both themes and enlarged navigation, the transparent outer group, eight-point gap and content scrolling behind the group with final items/actions reachable. The banner and tab bar hide together; this check does not expand current tab-bar route coverage. Pressing the banner opens the ordinary Pro destination immediately without prefetching an offer. Switch to active, guest, unavailable/unknown and unresolved purchase/restoration states: no old-account or repurchase encouragement remains.
+
 Use the actual owner screens for these A16/A30 cases with [F13’s native validation scenarios](../003-shared-quality/quickstart.md#native-ui-and-approved-design).
 
 Run every row on physical iOS and Android, in system light and dark. Include the supported minimum/latest OS matrix selected by F13, compact width (including the approved 320-point case) and enlarged French text (200% where supported). Record build/device/OS, logical width, text size, appearance, account/SDK state, exact source node and design revision/date. Keep accounts and provider diagnostics private.
