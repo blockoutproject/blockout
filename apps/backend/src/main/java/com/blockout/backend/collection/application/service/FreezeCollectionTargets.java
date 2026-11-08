@@ -264,11 +264,13 @@ public class FreezeCollectionTargets {
   }
 
   /**
-   * Applies the accepted cadence to actual attempts.
+   * Selects attempted competition work only at its scheduled cadence opportunity, allowing
+   * admission delay within the current five-minute poll. Read duration never shifts that schedule,
+   * and missed opportunities are skipped. Seasonless work retains its full actual-attempt delay.
    *
    * @param target qualified target with actual prior attempt
    * @param now current admission instant
-   * @return whether its ordinary cadence is due; a never-attempted target is immediately eligible
+   * @return whether its current cadence is due; a never-attempted target is immediately eligible
    */
   static boolean due(Target target, Instant now) {
     if (target.lastAttemptAt() == null) {
@@ -284,7 +286,16 @@ public class FreezeCollectionTargets {
           case CLUB_SHEET -> Duration.ofDays(1);
           case GEOCODING -> Duration.ofHours(1);
         };
-    return !now.isBefore(target.lastAttemptAt().plus(cadence));
+    if (target.kind() == CollectionTargetKindEnum.CLUB_SHEET
+        || target.kind() == CollectionTargetKindEnum.GEOCODING) {
+      return !now.isBefore(target.lastAttemptAt().plus(cadence));
+    }
+    long periodSeconds = cadence.toSeconds();
+    long opportunitySeconds = Duration.ofMinutes(5).toSeconds();
+    long opportunity = Math.floorDiv(now.getEpochSecond(), opportunitySeconds);
+    return Math.floorMod(opportunity, periodSeconds / opportunitySeconds) == 0
+        && Math.floorDiv(now.getEpochSecond(), periodSeconds)
+            > Math.floorDiv(target.lastAttemptAt().getEpochSecond(), periodSeconds);
   }
 
   /** Scope/stage distinguishes independent actual attempts in one bounded lookup. */

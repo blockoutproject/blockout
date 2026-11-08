@@ -8,16 +8,21 @@ import com.blockout.backend.collection.application.exception.CollectionNotFoundE
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.CollectionState.Admission;
 import com.blockout.backend.collection.application.model.CollectionState.StartCycle;
+import com.blockout.backend.collection.application.model.RecordCollectionResult;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.collection.application.service.AdmitCollectionCycle;
 import com.blockout.backend.collection.application.service.CollectionCycleAccess;
 import com.blockout.backend.collection.application.service.CollectorRuntimeAccess;
 import com.blockout.backend.collection.application.service.ReadCollectionWork;
+import com.blockout.backend.collection.application.service.RecordCollectionResults;
 import com.blockout.backend.collection.application.service.RegisterCollectorRuntime;
 import com.blockout.backend.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
@@ -50,6 +55,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
@@ -88,6 +94,7 @@ class CollectionAdmissionIntegrationTest {
   @Autowired private ReadCollectionWork collectionWork;
   @Autowired private AdmitCollectionCycle cycles;
   @Autowired private CollectionCycleAccess cycleAccess;
+  @Autowired private RecordCollectionResults results;
 
   @Autowired private ChangeCollectionSeasons seasons;
   @Autowired private JdbcTemplate sql;
@@ -279,20 +286,22 @@ class CollectionAdmissionIntegrationTest {
   }
 
   @Test
-  @DisplayName("Uses actual attempt age without making an empty admission successful")
+  @DisplayName("Keeps attempted competition targets out of the same scheduled period")
   void selectsDueTargets() {
     // Given
     UUID pool = classifiedPool();
+    Instant observedAt = Instant.parse("2026-10-19T10:00:01Z");
+    Mockito.when(clock.instant()).thenReturn(Instant.parse("2026-10-19T10:05:00Z"));
     sql.update(
         "INSERT INTO collection_result(control_id,scope_id,stage,phase,last_attempt_at,cycle_order,read_ordinal,outcome) VALUES (?,?,'CALENDAR','ACQUISITION',?,1,1,'SUCCESS')",
         CONTROL,
         pool,
-        Timestamp.from(NOW.minusSeconds(60)));
+        Timestamp.from(observedAt));
     sql.update(
         "INSERT INTO collection_result(control_id,scope_id,stage,phase,last_attempt_at,cycle_order,read_ordinal,outcome) VALUES (?,?,'DISCOVERY','ACQUISITION',?,1,1,'SUCCESS')",
         CONTROL,
         SOURCE,
-        Timestamp.from(NOW.minusSeconds(60)));
+        Timestamp.from(observedAt));
 
     // When
     cycles.admit(new StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null));
@@ -307,6 +316,72 @@ class CollectionAdmissionIntegrationTest {
         .isNull();
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_result", Long.class))
         .isEqualTo(2);
+  }
+
+  @ParameterizedTest(name = "Completion {0}, skipped poll {1}, next opportunity {2}")
+  @CsvSource({
+    "2026-10-19T10:00:02Z,2026-10-19T10:05:00Z,2026-10-19T10:30:00Z",
+    "2026-10-19T10:30:01Z,2026-10-19T10:35:00Z,2026-10-19T11:00:01Z"
+  })
+  @DisplayName("Scheduled competition reads skip missed ticks while retaining observed freshness")
+  void selectsNextScheduledPeriodAfterObservedRead(
+      String completedAt, String skippedPollAt, String nextOpportunityAt) {
+    // Given
+    UUID pool = classifiedPool();
+    Instant observedAt = Instant.parse("2026-10-19T10:00:01Z");
+    cycles.admit(new StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null));
+    Mockito.when(clock.instant()).thenReturn(observedAt);
+    results.record(
+        CYCLE,
+        new RecordCollectionResult(
+            pool,
+            CollectionStageEnum.CALENDAR,
+            CollectionPhaseEnum.ACQUISITION,
+            1,
+            observedAt,
+            CollectionOutcomeEnum.SUCCESS,
+            null,
+            null,
+            null,
+            null));
+    results.record(
+        CYCLE,
+        new RecordCollectionResult(
+            SOURCE,
+            CollectionStageEnum.DISCOVERY,
+            CollectionPhaseEnum.ACQUISITION,
+            2,
+            observedAt,
+            CollectionOutcomeEnum.SUCCESS,
+            null,
+            null,
+            null,
+            null));
+    Mockito.when(clock.instant()).thenReturn(Instant.parse(completedAt));
+    results.complete(CYCLE, Instant.parse(completedAt));
+    Mockito.when(clock.instant()).thenReturn(Instant.parse(skippedPollAt));
+    UUID skippedCycle = UUID.fromString("00000000-0000-4000-8000-000000000181");
+    long revision = collectionWork.work(STARTUP).controls().getFirst().revision();
+    cycles.admit(new StartCycle(skippedCycle, STARTUP, CONTROL, null, revision, null));
+    CollectionState.TargetPage skippedTargets = collectionWork.targets(skippedCycle, 0, 50);
+    Instant skippedCompletedAt = Instant.parse(skippedPollAt).plusSeconds(1);
+    Mockito.when(clock.instant()).thenReturn(skippedCompletedAt);
+    results.complete(skippedCycle, skippedCompletedAt);
+    Mockito.when(clock.instant()).thenReturn(Instant.parse(nextOpportunityAt));
+    UUID nextCycle = UUID.fromString("00000000-0000-4000-8000-000000000182");
+    revision = collectionWork.work(STARTUP).controls().getFirst().revision();
+
+    // When
+    cycles.admit(new StartCycle(nextCycle, STARTUP, CONTROL, null, revision, null));
+
+    // Then
+    assertThat(skippedTargets.items()).isEmpty();
+    CollectionState.TargetPage targets = collectionWork.targets(nextCycle, 0, 50);
+    assertThat(targets.items())
+        .extracting(item -> item.target().scopeId())
+        .containsExactly(pool, SOURCE);
+    assertThat(targets.items())
+        .allSatisfy(item -> assertThat(item.target().lastAttemptAt()).isEqualTo(observedAt));
   }
 
   @Test
