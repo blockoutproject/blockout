@@ -1,12 +1,8 @@
-import { useId, useState } from "react";
-import { hashKey, useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { ListTeamsParams } from "../../../../.generated/schemas/index.zod";
 import { useAccountSession } from "../../accounts/current-account";
 import { useOrdinaryRequest } from "../../access/ordinary-request";
-import {
-  createDiscoveryContext,
-  type DiscoveryResource,
-} from "./discovery-context";
+import type { DiscoveryResource } from "./discovery-context";
 import {
   createSearchExamplesQueryOptions,
   createDiscoveryQueryOptions,
@@ -15,7 +11,7 @@ import {
 /** Observes the visible text context through native Query; stale benign cards wait for their own refresh. */
 export function useDiscoveryQuery(
   resource: DiscoveryResource,
-  input: Omit<ListTeamsParams, "cursor" | "exampleIds">,
+  input: Omit<ListTeamsParams, "cursor">,
   active = true,
 ) {
   const session = useAccountSession();
@@ -31,35 +27,23 @@ export function useDiscoveryQuery(
 }
 
 /**
- * Each filter visit retains one observed page even while text or another tab disables its reads.
- * The mounted observer prevents unused-cache collection from resampling examples during the visit;
- * changing filters or leaving Search releases that page to Query's ordinary collection lifecycle.
- * Accepted UUIDs supply subsequent refresh selection without another response store.
+ * Observes the visible empty-text context through ordinary Query retention and stale rereads.
+ * Returning may display the same context's cached page while a successful current read replaces it.
+ * Inactive contexts release their observer for ordinary cancellation and unused-cache collection.
  */
 export function useSearchExamplesQuery(
   resource: DiscoveryResource,
-  input: Omit<ListTeamsParams, "cursor" | "exampleIds">,
+  input: Omit<ListTeamsParams, "cursor">,
   active: boolean,
 ) {
   const session = useAccountSession();
   const admission = useOrdinaryRequest();
-  const visit = useId();
-  const context = hashKey(createDiscoveryContext(resource, input).queryKey);
-  const [selection, setSelection] = useState<{
-    context: string;
-    revision: number;
-  }>({ context, revision: 0 });
-  if (selection.context !== context) {
-    setSelection({ context, revision: selection.revision + 1 });
-  }
   const options = createSearchExamplesQueryOptions(
     resource,
     input,
-    `${visit}:${selection.revision}`,
     session,
     admission,
     session.getCredentials,
   );
-  const query = useQuery({ ...options, enabled: active });
-  return query;
+  return useQuery({ ...options, subscribed: active });
 }

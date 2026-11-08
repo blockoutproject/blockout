@@ -30,7 +30,7 @@ As a visitor, I want to discover useful examples without an account or prior inp
 
 1. **A01** — **Given** a visitor or a free person, Pro person or person with unknown entitlements, **when** search opens, **then** the Teams, Pools and Clubs tabs are accessible without mandatory sign-in or purchase; unknown entitlements do not block public search. (FR-001, FR-028)
 2. **A02** — **Given** an empty field, including whitespace-only input, including with chosen filters, **when** a tab is viewed, **then** a limited selection is explicitly presented as examples, without a total or claim of completeness; teams and pools respect the chosen season, with the newest available season preselected. (FR-002, FR-006, FR-012)
-3. **A03** — **Given** already presented viewable examples, **when** a detail sheet is opened then left or another tab is visited, **then** the previous examples and their order are retained during the visit; they may vary on a new visit and do not rely on a profile or geolocation. A known restriction removes the affected resource. (FR-003, FR-020)
+3. **A03** — **Given** already presented viewable examples, **when** a detail sheet is opened then left or another tab is visited, **then** the same valid context may reuse its cached examples; a successful current read may replace their identities and order as data changes. Selection remains deterministic on unchanged data, without a profile or geolocation. Current server reads remove ineligible resources. (FR-003, FR-020)
 4. **A04** — **Given** empty-text examples, **when** filters change, **then** examples remain limited and respect those filters. Entering text opens exhaustive paginated search; clearing it returns to filtered examples. Explicitly reselecting the default season creates no different mode. (FR-002–FR-005)
 
 ### User Story 2 — Find a resource by its names and context (Priority: P1)
@@ -107,7 +107,7 @@ As a user, I want to distinguish an empty search from a failure and retry withou
 - An automatic and explicit selection of the same season have identical behavior; only nonempty text switches to exhaustive search.
 - Empty text retains examples under every chosen filter; no empty combination justifies silent broadening.
 - Offer only available seasons. If no season is available, use All seasons; never invent a year. Failed retrieval preserves previously known choices rather than treating them as an empty catalogue.
-- A known restriction takes precedence over example stability, position restoration and retention after error.
+- Current server restrictions take precedence over cached examples, position restoration and retention after error.
 - Tolerant search may find several identities; it does not reconcile sporting data or make identical names disappear.
 
 ## Requirements
@@ -118,7 +118,7 @@ As a user, I want to distinguish an empty search from a failure and retry withou
 
 - **FR-001**: Search MUST offer Teams, Pools and Clubs to visitors and signed-in people, without requiring an account or Pro. No other searchable resource type or editing right is introduced.
 - **FR-002**: Empty or whitespace-only text MUST show a limited selection explicitly identified as examples, including after filter changes. Examples respect the active filters, with the newest available season preselected for teams/pools under FR-012. No completeness or exhaustive-total promise applies to examples. The pinned search chrome uses one compact heading row for Examples, Results, loaded counts and the optional Clear action. Its shared minimum-height token preserves the native action target and equal clearance above and below the text, without additional outer margins that enlarge the row.
-- **FR-003**: Examples MUST be non-personalized, without added geolocation, and retain their selection and order during a visit, including after returning from a detail sheet or tab. They MAY vary between visits or when filters change; new examples must respect the new context. A known restriction requires their removal; refreshing does not arbitrarily reshuffle them.
+- **FR-003**: Examples MUST be deterministic on unchanged data and non-personalized, without added geolocation. Returning to the same valid context MAY reuse cached examples; a successful current read MAY replace their selection and order as data changes, including within the same visit. Every current read MUST respect the active filters and F02 viewability. No exact identity/order freeze or permanently exhausted selection is required; examples remain bounded and make no completeness claim.
 - **FR-004**: Nonempty text MUST open exhaustive paginated results matching the active filters. Filter changes alone with empty text keep examples. Selecting the same season explicitly has the same meaning as its preselection; no implicit/explicit filter-state distinction is retained.
 - **FR-005**: Text and active filters MUST be visible and resettable. The text field MUST enforce one limit of 200 Unicode characters, with no separate analyzed-token limit. The search bar MUST NOT display a character counter or limit hint. Clearing text returns to examples under the retained filters; resetting filters restores the default season. Each sporting tab retains its own filters without a separate explicit-selection flag.
 
@@ -136,7 +136,7 @@ As a user, I want to distinguish an empty search from a failure and retry withou
 - **FR-012**: Seasons MUST come from viewable data for the relevant resource type, without a fixed-year list. Without a retained selection, select the newest available season by F02 sporting start year, including a published future season. If none is offered, select All seasons. Preserve a valid choice during the visit even when a newer season appears; a new visit or reset recalculates the default. Past seasons and All seasons remain accessible. No date-based current-season calculation, unavailable option or dedicated warning is required.
 - **FR-013**: Division choices MUST respect F02 active divisions; formats and genders reuse F02 sporting classification without new vocabulary. A combination without matches MUST NOT automatically remove a filter or change its value.
 - **FR-014**: Text MUST be shared across all three tabs; team and pool filters MUST be remembered separately during a visit. Passing through Clubs does not erase them. Changing text invalidates previous results in other tabs without erasing their filters.
-- **FR-015**: Returning from a detail sheet MUST restore tab, text, filters, examples or results and position where they remain valid. Data changes may require recomposition; they do not guarantee the exact position in a changed order.
+- **FR-015**: Returning from a detail sheet MUST restore tab, text, filters, results and position where they remain valid. Examples follow FR-003's ordinary cache/current-read policy. Data changes may require recomposition; they do not guarantee the exact position in a changed order.
 - **FR-016**: Only available seasons and active divisions MUST be selectable. On a successful catalogue reload, a retained season no longer available returns to the FR-012 default, and an unavailable division is cleared. The normal filter controls show the resulting values; no unavailable-choice screen or warning is required. Failure to retrieve choices MUST preserve previously known choices rather than prove their disappearance.
 
 #### Ordering, completeness and presentation
@@ -163,7 +163,7 @@ As a user, I want to distinguish an empty search from a failure and retry withou
 
 - **Searchable resource**: An existing Club, Team or Pool under F02, with a stable identity, applicable names, context and viewability.
 - **Search context**: Tab, shared text, tab-specific filters and empty versus nonempty text; it determines discovery or search.
-- **Examples**: A limited selection of viewable resources, non-personalized and stable during a visit; it does not represent a total.
+- **Examples**: A bounded, non-personalized selection of currently viewable resources, deterministic on unchanged data; a current read may replace a cached selection. It does not represent a total.
 - **Results**: Ordered matches for a context, with ordinary loading, progress and failure states; their loaded quantity is not their total.
 - **Visit**: The search journey retained across tab changes and navigation to and from detail sheets. Persistence between launches is not required.
 
@@ -183,7 +183,7 @@ As a user, I want to distinguish an empty search from a failure and retry withou
 
 - Available data is data publishable under F02; F04 neither retrieves nor recreates a missing identity or season. V1 recovery belongs to F14.
 - The four sporting filters each allow one choice; absence means all authorized values. Without a retained selection, the newest available season is preselected for the resource type, following FR-012.
-- Selections remain unchanged during the visit while valid, even when a newer season appears; a reset returns to the newest available season, or All seasons when none is offered.
+- Filter selections remain unchanged during the visit while valid, even when a newer season appears; a reset returns to the newest available season, or All seasons when none is offered.
 - Refresh preserves discovery or search mode and valid choices. Catalog changes may alter result order or count: no permanently frozen snapshot is promised.
 - Search tolerance does not change F02 identity rules, where accents and digits may be significant. Technical relevance tuning will need to satisfy the scenarios, without selecting an engine, score or comparison distance in this specification.
 - Batch size, visual example count and tie-breaking details do not constitute new business choices; the approved design defines their accessible presentation, and the technical plan selects the implementation. No mandatory total, new searchable resource or search history is added.

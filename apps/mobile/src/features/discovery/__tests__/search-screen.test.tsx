@@ -493,8 +493,9 @@ it("clears the shared query and opens examples for the selected tab", async () =
     screen.queryByRole("button", { name: "Effacer la recherche" }),
   ).not.toBeOnTheScreen();
   expect(await screen.findByText("Niort")).toBeOnTheScreen();
-  expect(mockFetch).toHaveBeenCalledTimes(1);
-  expect(new URL(mockFetch.mock.calls[0][0]).searchParams.has("q")).toBe(false);
+  expect(
+    mockFetch.mock.calls.every(([url]) => !new URL(url).searchParams.has("q")),
+  ).toBe(true);
   expect(screen.getByRole("header", { name: "Exemples" })).toBeOnTheScreen();
   expect(screen.queryByText("Volley professionnel")).not.toBeOnTheScreen();
 });
@@ -697,7 +698,7 @@ it("keeps clearing available without pull-to-refresh through replacement reads a
   expect(
     screen.queryByRole("button", { name: "Effacer" }),
   ).not.toBeOnTheScreen();
-  expect(mockFetch).not.toHaveBeenCalled();
+  expect(new URL(mockFetch.mock.calls.at(-1)?.[0]).search).toBe("");
 });
 
 it("cancels superseded text and tab requests and never shows an older result as the new search", async () => {
@@ -783,7 +784,7 @@ it("keeps failure and criteria honest during native focus/reconnect/return rerea
   ).not.toHaveLength(0);
 });
 
-it("treats empty and whitespace-only text as the same retained example selection", async () => {
+it("treats empty and whitespace-only text as the same example context", async () => {
   // Given
   const user = userEvent.setup();
   await renderSearch();

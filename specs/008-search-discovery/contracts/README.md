@@ -13,7 +13,7 @@ The existing backend provides all four reads; the mobile consumes them. F04 owns
 | `GET /pools`                   | Existing pool summaries with the same filter concepts.                            |
 | `GET /sporting-search-options` | Current choices for the required team/pool type; no option catalogue for clubs.   |
 
-Collection reads use empty text for five examples and nonempty text for pages of up to twenty matches. `exampleIds` rereads at most five retained examples in their order; it is forbidden with nonempty text or a cursor. `cursor` is a native position for nonempty-text traversal; clients reuse it with the same criteria, while cross-context reuse can skip results and grants no access. Unknown or ineligible resource/filter identities produce no matches, not an inferred replacement. Invalid parameter shapes/combinations return the shared bad-request response. No custom bulk dispatcher or route per screen is added.
+Collection reads use empty text for up to five current deterministic examples and nonempty text for pages of up to twenty matches. Each empty-text read evaluates current eligible candidates under the active filters; a successful later read may replace the previous examples. `cursor` is forbidden with empty text and is a native position for nonempty-text traversal; clients reuse it with the same criteria, while cross-context reuse can skip results and grants no access. Unknown or ineligible filter identities produce no matches, without silently broadening criteria. Invalid parameter shapes/combinations return the shared bad-request response. No custom bulk dispatcher or route per screen is added.
 
 Successful JSON uses `Cache-Control: no-store`. Existing BadRequest, Unauthorized, Forbidden and AccessUnavailable responses cover validation, explicit bypass refusal, maintenance and ordinary dependency failure. There is no search-specific error vocabulary or empty-on-failure fallback. Native timeouts and engine exceptions are failures, even if some hits were available; the native request disallows partial shard results.
 
@@ -23,7 +23,7 @@ These are additive routes; existing F03 routes and wire meanings remain unchange
 
 Use F13's OpenAPI YAML 3.0.4 → Redocly validation/bundle → OpenAPI Generator Java interfaces/DTOs and Orval mobile functions/types/Zod. One validated JSON response enters Query once. The collector consumes no F04 HTTP endpoint; after-commit projection requests and current sporting reads are in-process application interfaces, with no extra REST surface. UUID-based detail routes remain the mobile's existing navigation contract; these additions do not claim a hypermedia API.
 
-Use the [validation guide](../quickstart.md#contracts-and-access) for generated compilation, query-array encoding, Unicode length and response validation. Discovery's generator tag isolates its four operations; story adapters supply business responses and shared access admission. Generated files remain ignored outputs.
+Use the [validation guide](../quickstart.md#contracts-and-access) for generated compilation, query parameters, Unicode length and response validation. Discovery's generator tag isolates its four operations; story adapters supply business responses and shared access admission. Generated files remain ignored outputs.
 
 ## Existing support navigation boundary
 

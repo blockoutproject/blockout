@@ -10,7 +10,7 @@ Use synthetic sporting fixtures, PostgreSQL 18.6, OpenSearch 3.9.0 and the selec
 
 ## Contracts and access
 
-Lint/bundle the canonical root and generate the Java/TypeScript consumers at the same source revision. Compile/test actual consumers and regenerate deterministically. Check absent fields, additive response properties, enum rejection, Unicode length, repeated UUID query-array encoding and cursor parsing and mode validation. Expected: 200 Unicode characters are accepted, longer input is rejected without truncation, all meaningful terms are retained, wrong parameter combinations fail, and invalid JSON never enters the cache as success.
+Lint/bundle the canonical root and generate the Java/TypeScript consumers at the same source revision. Compile/test actual consumers and regenerate deterministically. Check absent fields, additive response properties, enum rejection, Unicode length, query parameters and cursor parsing/mode validation. Expected: 200 Unicode characters are accepted, longer input is rejected without truncation, all meaningful terms are retained, a cursor with empty text fails, and invalid JSON never enters the cache as success.
 
 Access checks require the packaged backend and generated mobile consumer from the same candidate, synthetic F02/F03 resources, and the existing F05/F09/F12 owners. Read as guest, free, Pro and unknown entitlement. Exercise maintenance and explicit bypass with absent, expired, wrong-environment and unauthorized tokens. Expected: public search needs no account; existing F12 refusals and safe Problem Details apply, with no downgrade of explicit bypass to public admission. Delay a response across session or bypass cancellation: it cannot admit old data or resume the action automatically.
 
@@ -28,7 +28,7 @@ Include old and future seasons, an inactive division, a club without teams and a
 
 Through real engine/backend integration and its generated HTTP boundary, browse unchanged sets of 47 and more than 10,000 eligible matches, including equal scores. Expected: every identity exactly once, no total cap, no false total and no empty continuation pages. Interleave ineligible candidates and exhaust the processing bound: either eligible results/established end or ordinary retryable failure. Verify an unconsumed candidate is not skipped by the returned cursor. Change data or switch index generations during traversal, then reread: current results recompose without mixing old pages or lasting omissions. T010 owns this exhaustive proof; the bounded native cases below verify pagination/navigation integration without manually traversing the full volume or waiting for advertising qualification to establish engine exhaustion.
 
-For empty text, verify five or fewer examples, stable retained order across tabs/detail return/refresh, exact filters, and no replacements after a retained example becomes restricted. Changing filters permits a new selection. The absence of a cursor in examples does not advertise catalogue completeness.
+For empty text, verify five or fewer current examples in deterministic order on unchanged data, with exact filters and no cursor or completeness claim. Change current eligibility while the index still contains the old candidate, then issue another ordinary collection read: omitted identities may be replaced by other eligible examples. A successful prior empty response may become populated on a later read. Cache reuse on tab/detail return does not freeze the next successful current response.
 
 ### Current options and retained filters
 
@@ -104,9 +104,11 @@ Verify F12 admission separately from ordinary read failure: activate maintenance
 
 The reporting action reuses the approved [Search header 916:2892](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=916-2892), shared plain icon action and official Lucide Flag. The real F10 form receives only the finite “Recherche” origin from Search; its existing validated attempted-target mapping remains available for detail entries. Verify that query/filter/error payloads are excluded and cancel/return sends nothing, collects nothing extra and replays no action. No new form, support transport, private destination or F11 opening-counter call is introduced. Exercise native reachability and ordinary form navigation separately from controlled transport checks.
 
-### Retained examples
+### Current examples
 
-Exercise all three collections with five-or-fewer retained UUIDs, every exact filter, current visibility/city drift, independent clubs and unattached professional teams. Refresh preserves accepted order and never replaces a withdrawn example; no total or pagination is advertised. A failed detail may leave its benign card until the collection's own current server refresh. Expect ordinary unavailability on engine failure.
+Exercise all three collections with five-or-fewer current examples, every exact filter, current visibility/city drift, independent clubs and unattached professional teams. Identical current data selects the same UUID order; a successful changed-data read may replace withdrawn examples without broadening criteria. A failed detail may leave its benign card until the collection's own current server read. Expect ordinary unavailability on engine failure.
+
+With actual Query/session owners and controlled HTTP, return to the same tab/filter context while its new read is held: cached examples may remain visible until the successful replacement arrives. Check changed UUID/order, a previously empty response becoming populated, cancellation after leaving the context, private-client/account replacement and explicit bypass separation. Ordinary inactive collection may discard an unused page; a new read still preserves the active filters. Failed rereads retain usable cards with Retry; failure after cached empty data uses Error. Keep text/filter/RHF visit state at its existing owner and no new refresh action. On compatible iOS/Android clients, verify representative tab/detail return, criteria retention and successful current replacement. Reuse unchanged access/filter/design evidence only at its demonstrated boundary.
 
 After generation, run `./mvnw -B -ntp -pl apps/backend verify -Dtest='Discovery*Test,!*IntegrationTest' -Dit.test=DiscoveryExamplesIntegrationTest` and the affected mobile discovery tests through the repository command.
 

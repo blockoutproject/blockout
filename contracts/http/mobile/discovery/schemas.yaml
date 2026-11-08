@@ -26,7 +26,7 @@ ClubSearchResponse:
   properties:
     clubs:
       type: array
-      description: Up to five examples in retained or stable identity order, or twenty textual matches in relevance order. Empty means successful exhaustion for this request.
+      description: Up to five current examples in stable identity order, or twenty textual matches in relevance order. Empty means no eligible examples or successful textual exhaustion for this request.
       maxItems: 20
       items:
         $ref: "#/ClubSummaryResponse"
@@ -44,7 +44,7 @@ TeamSearchResponse:
   properties:
     teams:
       type: array
-      description: Up to five examples in retained or stable identity order, or twenty textual matches in relevance order. Empty means successful exhaustion for this request.
+      description: Up to five current examples in stable identity order, or twenty textual matches in relevance order. Empty means no eligible examples or successful textual exhaustion for this request.
       maxItems: 20
       items:
         $ref: ../consultation/schemas.yaml#/TeamSummaryResponse
@@ -62,7 +62,7 @@ PoolSearchResponse:
   properties:
     pools:
       type: array
-      description: Up to five examples in retained or stable identity order, or twenty textual matches in relevance order. Empty means successful exhaustion for this request.
+      description: Up to five current examples in stable identity order, or twenty textual matches in relevance order. Empty means no eligible examples or successful textual exhaustion for this request.
       maxItems: 20
       items:
         $ref: ../consultation/schemas.yaml#/PoolSummaryResponse

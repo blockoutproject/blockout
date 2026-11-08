@@ -22,7 +22,6 @@ import com.blockout.backend.search.application.ReadSearchOptions;
 import com.blockout.backend.search.application.SearchContext;
 import com.blockout.backend.search.application.SearchContinuation;
 import com.blockout.backend.search.application.SearchEngine;
-import com.blockout.backend.search.application.SearchExamples;
 import com.blockout.backend.search.application.SearchPage;
 import com.blockout.backend.search.application.SearchUnavailableException;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
@@ -255,64 +254,57 @@ class DiscoveryWebMvcTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"", " ", "\t"})
-  @DisplayName("Rejects blank UUID examples alongside a valid retained identity")
-  void rejectsBlankExample(String blank) throws Exception {
-    // Given
-    String retained = "00000000-0000-4000-8000-000000000001";
-
-    // When
-    ResultActions response = mvc.perform(get("/clubs").param("exampleIds", retained, blank));
-
-    // Then
-    response.andExpect(status().isBadRequest());
-    verifyNoInteractions(reads);
-  }
-
-  @ParameterizedTest
   @ValueSource(strings = {"\u0000", "\uFEFF"})
   @DisplayName("Keeps non-whitespace control and format characters in textual mode")
   void keepsNonWhitespaceText(String text) throws Exception {
     // Given
-    String retained = "00000000-0000-4000-8000-000000000001";
+    when(reads.read(any(), any())).thenReturn(new SearchPage(List.of(), null));
 
     // When
-    ResultActions response =
-        mvc.perform(get("/teams").param("q", text).param("exampleIds", retained));
+    ResultActions response = mvc.perform(get("/teams").param("q", text));
+
+    // Then
+    response.andExpect(status().isOk());
+    ArgumentCaptor<SearchContext> selection = ArgumentCaptor.forClass(SearchContext.class);
+    verify(reads).read(selection.capture(), isNull());
+    assertThat(selection.getValue().examples()).isFalse();
+    assertThat(selection.getValue().text()).isEqualTo(text);
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", " ", "\t\u2003"})
+  @DisplayName("Empty or whitespace text selects current examples without continuation")
+  void bindsCurrentExamples(String text) throws Exception {
+    // Given
+    when(reads.read(any(), any())).thenReturn(new SearchPage(List.of(), null));
+
+    // When
+    ResultActions response = mvc.perform(get("/clubs").param("q", text));
+
+    // Then
+    response.andExpect(status().isOk()).andExpect(jsonPath("$.nextCursor").doesNotExist());
+    ArgumentCaptor<SearchContext> selection = ArgumentCaptor.forClass(SearchContext.class);
+    verify(reads).read(selection.capture(), isNull());
+    assertThat(selection.getValue().examples()).isTrue();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", " \t\u2003"})
+  @DisplayName("Current examples reject even a valid textual continuation")
+  void rejectsExampleContinuation(String text) throws Exception {
+    // Given
+    String cursor = requests.encode(new SearchContinuation(1.5, new UUID(0, 1)));
+
+    // When
+    ResultActions response = mvc.perform(get("/clubs").param("q", text).param("cursor", cursor));
 
     // Then
     response.andExpect(status().isBadRequest());
     verifyNoInteractions(reads);
   }
 
-  @Test
-  @DisplayName("Preserves ordered distinct retained examples and optional absence")
-  void preservesExamples() throws Exception {
-    // Given
-    String first = "00000000-0000-4000-8000-000000000002";
-    String second = "00000000-0000-4000-8000-000000000001";
-    when(reads.examples(any(), any())).thenReturn(new SearchPage(List.of(), null));
-
-    // When
-    ResultActions response = mvc.perform(get("/clubs").param("exampleIds", first, second));
-
-    // Then
-    response.andExpect(status().isOk()).andExpect(jsonPath("$.nextCursor").doesNotExist());
-    ArgumentCaptor<SearchContext> selection = ArgumentCaptor.forClass(SearchContext.class);
-    ArgumentCaptor<SearchExamples> examples = ArgumentCaptor.forClass(SearchExamples.class);
-    verify(reads).examples(selection.capture(), examples.capture());
-    assertThat(examples.getValue().identities())
-        .containsExactly(UUID.fromString(first), UUID.fromString(second));
-    assertThat(selection.getValue().examples()).isTrue();
-  }
-
   @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "/teams?seasonId=invalid",
-        "/teams?q=Volley&exampleIds=00000000-0000-4000-8000-000000000001",
-        "/teams?cursor=invalid"
-      })
+  @ValueSource(strings = {"/teams?seasonId=invalid", "/teams?cursor=invalid"})
   @DisplayName("Rejects malformed generated values and incompatible modes")
   void rejectsInvalidSelection(String path) throws Exception {
     // Given

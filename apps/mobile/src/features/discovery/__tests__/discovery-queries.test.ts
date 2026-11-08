@@ -1,4 +1,7 @@
-import { createDiscoveryQueryOptions } from "../api/discovery-queries";
+import {
+  createDiscoveryQueryOptions,
+  createSearchExamplesQueryOptions,
+} from "../api/discovery-queries";
 import { createQueryClient } from "../../../shared/query/query-client";
 
 const mockFetch = jest.fn();
@@ -157,3 +160,79 @@ it.each(["club", "team", "pool"] as const)(
     }
   },
 );
+
+it("separates current example contexts, textual pages and each deliberate bypass owner", () => {
+  // Given: the same public filter context may be reused only inside its owning cache.
+  const session = { subject: "reader-a", accountId: id };
+  const admission = {
+    bypass: undefined,
+    request: (value: import("../../../shared/api/api-fetch").ApiFetchOptions) =>
+      value,
+  };
+  const credentials = jest.fn();
+  const current = createSearchExamplesQueryOptions(
+    "team",
+    { gender: "female" },
+    session,
+    admission,
+    credentials,
+  );
+
+  // When
+  const same = createSearchExamplesQueryOptions(
+    "team",
+    { gender: "female" },
+    session,
+    admission,
+    credentials,
+  );
+  const changed = [
+    createSearchExamplesQueryOptions(
+      "pool",
+      { gender: "female" },
+      session,
+      admission,
+      credentials,
+    ),
+    createSearchExamplesQueryOptions(
+      "team",
+      { gender: "male" },
+      session,
+      admission,
+      credentials,
+    ),
+    createDiscoveryQueryOptions(
+      "team",
+      { q: "Volley", gender: "female" },
+      session,
+      admission,
+      credentials,
+    ),
+    createSearchExamplesQueryOptions(
+      "team",
+      { gender: "female" },
+      session,
+      { ...admission, bypass: session },
+      credentials,
+    ),
+  ];
+  const other = {
+    subject: "reader-b",
+    accountId: "00000000-0000-4000-8000-000000000002",
+  };
+  const otherBypass = createSearchExamplesQueryOptions(
+    "team",
+    { gender: "female" },
+    other,
+    { ...admission, bypass: other },
+    credentials,
+  );
+
+  // Then
+  expect(same.queryKey).toEqual(current.queryKey);
+  for (const context of changed) {
+    expect(context.queryKey).not.toEqual(current.queryKey);
+  }
+  expect(otherBypass.queryKey).not.toEqual(changed.at(-1)?.queryKey);
+  expect(credentials).not.toHaveBeenCalled();
+});

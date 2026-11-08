@@ -43,29 +43,6 @@ public class OpenSearchEngine implements SearchEngine {
   /** {@inheritDoc} */
   @Override
   public Batch search(SearchContext context, Position after, int size) {
-    return execute(context, after, size, null);
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public Batch examples(SearchContext context, List<UUID> identities) {
-    if (!context.examples() || identities.isEmpty() || identities.size() > 5) {
-      throw new IllegalArgumentException("Invalid retained examples");
-    }
-    return execute(context, null, 5, identities);
-  }
-
-  /**
-   * Executes one complete native response; empty text gives every exact-filter candidate the same
-   * score.
-   *
-   * @param context current selection with exact filters
-   * @param after exclusive native boundary or null
-   * @param size bounded candidate count
-   * @param identities retained UUID restriction, or null for ordinary initial candidate traversal
-   * @return fully evaluated native candidates; no total is requested
-   */
-  private Batch execute(SearchContext context, Position after, int size, List<UUID> identities) {
     if (size < 1 || size > 200) {
       throw new IllegalArgumentException("Invalid candidate batch");
     }
@@ -80,7 +57,7 @@ public class OpenSearchEngine implements SearchEngine {
               .allowPartialSearchResults(false)
               .trackTotalHits(track -> track.enabled(false))
               .source(source -> source.filter(filter -> filter.includes("city")))
-              .query(query(context, identities))
+              .query(query(context))
               .sort(sort -> sort.score(score -> score.order(SortOrder.Desc)))
               .sort(sort -> sort.field(field -> field.field("id").order(SortOrder.Asc)));
       if (after != null) {
@@ -123,10 +100,9 @@ public class OpenSearchEngine implements SearchEngine {
    * boosts cannot admit a document that fails both required branches.
    *
    * @param context exact current selection; empty text uses only exact filters
-   * @param identities retained example restriction or null
    * @return ordinary typed OpenSearch query with strict filters outside the alternatives
    */
-  private Query query(SearchContext context, List<UUID> identities) {
+  private Query query(SearchContext context) {
     BoolQuery.Builder query = new BoolQuery.Builder();
     if (!context.examples()) {
       query
@@ -178,11 +154,6 @@ public class OpenSearchEngine implements SearchEngine {
                           term.field("names.exact")
                               .value(FieldValue.of(context.text()))
                               .boost(4.0F)));
-    }
-    if (identities != null) {
-      query.filter(
-          filter ->
-              filter.ids(ids -> ids.values(identities.stream().map(UUID::toString).toList())));
     }
     if (context.seasonId() != null) {
       filter(query, "seasonId", context.seasonId().toString());

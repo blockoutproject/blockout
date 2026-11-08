@@ -241,7 +241,7 @@ async function renderSearch() {
   return result;
 }
 
-/** F03's real child refusal timestamps the existing parent key; no Search restriction is fabricated. */
+/** Exercises the real F03 child refusal without fabricating a restriction on benign Search cards. */
 function PoolChildRead() {
   const queries = useConsultationQueries();
   useQuery({ ...queries.pool(firstId), enabled: false });
@@ -478,8 +478,8 @@ it("keeps both authorized pages after a failed reread and explicitly retries the
   expect(retriedUrl.searchParams.has("cursor")).toBe(false);
 });
 
-it("retries retained examples without announcing a non-existent next page", async () => {
-  // Given: examples retain one non-paginated selection of public identities.
+it("retries current examples and replaces identities without announcing a next page", async () => {
+  // Given: examples retain usable cards while their non-paginated current read fails.
   mockFetch.mockImplementation((url: string) =>
     new URL(url).pathname.endsWith("/clubs")
       ? Promise.resolve(
@@ -525,13 +525,13 @@ it("retries retained examples without announcing a non-existent next page", asyn
   const retriedUrl = new URL(mockFetch.mock.calls.at(-1)?.[0]);
   expect(retriedUrl.searchParams.has("cursor")).toBe(false);
   expect(retriedUrl.searchParams.has("q")).toBe(false);
-  expect(retriedUrl.searchParams.getAll("exampleIds")).toEqual([firstId]);
+  expect([...retriedUrl.searchParams.keys()]).toEqual([]);
 
   // When
   await act(async () =>
     reread.resolve(
       Response.json({
-        clubs: [{ club: { id: firstId, name: "Club actuel" } }],
+        clubs: [{ club: { id: secondId, name: "Club actuel" } }],
       }),
     ),
   );
