@@ -554,7 +554,7 @@ class CurrentRestrictionsIntegrationTest {
     unavailable(calendarPath("teamId=" + first.homeTeamId()));
     assertThat(read("/teams?q=home").get("teams").isEmpty()).isTrue();
     assertThat(read("/pools?q=synthetic").get("pools").isEmpty()).isTrue();
-    assertThat(read("/teams?exampleIds=" + first.homeTeamId()).get("teams").isEmpty()).isTrue();
+    assertThat(read("/teams").get("teams").isEmpty()).isTrue();
     assertThat(read(personal("team-follows")).get("items").isEmpty()).isTrue();
     assertThat(read(personal("pool-follows")).get("items").isEmpty()).isTrue();
     assertThat(read(personal("matches")).get("calendar").get("days").isEmpty()).isTrue();
@@ -596,7 +596,7 @@ class CurrentRestrictionsIntegrationTest {
   }
 
   /**
-   * * Creates real desired-state relations, preserving the original owner and resource identities.
+   * Creates real desired-state relations, preserving the original owner and resource identities.
    *
    * @param team exact seasonal target
    * @param pool exact pool target

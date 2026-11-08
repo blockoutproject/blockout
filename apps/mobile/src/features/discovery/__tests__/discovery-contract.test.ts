@@ -64,21 +64,6 @@ it.each([
   cache.clear();
 });
 
-it("encodes repeated UUID examples in their selected order", async () => {
-  // Given
-  const second = "00000000-0000-4000-8000-000000000002";
-  mockFetch.mockResolvedValue(Response.json({ clubs: [] }));
-  const context = createDiscoveryContext("club", { exampleIds: [second, id] });
-
-  // When
-  await listClubs(context.params);
-
-  // Then
-  expect(
-    new URL(mockFetch.mock.calls[0][0]).searchParams.getAll("exampleIds"),
-  ).toEqual([second, id]);
-});
-
 it.each(["🏐", "İ"])(
   "sends 200 Unicode characters without rewriting them: %s",
   async (character) => {
@@ -112,29 +97,18 @@ it.each(["x".repeat(201), "🏐".repeat(201), "x".repeat(200) + "\n"])(
   },
 );
 
-it.each([
-  { q: "Volley", exampleIds: [id] },
-  { cursor: "opaque" },
-  { q: "Volley", exampleIds: [id], cursor: "opaque" },
-  { exampleIds: [id, id] },
-  {
-    exampleIds: [
-      "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-      "AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA",
-    ],
+it.each([{ cursor: "opaque" }, { q: " \u2003", cursor: "opaque" }])(
+  "rejects continuation without searchable text: %j",
+  (params) => {
+    // Given: examples are bounded and have no continuation mode.
+
+    // When
+    const create = () => createDiscoveryContext("team", params);
+
+    // Then
+    expect(create).toThrow();
   },
-  { exampleIds: [] },
-  { q: "\uFEFF", exampleIds: [id] },
-])("rejects invalid parameter combinations: %j", (params) => {
-  // Given
-  // Each table entry violates the example or continuation mode.
-
-  // When
-  const create = () => createDiscoveryContext("team", params);
-
-  // Then
-  expect(create).toThrow();
-});
+);
 
 it("keeps normalized search context separate from pagination", () => {
   // Given

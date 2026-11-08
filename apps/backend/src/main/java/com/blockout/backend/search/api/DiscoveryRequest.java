@@ -3,9 +3,6 @@ package com.blockout.backend.search.api;
 import com.blockout.backend.search.application.SearchContext;
 import com.blockout.backend.search.application.SearchContinuation;
 import java.util.Base64;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -23,29 +20,18 @@ public class DiscoveryRequest {
   private final JsonMapper json;
 
   /**
-   * Selects textual or retained-example mode after ordinary generated MVC binding.
+   * Binds an optional textual continuation after ordinary generated MVC query binding.
    *
    * @param context current normalized selection
    * @param cursor optional encoded native position, forbidden in example mode
-   * @param exampleIds optional distinct generated identities in native supplied order
-   * @return detached example selection or decoded position
+   * @return decoded position, or null for a first textual page or current examples
    * @throws ResponseStatusException for malformed cursors or incompatible request modes
    */
-  public Bound bind(SearchContext context, String cursor, Set<UUID> exampleIds) {
-    if (exampleIds != null
-        && (!context.examples()
-            || cursor != null
-            || exampleIds.isEmpty()
-            || exampleIds.contains(null))) {
-      throw invalid();
-    }
+  public SearchContinuation bind(SearchContext context, String cursor) {
     if (cursor != null && context.examples()) {
       throw invalid();
     }
-    return new Bound(
-        context,
-        exampleIds == null ? null : List.copyOf(exampleIds),
-        cursor == null ? null : decode(cursor));
+    return cursor == null ? null : decode(cursor);
   }
 
   /**
@@ -88,8 +74,4 @@ public class DiscoveryRequest {
   private static ResponseStatusException invalid() {
     return new ResponseStatusException(HttpStatus.BAD_REQUEST);
   }
-
-  /** Detached request values; absent examples remain distinct from an invalid empty selection. */
-  public record Bound(
-      SearchContext context, List<UUID> exampleIds, SearchContinuation continuation) {}
 }

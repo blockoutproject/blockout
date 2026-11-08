@@ -16,17 +16,6 @@ public interface SearchEngine {
    */
   Batch search(SearchContext context, Position after, int size);
 
-  /**
-   * Reads only retained example identities through the same exact native filters and city
-   * projection.
-   *
-   * @param context empty-text selection
-   * @param identities at most five retained UUIDs; no replacements are selected
-   * @return complete candidates for these identities, in native UUID order
-   * @throws SearchUnavailableException for an incomplete or failed native read
-   */
-  Batch examples(SearchContext context, List<UUID> identities);
-
   /** Exclusive native score-descending, UUID-ascending position; no retained engine session. */
   record Position(double score, UUID id) {}
 

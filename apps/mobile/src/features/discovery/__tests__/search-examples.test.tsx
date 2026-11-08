@@ -352,13 +352,12 @@ it.each([
   expect(pro.state.status).toBe(expectedPro);
 });
 
-it("retains IDs and order through detail, tabs, whitespace and clearing text", async () => {
+it("preserves the example context through detail, tabs, whitespace and clearing text", async () => {
   // Given
   const user = userEvent.setup();
   await renderSearch();
   await user.press(screen.getByRole("tab", { name: "Clubs" }));
   await screen.findByText("Niort");
-  const initial = collectionCalls("clubs").length;
 
   // When
   await act(async () => router.push(`/clubs/${secondId}`));
@@ -380,7 +379,6 @@ it("retains IDs and order through detail, tabs, whitespace and clearing text", a
     await screen.findByRole("header", { name: "Exemples" }),
   ).toBeOnTheScreen();
   expect(screen.getAllByText("Volley")).toHaveLength(2);
-  expect(collectionCalls("clubs")).toHaveLength(initial + 1);
 
   // When: an existing owner requests a reread.
   await act(async () =>
@@ -388,104 +386,79 @@ it("retains IDs and order through detail, tabs, whitespace and clearing text", a
   );
 
   // Then
-  expect(
-    new URL(collectionCalls("clubs").at(-1)![0]).searchParams.getAll(
-      "exampleIds",
-    ),
-  ).toEqual([firstId, secondId]);
+  const reread = new URL(collectionCalls("clubs").at(-1)![0]);
+  expect([...reread.searchParams.keys()]).toEqual([]);
 });
 
 it.each(["tab", "text"])(
-  "retains the visit's examples after five minutes away through %s",
+  "reuses cached examples then accepts a changed current read after returning from %s",
   async (away) => {
-    // Given: a visit has accepted two examples before a later restriction changes the catalogue.
-    jest.useFakeTimers();
+    // Given: the same context has cached examples while another context is visible.
     const user = userEvent.setup();
-    try {
-      await renderSearch();
-      await screen.findByText("Club public");
-      expect(collectionCalls("pools")).toHaveLength(0);
-      expect(collectionCalls("clubs")).toHaveLength(0);
-      await user.press(screen.getByRole("tab", { name: "Clubs" }));
-      await screen.findByText("Niort");
-      if (away === "tab") {
-        await user.press(screen.getByRole("tab", { name: "Poules" }));
-        await screen.findByText("Poule A");
-      } else {
-        await user.paste(screen.getByLabelText("Rechercher"), "Volley");
-        await screen.findByRole("header", { name: "2 résultats chargés" });
-      }
-      const reads = collectionCalls("clubs").length;
-      mockFetch.mockImplementation((url: string) => {
-        const parsed = new URL(url);
-        if (parsed.pathname.endsWith("/clubs")) {
-          return Promise.resolve(
-            Response.json({
-              clubs: [
-                { club: { id: firstId, name: "Volley" }, city: "Lyon" },
-                ...(parsed.searchParams.has("exampleIds")
-                  ? []
-                  : [
-                      {
-                        club: {
-                          id: "cccccccc-0000-4000-8000-000000000003",
-                          name: "New example",
-                        },
-                        city: "Rennes",
-                      },
-                    ]),
-              ],
-            }),
-          );
-        }
-        return publicReads(url);
-      });
-
-      // When: the same visit returns after the native unused-cache collection delay.
-      await act(async () => jest.advanceTimersByTime(5 * 60 * 1000 + 1));
-      if (away === "tab") {
-        await user.press(screen.getByRole("tab", { name: "Clubs" }));
-      } else {
-        await user.press(
-          screen.getByRole("button", { name: "Effacer la recherche" }),
-        );
-      }
-
-      // Then: returning keeps the accepted selection until its own authoritative reread.
-      expect(await screen.findByText("Niort")).toBeOnTheScreen();
-      expect(screen.queryByText("Rennes")).not.toBeOnTheScreen();
-      expect(collectionCalls("clubs")).toHaveLength(reads);
-
-      // When: the collection's current read establishes that the second example is hidden.
-      await act(async () =>
-        client.refetchQueries({
-          queryKey: ["discovery-examples"],
-          type: "active",
-        }),
-      );
-
-      // Then: the retained UUIDs are reread without replacement sampling.
-      await waitFor(() =>
-        expect(screen.queryByText("Niort")).not.toBeOnTheScreen(),
-      );
-      expect(screen.getByText("Lyon")).toBeOnTheScreen();
-      expect(screen.queryByText("Rennes")).not.toBeOnTheScreen();
-      expect(
-        new URL(collectionCalls("clubs").at(-1)![0]).searchParams.getAll(
-          "exampleIds",
-        ),
-      ).toEqual([firstId, secondId]);
-      expect(collectionCalls("teams")).toHaveLength(1);
-      expect(collectionCalls("pools")).toHaveLength(away === "tab" ? 1 : 0);
-    } finally {
-      await cleanup();
-      jest.useRealTimers();
+    await renderSearch();
+    await user.press(screen.getByRole("tab", { name: "Clubs" }));
+    await screen.findByText("Niort");
+    if (away === "tab") {
+      await user.press(screen.getByRole("tab", { name: "Poules" }));
+      await screen.findByText("Poule A");
+    } else {
+      await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+      await screen.findByRole("header", { name: "2 résultats chargés" });
     }
+    const current = Promise.withResolvers<Response>();
+    let read: URL | undefined;
+    mockFetch.mockImplementation((url: string) => {
+      const parsed = new URL(url);
+      if (parsed.pathname.endsWith("/clubs")) {
+        read = parsed;
+        return current.promise;
+      }
+      return publicReads(url);
+    });
+
+    // When: ordinary subscription resumes the same empty-text context.
+    if (away === "tab") {
+      await user.press(screen.getByRole("tab", { name: "Clubs" }));
+    } else {
+      await user.press(
+        screen.getByRole("button", { name: "Effacer la recherche" }),
+      );
+    }
+
+    // Then: useful cached cards remain visible while the current read is pending.
+    expect(await screen.findByText("Niort")).toBeOnTheScreen();
+    await waitFor(() => expect(read).toBeDefined());
+    expect(read?.search).toBe("");
+    expect(screen.getByRole("header", { name: "Exemples" })).toBeOnTheScreen();
+
+    // When: current data selects a different public identity.
+    await act(async () =>
+      current.resolve(
+        Response.json({
+          clubs: [
+            {
+              club: {
+                id: "cccccccc-0000-4000-8000-000000000003",
+                name: "Nouvel exemple",
+              },
+              city: "Rennes",
+            },
+          ],
+        }),
+      ),
+    );
+
+    // Then: successful current examples replace the previous selection without a refresh control.
+    expect(await screen.findByText("Rennes")).toBeOnTheScreen();
+    expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: /Actualiser|Rafraîchir/ }),
+    ).not.toBeOnTheScreen();
   },
 );
 
-it("retains usable data on failure and never refills a restricted selection reduced to zero", async () => {
-  // Given
+it("retains usable examples on failure and repopulates a formerly empty current selection", async () => {
+  // Given: a failed reread follows successful usable examples.
   const user = userEvent.setup();
   await renderSearch();
   await user.press(screen.getByRole("tab", { name: "Clubs" }));
@@ -506,36 +479,29 @@ it("retains usable data on failure and never refills a restricted selection redu
     await screen.findByRole("button", { name: "Réessayer" }),
   ).toBeOnTheScreen();
   expect(screen.getByText("Niort")).toBeOnTheScreen();
-  expect(screen.queryByText(/Aucun résultat/)).not.toBeOnTheScreen();
+  expect(screen.queryByText("Aucun exemple disponible")).not.toBeOnTheScreen();
   mockFetch.mockImplementation((url: string) =>
     new URL(url).pathname.endsWith("/clubs")
       ? Promise.resolve(Response.json({ clubs: [] }))
       : publicReads(url),
   );
 
-  // When
+  // When: retry establishes an actual successful empty selection.
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
   await screen.findByText("Aucun exemple disponible");
-  const calls = collectionCalls("clubs").length;
-  await user.paste(
-    screen.getByPlaceholderText("Rechercher un club…"),
-    " \u2003",
-  );
-  await user.press(screen.getByRole("tab", { name: "Poules" }));
-  await screen.findByText("Poule A");
-  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
+  mockFetch.mockImplementation(publicReads);
+
+  // When: an ordinary later read sees newly eligible examples.
   await act(async () =>
     client.refetchQueries({ queryKey: ["discovery-examples"], type: "active" }),
   );
 
-  // Then
-  expect(screen.getByText("Aucun exemple disponible")).toBeOnTheScreen();
-  expect(collectionCalls("clubs")).toHaveLength(calls);
-  expect(
-    new URL(collectionCalls("clubs").at(-1)![0]).searchParams.getAll(
-      "exampleIds",
-    ),
-  ).toEqual([firstId, secondId]);
+  // Then: an earlier empty response does not permanently exhaust discovery.
+  expect(await screen.findByText("Niort")).toBeOnTheScreen();
+  expect(screen.queryByText("Aucun exemple disponible")).not.toBeOnTheScreen();
 });
 
 it("selects again for changed filters and resets to the current default season", async () => {
@@ -559,7 +525,10 @@ it("selects again for changed filters and resets to the current default season",
   // Then
   const filtered = new URL(collectionCalls("teams").at(-1)![0]);
   expect(filtered.searchParams.get("gender")).toBe("female");
-  expect(filtered.searchParams.has("exampleIds")).toBe(false);
+  expect([...filtered.searchParams.keys()].sort()).toEqual([
+    "gender",
+    "seasonId",
+  ]);
 
   // When
   await user.press(screen.getByRole("button", { name: "Effacer" }));
@@ -569,7 +538,7 @@ it("selects again for changed filters and resets to the current default season",
   const reset = new URL(collectionCalls("teams").at(-1)![0]);
   expect(reset.searchParams.get("seasonId")).toBe(season.id);
   expect(reset.searchParams.has("gender")).toBe(false);
-  expect(reset.searchParams.has("exampleIds")).toBe(false);
+  expect([...reset.searchParams.keys()]).toEqual(["seasonId"]);
 });
 
 it("explains empty filtered examples and clears their existing criteria", async () => {
@@ -694,22 +663,78 @@ it("keeps an explicitly reselected default season in the same example mode", asy
   expect(collectionCalls("teams")).toHaveLength(reads);
 });
 
-it("starts a new selection on a new visit even with the previous query cache retained", async () => {
-  // Given
+it("reuses the same admitted context cache across a new Search visit while reading current examples", async () => {
+  // Given: Search leaves its admitted Query owner alive when another main route is shown.
+  const user = userEvent.setup();
   await renderSearch();
-  await screen.findByText("Club public");
-  await cleanup();
-  const reads = collectionCalls("teams").length;
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await screen.findByText("Niort");
+  await act(async () => router.replace("/home"));
+  await screen.findByText("Accueil de test");
+  const current = Promise.withResolvers<Response>();
+  let read: URL | undefined;
+  mockFetch.mockImplementation((url: string) => {
+    const parsed = new URL(url);
+    if (parsed.pathname.endsWith("/clubs")) {
+      read = parsed;
+      return current.promise;
+    }
+    return publicReads(url);
+  });
 
-  // When
-  await renderSearch();
-  await screen.findByText("Club public");
+  // When: a new visit returns before ordinary cache collection.
+  await act(async () => router.replace("/search"));
+  await layoutNativeTabs();
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+
+  // Then: the same cache remains useful during the normal current read.
+  expect(await screen.findByText("Niort")).toBeOnTheScreen();
+  await waitFor(() => expect(read).toBeDefined());
+  expect(read?.search).toBe("");
+
+  // When: the current read establishes absence.
+  await act(async () => current.resolve(Response.json({ clubs: [] })));
 
   // Then
-  expect(collectionCalls("teams")).toHaveLength(reads + 1);
-  expect(
-    new URL(collectionCalls("teams").at(-1)![0]).searchParams.has("exampleIds"),
-  ).toBe(false);
+  expect(await screen.findByText("Aucun exemple disponible")).toBeOnTheScreen();
+  expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
+});
+
+it("cancels inactive example reads and never admits their late response into the visible context", async () => {
+  // Given: HTTP deliberately returns after the examples observer is unsubscribed.
+  const pending = Promise.withResolvers<Response>();
+  let signal: AbortSignal | undefined;
+  mockFetch.mockImplementation((url: string, options: RequestInit) => {
+    if (new URL(url).pathname.endsWith("/clubs")) {
+      signal = options.signal ?? undefined;
+      return pending.promise;
+    }
+    return publicReads(url);
+  });
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await waitFor(() => expect(signal).toBeDefined());
+
+  // When
+  await user.press(screen.getByRole("tab", { name: "Poules" }));
+  await screen.findByText("Poule A");
+  await act(async () =>
+    pending.resolve(
+      Response.json({
+        clubs: [
+          {
+            club: { id: secondId, name: "Ancien exemple" },
+          },
+        ],
+      }),
+    ),
+  );
+
+  // Then
+  expect(signal?.aborted).toBe(true);
+  expect(screen.queryByText("Ancien exemple")).not.toBeOnTheScreen();
+  expect(screen.getByRole("header", { name: "Exemples" })).toBeOnTheScreen();
 });
 
 it("allows a new visit to select an identity whose previous detail refusal is still cached", async () => {
@@ -738,9 +763,7 @@ it("allows a new visit to select an identity whose previous detail refusal is st
 
   // Then
   expect(await screen.findByText("Niort")).toBeOnTheScreen();
-  expect(
-    new URL(collectionCalls("clubs").at(-1)![0]).searchParams.has("exampleIds"),
-  ).toBe(false);
+  expect(new URL(collectionCalls("clubs").at(-1)![0]).search).toBe("");
 
   // When: a reopened detail read is abandoned before it can establish new authority.
   const pending = Promise.withResolvers<Response>();

@@ -50,7 +50,7 @@ import tools.jackson.databind.json.JsonMapper;
 @AutoConfigureMockMvc
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @Import({PostgresTestConfiguration.class, DiscoveryExamplesIntegrationTest.NativeEngine.class})
-@DisplayName("Retained examples under current visibility")
+@DisplayName("Current deterministic examples")
 class DiscoveryExamplesIntegrationTest {
   private static final String PREFIX = "blockout-local-search-" + UUID.randomUUID();
   private static final UUID SEASON = UUID.fromString("10000000-0000-4000-8000-000000000001");
@@ -142,29 +142,28 @@ class DiscoveryExamplesIntegrationTest {
 
   @ParameterizedTest
   @ValueSource(strings = {"clubs", "teams", "pools"})
-  @DisplayName("Rereads only retained identities in supplied order without replacements")
-  void retainsSuppliedOrder(String collection) throws Exception {
-    // Given: removal happens after projection; new eligible resources cannot fill the gap.
+  @DisplayName("A later ordinary read replaces examples that current data no longer admits")
+  void replacesChangedExamples(String collection) throws Exception {
+    // Given: the current selection is visible before SQL changes, with the index left unchanged.
+    assertThat(identities(read(get("/" + collection)), collection))
+        .containsExactly(id(1), id(2), id(3), id(4), id(5));
     sql.update("DELETE FROM sporting_participation WHERE team_id = ?", id(2));
     sql.update("DELETE FROM sporting_team WHERE id = ?", id(2));
     sql.update("DELETE FROM sporting_pool WHERE id = ?", id(2));
     sql.update("DELETE FROM sporting_club WHERE id = ?", id(2));
 
     // When
-    JsonNode response =
-        read(
-            get("/" + collection)
-                .param("exampleIds", id(5).toString(), id(2).toString(), id(1).toString()));
+    JsonNode response = read(get("/" + collection));
 
     // Then
-    assertThat(identities(response, collection)).containsExactly(id(5), id(1));
+    assertThat(identities(response, collection)).containsExactly(id(1), id(3), id(4), id(5), id(6));
     assertThat(response.propertyNames()).containsExactly(collection);
   }
 
   @ParameterizedTest
   @ValueSource(strings = {"teams", "pools"})
-  @DisplayName("Applies every exact sporting filter to empty text and retained reads")
-  void appliesExactFilters(String collection) throws Exception {
+  @DisplayName("Combines every exact sporting filter for current examples")
+  void combinesExactFilters(String collection) throws Exception {
     // Given
     MockHttpServletRequestBuilder matching =
         get("/" + collection)
@@ -177,30 +176,37 @@ class DiscoveryExamplesIntegrationTest {
     JsonNode response = read(matching);
 
     // Then
-    assertThat(identities(response, collection)).hasSize(5);
-    for (String[] filter :
-        List.of(
-            new String[] {"seasonId", id(99).toString()},
-            new String[] {"divisionId", id(99).toString()},
-            new String[] {"format", "4x4"},
-            new String[] {"gender", "male"})) {
-      assertThat(identities(read(get("/" + collection).param(filter[0], filter[1])), collection))
-          .isEmpty();
-      assertThat(
-              identities(
-                  read(
-                      get("/" + collection)
-                          .param(filter[0], filter[1])
-                          .param("exampleIds", id(1).toString())),
-                  collection))
-          .isEmpty();
-    }
+    assertThat(identities(response, collection)).containsExactly(id(1), id(2), id(3), id(4), id(5));
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+    "teams,seasonId,00000000-0000-4000-8000-000000000099",
+    "teams,divisionId,00000000-0000-4000-8000-000000000099",
+    "teams,format,4x4",
+    "teams,gender,male",
+    "pools,seasonId,00000000-0000-4000-8000-000000000099",
+    "pools,divisionId,00000000-0000-4000-8000-000000000099",
+    "pools,format,4x4",
+    "pools,gender,male"
+  })
+  @DisplayName("An exact sporting filter cannot broaden current examples")
+  void rejectsNonmatchingFilter(String collection, String parameter, String value)
+      throws Exception {
+    // Given
+    MockHttpServletRequestBuilder request = get("/" + collection).param(parameter, value);
+
+    // When
+    JsonNode response = read(request);
+
+    // Then
+    assertThat(identities(response, collection)).isEmpty();
   }
 
   @ParameterizedTest
   @CsvSource({"clubs,city", "teams,participation", "teams,division", "pools,pool"})
-  @DisplayName("Current restrictions remove every retained identity without replacement")
-  void removesRestrictedSelection(String collection, String restriction) throws Exception {
+  @DisplayName("Current restrictions cannot expose examples from stale indexed candidates")
+  void removesRestrictedExamples(String collection, String restriction) throws Exception {
     // Given
     switch (restriction) {
       case "city" -> sql.update("UPDATE sporting_club SET municipality_restricted = TRUE");
@@ -211,8 +217,7 @@ class DiscoveryExamplesIntegrationTest {
     }
 
     // When
-    JsonNode response =
-        read(get("/" + collection).param("exampleIds", id(1).toString(), id(2).toString()));
+    JsonNode response = read(get("/" + collection));
 
     // Then
     assertThat(identities(response, collection)).isEmpty();
@@ -241,48 +246,10 @@ class DiscoveryExamplesIntegrationTest {
     sql.update("UPDATE sporting_team SET gender = 'MALE' WHERE id = ?", id(1));
 
     // When
-    JsonNode response =
-        read(get("/teams").param("gender", "female").param("exampleIds", id(1).toString()));
+    JsonNode response = read(get("/teams").param("gender", "female"));
 
     // Then
-    assertThat(identities(response, "teams")).isEmpty();
-  }
-
-  @ParameterizedTest
-  @ValueSource(strings = {"size", "type", "blank", "text", "cursor"})
-  @DisplayName("Rejects invalid retained shapes and forbidden mode combinations")
-  void rejectsInvalidParameters(String scenario) throws Exception {
-    // Given
-    MockHttpServletRequestBuilder request = get("/clubs");
-    switch (scenario) {
-      case "size" ->
-          request.param("exampleIds", ids().stream().map(UUID::toString).toArray(String[]::new));
-      case "type" -> request.param("exampleIds", "not-a-uuid");
-      case "blank" -> request.param("exampleIds", "");
-      case "text" -> request.param("exampleIds", id(1).toString()).param("q", "club");
-      case "cursor" -> request.param("exampleIds", id(1).toString()).param("cursor", "opaque");
-      default -> throw new IllegalArgumentException();
-    }
-
-    // When
-    org.springframework.test.web.servlet.ResultActions result = mvc.perform(request);
-
-    // Then
-    result.andExpect(status().isBadRequest());
-  }
-
-  @Test
-  @DisplayName("Native Set binding collapses repeated retained identities")
-  void collapsesRepeatedExamples() throws Exception {
-    // Given
-    MockHttpServletRequestBuilder request =
-        get("/clubs").param("exampleIds", id(1).toString(), id(1).toString());
-
-    // When
-    JsonNode response = read(request);
-
-    // Then
-    assertThat(identities(response, "clubs")).containsExactly(id(1));
+    assertThat(identities(response, "teams")).containsExactly(id(2), id(3), id(4), id(5), id(6));
   }
 
   @Test

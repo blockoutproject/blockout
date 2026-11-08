@@ -6,7 +6,8 @@ Clubs:
     summary: Discover or search clubs
     description: >-
       Matches current public/source club names, applicable verified aliases and the currently permitted city.
-      Empty text returns at most five examples; nonempty text returns up to twenty matches with continuation.
+      Empty text returns at most five current examples in deterministic identity order; later reads may replace them when data changes.
+      Nonempty text returns up to twenty matches with continuation.
       Every meaningful term applies. Relevance favors direct matches; order may change
       when data changes. Current visibility always applies. Public access requires no account;
       explicit maintenance bypass requires a valid authorized token. Invalid parameter combinations are rejected.
@@ -16,7 +17,6 @@ Clubs:
     parameters:
       - $ref: ./parameters.yaml#/Query
       - $ref: ./parameters.yaml#/Cursor
-      - $ref: ./parameters.yaml#/ExampleIds
       - $ref: ../access/parameters.yaml#/MaintenanceBypass
     responses:
       "200":
@@ -44,7 +44,8 @@ Teams:
     summary: Discover or search teams
     description: >-
       Matches current public/source full and short names, applicable verified aliases, club names and city when attached, division names and known abbreviations, format and gender.
-      Empty text returns at most five examples; nonempty text returns up to twenty matches with continuation.
+      Empty text returns at most five current examples in deterministic identity order; later reads may replace them when data changes.
+      Nonempty text returns up to twenty matches with continuation.
       Every meaningful term and selected filter applies. Relevance favors direct matches; order may change
       when data changes. Current visibility always applies. Public access requires no account;
       explicit maintenance bypass requires a valid authorized token. Invalid parameter combinations are rejected.
@@ -54,7 +55,6 @@ Teams:
     parameters:
       - $ref: ./parameters.yaml#/Query
       - $ref: ./parameters.yaml#/Cursor
-      - $ref: ./parameters.yaml#/ExampleIds
       - $ref: ./parameters.yaml#/DiscoverySeason
       - $ref: ./parameters.yaml#/Division
       - $ref: ./parameters.yaml#/Format
@@ -86,7 +86,8 @@ Pools:
     summary: Discover or search pools
     description: >-
       Matches current public/source full and short names, applicable verified aliases, division names and known abbreviations, league, format and gender.
-      Empty text returns at most five examples; nonempty text returns up to twenty matches with continuation.
+      Empty text returns at most five current examples in deterministic identity order; later reads may replace them when data changes.
+      Nonempty text returns up to twenty matches with continuation.
       Every meaningful term and selected filter applies. Relevance favors direct matches; order may change
       when data changes. Current visibility always applies. Public access requires no account;
       explicit maintenance bypass requires a valid authorized token. Invalid parameter combinations are rejected.
@@ -96,7 +97,6 @@ Pools:
     parameters:
       - $ref: ./parameters.yaml#/Query
       - $ref: ./parameters.yaml#/Cursor
-      - $ref: ./parameters.yaml#/ExampleIds
       - $ref: ./parameters.yaml#/DiscoverySeason
       - $ref: ./parameters.yaml#/Division
       - $ref: ./parameters.yaml#/Format

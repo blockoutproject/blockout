@@ -13,10 +13,8 @@ import com.blockout.backend.search.application.ReadSearchOptions;
 import com.blockout.backend.search.application.SearchContext;
 import com.blockout.backend.search.application.SearchContinuation;
 import com.blockout.backend.search.application.SearchEngine;
-import com.blockout.backend.search.application.SearchExamples;
 import com.blockout.backend.search.application.SearchPage;
 import com.blockout.backend.search.application.SearchUnavailableException;
-import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,12 +36,11 @@ public class DiscoveryController implements DiscoveryApi {
 
   /** {@inheritDoc} */
   @Override
-  public ResponseEntity<ClubSearchResponse> listClubs(
-      String q, String cursor, Set<UUID> exampleIds, Boolean bypass) {
+  public ResponseEntity<ClubSearchResponse> listClubs(String q, String cursor, Boolean bypass) {
     SearchContext context =
         new SearchContext(
             SearchContext.Resource.CLUB, q, null, null, null, null, Boolean.TRUE.equals(bypass));
-    SearchPage page = read(context, cursor, exampleIds);
+    SearchPage page = read(context, cursor);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
         .body(mapper.toClubDto(page, cursor(page)));
@@ -54,7 +51,6 @@ public class DiscoveryController implements DiscoveryApi {
   public ResponseEntity<TeamSearchResponse> listTeams(
       String q,
       String cursor,
-      Set<UUID> exampleIds,
       UUID seasonId,
       UUID divisionId,
       SportFormatEnum format,
@@ -69,7 +65,7 @@ public class DiscoveryController implements DiscoveryApi {
             format,
             gender,
             Boolean.TRUE.equals(bypass));
-    SearchPage page = read(context, cursor, exampleIds);
+    SearchPage page = read(context, cursor);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
         .body(mapper.toTeamDto(page, cursor(page)));
@@ -80,7 +76,6 @@ public class DiscoveryController implements DiscoveryApi {
   public ResponseEntity<PoolSearchResponse> listPools(
       String q,
       String cursor,
-      Set<UUID> exampleIds,
       UUID seasonId,
       UUID divisionId,
       SportFormatEnum format,
@@ -95,7 +90,7 @@ public class DiscoveryController implements DiscoveryApi {
             format,
             gender,
             Boolean.TRUE.equals(bypass));
-    SearchPage page = read(context, cursor, exampleIds);
+    SearchPage page = read(context, cursor);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
         .body(mapper.toPoolDto(page, cursor(page)));
@@ -129,15 +124,10 @@ public class DiscoveryController implements DiscoveryApi {
    *
    * @param context admitted current selection
    * @param cursor optional encoded boundary
-   * @param exampleIds retained selection, forbidden for textual search
    * @return current collection, with no pagination for examples
    */
-  private SearchPage read(SearchContext context, String cursor, Set<UUID> exampleIds) {
-    DiscoveryRequest.Bound bound = requests.bind(context, cursor, exampleIds);
-    if (bound.exampleIds() != null) {
-      return reads.examples(context, new SearchExamples(bound.exampleIds()));
-    }
-    SearchContinuation continuation = bound.continuation();
+  private SearchPage read(SearchContext context, String cursor) {
+    SearchContinuation continuation = requests.bind(context, cursor);
     return reads.read(
         context,
         continuation == null

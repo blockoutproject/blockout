@@ -54,7 +54,7 @@ const searchTabs = [
 ] as const;
 
 /**
- * Public discovery with shared text and retained examples per tab/filter visit context.
+ * Public discovery with shared text and current examples cached per tab/filter context.
  * Filters retain one selection per sporting tab; empty/whitespace reads explicitly present examples.
  * Native end events continue the selected focused context. Initial errors use the shared card;
  * failed continuation retains accepted pages and offers retry only at the list edge.

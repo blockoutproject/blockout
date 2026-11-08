@@ -16,7 +16,6 @@ import type {
 import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
 import type { SessionSnapshot } from "../../accounts/session/account-session-provider";
 import type { useOrdinaryRequest } from "../../access/ordinary-request";
-import { uniqueSearchResults } from "../model/search-result";
 import {
   createDiscoveryContext,
   type DiscoveryResource,
@@ -53,7 +52,7 @@ async function request(
 /** Native infinite pages use generated normalized selections; no detail-refusal timestamp graph edits them. */
 export function createDiscoveryQueryOptions(
   resource: DiscoveryResource,
-  input: Omit<ListTeamsParams, "cursor" | "exampleIds">,
+  input: Omit<ListTeamsParams, "cursor">,
   session: SessionSnapshot,
   admission: DiscoveryAdmission,
   getCredentials: Credentials,
@@ -113,59 +112,33 @@ export function createSearchOptionsQueryOptions(
 }
 
 /**
- * One visit/context owns its bounded identity selection. Refresh supplies those IDs to the server;
- * the native key stays stable and the accepted page supplies its own UUIDs, so no response transfer or cache surgery
- * is required. A completely exhausted selection stays empty until a new visit or filter context.
+ * Reads deterministic current examples in one ordinary cache entry per resource/filter context.
+ * Public and explicit bypass contexts stay separate; successful reads may replace cached identities.
  */
 export function createSearchExamplesQueryOptions(
   resource: DiscoveryResource,
-  input: Omit<ListTeamsParams, "cursor" | "exampleIds">,
-  visit: string,
+  input: Omit<ListTeamsParams, "cursor">,
   session: SessionSnapshot,
   admission: DiscoveryAdmission,
   getCredentials: Credentials,
 ) {
   const context = createDiscoveryContext(resource, input);
   return queryOptions({
-    staleTime: Infinity,
     queryKey: admission.bypass
       ? [
           "discovery-examples-bypass",
           session.subject,
           session.accountId,
-          visit,
           ...context.queryKey,
         ]
-      : ["discovery-examples", visit, ...context.queryKey],
-    queryFn: async ({ signal, client, queryKey }): Promise<DiscoveryPage> => {
-      const previous = client.getQueryData<DiscoveryPage>(queryKey);
-      const retained =
-        previous &&
-        uniqueSearchResults([previous]).map((item) => item.identity.id);
-      if (retained?.length === 0) {
-        return emptyExamples(resource);
-      }
+      : ["discovery-examples", ...context.queryKey],
+    queryFn: async ({ signal }): Promise<DiscoveryPage> => {
       const options = await request(admission, getCredentials, signal);
-      const params = {
-        ...context.params,
-        ...(retained ? { exampleIds: [...retained] } : {}),
-      };
       return resource === "club"
-        ? listClubs(params, options)
+        ? listClubs(context.params, options)
         : resource === "team"
-          ? listTeams(params, options)
-          : listPools(params, options);
+          ? listTeams(context.params, options)
+          : listPools(context.params, options);
     },
   });
-}
-
-/** An exhausted selection keeps its generated successful empty envelope. */
-function emptyExamples(resource: DiscoveryResource): DiscoveryPage {
-  if (resource === "club") {
-    return { clubs: [] };
-  }
-  if (resource === "team") {
-    return { teams: [] };
-  }
-  return { pools: [] };
 }
