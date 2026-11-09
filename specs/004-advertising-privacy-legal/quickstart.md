@@ -4,6 +4,10 @@ Use the [runtime composition](plan.md#runtime-composition) and scenarios below t
 
 Native accessibility verification follows [F13 FR-030](../003-shared-quality/spec.md#platforms-accessibility-and-bounded-continuity).
 
+Apply [F13’s proportionate qualification](../003-shared-quality/plan.md#proportionate-qualification): deterministic suites own Pro-state variants, delayed responses and obsolete-session callbacks. Reuse applicable [F09 SDK identity/cache evidence](../006-pro-subscriptions/quickstart.md#scenarios-and-expected-outcomes). Native clients exercise ordinary current-session/Pro transitions and the changed platform mechanisms; no precisely timed native race is required solely to repeat a deterministic case.
+
+Select representative age, correction, privacy and native-browser compositions, with active/neutral Profile context. Across them cover both themes and a live transition, narrow/enlarged text, reduced motion, ordinary focus/keyboard, names/roles/states, content order and reachable actions. Reuse unchanged shared evidence only when its source, mechanism, native dependencies, runtime and relevant configuration apply; do not cross every entitlement/session state with every appearance, font size and OS. Actual UMP/ATT forms, serving/mediation, privacy and release observations retain the prerequisites and owners below. Dedicated VoiceOver/TalkBack campaigns remain excluded under FR-030.
+
 ## Advertising eligibility
 
 After README installation/mobile generation, run:
@@ -43,7 +47,7 @@ Open the real root as guest/free/known-active Pro. Expect ordinary home to requi
 
 Read installation storage: only `category` (`under16`, `16–17`, `adult`) and local `declaredAt` day may persist after confirmation. Missing/invalid/future declarations use child protection without a fabricated record. A minor renews at the next installation-tree launch after one calendar year, including February 29 → February 28; no timer, category promotion or annual adult prompt. A known-active Pro exemption does not survive logout.
 
-Compare the approved age journey/artwork in both themes, narrow widths, enlarged text and reduced motion. Check native slider touch/accessibility and action reachability. Independent sign-in/legal/support destinations retain F12 gates. Actual storage, consent/ATT and provider entitlement require native/provider checks; controlled I/O supplies no such approval.
+Compare representative approved age journey/artwork compositions under the shared qualification scope above. Check native slider touch, names/roles/states and action reachability, reusing unchanged F13 controls. Independent sign-in/legal/support destinations retain F12 gates. Actual storage, consent/ATT and provider entitlement require native/provider checks; controlled I/O supplies no such approval.
 
 ## Native privacy choices
 
@@ -59,7 +63,7 @@ Open the actual privacy menu with guest/known-Pro, required/not-required/failed 
 
 Confirm a correction, including a same-category change, with delayed/failed persistence and native gathering. The sheet remains busy until category/date storage acknowledges, then returns to the menu while native preparation continues independently. Storage failure preserves the old declaration; native failure keeps ads disabled without undoing acknowledged storage. A failed child correction cannot use older UMP under-age choices. Failed actions use one owner-scoped toast and explicit retry from the same action, without a state card or extra Retry.
 
-Use real SDK forms on native iOS/Android for presentation/refusal/back behavior, both themes and enlarged text. Qualify physical devices, ATT grants, UMP/Additional Consent, actual serving/mediation and accessibility separately; sample app IDs and simulated admission do not establish production settings.
+Observe real SDK forms on native iOS/Android for readable presentation, applicable refusal, back/dismissal and return, including representative light/dark and enlarged-text formats. Keep this provider-owned UI check separate from Blockout compositions. Physical-device ATT grants, UMP/Additional Consent, actual serving/mediation and privacy remain required at their own boundaries; sample app IDs and simulated admission do not establish production settings.
 
 ## Native configuration
 
@@ -73,7 +77,7 @@ Compare legal-document handoff with [FR-016](spec.md#legal-documents) and the [a
 
 ## Prerequisites
 
-Use the F13 development setup and test tools, physical iOS/Android devices, supplier test ad units/devices and Ad Inspector. Configure the agreed age/UMP/Meta settings in an authorized test environment. Never click real advertisements for testing. Have guest, confirmed free, active Pro and unknown-entitlement fixtures. Use the approved age/privacy/search and public-document design references in the [plan](plan.md#constitution-check).
+Use the F13 development setup and test tools, reusing compatible simulator/emulator development clients for functional UI checks. Actual serving, native consent/ATT and mediation use physical iOS/Android devices, supplier test ad units/devices and Ad Inspector where required by the boundary. Configure the agreed age/UMP/Meta settings only in a separately authorized test environment. Never click real advertisements for testing. Have guest, confirmed free, active Pro and unknown-entitlement fixtures for deterministic eligibility checks and representative native transitions. Use the approved age/privacy/search and public-document design references in the [plan](plan.md#constitution-check).
 
 ## Scenarios and expected outcomes
 
@@ -90,7 +94,7 @@ Use the F13 development setup and test tools, physical iOS/Android devices, supp
 | Distribution     | EU27 store and Pro availability; existing non-EU user and traveler; supported V1 coexistence                                                                                  | No runtime geo gate or lost rights; truthful store declarations and usable update/redownload path. Preserve active V1 provider units/sellers until no longer used.                                                                                                                                                                                                                                                                  |
 | Accessibility    | Light/dark, narrow screen, enlarged text, keyboard/focus and return paths                                                                                                     | Age, correction and privacy/legal actions remain understandable and usable; native supplier screens are qualified on devices.                                                                                                                                                                                                                                                                                                       |
 
-Use focused Jest/RNTL checks for mobile behavior and existing Java/PostgreSQL tools for contact enforcement. Review actual legal text and private diagnostic filtering before publication.
+Use focused Jest/RNTL checks for mobile behavior and existing Java/PostgreSQL tools for contact enforcement. The table defines retained outcomes: application ordering/state variants remain deterministic, representative native checks cover platform integration, and actual provider/privacy results remain separately evidenced. Review actual legal text and private diagnostic filtering before publication; T039’s processing review is unchanged.
 
 ### Support privacy cases
 

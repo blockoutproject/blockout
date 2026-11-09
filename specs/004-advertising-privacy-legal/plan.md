@@ -18,7 +18,7 @@ Use the native Google Mobile Ads/UMP integration and Meta mediation for eligible
 
 **Storage**: Installation-local age category and declaration date; provider-owned native consent storage; memory-only advertising count and prepared ad. Static HTML files bundled with the backend. F02 PostgreSQL contact metadata for field restrictions. No server age/consent table or advertising-event history.
 
-**Testing**: F13 Jest Expo/React Native Testing Library; JUnit/Spring MVC and PostgreSQL Testcontainers for existing affected backend boundaries. Physical iOS/Android devices, provider test ads and Ad Inspector for native qualification.
+**Testing**: F13 Jest Expo/React Native Testing Library; JUnit/Spring MVC and PostgreSQL Testcontainers for existing affected backend boundaries. Representative native UI and ordinary session transitions use compatible iOS/Android development clients under [F13’s proportionate qualification](../003-shared-quality/plan.md#proportionate-qualification). Actual serving, consent/ATT and mediation retain physical-device/provider test ads and Ad Inspector evidence at their own boundaries.
 
 **Target Platform**: Native iOS and Android; iOS minimum 16.4 from F13, Android SDK/build compatibility qualified against the selected SDK pins. No Expo Go evidence or new desktop/web application target.
 
@@ -142,6 +142,10 @@ Use provider consoles for revenue, impressions and fill. No-fill is not an appli
 ## Verification and evidence
 
 [Research](research.md) distinguishes documented capabilities, inspected configuration and unverified native integration. [Quickstart](quickstart.md) is the bounded validation guide; no fabricated runnable application commands are introduced.
+
+Deterministic eligibility, privacy-ordering and lifecycle tests cover guest/free/paid/gifted/unknown Pro variants, obsolete callbacks and A → B / A → guest → A. Reuse F09’s applicable SDK identity/cache evidence rather than repeating its delayed-effect campaign in F11. Native clients exercise ordinary session/Pro transitions and representative age, correction, privacy and browser compositions, including active/neutral Profile context. Across those selected cases cover both themes and a live appearance transition, narrow/enlarged text, reduced motion, names/roles/states, content order, ordinary keyboard/focus and reachable actions; do not multiply every SDK state by each appearance, font size and OS. Native UMP/ATT forms and serving/mediation keep focused provider-owned readability, refusal/return, actual permission/storage and eligibility observations, separate from Blockout UI comparison.
+
+Reuse existing evidence only while its source, mechanism, native dependencies, runtime and relevant configuration still apply under F13. Missing actual consent, serving, mediation, configuration and private-rights evidence remains in T010/T020/T031/T035/T038–T040/T043; legal-processing review remains T039. No removed or reused scenario supplies a new passing provider or release result.
 
 Coverage: FR-001–006 shared counter/native lifecycle; FR-007–014 entitlement, age, consent and permissions; FR-015–020 public legal pages; FR-021–027 contact restriction/minimization/restoration; FR-028–037 existing support, rights and truthful publication responsibilities. Changes do not relax private support, original-target cleanup evidence limits or legal rights handling.
 

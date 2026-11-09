@@ -14,13 +14,15 @@ The actors are the visitor, the holder of a usable account and the project owner
 
 These scenarios define required outcomes; [tasks](tasks.md) record implementation and remaining qualification. Their presence proves neither an actual purchase, store configuration nor success of the deletion/restoration lifecycle. A, FR and SC identifiers are local to F09. Later mutative tests must use authorized qualification accounts; no real customer data is published in evidence.
 
+Qualification follows [F13's proportionate scope](../003-shared-quality/spec.md#platforms-accessibility-and-bounded-continuity): deterministic tests cover entitlement, eligibility, error and obsolete-session variants; representative native observations establish the SDK, provider UI and store boundaries. Review the complete retained territory/product/cohort/terms configuration, then inspect representative native formats rather than every store locale. Gift qualification uses the supported owner procedure and focused SDK reflection on each platform, without an exhaustive console-failure campaign. These limits preserve all payment, beneficiary, billing, privacy and continuity outcomes below; unobserved provider results remain pending at their owning tasks.
+
 ### User Story 1 — Understand my access and recover my benefits (Priority: P1)
 
 As an account holder, I want to recover the same benefits on my devices and understand whether my access is active, free or pending, without unnecessary payment.
 
 **Why this priority**: Entitlements determine the advertising exemption, never access to sporting consultation. Missing evidence does not mean the person must buy.
 
-**Independent Test**: Cross each entitlement state with sporting consultation and advertising, then switch accounts and platforms with delayed responses.
+**Independent Test**: Cover entitlement/access and delayed-response variants deterministically; observe ordinary native account transitions and same-account recovery across platforms at the SDK boundary.
 
 **Acceptance Scenarios**:
 
@@ -88,7 +90,7 @@ As the owner, I want to gift Pro to an identified account, set its validity and 
 
 **Why this priority**: Gift administration follows correct existing entitlements, purchase and restoration. The accepted capability remains required at V2 launch.
 
-**Independent Test**: Grant a temporary then open-ended gift, change its validity outcome, revoke it and cross these operations with subscription, transfer and deletion.
+**Independent Test**: Review and exercise the supported gift procedure, observe representative validity changes and paid/gift coexistence through each native SDK, and reuse transfer/deletion evidence from its owning qualification. Test application unknown/error/expired/gift variants deterministically.
 
 **Acceptance Scenarios**:
 
@@ -104,7 +106,7 @@ As a Pro subscriber or gift recipient, I want a restrained premium treatment in 
 
 **Why this priority**: Recognizable Pro presentation supports the subscription experience without blocking core sporting consultation.
 
-**Independent Test**: Compare neutral and sporting screens in light and dark themes for active paid, gifted, maintained, SDK-inactive, guest and unknown-rights states; then switch accounts and apply a reliable entitlement change.
+**Independent Test**: Test all entitlement/session accent variants deterministically; compare representative active and neutral native compositions, both themes and a live appearance transition. Observe current-account accent removal and reliable SDK entitlement change without multiplying every state by every layout and platform.
 
 **Acceptance Scenarios**:
 
