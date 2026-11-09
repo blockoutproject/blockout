@@ -2,13 +2,19 @@ import { NotificationState } from "../../features/notifications/state/notificati
 import { Stack } from "expo-router";
 import { useTheme } from "../../shared/theme/theme-provider";
 import { sheetScreenOptions } from "../../shared/components/sheet";
+import { useAccountAvailability } from "../../features/accounts/current-account";
+import { MemberAdmissionScreen } from "../../features/accounts/screens/member-admission-screen";
 
 /** Native direct links retain the ordinary caller behind contextual sheets. */
 export const unstable_settings = { anchor: "(tabs)" };
 
-/** Keeps ordinary routes inside their protected group with the existing native modal presentations. */
+/** Holds the requested member route in Router during first account recovery; admitted stacks retain their native history. */
 export default function OrdinaryLayout() {
   const { colors } = useTheme();
+  const account = useAccountAvailability();
+  if (!account.canEnter) {
+    return <MemberAdmissionScreen />;
+  }
   return (
     <NotificationState>
       <Stack screenOptions={{ headerShown: false }}>

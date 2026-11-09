@@ -33,6 +33,7 @@ import type { ComponentType, PropsWithChildren } from "react";
 import RootLayout from "../../../app/_layout";
 import OnboardingRoute from "../../../app/onboarding";
 import OperationsLayout from "../../../app/(operations)/_layout";
+import RecoveryLayout from "../../../app/(recovery)/_layout";
 import ClassificationRoute from "../../../app/(operations)/administration/classification/[kind]/[id]";
 import DivisionsRoute from "../../../app/(operations)/administration/divisions/index";
 import DivisionRoute from "../../../app/(operations)/administration/divisions/[id]";
@@ -743,7 +744,7 @@ function PermissionRefresh() {
   );
 }
 
-/** Real root and operational layouts retain all declared routes; unrelated destinations remain probes. */
+/** Real root, recovery and operational layouts exercise sporting authorization; ordinary content remains a scoped route probe. */
 async function openRoutes() {
   return renderRouter(
     {
@@ -760,6 +761,8 @@ async function openRoutes() {
           <PermissionRefresh />
         </>
       ),
+      "(recovery)/_layout": RecoveryLayout,
+      "(recovery)/sign-in": () => null,
       "(operations)/_layout": () => (
         <>
           <OperationsLayout />
@@ -1256,7 +1259,11 @@ it("keeps an open selector's known choices visible and read-only after its grant
 });
 
 it.each([
-  { authority: "unavailable", accountStatus: 503, canRetry: true },
+  {
+    authority: "retained after an account outage",
+    accountStatus: 503,
+    canRetry: true,
+  },
   { authority: "withdrawn", accountStatus: 200, canRetry: false },
 ])(
   "keeps a refused division selector explicit when its authority is $authority",
@@ -1298,14 +1305,17 @@ it.each([
     );
 
     // Then
-    await waitFor(() =>
-      expect(
-        screen.getByRole("button", {
-          name: "Format",
-          includeHiddenElements: true,
-        }),
-      ).toBeDisabled(),
-    );
+    await waitFor(() => {
+      const format = screen.getByRole("button", {
+        name: "Format",
+        includeHiddenElements: true,
+      });
+      if (accountStatus === 503) {
+        expect(format).toBeEnabled();
+      } else {
+        expect(format).toBeDisabled();
+      }
+    });
     expect(
       screen.getByRole("alert", { name: "Une erreur est survenue" }),
     ).toBeOnTheScreen();
@@ -1333,7 +1343,7 @@ it.each([
 );
 
 it.each([200, 403, 503])(
-  "removes the empty division selector's card action after account response %s blocks its authority",
+  "retains or withdraws the empty division selector's commands according to account response %s",
   async (accountStatus) => {
     // Given
     stored.setting = classification;
@@ -1373,17 +1383,26 @@ it.each([200, 403, 503])(
     );
 
     // Then
-    expect(
-      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
-    ).toBeOnTheScreen();
     expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Actualiser" })).toBeNull();
-    expect(
-      screen.queryByRole("header", { name: "Aucune division active" }),
-    ).toBeNull();
-    expect(screen.queryAllByRole("button", { name: "Réessayer" })).toHaveLength(
-      accountStatus === 200 ? 0 : 1,
-    );
+    if (accountStatus === 503) {
+      expect(
+        screen.getByRole("header", { name: "Aucune division active" }),
+      ).toBeOnTheScreen();
+      expect(screen.getByRole("button", { name: "Actualiser" })).toBeEnabled();
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+    } else {
+      expect(
+        await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+      ).toBeOnTheScreen();
+      expect(screen.queryByRole("button", { name: "Actualiser" })).toBeNull();
+      expect(
+        screen.queryByRole("header", { name: "Aucune division active" }),
+      ).toBeNull();
+      expect(
+        screen.queryAllByRole("button", { name: "Réessayer" }),
+      ).toHaveLength(accountStatus === 200 ? 0 : 1);
+    }
 
     // When
     await user.press(screen.getByRole("button", { name: "Fermer" }));
@@ -1392,7 +1411,11 @@ it.each([200, 403, 503])(
     expect(
       await screen.findByRole("button", { name: "Format" }),
     ).toHaveAccessibilityValue({ text: "4 × 4" });
-    expect(screen.getByRole("button", { name: "Format" })).toBeDisabled();
+    if (accountStatus === 503) {
+      expect(screen.getByRole("button", { name: "Format" })).toBeEnabled();
+    } else {
+      expect(screen.getByRole("button", { name: "Format" })).toBeDisabled();
+    }
     expect(
       screen.getByText("Modifications non enregistrées"),
     ).toBeOnTheScreen();

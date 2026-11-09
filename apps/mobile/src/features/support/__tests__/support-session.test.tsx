@@ -27,8 +27,8 @@ import { SupportJourney } from "../screens/support-journey";
 import { SupportForm } from "../forms/support-form";
 import { SignInScreen } from "../../accounts/screens/sign-in-screen";
 import { AccessAdmissionProvider } from "../../access/queries/use-access-admission";
-import SupportLayout from "../../../app/(ordinary)/support/_layout";
-import SupportChoiceRoute from "../../../app/(ordinary)/support/choice";
+import SupportLayout from "../../../app/(recovery)/support/_layout";
+import SupportChoiceRoute from "../../../app/(recovery)/support/choice";
 import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
@@ -108,7 +108,7 @@ function SessionAction() {
   );
 }
 
-/** Actual SDK/session/Query/form owners; only native credentials and HTTP are controlled. */
+/** Actual SDK/session/Query/form owners; native credentials, HTTP and the form submission callback are controlled. */
 async function mountSupport(admitted = true) {
   const submit = jest.fn().mockRejectedValue(new Error("Unavailable"));
   await render(

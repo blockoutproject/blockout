@@ -374,7 +374,7 @@ it("keeps two unlinked principals with equal emails in distinct account and enti
   expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
 });
 
-it("keeps missing-email establishment unusable until an explicit retry without another hosted login", async () => {
+it("keeps missing-email establishment unusable until an explicit account retry without another hosted login", async () => {
   // Given
   prepareLogin("apple|no-email");
   mockFetch.mockImplementation(async (url) => {
@@ -396,7 +396,9 @@ it("keeps missing-email establishment unusable until an explicit retry without a
   // When
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
   await act(async () => jest.advanceTimersByTimeAsync(7500));
-  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  await screen.findByRole("alert", {
+    name: "Impossible de charger votre compte",
+  });
 
   // Then
   expect(owners.session.status).toBe("authenticated");
@@ -404,11 +406,10 @@ it("keeps missing-email establishment unusable until an explicit retry without a
   expect(mockPurchases.configure).not.toHaveBeenCalled();
   expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
 
-  // When
-  await user.press(screen.getByRole("button", { name: "Se connecter" }));
-
-  // Then: Profile's action opens the existing retry destination without establishing an account.
-  expect(screen).toHavePathname("/sign-in");
+  expect(screen).toHavePathname("/profile");
+  expect(
+    screen.getByRole("button", { name: "Créer mon compte" }),
+  ).toBeEnabled();
   expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
@@ -426,11 +427,14 @@ it("keeps missing-email establishment unusable until an explicit retry without a
       ? Response.json(mockAccount)
       : new Response(null, { status: 404 });
   });
-  await user.press(await screen.findByRole("button", { name: "Réessayer" }));
+  await user.press(screen.getByRole("button", { name: "Créer mon compte" }));
 
   // Then
   expect(await screen.findByText("Fresh_profile")).toBeOnTheScreen();
   expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+  ).toHaveLength(2);
   expect(mockPurchases.configure).toHaveBeenCalledWith(
     expect.objectContaining({ appUserID: newUuid }),
   );

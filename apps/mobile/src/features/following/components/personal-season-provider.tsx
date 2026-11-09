@@ -12,7 +12,7 @@ import {
 } from "../api/following-keys";
 import { usePersonalSeason } from "../hooks/use-personal-season";
 
-/** One existing season owner shared by Home and its contextual route, scoped to the native principal. */
+/** One season owner shared by Home and its contextual route for the native principal and business UUID. */
 export interface PersonalSeasonScope {
   owner: FollowingOwner;
   profile: ReturnType<typeof useCurrentAccount>;
@@ -27,13 +27,17 @@ export interface PersonalSeasonScope {
 
 const PersonalSeasonContext = createContext<PersonalSeasonScope | null>(null);
 
-/** Lifts the existing in-memory choice only to Home's layout; neither another cache nor a route-parameter callback is created. */
+/** Scopes Home's shared choice to the native principal and business account UUID. */
 export function PersonalSeasonProvider({ children }: PropsWithChildren) {
   const session = useAccountSession();
   const profile = useCurrentAccount();
   const owner = captureFollowingOwner(session);
   return owner ? (
-    <SeasonScope key={owner.subject} owner={owner} profile={profile}>
+    <SeasonScope
+      key={`${owner.subject}:${owner.accountId}`}
+      owner={owner}
+      profile={profile}
+    >
       {children}
     </SeasonScope>
   ) : (

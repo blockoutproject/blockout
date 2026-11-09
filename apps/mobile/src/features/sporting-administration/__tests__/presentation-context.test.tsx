@@ -26,9 +26,10 @@ import RootLayout from "../../../app/_layout";
 import OnboardingRoute from "../../../app/onboarding";
 import OperationsLayout from "../../../app/(operations)/_layout";
 import PresentationRoute from "../../../app/(operations)/administration/presentation/[kind]/[id]";
-import SupportLayout from "../../../app/(ordinary)/support/_layout";
-import SupportRoute from "../../../app/(ordinary)/support/index";
-import SupportChoiceRoute from "../../../app/(ordinary)/support/choice";
+import RecoveryLayout from "../../../app/(recovery)/_layout";
+import SupportLayout from "../../../app/(recovery)/support/_layout";
+import SupportRoute from "../../../app/(recovery)/support/index";
+import SupportChoiceRoute from "../../../app/(recovery)/support/choice";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { accountResponse } from "../../accounts/test-support/account-response";
 import {
@@ -200,7 +201,7 @@ function PrivateQueries({ children }: PropsWithChildren) {
   return children;
 }
 
-/** Mounts real routes and root guards; each scenario awaits its own visible destination or read. */
+/** Mounts real public/operational root guards and feature routes; initial ordinary member admission is qualified separately. */
 async function openRoute(path: string) {
   await renderRouter(
     {
@@ -213,6 +214,7 @@ async function openRoute(path: string) {
           <Stack />
         </PrivateQueries>
       ),
+      "(recovery)/_layout": RecoveryLayout,
       "(ordinary)/index": () => <Text>Home</Text>,
       "(ordinary)/teams/[teamId]": () => (
         <TeamScreen
@@ -229,9 +231,9 @@ async function openRoute(path: string) {
           renderMap={() => null}
         />
       ),
-      "(ordinary)/support/_layout": SupportLayout,
-      "(ordinary)/support/index": SupportRoute,
-      "(ordinary)/support/choice": SupportChoiceRoute,
+      "(recovery)/support/_layout": SupportLayout,
+      "(recovery)/support/index": SupportRoute,
+      "(recovery)/support/choice": SupportChoiceRoute,
       "(operations)/_layout": () => (
         <PrivateQueries>
           <OperationsLayout />

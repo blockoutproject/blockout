@@ -7,7 +7,11 @@ import { ApiError } from "../../../shared/api/api-fetch";
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import type { AccountSession } from "../session/account-session-provider";
 
-/** One native account read is shared by the identity provider and feature observers. */
+/**
+ * Shares one read between native identity and feature observers, without establishing an account.
+ * Technical failures retain known data; refusal withdraws it until a successful read.
+ * Query owns the latest attempt's error and cancellation, without a separate refusal history.
+ */
 export function currentAccountQuery(
   session: Pick<AccountSession, "status" | "getCredentials">,
 ) {
@@ -15,7 +19,6 @@ export function currentAccountQuery(
     queryKey: getGetMyAccountQueryKey(),
     enabled: session.status === "authenticated",
     queryFn: async ({ signal, client, queryKey }) => {
-      const previousError = client.getQueryState(queryKey)?.error;
       try {
         const credentials = await session.getCredentials();
         return await getMyAccount({
@@ -36,7 +39,7 @@ export function currentAccountQuery(
             .find({ queryKey, exact: true })
             ?.setState({ data: undefined });
         }
-        throw isAccessDenied(previousError) ? previousError : error;
+        throw error;
       }
     },
   });

@@ -37,6 +37,10 @@ export function EmptyState({
 
 /** Opaque failure presentation; the owner supplies a safe retry or contextual action content. */
 export interface ErrorStateProps {
+  /** Approved contextual failure copy; omitted consumers retain the common opaque error title. */
+  title?: string;
+  /** Approved recovery guidance without transport, permission or provider details. */
+  description?: string;
   onRetry?: () => void;
   retrying?: boolean;
   children?: ReactNode;
@@ -44,16 +48,14 @@ export interface ErrorStateProps {
 
 /** Restores the approved illustrated card without exposing transport, permission or provider details. */
 export function ErrorState({
+  title = TECHNICAL_ERROR_TITLE,
+  description = TECHNICAL_ERROR_HELP,
   onRetry,
   retrying = false,
   children,
 }: ErrorStateProps) {
   return (
-    <StateCard
-      kind="error"
-      title={TECHNICAL_ERROR_TITLE}
-      description={TECHNICAL_ERROR_HELP}
-    >
+    <StateCard kind="error" title={title} description={description}>
       {onRetry ? (
         <>
           <Button

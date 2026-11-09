@@ -845,7 +845,7 @@ it("cancels activation confirmation without changing the saved state", async () 
   ).toBe(false);
   expect(screen.getByLabelText("Maintenance inactive")).toBeOnTheScreen();
 });
-it("retains a draft through a failed permission refresh", async () => {
+it("retains confirmed grants through an account outage while the server still refuses a save", async () => {
   // Given
   const user = userEvent.setup();
   await renderSettings();
@@ -862,17 +862,26 @@ it("retains a draft through a failed permission refresh", async () => {
   if (!accountQuery) {
     throw new Error("The real current-account query is missing");
   }
-  mockFetch.mockImplementation(async (url) =>
-    String(url).endsWith("/accounts/me")
+  mockFetch.mockImplementation(async (url, options) =>
+    options?.method === "PATCH"
       ? json(
           {
-            type: "urn:blockout:problem:unavailable",
-            title: "Unavailable",
-            status: 503,
+            type: "urn:blockout:problem:forbidden",
+            title: "Forbidden",
+            status: 403,
           },
-          503,
+          403,
         )
-      : json(stored),
+      : String(url).endsWith("/accounts/me")
+        ? json(
+            {
+              type: "urn:blockout:problem:unavailable",
+              title: "Unavailable",
+              status: 503,
+            },
+            503,
+          )
+        : json(stored),
   );
 
   // When
@@ -883,13 +892,45 @@ it("retains a draft through a failed permission refresh", async () => {
     });
   });
 
-  // Then
+  // Then: a technical account failure retains the matching profile and its confirmed grant.
+  expect(accountQuery.state.error).toMatchObject({ status: 503 });
+  expect(client.getQueryData(accountQuery.queryKey)).toEqual(account);
   expect(
     screen.queryByRole("alert", { name: "Une erreur est survenue" }),
   ).not.toBeOnTheScreen();
   expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Message de maintenance")).toBeEnabled();
   await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+  );
+  expect(
+    screen.getByRole("button", { name: "Activer la maintenance" }),
+  ).toBeEnabled();
+
+  // When: the retained grant presents the command, but its server result remains authoritative.
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  await act(async () => nativeAlertAction("Enregistrer")());
+
+  // Then: a refused write neither updates the confirmed maintenance state nor loses the draft.
+  expect(
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
+  const writes = mockFetch.mock.calls.filter(
+    ([, options]) => options?.method === "PATCH",
+  );
+  expect(writes).toHaveLength(1);
+  expect(JSON.parse(String(writes[0][1]?.body))).toEqual({
+    revision: 2,
+    message: "Mon brouillon",
+  });
+  expect(screen.getByLabelText("Maintenance inactive")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(
+    "Mon brouillon",
+  );
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
   );
 });
 

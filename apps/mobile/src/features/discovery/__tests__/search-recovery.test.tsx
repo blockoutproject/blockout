@@ -19,7 +19,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { router, Stack } from "expo-router";
 import { Text } from "react-native";
 import ClubRoute from "../../../app/(ordinary)/clubs/[clubId]";
-import SupportLayout from "../../../app/(ordinary)/support/_layout";
+import SupportLayout from "../../../app/(recovery)/support/_layout";
 import { SupportScreen } from "../../support/screens/support-screen";
 import { AccessAdmissionProvider } from "../../access/queries/use-access-admission";
 import { useConsultationQueries } from "../../sporting/match-consultation";

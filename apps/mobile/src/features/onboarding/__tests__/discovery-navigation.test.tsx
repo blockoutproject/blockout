@@ -8,10 +8,12 @@ import { act, cleanup, screen, userEvent } from "@testing-library/react-native";
 import { Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { ComponentType } from "react";
+import type { Credentials } from "react-native-auth0";
 import { Linking, Pressable, Text } from "react-native";
 import RootLayout from "../../../app/_layout";
 import OnboardingRoute from "../../../app/onboarding";
-import SignInRoute from "../../../app/(ordinary)/sign-in";
+import SignInRoute from "../../../app/(recovery)/sign-in";
+import RecoveryLayout from "../../../app/(recovery)/_layout";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { useAccountSession } from "../../accounts/current-account";
 import {
@@ -88,7 +90,7 @@ afterEach(async () => {
   jest.useRealTimers();
 });
 
-/** Real root/session/admission/discovery; the SDK and HTTP are controlled, unrelated destinations remain probes. */
+/** Real root/public admission/session/discovery; ordinary destination probes exclude the separately qualified member guard. */
 async function openInstallation(initialUrl = "/", SignIn = OrdinarySession) {
   return renderRouter(
     {
@@ -97,14 +99,15 @@ async function openInstallation(initialUrl = "/", SignIn = OrdinarySession) {
       access: AccessGateScreen,
       "age-declaration": AgeDeclarationRoute,
       "(ordinary)/_layout": () => <Stack />,
+      "(recovery)/_layout": RecoveryLayout,
       "(ordinary)/index": () => <Text>Ordinary home</Text>,
       "(ordinary)/(tabs)/(home)/index": () => <Text>Ordinary home</Text>,
       "(ordinary)/profile": () => (
         <ProfileScreen admitted proEntry={null} privacyEntry={null} />
       ),
-      "(ordinary)/sign-in": () => <SignIn />,
+      "(recovery)/sign-in": () => <SignIn />,
       "(ordinary)/legal": () => <Text>Legal route</Text>,
-      "(ordinary)/support": () => <Text>Support route</Text>,
+      "(recovery)/support": () => <Text>Support route</Text>,
       "(operations)/_layout": () => <Stack />,
       "(operations)/administration/index": () => <Text>Operations route</Text>,
     },
@@ -163,10 +166,13 @@ it.each([
     const user = userEvent.setup();
     if (outcome === "profile unavailable") {
       jest.useFakeTimers();
-      mockAuth0.webAuth.mockImplementation(async () => {
-        mockAuth0.hasValidCredentials.mockResolvedValue(true);
-        return credentialsFor("auth0|discovery");
-      });
+      mockAuth0.webAuth.mockResolvedValue(credentialsFor("auth0|discovery"));
+      mockAuth0.saveCredentials.mockImplementation(
+        async (credentials: Credentials) => {
+          mockAuth0.hasValidCredentials.mockResolvedValue(true);
+          mockAuth0.getCredentials.mockResolvedValue(credentials);
+        },
+      );
       mockFetch.mockImplementation(async (url) =>
         String(url).endsWith("/application-access")
           ? Response.json(applicationAccessResponse())

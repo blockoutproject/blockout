@@ -16,6 +16,8 @@ import { renderRouter } from "expo-router/testing-library";
 import { useState, useLayoutEffect, type ComponentType } from "react";
 import { Alert, Text } from "react-native";
 import RootLayout from "../../../app/_layout";
+import RecoveryLayout from "../../../app/(recovery)/_layout";
+import SignInRoute from "../../../app/(recovery)/sign-in";
 import OnboardingRoute from "../../../app/onboarding";
 import { completeDiscovery } from "../../onboarding/discovery-state";
 import OperationsLayout from "../../../app/(operations)/_layout";
@@ -163,7 +165,7 @@ function AccessRoute() {
   return <AccessGateScreen />;
 }
 
-/** Mounts real root/operational layouts with every declared route; unrelated destinations are null probes. */
+/** Mounts real public/operational root guards; unrelated ordinary business destinations remain route probes. */
 async function openRoute(path: string) {
   return renderRouter(
     {
@@ -177,6 +179,8 @@ async function openRoute(path: string) {
       "age-declaration": () => null,
       "(ordinary)/_layout": () => <Stack />,
       "(ordinary)/index": () => <Text>Ordinary home</Text>,
+      "(recovery)/_layout": RecoveryLayout,
+      "(recovery)/sign-in": SignInRoute,
       "(operations)/_layout": OperationsLayout,
       "(operations)/administration/classification/[kind]/[id]": () => null,
       "(operations)/administration/classification-selection": () => null,
@@ -435,7 +439,7 @@ it("starts a fresh candidate form after route removal without replaying its deta
   ).toHaveLength(1);
 });
 
-it("uses the current ready launch selection after its prior route was removed", async () => {
+it("uses the current ready launch selection after a refusal removed its prior route", async () => {
   // Given
   const serve = responses({ manageCollection: true });
   mockFetch.mockImplementation(serve);
@@ -501,11 +505,11 @@ it("uses the current ready launch selection after its prior route was removed", 
     permissions.resolve(
       Response.json(
         {
-          type: "urn:blockout:problem:unavailable",
-          title: "Unavailable",
-          status: 503,
+          type: "urn:blockout:problem:forbidden",
+          title: "Forbidden",
+          status: 403,
         },
-        { status: 503 },
+        { status: 403 },
       ),
     ),
   );
@@ -588,11 +592,11 @@ it("discards a closure draft on protected-route removal and confirms discard onl
     permissions.resolve(
       Response.json(
         {
-          type: "urn:blockout:problem:unavailable",
-          title: "Unavailable",
-          status: 503,
+          type: "urn:blockout:problem:forbidden",
+          title: "Forbidden",
+          status: 403,
         },
-        { status: 503 },
+        { status: 403 },
       ),
     ),
   );
@@ -626,6 +630,54 @@ it("discards a closure draft on protected-route removal and confirms discard onl
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "POST"),
   ).toBe(false);
+});
+
+it("retains the admitted closure route and its draft after a technical account reread failure", async () => {
+  // Given: the real root and operational guards admit the known collection holder.
+  const serve = responses({ manageCollection: true });
+  mockFetch.mockImplementation(serve);
+  const user = userEvent.setup();
+  await openRoute("/access");
+  await screen.findByRole("link", { name: "Accès administrateur" });
+  await act(async () => router.push(`/collection/${seasonId}`));
+  await user.press(
+    await screen.findByRole("button", { name: "Clôturer la saison" }),
+  );
+  await user.type(
+    await screen.findByLabelText("Nom exact de la saison"),
+    "2026/",
+  );
+  mockFetch.mockImplementation((url) =>
+    String(url).endsWith("/accounts/me")
+      ? Promise.resolve(new Response(null, { status: 503 }))
+      : serve(url),
+  );
+
+  // When
+  await act(async () =>
+    privateClient.refetchQueries({
+      queryKey: getGetMyAccountQueryKey(),
+      exact: true,
+    }),
+  );
+
+  // Then
+  await waitFor(() =>
+    expect(
+      privateClient.getQueryState(getGetMyAccountQueryKey())?.error,
+    ).toMatchObject({ status: 503 }),
+  );
+  expect(screen.getByLabelText("Route courante")).toHaveTextContent(
+    `/collection/${seasonId}/closure`,
+  );
+  expect(screen.getByLabelText("Nom exact de la saison")).toHaveDisplayValue(
+    "2026/",
+  );
+  expect(
+    mockFetch.mock.calls.every(
+      ([, options]) => !options?.method || options.method === "GET",
+    ),
+  ).toBe(true);
 });
 
 it("requires fresh confirmation after discarding a pending closure form without replaying it", async () => {

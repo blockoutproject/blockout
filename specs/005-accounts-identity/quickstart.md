@@ -20,6 +20,14 @@ Run the backend/mobile targets from [README verification](../../README.md#verifi
 
 ## Authentication and isolation
 
+### Common member admission and account availability
+
+Use the actual root/Router composition and the shared account provider. Keep the public configuration known/admitted, then hold or fail the first authenticated account read. Expect one initial member waiting/recovery state, explicit read Retry, local credential clearing to enter guest navigation, and help with return to the requested destination. No Retry creates an account or opens hosted login. A current 404 offers explicit account establishment; an HTTP 401 alone does not establish nonrenewable native credentials. Repeat with public maintenance, failed complete checking and an unsatisfied minimum version: those public gates retain precedence and suppress ordinary help/sign-in routes.
+
+After an account has loaded, fail an enabled reread technically: expect the same matching UUID/data and admitted stack. Current 401/403/404 withdraws the account; a later 503 leaves it unavailable and reports the latest failed read. A successful read can restore availability, including a new UUID under the same Auth0 subject. Verify Home's personal choice resets for that replacement while same-UUID technical failure preserves it; private keys, forms and SDK associations must retain their original ownership.
+
+Exercise a remembered notification, a cold/direct ordinary destination, support roundtrip, explicit establishment and reauthentication return through the actual Router, preserving exact personal acknowledgment ownership separately from public Match navigation. Observe representative foreground rereading on an explicitly named compatible native device/session. Controlled `AppState` callbacks prove only the JavaScript subscription; actual native SDK/storage/provider proof remains separate. Use the existing account, access, notification and personal identity suites for exact races, then the applicable README checks. Prototype/Figma review and screenshots do not establish native/provider acceptance.
+
 ### Account access
 
 Use current F12 admission with generated account routes. Only `GET /accounts/me` skips ordinary admission; inactive maintenance permits first establishment without an existing profile. Active personal bypass requires the exact principal's usable account and current grant under the account lock.

@@ -12,9 +12,9 @@ import {
 } from "@testing-library/react-native";
 import { Stack } from "expo-router";
 import ProRoute from "../../../app/(ordinary)/pro";
-import SupportLayout from "../../../app/(ordinary)/support/_layout";
-import SupportChoiceRoute from "../../../app/(ordinary)/support/choice";
-import SupportRoute from "../../../app/(ordinary)/support/index";
+import SupportLayout from "../../../app/(recovery)/support/_layout";
+import SupportChoiceRoute from "../../../app/(recovery)/support/choice";
+import SupportRoute from "../../../app/(recovery)/support/index";
 import { ProfileSupportAction } from "../../accounts/components/profile-support-action";
 import { ProProfileEntry } from "../components/pro-profile-entry";
 import { AccessAdmissionProvider } from "../../access/queries/use-access-admission";

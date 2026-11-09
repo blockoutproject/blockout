@@ -405,7 +405,7 @@ it.each([
   },
 );
 
-it("retains real assistance when explicit sign-in succeeds but the business profile is unavailable", async () => {
+it("retains real assistance in initial member recovery when explicit sign-in succeeds but the business profile is unavailable", async () => {
   // Given
   jest.useFakeTimers();
   mockAuth0.webAuth.mockImplementation(async () => {
@@ -431,19 +431,20 @@ it("retains real assistance when explicit sign-in succeeds but the business prof
   // When
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
   await act(async () => jest.advanceTimersByTimeAsync(7500));
-  await screen.findByRole("header", { name: "Mon profil" });
-  await act(async () => jest.advanceTimersByTimeAsync(7500));
 
   // Then
   expect(
-    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+    await screen.findByRole("alert", {
+      name: "Impossible de charger votre compte",
+    }),
   ).toBeOnTheScreen();
+  expect(screen.queryByRole("header", { name: "Mon profil" })).toBeNull();
   expect(owners.session.status).toBe("authenticated");
   expect(owners.session.accountId).toBeNull();
   expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
 
   // When
-  await user.press(screen.getByRole("button", { name: "Besoin d’aide ?" }));
+  await user.press(screen.getByRole("link", { name: "Besoin d’aide ?" }));
 
   // Then
   expect(await screen.findByLabelText("Titre")).toBeOnTheScreen();

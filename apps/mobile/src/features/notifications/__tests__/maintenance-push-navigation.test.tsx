@@ -1,15 +1,28 @@
-import { act, cleanup, fireEvent, screen } from "@testing-library/react-native";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  screen,
+  userEvent,
+  waitFor,
+} from "@testing-library/react-native";
 import { Stack } from "expo-router";
 import { renderRouter, testRouter } from "expo-router/testing-library";
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Text } from "react-native";
-import type { ComponentType } from "react";
+import { AppState, Text } from "react-native";
+import { useEffect, type ComponentType } from "react";
 import RootLayout from "../../../app/_layout";
+import OrdinaryLayout from "../../../app/(ordinary)/_layout";
+import RecoveryLayout from "../../../app/(recovery)/_layout";
 import MatchRoute from "../../../app/(ordinary)/matches/[matchId]";
 import { AccessGateScreen } from "../../access/screens/access-gate-screen";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { accountResponse } from "../../accounts/test-support/account-response";
+import {
+  useAccountSession,
+  type AccountSession,
+} from "../../accounts/current-account";
 import {
   credentialsFor,
   mockAuth0,
@@ -69,19 +82,35 @@ const mockFetch = jest.fn();
 const environment = { ...process.env };
 const row = notificationResponse();
 const ownerId = "00000000-0000-4000-8000-000000000272";
+let destinationSession: AccountSession | undefined;
 
-/** Mounts production root guards, SDK lifecycle and the current F03 match route; unrelated destinations are probes. */
+/** Observes the public session contract at the real match destination without replacing its providers. */
+function MatchDestination() {
+  const session = useAccountSession();
+  useEffect(() => {
+    destinationSession = session;
+  }, [session]);
+  return <MatchRoute />;
+}
+
+/** Keeps the real root/member admission and F03 destination; unrelated route bodies are probes. */
 async function openApplication() {
   return renderRouter({
     _layout: () => <RootLayout />,
     access: AccessGateScreen,
     onboarding: () => <Text>Discovery</Text>,
     "age-declaration": () => <Text>Age declaration</Text>,
-    "(ordinary)/_layout": () => (
-      <Stack screenOptions={{ headerShown: false }} />
-    ),
-    "(ordinary)/index": () => <Text>Ordinary home</Text>,
-    "(ordinary)/matches/[matchId]": MatchRoute,
+    "(ordinary)/_layout": OrdinaryLayout,
+    "(ordinary)/(tabs)/_layout": () => <Stack />,
+    "(ordinary)/(tabs)/index": () => <Text>Ordinary home</Text>,
+    "(ordinary)/privacy": () => <Text>Privacy</Text>,
+    "(ordinary)/privacy-age": () => <Text>Privacy age</Text>,
+    "(ordinary)/pro": () => <Text>Pro</Text>,
+    "(ordinary)/sign-in-invitation": () => <Text>Sign-in invitation</Text>,
+    "(ordinary)/matches/[matchId]": MatchDestination,
+    "(recovery)/_layout": RecoveryLayout,
+    "(recovery)/sign-in": () => <Text>Sign-in</Text>,
+    "(recovery)/support/index": () => <Text>Support</Text>,
     "(operations)/_layout": () => <Stack />,
     "(operations)/administration": () => <Text>Administration</Text>,
   });
@@ -123,6 +152,7 @@ beforeEach(async () => {
       ),
     );
   mockFetch.mockReset();
+  destinationSession = undefined;
 });
 
 afterEach(async () => {
@@ -293,15 +323,144 @@ it.each(["owner", "operator", "guest"] as const)(
   },
 );
 
-it("opens an old tap from an admitted operational destination", async () => {
+it.each([
+  { recovery: "retry", accountId: ownerId, acknowledgements: 1 },
+  {
+    recovery: "retry",
+    accountId: "00000000-0000-4000-8000-000000000273",
+    acknowledgements: 0,
+  },
+  { recovery: "guest", accountId: ownerId, acknowledgements: 0 },
+] as const)(
+  "holds the remembered tap until $recovery releases initial account failure for $accountId",
+  async ({ recovery, accountId, acknowledgements }) => {
+    // Given: the native tap is remembered while the first account read has no usable result.
+    const firstAccountRead = Promise.withResolvers<Response>();
+    let readAccount = () => firstAccountRead.promise;
+    const user = userEvent.setup();
+    mockFetch.mockImplementation(async (url: string, init: RequestInit) => {
+      const path = new URL(url).pathname;
+      if (path.endsWith("application-access")) {
+        return Response.json(applicationAccessResponse());
+      }
+      if (path.endsWith("accounts/me")) {
+        return readAccount();
+      }
+      if (path.endsWith("notification-summary")) {
+        return Response.json({ unreadCount: 0 });
+      }
+      if (
+        path.endsWith(`/notifications/${row.id}`) &&
+        init.method === "PATCH"
+      ) {
+        return Response.json({ ...row, read: true });
+      }
+      if (path.endsWith(`/matches/${row.match.id}`)) {
+        return Response.json({ match: row.match, documents: [] });
+      }
+      throw new Error(`Unexpected synthetic boundary ${path}`);
+    });
+
+    // When
+    await openApplication();
+    await waitFor(() =>
+      expect(
+        mockFetch.mock.calls.some(([url]) => url.endsWith("accounts/me")),
+      ).toBe(true),
+    );
+
+    // Then: pending membership cannot consume the SDK response or enter the public destination.
+    expect(
+      await screen.findByRole("progressbar", {
+        name: "Chargement en cours",
+      }),
+    ).toBeOnTheScreen();
+    expect(Notifications.clearLastNotificationResponse).not.toHaveBeenCalled();
+    expect(screen.queryByText("Ordinary home")).toBeNull();
+    expect(
+      mockFetch.mock.calls.some(([url]) =>
+        /\/matches\/|\/notifications\//.test(url),
+      ),
+    ).toBe(false);
+
+    // When: native Query retries all encounter the same technical failure.
+    readAccount = async () => new Response(null, { status: 503 });
+    await act(() =>
+      firstAccountRead.resolve(new Response(null, { status: 503 })),
+    );
+
+    // Then: the common member failure still leaves the tap available for an explicit release.
+    expect(
+      await screen.findByRole(
+        "alert",
+        { name: "Impossible de charger votre compte" },
+        { timeout: 10000 },
+      ),
+    ).toBeOnTheScreen();
+    expect(Notifications.clearLastNotificationResponse).not.toHaveBeenCalled();
+    expect(screen).toHavePathname("/");
+    expect(
+      mockFetch.mock.calls.some(([url]) =>
+        /\/matches\/|\/notifications\//.test(url),
+      ),
+    ).toBe(false);
+    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+
+    // When: a successful explicit reread or explicit local guest exit releases ordinary navigation.
+    if (recovery === "retry") {
+      readAccount = async () => Response.json(accountResponse({ accountId }));
+    } else {
+      mockAuth0.clearCredentials.mockImplementationOnce(async () => {
+        mockAuth0.hasValidCredentials.mockResolvedValue(false);
+      });
+    }
+    await user.press(
+      screen.getByRole("button", {
+        name:
+          recovery === "retry" ? "Réessayer" : "Continuer en tant qu’invité",
+      }),
+    );
+
+    // Then: everyone may open the public match, but only its current personal owner acknowledges it.
+    expect(
+      await screen.findByRole("header", { name: "Informations" }),
+    ).toBeOnTheScreen();
+    expect(screen).toHavePathname(`/matches/${row.match.id}`);
+    expect(Notifications.clearLastNotificationResponse).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(
+      mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
+    ).toHaveLength(acknowledgements);
+    expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(
+      recovery === "guest" ? 1 : 0,
+    );
+    expect(destinationSession).toMatchObject({
+      status: recovery === "guest" ? "guest" : "authenticated",
+      subject: recovery === "guest" ? null : "synthetic-owner",
+      accountId: recovery === "guest" ? null : accountId,
+    });
+    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+    expect(
+      mockFetch.mock.calls.some(([, init]) => init.method === "POST"),
+    ).toBe(false);
+  },
+);
+
+it("keeps admitted operational history through a technical reread before opening an old tap", async () => {
   // Given: inactive maintenance permits ordinary navigation while the current manager visits administration.
   jest.mocked(Notifications.getLastNotificationResponse).mockReturnValue(null);
+  const nativeState = jest.spyOn(AppState, "addEventListener");
+  let accountAvailable = true;
   mockFetch.mockImplementation(async (url: string, init: RequestInit) => {
     const path = new URL(url).pathname;
     if (path.endsWith("application-access")) {
       return Response.json(applicationAccessResponse());
     }
     if (path.endsWith("accounts/me")) {
+      if (!accountAvailable) {
+        return new Response(null, { status: 503 });
+      }
       return Response.json(
         accountResponse({
           accountId: ownerId,
@@ -324,6 +483,24 @@ it("opens an old tap from an admitted operational destination", async () => {
   await screen.findByText("Ordinary home");
   await testRouter.push("/administration");
   await screen.findByText("Administration");
+
+  // When: foreground restoration cannot reread the previously confirmed account.
+  accountAvailable = false;
+  await act(async () => {
+    for (const [event, listener] of nativeState.mock.calls) {
+      if (event === "change") {
+        listener("active");
+      }
+    }
+    await jest.advanceTimersByTimeAsync(8000);
+  });
+
+  // Then: a technical failure keeps the admitted operational destination and its native tap listener.
+  expect(screen).toHavePathname("/administration");
+  expect(screen.getByText("Administration")).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) => url.endsWith("accounts/me")).length,
+  ).toBeGreaterThan(1);
   const tap = jest
     .mocked(Notifications.addNotificationResponseReceivedListener)
     .mock.calls.at(-1)?.[0];
@@ -355,4 +532,11 @@ it("opens an old tap from an admitted operational destination", async () => {
   expect(
     mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
   ).toHaveLength(1);
+
+  // When
+  await testRouter.back();
+
+  // Then: opening the public destination did not replace the operational caller's retained history.
+  expect(await screen.findByText("Administration")).toBeOnTheScreen();
+  expect(screen).toHavePathname("/administration");
 });
