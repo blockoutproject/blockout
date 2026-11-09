@@ -258,7 +258,7 @@ class ContributionContractJsonTest {
     String active =
         """
         ,"activeContribution":{"id":"%s","url":"https://youtu.be/active","platform":"youtube",
-        "state":"active","submittedAt":"2026-10-24T12:00:00Z","canCancel":false,"canWithdraw":true}
+        "state":"active","submittedAt":"2026-10-24T12:00:00Z","canWithdraw":true}
         """
             .formatted(ID);
     String body = OWN_COLLECTION.formatted(",\"proposalCount\":1" + (present ? active : ""));
@@ -275,7 +275,6 @@ class ContributionContractJsonTest {
     if (present) {
       assertThat(response.getActiveContribution().getId()).isEqualTo(UUID.fromString(ID));
       assertThat(response.getActiveContribution().getCanWithdraw()).isTrue();
-      assertThat(response.getActiveContribution().getCanCancel()).isFalse();
     }
   }
 

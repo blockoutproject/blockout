@@ -380,7 +380,6 @@ it("keeps personal proposals reachable when new submissions are unavailable", as
         platform: "youtube",
         state: "pending",
         submittedAt: "2026-10-28T10:00:00Z",
-        canCancel: true,
         canWithdraw: false,
       },
     ],
@@ -429,7 +428,6 @@ it.each(["exact owner", "different owner", "missing projection"] as const)(
       platform: "youtube" as const,
       state: "active" as const,
       submittedAt: "2026-10-01T10:00:00Z",
-      canCancel: false,
       canWithdraw: true,
     };
     context = ownContributions({
@@ -544,7 +542,6 @@ it.each(["own", "other", "failure"] as const)(
       platform: "youtube" as const,
       state: "active" as const,
       submittedAt: "2026-10-01T10:00:00Z",
-      canCancel: false,
       canWithdraw: true,
     };
     context = ownContributions(

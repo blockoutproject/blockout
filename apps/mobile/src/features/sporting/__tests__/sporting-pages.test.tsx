@@ -526,7 +526,6 @@ it.each(["guest", "other", "owner"] as const)(
           platform: "youtube",
           state: "active",
           submittedAt: "2026-10-01T10:00:00Z",
-          canCancel: false,
           canWithdraw: true,
         },
       });

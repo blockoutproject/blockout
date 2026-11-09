@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
+import { CircleCheck } from "lucide-react-native";
 import { useEffect, useRef } from "react";
 import { Controller, useForm, useFormState } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
@@ -158,9 +159,6 @@ function ReportForm({
       mounted.current = false;
     };
   }, []);
-  useDiscardChanges(isDirty, () => {
-    reset({ reason: "" });
-  });
   const matchAvailable =
     match.data !== undefined && !isOwnContributionAccessDenied(match.error);
   const targetUrl = matchAvailable
@@ -171,7 +169,13 @@ function ReportForm({
     : undefined;
   const reported =
     command.data?.reported === true ||
-    (command.isIdle && query.data?.reported === true);
+    (reporting.usable &&
+      matchAvailable &&
+      !isOwnContributionAccessDenied(query.error) &&
+      query.data?.reported === true);
+  useDiscardChanges(isDirty && !reported, () => {
+    reset({ reason: "" });
+  });
   const busy = command.isPending;
   const disabled =
     !reporting.usable || !matchAvailable || isAccessDenied(query.error) || busy;
@@ -214,22 +218,35 @@ function ReportForm({
         Signaler ce lien
       </Text>
       {targetUrl && (
-        <Text style={[tokens.typography.body, { color: colors.text }]}>
+        <Text
+          style={[
+            reported ? tokens.typography.metadata : tokens.typography.body,
+            { color: reported ? colors.secondaryText : colors.text },
+          ]}
+        >
           {targetUrl}
         </Text>
       )}
       {reported ? (
-        <>
+        <View style={styles.reported}>
+          <CircleCheck
+            accessible={false}
+            color={colors.onSuccessSubtle}
+            size={tokens.size.icon.md}
+          />
           <Text
             accessibilityLiveRegion="polite"
-            style={[tokens.typography.body, { color: colors.text }]}
+            style={[
+              tokens.typography.body,
+              styles.reportedMessage,
+              { color: colors.text },
+            ]}
           >
             {command.data
               ? "Votre signalement a été envoyé."
               : "Vous avez déjà signalé ce lien."}
           </Text>
-          <Button label="Retour au match" onPress={cancel} />
-        </>
+        </View>
       ) : (
         <View style={styles.form}>
           <Text style={[tokens.typography.body, { color: colors.text }]}>
@@ -274,4 +291,10 @@ function ReportForm({
 const styles = StyleSheet.create({
   centered: { justifyContent: "center" },
   form: { gap: tokens.layout.form.gap },
+  reported: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+  },
+  reportedMessage: { flex: 1 },
 });

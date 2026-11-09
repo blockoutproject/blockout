@@ -111,7 +111,6 @@ function version(
     platform: "youtube",
     state,
     submittedAt: "2026-10-28T10:00:00Z",
-    canCancel: state === "pending",
     canWithdraw: state === "active",
   };
 }
@@ -171,11 +170,7 @@ beforeEach(() => {
         }
         const changed = {
           ...item,
-          state:
-            body.action === "cancel"
-              ? ("cancelled" as const)
-              : ("withdrawn" as const),
-          canCancel: false,
+          state: "withdrawn" as const,
           canWithdraw: false,
         };
         rows = rows.map((row) => (row.id === id ? changed : row));

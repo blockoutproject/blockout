@@ -1,6 +1,7 @@
 package com.blockout.backend.contributions.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.backend.accounts.application.AccountAccess;
@@ -197,12 +198,15 @@ class ModerateContributionIntegrationTest extends ContributionScenario {
     }
   }
 
-  @Test
+  @ParameterizedTest
+  @EnumSource(StreamModerationActionEnum.class)
   @DisplayName("Current moderation grant is reread after the original actor account lock")
-  void rereadsGrantAfterLock() throws Exception {
+  void rereadsGrantAfterLock(StreamModerationActionEnum action) throws Exception {
     // Given
-    result(2, ResultStateEnum.FINAL);
-    SubmitContribution.Outcome pending = submit(AUTHOR, "0", "https://youtu.be/pending", false);
+    if (action != StreamModerationActionEnum.WITHDRAW) {
+      result(2, ResultStateEnum.FINAL);
+    }
+    SubmitContribution.Outcome target = submit(AUTHOR, "0", "https://youtu.be/target", false);
     moderator(OTHER);
     CompletableFuture<Integer> pid = new CompletableFuture<>();
     TransactionTemplate tx = new TransactionTemplate(transactions);
@@ -222,11 +226,7 @@ class ModerateContributionIntegrationTest extends ContributionScenario {
                                               sql.queryForObject(
                                                   "SELECT pg_backend_pid()", Integer.class));
                                           return moderation.change(
-                                              OTHER,
-                                              matchId,
-                                              pending.version().id(),
-                                              "1",
-                                              StreamModerationActionEnum.APPROVE);
+                                              OTHER, matchId, target.version().id(), "1", action);
                                         })));
                 PostgresTestDatabase.awaitBlocked(sql, pid);
                 sql.update("DELETE FROM account_permission WHERE account_id=?", OTHER);
@@ -239,9 +239,88 @@ class ModerateContributionIntegrationTest extends ContributionScenario {
       // Then
       assertThat(failure)
           .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
-      assertThat(contributions.version(pending.version().id()).orElseThrow().state())
-          .isEqualTo(State.PENDING);
+      assertThat(contributions.version(target.version().id()).orElseThrow().state())
+          .isEqualTo(target.version().state());
       assertThat(contributions.state(matchId).revision()).isEqualTo(1);
+    }
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = StreamModerationActionEnum.class,
+      names = {"REJECT", "WITHDRAW"})
+  @DisplayName("Nonpublishing decisions complete while an unrelated follower account is locked")
+  void ignoresNonpublishingAudienceLocks(StreamModerationActionEnum action) {
+    // Given: the follower is neither the actor nor an attribution retained by the target.
+    if (action == StreamModerationActionEnum.REJECT) {
+      result(2, ResultStateEnum.FINAL);
+    }
+    SubmitContribution.Outcome target = submit(AUTHOR, "0", "https://youtu.be/target", false);
+    moderator(OTHER);
+    follow(FOLLOWER);
+    TransactionTemplate tx = new TransactionTemplate(transactions);
+    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
+      tx.executeWithoutResult(
+          status -> {
+            assertThat(accountLocks.lock(FOLLOWER)).isTrue();
+
+            // When: the decision must commit before this follower's account lock is released.
+            Future<SubmitContribution.Outcome> decision =
+                worker.submit(
+                    () -> moderation.change(OTHER, matchId, target.version().id(), "1", action));
+
+            // Then
+            assertThatCode(() -> decision.get(15, TimeUnit.SECONDS)).doesNotThrowAnyException();
+          });
+    }
+    assertThat(contributions.version(target.version().id()).orElseThrow().state())
+        .isEqualTo(action == StreamModerationActionEnum.REJECT ? State.REJECTED : State.WITHDRAWN);
+    assertThat(contributions.state(matchId).revision()).isEqualTo(2);
+    assertThat(count("notification")).isZero();
+  }
+
+  @ParameterizedTest
+  @EnumSource(
+      value = StreamModerationActionEnum.class,
+      names = {"REJECT", "WITHDRAW"})
+  @DisplayName("Nonpublishing decisions reread attribution after the original owner's erasure lock")
+  void rereadsNonpublishingOwnerAfterErasureLock(StreamModerationActionEnum action)
+      throws Exception {
+    // Given: local deletion under the real F05 lock isolates attribution coordination.
+    if (action == StreamModerationActionEnum.REJECT) {
+      result(2, ResultStateEnum.FINAL);
+    }
+    SubmitContribution.Outcome target = submit(AUTHOR, "0", "https://youtu.be/target", false);
+    moderator(OTHER);
+    CompletableFuture<Integer> pid = new CompletableFuture<>();
+    TransactionTemplate tx = new TransactionTemplate(transactions);
+    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
+      Future<SubmitContribution.Outcome> waiting =
+          tx.execute(
+              status -> {
+                assertThat(accountLocks.lock(AUTHOR)).isTrue();
+                Future<SubmitContribution.Outcome> future =
+                    worker.submit(
+                        () ->
+                            tx.execute(
+                                inner -> {
+                                  pid.complete(
+                                      sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
+                                  return moderation.change(
+                                      OTHER, matchId, target.version().id(), "1", action);
+                                }));
+                PostgresTestDatabase.awaitBlocked(sql, pid);
+                sql.update("DELETE FROM account WHERE id=?", AUTHOR);
+                return future;
+              });
+
+      // When
+      SubmitContribution.Outcome accepted = waiting.get(15, TimeUnit.SECONDS);
+
+      // Then
+      assertThat(accepted.version().ownerId()).isNull();
+      assertThat(contributions.version(accepted.version().id()).orElseThrow().ownerId()).isNull();
+      assertThat(accepted.version().decision().actorId()).isEqualTo(OTHER);
     }
   }
 

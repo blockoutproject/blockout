@@ -87,9 +87,6 @@ public interface ContributionApiMapper {
   @Mapping(target = "platform", source = "address")
   @Mapping(target = "submittedAt", source = "createdAt")
   @Mapping(
-      target = "canCancel",
-      expression = "java(version.state() == ContributionVersion.State.PENDING)")
-  @Mapping(
       target = "canWithdraw",
       expression = "java(version.state() == ContributionVersion.State.ACTIVE)")
   OwnStreamContributionResponse toDto(ContributionVersion version);

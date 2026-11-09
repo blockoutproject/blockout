@@ -122,7 +122,7 @@ it.each([
   [
     "owner update",
     UpdateOwnStreamContributionRequest,
-    { revision: "opaque:a", action: "cancel" },
+    { revision: "opaque:a", action: "withdraw" },
   ],
   [
     "moderated submission",
@@ -173,6 +173,27 @@ it.each([
     }
   },
 );
+
+it("retires pending cancellation while retaining withdrawal and readable cancellation history", () => {
+  // Given
+  const viewed = { revision: "opaque:a" };
+
+  // When
+  const withdrawal = UpdateOwnStreamContributionRequest.safeParse({
+    ...viewed,
+    action: "withdraw",
+  });
+  const cancellation = UpdateOwnStreamContributionRequest.safeParse({
+    ...viewed,
+    action: "cancel",
+  });
+
+  // Then
+  expect(withdrawal.success).toBe(true);
+  expect(cancellation.success).toBe(false);
+  expect(StreamContributionStateEnum.parse("cancelled")).toBe("cancelled");
+  expect(StreamDecisionEnum.parse("cancel")).toBe("cancel");
+});
 
 it("admits erased attribution and hidden dateless private sporting context through the generated client", async () => {
   // Given
