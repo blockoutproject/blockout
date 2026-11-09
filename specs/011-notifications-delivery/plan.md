@@ -80,6 +80,8 @@ For a public link before H, one ordinary Spring scheduled pass each minute finds
 
 ## Inbox, retention and mobile state
 
+The [mobile read-state decision](research.md#ordinary-mobile-read-state) retains targeted removal after known resource refusal and current absence wording after link withdrawal. Coarse inbox removal would discard unrelated authorized history; historical wording alone would weaken FR-032. No changed interaction or presentation is selected. Apply [F13's proportionate qualification](../003-shared-quality/plan.md#proportionate-qualification) to the [native scenarios](quickstart.md#essential-scenarios), preserving independent actual push, account and time-adapter proofs.
+
 Read current sporting data through owner-controlled projections, rather than copying score/name/link text into every personal row. The family, editorial variant, original time and read state stay stable. A withdrawn result or missing link changes wording, not notification identity; the link opens only through the ordinary match page. Page and projection reads use one short read-only repeatable-read transaction when several queries are needed, avoiding internally mixed representations without a cross-request snapshot.
 
 Use Spring Data keyset scrolling with current authorization/visibility criteria, sorting by non-null `createdAt DESC, id DESC`, twenty rows per page. Encode only those continuation keys in an opaque URL-safe cursor; reject malformed values as BadRequest. No persisted cursor, signing service or lookup of a deleted anchor is required. The supplying account and current access predicates always apply. Refresh restarts from newest entries; no historical snapshot or full-inbox download.

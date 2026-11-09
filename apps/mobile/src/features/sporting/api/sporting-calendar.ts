@@ -67,22 +67,6 @@ export function filterCalendarMatches(
   };
 }
 
-/** Keeps the page's attribution/progression while dropping only groups with the refused exact pool. */
-export function withoutCalendarPool(
-  page: MatchCalendarResponse,
-  poolId: string,
-): MatchCalendarResponse {
-  return {
-    ...page,
-    days: page.days
-      .map((day) => ({
-        ...day,
-        pools: day.pools.filter((pool) => pool.poolId !== poolId),
-      }))
-      .filter((day) => day.pools.length > 0),
-  };
-}
-
 /** Deduplicates moved encounters for rendering without mutating the server's retained pages. */
 export function calendarDays(
   data: InfiniteData<MatchCalendarResponse> | undefined,
