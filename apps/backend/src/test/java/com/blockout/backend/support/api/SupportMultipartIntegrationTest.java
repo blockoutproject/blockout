@@ -16,7 +16,9 @@ import com.blockout.backend.access.application.MaintenanceAdmission;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.generated.mobile.model.SubmitSupportRequest;
+import com.blockout.backend.generated.mobile.model.SupportContextRequest;
 import com.blockout.backend.generated.mobile.model.SupportRequestCreatedResponse;
+import com.blockout.backend.generated.mobile.model.SupportSignInFailureRequest;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import com.blockout.backend.support.application.CreateSupportRequest;
 import com.blockout.backend.support.application.SupportAttachments;
@@ -55,6 +57,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -186,6 +189,70 @@ class SupportMultipartIntegrationTest {
         .containsExactlyElementsOf(images);
     verify(cases).complete(31L);
     verify(signal).accepted();
+  }
+
+  @Test
+  @DisplayName("Preserves maximum UTF-16 metadata with five originals over actual HTTP")
+  void bindsMaximumMetadata() throws Exception {
+    // Given
+    SubmitSupportRequest metadata = metadata();
+    metadata.setTitle("🏐".repeat(100));
+    metadata.setDescription("🏐".repeat(5_000));
+    metadata.setReplyEmail(
+        "a".repeat(64) + "@" + "b".repeat(63) + "." + "c".repeat(63) + "." + "d".repeat(61));
+    SupportContextRequest context = metadata.getContext();
+    context.setScreen("🏐".repeat(128));
+    context.setAction("é".repeat(256));
+    context.setAppVersion("é".repeat(256));
+    context.setOsVersion("é".repeat(256));
+    context.setDeviceModel("é".repeat(256));
+    SupportSignInFailureRequest signInFailure = context.getSignInFailure();
+    signInFailure.setMethod("é".repeat(256));
+    signInFailure.setStage("é".repeat(256));
+    signInFailure.setReason("é".repeat(256));
+    signInFailure.setReference("é".repeat(256));
+    List<byte[]> images = distinctImages();
+    MockHttpOutputMessage multipart = encode(metadata, images, 0);
+    SupportSubmission.Metadata expected =
+        json.readValue(json.writeValueAsBytes(metadata), SupportSubmission.Metadata.class);
+
+    // When
+    HttpResponse<String> response = send(multipart);
+
+    // Then
+    assertComplete(response);
+    verify(create).create(eq(expected), anyList());
+    assertThat(receivedImages)
+        .usingElementComparator(Arrays::compare)
+        .containsExactlyElementsOf(images);
+    verify(cases).complete(31L);
+    verify(signal).accepted();
+  }
+
+  @ParameterizedTest(name = "Refuses {0} beyond {1} UTF-16 units")
+  @CsvSource({"title,200", "description,10000", "replyEmail,254", "screen,256"})
+  @DisplayName("Refuses excessive metadata over actual HTTP before provider effects")
+  void refusesExcessiveMetadata(String field, int maximum) throws Exception {
+    // Given
+    SubmitSupportRequest metadata = metadata();
+    String excessive = "🏐".repeat(maximum / 2) + "x";
+    switch (field) {
+      case "title" -> metadata.setTitle(excessive);
+      case "description" -> metadata.setDescription(excessive);
+      case "replyEmail" ->
+          metadata.setReplyEmail(
+              "a".repeat(64) + "@" + "b".repeat(63) + "." + "c".repeat(63) + "." + "d".repeat(62));
+      case "screen" -> metadata.getContext().setScreen(excessive);
+      default -> throw new IllegalArgumentException("Unknown metadata field: " + field);
+    }
+    MockHttpOutputMessage multipart = encode(metadata, List.of(), 0);
+
+    // When
+    HttpResponse<String> response = send(multipart);
+
+    // Then
+    assertProblem(response, 400, "invalid-request");
+    verifyNoInteractions(cases, attachments, signal);
   }
 
   @ParameterizedTest
@@ -366,15 +433,41 @@ class SupportMultipartIntegrationTest {
   }
 
   /**
+   * Reads generated metadata with every optional declaration available for scenario overrides.
+   *
+   * @return fresh generated DTO containing only fictional declarations
+   * @throws Exception if the shared fixture cannot be read
+   */
+  private SubmitSupportRequest metadata() throws Exception {
+    return json.readValue(
+        new ClassPathResource("support/complete-metadata.json").getContentAsByteArray(),
+        SubmitSupportRequest.class);
+  }
+
+  /**
+   * Encodes the shared fictional metadata with scenario-owned files and request-size padding.
+   *
+   * @param images every original file in order
+   * @param metadataPadding legal trailing JSON whitespace counted inside the request limit
+   * @return framework-encoded multipart content and headers
+   * @throws Exception if the shared fixture or native encoding fails
+   */
+  private MockHttpOutputMessage encode(List<byte[]> images, int metadataPadding) throws Exception {
+    return encode(metadata(), images, metadataPadding);
+  }
+
+  /**
    * Uses Spring's ordinary multipart encoder; a fixed boundary permits exact byte sizing. Metadata
    * is serialized from the generated Java DTO, without a handwritten transport copy.
    *
+   * @param metadata scenario-owned generated metadata
    * @param images every original file in order
    * @param metadataPadding legal trailing JSON whitespace counted inside the request limit
    * @return framework-encoded multipart content and headers
    * @throws Exception if fixtures or native encoding fail
    */
-  private MockHttpOutputMessage encode(List<byte[]> images, int metadataPadding) throws Exception {
+  private MockHttpOutputMessage encode(
+      SubmitSupportRequest metadata, List<byte[]> images, int metadataPadding) throws Exception {
     FormHttpMessageConverter converter =
         new FormHttpMessageConverter() {
           /** {@inheritDoc} */
@@ -383,10 +476,6 @@ class SupportMultipartIntegrationTest {
             return "BlockoutSupport306Boundary".getBytes(StandardCharsets.US_ASCII);
           }
         };
-    SubmitSupportRequest metadata =
-        json.readValue(
-            new ClassPathResource("support/complete-metadata.json").getContentAsByteArray(),
-            SubmitSupportRequest.class);
     MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
     HttpHeaders metadataHeaders = new HttpHeaders();
     metadataHeaders.setContentType(MediaType.APPLICATION_JSON);
