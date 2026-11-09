@@ -62,7 +62,7 @@ jest.mock("expo-router", () => ({
   usePreventRemove: jest.fn(),
   useRouter: () => ({
     push: jest.fn(),
-    back: jest.fn(),
+    back: mockBack,
     dismissTo: mockDismissTo,
     canGoBack: () => true,
   }),
@@ -75,6 +75,7 @@ const mockFetch = jest.fn<
   [RequestInfo | URL, RequestInit?]
 >();
 const mockDismissTo = jest.fn();
+const mockBack = jest.fn();
 const previous = { ...process.env };
 const match = matchDetail();
 const account = accountResponse({ permissions: { moderateStreamLinks: true } });
@@ -137,6 +138,7 @@ beforeEach(() => {
   write = async () =>
     Response.json({ revision: "accepted", contribution: moderatedVersion });
   mockDismissTo.mockReset();
+  mockBack.mockReset();
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
   Object.assign(process.env, {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
@@ -881,11 +883,20 @@ it("uses current positive report state after lost acknowledgement without anothe
   expect(
     screen.queryByText("Votre signalement a été envoyé."),
   ).not.toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Retour au match" })).toBeEnabled();
+  expect(
+    screen.queryByRole("button", { name: "Retour au match" }),
+  ).not.toBeOnTheScreen();
   expect(writes).toHaveLength(1);
   expect(writes[0].url).toContain(
     `/accounts/${account.accountId}/stream-contributions/${version.id}/report`,
   );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Retour" }));
+
+  // Then
+  expect(mockBack).toHaveBeenCalledTimes(1);
+  expect(mockDismissTo).not.toHaveBeenCalled();
 });
 
 it("retains the reason after a negative read while a delayed report can still become visible", async () => {
