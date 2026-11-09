@@ -34,26 +34,52 @@ export function SportingMedia({
   presentation = "logo",
   renderWithAtmosphere,
 }: SportingMediaProps) {
+  /** Keeps the native image, loading skeleton and absent-artwork fallback in the same media slot. */
+  function renderArtwork() {
+    if (available) {
+      return (
+        <Image
+          key={image.attemptKey}
+          accessible
+          accessibilityRole="image"
+          accessibilityLabel={`${label} : ${identity.name}`}
+          accessibilityState={{ busy: pending }}
+          source={{ uri }}
+          cachePolicy="none"
+          recyclingKey={uri}
+          contentFit="contain"
+          onDisplay={image.onDisplay}
+          onError={image.onError}
+          style={{
+            width: kind === "division" ? size : size * (5 / 6),
+            height: kind === "division" ? size : size * (5 / 6),
+          }}
+        />
+      );
+    }
+    if (loading) {
+      return <Skeleton width={size} height={size} shape="rectangle" />;
+    }
+    return (
+      <ImageFallback
+        color={colors.logoInk}
+        size={
+          presentation !== "logo" ? tokens.size.icon.lg : tokens.size.icon.md
+        }
+      />
+    );
+  }
+
   const { colors } = useTheme();
   const image = useNativeImageLifecycle(uri);
   const failed = image.status === "failed";
   const available = !!uri && !failed;
   const pending = available && image.status === "pending";
-  const notice =
-    error || failed
-      ? available
-        ? "Logo non actualisé"
-        : "Logo indisponible"
-      : undefined;
-  const label = available
-    ? error
-      ? "Logo non actualisé"
-      : "Logo"
-    : loading
-      ? "Chargement du logo"
-      : error || failed
-        ? "Logo indisponible"
-        : "Logo absent";
+  const { notice, label } = mediaDescription(
+    available,
+    loading,
+    error || failed,
+  );
   const borderRadius =
     presentation === "entity" ? tokens.radius.media : tokens.radius.sm;
   const logo = (
@@ -81,36 +107,7 @@ export function SportingMedia({
           },
         ]}
       >
-        {available ? (
-          <Image
-            key={image.attemptKey}
-            accessible
-            accessibilityRole="image"
-            accessibilityLabel={`${label} : ${identity.name}`}
-            accessibilityState={{ busy: pending }}
-            source={{ uri }}
-            cachePolicy="none"
-            recyclingKey={uri}
-            contentFit="contain"
-            onDisplay={image.onDisplay}
-            onError={image.onError}
-            style={{
-              width: kind === "division" ? size : size * (5 / 6),
-              height: kind === "division" ? size : size * (5 / 6),
-            }}
-          />
-        ) : loading ? (
-          <Skeleton width={size} height={size} shape="rectangle" />
-        ) : (
-          <ImageFallback
-            color={colors.logoInk}
-            size={
-              presentation !== "logo"
-                ? tokens.size.icon.lg
-                : tokens.size.icon.md
-            }
-          />
-        )}
+        {renderArtwork()}
         {pending && (
           <View pointerEvents="none" style={StyleSheet.absoluteFill}>
             <Skeleton width={size} height={size} shape="rectangle" />
@@ -127,27 +124,45 @@ export function SportingMedia({
       )}
     </View>
   );
-  return renderWithAtmosphere
-    ? renderWithAtmosphere(
-        logo,
-        available ? (
-          <BlurredArtwork
-            key={image.attemptKey}
-            testID="sporting-logo-atmosphere"
-            uri={uri}
-            resizeMode="contain"
-            blurRadius={tokens.sporting.coverBlur}
-            onError={image.onError}
-            style={[
-              StyleSheet.absoluteFill,
-              {
-                opacity: tokens.sporting.standingsCard.atmosphereOpacity,
-              },
-            ]}
-          />
-        ) : null,
-      )
-    : logo;
+  if (!renderWithAtmosphere) {
+    return logo;
+  }
+  const atmosphere = available ? (
+    <BlurredArtwork
+      key={image.attemptKey}
+      testID="sporting-logo-atmosphere"
+      uri={uri}
+      resizeMode="contain"
+      blurRadius={tokens.sporting.coverBlur}
+      onError={image.onError}
+      style={[
+        StyleSheet.absoluteFill,
+        {
+          opacity: tokens.sporting.standingsCard.atmosphereOpacity,
+        },
+      ]}
+    />
+  ) : null;
+  return renderWithAtmosphere(logo, atmosphere);
+}
+
+/** Distinguishes a retained stale logo from absent, pending and failed artwork. */
+function mediaDescription(
+  available: boolean,
+  loading: boolean,
+  error: boolean,
+) {
+  let notice: string | undefined;
+  if (error) {
+    notice = available ? "Logo non actualisé" : "Logo indisponible";
+  }
+  if (available) {
+    return { notice, label: error ? "Logo non actualisé" : "Logo" };
+  }
+  if (loading) {
+    return { notice, label: "Chargement du logo" };
+  }
+  return { notice, label: error ? "Logo indisponible" : "Logo absent" };
 }
 
 /** Decorative cover inputs preserve the current source and its accepted tint without introducing fallback artwork. */

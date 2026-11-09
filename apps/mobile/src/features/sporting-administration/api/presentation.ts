@@ -112,16 +112,18 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
     ...authority,
     enabled: enabled && authority.enabled && session.status === "authenticated",
   });
-  const options =
-    target.kind === "club"
-      ? queries.clubPresentation(target.id)
-      : target.kind === "team"
-        ? queries.teamPresentation(target.id)
-        : target.kind === "pool"
-          ? queries.poolPresentation(target.id)
-          : target.kind === "division"
-            ? queries.division(target.id)
-            : queries.divisions();
+  let options;
+  if (target.kind === "club") {
+    options = queries.clubPresentation(target.id);
+  } else if (target.kind === "team") {
+    options = queries.teamPresentation(target.id);
+  } else if (target.kind === "pool") {
+    options = queries.poolPresentation(target.id);
+  } else if (target.kind === "division") {
+    options = queries.division(target.id);
+  } else {
+    options = queries.divisions();
+  }
   const queryKey = options.queryKey;
   const query = useQuery<PresentationData, Error, Presentation, QueryKey>({
     queryKey: options.queryKey,
@@ -138,16 +140,18 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
     invalidateDivisionReads(client);
   }
 
-  const operationKey =
-    target.kind === "club"
-      ? getSetClubPresentationMutationKey()
-      : target.kind === "team"
-        ? getSetTeamPresentationMutationKey()
-        : target.kind === "pool"
-          ? getSetPoolPresentationMutationKey()
-          : target.kind === "division"
-            ? getSetDivisionPresentationMutationKey()
-            : getCreateDivisionMutationKey();
+  let operationKey;
+  if (target.kind === "club") {
+    operationKey = getSetClubPresentationMutationKey();
+  } else if (target.kind === "team") {
+    operationKey = getSetTeamPresentationMutationKey();
+  } else if (target.kind === "pool") {
+    operationKey = getSetPoolPresentationMutationKey();
+  } else if (target.kind === "division") {
+    operationKey = getSetDivisionPresentationMutationKey();
+  } else {
+    operationKey = getCreateDivisionMutationKey();
+  }
   const save = useMutation({
     retry: false,
     networkMode: "always",

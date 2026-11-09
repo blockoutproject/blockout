@@ -40,6 +40,65 @@ export interface MatchScreenProps {
 
 /** Presents accepted facts and rereads only this match on route focus and foreground return. */
 export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
+  /** Keeps initial read feedback separate from the accepted match content and its actions. */
+  function renderMatchContent() {
+    if (blockingState) {
+      if (match.isPending) {
+        return <PageContent>{blockingState}</PageContent>;
+      }
+      return <ScreenState>{blockingState}</ScreenState>;
+    }
+    return (
+      <PageContent>
+        {data && (
+          <>
+            <MatchSummary
+              match={data.match}
+              displayTimeZone={displayTimeZone}
+            />
+            <MatchSetScores match={data.match} sets={data.sets} />
+            <MatchLinks
+              detail={data}
+              reportAction={<ContributionReportEntry entry={contribution} />}
+              action={
+                contribution.hasProposals && !contribution.ownsPublic ? (
+                  <MatchContributionAction entry={contribution} header />
+                ) : undefined
+              }
+              primaryAction={
+                contribution.publicOwnershipUnknown ||
+                contribution.ownsPublic ||
+                (!data.streamUrl && contribution.canPropose) ? (
+                  <MatchContributionAction
+                    entry={contribution}
+                    contextColor={
+                      data.match.pool.classification.division?.color
+                    }
+                    contextGradient={
+                      data.match.pool.classification.division?.gradient
+                    }
+                    contextForeground={
+                      data.match.pool.classification.division
+                        ? divisionTextColor(
+                            data.match.pool.classification.division.color,
+                          )
+                        : undefined
+                    }
+                  />
+                ) : undefined
+              }
+            />
+            <MatchInformation
+              onDocumentOpen={(kind) => setDocument({ matchId, kind })}
+              detail={data}
+              displayTimeZone={displayTimeZone}
+            />
+          </>
+        )}
+      </PageContent>
+    );
+  }
+
   const [displayTimeZone, setDisplayTimeZone] = useState(
     currentSportingTimeZone,
   );
@@ -126,63 +185,7 @@ export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
           data ? <DataRefreshControl onRefresh={refresh} /> : undefined
         }
       >
-        {blockingState ? (
-          match.isPending ? (
-            <PageContent>{blockingState}</PageContent>
-          ) : (
-            <ScreenState>{blockingState}</ScreenState>
-          )
-        ) : (
-          <PageContent>
-            {data && (
-              <>
-                <MatchSummary
-                  match={data.match}
-                  displayTimeZone={displayTimeZone}
-                />
-                <MatchSetScores match={data.match} sets={data.sets} />
-                <MatchLinks
-                  detail={data}
-                  reportAction={
-                    <ContributionReportEntry entry={contribution} />
-                  }
-                  action={
-                    contribution.hasProposals && !contribution.ownsPublic ? (
-                      <MatchContributionAction entry={contribution} header />
-                    ) : undefined
-                  }
-                  primaryAction={
-                    contribution.publicOwnershipUnknown ||
-                    contribution.ownsPublic ||
-                    (!data.streamUrl && contribution.canPropose) ? (
-                      <MatchContributionAction
-                        entry={contribution}
-                        contextColor={
-                          data.match.pool.classification.division?.color
-                        }
-                        contextGradient={
-                          data.match.pool.classification.division?.gradient
-                        }
-                        contextForeground={
-                          data.match.pool.classification.division
-                            ? divisionTextColor(
-                                data.match.pool.classification.division.color,
-                              )
-                            : undefined
-                        }
-                      />
-                    ) : undefined
-                  }
-                />
-                <MatchInformation
-                  onDocumentOpen={(kind) => setDocument({ matchId, kind })}
-                  detail={data}
-                  displayTimeZone={displayTimeZone}
-                />
-              </>
-            )}
-          </PageContent>
-        )}
+        {renderMatchContent()}
       </PageScrollView>
       {focused && documentAvailable && document && (
         <MatchDocumentReader

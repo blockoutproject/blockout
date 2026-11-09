@@ -47,28 +47,32 @@ export function ClassificationScreen({ target }: ClassificationScreenProps) {
     }
   }
 
-  const FeedbackLayout =
-    !current &&
-    (!authority.enabled
-      ? authority.sessionStatus === "restoring" ||
-        (authority.sessionStatus === "authenticated" &&
-          authority.account.isLoading)
-      : editing.query.isLoading)
-      ? PageContent
-      : ScreenState;
-  const blockingState = !current ? (
-    !authority.enabled ? (
-      <AccessFeedback
-        {...authority}
-        loadingContent={<ClassificationLoading />}
-      />
-    ) : (
-      <ReadFeedback
-        query={editing.query}
-        loadingContent={<ClassificationLoading />}
-      />
-    )
-  ) : undefined;
+  const loading = authority.enabled
+    ? editing.query.isLoading
+    : authority.sessionStatus === "restoring" ||
+      (authority.sessionStatus === "authenticated" &&
+        authority.account.isLoading);
+  const FeedbackLayout = !current && loading ? PageContent : ScreenState;
+  let blockingState;
+  if (!current) {
+    if (!authority.enabled) {
+      blockingState = (
+        <AccessFeedback
+          {...authority}
+          loadingContent={<ClassificationLoading />}
+        />
+      );
+    } else {
+      blockingState = (
+        <ReadFeedback
+          query={editing.query}
+          loadingContent={<ClassificationLoading />}
+        />
+      );
+    }
+  } else {
+    blockingState = undefined;
+  }
   return (
     <Page
       header={

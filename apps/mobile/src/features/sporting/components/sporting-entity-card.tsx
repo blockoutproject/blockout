@@ -40,6 +40,24 @@ export function SportingEntityCard({
   season,
   onPress,
 }: SportingEntityCardProps) {
+  /** Uses a pool’s division artwork when available and retains the normal identity fallback otherwise. */
+  function renderEntityArtwork() {
+    if (kind === "pool") {
+      if (division) {
+        return <EntityArtwork identity={division} kind="division" />;
+      }
+      return (
+        <SportingMedia
+          identity={identity}
+          kind="division"
+          size={tokens.size.media.entity}
+          presentation="entity"
+        />
+      );
+    }
+    return <EntityArtwork identity={identity} kind={kind} />;
+  }
+
   const { colors } = useTheme();
   const division = classification?.division;
   const foreground = division ? divisionTextColor(division.color) : colors.text;
@@ -68,20 +86,7 @@ export function SportingEntityCard({
             backgroundColor={division.color}
           />
         )}
-        {kind === "pool" ? (
-          division ? (
-            <EntityArtwork identity={division} kind="division" />
-          ) : (
-            <SportingMedia
-              identity={identity}
-              kind="division"
-              size={tokens.size.media.entity}
-              presentation="entity"
-            />
-          )
-        ) : (
-          <EntityArtwork identity={identity} kind={kind} />
-        )}
+        {renderEntityArtwork()}
         <View style={styles.name}>
           <Text
             accessibilityRole="header"

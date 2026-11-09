@@ -139,23 +139,40 @@ let session: AccountSession;
 
 /** Controlled HTTP only; the screens use real generated decoders, Query, access and session owners. */
 function reads(url: string, request?: RequestInit): Promise<Response> {
+  /** Adds only the resource discriminant required by the controlled editor response. */
+  function presentationResourceKind() {
+    if (path.includes("/clubs/")) {
+      return { kind: "club" };
+    }
+    if (path.includes("/teams/")) {
+      return { kind: "team" };
+    }
+    return {};
+  }
+
   const parsed = new URL(url);
   const path = parsed.pathname;
   if (path.endsWith("/application-access")) {
     return Promise.resolve(Response.json(applicationAccessResponse()));
   }
-  if (path === "/accounts/me") {
-    return Promise.resolve(Response.json(account));
+  switch (path) {
+    case "/accounts/me":
+      return Promise.resolve(Response.json(account));
+    case "/matches":
+      return Promise.resolve(
+        Response.json({
+          category: parsed.searchParams.get("category"),
+          timeZone: parsed.searchParams.get("timeZone"),
+          evaluatedAt: "2026-10-25T12:00:00Z",
+          days: [],
+        }),
+      );
   }
   if (path.endsWith("/presentation")) {
     return Promise.resolve(
       Response.json({
         id: sportingId,
-        ...(path.includes("/clubs/")
-          ? { kind: "club" }
-          : path.includes("/teams/")
-            ? { kind: "team" }
-            : {}),
+        ...presentationResourceKind(),
         revision: "presentation-1",
         names: {
           sourceName: "Source",
@@ -176,11 +193,9 @@ function reads(url: string, request?: RequestInit): Promise<Response> {
     return Promise.resolve(Response.json({ count: following ? 8 : 7 }));
   }
   if (path.includes("/team-follows/") || path.includes("/pool-follows/")) {
-    if (request?.method === "PUT") {
-      following = JSON.parse(String(request.body)).following;
-    }
-    return Promise.resolve(Response.json({ following }));
+    return followResponse(request);
   }
+
   if (path.includes("/stream-contributions")) {
     return Promise.resolve(Response.json(contributions));
   }
@@ -200,12 +215,6 @@ function reads(url: string, request?: RequestInit): Promise<Response> {
       }),
     );
   }
-  if (path.endsWith(`/clubs/${sportingId}`)) {
-    return Promise.resolve(Response.json(club));
-  }
-  if (path.endsWith(`/teams/${sportingId}`)) {
-    return Promise.resolve(Response.json(team));
-  }
   if (path.endsWith("/standings")) {
     return Promise.resolve(
       Response.json({
@@ -217,23 +226,27 @@ function reads(url: string, request?: RequestInit): Promise<Response> {
       }),
     );
   }
-  if (path.endsWith(`/pools/${sportingId}`)) {
-    return Promise.resolve(Response.json(pool));
-  }
-  if (path.endsWith(`/matches/${sportingId}`)) {
-    return Promise.resolve(Response.json(match));
-  }
-  if (path === "/matches") {
-    return Promise.resolve(
-      Response.json({
-        category: parsed.searchParams.get("category"),
-        timeZone: parsed.searchParams.get("timeZone"),
-        evaluatedAt: "2026-10-25T12:00:00Z",
-        days: [],
-      }),
-    );
+  const resources: Record<string, unknown> = {
+    [`/clubs/${sportingId}`]: club,
+    [`/teams/${sportingId}`]: team,
+    [`/pools/${sportingId}`]: pool,
+    [`/matches/${sportingId}`]: match,
+  };
+  const resource = Object.entries(resources).find(([suffix]) =>
+    path.endsWith(suffix),
+  )?.[1];
+  if (resource) {
+    return Promise.resolve(Response.json(resource));
   }
   throw new Error(`Unexpected controlled request ${path}`);
+}
+
+/** Applies the controlled follow write before returning the same route's current relation. */
+function followResponse(request?: RequestInit) {
+  if (request?.method === "PUT") {
+    following = JSON.parse(String(request.body)).following;
+  }
+  return Promise.resolve(Response.json({ following }));
 }
 
 /** Retrieves the real private lifetime client; failure scenarios explicitly disable read retries. */
@@ -513,6 +526,31 @@ it.each(["guest", "other", "owner"] as const)(
   "keeps F08 exact-version reporting and ownership for %s",
   async (viewer) => {
     // Given
+
+    /** Keeps guest invitation, ownership and exact-version reporting expectations explicit. */
+    function expectedReportDestination() {
+      if (viewer === "guest") {
+        return {
+          pathname: "/sign-in-invitation",
+          params: { reason: "stream-report" },
+        };
+      }
+      if (viewer === "owner") {
+        return {
+          pathname: "/matches/[matchId]/contributions",
+          params: { matchId: sportingId },
+        };
+      }
+      return {
+        pathname: "/matches/[matchId]/report-contribution",
+        params: {
+          matchId: sportingId,
+          contributionId,
+          contributionUrl: url,
+        },
+      };
+    }
+
     const contributionId = "00000000-0000-4000-8000-000000000099";
     const url = "https://youtu.be/sporting-fixture";
     match = { ...match, streamUrl: url, streamContributionId: contributionId };
@@ -541,26 +579,7 @@ it.each(["guest", "other", "owner"] as const)(
     );
 
     // Then
-    expect(mockPush).toHaveBeenCalledWith(
-      viewer === "guest"
-        ? {
-            pathname: "/sign-in-invitation",
-            params: { reason: "stream-report" },
-          }
-        : viewer === "owner"
-          ? {
-              pathname: "/matches/[matchId]/contributions",
-              params: { matchId: sportingId },
-            }
-          : {
-              pathname: "/matches/[matchId]/report-contribution",
-              params: {
-                matchId: sportingId,
-                contributionId,
-                contributionUrl: url,
-              },
-            },
-    );
+    expect(mockPush).toHaveBeenCalledWith(expectedReportDestination());
     if (viewer === "owner") {
       expect(
         screen.queryByRole("button", { name: "Signaler le lien" }),
@@ -1185,6 +1204,18 @@ it.each(["provisional", "unconfirmed", "final"] as const)(
   "preserves the %s result, published zero and special notation independently of absent sets",
   async (state) => {
     // Given
+
+    /** Provides this scenario’s controlled response without replacing the real query owners. */
+    function scenarioResponse() {
+      if (state === "final") {
+        return "Terminé";
+      }
+      if (state === "provisional") {
+        return "Score provisoire";
+      }
+      return "Résultat non confirmé";
+    }
+
     match.match.result = {
       state,
       homeSets: 0,
@@ -1202,15 +1233,7 @@ it.each(["provisional", "unconfirmed", "final"] as const)(
       screen.getByLabelText("Score extérieur : indisponible"),
     ).toHaveTextContent("-");
     expect(screen.getByText("Forfait extérieur")).toBeOnTheScreen();
-    expect(
-      screen.getByText(
-        state === "final"
-          ? "Terminé"
-          : state === "provisional"
-            ? "Score provisoire"
-            : "Résultat non confirmé",
-      ),
-    ).toBeOnTheScreen();
+    expect(screen.getByText(scenarioResponse())).toBeOnTheScreen();
     if (state !== "final") {
       expect(
         screen.getByText("Résultat définitif indisponible"),
@@ -1362,13 +1385,15 @@ it("hides retained club teams when their parent becomes unavailable", async () =
 it("distinguishes an empty club season from a failed team read", async () => {
   // Given
   let failed = true;
-  mockFetch.mockImplementation((url: string) =>
-    url.includes("/teams?")
-      ? failed
-        ? Promise.reject(new TypeError("offline"))
-        : Promise.resolve(Response.json({ seasonId: season.id, items: [] }))
-      : reads(url),
-  );
+  mockFetch.mockImplementation((url: string) => {
+    if (url.includes("/teams?")) {
+      if (failed) {
+        return Promise.reject(new TypeError("offline"));
+      }
+      return Promise.resolve(Response.json({ seasonId: season.id, items: [] }));
+    }
+    return reads(url);
+  });
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
   await screen.findByRole("tab", { name: "À venir" });
@@ -1771,13 +1796,15 @@ it.each(["network", "503"])(
       });
     });
     await screen.findByRole("alert");
-    mockFetch.mockImplementation((url: string) =>
-      url.endsWith(`/clubs/${sportingId}`)
-        ? failure === "network"
-          ? Promise.reject(new TypeError("offline"))
-          : Promise.resolve(Response.json({ status: 503 }, { status: 503 }))
-        : reads(url),
-    );
+    mockFetch.mockImplementation((url: string) => {
+      if (url.endsWith(`/clubs/${sportingId}`)) {
+        if (failure === "network") {
+          return Promise.reject(new TypeError("offline"));
+        }
+        return Promise.resolve(Response.json({ status: 503 }, { status: 503 }));
+      }
+      return reads(url);
+    });
 
     // When
     expect(screen.queryByLabelText("Actualiser les données")).toBeNull();

@@ -942,18 +942,22 @@ it("pages from club information through teams to the calendar and back without r
   const club = clubDetail();
   club.seasons = [matchDetail().match.pool.season];
   mockFetch.mockImplementation((url: string) => {
+    /** Routes controlled HTTP by the scenario’s exact sporting resource. */
+    function calendarResponse() {
+      if (path.endsWith("/application-access")) {
+        return applicationAccessResponse();
+      }
+      if (path.endsWith(`/clubs/${sportingId}/teams`)) {
+        return { seasonId: club.seasons[0].id, items: [] };
+      }
+      if (path.endsWith(`/clubs/${sportingId}`)) {
+        return club;
+      }
+      return calendar;
+    }
+
     const path = new URL(url).pathname;
-    return Promise.resolve(
-      Response.json(
-        path.endsWith("/application-access")
-          ? applicationAccessResponse()
-          : path.endsWith(`/clubs/${sportingId}/teams`)
-            ? { seasonId: club.seasons[0].id, items: [] }
-            : path.endsWith(`/clubs/${sportingId}`)
-              ? club
-              : calendar,
-      ),
-    );
+    return Promise.resolve(Response.json(calendarResponse()));
   });
   await render(<ClubScreen clubId={sportingId} />, { wrapper: Providers });
   await screen.findByRole("tab", { name: "Infos" });
@@ -994,17 +998,20 @@ it("loads calendar tabs lazily and refreshes only the active calendar through ge
     },
     participations: [],
   };
-  mockFetch.mockImplementation((url: string) =>
-    Promise.resolve(
-      Response.json(
-        new URL(url).pathname.endsWith("/application-access")
-          ? applicationAccessResponse()
-          : new URL(url).pathname.endsWith(`/teams/${sportingId}`)
-            ? team
-            : calendar,
-      ),
-    ),
-  );
+  mockFetch.mockImplementation((url: string) => {
+    /** Routes controlled HTTP by the scenario’s exact sporting resource. */
+    function calendarResponse() {
+      if (new URL(url).pathname.endsWith("/application-access")) {
+        return applicationAccessResponse();
+      }
+      if (new URL(url).pathname.endsWith(`/teams/${sportingId}`)) {
+        return team;
+      }
+      return calendar;
+    }
+
+    return Promise.resolve(Response.json(calendarResponse()));
+  });
   const events = jest.spyOn(AppState, "addEventListener");
   await render(<TeamScreen teamId={sportingId} />, { wrapper: Providers });
   await screen.findByRole("tab", { name: "À venir" });
@@ -1079,17 +1086,20 @@ it("changes calendar category with the native horizontal pager without rereading
     },
     participations: [],
   };
-  mockFetch.mockImplementation((url: string) =>
-    Promise.resolve(
-      Response.json(
-        new URL(url).pathname.endsWith("/application-access")
-          ? applicationAccessResponse()
-          : new URL(url).pathname.endsWith(`/teams/${sportingId}`)
-            ? team
-            : calendar,
-      ),
-    ),
-  );
+  mockFetch.mockImplementation((url: string) => {
+    /** Routes controlled HTTP by the scenario’s exact sporting resource. */
+    function calendarResponse() {
+      if (new URL(url).pathname.endsWith("/application-access")) {
+        return applicationAccessResponse();
+      }
+      if (new URL(url).pathname.endsWith(`/teams/${sportingId}`)) {
+        return team;
+      }
+      return calendar;
+    }
+
+    return Promise.resolve(Response.json(calendarResponse()));
+  });
   await render(<TeamScreen teamId={sportingId} />, { wrapper: Providers });
   await screen.findByRole("tab", { name: "À venir" });
   await layoutNativeTabs();

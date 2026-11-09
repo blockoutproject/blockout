@@ -97,6 +97,17 @@ export function SportingIdentity({
   clubId,
   children,
 }: SportingIdentityProps) {
+  /** Names the identity kind only when the accepted classification supplies no division name. */
+  function identityKindLabel() {
+    if (kind === "club") {
+      return "Le club";
+    }
+    if (kind === "team") {
+      return "L’équipe";
+    }
+    return "La poule";
+  }
+
   const { colors } = useTheme();
   const logoIdentity =
     kind === "pool"
@@ -106,13 +117,18 @@ export function SportingIdentity({
     logoIdentity,
     kind === "pool" ? "division" : kind,
   );
-  const imageLabel = logo.uri
-    ? logo.error
-      ? "Logo non actualisé"
-      : "Logo"
-    : logo.loading
-      ? "Chargement du logo"
-      : "Logo";
+  let imageLabel;
+  if (logo.uri) {
+    if (logo.error) {
+      imageLabel = "Logo non actualisé";
+    } else {
+      imageLabel = "Logo";
+    }
+  } else if (logo.loading) {
+    imageLabel = "Chargement du logo";
+  } else {
+    imageLabel = "Logo";
+  }
   const gender = genderLabel(classification?.gender);
   const metadata = [
     season?.label,
@@ -155,12 +171,7 @@ export function SportingIdentity({
     >
       <View style={styles.heading}>
         <Text style={[styles.eyebrow, { color: colors.secondaryText }]}>
-          {classification?.division?.name ??
-            (kind === "club"
-              ? "Le club"
-              : kind === "team"
-                ? "L’équipe"
-                : "La poule")}
+          {classification?.division?.name ?? identityKindLabel()}
         </Text>
         <Text
           accessibilityRole="header"

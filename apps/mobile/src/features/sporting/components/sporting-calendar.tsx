@@ -266,12 +266,9 @@ export function SportingCalendarView({
       numColumns={columns}
       onLayout={({ nativeEvent }) => setListWidth(nativeEvent.layout.width)}
       overrideItemLayout={(layout, item, _index, columns) => {
-        layout.span =
-          item.kind === "date" || item.kind === "space"
-            ? 1
-            : columns === 1
-              ? 1
-              : columns - 1;
+        const singleSpan =
+          item.kind === "date" || item.kind === "space" || columns === 1;
+        layout.span = singleSpan ? 1 : columns - 1;
       }}
       recycleItems
       getItemType={(item) => item.kind}
@@ -284,12 +281,17 @@ export function SportingCalendarView({
         ) : undefined
       }
       refreshControl={refreshControl}
-      renderItem={({ item }) =>
-        item.kind === "space" ? null : item.kind === "date" ? (
-          <CalendarDate date={item.date} stacked={stacked} />
-        ) : item.kind === "pool" ? (
-          <CalendarPoolHeader group={item.group} />
-        ) : (
+      renderItem={({ item }) => {
+        if (item.kind === "space") {
+          return null;
+        }
+        if (item.kind === "date") {
+          return <CalendarDate date={item.date} stacked={stacked} />;
+        }
+        if (item.kind === "pool") {
+          return <CalendarPoolHeader group={item.group} />;
+        }
+        return (
           <CalendarGroupPart match={item.match} last={item.last}>
             <View
               style={[
@@ -306,8 +308,8 @@ export function SportingCalendarView({
               />
             </View>
           </CalendarGroupPart>
-        )
-      }
+        );
+      }}
       onEndReached={() => {
         if (calendar.hasNextPage && !calendar.isFetching && !calendar.isError) {
           loadMore();
