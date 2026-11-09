@@ -30,11 +30,12 @@ export function BrandHeader({ children }: BrandHeaderProps) {
 }
 
 const styles = StyleSheet.create({
-  // These dimensions retain the approved entry composition rather than the ordinary back-navigation bar.
+  // Center the wrapped line as well as its controls so a trailing action never shifts the brand vertically.
   header: {
     marginHorizontal: tokens.spacing["2xl"],
     flexDirection: "row",
     flexWrap: "wrap",
+    alignContent: "center",
     gap: tokens.spacing.md,
     alignItems: "center",
     justifyContent: "space-between",

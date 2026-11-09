@@ -56,6 +56,7 @@ const searchTabs = [
 /**
  * Public discovery with shared text and current examples cached per tab/filter context.
  * Filters retain one selection per sporting tab; empty/whitespace reads explicitly present examples.
+ * The fixed heading follows that text intent while initial options and result cards are pending.
  * Native end events continue the selected focused context. Initial errors use the shared card;
  * failed continuation retains accepted pages and offers retry only at the list edge.
  * Owner-authorized reread failures retain usable rows with explicit retry; an old empty response
@@ -301,19 +302,19 @@ export function SearchScreen() {
                   </Pressable>
                 )}
               </View>
-              {(searchable || examples) && (!sporting || filters) && (
-                <SearchHeading
-                  examples={examples}
-                  count={
-                    queries[resource].data ? items[resource].length : undefined
-                  }
-                  onClear={
-                    examples && !changed
-                      ? undefined
-                      : () => clearCriteria(resource)
-                  }
-                />
-              )}
+              <SearchHeading
+                examples={examples}
+                count={
+                  searchable && queries[resource].data
+                    ? items[resource].length
+                    : undefined
+                }
+                onClear={
+                  examples && !changed
+                    ? undefined
+                    : () => clearCriteria(resource)
+                }
+              />
             </View>
           </>
         )}
