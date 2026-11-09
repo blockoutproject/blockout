@@ -250,23 +250,22 @@ it.each([
         ],
       },
     };
-    mockFetch.mockImplementation(async (url) =>
-      Response.json(
-        url.includes("/matches")
-          ? calendarPage
-          : {
-              items: url.includes("team-follows")
-                ? [team(1)]
-                : [
-                    {
-                      pool: { id: season.id, name: "Poule" },
-                      season,
-                      classification: {},
-                    },
-                  ],
-            },
-      ),
-    );
+    mockFetch.mockImplementation(async (url) => {
+      if (url.includes("/matches")) {
+        return Response.json(calendarPage);
+      }
+      return Response.json({
+        items: url.includes("team-follows")
+          ? [team(1)]
+          : [
+              {
+                pool: { id: season.id, name: "Poule" },
+                season,
+                classification: {},
+              },
+            ],
+      });
+    });
     for (const options of [teams, pools, bypassTeams]) {
       await client.infiniteQuery(options);
     }
@@ -331,16 +330,22 @@ it("withdraws a successfully omitted season from exact and All-seasons lists on 
     undefined,
     true,
   );
-  mockFetch.mockImplementation(async (url) =>
-    Response.json({
-      items: url.includes("pool-follows")
-        ? [currentPool, historicalPool]
-        : new URL(url).searchParams.has("seasonId")
-          ? [currentTeam]
-          : [currentTeam, historicalTeam],
+  mockFetch.mockImplementation(async (url) => {
+    let items;
+    if (url.includes("pool-follows")) {
+      items = [currentPool, historicalPool];
+    } else {
+      if (new URL(url).searchParams.has("seasonId")) {
+        items = [currentTeam];
+      } else {
+        items = [currentTeam, historicalTeam];
+      }
+    }
+    return Response.json({
+      items: items,
       nextPage: 1,
-    }),
-  );
+    });
+  });
   for (const options of [
     selected,
     allTeams,
@@ -447,24 +452,32 @@ it.each([undefined, season.id])(
     );
     const currentTeam = team(1);
     const historical = { ...team(2), season: otherSeason };
-    mockFetch.mockImplementation(async (url) =>
-      Response.json({
-        items: url.includes("pool-follows")
-          ? [
-              {
-                pool: { id: season.id, name: "Poule A" },
-                season,
-                classification: {},
-              },
-            ]
-          : new URL(url).searchParams.get("seasonId") === season.id
-            ? [currentTeam]
-            : new URL(url).searchParams.get("seasonId") === otherSeason.id
-              ? [historical]
-              : [currentTeam, historical],
+    mockFetch.mockImplementation(async (url) => {
+      let items;
+      if (url.includes("pool-follows")) {
+        items = [
+          {
+            pool: { id: season.id, name: "Poule A" },
+            season,
+            classification: {},
+          },
+        ];
+      } else {
+        if (new URL(url).searchParams.get("seasonId") === season.id) {
+          items = [currentTeam];
+        } else {
+          if (new URL(url).searchParams.get("seasonId") === otherSeason.id) {
+            items = [historical];
+          } else {
+            items = [currentTeam, historical];
+          }
+        }
+      }
+      return Response.json({
+        items: items,
         nextPage: 1,
-      }),
-    );
+      });
+    });
     for (const options of [selected, all, pools, other, bypass]) {
       await client.infiniteQuery(options);
     }

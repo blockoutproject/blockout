@@ -292,9 +292,11 @@ export function FollowedLists(props: FollowedListsProps) {
             </View>
           );
         }
-        return (
-          <View style={styles.feedback}>
-            {!list.items.length && list.query.isError ? (
+
+        /** Keeps the section's retained rows independent from initial failure, empty state and continuation retry. */
+        function renderListFeedback() {
+          if (!list.items.length && list.query.isError) {
+            return (
               <ErrorState
                 onRetry={
                   props.active && expanded[row.resource]
@@ -307,7 +309,10 @@ export function FollowedLists(props: FollowedListsProps) {
                 }
                 retrying={list.query.isFetching}
               />
-            ) : !list.query.data ? (
+            );
+          }
+          if (!list.query.data) {
+            return (
               <ReadFeedback
                 query={list.query}
                 loadingContent={
@@ -322,22 +327,26 @@ export function FollowedLists(props: FollowedListsProps) {
                   </View>
                 }
               />
-            ) : !list.items.length && !list.query.hasNextPage ? (
-              <NoAvailableFollows />
-            ) : (
-              <ListContinuation
-                loading={list.query.isFetchingNextPage}
-                failed={list.query.isError && !!list.query.hasNextPage}
-                disabled={!props.active || list.query.isFetching}
-                onRetry={() =>
-                  void (list.query.isRefetchError
-                    ? list.refresh()
-                    : list.append(true))
-                }
-              />
-            )}
-          </View>
-        );
+            );
+          }
+          if (!list.items.length && !list.query.hasNextPage) {
+            return <NoAvailableFollows />;
+          }
+          return (
+            <ListContinuation
+              loading={list.query.isFetchingNextPage}
+              failed={list.query.isError && !!list.query.hasNextPage}
+              disabled={!props.active || list.query.isFetching}
+              onRetry={() =>
+                void (list.query.isRefetchError
+                  ? list.refresh()
+                  : list.append(true))
+              }
+            />
+          );
+        }
+
+        return <View style={styles.feedback}>{renderListFeedback()}</View>;
       }}
     />
   );

@@ -19,12 +19,14 @@ export function FollowerCount({ target }: FollowerCountProps) {
   const count = query.data?.count;
   const initialLoading = query.isPending && query.isFetching;
   const unavailable = query.isError || query.isPaused;
-  const label =
-    count === undefined
-      ? initialLoading
-        ? "Chargement du nombre d’abonnés"
-        : "Nombre d’abonnés indisponible"
-      : `${count.toLocaleString("fr-FR")} abonné${count > 1 ? "s" : ""}${unavailable ? ", actualisation indisponible" : ""}`;
+  let label = initialLoading
+    ? "Chargement du nombre d’abonnés"
+    : "Nombre d’abonnés indisponible";
+  if (count !== undefined) {
+    const plural = count > 1 ? "s" : "";
+    const refreshStatus = unavailable ? ", actualisation indisponible" : "";
+    label = `${count.toLocaleString("fr-FR")} abonné${plural}${refreshStatus}`;
+  }
   return (
     <View style={styles.count}>
       <View
