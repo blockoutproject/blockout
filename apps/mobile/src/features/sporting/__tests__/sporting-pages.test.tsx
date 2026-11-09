@@ -947,13 +947,23 @@ it("keeps a clubless professional team and one follow action across distinct pha
   expect(screen.getByRole("tab", { name: "Terminés" })).toBeOnTheScreen();
 });
 
-it("opens exact club and pool identities without substituting a namesake", async () => {
+it("opens exact club and long participation identities without substituting a namesake", async () => {
   // Given
+  const initialTitle =
+    "Championnat interdépartemental de la Vallée et des Montagnes · Poule A · Phase initiale";
+  const finalTitle =
+    "Championnat interdépartemental de la Vallée et des Montagnes · Poule A · Phase finale";
   team = {
     ...team,
     team: { ...team.team, club: club.club },
     participations: team.participations.map((entry) => ({
       ...entry,
+      pool: {
+        ...entry.pool,
+        name: entry.pool.id === secondPoolId ? finalTitle : initialTitle,
+      },
+      phaseName:
+        entry.pool.id === secondPoolId ? "Phase finale" : "Phase initiale",
       competitionName: "Unnecessary competition subtitle",
     })),
   };
@@ -968,11 +978,16 @@ it("opens exact club and pool identities without substituting a namesake", async
       name: "Le club",
     }),
   );
-  await user.press(screen.getByRole("tab", { name: "Pool · Phase finale" }));
-  const poolLink = screen.getByRole("link", { name: "Pool · Phase finale" });
+  await user.press(screen.getByRole("tab", { name: initialTitle }));
+  const initialLink = screen.getByRole("link", { name: initialTitle });
+  expect(within(initialLink).getByText(initialTitle)).toBeOnTheScreen();
+  await user.press(initialLink);
+  await user.press(screen.getByRole("tab", { name: finalTitle }));
+  const poolLink = screen.getByRole("link", { name: finalTitle });
+  expect(within(poolLink).getByText(finalTitle)).toBeOnTheScreen();
   expect(
     within(poolLink).getByRole("image", {
-      name: "Logo absent : Pool · Phase finale",
+      name: `Logo absent : ${finalTitle}`,
     }),
   ).toBeOnTheScreen();
   expect(
@@ -984,6 +999,10 @@ it("opens exact club and pool identities without substituting a namesake", async
   expect(mockPush).toHaveBeenCalledWith({
     pathname: "/clubs/[clubId]",
     params: { clubId: sportingId },
+  });
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: "/pools/[poolId]",
+    params: { poolId: sportingId },
   });
   expect(mockPush).toHaveBeenCalledWith({
     pathname: "/pools/[poolId]",
