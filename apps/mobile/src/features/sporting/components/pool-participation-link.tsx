@@ -1,5 +1,5 @@
 import { ChevronRight } from "lucide-react-native";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { PoolSummaryResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -8,7 +8,6 @@ import { poolLabel } from "../model/resource-sections";
 import { divisionTextColor } from "../presentation";
 import { SportingLogo } from "./sporting-identity";
 import { SportingMedia } from "./sporting-media";
-import { ScrollingParticipationLabel } from "./scrolling-participation-label";
 
 /** One exact participation; the retained scene owns admission of its pool opening. */
 export interface PoolParticipationLinkProps {
@@ -16,7 +15,7 @@ export interface PoolParticipationLinkProps {
   active: boolean;
 }
 
-/** Compact division-colored entry preserves its published title and exact navigation target. */
+/** Division-colored entry wraps its complete title while retaining exact active-scene navigation. */
 export function PoolParticipationLink({
   pool,
   active,
@@ -59,11 +58,9 @@ export function PoolParticipationLink({
             size={tokens.size.icon.md}
           />
         )}
-        <ScrollingParticipationLabel
-          label={label}
-          color={foreground}
-          active={active}
-        />
+        <Text accessible={false} style={[styles.label, { color: foreground }]}>
+          {label}
+        </Text>
         <ChevronRight
           accessible={false}
           size={tokens.size.icon.sm}
@@ -76,6 +73,7 @@ export function PoolParticipationLink({
 
 const styles = StyleSheet.create({
   target: { minHeight: tokens.touch.minimum, justifyContent: "center" },
+  label: { ...tokens.typography.metadata, flex: 1, minWidth: 0 },
   entry: {
     minHeight: tokens.size.control.compact,
     flexDirection: "row",
