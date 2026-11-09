@@ -9,7 +9,7 @@ export interface BrandHeaderProps {
   children?: ReactNode;
 }
 
-/** Shares the approved discovery/age header anatomy; Page owns its surrounding native safe area. */
+/** Shares entry branding and trailing actions across discovery, age and admission; Page owns the native safe area. */
 export function BrandHeader({ children }: BrandHeaderProps) {
   const { colors } = useTheme();
   return (
@@ -38,13 +38,13 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.md,
     alignItems: "center",
     justifyContent: "space-between",
-    minHeight: 69,
+    minHeight: tokens.layout.brandHeader,
     paddingBottom: tokens.spacing.lg,
     borderBottomWidth: tokens.border.thin,
   },
   brand: {
     flexDirection: "row",
-    gap: 9,
+    gap: tokens.spacing.sm,
     alignItems: "center",
     maxWidth: "100%",
     minWidth: 0,

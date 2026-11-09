@@ -194,6 +194,7 @@ export const tokens = {
   // Safe-area and keyboard measurements remain native; these are content roles only.
   layout: {
     header: 48,
+    brandHeader: 69,
     width: { compact: 320 },
     content: { start: spacing.sm, end: spacing.lg },
     form: { gap: spacing.lg, labelGap: spacing.tight },
@@ -211,6 +212,7 @@ export const tokens = {
     identityAtmosphere: { blur: 40, opacity: 0.23 },
   },
   size: {
+    brandMark: 28,
     control: { default: 48, compact: 36 },
     icon: { sm: 16, md: 20, lg: 24 },
     media: { row: 40, entity: 48, match: 32, profile: 64 },

@@ -27,7 +27,7 @@ export interface SearchResultsProps {
 
 /** Pending cards use the same content edge as the list beneath the fixed Examples/Results heading. */
 export function SearchResultsContent({ children }: PropsWithChildren) {
-  return <PageContent style={styles.cards}>{children}</PageContent>;
+  return <PageContent>{children}</PageContent>;
 }
 
 /** Native rows and ordinary feedback share the viewport below the fixed Search controls. */
@@ -63,7 +63,7 @@ export function SearchResults({
       recycleItems
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
-      contentContainerStyle={[pageContentStyle, styles.cards]}
+      contentContainerStyle={pageContentStyle}
       ItemSeparatorComponent={ListSeparator}
       renderItem={({ item }) => (
         <SearchResultCard {...item} onPress={() => onOpen(item)} />
@@ -124,7 +124,6 @@ export function SearchHeading({
 }
 
 const styles = StyleSheet.create({
-  cards: { paddingTop: 0 },
   continuation: { paddingTop: tokens.spacing.lg },
   toolbar: {
     flexDirection: "row",

@@ -15,7 +15,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { PublicMaintenanceResponse } from "../../../../.generated/schemas/index.zod";
 import { IconButton } from "../../../shared/components/icon-button";
 import { Button } from "../../../shared/components/button";
-import { BrandMark } from "../../../shared/components/brand-mark";
+import { BrandHeader } from "../../../shared/components/brand-header";
 import { LoadingGroup } from "../../../shared/components/loading-group";
 import { Skeleton } from "../../../shared/components/skeleton";
 import { ScreenState } from "../../../shared/components/screen-state";
@@ -70,37 +70,31 @@ function GateView({
     message = updateMessage ?? applicationUpdateMessage;
   }
   return (
-    <Page>
-      <View style={[styles.header, { borderColor: colors.border }]}>
-        <View style={styles.identity}>
-          <BrandMark />
-          <Text
-            accessibilityLabel="BLOCKOUT"
-            numberOfLines={1}
-            ellipsizeMode="tail"
-            style={[styles.brand, { color: colors.text }]}
-          >
-            BLOCKOUT
-          </Text>
-        </View>
-        <Text
-          style={[
-            styles.badge,
-            { color: colors.text, borderColor: colors.border },
-          ]}
-        >
-          {onClose ? "APERÇU" : badge}
-        </Text>
-        {onClose && (
-          <IconButton label="Fermer" onPress={onClose}>
-            <X
-              accessible={false}
-              size={tokens.size.icon.lg}
-              color={colors.icon}
-            />
-          </IconButton>
-        )}
-      </View>
+    <Page
+      header={
+        <BrandHeader>
+          <View style={styles.headerActions}>
+            <Text
+              style={[
+                styles.badge,
+                { color: colors.text, borderColor: colors.border },
+              ]}
+            >
+              {onClose ? "APERÇU" : badge}
+            </Text>
+            {onClose && (
+              <IconButton label="Fermer" onPress={onClose}>
+                <X
+                  accessible={false}
+                  size={tokens.size.icon.lg}
+                  color={colors.icon}
+                />
+              </IconButton>
+            )}
+          </View>
+        </BrandHeader>
+      }
+    >
       <PageScrollView
         refreshControl={
           !onClose && onRefresh && !simple ? (
@@ -282,27 +276,12 @@ export function AccessGateScreen() {
 
 const styles = StyleSheet.create({
   pending: { gap: tokens.spacing.md },
-  // Admission status and preview actions retain their approved compact header, distinct from the discovery brand header.
-  header: {
-    marginHorizontal: tokens.spacing["2xl"],
-    minHeight: 53,
-    paddingBottom: tokens.spacing["2xl"],
-    borderBottomWidth: tokens.border.thin,
+  headerActions: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: tokens.spacing.sm,
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  identity: {
-    flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
-    maxWidth: "100%",
-    minWidth: 0,
-    flexShrink: 1,
   },
-  brand: { ...tokens.typography.navigation, minWidth: 0, flexShrink: 1 },
   badge: {
     ...tokens.typography.metadata,
     borderWidth: tokens.border.thin,
