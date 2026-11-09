@@ -384,18 +384,20 @@ it("starts a fresh candidate form after route removal without replaying its deta
   await user.type(screen.getByLabelText("URL officielle"), submitted);
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await screen.findByRole("button", { name: "Enregistrer", busy: true });
-  mockFetch.mockImplementation((url, options) =>
-    options?.method === "PUT"
-      ? pending.promise
-      : String(url).endsWith("/accounts/me")
-        ? Promise.resolve(
-            Response.json(
-              { type: "about:blank", title: "Forbidden", status: 403 },
-              { status: 403 },
-            ),
-          )
-        : serve(url),
-  );
+  mockFetch.mockImplementation((url, options) => {
+    if (options?.method === "PUT") {
+      return pending.promise;
+    }
+    if (String(url).endsWith("/accounts/me")) {
+      return Promise.resolve(
+        Response.json(
+          { type: "about:blank", title: "Forbidden", status: 403 },
+          { status: 403 },
+        ),
+      );
+    }
+    return serve(url);
+  });
   // When
   await act(async () => {
     await privateClient.invalidateQueries({
@@ -800,13 +802,15 @@ it("keeps an already prepared command outcome while a newer minimum changes rout
   await openRoute("/access");
   await screen.findByRole("link", { name: "Accès administrateur" });
   const check = Promise.withResolvers<Response>();
-  mockFetch.mockImplementation((url, options) =>
-    String(url).endsWith("/application-access")
-      ? check.promise
-      : options?.method === "PUT"
-        ? Promise.resolve(Response.json(source))
-        : serve(url),
-  );
+  mockFetch.mockImplementation((url, options) => {
+    if (String(url).endsWith("/application-access")) {
+      return check.promise;
+    }
+    if (options?.method === "PUT") {
+      return Promise.resolve(Response.json(source));
+    }
+    return serve(url);
+  });
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await act(async () =>
     router.push(`/collection/${seasonId}/sources/${sourceId}`),

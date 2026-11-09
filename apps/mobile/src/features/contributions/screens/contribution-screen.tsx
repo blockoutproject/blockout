@@ -49,14 +49,106 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
     }
   }
 
-  const pending =
-    !guest &&
-    (!authenticated
-      ? editing.session.status === "restoring" || !!editing.session.operation
-      : !editing.profile.data
-        ? editing.profile.isLoading
-        : editing.usable && !current && editing.query.isLoading);
+  /** Distinguishes session recovery, profile loading and the first admitted contribution read. */
+  function isInitialReadPending() {
+    if (!authenticated) {
+      return (
+        editing.session.status === "restoring" || !!editing.session.operation
+      );
+    }
+    if (!editing.profile.data) {
+      return editing.profile.isLoading;
+    }
+    return editing.usable && !current && editing.query.isLoading;
+  }
+
+  const pending = !guest && isInitialReadPending();
   const FeedbackLayout = pending ? PageContent : ScreenState;
+
+  /** Prioritizes session and read recovery while preserving the admitted form. */
+  function renderContributionContent() {
+    if (guest) {
+      return (
+        <FeedbackLayout style={styles.centered}>
+          <Button
+            label="Se connecter"
+            onPress={() =>
+              router.push({
+                pathname: "/sign-in-invitation",
+                params: { reason: "contribution" },
+              })
+            }
+          />
+        </FeedbackLayout>
+      );
+    }
+    if (!authenticated) {
+      return (
+        <FeedbackLayout style={pending ? undefined : styles.centered}>
+          {editing.session.status === "restoring" ||
+          editing.session.operation ? (
+            <ContributionFormLoading />
+          ) : (
+            <Button
+              label="Se connecter"
+              onPress={() => router.push("/sign-in")}
+            />
+          )}
+        </FeedbackLayout>
+      );
+    }
+    if (!editing.profile.data) {
+      return (
+        <FeedbackLayout>
+          <ReadFeedback
+            query={editing.profile}
+            loadingContent={<ContributionFormLoading />}
+          />
+        </FeedbackLayout>
+      );
+    }
+    if (!editing.usable && !current) {
+      return (
+        <FeedbackLayout>
+          <ErrorState
+            onRetry={() => void editing.profile.refetch()}
+            retrying={editing.profile.isFetching}
+          />
+        </FeedbackLayout>
+      );
+    }
+    if (!current) {
+      return (
+        <FeedbackLayout>
+          <ReadFeedback
+            query={editing.query}
+            loadingContent={<ContributionFormLoading />}
+          />
+        </FeedbackLayout>
+      );
+    }
+    return (
+      <PageContent>
+        {match.data && (
+          <MatchSummary match={match.data.match} presentation="context" />
+        )}
+        {editing.profile.isError && (
+          <Button
+            label="Réessayer le profil"
+            loading={editing.profile.isFetching}
+            onPress={() => void editing.profile.refetch()}
+          />
+        )}
+        <ContributionForm
+          key={`${editing.session.subject}:${editing.session.accountId}:${matchId}`}
+          matchId={matchId}
+          current={current}
+          editing={editing}
+        />
+      </PageContent>
+    );
+  }
+
   return (
     <Page header={<PageHeader title="Lien de diffusion" />}>
       <FormScrollView
@@ -69,71 +161,7 @@ export function ContributionScreen({ matchId }: ContributionScreenProps) {
           ) : undefined
         }
       >
-        {guest ? (
-          <FeedbackLayout style={styles.centered}>
-            <Button
-              label="Se connecter"
-              onPress={() =>
-                router.push({
-                  pathname: "/sign-in-invitation",
-                  params: { reason: "contribution" },
-                })
-              }
-            />
-          </FeedbackLayout>
-        ) : !authenticated ? (
-          <FeedbackLayout style={pending ? undefined : styles.centered}>
-            {editing.session.status === "restoring" ||
-            editing.session.operation ? (
-              <ContributionFormLoading />
-            ) : (
-              <Button
-                label="Se connecter"
-                onPress={() => router.push("/sign-in")}
-              />
-            )}
-          </FeedbackLayout>
-        ) : !editing.profile.data ? (
-          <FeedbackLayout>
-            <ReadFeedback
-              query={editing.profile}
-              loadingContent={<ContributionFormLoading />}
-            />
-          </FeedbackLayout>
-        ) : !editing.usable && !current ? (
-          <FeedbackLayout>
-            <ErrorState
-              onRetry={() => void editing.profile.refetch()}
-              retrying={editing.profile.isFetching}
-            />
-          </FeedbackLayout>
-        ) : !current ? (
-          <FeedbackLayout>
-            <ReadFeedback
-              query={editing.query}
-              loadingContent={<ContributionFormLoading />}
-            />
-          </FeedbackLayout>
-        ) : (
-          <PageContent>
-            {match.data && (
-              <MatchSummary match={match.data.match} presentation="context" />
-            )}
-            {editing.profile.isError && (
-              <Button
-                label="Réessayer le profil"
-                loading={editing.profile.isFetching}
-                onPress={() => void editing.profile.refetch()}
-              />
-            )}
-            <ContributionForm
-              key={`${editing.session.subject}:${editing.session.accountId}:${matchId}`}
-              matchId={matchId}
-              current={current}
-              editing={editing}
-            />
-          </PageContent>
-        )}
+        {renderContributionContent()}
       </FormScrollView>
     </Page>
   );

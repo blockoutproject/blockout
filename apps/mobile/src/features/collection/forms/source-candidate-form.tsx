@@ -266,11 +266,7 @@ export function SourceCandidateForm({
             style={({ pressed }) => [
               styles.sourceLink,
               {
-                opacity: handoff.pending
-                  ? tokens.opacity.disabled
-                  : pressed
-                    ? tokens.opacity.pressed
-                    : 1,
+                opacity: linkOpacity(handoff.pending, pressed),
               },
             ]}
           >
@@ -413,11 +409,7 @@ export function SourceCandidateForm({
         style={({ pressed }) => [
           styles.sourceLink,
           {
-            opacity: !authority.enabled
-              ? tokens.opacity.disabled
-              : pressed
-                ? tokens.opacity.pressed
-                : 1,
+            opacity: linkOpacity(!authority.enabled, pressed),
           },
         ]}
         disabled={!authority.enabled}
@@ -473,6 +465,14 @@ export function SourceCandidateForm({
       )}
     </View>
   );
+}
+
+/** Disabled source navigation takes precedence over native press feedback. */
+function linkOpacity(disabled: boolean, pressed: boolean) {
+  if (disabled) {
+    return tokens.opacity.disabled;
+  }
+  return pressed ? tokens.opacity.pressed : 1;
 }
 
 const styles = StyleSheet.create({

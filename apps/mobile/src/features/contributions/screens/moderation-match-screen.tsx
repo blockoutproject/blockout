@@ -64,8 +64,19 @@ export function ModerationMatchScreen({ matchId }: ModerationMatchScreenProps) {
     "historical",
     tab === "historical",
   );
-  const selected =
-    tab === "pending" ? pending : tab === "historical" ? historical : editing;
+
+  /** Selects the committed moderation tab without changing independent query ownership. */
+  function selectedVersions() {
+    if (tab === "pending") {
+      return pending;
+    }
+    if (tab === "historical") {
+      return historical;
+    }
+    return editing;
+  }
+
+  const selected = selectedVersions();
   const current =
     selected.canRetain && !isAccessDenied(selected.query.error)
       ? (selected.query.data?.pages[0] ?? editing.query.data?.pages[0])
@@ -260,6 +271,34 @@ function ActiveScene({
     );
   }
   if (!current) {
+    /** Recovers admission before mounting the current exact-match editor. */
+    function renderEditorContent() {
+      if (editing.session.status !== "authenticated") {
+        return (
+          <AccountSessionFeedback
+            loadingContent={<ModerationMatchLoading editor />}
+          />
+        );
+      }
+      if (!editing.canRetain && editing.profile.isSuccess) {
+        return (
+          <Text style={[tokens.typography.body, { color: colors.text }]}>
+            La modération des liens vidéo n’est pas autorisée.
+          </Text>
+        );
+      }
+      return (
+        <ReadFeedback
+          loadingContent={<ModerationMatchLoading />}
+          query={
+            editing.profile.isError || editing.profile.isPending
+              ? editing.profile
+              : editing.query
+          }
+        />
+      );
+    }
+
     return (
       <PageScrollView
         keyboardShouldPersistTaps="handled"
@@ -274,24 +313,7 @@ function ActiveScene({
               : undefined
           }
         >
-          {editing.session.status !== "authenticated" ? (
-            <AccountSessionFeedback
-              loadingContent={<ModerationMatchLoading editor />}
-            />
-          ) : !editing.canRetain && editing.profile.isSuccess ? (
-            <Text style={[tokens.typography.body, { color: colors.text }]}>
-              La modération des liens vidéo n’est pas autorisée.
-            </Text>
-          ) : (
-            <ReadFeedback
-              loadingContent={<ModerationMatchLoading />}
-              query={
-                editing.profile.isError || editing.profile.isPending
-                  ? editing.profile
-                  : editing.query
-              }
-            />
-          )}
+          {renderEditorContent()}
         </ScreenState>
       </PageScrollView>
     );
@@ -471,6 +493,32 @@ function VersionScene({
     );
   }
   if (!current) {
+    /** Renders exact-tab admission and read feedback without replacing retained versions. */
+    function renderVersionsState() {
+      if (reading.session.status !== "authenticated") {
+        return (
+          <AccountSessionFeedback loadingContent={<ModerationMatchLoading />} />
+        );
+      }
+      if (!reading.canRetain && reading.profile.isSuccess) {
+        return (
+          <Text style={[tokens.typography.body, { color: colors.text }]}>
+            La modération des liens vidéo n’est pas autorisée.
+          </Text>
+        );
+      }
+      return (
+        <ReadFeedback
+          loadingContent={<ModerationMatchLoading />}
+          query={
+            reading.profile.isError || reading.profile.isPending
+              ? reading.profile
+              : query
+          }
+        />
+      );
+    }
+
     return (
       <PageScrollView
         keyboardShouldPersistTaps="handled"
@@ -485,24 +533,7 @@ function VersionScene({
               : undefined
           }
         >
-          {reading.session.status !== "authenticated" ? (
-            <AccountSessionFeedback
-              loadingContent={<ModerationMatchLoading />}
-            />
-          ) : !reading.canRetain && reading.profile.isSuccess ? (
-            <Text style={[tokens.typography.body, { color: colors.text }]}>
-              La modération des liens vidéo n’est pas autorisée.
-            </Text>
-          ) : (
-            <ReadFeedback
-              loadingContent={<ModerationMatchLoading />}
-              query={
-                reading.profile.isError || reading.profile.isPending
-                  ? reading.profile
-                  : query
-              }
-            />
-          )}
+          {renderVersionsState()}
         </ScreenState>
       </PageScrollView>
     );

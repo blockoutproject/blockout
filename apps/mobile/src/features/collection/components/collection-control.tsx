@@ -82,18 +82,32 @@ export function CollectionControl({
     if (busy || closed || stateUnavailable || editing.query.isError) {
       return;
     }
-    const label =
-      command === "request"
-        ? "Relancer"
-        : control.enabled
-          ? "Mettre en pause"
-          : "Reprendre";
-    const detail =
-      command === "request"
-        ? "Demander une collecte de ce périmètre. L’acceptation ne garantit ni son démarrage ni son achèvement."
-        : control.enabled
-          ? "La demande en attente sera annulée. Une collecte déjà en cours pourra se terminer."
-          : "La collecte reprendra aux prochaines échéances éligibles, sans rejouer les passages manqués.";
+
+    /** Names the explicit control command before native confirmation. */
+    function confirmationLabel() {
+      if (command === "request") {
+        return "Relancer";
+      }
+      if (control.enabled) {
+        return "Mettre en pause";
+      }
+      return "Reprendre";
+    }
+
+    const label = confirmationLabel();
+
+    /** Explains only the requested command and its collection effects. */
+    function confirmationDetail() {
+      if (command === "request") {
+        return "Demander une collecte de ce périmètre. L’acceptation ne garantit ni son démarrage ni son achèvement.";
+      }
+      if (control.enabled) {
+        return "La demande en attente sera annulée. Une collecte déjà en cours pourra se terminer.";
+      }
+      return "La collecte reprendra aux prochaines échéances éligibles, sans rejouer les passages manqués.";
+    }
+
+    const detail = confirmationDetail();
     if (
       !(await confirmAction({
         title: `${label} ?`,
@@ -104,6 +118,45 @@ export function CollectionControl({
       return;
     }
     await send(command);
+  }
+
+  /** Distinguishes execution observations from requested control activity. */
+  function cycleLabel() {
+    if (running) {
+      return "Collecte en cours";
+    }
+    if (control.cycle?.state === "interrupted") {
+      return "Collecte interrompue · résultat à vérifier";
+    }
+    if (control.cycle?.state === "completed") {
+      return "Dernier cycle terminé";
+    }
+    return "Aucune exécution confirmée";
+  }
+
+  /** Prioritizes pending intent over the observed running cycle. */
+  function requestLabel() {
+    if (control.pendingRequestId) {
+      return "Demandée";
+    }
+    if (running) {
+      return "En cours";
+    }
+    return "Relancer";
+  }
+
+  /** Prioritizes closure over requested and observed activity. */
+  function controlStatus() {
+    if (closed) {
+      return "Clôturée";
+    }
+    if (control.enabled) {
+      return "Active";
+    }
+    if (running) {
+      return "Mise en pause en cours";
+    }
+    return "En pause";
   }
 
   return (
@@ -125,13 +178,7 @@ export function CollectionControl({
             },
           ]}
         >
-          {closed
-            ? "Clôturée"
-            : control.enabled
-              ? "Active"
-              : running
-                ? "Mise en pause en cours"
-                : "En pause"}
+          {controlStatus()}
         </Text>
       </View>
       {!closed && (
@@ -149,13 +196,7 @@ export function CollectionControl({
           <View style={styles.action}>
             <Button
               fullWidth
-              label={
-                control.pendingRequestId
-                  ? "Demandée"
-                  : running
-                    ? "En cours"
-                    : "Relancer"
-              }
+              label={requestLabel()}
               disabled={
                 busy ||
                 stateUnavailable ||
@@ -178,13 +219,7 @@ export function CollectionControl({
         </Text>
       )}
       <Text style={[tokens.typography.strong, { color: colors.text }]}>
-        {running
-          ? "Collecte en cours"
-          : control.cycle?.state === "interrupted"
-            ? "Collecte interrompue · résultat à vérifier"
-            : control.cycle?.state === "completed"
-              ? "Dernier cycle terminé"
-              : "Aucune exécution confirmée"}
+        {cycleLabel()}
       </Text>
       {running && !control.enabled && (
         <Text

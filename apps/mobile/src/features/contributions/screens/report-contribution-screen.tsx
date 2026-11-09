@@ -59,74 +59,100 @@ export function ReportContributionScreen({
   const authenticated = reporting.session.status === "authenticated";
   const sessionPending =
     reporting.session.status === "restoring" || !!reporting.session.operation;
+
+  /** Resolves session and profile recovery before exact-version report loading. */
+  function isInitialReadPending() {
+    if (!authenticated) {
+      return sessionPending;
+    }
+    if (!reporting.profile.data) {
+      return reporting.profile.isLoading;
+    }
+    return (
+      reporting.usable && !reporting.query.data && reporting.query.isLoading
+    );
+  }
+
   const pending =
-    reporting.session.status !== "guest" &&
-    (!authenticated
-      ? sessionPending
-      : !reporting.profile.data
-        ? reporting.profile.isLoading
-        : reporting.usable &&
-          !reporting.query.data &&
-          reporting.query.isLoading);
+    reporting.session.status !== "guest" && isInitialReadPending();
   const FeedbackLayout = pending ? PageContent : ScreenState;
+
+  /** Admits the retained exact-version report form only after session and private reads. */
+  function renderReportContent() {
+    if (reporting.session.status === "guest") {
+      return (
+        <FeedbackLayout style={styles.centered}>
+          <Button
+            label="Se connecter"
+            onPress={() =>
+              router.push({
+                pathname: "/sign-in-invitation",
+                params: { reason: "stream-report" },
+              })
+            }
+          />
+        </FeedbackLayout>
+      );
+    }
+    if (!authenticated) {
+      return (
+        <FeedbackLayout>
+          <AccountSessionFeedback
+            loadingContent={<ContributionReportLoading />}
+          />
+        </FeedbackLayout>
+      );
+    }
+    if (!reporting.profile.data) {
+      return (
+        <FeedbackLayout>
+          <ReadFeedback
+            query={reporting.profile}
+            loadingContent={<ContributionReportLoading />}
+          />
+        </FeedbackLayout>
+      );
+    }
+    if (!reporting.usable && !reporting.query.data) {
+      return (
+        <FeedbackLayout>
+          <ErrorState
+            onRetry={() => void reporting.profile.refetch()}
+            retrying={reporting.profile.isFetching}
+          />
+        </FeedbackLayout>
+      );
+    }
+    if (!reporting.query.data) {
+      return (
+        <FeedbackLayout>
+          <ReadFeedback
+            query={reporting.query}
+            loadingContent={<ContributionReportLoading />}
+          />
+        </FeedbackLayout>
+      );
+    }
+    return (
+      <PageContent>
+        {match.data && (
+          <MatchSummary match={match.data.match} presentation="context" />
+        )}
+        <ReportForm
+          key={`${reporting.session.subject}:${contributionId}`}
+          matchId={matchId}
+          contributionId={contributionId}
+          contributionUrl={contributionUrl}
+          reporting={reporting}
+          match={match}
+        />
+      </PageContent>
+    );
+  }
+
   return (
     <Page header={<PageHeader title="Lien de diffusion" />}>
-      <FormScrollView>
-        {reporting.session.status === "guest" ? (
-          <FeedbackLayout style={styles.centered}>
-            <Button
-              label="Se connecter"
-              onPress={() =>
-                router.push({
-                  pathname: "/sign-in-invitation",
-                  params: { reason: "stream-report" },
-                })
-              }
-            />
-          </FeedbackLayout>
-        ) : !authenticated ? (
-          <FeedbackLayout>
-            <AccountSessionFeedback
-              loadingContent={<ContributionReportLoading />}
-            />
-          </FeedbackLayout>
-        ) : !reporting.profile.data ? (
-          <FeedbackLayout>
-            <ReadFeedback
-              query={reporting.profile}
-              loadingContent={<ContributionReportLoading />}
-            />
-          </FeedbackLayout>
-        ) : !reporting.usable && !reporting.query.data ? (
-          <FeedbackLayout>
-            <ErrorState
-              onRetry={() => void reporting.profile.refetch()}
-              retrying={reporting.profile.isFetching}
-            />
-          </FeedbackLayout>
-        ) : !reporting.query.data ? (
-          <FeedbackLayout>
-            <ReadFeedback
-              query={reporting.query}
-              loadingContent={<ContributionReportLoading />}
-            />
-          </FeedbackLayout>
-        ) : (
-          <PageContent>
-            {match.data && (
-              <MatchSummary match={match.data.match} presentation="context" />
-            )}
-            <ReportForm
-              key={`${reporting.session.subject}:${contributionId}`}
-              matchId={matchId}
-              contributionId={contributionId}
-              contributionUrl={contributionUrl}
-              reporting={reporting}
-              match={match}
-            />
-          </PageContent>
-        )}
-      </FormScrollView>
+      <FormScrollView>{renderReportContent()}</FormScrollView>
     </Page>
   );
 }
@@ -161,11 +187,12 @@ function ReportForm({
   }, []);
   const matchAvailable =
     match.data !== undefined && !isOwnContributionAccessDenied(match.error);
+  const currentVersionUrl =
+    match.data?.streamContributionId === contributionId
+      ? match.data.streamUrl
+      : undefined;
   const targetUrl = matchAvailable
-    ? (contributionUrl ??
-      (match.data?.streamContributionId === contributionId
-        ? match.data.streamUrl
-        : undefined))
+    ? (contributionUrl ?? currentVersionUrl)
     : undefined;
   const reported =
     command.data?.reported === true ||

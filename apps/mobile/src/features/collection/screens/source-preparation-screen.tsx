@@ -62,29 +62,44 @@ export function SourcePreparationScreen({
         (source.isLoading || season.isLoading) &&
         !(current && current.seasonId !== seasonId));
   const FeedbackLayout = pending ? PageContent : ScreenState;
-  const blockingState = !retained ? (
-    !authority.enabled ? (
-      <AccessFeedback
-        {...authority}
-        loadingContent={<SourcePreparationLoading />}
-      />
-    ) : source.isError ||
-      season.isError ||
-      (current && current.seasonId !== seasonId) ? (
-      <ErrorState
-        onRetry={() => {
-          void source.refetch();
-          void season.refetch();
-        }}
-        retrying={source.isFetching || season.isFetching}
-      />
-    ) : (
-      <ReadFeedback
-        query={!season.data ? season : source}
-        loadingContent={<SourcePreparationLoading />}
-      />
-    )
-  ) : undefined;
+
+  /** Keeps the original source draft mounted while initial context resolves admission. */
+  function renderBlockingState() {
+    if (!retained) {
+      if (!authority.enabled) {
+        return (
+          <AccessFeedback
+            {...authority}
+            loadingContent={<SourcePreparationLoading />}
+          />
+        );
+      }
+      if (
+        source.isError ||
+        season.isError ||
+        (current && current.seasonId !== seasonId)
+      ) {
+        return (
+          <ErrorState
+            onRetry={() => {
+              void source.refetch();
+              void season.refetch();
+            }}
+            retrying={source.isFetching || season.isFetching}
+          />
+        );
+      }
+      return (
+        <ReadFeedback
+          query={!season.data ? season : source}
+          loadingContent={<SourcePreparationLoading />}
+        />
+      );
+    }
+    return undefined;
+  }
+
+  const blockingState = renderBlockingState();
   return (
     <Page header={<PageHeader title={current?.label ?? "Source"} />}>
       <FormScrollView

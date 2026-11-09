@@ -87,41 +87,51 @@ export function ModerationReportsScreen({
     await query.fetchNextPage({ cancelRefetch: false });
   }
 
+  /** Recovers exact-version report admission before interpreting empty results. */
+  function renderEmptyState() {
+    if (reading.session.status !== "authenticated") {
+      return (
+        <AccountSessionFeedback loadingContent={<ModerationReportsLoading />} />
+      );
+    }
+    if ((!reading.canRetain && reading.profile.isSuccess) || denied) {
+      return <ErrorState />;
+    }
+    if (
+      !pages ||
+      query.isError ||
+      reading.profile.isError ||
+      reading.profile.isPending
+    ) {
+      return (
+        <ReadFeedback
+          query={
+            reading.profile.isError || reading.profile.isPending
+              ? reading.profile
+              : query
+          }
+          loadingContent={<ModerationReportsLoading />}
+        />
+      );
+    }
+    return (
+      <EmptyState title="Aucun signalement">
+        <Button
+          label="Actualiser"
+          leadingIcon={RefreshCw}
+          disabled={!reading.allowed}
+          loading={query.isFetching}
+          onPress={() => void query.refetch({ cancelRefetch: false })}
+        />
+      </EmptyState>
+    );
+  }
+
   return (
     <Page header={<PageHeader title="Signalements" />}>
       {reports.length === 0 ? (
         <PageScrollView>
-          <FeedbackLayout>
-            {reading.session.status !== "authenticated" ? (
-              <AccountSessionFeedback
-                loadingContent={<ModerationReportsLoading />}
-              />
-            ) : (!reading.canRetain && reading.profile.isSuccess) || denied ? (
-              <ErrorState />
-            ) : !pages ||
-              query.isError ||
-              reading.profile.isError ||
-              reading.profile.isPending ? (
-              <ReadFeedback
-                query={
-                  reading.profile.isError || reading.profile.isPending
-                    ? reading.profile
-                    : query
-                }
-                loadingContent={<ModerationReportsLoading />}
-              />
-            ) : (
-              <EmptyState title="Aucun signalement">
-                <Button
-                  label="Actualiser"
-                  leadingIcon={RefreshCw}
-                  disabled={!reading.allowed}
-                  loading={query.isFetching}
-                  onPress={() => void query.refetch({ cancelRefetch: false })}
-                />
-              </EmptyState>
-            )}
-          </FeedbackLayout>
+          <FeedbackLayout>{renderEmptyState()}</FeedbackLayout>
         </PageScrollView>
       ) : (
         <PageList

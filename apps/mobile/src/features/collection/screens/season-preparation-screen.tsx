@@ -43,23 +43,39 @@ export function SeasonPreparationScreen({ seasonId }: { seasonId: string }) {
         authority.account.isLoading)
     : !season.data && season.isLoading;
   const FeedbackLayout = pending ? PageContent : ScreenState;
-  const blockingState = !authority.enabled ? (
-    <AccessFeedback {...authority} loadingContent={<CollectionLoading />} />
-  ) : isAccessDenied(season.error) ? (
-    <ErrorState
-      onRetry={() => void season.refetch()}
-      retrying={season.isFetching}
-    />
-  ) : !season.data ? (
-    season.isError ? (
-      <ErrorState
-        onRetry={() => void season.refetch()}
-        retrying={season.isFetching}
-      />
-    ) : (
-      <ReadFeedback query={season} loadingContent={<CollectionLoading />} />
-    )
-  ) : undefined;
+
+  /** Admits season content only after current permission and a usable read. */
+  function renderBlockingState() {
+    if (!authority.enabled) {
+      return (
+        <AccessFeedback {...authority} loadingContent={<CollectionLoading />} />
+      );
+    }
+    if (isAccessDenied(season.error)) {
+      return (
+        <ErrorState
+          onRetry={() => void season.refetch()}
+          retrying={season.isFetching}
+        />
+      );
+    }
+    if (!season.data) {
+      if (season.isError) {
+        return (
+          <ErrorState
+            onRetry={() => void season.refetch()}
+            retrying={season.isFetching}
+          />
+        );
+      }
+      return (
+        <ReadFeedback query={season} loadingContent={<CollectionLoading />} />
+      );
+    }
+    return undefined;
+  }
+
+  const blockingState = renderBlockingState();
   return (
     <Page header={<PageHeader title={season.data?.label ?? "Saison"} />}>
       <PageScrollView

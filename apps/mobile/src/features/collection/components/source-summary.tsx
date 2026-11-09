@@ -63,20 +63,18 @@ export function seasonStatus(season: CollectionSeasonResponse) {
 export function SourceBadge({ source }: { source: SourceBindingResponse }) {
   const { colors } = useTheme();
   const locked = source.locked || source.launched;
-  const foreground = locked
-    ? colors.onInfo
-    : source.validation === "qualified"
-      ? colors.onSuccessAction
-      : source.validation === "invalid"
-        ? colors.error
-        : colors.onWarning;
-  const backgroundColor = locked
-    ? colors.info
-    : source.validation === "qualified"
-      ? colors.successAction
-      : source.validation === "invalid"
-        ? colors.errorSubtle
-        : colors.warning;
+  let foreground = colors.onWarning;
+  let backgroundColor = colors.warning;
+  if (locked) {
+    foreground = colors.onInfo;
+    backgroundColor = colors.info;
+  } else if (source.validation === "qualified") {
+    foreground = colors.onSuccessAction;
+    backgroundColor = colors.successAction;
+  } else if (source.validation === "invalid") {
+    foreground = colors.error;
+    backgroundColor = colors.errorSubtle;
+  }
   return (
     <Text style={[styles.badge, { color: foreground, backgroundColor }]}>
       {sourceStatus(source)}

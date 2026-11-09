@@ -1156,25 +1156,26 @@ it("retains child rows and retries the failed page without a toast while retaini
 it("retains authorized child rows after a failed native refresh with discreet feedback", async () => {
   // Given
   let unavailable = false;
-  mockFetch.mockImplementation((url) =>
-    String(url).includes("/children")
-      ? Promise.resolve(
-          unavailable
-            ? refused(503)
-            : json({
-                items: [
-                  {
-                    id: "00000000-0000-4000-8000-000000000182",
-                    label: "Groupe conservé",
-                    kind: "pool",
-                  },
-                ],
-                page: 0,
-                hasNext: false,
-              }),
-        )
-      : reads(url),
-  );
+  mockFetch.mockImplementation((url) => {
+    if (String(url).includes("/children")) {
+      return Promise.resolve(
+        unavailable
+          ? refused(503)
+          : json({
+              items: [
+                {
+                  id: "00000000-0000-4000-8000-000000000182",
+                  label: "Groupe conservé",
+                  kind: "pool",
+                },
+              ],
+              page: 0,
+              hasNext: false,
+            }),
+      );
+    }
+    return reads(url);
+  });
   await renderPreparation(
     <SourceChildrenScreen seasonId={seasonId} sourceId={sourceId} />,
   );
@@ -1458,11 +1459,13 @@ it.each(["source", "provider"] as const)(
     await user.type(screen.getByLabelText("URL officielle"), draftUrl);
     mockFetch.mockClear().mockImplementation((url) => {
       const path = new URL(String(url)).pathname;
-      return path.endsWith(`/collection-seasons/${seasonId}`)
-        ? seasonRead.promise
-        : path.includes("/source-bindings")
-          ? sourceRead.promise
-          : reads(url);
+      if (path.endsWith(`/collection-seasons/${seasonId}`)) {
+        return seasonRead.promise;
+      }
+      if (path.includes("/source-bindings")) {
+        return sourceRead.promise;
+      }
+      return reads(url);
     });
 
     // When
