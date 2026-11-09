@@ -1,17 +1,22 @@
 package com.blockout.backend.collection.infrastructure.persistence;
 
+import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.config.MappingConfiguration;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.shared.mapping.UriMapping;
 import java.util.Objects;
 import java.util.UUID;
+import org.mapstruct.BeforeMapping;
 import org.mapstruct.Context;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingConstants;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.Named;
+import org.mapstruct.ValueMapping;
 
 /** Mechanical persistence projections; interrupted state derives from the current runtime only. */
 @Mapper(config = MappingConfiguration.class, uses = UriMapping.class)
@@ -106,7 +111,40 @@ interface CollectionPersistenceMapper {
    * @return unpersisted snapshot row; adapter assigns its cycle
    */
   @Mapping(target = "cycleId", ignore = true)
+  @Mapping(target = "nativeTeamReference", ignore = true)
   CollectionTargetEntity toEntity(CollectionState.Target source);
+
+  /**
+   * Retains the active role's unchanged database spelling without coupling retained snapshots to
+   * protocol enum removal.
+   *
+   * @param source active admitted role
+   * @return matching retained persistence value
+   */
+  CollectionTargetEntity.Kind persistedKind(CollectionTargetKindEnum source);
+
+  /**
+   * Projects only current roles; retired logo-only snapshots cannot grant new work.
+   *
+   * @param source retained snapshot role
+   * @return matching active role
+   */
+  @ValueMapping(source = "LOGO", target = MappingConstants.THROW_EXCEPTION)
+  CollectionTargetKindEnum activeKind(CollectionTargetEntity.Kind source);
+
+  /**
+   * Rejects the retired snapshot before mapping it into an active capability. Persistence still
+   * loads the retained row for ordinary lifecycle cleanup.
+   *
+   * @param source retained target, or null
+   * @throws CollectionConflictException when the target uses the retired logo-only capability
+   */
+  @BeforeMapping
+  default void requireActiveKind(CollectionTargetEntity source) {
+    if (source != null && source.getKind() == CollectionTargetEntity.Kind.LOGO) {
+      throw CollectionConflictException.invalidContext();
+    }
+  }
 
   /**
    * Derives interruption while preserving accepted completion.

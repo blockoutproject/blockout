@@ -343,8 +343,8 @@ class InitialReconstructionIntegrationTest {
   }
 
   @Test
-  @DisplayName("A failed team logo admits only that logo without calendar or neighbor writes")
-  void retriesExactFailedLogo() throws Exception {
+  @DisplayName("A failed team logo permits the explicitly selected parent pool passage")
+  void retriesParentPoolForFailedLogo() throws Exception {
     // Given
     Source source =
         qualify(
@@ -355,6 +355,11 @@ class InitialReconstructionIntegrationTest {
                 "135",
                 URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=135")));
     UUID pool = pool(source, "P1");
+    UUID unselected = pool(source, "P2");
+    sql.update(
+        "UPDATE sporting_pool SET standings_url=? WHERE id=?",
+        "https://lnv-web.dataproject.com/CompetitionStandings.aspx?ID=135&PID=136",
+        pool);
     Cycle first = admit(request(source, Set.of()));
     CalendarObservation.Match encounter =
         new CalendarObservation.Match(
@@ -372,6 +377,207 @@ class InitialReconstructionIntegrationTest {
     UUID neighbor =
         sql.queryForObject(
             "SELECT away_team_id FROM sporting_match WHERE pool_id=?", UUID.class, pool);
+    for (CollectionStageEnum stage :
+        List.of(CollectionStageEnum.CALENDAR, CollectionStageEnum.STANDINGS)) {
+      for (CollectionPhaseEnum phase : CollectionPhaseEnum.values()) {
+        results.record(
+            first.id(), evidence(pool, stage, phase, CollectionOutcomeEnum.SUCCESS, 1, 1L));
+      }
+    }
+    results.record(
+        first.id(),
+        evidence(
+            team,
+            CollectionStageEnum.LOGO,
+            CollectionPhaseEnum.ACQUISITION,
+            CollectionOutcomeEnum.FAILED,
+            2,
+            null));
+    results.record(
+        first.id(),
+        evidence(
+            unselected,
+            CollectionStageEnum.CALENDAR,
+            CollectionPhaseEnum.ACQUISITION,
+            CollectionOutcomeEnum.FAILED,
+            3,
+            null));
+    results.complete(first.id(), NOW.plusSeconds(60));
+    List<InitialCoverage> retained =
+        reconstruction.coverage(OPERATOR, source.seasonId(), 0, 200).items().stream()
+            .filter(row -> row.scopeId().equals(unselected))
+            .toList();
+    assertThat(retained)
+        .hasSize(2)
+        .allSatisfy(row -> assertThat(row.status()).isEqualTo(InitialCoverage.Status.UNAVAILABLE));
+    Image image = new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x112233));
+
+    // When
+    Cycle retry = admit(request(source, Set.of(pool)));
+    CollectionState.TargetPage selected = work.targets(retry.id(), 0, 200);
+    calendars.accept(
+        pool,
+        new CalendarObservation(context(retry, 1), true, List.of(encounter), List.of(), List.of()));
+    sourceImages.acceptSource(team, context(retry, 2), image);
+    sourceImages.acceptSource(neighbor, context(retry, 3), image);
+    for (CollectionPhaseEnum phase : CollectionPhaseEnum.values()) {
+      results.record(
+          retry.id(),
+          evidence(team, CollectionStageEnum.LOGO, phase, CollectionOutcomeEnum.SUCCESS, 2, null));
+    }
+    results.record(
+        retry.id(),
+        evidence(
+            team,
+            CollectionStageEnum.LOGO,
+            CollectionPhaseEnum.ACQUISITION,
+            CollectionOutcomeEnum.FAILED,
+            1,
+            null));
+
+    // Then
+    assertThat(selected.items())
+        .allSatisfy(item -> assertThat(item.target().scopeId()).isEqualTo(pool))
+        .extracting(item -> item.target().kind())
+        .containsExactlyInAnyOrder(
+            CollectionTargetKindEnum.CALENDAR, CollectionTargetKindEnum.STANDINGS);
+    assertThatThrownBy(
+            () ->
+                calendars.accept(
+                    unselected,
+                    new CalendarObservation(
+                        context(retry, 4), true, List.of(), List.of(), List.of())))
+        .isInstanceOf(CollectionConflictException.class);
+    assertThat(
+            sql.queryForObject(
+                "SELECT source_logo FROM sporting_team WHERE id=?", byte[].class, team))
+        .isEqualTo(image.bytes());
+    assertThat(
+            sql.queryForObject(
+                "SELECT source_logo FROM sporting_team WHERE id=?", byte[].class, neighbor))
+        .isEqualTo(image.bytes());
+    assertThat(reconstruction.coverage(OPERATOR, source.seasonId(), 0, 200).items())
+        .filteredOn(row -> row.scopeId().equals(unselected))
+        .containsExactlyElementsOf(retained);
+    assertThat(reconstruction.coverage(OPERATOR, source.seasonId(), 0, 200).items())
+        .filteredOn(row -> row.scopeId().equals(team) && row.stage() == CollectionStageEnum.LOGO)
+        .hasSize(2)
+        .allSatisfy(
+            row -> {
+              assertThat(row.sourceBindingId()).isEqualTo(source.id());
+              assertThat(row.status()).isEqualTo(InitialCoverage.Status.OBTAINED);
+              assertThat(row.readOrdinal()).isEqualTo(2);
+            });
+  }
+
+  @Test
+  @DisplayName("A retained logo-only snapshot is refused without preventing runtime replacement")
+  void refusesRetainedLogoSnapshot() {
+    // Given: the persisted legacy kind remains intact while the active protocol rejects it.
+    Source source = qualified(2023, "ABCCS");
+    UUID pool = pool(source, "P1");
+    Cycle old = admit(request(source, Set.of()));
+    sql.update(
+        "UPDATE collection_target SET kind='LOGO' WHERE cycle_id=? AND kind='CALENDAR' AND scope_id=?",
+        old.id(),
+        pool);
+
+    // When / Then
+    assertThatThrownBy(() -> work.targets(old.id(), 0, 200))
+        .isInstanceOf(CollectionConflictException.class);
+    assertThat(
+            sql.queryForObject(
+                "SELECT COUNT(*) FROM collection_target WHERE cycle_id=? AND kind='LOGO'",
+                Long.class,
+                old.id()))
+        .isEqualTo(1);
+    UUID replacement = UUID.fromString("00000000-0000-4000-8000-000000000260");
+    runtime.register(work.current().revision(), replacement);
+    assertThatThrownBy(
+            () ->
+                results.record(
+                    old.id(),
+                    evidence(
+                        pool,
+                        CollectionStageEnum.CALENDAR,
+                        CollectionPhaseEnum.ACQUISITION,
+                        CollectionOutcomeEnum.SUCCESS,
+                        1,
+                        0L)))
+        .isInstanceOf(CollectionConflictException.class);
+    Control pending = request(source, Set.of());
+    Cycle current =
+        admission
+            .admit(
+                new CollectionState.StartCycle(
+                    UUID.fromString("00000000-0000-4000-8000-000000000261"),
+                    replacement,
+                    pending.id(),
+                    null,
+                    pending.revision(),
+                    pending.requestId()))
+            .cycle();
+    assertThat(work.targets(current.id(), 0, 200).items())
+        .extracting(item -> item.target().kind())
+        .containsExactlyInAnyOrder(
+            CollectionTargetKindEnum.DISCOVERY, CollectionTargetKindEnum.CALENDAR);
+    assertThat(
+            sql.queryForObject(
+                "SELECT COUNT(*) FROM collection_cycle WHERE id=?", Long.class, old.id()))
+        .isZero();
+  }
+
+  @ParameterizedTest(name = "Refuses logo retry through {0}")
+  @ValueSource(strings = {"team", "unrelated-pool", "foreign-source"})
+  @DisplayName("Failed logo evidence authorizes only an explicitly selected same-source parent")
+  void refusesUnattributableLogoRetry(String selection) {
+    // Given
+    Source source =
+        qualify(
+            reconstruction.prepare(
+                OPERATOR,
+                2023,
+                CollectionProviderEnum.LNV,
+                "135",
+                URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=135")));
+    Source requestedSource =
+        "foreign-source".equals(selection)
+            ? qualify(
+                reconstruction.prepare(
+                    OPERATOR,
+                    2023,
+                    CollectionProviderEnum.LNV,
+                    "136",
+                    URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=136")))
+            : source;
+    UUID parent = pool(source, "P1");
+    UUID unrelated = pool(source, "P2");
+    Cycle first = admit(request(source, Set.of()));
+    calendars.accept(
+        parent,
+        new CalendarObservation(
+            context(first, 1),
+            true,
+            List.of(
+                new CalendarObservation.Match(
+                    "M1",
+                    new TeamCandidate("100", "Home", null, null),
+                    new TeamCandidate("101", "Away", null, null),
+                    candidate("M1", "Home", LocalDate.of(2023, 10, 1)).facts(),
+                    null)),
+            List.of(),
+            List.of()));
+    UUID team =
+        sql.queryForObject(
+            "SELECT home_team_id FROM sporting_match WHERE pool_id=?", UUID.class, parent);
+    for (UUID scope : List.of(parent, unrelated)) {
+      for (CollectionPhaseEnum phase : CollectionPhaseEnum.values()) {
+        results.record(
+            first.id(),
+            evidence(
+                scope, CollectionStageEnum.CALENDAR, phase, CollectionOutcomeEnum.SUCCESS, 1, 1L));
+      }
+    }
     results.record(
         first.id(),
         evidence(
@@ -382,38 +588,81 @@ class InitialReconstructionIntegrationTest {
             2,
             null));
     results.complete(first.id(), NOW.plusSeconds(60));
-    Image image = new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x112233));
+    UUID requestedScope =
+        switch (selection) {
+          case "team" -> team;
+          case "unrelated-pool" -> unrelated;
+          case "foreign-source" -> parent;
+          default -> throw new IllegalArgumentException("Unknown controlled selection");
+        };
 
-    // When
-    Cycle retry = admit(request(source, Set.of(team)));
-    CollectionState.TargetPage selected = work.targets(retry.id(), 0, 200);
-    sourceImages.acceptSource(team, context(retry, 1), image);
+    // When / Then
+    assertThatThrownBy(() -> request(requestedSource, Set.of(requestedScope)))
+        .isInstanceOf(CollectionConflictException.class);
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_request_scope", Long.class))
+        .isZero();
+  }
 
-    // Then
-    assertThat(selected.items())
-        .singleElement()
-        .satisfies(
-            item -> {
-              assertThat(item.target().kind().getValue()).isEqualTo("logo");
-              assertThat(item.target().scopeId()).isEqualTo(team);
-            });
-    assertThatThrownBy(
-            () ->
-                calendars.accept(
-                    pool,
-                    new CalendarObservation(
-                        context(retry, 2), true, List.of(), List.of(), List.of())))
-        .isInstanceOf(CollectionConflictException.class);
-    assertThatThrownBy(() -> sourceImages.acceptSource(neighbor, context(retry, 2), image))
-        .isInstanceOf(CollectionConflictException.class);
+  @Test
+  @DisplayName("A requested parent pool must remain eligible when historical work is admitted")
+  void refusesIneligibleParentAtAdmission() {
+    // Given
+    Source source =
+        qualify(
+            reconstruction.prepare(
+                OPERATOR,
+                2023,
+                CollectionProviderEnum.LNV,
+                "135",
+                URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=135")));
+    UUID parent = pool(source, "P1");
+    Cycle first = admit(request(source, Set.of()));
+    calendars.accept(
+        parent,
+        new CalendarObservation(
+            context(first, 1),
+            true,
+            List.of(
+                new CalendarObservation.Match(
+                    "M1",
+                    new TeamCandidate("100", "Home", null, null),
+                    new TeamCandidate("101", "Away", null, null),
+                    candidate("M1", "Home", LocalDate.of(2023, 10, 1)).facts(),
+                    null)),
+            List.of(),
+            List.of()));
+    UUID team =
+        sql.queryForObject(
+            "SELECT home_team_id FROM sporting_match WHERE pool_id=?", UUID.class, parent);
+    for (CollectionPhaseEnum phase : CollectionPhaseEnum.values()) {
+      results.record(
+          first.id(),
+          evidence(
+              parent, CollectionStageEnum.CALENDAR, phase, CollectionOutcomeEnum.SUCCESS, 1, 1L));
+    }
+    results.record(
+        first.id(),
+        evidence(
+            team,
+            CollectionStageEnum.LOGO,
+            CollectionPhaseEnum.ACQUISITION,
+            CollectionOutcomeEnum.FAILED,
+            2,
+            null));
+    results.complete(first.id(), NOW.plusSeconds(60));
+    Control pending = request(source, Set.of(parent));
+    sql.update("UPDATE sporting_division SET active=FALSE WHERE id=?", DIVISION);
+
+    // When / Then
+    assertThatThrownBy(() -> admit(pending)).isInstanceOf(CollectionConflictException.class);
+    assertThat(configuration.control(OPERATOR, pending.id()).control().requestId())
+        .isEqualTo(pending.requestId());
     assertThat(
             sql.queryForObject(
-                "SELECT source_logo FROM sporting_team WHERE id=?", byte[].class, team))
-        .isEqualTo(image.bytes());
-    assertThat(
-            sql.queryForObject(
-                "SELECT source_logo FROM sporting_team WHERE id=?", byte[].class, neighbor))
-        .isNull();
+                "SELECT COUNT(*) FROM collection_cycle WHERE control_id=?",
+                Long.class,
+                pending.id()))
+        .isEqualTo(1);
   }
 
   @Test

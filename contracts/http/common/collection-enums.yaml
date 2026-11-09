@@ -85,7 +85,6 @@ CollectionTargetKindEnum:
     - calendar
     - standings
     - details
-    - logo
     - club-sheet
     - geocoding
 CollectionResourceKindEnum:

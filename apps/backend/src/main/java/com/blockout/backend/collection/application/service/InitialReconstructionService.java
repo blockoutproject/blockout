@@ -3,6 +3,7 @@ package com.blockout.backend.collection.application.service;
 import com.blockout.backend.access.application.ActionAuthorization;
 import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
+import com.blockout.backend.collection.application.exception.InvalidSourceException;
 import com.blockout.backend.collection.application.model.CollectionState.Control;
 import com.blockout.backend.collection.application.model.CollectionState.Cycle;
 import com.blockout.backend.collection.application.model.CollectionState.Source;
@@ -16,11 +17,16 @@ import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
+import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
+import com.blockout.backend.sporting.application.model.SportingViews.TeamView;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
+import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -28,6 +34,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,6 +47,7 @@ public class InitialReconstructionService {
   private final ReadCollectionConfiguration configurationReads;
   private final PrepareCollectionSources preparation;
   private final ActionAuthorization authorization;
+  private final ReadSportingAcquisition acquisitionReads;
 
   /**
    * Retains one exact initial request without enabling periodic activity.
@@ -48,8 +56,14 @@ public class InitialReconstructionService {
    * @param seasonId canonical open season
    * @param revision last read season preparation revision
    * @param sourceIds exact selected qualified roots
-   * @param scopeIds optional previously failed scopes; empty selects the supplied roots
+   * @param scopeIds optional failed scopes or explicitly selected parent pools of failed LNV logos;
+   *     empty selects the supplied roots. A parent passage may integrate ordinary sporting facts
+   *     and neighboring logos within that pool; a team UUID grants no logo-only capability.
    * @return accepted controls with pending identities for explicit rereads
+   * @throws AccessDeniedException when the operator lacks the current collection grant
+   * @throws SportingResourceNotFoundException when the canonical season is unknown
+   * @throws CollectionConflictException for stale revisions, closed or active history, unqualified
+   *     sources, unattributable retry scopes, or conflicting pending or running work
    */
   @Transactional
   public List<Control> request(
@@ -83,21 +97,7 @@ public class InitialReconstructionService {
                             == null)) {
       throw new CollectionConflictException("conflict");
     }
-    List<InitialCoverage> retries =
-        scopeIds.isEmpty() ? List.of() : store.initialCoverage(sourceIds, scopeIds);
-    Set<UUID> failed =
-        retries.stream()
-            .filter(row -> row.cycleOrder() > 0 && row.status() != InitialCoverage.Status.OBTAINED)
-            .map(InitialCoverage::scopeId)
-            .collect(Collectors.toSet());
-    if (!failed.containsAll(scopeIds)
-        || (!scopeIds.isEmpty()
-            && !retries.stream()
-                .map(InitialCoverage::sourceBindingId)
-                .collect(Collectors.toSet())
-                .equals(sourceIds))) {
-      throw new CollectionConflictException("conflict");
-    }
+    Map<UUID, Set<UUID>> retries = retryScopes(seasonId, selected, scopeIds);
     List<Control> accepted = new ArrayList<>();
     for (Control control : configured.stream().sorted(Comparator.comparing(Control::id)).toList()) {
       Set<UUID> roots =
@@ -116,9 +116,8 @@ public class InitialReconstructionService {
         throw new CollectionConflictException("conflict");
       }
       Set<UUID> scopes =
-          retries.stream()
-              .filter(row -> roots.contains(row.sourceBindingId()))
-              .map(InitialCoverage::scopeId)
+          roots.stream()
+              .flatMap(root -> retries.getOrDefault(root, Set.of()).stream())
               .collect(Collectors.toSet());
       if (control.requestId() != null) {
         if (control.requestedMode() != CollectionModeEnum.INITIAL_IMPORT
@@ -136,6 +135,89 @@ public class InitialReconstructionService {
   }
 
   /**
+   * Attributes the exact operator selection to failed evidence under the same source. A failed logo
+   * can justify one explicitly selected retained parent pool even when that pool's own stages
+   * succeeded. Bounded report pages avoid materializing the season's complete coverage; admission
+   * separately rechecks current eligibility before granting any provider work.
+   *
+   * @param seasonId locked canonical season
+   * @param sources exact qualified roots supplied by the operator
+   * @param scopeIds exact requested scopes, never expanded to other parents or an entire source
+   * @return source-owned retry scopes; empty when the caller requested the supplied roots
+   * @throws CollectionConflictException when a scope or source has no attributable failed evidence
+   */
+  private Map<UUID, Set<UUID>> retryScopes(
+      UUID seasonId, List<Source> sources, Set<UUID> scopeIds) {
+    if (scopeIds.isEmpty()) {
+      return Map.of();
+    }
+    Map<UUID, Source> roots =
+        sources.stream().collect(Collectors.toMap(Source::id, source -> source));
+    Map<UUID, Set<UUID>> selected = new HashMap<>();
+    Set<UUID> remaining = new HashSet<>(scopeIds);
+    for (InitialCoverage row : store.initialCoverage(roots.keySet(), scopeIds)) {
+      if (row.stage() != CollectionStageEnum.LOGO && failed(row)) {
+        selected
+            .computeIfAbsent(row.sourceBindingId(), ignored -> new HashSet<>())
+            .add(row.scopeId());
+        remaining.remove(row.scopeId());
+      }
+    }
+    for (int page = 0; !remaining.isEmpty(); page++) {
+      InitialCoverage.Page coverage = store.initialCoverage(seasonId, page, 200);
+      for (InitialCoverage row : coverage.items()) {
+        Source source = roots.get(row.sourceBindingId());
+        if (source == null
+            || source.provider() != CollectionProviderEnum.LNV
+            || row.stage() != CollectionStageEnum.LOGO
+            || !failed(row)) {
+          continue;
+        }
+        TeamView team = acquisitionReads.team(row.scopeId()).orElse(null);
+        if (team == null
+            || team.provider() != CollectionProviderEnum.LNV
+            || !team.seasonId().equals(source.seasonId())
+            || !team.organizerReference().equals(source.organizerReference())) {
+          continue;
+        }
+        for (UUID poolId : acquisitionReads.teamPools(team.id())) {
+          if (remaining.contains(poolId)
+              && acquisitionReads
+                  .pool(poolId)
+                  .filter(
+                      pool ->
+                          pool.key().provider() == source.provider()
+                              && pool.key().seasonId().equals(source.seasonId())
+                              && pool.key()
+                                  .organizerReference()
+                                  .equals(source.organizerReference()))
+                  .isPresent()) {
+            selected.computeIfAbsent(source.id(), ignored -> new HashSet<>()).add(poolId);
+            remaining.remove(poolId);
+          }
+        }
+      }
+      if (!coverage.hasNext()) {
+        break;
+      }
+    }
+    if (!remaining.isEmpty() || !selected.keySet().equals(roots.keySet())) {
+      throw new CollectionConflictException("conflict");
+    }
+    return selected;
+  }
+
+  /**
+   * Recognizes attempted coverage without usable success, including interrupted requested work.
+   *
+   * @param row retained current initial evidence
+   * @return whether the row justifies an explicit retry before closure
+   */
+  private static boolean failed(InitialCoverage row) {
+    return row.cycleOrder() > 0 && row.status() != InitialCoverage.Status.OBTAINED;
+  }
+
+  /**
    * Prepares only the supplied sporting year and candidate, using canonical F02/F01 owners.
    *
    * @param operator current local account
@@ -144,6 +226,11 @@ public class InitialReconstructionService {
    * @param organizer native organizer or championship identity
    * @param url candidate reference awaiting ordinary qualification
    * @return reused qualified reference or pending validation
+   * @throws IllegalArgumentException when the sporting year or provider is unsupported
+   * @throws AccessDeniedException when the operator lacks the current collection grant
+   * @throws InvalidSourceException when the candidate URL or organizer is unsupported
+   * @throws CollectionConflictException when the season is closed, a locked reference differs, or
+   *     the current preparation revision cannot advance
    */
   @Transactional
   public Source prepare(
@@ -212,6 +299,9 @@ public class InitialReconstructionService {
    * @param page zero-based page
    * @param size bounded page size
    * @return current requested, obtained, rejected and unavailable evidence
+   * @throws AccessDeniedException when the operator lacks the current collection read grant
+   * @throws SportingResourceNotFoundException when the canonical season is unknown
+   * @throws IllegalArgumentException when the page is negative or size is outside 1–200
    */
   @Transactional(readOnly = true)
   public InitialCoverage.Page coverage(UUID operator, UUID seasonId, int page, int size) {
@@ -227,6 +317,9 @@ public class InitialReconstructionService {
    * @param page zero-based coverage page
    * @param size bounded coverage page size
    * @return current configuration and one coverage page, including missing qualification
+   * @throws AccessDeniedException when the operator lacks the current collection read grant
+   * @throws SportingResourceNotFoundException when the canonical season is unknown
+   * @throws IllegalArgumentException when the page is negative or size is outside 1–200
    */
   @Transactional(readOnly = true)
   public InitialReconstructionReport report(UUID operator, UUID seasonId, int page, int size) {
@@ -247,6 +340,7 @@ public class InitialReconstructionService {
    * @param size native bounded page size
    * @param sources current qualification projections
    * @return a stable current evidence page; absent or interrupted context never means success
+   * @throws IllegalArgumentException when the page is negative or size is outside 1–200
    */
   private InitialCoverage.Page readCoverage(
       UUID seasonId, int page, int size, List<Source> sources) {

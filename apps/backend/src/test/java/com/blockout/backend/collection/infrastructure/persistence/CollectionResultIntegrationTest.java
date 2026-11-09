@@ -691,16 +691,13 @@ class CollectionResultIntegrationTest {
       // Given the admitted pool after unrelated memberships
       TransactionTemplate transaction = new TransactionTemplate(transactions);
       long before = statistics.getPrepareStatementCount();
-      transaction.execute(
-          state ->
-              cycleAccess.requireTeamLogo(cycle.id(), first.homeTeamId(), List.of(retainedPool)));
+      transaction.execute(state -> cycleAccess.requireTeamLogo(cycle.id(), List.of(retainedPool)));
       long singlePoolReads = statistics.getPrepareStatementCount() - before;
       before = statistics.getPrepareStatementCount();
 
       // When
       CollectionState.Target target =
-          transaction.execute(
-              state -> cycleAccess.requireTeamLogo(cycle.id(), first.homeTeamId(), memberships));
+          transaction.execute(state -> cycleAccess.requireTeamLogo(cycle.id(), memberships));
 
       // Then
       assertThat(statistics.getPrepareStatementCount() - before).isEqualTo(singlePoolReads);

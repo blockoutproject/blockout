@@ -35,4 +35,6 @@
 
 - FR-037 retains bounded provider work, the accepted retry limit and honest failure outcomes; A45 covers these obligations. Transport mechanisms remain technical-planning choices. Historical corpus review is not a new planning gate.
 
+- FR-047 and A36 define explicit parent-pool recovery for a failed team logo, including ordinary authorized sporting/image updates and preserved independent coverage. The operation remains before closure; it grants no automatic retry, whole-source rerun requirement or single-image isolation.
+
 - actionable current observations remain distinct from positive affected-scope acquisition/integration recovery evidence. No external notification or reminder policy is selected.
