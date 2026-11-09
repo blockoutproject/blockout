@@ -1,5 +1,6 @@
 package com.blockout.backend.sporting.application.service;
 
+import com.blockout.backend.collection.application.exception.CollectionConflictException;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.service.CollectionCycleAccess;
 import com.blockout.backend.collection.application.service.ReadCollectionWork;
@@ -31,7 +32,10 @@ public class AcceptSourceImage {
    * Checks current image acquisition authority before decoding; the later write checks it again.
    *
    * @param teamId existing professional participant
-   * @param context admitted current calendar or selected-logo cycle
+   * @param context admitted current parent-calendar cycle
+   * @throws CollectionConflictException when no current parent calendar authorizes the image
+   * @throws SportingResourceNotFoundException when the authorized team no longer exists
+   * @throws AccessDeniedException when the team belongs to a non-LNV source
    */
   @Transactional
   public void requireSource(UUID teamId, MatchObservation.Context context) {
@@ -45,6 +49,9 @@ public class AcceptSourceImage {
    * @param context exact admitted observation context
    * @param image bounded content decoded outside this transaction
    * @return accepted, unchanged, stale or currently ineligible outcome; matches are independent
+   * @throws CollectionConflictException when no current parent calendar authorizes the image
+   * @throws SportingResourceNotFoundException when the authorized team no longer exists
+   * @throws AccessDeniedException when the team belongs to a non-LNV source
    */
   @Transactional
   public ObservationOutcome acceptSource(
@@ -78,11 +85,14 @@ public class AcceptSourceImage {
    *
    * @param teamId existing seasonal team
    * @param context supplied cycle identity
-   * @return exact selected logo or admitted calendar membership
+   * @return admitted calendar membership
+   * @throws CollectionConflictException when the cycle or parent membership is no longer admitted
+   * @throws SportingResourceNotFoundException when the authorized team no longer exists
+   * @throws AccessDeniedException when the team belongs to a non-LNV source
    */
   private CollectionState.Target requireTarget(UUID teamId, MatchObservation.Context context) {
     CollectionState.Target target =
-        cycleAccess.requireTeamLogo(context.cycleId(), teamId, store.teamPoolIds(teamId));
+        cycleAccess.requireTeamLogo(context.cycleId(), store.teamPoolIds(teamId));
     TeamView team = store.team(teamId).orElseThrow(SportingResourceNotFoundException::new);
     if (team.provider() != CollectionProviderEnum.LNV) {
       throw new AccessDeniedException("Professional artwork is not permitted");

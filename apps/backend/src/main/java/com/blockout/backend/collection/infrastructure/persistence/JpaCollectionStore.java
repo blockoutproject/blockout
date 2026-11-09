@@ -147,7 +147,8 @@ class JpaCollectionStore implements CollectionStore {
     return scopeIds.isEmpty()
         ? Optional.empty()
         : targets
-            .findFirstByCycleIdAndScopeIdInAndKindOrderByScopeIdAsc(cycleId, scopeIds, kind)
+            .findFirstByCycleIdAndScopeIdInAndKindOrderByScopeIdAsc(
+                cycleId, scopeIds, mapper.persistedKind(kind))
             .map(mapper::toView);
   }
 
@@ -509,7 +510,7 @@ class JpaCollectionStore implements CollectionStore {
   public Optional<CollectionState.Target> target(
       UUID cycleId, UUID scopeId, CollectionTargetKindEnum kind) {
     return targets
-        .findById(new CollectionTargetEntity.Key(cycleId, scopeId, kind))
+        .findById(new CollectionTargetEntity.Key(cycleId, scopeId, mapper.persistedKind(kind)))
         .map(mapper::toView);
   }
 }

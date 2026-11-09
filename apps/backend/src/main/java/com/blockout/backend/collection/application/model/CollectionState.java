@@ -216,8 +216,7 @@ public final class CollectionState {
       Instant fastWindowEndsAt,
       CollectionProviderEnum provider,
       String organizerReference,
-      String nativeMatchReference,
-      String nativeTeamReference) {}
+      String nativeMatchReference) {}
 
   /**
    * One served target enriches its frozen identity with current permitted locality, when

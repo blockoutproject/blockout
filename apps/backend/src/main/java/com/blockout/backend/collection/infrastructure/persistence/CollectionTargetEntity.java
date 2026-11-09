@@ -1,7 +1,6 @@
 package com.blockout.backend.collection.infrastructure.persistence;
 
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
-import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import jakarta.persistence.Entity;
@@ -31,7 +30,7 @@ class CollectionTargetEntity {
   @Id
   @Setter
   @Enumerated(EnumType.STRING)
-  private CollectionTargetKindEnum kind;
+  private Kind kind;
 
   @Setter private UUID sourceBindingId;
   @Setter private String url;
@@ -68,6 +67,19 @@ class CollectionTargetEntity {
   @Setter private String nativeTeamReference;
 
   /** Natural snapshot membership; no separate per-cycle scope identity is generated. */
-  public record Key(UUID cycleId, UUID scopeId, CollectionTargetKindEnum kind)
-      implements Serializable {}
+  public record Key(UUID cycleId, UUID scopeId, Kind kind) implements Serializable {}
+
+  /**
+   * Retained snapshot spellings, including the retired logo-only role. Active protocol projection
+   * refuses that role; keeping its persisted value allows ordinary replacement and discard.
+   */
+  enum Kind {
+    DISCOVERY,
+    CALENDAR,
+    STANDINGS,
+    DETAILS,
+    LOGO,
+    CLUB_SHEET,
+    GEOCODING
+  }
 }

@@ -25,6 +25,7 @@ import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
 import com.blockout.backend.generated.ingestion.model.SourceValidationStateEnum;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
+import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -48,7 +49,8 @@ class InitialReconstructionTest {
           seasons,
           mock(ReadCollectionConfiguration.class),
           mock(PrepareCollectionSources.class),
-          authorization);
+          authorization,
+          mock(ReadSportingAcquisition.class));
 
   @Test
   @DisplayName("Requires current collection permission before retaining initial intent")

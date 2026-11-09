@@ -440,8 +440,8 @@ class CollectPassageTest {
   @DisplayName("LNV match and image enrichment")
   class LnvEnrichment {
     @Test
-    @DisplayName("An explicit logo target reads only its image and submits no sporting neighbors")
-    void retriesOnlySelectedLogo() {
+    @DisplayName("An initial pool retry integrates ordinary facts and each resolved team image")
+    void retriesInitialPoolThroughOrdinaryStages() {
       // Given
       when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
       when(backend.register(0, lifecycle.getIncarnationId()))
@@ -465,35 +465,69 @@ class CollectPassageTest {
       CollectorLifecycle.AdmittedCycle admitted =
           lifecycle.admit(
               CONTROL, null, 0, UUID.fromString("00000000-0000-4000-8000-000000000179"));
-      UUID team = UUID.fromString("00000000-0000-4000-8000-000000000173");
+      UUID home = UUID.fromString("00000000-0000-4000-8000-000000000173");
+      UUID away = UUID.fromString("00000000-0000-4000-8000-000000000174");
+      UUID match = UUID.fromString("00000000-0000-4000-8000-000000000175");
       URI page =
           URI.create("https://lnv-web.dataproject.com/CompetitionMatches.aspx?ID=901&PID=902");
-      URI selected = URI.create("https://images.dataproject.com/lnv/selected.png");
-      URI neighbor = URI.create("https://images.dataproject.com/lnv/neighbor.png");
+      URI homeLogo = URI.create("https://images.dataproject.com/lnv/home.png");
+      URI awayLogo = URI.create("https://images.dataproject.com/lnv/away.png");
       byte[] image = {1, 2, 3};
-      CollectionBackend.Target target =
-          target(CollectionTargetKindEnum.LOGO).toBuilder()
-              .scopeId(team)
+      CollectionBackend.Target calendarTarget =
+          target(CollectionTargetKindEnum.CALENDAR).toBuilder()
               .provider(CollectionProviderEnum.LNV)
               .url(page)
-              .nativeTeamReference("100")
               .build();
+      CollectionBackend.Target standingsTarget =
+          calendarTarget.toBuilder().kind(CollectionTargetKindEnum.STANDINGS).build();
+      SportingObservation.Calendar calendar =
+          new SportingObservation.Calendar(
+              true,
+              List.of(
+                  new SportingObservation.Match(
+                      "M1",
+                      new SportingObservation.Team("Home", "100", null, null),
+                      new SportingObservation.Team("Away", "101", null, null),
+                      SportingObservation.Facts.builder().build(),
+                      null)),
+              List.of(),
+              List.of());
+      SportingObservation.Standings standings =
+          new SportingObservation.Standings(
+              StandingsPublicationStateEnum.PUBLISHED, List.of(), List.of());
       when(backend.targets(admitted.getCycle().id(), 0))
-          .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
+          .thenReturn(
+              new CollectionBackend.TargetPage(List.of(calendarTarget, standingsTarget), 0, false));
       LnvAcquisition.Resource resource = mock(LnvAcquisition.Resource.class);
       when(lnv.read(page)).thenReturn(resource);
-      when(resource.calendar(any()))
+      when(resource.calendar(calendarTarget))
           .thenReturn(
               new LnvAcquisition.Calendar(
-                  new SportingObservation.Calendar(true, List.of(), List.of(), List.of()),
-                  Map.of("100", selected, "101", neighbor),
-                  NOW,
-                  null));
-      when(lnv.image(selected)).thenReturn(new LnvAcquisition.Read<>(image, NOW));
-      when(sporting.logo(eq(team), any(), eq(image)))
+                  calendar, Map.of("100", homeLogo, "101", awayLogo), NOW, null));
+      when(resource.standings(standingsTarget))
+          .thenReturn(new LnvAcquisition.Read<>(standings, NOW));
+      when(lnv.documentIndexes(any())).thenReturn((target, read) -> null);
+      when(sporting.calendar(eq(POOL), any(), eq(calendar)))
+          .thenReturn(
+              new SportingObservation.CalendarOutcome(
+                  List.of(
+                      new SportingObservation.Outcome(
+                          "M1", ObservationOutcomeEnum.ACCEPTED, match, null, home, away, false)),
+                  1,
+                  0,
+                  0,
+                  0,
+                  true));
+      when(sporting.standings(eq(POOL), any(), eq(standings)))
           .thenReturn(
               new SportingObservation.Outcome(
-                  "100", ObservationOutcomeEnum.ACCEPTED, team, null, null, null));
+                  "902", ObservationOutcomeEnum.ACCEPTED, POOL, null, null, null));
+      when(lnv.image(homeLogo)).thenReturn(new LnvAcquisition.Read<>(image, NOW));
+      when(lnv.image(awayLogo)).thenReturn(new LnvAcquisition.Read<>(image, NOW));
+      when(sporting.logo(any(), any(), eq(image)))
+          .thenReturn(
+              new SportingObservation.Outcome(
+                  null, ObservationOutcomeEnum.ACCEPTED, null, null, null, null));
       when(backend.complete(admitted.getCycle().id(), NOW))
           .thenReturn(completed(admitted.getCycle(), NOW));
 
@@ -501,11 +535,30 @@ class CollectPassageTest {
       passage.execute(admitted);
 
       // Then
-      verify(lnv).image(selected);
-      verify(lnv, never()).image(neighbor);
-      verify(sporting).logo(eq(team), any(), eq(image));
-      verify(sporting, never()).calendar(any(), any(), any());
-      verify(sporting, never()).standings(any(), any(), any());
+      verify(lnv).read(page);
+      verify(sporting).calendar(eq(POOL), any(), eq(calendar));
+      verify(sporting).standings(eq(POOL), any(), eq(standings));
+      verify(lnv).image(homeLogo);
+      verify(lnv).image(awayLogo);
+      ArgumentCaptor<SportingObservation.Context> images =
+          ArgumentCaptor.forClass(SportingObservation.Context.class);
+      verify(sporting).logo(eq(home), images.capture(), eq(image));
+      verify(sporting).logo(eq(away), images.capture(), eq(image));
+      assertThat(images.getAllValues())
+          .extracting(SportingObservation.Context::readOrdinal)
+          .containsExactly(2L, 3L);
+      ArgumentCaptor<CollectionBackend.Result> evidence =
+          ArgumentCaptor.forClass(CollectionBackend.Result.class);
+      verify(backend, times(8)).record(eq(admitted.getCycle().id()), evidence.capture());
+      assertThat(evidence.getAllValues())
+          .allSatisfy(
+              result -> assertThat(result.outcome()).isEqualTo(CollectionOutcomeEnum.SUCCESS));
+      assertThat(
+              evidence.getAllValues().stream()
+                  .filter(result -> result.scopeId().equals(POOL))
+                  .toList())
+          .extracting(CollectionBackend.Result::readOrdinal)
+          .containsOnly(1L);
       verify(sporting, never()).detail(any(), any(), any());
       verifyNoInteractions(discovery);
     }

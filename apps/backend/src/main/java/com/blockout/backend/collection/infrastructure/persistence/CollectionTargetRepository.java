@@ -1,6 +1,5 @@
 package com.blockout.backend.collection.infrastructure.persistence;
 
-import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,5 +28,5 @@ interface CollectionTargetRepository
    * @return first exact snapshot membership in scope UUID order, or empty when none is admitted
    */
   Optional<CollectionTargetEntity> findFirstByCycleIdAndScopeIdInAndKindOrderByScopeIdAsc(
-      UUID cycleId, List<UUID> scopeIds, CollectionTargetKindEnum kind);
+      UUID cycleId, List<UUID> scopeIds, CollectionTargetEntity.Kind kind);
 }

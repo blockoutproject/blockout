@@ -192,16 +192,17 @@ public class RecordCollectionResults {
    * @throws CollectionConflictException when the requested role has no admitted scope
    */
   private Target requireTarget(UUID cycleId, UUID scopeId, CollectionStageEnum stage) {
+    if (stage == CollectionStageEnum.LOGO) {
+      return store
+          .firstTarget(
+              cycleId, acquisitionReads.teamPools(scopeId), CollectionTargetKindEnum.CALENDAR)
+          .orElseThrow(CollectionConflictException::invalidContext);
+    }
     return store
         .target(cycleId, scopeId, stages.toTargetKind(stage))
         .or(
             () ->
                 switch (stage) {
-                  case LOGO ->
-                      store.firstTarget(
-                          cycleId,
-                          acquisitionReads.teamPools(scopeId),
-                          CollectionTargetKindEnum.CALENDAR);
                   case DETAILS ->
                       acquisitionReads
                           .matchPoolId(scopeId)

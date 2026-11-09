@@ -64,7 +64,6 @@ public interface CollectionWorkMapper {
   @Mapping(target = "clubReference", ignore = true)
   @Mapping(target = "lastAttemptAt", ignore = true)
   @Mapping(target = "lastSuccessAt", ignore = true)
-  @Mapping(target = "nativeTeamReference", ignore = true)
   Target toTarget(AcquisitionReference reference, Source source, CollectionSeasonView season);
 
   /**
@@ -93,7 +92,6 @@ public interface CollectionWorkMapper {
   @Mapping(target = "fastWindowEndsAt", ignore = true)
   @Mapping(target = "organizerReference", ignore = true)
   @Mapping(target = "nativeMatchReference", ignore = true)
-  @Mapping(target = "nativeTeamReference", ignore = true)
   Target toTarget(ClubAcquisitionReference source, CollectionTargetKindEnum kind);
 
   /**
@@ -124,7 +122,6 @@ public interface CollectionWorkMapper {
   @Mapping(target = "lastSuccessAt", ignore = true)
   @Mapping(target = "fastWindowEndsAt", ignore = true)
   @Mapping(target = "nativeMatchReference", ignore = true)
-  @Mapping(target = "nativeTeamReference", ignore = true)
   Target toDiscoveryTarget(Source source, CollectionSeasonView season);
 
   /**

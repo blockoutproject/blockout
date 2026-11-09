@@ -110,7 +110,6 @@ public interface CollectionBackend {
       String localityRevision,
       String municipality,
       String postalCode,
-      String nativeTeamReference,
       String address) {}
 
   /** Bounded snapshot page, without a persistent checkpoint or total count. */

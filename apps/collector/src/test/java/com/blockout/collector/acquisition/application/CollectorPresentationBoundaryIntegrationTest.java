@@ -290,8 +290,8 @@ class CollectorPresentationBoundaryIntegrationTest {
   }
 
   @Test
-  @DisplayName("An exact initial logo retry crosses generated HTTP without rewriting its calendar")
-  void retriesOnlyAdmittedInitialLogo() {
+  @DisplayName("An initial parent-pool retry recovers logos and integrates its ordinary calendar")
+  void retriesInitialParentPool() {
     // Given
     UUID season = UUID.fromString("00000000-0000-4000-8000-000000000192");
     UUID source = UUID.fromString("00000000-0000-4000-8000-000000000196");
@@ -312,17 +312,23 @@ class CollectorPresentationBoundaryIntegrationTest {
     passageWithStubbedDiscovery(
             stubProfessionalWithNativeImages(), mock(ClubSheets.class), mock(ClubGeocoder.class))
         .execute(first);
-    UUID selected =
+    UUID home =
         runtime.sql.queryForObject(
             "SELECT id FROM sporting_team WHERE native_reference='HOME'", UUID.class);
-    UUID neighbor =
+    UUID away =
         runtime.sql.queryForObject(
             "SELECT id FROM sporting_team WHERE native_reference='AWAY'", UUID.class);
-    List<String> retained =
+    UUID otherPool = UUID.fromString("00000000-0000-4000-8000-000000000200");
+    List<Map<String, Object>> retainedCoverage =
         runtime.sql.queryForList(
-            "SELECT status FROM collection_initial_coverage WHERE scope_id=? ORDER BY phase",
-            String.class,
-            neighbor);
+            "SELECT * FROM collection_initial_coverage WHERE scope_id=? ORDER BY stage,phase",
+            otherPool);
+    List<Map<String, Object>> retainedFailure =
+        runtime.sql.queryForList(
+            "SELECT * FROM collection_initial_coverage WHERE scope_id=? AND stage='DISCOVERY' ORDER BY phase",
+            source);
+    assertThat(retainedCoverage).isNotEmpty();
+    assertThat(retainedFailure).extracting(row -> row.get("status")).contains("REJECTED");
     UUID retryRequest = UUID.fromString("00000000-0000-4000-8000-000000000199");
     runtime.sql.update(
         "UPDATE collection_control SET request_id=?,requested_mode='INITIAL_IMPORT' WHERE id=?",
@@ -333,9 +339,7 @@ class CollectorPresentationBoundaryIntegrationTest {
         CONTROL,
         source);
     runtime.sql.update(
-        "INSERT INTO collection_request_scope(control_id,scope_id) VALUES (?,?)",
-        CONTROL,
-        selected);
+        "INSERT INTO collection_request_scope(control_id,scope_id) VALUES (?,?)", CONTROL, POOL);
     long revision =
         runtime.sql.queryForObject(
             "SELECT revision FROM collection_control WHERE id=?", Long.class, CONTROL);
@@ -353,35 +357,52 @@ class CollectorPresentationBoundaryIntegrationTest {
         .singleElement()
         .satisfies(
             target -> {
-              assertThat(target.kind()).isEqualTo(CollectionTargetKindEnum.LOGO);
-              assertThat(target.scopeId()).isEqualTo(selected);
-              assertThat(target.nativeTeamReference()).isEqualTo("HOME");
+              assertThat(target.kind()).isEqualTo(CollectionTargetKindEnum.CALENDAR);
+              assertThat(target.scopeId()).isEqualTo(POOL);
+              assertThat(target.sourceBindingId()).isEqualTo(source);
             });
-    assertThat(imageReads).hasValue(3);
+    assertThat(imageReads).hasValue(4);
     assertThat(
             runtime.sql.queryForObject(
-                "SELECT source_logo FROM sporting_team WHERE id=?", byte[].class, selected))
+                "SELECT source_logo FROM sporting_team WHERE id=?", byte[].class, home))
         .isEqualTo(imageBody);
     assertThat(
             runtime.sql.queryForObject(
-                "SELECT source_logo FROM sporting_team WHERE id=?", byte[].class, neighbor))
-        .isNull();
+                "SELECT source_logo FROM sporting_team WHERE id=?", byte[].class, away))
+        .isEqualTo(imageBody);
     assertThat(
             runtime.sql.queryForList(
-                "SELECT status FROM collection_initial_coverage WHERE scope_id=? ORDER BY phase",
-                String.class,
-                neighbor))
-        .isEqualTo(retained);
+                "SELECT * FROM collection_initial_coverage WHERE scope_id=? ORDER BY stage,phase",
+                otherPool))
+        .isEqualTo(retainedCoverage);
     assertThat(
             runtime.sql.queryForList(
-                "SELECT DISTINCT accepted_cycle_order FROM sporting_match", Long.class))
+                "SELECT * FROM collection_initial_coverage WHERE scope_id=? AND stage='DISCOVERY' ORDER BY phase",
+                source))
+        .isEqualTo(retainedFailure);
+    assertThat(
+            runtime.sql.queryForList(
+                "SELECT DISTINCT accepted_cycle_order FROM sporting_match WHERE pool_id=?",
+                Long.class,
+                otherPool))
         .containsExactly(first.getCycle().cycleOrder());
+    assertThat(
+            runtime.sql.queryForList(
+                "SELECT DISTINCT accepted_cycle_order FROM sporting_match WHERE pool_id=?",
+                Long.class,
+                POOL))
+        .containsExactly(retry.getCycle().cycleOrder());
     assertThat(
             runtime.sql.queryForList(
                 "SELECT status FROM collection_initial_coverage WHERE scope_id=? AND stage='LOGO' ORDER BY phase",
                 String.class,
-                selected))
+                home))
         .containsExactly("OBTAINED", "OBTAINED");
+    assertThat(
+            runtime.sql.queryForList(
+                "SELECT DISTINCT source_binding_id FROM collection_initial_coverage WHERE stage='LOGO'",
+                UUID.class))
+        .containsExactly(source);
   }
 
   @ParameterizedTest
