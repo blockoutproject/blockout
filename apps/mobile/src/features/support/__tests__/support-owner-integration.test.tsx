@@ -18,11 +18,12 @@ import OnboardingRoute from "../../../app/onboarding";
 import OperationsLayout from "../../../app/(operations)/_layout";
 import AdministrationRoute from "../../../app/(operations)/administration";
 import ProfileRoute from "../../../app/(ordinary)/(tabs)/profile/index";
-import SignInRoute from "../../../app/(ordinary)/sign-in";
+import SignInRoute from "../../../app/(recovery)/sign-in";
+import RecoveryLayout from "../../../app/(recovery)/_layout";
 import MatchRoute from "../../../app/(ordinary)/matches/[matchId]";
-import SupportLayout from "../../../app/(ordinary)/support/_layout";
-import SupportRoute from "../../../app/(ordinary)/support/index";
-import SupportChoiceRoute from "../../../app/(ordinary)/support/choice";
+import SupportLayout from "../../../app/(recovery)/support/_layout";
+import SupportRoute from "../../../app/(recovery)/support/index";
+import SupportChoiceRoute from "../../../app/(recovery)/support/choice";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { accountResponse } from "../../accounts/test-support/account-response";
 import {
@@ -149,7 +150,7 @@ afterEach(async () => {
   process.env = { ...environment };
 });
 
-/** Mounts production root guards and the actual affected destinations; unrelated routes are inert. */
+/** Mounts production public/operational root guards and F10 destinations; the ordinary business Stack remains a focused fixture. */
 async function openRoute(path: string) {
   const view = await renderRouter(
     {
@@ -159,13 +160,14 @@ async function openRoute(path: string) {
       onboarding: OnboardingRoute,
       "age-declaration": () => null,
       "(ordinary)/_layout": () => <Stack />,
+      "(recovery)/_layout": RecoveryLayout,
       "(ordinary)/index": () => <Text>Ordinary home</Text>,
       "(ordinary)/profile": ProfileRoute,
-      "(ordinary)/sign-in": SignInRoute,
+      "(recovery)/sign-in": SignInRoute,
       "(ordinary)/matches/[matchId]": MatchRoute,
-      "(ordinary)/support/_layout": SupportLayout,
-      "(ordinary)/support/index": SupportRoute,
-      "(ordinary)/support/choice": SupportChoiceRoute,
+      "(recovery)/support/_layout": SupportLayout,
+      "(recovery)/support/index": SupportRoute,
+      "(recovery)/support/choice": SupportChoiceRoute,
       "(operations)/_layout": OperationsLayout,
       "(operations)/administration/index": AdministrationRoute,
       "(operations)/administration/maintenance": () => null,

@@ -29,7 +29,8 @@ import HomeRoute from "../../../app/(ordinary)/(tabs)/(home)/index";
 import HomeLayout from "../../../app/(ordinary)/(tabs)/(home)/_layout";
 import SeasonRoute from "../../../app/(ordinary)/(tabs)/(home)/(sheets)/season";
 import OnboardingRoute from "../../../app/onboarding";
-import SignInRoute from "../../../app/(ordinary)/sign-in";
+import SignInRoute from "../../../app/(recovery)/sign-in";
+import RecoveryLayout from "../../../app/(recovery)/_layout";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import {
   credentialsFor,
@@ -152,7 +153,7 @@ afterEach(async () => {
   jest.useRealTimers();
 });
 
-/** Real root, session and installation owners; HTTP/SDK I/O and future destination content are controlled. */
+/** Real root/public admission, session and installation owners; ordinary destination probes exclude the separately qualified member guard. */
 async function openEntry(initialUrl = "/sign-in") {
   return renderRouter(
     {
@@ -163,6 +164,7 @@ async function openEntry(initialUrl = "/sign-in") {
       "(operations)/_layout": () => <Stack />,
       "(operations)/administration/index": () => <Text>Operations</Text>,
       "(ordinary)/_layout": () => <Stack />,
+      "(recovery)/_layout": RecoveryLayout,
       "(ordinary)/(home)/_layout": {
         default: HomeLayout,
         unstable_settings: { anchor: "index" },
@@ -170,10 +172,10 @@ async function openEntry(initialUrl = "/sign-in") {
       "(ordinary)/(home)/index": HomeRoute,
       "(ordinary)/(home)/(sheets)/season": SeasonRoute,
       "(ordinary)/search": () => <Text>Public search</Text>,
-      "(ordinary)/sign-in": SignInRoute,
+      "(recovery)/sign-in": SignInRoute,
       "(ordinary)/session": SessionProbe,
       "(ordinary)/legal": () => <Text>Public legal reading</Text>,
-      "(ordinary)/support": () => <Text>Public support</Text>,
+      "(recovery)/support": () => <Text>Public support</Text>,
     },
     { initialUrl },
   );

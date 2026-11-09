@@ -353,6 +353,8 @@ The existing application tasks own this proof: T015/T016 verify schema validatio
 
 ### Shared representation and boundary verification
 
+- [x] T217 [US6] Reconcile FR-041/A39's indispensable-data families in `specs/003-shared-quality/spec.md` and `plan.md` with F03/F06's owning requirements and pending consumer tasks. Keep common admission under F05/F12, sporting composition under F03 T084–T086/F06 T053–T054, and existing Match/Profile/Home/Search/inbox/operational owners explicit. Record affected prototype and separate Figma approval prerequisites without completing their native implementation or broader qualification.
+
 - [x] T083 Verify the selected read/mutation conventions in the designated prototype and live Figma sources under the applicable design scope; use existing components and distinguish browser/design evidence from native/provider qualification.
 - [x] T084 Independently verify implemented read, form, mutation and native-resource families through their observable transitions and actual consumers. Run affected checks and native cases, review changed tests and deliver revision-linked evidence with unavailable scope explicit.
 

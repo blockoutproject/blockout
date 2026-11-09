@@ -1,5 +1,6 @@
 import Svg, { Defs, Image as SvgImage, Mask, Rect } from "react-native-svg";
 import { useTheme } from "../theme/theme-provider";
+import { tokens } from "../theme/tokens";
 
 /** The host selects the approved mark size; its original square asset and semantic ink stay unchanged. */
 export interface BrandMarkProps {
@@ -7,7 +8,7 @@ export interface BrandMarkProps {
 }
 
 /** Decorative Blockout mark; the retained monochrome asset's luminance follows the current text color. */
-export function BrandMark({ size = 28 }: BrandMarkProps) {
+export function BrandMark({ size = tokens.size.brandMark }: BrandMarkProps) {
   const { colors } = useTheme();
   return (
     <Svg width={size} height={size} viewBox="0 0 28 28" accessible={false}>

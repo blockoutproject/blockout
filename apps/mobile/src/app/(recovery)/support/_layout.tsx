@@ -7,7 +7,7 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 /** A direct choice link retains the ordinary support form behind its native sheet. */
 export const unstable_settings = { anchor: "index" };
 
-/** Owns one support visit across its form and choice routes, under the existing F12 protected ordinary group. */
+/** Owns one support visit across its form and choice routes, under the root's existing F12 public gates. */
 export default function SupportLayout() {
   // The layout's local params exclude the leaf query; the journey captures this complete URL once.
   const params = useGlobalSearchParams();

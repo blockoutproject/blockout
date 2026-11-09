@@ -21,15 +21,17 @@ import { useGuestNavigation } from "../hooks/use-guest-navigation";
 import { useAccountSession } from "../session/account-session-provider";
 import type { SupportOrigin } from "../../support";
 
-/** Current ordinary admission supplied by F12; real gate composition belongs to F12 T028. */
+/** Complete public admission supplied by F12; the route validates any requested return destination. */
 export interface SignInScreenProps {
   admitted: boolean;
+  /** Validated internal destination to resume after explicit authentication and establishment. */
+  returnTo?: string;
 }
 
 /** Keeps login intent scoped to admitted navigation; blocking access discards the local journey. */
-export function SignInScreen({ admitted }: SignInScreenProps) {
+export function SignInScreen({ admitted, returnTo }: SignInScreenProps) {
   return admitted ? (
-    <SignInJourney />
+    <SignInJourney returnTo={returnTo} />
   ) : (
     <Page>
       <PageScrollView>
@@ -41,8 +43,8 @@ export function SignInScreen({ admitted }: SignInScreenProps) {
   );
 }
 
-/** Starts account establishment from the explicit login event, independently of its rendered lifetime. */
-function SignInJourney() {
+/** Starts explicit establishment and returns to its destination for ordinary read recovery, without replaying an action. */
+function SignInJourney({ returnTo }: Pick<SignInScreenProps, "returnTo">) {
   const router = useRouter();
   const session = useAccountSession();
   const { colors, membership } = useTheme();
@@ -68,6 +70,15 @@ function SignInJourney() {
       mounted.current = false;
     };
   }, []);
+
+  /** Restores the exact caller even when its deferred navigator remounts; ordinary login retains Profile. */
+  function finishNavigation() {
+    if (returnTo) {
+      router.replace(returnTo);
+    } else {
+      router.replace("/profile");
+    }
+  }
 
   /** Retries native preparation or starts explicit authentication/establishment; failures use the shared toast. */
   async function signIn() {
@@ -107,10 +118,10 @@ function SignInJourney() {
         getCredentials: authenticated.getCredentials,
       });
       await attempt;
-      router.replace("/profile");
+      finishNavigation();
     } catch (error) {
       if (!authenticating) {
-        router.replace("/profile");
+        finishNavigation();
         return;
       }
       if (!mounted.current) {

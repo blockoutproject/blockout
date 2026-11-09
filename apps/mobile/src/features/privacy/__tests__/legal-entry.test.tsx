@@ -13,6 +13,7 @@ import type { ComponentType } from "react";
 import { Text } from "react-native";
 import RootLayout from "../../../app/_layout";
 import OrdinaryLayout from "../../../app/(ordinary)/_layout";
+import RecoveryLayout from "../../../app/(recovery)/_layout";
 import { AccessGateScreen } from "../../access/screens/access-gate-screen";
 import {
   ProfileLegalLinks,
@@ -157,10 +158,11 @@ async function mountJourney(initialUrl = "/profile") {
       "age-declaration": () => null,
       "(operations)/_layout": () => <Stack />,
       "(ordinary)/_layout": OrdinaryLayout,
+      "(recovery)/_layout": RecoveryLayout,
       "(ordinary)/(tabs)/_layout": () => <Stack />,
       "(ordinary)/(tabs)/index": () => null,
       "(ordinary)/(tabs)/profile": ProfileEntries,
-      "(ordinary)/sign-in": PublicAccountLinks,
+      "(recovery)/sign-in": PublicAccountLinks,
       "(ordinary)/privacy": () => null,
       "(ordinary)/privacy-age": () => null,
       "(ordinary)/pro": () => null,

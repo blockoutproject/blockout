@@ -3,12 +3,14 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useEffectEvent,
   useLayoutEffect,
   useRef,
   useState,
   type PropsWithChildren,
   type ReactNode,
 } from "react";
+import { AppState } from "react-native";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import Auth0, {
   Auth0Provider,
@@ -74,6 +76,7 @@ export interface AccountSessionProviderProps extends PropsWithChildren {
   preparePushRemoval?: () => AccountCredentialCleanup | undefined;
 }
 
+/** F14 setup result; the credentials manager exists only after native initialization succeeds. */
 type Initialization =
   | { status: "initializing" }
   | { status: "initialization-error"; error: unknown }
@@ -181,6 +184,7 @@ function SessionScope({
     currentSubject.current = subject;
   }, [subject]);
   const [operation, setOperation] = useState<AccountSession["operation"]>();
+  /** Prepares credentials for the captured principal without allowing another subject to dispatch. */
   const credentialsFor = useCallback(
     async (original: string | null) => {
       if (!original) {
@@ -311,6 +315,7 @@ function PrivateAccountLifetime({
   const [client] = useState(createQueryClient);
   const [credentialError, setCredentialError] = useState<unknown>();
   const nativeCredentials = session.getCredentials;
+  /** Keeps native renewal failures separate from HTTP account-read outcomes. */
   const getCredentials = useCallback(async () => {
     try {
       const credentials = await nativeCredentials();
@@ -324,6 +329,7 @@ function PrivateAccountLifetime({
   const current = {
     ...session,
     getCredentials,
+    /** Clears the previous credential failure only after an explicit native login succeeds. */
     async signIn(audience: string) {
       const login = await session.signIn(audience);
       if (login) {
@@ -352,12 +358,26 @@ function PrivateAccountLifetime({
   );
 }
 
-/** Observes the business UUID in its native cache instead of publishing it into a session store. */
+/** Observes the business UUID and rereads it on native foreground return within this private lifetime. */
 function CurrentAccountIdentity({
   children,
   session,
 }: PropsWithChildren<{ session: Omit<AccountSession, "accountId"> }>) {
   const account = useQuery(currentAccountQuery(session));
+  /** Reads current enablement at the native event without renewing the subscription on Query changes. */
+  const refreshAccount = useEffectEvent(() => {
+    if (account.isEnabled) {
+      void account.refetch({ cancelRefetch: false });
+    }
+  });
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        refreshAccount();
+      }
+    });
+    return () => subscription.remove();
+  }, []);
   const unavailable =
     account.error instanceof ApiError &&
     [401, 403, 404].includes(account.error.status ?? 0);

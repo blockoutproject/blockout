@@ -1,22 +1,13 @@
-import {
-  useAccountSession,
-  useCurrentAccount,
-} from "../../accounts/current-account";
+import { useAccountAvailability } from "../../accounts/current-account";
 import { canReadDivisions } from "../division-catalog-access";
 
 /**
  * Derives presentation from F05's current generated account, never from credentials or a second cache.
- * A failed read hides retained grants; lifecycle isolation remains with F05's identity-owned cache lifetime.
+ * Matching grants survive technical reread failure; actual account refusal still withdraws them.
  */
 export function useAdministrationCapabilities() {
-  const session = useAccountSession();
-  const account = useCurrentAccount();
-  const permissions =
-    session.status === "authenticated" &&
-    session.accountId === account.data?.accountId &&
-    !account.isError
-      ? account.data?.permissions
-      : undefined;
+  const { session, account, usable } = useAccountAvailability();
+  const permissions = usable ? account.data?.permissions : undefined;
   const hasCommands =
     permissions?.manageMaintenance === true ||
     permissions?.manageApplicationVersions === true ||

@@ -36,6 +36,7 @@ import {
 } from "../features/notifications/native/push-registration";
 
 import { cleanupMatchDocuments } from "../features/sporting/api/match-document";
+import { useAccountAvailability } from "../features/accounts/current-account";
 
 initializeSentry();
 
@@ -45,11 +46,12 @@ function Navigation({ registration }: { registration: PushRegistration }) {
   const access = useAccessAdmission();
   const discovery = useDiscovery();
   const age = useAgeDeclaration();
+  const account = useAccountAvailability();
   return (
     <>
       <NotificationLifecycle
         registration={registration}
-        enabled={access.ordinary && discovery.complete}
+        enabled={access.ordinary && discovery.complete && account.canEnter}
       />
       <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
       {discovery.loading || (!access.snapshot.complete && access.checking) ? (
@@ -67,6 +69,7 @@ function Navigation({ registration }: { registration: PushRegistration }) {
           </Stack.Protected>
           <Stack.Protected guard={access.ordinary && discovery.complete}>
             <Stack.Screen name="(ordinary)" />
+            <Stack.Screen name="(recovery)" />
           </Stack.Protected>
           <Stack.Protected
             guard={access.ordinary && discovery.complete && age.required}

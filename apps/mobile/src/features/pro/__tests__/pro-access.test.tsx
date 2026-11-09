@@ -1,3 +1,5 @@
+// Install native pager/animation doubles before production layout imports can load their consumers.
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   act,
@@ -18,7 +20,6 @@ import type {
 import RevenueCatUI from "react-native-purchases-ui";
 import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
 import OrdinaryLayout from "../../../app/(ordinary)/_layout";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { useAccountSession } from "../../accounts/current-account";
 import { accountResponse } from "../../accounts/test-support/account-response";
 import {

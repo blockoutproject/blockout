@@ -9,7 +9,7 @@ export interface BrandHeaderProps {
   children?: ReactNode;
 }
 
-/** Shares the approved discovery/age header anatomy; Page owns its surrounding native safe area. */
+/** Shares entry branding and trailing actions across discovery, age and admission; Page owns the native safe area. */
 export function BrandHeader({ children }: BrandHeaderProps) {
   const { colors } = useTheme();
   return (
@@ -30,21 +30,22 @@ export function BrandHeader({ children }: BrandHeaderProps) {
 }
 
 const styles = StyleSheet.create({
-  // These dimensions retain the approved entry composition rather than the ordinary back-navigation bar.
+  // Center the wrapped line as well as its controls so a trailing action never shifts the brand vertically.
   header: {
     marginHorizontal: tokens.spacing["2xl"],
     flexDirection: "row",
     flexWrap: "wrap",
+    alignContent: "center",
     gap: tokens.spacing.md,
     alignItems: "center",
     justifyContent: "space-between",
-    minHeight: 69,
+    minHeight: tokens.layout.brandHeader,
     paddingBottom: tokens.spacing.lg,
     borderBottomWidth: tokens.border.thin,
   },
   brand: {
     flexDirection: "row",
-    gap: 9,
+    gap: tokens.spacing.sm,
     alignItems: "center",
     maxWidth: "100%",
     minWidth: 0,

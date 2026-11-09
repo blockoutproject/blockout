@@ -635,9 +635,12 @@ it("keeps dirty values and blocks writes after a newer refetch and a failed rere
   );
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
 });
-it.each(["revoked", "unavailable"])(
-  "retains input when the server refuses a held confirmation while permissions are %s",
-  async (outcome) => {
+it.each([
+  { outcome: "revoked", editable: false },
+  { outcome: "unavailable", editable: true },
+])(
+  "retains input and editing=$editable after $outcome permissions while the server refuses a held save",
+  async ({ outcome, editable }) => {
     // Given
     const user = userEvent.setup();
     await renderSettings();
@@ -646,6 +649,13 @@ it.each(["revoked", "unavailable"])(
     await user.type(screen.getByLabelText("Message commun"), "Mon brouillon");
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
     const confirm = nativeAlertAction("Appliquer");
+    const accountQuery = client
+      .getQueryCache()
+      .findAll()
+      .find((query) => query.queryKey.includes("/accounts/me"));
+    if (!accountQuery) {
+      throw new Error("The real current-account query is missing");
+    }
     mockFetch.mockImplementation(async (url, options) =>
       options?.method === "PATCH"
         ? json(
@@ -679,29 +689,59 @@ it.each(["revoked", "unavailable"])(
     // When
     await act(async () =>
       client.refetchQueries({
-        predicate: (q) => q.queryKey.includes("/accounts/me"),
+        queryKey: accountQuery.queryKey,
+        exact: true,
       }),
     );
-    await waitFor(() =>
-      expect(screen.getByLabelText("Message commun")).toBeDisabled(),
-    );
+
+    // Then: a confirmed revocation withdraws editing; a technical reread keeps matching grants and data.
+    if (outcome === "unavailable") {
+      expect(accountQuery.state.error).toMatchObject({ status: 503 });
+      expect(client.getQueryData(accountQuery.queryKey)).toEqual(account);
+    }
+    await waitFor(() => {
+      if (editable) {
+        expect(screen.getByLabelText("Message commun")).toBeEnabled();
+      } else {
+        expect(screen.getByLabelText("Message commun")).toBeDisabled();
+      }
+    });
+    expect(
+      screen.getByRole("button", {
+        name: "Enregistrer",
+        disabled: !editable,
+      }),
+    ).toBeOnTheScreen();
     expect(
       screen.queryByRole("alert", { name: "Une erreur est survenue" }),
     ).not.toBeOnTheScreen();
+
+    // When: the already-held confirmation still lets the server authorize its exact original command.
     await act(async () => confirm());
 
-    // Then
+    // Then: refusal preserves the draft and confirmed settings without replaying the command.
+    expect(
+      await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
+    ).toBeOnTheScreen();
     expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
       "Mon brouillon",
     );
-    expect(screen.getByLabelText("Message commun")).toBeDisabled();
-    await waitFor(() =>
-      expect(
-        mockFetch.mock.calls.filter(
-          ([, options]) => options?.method === "PATCH",
-        ),
-      ).toHaveLength(1),
+    await waitFor(() => {
+      if (editable) {
+        expect(screen.getByLabelText("Message commun")).toBeEnabled();
+      } else {
+        expect(screen.getByLabelText("Message commun")).toBeDisabled();
+      }
+    });
+    const writes = mockFetch.mock.calls.filter(
+      ([, options]) => options?.method === "PATCH",
     );
+    expect(writes).toHaveLength(1);
+    expect(JSON.parse(String(writes[0][1]?.body))).toEqual({
+      revision: 2,
+      message: "Mon brouillon",
+    });
+    expect(client.getQueryData(settingsKey())).toEqual(initial);
   },
 );
 

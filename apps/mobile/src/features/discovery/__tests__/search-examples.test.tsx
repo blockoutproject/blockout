@@ -286,6 +286,60 @@ function collectionCalls(collection: string) {
   );
 }
 
+it("keeps one Exemples heading while initial sporting choices and example cards load", async () => {
+  // Given: real visit and Query owners wait independently on the two HTTP responses.
+  const options = Promise.withResolvers<Response>();
+  const examples = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url: string) => {
+    const parsed = new URL(url);
+    if (
+      parsed.pathname.endsWith("/sporting-search-options") &&
+      parsed.searchParams.get("resourceType") === "team"
+    ) {
+      return options.promise;
+    }
+    return parsed.pathname.endsWith("/teams")
+      ? examples.promise
+      : publicReads(url);
+  });
+
+  // When
+  await renderSearch();
+
+  // Then
+  expect(screen.getAllByRole("header", { name: "Exemples" })).toHaveLength(1);
+  expect(
+    screen.getByRole("progressbar", { name: "Chargement des résultats" }),
+  ).toBeOnTheScreen();
+  expect(collectionCalls("teams")).toHaveLength(0);
+
+  // When
+  await act(async () =>
+    options.resolve(
+      await publicReads(
+        "https://api.example.invalid/sporting-search-options?resourceType=team",
+      ),
+    ),
+  );
+  await waitFor(() => expect(collectionCalls("teams")).toHaveLength(1));
+
+  // Then
+  expect(screen.getAllByRole("header", { name: "Exemples" })).toHaveLength(1);
+  expect(
+    screen.getByRole("progressbar", { name: "Chargement des résultats" }),
+  ).toBeOnTheScreen();
+
+  // When
+  await act(async () =>
+    examples.resolve(await publicReads("https://api.example.invalid/teams")),
+  );
+
+  // Then
+  expect(await screen.findByText("Club public")).toBeOnTheScreen();
+  expect(screen.getAllByRole("header", { name: "Exemples" })).toHaveLength(1);
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+});
+
 it.each([
   ["guest", "guest"],
   ["free", "inactive"],

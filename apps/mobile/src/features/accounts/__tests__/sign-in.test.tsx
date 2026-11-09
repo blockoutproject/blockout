@@ -40,7 +40,10 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   usePreventRemove: jest.fn(),
-  useRouter: () => ({ replace: mockNavigate, push: mockNavigate }),
+  useRouter: () => ({
+    replace: mockNavigate,
+    push: mockNavigate,
+  }),
 }));
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, options?: RequestInit) =>
@@ -157,6 +160,33 @@ it("dispatches explicit establishment through the subject remount and then opens
   ).toHaveLength(1);
   expect(mockNavigate).not.toHaveBeenCalledWith("/protected-action");
 });
+
+it.each(["accepted", "lost"] as const)(
+  "returns to the requested internal destination after the %s establishment outcome",
+  async (outcome) => {
+    // Given: native login and Query are real; navigation and the HTTP response are controlled.
+    const returnTo = "/matches/745?source=notification";
+    mockFetch.mockImplementation(async (_url, options) => {
+      if (options?.method === "POST" && outcome === "lost") {
+        throw new TypeError("Response lost");
+      }
+      return json(account, options?.method === "POST" ? 201 : 200);
+    });
+    const user = userEvent.setup();
+    await renderJourney(<SignInScreen admitted returnTo={returnTo} />);
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Se connecter" }));
+
+    // Then
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(returnTo));
+    expect(mockNavigate).not.toHaveBeenCalledWith("/profile");
+    expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+    ).toHaveLength(1);
+  },
+);
 
 it.each([
   ["a0.session.user_cancelled", "Connexion annulée."],

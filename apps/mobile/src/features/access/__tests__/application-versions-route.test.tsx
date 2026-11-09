@@ -18,6 +18,7 @@ import NotFoundRoute from "../../../app/+not-found";
 import OperationsLayout from "../../../app/(operations)/_layout";
 import AdministrationRoute from "../../../app/(operations)/administration";
 import RootLayout from "../../../app/_layout";
+import RecoveryLayout from "../../../app/(recovery)/_layout";
 import OnboardingRoute from "../../../app/onboarding";
 import { completeDiscovery } from "../../onboarding/discovery-state";
 import ApplicationVersionsRoute from "../../../app/(operations)/administration/application-versions";
@@ -109,7 +110,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-/** Mounts real root/operational layouts with every declared route; unrelated destinations are null probes. */
+/** Mounts real public/operational root guards; unrelated ordinary business destinations remain route probes. */
 async function openRoute(path: string) {
   return renderRouter(
     {
@@ -117,6 +118,7 @@ async function openRoute(path: string) {
       onboarding: OnboardingRoute,
       "age-declaration": () => null,
       "(ordinary)/_layout": () => <Stack />,
+      "(recovery)/_layout": RecoveryLayout,
       "(operations)/_layout": () => (
         <>
           <OperationsLayout />
@@ -126,7 +128,7 @@ async function openRoute(path: string) {
       access: AccessGateScreen,
       "+not-found": NotFoundRoute,
       "(ordinary)/index": () => <Text>Ordinary home</Text>,
-      "(ordinary)/support": () => <Text>Support route</Text>,
+      "(recovery)/support": () => <Text>Support route</Text>,
       "(ordinary)/legal": () => <Text>Legal route</Text>,
 
       "(operations)/collection": () => null,

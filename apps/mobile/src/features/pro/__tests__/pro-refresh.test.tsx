@@ -137,11 +137,11 @@ it.each([
     );
     await screen.findByText("Pro: inactive");
   }
-  const stateChange = foreground.mock.calls
-    .filter(([event]) => event === "change")
-    .at(-1)?.[1];
-  if (!stateChange) {
-    throw new Error("The Pro provider did not subscribe to AppState changes");
+  const stateChanges = foreground.mock.calls.filter(
+    ([event]) => event === "change",
+  );
+  if (stateChanges.length === 0) {
+    throw new Error("The native owners did not subscribe to AppState changes");
   }
   const active = { "Blockout Pro": entitlement() };
   mockPurchases.getCustomerInfo.mockResolvedValueOnce(
@@ -170,7 +170,10 @@ it.each([
         await pro.refresh();
         break;
       case "foreground":
-        stateChange("active");
+        // Native foreground is broadcast to every owner, independently of subscription order.
+        for (const [, stateChange] of stateChanges) {
+          stateChange("active");
+        }
         break;
       case "retry":
         await pro.retry();
@@ -196,15 +199,14 @@ it("removes native subscriptions when the provider unmounts", async () => {
   await waitFor(() => expect(account.status).toBe("authenticated"));
   const listener =
     mockPurchases.addCustomerInfoUpdateListener.mock.calls.at(-1)![0];
-  const subscriptionIndex = foreground.mock.calls.findIndex(
-    ([event]) => event === "change",
+  const subscriptions = foreground.mock.calls.flatMap(([event], index) =>
+    event === "change" ? [foreground.mock.results[index].value] : [],
   );
-  if (subscriptionIndex < 0) {
-    throw new Error("The Pro provider did not subscribe to AppState changes");
+  if (subscriptions.length === 0) {
+    throw new Error("The native owners did not subscribe to AppState changes");
   }
-  const removeForeground = jest.spyOn(
-    foreground.mock.results[subscriptionIndex].value,
-    "remove",
+  const removeForeground = subscriptions.map((subscription) =>
+    jest.spyOn(subscription, "remove"),
   );
   // When
   await view.unmount();
@@ -212,7 +214,9 @@ it("removes native subscriptions when the provider unmounts", async () => {
   expect(mockPurchases.removeCustomerInfoUpdateListener).toHaveBeenCalledWith(
     listener,
   );
-  expect(removeForeground).toHaveBeenCalledTimes(1);
+  for (const remove of removeForeground) {
+    expect(remove).toHaveBeenCalledTimes(1);
+  }
 });
 it("rejects a detached read and callbacks after provider remount into the same business account", async () => {
   // Given
