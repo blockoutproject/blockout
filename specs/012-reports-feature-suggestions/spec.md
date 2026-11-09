@@ -38,6 +38,8 @@ The person can illustrate their request without a mandatory screenshot and witho
 
 **Independent Test**: Compare requests without images, with five admissible images and with a rejected image, then temporary navigation away and back and abandonment.
 
+Automated checks own exact/over-limit text and UTF-16, zero/five/six images, prepared-file bytes and total multipart bounds at their local input boundaries, retaining real-server JSON-part/repeated-file integration. Native qualification uses representative fictional images for actual picker return/cancellation, applicable permissions, format/orientation/proportions, preparation/refusal, preview, reachable final actions and a server round trip. Compatible native iOS/Android simulators/emulators are suitable; physical hardware is reserved for a named observation that cannot be reproduced there. Exact 5 MiB files need not be manufactured on each native platform. Shared appearance, enlarged-text and keyboard/content-order checks follow [F13's proportionate qualification](../003-shared-quality/plan.md#proportionate-qualification), without a cross-product of every form state or a dedicated VoiceOver/TalkBack campaign.
+
 **Acceptance Scenarios**:
 
 1. **A08** — **Given** a valid form without images, **when** sending is requested, **then** no screenshot is required. Up to five admissible images can be reviewed and removed before sending. (FR-009, FR-011)
@@ -74,6 +76,8 @@ Staff have a complete, private case in GitHub, subject to the limits of their ro
 **Why this priority**: Handling must expose no data or grant any right solely on the basis of a declaration.
 
 **Independent Test**: Examine the recipients of the case, files and alerts, as well as requests concerning moderation, accounts and Pro.
+
+Actual provider qualification retains one complete maximum-content/five-image receipt, a later-upload failure and failed/ambiguous final marking. Compare the original text/context and every attachment reference after REST creation and CLI editing; partial effects never establish complete acceptance. Check original image-byte URLs and redirects for authorized, unauthorized signed-in and signed-out readers, including partial files, and qualify exceptional erasure independently of closure or unlinking. Missing or failed confidentiality/erasure evidence blocks real activation; controlled tests and native observations cannot supply it.
 
 **Acceptance Scenarios**:
 
