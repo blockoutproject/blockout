@@ -244,129 +244,138 @@ beforeEach(async () => {
     .mockImplementation(async (url: string, init?: RequestInit) => {
       const path = new URL(url).pathname;
       const { match } = matchDetail();
-      if (path === "/sporting-search-options") {
-        return Response.json({
-          resourceType: new URL(url).searchParams.get("resourceType"),
-          seasons: [match.pool.season],
-          divisions: [],
-          formats: [],
-          genders: [],
-        });
-      }
-      if (path === "/clubs") {
-        return Response.json({
-          clubs: [{ club: { id: match.home.id, name: "Search club" } }],
-        });
-      }
-      if (path === `/clubs/${club.club.id}`) {
-        return Response.json(club);
-      }
-      if (path === `/clubs/${club.club.id}/teams`) {
-        return Response.json({
-          seasonId: match.pool.season.id,
-          items: [
-            {
-              team: match.home,
-              season: match.pool.season,
-              classification: {},
-              professional: false,
-            },
-          ],
-        });
-      }
-      if (path === "/teams") {
-        return Response.json({
-          teams: [
-            {
-              team: { ...match.home, name: "Search team" },
-              season: match.pool.season,
-              classification: {},
-              professional: false,
-            },
-          ],
-        } satisfies TeamSearchResponse);
-      }
-      if (path === "/pools") {
-        return Response.json({
-          pools: [
-            {
-              ...match.pool,
-              pool: { ...match.pool.pool, name: "Search pool" },
-            },
-          ],
-        });
-      }
-      if (path.endsWith("/follow-options")) {
-        return Response.json({
-          seasons: [match.pool.season],
-          defaultSeasonId: match.pool.season.id,
-        });
-      }
-      if (path.endsWith("/team-follows")) {
-        return Response.json({
-          items: [
-            {
-              team: { ...match.home, name: "Followed team" },
-              season: match.pool.season,
-              classification: {},
-              professional: false,
-            },
-          ],
-        } satisfies TeamFollowsResponse);
-      }
-      if (path.endsWith("/pool-follows")) {
-        return Response.json({
-          items: [
-            {
-              ...match.pool,
-              pool: { ...match.pool.pool, name: "Followed pool" },
-            },
-          ],
-        } satisfies PoolFollowsResponse);
-      }
-      if (path === `/accounts/${inboxRow.id}/matches`) {
-        return Response.json({
-          hasAvailableFollows: true,
-          calendar: {
-            category: new URL(url).searchParams.get("category"),
-            timeZone: new URL(url).searchParams.get("timeZone"),
-            evaluatedAt: new Date().toISOString(),
-            days: [
+
+      /** Fictional sporting reads exercise the real screens before notification-specific handoffs. */
+      function sportingResponse() {
+        if (path === "/sporting-search-options") {
+          return Response.json({
+            resourceType: new URL(url).searchParams.get("resourceType"),
+            seasons: [match.pool.season],
+            divisions: [],
+            formats: [],
+            genders: [],
+          });
+        }
+        if (path === "/clubs") {
+          return Response.json({
+            clubs: [{ club: { id: match.home.id, name: "Search club" } }],
+          });
+        }
+        if (path === `/clubs/${club.club.id}`) {
+          return Response.json(club);
+        }
+        if (path === `/clubs/${club.club.id}/teams`) {
+          return Response.json({
+            seasonId: match.pool.season.id,
+            items: [
               {
-                date: "2026-10-29",
-                pools: [{ poolId: match.pool.pool.id, matches: [match] }],
+                team: match.home,
+                season: match.pool.season,
+                classification: {},
+                professional: false,
               },
             ],
-          },
-        });
+          });
+        }
+        if (path === "/teams") {
+          return Response.json({
+            teams: [
+              {
+                team: { ...match.home, name: "Search team" },
+                season: match.pool.season,
+                classification: {},
+                professional: false,
+              },
+            ],
+          } satisfies TeamSearchResponse);
+        }
+        if (path === "/pools") {
+          return Response.json({
+            pools: [
+              {
+                ...match.pool,
+                pool: { ...match.pool.pool, name: "Search pool" },
+              },
+            ],
+          });
+        }
+        if (path.endsWith("/follow-options")) {
+          return Response.json({
+            seasons: [match.pool.season],
+            defaultSeasonId: match.pool.season.id,
+          });
+        }
+        if (path.endsWith("/team-follows")) {
+          return Response.json({
+            items: [
+              {
+                team: { ...match.home, name: "Followed team" },
+                season: match.pool.season,
+                classification: {},
+                professional: false,
+              },
+            ],
+          } satisfies TeamFollowsResponse);
+        }
+        if (path.endsWith("/pool-follows")) {
+          return Response.json({
+            items: [
+              {
+                ...match.pool,
+                pool: { ...match.pool.pool, name: "Followed pool" },
+              },
+            ],
+          } satisfies PoolFollowsResponse);
+        }
+        if (path === `/accounts/${inboxRow.id}/matches`) {
+          return Response.json({
+            hasAvailableFollows: true,
+            calendar: {
+              category: new URL(url).searchParams.get("category"),
+              timeZone: new URL(url).searchParams.get("timeZone"),
+              evaluatedAt: new Date().toISOString(),
+              days: [
+                {
+                  date: "2026-10-29",
+                  pools: [{ poolId: match.pool.pool.id, matches: [match] }],
+                },
+              ],
+            },
+          });
+        }
+        if (path.endsWith("/standings")) {
+          return Response.json(table);
+        }
+        if (path.endsWith("/participants")) {
+          return Response.json(participants);
+        }
+        if (path.startsWith("/pools/")) {
+          return Response.json({ pool: matchDetail().match.pool });
+        }
+        if (path.startsWith("/teams/")) {
+          return Response.json({
+            team: {
+              team: matchDetail().match.home,
+              season: matchDetail().match.pool.season,
+              classification: {},
+              professional: false,
+            },
+            participations: [matchDetail().match.pool],
+          } satisfies TeamDetailResponse);
+        }
+        if (path === "/matches") {
+          return Response.json({
+            category: new URL(url).searchParams.get("category"),
+            timeZone: new URL(url).searchParams.get("timeZone"),
+            evaluatedAt: "2026-10-28T12:00:00Z",
+            days: [],
+          });
+        }
       }
-      if (path.endsWith("/standings")) {
-        return Response.json(table);
-      }
-      if (path.endsWith("/participants")) {
-        return Response.json(participants);
-      }
-      if (path.startsWith("/pools/")) {
-        return Response.json({ pool: matchDetail().match.pool });
-      }
-      if (path.startsWith("/teams/")) {
-        return Response.json({
-          team: {
-            team: matchDetail().match.home,
-            season: matchDetail().match.pool.season,
-            classification: {},
-            professional: false,
-          },
-          participations: [matchDetail().match.pool],
-        } satisfies TeamDetailResponse);
-      }
-      if (path === "/matches") {
-        return Response.json({
-          category: new URL(url).searchParams.get("category"),
-          timeZone: new URL(url).searchParams.get("timeZone"),
-          evaluatedAt: "2026-10-28T12:00:00Z",
-          days: [],
-        });
+
+      const sporting = sportingResponse();
+      if (sporting) {
+        return sporting;
       }
       if (path.endsWith("application-access")) {
         return Response.json(applicationAccessResponse());

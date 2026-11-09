@@ -29,6 +29,7 @@ import { ProfileLoading } from "../components/profile-loading";
 import { ProfileIdentity } from "../components/profile-identity";
 import { ProfileSignIn } from "../components/profile-sign-in";
 import { ProfileSupportAction } from "../components/profile-support-action";
+import { accountSessionRecovery } from "../session/account-session-recovery";
 import { useAccountSession } from "../session/account-session-provider";
 import { PageHeader } from "../../../shared/components/page-header";
 
@@ -72,57 +73,65 @@ export function ProfileScreen({
   const connected = session.status === "authenticated";
   const missing =
     account.error instanceof ApiError && account.error.status === 404;
-  const blockingContent = !admitted ? (
-    <ScreenState>
-      <ErrorState />
-    </ScreenState>
-  ) : session.status === "restoring" ||
-    session.status === "authenticating" ||
-    session.status === "signing-out" ||
-    (connected && account.isPending) ? (
-    <PageContent>
-      <ProfileLoading />
-    </PageContent>
-  ) : session.status === "initialization-error" ||
-    session.status === "authentication-error" ||
-    session.status === "reauthentication-required" ? (
-    <ScreenState>
-      <ErrorState
-        onRetry={
-          session.status === "initialization-error"
-            ? session.retryInitialization
-            : session.status === "authentication-error"
-              ? session.retryAuthentication
-              : undefined
-        }
-      >
-        {session.status === "reauthentication-required" && (
-          <Button
-            label="Se connecter"
-            leadingIcon={LogIn}
-            onPress={() => router.push("/sign-in")}
-          />
-        )}
-      </ErrorState>
-    </ScreenState>
-  ) : connected &&
-    account.isError &&
-    (!account.data || isAccessDenied(account.error)) ? (
-    <ScreenState>
-      <ErrorState
-        onRetry={missing ? undefined : () => void account.refetch()}
-        retrying={account.isFetching}
-      >
-        {missing && (
-          <Button
-            label="Se connecter"
-            leadingIcon={LogIn}
-            onPress={() => router.push("/sign-in")}
-          />
-        )}
-      </ErrorState>
-    </ScreenState>
-  ) : undefined;
+  const recovery = accountSessionRecovery(session);
+
+  /** Keeps whole-page account/session recovery separate from an already admitted profile. */
+  function readFeedback() {
+    if (!admitted) {
+      return (
+        <ScreenState>
+          <ErrorState />
+        </ScreenState>
+      );
+    }
+    if (recovery.pending || (connected && account.isPending)) {
+      return (
+        <PageContent>
+          <ProfileLoading />
+        </PageContent>
+      );
+    }
+    if (recovery.failed) {
+      return (
+        <ScreenState>
+          <ErrorState onRetry={recovery.onRetry}>
+            {session.status === "reauthentication-required" && (
+              <Button
+                label="Se connecter"
+                leadingIcon={LogIn}
+                onPress={() => router.push("/sign-in")}
+              />
+            )}
+          </ErrorState>
+        </ScreenState>
+      );
+    }
+    if (
+      connected &&
+      account.isError &&
+      (!account.data || isAccessDenied(account.error))
+    ) {
+      return (
+        <ScreenState>
+          <ErrorState
+            onRetry={missing ? undefined : () => void account.refetch()}
+            retrying={account.isFetching}
+          >
+            {missing && (
+              <Button
+                label="Se connecter"
+                leadingIcon={LogIn}
+                onPress={() => router.push("/sign-in")}
+              />
+            )}
+          </ErrorState>
+        </ScreenState>
+      );
+    }
+    return undefined;
+  }
+
+  const blockingContent = readFeedback();
   if (blockingContent) {
     return (
       <Page header={<ProfileHeader />}>

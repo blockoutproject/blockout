@@ -105,60 +105,62 @@ export function DiscoveryExample({ step }: { step: number }) {
               ["SV", "Saintes Volley-Ball", "3"],
               ["VBP", "Volley-Ball Pexinois Niort", "2"],
             ]
-        ).map(([mark, team, score], index) => (
-          <View
-            key={team}
-            style={[
-              styles.row,
-              !notification && styles.matchRow,
-              !notification &&
-                index === 1 && {
-                  borderTopWidth: tokens.border.thin,
-                  borderColor: colors.border,
-                },
-            ]}
-          >
-            {!!mark && (
-              <Text style={[styles.mark, { color: colors.text }]}>{mark}</Text>
-            )}
-            <Text
-              style={[
-                tokens.typography.strong,
-                { color: colors.text, flex: 1 },
-              ]}
-            >
-              {team}
-            </Text>
+        ).map(([mark, team, score], index) => {
+          let backgroundColor = colors.subtle;
+          let color = colors.text;
+          if (notification) {
+            backgroundColor = index === 0 ? division.subtle : "transparent";
+            color = index === 0 ? division.accent : colors.secondaryText;
+          }
+          return (
             <View
+              key={team}
               style={[
-                styles.score,
-                !notification && styles.matchScore,
-                {
-                  backgroundColor: notification
-                    ? index === 0
-                      ? division.subtle
-                      : "transparent"
-                    : colors.subtle,
-                },
+                styles.row,
+                !notification && styles.matchRow,
+                !notification &&
+                  index === 1 && {
+                    borderTopWidth: tokens.border.thin,
+                    borderColor: colors.border,
+                  },
               ]}
             >
+              {!!mark && (
+                <Text style={[styles.mark, { color: colors.text }]}>
+                  {mark}
+                </Text>
+              )}
               <Text
                 style={[
-                  styles.exampleTitle,
+                  tokens.typography.strong,
+                  { color: colors.text, flex: 1 },
+                ]}
+              >
+                {team}
+              </Text>
+              <View
+                style={[
+                  styles.score,
+                  !notification && styles.matchScore,
                   {
-                    color: notification
-                      ? index === 0
-                        ? division.accent
-                        : colors.secondaryText
-                      : colors.text,
+                    backgroundColor,
                   },
                 ]}
               >
-                {score}
-              </Text>
+                <Text
+                  style={[
+                    styles.exampleTitle,
+                    {
+                      color,
+                    },
+                  ]}
+                >
+                  {score}
+                </Text>
+              </View>
             </View>
-          </View>
-        ))}
+          );
+        })}
       </View>
       {notification && (
         <View

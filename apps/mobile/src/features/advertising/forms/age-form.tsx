@@ -68,7 +68,7 @@ export function AgeForm({
                 <Text
                   style={[tokens.typography.displayAge, { color: colors.text }]}
                 >
-                  {value === null ? "—" : value === 100 ? "100+" : value}
+                  {ageLabel(value)}
                 </Text>
                 {value !== null && (
                   <Text
@@ -98,12 +98,7 @@ export function AgeForm({
                     min: 0,
                     max: 100,
                     ...(value === null ? {} : { now: value }),
-                    text:
-                      value === null
-                        ? "Aucun âge sélectionné"
-                        : value === 100
-                          ? "100 ans ou plus"
-                          : `${value} ${value === 1 ? "an" : "ans"}`,
+                    text: ageAccessibilityLabel(value),
                   }}
                   minimumValue={0}
                   maximumValue={100}
@@ -140,6 +135,25 @@ export function AgeForm({
       />
     </View>
   );
+}
+
+/** Displays an unselected or upper-bound age without choosing a default. */
+function ageLabel(value: number | null) {
+  if (value === null) {
+    return "—";
+  }
+  return value === 100 ? "100+" : value;
+}
+
+/** Describes the same explicit age selection for the native adjustment control. */
+function ageAccessibilityLabel(value: number | null) {
+  if (value === null) {
+    return "Aucun âge sélectionné";
+  }
+  if (value === 100) {
+    return "100 ans ou plus";
+  }
+  return `${value} ${value === 1 ? "an" : "ans"}`;
 }
 
 const styles = StyleSheet.create({

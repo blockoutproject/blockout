@@ -74,6 +74,49 @@ export function ProVerification({ onSupport }: ProVerificationProps) {
     refreshing,
     verificationFailed,
   );
+  const message = verificationMessage(state);
+  const operation = state.operation;
+
+  /** Keeps association waiting, unsettled outcomes and a failed read as distinct recovery states. */
+  function renderFeedback() {
+    if (waiting) {
+      return <ProReadLoading label="Vérification des droits Pro" />;
+    }
+    if (uncertain || operation === "restored") {
+      return (
+        <>
+          <Text
+            accessibilityRole="alert"
+            accessibilityLiveRegion="polite"
+            style={[tokens.typography.body, { color: colors.text }]}
+          >
+            {message}
+          </Text>
+          <Button
+            label="Vérifier mes droits"
+            onPress={() => void verify()}
+            loading={refreshing}
+            disabled={operation === "restoring"}
+          />
+        </>
+      );
+    }
+    return <ErrorState onRetry={() => void verify()} retrying={refreshing} />;
+  }
+
+  return (
+    <View style={styles.feedback}>
+      {renderFeedback()}
+      {onSupport && (
+        <Button label="Contacter l’assistance" onPress={() => onSupport()} />
+      )}
+    </View>
+  );
+}
+
+/** Describes the current native outcome without treating operation completion as an active entitlement. */
+function verificationMessage(state: Exclude<ProState, { status: "guest" }>) {
+  const uncertain = hasUnsettledProOperation(state);
   let message = "";
   if (state.operation === "restoring") {
     message =
@@ -98,34 +141,7 @@ export function ProVerification({ onSupport }: ProVerificationProps) {
         ? "Le paiement est en attente de validation du store. Vérifiez vos droits sans renouveler l’achat."
         : "Le résultat de l’achat est incertain. Vérifiez vos droits sans acheter à nouveau.";
   }
-  return (
-    <View style={styles.feedback}>
-      {waiting ? (
-        <ProReadLoading label="Vérification des droits Pro" />
-      ) : uncertain || state.operation === "restored" ? (
-        <>
-          <Text
-            accessibilityRole="alert"
-            accessibilityLiveRegion="polite"
-            style={[tokens.typography.body, { color: colors.text }]}
-          >
-            {message}
-          </Text>
-          <Button
-            label="Vérifier mes droits"
-            onPress={() => void verify()}
-            loading={refreshing}
-            disabled={state.operation === "restoring"}
-          />
-        </>
-      ) : (
-        <ErrorState onRetry={() => void verify()} retrying={refreshing} />
-      )}
-      {onSupport && (
-        <Button label="Contacter l’assistance" onPress={() => onSupport()} />
-      )}
-    </View>
-  );
+  return message;
 }
 
 const styles = StyleSheet.create({

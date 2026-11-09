@@ -221,6 +221,15 @@ export function createInterstitialLifecycle({
     }
   }
 
+  /** Provider show failures retire this instance through the same bounded failure owner. */
+  function showPrepared(instance: PreparedInterstitial) {
+    try {
+      instance.ad.show().catch(() => fail(instance, "show"));
+    } catch {
+      fail(instance, "show");
+    }
+  }
+
   return {
     get count() {
       return count;
@@ -291,11 +300,7 @@ export function createInterstitialLifecycle({
         compatible(instance, getInput())
       ) {
         instance.showing = true;
-        try {
-          instance.ad.show().catch(() => fail(instance, "show"));
-        } catch {
-          fail(instance, "show");
-        }
+        showPrepared(instance);
       } else {
         releaseDestination();
         if (eligibleAction) {

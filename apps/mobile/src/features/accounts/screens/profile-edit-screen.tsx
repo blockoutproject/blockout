@@ -11,6 +11,7 @@ import { Button } from "../../../shared/components/button";
 import { useCurrentAccount } from "../api/use-current-account";
 import { ProfileForm } from "../forms/profile-form";
 import { ProfileLoading } from "../components/profile-loading";
+import { accountSessionRecovery } from "../session/account-session-recovery";
 import { useAccountSession } from "../session/account-session-provider";
 import { PageHeader } from "../../../shared/components/page-header";
 
@@ -38,6 +39,91 @@ export function ProfileEditScreen({ admitted }: ProfileEditScreenProps) {
     navigation.goBack();
   }
 
+  const recovery = accountSessionRecovery(session);
+
+  /** Recovery never mounts an editor before the current account and session are usable. */
+  function readFeedback() {
+    if (!admitted) {
+      return (
+        <ScreenState>
+          <ErrorState />
+        </ScreenState>
+      );
+    }
+    if (
+      recovery.pending ||
+      (session.status === "authenticated" && account.isPending)
+    ) {
+      return (
+        <PageContent>
+          <ProfileLoading editor />
+        </PageContent>
+      );
+    }
+    if (recovery.failed) {
+      return (
+        <ScreenState>
+          <ErrorState onRetry={recovery.onRetry}>
+            {session.status === "reauthentication-required" && (
+              <Button
+                label="Se connecter"
+                leadingIcon={LogIn}
+                onPress={() => router.replace("/sign-in")}
+              />
+            )}
+          </ErrorState>
+        </ScreenState>
+      );
+    }
+    if (session.status !== "authenticated") {
+      return (
+        <ScreenState style={styles.centered}>
+          <Button
+            label="Se connecter"
+            fullWidth
+            onPress={() => router.replace("/sign-in")}
+          />
+        </ScreenState>
+      );
+    }
+    if (account.isError) {
+      return (
+        <ScreenState>
+          <ErrorState
+            onRetry={missing ? undefined : () => void account.refetch()}
+            retrying={account.isFetching}
+          >
+            {missing && (
+              <Button
+                label="Se connecter"
+                leadingIcon={LogIn}
+                onPress={() => router.replace("/sign-in")}
+              />
+            )}
+          </ErrorState>
+        </ScreenState>
+      );
+    }
+    return null;
+  }
+
+  let content;
+  if (admitted && session.status === "authenticated" && account.data) {
+    content = (
+      <ProfileForm
+        key={`${session.subject}:${account.data.accountId}`}
+        refreshControl={
+          <DataRefreshControl enabled={!saving} onRefresh={refresh} />
+        }
+        account={account.data}
+        disabled={!account.isSuccess}
+        onCancel={close}
+        onSaved={close}
+      />
+    );
+  } else {
+    content = <FormScrollView>{readFeedback()}</FormScrollView>;
+  }
   return (
     <Page
       header={
@@ -47,78 +133,7 @@ export function ProfileEditScreen({ admitted }: ProfileEditScreenProps) {
         />
       }
     >
-      {admitted && session.status === "authenticated" && account.data ? (
-        <ProfileForm
-          key={`${session.subject}:${account.data.accountId}`}
-          refreshControl={
-            <DataRefreshControl enabled={!saving} onRefresh={refresh} />
-          }
-          account={account.data}
-          disabled={!account.isSuccess}
-          onCancel={close}
-          onSaved={close}
-        />
-      ) : (
-        <FormScrollView>
-          {!admitted ? (
-            <ScreenState>
-              <ErrorState />
-            </ScreenState>
-          ) : session.status === "restoring" ||
-            session.status === "authenticating" ||
-            session.status === "signing-out" ||
-            (session.status === "authenticated" && account.isPending) ? (
-            <PageContent>
-              <ProfileLoading editor />
-            </PageContent>
-          ) : session.status === "initialization-error" ||
-            session.status === "authentication-error" ||
-            session.status === "reauthentication-required" ? (
-            <ScreenState>
-              <ErrorState
-                onRetry={
-                  session.status === "initialization-error"
-                    ? session.retryInitialization
-                    : session.status === "authentication-error"
-                      ? session.retryAuthentication
-                      : undefined
-                }
-              >
-                {session.status === "reauthentication-required" && (
-                  <Button
-                    label="Se connecter"
-                    leadingIcon={LogIn}
-                    onPress={() => router.replace("/sign-in")}
-                  />
-                )}
-              </ErrorState>
-            </ScreenState>
-          ) : session.status !== "authenticated" ? (
-            <ScreenState style={styles.centered}>
-              <Button
-                label="Se connecter"
-                fullWidth
-                onPress={() => router.replace("/sign-in")}
-              />
-            </ScreenState>
-          ) : account.isError ? (
-            <ScreenState>
-              <ErrorState
-                onRetry={missing ? undefined : () => void account.refetch()}
-                retrying={account.isFetching}
-              >
-                {missing && (
-                  <Button
-                    label="Se connecter"
-                    leadingIcon={LogIn}
-                    onPress={() => router.replace("/sign-in")}
-                  />
-                )}
-              </ErrorState>
-            </ScreenState>
-          ) : null}
-        </FormScrollView>
-      )}
+      {content}
     </Page>
   );
 }

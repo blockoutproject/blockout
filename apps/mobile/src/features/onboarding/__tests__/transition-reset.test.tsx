@@ -106,8 +106,6 @@ function Consumers({ children }: PropsWithChildren) {
 /** Fictional fresh-target responses pass through the generated clients and response schemas. */
 async function transport(url: string, options?: RequestInit) {
   const path = new URL(url).pathname;
-  const ownerId = path.split("/")[2];
-  const following = followedAccounts.has(ownerId);
   if (path === "/application-access") {
     return Response.json(applicationAccessResponse());
   }
@@ -120,6 +118,31 @@ async function transport(url: string, options?: RequestInit) {
       ? Response.json(currentProfile)
       : Response.json({ title: "Not found", status: 404 }, { status: 404 });
   }
+  const personal = followingTransport(url, options);
+  if (personal) {
+    return personal;
+  }
+  if (path.endsWith("/notification-summary")) {
+    return Response.json(
+      inbox.length
+        ? {
+            unreadCount: 7,
+            nextExpiryAt: new Date(Date.now() + 86_400_000).toISOString(),
+          }
+        : { unreadCount: 0 },
+    );
+  }
+  if (path.endsWith("/notifications")) {
+    return Response.json({ notifications: inbox });
+  }
+  throw new Error(`Unexpected controlled request ${path}`);
+}
+
+/** Uses the current fictional owner for follow/calendar reads and explicit follow writes. */
+function followingTransport(url: string, options?: RequestInit) {
+  const path = new URL(url).pathname;
+  const ownerId = path.split("/")[2];
+  const following = followedAccounts.has(ownerId);
   if (path.endsWith("/follow-options")) {
     return Response.json({ seasons: [season], defaultSeasonId: season.id });
   }
@@ -161,20 +184,6 @@ async function transport(url: string, options?: RequestInit) {
     }
     return Response.json({ following: followedAccounts.has(ownerId) });
   }
-  if (path.endsWith("/notification-summary")) {
-    return Response.json(
-      inbox.length
-        ? {
-            unreadCount: 7,
-            nextExpiryAt: new Date(Date.now() + 86_400_000).toISOString(),
-          }
-        : { unreadCount: 0 },
-    );
-  }
-  if (path.endsWith("/notifications")) {
-    return Response.json({ notifications: inbox });
-  }
-  throw new Error(`Unexpected controlled request ${path}`);
 }
 
 beforeEach(async () => {

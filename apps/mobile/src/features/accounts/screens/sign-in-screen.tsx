@@ -80,6 +80,33 @@ function SignInJourney({ returnTo }: Pick<SignInScreenProps, "returnTo">) {
     }
   }
 
+  /** Completed authentication keeps ordinary read recovery; only a live authentication failure publishes feedback. */
+  function handleSignInFailure(error: unknown, authenticating: boolean) {
+    if (!authenticating) {
+      finishNavigation();
+      return;
+    }
+    if (!mounted.current) {
+      return;
+    }
+    setSupportOrigin({
+      screen: "sign-in",
+      failureStage: authenticating ? "authentication" : "account-establishment",
+      failureReason:
+        error instanceof WebAuthError &&
+        error.type === WebAuthErrorCodes.USER_CANCELLED
+          ? "cancelled"
+          : "unavailable",
+    });
+    let message: string | undefined;
+    if (error instanceof WebAuthError) {
+      if (error.type === WebAuthErrorCodes.USER_CANCELLED) {
+        message = "Connexion annulée.";
+      }
+    }
+    feedback.error(message);
+  }
+
   /** Retries native preparation or starts explicit authentication/establishment; failures use the shared toast. */
   async function signIn() {
     if (busy || session.operation) {
@@ -120,31 +147,7 @@ function SignInJourney({ returnTo }: Pick<SignInScreenProps, "returnTo">) {
       await attempt;
       finishNavigation();
     } catch (error) {
-      if (!authenticating) {
-        finishNavigation();
-        return;
-      }
-      if (!mounted.current) {
-        return;
-      }
-      setSupportOrigin({
-        screen: "sign-in",
-        failureStage: authenticating
-          ? "authentication"
-          : "account-establishment",
-        failureReason:
-          error instanceof WebAuthError &&
-          error.type === WebAuthErrorCodes.USER_CANCELLED
-            ? "cancelled"
-            : "unavailable",
-      });
-      let message: string | undefined;
-      if (error instanceof WebAuthError) {
-        if (error.type === WebAuthErrorCodes.USER_CANCELLED) {
-          message = "Connexion annulée.";
-        }
-      }
-      feedback.error(message);
+      handleSignInFailure(error, authenticating);
     }
   }
 
