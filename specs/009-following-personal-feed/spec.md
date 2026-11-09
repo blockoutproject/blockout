@@ -190,6 +190,8 @@ Following a contextual pool such as CFA tour 01 does not follow CFA tour 02. Fol
 
 ## Evidence and traceability
 
+Qualification follows [F13's proportionate scope](../003-shared-quality/plan.md#proportionate-qualification): deterministic owner/consumer tests establish response ordering, cancellation, refusal and calendar boundaries; representative native journeys establish platform integration. Retain an ordinary real account transition and a short native time-adapter check without repeating every race, DST boundary or visual-state combination on devices. Unexecuted native/provider evidence remains pending at its owning tasks.
+
 ### V1 sources
 
 Team/pool follows by exact identity, counters, personal calendars, manual renewal, search and reporting remain in scope. F06 defines one shared season selection, explicit uncertainty and relation integrity; [F03](../007-sporting-consultation/spec.md) owns match categories and presentation. V1 cache durations, list structures and interservice calls impose no implementation requirement. [F14](../014-v1-v2-transition/spec.md#v1-evidence) separates transition from seasonal renewal; [F05](../005-accounts-identity/spec.md) and [F09](../006-pro-subscriptions/spec.md) own identity, erasure and entitlement continuity without restoring erased personal data.

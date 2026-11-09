@@ -280,6 +280,8 @@ No example permits retaining a fact that has become false after a correction. A 
 
 ## V1 evidence and traceability
 
+Qualification follows [F13's proportionate scope](../003-shared-quality/plan.md#proportionate-qualification): deterministic owner/consumer tests establish cancellation, refusal, original-account isolation, elapsed expiry and DST boundaries; representative native journeys establish rendering, ordinary account transitions and the time adapter. Actual push permissions, SDK identity effects, supported badges and phone receipt retain their separate native/provider proofs. Unexecuted evidence remains pending at its owning tasks.
+
 ### Observations of the existing system
 
 Result/link announcements, personal inboxes, device destinations and push opening remain in scope under the rules above. V2 explicitly separates saved inbox state from best-effort push, removes the opened/manual-deletion states and defines retention, announcement deduplication and original-account isolation. Historical orchestration, reservations, provider clients and screen paths prescribe no V2 architecture or delivery guarantee. [F14](../014-v1-v2-transition/spec.md#v1-evidence) owns transition without inbox restoration or replaying V1 sends.
