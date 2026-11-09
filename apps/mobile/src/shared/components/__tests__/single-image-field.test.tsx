@@ -1,20 +1,25 @@
-import { act, render, screen, userEvent } from "@testing-library/react-native";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+} from "@testing-library/react-native";
 import * as ImagePicker from "expo-image-picker";
 import type { PropsWithChildren } from "react";
+import { ActionSheetIOS, Alert, Platform } from "react-native";
+import {
+  nativeImageChoiceAction,
+  nativeImageChoiceLabels,
+} from "../../native/test-support/native-image-choices";
 import { ThemeProvider } from "../../theme/theme-provider";
 import { useImageSelection } from "../../images/use-image-selection";
 import { ActionFeedbackProvider } from "../action-feedback";
-import { ImageChoicesProvider, ImageChoicesSheet } from "../image-choices";
 import {
   SingleImageField,
   type SingleImageFieldProps,
 } from "../single-image-field";
 
-jest.mock("expo-router", () => ({
-  ...jest.requireActual("expo-router"),
-  useRouter: () => mockRouter,
-  usePathname: () => "/profile/edit",
-}));
 jest.mock("expo-image-picker", () => ({ launchImageLibraryAsync: jest.fn() }));
 jest.mock("expo-file-system", () => ({
   File: jest.fn((uri: string) => ({ uri, exists: true, delete: jest.fn() })),
@@ -25,12 +30,6 @@ jest.mock("expo-file-system", () => ({
 }));
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
-const mockRouter = {
-  push: jest.fn(),
-  back: jest.fn(),
-  canGoBack: () => true,
-  replace: jest.fn(),
-};
 const launch = jest.mocked(ImagePicker.launchImageLibraryAsync);
 const photo: ImagePicker.ImagePickerAsset = {
   uri: "file:///cache/ImagePicker/selection.jpg",
@@ -40,7 +39,7 @@ const photo: ImagePicker.ImagePickerAsset = {
   fileSize: 2048,
 };
 
-/** The field and native selection owner are real; navigation and the system picker are external I/O. */
+/** The field and selection/preparation owner are real; only system menu, file and picker I/O are controlled. */
 function EditableImage({
   onSelect,
   ...props
@@ -54,15 +53,12 @@ function EditableImage({
   return <SingleImageField {...props} selection={selection} />;
 }
 
-/** Keeps the actual native-sheet content beside its caller when only navigation is controlled. */
+/** Supplies the actual theme and ordinary feedback without an application menu or navigation double. */
 function MediaProviders({ children }: PropsWithChildren) {
   return (
     <ThemeProvider>
       <ActionFeedbackProvider scopeKey="single-image-test">
-        <ImageChoicesProvider>
-          {children}
-          <ImageChoicesSheet />
-        </ImageChoicesProvider>
+        {children}
       </ActionFeedbackProvider>
     </ThemeProvider>
   );
@@ -70,197 +66,466 @@ function MediaProviders({ children }: PropsWithChildren) {
 
 beforeEach(() => {
   launch.mockReset();
-  jest.clearAllMocks();
+  jest
+    .spyOn(ActionSheetIOS, "showActionSheetWithOptions")
+    .mockImplementation(() => {});
+  jest.spyOn(ActionSheetIOS, "dismissActionSheet").mockImplementation(() => {});
+  jest.spyOn(Alert, "alert").mockImplementation(() => {});
 });
 
-it.each([
-  { appearance: "photo" as const, label: "Photo de profil", loading: true },
-  { appearance: "logo" as const, label: "Logo", loading: false },
-])(
-  "keeps authorized $appearance choices and local removal usable without a decoded preview",
-  async ({ appearance, label, loading }) => {
-    // Given
-    const user = userEvent.setup();
-    const remove = jest.fn();
-    const select = jest.fn();
-    await render(
-      <EditableImage
-        label={label}
-        appearance={appearance}
-        hasImage
-        loading={loading}
-        onSelect={select}
-        onRemove={remove}
-        removeLabel="Rétablir l’image automatique"
-      />,
-      { wrapper: MediaProviders },
+afterEach(async () => {
+  await cleanup();
+  jest.restoreAllMocks();
+});
+
+describe.each(["ios", "android"] as const)(
+  "%s system image actions",
+  (platform) => {
+    beforeEach(() => {
+      jest.replaceProperty(Platform, "OS", platform);
+    });
+
+    it.each([
+      { appearance: "photo" as const, label: "Photo de profil", loading: true },
+      { appearance: "logo" as const, label: "Logo", loading: false },
+    ])(
+      "keeps authorized $appearance choice and local reset available without a preview",
+      async ({ appearance, label, loading }) => {
+        // Given
+        const user = userEvent.setup();
+        const remove = jest.fn();
+        const select = jest.fn();
+        await render(
+          <EditableImage
+            label={label}
+            appearance={appearance}
+            hasImage
+            loading={loading}
+            helper="PNG/JPEG · 5 Mio maximum"
+            onSelect={select}
+            onRemove={remove}
+            removeLabel="Rétablir l’image automatique"
+          />,
+          { wrapper: MediaProviders },
+        );
+
+        // When
+        await user.press(
+          screen.getByRole("button", { name: "Modifier l’image" }),
+        );
+
+        // Then
+        expect([...nativeImageChoiceLabels()].sort()).toEqual(
+          [
+            "Choisir une image",
+            "Rétablir l’image automatique",
+            "Annuler",
+          ].sort(),
+        );
+        expect(
+          screen.queryByRole("button", { name: /Aperçu/ }),
+        ).not.toBeOnTheScreen();
+        expect(
+          screen.queryByRole("button", { name: "Réessayer" }),
+        ).not.toBeOnTheScreen();
+        expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+        if (platform === "ios") {
+          expect(
+            ActionSheetIOS.showActionSheetWithOptions,
+          ).toHaveBeenCalledWith(
+            {
+              title: label,
+              options: [
+                "Choisir une image",
+                "Rétablir l’image automatique",
+                "Annuler",
+              ],
+              cancelButtonIndex: 2,
+              destructiveButtonIndex: 1,
+            },
+            expect.any(Function),
+          );
+          expect(Alert.alert).not.toHaveBeenCalled();
+        } else {
+          expect(jest.mocked(Alert.alert).mock.lastCall?.[1]).toBeUndefined();
+          expect(
+            ActionSheetIOS.showActionSheetWithOptions,
+          ).not.toHaveBeenCalled();
+        }
+
+        // When
+        await act(() =>
+          nativeImageChoiceAction("Rétablir l’image automatique")(),
+        );
+
+        // Then
+        expect(remove).toHaveBeenCalledTimes(1);
+        expect(select).not.toHaveBeenCalled();
+        expect(launch).not.toHaveBeenCalled();
+      },
     );
 
-    // When
-    await user.press(screen.getByRole("button", { name: "Modifier l’image" }));
+    it("offers only choosing and cancellation when the owner supplies no removal", async () => {
+      // Given
+      const user = userEvent.setup();
+      await render(
+        <EditableImage label="Logo" hasImage onSelect={jest.fn()} />,
+        {
+          wrapper: MediaProviders,
+        },
+      );
 
-    // Then
-    expect(mockRouter.push).toHaveBeenCalledWith("/image-choices");
-    expect(
-      screen.getByRole("button", { name: "Choisir une image" }),
-    ).toBeEnabled();
-    expect(
-      screen.queryByRole("button", { name: /Aperçu/ }),
-    ).not.toBeOnTheScreen();
-    expect(
-      screen.queryByRole("button", { name: "Réessayer" }),
-    ).not.toBeOnTheScreen();
-    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+      // When
+      await user.press(
+        screen.getByRole("button", { name: "Modifier l’image" }),
+      );
 
-    // When
-    await user.press(
-      screen.getByRole("button", { name: "Rétablir l’image automatique" }),
-    );
+      // Then
+      expect([...nativeImageChoiceLabels()].sort()).toEqual([
+        "Annuler",
+        "Choisir une image",
+      ]);
+    });
 
-    // Then
-    expect(remove).toHaveBeenCalledTimes(1);
-    expect(select).not.toHaveBeenCalled();
-    expect(launch).not.toHaveBeenCalled();
-    expect(screen.queryByRole("header", { name: label })).not.toBeOnTheScreen();
+    it("cancels without work and prevents a duplicate or old callback from consuming a later menu", async () => {
+      // Given
+      const user = userEvent.setup();
+      const remove = jest.fn();
+      const select = jest.fn();
+      await render(
+        <EditableImage
+          label="Logo"
+          hasImage
+          onSelect={select}
+          onRemove={remove}
+        />,
+        { wrapper: MediaProviders },
+      );
+      await user.press(
+        screen.getByRole("button", { name: "Modifier l’image" }),
+      );
+      const cancel = nativeImageChoiceAction("Annuler");
+
+      // When
+      await user.press(
+        screen.getByRole("button", { name: "Modifier l’image" }),
+      );
+      await act(() => cancel());
+      await user.press(
+        screen.getByRole("button", { name: "Modifier l’image" }),
+      );
+      const currentRemove = nativeImageChoiceAction("Supprimer l’image");
+      await act(() => cancel());
+      await user.press(
+        screen.getByRole("button", { name: "Modifier l’image" }),
+      );
+
+      // Then
+      expect(
+        platform === "ios"
+          ? ActionSheetIOS.showActionSheetWithOptions
+          : Alert.alert,
+      ).toHaveBeenCalledTimes(2);
+      expect(remove).not.toHaveBeenCalled();
+      expect(select).not.toHaveBeenCalled();
+      expect(launch).not.toHaveBeenCalled();
+
+      // When
+      await act(() => currentRemove());
+      await act(() => currentRemove());
+
+      // Then
+      expect(remove).toHaveBeenCalledTimes(1);
+    });
+
+    it("retires both retained native actions when account authority is withdrawn", async () => {
+      // Given
+      const user = userEvent.setup();
+      const remove = jest.fn();
+      const select = jest.fn();
+      const view = await render(
+        <EditableImage
+          label="Logo"
+          hasImage
+          onSelect={select}
+          onRemove={remove}
+        />,
+        { wrapper: MediaProviders },
+      );
+      await user.press(
+        screen.getByRole("button", { name: "Modifier l’image" }),
+      );
+      const choose = nativeImageChoiceAction("Choisir une image");
+      const removePhoto = nativeImageChoiceAction("Supprimer l’image");
+
+      // When
+      await view.rerender(
+        <EditableImage
+          label="Logo"
+          hasImage
+          disabled
+          onSelect={select}
+          onRemove={remove}
+        />,
+      );
+      await act(() => choose());
+      await act(() => removePhoto());
+
+      // Then
+      expect(
+        screen.getByRole("button", { name: "Modifier l’image" }),
+      ).toBeDisabled();
+      expect(launch).not.toHaveBeenCalled();
+      expect(remove).not.toHaveBeenCalled();
+      expect(select).not.toHaveBeenCalled();
+      expect(ActionSheetIOS.dismissActionSheet).toHaveBeenCalledTimes(
+        platform === "ios" ? 1 : 0,
+      );
+    });
+
+    it("retires removal when that capability disappears and can reopen the remaining choices", async () => {
+      // Given
+      const user = userEvent.setup();
+      const remove = jest.fn();
+      const view = await render(
+        <EditableImage
+          label="Logo"
+          hasImage
+          onSelect={jest.fn()}
+          onRemove={remove}
+        />,
+        { wrapper: MediaProviders },
+      );
+      await user.press(
+        screen.getByRole("button", { name: "Modifier l’image" }),
+      );
+      const retained = nativeImageChoiceAction("Supprimer l’image");
+
+      // When
+      await view.rerender(
+        <EditableImage label="Logo" hasImage onSelect={jest.fn()} />,
+      );
+      await user.press(
+        screen.getByRole("button", { name: "Modifier l’image" }),
+      );
+      await act(() => retained());
+
+      // Then
+      expect([...nativeImageChoiceLabels()].sort()).toEqual([
+        "Annuler",
+        "Choisir une image",
+      ]);
+      expect(remove).not.toHaveBeenCalled();
+      expect(ActionSheetIOS.dismissActionSheet).toHaveBeenCalledTimes(
+        platform === "ios" ? 1 : 0,
+      );
+    });
+
+    it("dispatches the current authorized callback when the same owner rerenders", async () => {
+      // Given
+      const user = userEvent.setup();
+      const previous = jest.fn();
+      const current = jest.fn();
+      const view = await render(
+        <EditableImage
+          label="Logo"
+          hasImage
+          onSelect={jest.fn()}
+          onRemove={previous}
+        />,
+        { wrapper: MediaProviders },
+      );
+      await user.press(
+        screen.getByRole("button", { name: "Modifier l’image" }),
+      );
+      const retained = nativeImageChoiceAction("Supprimer l’image");
+
+      // When
+      await view.rerender(
+        <EditableImage
+          label="Logo"
+          hasImage
+          onSelect={jest.fn()}
+          onRemove={current}
+        />,
+      );
+      await act(() => retained());
+
+      // Then
+      expect(previous).not.toHaveBeenCalled();
+      expect(current).toHaveBeenCalledTimes(1);
+    });
+
+    it("rejects callbacks from an unmounted field without dismissing a later field's menu", async () => {
+      // Given
+      const user = userEvent.setup();
+      const remove = jest.fn();
+      const view = await render(
+        <EditableImage
+          key="old"
+          label="Logo"
+          hasImage
+          onSelect={jest.fn()}
+          onRemove={remove}
+        />,
+        { wrapper: MediaProviders },
+      );
+      await user.press(
+        screen.getByRole("button", { name: "Modifier l’image" }),
+      );
+      const oldRemove = nativeImageChoiceAction("Supprimer l’image");
+      const oldChoose = nativeImageChoiceAction("Choisir une image");
+
+      // When
+      await view.rerender(
+        <EditableImage
+          key="new"
+          label="Photo"
+          hasImage={false}
+          onSelect={jest.fn()}
+        />,
+      );
+      await user.press(
+        screen.getByRole("button", { name: "Ajouter une image" }),
+      );
+      await act(() => oldRemove());
+      await act(() => oldChoose());
+
+      // Then
+      expect(remove).not.toHaveBeenCalled();
+      expect(launch).not.toHaveBeenCalled();
+      expect([...nativeImageChoiceLabels()].sort()).toEqual([
+        "Annuler",
+        "Choisir une image",
+      ]);
+      expect(ActionSheetIOS.dismissActionSheet).toHaveBeenCalledTimes(
+        platform === "ios" ? 1 : 0,
+      );
+    });
+
+    it("rejects native files completed after the same owner's authorization was withdrawn", async () => {
+      // Given
+      const native = Promise.withResolvers<ImagePicker.ImagePickerResult>();
+      launch.mockReturnValue(native.promise);
+      const select = jest.fn();
+      const user = userEvent.setup();
+      const view = await render(
+        <EditableImage
+          label="Photo de profil"
+          hasImage={false}
+          onSelect={select}
+        />,
+        { wrapper: MediaProviders },
+      );
+      await user.press(
+        screen.getByRole("button", { name: "Ajouter une image" }),
+      );
+      await act(() => nativeImageChoiceAction("Choisir une image")());
+      await view.rerender(
+        <EditableImage
+          label="Photo de profil"
+          hasImage={false}
+          disabled
+          onSelect={select}
+        />,
+      );
+
+      // When
+      await act(async () =>
+        native.resolve({ canceled: false, assets: [photo] }),
+      );
+
+      // Then
+      expect(select).not.toHaveBeenCalled();
+      expect(ActionSheetIOS.dismissActionSheet).not.toHaveBeenCalled();
+    });
+
+    it("hands off to one picker and keeps the field unavailable until preparation finishes", async () => {
+      // Given
+      const preparation = Promise.withResolvers<void>();
+      launch.mockResolvedValue({ canceled: false, assets: [photo] });
+      const select = jest.fn(() => preparation.promise);
+      const user = userEvent.setup();
+      await render(
+        <EditableImage label="Logo" hasImage={false} onSelect={select} />,
+        {
+          wrapper: MediaProviders,
+        },
+      );
+      await user.press(
+        screen.getByRole("button", { name: "Ajouter une image" }),
+      );
+      const choose = nativeImageChoiceAction("Choisir une image");
+
+      // When
+      await act(() => choose());
+      await act(() => choose());
+      await user.press(
+        screen.getByRole("button", { name: "Ajouter une image" }),
+      );
+
+      // Then
+      expect(launch).toHaveBeenCalledTimes(1);
+      expect(select).toHaveBeenCalledWith([photo], undefined);
+      expect(
+        screen.getByRole("button", { name: "Ajouter une image" }),
+      ).toBeDisabled();
+      expect(ActionSheetIOS.dismissActionSheet).not.toHaveBeenCalled();
+      expect(
+        platform === "ios"
+          ? ActionSheetIOS.showActionSheetWithOptions
+          : Alert.alert,
+      ).toHaveBeenCalledTimes(1);
+
+      // When
+      await act(async () => preparation.resolve());
+
+      // Then
+      expect(
+        screen.getByRole("button", { name: "Ajouter une image" }),
+      ).toBeEnabled();
+    });
   },
 );
 
-it("offers choosing without granting removal for an inherited image", async () => {
+it("treats Android Back or outside dismissal as cancellation and lets the field reopen its choices", async () => {
   // Given
-  const user = userEvent.setup();
-  await render(<EditableImage label="Logo" hasImage onSelect={jest.fn()} />, {
-    wrapper: MediaProviders,
-  });
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Modifier l’image" }));
-
-  // Then
-  expect(
-    screen.getByRole("button", { name: "Choisir une image" }),
-  ).toBeEnabled();
-  expect(
-    screen.queryByRole("button", { name: "Supprimer l’image" }),
-  ).not.toBeOnTheScreen();
-});
-
-it("withdraws both open-sheet actions when the owner loses authorization", async () => {
-  // Given
+  jest.replaceProperty(Platform, "OS", "android");
   const user = userEvent.setup();
   const remove = jest.fn();
-  const select = jest.fn();
-  const view = await render(
-    <EditableImage label="Logo" hasImage onSelect={select} onRemove={remove} />,
+  await render(
+    <EditableImage
+      label="Logo"
+      hasImage
+      onSelect={jest.fn()}
+      onRemove={remove}
+    />,
     { wrapper: MediaProviders },
   );
   await user.press(screen.getByRole("button", { name: "Modifier l’image" }));
+  const dismissed = jest.mocked(Alert.alert).mock.lastCall?.[3]?.onDismiss;
 
   // When
-  await view.rerender(
-    <EditableImage
-      label="Logo"
-      hasImage
-      disabled
-      onSelect={select}
-      onRemove={remove}
-    />,
-  );
-  await user.press(screen.getByRole("button", { name: "Choisir une image" }));
-  await user.press(screen.getByRole("button", { name: "Supprimer l’image" }));
+  await act(() => dismissed?.());
+  await user.press(screen.getByRole("button", { name: "Modifier l’image" }));
 
   // Then
-  expect(
-    screen.getByRole("button", { name: "Choisir une image" }),
-  ).toBeDisabled();
-  expect(
-    screen.getByRole("button", { name: "Supprimer l’image" }),
-  ).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Fermer" })).toBeEnabled();
-  expect(launch).not.toHaveBeenCalled();
+  expect(Alert.alert).toHaveBeenCalledTimes(2);
   expect(remove).not.toHaveBeenCalled();
-  expect(select).not.toHaveBeenCalled();
+  expect(launch).not.toHaveBeenCalled();
 });
 
-it("rejects a native selection completed after the same owner's authorization was withdrawn", async () => {
-  // Given
-  const native = Promise.withResolvers<ImagePicker.ImagePickerResult>();
-  launch.mockReturnValue(native.promise);
-  const select = jest.fn();
-  const user = userEvent.setup();
-  const view = await render(
-    <EditableImage
-      label="Photo de profil"
-      hasImage={false}
-      onSelect={select}
-    />,
-    { wrapper: MediaProviders },
-  );
-  await user.press(screen.getByRole("button", { name: "Ajouter une image" }));
-  await user.press(screen.getByRole("button", { name: "Choisir une image" }));
-  await view.rerender(
-    <EditableImage
-      label="Photo de profil"
-      hasImage={false}
-      disabled
-      onSelect={select}
-    />,
-  );
-
-  // When
-  await act(async () => native.resolve({ canceled: false, assets: [photo] }));
-
-  // Then
-  expect(select).not.toHaveBeenCalled();
-});
-
-it("keeps the native sheet's choice pending through preparation without duplicating selection", async () => {
-  // Given
-  const preparation = Promise.withResolvers<void>();
-  launch.mockResolvedValue({ canceled: false, assets: [photo] });
-  const select = jest.fn(() => preparation.promise);
-  const user = userEvent.setup();
-  await render(
-    <EditableImage label="Logo" hasImage={false} onSelect={select} />,
-    {
-      wrapper: MediaProviders,
-    },
-  );
-  await user.press(screen.getByRole("button", { name: "Ajouter une image" }));
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Choisir une image" }));
-  await user.press(screen.getByRole("button", { name: "Choisir une image" }));
-
-  // Then
-  expect(launch).toHaveBeenCalledTimes(1);
-  expect(select).toHaveBeenCalledWith([photo], undefined);
-  expect(screen.getByRole("button", { name: "Fermer" })).toBeDisabled();
-
-  // When
-  await act(async () => preparation.resolve());
-
-  // Then
-  expect(screen.queryByRole("header", { name: "Logo" })).not.toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Ajouter une image" }),
-  ).toBeEnabled();
-});
-
-it("opens a direct preview and withdraws it with its source", async () => {
+it("opens a direct preview and withdraws it with its source without opening a system menu", async () => {
   // Given
   const user = userEvent.setup();
   const select = jest.fn();
+  const image = {
+    id: "club-logo",
+    uri: "file:///club.png",
+    label: "Logo du club",
+  };
   const view = await render(
-    <EditableImage
-      label="Logo"
-      hasImage
-      image={{
-        id: "club-logo",
-        uri: "file:///club.png",
-        label: "Logo du club",
-      }}
-      onSelect={select}
-    />,
+    <EditableImage label="Logo" hasImage image={image} onSelect={select} />,
     { wrapper: MediaProviders },
   );
 
@@ -271,11 +536,15 @@ it("opens a direct preview and withdraws it with its source", async () => {
 
   // Then
   expect(screen.getByRole("image", { name: "Logo du club" })).toBeOnTheScreen();
-  expect(screen.queryByRole("header", { name: "Logo" })).not.toBeOnTheScreen();
+  expect(ActionSheetIOS.showActionSheetWithOptions).not.toHaveBeenCalled();
+  expect(Alert.alert).not.toHaveBeenCalled();
 
   // When
   await view.rerender(
     <EditableImage label="Logo" hasImage onSelect={select} />,
+  );
+  await view.rerender(
+    <EditableImage label="Logo" hasImage image={image} onSelect={select} />,
   );
 
   // Then
@@ -286,59 +555,4 @@ it("opens a direct preview and withdraws it with its source", async () => {
     screen.getByRole("button", { name: "Modifier l’image" }),
   ).toBeEnabled();
   expect(select).not.toHaveBeenCalled();
-
-  // When the same accepted source becomes readable again, reading does not reopen a dismissed viewer.
-  await view.rerender(
-    <EditableImage
-      label="Logo"
-      hasImage
-      image={{
-        id: "club-logo",
-        uri: "file:///club.png",
-        label: "Logo du club",
-      }}
-      onSelect={select}
-    />,
-  );
-
-  // Then
-  expect(
-    screen.queryByRole("button", { name: "Fermer" }),
-  ).not.toBeOnTheScreen();
-});
-
-it("retires an unmounted field's open choices before another field can use them", async () => {
-  // Given
-  const user = userEvent.setup();
-  const remove = jest.fn();
-  const select = jest.fn();
-  const view = await render(
-    <EditableImage
-      key="old"
-      label="Logo"
-      hasImage
-      onSelect={select}
-      onRemove={remove}
-    />,
-    { wrapper: MediaProviders },
-  );
-  await user.press(screen.getByRole("button", { name: "Modifier l’image" }));
-
-  // When
-  await view.rerender(
-    <EditableImage
-      key="new"
-      label="Photo"
-      hasImage={false}
-      onSelect={select}
-    />,
-  );
-  await user.press(screen.getByRole("button", { name: "Ajouter une image" }));
-
-  // Then
-  expect(screen.getByRole("header", { name: "Photo" })).toBeOnTheScreen();
-  expect(
-    screen.queryByRole("button", { name: "Supprimer l’image" }),
-  ).not.toBeOnTheScreen();
-  expect(remove).not.toHaveBeenCalled();
 });

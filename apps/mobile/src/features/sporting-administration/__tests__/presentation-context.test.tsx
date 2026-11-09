@@ -23,7 +23,6 @@ import type {
   TeamDetailResponse,
 } from "../../../../.generated/schemas/index.zod";
 import RootLayout from "../../../app/_layout";
-import ImageChoicesRoute from "../../../app/image-choices";
 import OnboardingRoute from "../../../app/onboarding";
 import OperationsLayout from "../../../app/(operations)/_layout";
 import PresentationRoute from "../../../app/(operations)/administration/presentation/[kind]/[id]";
@@ -206,7 +205,6 @@ async function openRoute(path: string) {
   await renderRouter(
     {
       _layout: () => <RootLayout />,
-      "image-choices": ImageChoicesRoute,
       onboarding: OnboardingRoute,
       access: () => <Text>Access gate</Text>,
       "age-declaration": () => null,

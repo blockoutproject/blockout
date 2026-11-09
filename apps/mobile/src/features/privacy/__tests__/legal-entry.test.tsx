@@ -12,7 +12,6 @@ import * as WebBrowser from "expo-web-browser";
 import type { ComponentType } from "react";
 import { Text } from "react-native";
 import RootLayout from "../../../app/_layout";
-import ImageChoicesRoute from "../../../app/image-choices";
 import OrdinaryLayout from "../../../app/(ordinary)/_layout";
 import { AccessGateScreen } from "../../access/screens/access-gate-screen";
 import {
@@ -154,7 +153,6 @@ async function mountJourney(initialUrl = "/profile") {
   await renderRouter(
     {
       _layout: () => <RootLayout />,
-      "image-choices": ImageChoicesRoute,
       onboarding: () => null,
       "age-declaration": () => null,
       "(operations)/_layout": () => <Stack />,

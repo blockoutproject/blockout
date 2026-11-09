@@ -32,7 +32,7 @@ Shared Problem Details remain unchanged. Qualify multipart metadata/file binding
 
 ## Profile presentation boundary
 
-Current authorized account/session data admits the editor independently of private photo decoding. `hasPhoto: true` means an existing image can be explicitly removed even when no preview URI is available. Keeping that image omits `photoAction` and image bytes from the multipart save; no client-side preview failure changes the transport intent. F13 owns the shared contextual choices, while F05 retains square preparation, original UUID, atomic Save and prepared-file lifetime. This UI change adds no endpoint or recovery protocol.
+Current authorized account/session data admits the editor independently of private photo decoding. `hasPhoto: true` means an existing image can be explicitly removed even when no preview URI is available. Keeping that image omits `photoAction` and image bytes from the multipart save; no client-side preview failure changes the transport intent. F13 owns the shared OS choices and guarded callbacks, while F05 retains square preparation, original UUID, atomic Save and prepared-file lifetime. This UI change adds no endpoint or recovery protocol.
 
 ## Other boundaries and coordinated consumers
 

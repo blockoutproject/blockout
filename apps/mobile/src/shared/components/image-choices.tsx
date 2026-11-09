@@ -1,199 +1,115 @@
-import { Stack, usePathname, useRouter } from "expo-router";
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-  type PropsWithChildren,
-} from "react";
-import { Button } from "./button";
-import { FieldMessage } from "./field-message";
-import { Sheet, SheetContent } from "./sheet";
+import { useEffect, useLayoutEffect, useRef } from "react";
+import { ActionSheetIOS, Alert, Platform } from "react-native";
 
-/** One mounted image field supplies current choices; no image or callback enters the route URL. */
-export interface ImageChoiceRequest {
-  owner: object;
+/** Native image actions; the mounted feature retains file preparation, draft intent and current authority. */
+export interface ImageChoicesOptions {
   title: string;
   chooseLabel: string;
   removeLabel: string;
-  helper?: string;
   disabled: boolean;
-  pending: boolean;
   onChoose: () => void;
   onRemove?: () => void;
 }
 
-/** Exchanges only the currently presented field with its native sheet route. */
-interface ImageChoices {
-  open: (request: ImageChoiceRequest) => void;
-  update: (request: ImageChoiceRequest) => void;
-  dismiss: (owner: object) => void;
-  release: (owner: object) => void;
-  clear: (owner: object) => void;
-}
+/**
+ * Opens one system menu per mounted field, then releases it before invoking the latest authorized action.
+ * iOS can dismiss its still-active menu on withdrawal. Android's Alert API has no dismissal handle;
+ * withdrawal retires its callbacks, so a visible obsolete button cannot change the draft or open Photos.
+ */
+export function useImageChoices(options: ImageChoicesOptions) {
+  const mounted = useRef(false);
+  const latest = useRef(options);
+  const inFlight = useRef<(() => void) | undefined>(undefined);
 
-const ImageChoicesContext = createContext<ImageChoices | undefined>(undefined);
-const ImageChoiceRequestContext = createContext<ImageChoiceRequest | null>(
-  null,
-);
-
-/** Keeps one ephemeral choice request above protected native routes, retired with its field or session. */
-export function ImageChoicesProvider({ children }: PropsWithChildren) {
-  const router = useRouter();
-  const navigation = useRef(router);
-  const pathname = usePathname();
-  const path = useRef(pathname);
   useLayoutEffect(() => {
-    navigation.current = router;
-    path.current = pathname;
-  }, [router, pathname]);
-  const mounted = useRef(true);
-  const current = useRef<ImageChoiceRequest | null>(null);
-  const [request, setRequest] = useState<ImageChoiceRequest | null>(null);
+    const removalWithdrawn = latest.current.onRemove && !options.onRemove;
+    latest.current = options;
+    if (options.disabled || removalWithdrawn) {
+      inFlight.current?.();
+    }
+  }, [options]);
+
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
+      inFlight.current?.();
     };
   }, []);
 
-  const choices = useMemo<ImageChoices>(() => {
-    /** A route dismissal never navigates another current destination or a retired session. */
-    function dismiss(owner: object) {
-      if (!mounted.current || current.current?.owner !== owner) {
+  /** Native selection is consumed once; an old callback cannot act on, or retire, a later menu. */
+  function open() {
+    const current = latest.current;
+    if (!mounted.current || current.disabled || inFlight.current) {
+      return;
+    }
+
+    /** The OS owns menu dismissal; release this visit before handing off to Photos. */
+    function finish(action?: "choose" | "remove") {
+      if (inFlight.current !== retire) {
         return;
       }
-      clear(owner);
-      if (path.current === "/image-choices") {
-        if (navigation.current.canGoBack()) {
-          navigation.current.back();
-        } else {
-          navigation.current.replace("/");
-        }
+      inFlight.current = undefined;
+      const authorized = latest.current;
+      if (!mounted.current || authorized.disabled) {
+        return;
+      }
+      if (action === "choose") {
+        authorized.onChoose();
+      } else if (action === "remove") {
+        authorized.onRemove?.();
       }
     }
 
-    /** Removes only this field's request; another field cannot be cleared by a late cleanup. */
-    function clear(owner: object) {
-      if (!mounted.current || current.current?.owner !== owner) {
+    /** Only an outstanding menu from this visit may be dismissed; no feature action runs during cleanup. */
+    function retire() {
+      if (inFlight.current !== retire) {
         return;
       }
-      current.current = null;
-      setRequest(null);
+      inFlight.current = undefined;
+      if (Platform.OS === "ios") {
+        ActionSheetIOS.dismissActionSheet();
+      }
     }
 
-    return {
-      open: (next) => {
-        if (!mounted.current || current.current) {
-          return;
-        }
-        current.current = next;
-        setRequest(next);
-        navigation.current.push("/image-choices");
-      },
-      update: (next) => {
-        if (!mounted.current || current.current?.owner !== next.owner) {
-          return;
-        }
-        current.current = next;
-        setRequest(next);
-      },
-      dismiss,
-      clear,
-      release: dismiss,
-    };
-  }, []);
-
-  return (
-    <ImageChoicesContext value={choices}>
-      <ImageChoiceRequestContext value={request}>
-        {children}
-      </ImageChoiceRequestContext>
-    </ImageChoicesContext>
-  );
-}
-
-/** Gives mounted controls the native presenter without observing another field's request state. */
-export function useImageChoices() {
-  const choices = useContext(ImageChoicesContext);
-  if (!choices) {
-    throw new Error("Image choices require the protected stack provider");
-  }
-  return choices;
-}
-
-/** Composes current choices within the existing sheet; owners retain selection, authorization and local draft intent. */
-export function ImageChoicesSheet() {
-  const request = useContext(ImageChoiceRequestContext);
-  const choices = useImageChoices();
-  const owner = request?.owner;
-  useEffect(
-    () => () => {
-      if (owner) {
-        choices.clear(owner);
+    inFlight.current = retire;
+    if (Platform.OS === "ios") {
+      const labels = [current.chooseLabel];
+      if (current.onRemove) {
+        labels.push(current.removeLabel);
       }
-    },
-    [choices, owner],
-  );
-
-  if (!request) {
-    return null;
-  }
-
-  return (
-    <Sheet
-      title={request.title}
-      onClose={() => choices.dismiss(request.owner)}
-      closeDisabled={request.pending}
-    >
-      <SheetContent>
-        <Button
-          label={request.chooseLabel}
-          variant="secondary"
-          fullWidth
-          disabled={request.disabled}
-          onPress={request.onChoose}
-        />
-        {request.onRemove && (
-          <Button
-            label={request.removeLabel}
-            variant="secondary"
-            fullWidth
-            disabled={request.disabled}
-            onPress={request.onRemove}
-          />
-        )}
-        <FieldMessage helper={request.helper} />
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-/** Registers dynamic native dismissal while direct entries have no image authority or operation. */
-export function ImageChoicesScreen() {
-  const request = useContext(ImageChoiceRequestContext);
-  const router = useRouter();
-
-  /** A direct route offers ordinary departure without creating a field or a file operation. */
-  function close() {
-    if (router.canGoBack()) {
-      router.back();
+      labels.push("Annuler");
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          title: current.title,
+          options: labels,
+          cancelButtonIndex: labels.length - 1,
+          destructiveButtonIndex: current.onRemove ? 1 : undefined,
+        },
+        (index) =>
+          finish(
+            index === 0
+              ? "choose"
+              : current.onRemove && index === 1
+                ? "remove"
+                : undefined,
+          ),
+      );
     } else {
-      router.replace("/");
+      Alert.alert(
+        current.title,
+        undefined,
+        [
+          ...(current.onRemove
+            ? [{ text: current.removeLabel, onPress: () => finish("remove") }]
+            : []),
+          { text: "Annuler", style: "cancel", onPress: () => finish() },
+          { text: current.chooseLabel, onPress: () => finish("choose") },
+        ],
+        { cancelable: true, onDismiss: () => finish() },
+      );
     }
   }
 
-  return (
-    <>
-      <Stack.Screen options={{ gestureEnabled: !request?.pending }} />
-      {request ? (
-        <ImageChoicesSheet />
-      ) : (
-        <Sheet title="Image" onClose={close} />
-      )}
-    </>
-  );
+  return open;
 }

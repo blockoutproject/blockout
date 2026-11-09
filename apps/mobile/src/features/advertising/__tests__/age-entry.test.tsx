@@ -24,7 +24,6 @@ import { useEffect, type ComponentType } from "react";
 import { AccessibilityInfo, DeviceEventEmitter, Text } from "react-native";
 import { readAgeDeclaration, submitAgeDeclaration } from "../age-declaration";
 import RootLayout from "../../../app/_layout";
-import ImageChoicesRoute from "../../../app/image-choices";
 import AgeRoute from "../../../app/age-declaration";
 import HomeRoute from "../../../app/(ordinary)/(tabs)/(home)/index";
 import HomeLayout from "../../../app/(ordinary)/(tabs)/(home)/_layout";
@@ -158,7 +157,6 @@ async function openEntry(initialUrl = "/sign-in") {
   return renderRouter(
     {
       _layout: () => <RootLayout />,
-      "image-choices": ImageChoicesRoute,
       onboarding: OnboardingRoute,
       access: AccessGateScreen,
       "age-declaration": AgeRoute,

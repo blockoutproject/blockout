@@ -6,7 +6,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Text } from "react-native";
 import type { ComponentType } from "react";
 import RootLayout from "../../../app/_layout";
-import ImageChoicesRoute from "../../../app/image-choices";
 import MatchRoute from "../../../app/(ordinary)/matches/[matchId]";
 import { AccessGateScreen } from "../../access/screens/access-gate-screen";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
@@ -76,7 +75,6 @@ async function openApplication() {
   return renderRouter({
     _layout: () => <RootLayout />,
     access: AccessGateScreen,
-    "image-choices": ImageChoicesRoute,
     onboarding: () => <Text>Discovery</Text>,
     "age-declaration": () => <Text>Age declaration</Text>,
     "(ordinary)/_layout": () => (

@@ -1,7 +1,10 @@
 import { useLayoutEffect } from "react";
 import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
+import {
+  nativeImageChoiceAction,
+  nativeImageChoiceLabels,
+} from "../../../shared/native/test-support/native-image-choices";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
-import { ImageChoicesScreen } from "../../../shared/components/image-choices";
 import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import { accountResponse } from "../../accounts/test-support/account-response";
 import type {
@@ -26,14 +29,13 @@ import {
 } from "@testing-library/react-native";
 import * as ImagePicker from "expo-image-picker";
 import { File } from "expo-file-system";
-import { Alert, Pressable, Text } from "react-native";
+import { ActionSheetIOS, Alert, Pressable, Text } from "react-native";
 import { Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { ComponentType, PropsWithChildren, ReactNode } from "react";
 import { useDivisions } from "../api/classification";
 import { getListDivisionsQueryKey } from "../../../../.generated/mobile";
 import RootLayout from "../../../app/_layout";
-import ImageChoicesRoute from "../../../app/image-choices";
 import OnboardingRoute from "../../../app/onboarding";
 import OperationsLayout from "../../../app/(operations)/_layout";
 import PresentationRoute from "../../../app/(operations)/administration/presentation/[kind]/[id]";
@@ -185,6 +187,10 @@ async function respond(
 
 beforeEach(async () => {
   jest
+    .spyOn(ActionSheetIOS, "showActionSheetWithOptions")
+    .mockImplementation(() => {});
+  jest.spyOn(ActionSheetIOS, "dismissActionSheet").mockImplementation(() => {});
+  jest
     .mocked(File)
     .mockReset()
     .mockImplementation(
@@ -279,11 +285,10 @@ async function renderEditor(
         />
       </>
     ),
-    "image-choices": ImageChoicesScreen,
   });
 }
 
-/** Exposes real session commands and current grants while the native image sheet covers the form route. */
+/** Exposes real session commands and current grants while native image choices are pending. */
 function SessionAction() {
   const session = useAccountSession();
   const account = useCurrentAccount();
@@ -335,9 +340,7 @@ it("saves independent names and a nonsquare logo in one generated multipart PATC
     ],
   });
   await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
-  await user.press(
-    await screen.findByRole("button", { name: "Choisir un logo" }),
-  );
+  await act(nativeImageChoiceAction("Choisir un logo"));
   await screen.findByRole("button", { name: "Aperçu : Logo" });
   mockFetch.mockImplementation((url, options) => {
     if (options?.method === "PATCH") {
@@ -399,9 +402,7 @@ it("restores known customized artwork without a preview and clears only the sele
   ).not.toBeOnTheScreen();
   await user.clear(screen.getByLabelText("Nom complet personnalisé"));
   await user.press(screen.getByRole("button", { name: "Modifier le logo" }));
-  await user.press(
-    await screen.findByRole("button", { name: "Rétablir le logo automatique" }),
-  );
+  await act(nativeImageChoiceAction("Rétablir le logo automatique"));
 
   mockFetch.mockImplementation((url, options) => {
     if (options?.method === "PATCH") {
@@ -466,18 +467,10 @@ it("keeps inherited artwork editable while its read is pending without offering 
   await user.press(screen.getByRole("button", { name: "Modifier le logo" }));
 
   // Then
-  expect(
-    await screen.findByRole("button", { name: "Choisir un logo" }),
-  ).toBeEnabled();
-  expect(
-    screen.queryByRole("button", { name: "Rétablir le logo automatique" }),
-  ).not.toBeOnTheScreen();
-  expect(
-    screen.queryByRole("button", { name: "Retirer le logo personnalisé" }),
-  ).not.toBeOnTheScreen();
+  expect(nativeImageChoiceLabels()).toEqual(["Choisir un logo", "Annuler"]);
 
   // When
-  await user.press(screen.getByRole("button", { name: "Fermer" }));
+  await act(nativeImageChoiceAction("Annuler"));
   await act(() => read.resolve(new Response(null, { status: 503 })));
 
   // Then: dismissal and a late media failure change neither the owner nor the draft.
@@ -965,9 +958,7 @@ it.each([403, 404])(
       await user.press(
         screen.getByRole("button", { name: "Modifier le logo" }),
       );
-      await user.press(
-        await screen.findByRole("button", { name: "Choisir un logo" }),
-      );
+      await act(nativeImageChoiceAction("Choisir un logo"));
       await waitFor(() =>
         expect(
           screen.getByRole("button", { name: "Enregistrer" }),
@@ -1074,9 +1065,7 @@ it("retains a read-only draft and drops a held native selection when the current
     .mocked(ImagePicker.launchImageLibraryAsync)
     .mockReturnValue(selection.promise);
   await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
-  await user.press(
-    await screen.findByRole("button", { name: "Choisir un logo" }),
-  );
+  await act(nativeImageChoiceAction("Choisir un logo"));
   permissions = { manageCollection: true };
 
   // When
@@ -1123,9 +1112,7 @@ it("ignores a held native selection after the session is invalidated", async () 
     .mocked(ImagePicker.launchImageLibraryAsync)
     .mockReturnValue(selection.promise);
   await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
-  await user.press(
-    await screen.findByRole("button", { name: "Choisir un logo" }),
-  );
+  await act(nativeImageChoiceAction("Choisir un logo"));
 
   // When
   await user.press(screen.getByRole("button", { name: "Quitter la session" }));
@@ -1159,7 +1146,6 @@ async function openRoutes(initialUrl = "/") {
   return renderRouter(
     {
       _layout: () => <RootLayout />,
-      "image-choices": ImageChoicesRoute,
       onboarding: OnboardingRoute,
       "age-declaration": () => null,
       access: AccessProbe,
@@ -1300,9 +1286,7 @@ it("enters the real protected route with only the presentation grant and confirm
     ],
   });
   await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
-  await user.press(
-    await screen.findByRole("button", { name: "Choisir un logo" }),
-  );
+  await act(nativeImageChoiceAction("Choisir un logo"));
   await screen.findByRole("button", { name: "Aperçu : Logo" });
   await act(async () => router.back());
 
@@ -1352,9 +1336,7 @@ it("drops the draft and releases its logo when revoked grants remove the protect
     ],
   });
   await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
-  await user.press(
-    await screen.findByRole("button", { name: "Choisir un logo" }),
-  );
+  await act(nativeImageChoiceAction("Choisir un logo"));
   await screen.findByRole("button", { name: "Aperçu : Logo" });
 
   // When
@@ -1780,16 +1762,12 @@ it("deletes a removed logo copy after the picker loan was released", async () =>
     ],
   });
   await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
-  await user.press(
-    await screen.findByRole("button", { name: "Choisir un logo" }),
-  );
+  await act(nativeImageChoiceAction("Choisir un logo"));
   await screen.findByRole("button", { name: "Aperçu : Logo" });
 
   // When
   await user.press(screen.getByRole("button", { name: "Modifier le logo" }));
-  await user.press(
-    await screen.findByRole("button", { name: "Rétablir le logo automatique" }),
-  );
+  await act(nativeImageChoiceAction("Rétablir le logo automatique"));
 
   // Then
   expect(mockFile.delete).toHaveBeenCalledTimes(1);
@@ -1811,9 +1789,7 @@ it("keeps a sent logo until upload settlement after session invalidation", async
     ],
   });
   await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
-  await user.press(
-    await screen.findByRole("button", { name: "Choisir un logo" }),
-  );
+  await act(nativeImageChoiceAction("Choisir un logo"));
   await screen.findByRole("button", { name: "Aperçu : Logo" });
   const response = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url, options) =>
@@ -1863,9 +1839,7 @@ it("deletes a prepared logo completed after its form unmounts", async () => {
   }>();
   mockImage.saveAsync.mockReturnValue(output.promise);
   await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
-  await user.press(
-    await screen.findByRole("button", { name: "Choisir un logo" }),
-  );
+  await act(nativeImageChoiceAction("Choisir un logo"));
   await waitFor(() => expect(mockImage.saveAsync).toHaveBeenCalledTimes(1));
 
   // When
@@ -1991,16 +1965,12 @@ it("releases only the replaced logo copy while the new draft remains usable", as
       };
     });
   await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
-  await user.press(
-    await screen.findByRole("button", { name: "Choisir un logo" }),
-  );
+  await act(nativeImageChoiceAction("Choisir un logo"));
   await screen.findByRole("button", { name: "Aperçu : Logo" });
 
   // When
   await user.press(screen.getByRole("button", { name: "Modifier le logo" }));
-  await user.press(
-    await screen.findByRole("button", { name: "Choisir un logo" }),
-  );
+  await act(nativeImageChoiceAction("Choisir un logo"));
 
   // Then
   await waitFor(() => expect(mockFile.delete).toHaveBeenCalledTimes(1));

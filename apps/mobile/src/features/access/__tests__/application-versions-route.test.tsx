@@ -18,7 +18,6 @@ import NotFoundRoute from "../../../app/+not-found";
 import OperationsLayout from "../../../app/(operations)/_layout";
 import AdministrationRoute from "../../../app/(operations)/administration";
 import RootLayout from "../../../app/_layout";
-import ImageChoicesRoute from "../../../app/image-choices";
 import OnboardingRoute from "../../../app/onboarding";
 import { completeDiscovery } from "../../onboarding/discovery-state";
 import ApplicationVersionsRoute from "../../../app/(operations)/administration/application-versions";
@@ -115,7 +114,6 @@ async function openRoute(path: string) {
   return renderRouter(
     {
       _layout: () => <RootLayout />,
-      "image-choices": ImageChoicesRoute,
       onboarding: OnboardingRoute,
       "age-declaration": () => null,
       "(ordinary)/_layout": () => <Stack />,

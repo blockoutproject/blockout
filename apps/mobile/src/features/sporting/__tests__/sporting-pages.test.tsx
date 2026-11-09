@@ -10,7 +10,6 @@ import { AdvertisingProviders } from "../../advertising/test-support/advertising
 import * as proSessionModule from "../../pro/pro-session";
 import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
-import { ImageChoicesProvider } from "../../../shared/components/image-choices";
 import { Button } from "../../../shared/components/button";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -44,7 +43,6 @@ import { supportContext } from "../../support/model/support-context";
 import TeamRoute from "../../../app/(ordinary)/teams/[teamId]";
 import PoolRoute from "../../../app/(ordinary)/pools/[poolId]";
 import PresentationRoute from "../../../app/(operations)/administration/presentation/[kind]/[id]";
-import ImageChoicesRoute from "../../../app/image-choices";
 import { renderRouter } from "expo-router/testing-library";
 import { router } from "expo-router";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
@@ -575,7 +573,7 @@ it.each(["guest", "other", "owner"] as const)(
   },
 );
 
-/** Supplies the actual application owners, including shared image choices above real editor routes, without unrelated root SDKs. */
+/** Supplies the actual application owners above real editor routes without unrelated root SDKs. */
 function renderPage(content: ReactElement, editorRoute = false) {
   const options = {
     wrapper: ({ children }: QueryFixtureProps) => (
@@ -592,15 +590,7 @@ function renderPage(content: ReactElement, editorRoute = false) {
                 <ApplicationAccessProvider>
                   <AccountSessionProvider>
                     <PrivateQueries>
-                      <AdvertisingProviders>
-                        {editorRoute ? (
-                          <ImageChoicesProvider>
-                            {children}
-                          </ImageChoicesProvider>
-                        ) : (
-                          children
-                        )}
-                      </AdvertisingProviders>
+                      <AdvertisingProviders>{children}</AdvertisingProviders>
                     </PrivateQueries>
                   </AccountSessionProvider>
                 </ApplicationAccessProvider>
@@ -616,7 +606,6 @@ function renderPage(content: ReactElement, editorRoute = false) {
         {
           index: () => content,
           "administration/presentation/[kind]/[id]": PresentationRoute,
-          "image-choices": ImageChoicesRoute,
         },
         options,
       )

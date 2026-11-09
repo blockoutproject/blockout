@@ -12,7 +12,6 @@ import { focusManager, onlineManager } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import RootLayout from "../../../app/_layout";
-import ImageChoicesRoute from "../../../app/image-choices";
 import AccessRoute from "../../../app/access";
 import NotFoundRoute from "../../../app/+not-found";
 import OnboardingRoute from "../../../app/onboarding";
@@ -157,7 +156,6 @@ async function openRoute(path: string) {
       _layout: () => <RootLayout />,
       access: AccessRoute,
       "+not-found": NotFoundRoute,
-      "image-choices": ImageChoicesRoute,
       onboarding: OnboardingRoute,
       "age-declaration": () => null,
       "(ordinary)/_layout": () => <Stack />,

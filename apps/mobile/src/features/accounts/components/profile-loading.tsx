@@ -26,7 +26,7 @@ export function ProfileLoading({ editor = false }: ProfileLoadingProps) {
     <LoadingGroup label="Chargement du profil" style={styles.body}>
       {editor ? (
         <>
-          <SingleImageFieldSkeleton appearance="photo" />
+          <SingleImageFieldSkeleton />
           <EditorFieldsSkeleton />
           <Skeleton height={actionHeight} shape="rectangle" />
           <Skeleton height={actionHeight} shape="rectangle" />

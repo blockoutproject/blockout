@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { UserRound } from "lucide-react-native";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import type { ImageSelection } from "../images/use-image-selection";
@@ -10,9 +10,8 @@ import { tokens } from "../theme/tokens";
 import { FieldMessage } from "./field-message";
 import { ImagePreview, type ImageFieldImage } from "./image-field";
 import { ImageFallback } from "./image-fallback";
-import { useImageChoices, type ImageChoiceRequest } from "./image-choices";
+import { useImageChoices } from "./image-choices";
 import { LoadingIndicator } from "./loading-indicator";
-import { Skeleton } from "./skeleton";
 import { TextSkeleton } from "./text-skeleton";
 
 /**
@@ -27,6 +26,7 @@ export interface SingleImageFieldProps {
   readRevision?: number;
   hasImage: boolean;
   selection: ImageSelection;
+  /** Selects artwork fit, fallback glyph and copy; every state keeps the shared rounded-square geometry. */
   appearance?: "photo" | "logo";
   loading?: boolean;
   disabled?: boolean;
@@ -59,82 +59,29 @@ export function SingleImageField({
   error,
 }: SingleImageFieldProps) {
   const { colors } = useTheme();
-  const choices = useImageChoices();
-  const [owner] = useState(() => ({}));
-  const latest = useRef({ disabled, selection, image, onRemove });
-  useLayoutEffect(() => {
-    latest.current = { disabled, selection, image, onRemove };
-  }, [disabled, selection, image, onRemove]);
-  const choosing = useRef(false);
   const [previewUri, setPreviewUri] = useState<string>();
   const unavailable = disabled || selection.pending;
   const nativeImage = useNativeImageLifecycle(image?.uri, readRevision);
   const visibleImage = nativeImage.status === "failed" ? undefined : image;
 
-  const actions = useMemo(() => {
-    /** The existing picker remains above its native sheet until selection/preparation has settled. */
-    function choose() {
-      const current = latest.current;
-      if (current.disabled || current.selection.isPending()) {
-        return;
+  const openChoices = useImageChoices({
+    title: label,
+    chooseLabel,
+    removeLabel,
+    disabled: unavailable,
+    onChoose: () => {
+      if (!disabled && !selection.isPending()) {
+        selection.select(image?.id);
       }
-      current.selection.select(current.image?.id);
-      if (current.selection.isPending()) {
-        choosing.current = true;
-      }
-    }
-
-    /** Current authority and selection ownership are rechecked before changing the caller's local draft. */
-    function remove() {
-      const current = latest.current;
-      if (current.disabled || current.selection.isPending()) {
-        return;
-      }
-      current.onRemove?.();
-      choices.dismiss(owner);
-    }
-
-    return { choose, remove };
-  }, [choices, owner]);
-  const request = useMemo<ImageChoiceRequest>(
-    () => ({
-      owner,
-      title: label,
-      chooseLabel,
-      removeLabel,
-      helper,
-      disabled: unavailable,
-      pending: selection.pending,
-      onChoose: actions.choose,
-      onRemove: onRemove ? actions.remove : undefined,
-    }),
-    [
-      owner,
-      label,
-      chooseLabel,
-      removeLabel,
-      helper,
-      unavailable,
-      selection.pending,
-      actions,
-      onRemove,
-    ],
-  );
-  useEffect(() => {
-    choices.update(request);
-  }, [choices, request]);
-  useEffect(
-    () => () => {
-      choices.release(owner);
     },
-    [choices, owner],
-  );
-  useEffect(() => {
-    if (choosing.current && !selection.pending) {
-      choosing.current = false;
-      choices.dismiss(owner);
-    }
-  }, [choices, owner, selection.pending]);
+    onRemove: onRemove
+      ? () => {
+          if (!disabled && !selection.isPending()) {
+            onRemove();
+          }
+        }
+      : undefined,
+  });
 
   // Source withdrawal closes this visit; a later read cannot reopen the viewer without another explicit press.
   if (
@@ -148,8 +95,6 @@ export function SingleImageField({
     styles.media,
     {
       backgroundColor: colors.mediaPlaceholder,
-      borderRadius:
-        appearance === "photo" ? tokens.radius.full : tokens.radius.panelInset,
     },
   ];
   return (
@@ -169,15 +114,7 @@ export function SingleImageField({
             accessible={false}
             cachePolicy="none"
             contentFit={appearance === "photo" ? "cover" : "contain"}
-            style={[
-              styles.image,
-              {
-                borderRadius:
-                  appearance === "photo"
-                    ? tokens.radius.full
-                    : tokens.radius.media,
-              },
-            ]}
+            style={styles.image}
             onDisplay={nativeImage.onDisplay}
             onError={nativeImage.onError}
           />
@@ -201,10 +138,9 @@ export function SingleImageField({
           style={mediaStyle}
         >
           {loading ? (
-            <Skeleton
-              shape="rectangle"
-              width={tokens.size.media.profile}
-              height={tokens.size.media.profile}
+            <View
+              accessible={false}
+              style={[styles.image, { backgroundColor: colors.skeleton }]}
             />
           ) : appearance === "photo" ? (
             <UserRound
@@ -226,7 +162,11 @@ export function SingleImageField({
         accessibilityHint={error ?? helper}
         accessibilityState={{ disabled: unavailable, busy: selection.pending }}
         disabled={unavailable}
-        onPress={() => choices.open(request)}
+        onPress={() => {
+          if (!selection.isPending()) {
+            openChoices();
+          }
+        }}
         style={({ pressed }) => [
           styles.entry,
           {
@@ -268,12 +208,8 @@ export function SingleImageField({
   );
 }
 
-/** Reserves the shared preview and entry without controls or a second pending announcement. */
-export function SingleImageFieldSkeleton({
-  appearance = "logo",
-}: {
-  appearance?: SingleImageFieldProps["appearance"];
-}) {
+/** Reserves the shared rounded-square preview and entry without controls or a second pending announcement. */
+export function SingleImageFieldSkeleton() {
   const { colors } = useTheme();
   return (
     <View
@@ -287,10 +223,6 @@ export function SingleImageFieldSkeleton({
           styles.media,
           {
             backgroundColor: colors.skeleton,
-            borderRadius:
-              appearance === "photo"
-                ? tokens.radius.full
-                : tokens.radius.panelInset,
           },
         ]}
       />
@@ -313,11 +245,13 @@ const styles = StyleSheet.create({
     padding: tokens.spacing.sm,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: tokens.radius.panelInset,
     overflow: "hidden",
   },
   image: {
     width: tokens.size.media.profile,
     height: tokens.size.media.profile,
+    borderRadius: tokens.radius.media,
   },
   entry: {
     minHeight: tokens.size.control.default,

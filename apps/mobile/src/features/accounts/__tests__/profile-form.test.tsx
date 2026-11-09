@@ -3,7 +3,7 @@ import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { accountResponse } from "../test-support/account-response";
 import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
-import { ImageChoicesSheet } from "../../../shared/components/image-choices";
+import { nativeImageChoiceAction } from "../../../shared/native/test-support/native-image-choices";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import {
@@ -20,7 +20,7 @@ import { File } from "expo-file-system";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import { Pressable, Text } from "react-native";
+import { ActionSheetIOS, Pressable, Text } from "react-native";
 import {
   AccountSessionProvider,
   useAccountSession,
@@ -112,6 +112,10 @@ const previousEnvironment = { ...process.env };
 
 beforeEach(() => {
   jest.useFakeTimers();
+  jest
+    .spyOn(ActionSheetIOS, "showActionSheetWithOptions")
+    .mockImplementation(() => {});
+  jest.spyOn(ActionSheetIOS, "dismissActionSheet").mockImplementation(() => {});
   mockFile.exists = true;
   mockFile.delete.mockReset();
   mockPickedFile.delete.mockReset();
@@ -174,7 +178,6 @@ async function mountProfile() {
               <AccountFeedbackProvider>
                 <ProfileEditScreen admitted />
                 <SessionActions />
-                <ImageChoicesSheet />
               </AccountFeedbackProvider>
             </PrivateQueries>
           </AccountSessionProvider>
@@ -320,7 +323,7 @@ it("defers clean profile updates until native photo selection has settled", asyn
     .mocked(ImagePicker.launchImageLibraryAsync)
     .mockReturnValue(selection.promise);
   await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
-  await user.press(screen.getByRole("button", { name: "Choisir une photo" }));
+  await act(nativeImageChoiceAction("Choisir une photo"));
   await waitFor(() =>
     expect(ImagePicker.launchImageLibraryAsync).toHaveBeenCalledTimes(1),
   );
@@ -565,9 +568,7 @@ it.each(["loading", "error"] as const)(
 
     // When
     await user.press(screen.getByRole("button", { name: "Modifier la photo" }));
-    await user.press(
-      screen.getByRole("button", { name: "Supprimer la photo" }),
-    );
+    await act(nativeImageChoiceAction("Supprimer la photo"));
     if (phase === "loading") {
       await act(() => photoRead.resolve(new Response(null, { status: 503 })));
     }
@@ -639,7 +640,7 @@ it("does not reread or announce an inactive failed photo after explicit draft re
   await mountProfile();
   await screen.findByRole("image", { name: "Photo de profil indisponible" });
   await user.press(screen.getByRole("button", { name: "Modifier la photo" }));
-  await user.press(screen.getByRole("button", { name: "Supprimer la photo" }));
+  await act(nativeImageChoiceAction("Supprimer la photo"));
   mockFetch.mockClear();
 
   // When
@@ -765,9 +766,7 @@ it.each(["keep", "replace"] as const)(
         await user.press(
           screen.getByRole("button", { name: "Modifier la photo" }),
         );
-        await user.press(
-          screen.getByRole("button", { name: "Choisir une photo" }),
-        );
+        await act(nativeImageChoiceAction("Choisir une photo"));
         await waitFor(() =>
           expect(
             screen.getByRole("button", { name: "Enregistrer" }),
@@ -992,12 +991,12 @@ it("preserves the draft when native crop is cancelled or permission is refused",
 
   // When
   await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
-  await user.press(screen.getByRole("button", { name: "Choisir une photo" }));
+  await act(nativeImageChoiceAction("Choisir une photo"));
   jest
     .mocked(ImagePicker.launchImageLibraryAsync)
     .mockRejectedValue(new Error("Permission denied"));
   await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
-  await user.press(screen.getByRole("button", { name: "Choisir une photo" }));
+  await act(nativeImageChoiceAction("Choisir une photo"));
 
   // Then
   await screen.findByText(TECHNICAL_ERROR);
@@ -1049,7 +1048,7 @@ it("submits prepared replacement then explicit removal without a username edit",
     ],
   });
   await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
-  await user.press(screen.getByRole("button", { name: "Choisir une photo" }));
+  await act(nativeImageChoiceAction("Choisir une photo"));
   await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
   const bodies: FormData[] = [];
   mockFetch.mockImplementation(async (_url, request) => {
@@ -1068,9 +1067,9 @@ it("submits prepared replacement then explicit removal without a username edit",
   );
   await waitFor(() => expect(mockFile.delete).toHaveBeenCalledTimes(1));
   await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
-  await user.press(screen.getByRole("button", { name: "Choisir une photo" }));
+  await act(nativeImageChoiceAction("Choisir une photo"));
   await user.press(screen.getByRole("button", { name: "Modifier la photo" }));
-  await user.press(screen.getByRole("button", { name: "Supprimer la photo" }));
+  await act(nativeImageChoiceAction("Supprimer la photo"));
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
@@ -1113,7 +1112,7 @@ it.each([
       ],
     });
     await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
-    await user.press(screen.getByRole("button", { name: "Choisir une photo" }));
+    await act(nativeImageChoiceAction("Choisir une photo"));
     await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
 
     // When
@@ -1147,13 +1146,13 @@ it("retains the previous prepared choice and username when another preparation f
     ],
   });
   await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
-  await user.press(screen.getByRole("button", { name: "Choisir une photo" }));
+  await act(nativeImageChoiceAction("Choisir une photo"));
   await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
   mockContext.renderAsync.mockRejectedValue(new Error("Native failure"));
 
   // When
   await user.press(screen.getByRole("button", { name: "Modifier la photo" }));
-  await user.press(screen.getByRole("button", { name: "Choisir une photo" }));
+  await act(nativeImageChoiceAction("Choisir une photo"));
 
   // Then
   await screen.findByText(TECHNICAL_ERROR);
@@ -1194,9 +1193,7 @@ it.each(["preparation", "save"])(
       await user.press(
         screen.getByRole("button", { name: "Ajouter une photo" }),
       );
-      await user.press(
-        screen.getByRole("button", { name: "Choisir une photo" }),
-      );
+      await act(nativeImageChoiceAction("Choisir une photo"));
     } else {
       await user.clear(screen.getByLabelText("Pseudo"));
       await user.type(screen.getByLabelText("Pseudo"), "Unsaved");
@@ -1251,7 +1248,7 @@ it.each(["unmount", "session"])(
       ],
     });
     await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
-    await user.press(screen.getByRole("button", { name: "Choisir une photo" }));
+    await act(nativeImageChoiceAction("Choisir une photo"));
     await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
 
     // When
@@ -1298,12 +1295,12 @@ it("deletes the replaced profile copy while preserving the new draft", async () 
     ],
   });
   await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
-  await user.press(screen.getByRole("button", { name: "Choisir une photo" }));
+  await act(nativeImageChoiceAction("Choisir une photo"));
   await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
 
   // When
   await user.press(screen.getByRole("button", { name: "Modifier la photo" }));
-  await user.press(screen.getByRole("button", { name: "Choisir une photo" }));
+  await act(nativeImageChoiceAction("Choisir une photo"));
 
   // Then
   await waitFor(() => expect(mockFile.delete).toHaveBeenCalledTimes(1));
@@ -1325,7 +1322,7 @@ it("keeps a sent profile file until its upload settles after sign-out", async ()
     ],
   });
   await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
-  await user.press(screen.getByRole("button", { name: "Choisir une photo" }));
+  await act(nativeImageChoiceAction("Choisir une photo"));
   await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
   const response = Promise.withResolvers<Response>();
   mockFetch.mockImplementation(async (_url, request) =>
