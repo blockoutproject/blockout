@@ -808,18 +808,19 @@ it.each(["empty", "error"])(
   async (state) => {
     // Given
     const user = userEvent.setup();
-    mockFetch.mockImplementation((url: string) =>
-      new URL(url).pathname.endsWith("/clubs")
-        ? Promise.resolve(
-            state === "empty"
-              ? Response.json({ clubs: [] })
-              : Response.json(
-                  { title: "Unavailable", status: 503 },
-                  { status: 503 },
-                ),
-          )
-        : publicReads(url),
-    );
+    mockFetch.mockImplementation((url: string) => {
+      if (!new URL(url).pathname.endsWith("/clubs")) {
+        return publicReads(url);
+      }
+      const response =
+        state === "empty"
+          ? Response.json({ clubs: [] })
+          : Response.json(
+              { title: "Unavailable", status: 503 },
+              { status: 503 },
+            );
+      return Promise.resolve(response);
+    });
     await renderSearch();
     await user.paste(await screen.findByLabelText("Rechercher"), "Volley");
     await user.press(screen.getByRole("tab", { name: "Clubs" }));
@@ -1112,28 +1113,25 @@ it.each([false, true])(
     });
     await screen.findByText("Volley Niort");
     mockFetch.mockClear();
-    mockFetch.mockImplementation((url: string) =>
-      Promise.resolve(
-        fails
-          ? Response.json(
-              { title: "Unavailable", status: 500 },
-              { status: 500 },
-            )
-          : Response.json(
-              new URL(url).searchParams.has("cursor")
-                ? { clubs: [] }
-                : {
-                    clubs: [
-                      {
-                        club: { id: firstId, name: "Volley Lyon actualisé" },
-                        city: "Lyon",
-                      },
-                    ],
-                    nextCursor: "new-page",
-                  },
-            ),
-      ),
-    );
+    mockFetch.mockImplementation((url: string) => {
+      if (fails) {
+        return Promise.resolve(
+          Response.json({ title: "Unavailable", status: 500 }, { status: 500 }),
+        );
+      }
+      const body = new URL(url).searchParams.has("cursor")
+        ? { clubs: [] }
+        : {
+            clubs: [
+              {
+                club: { id: firstId, name: "Volley Lyon actualisé" },
+                city: "Lyon",
+              },
+            ],
+            nextCursor: "new-page",
+          };
+      return Promise.resolve(Response.json(body));
+    });
 
     // When
     await act(async () => {

@@ -1,21 +1,18 @@
 import { hashKey } from "@tanstack/react-query";
-import { useNavigation, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { Eraser, Flag, Search } from "lucide-react-native";
 import { IconButton } from "../../../shared/components/icon-button";
 import { supportHref } from "../../support";
-import { useSportingNavigation } from "../../sporting/navigation";
 import { Image } from "expo-image";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { useSearchVisit } from "../forms/search-visit";
 import { reconcileSearchFilters } from "../model/search-filters";
 import { Page } from "../../../shared/components/page";
 import { PagedTabs } from "../../../shared/components/paged-tabs";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { ListContinuation } from "../../../shared/components/list-continuation";
 import { Button } from "../../../shared/components/button";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import {
   Keyboard,
@@ -27,7 +24,6 @@ import {
 
 import { searchSchema, type SearchValues } from "../schemas/search-schema";
 import { searchValues } from "../forms/search-values";
-import { ErrorState, EmptyState } from "../../../shared/components/state-card";
 import { tokens } from "../../../shared/theme/tokens";
 import { SearchField } from "../../../shared/components/search-field";
 
@@ -39,13 +35,9 @@ import {
   useDiscoveryQuery,
   useSearchExamplesQuery,
 } from "../api/use-discovery-query";
-import {
-  SearchHeading,
-  SearchResults,
-  SearchResultsContent,
-} from "../components/search-results";
-import { SearchLoading } from "../components/search-loading";
-import { uniqueSearchResults, type SearchResult } from "../model/search-result";
+import { SearchHeading } from "../components/search-results";
+import { SearchScene } from "../components/search-scene";
+import { uniqueSearchResults } from "../model/search-result";
 
 const searchTabs = [
   { id: "team", label: "Équipes" },
@@ -134,6 +126,17 @@ export function SearchScreen() {
     club: clubExamples,
   };
   const queries = { team: teamQuery, pool: poolQuery, club: clubQuery };
+  let emptyDescription = "Essayez un autre nom.";
+  if (examples) {
+    emptyDescription = changed
+      ? "Effacez les critères pour élargir la recherche."
+      : "Saisissez un nom pour lancer une recherche.";
+  }
+  const placeholder = {
+    club: "Rechercher un club…",
+    team: "Rechercher une équipe…",
+    pool: "Rechercher une poule…",
+  }[resource];
   const items = {
     team: uniqueSearchResults(teamQuery.data?.pages),
     pool: uniqueSearchResults(poolQuery.data?.pages),
@@ -183,13 +186,7 @@ export function SearchScreen() {
               exampleQuery={exampleQueries[id]}
               examples={examples}
               items={items[id]}
-              emptyDescription={
-                examples
-                  ? changed
-                    ? "Effacez les critères pour élargir la recherche."
-                    : "Saisissez un nom pour lancer une recherche."
-                  : "Essayez un autre nom."
-              }
+              emptyDescription={emptyDescription}
               emptyAction={
                 !examples || changed ? (
                   <Button
@@ -240,13 +237,7 @@ export function SearchScreen() {
                         onChangeText={field.onChange}
                         onBlur={field.onBlur}
                         onClear={clearSearch}
-                        placeholder={
-                          resource === "club"
-                            ? "Rechercher un club…"
-                            : resource === "team"
-                              ? "Rechercher une équipe…"
-                              : "Rechercher une poule…"
-                        }
+                        placeholder={placeholder}
                         error={
                           fieldState.invalid
                             ? "La recherche est limitée à 200 caractères."
@@ -320,150 +311,6 @@ export function SearchScreen() {
         )}
       />
     </Page>
-  );
-}
-
-/** Retains accepted cards and retries the failed Query operation without introducing another read owner. */
-function SearchScene({
-  resource,
-  criteria,
-  active,
-  searchable,
-  query: textQuery,
-  exampleQuery,
-  examples,
-  items: textItems,
-  emptyDescription,
-  emptyAction,
-}: {
-  resource: DiscoveryResource;
-  criteria: string;
-  active: boolean;
-  searchable: boolean;
-  query: ReturnType<typeof useDiscoveryQuery>;
-  exampleQuery: ReturnType<typeof useSearchExamplesQuery>;
-  examples: boolean;
-  items: readonly SearchResult[];
-  emptyDescription: string;
-  emptyAction: ReactNode;
-}) {
-  const visit = useSearchVisit();
-  const query = examples ? exampleQuery : textQuery;
-  const items = examples
-    ? uniqueSearchResults(exampleQuery.data ? [exampleQuery.data] : undefined)
-    : textItems;
-  const navigation = useNavigation();
-  const sportingNavigation = useSportingNavigation(active);
-  const sporting = resource === "club" ? undefined : visit[resource];
-  const filters = sporting?.filters;
-  const resultsReady = (searchable || examples) && (!sporting || !!filters);
-
-  /** The visible valid context owns continuation; explicit retry may resume its failed cursor. */
-  async function loadMore() {
-    if (
-      !active ||
-      !navigation.isFocused() ||
-      !resultsReady ||
-      examples ||
-      !textQuery.hasNextPage ||
-      query.isFetching
-    ) {
-      return;
-    }
-    await textQuery.fetchNextPage({ cancelRefetch: false });
-  }
-
-  // An unfinished empty traversal retains its existing explicit continuation action.
-  const continueEmpty =
-    !examples &&
-    items.length === 0 &&
-    textQuery.hasNextPage &&
-    (!query.isError || textQuery.isFetchNextPageError);
-  const error =
-    (query.isError || query.isPending || continueEmpty) &&
-    items.length === 0 ? (
-      <ErrorState
-        onRetry={
-          active && query.isEnabled
-            ? continueEmpty
-              ? loadMore
-              : () => void query.refetch()
-            : undefined
-        }
-        retrying={query.isFetching}
-      />
-    ) : undefined;
-  const filtersPending = !!sporting && sporting.query.isFetching;
-  const initialLoading = (
-    <SearchResultsContent>
-      <SearchLoading />
-    </SearchResultsContent>
-  );
-  return (
-    <SearchResults
-      key={criteria}
-      onOpen={({ kind, identity }) => {
-        Keyboard.dismiss();
-        void sportingNavigation.navigate(kind, identity.id);
-      }}
-      examples={examples}
-      items={resultsReady ? items : []}
-      onEndReached={() => {
-        if (!query.isError) {
-          loadMore();
-        }
-      }}
-      emptyComponent={
-        !searchable && !examples ? null : sporting && !filters ? (
-          filtersPending ? (
-            initialLoading
-          ) : (
-            <ScreenState>
-              <ErrorState
-                onRetry={
-                  sporting.query.isEnabled
-                    ? () => void sporting.query.refetch()
-                    : undefined
-                }
-              />
-            </ScreenState>
-          )
-        ) : query.isPending && query.isFetching ? (
-          initialLoading
-        ) : (
-          <ScreenState>
-            {error ?? (
-              <EmptyState
-                title={
-                  examples
-                    ? "Aucun exemple disponible"
-                    : "Aucun résultat pour ces critères"
-                }
-                description={emptyDescription}
-              >
-                {emptyAction}
-              </EmptyState>
-            )}
-          </ScreenState>
-        )
-      }
-      continuation={
-        resultsReady &&
-        query.data &&
-        ((!examples && textQuery.isFetchingNextPage) || query.isError) ? (
-          <ListContinuation
-            loading={!examples && textQuery.isFetchingNextPage}
-            failed={query.isError}
-            disabled={!active || query.isFetching}
-            onRetry={
-              !examples && textQuery.isFetchNextPageError
-                ? loadMore
-                : () => void query.refetch()
-            }
-          />
-        ) : undefined
-      }
-    />
   );
 }
 

@@ -42,9 +42,9 @@ export function IdentityArtwork({
           onDisplay={() => setStatus("displayed")}
           onError={() => setStatus("failed")}
         />
-      ) : !pending ? (
-        fallback
-      ) : null}
+      ) : (
+        !pending && fallback
+      )}
       {pending && (
         <View
           pointerEvents="none"

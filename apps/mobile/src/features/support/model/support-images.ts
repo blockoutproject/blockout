@@ -132,22 +132,33 @@ export function useSupportImages(
           release(previous.file);
         }
         update(image, replaceId);
-        try {
-          const file = await prepareSupportImage(asset);
-          if (!active.current) {
-            deleteOwnedImage(file);
-            break;
-          }
-          owned.current.add(file);
-          update({ ...image, status: "ready", uri: file.uri, file }, image.id);
-        } catch {
-          if (active.current) {
-            update({ ...image, status: "error" }, image.id);
-          }
+        if (!(await prepareSelectedImage(asset, image))) {
+          break;
         }
       }
     },
   });
+
+  /** Completes one preparation for the current editor; unmounted editors release the new file immediately. */
+  async function prepareSelectedImage(
+    asset: ImagePickerAsset,
+    image: SupportImage,
+  ): Promise<boolean> {
+    try {
+      const file = await prepareSupportImage(asset);
+      if (!active.current) {
+        deleteOwnedImage(file);
+        return false;
+      }
+      owned.current.add(file);
+      update({ ...image, status: "ready", uri: file.uri, file }, image.id);
+    } catch {
+      if (active.current) {
+        update({ ...image, status: "error" }, image.id);
+      }
+    }
+    return true;
+  }
 
   /** Replaces exactly one selected item without discarding other files or text. */
   function update(image: SupportImage, replaceId?: string) {

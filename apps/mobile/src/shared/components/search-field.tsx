@@ -1,3 +1,4 @@
+import { fieldBorderColor } from "./control-styles";
 import { Search, X } from "lucide-react-native";
 import { useState, type Ref } from "react";
 import {
@@ -50,11 +51,7 @@ export function SearchField({
             {
               opacity,
               backgroundColor: colors.surface,
-              borderColor: error
-                ? colors.error
-                : focused
-                  ? colors.focus
-                  : colors.border,
+              borderColor: fieldBorderColor(colors, error, focused),
             },
           ]}
         />

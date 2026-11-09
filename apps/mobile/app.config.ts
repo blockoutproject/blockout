@@ -24,11 +24,15 @@ const easSlug = process.env.EXPO_PROJECT_SLUG;
 const expoProjectId =
   process.env.EXPO_PROJECT_ID ??
   (easSlug ? "10cdf86a-a81e-496a-bcaa-07c132678f6d" : undefined);
-const applicationId = production
-  ? "com.blockoutproject.blockout"
-  : preview
-    ? "com.blockoutproject.blockout.preproduction"
-    : "com.blockout.local";
+let applicationId = "com.blockout.local";
+let applicationName = "Blockout Local";
+if (production) {
+  applicationId = "com.blockoutproject.blockout";
+  applicationName = "Blockout";
+} else if (preview) {
+  applicationId = "com.blockoutproject.blockout.preproduction";
+  applicationName = "Blockout Preprod";
+}
 
 if (variant && !easSlug) {
   throw new Error("EAS profiles require the existing EXPO_PROJECT_SLUG.");
@@ -36,11 +40,7 @@ if (variant && !easSlug) {
 
 /** Uses Expo's build-time variants and F14's retained production identity; no runtime selector. */
 const config: ExpoConfig = {
-  name: production
-    ? "Blockout"
-    : preview
-      ? "Blockout Preprod"
-      : "Blockout Local",
+  name: applicationName,
   slug: easSlug ?? "blockout-local",
   version: "0.0.0",
   userInterfaceStyle: "automatic",

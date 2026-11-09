@@ -194,7 +194,10 @@ function PagerHeader({
   const collapse = useCollapseProgress();
   const visibility = useDerivedValue(() => {
     const progress = collapse.get();
-    return reducedMotion ? (progress >= 1 ? 0 : 1) : 1 - progress;
+    if (reducedMotion) {
+      return progress >= 1 ? 0 : 1;
+    }
+    return 1 - progress;
   });
   const brand = useAnimatedStyle(() => ({ opacity: visibility.get() }));
   const accessibility = useAnimatedProps(() => {

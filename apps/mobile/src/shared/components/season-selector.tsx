@@ -1,3 +1,4 @@
+import { controlOpacity } from "./control-styles";
 import { ChevronDown } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { tokens } from "../theme/tokens";
@@ -33,11 +34,7 @@ export function SeasonSelector({
       style={({ pressed }) => [
         styles.target,
         {
-          opacity: disabled
-            ? tokens.opacity.disabled
-            : pressed
-              ? tokens.opacity.pressed
-              : 1,
+          opacity: controlOpacity(disabled, pressed),
         },
       ]}
     >

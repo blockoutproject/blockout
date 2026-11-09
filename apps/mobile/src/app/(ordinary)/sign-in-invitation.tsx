@@ -8,15 +8,21 @@ export default function SignInInvitationRoute() {
   return (
     <SignInInvitationScreen
       admitted={useAccessAdmission().ordinary}
-      message={
-        reason === "stream-report"
-          ? "Connectez-vous pour signaler ce Stream link"
-          : reason === "contribution"
-            ? "Connectez-vous pour proposer un Stream link"
-            : reason === "follow"
-              ? "Connectez-vous pour suivre vos équipes et vos poules"
-              : "Connectez-vous pour utiliser Blockout Pro"
-      }
+      message={invitationMessage(reason)}
     />
   );
+}
+
+/** Chooses contextual invitation copy without retaining a deferred command. */
+function invitationMessage(reason: string | undefined): string {
+  switch (reason) {
+    case "stream-report":
+      return "Connectez-vous pour signaler ce Stream link";
+    case "contribution":
+      return "Connectez-vous pour proposer un Stream link";
+    case "follow":
+      return "Connectez-vous pour suivre vos équipes et vos poules";
+    default:
+      return "Connectez-vous pour utiliser Blockout Pro";
+  }
 }

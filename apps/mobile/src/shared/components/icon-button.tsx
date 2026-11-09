@@ -1,3 +1,4 @@
+import { controlOpacity } from "./control-styles";
 import type { PropsWithChildren } from "react";
 import { Pressable, StyleSheet, View, type PressableProps } from "react-native";
 import { useTheme } from "../theme/theme-provider";
@@ -35,11 +36,7 @@ export function IconButton({
         styles.action,
         size === "control" && styles.control,
         {
-          opacity: disabled
-            ? tokens.opacity.disabled
-            : pressed
-              ? tokens.opacity.pressed
-              : 1,
+          opacity: controlOpacity(disabled, pressed),
         },
       ]}
     >

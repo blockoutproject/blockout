@@ -37,7 +37,10 @@ export function PageHeader({
   const reducedMotion = useReducedMotion();
   const visibility = useDerivedValue(() => {
     const progress = revealProgress?.get() ?? 1;
-    return reducedMotion ? (progress >= 1 ? 1 : 0) : progress;
+    if (reducedMotion) {
+      return progress >= 1 ? 1 : 0;
+    }
+    return progress;
   });
   const center = useAnimatedStyle(() => ({ opacity: visibility.get() }));
   const accessibility = useAnimatedProps(() => {
@@ -50,6 +53,33 @@ export function PageHeader({
         : ("auto" as const),
     };
   });
+  let identity = <View style={styles.title} />;
+  if (children) {
+    identity = (
+      <Animated.View
+        accessible={Boolean(title)}
+        accessibilityRole="header"
+        accessibilityLabel={title}
+        animatedProps={accessibility}
+        style={[styles.middle, center]}
+      >
+        {children}
+      </Animated.View>
+    );
+  } else if (title) {
+    identity = (
+      <Animated.Text
+        accessibilityRole="header"
+        accessibilityLabel={title}
+        numberOfLines={1}
+        ellipsizeMode="tail"
+        animatedProps={accessibility}
+        style={[styles.title, { color: colors.text }, center]}
+      >
+        {title}
+      </Animated.Text>
+    );
+  }
   return (
     <View style={styles.header}>
       <View style={[styles.rail, { width: actionWidth }]}>
@@ -66,30 +96,7 @@ export function PageHeader({
           />
         </IconButton>
       </View>
-      {children ? (
-        <Animated.View
-          accessible={Boolean(title)}
-          accessibilityRole="header"
-          accessibilityLabel={title}
-          animatedProps={accessibility}
-          style={[styles.middle, center]}
-        >
-          {children}
-        </Animated.View>
-      ) : title ? (
-        <Animated.Text
-          accessibilityRole="header"
-          accessibilityLabel={title}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-          animatedProps={accessibility}
-          style={[styles.title, { color: colors.text }, center]}
-        >
-          {title}
-        </Animated.Text>
-      ) : (
-        <View style={styles.title} />
-      )}
+      {identity}
       <View
         style={styles.actions}
         onLayout={({ nativeEvent }) => setActionWidth(nativeEvent.layout.width)}

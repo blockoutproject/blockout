@@ -1,3 +1,4 @@
+import { controlOpacity } from "./control-styles";
 import {
   ActivityIndicator,
   Pressable,
@@ -79,11 +80,7 @@ export function ListContinuation({
         style={({ pressed }) => [
           styles.retry,
           {
-            opacity: disabled
-              ? tokens.opacity.disabled
-              : pressed
-                ? tokens.opacity.pressed
-                : 1,
+            opacity: controlOpacity(disabled, pressed),
           },
         ]}
       >
