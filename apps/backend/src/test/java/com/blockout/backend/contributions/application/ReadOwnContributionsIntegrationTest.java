@@ -231,7 +231,7 @@ class ReadOwnContributionsIntegrationTest extends ContributionScenario {
         .andExpect(jsonPath("$.activeContribution.url").value("https://youtu.be/older-active"))
         .andExpect(jsonPath("$.activeContribution.state").value("active"))
         .andExpect(jsonPath("$.activeContribution.canWithdraw").value(true))
-        .andExpect(jsonPath("$.activeContribution.canCancel").value(false))
+        .andExpect(jsonPath("$.activeContribution.canCancel").doesNotExist())
         .andExpect(jsonPath("$.activeContribution.ownerId").doesNotExist());
     secondResponse
         .andExpect(status().isOk())

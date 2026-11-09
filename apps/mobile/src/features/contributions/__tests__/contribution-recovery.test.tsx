@@ -84,7 +84,6 @@ const version = {
   platform: "youtube",
   state: "active",
   submittedAt: "2026-10-28T10:00:00Z",
-  canCancel: false,
   canWithdraw: true,
 } satisfies OwnStreamContributionResponse;
 const moderatedVersion = {
@@ -255,7 +254,7 @@ async function confirm(label: string) {
 }
 
 it.each(
-  (["submit", "cancel", "withdraw"] as const).flatMap((action) =>
+  (["submit", "withdraw"] as const).flatMap((action) =>
     (["lost", "conflict"] as const).map((outcome) => ({ action, outcome })),
   ),
 )(
@@ -541,7 +540,7 @@ it("retains a dirty contribution after conflict and failed explicit refresh with
   expect(writes).toHaveLength(1);
 });
 
-it.each(["submit", "cancel", "withdraw"] as const)(
+it.each(["submit", "withdraw"] as const)(
   "keeps confirmed %s separate from failed derivative reads",
   async (action) => {
     // Given
@@ -849,7 +848,7 @@ it("does not restore refused owner data when submission refusal is followed by a
   expect(writes).toHaveLength(1);
 });
 
-it("retains the report draft when a current read observes a report after lost acknowledgement", async () => {
+it("uses current positive report state after lost acknowledgement without another POST", async () => {
   // Given
   const user = userEvent.setup();
   await render(
@@ -873,6 +872,45 @@ it("retains the report draft when a current read observes a report after lost ac
   await user.press(
     screen.getByRole("button", { name: "Envoyer le signalement" }),
   );
+
+  // Then
+  expect(
+    await screen.findByText("Vous avez déjà signalé ce lien."),
+  ).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Motif du signalement")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByText("Votre signalement a été envoyé."),
+  ).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Retour au match" })).toBeEnabled();
+  expect(writes).toHaveLength(1);
+  expect(writes[0].url).toContain(
+    `/accounts/${account.accountId}/stream-contributions/${version.id}/report`,
+  );
+});
+
+it("retains the reason after a negative read while a delayed report can still become visible", async () => {
+  // Given
+  const user = userEvent.setup();
+  await render(
+    <ReportContributionScreen
+      matchId={match.match.id}
+      contributionId={version.id}
+      contributionUrl={version.url}
+    />,
+    { wrapper: Wrapper },
+  );
+  await user.type(
+    await screen.findByLabelText("Motif du signalement"),
+    "Fictional private reason",
+  );
+  write = async () => {
+    throw new TypeError("Lost report acknowledgement");
+  };
+
+  // When: the read still precedes the delayed server effect.
+  await user.press(
+    screen.getByRole("button", { name: "Envoyer le signalement" }),
+  );
   await waitFor(() => expect(client.isFetching()).toBe(0));
 
   // Then
@@ -883,40 +921,27 @@ it("retains the report draft when a current read observes a report after lost ac
     screen.getByRole("button", { name: "Envoyer le signalement" }),
   ).toBeEnabled();
   expect(
-    screen.queryByText("Votre signalement a été envoyé."),
+    screen.queryByText("Vous avez déjà signalé ce lien."),
   ).not.toBeOnTheScreen();
   expect(
-    screen.queryByText("Vous avez déjà signalé ce lien."),
+    screen.queryByText("Votre signalement a été envoyé."),
   ).not.toBeOnTheScreen();
   expect(writes).toHaveLength(1);
 
-  // When
-  const retry = Promise.withResolvers<Response>();
-  write = () => retry.promise;
-  await user.press(
-    screen.getByRole("button", { name: "Envoyer le signalement" }),
-  );
+  // When: an ordinary authorized refresh observes the delayed effect on the same target.
+  reported = true;
+  await act(async () => {
+    await client.invalidateQueries();
+  });
 
   // Then
   expect(
-    screen.getByDisplayValue("Fictional private reason"),
+    await screen.findByText("Vous avez déjà signalé ce lien."),
   ).toBeOnTheScreen();
   expect(
-    screen.getByRole("button", { name: "Envoyer le signalement" }),
-  ).toBeDisabled();
-  expect(
-    screen.queryByText("Vous avez déjà signalé ce lien."),
+    screen.queryByText("Votre signalement a été envoyé."),
   ).not.toBeOnTheScreen();
-
-  // When
-  await act(async () => retry.resolve(Response.json({ reported: true })));
-
-  // Then
-  expect(
-    await screen.findByText("Votre signalement a été envoyé."),
-  ).toBeOnTheScreen();
-  expect(writes).toHaveLength(2);
-  expect(writes[1]).toEqual(writes[0]);
+  expect(writes).toHaveLength(1);
 });
 
 it.each([401, 403, 404])(
@@ -930,7 +955,7 @@ it.each([401, 403, 404])(
       if (
         denied &&
         init?.method !== "POST" &&
-        (path === `/matches/${match.match.id}` || path.endsWith("/report"))
+        path === `/matches/${match.match.id}`
       ) {
         return Response.json({ status, title: "Unavailable" }, { status });
       }
@@ -955,6 +980,7 @@ it.each([401, 403, 404])(
     expect(await screen.findByText(version.url)).toBeOnTheScreen();
     write = async () => {
       denied = true;
+      reported = true;
       throw new TypeError("Lost acknowledgement");
     };
 
@@ -969,6 +995,9 @@ it.each([401, 403, 404])(
         screen.getByRole("button", { name: "Envoyer le signalement" }),
       ).toBeDisabled(),
     );
+    expect(
+      screen.queryByText("Vous avez déjà signalé ce lien."),
+    ).not.toBeOnTheScreen();
     expect(screen.queryByText(version.url)).not.toBeOnTheScreen();
     expect(screen.queryByText("Home")).not.toBeOnTheScreen();
     expect(

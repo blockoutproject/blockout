@@ -90,7 +90,6 @@ const accepted = {
     platform: "youtube",
     state: "active",
     submittedAt: "2026-10-28T10:00:00Z",
-    canCancel: false,
     canWithdraw: true,
   },
 } satisfies OwnStreamContributionDetailResponse;

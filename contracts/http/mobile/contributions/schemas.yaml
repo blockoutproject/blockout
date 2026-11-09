@@ -39,9 +39,8 @@ StreamModerationFilterEnum:
 StreamOwnerActionEnum:
   title: StreamOwnerActionEnum
   type: string
-  description: Desired owner transition for the exact version.
+  description: Withdrawal of the exact active owned version.
   enum:
-    - cancel
     - withdraw
 StreamModerationActionEnum:
   title: StreamModerationActionEnum
@@ -89,7 +88,7 @@ CreateStreamContributionRequest:
 UpdateOwnStreamContributionRequest:
   title: UpdateOwnStreamContributionRequest
   type: object
-  description: Atomic cancellation of a pending proposal or withdrawal of an active owned version.
+  description: Atomic withdrawal of an active owned version.
   additionalProperties: false
   properties:
     revision:
@@ -223,9 +222,6 @@ OwnStreamContributionResponse:
       type: string
       description: Creation instant of this version.
       format: date-time
-    canCancel:
-      type: boolean
-      description: Current permission to cancel this pending proposal.
     canWithdraw:
       type: boolean
       description: Current permission to withdraw this active version.
@@ -235,7 +231,6 @@ OwnStreamContributionResponse:
     - platform
     - state
     - submittedAt
-    - canCancel
     - canWithdraw
 OwnStreamContributionDetailResponse:
   title: OwnStreamContributionDetailResponse

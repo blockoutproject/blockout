@@ -8,7 +8,6 @@ import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.contributions.domain.ContributionVersion.Decision;
 import com.blockout.backend.contributions.domain.ContributionVersion.DecisionKind;
 import com.blockout.backend.contributions.domain.ContributionVersion.State;
-import com.blockout.backend.generated.mobile.model.StreamOwnerActionEnum;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess.Facts;
@@ -20,7 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Owns exact-version cancellation and withdrawal without changing another version or its quota. */
+/** Owns exact-version active withdrawal without changing another version or its quota. */
 @Service
 @RequiredArgsConstructor
 public class ChangeOwnContribution {
@@ -30,7 +29,7 @@ public class ChangeOwnContribution {
   private final Clock clock;
 
   /**
-   * Applies an admitted original owner's explicit action under sporting then sorted account locks.
+   * Withdraws an admitted original owner's active version under sporting then sorted account locks.
    * Reads current attribution only after locking its retained actors so concurrent erasure cannot
    * be undone by a managed entity's lifecycle update. F12's ordinary admission and F05's current
    * usable identity grant the baseline owner capability; the moderation grant never permits this
@@ -40,7 +39,6 @@ public class ChangeOwnContribution {
    * @param matchId currently viewable sporting match
    * @param versionId exact selected personal version, never replaced by the current active version
    * @param revision viewed opaque match contribution revision
-   * @param action explicit cancel or withdraw intent from the canonical contract
    * @return current exact version and revision, including a current terminal repetition
    * @throws AccountNotFoundException when the original lifecycle was erased before locking
    * @throws SportingResourceNotFoundException for an unavailable match or missing/foreign version
@@ -49,7 +47,7 @@ public class ChangeOwnContribution {
    */
   @Transactional
   public ReadOwnContributions.Detail change(
-      UUID owner, UUID matchId, UUID versionId, String revision, StreamOwnerActionEnum action) {
+      UUID owner, UUID matchId, UUID versionId, String revision) {
     Facts facts = sporting.lock(matchId);
     Set<UUID> affected = new HashSet<>(store.attributionAccounts(matchId));
     affected.add(owner);
@@ -71,20 +69,17 @@ public class ChangeOwnContribution {
     if (!Long.toString(state.revision()).equals(revision)) {
       throw new ContributionRejectedException(Status.STALE_REVISION);
     }
-    State terminal = action == StreamOwnerActionEnum.CANCEL ? State.CANCELLED : State.WITHDRAWN;
-    if (version.state() == terminal) {
+    if (version.state() == State.WITHDRAWN) {
       return new ReadOwnContributions.Detail(revision, version);
     }
-    State required = action == StreamOwnerActionEnum.CANCEL ? State.PENDING : State.ACTIVE;
-    if (version.state() != required) {
+    if (version.state() != State.ACTIVE) {
       throw new ContributionConflictException();
     }
-    DecisionKind kind =
-        action == StreamOwnerActionEnum.CANCEL
-            ? DecisionKind.CANCELLATION
-            : DecisionKind.WITHDRAWAL;
     ContributionVersion changed =
-        store.decide(versionId, terminal, new Decision(kind, clock.instant(), owner));
+        store.decide(
+            versionId,
+            State.WITHDRAWN,
+            new Decision(DecisionKind.WITHDRAWAL, clock.instant(), owner));
     ContributionState next = store.advance(matchId, false);
     return new ReadOwnContributions.Detail(Long.toString(next.revision()), changed);
   }

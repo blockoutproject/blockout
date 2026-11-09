@@ -10,7 +10,6 @@ import com.blockout.backend.contributions.domain.ContributionVersion.State;
 import com.blockout.backend.contributions.support.ContributionScenario;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.generated.mobile.model.StreamModerationActionEnum;
-import com.blockout.backend.generated.mobile.model.StreamOwnerActionEnum;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
@@ -18,7 +17,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -35,10 +33,9 @@ class ContributionLifecycleQualificationIntegrationTest extends ContributionScen
   @Autowired private ReadModeration privateReads;
   @Autowired private ReadPublicContribution publicLinks;
 
-  @ParameterizedTest
-  @ValueSource(booleans = {false, true})
-  @DisplayName("Cancelling or rejecting a real held proposal preserves its hold and consumed slots")
-  void retainsHoldAfterNegativeDecision(boolean rejected) {
+  @Test
+  @DisplayName("Rejecting a real held proposal preserves its hold and consumed slots")
+  void retainsHoldAfterNegativeDecision() {
     // Given
     SubmitContribution.Outcome original = submit(AUTHOR, "0", "https://youtu.be/hidden", false);
     reportToHide(original.version().id());
@@ -47,18 +44,14 @@ class ContributionLifecycleQualificationIntegrationTest extends ContributionScen
     moderator(OTHER);
 
     // When
-    if (rejected) {
-      moderation.change(
-          OTHER, matchId, pending.version().id(), "5", StreamModerationActionEnum.REJECT);
-    } else {
-      changes.change(AUTHOR, matchId, pending.version().id(), "5", StreamOwnerActionEnum.CANCEL);
-    }
+    moderation.change(
+        OTHER, matchId, pending.version().id(), "5", StreamModerationActionEnum.REJECT);
     SubmitContribution.Outcome third = submit(AUTHOR, "6", "https://facebook.com/third", false);
 
     // Then
     assertThat(contributions.version(original.version().id()).orElseThrow()).isEqualTo(hidden);
     assertThat(contributions.version(pending.version().id()).orElseThrow().state())
-        .isEqualTo(rejected ? State.REJECTED : State.CANCELLED);
+        .isEqualTo(State.REJECTED);
     assertThat(third.version().state()).isEqualTo(State.PENDING);
     assertThat(contributions.pending(matchId, AUTHOR).orElseThrow().id())
         .isEqualTo(third.version().id());
@@ -223,7 +216,7 @@ class ContributionLifecycleQualificationIntegrationTest extends ContributionScen
         submit(AUTHOR, "3", pending.version().address().value(), false);
     moderation.change(
         OTHER, matchId, pending.version().id(), "3", StreamModerationActionEnum.APPROVE);
-    changes.change(AUTHOR, matchId, pending.version().id(), "4", StreamOwnerActionEnum.WITHDRAW);
+    changes.change(AUTHOR, matchId, pending.version().id(), "4");
     SubmitContribution.Outcome reactivated =
         moderation.reactivate(OTHER, matchId, pending.version().id(), "5");
 

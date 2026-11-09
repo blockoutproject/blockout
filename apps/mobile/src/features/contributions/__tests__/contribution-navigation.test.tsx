@@ -109,7 +109,6 @@ beforeEach(() => {
                 platform: "youtube",
                 state: "active",
                 submittedAt: "2026-10-28T10:00:00Z",
-                canCancel: false,
                 canWithdraw: true,
               },
             }
@@ -208,7 +207,6 @@ it.each([
                       platform: "youtube",
                       state: "active",
                       submittedAt: "2026-10-28T09:00:00Z",
-                      canCancel: false,
                       canWithdraw: true,
                     },
                   }
@@ -221,7 +219,6 @@ it.each([
                       platform: "youtube",
                       state,
                       submittedAt: "2026-10-28T09:00:00Z",
-                      canCancel: state === "pending",
                       canWithdraw: state === "active",
                     },
                   ]
@@ -383,7 +380,6 @@ it("keeps history revoked when a refused match opens it before technical mount r
               platform: "youtube",
               state: "active",
               submittedAt: "2026-10-28T09:00:00Z",
-              canCancel: false,
               canWithdraw: true,
             },
           ],
@@ -641,7 +637,6 @@ it("keeps a new visit's draft when an older detached submission completes", asyn
             platform: "youtube",
             state: "active",
             submittedAt: "2026-10-28T10:00:00Z",
-            canCancel: false,
             canWithdraw: true,
           },
         },
@@ -678,7 +673,6 @@ it("keeps a confirmed replacement distinct from retained proposals after returni
     platform: "youtube" as const,
     state: "active" as const,
     submittedAt: "2026-10-28T09:00:00Z",
-    canCancel: false,
     canWithdraw: true,
   };
   mockFetch.mockImplementation(async (url, init) => {
@@ -789,7 +783,6 @@ it("returns from the owned editor to the exact match after withdrawing its activ
     platform: "youtube" as const,
     state: "active" as const,
     submittedAt: "2026-10-28T09:00:00Z",
-    canCancel: false,
     canWithdraw: true,
   };
   let withdrawn = false;

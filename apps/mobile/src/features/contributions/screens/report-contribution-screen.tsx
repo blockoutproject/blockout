@@ -171,7 +171,10 @@ function ReportForm({
     : undefined;
   const reported =
     command.data?.reported === true ||
-    (command.isIdle && query.data?.reported === true);
+    (reporting.usable &&
+      matchAvailable &&
+      !isOwnContributionAccessDenied(query.error) &&
+      query.data?.reported === true);
   const busy = command.isPending;
   const disabled =
     !reporting.usable || !matchAvailable || isAccessDenied(query.error) || busy;

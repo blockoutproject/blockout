@@ -28,7 +28,6 @@ import com.blockout.backend.contributions.application.SubmitModeratedContributio
 import com.blockout.backend.contributions.domain.ContributionEligibility.Status;
 import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.contributions.domain.StreamAddress;
-import com.blockout.backend.generated.mobile.model.StreamOwnerActionEnum;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
 import java.time.Instant;
 import java.util.Optional;
@@ -37,7 +36,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -97,14 +95,15 @@ class OwnContributionLifecycleWebMvcTest {
   @ValueSource(
       strings = {
         "{}",
-        "{\"action\":\"cancel\"}",
+        "{\"action\":\"withdraw\"}",
         "{\"revision\":\"opaque:a\"}",
-        "{\"revision\":null,\"action\":\"cancel\"}",
+        "{\"revision\":null,\"action\":\"withdraw\"}",
         "{\"revision\":\"1\",\"action\":null}",
-        "{\"revision\":\"\",\"action\":\"cancel\"}",
-        "{\"revision\":1,\"action\":\"cancel\"}",
+        "{\"revision\":\"\",\"action\":\"withdraw\"}",
+        "{\"revision\":1,\"action\":\"withdraw\"}",
+        "{\"revision\":\"1\",\"action\":\"cancel\"}",
         "{\"revision\":\"1\",\"action\":\"approve\"}",
-        "{\"revision\":\"1\",\"action\":\"cancel\",\"url\":\"https://youtu.be/changed\"}"
+        "{\"revision\":\"1\",\"action\":\"withdraw\",\"url\":\"https://youtu.be/changed\"}"
       })
   @DisplayName("Rejects malformed atomic commands before any application write")
   void rejectsInvalidCommand(String body) throws Exception {
@@ -130,7 +129,7 @@ class OwnContributionLifecycleWebMvcTest {
         patch(PATH.replace(OWNER.toString(), VERSION.toString()))
             .with(mobile())
             .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"revision\":\"1\",\"action\":\"cancel\"}");
+            .content("{\"revision\":\"1\",\"action\":\"withdraw\"}");
 
     // When
     ResultActions response = mvc.perform(request);
@@ -148,7 +147,7 @@ class OwnContributionLifecycleWebMvcTest {
         patch(PATH)
             .with(mobile())
             .contentType("application/merge-patch+json")
-            .content("{\"action\":\"cancel\"}");
+            .content("{\"action\":\"withdraw\"}");
 
     // When
     ResultActions response = mvc.perform(request);
@@ -179,30 +178,25 @@ class OwnContributionLifecycleWebMvcTest {
     verifyNoInteractions(changes, submissions, reads);
   }
 
-  @ParameterizedTest
-  @CsvSource({"cancel,opaque:a", "withdraw,opaque:current"})
+  @Test
   @DisplayName("Returns the exact acknowledged version and current revision without a Location")
-  void returnsExactAcknowledgement(String action, String revision) throws Exception {
+  void returnsExactAcknowledgement() throws Exception {
     // Given
-    StreamOwnerActionEnum command = StreamOwnerActionEnum.fromValue(action);
-    ContributionVersion.State state =
-        command == StreamOwnerActionEnum.CANCEL
-            ? ContributionVersion.State.CANCELLED
-            : ContributionVersion.State.WITHDRAWN;
+    String revision = "opaque:current";
     ContributionVersion version =
         new ContributionVersion(
             VERSION,
             MATCH,
             new StreamAddress("https://youtu.be/literal?keep=1#time"),
             OWNER,
-            state,
+            ContributionVersion.State.WITHDRAWN,
             Instant.parse("2026-10-24T12:00:00Z"),
             true,
             null,
             null,
             null,
             null);
-    when(changes.change(OWNER, MATCH, VERSION, revision, command))
+    when(changes.change(OWNER, MATCH, VERSION, revision))
         .thenReturn(new ReadOwnContributions.Detail("opaque:next", version));
 
     // When
@@ -211,7 +205,7 @@ class OwnContributionLifecycleWebMvcTest {
             patch(PATH)
                 .with(mobile())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":\"" + revision + "\",\"action\":\"" + action + "\"}"));
+                .content("{\"revision\":\"" + revision + "\",\"action\":\"withdraw\"}"));
 
     // Then
     response
@@ -222,9 +216,9 @@ class OwnContributionLifecycleWebMvcTest {
         .andExpect(jsonPath("$.revision").value("opaque:next"))
         .andExpect(jsonPath("$.contribution.id").value(VERSION.toString()))
         .andExpect(jsonPath("$.contribution.url").value("https://youtu.be/literal?keep=1#time"))
-        .andExpect(jsonPath("$.contribution.canCancel").value(false))
+        .andExpect(jsonPath("$.contribution.canCancel").doesNotExist())
         .andExpect(jsonPath("$.contribution.canWithdraw").value(false));
-    verify(changes).change(OWNER, MATCH, VERSION, revision, command);
+    verify(changes).change(OWNER, MATCH, VERSION, revision);
     verifyNoInteractions(submissions, reads);
   }
 
@@ -237,8 +231,7 @@ class OwnContributionLifecycleWebMvcTest {
         stale
             ? new ContributionRejectedException(Status.STALE_REVISION)
             : new ContributionConflictException();
-    when(changes.change(OWNER, MATCH, VERSION, "1", StreamOwnerActionEnum.CANCEL))
-        .thenThrow(failure);
+    when(changes.change(OWNER, MATCH, VERSION, "1")).thenThrow(failure);
 
     // When
     ResultActions response =
@@ -246,7 +239,7 @@ class OwnContributionLifecycleWebMvcTest {
             patch(PATH)
                 .with(mobile())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":\"1\",\"action\":\"cancel\"}"));
+                .content("{\"revision\":\"1\",\"action\":\"withdraw\"}"));
 
     // Then
     response

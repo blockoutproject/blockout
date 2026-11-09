@@ -13,7 +13,6 @@ import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.contributions.domain.ContributionVersion.State;
 import com.blockout.backend.contributions.support.ContributionScenario;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
-import com.blockout.backend.generated.mobile.model.StreamOwnerActionEnum;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.sql.Timestamp;
 import java.util.UUID;
@@ -26,6 +25,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
@@ -42,8 +42,8 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
   @Autowired private ReadPublicContribution publicLinks;
 
   @Test
-  @DisplayName("Cancellation preserves the active version and consumed quota")
-  void cancelsOnlyPending() throws Exception {
+  @DisplayName("The retired cancellation action cannot change a proposal or its consumed quota")
+  void rejectsRetiredCancellation() throws Exception {
     // Given
     SubmitContribution.Outcome active =
         submit(AUTHOR, "0", "https://youtu.be/active?exact=1#time", false);
@@ -55,20 +55,12 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
 
     // Then
     response
-        .andExpect(status().isOk())
-        .andExpect(header().string("Cache-Control", "no-store"))
-        .andExpect(header().string("Accept-Patch", "application/json"))
-        .andExpect(jsonPath("$.revision").value("3"))
-        .andExpect(jsonPath("$.contribution.state").value("cancelled"));
+        .andExpect(status().isBadRequest())
+        .andExpect(header().string("Cache-Control", "no-store"));
     assertThat(contributions.active(matchId).orElseThrow()).isEqualTo(active.version());
-    ContributionVersion cancelled = contributions.version(pending.version().id()).orElseThrow();
-    assertThat(cancelled.address()).isEqualTo(pending.version().address());
-    assertThat(cancelled.createdAt()).isEqualTo(pending.version().createdAt());
-    assertThat(cancelled.quotaParticipating()).isTrue();
-    assertThat(cancelled.decision().kind())
-        .isEqualTo(ContributionVersion.DecisionKind.CANCELLATION);
-    assertThat(cancelled.decision().actorId()).isEqualTo(AUTHOR);
+    assertThat(contributions.pending(matchId, AUTHOR).orElseThrow()).isEqualTo(pending.version());
     assertThat(reads.read(AUTHOR, matchId, 0).usage().versionsUsed()).isEqualTo(2);
+    assertThat(contributions.state(matchId).revision()).isEqualTo(2);
   }
 
   @Test
@@ -85,6 +77,8 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
     // Then
     response
         .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(header().string("Accept-Patch", "application/json"))
         .andExpect(jsonPath("$.contribution.state").value("withdrawn"));
     assertThat(contributions.active(matchId)).isEmpty();
     assertThat(publicLinks.read(matchId)).isEmpty();
@@ -120,18 +114,11 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
   }
 
   @ParameterizedTest
-  @CsvSource({
-    "ACTIVE,cancel",
-    "PENDING,withdraw",
-    "REJECTED,cancel",
-    "SUPERSEDED,cancel",
-    "HIDDEN,withdraw",
-    "REPLACED,withdraw",
-    "CANCELLED,withdraw",
-    "WITHDRAWN,cancel"
-  })
+  @EnumSource(
+      value = State.class,
+      names = {"PENDING", "REJECTED", "SUPERSEDED", "HIDDEN", "REPLACED", "CANCELLED"})
   @DisplayName("An incompatible exact target conflicts without changing its lifecycle")
-  void conflictsOnIncompatibleState(State state, String action) throws Exception {
+  void conflictsOnIncompatibleState(State state) throws Exception {
     // Given: historical decision fixtures do not implement or qualify moderator commands.
     moderator(AUTHOR);
     SubmitContribution.Outcome version = submit(AUTHOR, "0", "https://youtu.be/version", true);
@@ -139,7 +126,7 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
         "UPDATE contribution_version SET state=? WHERE id=?", state.name(), version.version().id());
 
     // When
-    ResultActions response = change(AUTHOR, version.version().id(), "1", action);
+    ResultActions response = change(AUTHOR, version.version().id(), "1", "withdraw");
 
     // Then
     response
@@ -150,23 +137,19 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
     assertThat(contributions.state(matchId).revision()).isEqualTo(1);
   }
 
-  @ParameterizedTest
-  @CsvSource({"cancel,CANCELLED", "withdraw,WITHDRAWN"})
+  @Test
   @DisplayName("Only a current revision repeats an exact terminal target without new effects")
-  void repeatsExactTerminalTarget(String action, State terminal) throws Exception {
+  void repeatsExactTerminalTarget() throws Exception {
     // Given
-    if (action.equals("cancel")) {
-      result(2, ResultStateEnum.FINAL);
-    }
     SubmitContribution.Outcome original = submit(AUTHOR, "0", "https://youtu.be/original", false);
-    change(AUTHOR, original.version().id(), "1", action).andExpect(status().isOk());
+    change(AUTHOR, original.version().id(), "1", "withdraw").andExpect(status().isOk());
     ContributionVersion completed = contributions.version(original.version().id()).orElseThrow();
     SubmitContribution.Outcome replacement =
         submit(AUTHOR, "2", "https://youtu.be/replacement", false);
 
     // When
-    ResultActions stale = change(AUTHOR, original.version().id(), "1", action);
-    ResultActions repeated = change(AUTHOR, original.version().id(), "3", action);
+    ResultActions stale = change(AUTHOR, original.version().id(), "1", "withdraw");
+    ResultActions repeated = change(AUTHOR, original.version().id(), "3", "withdraw");
 
     // Then
     stale
@@ -174,36 +157,10 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:stale-revision"));
     repeated.andExpect(status().isOk()).andExpect(jsonPath("$.revision").value("3"));
     assertThat(contributions.version(original.version().id()).orElseThrow()).isEqualTo(completed);
-    assertThat(completed.state()).isEqualTo(terminal);
+    assertThat(completed.state()).isEqualTo(State.WITHDRAWN);
     assertThat(contributions.version(replacement.version().id()).orElseThrow())
         .isEqualTo(replacement.version());
     assertThat(contributions.state(matchId).revision()).isEqualTo(3);
-  }
-
-  @Test
-  @DisplayName("Cancellation preserves an independent report hold and another author's proposal")
-  void preservesIndependentHold() throws Exception {
-    // Given: a moderator-created historical hidden row supplies the later reporting owner's
-    // fixture.
-    moderator(OTHER);
-    SubmitContribution.Outcome hidden = submit(OTHER, "0", "https://youtu.be/hidden", true);
-    sql.update("UPDATE contribution_version SET state='HIDDEN' WHERE id=?", hidden.version().id());
-    sql.update(
-        "UPDATE contribution_state SET report_hold_version_id=? WHERE match_id=?",
-        hidden.version().id(),
-        matchId);
-    SubmitContribution.Outcome own = submit(AUTHOR, "1", "https://youtu.be/own", false);
-    SubmitContribution.Outcome other = submit(FOLLOWER, "2", "https://youtu.be/other", false);
-
-    // When
-    ResultActions response = change(AUTHOR, own.version().id(), "3", "cancel");
-
-    // Then
-    response.andExpect(status().isOk());
-    assertThat(contributions.state(matchId).reportHoldVersionId()).isEqualTo(hidden.version().id());
-    assertThat(contributions.pending(matchId, FOLLOWER).orElseThrow()).isEqualTo(other.version());
-    assertThat(contributions.active(matchId)).isEmpty();
-    assertThat(reads.read(AUTHOR, matchId, 0).usage().versionsUsed()).isEqualTo(1);
   }
 
   @Test
@@ -306,28 +263,6 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
     assertThat(contributions.state(matchId).revision()).isEqualTo(1);
   }
 
-  @ParameterizedTest
-  @CsvSource({"false", "true"})
-  @DisplayName("Personal cancellation never exposes or changes another original owner's proposal")
-  void refusesForeignProposal(boolean erased) throws Exception {
-    // Given
-    result(2, ResultStateEnum.FINAL);
-    SubmitContribution.Outcome pending = submit(AUTHOR, "0", "https://youtu.be/pending", false);
-    if (erased) {
-      sql.update("DELETE FROM account WHERE id=?", AUTHOR);
-    }
-    moderator(OTHER);
-
-    // When
-    ResultActions response = change(OTHER, pending.version().id(), "1", "cancel");
-
-    // Then
-    response.andExpect(status().isNotFound());
-    assertThat(contributions.version(pending.version().id()).orElseThrow().state())
-        .isEqualTo(State.PENDING);
-    assertThat(contributions.state(matchId).revision()).isEqualTo(1);
-  }
-
   @Test
   @DisplayName("A reached lifetime quota preserves both versions after sporting correction")
   void preservesBothAtReachedQuota() {
@@ -405,11 +340,7 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
                                   pid.complete(
                                       sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
                                   return changes.change(
-                                      AUTHOR,
-                                      matchId,
-                                      active.version().id(),
-                                      "1",
-                                      StreamOwnerActionEnum.WITHDRAW);
+                                      AUTHOR, matchId, active.version().id(), "1");
                                 }));
                 PostgresTestDatabase.awaitBlocked(sql, pid);
                 assertThat(future.isDone())
@@ -438,7 +369,7 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
    * @param owner original path and authenticated account
    * @param version exact selected version, never resolved from a current active row
    * @param revision captured contribution revision
-   * @param action explicit cancel or withdraw intent
+   * @param action wire action, including the retired cancellation value for refusal coverage
    * @return actual HTTP result, with persistence assertions owned by the calling scenario
    */
   private ResultActions change(UUID owner, UUID version, String revision, String action)

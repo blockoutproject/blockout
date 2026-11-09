@@ -2,6 +2,7 @@ package com.blockout.backend.contributions.application;
 
 import com.blockout.backend.access.application.CurrentPermissions;
 import com.blockout.backend.access.domain.Permission;
+import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.accounts.application.exception.AccountNotFoundException;
 import com.blockout.backend.contributions.domain.ContributionDecision;
 import com.blockout.backend.contributions.domain.ContributionEligibility.Status;
@@ -17,6 +18,7 @@ import com.blockout.backend.sporting.application.service.MatchContributionAccess
 import com.blockout.backend.sporting.application.service.MatchContributionAccess.Facts;
 import java.time.Clock;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -30,13 +32,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class ModerateContribution {
   private final MatchContributionAccess sporting;
   private final AnnouncementRecipients recipients;
+  private final AccountAccess accounts;
   private final CurrentPermissions permissions;
   private final ContributionStore store;
   private final AnnounceContribution transitions;
   private final Clock clock;
 
   /**
-   * Approves the existing proposal, rejects only it, or withdraws only the active target.
+   * Approves the existing proposal, rejects only it, or withdraws only the active target. Only
+   * approval selects and locks subscribers; every action retains actor and attribution protection.
    *
    * @param actor original admitted moderator, rechecked after account locks
    * @param matchId retained private sporting root
@@ -44,6 +48,8 @@ public class ModerateContribution {
    * @param revision viewed match revision, checked before terminal no-op
    * @param action complete canonical intent
    * @return exact terminal member and accepted revision; no-op adds no decision
+   * @throws AccountNotFoundException when the original actor was erased before locking
+   * @throws SportingResourceNotFoundException when the exact version is absent from this match
    * @throws ContributionConflictException for an incompatible target state
    * @throws ContributionRejectedException for stale revision or prohibited publication
    * @throws AccessDeniedException when the current complete grant is absent
@@ -56,7 +62,8 @@ public class ModerateContribution {
       String revision,
       StreamModerationActionEnum action) {
     Facts facts = sporting.lock(matchId);
-    Selection audience = lock(actor, facts, versionId);
+    boolean publishes = action == StreamModerationActionEnum.APPROVE;
+    Selection audience = lock(actor, facts, versionId, publishes);
     ContributionVersion target = target(matchId, versionId, revision);
     State terminal =
         switch (action) {
@@ -72,7 +79,6 @@ public class ModerateContribution {
       throw new ContributionConflictException();
     }
     ContributionVersion changed;
-    boolean publishes = action == StreamModerationActionEnum.APPROVE;
     if (publishes) {
       requirePublication(facts);
       changed = store.select(versionId, actor, clock.instant(), false);
@@ -105,12 +111,15 @@ public class ModerateContribution {
    * @return newly active member with source lineage and current post-lock owner
    * @throws ContributionConflictException for an active, pending or cancelled source
    * @throws ContributionRejectedException for stale revision or sporting restrictions
+   * @throws AccountNotFoundException when the original actor was erased before locking
+   * @throws SportingResourceNotFoundException when the historical source is absent from this match
+   * @throws AccessDeniedException when the current moderation grant is absent
    */
   @Transactional
   public SubmitContribution.Outcome reactivate(
       UUID actor, UUID matchId, UUID versionId, String revision) {
     Facts facts = sporting.lock(matchId);
-    Selection audience = lock(actor, facts, versionId);
+    Selection audience = lock(actor, facts, versionId, true);
     ContributionVersion source = target(matchId, versionId, revision);
     if (!ContributionDecision.canReactivate(source.state())) {
       throw new ContributionConflictException();
@@ -123,19 +132,33 @@ public class ModerateContribution {
   }
 
   /**
-   * Gathers scalar attributions before the full audience union is locked; no mutable version is
-   * loaded.
+   * Locks sorted actor and scalar attributions before loading a mutable version. A publishing
+   * branch includes the current subscriber union; other decisions do not consult followers.
    *
    * @param actor original actor to retain
    * @param facts sporting facts under already locked roots
    * @param versionId historical source whose attribution also needs erasure coordination
-   * @return audience reread under sorted F05 locks
+   * @param publishes whether this branch may publish a link and require an announcement audience
+   * @return surviving locked accounts and current recipients, empty for nonpublishing branches
+   * @throws AccountNotFoundException when the original actor was erased before locking
+   * @throws AccessDeniedException when the current moderation grant is absent
    */
-  private Selection lock(UUID actor, Facts facts, UUID versionId) {
+  private Selection lock(UUID actor, Facts facts, UUID versionId, boolean publishes) {
     Set<UUID> affected = new HashSet<>(store.attributionAccounts(facts.match().id()));
     affected.addAll(store.versionAttributionAccounts(versionId));
     affected.add(actor);
-    Selection selection = recipients.select(facts.match(), affected);
+    Selection selection;
+    if (publishes) {
+      selection = recipients.select(facts.match(), affected);
+    } else {
+      Set<UUID> surviving = new HashSet<>();
+      for (UUID account : affected.stream().sorted().toList()) {
+        if (accounts.lock(account)) {
+          surviving.add(account);
+        }
+      }
+      selection = new Selection(List.of(), surviving);
+    }
     if (!selection.accounts().contains(actor)) {
       throw new AccountNotFoundException();
     }
@@ -152,6 +175,8 @@ public class ModerateContribution {
    * @param versionId exact member
    * @param revision viewed revision
    * @return detached current member
+   * @throws ContributionRejectedException when the viewed match revision is stale
+   * @throws SportingResourceNotFoundException when the version is absent from this match
    */
   private ContributionVersion target(UUID matchId, UUID versionId, String revision) {
     if (!Long.toString(store.state(matchId).revision()).equals(revision)) {
@@ -167,6 +192,7 @@ public class ModerateContribution {
    * Private read access never overrides independent public sporting restrictions.
    *
    * @param facts current locked owner facts
+   * @throws ContributionRejectedException when current sporting restrictions prohibit publication
    */
   private void requirePublication(Facts facts) {
     if (!facts.viewable()) {

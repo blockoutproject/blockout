@@ -133,11 +133,12 @@ OwnMember:
     operationId: updateOwnStreamContribution
     tags:
       - StreamSubmission
-    summary: Cancel or withdraw my version
+    summary: Withdraw my active version
     description:
       Requires the original usable owner account and a currently viewable match.
-      A stale revision returns 409 before duplicate detection; no effects. After an uncertain response, read
-      current state before a new explicit action. Cancel applies only to pending; withdraw only to active.
+      A stale revision returns 409 before duplicate detection; no effects. After an uncertain response,
+      ordinary refresh may establish current state; a later explicit action retains its viewed exact
+      target and revision. Withdrawal applies only to active versions.
       The other active/pending version and consumed quotas are preserved. A current repeated completed transition
       returns 200 without new effects.
     requestBody:

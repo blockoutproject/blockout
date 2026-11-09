@@ -12,21 +12,21 @@ The backend supplies the existing [mobile OpenAPI root](../../../contracts/http/
 | Account erasure       | F05 → F08 persistence                     | Clear version/decision attribution and report author/reason in the local deletion transaction; retain counted facts and decisions. No extra HTTP operation.                                                      |
 | Notification facts    | F08/F02 → F07 in-process                  | Accepted match/version/public-availability transition and current composition under the match transaction. Required internal effects are atomic; post-commit push remains best effort. No new message transport. |
 
-The optional `activeContribution` is the current exact caller-owned active member, independent of the loaded page and absent for another owner or no active member. It shares the existing read snapshot with context, total and page. The current native history exposes no cancellation command; the existing exact-member PATCH contract is retained.
+The optional `activeContribution` is the current exact caller-owned active member, independent of the loaded page and absent for another owner or no active member. It shares the existing read snapshot with context, total and page. The admitted consumers are the signed-in mobile client and generated backend boundary. Current native history exposes no cancellation command and no admitted external pending-cancel consumer was identified. The exact-member PATCH retains active withdrawal only; the pending `cancel` action and `canCancel` capability are absent. Historical `cancelled` state/decision values remain readable.
 
 The own collection requires `proposalCount`, a nonnegative safe integer counting all original-account/match versions, including active and terminal states. The count is an SQL aggregate independent of pagination, read coherently with the page/context; an empty collection returns zero.
 
 Read lists in pages of twenty with optional nextPage; preserve filters and reset on refresh. Searches are literal case-insensitive fragments, not wildcard syntax. Private representations and errors use no-store. Body revision conflicts reuse the existing 409 problem; no conditional HTTP precondition or 412 contract is introduced. PATCH uses atomic application/json change documents; omitted fields are not invented updates and null is rejected in these required command inputs.
 
-Completed creation returns 201 and a resource Location; existing current repetitions return 200. A report Location identifies the account/version report subresource; a reactivation Location identifies the new administrative contribution member, not a new job. Reports do not transfer to another version. Current reads after uncertainty may still precede delayed completion; no automatic write retry or exact historical receipt.
+Completed creation returns 201 and a resource Location; existing current repetitions return 200. A report Location identifies the account/version report subresource; a reactivation Location identifies the new administrative contribution member, not a new job. Reports do not transfer to another version. A current authorized `reported:true` for the exact account/version establishes “already reported”, including after a lost POST response, without attributing success to a request. False or failed reads do not establish POST failure; they may precede delayed completion. There is no automatic write retry or exact historical receipt.
 
 F13 owns [dialect, generators and validation](../../003-shared-quality/contracts/README.md). Keep Java server interfaces/DTOs and Orval types/query functions/Zod schemas generated from the same root. Added response fields are compatible with tolerant readers; new operations are additive. Finite enums are named components and new values require deliberate compatibility review. No generated output, runtime, external provider API, generic bulk operation or hypermedia framework is introduced by this dossier.
 
 The delivered submission/member-read operations and own-version PATCH use the `StreamSubmission`
-generation tag, separating their executable Java interface from future reporting/moderation
+generation tag, separating their executable Java interface from reporting/moderation
 operations. Routes, operation IDs, request/response schemas and mobile consumer names remain
-unchanged. The PATCH retains its exact target and required viewed revision; cancellation and
-withdrawal return the current private member with `Accept-Patch: application/json` and `no-store`.
+unchanged. The PATCH retains its exact target and required viewed revision; active
+withdrawal returns the current private member with `Accept-Patch: application/json` and `no-store`.
 
 The executable reporting operations use the `StreamReports` generation tag without changing routes, operation IDs or DTOs. Requests contain only `reason`; whitespace-only reasons receive 422 after normalization. Ordinary admitted usable accounts retain the current reporting right independently of publication age or quota. Existing reports return unchanged 200 before activity/threshold evaluation; own-state GET exposes only `reported`. A later explicit retry remains on that account/version, with no automatic replay or special mobile recovery state.
 
