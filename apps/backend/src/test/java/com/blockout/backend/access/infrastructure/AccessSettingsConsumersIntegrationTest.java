@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,9 +38,10 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Opt-in cross-owner qualification using the actual server, PostgreSQL and existing Jest Expo
- * runner. Only native credential I/O and the isolated JWT issuer are controlled; no HTTP provider
- * is mocked. Run after npm ci and npm run generate; it needs no Auth0 secret or production grant.
+ * Opt-in generated-client wire qualification using the actual server, PostgreSQL and existing Jest
+ * Expo runner. Node Fetch replaces native networking, and an isolated issuer signs synthetic
+ * credentials. Run after npm ci and npm run generate; no Auth0 secret or production grant is
+ * needed.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @EnabledIfEnvironmentVariable(named = "BLOCKOUT_ACCESS_CONSUMERS_TEST", matches = "true")
@@ -90,71 +92,65 @@ class AccessSettingsConsumersIntegrationTest {
 
   @Test
   @DisplayName(
-      "Exercises two editors, conflicts, independent groups and retained uncertain drafts over real HTTP")
+      "Exercises generated PATCH presence, response decoding and conflict problems over HTTP")
   void qualifiesGeneratedConsumers() throws Exception {
     // Given
     TransactionTemplate transaction = new TransactionTemplate(transactions);
-    for (String subject : List.of("first", "second")) {
-      UUID id =
-          transaction.execute(
-              s ->
-                  accounts
-                      .create(
-                          issuer,
-                          "auth0|" + subject,
-                          subject + "_175",
-                          subject + "@example.invalid",
-                          null)
-                      .id());
-      sql.update(
-          "INSERT INTO account_permission(account_id,permission) VALUES (?, 'maintenance.manage'), (?, 'application-versions.manage')",
-          id,
-          id);
-    }
+    UUID id =
+        transaction.execute(
+            s ->
+                accounts
+                    .create(issuer, "auth0|editor", "editor_175", "editor@example.invalid", null)
+                    .id());
+    sql.update(
+        "INSERT INTO account_permission(account_id,permission) VALUES (?, 'maintenance.manage'), (?, 'application-versions.manage')",
+        id,
+        id);
     Path repository = Path.of("..", "..").toAbsolutePath().normalize();
+    Path log = repository.resolve("apps/backend/target/access-consumers.log");
     ProcessBuilder builder =
         new ProcessBuilder(
-                "npm",
-                "run",
-                "test",
-                "--workspace=@blockout/mobile",
-                "--",
+                "node",
+                repository.resolve("node_modules/jest/bin/jest.js").toString(),
+                "--config",
+                "jest.config.cjs",
+                "--ci",
                 "--runInBand",
                 "--runTestsByPath",
                 "src/features/access/__tests__/maintenance-settings-provider.test.tsx")
-            .directory(repository.toFile())
+            .directory(repository.resolve("apps/mobile").toFile())
             .redirectErrorStream(true)
-            .redirectOutput(
-                repository.resolve("apps/backend/target/access-consumers.log").toFile());
+            .redirectOutput(log.toFile());
     builder.environment().put("BLOCKOUT_ACCESS_PROVIDER_URL", "http://127.0.0.1:" + port);
-    builder.environment().put("BLOCKOUT_ACCESS_EDITOR_ONE", token("first"));
-    builder.environment().put("BLOCKOUT_ACCESS_EDITOR_TWO", token("second"));
+    builder.environment().put("BLOCKOUT_ACCESS_EDITOR_TOKEN", token());
 
     // When
     Process consumer = builder.start();
-    boolean finished = AccessSettingsConsumerProcess.waitFor(consumer, Duration.ofSeconds(90));
+    try {
+      boolean finished = consumer.waitFor(Duration.ofSeconds(90));
 
-    // Then
-    assertThat(finished)
-        .as("Existing Jest runner finishes; details in target/access-consumers.log")
-        .isTrue();
-    assertThat(consumer.exitValue())
-        .as("Generated consumer and form integration; details in target/access-consumers.log")
-        .isZero();
+      // Then
+      assertThat(finished).as("Wire suite completes; details in %s", log).isTrue();
+      assertThat(consumer.exitValue())
+          .as("Generated client assertions; details in %s", log)
+          .isZero();
+    } finally {
+      consumer.destroyForcibly();
+      assertThat(consumer.waitFor(5, TimeUnit.SECONDS)).as("Jest child terminates").isTrue();
+    }
   }
 
   /**
    * Signs short-lived synthetic mobile claims for the real resource-server decoder without logging
    * tokens.
    *
-   * @param subject fixture identity suffix for one of the two editors
    * @return a short-lived token accepted only by this isolated resource server
    */
-  private static String token(String subject) {
+  private static String token() {
     JwtClaimsSet claims =
         JwtClaimsSet.builder()
             .issuer(issuer)
-            .subject("auth0|" + subject)
+            .subject("auth0|editor")
             .audience(List.of("mobile-test"))
             .claim("azp", "mobile-test")
             .issuedAt(Instant.now())

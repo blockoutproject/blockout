@@ -227,7 +227,7 @@ The existing application tasks own this proof: T015/T016 verify schema validatio
 ### Native candidate preparation and qualification
 
 - [x] T051 [US6] Keep the existing `development`, `preview` and `production` profiles in `apps/mobile/eas.json` and build-time variants in `apps/mobile/app.config.ts`: native development client, separate internal “Blockout Preprod” variant and production-identity store builds. Preserve source revisions and native EAS build IDs in their ordinary build records, with F14 owning existing identifiers/signing continuity and no OTA. These mobile profiles are independent of server build/deployment workflows.
-- [ ] T058 [US6] Qualify the actual production mobile binary in the store test circuits using `apps/mobile/eas.json` and `specs/003-shared-quality/quickstart.md#native-build-candidates`; verify compatibility with admitted earlier clients and preserve the exact build for later explicitly authorized release. Coordinate actual downloadable availability and retirement with F14; preview/preproduction builds do not replace this proof.
+- [ ] T058 [US6] Qualify the actual production mobile binary in the store test circuits using `apps/mobile/eas.json` and `specs/003-shared-quality/quickstart.md#native-build-candidates`; verify valid installed published-version metadata in both exact distributed iOS/Android binaries under F12 FR-025, compatibility with admitted earlier clients and preservation of the exact build for later explicitly authorized release. Coordinate actual downloadable availability before a minimum increase and retirement with F14 T048; preview/preproduction builds and local metadata/comparison/store-opening checks do not replace this proof.
 
 ### Page layout and feedback
 
