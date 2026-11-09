@@ -90,7 +90,7 @@ afterEach(async () => {
 });
 
 /** Observes the real private cache without replacing its subject-keyed ownership. */
-function PrivateQueries({ children }: PropsWithChildren) {
+function PrivateQueries({ children }: Readonly<PropsWithChildren>) {
   const client = useQueryClient();
   client.setQueryDefaults([], { retry: false, gcTime: Infinity });
   useLayoutEffect(() => {

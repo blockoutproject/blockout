@@ -27,7 +27,7 @@ function Draft() {
 }
 
 /** Feature selection is real React state; only the native pager/animation boundary is controlled. */
-function Example({ resetKey }: { resetKey?: string }) {
+function Example({ resetKey }: Readonly<{ resetKey?: string }>) {
   const [selected, setSelected] = useState("one");
   return (
     <GestureHandlerRootView>

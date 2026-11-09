@@ -16,7 +16,9 @@ export interface ProfileLoadingProps {
 }
 
 /** Reserves one complete initial account body; the owning read retains content during later refreshes. */
-export function ProfileLoading({ editor = false }: ProfileLoadingProps) {
+export function ProfileLoading({
+  editor = false,
+}: Readonly<ProfileLoadingProps>) {
   const { fontScale } = useWindowDimensions();
   const actionHeight = Math.max(
     tokens.size.control.default,

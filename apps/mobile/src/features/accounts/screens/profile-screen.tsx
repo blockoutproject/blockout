@@ -51,7 +51,7 @@ export function ProfileScreen({
   proEntry,
   privacyEntry,
   membershipStatus,
-}: ProfileScreenProps) {
+}: Readonly<ProfileScreenProps>) {
   const session = useAccountSession();
   const account = useCurrentAccount();
   const router = useRouter();
@@ -210,7 +210,7 @@ function ProfileContent({
   onEdit,
   onSignIn,
   children,
-}: {
+}: Readonly<{
   refreshControl: PageScrollViewProps["refreshControl"];
   account?: AccountResponse;
   disabled: boolean;
@@ -218,7 +218,7 @@ function ProfileContent({
   onEdit: () => void;
   onSignIn: () => void;
   children: ReactNode;
-}) {
+}>) {
   const photo = useProfilePhoto(
     account?.accountId ?? "",
     !!account?.hasPhoto && !disabled,
@@ -254,10 +254,10 @@ function ProfileContent({
 function ProfileHeader({
   onEdit,
   disabled = false,
-}: {
+}: Readonly<{
   onEdit?: () => void;
   disabled?: boolean;
-}) {
+}>) {
   const { colors } = useTheme();
   return (
     <PageHeader

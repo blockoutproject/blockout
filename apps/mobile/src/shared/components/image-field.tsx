@@ -63,7 +63,7 @@ export function ImageField({
   removeLabel = "Supprimer l’image",
   helper,
   error,
-}: ImageFieldProps) {
+}: Readonly<ImageFieldProps>) {
   const { colors } = useTheme();
   const [previewId, setPreviewId] = useState<string>();
   const preview = images.find((image) => image.id === previewId);
@@ -224,10 +224,10 @@ export function ImageField({
 export function ImagePreview({
   image,
   onClose,
-}: {
+}: Readonly<{
   image: ImageFieldImage;
   onClose: () => void;
-}) {
+}>) {
   const { colors } = useTheme();
   const [failed, setFailed] = useState(false);
   return (

@@ -19,11 +19,11 @@ export function DivisionColorFields({
   control,
   setValue,
   disabled,
-}: {
+}: Readonly<{
   control: Control<PresentationValues>;
   setValue: UseFormSetValue<PresentationValues>;
   disabled: boolean;
-}) {
+}>) {
   const { colors } = useTheme();
   const color = useWatch({ control, name: "color" });
   const gradient = useWatch({ control, name: "gradient" });

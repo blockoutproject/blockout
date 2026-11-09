@@ -14,10 +14,10 @@ import { Sheet, SheetContent } from "../sheet";
 function ChoiceSheet({
   onConfirm,
   onClose,
-}: {
+}: Readonly<{
   onConfirm: (value: boolean) => void;
   onClose: () => void;
-}) {
+}>) {
   const [selected, setSelected] = useState(false);
   return (
     <Sheet

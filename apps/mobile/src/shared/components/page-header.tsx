@@ -30,7 +30,7 @@ export function PageHeader({
   children,
   action,
   revealProgress,
-}: PageHeaderProps) {
+}: Readonly<PageHeaderProps>) {
   const router = useRouter();
   const { colors } = useTheme();
   const [actionWidth, setActionWidth] = useState(tokens.size.control.default);

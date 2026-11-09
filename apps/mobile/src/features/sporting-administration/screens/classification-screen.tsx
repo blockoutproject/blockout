@@ -21,7 +21,9 @@ export interface ClassificationScreenProps {
 }
 
 /** Composes F05/F12 admission, generated reads and the retained correction form. */
-export function ClassificationScreen({ target }: ClassificationScreenProps) {
+export function ClassificationScreen({
+  target,
+}: Readonly<ClassificationScreenProps>) {
   const editing = useClassification(target);
   const divisions = useDivisions();
   const { authority } = editing;

@@ -155,7 +155,7 @@ function NavigationCapsule({
   reducedMotion,
   style,
   ...props
-}: NavigationCapsuleProps) {
+}: Readonly<NavigationCapsuleProps>) {
   const { colors, membership } = useTheme();
   return (
     <SafeAreaView
@@ -208,7 +208,7 @@ function TabButton({
   reducedMotion,
   onFocusedLayout,
   ...props
-}: TabButtonProps) {
+}: Readonly<TabButtonProps>) {
   const { colors, membership } = useTheme();
   const [layout, setLayout] = useState<LayoutRectangle>();
   useEffect(() => {

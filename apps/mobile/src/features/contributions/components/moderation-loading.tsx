@@ -25,9 +25,9 @@ export function ModerationQueueLoading() {
 /** Detail pages retain the context/editor or context/version-list anatomy without inventing data or actions. */
 export function ModerationMatchLoading({
   editor = false,
-}: {
+}: Readonly<{
   editor?: boolean;
-}) {
+}>) {
   return (
     <LoadingGroup label="Chargement des liens du match" style={styles.stack}>
       <MatchPlaceholder />
@@ -70,7 +70,7 @@ export function ModerationFiltersLoading() {
 }
 
 /** Private moderation context retains its date inside the body; queue rows also reserve their count badges. */
-function MatchPlaceholder({ queue = false }: { queue?: boolean }) {
+function MatchPlaceholder({ queue = false }: Readonly<{ queue?: boolean }>) {
   const { colors } = useTheme();
   const { fontScale } = useWindowDimensions();
   return (
@@ -124,7 +124,9 @@ function MatchPlaceholder({ queue = false }: { queue?: boolean }) {
 }
 
 /** Uses the approved soft version surface and, for an editor, the real control dimensions. */
-function VersionPlaceholder({ editor = false }: { editor?: boolean }) {
+function VersionPlaceholder({
+  editor = false,
+}: Readonly<{ editor?: boolean }>) {
   const { colors } = useTheme();
   return (
     <View style={[styles.card, { backgroundColor: colors.insetSurface }]}>

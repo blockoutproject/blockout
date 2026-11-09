@@ -30,7 +30,7 @@ export function PersonalCalendar({
   category,
   active,
   bypass,
-}: PersonalCalendarProps) {
+}: Readonly<PersonalCalendarProps>) {
   const router = useRouter();
   const { timeZone, refresh } = useCalendarGrouping(
     (zone) =>

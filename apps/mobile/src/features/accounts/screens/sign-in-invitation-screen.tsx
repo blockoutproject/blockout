@@ -18,7 +18,7 @@ export interface SignInInvitationScreenProps {
 export function SignInInvitationScreen({
   admitted,
   message,
-}: SignInInvitationScreenProps) {
+}: Readonly<SignInInvitationScreenProps>) {
   const account = useAccountSession();
   const router = useRouter();
   const currentGuest = account.status === "guest";

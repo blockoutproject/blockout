@@ -1350,7 +1350,7 @@ it("keeps a sent profile file until its upload settles after sign-out", async ()
 });
 
 /** Captures the real private client while the fixture retains its separate public-cache owner for cleanup. */
-function PrivateQueries({ children }: PropsWithChildren) {
+function PrivateQueries({ children }: Readonly<PropsWithChildren>) {
   const privateClient = useQueryClient();
   // Configure deterministic failure presentation before child Query observers mount.
   privateClient.setQueryDefaults([], { retry: false, gcTime: Infinity });

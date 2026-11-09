@@ -163,7 +163,7 @@ let openPresentation: () => void;
 let closePresentation: () => void;
 
 /** Separates explicit route mounting from account establishment without replacing either owner. */
-function Journey(props: ProPresentationScreenProps) {
+function Journey(props: Readonly<ProPresentationScreenProps>) {
   const session = useAccountSession();
   const [visible, setVisible] = useState(false);
   useEffect(() => {

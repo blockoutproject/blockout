@@ -52,7 +52,7 @@ export function ReportContributionScreen({
   matchId,
   contributionId,
   contributionUrl,
-}: ReportContributionScreenProps) {
+}: Readonly<ReportContributionScreenProps>) {
   const reporting = useContributionReport(matchId, contributionId);
   const match = useQuery(useConsultationQueries().match(matchId));
   const router = useRouter();
@@ -164,10 +164,12 @@ function ReportForm({
   contributionUrl,
   reporting,
   match,
-}: ReportContributionScreenProps & {
-  reporting: ReturnType<typeof useContributionReport>;
-  match: UseQueryResult<MatchDetailResponse>;
-}) {
+}: Readonly<
+  ReportContributionScreenProps & {
+    reporting: ReturnType<typeof useContributionReport>;
+    match: UseQueryResult<MatchDetailResponse>;
+  }
+>) {
   const { colors } = useTheme();
   const router = useRouter();
   const feedback = useActionFeedback();

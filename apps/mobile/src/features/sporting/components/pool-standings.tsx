@@ -44,7 +44,7 @@ export function PoolStandings({
   highlightTeamId,
   active = true,
   children,
-}: PoolStandingsProps) {
+}: Readonly<PoolStandingsProps>) {
   /** Distinguishes a missing table, failed retained read and supplier-declared empty standings. */
   function renderStandingsState() {
     if (!data) {
@@ -224,7 +224,7 @@ function StandingEntry({
   color,
   last,
   active,
-}: StandingEntryProps) {
+}: Readonly<StandingEntryProps>) {
   const { colors } = useTheme();
   const sporting = useSportingNavigation(active);
   const statistics = columns

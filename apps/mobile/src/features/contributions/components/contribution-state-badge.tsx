@@ -15,7 +15,7 @@ export function ContributionStateBadge({
   state,
   label,
   explanation,
-}: ContributionStateBadgeProps) {
+}: Readonly<ContributionStateBadgeProps>) {
   const { colors } = useTheme();
   let backgroundColor = colors.subtle;
   let color = colors.secondaryText;

@@ -86,7 +86,7 @@ let participantsFailure: number | undefined;
 let standingsFailure: number | undefined;
 
 /** Retrieves the real private lifetime client; failure scenarios explicitly disable read retries. */
-function PrivateQueries({ children }: QueryFixtureProps) {
+function PrivateQueries({ children }: Readonly<QueryFixtureProps>) {
   const current = useQueryClient();
   // Configure this fresh real client before descendant consultation observers start their first request.
   useQueryFixtureState(() => {

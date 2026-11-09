@@ -21,7 +21,7 @@ export function AccessFeedback({
   account,
   enabled,
   loadingContent,
-}: AccessFeedbackProps) {
+}: Readonly<AccessFeedbackProps>) {
   if (
     sessionStatus === "restoring" ||
     (sessionStatus === "authenticated" &&

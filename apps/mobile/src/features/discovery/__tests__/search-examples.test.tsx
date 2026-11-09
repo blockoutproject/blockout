@@ -167,7 +167,7 @@ function publicReads(url: string): Promise<Response> {
 }
 
 /** Observes the real account and private client; failure scenarios explicitly disable read retries. */
-function PrivateQueries({ children }: QueryFixtureProps) {
+function PrivateQueries({ children }: Readonly<QueryFixtureProps>) {
   const current = useQueryClient();
   const account = useAccountSession();
   // Configure this fresh real client before descendant public observers start their first request.
@@ -185,7 +185,7 @@ function PrivateQueries({ children }: QueryFixtureProps) {
 }
 
 /** Observes the committed F09 public API so access cases establish their actual entitlement state. */
-function CurrentPro({ children }: QueryFixtureProps) {
+function CurrentPro({ children }: Readonly<QueryFixtureProps>) {
   const current = usePro();
   useLayoutEffect(() => {
     pro = current;

@@ -10,6 +10,6 @@ export interface SearchResultCardProps extends SearchResult {
 }
 
 /** Uses F03's accessible whole-card link and disclosure without owning navigation or advertising. */
-export function SearchResultCard(props: SearchResultCardProps) {
+export function SearchResultCard(props: Readonly<SearchResultCardProps>) {
   return <SportingEntityCard {...props} />;
 }

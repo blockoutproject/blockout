@@ -18,7 +18,7 @@ export function DivisionActivityAction({
   executing,
   disabled,
   onPress,
-}: DivisionActivityActionProps) {
+}: Readonly<DivisionActivityActionProps>) {
   const { colors } = useTheme();
   const busy = disabled || executing;
   const label = division.active

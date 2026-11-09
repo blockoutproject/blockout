@@ -10,7 +10,10 @@ export interface MatchSurfaceProps extends PropsWithChildren {
 }
 
 /** Flat 22 px surface; the canonical six-digit division color receives Context border/default alpha. */
-export function MatchSurface({ division, children }: MatchSurfaceProps) {
+export function MatchSurface({
+  division,
+  children,
+}: Readonly<MatchSurfaceProps>) {
   const { colors } = useTheme();
   return (
     <View style={[styles.surface, { backgroundColor: colors.surface }]}>

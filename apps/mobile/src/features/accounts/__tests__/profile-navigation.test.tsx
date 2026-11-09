@@ -953,7 +953,7 @@ it("retains the accepted overview after a technical refresh failure without an i
 });
 
 /** Captures private query access without replacing the fixture's separately owned public cache. */
-function PrivateQueries({ children }: PropsWithChildren) {
+function PrivateQueries({ children }: Readonly<PropsWithChildren>) {
   const privateClient = useQueryClient();
   privateClient.setQueryDefaults([], { retry: false, gcTime: Infinity });
   privateClient.setMutationDefaults([], { gcTime: Infinity });

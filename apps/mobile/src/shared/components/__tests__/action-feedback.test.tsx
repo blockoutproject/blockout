@@ -20,10 +20,10 @@ afterEach(async () => {
 function Actions({
   response,
   retainOnUnmount,
-}: {
+}: Readonly<{
   response?: Promise<void>;
   retainOnUnmount?: boolean;
-}) {
+}>) {
   const feedback = useActionFeedback({ retainOnUnmount });
   return (
     <>
@@ -57,12 +57,12 @@ function Surface({
   showActions = true,
   response,
   retainOnUnmount,
-}: {
+}: Readonly<{
   scope?: string;
   showActions?: boolean;
   response?: Promise<void>;
   retainOnUnmount?: boolean;
-}) {
+}>) {
   return (
     <ThemeProvider>
       <ActionFeedbackProvider scopeKey={scope}>

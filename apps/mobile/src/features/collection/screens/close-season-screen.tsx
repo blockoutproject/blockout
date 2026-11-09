@@ -13,7 +13,9 @@ import { useCloseCollectionSeason } from "../api/use-collection-controls";
 import { CloseSeasonForm } from "../forms/close-season-form";
 
 /** An ordinary route retains the exact typed season label through refusals and temporary admission removal. */
-export function CloseSeasonScreen({ seasonId }: { seasonId: string }) {
+export function CloseSeasonScreen({
+  seasonId,
+}: Readonly<{ seasonId: string }>) {
   const editing = useCloseCollectionSeason(seasonId);
   const { authority, season } = editing;
   const feedback = useActionFeedback();

@@ -39,7 +39,7 @@ export function ThemeProvider({
   children,
   context = neutralContext,
   proAccent = false,
-}: ThemeProviderProps) {
+}: Readonly<ThemeProviderProps>) {
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const colors = appearanceColors[scheme];
   const navigationTheme = scheme === "dark" ? DarkTheme : DefaultTheme;

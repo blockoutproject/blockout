@@ -13,7 +13,7 @@ export interface ProEntryProps {
 }
 
 /** Profile action only; native offering selection, entitlement presentation and operations remain T025-owned. */
-export function ProEntry({ onOpenPresentation }: ProEntryProps) {
+export function ProEntry({ onOpenPresentation }: Readonly<ProEntryProps>) {
   const account = useAccountSession();
   const router = useRouter();
   const session = account;

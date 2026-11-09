@@ -35,7 +35,7 @@ export function Tabs({
   selected,
   onSelect,
   size = "regular",
-}: TabsProps) {
+}: Readonly<TabsProps>) {
   const rail = useRef<ScrollViewInstance>(null);
   const [layouts, setLayouts] = useState<Record<string, LayoutRectangle>>({});
   const reducedMotion = useReducedMotion();
@@ -89,14 +89,14 @@ function StandaloneTab({
   reducedMotion,
   onSelect,
   onMeasure,
-}: {
+}: Readonly<{
   label: string;
   selected: boolean;
   compact: boolean;
   reducedMotion: boolean;
   onSelect: () => void;
   onMeasure: (layout: LayoutRectangle) => void;
-}) {
+}>) {
   const outer = useRef<LayoutRectangle | undefined>(undefined);
   const inner = useRef<LayoutRectangle | undefined>(undefined);
   const { colors, membership } = useTheme();

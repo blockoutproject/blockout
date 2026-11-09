@@ -26,7 +26,7 @@ type DiscoveryPhase =
   "loading" | "read-error" | "incomplete" | "saving" | "complete";
 
 /** Reads once per mounted installation tree and admits ordinary routes only after persisted completion. */
-export function DiscoveryProvider({ children }: PropsWithChildren) {
+export function DiscoveryProvider({ children }: Readonly<PropsWithChildren>) {
   const feedback = useActionFeedback();
   const [phase, setPhase] = useState<DiscoveryPhase>("loading");
   const mounted = useRef(false);

@@ -868,7 +868,7 @@ it("returns from the owned editor to the exact match after withdrawing its activ
 });
 
 /** Uses one-shot read failures and keeps unused mutation GC timers out of the Jest process. */
-function PrivateQueries({ children }: PropsWithChildren) {
+function PrivateQueries({ children }: Readonly<PropsWithChildren>) {
   const cache = useQueryClient();
   useState(() => {
     cache.setQueryDefaults([], { retry: false });

@@ -25,7 +25,7 @@ export function ModerationMatchContext({
   match,
   showMatchLink = true,
   children,
-}: ModerationMatchContextProps) {
+}: Readonly<ModerationMatchContextProps>) {
   const { colors, context } = useTheme();
   const division = match.pool.classification.division;
   const schedule = match.schedule

@@ -23,7 +23,7 @@ export function IdentityCard({
   artworkBackgroundColor,
   railBackgroundColor,
   children,
-}: IdentityCardProps) {
+}: Readonly<IdentityCardProps>) {
   const { colors } = useTheme();
   return (
     <View

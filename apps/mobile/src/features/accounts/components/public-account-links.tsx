@@ -23,7 +23,7 @@ export interface PublicAccountLinksProps {
 /** Public sign-in footer opens legal HTML in the native browser and retains the shared support route. */
 export function PublicAccountLinks({
   supportOrigin = { screen: "profile" },
-}: PublicAccountLinksProps = {}) {
+}: Readonly<PublicAccountLinksProps> = {}) {
   const open = useLegalDocuments();
   return (
     <View style={styles.links}>
@@ -80,7 +80,7 @@ export function ProfileLegalLinks() {
 function PublicLinkAction({
   label,
   ...props
-}: PressableProps & { label: string }) {
+}: Readonly<PressableProps & { label: string }>) {
   const { colors } = useTheme();
   return (
     <Pressable

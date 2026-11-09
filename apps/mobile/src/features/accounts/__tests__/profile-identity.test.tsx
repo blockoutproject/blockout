@@ -8,7 +8,7 @@ import {
 import { accountResponse } from "../test-support/account-response";
 
 /** Uses the real theme and identity composition while native image events remain the controlled I/O boundary. */
-function Identity(props: ProfileIdentityProps) {
+function Identity(props: Readonly<ProfileIdentityProps>) {
   return (
     <ThemeProvider>
       <ProfileIdentity {...props} />

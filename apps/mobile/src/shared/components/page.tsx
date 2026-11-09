@@ -58,7 +58,7 @@ export function Page({
   accessibilityViewIsModal,
   header,
   fullBleed = false,
-}: PageProps) {
+}: Readonly<PageProps>) {
   const { colors } = useTheme();
   const bottomContentInset = useBottomContentInset();
   const safeArea = useSafeAreaInsets();
@@ -143,7 +143,7 @@ export function PageScrollView({
   contentContainerStyle,
   ref,
   ...props
-}: PageScrollViewProps) {
+}: Readonly<PageScrollViewProps>) {
   const inset = useNavigationInset();
   const tab = useContext(PagedTabContext);
   const offset = useContext(NavigationScrollOffsetContext);

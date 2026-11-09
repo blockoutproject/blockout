@@ -143,7 +143,7 @@ function publicReads(url: string): Promise<Response> {
 }
 
 /** Retrieves the real private lifetime client; failure scenarios explicitly disable read retries. */
-function PrivateQueries({ children }: QueryFixtureProps) {
+function PrivateQueries({ children }: Readonly<QueryFixtureProps>) {
   const current = useQueryClient();
   // Configure this fresh real client before descendant public observers start their first request.
   useQueryFixtureState(() => {
@@ -187,7 +187,7 @@ afterEach(async () => {
 function SearchOwners({
   children,
   proAccent = false,
-}: PropsWithChildren<{ proAccent?: boolean }>) {
+}: Readonly<PropsWithChildren<{ proAccent?: boolean }>>) {
   return (
     <GestureHandlerRootView>
       <SafeAreaProvider

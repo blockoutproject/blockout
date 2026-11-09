@@ -113,7 +113,7 @@ afterEach(async () => {
 });
 
 /** Mounts the actual session, entitlement and admission owners around the support mutation. */
-function Providers({ children }: PropsWithChildren) {
+function Providers({ children }: Readonly<PropsWithChildren>) {
   return (
     <QueryClientProvider client={publicClient}>
       <ApplicationAccessProvider>

@@ -58,7 +58,7 @@ export function SingleImageField({
   onRemove,
   helper,
   error,
-}: SingleImageFieldProps) {
+}: Readonly<SingleImageFieldProps>) {
   const { colors } = useTheme();
   const [previewUri, setPreviewUri] = useState<string>();
   const unavailable = disabled || selection.pending;
@@ -184,9 +184,8 @@ function SingleImagePlaceholder({
   appearance,
   loading,
   hasImage,
-}: Pick<
-  SingleImageFieldProps,
-  "label" | "appearance" | "loading" | "hasImage"
+}: Readonly<
+  Pick<SingleImageFieldProps, "label" | "appearance" | "loading" | "hasImage">
 >) {
   const { colors } = useTheme();
   let accessibilityLabel =

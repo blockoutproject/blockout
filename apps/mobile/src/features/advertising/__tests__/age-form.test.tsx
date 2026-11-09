@@ -18,7 +18,7 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 );
 
 /** Supplies only the theme and feedback owners required by the real age form. */
-function AgeFormProviders({ children }: PropsWithChildren) {
+function AgeFormProviders({ children }: Readonly<PropsWithChildren>) {
   return (
     <ThemeProvider>
       <ActionFeedbackProvider scopeKey="test">

@@ -40,7 +40,7 @@ export interface PoolScreenProps {
 }
 
 /** Opens one exact pool/phase without an entitlement dependency. */
-export function PoolScreen(props: PoolScreenProps) {
+export function PoolScreen(props: Readonly<PoolScreenProps>) {
   const queries = useConsultationQueries();
   return (
     <PoolPage key={hashKey(queries.pool(props.poolId).queryKey)} {...props} />
@@ -53,7 +53,7 @@ function PoolPage({
   renderFollow,
   renderStandings,
   renderMap,
-}: PoolScreenProps) {
+}: Readonly<PoolScreenProps>) {
   const queries = useConsultationQueries();
   const pool = useQuery(queries.pool(poolId));
   const [tab, setTab] = useState("standings");

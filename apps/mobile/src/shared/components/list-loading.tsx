@@ -7,7 +7,7 @@ import { EntryGroupSeparator } from "./entry-group";
 import { tokens } from "../theme/tokens";
 
 /** Three decorative native rows reserve the first read of an entry list. */
-export function ListLoading({ label }: { label: string }) {
+export function ListLoading({ label }: Readonly<{ label: string }>) {
   return (
     <LoadingGroup label={label}>
       {Array.from({ length: 3 }, (_, index) => (
@@ -21,7 +21,9 @@ export function ListLoading({ label }: { label: string }) {
 }
 
 /** Decorative basic-row anatomy, reusable inside an already announced EntryGroup or page skeleton. */
-export function EntryRowSkeleton({ inset = true }: { inset?: boolean }) {
+export function EntryRowSkeleton({
+  inset = true,
+}: Readonly<{ inset?: boolean }>) {
   return (
     <View style={[styles.row, inset && styles.inset]}>
       <Skeleton width={tokens.size.icon.lg} height={tokens.size.icon.lg} />

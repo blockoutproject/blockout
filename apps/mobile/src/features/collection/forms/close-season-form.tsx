@@ -23,7 +23,10 @@ export interface CloseSeasonFormProps {
 }
 
 /** A closure decision owns its original revision; background results cannot replace the user's typed confirmation. */
-export function CloseSeasonForm({ season, editing }: CloseSeasonFormProps) {
+export function CloseSeasonForm({
+  season,
+  editing,
+}: Readonly<CloseSeasonFormProps>) {
   const { authority } = editing;
   const { colors } = useTheme();
   const actionFeedback = useActionFeedback();

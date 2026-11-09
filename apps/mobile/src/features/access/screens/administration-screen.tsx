@@ -29,7 +29,7 @@ export interface AdministrationScreenProps {
 export function AdministrationScreen({
   admitted,
   onBypass,
-}: AdministrationScreenProps) {
+}: Readonly<AdministrationScreenProps>) {
   const { permissions, hasCommands, account, sessionStatus } =
     useAdministrationCapabilities();
 

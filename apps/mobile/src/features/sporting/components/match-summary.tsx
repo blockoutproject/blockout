@@ -24,7 +24,7 @@ export function MatchSummary({
   match,
   displayTimeZone,
   presentation = "summary",
-}: MatchSummaryProps) {
+}: Readonly<MatchSummaryProps>) {
   /** Explains the accepted incomplete result without inventing a final score. */
   function unavailableResultLabel() {
     if (!contextual) {
@@ -178,7 +178,7 @@ function TeamScoreLink({
   teamId,
   label,
   children,
-}: PropsWithChildren<{ teamId: string; label: string }>) {
+}: Readonly<PropsWithChildren<{ teamId: string; label: string }>>) {
   const sporting = useSportingNavigation();
   return (
     <Pressable

@@ -102,7 +102,7 @@ const states: Record<
 /** Combines the exact current owner editor with a virtualized, read-only history under the existing Query/session owner. */
 export function OwnContributionsScreen({
   matchId,
-}: OwnContributionsScreenProps) {
+}: Readonly<OwnContributionsScreenProps>) {
   const editing = useOwnContributions(matchId);
   const match = useQuery(useConsultationQueries().match(matchId));
   const router = useRouter();
@@ -360,7 +360,7 @@ export function OwnContributionsScreen({
 }
 
 /** Keeps Android keyboard handling on the virtualized list's own supported scroll component. */
-function renderAndroidScroll(props: ScrollViewProps) {
+function renderAndroidScroll(props: Readonly<ScrollViewProps>) {
   return <KeyboardAwareScrollView {...props} />;
 }
 
@@ -370,7 +370,7 @@ interface ProposalRowProps {
 }
 
 /** Shows the immutable address and textual semantic badge without exposing any row action. */
-function ProposalRow({ item }: ProposalRowProps) {
+function ProposalRow({ item }: Readonly<ProposalRowProps>) {
   const { colors } = useTheme();
   const state = states[item.state];
   return (

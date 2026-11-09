@@ -23,7 +23,7 @@ export interface ProviderSourcesScreenProps {
 export function ProviderSourcesScreen({
   seasonId,
   provider,
-}: ProviderSourcesScreenProps) {
+}: Readonly<ProviderSourcesScreenProps>) {
   const editing = useSeasonPreparation(seasonId);
   const { authority, season, sources } = editing;
   const current =

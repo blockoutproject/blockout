@@ -250,7 +250,7 @@ function followResponse(request?: RequestInit) {
 }
 
 /** Retrieves the real private lifetime client; failure scenarios explicitly disable read retries. */
-function PrivateQueries({ children }: QueryFixtureProps) {
+function PrivateQueries({ children }: Readonly<QueryFixtureProps>) {
   const current = useQueryClient();
   const currentSession = useAccountSession();
   // Configure this fresh real client before descendant public observers start their first request.

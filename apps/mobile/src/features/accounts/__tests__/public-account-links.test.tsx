@@ -14,7 +14,7 @@ jest.mock("expo-web-browser", () => ({
 }));
 
 /** Existing public links use the same theme and event feedback owners as the application root. */
-function Owners({ children }: PropsWithChildren) {
+function Owners({ children }: Readonly<PropsWithChildren>) {
   return (
     <ThemeProvider>
       <ActionFeedbackProvider scopeKey="guest">

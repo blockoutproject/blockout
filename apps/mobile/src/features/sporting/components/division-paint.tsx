@@ -7,9 +7,9 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 /** Approved division paint shared by previews, search cards and sporting resources. */
 export function DivisionPaint({
   division,
-}: {
+}: Readonly<{
   division?: Pick<SportingDivisionResponse, "color" | "gradient">;
-}) {
+}>) {
   const { colors } = useTheme();
   const gradientId = useId();
   const gradient = division?.gradient;

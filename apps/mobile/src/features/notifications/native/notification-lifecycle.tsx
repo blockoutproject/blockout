@@ -37,7 +37,7 @@ export interface NotificationLifecycleProps {
 export function NotificationLifecycle({
   registration,
   enabled,
-}: NotificationLifecycleProps) {
+}: Readonly<NotificationLifecycleProps>) {
   const { session, owner, queries, account } = useInboxQueries();
   const { subject, accountId } = session;
   const client = useQueryClient();

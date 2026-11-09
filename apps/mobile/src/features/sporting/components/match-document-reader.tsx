@@ -37,7 +37,7 @@ export function MatchDocumentReader({
   matchId,
   kind,
   onClose,
-}: MatchDocumentReaderProps) {
+}: Readonly<MatchDocumentReaderProps>) {
   const [attempt, setAttempt] = useState(0);
   const admission = useOrdinaryRequest();
   const [openingBypass] = useState(admission.bypass);
@@ -111,7 +111,7 @@ function DocumentAttempt({
   matchId,
   kind,
   onRetry,
-}: Omit<MatchDocumentReaderProps, "onClose"> & { onRetry(): void }) {
+}: Readonly<Omit<MatchDocumentReaderProps, "onClose"> & { onRetry(): void }>) {
   const session = useAccountSession();
   const admission = useOrdinaryRequest();
   const [state, setState] = useState<{ file?: File; failed: boolean }>({

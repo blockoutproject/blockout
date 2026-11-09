@@ -17,7 +17,7 @@ export interface CalendarLoadingProps {
 export function CalendarLoading({
   label = "Chargement des matchs",
   ...props
-}: CalendarLoadingProps) {
+}: Readonly<CalendarLoadingProps>) {
   return (
     <LoadingGroup label={label}>
       <CalendarSkeleton {...props} />
@@ -29,7 +29,7 @@ export function CalendarLoading({
 export function CalendarSkeleton({
   columns,
   stacked,
-}: Omit<CalendarLoadingProps, "label">) {
+}: Readonly<Omit<CalendarLoadingProps, "label">>) {
   return columns === undefined || stacked === undefined ? (
     <ViewportCalendarLoading />
   ) : (
@@ -47,10 +47,10 @@ function ViewportCalendarLoading() {
 function CalendarLoadingContent({
   columns,
   stacked,
-}: {
+}: Readonly<{
   columns: number;
   stacked: boolean;
-}) {
+}>) {
   const { fontScale } = useWindowDimensions();
   return (
     <View>
@@ -82,10 +82,10 @@ function CalendarLoadingContent({
 function PoolGroupSkeleton({
   stacked,
   status,
-}: {
+}: Readonly<{
   stacked: boolean;
   status: boolean;
-}) {
+}>) {
   const { colors } = useTheme();
   const { fontScale } = useWindowDimensions();
   return (
@@ -150,10 +150,10 @@ function PoolGroupSkeleton({
 function TeamSkeleton({
   divided = false,
   continuation = false,
-}: {
+}: Readonly<{
   divided?: boolean;
   continuation?: boolean;
-}) {
+}>) {
   const { colors } = useTheme();
   return (
     <View

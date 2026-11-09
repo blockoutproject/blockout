@@ -31,7 +31,7 @@ const textRoles = {
 export function TextSkeleton({
   role = "body",
   width = "100%",
-}: TextSkeletonProps) {
+}: Readonly<TextSkeletonProps>) {
   const { fontScale } = useWindowDimensions();
   const { lineHeight, ink } = textRoles[role];
   return (

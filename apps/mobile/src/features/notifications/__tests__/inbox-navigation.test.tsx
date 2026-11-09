@@ -112,9 +112,9 @@ let match: MatchDetailResponse;
 /** Real inbox/match Router and session/privacy owners; native SDKs and HTTP remain controlled. */
 function SessionRoutes({
   privacy,
-}: {
+}: Readonly<{
   privacy: ReturnType<typeof createInstallationAdvertisingPrivacy>;
-}) {
+}>) {
   const cache = useQueryClient();
   const session = useAccountSession();
   const [registration] = useState(createPushRegistration);
@@ -142,9 +142,9 @@ function SessionRoutes({
 /** Uses the actual root admission rule before SDK response subscriptions can become ready. */
 function NativeResponses({
   registration,
-}: {
+}: Readonly<{
   registration: ReturnType<typeof createPushRegistration>;
-}) {
+}>) {
   const access = useAccessAdmission();
   return (
     <NotificationLifecycle

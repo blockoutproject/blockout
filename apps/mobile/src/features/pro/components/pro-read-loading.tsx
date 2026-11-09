@@ -5,7 +5,7 @@ import { Surface } from "../../../shared/components/surface";
 import { tokens } from "../../../shared/theme/tokens";
 
 /** App-owned Pro read/handoff section; it reserves status copy without recreating SDK prices, products or controls. */
-export function ProReadLoading({ label }: { label: string }) {
+export function ProReadLoading({ label }: Readonly<{ label: string }>) {
   return (
     <Surface>
       <LoadingGroup label={label} style={styles.copy}>

@@ -38,12 +38,12 @@ export function NavigationBackdrop({
   target,
   scrollOffset,
   style,
-}: {
+}: Readonly<{
   target: RefObject<ViewInstance | null>;
   scrollOffset: SharedValue<number>;
   /** Pagers size their material to the library's visible header and tab rail. */
   style?: ComponentProps<typeof Animated.View>["style"];
-}) {
+}>) {
   const { scheme } = useTheme();
   const reveal = useAnimatedStyle(() => ({
     opacity: Math.min(
@@ -73,12 +73,12 @@ export function PageViewport({
   header,
   children,
   backdrop = true,
-}: {
+}: Readonly<{
   header: ReactNode;
   children: ReactNode;
   /** Pagers supply one continuous material for status, navigation, identity and tabs. */
   backdrop?: boolean;
-}) {
+}>) {
   const target = useRef<ViewInstance>(null);
   const top = useContext(NavigationSafeAreaContext);
   const scrollOffset = useSharedValue(0);

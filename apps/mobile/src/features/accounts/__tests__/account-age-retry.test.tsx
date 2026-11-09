@@ -401,7 +401,7 @@ it("does not expose targeted retry through refused profile admission", async () 
 });
 
 /** Captures private query access without replacing the fixture's separately owned public cache. */
-function PrivateQueries({ children }: PropsWithChildren) {
+function PrivateQueries({ children }: Readonly<PropsWithChildren>) {
   const privateClient = useQueryClient();
   privateClient.setQueryDefaults([], { retry: false, gcTime: Infinity });
   privateClient.setMutationDefaults([], { gcTime: Infinity });

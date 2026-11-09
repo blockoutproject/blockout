@@ -56,7 +56,7 @@ async function request(signal?: AbortSignal) {
 }
 
 /** Shares the real choice and query boundary through selection controls; full list/calendar integration is tested with Home. */
-function PersonalProbe({ enabled = true }: { enabled?: boolean }) {
+function PersonalProbe({ enabled = true }: Readonly<{ enabled?: boolean }>) {
   const season = usePersonalSeason(owner, request, enabled);
   const [tab, setTab] = useState("upcoming");
   const [choicesOpen, setChoicesOpen] = useState(false);

@@ -53,7 +53,7 @@ export interface ModerationScreenProps {
 }
 
 /** Keeps queue navigation and search above independently retained native list scenes. */
-export function ModerationScreen({ filters }: ModerationScreenProps) {
+export function ModerationScreen({ filters }: Readonly<ModerationScreenProps>) {
   const router = useRouter();
   const { colors } = useTheme();
   const { fontScale } = useWindowDimensions();
@@ -190,10 +190,10 @@ export function ModerationScreen({ filters }: ModerationScreenProps) {
 function QueueScene({
   active,
   filters,
-}: {
+}: Readonly<{
   active: boolean;
   filters: ModerationFilters;
-}) {
+}>) {
   const [refreshing, setRefreshing] = useState(false);
   const editing = useModerationQueue(filters, active);
   const { query } = editing;
@@ -390,7 +390,9 @@ function QueueScene({
 }
 
 /** Private match cards reuse sporting identities, shared surfaces and the existing list geometry. */
-function ModerationQueueRow({ item }: { item: StreamModerationItemResponse }) {
+function ModerationQueueRow({
+  item,
+}: Readonly<{ item: StreamModerationItemResponse }>) {
   const { colors } = useTheme();
   const match = item.match;
   return (

@@ -24,7 +24,9 @@ const VisitContext = createContext<
 >(undefined);
 
 /** Supplies live route context; it retains no form after the owning route unmounts. */
-export function ClassificationVisitProvider({ children }: PropsWithChildren) {
+export function ClassificationVisitProvider({
+  children,
+}: Readonly<PropsWithChildren>) {
   const [visit, setVisit] = useState<ClassificationVisit>();
   return <VisitContext value={{ visit, setVisit }}>{children}</VisitContext>;
 }

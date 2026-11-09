@@ -20,7 +20,7 @@ export function SelectionIndicator({
   layout,
   reducedMotion,
   radius = tokens.radius.control,
-}: SelectionIndicatorProps) {
+}: Readonly<SelectionIndicatorProps>) {
   const { membership } = useTheme();
   const animated = useAnimatedStyle(() => {
     if (!layout) {

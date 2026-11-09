@@ -215,7 +215,7 @@ export function AccountActions() {
 function PrivateQueries({
   children,
   onClient,
-}: PropsWithChildren<{ onClient?: (client: QueryClient) => void }>) {
+}: Readonly<PropsWithChildren<{ onClient?: (client: QueryClient) => void }>>) {
   const client = useQueryClient();
   useState(() => {
     client.setQueryDefaults([], { retry: false });

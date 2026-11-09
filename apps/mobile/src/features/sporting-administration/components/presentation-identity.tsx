@@ -28,7 +28,7 @@ export function PresentationIdentity({
   seasonLabel,
   color,
   gradient,
-}: PresentationIdentityProps) {
+}: Readonly<PresentationIdentityProps>) {
   const { colors } = useTheme();
   const placeholderStyle = isDivision
     ? styles.divisionPlaceholder

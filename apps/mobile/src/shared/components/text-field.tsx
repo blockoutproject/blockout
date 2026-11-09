@@ -33,7 +33,7 @@ export function TextField({
   onBlur,
   style,
   ...input
-}: TextFieldProps) {
+}: Readonly<TextFieldProps>) {
   const { colors } = useTheme();
   const [focused, setFocused] = useState(false);
   const isEditable = readOnly !== undefined ? !readOnly : editable;

@@ -23,7 +23,7 @@ export function IconButton({
   disabled = false,
   loading = false,
   size = "platform",
-}: IconButtonProps) {
+}: Readonly<IconButtonProps>) {
   const { colors } = useTheme();
   return (
     <Pressable

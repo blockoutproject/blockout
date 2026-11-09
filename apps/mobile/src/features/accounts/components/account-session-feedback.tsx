@@ -14,7 +14,7 @@ export interface AccountSessionFeedbackProps {
 /** Presents active native-session waiting or F05's existing explicit recovery, without observing Query state. */
 export function AccountSessionFeedback({
   loadingContent,
-}: AccountSessionFeedbackProps) {
+}: Readonly<AccountSessionFeedbackProps>) {
   const session = useAccountSession();
   const router = useRouter();
   const recovery = accountSessionRecovery(session);

@@ -66,7 +66,11 @@ export interface PoolMapProps {
 }
 
 /** Reads participants and an optional record independently; empty geography recovers on its card and native providers own basemap loading. */
-export function PoolMap({ pool, active = true, children }: PoolMapProps) {
+export function PoolMap({
+  pool,
+  active = true,
+  children,
+}: Readonly<PoolMapProps>) {
   const queries = useConsultationQueries();
   const participants = useQuery({
     ...queries.participants(pool.pool.id),
@@ -205,11 +209,11 @@ function ParticipantMap({
   items,
   standings,
   active,
-}: {
+}: Readonly<{
   active: boolean;
   items: PoolParticipantResponse[];
   standings: PoolStandingsResponse | undefined;
-}) {
+}>) {
   const { colors, scheme } = useTheme();
   const reducedMotion = useReducedMotion();
   const feedback = useActionFeedback();
@@ -480,11 +484,11 @@ function ParticipantSummary({
   participant,
   active,
   record,
-}: {
+}: Readonly<{
   participant: PoolParticipantResponse;
   active: boolean;
   record: PublishedMapRecord | undefined;
-}) {
+}>) {
   const { colors } = useTheme();
   const sporting = useSportingNavigation(active);
   const identity = participant.team.team;

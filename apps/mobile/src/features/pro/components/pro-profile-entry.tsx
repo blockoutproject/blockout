@@ -9,7 +9,9 @@ export interface ProProfileEntryProps {
 }
 
 /** Opens the Pro destination immediately; all SDK reads and recovery belong to that destination. */
-export function ProProfileEntry({ children }: ProProfileEntryProps = {}) {
+export function ProProfileEntry({
+  children,
+}: Readonly<ProProfileEntryProps> = {}) {
   const router = useRouter();
   return (
     <EntryGroup>

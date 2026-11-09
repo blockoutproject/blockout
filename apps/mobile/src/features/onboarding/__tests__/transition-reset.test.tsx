@@ -93,7 +93,7 @@ const followedAccounts = new Set<string>();
 let inbox = [] as ReturnType<typeof notificationResponse>[];
 
 /** Real F05/F06/F07 consumers retain their private client; navigation and native/HTTP I/O are controlled. */
-function Consumers({ children }: PropsWithChildren) {
+function Consumers({ children }: Readonly<PropsWithChildren>) {
   return (
     <AdvertisingProviders>
       <NotificationState>

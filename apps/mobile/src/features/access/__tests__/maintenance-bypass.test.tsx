@@ -96,7 +96,7 @@ afterEach(async () => {
 });
 
 /** Mounts the production access/session composition; only native identity and HTTP I/O are controlled. */
-function Providers({ children }: PropsWithChildren) {
+function Providers({ children }: Readonly<PropsWithChildren>) {
   return (
     <QueryClientProvider client={client}>
       <ApplicationAccessProvider>
