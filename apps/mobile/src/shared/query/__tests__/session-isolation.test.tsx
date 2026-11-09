@@ -69,7 +69,7 @@ afterEach(async () => {
 });
 
 /** The process public cache is deliberately outside the real identity-owned private cache. */
-function Providers({ children }: PropsWithChildren) {
+function Providers({ children }: Readonly<PropsWithChildren>) {
   return (
     <QueryClientProvider client={publicClient}>
       <AccountSessionProvider>{children}</AccountSessionProvider>

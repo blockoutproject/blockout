@@ -33,7 +33,9 @@ export interface PresentationScreenProps {
 }
 
 /** Optional public context never gates the administrative read, mounted draft or ordinary-form keyboard owner. */
-export function PresentationScreen({ target }: PresentationScreenProps) {
+export function PresentationScreen({
+  target,
+}: Readonly<PresentationScreenProps>) {
   const { permissions, account, sessionStatus } =
     useAdministrationCapabilities();
   const session = useAccountSession();

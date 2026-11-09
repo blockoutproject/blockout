@@ -239,7 +239,7 @@ async function mount() {
 }
 
 /** Configures one-shot reads and timer-free mutation retention on the actual identity-owned test cache. */
-function PrivateQueries({ children }: PropsWithChildren) {
+function PrivateQueries({ children }: Readonly<PropsWithChildren>) {
   const cache = useQueryClient();
   useState(() => {
     cache.setQueryDefaults([], { retry: false });

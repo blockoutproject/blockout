@@ -67,7 +67,7 @@ export function InformationRow({
   onPress,
   pending = false,
   separated = true,
-}: InformationRowProps) {
+}: Readonly<InformationRowProps>) {
   const { colors } = useTheme();
   const content = (
     <>
@@ -150,7 +150,7 @@ export function InformationRow({
 }
 
 /** Whole-row native link with honest opening failure; a later explicit press is the only retry. */
-export function ContactLink(props: ContactLinkProps) {
+export function ContactLink(props: Readonly<ContactLinkProps>) {
   return <ContactHandoff key={props.destination} {...props} />;
 }
 
@@ -161,7 +161,7 @@ function ContactHandoff({
   destination,
   icon: Icon,
   presentation = "contact",
-}: ContactLinkProps) {
+}: Readonly<ContactLinkProps>) {
   /** Preserves informational rows and optional native links while opening remains owned by the handoff. */
   function renderContact() {
     if (presentation === "information") {

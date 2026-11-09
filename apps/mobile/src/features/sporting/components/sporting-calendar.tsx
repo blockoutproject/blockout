@@ -78,7 +78,7 @@ export function SportingCalendar({
   selection,
   active = true,
   children,
-}: SportingCalendarProps) {
+}: Readonly<SportingCalendarProps>) {
   const queries = useConsultationQueries();
   const { timeZone, refresh } = useCalendarGrouping(
     (zone) => createCalendarOptions(queries, { ...selection, timeZone: zone }),
@@ -134,7 +134,7 @@ export function SportingCalendarView({
   onRefresh,
   emptyState,
   children,
-}: SportingCalendarViewProps) {
+}: Readonly<SportingCalendarViewProps>) {
   const navigation = useNavigation();
   const feedback = useActionFeedback();
   const [displayZone, setDisplayZone] = useState(currentSportingTimeZone);
@@ -331,7 +331,10 @@ export function SportingCalendarView({
 }
 
 /** The full spoken heading retains the server-grouped civil day without a relative prefix. */
-function CalendarDate({ date, stacked }: { date: string; stacked: boolean }) {
+function CalendarDate({
+  date,
+  stacked,
+}: Readonly<{ date: string; stacked: boolean }>) {
   const { colors } = useTheme();
   const value = new Date(`${date}T12:00:00Z`);
   return (
@@ -361,11 +364,13 @@ function CalendarGroupPart({
   first,
   last,
   children,
-}: PropsWithChildren<{
-  match: MatchSummaryResponse;
-  first?: boolean;
-  last?: boolean;
-}>) {
+}: Readonly<
+  PropsWithChildren<{
+    match: MatchSummaryResponse;
+    first?: boolean;
+    last?: boolean;
+  }>
+>) {
   const { colors } = useTheme();
   const division = match.pool.classification.division;
   return (
@@ -388,7 +393,9 @@ function CalendarGroupPart({
 }
 
 /** A real pool heading appears once before its individually virtualized accepted encounters. */
-function CalendarPoolHeader({ group }: { group: MatchPoolGroupResponse }) {
+function CalendarPoolHeader({
+  group,
+}: Readonly<{ group: MatchPoolGroupResponse }>) {
   const { context } = useTheme();
   const pool = group.matches[0].pool;
   const division = pool.classification.division;

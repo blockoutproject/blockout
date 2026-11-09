@@ -51,7 +51,7 @@ function GateView({
   onRefresh,
   onAdministration,
   onClose,
-}: GateViewProps) {
+}: Readonly<GateViewProps>) {
   const { colors } = useTheme();
   const update = gate === "update";
   const inMaintenance = gate === "maintenance";
@@ -199,7 +199,7 @@ function GateView({
 }
 
 /** Native decode feedback belongs to one mounted illustration and is discarded when its URI changes. */
-function GateImage({ uri }: { uri?: string | null }) {
+function GateImage({ uri }: Readonly<{ uri?: string | null }>) {
   const { colors } = useTheme();
   const [failed, setFailed] = useState(false);
   return uri && !failed ? (
@@ -230,11 +230,11 @@ export function ApplicationVersionsPreview({
   message,
   storeUrl,
   onClose,
-}: {
+}: Readonly<{
   message: string | null;
   storeUrl: string | null;
   onClose(): void;
-}) {
+}>) {
   return (
     <GateView
       gate="update"

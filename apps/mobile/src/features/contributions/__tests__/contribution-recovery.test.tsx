@@ -202,7 +202,7 @@ afterEach(async () => {
 });
 
 /** Uses F05's actual principal-owned client; deterministic read retries do not alter write policy. */
-function PrivateQueries({ children }: PropsWithChildren) {
+function PrivateQueries({ children }: Readonly<PropsWithChildren>) {
   const privateClient = useQueryClient();
   privateClient.setQueryDefaults([], { retry: false, gcTime: Infinity });
   privateClient.setMutationDefaults([], { gcTime: Infinity });
@@ -213,7 +213,7 @@ function PrivateQueries({ children }: PropsWithChildren) {
 }
 
 /** Only native credentials, HTTP and navigation are doubled; generated calls and application providers stay real. */
-function Wrapper({ children }: PropsWithChildren) {
+function Wrapper({ children }: Readonly<PropsWithChildren>) {
   return (
     <QueryClientProvider client={publicClient}>
       <ThemeProvider>

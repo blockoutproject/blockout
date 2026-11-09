@@ -31,9 +31,9 @@ export function ClassificationLoading() {
 /** The addressed editor keeps its known media/name anatomy; pools have no remote media field. */
 export function PresentationLoading({
   kind,
-}: {
+}: Readonly<{
   kind: PresentationTarget["kind"];
-}) {
+}>) {
   const division = kind === "division" || kind === "division-creation";
   return (
     <LoadingGroup label="Chargement de la présentation" style={styles.form}>

@@ -88,10 +88,10 @@ export function NotificationsScreen() {
 function Inbox({
   owner,
   queries,
-}: {
+}: Readonly<{
   owner: ReturnType<typeof useInboxQueries>["owner"];
   queries: NonNullable<ReturnType<typeof useInboxQueries>["queries"]>;
-}) {
+}>) {
   const client = useQueryClient();
   const focused = useIsFocused();
   const query = useInfiniteQuery({ ...queries.inbox, enabled: focused });

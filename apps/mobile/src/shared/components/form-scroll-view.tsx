@@ -46,7 +46,7 @@ export function FormScrollView({
   children,
   contentContainerStyle,
   ...props
-}: FormScrollViewProps) {
+}: Readonly<FormScrollViewProps>) {
   const inset = useNavigationInset();
   const tab = useContext(PagedTabContext);
   const refreshControl = props.refreshControl
@@ -80,7 +80,7 @@ export function FormScrollView({
 function OrdinaryFormScrollView({
   contentContainerStyle,
   ...props
-}: FormScrollViewProps) {
+}: Readonly<FormScrollViewProps>) {
   const inset = useNavigationInset();
   const offset = useContext(NavigationScrollOffsetContext);
   const scroll = useAnimatedRef<ScrollViewInstance>();
@@ -111,7 +111,7 @@ function OrdinaryFormScrollView({
 function TabbedFormScrollView({
   contentContainerStyle,
   ...props
-}: FormScrollViewProps) {
+}: Readonly<FormScrollViewProps>) {
   const { offsets } = useCollapsingTabsContext();
   const { index, scrollRef } = useTabPageContext();
   useScrollOffset(scrollRef, offsets[index]);
@@ -148,13 +148,15 @@ function NativeFormScrollView({
   children,
   nativeRef,
   ...props
-}: FormScrollViewProps &
-  Pick<
-    ScrollViewProps,
-    "onScrollBeginDrag" | "onScrollEndDrag" | "onMomentumScrollEnd"
-  > & {
-    nativeRef: RefCallback<ScrollViewInstance>;
-  }) {
+}: Readonly<
+  FormScrollViewProps &
+    Pick<
+      ScrollViewProps,
+      "onScrollBeginDrag" | "onScrollEndDrag" | "onMomentumScrollEnd"
+    > & {
+      nativeRef: RefCallback<ScrollViewInstance>;
+    }
+>) {
   return Platform.OS === "ios" ? (
     <Animated.ScrollView
       {...props}

@@ -41,7 +41,7 @@ export function SearchScene({
   items: textItems,
   emptyDescription,
   emptyAction,
-}: SearchSceneProps) {
+}: Readonly<SearchSceneProps>) {
   const visit = useSearchVisit();
   const query = examples ? exampleQuery : textQuery;
   const examplePages = exampleQuery.data ? [exampleQuery.data] : undefined;
@@ -168,7 +168,7 @@ function SearchEmptyFeedback({
   examples,
   description,
   action,
-}: {
+}: Readonly<{
   filtersMissing: boolean;
   filtersPending: boolean;
   onRetryFilters?: () => void;
@@ -178,7 +178,7 @@ function SearchEmptyFeedback({
   examples: boolean;
   description: string;
   action: ReactNode;
-}) {
+}>) {
   if (filtersMissing) {
     return filtersPending ? (
       initialLoading

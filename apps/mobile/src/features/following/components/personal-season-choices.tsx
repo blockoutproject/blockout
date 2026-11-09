@@ -17,7 +17,7 @@ export function PersonalSeasonChoices({
   seasonId,
   onSelect,
   onReset,
-}: PersonalSeasonChoicesProps) {
+}: Readonly<PersonalSeasonChoicesProps>) {
   const proposed = options.seasons.find(
     (season) => season.id === options.defaultSeasonId,
   );

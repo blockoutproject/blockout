@@ -36,12 +36,14 @@ jest.mock("react-native-pager-view", () => {
     children,
     onPageSelected,
     ...props
-  }: PagerViewProps & {
-    ref?: Ref<{
-      setPage: (index: number) => void;
-      setPageWithoutAnimation: (index: number) => void;
-    }>;
-  }) {
+  }: Readonly<
+    PagerViewProps & {
+      ref?: Ref<{
+        setPage: (index: number) => void;
+        setPageWithoutAnimation: (index: number) => void;
+      }>;
+    }
+  >) {
     const host = React.useRef<ViewInstance>(null);
 
     /** Projects a completed animated command; tests can separately dispatch early native events. */
@@ -95,7 +97,7 @@ jest.mock("@legendapp/list/react-native", () => {
   function NativeLegendViewport({
     ref,
     ...props
-  }: FlatListProps<unknown> & { ref?: Ref<FlatList<unknown>> }) {
+  }: Readonly<FlatListProps<unknown> & { ref?: Ref<FlatList<unknown>> }>) {
     return (
       <FlatList
         {...props}

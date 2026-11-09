@@ -18,7 +18,10 @@ export interface ReadFeedbackProps {
  * An admitted pending read without an active fetch uses the existing unavailable card.
  * Disabled observations never start recovery here; their prerequisite belongs to the feature owner.
  */
-export function ReadFeedback({ query, loadingContent }: ReadFeedbackProps) {
+export function ReadFeedback({
+  query,
+  loadingContent,
+}: Readonly<ReadFeedbackProps>) {
   if (query.isEnabled === false) {
     return query.isError ? <ErrorState /> : null;
   }

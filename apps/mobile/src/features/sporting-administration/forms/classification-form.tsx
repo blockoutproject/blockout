@@ -40,7 +40,7 @@ export function ClassificationForm({
   current,
   editing,
   divisions,
-}: ClassificationFormProps) {
+}: Readonly<ClassificationFormProps>) {
   const router = useRouter();
   const { colors } = useTheme();
   const actionFeedback = useActionFeedback();
@@ -315,12 +315,12 @@ function Choice({
   selected,
   disabled,
   onPress,
-}: {
+}: Readonly<{
   label: string;
   selected: boolean;
   disabled: boolean;
   onPress: () => void;
-}) {
+}>) {
   const { colors } = useTheme();
   return (
     <Pressable

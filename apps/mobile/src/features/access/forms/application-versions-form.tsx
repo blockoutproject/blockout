@@ -51,7 +51,7 @@ export function ApplicationVersionsForm({
   settings,
   editing,
   disabled = false,
-}: ApplicationVersionsFormProps) {
+}: Readonly<ApplicationVersionsFormProps>) {
   const session = useAccountSession();
   const { colors } = useTheme();
   const confirmAction = useActionConfirmation();

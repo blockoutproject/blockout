@@ -3,7 +3,7 @@ import { tokens } from "../theme/tokens";
 import { Skeleton } from "./skeleton";
 
 /** Shared compact skeleton for caller-owned pending controls; the control retains its name and busy state. */
-export function LoadingIndicator({ color }: { color: string }) {
+export function LoadingIndicator({ color }: Readonly<{ color: string }>) {
   return (
     <View style={styles.slot} accessible={false}>
       <Skeleton

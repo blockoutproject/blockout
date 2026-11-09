@@ -4,7 +4,7 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 
 /** Readable copy for unavailable/partial facts; missing information never becomes a fabricated value. */
-export function ResourceText({ children }: PropsWithChildren) {
+export function ResourceText({ children }: Readonly<PropsWithChildren>) {
   const { colors } = useTheme();
   return (
     <Text style={[tokens.typography.body, { color: colors.secondaryText }]}>

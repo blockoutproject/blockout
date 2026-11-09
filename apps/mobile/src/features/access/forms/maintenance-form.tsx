@@ -36,7 +36,7 @@ export function MaintenanceForm({
   settings,
   editing,
   disabled = false,
-}: MaintenanceFormProps) {
+}: Readonly<MaintenanceFormProps>) {
   const { colors } = useTheme();
   const confirmAction = useActionConfirmation();
   const actionFeedback = useActionFeedback();
@@ -326,7 +326,7 @@ export function MaintenanceForm({
 }
 
 /** Retries only the current draft image's mounted decode attempt, leaving its URL and other fields untouched. */
-function MaintenanceImagePreview({ uri }: { uri: string }) {
+function MaintenanceImagePreview({ uri }: Readonly<{ uri: string }>) {
   const [failed, setFailed] = useState(false);
   return failed ? (
     <ErrorState onRetry={() => setFailed(false)} />

@@ -14,7 +14,7 @@ export const nativeMapCommands = {
 function NativeMap({
   ref,
   ...props
-}: MapViewProps & { ref?: Ref<typeof nativeMapCommands> }) {
+}: Readonly<MapViewProps & { ref?: Ref<typeof nativeMapCommands> }>) {
   useImperativeHandle(ref, () => nativeMapCommands);
   return (
     <View onLayout={() => undefined} {...props} testID="native-map-boundary" />
@@ -22,7 +22,7 @@ function NativeMap({
 }
 
 /** Exposes the native marker event and exact coordinate unchanged; actual hit testing remains native evidence. */
-function NativeMarker(props: MapMarkerProps) {
+function NativeMarker(props: Readonly<MapMarkerProps>) {
   return <View {...props} />;
 }
 

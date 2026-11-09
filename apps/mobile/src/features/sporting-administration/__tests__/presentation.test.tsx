@@ -243,7 +243,7 @@ afterEach(async () => {
 });
 
 /** Selects the real private client with one-shot reads and no detached mutation GC timers in these scenarios. */
-function PrivateQueries({ children }: PropsWithChildren) {
+function PrivateQueries({ children }: Readonly<PropsWithChildren>) {
   const current = useQueryClient();
   useLayoutEffect(() => {
     client = current;

@@ -242,7 +242,7 @@ function FinishAndLeave() {
 }
 
 /** Exercises the public installation command without waiting for an intermediate render. */
-function FinishAction({ onLeave }: { onLeave: () => void }) {
+function FinishAction({ onLeave }: Readonly<{ onLeave: () => void }>) {
   const discovery = useDiscovery();
   return (
     <Pressable

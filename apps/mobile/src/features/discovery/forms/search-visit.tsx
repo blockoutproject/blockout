@@ -49,7 +49,7 @@ const SearchVisitContext = createContext<
 >(undefined);
 
 /** Keeps applied tab criteria and the editable RHF snapshot alive while native sheets cover the list. */
-export function SearchVisitProvider({ children }: PropsWithChildren) {
+export function SearchVisitProvider({ children }: Readonly<PropsWithChildren>) {
   const visit = useVisit();
   return <SearchVisitContext value={visit}>{children}</SearchVisitContext>;
 }

@@ -40,7 +40,7 @@ export function SportingLogo({
   size = tokens.size.media.row,
   presentation,
   renderWithAtmosphere,
-}: SportingLogoProps) {
+}: Readonly<SportingLogoProps>) {
   const logo = useSportingLogo(identity, kind);
   return (
     <SportingMedia
@@ -60,9 +60,9 @@ export function SportingLogo({
 /** An optional, noninteractive competition-logo cover; absence/loading/failure adds no fake artwork. */
 export function SportingArtwork({
   division,
-}: {
+}: Readonly<{
   division: SportingDivisionResponse;
-}) {
+}>) {
   const logo = useSportingLogo(division, "division");
   return logo.uri ? (
     <SportingCover
@@ -96,7 +96,7 @@ export function SportingIdentity({
   subtitle,
   clubId,
   children,
-}: SportingIdentityProps) {
+}: Readonly<SportingIdentityProps>) {
   /** Names the identity kind only when the accepted classification supplies no division name. */
   function identityKindLabel() {
     if (kind === "club") {
@@ -210,7 +210,7 @@ export function SportingIdentity({
 }
 
 /** Keeps the club chip visually equal to its metadata peers inside a native minimum-size touch target. */
-function ClubBadge({ clubId }: { clubId: string }) {
+function ClubBadge({ clubId }: Readonly<{ clubId: string }>) {
   const sporting = useSportingNavigation();
   const { colors } = useTheme();
   return (
@@ -258,7 +258,7 @@ export function SportingLink({
   label,
   identity,
   active = true,
-}: SportingLinkProps) {
+}: Readonly<SportingLinkProps>) {
   const sporting = useSportingNavigation(active);
   const { colors } = useTheme();
   return (

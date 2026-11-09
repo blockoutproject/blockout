@@ -21,7 +21,7 @@ export function ProfileIdentity({
   account,
   membershipStatus,
   photo,
-}: ProfileIdentityProps) {
+}: Readonly<ProfileIdentityProps>) {
   const { colors } = useTheme();
   const uri = account.hasPhoto ? (photo.data ?? undefined) : undefined;
   return (

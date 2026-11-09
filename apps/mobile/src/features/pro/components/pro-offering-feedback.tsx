@@ -17,7 +17,7 @@ export function ProOfferingFeedback({
   failed,
   retrying,
   onRetry,
-}: ProOfferingFeedbackProps) {
+}: Readonly<ProOfferingFeedbackProps>) {
   if (loading) {
     return <ProReadLoading label="Chargement des offres Pro" />;
   }

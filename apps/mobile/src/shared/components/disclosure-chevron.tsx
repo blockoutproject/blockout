@@ -15,7 +15,9 @@ export interface DisclosureChevronProps {
 }
 
 /** One shared down-to-up rotation for expandable rows, respecting the application's reduced-motion owner. */
-export function DisclosureChevron({ expanded }: DisclosureChevronProps) {
+export function DisclosureChevron({
+  expanded,
+}: Readonly<DisclosureChevronProps>) {
   const { colors } = useTheme();
   const reducedMotion = useReducedMotion();
   const animated = useAnimatedStyle(() => ({

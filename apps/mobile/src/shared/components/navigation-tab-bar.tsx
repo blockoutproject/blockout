@@ -14,10 +14,12 @@ import { Tabs } from "./tabs";
 export function NavigationTabBar({
   reducedMotion,
   ...props
-}: ComponentProps<typeof DefaultTabBar> & {
-  /** The shared pager owns one native preference for page commands and the existing static fallback. */
-  reducedMotion: boolean;
-}) {
+}: Readonly<
+  ComponentProps<typeof DefaultTabBar> & {
+    /** The shared pager owns one native preference for page commands and the existing static fallback. */
+    reducedMotion: boolean;
+  }
+>) {
   const { colors, membership } = useTheme();
   // RNCT 0.1.3 always animates its rail's auto-centering. Its public renderTabBar
   // slot reuses our existing static rail when the platform requests reduced motion.
@@ -64,14 +66,14 @@ function NavigationTabLabel({
   position,
   activeColor,
   inactiveColor,
-}: {
+}: Readonly<{
   label: string;
   index: number;
   focused: boolean;
   position: SharedValue<number>;
   activeColor: string;
   inactiveColor: string;
-}) {
+}>) {
   const appearance = useAnimatedStyle(() => ({
     color: interpolateColor(
       Math.min(1, Math.abs(position.get() - index)),

@@ -25,7 +25,9 @@ export interface ProfileEditScreenProps {
 }
 
 /** Separate editor retains its original account draft through read failures and ordinary save errors. */
-export function ProfileEditScreen({ admitted }: ProfileEditScreenProps) {
+export function ProfileEditScreen({
+  admitted,
+}: Readonly<ProfileEditScreenProps>) {
   const session = useAccountSession();
   const account = useCurrentAccount();
   const router = useRouter();

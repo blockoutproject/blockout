@@ -52,7 +52,7 @@ const ProSessionContext = createContext<ProContext | null>(null);
  * Connects the process-wide native owner to F05 without gating navigation or local logout.
  * SDK listeners signal reads only; provider removal detaches subscriptions and clears presentation.
  */
-export function ProProvider({ children }: PropsWithChildren) {
+export function ProProvider({ children }: Readonly<PropsWithChildren>) {
   const account = useAccountSession();
   const { status, subject, accountId } = account;
   const native = useSyncExternalStore(

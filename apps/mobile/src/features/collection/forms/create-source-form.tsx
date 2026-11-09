@@ -28,7 +28,7 @@ export function CreateSourceForm({
   editing,
   disabled,
   onCancel,
-}: CreateSourceFormProps) {
+}: Readonly<CreateSourceFormProps>) {
   const actionFeedback = useActionFeedback();
   const { baseline } = editor.state;
   const { control, handleSubmit, reset } = editor.form;

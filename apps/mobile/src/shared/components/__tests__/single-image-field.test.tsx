@@ -43,9 +43,11 @@ const photo: ImagePicker.ImagePickerAsset = {
 function EditableImage({
   onSelect,
   ...props
-}: Omit<SingleImageFieldProps, "selection"> & {
-  onSelect: (assets: ImagePicker.ImagePickerAsset[]) => void | Promise<void>;
-}) {
+}: Readonly<
+  Omit<SingleImageFieldProps, "selection"> & {
+    onSelect: (assets: ImagePicker.ImagePickerAsset[]) => void | Promise<void>;
+  }
+>) {
   const selection = useImageSelection({
     canSelect: () => !props.disabled,
     onSelect,
@@ -54,7 +56,7 @@ function EditableImage({
 }
 
 /** Supplies the actual theme and ordinary feedback without an application menu or navigation double. */
-function MediaProviders({ children }: PropsWithChildren) {
+function MediaProviders({ children }: Readonly<PropsWithChildren>) {
   return (
     <ThemeProvider>
       <ActionFeedbackProvider scopeKey="single-image-test">

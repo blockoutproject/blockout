@@ -8,12 +8,12 @@ export interface StoreActionProps {
 }
 
 /** Opens the configured store through native Linking; failure retains an explicit new attempt. */
-export function StoreAction({ url }: StoreActionProps) {
+export function StoreAction({ url }: Readonly<StoreActionProps>) {
   return <StoreHandoff key={url} url={url} />;
 }
 
 /** Destination-scoped handoff lifecycle; replacing the configured URL discards its prior feedback. */
-function StoreHandoff({ url }: StoreActionProps) {
+function StoreHandoff({ url }: Readonly<StoreActionProps>) {
   const handoff = useNativeHandoff(url);
   return (
     <>

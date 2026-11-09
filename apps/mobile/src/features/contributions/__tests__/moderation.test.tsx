@@ -337,7 +337,7 @@ afterEach(async () => {
 });
 
 /** Uses the real private QueryClient/session/admission/theme owners; only HTTP and native I/O are controlled. */
-function PrivateQueries({ children }: PropsWithChildren) {
+function PrivateQueries({ children }: Readonly<PropsWithChildren>) {
   const current = useQueryClient();
   useLayoutEffect(() => {
     client = current;

@@ -9,7 +9,11 @@ export interface LoadingGroupProps {
 }
 
 /** Groups shared skeleton primitives without introducing spacing, placement or another scroll owner. */
-export function LoadingGroup({ label, children, style }: LoadingGroupProps) {
+export function LoadingGroup({
+  label,
+  children,
+  style,
+}: Readonly<LoadingGroupProps>) {
   return (
     <View
       accessible

@@ -29,10 +29,12 @@ export function AgeDeclarationProvider({
   children,
   enabled,
   privacy,
-}: PropsWithChildren<{
-  enabled: boolean;
-  privacy: ReturnType<typeof createAdvertisingPrivacy>;
-}>) {
+}: Readonly<
+  PropsWithChildren<{
+    enabled: boolean;
+    privacy: ReturnType<typeof createAdvertisingPrivacy>;
+  }>
+>) {
   const proOwner = usePro();
   const pro = proOwner.state;
   const account = useAccountSession();

@@ -1751,7 +1751,7 @@ it("keeps discovered pools read-only even when the collector operator can classi
 });
 
 /** Captures the identity-owned private cache while retaining the public cache for fixture cleanup. */
-function PrivateQueries({ children }: PropsWithChildren) {
+function PrivateQueries({ children }: Readonly<PropsWithChildren>) {
   const privateClient = useQueryClient();
   // Configure deterministic failure presentation before child Query observers mount.
   privateClient.setQueryDefaults([], { retry: false, gcTime: Infinity });

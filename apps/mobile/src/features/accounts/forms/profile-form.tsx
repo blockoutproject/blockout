@@ -47,7 +47,7 @@ export function ProfileForm({
   disabled,
   onCancel,
   onSaved,
-}: ProfileFormProps) {
+}: Readonly<ProfileFormProps>) {
   const feedback = useActionFeedback();
   const { save } = useProfileEditing(account.accountId);
   const active = useRef(true);

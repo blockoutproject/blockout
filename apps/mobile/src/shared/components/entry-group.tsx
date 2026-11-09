@@ -18,7 +18,7 @@ export function EntryGroupSeparator() {
 }
 
 /** Groups actual basic-list children with one inset and separators; permissions and row behavior stay with callers. */
-export function EntryGroup({ children }: PropsWithChildren) {
+export function EntryGroup({ children }: Readonly<PropsWithChildren>) {
   return (
     <Surface style={styles.group}>
       {Children.toArray(children).map((child, index) => (

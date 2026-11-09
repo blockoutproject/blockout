@@ -17,7 +17,7 @@ export function SelectionRow({
   selected,
   onPress,
   disabled,
-}: SelectionRowProps) {
+}: Readonly<SelectionRowProps>) {
   const { colors } = useTheme();
   return (
     <EntryRow

@@ -45,7 +45,7 @@ export function Sheet({
   message,
   refreshControl,
   children,
-}: SheetProps) {
+}: Readonly<SheetProps>) {
   const { colors } = useTheme();
   const frame = useSafeAreaFrame();
   const insets = useSafeAreaInsets();
@@ -103,7 +103,7 @@ export function Sheet({
 }
 
 /** Insets contextual content once; bounded lists group their rows inside this body without owning sheet geometry. */
-export function SheetContent({ children }: PropsWithChildren) {
+export function SheetContent({ children }: Readonly<PropsWithChildren>) {
   return <View style={styles.sheetContent}>{children}</View>;
 }
 

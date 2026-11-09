@@ -41,7 +41,9 @@ import { useAccountAvailability } from "../features/accounts/current-account";
 initializeSentry();
 
 /** Binds private cache/push lifecycle and separates protected ordinary/operational navigation. */
-function Navigation({ registration }: { registration: PushRegistration }) {
+function Navigation({
+  registration,
+}: Readonly<{ registration: PushRegistration }>) {
   const theme = useTheme();
   const access = useAccessAdmission();
   const discovery = useDiscovery();
@@ -93,10 +95,10 @@ function Navigation({ registration }: { registration: PushRegistration }) {
 function InstallationNavigation({
   registration,
   privacy,
-}: {
+}: Readonly<{
   registration: PushRegistration;
   privacy: ReturnType<typeof createInstallationAdvertisingPrivacy>;
-}) {
+}>) {
   const discovery = useDiscovery();
   return (
     <AgeDeclarationProvider enabled={discovery.complete} privacy={privacy}>
@@ -109,10 +111,10 @@ function InstallationNavigation({
 function ThemedNavigation({
   registration,
   privacy,
-}: {
+}: Readonly<{
   registration: PushRegistration;
   privacy: ReturnType<typeof createInstallationAdvertisingPrivacy>;
-}) {
+}>) {
   const { state } = usePro();
   const session = useAccountSession();
   return (

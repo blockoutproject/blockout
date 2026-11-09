@@ -57,7 +57,7 @@ export interface ActionFeedbackProviderProps extends PropsWithChildren {
 export function ActionFeedbackProvider({
   children,
   scopeKey,
-}: ActionFeedbackProviderProps) {
+}: Readonly<ActionFeedbackProviderProps>) {
   const [notice, setNotice] = useState<ErrorNotice>();
   const currentScope = useRef(scopeKey);
   useLayoutEffect(() => {
@@ -177,7 +177,7 @@ export function useActionFeedback({ retainOnUnmount = false } = {}) {
 }
 
 /** Applies the approved surface, icon, typography and reduced-motion-aware entry/exit without gestures. */
-function ErrorToast({ message }: { message: string }) {
+function ErrorToast({ message }: Readonly<{ message: string }>) {
   const { colors } = useTheme();
   const reducedMotion = useReducedMotion();
   const duration = reducedMotion ? 1 : 240;

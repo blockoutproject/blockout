@@ -160,7 +160,7 @@ function useFollowedList(
 }
 
 /** Approved Home sections retain native scroll context and open exact F03 sheets through the existing F11 owner. */
-export function FollowedLists(props: FollowedListsProps) {
+export function FollowedLists(props: Readonly<FollowedListsProps>) {
   const [expanded, setExpanded] = useState({ team: true, pool: true });
   const teams = useFollowedList(props, "team", expanded.team);
   const pools = useFollowedList(props, "pool", expanded.pool);

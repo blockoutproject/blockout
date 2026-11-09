@@ -28,7 +28,7 @@ export function AgeForm({
   pending,
   onSubmit,
   submitLabel = "Continuer",
-}: AgeFormProps) {
+}: Readonly<AgeFormProps>) {
   const { colors } = useTheme();
   const feedback = useActionFeedback();
   const { control, handleSubmit } = useForm<AgeValues, unknown, AgeSubmission>({

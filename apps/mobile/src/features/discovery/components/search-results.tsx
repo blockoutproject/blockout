@@ -26,7 +26,9 @@ export interface SearchResultsProps {
 }
 
 /** Pending cards use the same content edge as the list beneath the fixed Examples/Results heading. */
-export function SearchResultsContent({ children }: PropsWithChildren) {
+export function SearchResultsContent({
+  children,
+}: Readonly<PropsWithChildren>) {
   return <PageContent>{children}</PageContent>;
 }
 
@@ -38,7 +40,7 @@ export function SearchResults({
   continuation,
   onEndReached,
   onOpen,
-}: SearchResultsProps) {
+}: Readonly<SearchResultsProps>) {
   if (items.length === 0) {
     return <PageScrollView>{emptyComponent}</PageScrollView>;
   }
@@ -87,7 +89,7 @@ export function SearchHeading({
   count,
   examples = false,
   onClear,
-}: SearchHeadingProps) {
+}: Readonly<SearchHeadingProps>) {
   const { colors } = useTheme();
   let title = "Résultats";
   if (examples) {

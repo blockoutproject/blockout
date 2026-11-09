@@ -39,7 +39,7 @@ export function SportingEntityCard({
   classification,
   season,
   onPress,
-}: SportingEntityCardProps) {
+}: Readonly<SportingEntityCardProps>) {
   /** Uses a pool’s division artwork when available and retains the normal identity fallback otherwise. */
   function renderEntityArtwork() {
     if (kind === "pool") {
@@ -171,7 +171,9 @@ export function SportingEntityCard({
 }
 
 /** Three neutral copies of this exact card reserve initial discovery, followed-entity and club-team reads. */
-export function SportingEntityCardLoading({ label }: { label: string }) {
+export function SportingEntityCardLoading({
+  label,
+}: Readonly<{ label: string }>) {
   return (
     <LoadingGroup label={label} style={styles.loadingCards}>
       {Array.from({ length: 3 }, (_, index) => (
@@ -218,11 +220,11 @@ function EntityArtwork({
   identity,
   kind,
   backgroundColor,
-}: {
+}: Readonly<{
   identity: SportingIdentityResponse;
   kind: "club" | "team" | "division";
   backgroundColor?: string;
-}) {
+}>) {
   const logo = useSportingLogo(identity, kind);
   if (backgroundColor) {
     return logo.uri ? (

@@ -28,7 +28,7 @@ export function StandingCards({
   rows,
   columns,
   active = true,
-}: StandingCardsProps) {
+}: Readonly<StandingCardsProps>) {
   const podium = [2, 1, 3].flatMap((position) => {
     const matching = rows.filter((row) => row.position === position);
     return matching.length === 1 ? matching : [];
@@ -78,7 +78,7 @@ function StandingCard({
   columns,
   podium = false,
   active,
-}: StandingCardProps) {
+}: Readonly<StandingCardProps>) {
   const sporting = useSportingNavigation(active);
   const { colors } = useTheme();
   let rank: { fill: string; content: string };
@@ -243,11 +243,11 @@ function StandingPoints({
   row,
   column,
   podium = false,
-}: {
+}: Readonly<{
   row: StandingRowResponse;
   column: string;
   podium?: boolean;
-}) {
+}>) {
   const { colors } = useTheme();
   return (
     <View style={[styles.points, podium && styles.podiumPoints]}>
@@ -269,7 +269,7 @@ function StandingPoints({
 }
 
 /** The approved subtle gradient uses the semantic published-rank fill in the current appearance. */
-function RankTint({ color }: { color: string }) {
+function RankTint({ color }: Readonly<{ color: string }>) {
   const { colors } = useTheme();
   const id = useId();
   return (

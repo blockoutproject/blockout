@@ -29,7 +29,10 @@ export interface SignInScreenProps {
 }
 
 /** Keeps login intent scoped to admitted navigation; blocking access discards the local journey. */
-export function SignInScreen({ admitted, returnTo }: SignInScreenProps) {
+export function SignInScreen({
+  admitted,
+  returnTo,
+}: Readonly<SignInScreenProps>) {
   return admitted ? (
     <SignInJourney returnTo={returnTo} />
   ) : (
@@ -44,7 +47,9 @@ export function SignInScreen({ admitted, returnTo }: SignInScreenProps) {
 }
 
 /** Starts explicit establishment and returns to its destination for ordinary read recovery, without replaying an action. */
-function SignInJourney({ returnTo }: Pick<SignInScreenProps, "returnTo">) {
+function SignInJourney({
+  returnTo,
+}: Readonly<Pick<SignInScreenProps, "returnTo">>) {
   const router = useRouter();
   const session = useAccountSession();
   const { colors, membership } = useTheme();

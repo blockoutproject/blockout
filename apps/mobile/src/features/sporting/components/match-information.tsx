@@ -30,7 +30,7 @@ export function MatchInformation({
   detail,
   displayTimeZone,
   onDocumentOpen,
-}: MatchInformationProps) {
+}: Readonly<MatchInformationProps>) {
   const sporting = useSportingNavigation();
   const { colors } = useTheme();
   const match = detail.match;

@@ -37,7 +37,7 @@ export interface ModerationReportsScreenProps {
 export function ModerationReportsScreen({
   matchId,
   versionId,
-}: ModerationReportsScreenProps) {
+}: Readonly<ModerationReportsScreenProps>) {
   const reading = useModerationReports(matchId, versionId, true);
   const { query } = reading;
   const navigation = useNavigation();

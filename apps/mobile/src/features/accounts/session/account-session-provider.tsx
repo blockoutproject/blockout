@@ -94,7 +94,7 @@ export function AccountSessionProvider({
   children,
   fallback = null,
   preparePushRemoval,
-}: AccountSessionProviderProps) {
+}: Readonly<AccountSessionProviderProps>) {
   const [initialization, setInitialization] = useState<Initialization>({
     status: "initializing",
   });
@@ -167,12 +167,14 @@ function SessionScope({
   retryInitialization,
   retryAuthentication,
   preparePushRemoval,
-}: PropsWithChildren<{
-  initialization: Exclude<Initialization, { status: "initializing" }>;
-  retryInitialization(): void;
-  retryAuthentication(): void;
-  preparePushRemoval?: AccountSessionProviderProps["preparePushRemoval"];
-}>) {
+}: Readonly<
+  PropsWithChildren<{
+    initialization: Exclude<Initialization, { status: "initializing" }>;
+    retryInitialization(): void;
+    retryAuthentication(): void;
+    preparePushRemoval?: AccountSessionProviderProps["preparePushRemoval"];
+  }>
+>) {
   const auth = useAuth0();
   const manager =
     initialization.status === "ready"
@@ -311,7 +313,9 @@ function SessionScope({
 function PrivateAccountLifetime({
   children,
   session,
-}: PropsWithChildren<{ session: Omit<AccountSession, "accountId"> }>) {
+}: Readonly<
+  PropsWithChildren<{ session: Omit<AccountSession, "accountId"> }>
+>) {
   const [client] = useState(createQueryClient);
   const [credentialError, setCredentialError] = useState<unknown>();
   const nativeCredentials = session.getCredentials;
@@ -362,7 +366,9 @@ function PrivateAccountLifetime({
 function CurrentAccountIdentity({
   children,
   session,
-}: PropsWithChildren<{ session: Omit<AccountSession, "accountId"> }>) {
+}: Readonly<
+  PropsWithChildren<{ session: Omit<AccountSession, "accountId"> }>
+>) {
   const account = useQuery(currentAccountQuery(session));
   /** Reads current enablement at the native event without renewing the subscription on Query changes. */
   const refreshAccount = useEffectEvent(() => {

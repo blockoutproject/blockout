@@ -8,9 +8,9 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 /** The selected standings presentation retains its rank, crest, identity, statistics and points slots. */
 export function StandingsLoading({
   layout = "list",
-}: {
+}: Readonly<{
   layout?: "list" | "cards";
-}) {
+}>) {
   return (
     <LoadingGroup label="Chargement du classement">
       <StandingsSkeleton layout={layout} />
@@ -21,9 +21,9 @@ export function StandingsLoading({
 /** Six list rows or a bounded podium and two cards reserve only the selected initial presentation. */
 export function StandingsSkeleton({
   layout = "list",
-}: {
+}: Readonly<{
   layout?: "list" | "cards";
-}) {
+}>) {
   return (
     <View style={layout === "cards" ? styles.cards : undefined}>
       {layout === "cards" ? (
@@ -52,7 +52,7 @@ export function StandingsSkeleton({
 }
 
 /** List rows use the loaded row's padding, minimum height and inside separators. */
-function StandingRowSkeleton({ last }: { last: boolean }) {
+function StandingRowSkeleton({ last }: Readonly<{ last: boolean }>) {
   const { colors } = useTheme();
   return (
     <View
@@ -70,7 +70,9 @@ function StandingRowSkeleton({ last }: { last: boolean }) {
 }
 
 /** The common identity row keeps a card's two name lines separate from the compact list name. */
-function StandingIdentitySkeleton({ card = false }: { card?: boolean }) {
+function StandingIdentitySkeleton({
+  card = false,
+}: Readonly<{ card?: boolean }>) {
   const { fontScale } = useWindowDimensions();
   return (
     <View style={styles.identityRow}>
@@ -100,7 +102,7 @@ function StandingIdentitySkeleton({ card = false }: { card?: boolean }) {
 }
 
 /** A neutral card retains the loaded 2–1–3 silhouette without fictional positions or results. */
-function PodiumSkeleton({ height }: { height: number }) {
+function PodiumSkeleton({ height }: Readonly<{ height: number }>) {
   const { colors } = useTheme();
   const { fontScale } = useWindowDimensions();
   return (
@@ -160,7 +162,7 @@ function StandingCardSkeleton() {
 }
 
 /** Point ink and its unit occupy the same typography boxes as the loaded points rail. */
-function PointsSkeleton({ podium = false }: { podium?: boolean }) {
+function PointsSkeleton({ podium = false }: Readonly<{ podium?: boolean }>) {
   const { fontScale } = useWindowDimensions();
   return (
     <View style={[styles.points, podium && styles.podiumPoints]}>
@@ -174,7 +176,9 @@ function PointsSkeleton({ podium = false }: { podium?: boolean }) {
 }
 
 /** A thin performance slot and J/G/P value-label pairs preserve the real card footer anatomy. */
-function PerformanceSkeleton({ podium = false }: { podium?: boolean }) {
+function PerformanceSkeleton({
+  podium = false,
+}: Readonly<{ podium?: boolean }>) {
   const { fontScale } = useWindowDimensions();
   return (
     <View style={styles.performance}>

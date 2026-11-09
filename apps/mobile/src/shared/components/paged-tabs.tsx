@@ -68,7 +68,7 @@ export function PagedTabs({
   collapsibleHeader,
   fadeHeaderOnScroll = false,
   renderTabBar,
-}: PagedTabsProps) {
+}: Readonly<PagedTabsProps>) {
   const pager = useRef<CollapsingTabsRef>(null);
   const reducedMotion = useReducedMotion();
   const topInset = useContext(NavigationSafeAreaContext);
@@ -181,7 +181,7 @@ function PagerHeader({
   fadeOnScroll,
   reducedMotion,
   children,
-}: {
+}: Readonly<{
   inset: number;
   topInset: number;
   onInsetChange: (height: number) => void;
@@ -189,7 +189,7 @@ function PagerHeader({
   fadeOnScroll: boolean;
   reducedMotion: boolean;
   children: ReactNode;
-}) {
+}>) {
   const { top } = useHeaderMeasurements();
   const collapse = useCollapseProgress();
   const visibility = useDerivedValue(() => {
@@ -250,11 +250,11 @@ function TabScene({
   active,
   visited,
   children,
-}: {
+}: Readonly<{
   active: boolean;
   visited: boolean;
   children: ReactNode;
-}) {
+}>) {
   const inset = useNavigationInset();
   const target = useRef<ViewInstance>(null);
   const { paddingTop, tabBarHeight, headerHeight } = useCollapsingTabsContext();
@@ -292,11 +292,11 @@ export function PagedTabScene({
   active,
   visited,
   children,
-}: {
+}: Readonly<{
   active: boolean;
   visited: boolean;
   children: ReactNode;
-}) {
+}>) {
   return (
     <View
       collapsable={false}

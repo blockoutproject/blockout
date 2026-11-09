@@ -5,7 +5,7 @@ import { SearchField, type SearchFieldProps } from "../search-field";
 
 /** The feature retains the search draft and clears it only after the shared action. */
 function SearchExample(
-  availability: Pick<SearchFieldProps, "editable" | "readOnly">,
+  availability: Readonly<Pick<SearchFieldProps, "editable" | "readOnly">>,
 ) {
   const [value, setValue] = useState("Volley");
   return (

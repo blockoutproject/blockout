@@ -52,7 +52,7 @@ export interface ClubScreenProps {
 }
 
 /** Opens public club information without waiting for an account or entitlement. */
-export function ClubScreen(props: ClubScreenProps) {
+export function ClubScreen(props: Readonly<ClubScreenProps>) {
   const queries = useConsultationQueries();
   return (
     <ClubPage key={hashKey(queries.club(props.clubId).queryKey)} {...props} />
@@ -63,7 +63,7 @@ export function ClubScreen(props: ClubScreenProps) {
  * Retains a valid season across common reads; only successful disappearance derives the fallback.
  * The season keys the native scene lifetime while the selected category remains owned here.
  */
-function ClubPage({ clubId }: ClubScreenProps) {
+function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
   const queries = useConsultationQueries();
   const club = useQuery(queries.club(clubId));
   const [tab, setTab] = useState("info");

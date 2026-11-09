@@ -8,7 +8,9 @@ export interface BrandMarkProps {
 }
 
 /** Decorative Blockout mark; the retained monochrome asset's luminance follows the current text color. */
-export function BrandMark({ size = tokens.size.brandMark }: BrandMarkProps) {
+export function BrandMark({
+  size = tokens.size.brandMark,
+}: Readonly<BrandMarkProps>) {
   const { colors } = useTheme();
   return (
     <Svg width={size} height={size} viewBox="0 0 28 28" accessible={false}>

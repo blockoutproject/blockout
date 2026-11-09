@@ -10,9 +10,9 @@ import { tokens } from "../../../shared/theme/tokens";
 /** Canonical season identity in the preparation context; never inferred from a provider identifier. */
 export function SeasonIdentity({
   season,
-}: {
+}: Readonly<{
   season: CollectionSeasonResponse;
-}) {
+}>) {
   const { colors } = useTheme();
   return (
     <View style={styles.link}>
@@ -60,7 +60,9 @@ export function seasonStatus(season: CollectionSeasonResponse) {
 }
 
 /** Noninteractive source evidence badge with approved semantic warning, success, information and error paints. */
-export function SourceBadge({ source }: { source: SourceBindingResponse }) {
+export function SourceBadge({
+  source,
+}: Readonly<{ source: SourceBindingResponse }>) {
   const { colors } = useTheme();
   const locked = source.locked || source.launched;
   let foreground = colors.onWarning;

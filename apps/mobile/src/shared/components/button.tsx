@@ -82,7 +82,7 @@ export function Button({
   bordered = true,
   trailingIcon: TrailingIcon,
   leadingIcon: LeadingIcon,
-}: ButtonProps) {
+}: Readonly<ButtonProps>) {
   const { context, colors, scheme } = useTheme();
   const contextualPrimary = variant === "primary" && contextColor !== undefined;
   const actionContext: ContextColors = contextualPrimary

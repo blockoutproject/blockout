@@ -19,7 +19,7 @@ export function SupportJourney({
   admitted,
   origin,
   children,
-}: SupportJourneyProps) {
+}: Readonly<SupportJourneyProps>) {
   const session = useAccountSession();
   const { user } = useAuth0();
   const [navigation] = useState(() => supportContext(origin));

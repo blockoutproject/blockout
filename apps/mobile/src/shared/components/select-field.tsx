@@ -22,7 +22,7 @@ export function SelectField({
   helper,
   error,
   onPress,
-}: SelectFieldProps) {
+}: Readonly<SelectFieldProps>) {
   const { colors } = useTheme();
   return (
     <View style={[styles.field, disabled && styles.disabled]}>

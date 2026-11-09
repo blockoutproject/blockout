@@ -72,7 +72,7 @@ afterEach(async () => {
 });
 
 /** Real theme, admission, session and sporting presentation; HTTP/native identity are controlled. */
-function Providers({ children }: PropsWithChildren) {
+function Providers({ children }: Readonly<PropsWithChildren>) {
   return (
     <QueryClientProvider client={client}>
       <ThemeProvider>

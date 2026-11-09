@@ -15,7 +15,7 @@ export function ImageFallback({
   size = tokens.size.icon.lg,
   color,
   label,
-}: ImageFallbackProps) {
+}: Readonly<ImageFallbackProps>) {
   const { colors } = useTheme();
   const icon = (
     <ImageIcon accessible={false} size={size} color={color ?? colors.icon} />

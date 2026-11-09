@@ -33,7 +33,7 @@ export function SearchField({
   onBlur,
   style,
   ...input
-}: SearchFieldProps) {
+}: Readonly<SearchFieldProps>) {
   const { colors } = useTheme();
   const [focused, setFocused] = useState(false);
   const isEditable = readOnly !== undefined ? !readOnly : editable;

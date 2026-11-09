@@ -64,7 +64,7 @@ function ImageField({
   allowsEditing,
   aspect,
   ...props
-}: Omit<ImageFieldProps, "selection"> & ImageSelectionOptions) {
+}: Readonly<Omit<ImageFieldProps, "selection"> & ImageSelectionOptions>) {
   const selection = useImageSelection({
     onSelect,
     canSelect,
@@ -770,7 +770,7 @@ it("releases every delivered cache copy after preparation settles even if the fi
 });
 
 /** Matches the application's theme and transient feedback owners for native selection scenarios. */
-function MediaProviders({ children }: PropsWithChildren) {
+function MediaProviders({ children }: Readonly<PropsWithChildren>) {
   return (
     <ThemeProvider>
       <ActionFeedbackProvider scopeKey="image-selection-test">

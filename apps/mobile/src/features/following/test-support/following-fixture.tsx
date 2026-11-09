@@ -28,7 +28,7 @@ export function followingFixture() {
   let admission: ReturnType<typeof useApplicationAccess>;
 
   /** Exposes real owner APIs without replacing their lifecycle or Query behavior. */
-  function Probe({ children }: { children: ReactNode }) {
+  function Probe({ children }: Readonly<{ children: ReactNode }>) {
     const current = useAccountSession();
     const access = useApplicationAccess();
     const privateClient = useQueryClient();

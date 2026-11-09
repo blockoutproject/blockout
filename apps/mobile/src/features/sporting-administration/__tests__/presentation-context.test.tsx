@@ -194,7 +194,7 @@ afterEach(async () => {
 });
 
 /** Observes the actual private cache; deterministic retries do not replace any query or screen owner. */
-function PrivateQueries({ children }: PropsWithChildren) {
+function PrivateQueries({ children }: Readonly<PropsWithChildren>) {
   const current = useQueryClient();
   useLayoutEffect(() => {
     client = current;

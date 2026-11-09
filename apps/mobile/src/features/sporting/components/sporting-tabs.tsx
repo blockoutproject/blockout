@@ -13,6 +13,9 @@ export interface SportingTabsProps extends Omit<
 }
 
 /** The single identity card collapses; shared native adapters retain each scene's position. */
-export function SportingTabs({ identity, ...props }: SportingTabsProps) {
+export function SportingTabs({
+  identity,
+  ...props
+}: Readonly<SportingTabsProps>) {
   return <PagedTabs {...props} collapsibleHeader={identity} />;
 }

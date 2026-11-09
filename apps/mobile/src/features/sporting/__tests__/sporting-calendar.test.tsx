@@ -87,7 +87,7 @@ let publicClient = createQueryClient();
 let calendar: MatchCalendarResponse;
 
 /** Retrieves the real private lifetime client; failure scenarios explicitly disable read retries. */
-function PrivateQueries({ children }: QueryFixtureProps) {
+function PrivateQueries({ children }: Readonly<QueryFixtureProps>) {
   const current = useQueryClient();
   // Configure this fresh real client before descendant public observers start their first request.
   useQueryFixtureState(() => {
@@ -141,7 +141,7 @@ afterEach(async () => {
 });
 
 /** Actual theme, access, session and cache; only native identity and HTTP are controlled. */
-function Providers({ children }: PropsWithChildren) {
+function Providers({ children }: Readonly<PropsWithChildren>) {
   return (
     <GestureHandlerRootView>
       <SafeAreaProvider
@@ -169,7 +169,7 @@ function Providers({ children }: PropsWithChildren) {
 }
 
 /** Supplies resource screens' real scene ownership for a calendar-only scenario. */
-function CalendarTab({ children }: PropsWithChildren) {
+function CalendarTab({ children }: Readonly<PropsWithChildren>) {
   return (
     <PagedTabs
       selected="calendar"

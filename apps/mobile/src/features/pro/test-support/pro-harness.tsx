@@ -18,7 +18,7 @@ import { customerInfo } from "./customer-info";
 import { mockPurchases } from "./native-purchases";
 
 /** Ordinary real-provider descendant; captured APIs expose actions without mocking their behavior. */
-function Probe({ capture, onSupport }: ProHarnessProps) {
+function Probe({ capture, onSupport }: Readonly<ProHarnessProps>) {
   useQueryClient().setQueryDefaults([], { retry: false, gcTime: Infinity });
   const account = useAccountSession();
   const pro = usePro();
@@ -39,7 +39,7 @@ export interface ProHarnessProps {
 }
 
 /** Real F05, F09 and F13 providers; suites explicitly install native I/O mocks. */
-export function ProHarness(props: ProHarnessProps) {
+export function ProHarness(props: Readonly<ProHarnessProps>) {
   return (
     <ThemeProvider>
       <AccountSessionProvider>

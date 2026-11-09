@@ -25,7 +25,9 @@ export interface ContributionScreenProps {
 }
 
 /** Composes native scrolling and retained RHF content without a second session, cache or form shell. */
-export function ContributionScreen({ matchId }: ContributionScreenProps) {
+export function ContributionScreen({
+  matchId,
+}: Readonly<ContributionScreenProps>) {
   const editing = useOwnContributions(matchId);
   const match = useQuery(useConsultationQueries().match(matchId));
   const router = useRouter();

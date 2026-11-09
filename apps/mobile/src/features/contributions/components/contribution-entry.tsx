@@ -118,7 +118,7 @@ export function ContributionEntry({
   entry,
   header = false,
   ...context
-}: ContributionEntryProps) {
+}: Readonly<ContributionEntryProps>) {
   const { colors } = useTheme();
   if (header) {
     return entry.hasProposals ? (
@@ -161,7 +161,9 @@ export function ContributionEntry({
 }
 
 /** Contextual exact-version report action, distinct from the match's general support destination. */
-export function ContributionReportEntry({ entry }: ContributionEntryProps) {
+export function ContributionReportEntry({
+  entry,
+}: Readonly<ContributionEntryProps>) {
   const { colors } = useTheme();
   return entry.canReport ? (
     <Pressable

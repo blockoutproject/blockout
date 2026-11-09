@@ -19,7 +19,7 @@ export interface PoolParticipationLinkProps {
 export function PoolParticipationLink({
   pool,
   active,
-}: PoolParticipationLinkProps) {
+}: Readonly<PoolParticipationLinkProps>) {
   const sporting = useSportingNavigation(active);
   const { colors } = useTheme();
   const division = pool.classification.division;

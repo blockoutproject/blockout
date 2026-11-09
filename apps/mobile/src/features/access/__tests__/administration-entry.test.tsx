@@ -127,7 +127,7 @@ async function renderAdministration(
 }
 
 /** Shared real providers for component and Router cases; each scenario controls only native/HTTP I/O. */
-function AdministrationProviders({ children }: PropsWithChildren) {
+function AdministrationProviders({ children }: Readonly<PropsWithChildren>) {
   return (
     <QueryClientProvider client={publicClient}>
       <ThemeProvider>
@@ -144,7 +144,7 @@ function AdministrationProviders({ children }: PropsWithChildren) {
 }
 
 /** Observes the actual private cache; one-failure cases deliberately disable unrelated retry backoff. */
-function PrivateQueries({ children }: PropsWithChildren) {
+function PrivateQueries({ children }: Readonly<PropsWithChildren>) {
   const cache = useQueryClient();
   useState(() => {
     cache.setDefaultOptions({

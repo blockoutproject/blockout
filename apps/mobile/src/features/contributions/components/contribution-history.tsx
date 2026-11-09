@@ -41,7 +41,7 @@ export function ContributionHistory({
   detailsOnly = false,
   busy,
   onAction,
-}: ContributionHistoryProps) {
+}: Readonly<ContributionHistoryProps>) {
   const { colors } = useTheme();
   const router = useRouter();
   const handoff = useNativeHandoff(version.url);

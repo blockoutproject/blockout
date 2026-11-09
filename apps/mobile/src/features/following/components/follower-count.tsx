@@ -13,7 +13,7 @@ export interface FollowerCountProps {
 }
 
 /** Public direct relation count, independently of the adjacent private follow control. */
-export function FollowerCount({ target }: FollowerCountProps) {
+export function FollowerCount({ target }: Readonly<FollowerCountProps>) {
   const query = useFollowerCountQuery(target);
   const { colors } = useTheme();
   const count = query.data?.count;

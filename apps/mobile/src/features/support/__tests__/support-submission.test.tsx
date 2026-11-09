@@ -143,7 +143,7 @@ function SessionActions() {
 }
 
 /** Supplies actual application owners; only native storage/authentication and HTTP are controlled. */
-function Providers({ children }: PropsWithChildren) {
+function Providers({ children }: Readonly<PropsWithChildren>) {
   return (
     <ThemeProvider>
       <QueryClientProvider client={client}>

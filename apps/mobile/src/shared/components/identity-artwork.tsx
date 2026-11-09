@@ -22,7 +22,7 @@ export function IdentityArtwork({
   fallback,
   contentFit,
   cachePolicy,
-}: IdentityArtworkProps) {
+}: Readonly<IdentityArtworkProps>) {
   const [status, setStatus] = useState<"loading" | "displayed" | "failed">(
     "loading",
   );

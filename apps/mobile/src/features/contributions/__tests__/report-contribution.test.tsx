@@ -618,7 +618,7 @@ it("keeps the viewed address when current public context already contains a repl
 });
 
 /** Captures the identity-owned private cache while retaining the public cache for fixture cleanup. */
-function PrivateQueries({ children }: PropsWithChildren) {
+function PrivateQueries({ children }: Readonly<PropsWithChildren>) {
   const privateClient = useQueryClient();
   // Configure deterministic failure presentation before child Query observers mount.
   privateClient.setQueryDefaults([], { retry: false, gcTime: Infinity });

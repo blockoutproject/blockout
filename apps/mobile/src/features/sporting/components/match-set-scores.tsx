@@ -17,7 +17,7 @@ export interface MatchSetScoresProps {
 }
 
 /** Approved Set Scores pattern; no empty score panel before any result or set detail is accepted. */
-export function MatchSetScores({ match, sets }: MatchSetScoresProps) {
+export function MatchSetScores({ match, sets }: Readonly<MatchSetScoresProps>) {
   const { colors } = useTheme();
   if (!match.result && !sets) {
     return null;

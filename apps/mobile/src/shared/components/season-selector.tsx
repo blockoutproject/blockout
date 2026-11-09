@@ -21,7 +21,7 @@ export function SeasonSelector({
   disabled = false,
   expanded,
   onPress,
-}: SeasonSelectorProps) {
+}: Readonly<SeasonSelectorProps>) {
   const { colors } = useTheme();
   return (
     <Pressable

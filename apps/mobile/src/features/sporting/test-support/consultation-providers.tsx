@@ -18,10 +18,12 @@ export function ConsultationProviders({
   children,
   publicClient,
   onClient,
-}: PropsWithChildren<{
-  publicClient: QueryClient;
-  onClient(client: QueryClient): void;
-}>) {
+}: Readonly<
+  PropsWithChildren<{
+    publicClient: QueryClient;
+    onClient(client: QueryClient): void;
+  }>
+>) {
   return (
     <GestureHandlerRootView>
       <SafeAreaProvider
@@ -52,7 +54,7 @@ export function ConsultationProviders({
 function PrivateQueries({
   children,
   onClient,
-}: PropsWithChildren<{ onClient(client: QueryClient): void }>) {
+}: Readonly<PropsWithChildren<{ onClient(client: QueryClient): void }>>) {
   const client = useQueryClient();
   useState(() => {
     client.setQueryDefaults([], { retry: false });

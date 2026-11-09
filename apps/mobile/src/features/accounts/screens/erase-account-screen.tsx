@@ -43,7 +43,9 @@ export interface EraseAccountScreenProps {
 }
 
 /** Loads the current owner once before mounting its original-account confirmation. */
-export function EraseAccountScreen({ admitted }: EraseAccountScreenProps) {
+export function EraseAccountScreen({
+  admitted,
+}: Readonly<EraseAccountScreenProps>) {
   const session = useAccountSession();
   const account = useCurrentAccount();
   const router = useRouter();
@@ -144,10 +146,10 @@ function ErasureLoading() {
 function ErasureConfirmation({
   accountId,
   disabled,
-}: {
+}: Readonly<{
   accountId: string;
   disabled: boolean;
-}) {
+}>) {
   const [needsVerification, setNeedsVerification] = useState(false);
   const [deleted, setDeleted] = useState(false);
   const session = useAccountSession();

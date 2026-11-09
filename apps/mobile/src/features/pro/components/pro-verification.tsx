@@ -43,7 +43,7 @@ export function isProVerificationLoading(
 }
 
 /** Pro-owned verification/recovery; it never changes independent rights or public navigation. */
-export function ProVerification({ onSupport }: ProVerificationProps) {
+export function ProVerification({ onSupport }: Readonly<ProVerificationProps>) {
   const { state, refreshing, verificationFailed, retry } = usePro();
   const { colors } = useTheme();
   const feedback = useActionFeedback();

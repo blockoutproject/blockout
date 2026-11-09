@@ -79,7 +79,7 @@ let table: PoolStandingsResponse;
 let failed = false;
 
 /** Retrieves the real private lifetime client; failure scenarios explicitly disable read retries. */
-function PrivateQueries({ children }: QueryFixtureProps) {
+function PrivateQueries({ children }: Readonly<QueryFixtureProps>) {
   const current = useQueryClient();
   // Configure this fresh real client before descendant public observers start their first request.
   useQueryFixtureState(() => {

@@ -113,7 +113,7 @@ function PersonalHeader() {
 }
 
 /** Keeps the choice and selected tab mounted while ordinary sporting routes cover Home. */
-function PersonalSpace({ scope }: { scope: PersonalSeasonScope }) {
+function PersonalSpace({ scope }: Readonly<{ scope: PersonalSeasonScope }>) {
   const { owner, profile, season, request, admitted, usable, blocked, bypass } =
     scope;
   const router = useRouter();

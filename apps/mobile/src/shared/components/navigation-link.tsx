@@ -10,7 +10,7 @@ export interface NavigationLinkProps {
 }
 
 /** Bordered navigation action shared by administration destinations and contextual sporting editors. */
-export function NavigationLink({ href, label }: NavigationLinkProps) {
+export function NavigationLink({ href, label }: Readonly<NavigationLinkProps>) {
   return (
     <Link href={href} asChild>
       <NavigationAction label={label} />
@@ -22,7 +22,7 @@ export function NavigationLink({ href, label }: NavigationLinkProps) {
 function NavigationAction({
   label,
   ...props
-}: PressableProps & { label: string }) {
+}: Readonly<PressableProps & { label: string }>) {
   const { colors } = useTheme();
   return (
     <Pressable

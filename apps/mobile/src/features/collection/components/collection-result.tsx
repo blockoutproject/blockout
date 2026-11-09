@@ -15,7 +15,7 @@ export interface CollectionResultProps {
 export function CollectionResult({
   result,
   diagnostics,
-}: CollectionResultProps) {
+}: Readonly<CollectionResultProps>) {
   const { colors } = useTheme();
   const stage = {
     discovery: "Découverte",
