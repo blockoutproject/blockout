@@ -573,7 +573,7 @@ it.each(["guest", "other", "owner"] as const)(
   },
 );
 
-/** Supplies the actual application owners without mounting unrelated root navigation/provider SDKs. */
+/** Supplies the actual application owners above real editor routes without unrelated root SDKs. */
 function renderPage(content: ReactElement, editorRoute = false) {
   const options = {
     wrapper: ({ children }: QueryFixtureProps) => (

@@ -10,7 +10,7 @@ The modular backend supplies these operations to the native mobile account featu
 | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `POST /accounts`                  | Explicit establishment after authenticated login, or targeted missing-provider-data retry. 201 + Location for creation; 200 for an existing usable account. No caller-supplied identity or email. |
 | `GET /accounts/me`                | Existing current profile and F12 permissions; also available for maintenance identification, without creation, Auth0 synchronization or opening blocked navigation.                               |
-| `GET /accounts/{accountId}`       | Owner reread of the original target after a profile/deletion uncertainty. An absent original account returns 404 without provider effects.                                                        |
+| `GET /accounts/{accountId}`       | Owner read of the original target; optional after profile uncertainty and required to resolve deletion uncertainty. An absent original account returns 404 without provider effects.              |
 | `PATCH /accounts/{accountId}`     | One atomic multipart profile save. JSON metadata contains supplied username/photo intent; image only for replacement. Omitted fields retain current values.                                       |
 | `GET /accounts/{accountId}/photo` | Private accepted binary photo, no-store; missing/inaccessible photo returns 404.                                                                                                                  |
 | `DELETE /accounts/{accountId}`    | Synchronous local deletion, then bounded external attempts; 204 without a body even if external cleanup is logged for manual handling. Absent original UUID: 404 without further effects.         |
@@ -26,9 +26,13 @@ DELETE targets the original business UUID. After a lost response, read that orig
 - Profile concurrency follows the [plan](../plan.md#profile-photo-and-concurrent-changes), independently of sporting editor revision rules.
 - The [shared error responses](../../../contracts/http/common/problems.yaml) own problem identifiers for username collision (409), missing usable first-creation email and invalid image content (422), unavailable required provider retrieval (503), and ordinary request/media failures. Account operations reuse this profile without a parallel `code` property or account-specific error model.
 - Responses tolerate additional properties, while known fields remain validated. `principalCreatedAt: null` means unknown age; a missing required field or wrong type is invalid. Multipart omission and null are distinct. Do not force a JSON validation path onto binary images.
-- An interrupted mutation can have committed. Reread the original target before an explicit retry; no automatic retry, network-reconnection replay or token-renewal replay. No deduplication key/job store is necessary for these original-target effects.
+- An interrupted profile save can have committed. Keep ordinary error feedback and allow a later explicit submission; rereading the original account is optional and does not identify which uncertain request committed. Deletion retains the distinct original-resource verification rule above. Neither mutation has automatic retry, network-reconnection replay or token-renewal replay; no deduplication key/job store is introduced.
 
 Shared Problem Details remain unchanged. Qualify multipart metadata/file binding and bodyless 204 handling in the generated Spring/Jackson and Orval/Zod consumers; source validation alone is not compilation/runtime evidence.
+
+## Profile presentation boundary
+
+Current authorized account/session data admits the editor independently of private photo decoding. `hasPhoto: true` means an existing image can be explicitly removed even when no preview URI is available. Keeping that image omits `photoAction` and image bytes from the multipart save; no client-side preview failure changes the transport intent. F13 owns the shared OS choices and guarded callbacks, while F05 retains square preparation, original UUID, atomic Save and prepared-file lifetime. This UI change adds no endpoint or recovery protocol.
 
 ## Other boundaries and coordinated consumers
 

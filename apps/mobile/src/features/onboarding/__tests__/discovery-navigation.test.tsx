@@ -88,7 +88,7 @@ afterEach(async () => {
   jest.useRealTimers();
 });
 
-/** Real root/session/admission/discovery; the SDK and HTTP are controlled, ordinary routes are probes. */
+/** Real root/session/admission/discovery; the SDK and HTTP are controlled, unrelated destinations remain probes. */
 async function openInstallation(initialUrl = "/", SignIn = OrdinarySession) {
   return renderRouter(
     {

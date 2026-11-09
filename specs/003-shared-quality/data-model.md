@@ -45,3 +45,7 @@ Admission state is transient under [F12](../013-administration-app-configuration
 ## Schema lifecycle
 
 Schema authoring and migration execution follow the [plan](plan.md#runtime-data-and-consistency). This logical model introduces no additional persistence or migration mechanism.
+
+## Single-image presentation lifetime
+
+A mounted photo/logo field retains only its current OS-menu visit and callbacks under the existing component lifetime. It supplies current authorization/preparation and rejects returned choices after withdrawal or retirement. The menu is not a global request, route payload, persisted entity, upload, form, cache or command ledger. Known image presence, a usable preview URI and permission to remove/reset remain distinct; actual keep/remove/replace state and file ownership stay with F05/F02. Multi-image F10 attachments retain their existing lifetime.

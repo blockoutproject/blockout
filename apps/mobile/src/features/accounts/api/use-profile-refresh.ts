@@ -7,7 +7,7 @@ import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import type { useCurrentAccount } from "./use-current-account";
 
-/** Shares profile/photo refresh; retainedDraft keeps refusal feedback with the locked editor instead of a blocking overview card. */
+/** Shares profile/photo refresh; a retained editor owns failure feedback even before its first optional photo is accepted. */
 export function useProfileRefresh(
   account: ReturnType<typeof useCurrentAccount>,
   retainedDraft = false,
@@ -34,13 +34,23 @@ export function useProfileRefresh(
       return;
     }
     const currentPhotoKey = getGetAccountPhotoQueryKey(result.data.accountId);
+    if (
+      !client
+        .getQueryCache()
+        .find({ queryKey: currentPhotoKey, exact: true, type: "active" })
+    ) {
+      return;
+    }
     await client.refetchQueries({
       queryKey: currentPhotoKey,
       exact: true,
       type: "active",
     });
     const photo = client.getQueryState(currentPhotoKey);
-    if (photo?.status === "error" && photo.dataUpdatedAt > 0) {
+    if (
+      photo?.status === "error" &&
+      (retainedDraft || photo.dataUpdatedAt > 0)
+    ) {
       feedback.error();
     }
   }

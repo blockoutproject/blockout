@@ -221,7 +221,7 @@ export function ImageField({
 }
 
 /** Keeps the static image inside the native safe frame; failed decode retry remounts only the image and preserves the draft. */
-function ImagePreview({
+export function ImagePreview({
   image,
   onClose,
 }: {

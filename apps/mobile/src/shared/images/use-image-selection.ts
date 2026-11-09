@@ -1,6 +1,6 @@
 import { Paths } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { deleteOwnedImage } from "./delete-owned-image";
 import { useActionFeedback } from "../components/action-feedback";
 
@@ -12,7 +12,7 @@ import { useActionFeedback } from "../components/action-feedback";
  * Key or unmount the owner when its session/resource changes; feature callbacks also guard their identity.
  */
 export interface ImageSelectionOptions {
-  /** Checks other operation owners synchronously before opening native UI, including commands admitted this turn. */
+  /** Checks current authority/operations before native entry and again before delivering the selected files. */
   canSelect?: () => boolean;
   onSelect: (
     assets: ImagePicker.ImagePickerAsset[],
@@ -46,6 +46,10 @@ export function useImageSelection({
 }: ImageSelectionOptions): ImageSelection {
   const feedback = useActionFeedback();
   const active = useRef(false);
+  const current = useRef({ canSelect, onSelect });
+  useLayoutEffect(() => {
+    current.current = { canSelect, onSelect };
+  }, [canSelect, onSelect]);
   const operation = useRef<Promise<void> | undefined>(undefined);
   const [pending, setPending] = useState(false);
   useEffect(() => {
@@ -69,8 +73,12 @@ export function useImageSelection({
         selectionLimit: allowsMultipleSelection ? selectionLimit : 1,
       });
       assets = result.assets ?? [];
-      if (active.current && !result.canceled) {
-        await onSelect(assets, replaceId);
+      if (
+        active.current &&
+        !result.canceled &&
+        current.current.canSelect?.() !== false
+      ) {
+        await current.current.onSelect(assets, replaceId);
       }
     } catch {
       feedback.error();
@@ -88,7 +96,11 @@ export function useImageSelection({
 
   /** Reserves the native operation synchronously; no selection or preparation is queued or replayed. */
   function select(replaceId?: string) {
-    if (!active.current || operation.current || canSelect?.() === false) {
+    if (
+      !active.current ||
+      operation.current ||
+      current.current.canSelect?.() === false
+    ) {
       return;
     }
     feedback.clear();
