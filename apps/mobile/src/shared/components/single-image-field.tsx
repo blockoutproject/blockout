@@ -26,7 +26,7 @@ export interface SingleImageFieldProps {
   readRevision?: number;
   hasImage: boolean;
   selection: ImageSelection;
-  /** Selects artwork fit, fallback glyph and copy; every state keeps the shared rounded-square geometry. */
+  /** Selects fallback glyph and copy; all artwork proportionally covers the shared rounded-square frame. */
   appearance?: "photo" | "logo";
   loading?: boolean;
   disabled?: boolean;
@@ -113,7 +113,7 @@ export function SingleImageField({
             source={{ uri: visibleImage.uri }}
             accessible={false}
             cachePolicy="none"
-            contentFit={appearance === "photo" ? "cover" : "contain"}
+            contentFit="cover"
             style={styles.image}
             onDisplay={nativeImage.onDisplay}
             onError={nativeImage.onError}
@@ -242,16 +242,14 @@ const styles = StyleSheet.create({
   media: {
     width: tokens.size.media.profile + 2 * tokens.spacing.sm,
     height: tokens.size.media.profile + 2 * tokens.spacing.sm,
-    padding: tokens.spacing.sm,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: tokens.radius.panelInset,
     overflow: "hidden",
   },
   image: {
-    width: tokens.size.media.profile,
-    height: tokens.size.media.profile,
-    borderRadius: tokens.radius.media,
+    width: "100%",
+    height: "100%",
   },
   entry: {
     minHeight: tokens.size.control.default,
