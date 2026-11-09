@@ -59,23 +59,7 @@ export async function apiFetch(
   url: string,
   options: ApiFetchOptions = {},
 ): Promise<unknown> {
-  let destination: URL;
-  try {
-    const base = new URL(process.env.EXPO_PUBLIC_API_URL ?? "");
-    destination = new URL(url, base);
-    if (
-      !["https:", "http:"].includes(base.protocol) ||
-      destination.origin !== base.origin ||
-      base.username ||
-      base.password ||
-      destination.username ||
-      destination.password
-    ) {
-      throw new Error("Invalid backend destination");
-    }
-  } catch {
-    throw new ApiError("configuration");
-  }
+  const destination = backendDestination(url);
   const { schema, responseType, signal, onHttpError, ...request } = options;
   try {
     signal?.throwIfAborted();
@@ -90,40 +74,10 @@ export async function apiFetch(
       .trim()
       .toLowerCase();
     if (!response.ok) {
-      let problem: ProblemResponse | AccessProblemResponse | undefined;
-      if (contentType === "application/problem+json") {
-        try {
-          const result = (
-            response.status === 503 ? AccessProblemResponse : ProblemResponse
-          ).safeParse(await response.json());
-          if (result.success && result.data.status === response.status) {
-            problem = result.data;
-          }
-        } catch {
-          // Malformed upstream content never replaces the safe HTTP failure.
-        }
-      }
+      const problem = await readProblem(response, contentType);
       throw new ApiError("http", response.status, problem);
     }
-    let data: unknown;
-    if (response.status === 204) {
-      if (schema || responseType) {
-        throw new ApiError("schema");
-      }
-    } else if (responseType === "blob" && !schema) {
-      data = await response.blob();
-    } else {
-      if (!schema || contentType !== "application/json") {
-        throw new ApiError("schema");
-      }
-      try {
-        const body: unknown = await response.json();
-        data = schema.parse(body);
-      } catch {
-        throw new ApiError("schema");
-      }
-    }
-    return data;
+    return await readSuccess(response, contentType, schema, responseType);
   } catch (error) {
     if (signal?.aborted) {
       throw new ApiError("cancelled");
@@ -136,4 +90,74 @@ export async function apiFetch(
     }
     throw new ApiError("network");
   }
+}
+
+/** Accepts only same-origin HTTP(S) destinations without embedded credentials. */
+function backendDestination(url: string): URL {
+  try {
+    const base = new URL(process.env.EXPO_PUBLIC_API_URL ?? "");
+    const destination = new URL(url, base);
+    if (
+      !["https:", "http:"].includes(base.protocol) ||
+      destination.origin !== base.origin ||
+      base.username ||
+      base.password ||
+      destination.username ||
+      destination.password
+    ) {
+      throw new Error("Invalid backend destination");
+    }
+    return destination;
+  } catch {
+    throw new ApiError("configuration");
+  }
+}
+
+/** Malformed or mismatched upstream problem bodies never replace the safe HTTP failure. */
+async function readProblem(
+  response: Response,
+  contentType: string | undefined,
+) {
+  if (contentType !== "application/problem+json") {
+    return undefined;
+  }
+  try {
+    const profile =
+      response.status === 503 ? AccessProblemResponse : ProblemResponse;
+    const result = profile.safeParse(await response.json());
+    if (result.success && result.data.status === response.status) {
+      return result.data;
+    }
+  } catch {
+    // Retain the safe HTTP classification even when the body cannot be read.
+  }
+  return undefined;
+}
+
+/** Reads the expected representation once; empty and binary responses never bypass an expected JSON schema. */
+async function readSuccess(
+  response: Response,
+  contentType: string | undefined,
+  schema: ZodType | undefined,
+  responseType: ApiFetchOptions["responseType"],
+): Promise<unknown> {
+  let data: unknown;
+  if (response.status === 204) {
+    if (schema || responseType) {
+      throw new ApiError("schema");
+    }
+  } else if (responseType === "blob" && !schema) {
+    data = await response.blob();
+  } else {
+    if (!schema || contentType !== "application/json") {
+      throw new ApiError("schema");
+    }
+    try {
+      const body: unknown = await response.json();
+      data = schema.parse(body);
+    } catch {
+      throw new ApiError("schema");
+    }
+  }
+  return data;
 }

@@ -15,18 +15,22 @@ export function useSportingLogo(
 ) {
   const { bypass } = useOrdinaryRequest();
   const queries = useConsultationQueries();
-  const options =
-    kind === "club"
-      ? queries.clubLogo(identity.id)
-      : kind === "team"
-        ? queries.teamLogo(identity.id)
-        : queries.divisionLogo(identity.id);
-  const detail =
-    kind === "club"
-      ? queries.club(identity.id)
-      : kind === "team"
-        ? queries.team(identity.id)
-        : options;
+  let options;
+  if (kind === "club") {
+    options = queries.clubLogo(identity.id);
+  } else if (kind === "team") {
+    options = queries.teamLogo(identity.id);
+  } else {
+    options = queries.divisionLogo(identity.id);
+  }
+  let detail;
+  if (kind === "club") {
+    detail = queries.club(identity.id);
+  } else if (kind === "team") {
+    detail = queries.team(identity.id);
+  } else {
+    detail = options;
+  }
   const resource = useQuery<unknown>({
     queryKey: detail.queryKey,
     queryFn: detail.queryFn,
@@ -40,11 +44,14 @@ export function useSportingLogo(
     subscribed: !!bypass && !!identity.logoUrl,
   });
   const withdrawn = resource.isError && resource.data === undefined;
-  const uri = withdrawn
-    ? undefined
-    : bypass
-      ? binary.data
-      : publicLogoUrl(identity.logoUrl);
+  let uri;
+  if (withdrawn) {
+    uri = undefined;
+  } else if (bypass) {
+    uri = binary.data;
+  } else {
+    uri = publicLogoUrl(identity.logoUrl);
+  }
   return {
     uri,
     loading: !withdrawn && !!bypass && !!identity.logoUrl && binary.isPending,

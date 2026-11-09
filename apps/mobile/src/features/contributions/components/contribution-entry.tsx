@@ -47,16 +47,14 @@ export function useContributionEntry(
     available &&
     (session.status === "guest" ||
       (authorized && current?.eligibility.canSubmit === true));
+  const admittedOwnershipRead = usable ? query : profile;
+  const ownershipRead =
+    session.status === "authenticated" ? admittedOwnershipRead : undefined;
   return {
     hasProposals,
     ownsPublic,
     publicOwnershipUnknown,
-    ownershipRead:
-      session.status === "authenticated"
-        ? usable
-          ? query
-          : profile
-        : undefined,
+    ownershipRead,
     canPropose,
     canReport:
       available &&

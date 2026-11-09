@@ -89,11 +89,13 @@ export function SearchHeading({
   onClear,
 }: SearchHeadingProps) {
   const { colors } = useTheme();
-  const title = examples
-    ? "Exemples"
-    : count === undefined
-      ? "Résultats"
-      : `${count} résultat${count === 1 ? "" : "s"} chargé${count === 1 ? "" : "s"}`;
+  let title = "Résultats";
+  if (examples) {
+    title = "Exemples";
+  } else if (count !== undefined) {
+    const plural = count === 1 ? "" : "s";
+    title = `${count} résultat${plural} chargé${plural}`;
+  }
   return (
     <View style={styles.toolbar}>
       <Text

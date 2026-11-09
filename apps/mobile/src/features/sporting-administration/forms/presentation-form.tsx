@@ -1,11 +1,10 @@
+import { PresentationIdentity } from "../components/presentation-identity";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
 import { useImageSelection } from "../../../shared/images/use-image-selection";
 import { ImageValidationError } from "../../../shared/images/image-validation-error";
 import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
-import { Image } from "expo-image";
-import { ImageFallback } from "../../../shared/components/image-fallback";
 import { useDivisionActivity } from "../api/classification";
 import { DivisionColorFields } from "../components/division-color-fields";
 import { useRouter } from "expo-router";
@@ -16,8 +15,6 @@ import { ApiError } from "../../../shared/api/api-fetch";
 import { DivisionActivityAction } from "../components/division-activity-action";
 import { Button } from "../../../shared/components/button";
 import { SingleImageField } from "../../../shared/components/single-image-field";
-import { LoadingGroup } from "../../../shared/components/loading-group";
-import { Skeleton } from "../../../shared/components/skeleton";
 import { TextField } from "../../../shared/components/text-field";
 import { Surface } from "../../../shared/components/surface";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -125,10 +122,12 @@ export function PresentationForm({
     editing.save.isPending ||
     activity.save.isPending ||
     editing.query.isFetching;
-  const currentLogo =
-    baseline.kind !== "pool" && baseline.kind !== "division-creation"
-      ? baseline.data.logo
-      : undefined;
+  const {
+    logo: currentLogo,
+    title,
+    names,
+    revision,
+  } = presentationContext(baseline);
   const selection = draft.action === "automatic" ? "automatic" : "effective";
   const hasLogo =
     draft.action === "automatic"
@@ -138,24 +137,16 @@ export function PresentationForm({
     target,
     selection,
     hasLogo && draft.action !== "replace",
-    baseline.kind === "division-creation" ? "" : baseline.data.revision,
+    revision,
   );
-  const uri =
-    draft.action === "replace"
-      ? draft.prepared.uri
-      : hasLogo
-        ? artwork.data
-        : undefined;
-  const title =
-    baseline.kind === "division-creation"
-      ? "Nouvelle division"
-      : baseline.kind === "division"
-        ? baseline.data.name
-        : baseline.data.names.effectiveName;
-  const names =
-    baseline.kind !== "division" && baseline.kind !== "division-creation"
-      ? baseline.data.names
-      : undefined;
+  let uri;
+  if (draft.action === "replace") {
+    uri = draft.prepared.uri;
+  } else if (hasLogo) {
+    uri = artwork.data;
+  } else {
+    uri = undefined;
+  }
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -205,8 +196,7 @@ export function PresentationForm({
     const file =
       values.logo.action === "replace" ? values.logo.prepared : undefined;
     const attempt = editing.save.mutateAsync({
-      revision:
-        baseline.kind === "division-creation" ? "" : baseline.data.revision,
+      revision: revision,
       values,
     });
     actionFeedback.clear();
@@ -222,42 +212,47 @@ export function PresentationForm({
         editor.discard();
       }
     } catch (error) {
-      if (
-        error instanceof ApiError &&
-        error.status === 409 &&
-        error.problem?.type !== "urn:blockout:problem:conflict"
-      ) {
-        editor.update({
-          ...editor.state,
-          feedback:
-            "Le résultat doit être vérifié. Relisez la présentation avant de réessayer.",
-        });
-      } else {
-        editor.update({
-          ...editor.state,
-          feedback: undefined,
-        });
-        if (
-          error instanceof ApiError &&
-          (error.problem?.type === "urn:blockout:problem:invalid-image" ||
-            error.status === 413)
-        ) {
-          setError("logo", {
-            message:
-              "Ce logo ne peut pas être enregistré. Choisissez une autre image.",
-          });
-        } else if (
-          isDivision &&
-          error instanceof ApiError &&
-          error.problem?.type === "urn:blockout:problem:conflict"
-        ) {
-          setError("name", { message: "Ce nom de division est déjà utilisé." });
-        } else {
-          actionFeedback.error();
-        }
-      }
+      handleSaveError(error);
     } finally {
       editor.finishUpload(file);
+    }
+  }
+
+  /** Preserves the current draft and routes rejected writes to their existing field or read feedback. */
+  function handleSaveError(error: unknown) {
+    if (
+      error instanceof ApiError &&
+      error.status === 409 &&
+      error.problem?.type !== "urn:blockout:problem:conflict"
+    ) {
+      editor.update({
+        ...editor.state,
+        feedback:
+          "Le résultat doit être vérifié. Relisez la présentation avant de réessayer.",
+      });
+    } else {
+      editor.update({
+        ...editor.state,
+        feedback: undefined,
+      });
+      if (
+        error instanceof ApiError &&
+        (error.problem?.type === "urn:blockout:problem:invalid-image" ||
+          error.status === 413)
+      ) {
+        setError("logo", {
+          message:
+            "Ce logo ne peut pas être enregistré. Choisissez une autre image.",
+        });
+      } else if (
+        isDivision &&
+        error instanceof ApiError &&
+        error.problem?.type === "urn:blockout:problem:conflict"
+      ) {
+        setError("name", { message: "Ce nom de division est déjà utilisé." });
+      } else {
+        actionFeedback.error();
+      }
     }
   }
 
@@ -342,79 +337,99 @@ export function PresentationForm({
     editor.replaceLogo({ action: "automatic" });
   }
 
-  const logoPending =
-    draft.action !== "replace" && hasLogo && artwork.isLoading;
-  const identity = (
-    <>
-      {uri && (
-        <Image
-          source={{ uri }}
-          contentFit="contain"
-          cachePolicy="none"
-          accessible={false}
-          style={isDivision ? styles.divisionLogo : styles.contextLogo}
-        />
-      )}
-      {!uri && logoPending ? (
-        <LoadingGroup
-          label="Chargement du logo"
-          style={isDivision ? styles.divisionPlaceholder : styles.contextLogo}
-        >
-          <Skeleton
-            width={isDivision ? 38 : 64}
-            height={isDivision ? 38 : 64}
-            shape="rectangle"
-          />
-        </LoadingGroup>
-      ) : (
-        !uri && (
-          <View
-            style={[
-              isDivision ? styles.divisionPlaceholder : styles.contextLogo,
-              styles.imagePlaceholder,
-              { backgroundColor: colors.mediaPlaceholder },
-            ]}
-          >
-            <ImageFallback size={tokens.size.icon.lg} color={colors.icon} />
-          </View>
-        )
-      )}
-      <View style={styles.contextName}>
-        <Text style={[tokens.typography.strong, { color: colors.text }]}>
-          {isDivision ? draftName.trim() || "Nouvelle division" : title}
-        </Text>
-        {(isDivision || seasonLabel) && (
+  const sourceNameSuffix = names?.sourceName ? ` : ${names.sourceName}` : "";
+  const nameHelper = names
+    ? `Laisser vide rétablit le nom automatique${sourceNameSuffix}.`
+    : undefined;
+
+  /** Presents draft, conflict and lifecycle actions against the existing mounted form owners. */
+  function renderActions() {
+    return (
+      <>
+        {isDirty && (
           <Text
             style={[
               tokens.typography.metadata,
               { color: colors.secondaryText },
             ]}
           >
-            {isDivision ? "Aperçu" : seasonLabel}
+            Modifications non enregistrées
           </Text>
         )}
-      </View>
-      {isDivision && (
-        <View style={styles.palette}>
-          {(draftGradient.some((value) => value !== "")
-            ? draftGradient
-            : [previewColor, previewColor, previewColor]
-          ).map((value, index) => (
-            <View
-              key={index}
-              style={[
-                styles.paletteColor,
-                {
-                  backgroundColor: /^#[0-9a-fA-F]{6}$/.test(value)
-                    ? value
-                    : previewColor,
-                },
-              ]}
+        {feedback && (
+          <Text
+            accessibilityLiveRegion="polite"
+            style={[tokens.typography.body, { color: colors.text }]}
+          >
+            {feedback}
+          </Text>
+        )}
+        {rereadRequired && (
+          <Button
+            label={
+              target.kind === "division"
+                ? "Relire la division"
+                : "Relire la présentation"
+            }
+            variant="secondary"
+            onPress={() => void reread()}
+            disabled={
+              imageSelection.pending ||
+              editing.save.isPending ||
+              activity.save.isPending ||
+              editing.query.isFetching
+            }
+            loading={editing.query.isFetching}
+          />
+        )}
+        {created && (
+          <Button
+            label="Voir les divisions"
+            variant="secondary"
+            onPress={() => router.replace("/administration/divisions")}
+          />
+        )}
+        {(!disabled || !isDivision) && (
+          <Button
+            label="Enregistrer"
+            fullWidth
+            disabled={busy || rereadRequired}
+            loading={editing.save.isPending}
+            onPress={() => void handleSubmit(submit)()}
+          />
+        )}
+        {baseline.kind === "division" &&
+          !creating &&
+          activity.authority.permissions?.manageDivisionLifecycle === true && (
+            <DivisionActivityAction
+              division={baseline.data}
+              executing={activity.save.isPending}
+              disabled={
+                imageSelection.pending ||
+                editing.save.isPending ||
+                editing.query.isFetching ||
+                rereadRequired
+              }
+              onPress={() => void changeActivity()}
             />
-          ))}
-        </View>
-      )}
-    </>
+          )}
+      </>
+    );
+  }
+
+  const logoPending =
+    draft.action !== "replace" && hasLogo && artwork.isLoading;
+  const identity = (
+    <PresentationIdentity
+      uri={uri}
+      loading={logoPending}
+      isDivision={isDivision}
+      name={draftName}
+      title={title}
+      seasonLabel={seasonLabel}
+      color={previewColor}
+      gradient={draftGradient}
+    />
   );
   return (
     <View style={styles.form}>
@@ -442,66 +457,77 @@ export function PresentationForm({
             <Controller
               control={control}
               name="logo"
-              render={({ fieldState }) => (
-                <SingleImageField
-                  label="Logo"
-                  image={uri ? { id: "logo", uri, label: "Logo" } : undefined}
-                  readRevision={
-                    draft.action !== "replace"
-                      ? artwork.dataUpdatedAt
-                      : undefined
+              render={({ fieldState }) => {
+                /** Distinguishes restoring a known club fallback from removing another manual logo. */
+                function logoResetLabel() {
+                  if (target.kind === "team") {
+                    if (professionalTeam === false) {
+                      return "Rétablir le logo du club";
+                    }
+                    return "Rétablir le logo automatique";
                   }
-                  hasImage={draft.action === "replace" || hasLogo}
-                  loading={logoPending}
-                  disabled={busy}
-                  helper="PNG/JPEG · 5 Mio maximum"
-                  addLabel="Ajouter un logo"
-                  editLabel="Modifier le logo"
-                  chooseLabel="Choisir un logo"
-                  removeLabel={
-                    target.kind === "team"
-                      ? professionalTeam === false
-                        ? "Rétablir le logo du club"
-                        : "Rétablir le logo automatique"
-                      : "Retirer le logo personnalisé"
-                  }
-                  error={fieldState.error?.message}
-                  onRemove={
-                    selectedLogo ||
-                    (draft.action === "keep" && currentLogo?.manualUrl != null)
-                      ? restoreLogo
-                      : undefined
-                  }
-                  selection={imageSelection}
-                />
-              )}
+                  return "Retirer le logo personnalisé";
+                }
+
+                return (
+                  <SingleImageField
+                    label="Logo"
+                    image={uri ? { id: "logo", uri, label: "Logo" } : undefined}
+                    readRevision={
+                      draft.action !== "replace"
+                        ? artwork.dataUpdatedAt
+                        : undefined
+                    }
+                    hasImage={draft.action === "replace" || hasLogo}
+                    loading={logoPending}
+                    disabled={busy}
+                    helper="PNG/JPEG · 5 Mio maximum"
+                    addLabel="Ajouter un logo"
+                    editLabel="Modifier le logo"
+                    chooseLabel="Choisir un logo"
+                    removeLabel={logoResetLabel()}
+                    error={fieldState.error?.message}
+                    onRemove={
+                      selectedLogo ||
+                      (draft.action === "keep" &&
+                        currentLogo?.manualUrl != null)
+                        ? restoreLogo
+                        : undefined
+                    }
+                    selection={imageSelection}
+                  />
+                );
+              }}
             />
           )}
           <Controller
             control={control}
             name="name"
-            render={({ field, fieldState }) => (
-              <TextField
-                ref={field.ref}
-                label={
-                  isDivision
-                    ? "Nom de la division"
-                    : target.kind === "club"
-                      ? "Nom personnalisé"
-                      : "Nom complet personnalisé"
+            render={({ field, fieldState }) => {
+              /** Uses the existing resource-specific name field wording. */
+              function nameFieldLabel() {
+                if (isDivision) {
+                  return "Nom de la division";
                 }
-                value={field.value}
-                onChangeText={field.onChange}
-                onBlur={field.onBlur}
-                editable={!busy}
-                error={fieldState.error?.message}
-                helper={
-                  names
-                    ? `Laisser vide rétablit le nom automatique${names.sourceName ? ` : ${names.sourceName}` : ""}.`
-                    : undefined
+                if (target.kind === "club") {
+                  return "Nom personnalisé";
                 }
-              />
-            )}
+                return "Nom complet personnalisé";
+              }
+
+              return (
+                <TextField
+                  ref={field.ref}
+                  label={nameFieldLabel()}
+                  value={field.value}
+                  onChangeText={field.onChange}
+                  onBlur={field.onBlur}
+                  editable={!busy}
+                  error={fieldState.error?.message}
+                  helper={nameHelper}
+                />
+              );
+            }}
           />
           {(target.kind === "team" || target.kind === "pool") && (
             <Controller
@@ -530,101 +556,47 @@ export function PresentationForm({
           disabled={busy}
         />
       )}
-      {isDirty && (
-        <Text
-          style={[tokens.typography.metadata, { color: colors.secondaryText }]}
-        >
-          Modifications non enregistrées
-        </Text>
-      )}
-      {feedback && (
-        <Text
-          accessibilityLiveRegion="polite"
-          style={[tokens.typography.body, { color: colors.text }]}
-        >
-          {feedback}
-        </Text>
-      )}
-      {rereadRequired && (
-        <Button
-          label={
-            target.kind === "division"
-              ? "Relire la division"
-              : "Relire la présentation"
-          }
-          variant="secondary"
-          onPress={() => void reread()}
-          disabled={
-            imageSelection.pending ||
-            editing.save.isPending ||
-            activity.save.isPending ||
-            editing.query.isFetching
-          }
-          loading={editing.query.isFetching}
-        />
-      )}
-      {created && (
-        <Button
-          label="Voir les divisions"
-          variant="secondary"
-          onPress={() => router.replace("/administration/divisions")}
-        />
-      )}
-      {(!disabled || !isDivision) && (
-        <Button
-          label="Enregistrer"
-          fullWidth
-          disabled={busy || rereadRequired}
-          loading={editing.save.isPending}
-          onPress={() => void handleSubmit(submit)()}
-        />
-      )}
-      {baseline.kind === "division" &&
-        !creating &&
-        activity.authority.permissions?.manageDivisionLifecycle === true && (
-          <DivisionActivityAction
-            division={baseline.data}
-            executing={activity.save.isPending}
-            disabled={
-              imageSelection.pending ||
-              editing.save.isPending ||
-              editing.query.isFetching ||
-              rereadRequired
-            }
-            onPress={() => void changeActivity()}
-          />
-        )}
+      {renderActions()}
     </View>
   );
 }
 
+/** Projects the retained baseline's supported fields without inventing artwork for pool or creation drafts. */
+function presentationContext(baseline: Presentation) {
+  if (baseline.kind === "division-creation") {
+    return {
+      title: "Nouvelle division",
+      revision: "",
+      logo: undefined,
+      names: undefined,
+    };
+  }
+  if (baseline.kind === "division") {
+    return {
+      title: baseline.data.name,
+      revision: baseline.data.revision,
+      logo: baseline.data.logo,
+      names: undefined,
+    };
+  }
+  return {
+    title: baseline.data.names.effectiveName,
+    revision: baseline.data.revision,
+    names: baseline.data.names,
+    logo: baseline.kind === "pool" ? undefined : baseline.data.logo,
+  };
+}
+
 const styles = StyleSheet.create({
-  imagePlaceholder: { alignItems: "center", justifyContent: "center" },
   form: { gap: tokens.layout.form.gap },
   context: {
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.md,
   },
-  contextLogo: {
-    width: 64,
-    height: 64,
-    borderRadius: tokens.media.radius.preview,
-  },
-  contextName: { flex: 1, gap: tokens.spacing.xs },
   divisionContext: {
     padding: tokens.spacing.compact,
     borderRadius: tokens.radius.control,
     borderWidth: tokens.border.thin,
   },
-  divisionLogo: { width: 38, height: 38 },
-  divisionPlaceholder: {
-    width: 38,
-    height: 38,
-    borderRadius: tokens.radius.full,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  palette: { flexDirection: "row", gap: tokens.spacing.xs },
-  paletteColor: { width: 8, height: 18, borderRadius: 2 },
 });

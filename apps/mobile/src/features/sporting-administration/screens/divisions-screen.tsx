@@ -44,6 +44,55 @@ import { divisionSearchValues } from "../forms/division-search-values";
 
 /** Product Design 1340:9338: searchable active/inactive catalogue; commands belong to its editor. */
 export function DivisionsScreen() {
+  /** Retains separate denied, failed-read and successful empty-catalogue states. */
+  function renderEmptyDivisions() {
+    /** Explains whether the successful empty result came from search or the selected activity filter. */
+    function emptyDivisionTitle() {
+      if (search.trim()) {
+        return "Aucune division ne correspond à votre recherche.";
+      }
+      if (active) {
+        return "Aucune division active";
+      }
+      return "Aucune division inactive";
+    }
+
+    if (denied) {
+      return (
+        <ErrorState
+          onRetry={() => void query.refetch()}
+          retrying={query.isFetching}
+        />
+      );
+    }
+    if (query.isError || query.isPending) {
+      return (
+        <ErrorState
+          onRetry={() => void refresh()}
+          retrying={query.isFetching}
+        />
+      );
+    }
+    return (
+      <EmptyState title={emptyDivisionTitle()}>
+        {search.trim() ? (
+          <Button
+            label="Effacer la recherche"
+            leadingIcon={Eraser}
+            onPress={() => reset(divisionSearchValues())}
+          />
+        ) : (
+          <Button
+            label="Actualiser"
+            leadingIcon={RefreshCw}
+            onPress={() => void refresh()}
+            loading={query.isFetching}
+          />
+        )}
+      </EmptyState>
+    );
+  }
+
   const { authority, query } = useDivisions();
   const { colors, membership } = useTheme();
   const router = useRouter();
@@ -223,44 +272,7 @@ export function DivisionsScreen() {
                   <DivisionsLoading />
                 </View>
               ) : (
-                <ScreenState>
-                  {denied ? (
-                    <ErrorState
-                      onRetry={() => void query.refetch()}
-                      retrying={query.isFetching}
-                    />
-                  ) : query.isError || query.isPending ? (
-                    <ErrorState
-                      onRetry={() => void refresh()}
-                      retrying={query.isFetching}
-                    />
-                  ) : (
-                    <EmptyState
-                      title={
-                        search.trim()
-                          ? "Aucune division ne correspond à votre recherche."
-                          : active
-                            ? "Aucune division active"
-                            : "Aucune division inactive"
-                      }
-                    >
-                      {search.trim() ? (
-                        <Button
-                          label="Effacer la recherche"
-                          leadingIcon={Eraser}
-                          onPress={() => reset(divisionSearchValues())}
-                        />
-                      ) : (
-                        <Button
-                          label="Actualiser"
-                          leadingIcon={RefreshCw}
-                          onPress={() => void refresh()}
-                          loading={query.isFetching}
-                        />
-                      )}
-                    </EmptyState>
-                  )}
-                </ScreenState>
+                <ScreenState>{renderEmptyDivisions()}</ScreenState>
               )
             }
             renderItem={({ item }) => (

@@ -17,10 +17,11 @@ export function PersonalSeasonSelector({
   disabled = false,
   onPress,
 }: PersonalSeasonSelectorProps) {
+  const fallbackLabel = seasonId ? "Saison" : "Toutes saisons";
   const label = !options
     ? "Saison"
     : (options.seasons.find((season) => season.id === seasonId)?.label ??
-      (seasonId ? "Saison" : "Toutes saisons"));
+      fallbackLabel);
   return (
     <View style={styles.container}>
       <SeasonSelector

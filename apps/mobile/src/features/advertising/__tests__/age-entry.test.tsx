@@ -589,15 +589,15 @@ it("announces one declaration read without exposing a default age or confirmatio
   await completeDiscovery();
   const read = Promise.withResolvers<string | null>();
   const readItem = jest.mocked(AsyncStorage.getItem).getMockImplementation();
-  jest
-    .spyOn(AsyncStorage, "getItem")
-    .mockImplementation((key) =>
-      key === "blockout:advertising-age"
-        ? read.promise
-        : Promise.resolve(
-            key === "blockout:v2-discovery-complete" ? "true" : null,
-          ),
-    );
+  jest.spyOn(AsyncStorage, "getItem").mockImplementation((key) => {
+    if (key === "blockout:advertising-age") {
+      return read.promise;
+    }
+    if (key === "blockout:v2-discovery-complete") {
+      return Promise.resolve("true");
+    }
+    return Promise.resolve(null);
+  });
 
   try {
     // When

@@ -86,6 +86,49 @@ export function SourceChildrenScreen({
     await query.fetchNextPage({ cancelRefetch: false });
   }
 
+  /** Prioritizes current admission and read failures over an empty discovery result. */
+  function renderEmptyState() {
+    if (!authority.enabled) {
+      return (
+        <AccessFeedback
+          {...authority}
+          loadingContent={
+            <ListLoading label="Chargement des groupes découverts" />
+          }
+        />
+      );
+    }
+    if (denied) {
+      return (
+        <ErrorState
+          onRetry={() => void query.refetch({ cancelRefetch: false })}
+          retrying={query.isFetching}
+        />
+      );
+    }
+    if (query.isLoading) {
+      return <ListLoading label="Chargement des groupes découverts" />;
+    }
+    if (query.isError || query.isPending) {
+      return (
+        <ErrorState
+          onRetry={() => void query.refetch({ cancelRefetch: false })}
+          retrying={query.isFetching}
+        />
+      );
+    }
+    return (
+      <EmptyState title="Aucun groupe découvert">
+        <Button
+          label="Actualiser"
+          leadingIcon={RefreshCw}
+          onPress={() => void refresh()}
+          loading={query.isFetching}
+        />
+      </EmptyState>
+    );
+  }
+
   return (
     <Page header={<PageHeader title="Groupes découverts" />}>
       <PageFlatList
@@ -132,37 +175,7 @@ export function SourceChildrenScreen({
           )
         }
         ListEmptyComponent={
-          <FeedbackLayout>
-            {!authority.enabled ? (
-              <AccessFeedback
-                {...authority}
-                loadingContent={
-                  <ListLoading label="Chargement des groupes découverts" />
-                }
-              />
-            ) : denied ? (
-              <ErrorState
-                onRetry={() => void query.refetch({ cancelRefetch: false })}
-                retrying={query.isFetching}
-              />
-            ) : query.isLoading ? (
-              <ListLoading label="Chargement des groupes découverts" />
-            ) : query.isError || query.isPending ? (
-              <ErrorState
-                onRetry={() => void query.refetch({ cancelRefetch: false })}
-                retrying={query.isFetching}
-              />
-            ) : (
-              <EmptyState title="Aucun groupe découvert">
-                <Button
-                  label="Actualiser"
-                  leadingIcon={RefreshCw}
-                  onPress={() => void refresh()}
-                  loading={query.isFetching}
-                />
-              </EmptyState>
-            )}
-          </FeedbackLayout>
+          <FeedbackLayout>{renderEmptyState()}</FeedbackLayout>
         }
         ListFooterComponent={
           <>

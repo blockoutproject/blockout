@@ -115,6 +115,33 @@ function version(
   };
 }
 
+/** Applies the scenario's exact-member withdrawal at the controlled HTTP boundary. */
+function withdrawResponse(parsed: URL, init: RequestInit) {
+  const id = parsed.pathname.split("/").at(-1);
+  if (!id) {
+    throw new Error("Missing synthetic member");
+  }
+  const body = UpdateOwnStreamContributionRequest.parse(
+    JSON.parse(String(init.body)),
+  );
+  patches.push({ id, body });
+  const item = rows.find((row) => row.id === id);
+  if (!item) {
+    throw new Error("Unknown synthetic version");
+  }
+  const changed = {
+    ...item,
+    state: "withdrawn" as const,
+    canWithdraw: false,
+  };
+  rows = rows.map((row) => (row.id === id ? changed : row));
+  context = { ...context, revision: "accepted" };
+  return Response.json({
+    revision: context.revision,
+    contribution: changed,
+  });
+}
+
 beforeEach(() => {
   jest.useFakeTimers();
   client = createQueryClient();
@@ -156,29 +183,7 @@ beforeEach(() => {
     }
     if (parsed.pathname.includes("/stream-contributions")) {
       if (init?.method === "PATCH") {
-        const id = parsed.pathname.split("/").at(-1);
-        if (!id) {
-          throw new Error("Missing synthetic member");
-        }
-        const body = UpdateOwnStreamContributionRequest.parse(
-          JSON.parse(String(init.body)),
-        );
-        patches.push({ id, body });
-        const item = rows.find((row) => row.id === id);
-        if (!item) {
-          throw new Error("Unknown synthetic version");
-        }
-        const changed = {
-          ...item,
-          state: "withdrawn" as const,
-          canWithdraw: false,
-        };
-        rows = rows.map((row) => (row.id === id ? changed : row));
-        context = { ...context, revision: "accepted" };
-        return Response.json({
-          revision: context.revision,
-          contribution: changed,
-        });
+        return withdrawResponse(parsed, init);
       }
       if (failRead) {
         throw new TypeError("Controlled read failure");

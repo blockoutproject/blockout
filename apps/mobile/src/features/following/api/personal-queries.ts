@@ -323,10 +323,11 @@ function retainedSeasonIds(
       if (selection.seasonId) {
         seasons.add(selection.seasonId);
       }
-      for (const page of data?.pages ?? []) {
-        for (const item of page.items) {
-          seasons.add(item.season.id);
-        }
+      const followedSeasonIds = (data?.pages ?? []).flatMap((page) =>
+        page.items.map((item) => item.season.id),
+      );
+      for (const seasonId of followedSeasonIds) {
+        seasons.add(seasonId);
       }
     }
   }
@@ -339,14 +340,12 @@ function retainedSeasonIds(
     if (selection.seasonId) {
       seasons.add(selection.seasonId);
     }
-    for (const page of data?.pages ?? []) {
-      for (const day of page.calendar.days) {
-        for (const pool of day.pools) {
-          for (const match of pool.matches) {
-            seasons.add(match.pool.season.id);
-          }
-        }
-      }
+    const matches = (data?.pages ?? [])
+      .flatMap((page) => page.calendar.days)
+      .flatMap((day) => day.pools)
+      .flatMap((pool) => pool.matches);
+    for (const match of matches) {
+      seasons.add(match.pool.season.id);
     }
   }
   return seasons;

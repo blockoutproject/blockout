@@ -42,22 +42,36 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
   const { colors } = useTheme();
   const ordinary = useOrdinaryRequest();
   const consultation = useConsultationQueries();
-  const logoKey =
-    target.kind === "team"
-      ? getGetTeamLogoQueryKey(target.id)
-      : target.kind === "club"
-        ? getGetClubLogoQueryKey(target.id)
-        : target.kind === "division"
-          ? getGetDivisionLogoQueryKey(target.id)
-          : ["presentation-logo-unavailable", target.kind];
-  const canManage =
-    target.kind === "division-creation"
-      ? permissions?.manageDivisionLifecycle === true
-      : permissions?.manageSportingPresentation === true;
-  const canRead =
-    canManage ||
-    (target.kind === "division" &&
-      permissions?.manageDivisionLifecycle === true);
+
+  /** Selects the exact existing binary cache owner for refresh after a presentation reread. */
+  function getLogoKey() {
+    if (target.kind === "team") {
+      return getGetTeamLogoQueryKey(target.id);
+    } else if (target.kind === "club") {
+      return getGetClubLogoQueryKey(target.id);
+    } else if (target.kind === "division") {
+      return getGetDivisionLogoQueryKey(target.id);
+    } else {
+      return ["presentation-logo-unavailable", target.kind];
+    }
+  }
+
+  const logoKey = getLogoKey();
+
+  /** Keeps permission to read a division distinct from permission to edit its presentation. */
+  function presentationCapabilities() {
+    const canManage =
+      target.kind === "division-creation"
+        ? permissions?.manageDivisionLifecycle === true
+        : permissions?.manageSportingPresentation === true;
+    const canRead =
+      canManage ||
+      (target.kind === "division" &&
+        permissions?.manageDivisionLifecycle === true);
+    return { canManage, canRead };
+  }
+
+  const { canManage, canRead } = presentationCapabilities();
   const editing = usePresentation(target, canRead);
   const presentation =
     sessionStatus === "authenticated" ? editing.query.data : undefined;
@@ -75,13 +89,21 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
       },
     ],
   });
-  const seasonLabel = !publicContextEnabled
-    ? undefined
-    : target.kind === "team" && !teamContext.isError
-      ? teamContext.data?.team.season.label
-      : target.kind === "pool" && !poolContext.isError
-        ? poolContext.data?.pool.season.label
-        : undefined;
+
+  /** Uses optional public season context only after successful admission and its own read. */
+  function getSeasonLabel() {
+    if (!publicContextEnabled) {
+      return undefined;
+    } else if (target.kind === "team" && !teamContext.isError) {
+      return teamContext.data?.team.season.label;
+    } else if (target.kind === "pool" && !poolContext.isError) {
+      return poolContext.data?.pool.season.label;
+    } else {
+      return undefined;
+    }
+  }
+
+  const seasonLabel = getSeasonLabel();
   const supportKind =
     target.kind === "team" || target.kind === "club" || target.kind === "pool"
       ? target.kind
@@ -89,16 +111,23 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
   const pending =
     sessionStatus === "restoring" ||
     (sessionStatus === "authenticated" && account.isLoading);
-  const title =
-    target.kind === "division-creation"
-      ? "Créer une division"
-      : target.kind === "team"
-        ? "Modifier l’équipe"
-        : target.kind === "club"
-          ? "Modifier le club"
-          : target.kind === "pool"
-            ? "Modifier la poule"
-            : "Personnaliser la division";
+
+  /** Names creation separately from editing the addressed sporting resource. */
+  function getTitle() {
+    if (target.kind === "division-creation") {
+      return "Créer une division";
+    } else if (target.kind === "team") {
+      return "Modifier l’équipe";
+    } else if (target.kind === "club") {
+      return "Modifier le club";
+    } else if (target.kind === "pool") {
+      return "Modifier la poule";
+    } else {
+      return "Personnaliser la division";
+    }
+  }
+
+  const title = getTitle();
   const feedback = useActionFeedback();
 
   /** Native refresh rereads current presentation and only its mounted remote logo; a prepared local replacement stays untouched. */
@@ -137,17 +166,28 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
     }
   }
 
-  const accessState = pending ? (
-    <PresentationLoading kind={target.kind} />
-  ) : sessionStatus === "authenticated" &&
-    (account.isError || account.isPending) ? (
-    <ReadFeedback
-      query={account}
-      loadingContent={<PresentationLoading kind={target.kind} />}
-    />
-  ) : !canRead ? (
-    <ErrorState />
-  ) : undefined;
+  /** Keeps session restoration, account read failure and unavailable grants in their existing feedback states. */
+  function getAccessState() {
+    if (pending) {
+      return <PresentationLoading kind={target.kind} />;
+    } else if (
+      sessionStatus === "authenticated" &&
+      (account.isError || account.isPending)
+    ) {
+      return (
+        <ReadFeedback
+          query={account}
+          loadingContent={<PresentationLoading kind={target.kind} />}
+        />
+      );
+    } else if (!canRead) {
+      return <ErrorState />;
+    } else {
+      return undefined;
+    }
+  }
+
+  const accessState = getAccessState();
   const blockingState = !presentation
     ? (accessState ?? (
         <ReadFeedback
@@ -160,6 +200,34 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
     !presentation && (pending || (!accessState && editing.query.isLoading))
       ? PageContent
       : ScreenState;
+
+  /** Keeps loading feedback separate from the retained, current-session editable form. */
+  function renderEditor() {
+    return blockingState ? (
+      <FeedbackLayout>{blockingState}</FeedbackLayout>
+    ) : (
+      <PageContent>
+        {presentation && (
+          <PresentationForm
+            key={`${session.subject}:${target.kind}:${target.id}`}
+            presentation={presentation}
+            target={target}
+            editing={editing}
+            disabled={!canManage || editing.query.isError}
+            seasonLabel={seasonLabel}
+            professionalTeam={
+              publicContextEnabled &&
+              target.kind === "team" &&
+              !teamContext.isError
+                ? teamContext.data?.team.professional
+                : undefined
+            }
+          />
+        )}
+      </PageContent>
+    );
+  }
+
   return (
     <Page
       header={
@@ -202,29 +270,7 @@ export function PresentationScreen({ target }: PresentationScreenProps) {
           ) : undefined
         }
       >
-        {blockingState ? (
-          <FeedbackLayout>{blockingState}</FeedbackLayout>
-        ) : (
-          <PageContent>
-            {presentation && (
-              <PresentationForm
-                key={`${session.subject}:${target.kind}:${target.id}`}
-                presentation={presentation}
-                target={target}
-                editing={editing}
-                disabled={!canManage || editing.query.isError}
-                seasonLabel={seasonLabel}
-                professionalTeam={
-                  publicContextEnabled &&
-                  target.kind === "team" &&
-                  !teamContext.isError
-                    ? teamContext.data?.team.professional
-                    : undefined
-                }
-              />
-            )}
-          </PageContent>
-        )}
+        {renderEditor()}
       </FormScrollView>
     </Page>
   );

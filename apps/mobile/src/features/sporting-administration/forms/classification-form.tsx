@@ -119,24 +119,34 @@ export function ClassificationForm({
         actionFeedback.error();
         return;
       }
-      const conflictIds =
-        error instanceof ApiError &&
-        error.problem &&
-        "conflictingResourceIds" in error.problem
-          ? error.problem.conflictingResourceIds
-          : undefined;
-      const type = error instanceof ApiError ? error.problem?.type : undefined;
-      const reason =
-        type === "urn:blockout:problem:classification-conflict"
-          ? "Correction entièrement refusée : division inactive, participations partagées ou identité d’équipe incompatible. Réduisez le périmètre ou demandez une intervention technique."
-          : type === "urn:blockout:problem:stale-revision"
-            ? "La classification a changé depuis votre lecture. Relisez l’état courant avant de confirmer votre brouillon."
-            : "Le résultat doit être vérifié. Relisez l’état courant avant de réessayer.";
-      editor.update({
-        ...editor.state,
-        feedback: `${reason}${Array.isArray(conflictIds) && conflictIds.length > 0 ? ` Périmètres en conflit : ${conflictIds.join(", ")}.` : ""} Votre brouillon est conservé.`,
-      });
+      showConflict(error);
     }
+  }
+
+  /** Keeps the draft and explains the rejected revision or classification scope. */
+  function showConflict(error: ApiError) {
+    const conflictIds =
+      error instanceof ApiError &&
+      error.problem &&
+      "conflictingResourceIds" in error.problem
+        ? error.problem.conflictingResourceIds
+        : undefined;
+    const type = error instanceof ApiError ? error.problem?.type : undefined;
+    let reason;
+    if (type === "urn:blockout:problem:classification-conflict") {
+      reason =
+        "Correction entièrement refusée : division inactive, participations partagées ou identité d’équipe incompatible. Réduisez le périmètre ou demandez une intervention technique.";
+    } else if (type === "urn:blockout:problem:stale-revision") {
+      reason =
+        "La classification a changé depuis votre lecture. Relisez l’état courant avant de confirmer votre brouillon.";
+    } else {
+      reason =
+        "Le résultat doit être vérifié. Relisez l’état courant avant de réessayer.";
+    }
+    editor.update({
+      ...editor.state,
+      feedback: `${reason}${Array.isArray(conflictIds) && conflictIds.length > 0 ? ` Périmètres en conflit : ${conflictIds.join(", ")}.` : ""} Votre brouillon est conservé.`,
+    });
   }
 
   /** Updates the revision and non-dirty values only after successful reads, without sending a write. */
@@ -319,18 +329,22 @@ function Choice({
       accessibilityState={{ checked: selected, disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.choice,
-        {
-          backgroundColor: selected ? colors.canvas : colors.subtle,
-          borderColor: "transparent",
-          opacity: disabled
-            ? tokens.opacity.disabled
-            : pressed
-              ? tokens.opacity.pressed
-              : 1,
-        },
-      ]}
+      style={({ pressed }) => {
+        let opacity = 1;
+        if (disabled) {
+          opacity = tokens.opacity.disabled;
+        } else if (pressed) {
+          opacity = tokens.opacity.pressed;
+        }
+        return [
+          styles.choice,
+          {
+            backgroundColor: selected ? colors.canvas : colors.subtle,
+            borderColor: "transparent",
+            opacity,
+          },
+        ];
+      }}
     >
       <Text style={[tokens.typography.strong, { color: colors.text }]}>
         {label}

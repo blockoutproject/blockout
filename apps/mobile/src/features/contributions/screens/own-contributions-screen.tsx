@@ -169,17 +169,123 @@ export function OwnContributionsScreen({
     await query.fetchNextPage({ cancelRefetch: false });
   }
 
-  const pending =
-    session.status !== "guest" &&
-    (session.status !== "authenticated"
-      ? session.status === "restoring" || !!session.operation
-      : !editing.profile.data
-        ? editing.profile.isLoading
-        : editing.canRetain &&
-          (!current || !authorized) &&
-          !isOwnContributionAccessDenied(match.error) &&
-          query.isLoading);
+  /** Distinguishes session recovery and profile admission from initial proposal loading. */
+  function isInitialReadPending() {
+    if (session.status !== "authenticated") {
+      return session.status === "restoring" || !!session.operation;
+    }
+    if (!editing.profile.data) {
+      return editing.profile.isLoading;
+    }
+    return (
+      editing.canRetain &&
+      (!current || !authorized) &&
+      !isOwnContributionAccessDenied(match.error) &&
+      query.isLoading
+    );
+  }
+
+  const pending = session.status !== "guest" && isInitialReadPending();
   const FeedbackLayout = pending ? View : ScreenState;
+
+  /** Keeps current-account admission and retained editor feedback in one ordered decision. */
+  function renderEditorContent() {
+    if (session.status === "guest") {
+      return (
+        <FeedbackLayout style={[styles.feedback, styles.centered]}>
+          <Button
+            label="Se connecter"
+            onPress={() =>
+              router.push({
+                pathname: "/sign-in-invitation",
+                params: { reason: "contribution" },
+              })
+            }
+          />
+        </FeedbackLayout>
+      );
+    }
+    if (session.status !== "authenticated") {
+      return (
+        <FeedbackLayout
+          style={pending ? undefined : [styles.feedback, styles.centered]}
+        >
+          {session.status === "restoring" || session.operation ? (
+            <ContributionProposalsLoading />
+          ) : (
+            <Button
+              label="Se connecter"
+              onPress={() => router.push("/sign-in")}
+            />
+          )}
+        </FeedbackLayout>
+      );
+    }
+    if (!editing.profile.data) {
+      return (
+        <FeedbackLayout style={pending ? undefined : styles.feedback}>
+          <ReadFeedback
+            query={editing.profile}
+            loadingContent={<ContributionProposalsLoading />}
+          />
+        </FeedbackLayout>
+      );
+    }
+    if (!editing.canRetain) {
+      return (
+        <FeedbackLayout style={styles.feedback}>
+          <ErrorState
+            onRetry={() => void editing.profile.refetch()}
+            retrying={editing.profile.isFetching}
+          />
+        </FeedbackLayout>
+      );
+    }
+    if (!current || !authorized) {
+      return (
+        <FeedbackLayout style={pending ? undefined : styles.feedback}>
+          {query.isError || isOwnContributionAccessDenied(match.error) ? (
+            <ErrorState
+              onRetry={() => void refresh()}
+              retrying={query.isFetching || match.isFetching}
+            />
+          ) : (
+            <ReadFeedback
+              query={query}
+              loadingContent={<ContributionProposalsLoading />}
+            />
+          )}
+        </FeedbackLayout>
+      );
+    }
+    return (
+      <>
+        {editing.profile.isError && (
+          <Button
+            label="Réessayer le profil"
+            loading={editing.profile.isFetching}
+            onPress={() => void editing.profile.refetch()}
+          />
+        )}
+        {active && (
+          <ContributionForm
+            matchId={matchId}
+            current={current}
+            editing={editing}
+            replacement={active}
+          />
+        )}
+        {!current.eligibility.canSubmit && current.eligibility.reason && (
+          <Text
+            style={[tokens.typography.body, { color: colors.secondaryText }]}
+          >
+            {current.eligibility.reason}
+          </Text>
+        )}
+      </>
+    );
+  }
+
   const content = (
     <Page
       edges={["top", "left", "right"]}
@@ -216,89 +322,7 @@ export function OwnContributionsScreen({
             {authorized && current && match.data && (
               <MatchSummary match={match.data.match} presentation="context" />
             )}
-            {session.status === "guest" ? (
-              <FeedbackLayout style={[styles.feedback, styles.centered]}>
-                <Button
-                  label="Se connecter"
-                  onPress={() =>
-                    router.push({
-                      pathname: "/sign-in-invitation",
-                      params: { reason: "contribution" },
-                    })
-                  }
-                />
-              </FeedbackLayout>
-            ) : session.status !== "authenticated" ? (
-              <FeedbackLayout
-                style={pending ? undefined : [styles.feedback, styles.centered]}
-              >
-                {session.status === "restoring" || session.operation ? (
-                  <ContributionProposalsLoading />
-                ) : (
-                  <Button
-                    label="Se connecter"
-                    onPress={() => router.push("/sign-in")}
-                  />
-                )}
-              </FeedbackLayout>
-            ) : !editing.profile.data ? (
-              <FeedbackLayout style={pending ? undefined : styles.feedback}>
-                <ReadFeedback
-                  query={editing.profile}
-                  loadingContent={<ContributionProposalsLoading />}
-                />
-              </FeedbackLayout>
-            ) : !editing.canRetain ? (
-              <FeedbackLayout style={styles.feedback}>
-                <ErrorState
-                  onRetry={() => void editing.profile.refetch()}
-                  retrying={editing.profile.isFetching}
-                />
-              </FeedbackLayout>
-            ) : !current || !authorized ? (
-              <FeedbackLayout style={pending ? undefined : styles.feedback}>
-                {query.isError || isOwnContributionAccessDenied(match.error) ? (
-                  <ErrorState
-                    onRetry={() => void refresh()}
-                    retrying={query.isFetching || match.isFetching}
-                  />
-                ) : (
-                  <ReadFeedback
-                    query={query}
-                    loadingContent={<ContributionProposalsLoading />}
-                  />
-                )}
-              </FeedbackLayout>
-            ) : (
-              <>
-                {editing.profile.isError && (
-                  <Button
-                    label="Réessayer le profil"
-                    loading={editing.profile.isFetching}
-                    onPress={() => void editing.profile.refetch()}
-                  />
-                )}
-                {active && (
-                  <ContributionForm
-                    matchId={matchId}
-                    current={current}
-                    editing={editing}
-                    replacement={active}
-                  />
-                )}
-                {!current.eligibility.canSubmit &&
-                  current.eligibility.reason && (
-                    <Text
-                      style={[
-                        tokens.typography.body,
-                        { color: colors.secondaryText },
-                      ]}
-                    >
-                      {current.eligibility.reason}
-                    </Text>
-                  )}
-              </>
-            )}
+            {renderEditorContent()}
             <Text
               accessibilityRole="header"
               style={[tokens.typography.heading, { color: colors.text }]}

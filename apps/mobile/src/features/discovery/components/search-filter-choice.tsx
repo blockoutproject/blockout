@@ -43,33 +43,34 @@ export function SearchFilterChoice() {
     gender: "Genre",
   }[field];
   const options = filters ? query.data : undefined;
-  const choices = options
-    ? [
-        {
-          value: undefined,
-          label: field === "seasonId" ? "Toutes les saisons" : "Tout afficher",
-        },
-        ...(field === "seasonId"
-          ? options.seasons.map((season) => ({
-              value: season.id,
-              label: season.label,
-            }))
-          : field === "divisionId"
-            ? options.divisions.map((division) => ({
-                value: division.id,
-                label: division.name,
-              }))
-            : field === "format"
-              ? options.formats.map((format) => ({
-                  value: format,
-                  label: formatLabel(format)!,
-                }))
-              : options.genders.map((gender) => ({
-                  value: gender,
-                  label: sportingGenderLabels[gender],
-                }))),
-      ]
-    : [];
+  let choices: { value: string | undefined; label: string }[] = [];
+  if (options) {
+    const available = {
+      seasonId: options.seasons.map((season) => ({
+        value: season.id,
+        label: season.label,
+      })),
+      divisionId: options.divisions.map((division) => ({
+        value: division.id,
+        label: division.name,
+      })),
+      format: options.formats.map((format) => ({
+        value: format,
+        label: formatLabel(format)!,
+      })),
+      gender: options.genders.map((gender) => ({
+        value: gender,
+        label: sportingGenderLabels[gender],
+      })),
+    };
+    choices = [
+      {
+        value: undefined,
+        label: field === "seasonId" ? "Toutes les saisons" : "Tout afficher",
+      },
+      ...available[field],
+    ];
+  }
   return (
     <Sheet title={title} onClose={() => router.back()}>
       {!options && (

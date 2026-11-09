@@ -31,6 +31,7 @@ export function ModerationMatchContext({
   const schedule = match.schedule
     ? formatSportingSchedule(match.schedule)
     : undefined;
+  const scheduleSeparator = match.schedule?.instant ? " à " : "\n";
   return (
     <MatchSurface division={division}>
       <View
@@ -79,7 +80,7 @@ export function ModerationMatchContext({
           style={[tokens.typography.metadata, { color: colors.secondaryText }]}
         >
           {schedule
-            ? `${schedule.date}${match.schedule?.instant ? " à " : "\n"}${schedule.time}`
+            ? `${schedule.date}${scheduleSeparator}${schedule.time}`
             : "Date indisponible"}
         </Text>
         {[

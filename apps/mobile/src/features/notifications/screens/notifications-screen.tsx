@@ -50,6 +50,19 @@ export function NotificationsScreen() {
     session.status === "signing-out" ||
     (authenticated && account.isLoading);
   const FeedbackLayout = pending ? PageContent : ScreenState;
+  let feedback = (
+    <ErrorState
+      onRetry={() => void account.refetch()}
+      retrying={account.isFetching}
+    />
+  );
+  if (!authenticated) {
+    feedback = (
+      <AccountSessionFeedback loadingContent={<NotificationLoading />} />
+    );
+  } else if (pending) {
+    feedback = <NotificationLoading />;
+  }
   if (!authority.queries) {
     return (
       <Page
@@ -57,20 +70,7 @@ export function NotificationsScreen() {
         header={<PageHeader title="Notifications" />}
       >
         <PageScrollView>
-          <FeedbackLayout>
-            {!authenticated ? (
-              <AccountSessionFeedback
-                loadingContent={<NotificationLoading />}
-              />
-            ) : pending ? (
-              <NotificationLoading />
-            ) : (
-              <ErrorState
-                onRetry={() => void account.refetch()}
-                retrying={account.isFetching}
-              />
-            )}
-          </FeedbackLayout>
+          <FeedbackLayout>{feedback}</FeedbackLayout>
         </PageScrollView>
       </Page>
     );
@@ -173,6 +173,49 @@ function Inbox({
     void sporting.navigate("match", matchId, reportFailure);
   }
 
+  /** Presents the list's empty state without changing Query ownership or starting reads. */
+  function emptyContent() {
+    if (query.isLoading) {
+      return (
+        <PageContent>
+          <NotificationLoading />
+        </PageContent>
+      );
+    }
+    if (query.isError) {
+      return (
+        <ScreenState>
+          <ErrorState
+            onRetry={() => void refresh()}
+            retrying={query.isFetching}
+          />
+        </ScreenState>
+      );
+    }
+    if (query.data) {
+      return (
+        <ScreenState>
+          <EmptyState
+            title="Aucune notification pour le moment"
+            description="Les nouvelles de vos équipes et poules suivies apparaîtront ici."
+          >
+            <Button
+              label="Actualiser"
+              leadingIcon={RefreshCw}
+              onPress={() => void refresh()}
+              loading={query.isFetching}
+            />
+          </EmptyState>
+        </ScreenState>
+      );
+    }
+    return (
+      <ScreenState>
+        <ReadFeedback query={query} loadingContent={<NotificationLoading />} />
+      </ScreenState>
+    );
+  }
+
   return (
     <Page
       edges={["top", "left", "right"]}
@@ -207,41 +250,7 @@ function Inbox({
             <DataRefreshControl onRefresh={refresh} />
           ) : undefined
         }
-        ListEmptyComponent={
-          query.isLoading ? (
-            <PageContent>
-              <NotificationLoading />
-            </PageContent>
-          ) : query.isError ? (
-            <ScreenState>
-              <ErrorState
-                onRetry={() => void refresh()}
-                retrying={query.isFetching}
-              />
-            </ScreenState>
-          ) : query.data ? (
-            <ScreenState>
-              <EmptyState
-                title="Aucune notification pour le moment"
-                description="Les nouvelles de vos équipes et poules suivies apparaîtront ici."
-              >
-                <Button
-                  label="Actualiser"
-                  leadingIcon={RefreshCw}
-                  onPress={() => void refresh()}
-                  loading={query.isFetching}
-                />
-              </EmptyState>
-            </ScreenState>
-          ) : (
-            <ScreenState>
-              <ReadFeedback
-                query={query}
-                loadingContent={<NotificationLoading />}
-              />
-            </ScreenState>
-          )
-        }
+        ListEmptyComponent={emptyContent()}
         ListFooterComponent={
           <>
             {(query.isFetchingNextPage ||

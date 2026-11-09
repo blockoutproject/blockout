@@ -1,3 +1,4 @@
+import { controlOpacity } from "./control-styles";
 import { Image } from "expo-image";
 import { UserRound } from "lucide-react-native";
 import { useState } from "react";
@@ -91,6 +92,8 @@ export function SingleImageField({
     setPreviewUri(undefined);
   }
 
+  const showPreview =
+    !!visibleImage && previewUri === visibleImage.uri && !disabled;
   const mediaStyle = [
     styles.media,
     {
@@ -120,41 +123,12 @@ export function SingleImageField({
           />
         </Pressable>
       ) : (
-        <View
-          accessibilityRole={loading ? "progressbar" : "image"}
-          accessibilityLabel={
-            loading
-              ? appearance === "photo"
-                ? "Chargement de la photo"
-                : "Chargement du logo"
-              : hasImage
-                ? `${label} indisponible`
-                : appearance === "photo"
-                  ? "Aucune photo de profil"
-                  : "Aucun logo"
-          }
-          accessibilityState={{ busy: loading }}
-          accessible
-          style={mediaStyle}
-        >
-          {loading ? (
-            <View
-              accessible={false}
-              style={[styles.image, { backgroundColor: colors.skeleton }]}
-            />
-          ) : appearance === "photo" ? (
-            <UserRound
-              accessible={false}
-              size={tokens.size.control.compact}
-              color={colors.secondaryText}
-            />
-          ) : (
-            <ImageFallback
-              size={tokens.size.control.compact}
-              color={colors.secondaryText}
-            />
-          )}
-        </View>
+        <SingleImagePlaceholder
+          label={label}
+          appearance={appearance}
+          loading={loading}
+          hasImage={hasImage}
+        />
       )}
       <Pressable
         accessibilityRole="button"
@@ -170,11 +144,7 @@ export function SingleImageField({
         style={({ pressed }) => [
           styles.entry,
           {
-            opacity: unavailable
-              ? tokens.opacity.disabled
-              : pressed
-                ? tokens.opacity.pressed
-                : 1,
+            opacity: controlOpacity(unavailable, pressed),
           },
         ]}
       >
@@ -189,12 +159,12 @@ export function SingleImageField({
       </Pressable>
       <FieldMessage error={error} />
       <Modal
-        visible={!!visibleImage && previewUri === visibleImage.uri && !disabled}
+        visible={showPreview}
         presentationStyle="fullScreen"
         animationType="none"
         onRequestClose={() => setPreviewUri(undefined)}
       >
-        {visibleImage && previewUri === visibleImage.uri && !disabled && (
+        {showPreview && (
           <SafeAreaProvider>
             <ImagePreview
               key={`${visibleImage.id}:${visibleImage.uri}`}
@@ -204,6 +174,60 @@ export function SingleImageField({
           </SafeAreaProvider>
         )}
       </Modal>
+    </View>
+  );
+}
+
+/** Keeps missing, withdrawn and loading media distinct without owning selection or the viewer. */
+function SingleImagePlaceholder({
+  label,
+  appearance,
+  loading,
+  hasImage,
+}: Pick<
+  SingleImageFieldProps,
+  "label" | "appearance" | "loading" | "hasImage"
+>) {
+  const { colors } = useTheme();
+  let accessibilityLabel =
+    appearance === "photo" ? "Aucune photo de profil" : "Aucun logo";
+  if (loading) {
+    accessibilityLabel =
+      appearance === "photo" ? "Chargement de la photo" : "Chargement du logo";
+  } else if (hasImage) {
+    accessibilityLabel = `${label} indisponible`;
+  }
+  let content = (
+    <ImageFallback
+      size={tokens.size.control.compact}
+      color={colors.secondaryText}
+    />
+  );
+  if (loading) {
+    content = (
+      <View
+        accessible={false}
+        style={[styles.image, { backgroundColor: colors.skeleton }]}
+      />
+    );
+  } else if (appearance === "photo") {
+    content = (
+      <UserRound
+        accessible={false}
+        size={tokens.size.control.compact}
+        color={colors.secondaryText}
+      />
+    );
+  }
+  return (
+    <View
+      accessibilityRole={loading ? "progressbar" : "image"}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ busy: loading }}
+      accessible
+      style={[styles.media, { backgroundColor: colors.mediaPlaceholder }]}
+    >
+      {content}
     </View>
   );
 }

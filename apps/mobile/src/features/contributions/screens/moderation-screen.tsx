@@ -61,12 +61,19 @@ export function ModerationScreen({ filters }: ModerationScreenProps) {
     tokens.size.control.default,
     tokens.typography.body.lineHeight * fontScale + tokens.spacing.md * 2,
   );
-  const selected =
-    !filters.state || filters.state === "to-review"
-      ? "to-review"
-      : filters.state === "active"
-        ? "active"
-        : "all";
+
+  /** Maps a committed queue filter to its supported moderation state criterion. */
+  function initialStateFilter() {
+    if (!filters.state || filters.state === "to-review") {
+      return "to-review";
+    }
+    if (filters.state === "active") {
+      return "active";
+    }
+    return "all";
+  }
+
+  const selected = initialStateFilter();
   const specificState =
     filters.state && !["to-review", "active", "all"].includes(filters.state)
       ? filters.state
@@ -284,6 +291,47 @@ function QueueScene({
     );
   }
   if (rows.length === 0) {
+    /** Recovers private queue admission before showing its empty state. */
+    function renderEmptyState() {
+      if (editing.session.status !== "authenticated") {
+        return (
+          <AccountSessionFeedback loadingContent={<ModerationQueueLoading />} />
+        );
+      }
+      if (!editing.canRetain && editing.profile.isSuccess) {
+        return (
+          <Text style={[tokens.typography.body, { color: colors.text }]}>
+            La modération des liens vidéo n’est pas autorisée.
+          </Text>
+        );
+      }
+      if (!current || query.isError) {
+        return (
+          <ReadFeedback
+            loadingContent={<ModerationQueueLoading />}
+            query={
+              editing.profile.isError || editing.profile.isPending
+                ? editing.profile
+                : query
+            }
+          />
+        );
+      }
+      return (
+        <EmptyState
+          title="Aucun lien à traiter"
+          description="Aucun match ne correspond à cette sélection."
+        >
+          <Button
+            label="Actualiser"
+            leadingIcon={RefreshCw}
+            onPress={() => void refresh()}
+            loading={refreshing}
+          />
+        </EmptyState>
+      );
+    }
+
     return (
       <PageScrollView
         key={criteria}
@@ -300,36 +348,7 @@ function QueueScene({
               : undefined
           }
         >
-          {editing.session.status !== "authenticated" ? (
-            <AccountSessionFeedback
-              loadingContent={<ModerationQueueLoading />}
-            />
-          ) : !editing.canRetain && editing.profile.isSuccess ? (
-            <Text style={[tokens.typography.body, { color: colors.text }]}>
-              La modération des liens vidéo n’est pas autorisée.
-            </Text>
-          ) : !current || query.isError ? (
-            <ReadFeedback
-              loadingContent={<ModerationQueueLoading />}
-              query={
-                editing.profile.isError || editing.profile.isPending
-                  ? editing.profile
-                  : query
-              }
-            />
-          ) : (
-            <EmptyState
-              title="Aucun lien à traiter"
-              description="Aucun match ne correspond à cette sélection."
-            >
-              <Button
-                label="Actualiser"
-                leadingIcon={RefreshCw}
-                onPress={() => void refresh()}
-                loading={refreshing}
-              />
-            </EmptyState>
-          )}
+          {renderEmptyState()}
         </ScreenState>
       </PageScrollView>
     );

@@ -504,13 +504,15 @@ it("withholds initial member entry and preserves a direct Match through help and
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   const firstRead = Promise.withResolvers<Response>();
   let accountRead = firstRead.promise;
-  mockFetch.mockImplementation(async (url) =>
-    String(url).endsWith("/accounts/me")
-      ? accountRead
-      : String(url).endsWith("/notifications/summary")
-        ? json({ unreadCount: 0 })
-        : json(applicationAccessResponse()),
-  );
+  mockFetch.mockImplementation(async (url) => {
+    if (String(url).endsWith("/accounts/me")) {
+      return accountRead;
+    }
+    if (String(url).endsWith("/notifications/summary")) {
+      return json({ unreadCount: 0 });
+    }
+    return json(applicationAccessResponse());
+  });
   const user = userEvent.setup();
   const matchId = "00000000-0000-4000-8000-000000000745";
 
@@ -631,15 +633,18 @@ it("retains an admitted Match after a technical account reread failure", async (
     return { remove: () => listeners.delete(listener) };
   });
   let accountUnavailable = false;
-  mockFetch.mockImplementation(async (url) =>
-    String(url).endsWith("/accounts/me")
-      ? accountUnavailable
-        ? new Response(null, { status: 503 })
-        : json(operator)
-      : String(url).endsWith("/notifications/summary")
-        ? json({ unreadCount: 0 })
-        : json(applicationAccessResponse()),
-  );
+  mockFetch.mockImplementation(async (url) => {
+    if (String(url).endsWith("/accounts/me")) {
+      if (accountUnavailable) {
+        return new Response(null, { status: 503 });
+      }
+      return json(operator);
+    }
+    if (String(url).endsWith("/notifications/summary")) {
+      return json({ unreadCount: 0 });
+    }
+    return json(applicationAccessResponse());
+  });
   const matchId = "00000000-0000-4000-8000-000000000745";
   await openRoute(`/matches/${matchId}`);
   await screen.findByText(`Match destination ${matchId}`);
@@ -670,15 +675,18 @@ it("retries an HTTP 401 account read without interpreting it as SDK reauthentica
   // Given
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   let accountUnauthorized = true;
-  mockFetch.mockImplementation(async (url) =>
-    String(url).endsWith("/accounts/me")
-      ? accountUnauthorized
-        ? new Response(null, { status: 401 })
-        : json(operator)
-      : String(url).endsWith("/notifications/summary")
-        ? json({ unreadCount: 0 })
-        : json(applicationAccessResponse()),
-  );
+  mockFetch.mockImplementation(async (url) => {
+    if (String(url).endsWith("/accounts/me")) {
+      if (accountUnauthorized) {
+        return new Response(null, { status: 401 });
+      }
+      return json(operator);
+    }
+    if (String(url).endsWith("/notifications/summary")) {
+      return json({ unreadCount: 0 });
+    }
+    return json(applicationAccessResponse());
+  });
   const user = userEvent.setup();
   await openRoute("/");
 

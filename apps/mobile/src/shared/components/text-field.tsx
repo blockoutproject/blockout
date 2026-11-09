@@ -1,3 +1,4 @@
+import { fieldBorderColor } from "./control-styles";
 import { useState, type Ref } from "react";
 import {
   StyleSheet,
@@ -65,11 +66,7 @@ export function TextField({
           {
             color: colors.text,
             backgroundColor: colors.raised,
-            borderColor: error
-              ? colors.error
-              : focused
-                ? colors.focus
-                : colors.border,
+            borderColor: fieldBorderColor(colors, error, focused),
           },
           style,
         ]}

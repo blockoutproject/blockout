@@ -50,16 +50,20 @@ beforeEach(() => {
   jest.clearAllMocks();
   output.size = 12_273_912;
   original.copy.mockReset().mockResolvedValue(undefined);
-  jest
-    .mocked(File)
-    .mockImplementation(
-      (...parts) =>
-        (parts.length === 2
-          ? copy
-          : parts[0] === original.uri
-            ? original
-            : output) as unknown as File,
-    );
+  jest.mocked(File).mockImplementation((...parts) => {
+    /** Distinguishes the copied destination, borrowed original and prepared output in the native file double. */
+    function selectedFile() {
+      if (parts.length === 2) {
+        return copy;
+      }
+      if (parts[0] === original.uri) {
+        return original;
+      }
+      return output;
+    }
+
+    return selectedFile() as unknown as File;
+  });
   jest
     .mocked(ImageManipulator.manipulate)
     .mockReturnValue(

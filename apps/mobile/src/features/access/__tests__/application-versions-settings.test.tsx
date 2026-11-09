@@ -253,11 +253,15 @@ it("saves independent iOS and Android edits atomically under one revision", asyn
     initial.android.storeUrl + "&hl=fr",
   );
   const response = Promise.withResolvers<Response>();
-  mockFetch.mockImplementation(async (url, options) =>
-    options?.method === "PATCH"
-      ? response.promise
-      : json(String(url).endsWith("/accounts/me") ? account : stored),
-  );
+  mockFetch.mockImplementation(async (url, options) => {
+    if (options?.method === "PATCH") {
+      return response.promise;
+    }
+    if (String(url).endsWith("/accounts/me")) {
+      return json(account);
+    }
+    return json(stored);
+  });
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
@@ -462,18 +466,22 @@ it.each([403, 422])(
     await screen.findByDisplayValue(initial.message);
     await user.clear(screen.getByLabelText("Message commun"));
     await user.type(screen.getByLabelText("Message commun"), "Mon brouillon");
-    mockFetch.mockImplementation(async (url, options) =>
-      options?.method === "PATCH"
-        ? json(
-            {
-              type: "urn:blockout:problem:forbidden",
-              title: "Refused",
-              status,
-            },
+    mockFetch.mockImplementation(async (url, options) => {
+      if (options?.method === "PATCH") {
+        return json(
+          {
+            type: "urn:blockout:problem:forbidden",
+            title: "Refused",
             status,
-          )
-        : json(String(url).endsWith("/accounts/me") ? account : stored),
-    );
+          },
+          status,
+        );
+      }
+      if (String(url).endsWith("/accounts/me")) {
+        return json(account);
+      }
+      return json(stored);
+    });
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
@@ -656,35 +664,38 @@ it.each([
     if (!accountQuery) {
       throw new Error("The real current-account query is missing");
     }
-    mockFetch.mockImplementation(async (url, options) =>
-      options?.method === "PATCH"
-        ? json(
-            {
-              type: "urn:blockout:problem:forbidden",
-              title: "Forbidden",
-              status: 403,
+    mockFetch.mockImplementation(async (url, options) => {
+      if (options?.method === "PATCH") {
+        return json(
+          {
+            type: "urn:blockout:problem:forbidden",
+            title: "Forbidden",
+            status: 403,
+          },
+          403,
+        );
+      }
+      if (String(url).endsWith("/accounts/me")) {
+        if (outcome === "revoked") {
+          return json({
+            ...account,
+            permissions: {
+              manageMaintenance: true,
+              bypassMaintenance: true,
             },
-            403,
-          )
-        : String(url).endsWith("/accounts/me")
-          ? outcome === "revoked"
-            ? json({
-                ...account,
-                permissions: {
-                  manageMaintenance: true,
-                  bypassMaintenance: true,
-                },
-              })
-            : json(
-                {
-                  type: "urn:blockout:problem:unavailable",
-                  title: "Unavailable",
-                  status: 503,
-                },
-                503,
-              )
-          : json(stored),
-    );
+          });
+        }
+        return json(
+          {
+            type: "urn:blockout:problem:unavailable",
+            title: "Unavailable",
+            status: 503,
+          },
+          503,
+        );
+      }
+      return json(stored);
+    });
 
     // When
     await act(async () =>

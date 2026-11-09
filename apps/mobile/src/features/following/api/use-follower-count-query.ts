@@ -39,6 +39,41 @@ export function useFollowerCountQuery(target: FollowingTarget) {
       if (!admission.admitted || (admission.bypass && !owner)) {
         throw new ApiError("cancelled");
       }
+
+      /** Withdraws the refused count and current-owner dependencies while the source signal is still attributable. */
+      async function cleanUpRefusedCount(error: ApiError) {
+        // Start detail invalidation while its source signal is valid, then withdraw the count
+        // before dependent reads can unmount it. No count write follows the awaited cleanup.
+        const targetRejection =
+          error.status === 404
+            ? rejectTarget(context, target.type, target.id, error)
+            : undefined;
+        const countWithdrawal = withdrawRefusedFollowingQuery(
+          client,
+          queryKey,
+          error,
+        );
+        if (error.status === 404) {
+          const account = client.getQueryData<AccountResponse>(
+            getGetMyAccountQueryKey(),
+          );
+          const original = captureFollowingOwner({
+            ...session,
+            accountId: account?.accountId ?? session.accountId,
+          });
+          if (original) {
+            await restrictFollowTarget(client, original, target, error);
+            await removeUnavailableFollowTarget(
+              client,
+              original,
+              Boolean(admission.bypass),
+              target,
+            );
+          }
+        }
+        await Promise.all([countWithdrawal, targetRejection]);
+      }
+
       try {
         let headers: Record<string, string> | undefined;
         if (admission.bypass) {
@@ -61,36 +96,7 @@ export function useFollowerCountQuery(target: FollowingTarget) {
           error instanceof ApiError &&
           (isAccessDenied(error) || isFollowRestriction(error))
         ) {
-          // Start detail invalidation while its source signal is valid, then withdraw the count
-          // before dependent reads can unmount it. No count write follows the awaited cleanup.
-          const targetRejection =
-            error.status === 404
-              ? rejectTarget(context, target.type, target.id, error)
-              : undefined;
-          const countWithdrawal = withdrawRefusedFollowingQuery(
-            client,
-            queryKey,
-            error,
-          );
-          if (error.status === 404) {
-            const account = client.getQueryData<AccountResponse>(
-              getGetMyAccountQueryKey(),
-            );
-            const original = captureFollowingOwner({
-              ...session,
-              accountId: account?.accountId ?? session.accountId,
-            });
-            if (original) {
-              await restrictFollowTarget(client, original, target, error);
-              await removeUnavailableFollowTarget(
-                client,
-                original,
-                Boolean(admission.bypass),
-                target,
-              );
-            }
-          }
-          await Promise.all([countWithdrawal, targetRejection]);
+          await cleanUpRefusedCount(error);
         }
         throw error;
       }

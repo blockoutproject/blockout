@@ -119,16 +119,20 @@ export function InformationRow({
           onPress={onPress}
           disabled={pending}
           accessibilityState={{ disabled: pending, busy: pending }}
-          style={({ pressed }) => [
-            styles.informationRow,
-            {
-              opacity: pending
-                ? tokens.opacity.disabled
-                : pressed
-                  ? tokens.opacity.pressed
-                  : 1,
-            },
-          ]}
+          style={({ pressed }) => {
+            let opacity = 1;
+            if (pending) {
+              opacity = tokens.opacity.disabled;
+            } else if (pressed) {
+              opacity = tokens.opacity.pressed;
+            }
+            return [
+              styles.informationRow,
+              {
+                opacity,
+              },
+            ];
+          }}
         >
           {content}
         </Pressable>
@@ -158,6 +162,52 @@ function ContactHandoff({
   icon: Icon,
   presentation = "contact",
 }: ContactLinkProps) {
+  /** Preserves informational rows and optional native links while opening remains owned by the handoff. */
+  function renderContact() {
+    if (presentation === "information") {
+      return (
+        <InformationRow
+          label={label}
+          value={value ?? "-"}
+          icon={Icon}
+          onPress={destination ? handoff.open : undefined}
+          pending={handoff.pending}
+        />
+      );
+    }
+    if (destination) {
+      return (
+        <Pressable
+          accessibilityRole="link"
+          accessibilityLabel={`${label} : ${value}`}
+          onPress={handoff.open}
+          disabled={handoff.pending}
+          accessibilityState={{
+            disabled: handoff.pending,
+            busy: handoff.pending,
+          }}
+          style={({ pressed }) => {
+            let opacity = 1;
+            if (handoff.pending) {
+              opacity = tokens.opacity.disabled;
+            } else if (pressed) {
+              opacity = tokens.opacity.pressed;
+            }
+            return [
+              styles.row,
+              {
+                opacity,
+              },
+            ];
+          }}
+        >
+          {content}
+        </Pressable>
+      );
+    }
+    return <View style={styles.row}>{content}</View>;
+  }
+
   const { colors } = useTheme();
   const handoff = useNativeHandoff(destination);
   const content = (
@@ -193,44 +243,7 @@ function ContactHandoff({
       )}
     </>
   );
-  return (
-    <View>
-      {presentation === "information" ? (
-        <InformationRow
-          label={label}
-          value={value ?? "-"}
-          icon={Icon}
-          onPress={destination ? handoff.open : undefined}
-          pending={handoff.pending}
-        />
-      ) : destination ? (
-        <Pressable
-          accessibilityRole="link"
-          accessibilityLabel={`${label} : ${value}`}
-          onPress={handoff.open}
-          disabled={handoff.pending}
-          accessibilityState={{
-            disabled: handoff.pending,
-            busy: handoff.pending,
-          }}
-          style={({ pressed }) => [
-            styles.row,
-            {
-              opacity: handoff.pending
-                ? tokens.opacity.disabled
-                : pressed
-                  ? tokens.opacity.pressed
-                  : 1,
-            },
-          ]}
-        >
-          {content}
-        </Pressable>
-      ) : (
-        <View style={styles.row}>{content}</View>
-      )}
-    </View>
-  );
+  return <View>{renderContact()}</View>;
 }
 
 const styles = StyleSheet.create({

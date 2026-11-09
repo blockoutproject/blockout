@@ -81,14 +81,16 @@ function StandingCard({
 }: StandingCardProps) {
   const sporting = useSportingNavigation(active);
   const { colors } = useTheme();
-  const rank =
-    row.position === 1
-      ? { fill: colors.rank.first, content: colors.rank.firstContent }
-      : row.position === 2
-        ? { fill: colors.rank.second, content: colors.rank.secondContent }
-        : row.position === 3
-          ? { fill: colors.rank.third, content: colors.rank.thirdContent }
-          : { fill: colors.rank.neutral, content: colors.text };
+  let rank: { fill: string; content: string };
+  if (row.position === 1) {
+    rank = { fill: colors.rank.first, content: colors.rank.firstContent };
+  } else if (row.position === 2) {
+    rank = { fill: colors.rank.second, content: colors.rank.secondContent };
+  } else if (row.position === 3) {
+    rank = { fill: colors.rank.third, content: colors.rank.thirdContent };
+  } else {
+    rank = { fill: colors.rank.neutral, content: colors.text };
+  }
   const label = [
     row.sourceName,
     row.position === undefined ? "Rang non renseigné" : `Rang ${row.position}`,
@@ -100,13 +102,18 @@ function StandingCard({
   ].join(". ");
   const points = standingPointsColumn(columns);
   const statistics = columns.filter((column) => column !== points);
-  const minHeight = podium
-    ? row.position === 1
-      ? tokens.sporting.standingsCard.firstMinHeight
-      : row.position === 2
-        ? tokens.sporting.standingsCard.secondMinHeight
-        : tokens.sporting.standingsCard.thirdMinHeight
-    : tokens.sporting.standingsCard.rowMinHeight;
+  let minHeight: number;
+  if (podium) {
+    if (row.position === 1) {
+      minHeight = tokens.sporting.standingsCard.firstMinHeight;
+    } else if (row.position === 2) {
+      minHeight = tokens.sporting.standingsCard.secondMinHeight;
+    } else {
+      minHeight = tokens.sporting.standingsCard.thirdMinHeight;
+    }
+  } else {
+    minHeight = tokens.sporting.standingsCard.rowMinHeight;
+  }
 
   /** The image owner supplies both decoded layers, keeping card placement separate from media state. */
   function renderCard(logo?: ReactNode, atmosphere?: ReactNode) {

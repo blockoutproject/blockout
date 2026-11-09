@@ -69,27 +69,40 @@ export function ProviderSourcesScreen({
         !sources.isError &&
         (season.isLoading || sources.isLoading));
   const FeedbackLayout = pending ? PageContent : ScreenState;
-  const blockingState = !retained ? (
-    !authority.enabled ? (
-      <AccessFeedback
-        {...authority}
-        loadingContent={<ProviderPreparationLoading />}
-      />
-    ) : season.isError || sources.isError ? (
-      <ErrorState
-        onRetry={() => {
-          void season.refetch();
-          void sources.refetch();
-        }}
-        retrying={season.isFetching || sources.isFetching}
-      />
-    ) : (
-      <ReadFeedback
-        query={!season.data ? season : sources}
-        loadingContent={<ProviderPreparationLoading />}
-      />
-    )
-  ) : undefined;
+
+  /** Keeps the retained provider form mounted while first reads resolve admission. */
+  function renderBlockingState() {
+    if (!retained) {
+      if (!authority.enabled) {
+        return (
+          <AccessFeedback
+            {...authority}
+            loadingContent={<ProviderPreparationLoading />}
+          />
+        );
+      }
+      if (season.isError || sources.isError) {
+        return (
+          <ErrorState
+            onRetry={() => {
+              void season.refetch();
+              void sources.refetch();
+            }}
+            retrying={season.isFetching || sources.isFetching}
+          />
+        );
+      }
+      return (
+        <ReadFeedback
+          query={!season.data ? season : sources}
+          loadingContent={<ProviderPreparationLoading />}
+        />
+      );
+    }
+    return undefined;
+  }
+
+  const blockingState = renderBlockingState();
   return (
     <Page header={<PageHeader title={provider === "lnv" ? "LNV" : "FFVB"} />}>
       <FormScrollView

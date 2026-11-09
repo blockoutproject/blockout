@@ -65,36 +65,46 @@ function AgeBackdrop() {
 export function AgeDeclarationScreen() {
   const { colors } = useTheme();
   const age = useAgeDeclaration();
+
+  /** Waits for installation storage before mounting the ready declaration form. */
+  function renderContent() {
+    if (age.loading) {
+      return (
+        <PageContent>
+          <AgeLoading />
+        </PageContent>
+      );
+    }
+    if (age.readFailed) {
+      return (
+        <ScreenState>
+          <ErrorState onRetry={age.retryRead} />
+        </ScreenState>
+      );
+    }
+    return (
+      <View style={styles.stage}>
+        <AgeBackdrop />
+        <Surface>
+          <View style={styles.form}>
+            <Text
+              accessibilityRole="header"
+              style={[tokens.typography.headingXl, { color: colors.text }]}
+            >
+              {age.renewal
+                ? "Quel âge avez-vous aujourd’hui ?"
+                : "Quel est votre âge ?"}
+            </Text>
+            <AgeForm pending={age.pending} onSubmit={age.confirm} />
+          </View>
+        </Surface>
+      </View>
+    );
+  }
+
   return (
     <Page header={<BrandHeader />}>
-      <PageScrollView>
-        {age.loading ? (
-          <PageContent>
-            <AgeLoading />
-          </PageContent>
-        ) : age.readFailed ? (
-          <ScreenState>
-            <ErrorState onRetry={age.retryRead} />
-          </ScreenState>
-        ) : (
-          <View style={styles.stage}>
-            <AgeBackdrop />
-            <Surface>
-              <View style={styles.form}>
-                <Text
-                  accessibilityRole="header"
-                  style={[tokens.typography.headingXl, { color: colors.text }]}
-                >
-                  {age.renewal
-                    ? "Quel âge avez-vous aujourd’hui ?"
-                    : "Quel est votre âge ?"}
-                </Text>
-                <AgeForm pending={age.pending} onSubmit={age.confirm} />
-              </View>
-            </Surface>
-          </View>
-        )}
-      </PageScrollView>
+      <PageScrollView>{renderContent()}</PageScrollView>
     </Page>
   );
 }

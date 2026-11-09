@@ -477,6 +477,14 @@ it.each(["contributed", "professional", "absent"])(
   "accepts the public %s stream projection without private attribution",
   async (kind) => {
     // Given: link/ID pairing is the producer's business invariant, not a generated cross-field check.
+    let streamProjection = {};
+    if (kind === "contributed") {
+      streamProjection = { streamUrl: version.url, streamContributionId: id };
+    } else if (kind === "professional") {
+      streamProjection = {
+        streamUrl: "https://professional.example.invalid/watch",
+      };
+    }
     const body = {
       match: {
         id,
@@ -491,11 +499,7 @@ it.each(["contributed", "professional", "absent"])(
         category: "upcoming",
       },
       documents: [],
-      ...(kind === "contributed"
-        ? { streamUrl: version.url, streamContributionId: id }
-        : kind === "professional"
-          ? { streamUrl: "https://professional.example.invalid/watch" }
-          : {}),
+      ...streamProjection,
     };
     mockFetch.mockResolvedValue(
       new Response(JSON.stringify(body), {

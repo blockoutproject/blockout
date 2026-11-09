@@ -1275,16 +1275,15 @@ it("deletes the replaced profile copy while preserving the new draft", async () 
     exists: true,
     delete: jest.fn(),
   });
-  jest
-    .mocked(File)
-    .mockImplementation(
-      (...parts) =>
-        (String(parts[0]).startsWith("file:///cache/ImagePicker/")
-          ? mockPickedFile
-          : parts[0] === replacement.uri
-            ? replacement
-            : mockFile) as unknown as File,
-    );
+  jest.mocked(File).mockImplementation((...parts) => {
+    if (String(parts[0]).startsWith("file:///cache/ImagePicker/")) {
+      return mockPickedFile as unknown as File;
+    }
+    if (parts[0] === replacement.uri) {
+      return replacement as unknown as File;
+    }
+    return mockFile as unknown as File;
+  });
   mockImage.saveAsync
     .mockResolvedValueOnce({ uri: mockFile.uri, width: 64, height: 64 })
     .mockResolvedValueOnce({ uri: replacement.uri, width: 64, height: 64 });

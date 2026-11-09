@@ -8,13 +8,15 @@ export function supportDeviceContext(): SupportContextRequest {
   if (Platform.OS === "ios" || Platform.OS === "android") {
     context.platform = Platform.OS;
   }
-  const version =
-    Platform.OS === "android"
-      ? Platform.constants.Release
-      : typeof Platform.Version === "string" ||
-          typeof Platform.Version === "number"
-        ? String(Platform.Version)
-        : undefined;
+  let version: string | undefined;
+  if (Platform.OS === "android") {
+    version = Platform.constants.Release;
+  } else if (
+    typeof Platform.Version === "string" ||
+    typeof Platform.Version === "number"
+  ) {
+    version = String(Platform.Version);
+  }
   if (usefulText(nativeApplicationVersion)) {
     context.appVersion = nativeApplicationVersion;
   }

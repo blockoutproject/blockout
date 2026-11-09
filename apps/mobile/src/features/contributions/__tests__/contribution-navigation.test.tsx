@@ -247,13 +247,14 @@ it.each([
       },
       { initialUrl: "/" },
     );
+    let entryLabel = "Proposer un lien";
+    if (state === "active") {
+      entryLabel = "Modifier le lien";
+    } else if (state) {
+      entryLabel = "Gérer mes propositions";
+    }
     const entry = await screen.findByRole("button", {
-      name:
-        state === "active"
-          ? "Modifier le lien"
-          : state
-            ? "Gérer mes propositions"
-            : "Proposer un lien",
+      name: entryLabel,
     });
     expect(
       screen.getByRole("header", { name: "Stream link" }),

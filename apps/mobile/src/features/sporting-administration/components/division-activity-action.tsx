@@ -31,17 +31,20 @@ export function DivisionActivityAction({
       accessibilityState={{ disabled: busy, busy: executing }}
       disabled={busy}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.action,
-        {
-          opacity:
-            disabled && !executing
-              ? tokens.opacity.disabled
-              : pressed
-                ? tokens.opacity.pressed
-                : 1,
-        },
-      ]}
+      style={({ pressed }) => {
+        let opacity = 1;
+        if (disabled && !executing) {
+          opacity = tokens.opacity.disabled;
+        } else if (pressed) {
+          opacity = tokens.opacity.pressed;
+        }
+        return [
+          styles.action,
+          {
+            opacity,
+          },
+        ];
+      }}
     >
       {executing && (
         <LoadingIndicator
