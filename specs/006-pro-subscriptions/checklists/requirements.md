@@ -32,3 +32,4 @@
 ## Notes
 
 - FR-003/FR-007/FR-017 and SC-002 deliberately retain the approved RevenueCat SDK/cache and provider-managed UI constraints. Implementation-independence and technology-agnostic success criteria remain unchecked. The [native plan](../plan.md) accounts for these constraints and identifies future provider qualifications; the approved prototype and its Figma translation are approved within the scope recorded in the specification. This checklist grants no new architecture or design approval.
+- The specification's proportionate qualification scope preserves A01–A30 outcomes: deterministic state/session variants, complete configuration review, representative native formats/compositions and focused SDK/provider observations. Missing purchase, gift, restoration, privacy and release evidence remains in the owning tasks; removing redundant campaigns supplies no successful qualification.
