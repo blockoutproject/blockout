@@ -347,11 +347,15 @@ it("locks content editing during activation and retains the draft after an ordin
   const imageUrl = "https://assets.example.invalid/draft.png";
   await user.type(screen.getByLabelText("URL de l’image"), imageUrl);
   const response = Promise.withResolvers<Response>();
-  mockFetch.mockImplementation(async (url, options) =>
-    options?.method === "PUT"
-      ? response.promise
-      : json(String(url).endsWith("/accounts/me") ? account : stored),
-  );
+  mockFetch.mockImplementation(async (url, options) => {
+    if (options?.method === "PUT") {
+      return response.promise;
+    }
+    if (String(url).endsWith("/accounts/me")) {
+      return json(account);
+    }
+    return json(stored);
+  });
 
   // When
   await user.press(
@@ -787,11 +791,15 @@ it("starts a fresh local draft after unmounting a failed pending save", async ()
     screen.getByLabelText("Message de maintenance"),
     "Mon brouillon",
   );
-  mockFetch.mockImplementation(async (url, options) =>
-    options?.method === "PATCH"
-      ? response.promise
-      : json(String(url).endsWith("/accounts/me") ? account : stored),
-  );
+  mockFetch.mockImplementation(async (url, options) => {
+    if (options?.method === "PATCH") {
+      return response.promise;
+    }
+    if (String(url).endsWith("/accounts/me")) {
+      return json(account);
+    }
+    return json(stored);
+  });
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await act(async () => nativeAlertAction("Enregistrer")());
 
@@ -862,27 +870,29 @@ it("retains confirmed grants through an account outage while the server still re
   if (!accountQuery) {
     throw new Error("The real current-account query is missing");
   }
-  mockFetch.mockImplementation(async (url, options) =>
-    options?.method === "PATCH"
-      ? json(
-          {
-            type: "urn:blockout:problem:forbidden",
-            title: "Forbidden",
-            status: 403,
-          },
-          403,
-        )
-      : String(url).endsWith("/accounts/me")
-        ? json(
-            {
-              type: "urn:blockout:problem:unavailable",
-              title: "Unavailable",
-              status: 503,
-            },
-            503,
-          )
-        : json(stored),
-  );
+  mockFetch.mockImplementation(async (url, options) => {
+    if (options?.method === "PATCH") {
+      return json(
+        {
+          type: "urn:blockout:problem:forbidden",
+          title: "Forbidden",
+          status: 403,
+        },
+        403,
+      );
+    }
+    if (String(url).endsWith("/accounts/me")) {
+      return json(
+        {
+          type: "urn:blockout:problem:unavailable",
+          title: "Unavailable",
+          status: 503,
+        },
+        503,
+      );
+    }
+    return json(stored);
+  });
 
   // When
   await act(async () => {
@@ -1041,18 +1051,22 @@ it.each([
     const credentials =
       Promise.withResolvers<ReturnType<typeof credentialsFor>>();
     mockAuth0.getCredentials.mockReturnValueOnce(credentials.promise);
-    mockFetch.mockImplementation(async (url, options) =>
-      options?.method === method
-        ? json(
-            {
-              type: "urn:blockout:problem:forbidden",
-              title: "Forbidden",
-              status: 403,
-            },
-            403,
-          )
-        : json(String(url).endsWith("/accounts/me") ? account : stored),
-    );
+    mockFetch.mockImplementation(async (url, options) => {
+      if (options?.method === method) {
+        return json(
+          {
+            type: "urn:blockout:problem:forbidden",
+            title: "Forbidden",
+            status: 403,
+          },
+          403,
+        );
+      }
+      if (String(url).endsWith("/accounts/me")) {
+        return json(account);
+      }
+      return json(stored);
+    });
     await user.press(screen.getByRole("button", { name: action }));
     await act(async () => nativeAlertAction(confirmation)());
 

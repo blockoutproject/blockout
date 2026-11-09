@@ -182,6 +182,13 @@ export function ProviderPreparationForm({
     });
   }
 
+  let retrySources: (() => void) | undefined;
+  if (authority.enabled) {
+    retrySources = () => void editing.sources.refetch();
+  } else if (authority.sessionStatus === "authenticated") {
+    retrySources = () => void authority.account.refetch();
+  }
+
   return (
     <View style={styles.form}>
       <SeasonIdentity season={season} />
@@ -193,13 +200,7 @@ export function ProviderPreparationForm({
       {sources.length === 0 &&
         (editing.sources.isError ? (
           <ErrorState
-            onRetry={
-              authority.enabled
-                ? () => void editing.sources.refetch()
-                : authority.sessionStatus === "authenticated"
-                  ? () => void authority.account.refetch()
-                  : undefined
-            }
+            onRetry={retrySources}
             retrying={
               editing.sources.isFetching || authority.account.isFetching
             }

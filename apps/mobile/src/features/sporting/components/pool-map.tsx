@@ -277,12 +277,14 @@ function ParticipantMap({
       if (!currentActive.current || !camera || !map.current) {
         return;
       }
-      const change =
-        Platform.OS === "ios" && camera.altitude !== undefined
-          ? { altitude: camera.altitude / 2 ** direction }
-          : Platform.OS === "android" && camera.zoom !== undefined
-            ? { zoom: camera.zoom + direction }
-            : undefined;
+      let change;
+      if (Platform.OS === "ios" && camera.altitude !== undefined) {
+        change = { altitude: camera.altitude / 2 ** direction };
+      } else if (Platform.OS === "android" && camera.zoom !== undefined) {
+        change = { zoom: camera.zoom + direction };
+      } else {
+        change = undefined;
+      }
       if (!change) {
         return;
       }

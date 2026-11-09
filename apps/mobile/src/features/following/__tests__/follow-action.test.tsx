@@ -1021,15 +1021,17 @@ it.each(["guest", "other", "same"] as const)(
     // Given
     const response = Promise.withResolvers<Response>();
     let currentAccountId = accountId;
-    mockFetch.mockImplementation((url, request) =>
-      request?.method === "PUT"
-        ? response.promise
-        : url.endsWith("/accounts/me")
-          ? Promise.resolve(
-              Response.json({ ...profile, accountId: currentAccountId }),
-            )
-          : transport(url, request),
-    );
+    mockFetch.mockImplementation((url, request) => {
+      if (request?.method === "PUT") {
+        return response.promise;
+      }
+      if (url.endsWith("/accounts/me")) {
+        return Promise.resolve(
+          Response.json({ ...profile, accountId: currentAccountId }),
+        );
+      }
+      return transport(url, request);
+    });
     const user = userEvent.setup();
     await renderFollowing(<FollowButton target={team} season={season} />);
     await waitFor(() => expect(session.status).toBe("authenticated"));

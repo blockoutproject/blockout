@@ -153,11 +153,14 @@ beforeEach(async () => {
       return Response.json(operator);
     }
     if (path.startsWith("/administration/") && path.endsWith("/presentation")) {
-      const kind = path.includes("/clubs/")
-        ? "club"
-        : path.includes("/pools/")
-          ? "pool"
-          : "team";
+      let kind;
+      if (path.includes("/clubs/")) {
+        kind = "club";
+      } else if (path.includes("/pools/")) {
+        kind = "pool";
+      } else {
+        kind = "team";
+      }
       return Response.json({
         id: resourceId,
         revision: "r1",

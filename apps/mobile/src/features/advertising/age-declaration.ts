@@ -41,8 +41,14 @@ export async function submitAgeDeclaration(
   now = new Date(),
 ): Promise<AgeDeclaration> {
   const years = completedYearsSchema.parse(age);
+  let category: AgeDeclaration["category"] = "adult";
+  if (years < 16) {
+    category = "under16";
+  } else if (years < 18) {
+    category = "16–17";
+  }
   const declaration: AgeDeclaration = {
-    category: years < 16 ? "under16" : years < 18 ? "16–17" : "adult",
+    category,
     declaredAt: localDay(now),
   };
   await AsyncStorage.setItem(storageKey, JSON.stringify(declaration));

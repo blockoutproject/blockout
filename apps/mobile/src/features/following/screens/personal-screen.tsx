@@ -46,25 +46,29 @@ export function PersonalScreen() {
     session.status === "signing-out" ||
     (authenticated && profile.isLoading);
   const FeedbackLayout = pending ? PageContent : ScreenState;
-  return session.status === "guest" ? (
-    <Page header={<PersonalHeader />}>
-      <PageScrollView>
-        <ScreenState style={styles.guest}>
-          <Button
-            label="Se connecter"
-            onPress={() =>
-              router.push({
-                pathname: "/sign-in-invitation",
-                params: { reason: "follow" },
-              })
-            }
-          />
-        </ScreenState>
-      </PageScrollView>
-    </Page>
-  ) : authenticated && scope ? (
-    <PersonalSpace key={scope.owner.subject} scope={scope} />
-  ) : (
+  if (session.status === "guest") {
+    return (
+      <Page header={<PersonalHeader />}>
+        <PageScrollView>
+          <ScreenState style={styles.guest}>
+            <Button
+              label="Se connecter"
+              onPress={() =>
+                router.push({
+                  pathname: "/sign-in-invitation",
+                  params: { reason: "follow" },
+                })
+              }
+            />
+          </ScreenState>
+        </PageScrollView>
+      </Page>
+    );
+  }
+  if (authenticated && scope) {
+    return <PersonalSpace key={scope.owner.subject} scope={scope} />;
+  }
+  return (
     <Page header={<PersonalHeader />}>
       <PageScrollView>
         <FeedbackLayout>

@@ -139,13 +139,15 @@ it.each([409, "lost"])(
   async (failure) => {
     // Given
     const user = userEvent.setup();
-    mockFetch.mockImplementation((url, options) =>
-      options?.method === "POST"
-        ? failure === "lost"
-          ? Promise.reject(new TypeError("lost"))
-          : Promise.resolve(refused(409))
-        : peer.reads(url, options),
-    );
+    mockFetch.mockImplementation((url, options) => {
+      if (options?.method === "POST") {
+        if (failure === "lost") {
+          return Promise.reject(new TypeError("lost"));
+        }
+        return Promise.resolve(refused(409));
+      }
+      return peer.reads(url, options);
+    });
     const view = await renderCollection(
       <CloseSeasonScreen seasonId={seasonId} />,
       client,
@@ -383,14 +385,18 @@ it("retains a failed draft while an ordinary refresh is unavailable", async () =
   // Given
   const user = userEvent.setup();
   let readAvailable = true;
-  mockFetch.mockImplementation((url, options) =>
-    options?.method === "POST"
-      ? Promise.reject(new TypeError("Connection lost"))
-      : !readAvailable &&
-          String(url).endsWith(`/collection-seasons/${seasonId}`)
-        ? Promise.resolve(refused(503))
-        : peer.reads(url, options),
-  );
+  mockFetch.mockImplementation((url, options) => {
+    if (options?.method === "POST") {
+      return Promise.reject(new TypeError("Connection lost"));
+    }
+    if (
+      !readAvailable &&
+      String(url).endsWith(`/collection-seasons/${seasonId}`)
+    ) {
+      return Promise.resolve(refused(503));
+    }
+    return peer.reads(url, options);
+  });
   await renderCollection(
     <CloseSeasonScreen seasonId={seasonId} />,
     client,

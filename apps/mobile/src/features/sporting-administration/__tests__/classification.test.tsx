@@ -143,25 +143,31 @@ async function respond(
   url: RequestInfo | URL,
   _options?: RequestInit,
 ): Promise<Response> {
-  return json(
-    String(url).endsWith("/accounts/me")
-      ? accountResponse({
-          accountId: "00000000-0000-4000-8000-000000000001",
-          username: "Operator",
-          email: "operator@example.invalid",
-          permissions,
-        })
-      : String(url).includes("/divisions?")
-        ? {
-            items: [
-              division,
-              { ...division, id: inactiveId, name: "Inactive", active: false },
-            ],
-          }
-        : String(url).includes(`/divisions/${divisionId}`)
-          ? division
-          : stored,
-  );
+  /** Routes controlled account, division catalogue and addressed classification reads. */
+  function classificationResponse() {
+    if (String(url).endsWith("/accounts/me")) {
+      return accountResponse({
+        accountId: "00000000-0000-4000-8000-000000000001",
+        username: "Operator",
+        email: "operator@example.invalid",
+        permissions,
+      });
+    }
+    if (String(url).includes("/divisions?")) {
+      return {
+        items: [
+          division,
+          { ...division, id: inactiveId, name: "Inactive", active: false },
+        ],
+      };
+    }
+    if (String(url).includes(`/divisions/${divisionId}`)) {
+      return division;
+    }
+    return stored;
+  }
+
+  return json(classificationResponse());
 }
 
 beforeEach(async () => {
@@ -210,14 +216,15 @@ async function renderEditor(
   await renderRouter(
     {
       _layout: () => <Stack screenOptions={{ headerShown: false }} />,
-      index: () =>
-        kind === "divisions" ? (
-          <DivisionsScreen />
-        ) : kind === "division" ? (
-          <PresentationScreen target={{ kind, id: divisionId }} />
-        ) : (
-          <ClassificationScreen target={{ kind, id }} />
-        ),
+      index: () => {
+        if (kind === "divisions") {
+          return <DivisionsScreen />;
+        }
+        if (kind === "division") {
+          return <PresentationScreen target={{ kind, id: divisionId }} />;
+        }
+        return <ClassificationScreen target={{ kind, id }} />;
+      },
       /** Reads the real selector route parameters while keeping its visit owner in the fixture wrapper. */
       "administration/classification-selection":
         function SelectionRouteFixture() {
@@ -646,13 +653,15 @@ it("reports one grouped classification refresh failure after both reads settle a
   await renderEditor();
   await user.press(await screen.findByRole("button", { name: "Format" }));
   await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
-  mockFetch.mockImplementation((url, options) =>
-    String(url).includes("/classification")
-      ? classificationRead.promise
-      : String(url).includes("/divisions?")
-        ? divisionsRead.promise
-        : respond(url, options),
-  );
+  mockFetch.mockImplementation((url, options) => {
+    if (String(url).includes("/classification")) {
+      return classificationRead.promise;
+    }
+    if (String(url).includes("/divisions?")) {
+      return divisionsRead.promise;
+    }
+    return respond(url, options);
+  });
 
   // When
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
@@ -1364,18 +1373,17 @@ it.each([200, 403, 503])(
 
     // When
     permissions = {};
-    mockFetch.mockImplementation((url, options) =>
-      String(url).endsWith("/accounts/me") && accountStatus !== 200
-        ? Promise.resolve(
-            json(
-              { title: "Unavailable", status: accountStatus },
-              accountStatus,
-            ),
-          )
-        : String(url).includes("/divisions?")
-          ? Promise.resolve(json({ items: [] }))
-          : respond(url, options),
-    );
+    mockFetch.mockImplementation((url, options) => {
+      if (String(url).endsWith("/accounts/me") && accountStatus !== 200) {
+        return Promise.resolve(
+          json({ title: "Unavailable", status: accountStatus }, accountStatus),
+        );
+      }
+      if (String(url).includes("/divisions?")) {
+        return Promise.resolve(json({ items: [] }));
+      }
+      return respond(url, options);
+    });
     await act(async () =>
       client.refetchQueries({
         predicate: ({ queryKey }) => queryKey.includes("/accounts/me"),

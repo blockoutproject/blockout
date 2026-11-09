@@ -121,33 +121,31 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
           }
           identity={<PageContent>{identity}</PageContent>}
           tabs={tabs.map((item) => {
-            const participation = data?.participations.find(
-              (pool) => pool.pool.id === item.id,
-            );
-            const category =
-              item.id === "upcoming" || item.id === "completed"
-                ? item.id
-                : undefined;
-            return {
-              id: item.id,
-              label: item.label,
-              content: category ? (
-                <SportingCalendar
-                  selection={{ teamId, category }}
-                  active={tab === item.id}
-                />
-              ) : participation && !renderStandings ? (
-                <PoolStandings
-                  pool={participation}
-                  highlightTeamId={teamId}
-                  active={tab === item.id}
-                >
-                  <PoolParticipationLink
-                    pool={participation}
+            /** Selects the existing team calendar, standings or information panel without changing native tab lifetimes. */
+            function renderTeamTab() {
+              if (category) {
+                return (
+                  <SportingCalendar
+                    selection={{ teamId, category }}
                     active={tab === item.id}
                   />
-                </PoolStandings>
-              ) : (
+                );
+              }
+              if (participation && !renderStandings) {
+                return (
+                  <PoolStandings
+                    pool={participation}
+                    highlightTeamId={teamId}
+                    active={tab === item.id}
+                  >
+                    <PoolParticipationLink
+                      pool={participation}
+                      active={tab === item.id}
+                    />
+                  </PoolStandings>
+                );
+              }
+              return (
                 <PageScrollView alwaysBounceVertical>
                   <PageContent>
                     {participation && (
@@ -165,7 +163,20 @@ function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
                     )}
                   </PageContent>
                 </PageScrollView>
-              ),
+              );
+            }
+
+            const participation = data?.participations.find(
+              (pool) => pool.pool.id === item.id,
+            );
+            const category =
+              item.id === "upcoming" || item.id === "completed"
+                ? item.id
+                : undefined;
+            return {
+              id: item.id,
+              label: item.label,
+              content: renderTeamTab(),
             };
           })}
         />

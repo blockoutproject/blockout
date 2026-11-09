@@ -87,17 +87,18 @@ beforeEach(() => {
     .mockReset()
     .mockResolvedValue(credentialsFor("auth0|same-principal"));
   mockAuth0.clearCredentials.mockReset().mockResolvedValue();
-  mockFetch
-    .mockReset()
-    .mockImplementation(async (url) =>
-      Response.json(
-        url.endsWith("/application-access")
-          ? applicationAccessResponse()
-          : url.endsWith("/accounts/me")
-            ? accountResponse()
-            : { seasons: [newer, older], defaultSeasonId: newer.id },
-      ),
-    );
+  mockFetch.mockReset().mockImplementation(async (url) => {
+    if (url.endsWith("/application-access")) {
+      return Response.json(applicationAccessResponse());
+    }
+    if (url.endsWith("/accounts/me")) {
+      return Response.json(accountResponse());
+    }
+    return Response.json({
+      seasons: [newer, older],
+      defaultSeasonId: newer.id,
+    });
+  });
 });
 
 afterEach(async () => {

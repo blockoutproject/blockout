@@ -141,15 +141,16 @@ it("reloads empty seasons from their card and recovers a failed read without los
   // Given
   let failed = false;
   let discovered = false;
-  mockFetch.mockImplementation((url, options) =>
-    new URL(String(url)).pathname.endsWith("/collection-seasons")
-      ? Promise.resolve(
-          failed
-            ? refused(503)
-            : json({ items: discovered ? [peer.season] : [] }),
-        )
-      : peer.reads(url, options),
-  );
+  mockFetch.mockImplementation((url, options) => {
+    if (new URL(String(url)).pathname.endsWith("/collection-seasons")) {
+      return Promise.resolve(
+        failed
+          ? refused(503)
+          : json({ items: discovered ? [peer.season] : [] }),
+      );
+    }
+    return peer.reads(url, options);
+  });
   await renderCollection(<CollectionDashboardScreen />, client, (cache) => {
     privateClient = cache;
   });
@@ -509,13 +510,15 @@ it.each([409, "lost"])(
   async (failure) => {
     // Given
     const user = userEvent.setup();
-    mockFetch.mockImplementation((url, options) =>
-      options?.method === "POST"
-        ? failure === "lost"
-          ? Promise.reject(new TypeError("lost"))
-          : Promise.resolve(refused(409))
-        : peer.reads(url, options),
-    );
+    mockFetch.mockImplementation((url, options) => {
+      if (options?.method === "POST") {
+        if (failure === "lost") {
+          return Promise.reject(new TypeError("lost"));
+        }
+        return Promise.resolve(refused(409));
+      }
+      return peer.reads(url, options);
+    });
     const view = await renderCollection(
       <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
       client,
@@ -631,14 +634,18 @@ it.each(["control", "season"] as const)(
       scope === "control"
         ? `/collection-controls/${control().id}`
         : `/collection-seasons/${seasonId}`;
-    mockFetch.mockImplementation((url, options) =>
-      options?.method === "POST"
-        ? Promise.resolve(refused(403))
-        : new URL(String(url)).pathname.endsWith(refusedPath) &&
-            options?.method === "GET"
-          ? read.promise
-          : peer.reads(url, options),
-    );
+    mockFetch.mockImplementation((url, options) => {
+      if (options?.method === "POST") {
+        return Promise.resolve(refused(403));
+      }
+      if (
+        new URL(String(url)).pathname.endsWith(refusedPath) &&
+        options?.method === "GET"
+      ) {
+        return read.promise;
+      }
+      return peer.reads(url, options);
+    });
     await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
     await waitFor(() =>
       expect(screen.getByLabelText("Actualiser les données")).toBeBusy(),
@@ -832,33 +839,37 @@ it("retries failed result pages locally and keeps overlapping results current in
     const target = new URL(String(url));
     if (target.pathname.endsWith("/results")) {
       const page = Number(target.searchParams.get("page"));
-      return Promise.resolve(
-        page === 0
-          ? json({
-              items: [
-                result(),
-                result({
-                  scopeId: "00000000-0000-4000-8000-000000000194",
-                  scopeLabel: "Nationale 2 · Poule B",
-                }),
-              ],
-              page: 0,
-              hasNext: true,
-            })
-          : pageAvailable
-            ? json({
-                items: [
-                  result({ scopeLabel: "Nationale 2 · Poule A actualisée" }),
-                  result({
-                    scopeId: "00000000-0000-4000-8000-000000000195",
-                    scopeLabel: "Nationale 2 · Poule C",
-                  }),
-                ],
-                page: 1,
-                hasNext: false,
-              })
-            : refused(503),
-      );
+      if (page === 0) {
+        return Promise.resolve(
+          json({
+            items: [
+              result(),
+              result({
+                scopeId: "00000000-0000-4000-8000-000000000194",
+                scopeLabel: "Nationale 2 · Poule B",
+              }),
+            ],
+            page: 0,
+            hasNext: true,
+          }),
+        );
+      }
+      if (pageAvailable) {
+        return Promise.resolve(
+          json({
+            items: [
+              result({ scopeLabel: "Nationale 2 · Poule A actualisée" }),
+              result({
+                scopeId: "00000000-0000-4000-8000-000000000195",
+                scopeLabel: "Nationale 2 · Poule C",
+              }),
+            ],
+            page: 1,
+            hasNext: false,
+          }),
+        );
+      }
+      return Promise.resolve(refused(503));
     }
     return peer.reads(url, options);
   });
@@ -1000,11 +1011,13 @@ it("reports a grouped season and control refresh failure once after every displa
   await screen.findByText("Nationale 2 · Poule A · Calendrier");
   mockFetch.mockImplementation((url, options) => {
     const path = new URL(String(url)).pathname;
-    return path.endsWith(`/collection-seasons/${seasonId}`)
-      ? seasonRead.promise
-      : path.endsWith(`/collection-controls/${control().id}`)
-        ? controlRead.promise
-        : peer.reads(url, options);
+    if (path.endsWith(`/collection-seasons/${seasonId}`)) {
+      return seasonRead.promise;
+    }
+    if (path.endsWith(`/collection-controls/${control().id}`)) {
+      return controlRead.promise;
+    }
+    return peer.reads(url, options);
   });
 
   // When
@@ -1041,14 +1054,18 @@ it("rejects a malformed acknowledgement without inventing success and shows a fa
   // Given
   const user = userEvent.setup();
   let readAvailable = true;
-  mockFetch.mockImplementation((url, options) =>
-    options?.method === "POST"
-      ? Promise.resolve(json({ ...control(), enabled: "invalid" }, 202))
-      : !readAvailable &&
-          String(url).endsWith(`/collection-controls/${control().id}`)
-        ? Promise.resolve(refused(503))
-        : peer.reads(url, options),
-  );
+  mockFetch.mockImplementation((url, options) => {
+    if (options?.method === "POST") {
+      return Promise.resolve(json({ ...control(), enabled: "invalid" }, 202));
+    }
+    if (
+      !readAvailable &&
+      String(url).endsWith(`/collection-controls/${control().id}`)
+    ) {
+      return Promise.resolve(refused(503));
+    }
+    return peer.reads(url, options);
+  });
   await renderCollection(
     <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
     client,
@@ -1106,13 +1123,15 @@ it.each(["settled", "in-flight"])(
     // Given
     const user = userEvent.setup();
     const response = Promise.withResolvers<Response>();
-    mockFetch.mockImplementation((url, options) =>
-      options?.method === "POST"
-        ? timing === "settled"
-          ? Promise.resolve(refused(409))
-          : response.promise
-        : peer.reads(url, options),
-    );
+    mockFetch.mockImplementation((url, options) => {
+      if (options?.method === "POST") {
+        if (timing === "settled") {
+          return Promise.resolve(refused(409));
+        }
+        return response.promise;
+      }
+      return peer.reads(url, options);
+    });
     const view = await renderCollection(
       <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
       client,

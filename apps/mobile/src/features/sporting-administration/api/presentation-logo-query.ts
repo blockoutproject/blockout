@@ -33,14 +33,16 @@ export function createPresentationLogoQueryOptions(
   revision: string,
 ) {
   const params = { selection };
-  const generatedKey =
-    target.kind === "team"
-      ? getGetTeamLogoQueryKey(target.id, params)
-      : target.kind === "club"
-        ? getGetClubLogoQueryKey(target.id)
-        : target.kind === "division"
-          ? getGetDivisionLogoQueryKey(target.id)
-          : ["presentation-logo-unavailable", target.kind];
+  let generatedKey;
+  if (target.kind === "team") {
+    generatedKey = getGetTeamLogoQueryKey(target.id, params);
+  } else if (target.kind === "club") {
+    generatedKey = getGetClubLogoQueryKey(target.id);
+  } else if (target.kind === "division") {
+    generatedKey = getGetDivisionLogoQueryKey(target.id);
+  } else {
+    generatedKey = ["presentation-logo-unavailable", target.kind];
+  }
   return queryOptions<string | null>({
     queryKey: [...generatedKey, revision],
     enabled:
@@ -52,14 +54,16 @@ export function createPresentationLogoQueryOptions(
       const previousError = client.getQueryState(queryKey)?.error;
       try {
         const options = await authority.request(signal);
-        const blob =
-          target.kind === "team"
-            ? await getTeamLogo(target.id, params, options)
-            : target.kind === "club"
-              ? await getClubLogo(target.id, options)
-              : target.kind === "division"
-                ? await getDivisionLogo(target.id, options)
-                : undefined;
+        let blob;
+        if (target.kind === "team") {
+          blob = await getTeamLogo(target.id, params, options);
+        } else if (target.kind === "club") {
+          blob = await getClubLogo(target.id, options);
+        } else if (target.kind === "division") {
+          blob = await getDivisionLogo(target.id, options);
+        } else {
+          blob = undefined;
+        }
         if (!blob) {
           throw new ApiError("configuration");
         }

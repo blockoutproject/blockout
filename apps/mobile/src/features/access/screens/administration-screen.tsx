@@ -32,57 +32,65 @@ export function AdministrationScreen({
 }: AdministrationScreenProps) {
   const { permissions, hasCommands, account, sessionStatus } =
     useAdministrationCapabilities();
-  let content = null;
-  if (!admitted) {
-    content = <ErrorState />;
-  } else if (
-    sessionStatus === "restoring" ||
-    (sessionStatus === "authenticated" && account.isLoading)
-  ) {
-    content = <ListLoading label="Chargement de l’administration" />;
-  } else if (
-    sessionStatus === "authenticated" &&
-    (account.isError || account.isPending)
-  ) {
-    content = (
-      <ErrorState
-        onRetry={() => void account.refetch()}
-        retrying={account.isFetching}
-      />
-    );
-  } else if (!hasCommands && !onBypass) {
-    content = <ErrorState />;
-  } else {
-    content = (
-      <>
-        {onBypass && (
-          <Button
-            label="Accéder à l’application pendant la maintenance"
-            onPress={onBypass}
-            fullWidth
-          />
-        )}
-        {permissions?.manageMaintenance === true && (
-          <NavigationLink
-            href="/administration/maintenance"
-            label="Maintenance"
-          />
-        )}
-        {permissions?.manageApplicationVersions === true && (
-          <NavigationLink
-            href="/administration/application-versions"
-            label="Versions minimales"
-          />
-        )}
-        {canReadDivisions(permissions) && (
-          <NavigationLink href="/administration/divisions" label="Divisions" />
-        )}
-        {permissions?.manageCollection === true && (
-          <NavigationLink href="/collection" label="Collectes" />
-        )}
-      </>
-    );
+
+  /** Selects read/session feedback before exposing independently authorized destinations. */
+  function renderContent() {
+    if (!admitted) {
+      return <ErrorState />;
+    } else if (
+      sessionStatus === "restoring" ||
+      (sessionStatus === "authenticated" && account.isLoading)
+    ) {
+      return <ListLoading label="Chargement de l’administration" />;
+    } else if (
+      sessionStatus === "authenticated" &&
+      (account.isError || account.isPending)
+    ) {
+      return (
+        <ErrorState
+          onRetry={() => void account.refetch()}
+          retrying={account.isFetching}
+        />
+      );
+    } else if (!hasCommands && !onBypass) {
+      return <ErrorState />;
+    } else {
+      return (
+        <>
+          {onBypass && (
+            <Button
+              label="Accéder à l’application pendant la maintenance"
+              onPress={onBypass}
+              fullWidth
+            />
+          )}
+          {permissions?.manageMaintenance === true && (
+            <NavigationLink
+              href="/administration/maintenance"
+              label="Maintenance"
+            />
+          )}
+          {permissions?.manageApplicationVersions === true && (
+            <NavigationLink
+              href="/administration/application-versions"
+              label="Versions minimales"
+            />
+          )}
+          {canReadDivisions(permissions) && (
+            <NavigationLink
+              href="/administration/divisions"
+              label="Divisions"
+            />
+          )}
+          {permissions?.manageCollection === true && (
+            <NavigationLink href="/collection" label="Collectes" />
+          )}
+        </>
+      );
+    }
   }
+
+  const content = renderContent();
   const pending =
     admitted &&
     (sessionStatus === "restoring" ||

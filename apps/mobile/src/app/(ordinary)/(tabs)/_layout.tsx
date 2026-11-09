@@ -238,15 +238,14 @@ function TabButton({
   }));
   const inactiveStyle = useAnimatedStyle(() => ({ opacity: 1 - focus.value }));
   const activeStyle = useAnimatedStyle(() => ({ opacity: focus.value }));
+  const unreadLabel = count === 1 ? "lue" : "lues";
   return (
     <Pressable
       {...props}
       accessibilityRole="button"
       accessibilityState={{ selected: isFocused }}
       accessibilityLabel={
-        count && count > 0
-          ? `${label}, ${count} non ${count === 1 ? "lue" : "lues"}`
-          : label
+        count && count > 0 ? `${label}, ${count} non ${unreadLabel}` : label
       }
       onLayout={(event) => {
         onLayout?.(event);

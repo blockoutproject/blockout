@@ -70,6 +70,12 @@ function PersonalProbe({ enabled = true }: { enabled?: boolean }) {
     enabled: enabled && Boolean(season.options.data),
   });
 
+  let listStatus = "Loading";
+  if (list.isSuccess) {
+    listStatus = "Loaded";
+  } else if (list.isError) {
+    listStatus = "Read failed";
+  }
   return (
     <>
       <Tabs
@@ -105,9 +111,7 @@ function PersonalProbe({ enabled = true }: { enabled?: boolean }) {
           </SheetContent>
         </Sheet>
       )}
-      <Text>
-        {list.isSuccess ? "Loaded" : list.isError ? "Read failed" : "Loading"}
-      </Text>
+      <Text>{listStatus}</Text>
       <Button label="Retry read" onPress={() => void list.refetch()} />
       <Button
         label="Reload options"
@@ -142,15 +146,15 @@ beforeEach(() => {
     queries: { ...client.getDefaultOptions().queries, gcTime: Infinity },
   });
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
-  mockFetch
-    .mockReset()
-    .mockImplementation(async (url) =>
-      Response.json(
-        url.includes("follow-options")
-          ? { seasons: [newer, older], defaultSeasonId: older.id }
-          : { items: [] },
-      ),
-    );
+  mockFetch.mockReset().mockImplementation(async (url) => {
+    if (url.includes("follow-options")) {
+      return Response.json({
+        seasons: [newer, older],
+        defaultSeasonId: older.id,
+      });
+    }
+    return Response.json({ items: [] });
+  });
 });
 afterEach(async () => {
   await cleanup();
@@ -231,13 +235,15 @@ it("keeps a valid choice when refreshed options propose another-season follow or
   const user = userEvent.setup();
   await mount();
   await screen.findByText("Loaded");
-  mockFetch.mockImplementation(async (url) =>
-    Response.json(
-      url.includes("follow-options")
-        ? { seasons: [newer, older], defaultSeasonId: newer.id }
-        : { items: [] },
-    ),
-  );
+  mockFetch.mockImplementation(async (url) => {
+    if (url.includes("follow-options")) {
+      return Response.json({
+        seasons: [newer, older],
+        defaultSeasonId: newer.id,
+      });
+    }
+    return Response.json({ items: [] });
+  });
 
   // When
   await user.press(screen.getByRole("button", { name: "Reload options" }));
@@ -256,15 +262,15 @@ it.each(["empty", "default"])(
     const user = userEvent.setup();
     await mount();
     await screen.findByText("Loaded");
-    mockFetch.mockImplementation(async (url) =>
-      Response.json(
-        url.includes("follow-options")
-          ? fallback === "empty"
-            ? { seasons: [] }
-            : { seasons: [newer], defaultSeasonId: newer.id }
-          : { items: [] },
-      ),
-    );
+    mockFetch.mockImplementation(async (url) => {
+      if (url.includes("follow-options")) {
+        if (fallback === "empty") {
+          return Response.json({ seasons: [] });
+        }
+        return Response.json({ seasons: [newer], defaultSeasonId: newer.id });
+      }
+      return Response.json({ items: [] });
+    });
 
     // When
     await user.press(screen.getByRole("button", { name: "Reload options" }));
@@ -287,16 +293,18 @@ it.each(["offered", "failure"])(
     const user = userEvent.setup();
     await mount();
     await screen.findByText("Loaded");
-    mockFetch.mockImplementation(async (url) =>
-      url.includes("follow-options")
-        ? outcome === "failure"
-          ? new Response(null, { status: 503 })
-          : Response.json({
-              seasons: [newer, older],
-              defaultSeasonId: newer.id,
-            })
-        : new Response(null, { status: 404 }),
-    );
+    mockFetch.mockImplementation(async (url) => {
+      if (url.includes("follow-options")) {
+        if (outcome === "failure") {
+          return new Response(null, { status: 503 });
+        }
+        return Response.json({
+          seasons: [newer, older],
+          defaultSeasonId: newer.id,
+        });
+      }
+      return new Response(null, { status: 404 });
+    });
 
     // When
     await user.press(screen.getByRole("button", { name: "Retry read" }));
@@ -324,13 +332,15 @@ it("keeps an unavailable selection until explicit options reload establishes its
   const user = userEvent.setup();
   await mount();
   await screen.findByText("Loaded");
-  mockFetch.mockImplementation(async (url) =>
-    url.includes("follow-options")
-      ? Response.json({ seasons: [newer], defaultSeasonId: newer.id })
-      : new URL(url).searchParams.get("seasonId") === older.id
-        ? new Response(null, { status: 404 })
-        : Response.json({ items: [] }),
-  );
+  mockFetch.mockImplementation(async (url) => {
+    if (url.includes("follow-options")) {
+      return Response.json({ seasons: [newer], defaultSeasonId: newer.id });
+    }
+    if (new URL(url).searchParams.get("seasonId") === older.id) {
+      return new Response(null, { status: 404 });
+    }
+    return Response.json({ items: [] });
+  });
 
   // When
   await user.press(screen.getByRole("button", { name: "Retry read" }));
@@ -529,13 +539,15 @@ it("recalculates a new opening's default from fresh options even when Query reta
   const first = await mount();
   await screen.findByText("Loaded");
   await first.unmount();
-  mockFetch.mockImplementation(async (url) =>
-    Response.json(
-      url.includes("follow-options")
-        ? { seasons: [newer, older], defaultSeasonId: newer.id }
-        : { items: [] },
-    ),
-  );
+  mockFetch.mockImplementation(async (url) => {
+    if (url.includes("follow-options")) {
+      return Response.json({
+        seasons: [newer, older],
+        defaultSeasonId: newer.id,
+      });
+    }
+    return Response.json({ items: [] });
+  });
 
   // When
   await mount();
@@ -553,13 +565,15 @@ it("waits for an admitted opening before establishing a cached proposed season",
   const first = await mount();
   await screen.findByText("Loaded");
   await first.unmount();
-  mockFetch.mockImplementation(async (url) =>
-    Response.json(
-      url.includes("follow-options")
-        ? { seasons: [newer, older], defaultSeasonId: newer.id }
-        : { items: [] },
-    ),
-  );
+  mockFetch.mockImplementation(async (url) => {
+    if (url.includes("follow-options")) {
+      return Response.json({
+        seasons: [newer, older],
+        defaultSeasonId: newer.id,
+      });
+    }
+    return Response.json({ items: [] });
+  });
   const opening = await mount(false);
   expect(optionReads()).toBe(1);
 

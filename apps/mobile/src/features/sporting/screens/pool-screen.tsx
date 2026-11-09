@@ -124,20 +124,26 @@ function PoolPage({
             )
           }
           identity={<PageContent>{identity}</PageContent>}
-          tabs={tabs.map(({ id: value, label }) => ({
-            id: value,
-            label,
-            content:
-              value === "upcoming" || value === "completed" ? (
-                <SportingCalendar
-                  selection={{ poolId, category: value }}
-                  active={tab === value}
-                />
-              ) : value === "standings" && data && !renderStandings ? (
-                <PoolStandings pool={data.pool} active={tab === value} />
-              ) : value === "map" && data && !renderMap ? (
-                <PoolMap pool={data.pool} active={tab === value} />
-              ) : (
+          tabs={tabs.map(({ id: value, label }) => {
+            /** Selects the pool’s current native calendar, standings or map panel. */
+            function renderPoolTab() {
+              if (value === "upcoming" || value === "completed") {
+                return (
+                  <SportingCalendar
+                    selection={{ poolId, category: value }}
+                    active={tab === value}
+                  />
+                );
+              }
+              if (value === "standings" && data && !renderStandings) {
+                return (
+                  <PoolStandings pool={data.pool} active={tab === value} />
+                );
+              }
+              if (value === "map" && data && !renderMap) {
+                return <PoolMap pool={data.pool} active={tab === value} />;
+              }
+              return (
                 <PageScrollView alwaysBounceVertical>
                   <PageContent>
                     {data &&
@@ -154,8 +160,15 @@ function PoolPage({
                           )))}
                   </PageContent>
                 </PageScrollView>
-              ),
-          }))}
+              );
+            }
+
+            return {
+              id: value,
+              label,
+              content: renderPoolTab(),
+            };
+          })}
         />
       )}
     </Page>

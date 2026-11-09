@@ -25,24 +25,40 @@ export function CloseSeasonScreen({ seasonId }: { seasonId: string }) {
           authority.account.isLoading)
       : season.isLoading);
   const FeedbackLayout = pending ? PageContent : ScreenState;
-  const blockingState = !season.data ? (
-    !authority.enabled ? (
-      <AccessFeedback {...authority} loadingContent={<CloseSeasonLoading />} />
-    ) : season.isError ? (
-      <ErrorState
-        onRetry={() =>
-          void season.refetch().then((result) => {
-            if (result.isError && result.data) {
-              feedback.error();
+
+  /** Keeps closure drafts mounted while absent season data resolves admission and read feedback. */
+  function renderBlockingState() {
+    if (!season.data) {
+      if (!authority.enabled) {
+        return (
+          <AccessFeedback
+            {...authority}
+            loadingContent={<CloseSeasonLoading />}
+          />
+        );
+      }
+      if (season.isError) {
+        return (
+          <ErrorState
+            onRetry={() =>
+              void season.refetch().then((result) => {
+                if (result.isError && result.data) {
+                  feedback.error();
+                }
+              })
             }
-          })
-        }
-        retrying={season.isFetching}
-      />
-    ) : (
-      <ReadFeedback query={season} loadingContent={<CloseSeasonLoading />} />
-    )
-  ) : undefined;
+            retrying={season.isFetching}
+          />
+        );
+      }
+      return (
+        <ReadFeedback query={season} loadingContent={<CloseSeasonLoading />} />
+      );
+    }
+    return undefined;
+  }
+
+  const blockingState = renderBlockingState();
 
   /** Rereads the current authority or season without replaying closure or replacing the retained draft. */
   async function refresh() {

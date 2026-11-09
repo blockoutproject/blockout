@@ -40,17 +40,22 @@ export function CalendarMatch({
     result?.homeSets !== undefined && result.awaySets !== undefined;
   const unavailable =
     match.category === "completed" && result?.state !== "final";
-  const status = unavailable
-    ? result?.state === "provisional"
-      ? "Score provisoire · Résultat définitif indisponible"
-      : result?.state === "unconfirmed"
-        ? "Résultat non confirmé · Résultat définitif indisponible"
-        : "Résultat indisponible"
-    : result?.state === "provisional"
-      ? "Score provisoire"
-      : result?.state === "unconfirmed"
-        ? "Résultat non confirmé"
-        : undefined;
+  let status;
+  if (unavailable) {
+    if (result?.state === "provisional") {
+      status = "Score provisoire · Résultat définitif indisponible";
+    } else if (result?.state === "unconfirmed") {
+      status = "Résultat non confirmé · Résultat définitif indisponible";
+    } else {
+      status = "Résultat indisponible";
+    }
+  } else if (result?.state === "provisional") {
+    status = "Score provisoire";
+  } else if (result?.state === "unconfirmed") {
+    status = "Résultat non confirmé";
+  } else {
+    status = undefined;
+  }
   return (
     <Pressable
       accessibilityRole="link"

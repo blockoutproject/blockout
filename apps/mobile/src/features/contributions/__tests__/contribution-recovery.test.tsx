@@ -244,6 +244,20 @@ function useModerator() {
   return { ...editing, queue, matchQuery };
 }
 
+/** Selects the mutation result whose explicit command is exercised by each action variant. */
+function selectedMutation(
+  current: ReturnType<typeof useModerator>,
+  action: string,
+) {
+  if (action === "publish") {
+    return current.publish;
+  }
+  if (action === "reactivate") {
+    return current.reactivate;
+  }
+  return current.change;
+}
+
 /** Accepts the existing native dialog exactly once without replacing its confirmation owner. */
 async function confirm(label: string) {
   await act(async () =>
@@ -373,18 +387,23 @@ it.each(
     // When
     await act(async () => {
       const body = { revision: "viewed", actorAccountId: account.accountId };
-      const attempt =
-        action === "publish"
-          ? result.current.publish.mutateAsync({ ...body, url: version.url })
-          : action === "reactivate"
-            ? result.current.reactivate.mutateAsync({
-                versionId: version.id,
-                body,
-              })
-            : result.current.change.mutateAsync({
-                versionId: version.id,
-                body: { ...body, action },
-              });
+      let attempt: Promise<unknown>;
+      if (action === "publish") {
+        attempt = result.current.publish.mutateAsync({
+          ...body,
+          url: version.url,
+        });
+      } else if (action === "reactivate") {
+        attempt = result.current.reactivate.mutateAsync({
+          versionId: version.id,
+          body,
+        });
+      } else {
+        attempt = result.current.change.mutateAsync({
+          versionId: version.id,
+          body: { ...body, action },
+        });
+      }
       await expect(attempt).rejects.toBeInstanceOf(ApiError);
     });
 
@@ -404,21 +423,18 @@ it.each(
     );
     expect(client.getQueryState(memberKey)?.isInvalidated).toBe(true);
     expect(writes).toHaveLength(1);
+    let expectedCommand = {};
+    if (action === "publish") {
+      expectedCommand = { url: version.url };
+    } else if (action !== "reactivate") {
+      expectedCommand = { action };
+    }
     expect(writes[0].body).toEqual({
       revision: "viewed",
       actorAccountId: account.accountId,
-      ...(action === "publish"
-        ? { url: version.url }
-        : action === "reactivate"
-          ? {}
-          : { action }),
+      ...expectedCommand,
     });
-    const mutation =
-      action === "publish"
-        ? result.current.publish
-        : action === "reactivate"
-          ? result.current.reactivate
-          : result.current.change;
+    const mutation = selectedMutation(result.current, action);
     expect(mutation.isError).toBe(true);
     expect(mutation.data).toBeUndefined();
   },
@@ -631,14 +647,7 @@ it.each(["publish", "approve", "reject", "withdraw", "reactivate"] as const)(
         result.current.query.isError && result.current.queue.query.isError,
       ).toBe(true),
     );
-    expect(
-      (action === "publish"
-        ? result.current.publish
-        : action === "reactivate"
-          ? result.current.reactivate
-          : result.current.change
-      ).isSuccess,
-    ).toBe(true);
+    expect(selectedMutation(result.current, action).isSuccess).toBe(true);
     expect(result.current.query.data).toBe(previousData);
     expect(writes).toHaveLength(1);
   },

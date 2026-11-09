@@ -32,6 +32,7 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useOrdinaryRequest } from "../../access/ordinary-request";
 import { useCurrentAccount } from "../api/use-current-account";
+import { accountSessionRecovery } from "../session/account-session-recovery";
 import { useAccountSession } from "../session/account-session-provider";
 
 const confirmationSchema = z.object({ confirmed: z.boolean().refine(Boolean) });
@@ -56,54 +57,61 @@ export function EraseAccountScreen({ admitted }: EraseAccountScreenProps) {
   if (!originalAccountId && account.isSuccess) {
     setOriginalAccountId(account.data.accountId);
   }
+  const recovery = accountSessionRecovery(session);
+  let onRetry = recovery.onRetry;
+  if (!onRetry && !needsSignIn) {
+    onRetry = () => void account.refetch();
+  }
+
+  /** Retains the original confirmation across refresh failures; admission still gates every presentation. */
+  function readContent() {
+    if (!admitted) {
+      return (
+        <ScreenState>
+          <ErrorState />
+        </ScreenState>
+      );
+    }
+    if (originalAccountId && session.subject) {
+      return (
+        <ErasureConfirmation
+          accountId={originalAccountId}
+          disabled={
+            !account.isSuccess ||
+            session.status !== "authenticated" ||
+            session.accountId !== originalAccountId
+          }
+        />
+      );
+    }
+    if (
+      recovery.pending ||
+      (session.status === "authenticated" && account.isPending)
+    ) {
+      return (
+        <PageContent>
+          <ErasureLoading />
+        </PageContent>
+      );
+    }
+    return (
+      <ScreenState>
+        <ErrorState onRetry={onRetry} retrying={account.isFetching}>
+          {needsSignIn && (
+            <Button
+              label="Se connecter"
+              leadingIcon={LogIn}
+              onPress={() => router.replace("/sign-in")}
+            />
+          )}
+        </ErrorState>
+      </ScreenState>
+    );
+  }
+
   return (
     <Page header={<PageHeader title="Supprimer mon compte ?" />}>
-      <PageScrollView>
-        {!admitted ? (
-          <ScreenState>
-            <ErrorState />
-          </ScreenState>
-        ) : originalAccountId && session.subject ? (
-          <ErasureConfirmation
-            accountId={originalAccountId}
-            disabled={
-              !account.isSuccess ||
-              session.status !== "authenticated" ||
-              session.accountId !== originalAccountId
-            }
-          />
-        ) : session.status === "restoring" ||
-          session.status === "authenticating" ||
-          session.status === "signing-out" ||
-          (session.status === "authenticated" && account.isPending) ? (
-          <PageContent>
-            <ErasureLoading />
-          </PageContent>
-        ) : (
-          <ScreenState>
-            <ErrorState
-              onRetry={
-                session.status === "initialization-error"
-                  ? session.retryInitialization
-                  : session.status === "authentication-error"
-                    ? session.retryAuthentication
-                    : needsSignIn
-                      ? undefined
-                      : () => void account.refetch()
-              }
-              retrying={account.isFetching}
-            >
-              {needsSignIn && (
-                <Button
-                  label="Se connecter"
-                  leadingIcon={LogIn}
-                  onPress={() => router.replace("/sign-in")}
-                />
-              )}
-            </ErrorState>
-          </ScreenState>
-        )}
-      </PageScrollView>
+      <PageScrollView>{readContent()}</PageScrollView>
     </Page>
   );
 }
@@ -170,6 +178,45 @@ function ErasureConfirmation({
     router.replace("/");
   }
 
+  /** Only original-resource absence confirms removal; a mismatched successful response remains unavailable. */
+  async function readOriginal(options: Parameters<typeof getAccount>[1]) {
+    try {
+      const original = await getAccount(accountId, options);
+      if (original.accountId !== accountId) {
+        throw new ApiError("schema");
+      }
+      return false;
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        return true;
+      }
+      throw error;
+    }
+  }
+
+  /** Issues one original-target deletion; only uncertain results trigger a read, never another write. */
+  async function eraseOriginal(options: Parameters<typeof getAccount>[1]) {
+    if (session.accountId !== accountId) {
+      throw new ApiError("cancelled");
+    }
+    try {
+      await eraseAccount(accountId, options);
+      return true;
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        return true;
+      } else {
+        if (!isUncertainMutationFailure(error)) {
+          throw error;
+        }
+        if (active.current) {
+          setNeedsVerification(true);
+        }
+        return readOriginal(options);
+      }
+    }
+  }
+
   const command = useMutation({
     mutationKey: [...getEraseAccountMutationKey(), accountId],
     retry: false,
@@ -184,45 +231,11 @@ function ErasureConfirmation({
         headers: { Authorization: `Bearer ${credentials.accessToken}` },
       });
 
-      /** Only original-resource absence confirms removal; a mismatched successful response remains unavailable. */
-      async function readOriginal() {
-        try {
-          const original = await getAccount(accountId, options);
-          if (original.accountId !== accountId) {
-            throw new ApiError("schema");
-          }
-          return false;
-        } catch (error) {
-          if (error instanceof ApiError && error.status === 404) {
-            return true;
-          }
-          throw error;
-        }
-      }
-
       let absent: boolean;
       if (action === "verify") {
-        absent = await readOriginal();
+        absent = await readOriginal(options);
       } else {
-        if (session.accountId !== accountId) {
-          throw new ApiError("cancelled");
-        }
-        try {
-          await eraseAccount(accountId, options);
-          absent = true;
-        } catch (error) {
-          if (error instanceof ApiError && error.status === 404) {
-            absent = true;
-          } else {
-            if (!isUncertainMutationFailure(error)) {
-              throw error;
-            }
-            if (active.current) {
-              setNeedsVerification(true);
-            }
-            absent = await readOriginal();
-          }
-        }
+        absent = await eraseOriginal(options);
       }
       if (active.current) {
         setNeedsVerification(false);

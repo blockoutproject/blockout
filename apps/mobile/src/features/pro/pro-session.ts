@@ -113,6 +113,46 @@ export function createProSession() {
     }
   }
 
+  /** Configures or logs in exactly one captured account, publishing rights only while that target remains current. */
+  async function associateAccount(
+    desired: SessionSnapshot,
+    configured: boolean,
+    accountId: string,
+  ) {
+    let customerInfo: CustomerInfo | null = null;
+    if (!configured) {
+      const config = Constants.expoConfig?.extra?.revenueCat;
+      const apiKey: unknown =
+        Platform.OS === "ios" ? config?.iosApiKey : config?.androidApiKey;
+      if (typeof apiKey !== "string" || !apiKey) {
+        throw new Error("Pro is not configured");
+      }
+      // The SDK's default handler forwards raw provider strings to the console.
+      Purchases.setLogHandler(() => {});
+      Purchases.configure({ apiKey, appUserID: accountId });
+      if (!(await Purchases.isConfigured())) {
+        throw new Error("Pro setup unavailable");
+      }
+    } else {
+      customerInfo = (await Purchases.logIn(accountId)).customerInfo;
+    }
+    if (sameSession(target, desired)) {
+      publish({
+        evidence: {
+          session: desired,
+          association: "associated",
+          customerInfo,
+          operation: "idle",
+        },
+        read: null,
+        verificationFailed: false,
+      });
+      if (!customerInfo) {
+        void refresh(desired);
+      }
+    }
+  }
+
   /** Settles one mutation before applying the newest desired target, without retaining a queue. */
   async function associate() {
     if (identityInFlight) {
@@ -126,39 +166,7 @@ export function createProSession() {
         return;
       }
       if (desired?.accountId) {
-        let customerInfo: CustomerInfo | null = null;
-        if (!configured) {
-          const config = Constants.expoConfig?.extra?.revenueCat;
-          const apiKey: unknown =
-            Platform.OS === "ios" ? config?.iosApiKey : config?.androidApiKey;
-          if (typeof apiKey !== "string" || !apiKey) {
-            throw new Error("Pro is not configured");
-          }
-          // The SDK's default handler forwards raw provider strings to the console.
-          Purchases.setLogHandler(() => {});
-          Purchases.configure({ apiKey, appUserID: desired.accountId });
-          if (!(await Purchases.isConfigured())) {
-            throw new Error("Pro setup unavailable");
-          }
-        } else {
-          customerInfo = (await Purchases.logIn(desired.accountId))
-            .customerInfo;
-        }
-        if (sameSession(target, desired)) {
-          publish({
-            evidence: {
-              session: desired,
-              association: "associated",
-              customerInfo,
-              operation: "idle",
-            },
-            read: null,
-            verificationFailed: false,
-          });
-          if (!customerInfo) {
-            void refresh(desired);
-          }
-        }
+        await associateAccount(desired, configured, desired.accountId);
       } else if (configured && !(await Purchases.isAnonymous())) {
         await Purchases.logOut();
       }

@@ -272,15 +272,17 @@ it.each([401, 403, 404, "network"] as const)(
         type: "active",
       }),
     );
-    mockFetch.mockImplementation((url: string) =>
-      new URL(url).pathname.endsWith(`/clubs/${secondId}`)
-        ? outcome === "network"
-          ? Promise.reject(new TypeError("private detail diagnostic"))
-          : Promise.resolve(
-              Response.json({ status: outcome }, { status: outcome }),
-            )
-        : publicReads(url),
-    );
+    mockFetch.mockImplementation((url: string) => {
+      if (!new URL(url).pathname.endsWith(`/clubs/${secondId}`)) {
+        return publicReads(url);
+      }
+      if (outcome === "network") {
+        return Promise.reject(new TypeError("private detail diagnostic"));
+      }
+      return Promise.resolve(
+        Response.json({ status: outcome }, { status: outcome }),
+      );
+    });
     const reads = mockFetch.mock.calls.filter(([url]) =>
       new URL(url).pathname.endsWith("/clubs"),
     ).length;

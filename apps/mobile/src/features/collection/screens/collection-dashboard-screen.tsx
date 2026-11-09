@@ -206,47 +206,55 @@ function SeasonControlScope({
 }: Required<CollectionControlScreenProps>) {
   const { authority, season } = useCollectionSeason(seasonId);
   const feedback = useActionFeedback();
-  const FeedbackLayout = (
-    !authority.enabled
-      ? authority.sessionStatus === "restoring" ||
-        (authority.sessionStatus === "authenticated" &&
-          authority.account.isLoading)
-      : !season.data && season.isLoading
-  )
-    ? PageContent
-    : ScreenState;
+  const sessionPending =
+    authority.sessionStatus === "restoring" ||
+    (authority.sessionStatus === "authenticated" &&
+      authority.account.isLoading);
+  const pending = !authority.enabled
+    ? sessionPending
+    : !season.data && season.isLoading;
+  const FeedbackLayout = pending ? PageContent : ScreenState;
   if (!authority.enabled || !season.data || isAccessDenied(season.error)) {
+    /** Renders season admission and read feedback before current controls. */
+    function renderSeasonState() {
+      if (!authority.enabled) {
+        return (
+          <AccessFeedback
+            {...authority}
+            loadingContent={<CollectionControlLoading />}
+          />
+        );
+      }
+      if (season.isError) {
+        return (
+          <ErrorState
+            onRetry={() =>
+              void season.refetch().then((result) => {
+                if (
+                  result.isError &&
+                  result.data &&
+                  !isAccessDenied(result.error)
+                ) {
+                  feedback.error();
+                }
+              })
+            }
+            retrying={season.isFetching}
+          />
+        );
+      }
+      return (
+        <ReadFeedback
+          query={season}
+          loadingContent={<CollectionControlLoading />}
+        />
+      );
+    }
+
     return (
       <Page header={<PageHeader title={familyLabels[family]} />}>
         <PageScrollView>
-          <FeedbackLayout>
-            {!authority.enabled ? (
-              <AccessFeedback
-                {...authority}
-                loadingContent={<CollectionControlLoading />}
-              />
-            ) : season.isError ? (
-              <ErrorState
-                onRetry={() =>
-                  void season.refetch().then((result) => {
-                    if (
-                      result.isError &&
-                      result.data &&
-                      !isAccessDenied(result.error)
-                    ) {
-                      feedback.error();
-                    }
-                  })
-                }
-                retrying={season.isFetching}
-              />
-            ) : (
-              <ReadFeedback
-                query={season}
-                loadingContent={<CollectionControlLoading />}
-              />
-            )}
-          </FeedbackLayout>
+          <FeedbackLayout>{renderSeasonState()}</FeedbackLayout>
         </PageScrollView>
       </Page>
     );
@@ -294,49 +302,56 @@ function ControlScope({
   ) {
     return <ProviderSourcesScreen seasonId={season.id} provider={family} />;
   }
-  const FeedbackLayout = (
-    !authority.enabled
-      ? authority.sessionStatus === "restoring" ||
-        (authority.sessionStatus === "authenticated" &&
-          authority.account.isLoading)
-      : query.isLoading
-  )
-    ? PageContent
-    : ScreenState;
+  const sessionPending =
+    authority.sessionStatus === "restoring" ||
+    (authority.sessionStatus === "authenticated" &&
+      authority.account.isLoading);
+  const pending = !authority.enabled ? sessionPending : query.isLoading;
+  const FeedbackLayout = pending ? PageContent : ScreenState;
   if (!authority.enabled || !selected) {
+    /** Renders control admission and read feedback before selecting its dashboard. */
+    function renderControlState() {
+      if (!authority.enabled) {
+        return (
+          <AccessFeedback
+            {...authority}
+            loadingContent={<CollectionControlLoading />}
+          />
+        );
+      }
+      if (query.isError) {
+        return (
+          <ErrorState
+            onRetry={() =>
+              void query.refetch().then((result) => {
+                if (
+                  result.isError &&
+                  result.data &&
+                  !isAccessDenied(result.error)
+                ) {
+                  feedback.error();
+                }
+              })
+            }
+            retrying={query.isFetching}
+          />
+        );
+      }
+      if (query.data) {
+        return <ErrorState />;
+      }
+      return (
+        <ReadFeedback
+          query={query}
+          loadingContent={<CollectionControlLoading />}
+        />
+      );
+    }
+
     return (
       <Page header={<PageHeader title={familyLabels[family]} />}>
         <PageScrollView>
-          <FeedbackLayout>
-            {!authority.enabled ? (
-              <AccessFeedback
-                {...authority}
-                loadingContent={<CollectionControlLoading />}
-              />
-            ) : query.isError ? (
-              <ErrorState
-                onRetry={() =>
-                  void query.refetch().then((result) => {
-                    if (
-                      result.isError &&
-                      result.data &&
-                      !isAccessDenied(result.error)
-                    ) {
-                      feedback.error();
-                    }
-                  })
-                }
-                retrying={query.isFetching}
-              />
-            ) : query.data ? (
-              <ErrorState />
-            ) : (
-              <ReadFeedback
-                query={query}
-                loadingContent={<CollectionControlLoading />}
-              />
-            )}
-          </FeedbackLayout>
+          <FeedbackLayout>{renderControlState()}</FeedbackLayout>
         </PageScrollView>
       </Page>
     );
@@ -449,87 +464,134 @@ function ControlDashboard({
     await results.fetchNextPage({ cancelRefetch: false });
   }
 
-  const header = (
-    <View style={[!rows.length && pageContentStyle, styles.section]}>
-      {season && <SeasonIdentity season={season} />}
-      {season?.state === "closed" && (
-        <Text style={[tokens.typography.strong, { color: colors.text }]}>
-          Saison clôturée · historique conservé
+  /** Renders current control context and display actions independently of result-list feedback. */
+  function renderHeader() {
+    return (
+      <View style={[!rows.length && pageContentStyle, styles.section]}>
+        {season && <SeasonIdentity season={season} />}
+        {season?.state === "closed" && (
+          <Text style={[tokens.typography.strong, { color: colors.text }]}>
+            Saison clôturée · historique conservé
+          </Text>
+        )}
+        {current && (
+          <CollectionControl
+            control={current}
+            editing={editing}
+            season={season}
+            seasonFetching={seasonFetching}
+            stateUnavailable={seasonUnavailable}
+          />
+        )}
+        {season && (family === "ffvb" || family === "lnv") && (
+          <Button
+            label={
+              season.state === "closed"
+                ? "Consulter les sources"
+                : "Préparer les sources"
+            }
+            variant="secondary"
+            onPress={() =>
+              router.push({
+                pathname: "/collection/[seasonId]/[provider]",
+                params: { seasonId: season.id, provider: family },
+              })
+            }
+          />
+        )}
+        <Text
+          accessibilityRole="header"
+          style={[tokens.typography.heading, { color: colors.text }]}
+        >
+          Derniers résultats observés
         </Text>
-      )}
-      {current && (
-        <CollectionControl
-          control={current}
-          editing={editing}
-          season={season}
-          seasonFetching={seasonFetching}
-          stateUnavailable={seasonUnavailable}
-        />
-      )}
-      {season && (family === "ffvb" || family === "lnv") && (
         <Button
           label={
-            season.state === "closed"
-              ? "Consulter les sources"
-              : "Préparer les sources"
+            diagnostics ? "Masquer les diagnostics" : "Afficher les diagnostics"
           }
           variant="secondary"
-          onPress={() =>
-            router.push({
-              pathname: "/collection/[seasonId]/[provider]",
-              params: { seasonId: season.id, provider: family },
-            })
-          }
+          onPress={() => setDiagnostics(!diagnostics)}
         />
-      )}
-      <Text
-        accessibilityRole="header"
-        style={[tokens.typography.heading, { color: colors.text }]}
-      >
-        Derniers résultats observés
-      </Text>
-      <Button
-        label={
-          diagnostics ? "Masquer les diagnostics" : "Afficher les diagnostics"
-        }
-        variant="secondary"
-        onPress={() => setDiagnostics(!diagnostics)}
+      </View>
+    );
+  }
+
+  const sessionPending =
+    authority.sessionStatus === "restoring" ||
+    (authority.sessionStatus === "authenticated" &&
+      authority.account.isLoading);
+  const pending = !authority.enabled
+    ? sessionPending
+    : !current && query.isLoading;
+  const FeedbackLayout = pending ? PageContent : ScreenState;
+
+  /** Renders the current result-list admission, error or empty state. */
+  function renderResultsState() {
+    if (!authority.enabled) {
+      return (
+        <AccessFeedback
+          {...authority}
+          loadingContent={<CollectionControlLoading />}
+        />
+      );
+    }
+    if (query.isError) {
+      return (
+        <ErrorState
+          onRetry={() => void query.refetch()}
+          retrying={query.isFetching}
+        />
+      );
+    }
+    if (current) {
+      return <ErrorState />;
+    }
+    return (
+      <ReadFeedback
+        query={query}
+        loadingContent={<CollectionControlLoading />}
       />
-    </View>
-  );
-  const FeedbackLayout = (
-    !authority.enabled
-      ? authority.sessionStatus === "restoring" ||
-        (authority.sessionStatus === "authenticated" &&
-          authority.account.isLoading)
-      : !current && query.isLoading
-  )
-    ? PageContent
-    : ScreenState;
+    );
+  }
+
+  /** Distinguishes the initial result skeleton from failed or genuinely empty result reads. */
+  function renderEmptyResults() {
+    return results.isLoading && !isAccessDenied(results.error) ? (
+      <PageContent>
+        <CollectionResultsLoading />
+      </PageContent>
+    ) : (
+      <ScreenState>
+        {results.isError || results.isPending ? (
+          <ErrorState
+            onRetry={() => void results.refetch({ cancelRefetch: false })}
+            retrying={results.isFetching}
+          />
+        ) : (
+          <EmptyState title="Aucun résultat observé">
+            <Button
+              label="Actualiser"
+              leadingIcon={RefreshCw}
+              onPress={() => void results.refetch({ cancelRefetch: false })}
+              loading={results.isFetching}
+              disabled={
+                editing.activity.isPending ||
+                editing.request.isPending ||
+                query.isFetching ||
+                seasonFetching
+              }
+            />
+          </EmptyState>
+        )}
+      </ScreenState>
+    );
+  }
+
   return (
     <Page header={<PageHeader title={familyLabels[family]} />}>
       {!authority.enabled || !matches ? (
         <PageScrollView>
-          <FeedbackLayout>
-            {!authority.enabled ? (
-              <AccessFeedback
-                {...authority}
-                loadingContent={<CollectionControlLoading />}
-              />
-            ) : query.isError ? (
-              <ErrorState
-                onRetry={() => void query.refetch()}
-                retrying={query.isFetching}
-              />
-            ) : current ? (
-              <ErrorState />
-            ) : (
-              <ReadFeedback
-                query={query}
-                loadingContent={<CollectionControlLoading />}
-              />
-            )}
-          </FeedbackLayout>
+          <FeedbackLayout>{renderResultsState()}</FeedbackLayout>
         </PageScrollView>
       ) : (
         <PageFlatList
@@ -553,7 +615,7 @@ function ControlDashboard({
           contentContainerStyle={
             rows.length ? pageContentStyle : styles.emptyList
           }
-          ListHeaderComponent={header}
+          ListHeaderComponent={renderHeader()}
           ItemSeparatorComponent={ListSeparator}
           onEndReached={() => {
             if (!query.isError && !results.isError) {
@@ -564,41 +626,7 @@ function ControlDashboard({
           renderItem={({ item }) => (
             <CollectionResult result={item} diagnostics={diagnostics} />
           )}
-          ListEmptyComponent={
-            results.isLoading && !isAccessDenied(results.error) ? (
-              <PageContent>
-                <CollectionResultsLoading />
-              </PageContent>
-            ) : (
-              <ScreenState>
-                {results.isError || results.isPending ? (
-                  <ErrorState
-                    onRetry={() =>
-                      void results.refetch({ cancelRefetch: false })
-                    }
-                    retrying={results.isFetching}
-                  />
-                ) : (
-                  <EmptyState title="Aucun résultat observé">
-                    <Button
-                      label="Actualiser"
-                      leadingIcon={RefreshCw}
-                      onPress={() =>
-                        void results.refetch({ cancelRefetch: false })
-                      }
-                      loading={results.isFetching}
-                      disabled={
-                        editing.activity.isPending ||
-                        editing.request.isPending ||
-                        query.isFetching ||
-                        seasonFetching
-                      }
-                    />
-                  </EmptyState>
-                )}
-              </ScreenState>
-            )
-          }
+          ListEmptyComponent={renderEmptyResults()}
           ListFooterComponent={
             <>
               {!isAccessDenied(results.error) && results.hasNextPage ? (

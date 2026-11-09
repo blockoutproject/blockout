@@ -484,13 +484,15 @@ it("uses moderator eligibility without local age, clock, quota or Pro gates", as
 
 it("refuses malformed generated reads before cache admission", async () => {
   // Given
-  mockFetch.mockImplementation(async (url) =>
-    String(url).endsWith("/me")
-      ? Response.json(account)
-      : String(url).includes("/stream-contributions")
-        ? Response.json({ ...context, revision: null })
-        : Response.json(match),
-  );
+  mockFetch.mockImplementation(async (url) => {
+    if (String(url).endsWith("/me")) {
+      return Response.json(account);
+    }
+    if (String(url).includes("/stream-contributions")) {
+      return Response.json({ ...context, revision: null });
+    }
+    return Response.json(match);
+  });
   await mount();
 
   // When

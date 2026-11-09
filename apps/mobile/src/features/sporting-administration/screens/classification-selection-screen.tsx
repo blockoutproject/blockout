@@ -70,28 +70,33 @@ function Selection({
   const catalog = isAccessDenied(divisions.query.error)
     ? undefined
     : divisions.query.data;
-  const label =
-    field === "divisionId"
-      ? "Division"
-      : field === "gender"
-        ? "Genre"
-        : "Format";
-  const choices =
-    field === "divisionId"
-      ? (catalog?.items
-          .filter((item) => item.active)
-          .map((item) => ({ value: item.id, label: item.name })) ?? [])
-      : field === "gender"
-        ? [
-            { value: "female", label: sportingGenderLabels.female },
-            { value: "male", label: sportingGenderLabels.male },
-            { value: "mixed", label: sportingGenderLabels.mixed },
-          ]
-        : [
-            { value: "6x6", label: formatLabel("6x6") },
-            { value: "4x4", label: formatLabel("4x4") },
-            { value: "2x2", label: formatLabel("2x2") },
-          ];
+  let label;
+  if (field === "divisionId") {
+    label = "Division";
+  } else if (field === "gender") {
+    label = "Genre";
+  } else {
+    label = "Format";
+  }
+  let choices;
+  if (field === "divisionId") {
+    choices =
+      catalog?.items
+        .filter((item) => item.active)
+        .map((item) => ({ value: item.id, label: item.name })) ?? [];
+  } else if (field === "gender") {
+    choices = [
+      { value: "female", label: sportingGenderLabels.female },
+      { value: "male", label: sportingGenderLabels.male },
+      { value: "mixed", label: sportingGenderLabels.mixed },
+    ];
+  } else {
+    choices = [
+      { value: "6x6", label: formatLabel("6x6") },
+      { value: "4x4", label: formatLabel("4x4") },
+      { value: "2x2", label: formatLabel("2x2") },
+    ];
+  }
   const denied =
     (field === "divisionId" && isAccessDenied(divisions.query.error)) ||
     isAccessDenied(classification.query.error);

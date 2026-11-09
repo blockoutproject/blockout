@@ -409,13 +409,15 @@ it("never lets a delayed resource response replace the newly selected match", as
       home: { id: otherId, name: "Current team" },
     },
   };
-  mockFetch.mockImplementation((url: string) =>
-    url.endsWith(`/matches/${sportingId}`)
-      ? old.promise
-      : url.endsWith(`/matches/${otherId}`)
-        ? Promise.resolve(Response.json(current))
-        : reads(url),
-  );
+  mockFetch.mockImplementation((url: string) => {
+    if (url.endsWith(`/matches/${sportingId}`)) {
+      return old.promise;
+    }
+    if (url.endsWith(`/matches/${otherId}`)) {
+      return Promise.resolve(Response.json(current));
+    }
+    return reads(url);
+  });
   const rendered = await renderPage(<MatchScreen matchId={sportingId} />);
   await screen.findByRole("progressbar", { name: "Chargement du match" });
 
@@ -600,13 +602,15 @@ it.each(["current", "former"] as const)(
       expect(
         screen.getByRole("link", { name: /bypass@example.invalid/ }),
       ).toBeOnTheScreen();
-      mockFetch.mockImplementation((url: string) =>
-        url.endsWith("/logo")
-          ? Promise.reject(new TypeError("offline"))
-          : url.endsWith(`/clubs/${sportingId}`)
-            ? Promise.resolve(Response.json(logoClub))
-            : reads(url),
-      );
+      mockFetch.mockImplementation((url: string) => {
+        if (url.endsWith("/logo")) {
+          return Promise.reject(new TypeError("offline"));
+        }
+        if (url.endsWith(`/clubs/${sportingId}`)) {
+          return Promise.resolve(Response.json(logoClub));
+        }
+        return reads(url);
+      });
       await act(() =>
         client.refetchQueries({
           predicate: (query) =>

@@ -6,16 +6,18 @@ export function supportValues(
   context: SupportContextRequest = {},
   replyEmail = "",
 ): SupportValues {
+  let subject: SupportValues["subject"] = "";
+  if (context.target) {
+    subject = "sporting-data";
+  } else if (context.screen === "Profil" || context.screen === "Connexion") {
+    subject = "account";
+  } else if (context.screen === "Pro") {
+    subject = "pro-subscription";
+  }
   return {
     images: [],
     kind: "problem",
-    subject: context.target
-      ? "sporting-data"
-      : context.screen === "Profil" || context.screen === "Connexion"
-        ? "account"
-        : context.screen === "Pro"
-          ? "pro-subscription"
-          : "",
+    subject,
     title: "",
     description: "",
     replyEmail,

@@ -15,6 +15,20 @@ export interface PresentationEntryProps {
 
 /** Discreet contextual editor; route admission and server authorization remain independently enforced. */
 export function PresentationEntry({ target }: PresentationEntryProps) {
+  /** Names the sporting resource addressed by this contextual editor entry. */
+  function presentationEntryLabel() {
+    if (target.kind === "team") {
+      return "Modifier l’équipe";
+    }
+    if (target.kind === "club") {
+      return "Modifier le club";
+    }
+    if (target.kind === "pool") {
+      return "Modifier la poule";
+    }
+    return "Modifier la division";
+  }
+
   const { permissions } = useAdministrationCapabilities();
   const router = useRouter();
   const { colors } = useTheme();
@@ -29,15 +43,7 @@ export function PresentationEntry({ target }: PresentationEntryProps) {
           params: { kind: target.kind, id: target.id },
         })
       }
-      label={
-        target.kind === "team"
-          ? "Modifier l’équipe"
-          : target.kind === "club"
-            ? "Modifier le club"
-            : target.kind === "pool"
-              ? "Modifier la poule"
-              : "Modifier la division"
-      }
+      label={presentationEntryLabel()}
     >
       <SquarePen
         accessible={false}

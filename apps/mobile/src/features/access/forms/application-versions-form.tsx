@@ -1,3 +1,4 @@
+import { controlOpacity } from "../../../shared/components/control-styles";
 import { ApiError } from "../../../shared/api/api-fetch";
 import {
   ActionFeedbackProvider,
@@ -166,6 +167,10 @@ export function ApplicationVersionsForm({
     setAcknowledged(undefined);
   }
 
+  const previewPlatform = Platform.OS === "ios" ? "ios" : "android";
+  const previewStoreUrl = applicationVersionsSchema.safeParse(current).success
+    ? current[previewPlatform].storeUrl || null
+    : null;
   return (
     <View style={styles.form}>
       <View style={styles.platforms}>
@@ -292,13 +297,7 @@ export function ApplicationVersionsForm({
               onPress={() => setAcknowledged(checked ? undefined : storeChoice)}
               style={({ pressed }) => [
                 styles.acknowledgement,
-                {
-                  opacity: busy
-                    ? tokens.opacity.disabled
-                    : pressed
-                      ? tokens.opacity.pressed
-                      : 1,
-                },
+                { opacity: controlOpacity(busy, pressed) },
               ]}
             >
               <View
@@ -399,12 +398,7 @@ export function ApplicationVersionsForm({
           >
             <ApplicationVersionsPreview
               message={current.message.trim() || null}
-              storeUrl={
-                applicationVersionsSchema.safeParse(current).success
-                  ? current[Platform.OS === "ios" ? "ios" : "android"]
-                      .storeUrl || null
-                  : null
-              }
+              storeUrl={previewStoreUrl}
               onClose={() => setPreview(false)}
             />
           </ActionFeedbackProvider>

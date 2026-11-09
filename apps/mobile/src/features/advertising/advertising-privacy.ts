@@ -47,6 +47,26 @@ export interface AdvertisingPrivacyOptions {
   adUnitId?: string;
 }
 
+/** Legacy iOS tracking configuration remains separate from the UMP authorization decision. */
+function setLegacyAdvertiserTracking(enabled: boolean) {
+  if (
+    Platform.OS === "ios" &&
+    Number.parseInt(String(Platform.Version), 10) < 17
+  ) {
+    setAdvertiserTrackingEnabled(enabled);
+  }
+}
+
+/** Maps the installation declaration to the provider's supported request treatment. */
+function ageRestrictedTreatment(category: AgeDeclaration["category"]) {
+  if (category === "under16") {
+    return AgeRestrictedTreatment.CHILD;
+  }
+  return category === "16–17"
+    ? AgeRestrictedTreatment.TEEN
+    : AgeRestrictedTreatment.UNSPECIFIED;
+}
+
 /** Identifies one applicable attempt, including business-account establishment. */
 function contextKey(context: AdvertisingPrivacyContext) {
   const session = context.account;
@@ -109,6 +129,26 @@ export function createAdvertisingPrivacy({
     retirePreparation();
   }
 
+  /** Requests ATT at most once, accepting no permission result after the context is retired. */
+  async function readTrackingPermission(current: () => boolean) {
+    let permission = await getTrackingPermissionsAsync();
+    if (!current()) {
+      return null;
+    }
+    if (
+      permission.status === "undetermined" &&
+      permission.canAskAgain &&
+      !trackingRequested
+    ) {
+      trackingRequested = true;
+      permission = await requestTrackingPermissionsAsync();
+      if (!current()) {
+        return null;
+      }
+    }
+    return permission.status === "granted";
+  }
+
   /** Reads the SDK's current helpers, then permits tracking only for eligible consenting adults. */
   async function readChoices(
     info: AdsConsentInfo,
@@ -147,33 +187,69 @@ export function createAdvertisingPrivacy({
       getAdvertisingEligibility({ ...getContext(), choices: candidate })
         .canServeAds
     ) {
-      let permission = await getTrackingPermissionsAsync();
-      if (!current()) {
+      const permission = await readTrackingPermission(current);
+      if (permission === null) {
         return null;
       }
-      if (
-        permission.status === "undetermined" &&
-        permission.canAskAgain &&
-        !trackingRequested
-      ) {
-        trackingRequested = true;
-        permission = await requestTrackingPermissionsAsync();
-        if (!current()) {
-          return null;
-        }
-      }
-      tracking = permission.status === "granted";
+      tracking = permission;
     }
     if (wantsTracking && tracking) {
       authorizedMode = "personalized";
     }
-    if (
-      Platform.OS === "ios" &&
-      Number.parseInt(String(Platform.Version), 10) < 17
-    ) {
-      setAdvertiserTrackingEnabled(wantsTracking && tracking);
-    }
+    setLegacyAdvertiserTracking(wantsTracking && tracking);
     return { ...candidate, authorizedMode };
+  }
+
+  /** Opens UMP options only when currently applicable, retaining the captured category after acknowledged gathering. */
+  async function readOptionsConsent(
+    context: AdvertisingPrivacyContext,
+    current: () => boolean,
+  ) {
+    let info: AdsConsentInfo;
+    if (consentCategory !== context.category) {
+      info = await AdsConsent.gatherConsent({
+        tagForUnderAgeOfConsent: context.category === "under16",
+      });
+      if (!current()) {
+        return null;
+      }
+      consentCategory = context.category;
+    } else {
+      info = await AdsConsent.getConsentInfo();
+    }
+    if (!current()) {
+      return null;
+    }
+    if (
+      info.privacyOptionsRequirementStatus !==
+      AdsConsentPrivacyOptionsRequirementStatus.REQUIRED
+    ) {
+      publish({ ...snapshot, privacyOptionsRequired: false });
+      return { info, optionsShown: false };
+    }
+    await AdsConsent.showPrivacyOptionsForm();
+    if (!current()) {
+      return null;
+    }
+    info = await AdsConsent.getConsentInfo();
+    return { info, optionsShown: true };
+  }
+
+  /** Rechecks UMP applicability before opening options; each awaited result remains context-scoped. */
+  async function readConsent(
+    action: "gather" | "refresh" | "options",
+    context: AdvertisingPrivacyContext,
+    current: () => boolean,
+  ) {
+    if (action === "options") {
+      return readOptionsConsent(context, current);
+    }
+    const options = { tagForUnderAgeOfConsent: context.category === "under16" };
+    const info =
+      action === "gather"
+        ? await AdsConsent.gatherConsent(options)
+        : await AdsConsent.requestInfoUpdate(options);
+    return { info, optionsShown: true };
   }
 
   /** One native interaction at a time; stale completions never initialize, request or publish ads. */
@@ -205,12 +281,7 @@ export function createAdvertisingPrivacy({
     async function run() {
       try {
         await mobileAds().setRequestConfiguration({
-          ageRestrictedTreatment:
-            context.category === "under16"
-              ? AgeRestrictedTreatment.CHILD
-              : context.category === "16–17"
-                ? AgeRestrictedTreatment.TEEN
-                : AgeRestrictedTreatment.UNSPECIFIED,
+          ageRestrictedTreatment: ageRestrictedTreatment(context.category),
           maxAdContentRating:
             context.category === "under16"
               ? MaxAdContentRating.G
@@ -219,45 +290,11 @@ export function createAdvertisingPrivacy({
         if (!current()) {
           return false;
         }
-        let info: AdsConsentInfo;
-        let optionsShown = action !== "options";
-        if (action === "options") {
-          if (consentCategory !== context.category) {
-            info = await AdsConsent.gatherConsent({
-              tagForUnderAgeOfConsent: context.category === "under16",
-            });
-            if (!current()) {
-              return false;
-            }
-            consentCategory = context.category;
-          } else {
-            info = await AdsConsent.getConsentInfo();
-          }
-          if (!current()) {
-            return false;
-          }
-          if (
-            info.privacyOptionsRequirementStatus !==
-            AdsConsentPrivacyOptionsRequirementStatus.REQUIRED
-          ) {
-            publish({ ...snapshot, privacyOptionsRequired: false });
-          } else {
-            await AdsConsent.showPrivacyOptionsForm();
-            if (!current()) {
-              return false;
-            }
-            info = await AdsConsent.getConsentInfo();
-            optionsShown = true;
-          }
-        } else {
-          const options = {
-            tagForUnderAgeOfConsent: context.category === "under16",
-          };
-          info =
-            action === "gather"
-              ? await AdsConsent.gatherConsent(options)
-              : await AdsConsent.requestInfoUpdate(options);
+        const consent = await readConsent(action, context, current);
+        if (!consent) {
+          return false;
         }
+        const { info, optionsShown } = consent;
         if (!current()) {
           return false;
         }

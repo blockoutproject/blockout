@@ -9,7 +9,7 @@ import { Image } from "expo-image";
 import { ImageFallback } from "../../../shared/components/image-fallback";
 import { useRouter } from "expo-router";
 import { X } from "lucide-react-native";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { PublicMaintenanceResponse } from "../../../../.generated/schemas/index.zod";
@@ -69,6 +69,96 @@ function GateView({
     badge = "MISE À JOUR";
     message = updateMessage ?? applicationUpdateMessage;
   }
+  let storeAction: ReactNode = null;
+  if (update && storeUrl) {
+    storeAction = <StoreAction key={storeUrl} url={storeUrl} />;
+  } else if (update && onClose) {
+    storeAction = (
+      <Button
+        fullWidth
+        label="Mettre à jour l’application"
+        onPress={undefined}
+        disabled
+      />
+    );
+  }
+
+  /** Keeps pending/unavailable recovery distinct from maintenance and update presentation. */
+  function renderContent() {
+    if (gate === "checking") {
+      return (
+        <PageContent>
+          <LoadingGroup label="Vérification de l’accès" style={styles.pending}>
+            <Skeleton width="62%" height={tokens.typography.title.lineHeight} />
+            <Skeleton width="90%" />
+            <Skeleton width="72%" />
+          </LoadingGroup>
+        </PageContent>
+      );
+    }
+    if (simple) {
+      return (
+        <ScreenState>
+          <ErrorState onRetry={onRefresh} retrying={checking} />
+        </ScreenState>
+      );
+    }
+    return (
+      <>
+        <View style={styles.stage}>
+          <GateBackdrop />
+          <View
+            style={[
+              styles.card,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+              },
+            ]}
+          >
+            {!update && (
+              <View style={styles.mediaInset}>
+                <GateImage key={image ?? "placeholder"} uri={image} />
+              </View>
+            )}
+            <Text
+              accessibilityRole="header"
+              accessibilityLabel={title.replace("\n", " ")}
+              style={[
+                styles.heading,
+                update && styles.updateHeading,
+                { color: colors.text },
+              ]}
+            >
+              {title}
+            </Text>
+            <Text style={[styles.message, { color: colors.secondaryText }]}>
+              {message}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.actions}>
+          {storeAction}
+          {inMaintenance && onAdministration && (
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel="Accès administrateur"
+              onPress={onAdministration}
+              style={({ pressed }) => [
+                styles.operator,
+                { opacity: pressed ? tokens.opacity.pressed : 1 },
+              ]}
+            >
+              <Text style={[tokens.typography.strong, { color: colors.text }]}>
+                Accès administrateur
+              </Text>
+            </Pressable>
+          )}
+        </View>
+      </>
+    );
+  }
+
   return (
     <Page
       header={
@@ -102,91 +192,7 @@ function GateView({
           ) : undefined
         }
       >
-        {simple ? (
-          gate === "checking" ? (
-            <PageContent>
-              <LoadingGroup
-                label="Vérification de l’accès"
-                style={styles.pending}
-              >
-                <Skeleton
-                  width="62%"
-                  height={tokens.typography.title.lineHeight}
-                />
-                <Skeleton width="90%" />
-                <Skeleton width="72%" />
-              </LoadingGroup>
-            </PageContent>
-          ) : (
-            <ScreenState>
-              <ErrorState onRetry={onRefresh} retrying={checking} />
-            </ScreenState>
-          )
-        ) : (
-          <>
-            <View style={styles.stage}>
-              <GateBackdrop />
-              <View
-                style={[
-                  styles.card,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
-              >
-                {!update && (
-                  <View style={styles.mediaInset}>
-                    <GateImage key={image ?? "placeholder"} uri={image} />
-                  </View>
-                )}
-                <Text
-                  accessibilityRole="header"
-                  accessibilityLabel={title.replace("\n", " ")}
-                  style={[
-                    styles.heading,
-                    update && styles.updateHeading,
-                    { color: colors.text },
-                  ]}
-                >
-                  {title}
-                </Text>
-                <Text style={[styles.message, { color: colors.secondaryText }]}>
-                  {message}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.actions}>
-              {update && storeUrl ? (
-                <StoreAction key={storeUrl} url={storeUrl} />
-              ) : update && onClose ? (
-                <Button
-                  fullWidth
-                  label="Mettre à jour l’application"
-                  onPress={undefined}
-                  disabled
-                />
-              ) : null}
-              {inMaintenance && onAdministration && (
-                <Pressable
-                  accessibilityRole="link"
-                  accessibilityLabel="Accès administrateur"
-                  onPress={onAdministration}
-                  style={({ pressed }) => [
-                    styles.operator,
-                    { opacity: pressed ? tokens.opacity.pressed : 1 },
-                  ]}
-                >
-                  <Text
-                    style={[tokens.typography.strong, { color: colors.text }]}
-                  >
-                    Accès administrateur
-                  </Text>
-                </Pressable>
-              )}
-            </View>
-          </>
-        )}
+        {renderContent()}
       </PageScrollView>
     </Page>
   );

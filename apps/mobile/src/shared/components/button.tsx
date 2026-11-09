@@ -1,3 +1,4 @@
+import { controlOpacity } from "./control-styles";
 import { Image } from "expo-image";
 import type { LucideIcon } from "lucide-react-native";
 import {
@@ -8,7 +9,7 @@ import {
   View,
   type PressableProps,
 } from "react-native";
-import { useTheme } from "../theme/theme-provider";
+import { type Theme, useTheme } from "../theme/theme-provider";
 import { tokens, type ContextColors } from "../theme/tokens";
 import { LoadingIndicator } from "./loading-indicator";
 
@@ -93,16 +94,11 @@ export function Button({
         shadow: scheme === "dark" ? "#00000033" : `${contextColor}1A`,
       }
     : context;
-  const foreground =
-    variant === "primary"
-      ? actionContext.onAction
-      : variant === "success"
-        ? colors.onSuccessAction
-        : variant === "destructive"
-          ? colors.onDangerAction
-          : variant === "inverse"
-            ? colors.onInverse
-            : colors.text;
+  const { foreground, backgroundColor } = buttonPaints(
+    variant,
+    actionContext,
+    colors,
+  );
   const Icon = LeadingIcon ?? TrailingIcon;
   const progress =
     loadingIndicator === "spinner" ? (
@@ -153,16 +149,7 @@ export function Button({
             size === "compact" && styles.compact,
             size === "compact" && !bordered && styles.compactBorderless,
             {
-              backgroundColor:
-                variant === "primary"
-                  ? actionContext.primary
-                  : variant === "success"
-                    ? colors.successAction
-                    : variant === "destructive"
-                      ? colors.dangerAction
-                      : variant === "inverse"
-                        ? colors.inverse
-                        : colors.raised,
+              backgroundColor,
               borderWidth:
                 bordered && (variant === "secondary" || variant === "inverse")
                   ? tokens.border.thin
@@ -171,11 +158,7 @@ export function Button({
                 variant === "inverse" && contextColor
                   ? `${contextColor}${colors.contextBorderAlpha}`
                   : colors.border,
-              opacity: disabled
-                ? tokens.opacity.disabled
-                : pressed
-                  ? tokens.opacity.pressed
-                  : 1,
+              opacity: controlOpacity(disabled, pressed),
               boxShadow:
                 disabled || pressed || variant !== "primary"
                   ? []
@@ -213,6 +196,32 @@ export function Button({
       )}
     </Pressable>
   );
+}
+
+/** Resolves the paired foreground/background roles for one approved action variant. */
+function buttonPaints(
+  variant: ButtonProps["variant"],
+  context: ContextColors,
+  colors: Theme["colors"],
+) {
+  switch (variant) {
+    case "primary":
+      return { foreground: context.onAction, backgroundColor: context.primary };
+    case "success":
+      return {
+        foreground: colors.onSuccessAction,
+        backgroundColor: colors.successAction,
+      };
+    case "destructive":
+      return {
+        foreground: colors.onDangerAction,
+        backgroundColor: colors.dangerAction,
+      };
+    case "inverse":
+      return { foreground: colors.onInverse, backgroundColor: colors.inverse };
+    default:
+      return { foreground: colors.text, backgroundColor: colors.raised };
+  }
 }
 
 /** UI Library Color 3193:125: mix a qualified six-digit primary with 8% black for its default endpoint. */

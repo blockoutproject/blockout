@@ -47,16 +47,15 @@ export function MemberAdmissionScreen() {
     establishment.isPending;
   const reauthentication = session.status === "reauthentication-required";
   const primaryPending = establishment.isPending || account.isFetching;
-  const label = missing
-    ? "Créer mon compte"
-    : reauthentication
-      ? "Se connecter"
-      : "Réessayer";
-  const description = missing
-    ? "Créez votre compte ou continuez en invité."
-    : reauthentication
-      ? "Connectez-vous ou continuez en invité."
-      : "Réessayez ou continuez en invité.";
+  let label = "Réessayer";
+  let description = "Réessayez ou continuez en invité.";
+  if (missing) {
+    label = "Créer mon compte";
+    description = "Créez votre compte ou continuez en invité.";
+  } else if (reauthentication) {
+    label = "Se connecter";
+    description = "Connectez-vous ou continuez en invité.";
+  }
 
   /** Runs only the displayed explicit intent, retaining read errors locally and reporting failed writes once. */
   async function recover() {

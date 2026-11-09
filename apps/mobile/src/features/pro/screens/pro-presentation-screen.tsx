@@ -1,4 +1,3 @@
-import { RefreshCw } from "lucide-react-native";
 import { useMutation } from "@tanstack/react-query";
 import Constants from "expo-constants";
 import { useRouter } from "expo-router";
@@ -9,12 +8,10 @@ import {
   useRef,
   useState,
 } from "react";
-import { StyleSheet, Text } from "react-native";
+import { StyleSheet } from "react-native";
 import RevenueCatUI from "react-native-purchases-ui";
 import { useAccountSession } from "../../accounts/current-account";
 import type { CustomerInfo } from "react-native-purchases";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
 import { usePro } from "../pro-provider";
 import { canPurchasePro } from "../pro-offering";
 import {
@@ -24,21 +21,10 @@ import {
 } from "../pro-operations";
 import { useProOffering } from "../api/use-pro-offering";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { Button } from "../../../shared/components/button";
-import {
-  Page,
-  PageContent,
-  PageScrollView,
-} from "../../../shared/components/page";
-import { PageHeader } from "../../../shared/components/page-header";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { EmptyState, ErrorState } from "../../../shared/components/state-card";
-import { ProReadLoading } from "../components/pro-read-loading";
-import {
-  hasUnsettledProOperation,
-  isProVerificationLoading,
-  ProVerification,
-} from "../components/pro-verification";
+import { ProRecovery } from "../components/pro-recovery";
+import { hasAssociatedCustomer } from "../pro-presentation-state";
+import type { ProState } from "../pro-state";
+import { hasUnsettledProOperation } from "../components/pro-verification";
 
 /** F12 admission, explicit management intent and the existing F10 navigation destination. */
 export interface ProPresentationScreenProps {
@@ -61,8 +47,6 @@ export function ProPresentationScreen({
   const feedback = useActionFeedback({ retainOnUnmount: true });
   const {
     state,
-    refreshing,
-    verificationFailed,
     getState,
     refresh,
     beginPurchase,
@@ -83,7 +67,6 @@ export function ProPresentationScreen({
   const [view, setView] = useState<"automatic" | "management" | "outcome">(
     management ? "management" : "automatic",
   );
-  const { colors } = useTheme();
   const liveAccount = useRef(account);
   useLayoutEffect(() => {
     liveAccount.current = account;
@@ -106,17 +89,7 @@ export function ProPresentationScreen({
     openedFor.accountId !== null &&
     account.subject === openedFor.subject &&
     account.accountId === openedFor.accountId;
-  const associated =
-    state.status === "active" ||
-    state.status === "inactive" ||
-    (state.status === "unavailable" && state.reason === "customer-info");
-  const operation = state.status === "guest" ? "idle" : state.operation;
-  const purchaseAllowed = canPurchasePro(state);
-  const showPaywall =
-    view === "automatic" &&
-    (purchaseAllowed ||
-      (state.status !== "guest" &&
-        ["purchasing", "restoring"].includes(state.operation)));
+  const showPaywall = canPresentPaywall(view, state);
   const offering = useProOffering(admitted && current && showPaywall);
   const { refetch: readOffering } = offering;
 
@@ -306,13 +279,7 @@ export function ProPresentationScreen({
       />
     );
   }
-  if (
-    associated &&
-    (view === "management" ||
-      (view === "automatic" &&
-        state.status === "active" &&
-        !hasUnsettledProOperation(state)))
-  ) {
+  if (canPresentManagement(view, state)) {
     return (
       <RevenueCatUI.CustomerCenterView
         style={styles.provider}
@@ -349,94 +316,62 @@ export function ProPresentationScreen({
       />
     );
   }
-  const loadingOffer =
-    offering.isFetching &&
-    (!offering.isFetchedAfterMount || offering.data !== null);
-  const Content = (
-    showPaywall
-      ? loadingOffer
-      : isProVerificationLoading(state, refreshing, verificationFailed)
-  )
-    ? PageContent
-    : ScreenState;
-  const contextualOutcome =
-    !showPaywall &&
-    (state.status !== "unavailable" ||
-      hasUnsettledProOperation(state) ||
-      operation === "restored");
   return (
-    <Page accessibilityViewIsModal header={<PageHeader title="Blockout Pro" />}>
-      <PageScrollView>
-        <Content style={contextualOutcome ? styles.centered : undefined}>
-          {showPaywall ? (
-            loadingOffer ? (
-              <ProReadLoading label="Chargement des offres Pro" />
-            ) : offering.isError ||
-              !offering.isFetchedAfterMount ||
-              offering.data === undefined ? (
-              <ErrorState
-                onRetry={() => void retryOffering()}
-                retrying={offering.isFetching}
-              />
-            ) : (
-              <EmptyState
-                title="Aucune offre Pro disponible"
-                description="Réessayez plus tard."
-              >
-                <Button
-                  label="Actualiser"
-                  leadingIcon={RefreshCw}
-                  onPress={() => void retryOffering()}
-                  loading={offering.isFetching}
-                />
-              </EmptyState>
-            )
-          ) : (
-            <ProVerification />
-          )}
-          <Text
-            style={[tokens.typography.body, { color: colors.secondaryText }]}
-          >
-            La restauration peut associer les achats du store à ce compte, y
-            compris le reçu entier. Elle ne récupère ni votre ancien profil ni
-            vos cadeaux. Un achat d’une autre boutique peut nécessiter
-            l’assistance.
-          </Text>
-          <Button
-            label="Restaurer mes achats"
-            onPress={restoreExplicitly}
-            disabled={
-              !associated || ["restoring", "purchasing"].includes(operation)
+    <ProRecovery
+      showPaywall={showPaywall}
+      offering={offering}
+      restoring={restoration.isPending}
+      onRetry={() => void retryOffering()}
+      onRestore={restoreExplicitly}
+      onManagement={() => {
+        if (!closed.current && isCurrentPresentation()) {
+          setView("management");
+        }
+      }}
+      onSupport={
+        onSupport
+          ? () => {
+              if (isCurrentPresentation() && close()) {
+                onSupport();
+              }
             }
-            loading={restoration.isPending || operation === "restoring"}
-          />
-          {associated && (
-            <Button
-              label="Gérer ou restaurer mes achats"
-              onPress={() => {
-                if (!closed.current && isCurrentPresentation()) {
-                  setView("management");
-                }
-              }}
-            />
-          )}
-          {onSupport && (
-            <Button
-              label="Contacter l’assistance"
-              onPress={() => {
-                if (isCurrentPresentation() && close()) {
-                  onSupport();
-                }
-              }}
-            />
-          )}
-        </Content>
-      </PageScrollView>
-    </Page>
+          : undefined
+      }
+    />
+  );
+}
+
+/** An active native operation keeps its mounted paywall even after purchase eligibility changes. */
+function canPresentPaywall(
+  view: "automatic" | "management" | "outcome",
+  state: ProState,
+) {
+  if (view !== "automatic") {
+    return false;
+  }
+  return (
+    canPurchasePro(state) ||
+    (state.status !== "guest" &&
+      ["purchasing", "restoring"].includes(state.operation))
+  );
+}
+
+/** Explicit management and settled active rights share the SDK-owned Customer Center. */
+function canPresentManagement(
+  view: "automatic" | "management" | "outcome",
+  state: ProState,
+) {
+  if (!hasAssociatedCustomer(state)) {
+    return false;
+  }
+  return (
+    view === "management" ||
+    (view === "automatic" &&
+      state.status === "active" &&
+      !hasUnsettledProOperation(state))
   );
 }
 
 const styles = StyleSheet.create({
   provider: { flex: 1 },
-  centered: { justifyContent: "center" },
 });

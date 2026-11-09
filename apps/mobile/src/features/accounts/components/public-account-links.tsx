@@ -1,3 +1,4 @@
+import { controlOpacity } from "../../../shared/components/control-styles";
 import { Link } from "expo-router";
 import { FileText } from "lucide-react-native";
 import {
@@ -89,13 +90,7 @@ function PublicLinkAction({
       accessibilityState={{ disabled: props.disabled ?? false }}
       style={({ pressed }) => [
         styles.link,
-        {
-          opacity: props.disabled
-            ? tokens.opacity.disabled
-            : pressed
-              ? tokens.opacity.pressed
-              : 1,
-        },
+        { opacity: controlOpacity(props.disabled, pressed) },
       ]}
     >
       <Text style={[styles.label, { color: colors.secondaryText }]}>

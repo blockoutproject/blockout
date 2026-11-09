@@ -166,16 +166,20 @@ export function DivisionColorFields({
                 { shouldDirty: true, shouldValidate: true },
               )
             }
-            style={({ pressed }) => [
-              styles.action,
-              {
-                opacity: disabled
-                  ? tokens.opacity.disabled
-                  : pressed
-                    ? tokens.opacity.pressed
-                    : 1,
-              },
-            ]}
+            style={({ pressed }) => {
+              let opacity = 1;
+              if (disabled) {
+                opacity = tokens.opacity.disabled;
+              } else if (pressed) {
+                opacity = tokens.opacity.pressed;
+              }
+              return [
+                styles.action,
+                {
+                  opacity,
+                },
+              ];
+            }}
           >
             <Text
               numberOfLines={2}

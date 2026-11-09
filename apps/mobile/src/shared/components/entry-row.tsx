@@ -1,3 +1,4 @@
+import { controlOpacity } from "./control-styles";
 import type { ReactNode } from "react";
 import { ChevronRight } from "lucide-react-native";
 import {
@@ -37,6 +38,20 @@ export function EntryRow({
   ...props
 }: EntryRowProps) {
   const { colors } = useTheme();
+  let disclosureIcon: ReactNode = null;
+  if (typeof props.accessibilityState?.expanded === "boolean" && !trailing) {
+    disclosureIcon = (
+      <DisclosureChevron expanded={props.accessibilityState.expanded} />
+    );
+  } else if (disclosure) {
+    disclosureIcon = (
+      <ChevronRight
+        accessible={false}
+        size={tokens.size.icon.sm}
+        color={colors.icon}
+      />
+    );
+  }
   return (
     <Pressable
       accessibilityRole="button"
@@ -51,11 +66,7 @@ export function EntryRow({
       style={(state) => [
         styles.row,
         {
-          opacity: disabled
-            ? tokens.opacity.disabled
-            : state.pressed
-              ? tokens.opacity.pressed
-              : 1,
+          opacity: controlOpacity(disabled, state.pressed),
         },
         typeof style === "function" ? style(state) : style,
       ]}
@@ -81,15 +92,7 @@ export function EntryRow({
           {trailing}
         </View>
       )}
-      {typeof props.accessibilityState?.expanded === "boolean" && !trailing ? (
-        <DisclosureChevron expanded={props.accessibilityState.expanded} />
-      ) : disclosure ? (
-        <ChevronRight
-          accessible={false}
-          size={tokens.size.icon.sm}
-          color={colors.icon}
-        />
-      ) : null}
+      {disclosureIcon}
     </Pressable>
   );
 }

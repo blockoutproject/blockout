@@ -65,24 +65,31 @@ export function ModerationFilters({ initial }: ModerationFiltersProps) {
     ["replaced", "Lien remplacé"],
     ["superseded", "Proposition remplacée"],
   ];
-  const options =
-    choice === "seasonId"
-      ? [
-          { value: "", label: "Toutes les saisons" },
-          ...seasons.map((season) => ({
-            value: season.id,
-            label: season.label,
-          })),
-        ]
-      : choice === "platform"
-        ? [
-            { value: "", label: "Toutes les plateformes" },
-            ...Object.entries(streamPlatformLabels).map(([value, label]) => ({
-              value,
-              label,
-            })),
-          ]
-        : stateOptions.map(([value, label]) => ({ value, label }));
+
+  /** Builds only the selected contextual filter choices. */
+  function choiceOptions() {
+    if (choice === "seasonId") {
+      return [
+        { value: "", label: "Toutes les saisons" },
+        ...seasons.map((season) => ({
+          value: season.id,
+          label: season.label,
+        })),
+      ];
+    }
+    if (choice === "platform") {
+      return [
+        { value: "", label: "Toutes les plateformes" },
+        ...Object.entries(streamPlatformLabels).map(([value, label]) => ({
+          value,
+          label,
+        })),
+      ];
+    }
+    return stateOptions.map(([value, label]) => ({ value, label }));
+  }
+
+  const options = choiceOptions();
 
   /** Applies only the user's explicit sheet draft, preserving literal search text. */
   function apply(filters: Filters) {
@@ -95,6 +102,117 @@ export function ModerationFilters({ initial }: ModerationFiltersProps) {
         state: filters.state ?? "to-review",
       },
     });
+  }
+
+  /** Keeps default moderation state wording distinct from a specific lifecycle filter. */
+  function stateLabel() {
+    if (values.state === "to-review") {
+      return "À traiter";
+    }
+    if (values.state === "all" || !values.state) {
+      return "Tous les états de la sélection";
+    }
+    return contributionStateLabels[values.state];
+  }
+
+  /** Recovers private-read admission before rendering the current filter draft. */
+  function renderFilterContent() {
+    if (reading.session.status !== "authenticated") {
+      return (
+        <AccountSessionFeedback loadingContent={<ModerationFiltersLoading />} />
+      );
+    }
+    if (!reading.canRetain && reading.profile.isSuccess) {
+      return (
+        <Text style={[tokens.typography.body, { color: colors.text }]}>
+          La modération des liens vidéo n’est pas autorisée.
+        </Text>
+      );
+    }
+    if (!reading.allowed || !reading.query.data) {
+      if (
+        reading.profile.isLoading ||
+        (reading.allowed && reading.query.isLoading)
+      ) {
+        return <ModerationFiltersLoading />;
+      }
+      return (
+        <ReadFeedback
+          loadingContent={<ModerationFiltersLoading />}
+          query={!reading.allowed ? reading.profile : reading.query}
+        />
+      );
+    }
+    if (choice) {
+      return (
+        <EntryGroup>
+          {options.map((option) => (
+            <SelectionRow
+              key={option.value}
+              label={option.label}
+              selected={(values[choice] ?? "") === option.value}
+              onPress={() => {
+                if (choice === "platform") {
+                  setValue(
+                    "platform",
+                    option.value
+                      ? StreamPlatformEnum.parse(option.value)
+                      : undefined,
+                  );
+                } else if (choice === "state") {
+                  setValue(
+                    "state",
+                    StreamModerationFilterEnum.parse(option.value),
+                  );
+                } else {
+                  setValue("seasonId", option.value || undefined);
+                }
+                setChoice(undefined);
+              }}
+            />
+          ))}
+        </EntryGroup>
+      );
+    }
+    return (
+      <View style={styles.form}>
+        <SelectField
+          label="Saison"
+          value={
+            seasons.find((season) => season.id === values.seasonId)?.label ??
+            "Toutes les saisons"
+          }
+          onPress={() => setChoice("seasonId")}
+        />
+        <SelectField
+          label="Plateforme"
+          value={
+            values.platform
+              ? streamPlatformLabels[values.platform]
+              : "Toutes les plateformes"
+          }
+          onPress={() => setChoice("platform")}
+        />
+        <SelectField
+          label="État du lien"
+          value={stateLabel()}
+          onPress={() => setChoice("state")}
+        />
+        <View style={styles.actions}>
+          <Button
+            label="Appliquer les filtres"
+            fullWidth
+            onPress={() => void handleSubmit(apply)()}
+          />
+          <Button
+            label="Réinitialiser les filtres"
+            fullWidth
+            variant="secondary"
+            onPress={() => reset({ query: initial.query, state: "to-review" })}
+          />
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -110,101 +228,7 @@ export function ModerationFilters({ initial }: ModerationFiltersProps) {
       }
       onClose={() => (choice ? setChoice(undefined) : router.back())}
     >
-      <SheetContent>
-        {reading.session.status !== "authenticated" ? (
-          <AccountSessionFeedback
-            loadingContent={<ModerationFiltersLoading />}
-          />
-        ) : !reading.canRetain && reading.profile.isSuccess ? (
-          <Text style={[tokens.typography.body, { color: colors.text }]}>
-            La modération des liens vidéo n’est pas autorisée.
-          </Text>
-        ) : !reading.allowed || !reading.query.data ? (
-          reading.profile.isLoading ||
-          (reading.allowed && reading.query.isLoading) ? (
-            <ModerationFiltersLoading />
-          ) : (
-            <ReadFeedback
-              loadingContent={<ModerationFiltersLoading />}
-              query={!reading.allowed ? reading.profile : reading.query}
-            />
-          )
-        ) : choice ? (
-          <EntryGroup>
-            {options.map((option) => (
-              <SelectionRow
-                key={option.value}
-                label={option.label}
-                selected={(values[choice] ?? "") === option.value}
-                onPress={() => {
-                  if (choice === "platform") {
-                    setValue(
-                      "platform",
-                      option.value
-                        ? StreamPlatformEnum.parse(option.value)
-                        : undefined,
-                    );
-                  } else if (choice === "state") {
-                    setValue(
-                      "state",
-                      StreamModerationFilterEnum.parse(option.value),
-                    );
-                  } else {
-                    setValue("seasonId", option.value || undefined);
-                  }
-                  setChoice(undefined);
-                }}
-              />
-            ))}
-          </EntryGroup>
-        ) : (
-          <View style={styles.form}>
-            <SelectField
-              label="Saison"
-              value={
-                seasons.find((season) => season.id === values.seasonId)
-                  ?.label ?? "Toutes les saisons"
-              }
-              onPress={() => setChoice("seasonId")}
-            />
-            <SelectField
-              label="Plateforme"
-              value={
-                values.platform
-                  ? streamPlatformLabels[values.platform]
-                  : "Toutes les plateformes"
-              }
-              onPress={() => setChoice("platform")}
-            />
-            <SelectField
-              label="État du lien"
-              value={
-                values.state === "to-review"
-                  ? "À traiter"
-                  : values.state === "all" || !values.state
-                    ? "Tous les états de la sélection"
-                    : contributionStateLabels[values.state]
-              }
-              onPress={() => setChoice("state")}
-            />
-            <View style={styles.actions}>
-              <Button
-                label="Appliquer les filtres"
-                fullWidth
-                onPress={() => void handleSubmit(apply)()}
-              />
-              <Button
-                label="Réinitialiser les filtres"
-                fullWidth
-                variant="secondary"
-                onPress={() =>
-                  reset({ query: initial.query, state: "to-review" })
-                }
-              />
-            </View>
-          </View>
-        )}
-      </SheetContent>
+      <SheetContent>{renderFilterContent()}</SheetContent>
     </Sheet>
   );
 }

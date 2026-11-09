@@ -118,6 +118,116 @@ function version(
   };
 }
 
+/** Models one moderation write at the HTTP boundary, including the scenario's refusal and reread outcome. */
+function moderationWriteResponse(init: RequestInit) {
+  writes.push(JSON.parse(String(init.body)));
+  if (writeStatus >= 400) {
+    return Response.json(
+      {
+        type: "urn:blockout:problem:conflict",
+        title: "Conflict",
+        status: writeStatus,
+      },
+      { status: writeStatus },
+    );
+  }
+  if (failAfterWrite) {
+    failRead = true;
+  }
+  return Response.json({
+    revision: "accepted:2",
+    contribution: detail.items[0],
+  });
+}
+
+/** Builds the requested fictional queue page from the current scenario controls. */
+function moderationQueueResponse(page: string | null) {
+  return Response.json({
+    seasons: [sporting.pool.season],
+    items: queueEmpty
+      ? []
+      : [
+          {
+            match: {
+              ...detail.match,
+              ...(page === "1"
+                ? {
+                    id: "00000000-0000-4000-8000-000000000500",
+                    home: { ...detail.match.home, name: "Second match" },
+                  }
+                : {}),
+            },
+            counts: detail.counts,
+            approvalRequiredAfterReports: false,
+            lastActivityAt: "2026-10-24T12:00:00Z",
+          },
+        ],
+    ...(queuePaged && page !== "1" ? { nextPage: 1 } : {}),
+  });
+}
+
+/** Builds the exact-version report page without hiding its scenario-specific reason. */
+function moderationReportsResponse(page: string | null) {
+  return Response.json({
+    count: reportsPaged ? 21 : 1,
+    items: [
+      {
+        id:
+          page === "1"
+            ? "00000000-0000-4000-8000-000000000011"
+            : "00000000-0000-4000-8000-000000000010",
+        reportedAt: "2026-10-24T12:00:00Z",
+        reason:
+          reportsPaged && page === "1"
+            ? "Historique de la seconde page"
+            : reportReason,
+      },
+    ],
+    ...(reportsPaged && page !== "1" ? { nextPage: 1 } : {}),
+  });
+}
+
+/** Builds the current exact-match versions page, with a separate historical continuation. */
+function moderationVersionsResponse(page: string | null) {
+  return Response.json({
+    ...detail,
+    ...(historyPaged && page === "1"
+      ? {
+          items: [
+            version({
+              id: "00000000-0000-4000-8000-000000000600",
+              url: "https://youtu.be/second-history",
+              platform: "youtube",
+              state: "superseded",
+              canApprove: false,
+              canReject: false,
+              canReactivate: true,
+            }),
+          ],
+        }
+      : {}),
+    ...(historyPaged && page !== "1" ? { nextPage: 1 } : {}),
+  });
+}
+
+/** Selects the real screen for each shared admission/loading scenario; providers remain owned by mount. */
+function moderationView(
+  kind: "queue" | "active" | "pending" | "filters" | "reports",
+) {
+  if (kind === "queue") {
+    return <ModerationScreen filters={{}} />;
+  }
+  if (kind === "filters") {
+    return <ModerationFilters initial={{}} />;
+  }
+  if (kind === "reports") {
+    return (
+      <ModerationReportsScreen matchId={sporting.id} versionId={versionId} />
+    );
+  }
+  return <ModerationMatchScreen matchId={sporting.id} />;
+}
+
 beforeEach(() => {
   AppState.currentState = "active";
   publicClient = createQueryClient();
@@ -193,24 +303,7 @@ beforeEach(() => {
       );
     }
     if (init?.method === "PATCH" || init?.method === "POST") {
-      writes.push(JSON.parse(String(init.body)));
-      if (writeStatus >= 400) {
-        return Response.json(
-          {
-            type: "urn:blockout:problem:conflict",
-            title: "Conflict",
-            status: writeStatus,
-          },
-          { status: writeStatus },
-        );
-      }
-      if (failAfterWrite) {
-        failRead = true;
-      }
-      return Response.json({
-        revision: "accepted:2",
-        contribution: detail.items[0],
-      });
+      return moderationWriteResponse(init);
     }
     if (failRead) {
       return Response.json(
@@ -223,68 +316,12 @@ beforeEach(() => {
       );
     }
     if (path.endsWith("/stream-moderation")) {
-      const page = new URL(String(url)).searchParams.get("page");
-      return Response.json({
-        seasons: [sporting.pool.season],
-        items: queueEmpty
-          ? []
-          : [
-              {
-                match: {
-                  ...detail.match,
-                  ...(page === "1"
-                    ? {
-                        id: "00000000-0000-4000-8000-000000000500",
-                        home: { ...detail.match.home, name: "Second match" },
-                      }
-                    : {}),
-                },
-                counts: detail.counts,
-                approvalRequiredAfterReports: false,
-                lastActivityAt: "2026-10-24T12:00:00Z",
-              },
-            ],
-        ...(queuePaged && page !== "1" ? { nextPage: 1 } : {}),
-      });
+      return moderationQueueResponse(page);
     }
     if (path.endsWith("/reports")) {
-      return Response.json({
-        count: reportsPaged ? 21 : 1,
-        items: [
-          {
-            id:
-              page === "1"
-                ? "00000000-0000-4000-8000-000000000011"
-                : "00000000-0000-4000-8000-000000000010",
-            reportedAt: "2026-10-24T12:00:00Z",
-            reason:
-              reportsPaged && page === "1"
-                ? "Historique de la seconde page"
-                : reportReason,
-          },
-        ],
-        ...(reportsPaged && page !== "1" ? { nextPage: 1 } : {}),
-      });
+      return moderationReportsResponse(page);
     }
-    return Response.json({
-      ...detail,
-      ...(historyPaged && page === "1"
-        ? {
-            items: [
-              version({
-                id: "00000000-0000-4000-8000-000000000600",
-                url: "https://youtu.be/second-history",
-                platform: "youtube",
-                state: "superseded",
-                canApprove: false,
-                canReject: false,
-                canReactivate: true,
-              }),
-            ],
-          }
-        : {}),
-      ...(historyPaged && page !== "1" ? { nextPage: 1 } : {}),
-    });
+    return moderationVersionsResponse(page);
   });
 });
 afterEach(async () => {
@@ -349,17 +386,7 @@ it.each(["queue", "active", "pending", "filters", "reports"] as const)(
     const user = userEvent.setup();
 
     // When
-    await mount(
-      surface === "queue" ? (
-        <ModerationScreen filters={{}} />
-      ) : surface === "filters" ? (
-        <ModerationFilters initial={{}} />
-      ) : surface === "reports" ? (
-        <ModerationReportsScreen matchId={sporting.id} versionId={versionId} />
-      ) : (
-        <ModerationMatchScreen matchId={sporting.id} />
-      ),
-    );
+    await mount(moderationView(surface));
     if (surface === "pending") {
       await user.press(screen.getByRole("tab", { name: /^Propositions/ }));
     }
@@ -1457,18 +1484,19 @@ it("refreshes empty reports only from their card and restores Empty after a fail
   const user = userEvent.setup();
   let unavailable = false;
   const ordinary = mockFetch.getMockImplementation()!;
-  mockFetch.mockImplementation((url, init) =>
-    new URL(String(url)).pathname.endsWith(`${versionId}/reports`)
-      ? Promise.resolve(
-          unavailable
-            ? Response.json(
-                { title: "Unavailable", status: 503 },
-                { status: 503 },
-              )
-            : Response.json({ count: 0, items: [] }),
-        )
-      : ordinary(url, init),
-  );
+  mockFetch.mockImplementation((url, init) => {
+    if (new URL(String(url)).pathname.endsWith(`${versionId}/reports`)) {
+      return Promise.resolve(
+        unavailable
+          ? Response.json(
+              { title: "Unavailable", status: 503 },
+              { status: 503 },
+            )
+          : Response.json({ count: 0, items: [] }),
+      );
+    }
+    return ordinary(url, init);
+  });
   await mount(
     <ModerationReportsScreen matchId={sporting.id} versionId={versionId} />,
   );
@@ -2013,13 +2041,16 @@ it.each(["queue", "active", "pending", "filters", "reports"] as const)(
     let requested = false;
     mockFetch.mockImplementation(async (url, init) => {
       const address = new URL(String(url));
-      const target =
-        kind === "queue" || kind === "filters"
-          ? address.pathname.endsWith("/stream-moderation")
-          : kind === "reports"
-            ? address.pathname.endsWith("/reports")
-            : address.pathname.endsWith("/stream-contributions") &&
-              address.searchParams.get("state") === kind;
+      let target: boolean;
+      if (kind === "queue" || kind === "filters") {
+        target = address.pathname.endsWith("/stream-moderation");
+      } else if (kind === "reports") {
+        target = address.pathname.endsWith("/reports");
+      } else {
+        target =
+          address.pathname.endsWith("/stream-contributions") &&
+          address.searchParams.get("state") === kind;
+      }
       if (!target) {
         return ordinary(url, init);
       }
@@ -2027,30 +2058,16 @@ it.each(["queue", "active", "pending", "filters", "reports"] as const)(
       response = await ordinary(url, init);
       return held;
     });
-    const label =
-      kind === "queue"
-        ? "Chargement de la file de modération"
-        : kind === "filters"
-          ? "Chargement des filtres des liens"
-          : kind === "reports"
-            ? "Chargement des signalements"
-            : "Chargement des liens du match";
+    const label = {
+      queue: "Chargement de la file de modération",
+      filters: "Chargement des filtres des liens",
+      reports: "Chargement des signalements",
+      active: "Chargement des liens du match",
+      pending: "Chargement des liens du match",
+    }[kind];
     try {
       // When
-      await mount(
-        kind === "queue" ? (
-          <ModerationScreen filters={{}} />
-        ) : kind === "filters" ? (
-          <ModerationFilters initial={{}} />
-        ) : kind === "reports" ? (
-          <ModerationReportsScreen
-            matchId={sporting.id}
-            versionId={versionId}
-          />
-        ) : (
-          <ModerationMatchScreen matchId={sporting.id} />
-        ),
-      );
+      await mount(moderationView(kind));
       const user = userEvent.setup();
       if (kind === "pending") {
         await user.press(

@@ -189,21 +189,22 @@ function accessResponses(
     storeUrl:
       "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout",
   };
-  const serve = async (url: RequestInfo | URL) =>
-    Response.json(
-      String(url).endsWith("/application-access")
-        ? access
-        : String(url).endsWith("/accounts/me")
-          ? {
-              accountId: "00000000-0000-4000-8000-000000000185",
-              username: "Operator_185",
-              email: "operator@example.invalid",
-              principalCreatedAt: null,
-              hasPhoto: false,
-              permissions,
-            }
-          : access.versions,
-    );
+  const serve = async (url: RequestInfo | URL) => {
+    if (String(url).endsWith("/application-access")) {
+      return Response.json(access);
+    }
+    if (String(url).endsWith("/accounts/me")) {
+      return Response.json({
+        accountId: "00000000-0000-4000-8000-000000000185",
+        username: "Operator_185",
+        email: "operator@example.invalid",
+        principalCreatedAt: null,
+        hasPhoto: false,
+        permissions,
+      });
+    }
+    return Response.json(access.versions);
+  };
   return serve;
 }
 

@@ -17,22 +17,18 @@ export function ContributionStateBadge({
   explanation,
 }: ContributionStateBadgeProps) {
   const { colors } = useTheme();
-  const backgroundColor =
-    state === "active"
-      ? colors.successSubtle
-      : state === "pending"
-        ? colors.warning
-        : state === "rejected" || state === "hidden"
-          ? colors.errorSubtle
-          : colors.subtle;
-  const color =
-    state === "active"
-      ? colors.onSuccessSubtle
-      : state === "pending"
-        ? colors.onWarning
-        : state === "rejected" || state === "hidden"
-          ? colors.error
-          : colors.secondaryText;
+  let backgroundColor = colors.subtle;
+  let color = colors.secondaryText;
+  if (state === "active") {
+    backgroundColor = colors.successSubtle;
+    color = colors.onSuccessSubtle;
+  } else if (state === "pending") {
+    backgroundColor = colors.warning;
+    color = colors.onWarning;
+  } else if (state === "rejected" || state === "hidden") {
+    backgroundColor = colors.errorSubtle;
+    color = colors.error;
+  }
   return (
     <Text
       accessibilityHint={explanation}

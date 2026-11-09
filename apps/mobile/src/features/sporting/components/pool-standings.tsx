@@ -45,6 +45,43 @@ export function PoolStandings({
   active = true,
   children,
 }: PoolStandingsProps) {
+  /** Distinguishes a missing table, failed retained read and supplier-declared empty standings. */
+  function renderStandingsState() {
+    if (!data) {
+      return (
+        <ReadFeedback
+          query={standings}
+          loadingContent={<StandingsLoading layout={layout} />}
+        />
+      );
+    }
+    if (standings.isError || data.availability === "unavailable") {
+      return (
+        <ErrorState
+          onRetry={() => void refresh()}
+          retrying={standings.isFetching}
+        />
+      );
+    }
+    return (
+      <EmptyState
+        title={
+          data.availability === "not-published"
+            ? "Pas de classement pour cette phase"
+            : "Aucune équipe dans ce classement"
+        }
+      >
+        <Button
+          label="Actualiser"
+          leadingIcon={RefreshCw}
+          onPress={() => void refresh()}
+          loading={standings.isFetching}
+          disabled={!active}
+        />
+      </EmptyState>
+    );
+  }
+
   const queries = useConsultationQueries();
   const standings = useQuery(queries.standings(pool.pool.id));
   const feedback = useActionFeedback();
@@ -133,35 +170,7 @@ export function PoolStandings({
             {children && (
               <PageContent style={styles.stateControls}>{children}</PageContent>
             )}
-            <ScreenState>
-              {!data ? (
-                <ReadFeedback
-                  query={standings}
-                  loadingContent={<StandingsLoading layout={layout} />}
-                />
-              ) : standings.isError || data.availability === "unavailable" ? (
-                <ErrorState
-                  onRetry={() => void refresh()}
-                  retrying={standings.isFetching}
-                />
-              ) : (
-                <EmptyState
-                  title={
-                    data.availability === "not-published"
-                      ? "Pas de classement pour cette phase"
-                      : "Aucune équipe dans ce classement"
-                  }
-                >
-                  <Button
-                    label="Actualiser"
-                    leadingIcon={RefreshCw}
-                    onPress={() => void refresh()}
-                    loading={standings.isFetching}
-                    disabled={!active}
-                  />
-                </EmptyState>
-              )}
-            </ScreenState>
+            <ScreenState>{renderStandingsState()}</ScreenState>
           </>
         )}
       </PageScrollView>
@@ -229,14 +238,16 @@ function StandingEntry({
     .filter(Boolean)
     .join(". ");
   const points = standingPointsColumn(columns);
-  const medal =
-    row.position === 1
-      ? "first"
-      : row.position === 2
-        ? "second"
-        : row.position === 3
-          ? "third"
-          : undefined;
+  let medal: "first" | "second" | "third" | undefined;
+  if (row.position === 1) {
+    medal = "first";
+  } else if (row.position === 2) {
+    medal = "second";
+  } else if (row.position === 3) {
+    medal = "third";
+  } else {
+    medal = undefined;
+  }
   const rankFill = medal ? colors.rank[medal] : colors.rank.neutral;
   const rankInk = medal ? colors.rank[`${medal}Content`] : colors.text;
   const content = (

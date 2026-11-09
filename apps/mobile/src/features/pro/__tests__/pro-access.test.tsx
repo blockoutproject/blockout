@@ -239,39 +239,43 @@ beforeEach(async () => {
       } satisfies PoolParticipantsResponse);
     }
     if (path === "/matches") {
-      const category = parsed.searchParams.get("category");
-      const next = parsed.searchParams.has("nextDay");
-      const date = next
-        ? category === "upcoming"
-          ? "2026-10-26"
-          : "2026-10-24"
-        : "2026-10-25";
-      const match = {
-        ...matchDetail().match,
-        id: next ? "00000000-0000-4000-8000-000000000306" : sportingId,
-        category,
-        home: {
-          id: sportingId,
-          name: `${category} ${next ? "continuation" : "first"}`,
-        },
-        schedule: { ...matchDetail().match.schedule, localDate: date },
-      };
-      return Response.json({
-        category,
-        timeZone: parsed.searchParams.get("timeZone"),
-        evaluatedAt: "2026-10-31T12:00:00Z",
-        days: [
-          {
-            date,
-            pools: [{ poolId: sportingId, matches: [match] }],
-          },
-        ],
-        ...(!next ? { nextDay: "2026-10-25" } : {}),
-      });
+      return publicCalendarResponse(parsed);
     }
     return consultationResponse(String(url), matchDetail());
   });
 });
+
+/** Preserves the fictional day cursor and category used to traverse complete public club calendars. */
+function publicCalendarResponse(parsed: URL) {
+  const category = parsed.searchParams.get("category");
+  const next = parsed.searchParams.has("nextDay");
+  let date = "2026-10-25";
+  if (next) {
+    date = category === "upcoming" ? "2026-10-26" : "2026-10-24";
+  }
+  const match = {
+    ...matchDetail().match,
+    id: next ? "00000000-0000-4000-8000-000000000306" : sportingId,
+    category,
+    home: {
+      id: sportingId,
+      name: `${category} ${next ? "continuation" : "first"}`,
+    },
+    schedule: { ...matchDetail().match.schedule, localDate: date },
+  };
+  return Response.json({
+    category,
+    timeZone: parsed.searchParams.get("timeZone"),
+    evaluatedAt: "2026-10-31T12:00:00Z",
+    days: [
+      {
+        date,
+        pools: [{ poolId: sportingId, matches: [match] }],
+      },
+    ],
+    ...(!next ? { nextDay: "2026-10-25" } : {}),
+  });
+}
 
 afterEach(async () => {
   await cleanup();
@@ -384,6 +388,61 @@ async function consultPublicSport() {
   ).toBeNull();
 }
 
+/** States expected from the explicit scenario table, independently of the production entitlement derivation. */
+function expectedProStatus(state: string) {
+  if (state === "guest") {
+    return "guest";
+  }
+  if (state === "paid" || state === "gifted") {
+    return "active";
+  }
+  return ["free", "expired", "revoked"].includes(state)
+    ? "inactive"
+    : "unavailable";
+}
+
+/** Controls native association/rights failures only; production owners still derive all displayed access state. */
+function configureNativeProState(state: string) {
+  if (state === "guest") {
+    mockAuth0.hasValidCredentials.mockResolvedValue(false);
+  }
+  if (state === "paid" || state === "gifted") {
+    mockPurchases.getCustomerInfo.mockResolvedValue(
+      rights(state === "paid" ? "APP_STORE" : "PROMOTIONAL"),
+    );
+  }
+  if (state === "association-pending") {
+    mockPurchases.isConfigured.mockReturnValue(new Promise(() => undefined));
+  }
+  if (state === "association-failed") {
+    mockPurchases.isConfigured.mockRejectedValue(
+      new Error("Native association unavailable"),
+    );
+  }
+  if (state === "read-pending") {
+    mockPurchases.getCustomerInfo.mockReturnValue(new Promise(() => undefined));
+  }
+  if (state === "unknown") {
+    mockPurchases.getCustomerInfo.mockRejectedValue(
+      new Error("Native verification unavailable"),
+    );
+  }
+  if (state === "expired" || state === "revoked") {
+    mockPurchases.getCustomerInfo.mockResolvedValue(
+      customerInfo({
+        active: {},
+        all: {
+          "Blockout Pro": entitlement({
+            isActive: false,
+            store: state === "expired" ? "APP_STORE" : "PROMOTIONAL",
+          }),
+        },
+        verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+      }),
+    );
+  }
+}
+
 it.each([
   "guest",
   "free",
@@ -399,63 +458,15 @@ it.each([
   "keeps maps and complete upcoming/completed club calendars public for %s",
   async (state) => {
     // Given
-    if (state === "guest") {
-      mockAuth0.hasValidCredentials.mockResolvedValue(false);
-    }
-    if (state === "paid" || state === "gifted") {
-      mockPurchases.getCustomerInfo.mockResolvedValue(
-        rights(state === "paid" ? "APP_STORE" : "PROMOTIONAL"),
-      );
-    }
-    if (state === "association-pending") {
-      mockPurchases.isConfigured.mockReturnValue(new Promise(() => undefined));
-    }
-    if (state === "association-failed") {
-      mockPurchases.isConfigured.mockRejectedValue(
-        new Error("Native association unavailable"),
-      );
-    }
-    if (state === "read-pending") {
-      mockPurchases.getCustomerInfo.mockReturnValue(
-        new Promise(() => undefined),
-      );
-    }
-    if (state === "unknown") {
-      mockPurchases.getCustomerInfo.mockRejectedValue(
-        new Error("Native verification unavailable"),
-      );
-    }
-    if (state === "expired" || state === "revoked") {
-      mockPurchases.getCustomerInfo.mockResolvedValue(
-        customerInfo({
-          active: {},
-          all: {
-            "Blockout Pro": entitlement({
-              isActive: false,
-              store: state === "expired" ? "APP_STORE" : "PROMOTIONAL",
-            }),
-          },
-          verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
-        }),
-      );
-    }
+    configureNativeProState(state);
     await openInstallation();
-    const status =
-      state === "guest"
-        ? "guest"
-        : state === "paid" || state === "gifted"
-          ? "active"
-          : ["free", "expired", "revoked"].includes(state)
-            ? "inactive"
-            : "unavailable";
+    const status = expectedProStatus(state);
     await waitFor(() => expect(owners.pro.state.status).toBe(status));
     if (status === "unavailable") {
-      const reason =
-        state === "association-pending"
-          ? "association-pending"
-          : state === "association-failed"
-            ? "association-failed"
-            : "customer-info";
+      let reason = "customer-info";
+      if (state === "association-pending" || state === "association-failed") {
+        reason = state;
+      }
       await waitFor(() => expect(owners.pro.state).toMatchObject({ reason }));
     }
 

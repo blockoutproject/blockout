@@ -74,11 +74,7 @@ export function createDiscoveryQueryOptions(
     queryFn: async ({ signal, pageParam }): Promise<DiscoveryPage> => {
       const options = await request(admission, getCredentials, signal);
       const params = { ...context.params, cursor: pageParam };
-      return resource === "club"
-        ? listClubs(params, options)
-        : resource === "team"
-          ? listTeams(params, options)
-          : listPools(params, options);
+      return readSearchPage(resource, params, options);
     },
     getNextPageParam: (page) => page.nextCursor,
   });
@@ -134,11 +130,23 @@ export function createSearchExamplesQueryOptions(
       : ["discovery-examples", ...context.queryKey],
     queryFn: async ({ signal }): Promise<DiscoveryPage> => {
       const options = await request(admission, getCredentials, signal);
-      return resource === "club"
-        ? listClubs(context.params, options)
-        : resource === "team"
-          ? listTeams(context.params, options)
-          : listPools(context.params, options);
+      return readSearchPage(resource, context.params, options);
     },
   });
+}
+
+/** Uses the same generated resource reader for textual pages and cached examples. */
+function readSearchPage(
+  resource: DiscoveryResource,
+  params: ListTeamsParams,
+  options: ApiFetchOptions,
+): Promise<DiscoveryPage> {
+  switch (resource) {
+    case "club":
+      return listClubs(params, options);
+    case "team":
+      return listTeams(params, options);
+    default:
+      return listPools(params, options);
+  }
 }

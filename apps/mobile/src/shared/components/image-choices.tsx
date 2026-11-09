@@ -86,14 +86,15 @@ export function useImageChoices(options: ImageChoicesOptions) {
           cancelButtonIndex: labels.length - 1,
           destructiveButtonIndex: current.onRemove ? 1 : undefined,
         },
-        (index) =>
-          finish(
-            index === 0
-              ? "choose"
-              : current.onRemove && index === 1
-                ? "remove"
-                : undefined,
-          ),
+        (index) => {
+          if (index === 0) {
+            finish("choose");
+          } else if (current.onRemove && index === 1) {
+            finish("remove");
+          } else {
+            finish();
+          }
+        },
       );
     } else {
       Alert.alert(

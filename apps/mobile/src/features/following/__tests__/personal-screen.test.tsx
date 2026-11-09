@@ -1909,11 +1909,13 @@ it.each(["team", "pool"] as const)(
     await screen.findByRole("link", { name: /Poule A/ });
     mockFetch.mockClear().mockImplementation((url, request) => {
       const path = new URL(url).pathname;
-      return path.endsWith("/team-follows")
-        ? teamRead.promise
-        : path.endsWith("/pool-follows")
-          ? poolRead.promise
-          : transport(url, request);
+      if (path.endsWith("/team-follows")) {
+        return teamRead.promise;
+      }
+      if (path.endsWith("/pool-follows")) {
+        return poolRead.promise;
+      }
+      return transport(url, request);
     });
 
     try {

@@ -50,15 +50,14 @@ export function ImageFieldExamplesScreen() {
           label: `Image ${images.length + index + 1}`,
         });
       }
-      setImages((current) =>
-        replaceId
-          ? current.flatMap((image) =>
-              image.id === replaceId ? selected : [image],
-            )
-          : multiple
-            ? [...current, ...selected]
-            : selected,
-      );
+      setImages((current) => {
+        if (replaceId) {
+          return current.flatMap((image) =>
+            image.id === replaceId ? selected : [image],
+          );
+        }
+        return multiple ? [...current, ...selected] : selected;
+      });
     },
   });
   return (

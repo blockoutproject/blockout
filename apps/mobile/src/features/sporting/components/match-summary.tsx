@@ -25,6 +25,17 @@ export function MatchSummary({
   displayTimeZone,
   presentation = "summary",
 }: MatchSummaryProps) {
+  /** Explains the accepted incomplete result without inventing a final score. */
+  function unavailableResultLabel() {
+    if (!contextual) {
+      return "Résultat définitif indisponible";
+    }
+    if (result?.state === "provisional") {
+      return "Résultat provisoire · Résultat définitif indisponible";
+    }
+    return "Résultat non confirmé · Résultat définitif indisponible";
+  }
+
   const { colors, context } = useTheme();
   const division = match.pool.classification.division;
   const accent = division?.color ?? context.primary;
@@ -150,11 +161,7 @@ export function MatchSummary({
       </View>
       {result && result.state !== "final" && (
         <Text style={[styles.note, { color: colors.secondaryText }]}>
-          {!contextual
-            ? "Résultat définitif indisponible"
-            : result.state === "provisional"
-              ? "Résultat provisoire · Résultat définitif indisponible"
-              : "Résultat non confirmé · Résultat définitif indisponible"}
+          {unavailableResultLabel()}
         </Text>
       )}
       {result?.specialLabel && (
