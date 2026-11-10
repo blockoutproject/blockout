@@ -1,11 +1,14 @@
 import { ApiError } from "../../../shared/api/api-fetch";
-import { ErrorState } from "../../../shared/components/state-card";
+import { IconButton } from "../../../shared/components/icon-button";
+import { ImageFallback } from "../../../shared/components/image-fallback";
+import { LoadingGroup } from "../../../shared/components/loading-group";
+import { Skeleton } from "../../../shared/components/skeleton";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
-import { FileText, Wrench } from "lucide-react-native";
+import { FileText, RotateCw, Wrench } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
@@ -325,20 +328,49 @@ export function MaintenanceForm({
   );
 }
 
-/** Retries only the current draft image's mounted decode attempt, leaving its URL and other fields untouched. */
+/** Keeps decode progress, fallback and explicit retry in the current URL's media slot, independently of RHF. */
 function MaintenanceImagePreview({ uri }: Readonly<{ uri: string }>) {
-  const [failed, setFailed] = useState(false);
-  return failed ? (
-    <ErrorState onRetry={() => setFailed(false)} />
-  ) : (
-    <Image
-      accessible
-      accessibilityLabel="Aperçu de l’image de maintenance"
-      source={{ uri }}
-      style={styles.preview}
-      contentFit="contain"
-      onError={() => setFailed(true)}
-    />
+  const { colors } = useTheme();
+  const [status, setStatus] = useState<"loading" | "displayed" | "failed">(
+    "loading",
+  );
+  return (
+    <View style={styles.preview}>
+      {status === "failed" ? (
+        <>
+          <ImageFallback label="Aperçu indisponible" />
+          <IconButton
+            label="Réessayer l’aperçu"
+            onPress={() => setStatus("loading")}
+          >
+            <RotateCw
+              accessible={false}
+              size={tokens.size.icon.lg}
+              color={colors.icon}
+            />
+          </IconButton>
+        </>
+      ) : (
+        <Image
+          accessible
+          accessibilityRole="image"
+          accessibilityLabel="Aperçu de l’image de maintenance"
+          source={{ uri }}
+          style={StyleSheet.absoluteFill}
+          contentFit="contain"
+          onDisplay={() => setStatus("displayed")}
+          onError={() => setStatus("failed")}
+        />
+      )}
+      {status === "loading" && (
+        <LoadingGroup
+          label="Chargement de l’aperçu"
+          style={StyleSheet.absoluteFill}
+        >
+          <Skeleton height="100%" shape="rectangle" />
+        </LoadingGroup>
+      )}
+    </View>
   );
 }
 
@@ -358,5 +390,12 @@ const styles = StyleSheet.create({
   },
   form: { gap: tokens.layout.form.gap },
   // The URL image preview has its own bounded 96-point viewport, independent of text-entry controls.
-  preview: { width: "100%", height: 96 },
+  preview: {
+    width: "100%",
+    height: 96,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: tokens.spacing.sm,
+  },
 } as const);
