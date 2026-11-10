@@ -220,15 +220,18 @@ function PagerHeader({
   const pinned = useAnimatedStyle(() => ({
     transform: [{ translateY: -top.get() }],
   }));
+  // Folded clipping wrappers must pass touches through to the scene below.
   return (
-    <View style={{ paddingTop: inset }}>
+    <View pointerEvents="box-none" style={{ paddingTop: inset }}>
       {fadeOnScroll ? (
         <Animated.View animatedProps={accessibility} style={brand}>
           {children}
         </Animated.View>
       ) : (
-        <Animated.View style={[styles.clip, clip]}>
-          <Animated.View style={content}>{children}</Animated.View>
+        <Animated.View pointerEvents="box-none" style={[styles.clip, clip]}>
+          <Animated.View pointerEvents="box-none" style={content}>
+            {children}
+          </Animated.View>
         </Animated.View>
       )}
       <Animated.View pointerEvents="box-none" style={[styles.header, pinned]}>
