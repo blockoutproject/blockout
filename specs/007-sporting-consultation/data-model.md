@@ -31,8 +31,6 @@ Keep schedule, result, sets and document freshness independent when only some gr
 
 ## Client state and files
 
-The first useful composition retains only a presentation admission bit for the mounted public resource. Detail, first active content and F06 relationship data remain in their existing Query entries; no combined response, cached read-state copy or persistence entity is introduced. The private Follow control is isolated by its original holder without replacing public scene state. A calendar's loading zone is retained from its first active attempt until explicit regrouping.
-
 TanStack Query owns generated resource/season/category/zone keys in the current native principal's private client. Ordinary infinite invalidation may reread every retained page; a changed loading zone selects a normal loading/error state. Preserve server complete-day cursors and render identity deduplication. A refused resource purges its own sensitive data, while benign neighbouring projections refresh independently. Public logos use credential-free native Image URIs with no caching; explicit bypass retains generated authenticated transport.
 
 A PDF download uses the common cancellable transport and a temporary Expo cache file. The native renderer receives only the local URI. Remove files when reading closes or fails; remove leftovers on the next cold start. This is a bounded file lifecycle, not an offline document collection. Known access restrictions cancel inappropriate work and prevent delivery; no provider content or personal diagnostic is retained in logs.

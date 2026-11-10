@@ -32,15 +32,11 @@ Club seasons, club-season teams and current participation identities use focused
 
 ## First useful sporting composition
 
-**Decision**: Keep the actual native pager and its first admitted scene mounted and measured beneath one initial presentation. A disabled Query observer reads the same standings cache as the existing scene; it issues no automatic request. The page combines detail, the usable holder's F06 relationship read and the first active content, retaining only its local admission bit. Successful empty content resolves admission; domain-unavailable standings retain the initial Error. Optional count, artwork, map statistics and unvisited scenes have no admission dependency.
+**Decision**: Keep the measured pager and its first scene mounted beneath the initial presentation. Observe the scene's existing standings key without enabling another fetch; share Team Upcoming's actual calendar result with the page boundary.
 
-**Rationale**: The scene must mount for its real reader to start. Hiding only its initial rendering, pointer interaction and accessibility preserves that reader and native measurements, while the common skeleton/Error prevents a fragmented ready page. A passive cache observation is not another independently refreshed data owner. After admission, normal scene-local recovery retains useful context and the existing pager's visits and positions.
+**Rationale**: The real scene must mount to start its read. TanStack Query's [disabled-query contract](https://tanstack.com/query/v5/docs/framework/react/guides/disabling-queries) supports observing that cache without a second automatic request or a copied result.
 
-**Calendar ownership**: Team's Upcoming reader and its grouping owner live together in `useSportingCalendar`, shared with the existing connected calendar wrapper. Its retained zone starts on the first active attempt, after detail exists, so a disabled observer cannot freeze a pre-visit device zone. The true result, refresh callback and query key feed the existing view; Completed remains scene-owned. Club's initial Infos data already belongs to its detail response.
-
-**Alternatives**: Hoisting every scene reader and sharing a second visit interface adds ownership and freshness changes without another active consumer. Passing a separately inferred calendar key risks observing a different grouping zone. Copying Query states into a store or reporting scene status through callbacks duplicates the authoritative cache.
-
-**Evidence**: TanStack Query's [disabled-query contract](https://tanstack.com/query/v5/docs/framework/react/guides/disabling-queries) and [native observer API](https://tanstack.com/query/v5/docs/reference/QueryObserver) support shared cache observation without an automatic fetch. The owning [plan](plan.md#mobile-state-and-navigation) and [quickstart](quickstart.md#sporting-recovery-and-match-rereads) define the generated-transport and native proofs, including empty and prefilled cache, first activation, account isolation and retained return.
+**Alternatives**: Hoisting every scene reader adds visit/freshness coordination. Reporting scene status through callbacks duplicates Query state; inferring another calendar key can select a different grouping zone.
 
 ## Participation titles
 

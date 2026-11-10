@@ -61,7 +61,7 @@ Keep Paris/New York conversion, both zones' DST transitions, date-only values, u
 
 For that observation, verify a concise full date/time such as “7 novembre 2026 à 20h40” and one device-zone/foreground change: formatting updates while retained calendar groups and their captured zone/cursor stay unchanged until explicit refresh. Visual calendar rails retain compact day/weekday/abbreviated month and complete accessible absolute dates. This does not change sporting instants, results or date-only semantics.
 
-For a deferred Team Upcoming read, mount in device zone A, travel to B before its first activation and expect the first request in B. Retain B through a failed/pending attempt, departure and device change to C; only explicit refresh selects C. Preserve the existing Home calendar consumer and ordinary Query freshness. No calendar starts before Team detail or merely because another tab is mounted.
+For a deferred Team calendar, mount in zone A and activate it after travel to B: its first request uses B. Retain B through failure, departure and travel to C until explicit refresh. No calendar starts before Team detail or solely from an inactive mount.
 
 ### Complete-day calendar qualification
 
@@ -91,11 +91,9 @@ Compare [Match top](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03?node-id=
 
 ### Sporting recovery and match rereads
 
-For Team and Pool, hold or fail detail, the usable member's first Follow read and the first active standings/calendar read separately. Before all indispensable inputs resolve, expect one generic navigation header and identity-plus-content skeleton, or one top-aligned Error with safe Retry. No ready identity, useful tab or Follow is exposed underneath it. Check empty and prefilled caches, successful empty content, source-unavailable standings and a Team without participation. Retry rereads only indispensable reads and sends no Follow write. Guest entry has no private relationship dependency; count, logo and optional map statistics never gate admission. Compare the exact first-composition references in [the plan](plan.md#constitution-check).
+Hold or fail Team/Pool detail, the usable member's Follow read and first active content separately: one initial waiting/Error owns the page until indispensable data or successful empty content resolves. Check empty/prefilled caches and source-unavailable standings; guest entry needs no private read, and optional count/media do not gate it. Retry sends only reads. Compare [the approved composition](plan.md#constitution-check).
 
-After admission, open a previously unvisited tab and fail its first read: identity, single Follow and selected tab remain while only the active content waits or retries. Return to visited standings/map/calendar content and preserve its selection and native position on ordinary technical failure. A confirmed Follow change retains F06's deliberate personal-list/calendar reset. Club Infos resolves with its detail; switching Club season preserves the category, replaces the scene scope and cannot borrow earlier-season teams or calendars. Successful disappearance, current refusals and late obsolete completions retain their own scope.
-
-Confirm Follow or Unfollow, then fail the matching account reread or a known relationship reread. The accepted label/selection remains visible and the next deliberate command stays enabled under option A. Relationship recovery is the compact read-only Retry; account-only technical failure adds no second account card. Verify one mounted pending command, no automatic mutation replay, exact 401/403/404 withdrawal and same-principal business-UUID replacement. Controlled identity/HTTP boundaries establish only their synthetic scope; representative compatible native iOS/Android observations remain separate.
+After admission, fail a new tab: identity, Follow and selection remain while content recovers locally. On Club season change, retain the category and selector without showing former-season teams. Use [F06 A29](../009-following-personal-feed/quickstart.md#native-recovery-and-accessibility) for confirmed Follow recovery, explicit commands and account isolation.
 
 Fail initial, common and independent section reads on Club/Team/Pool/Match; distinguish genuine absence from failure. Preserve authorized facts after ordinary failure, withdraw current refused contacts/images/resources and reject obsolete resource/season/account completions. Verify distinct ordinary/bypass image admission and the shared error/Retry feedback.
 
