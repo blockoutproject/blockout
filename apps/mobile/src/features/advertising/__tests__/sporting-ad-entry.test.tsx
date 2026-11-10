@@ -528,7 +528,7 @@ function Owners({ children }: Readonly<PropsWithChildren>) {
   );
 }
 
-/** Waits only for real installation/native readiness before supplying the native LOADED event. */
+/** Waits for real installation/native readiness and measured sporting admission without replacing any read owner. */
 async function mount(props: Parameters<typeof Entries>[0] = {}) {
   const result = await render(
     <Owners>
@@ -539,8 +539,9 @@ async function mount(props: Parameters<typeof Entries>[0] = {}) {
   await waitFor(() => expect(mockCreateAd).toHaveBeenCalledTimes(1));
   await act(async () => ad.emit(AdEventType.LOADED));
   if (props.resourcePage) {
-    await screen.findAllByRole("tab");
+    await screen.findAllByRole("tab", { includeHiddenElements: true });
     await layoutNativeTabs();
+    await screen.findAllByRole("tab");
     if (props.resourcePage !== "club") {
       await screen.findByRole("link", { name: /Original standings team/ });
     }

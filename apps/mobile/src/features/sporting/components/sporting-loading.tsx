@@ -10,12 +10,16 @@ import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { MatchSurface } from "./match-surface";
 import { StandingsSkeleton } from "./standings-loading";
+import { CalendarSkeleton } from "./calendar-loading";
 
-/** An unknown team reserves only its identity; the admitted selected tab owns its own initial read. */
-export function SportingTeamLoading() {
+/** One initial announcement combines the team's identity with its first applicable content. */
+export function SportingTeamLoading({
+  calendar = false,
+}: Readonly<{ calendar?: boolean }>) {
   return (
-    <LoadingGroup label="Chargement de l’équipe">
+    <LoadingGroup label="Chargement de l’équipe" style={styles.body}>
       <IdentityCardSkeleton />
+      {calendar ? <CalendarSkeleton /> : <StandingsSkeleton layout="list" />}
     </LoadingGroup>
   );
 }

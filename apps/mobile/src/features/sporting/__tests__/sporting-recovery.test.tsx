@@ -34,6 +34,7 @@ import { ClubScreen } from "../screens/club-screen";
 import { TeamScreen } from "../screens/team-screen";
 import { PoolScreen } from "../screens/pool-screen";
 import { MatchScreen } from "../screens/match-screen";
+import { getGetPoolStandingsQueryKey } from "../../../../.generated/mobile";
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("@react-native-async-storage/async-storage", () =>
@@ -100,6 +101,12 @@ function renderPage(content: ReactElement) {
   });
 }
 
+/** Measures real scenes beneath the initial presentation so their indispensable reads can resolve. */
+async function layoutSportingPage() {
+  await screen.findAllByRole("tab", { includeHiddenElements: true });
+  await layoutNativeTabs();
+}
+
 beforeEach(() => {
   jest.useFakeTimers();
   publicClient = consultationPublicClient();
@@ -154,7 +161,7 @@ const pages = [
 
 it.each(pages)(
   "distinguishes waiting and initial failure on $kind, then explicitly retries",
-  async ({ path, element, label, loadingLabel }) => {
+  async ({ kind, path, element, label, loadingLabel }) => {
     // Given
     const response = Promise.withResolvers<Response>();
     mockFetch.mockImplementation((url: string) =>
@@ -187,6 +194,9 @@ it.each(pages)(
     await userEvent
       .setup()
       .press(screen.getByRole("button", { name: "Réessayer" }));
+    if (kind !== "match") {
+      await layoutSportingPage();
+    }
 
     // Then
     expect((await screen.findAllByText(label)).length).toBeGreaterThan(0);
@@ -195,9 +205,12 @@ it.each(pages)(
 
 it.each(pages)(
   "keeps authorized $kind facts after a failed owner invalidation",
-  async ({ path, element, label }) => {
+  async ({ kind, path, element, label }) => {
     // Given
     await renderPage(element);
+    if (kind !== "match") {
+      await layoutSportingPage();
+    }
     await screen.findAllByText(label);
     mockFetch.mockImplementation((url: string) =>
       new URL(url).pathname === path
@@ -312,18 +325,42 @@ it("distinguishes a failed teams section from a successful empty season and keep
   ).toBeOnTheScreen();
 });
 
-it("keeps a pool's calendar and map independent of failed standings without waiting for Pro", async () => {
+it("keeps an admitted pool's calendar and map independent of failed standings without waiting for Pro", async () => {
   // Given
   const user = userEvent.setup();
+  let standingsFailed = false;
   mockFetch.mockImplementation((url: string) =>
     url.endsWith("/standings")
-      ? Promise.resolve(Response.json({ status: 503 }, { status: 503 }))
+      ? Promise.resolve(
+          standingsFailed
+            ? Response.json({ status: 503 }, { status: 503 })
+            : Response.json({
+                poolId: sportingId,
+                availability: "not-published",
+                lastAttemptFailed: false,
+                columns: [],
+                rows: [],
+              }),
+        )
       : reads(url),
   );
   await renderPage(<PoolScreen poolId={sportingId} />);
+  await layoutSportingPage();
   await screen.findByText("Pool");
-  await layoutNativeTabs();
+  await screen.findByText("Pas de classement pour cette phase");
+
+  // When: only an already admitted standings section becomes unavailable.
+  standingsFailed = true;
+  await act(() =>
+    client.invalidateQueries({
+      queryKey: getGetPoolStandingsQueryKey(sportingId),
+      exact: true,
+    }),
+  );
+
+  // Then
   await screen.findByRole("alert");
+  expect(screen.getByText("Pool")).toBeOnTheScreen();
 
   // When
   await user.press(screen.getByRole("tab", { name: "À venir" }));

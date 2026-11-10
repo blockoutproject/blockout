@@ -47,7 +47,7 @@ Scoped design authority is recorded in [F13 evidence scope](spec.md#evidence-sco
 
 Local generated-contract, database and JavaScript checks establish only their executed boundaries. Actual native/provider journeys retain their owning qualification; no hosted runtime or external operation is implied.
 
-FR-041/A39's common member gate has its scoped prototype and separate Figma approvals under F05 design evidence. Initial Team/Pool/Club composition still has its own pending prototype and separate Figma approval prerequisites. Their functional boundary and native owners are reconciled in [first useful composition](#first-useful-composition); affected native planning/adoption remains incomplete until those gates pass.
+FR-041/A39's common member gate has its scoped prototype and separate Figma approvals under F05 design evidence. Initial Team/Pool/Club composition uses its approved prototype and explicitly authorized faithful Figma design in [F03's design authority](../007-sporting-consultation/plan.md#constitution-check). Their functional boundary and native owners are defined in [first useful composition](#first-useful-composition); implementation and native qualification remain with F03/F06.
 
 ## Project Structure
 
@@ -259,7 +259,7 @@ F05 owns reusable account availability and account-only foreground rereading. Pr
 | Inbox page, independent summary and read acknowledgment          | [F07 T022–T024](../011-notifications-delivery/tasks.md#implementation-and-qualification-for-user-story-3), with F05's root/tap integration above.                                                                                                                                                        |
 | Operational configuration, necessary choices and retained drafts | [F12 T082/T083](../013-administration-app-configuration/tasks.md#implementation-and-qualification-for-user-story-3), [F01](../001-source-acquisition/tasks.md) and [F08](../010-live-contributions-moderation/tasks.md) keep purpose-specific route/form tasks and required reads.                       |
 
-The common member gate has its scoped prototype and separate Figma approvals in [F05 design evidence](../005-accounts-identity/spec.md#design-evidence); its implementation and native qualification remain with F05 T080/T081. Team/Pool/Club composition still requires its affected prototype approval, then Figma reconciliation and separate approval before finalizing native planning and adoption. The table neither certifies existing implementation against the revised rules nor starts the separate sporting, Match, Profile or operational deliveries. Existing boundaries in the other rows need no unrelated design revision.
+The common member gate has its scoped prototype and separate Figma approvals in [F05 design evidence](../005-accounts-identity/spec.md#design-evidence); its implementation and native qualification remain with F05 T080/T081. [F03's design authority](../007-sporting-consultation/plan.md#constitution-check) supplies the approved Team/Pool/Club prototype and explicitly authorized faithful Figma composition. F03/F06 retain implementation and native qualification. The table does not certify implementation or start unrelated Match, Profile or operational work. Existing boundaries in the other rows need no unrelated design revision.
 
 ### Frontend mutation conventions
 

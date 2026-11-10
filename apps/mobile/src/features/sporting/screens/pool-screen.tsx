@@ -1,5 +1,4 @@
 import { SportingPoolLoading } from "../components/sporting-loading";
-import { PageViewport } from "../../../shared/components/navigation-backdrop";
 import { SportingSupportAction } from "../components/sporting-actions";
 import { PoolMap } from "../components/pool-map";
 import { PoolStandings } from "../components/pool-standings";
@@ -7,14 +6,12 @@ import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingPageHeader } from "../components/sporting-page-header";
 import { SportingTabs } from "../components/sporting-tabs";
 import { ResourceText } from "../components/resource-text";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { PageHeader } from "../../../shared/components/page-header";
 import {
-  Page,
-  PageScrollView,
-  PageContent,
-} from "../../../shared/components/page";
+  SportingInitialComposition,
+  type SportingInitialRead,
+} from "../components/sporting-initial-composition";
+import { PageHeader } from "../../../shared/components/page-header";
+import { PageScrollView, PageContent } from "../../../shared/components/page";
 import { hashKey, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import type {
@@ -30,6 +27,8 @@ import type { RenderStandings } from "../model/resource-sections";
 /** Route-owned F06 and optional standings/map compositions retain their independent owners. */
 export interface PoolScreenProps {
   poolId: string;
+  /** The single F06 reader is shared with its control, without coupling public count to admission. */
+  initialFollow?: SportingInitialRead;
   renderFollow?: (
     identity: SportingIdentityResponse,
     season: SportingSeasonResponse,
@@ -47,9 +46,10 @@ export function PoolScreen(props: Readonly<PoolScreenProps>) {
   );
 }
 
-/** Keeps public pool metadata usable while the independently owned active tab is unavailable. */
+/** Admits the first useful pool composition, then retains its identity while later scenes recover independently. */
 function PoolPage({
   poolId,
+  initialFollow,
   renderFollow,
   renderStandings,
   renderMap,
@@ -58,6 +58,7 @@ function PoolPage({
   const pool = useQuery(queries.pool(poolId));
   const [tab, setTab] = useState("standings");
   const data = pool.data;
+  const standings = useQuery({ ...queries.standings(poolId), enabled: false });
   const identity = data ? (
     <SportingIdentity
       identity={data.pool.pool}
@@ -81,31 +82,25 @@ function PoolPage({
     { id: "completed", label: "Terminés" },
     { id: "map", label: "Carte" },
   ] as const;
-  const blockingState = !data ? (
-    <ReadFeedback query={pool} loadingContent={<SportingPoolLoading />} />
-  ) : undefined;
   return (
-    <Page fullBleed>
-      {blockingState ? (
-        <PageViewport
-          header={
-            <PageHeader
-              title="Poule"
-              action={
-                <SportingSupportAction target={{ type: "pool", id: poolId }} />
-              }
-            />
+    <SportingInitialComposition
+      detail={pool}
+      follow={initialFollow}
+      active={data && !renderStandings ? standings : undefined}
+      activeUnavailable={
+        !renderStandings && standings.data?.availability === "unavailable"
+      }
+      header={
+        <PageHeader
+          title="La poule"
+          action={
+            <SportingSupportAction target={{ type: "pool", id: poolId }} />
           }
-        >
-          <PageScrollView>
-            {pool.isPending ? (
-              <PageContent>{blockingState}</PageContent>
-            ) : (
-              <ScreenState>{blockingState}</ScreenState>
-            )}
-          </PageScrollView>
-        </PageViewport>
-      ) : (
+        />
+      }
+      loading={<SportingPoolLoading />}
+    >
+      {data && (
         <SportingTabs
           selected={tab}
           onSelect={setTab}
@@ -171,6 +166,6 @@ function PoolPage({
           })}
         />
       )}
-    </Page>
+    </SportingInitialComposition>
   );
 }

@@ -177,7 +177,7 @@ function open(
   content = <PoolStandings pool={pool} highlightTeamId={sportingId} />,
 ) {
   return render(content, {
-    wrapper: ({ children }) => (
+    wrapper: ({ children }: Readonly<QueryFixtureProps>) => (
       <GestureHandlerRootView>
         <SafeAreaProvider
           initialMetrics={{
@@ -389,8 +389,9 @@ it("loads team participation standings lazily and preserves them through calenda
   // Given
   const user = userEvent.setup();
   await open(<TeamScreen teamId={sportingId} />);
-  await screen.findByRole("tab", { name: pool.pool.name });
+  await screen.findAllByRole("tab", { includeHiddenElements: true });
   await layoutNativeTabs();
+  await screen.findByRole("tab", { name: pool.pool.name });
   await screen.findByText("Official Z");
   const initial = mockFetch.mock.calls.filter(([url]) =>
     new URL(url).pathname.endsWith("/standings"),
@@ -412,13 +413,18 @@ it("loads team participation standings lazily and preserves them through calenda
   ).toHaveLength(initial);
 });
 
-it("keeps a pool calendar usable while standings fail", async () => {
+it("keeps an admitted pool calendar usable after its standings refresh fails", async () => {
   // Given
-  failed = true;
   const user = userEvent.setup();
   await open(<PoolScreen poolId={pool.pool.id} />);
-  await screen.findByRole("tab", { name: "Classement" });
+  await screen.findAllByRole("tab", { includeHiddenElements: true });
   await layoutNativeTabs();
+  await screen.findByRole("tab", { name: "Classement" });
+  await screen.findByText("Official Z");
+  failed = true;
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await screen.findByRole("alert", { name: TECHNICAL_ERROR });
+  expect(screen.getByText("Official Z")).toBeOnTheScreen();
 
   // When
   await user.press(await screen.findByRole("tab", { name: "À venir" }));

@@ -468,6 +468,155 @@ it("keeps a disabled calendar idle without a loading announcement or an admitted
   ).toBe(false);
 });
 
+it("uses the device zone on the first active calendar attempt after a deferred mount", async () => {
+  // Given: the real calendar stays mounted but inactive while the device travels.
+  let deviceZone = "Europe/Paris";
+  const resolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
+  jest
+    .spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions")
+    .mockImplementation(function (this: Intl.DateTimeFormat) {
+      return { ...resolvedOptions.call(this), timeZone: deviceZone };
+    });
+  mockFetch.mockImplementation(async (url: string) =>
+    new URL(url).pathname.endsWith("/application-access")
+      ? Response.json(applicationAccessResponse())
+      : Response.json({
+          ...calendar,
+          timeZone: new URL(url).searchParams.get("timeZone"),
+        }),
+  );
+  const view = await render(
+    <CalendarTab>
+      <SportingCalendar
+        selection={{ teamId: sportingId, category: "upcoming" }}
+        active={false}
+      />
+    </CalendarTab>,
+    { wrapper: Providers },
+  );
+  await layoutNativeTabs();
+  await screen.findByRole("alert");
+  expect(
+    mockFetch.mock.calls.filter(
+      ([url]) => new URL(url).pathname === "/matches",
+    ),
+  ).toHaveLength(0);
+  deviceZone = "America/New_York";
+
+  // When
+  await view.rerender(
+    <CalendarTab>
+      <SportingCalendar
+        selection={{ teamId: sportingId, category: "upcoming" }}
+      />
+    </CalendarTab>,
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls
+      .filter(([url]) => new URL(url).pathname === "/matches")
+      .map(([url]) => new URL(url).searchParams.get("timeZone")),
+  ).toEqual(["America/New_York"]);
+});
+
+it("retains the first attempted zone after failure and travel until an explicit retry", async () => {
+  // Given: the first active attempt is held at the HTTP boundary after a deferred mount.
+  let deviceZone = "Europe/Paris";
+  const resolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
+  jest
+    .spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions")
+    .mockImplementation(function (this: Intl.DateTimeFormat) {
+      return { ...resolvedOptions.call(this), timeZone: deviceZone };
+    });
+  const pending = Promise.withResolvers<Response>();
+  let firstAttempt = true;
+  let unavailable = true;
+  mockFetch.mockImplementation(async (url: string) => {
+    if (new URL(url).pathname.endsWith("/application-access")) {
+      return Response.json(applicationAccessResponse());
+    }
+    if (firstAttempt) {
+      firstAttempt = false;
+      return pending.promise;
+    }
+    return unavailable
+      ? Response.json({}, { status: 503 })
+      : Response.json({
+          ...calendar,
+          timeZone: new URL(url).searchParams.get("timeZone"),
+          days: [],
+        });
+  });
+  const view = await render(
+    <CalendarTab>
+      <SportingCalendar
+        selection={{ teamId: sportingId, category: "upcoming" }}
+        active={false}
+      />
+    </CalendarTab>,
+    { wrapper: Providers },
+  );
+  await layoutNativeTabs();
+  await screen.findByRole("alert");
+  deviceZone = "America/New_York";
+
+  try {
+    // When: travel continues while the first active attempt is still pending.
+    await view.rerender(
+      <CalendarTab>
+        <SportingCalendar
+          selection={{ teamId: sportingId, category: "upcoming" }}
+        />
+      </CalendarTab>,
+    );
+    await screen.findByRole("progressbar", { name: "Chargement des matchs" });
+    deviceZone = "Asia/Tokyo";
+    await view.rerender(
+      <CalendarTab>
+        <SportingCalendar
+          selection={{ teamId: sportingId, category: "upcoming" }}
+          active={false}
+        />
+      </CalendarTab>,
+    );
+    await act(async () => pending.resolve(Response.json({}, { status: 503 })));
+    await view.rerender(
+      <CalendarTab>
+        <SportingCalendar
+          selection={{ teamId: sportingId, category: "upcoming" }}
+        />
+      </CalendarTab>,
+    );
+
+    // Then: Query may reread on activation, but it still owns the first attempted zone.
+    expect(
+      await screen.findByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeEnabled();
+    const attemptedZones = mockFetch.mock.calls
+      .filter(([url]) => new URL(url).pathname === "/matches")
+      .map(([url]) => new URL(url).searchParams.get("timeZone"));
+    expect(new Set(attemptedZones)).toEqual(new Set(["America/New_York"]));
+
+    // When
+    unavailable = false;
+    await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(
+      await screen.findByText("Aucun match pour cette sélection"),
+    ).toBeOnTheScreen();
+    expect(
+      new URL(mockFetch.mock.calls.at(-1)?.[0]).searchParams.get("timeZone"),
+    ).toBe("Asia/Tokyo");
+  } finally {
+    await act(async () => pending.resolve(Response.json({}, { status: 503 })));
+  }
+});
+
 it("retains calendar rows with one toast after refresh failure and replaces them only after a successful pull", async () => {
   // Given
   await render(
@@ -1121,7 +1270,7 @@ it("changes calendar category with the native horizontal pager without rereading
   ).toHaveLength(1);
 });
 
-it("admits the team's default standings read only after identity resolves", async () => {
+it("admits the team's useful composition only after identity and first standings resolve", async () => {
   // Given: the real team and standings observers are held at their HTTP boundaries.
   const teamRead = Promise.withResolvers<Response>();
   const standingsRead = Promise.withResolvers<Response>();
@@ -1181,19 +1330,29 @@ it("admits the team's default standings read only after identity resolves", asyn
       ),
     ).toHaveLength(0);
 
-    // When: the known participation selects its own pending standings scene.
+    // When: the known participation mounts its actual first scene behind the initial presentation.
     await act(() => teamRead.resolve(Response.json(team)));
-    await screen.findByRole("tab", { selected: true });
+    await screen.findAllByRole("tab", { includeHiddenElements: true });
     await layoutNativeTabs();
+    await waitFor(() =>
+      expect(
+        mockFetch.mock.calls.filter(([url]) =>
+          new URL(url).pathname.endsWith("/standings"),
+        ),
+      ).toHaveLength(1),
+    );
 
-    // Then
+    // Then: the still-incomplete page owns one announcement and exposes no partial identity or tabs.
     expect(
-      await screen.findByRole("progressbar", {
-        name: "Chargement du classement",
+      screen.getByRole("progressbar", {
+        name: "Chargement de l’équipe",
       }),
     ).toBeOnTheScreen();
+    expect(screen.getAllByRole("progressbar")).toHaveLength(1);
+    expect(screen.queryByRole("tab")).not.toBeOnTheScreen();
+    expect(screen.queryByText("Team awaiting admission")).not.toBeOnTheScreen();
     expect(
-      screen.queryByLabelText("Chargement de l’équipe"),
+      screen.queryByRole("progressbar", { name: "Chargement du classement" }),
     ).not.toBeOnTheScreen();
     expect(
       mockFetch.mock.calls.filter(
@@ -1206,8 +1365,12 @@ it("admits the team's default standings read only after identity resolves", asyn
 
     // Then
     expect(await screen.findByText("Admitted official row")).toBeOnTheScreen();
+    expect(screen.getByRole("tab", { selected: true })).toBeOnTheScreen();
+    expect(screen.queryAllByText("Team awaiting admission")).not.toHaveLength(
+      0,
+    );
     expect(
-      screen.queryByLabelText("Chargement du classement"),
+      screen.queryByLabelText("Chargement de l’équipe"),
     ).not.toBeOnTheScreen();
   } finally {
     await act(() => {

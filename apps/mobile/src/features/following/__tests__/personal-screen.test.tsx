@@ -1348,7 +1348,7 @@ it("captures the current loading zone when selecting a new personal season", asy
   ]);
 });
 
-it("keeps the mounted category zone until its ordinary refresh", async () => {
+it("captures each season category zone on first activation and retains it until refresh", async () => {
   // Given
   let deviceZone = "Europe/Paris";
   // Install the zone double on native Intl before Router creates its fake-clock formatter wrapper.
@@ -1380,7 +1380,7 @@ it("keeps the mounted category zone until its ordinary refresh", async () => {
   deviceZone = "America/New_York";
   mockFetch.mockClear();
 
-  // When: the already-mounted category has no loaded traversal for the new season yet.
+  // When: the new season's deferred category makes its first active attempt after travel.
   await layoutNativeTabs();
   await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
@@ -1395,14 +1395,36 @@ it("keeps the mounted category zone until its ordinary refresh", async () => {
       url.searchParams.get("category"),
       url.searchParams.get("timeZone"),
     ]),
-  ).toEqual([[newer.id, "completed", "Europe/Paris"]]);
+  ).toEqual([[newer.id, "completed", "America/New_York"]]);
+
+  // When: leaving and returning after another move preserves the first active attempt's zone.
+  deviceZone = "Asia/Tokyo";
+  await userEvent.press(screen.getByRole("tab", { name: "À venir" }));
+  await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+
+  // Then: returning starts no new traversal; only explicit refresh adopts the current zone.
+  expect(
+    mockFetch.mock.calls
+      .map(([url]) => new URL(url))
+      .filter(
+        (url) =>
+          url.pathname === `/accounts/${accountId}/matches` &&
+          url.searchParams.get("category") === "completed",
+      )
+      .map((url) => url.searchParams.get("timeZone")),
+  ).toEqual(["America/New_York"]);
+
+  // When
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
   await waitFor(() =>
     expect(
       new URL(
         mockFetch.mock.calls.at(-1)?.[0] ?? "https://example.invalid",
       ).searchParams.get("timeZone"),
-    ).toBe("America/New_York"),
+    ).toBe("Asia/Tokyo"),
   );
 });
 

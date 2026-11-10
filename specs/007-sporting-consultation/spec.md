@@ -12,7 +12,7 @@
 
 Design input: [match](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03?node-id=976-293), [standings](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1010-15711) and [map annotations](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1035-9522). Existing approval and the map evidence limits do not establish native/provider behavior.
 
-FR-029/A35's first useful Team/Pool/Club composition has an agreed functional boundary. Its affected prototype and separate Figma approvals remain required under [T084](tasks.md#initial-sporting-composition); existing design approvals do not cover this changed interaction or finalize its native planning.
+FR-029/A35's first useful Team/Pool/Club composition uses the approved prototype and the explicitly authorized faithful Figma design referenced in [the plan](plan.md#constitution-check). [T084–T086](tasks.md#initial-sporting-composition) separate design fidelity, implementation and native qualification.
 
 The actors are the visitor, the signed-in person, the Pro beneficiary and the person holding an editing permission already defined by the relevant domain. Public consultation requires neither an account nor Pro entitlement; F09 governs only the advertising exemption. An editing permission does not follow from merely being able to view a page.
 

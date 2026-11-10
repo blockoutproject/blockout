@@ -199,7 +199,7 @@ function publishedTable(
 /** Real cache, generated decoder, session, admission, theme and advertising; only HTTP and native I/O are controlled. */
 function open(content = panel()) {
   return render(content, {
-    wrapper: ({ children }) => (
+    wrapper: ({ children }: Readonly<QueryFixtureProps>) => (
       <GestureHandlerRootView>
         <SafeAreaProvider
           initialMetrics={{
@@ -243,9 +243,8 @@ function panel(active = true) {
   );
 }
 
-it("opens independent participants lazily when the pool standings are unavailable", async () => {
+it("opens independent participants lazily after admitted pool standings become unavailable", async () => {
   // Given
-  standingsFailure = 503;
   participants.items = [
     participant(sportingId, "Rives", {
       latitude: 46.16,
@@ -262,8 +261,12 @@ it("opens independent participants lazily when the pool standings are unavailabl
   ];
   const user = userEvent.setup();
   await open(<PoolScreen poolId={pool.pool.id} />);
-  await screen.findByRole("tab", { name: "Carte" });
+  await screen.findAllByRole("tab", { includeHiddenElements: true });
   await layoutNativeTabs();
+  await screen.findByRole("tab", { name: "Carte" });
+  await screen.findByRole("button", { name: "Actualiser" });
+  standingsFailure = 503;
+  await user.press(screen.getByRole("button", { name: "Actualiser" }));
   await screen.findByRole("alert", { name: TECHNICAL_ERROR_TITLE });
   expect(
     mockFetch.mock.calls.some(([url]) =>
@@ -811,8 +814,9 @@ it("retains an admitted map selection when returning from standings without rere
   ];
   const user = userEvent.setup();
   await open(<PoolScreen poolId={pool.pool.id} />);
-  await screen.findByRole("tab", { name: "Carte" });
+  await screen.findAllByRole("tab", { includeHiddenElements: true });
   await layoutNativeTabs();
+  await screen.findByRole("tab", { name: "Carte" });
   await user.press(screen.getByRole("tab", { name: "Carte" }));
   await fireEvent(
     await screen.findByRole("button", { name: "La Rochelle: Rives" }),

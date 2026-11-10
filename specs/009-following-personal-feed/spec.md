@@ -8,12 +8,6 @@
 
 **Input**: F06 in the [specification navigation](../../README.md#specifications). Define following teams and pools, associated lists and counters, and match selection for the personal calendar. [F02](../002-sporting-data/spec.md) owns identities and visibility, [F03](../007-sporting-consultation/spec.md) calendars and [F05](../005-accounts-identity/spec.md) accounts. No club follows or automatic seasonal transfer is introduced. The [technical plan](plan.md) defines the implementation boundaries and qualifications.
 
-## Clarifications
-
-### Session 2026-11-09
-
-- Q: After a technical reread failure of a known confirmed Follow relationship, should the next explicit Follow/Unfollow command remain available? → A: Keep the confirmed state and the next explicit command available, with compact local read recovery. Pending commands, actual refusals and unusable accounts retain their existing guards.
-
 ## User Scenarios & Testing
 
 The actors are the visitor and the signed-in person with a usable profile, free or Pro. Follows are personal; the public follower count does not provide access to follower identities. Scenarios express expected V2 outcomes, not V1 qualification. FR, A and SC identifiers are local to F06.
@@ -208,14 +202,15 @@ Team/pool follows by exact identity, counters, personal calendars, manual renewa
 
 ### Inventory and decision coverage
 
-| Coverage                                                   | F06 requirements      | Scenarios         |
-| ---------------------------------------------------------- | --------------------- | ----------------- |
-| access, addition/removal, identity and renewal             | FR-001–FR-007         | A01–A06           |
-| shared season selection                                    | FR-008–FR-012         | A07–A12           |
-| lists, history and hiding                                  | FR-013–FR-017         | A13–A17           |
-| union, deduplication and match presentation                | FR-018–FR-019, FR-021 | A18–A21           |
-| counters, errors, concurrency and retry                    | FR-020, FR-022–FR-025 | A03, A06, A21–A26 |
-| F05 / F07 / F09 / F10 / F11 / F13: shared responsibilities | FR-026–FR-028         | A26–A28           |
+| Coverage                                                   | F06 requirements              | Scenarios         |
+| ---------------------------------------------------------- | ----------------------------- | ----------------- |
+| access, addition/removal, identity and renewal             | FR-001–FR-007                 | A01–A06           |
+| shared season selection                                    | FR-008–FR-012                 | A07–A12           |
+| lists, history and hiding                                  | FR-013–FR-017                 | A13–A17           |
+| union, deduplication and match presentation                | FR-018–FR-019, FR-021         | A18–A21           |
+| counters, errors, concurrency and retry                    | FR-020, FR-022–FR-025         | A03, A06, A21–A26 |
+| F05 / F07 / F09 / F10 / F11 / F13: shared responsibilities | FR-026–FR-028                 | A26–A28           |
+| first sporting composition and confirmed Follow recovery   | FR-002, FR-023–FR-026, FR-029 | A01, A25, A29     |
 
 <a id="cross-perimeter-dependencies"></a>
 
@@ -226,7 +221,7 @@ Team/pool follows by exact identity, counters, personal calendars, manual renewa
 | [F02](../002-sporting-data/spec.md)                                                       | Identity, sporting season, corrections, withdrawals and reappearances. F06 retains relationships without exposing hidden targets or transferring follows.                                                                                                                                       |
 | [F03](../007-sporting-consultation/spec.md)                                               | Detail sheets, ordering, pagination and local time; its presentation boundaries do not become sporting or notification events.                                                                                                                                                                  |
 | [F04](../008-search-discovery/spec.md)                                                    | Search to manually choose new follows; its text and filters are not controlled by the personal season.                                                                                                                                                                                          |
-| [F05](../005-accounts-identity/spec.md)                                                   | Sign-in, ready profile, isolation and deletion of personal relationships; no automatic follow after sign-in.                                                                                                                                                                                    |
+| [F05](../005-accounts-identity/spec.md)                                                   | Sign-in, usable matching account, isolation and deletion of personal relationships; no automatic follow after sign-in.                                                                                                                                                                          |
 | [F07](../011-notifications-delivery/spec.md)                                              | Consumes confirmed follows; owns notification eligibility and delivery. Unfollowing does not itself delete existing entries, and re-following or season changes do not reset F07 retention or announcement allowances. The feed season remains a display filter, not a notification preference. |
 | [F09](../006-pro-subscriptions/spec.md) / [F11](../004-advertising-privacy-legal/spec.md) | Entitlements and advertising without added Pro restrictions on follows or the feed; privacy of personal lists.                                                                                                                                                                                  |
 | [F10](../012-reports-feature-suggestions/spec.md) / [F13](../003-shared-quality/spec.md)  | Contextual assistance, minimisation, accessibility, honest freshness, errors and diagnostics. No performance qualification or new timing target.                                                                                                                                                |

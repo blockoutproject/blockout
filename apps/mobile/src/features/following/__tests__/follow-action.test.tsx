@@ -5,9 +5,13 @@ import {
   type ReactNode,
   type ReactElement,
 } from "react";
-import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  useQueryClient,
+  QueryClientProvider,
+  onlineManager,
+} from "@tanstack/react-query";
 import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
-import "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
 import { accountResponse } from "../../accounts/test-support/account-response";
 import {
@@ -39,6 +43,7 @@ import {
 } from "../../accounts/test-support/native-auth0";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import { FollowButton } from "../components/follow-button";
+import { FollowerCount } from "../components/follower-count";
 import TeamRoute from "../../../app/(ordinary)/teams/[teamId]";
 import PoolRoute from "../../../app/(ordinary)/pools/[poolId]";
 import { matchDetail } from "../../sporting/test-support/consultation-data";
@@ -137,6 +142,27 @@ async function transport(url: string, request?: RequestInit) {
   }
   if (url.endsWith("/accounts/me")) {
     return Response.json(profile);
+  }
+  const parsed = new URL(url);
+  if (parsed.pathname === "/matches") {
+    return Response.json({
+      category: parsed.searchParams.get("category"),
+      timeZone: parsed.searchParams.get("timeZone"),
+      evaluatedAt: "2026-11-10T12:00:00Z",
+      days: [],
+    });
+  }
+  if (parsed.pathname.endsWith("/standings")) {
+    return Response.json({
+      poolId: pool.id,
+      availability: "not-published",
+      lastAttemptFailed: false,
+      columns: [],
+      rows: [],
+    });
+  }
+  if (parsed.pathname.endsWith("/follower-count")) {
+    return Response.json({ count: 2 });
   }
   if (request?.method === "PUT") {
     const state = JSON.parse(String(request.body));
@@ -279,8 +305,9 @@ it("invites a guest without retaining a command to replay after authentication",
   ).toHaveLength(0);
 });
 
-it("suspends the action after profile retrieval fails while public content remains usable", async () => {
+it("suspends personal following after initial account failure without duplicating account recovery", async () => {
   // Given
+  jest.useFakeTimers();
   mockFetch.mockImplementation((url, request) =>
     url.endsWith("/accounts/me")
       ? Promise.resolve(new Response(null, { status: 503 }))
@@ -295,12 +322,21 @@ it("suspends the action after profile retrieval fails while public content remai
   await waitFor(() => expect(session.status).toBe("authenticated"));
 
   // When
-  await screen.findByText("Une erreur est survenue");
+  await waitFor(() =>
+    expect(
+      client.getQueryState(getGetMyAccountQueryKey())?.error,
+    ).toMatchObject({
+      status: 503,
+    }),
+  );
+  await act(async () => jest.runOnlyPendingTimersAsync());
 
   // Then
   expect(screen.getByText("Public sport")).toBeOnTheScreen();
+  expect(screen.getByText("Suivi indisponible.")).toBeOnTheScreen();
   expect(screen.queryByRole("button", { name: "Suivre" })).toBeNull();
-  expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Indisponible" })).toBeDisabled();
+  expect(screen.queryByRole("button", { name: /Réessayer/ })).toBeNull();
   expect(
     mockFetch.mock.calls.filter(([url]) => url.includes("team-follows")),
   ).toHaveLength(0);
@@ -337,6 +373,8 @@ it.each(["team", "pool"] as const)(
     const user = userEvent.setup();
     await renderFollowing(type === "team" ? <TeamRoute /> : <PoolRoute />);
     await waitFor(() => expect(session.status).toBe("authenticated"));
+    await screen.findAllByRole("tab", { includeHiddenElements: true });
+    await layoutNativeTabs();
     await screen.findByText(type === "team" ? "Volley Démo" : "Phase 01");
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
@@ -376,16 +414,18 @@ it("distinguishes a failed initial member read from false and offers an explicit
   await waitFor(() => expect(session.status).toBe("authenticated"));
 
   // When
-  await screen.findByText("Une erreur est survenue");
+  await screen.findByRole("button", { name: "Réessayer le suivi" });
 
   // Then
   expect(screen.queryByRole("button", { name: "Suivre" })).toBeNull();
   expect(
     mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
   ).toHaveLength(0);
-  available = true;
+
   // When
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  available = true;
+  await user.press(screen.getByRole("button", { name: "Réessayer le suivi" }));
+
   // Then
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
@@ -404,7 +444,7 @@ it("rereads a temporarily hidden target when its public page is reopened after r
     <FollowButton target={team} season={season} />,
   );
   await waitFor(() => expect(session.status).toBe("authenticated"));
-  await screen.findByText("Une erreur est survenue");
+  await screen.findByRole("button", { name: "Réessayer le suivi" });
 
   // When
   await rendered.rerender(<Text>Another page</Text>);
@@ -594,49 +634,596 @@ it("resets owned selections and invalidates options/count without touching anoth
   expect(client.getQueryState(countKey)?.isInvalidated).toBe(true);
 });
 
-it("preserves a confirmed write and recovers its failed profile prerequisite on the existing read card", async () => {
+it.each([true, false])(
+  "retains confirmed following=%s and accepts the next explicit command after account 503",
+  async (following) => {
+    // Given
+    jest.useFakeTimers();
+    let saved = !following;
+    let accountUnavailable = false;
+    mockFetch.mockImplementation((url, request) => {
+      if (url.endsWith("/accounts/me") && accountUnavailable) {
+        return Promise.resolve(new Response(null, { status: 503 }));
+      }
+      if (url.includes("/team-follows/")) {
+        if (request?.method === "PUT") {
+          saved = JSON.parse(String(request.body)).following;
+        }
+        return Promise.resolve(Response.json({ following: saved }));
+      }
+      return transport(url, request);
+    });
+    const user = userEvent.setup();
+    await renderFollowing(<FollowButton target={team} season={season} />);
+    const initialLabel = following ? "Suivre" : "Suivi";
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: initialLabel })).toBeEnabled(),
+    );
+    await user.press(screen.getByRole("button", { name: initialLabel }));
+    const confirmedLabel = following ? "Suivi" : "Suivre";
+    await screen.findByRole("button", { name: confirmedLabel, busy: false });
+    const owner = { ...session, accountId };
+
+    // When
+    accountUnavailable = true;
+    await act(async () => {
+      await client.refetchQueries({
+        queryKey: getGetMyAccountQueryKey(),
+        exact: true,
+      });
+      await jest.runOnlyPendingTimersAsync();
+    });
+
+    // Then
+    expect(
+      screen.getByRole("button", {
+        name: confirmedLabel,
+        selected: following,
+        busy: false,
+      }),
+    ).toBeEnabled();
+    expect(screen.queryByRole("button", { name: /Réessayer/ })).toBeNull();
+    expect(client.getQueryData(followStateKey(owner, team))).toEqual({
+      following,
+    });
+    expect(
+      mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+    ).toHaveLength(1);
+
+    // When: only a new deliberate press sends the inverse state while the account read still fails.
+    await user.press(screen.getByRole("button", { name: confirmedLabel }));
+
+    // Then
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", {
+          name: initialLabel,
+          selected: !following,
+          busy: false,
+        }),
+      ).toBeEnabled(),
+    );
+    expect(
+      mockFetch.mock.calls
+        .filter(([, request]) => request?.method === "PUT")
+        .map(([, request]) => JSON.parse(String(request?.body))),
+    ).toEqual([{ following }, { following: !following }]);
+  },
+);
+
+it("accepts a new explicit command while a confirmed relationship reread is technically unavailable", async () => {
   // Given
+  jest.useFakeTimers();
+  let saved = false;
+  let unavailable = false;
+  mockFetch.mockImplementation((url, request) => {
+    if (url.includes("/team-follows/")) {
+      if (request?.method === "PUT") {
+        saved = JSON.parse(String(request.body)).following;
+        return Promise.resolve(Response.json({ following: saved }));
+      }
+      return Promise.resolve(
+        unavailable
+          ? new Response(null, { status: 503 })
+          : Response.json({ following: saved }),
+      );
+    }
+    return transport(url, request);
+  });
   const user = userEvent.setup();
   await renderFollowing(<FollowButton target={team} season={season} />);
-  await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
   );
   await user.press(screen.getByRole("button", { name: "Suivre" }));
   await screen.findByRole("button", { name: "Suivi", busy: false });
-  const owner = { ...session, accountId };
-  mockFetch.mockImplementation((url, request) =>
-    url.endsWith("/accounts/me")
-      ? Promise.resolve(new Response(null, { status: 503 }))
-      : transport(url, request),
-  );
+  const key = followStateKey({ ...session, accountId }, team);
 
   // When
+  unavailable = true;
+  await act(async () => {
+    await client.refetchQueries({ queryKey: key, exact: true });
+    await jest.runOnlyPendingTimersAsync();
+  });
+
+  // Then
+  expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled();
+  expect(
+    screen.getByText("Actualisation du suivi indisponible."),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toHaveLength(1);
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Suivi" }));
+
+  // Then
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", {
+        name: "Suivre",
+        selected: false,
+        busy: false,
+      }),
+    ).toBeEnabled(),
+  );
+  expect(client.getQueryData(key)).toEqual({ following: false });
+  expect(
+    mockFetch.mock.calls
+      .filter(([, request]) => request?.method === "PUT")
+      .map(([, request]) => JSON.parse(String(request?.body))),
+  ).toEqual([{ following: true }, { following: false }]);
+});
+
+it.each([401, 403, 404])(
+  "withdraws personal following after account %i and does not restore it after account 503",
+  async (status) => {
+    // Given
+    jest.useFakeTimers();
+    let accountStatus = 200;
+    mockFetch.mockImplementation((url, request) => {
+      if (url.endsWith("/accounts/me") && accountStatus !== 200) {
+        return Promise.resolve(new Response(null, { status: accountStatus }));
+      }
+      if (url.includes("/team-follows/")) {
+        return Promise.resolve(Response.json({ following: true }));
+      }
+      return transport(url, request);
+    });
+    await renderFollowing(
+      <>
+        <Text>Independent public sport</Text>
+        <FollowButton target={team} season={season} />
+      </>,
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled(),
+    );
+
+    // When
+    accountStatus = status;
+    await act(async () => {
+      await client.refetchQueries({
+        queryKey: getGetMyAccountQueryKey(),
+        exact: true,
+      });
+      await jest.runOnlyPendingTimersAsync();
+    });
+
+    // Then
+    expect(screen.queryByRole("button", { name: "Suivi" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Indisponible" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: /Réessayer/ })).toBeNull();
+    expect(screen.getByText("Independent public sport")).toBeOnTheScreen();
+
+    // When
+    accountStatus = 503;
+    await act(async () => {
+      await client.refetchQueries({
+        queryKey: getGetMyAccountQueryKey(),
+        exact: true,
+      });
+      await jest.runOnlyPendingTimersAsync();
+    });
+
+    // Then
+    expect(screen.queryByRole("button", { name: "Suivi" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Indisponible" })).toBeDisabled();
+    expect(
+      mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+    ).toHaveLength(0);
+  },
+);
+
+it.each([401, 403, 404])(
+  "withdraws only the refused relationship after member %i until its successful read retry",
+  async (status) => {
+    // Given
+    jest.useFakeTimers();
+    let memberStatus = 200;
+    mockFetch.mockImplementation((url, request) => {
+      if (url.includes("/team-follows/") && memberStatus !== 200) {
+        return Promise.resolve(new Response(null, { status: memberStatus }));
+      }
+      if (url.includes("-follows/")) {
+        return Promise.resolve(Response.json({ following: true }));
+      }
+      return transport(url, request);
+    });
+    const user = userEvent.setup();
+    await renderFollowing(
+      <>
+        <FollowButton target={team} season={season} />
+        <FollowButton target={pool} season={season} />
+      </>,
+    );
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole("button", { name: "Suivi", disabled: false }),
+      ).toHaveLength(2),
+    );
+    const owner = { ...session, accountId };
+    const key = followStateKey(owner, team);
+
+    // When
+    memberStatus = status;
+    await act(async () => {
+      await client.refetchQueries({ queryKey: key, exact: true });
+      await jest.runOnlyPendingTimersAsync();
+    });
+
+    // Then
+    expect(screen.getAllByRole("button", { name: "Suivi" })).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Indisponible" })).toBeDisabled();
+    expect(client.getQueryData(key)).toBeUndefined();
+    expect(client.getQueryData(followStateKey(owner, pool))).toEqual({
+      following: true,
+    });
+
+    // When
+    memberStatus = 503;
+    await user.press(
+      screen.getByRole("button", { name: "Réessayer le suivi" }),
+    );
+
+    // Then
+    await screen.findByRole("button", {
+      name: "Réessayer le suivi",
+      busy: false,
+    });
+    expect(client.getQueryData(key)).toBeUndefined();
+    expect(screen.getAllByRole("button", { name: "Suivi" })).toHaveLength(1);
+
+    // When
+    memberStatus = 200;
+    await user.press(
+      screen.getByRole("button", { name: "Réessayer le suivi" }),
+    );
+
+    // Then
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole("button", { name: "Suivi", disabled: false }),
+      ).toHaveLength(2),
+    );
+    expect(
+      mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+    ).toHaveLength(0);
+  },
+);
+
+it("shows compact retry progress only after its explicit press while a known relation remains usable", async () => {
+  // Given
+  jest.useFakeTimers();
+  const reread = Promise.withResolvers<Response>();
+  let response: "ready" | "error" | "pending" = "ready";
+  mockFetch.mockImplementation((url, request) => {
+    if (url.includes("/team-follows/")) {
+      if (response === "pending") {
+        return reread.promise;
+      }
+      return Promise.resolve(
+        response === "error"
+          ? new Response(null, { status: 503 })
+          : Response.json({ following: true }),
+      );
+    }
+    return transport(url, request);
+  });
+  const user = userEvent.setup();
+  await renderFollowing(<FollowButton target={team} season={season} />);
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled(),
+  );
+  const key = followStateKey({ ...session, accountId }, team);
+  response = "error";
+  await act(async () => {
+    await client.refetchQueries({ queryKey: key, exact: true });
+    await jest.runOnlyPendingTimersAsync();
+  });
+
+  // When: a background reread has no initiating compact action.
+  response = "pending";
+  let backgroundRead: Promise<void>;
+  await act(async () => {
+    backgroundRead = client.refetchQueries({ queryKey: key, exact: true });
+    await jest.runOnlyPendingTimersAsync();
+  });
+
+  // Then
+  expect(
+    screen.getByRole("button", { name: "Réessayer le suivi", busy: false }),
+  ).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled();
+
+  // When: the deliberate read joins that current request without replaying a write.
+  await user.press(screen.getByRole("button", { name: "Réessayer le suivi" }));
+
+  // Then
+  expect(
+    screen.getByRole("button", { name: "Réessayer le suivi", busy: true }),
+  ).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled();
+  expect(
+    mockFetch.mock.calls.filter(([url]) => url.includes("/team-follows/")),
+  ).toHaveLength(3);
+
+  // When
+  await act(async () => {
+    reread.resolve(Response.json({ following: true }));
+    await backgroundRead;
+    await jest.runOnlyPendingTimersAsync();
+  });
+
+  // Then
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("button", { name: "Réessayer le suivi" }),
+    ).toBeNull(),
+  );
+  expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled();
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toHaveLength(0);
+});
+
+it("keeps a paused compact Retry available and resumes its known relationship read once", async () => {
+  // Given: a real relationship read fails after confirming an authorized state.
+  jest.useFakeTimers();
+  const reread = Promise.withResolvers<Response>();
+  let response: "ready" | "error" | "pending" = "ready";
+  mockFetch.mockImplementation((url, request) => {
+    if (url.includes("/team-follows/")) {
+      if (response === "pending") {
+        return reread.promise;
+      }
+      return Promise.resolve(
+        response === "error"
+          ? new Response(null, { status: 503 })
+          : Response.json({ following: true }),
+      );
+    }
+    return transport(url, request);
+  });
+  const user = userEvent.setup();
+  await renderFollowing(<FollowButton target={team} season={season} />);
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled(),
+  );
+  response = "error";
+  await act(async () => {
+    await client.refetchQueries({
+      queryKey: followStateKey({ ...session, accountId }, team),
+      exact: true,
+    });
+    await jest.runOnlyPendingTimersAsync();
+  });
+  await screen.findByRole("button", { name: "Réessayer le suivi" });
+  await act(() => onlineManager.setOnline(false));
+
+  try {
+    // When: Query suspends an explicit Retry without issuing a transport request.
+    response = "pending";
+    await user.press(
+      screen.getByRole("button", { name: "Réessayer le suivi" }),
+    );
+
+    // Then
+    expect(
+      screen.getByRole("button", { name: "Réessayer le suivi", busy: false }),
+    ).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled();
+    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([url]) => url.includes("/team-follows/")),
+    ).toHaveLength(2);
+
+    // When: another safe press joins the suspended attempt, then connectivity returns.
+    await user.press(
+      screen.getByRole("button", { name: "Réessayer le suivi" }),
+    );
+    expect(
+      mockFetch.mock.calls.filter(([url]) => url.includes("/team-follows/")),
+    ).toHaveLength(2);
+    await act(() => onlineManager.setOnline(true));
+
+    // Then: only the resumed explicit read owns busy, with no mutation replay.
+    await screen.findByRole("button", {
+      name: "Réessayer le suivi",
+      busy: true,
+    });
+    await waitFor(() =>
+      expect(
+        mockFetch.mock.calls.filter(([url]) => url.includes("/team-follows/")),
+      ).toHaveLength(3),
+    );
+    expect(
+      mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+    ).toHaveLength(0);
+
+    // When
+    await act(async () => {
+      reread.resolve(Response.json({ following: true }));
+      await jest.runOnlyPendingTimersAsync();
+    });
+
+    // Then
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Réessayer le suivi" }),
+      ).not.toBeOnTheScreen(),
+    );
+    expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled();
+  } finally {
+    await act(async () => {
+      onlineManager.setOnline(true);
+      reread.resolve(Response.json({ following: true }));
+    });
+  }
+});
+
+it("keeps a late write on its original UUID when the same principal receives a replacement account", async () => {
+  // Given
+  jest.useFakeTimers();
+  const replacementId = "00000000-0000-4000-8000-000000000099";
+  let currentAccountId = accountId;
+  let replacementFollowing = false;
+  const originalWrite = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, request) => {
+    if (url.endsWith("/accounts/me")) {
+      return Promise.resolve(
+        Response.json({ ...profile, accountId: currentAccountId }),
+      );
+    }
+    if (url.includes(`/accounts/${accountId}/team-follows/`)) {
+      return request?.method === "PUT"
+        ? originalWrite.promise
+        : Promise.resolve(Response.json({ following: false }));
+    }
+    if (url.includes(`/accounts/${replacementId}/team-follows/`)) {
+      if (request?.method === "PUT") {
+        replacementFollowing = JSON.parse(String(request.body)).following;
+      }
+      return Promise.resolve(
+        Response.json({ following: replacementFollowing }),
+      );
+    }
+    return transport(url, request);
+  });
+  const user = userEvent.setup();
+  await renderFollowing(<FollowButton target={team} season={season} />);
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+  const subject = session.subject;
+  const originalClient = client;
+  await user.press(screen.getByRole("button", { name: "Suivre" }));
+  await screen.findByRole("button", { name: "Suivre", busy: true });
+
+  // When
+  currentAccountId = replacementId;
   await act(async () => {
     await client.refetchQueries({
       queryKey: getGetMyAccountQueryKey(),
       exact: true,
     });
+    await jest.runOnlyPendingTimersAsync();
+  });
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", {
+        name: "Suivre",
+        selected: false,
+        busy: false,
+      }),
+    ).toBeEnabled(),
+  );
+  await act(async () => {
+    originalWrite.resolve(Response.json({ following: true }));
+    await jest.runOnlyPendingTimersAsync();
   });
 
   // Then
-  await screen.findByRole("button", { name: "Réessayer" });
+  expect(session.subject).toBe(subject);
+  expect(session.accountId).toBe(replacementId);
+  expect(client).toBe(originalClient);
   expect(screen.queryByRole("button", { name: "Suivi" })).toBeNull();
-  expect(client.getQueryData(followStateKey(owner, team))).toEqual({
-    following: true,
-  });
+  expect(
+    client.getQueryData(
+      followStateKey({ ...session, accountId: replacementId }, team),
+    ),
+  ).toEqual({ following: false });
+  expect(
+    mockFetch.mock.calls
+      .filter(([, request]) => request?.method === "PUT")
+      .map(([url]) => new URL(url).pathname),
+  ).toEqual([`/accounts/${accountId}/team-follows/${team.id}`]);
 
   // When
-  mockFetch.mockImplementation(transport);
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(screen.getByRole("button", { name: "Suivre" }));
 
   // Then
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled(),
   );
   expect(
-    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+    mockFetch.mock.calls
+      .filter(([, request]) => request?.method === "PUT")
+      .map(([url]) => new URL(url).pathname),
+  ).toEqual([
+    `/accounts/${accountId}/team-follows/${team.id}`,
+    `/accounts/${replacementId}/team-follows/${team.id}`,
+  ]);
+});
+
+it("retains the independent public audience when the same principal receives a replacement account", async () => {
+  // Given
+  jest.useFakeTimers();
+  const replacementId = "00000000-0000-4000-8000-000000000099";
+  let currentAccountId = accountId;
+  mockFetch.mockImplementation((url, request) =>
+    url.endsWith("/accounts/me")
+      ? Promise.resolve(
+          Response.json({ ...profile, accountId: currentAccountId }),
+        )
+      : transport(url, request),
+  );
+  await renderFollowing(
+    <FollowButton
+      target={team}
+      season={season}
+      audience={<FollowerCount target={team} />}
+    />,
+  );
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+  await screen.findByLabelText("2 abonnés");
+
+  // When
+  currentAccountId = replacementId;
+  await act(async () => {
+    await client.refetchQueries({
+      queryKey: getGetMyAccountQueryKey(),
+      exact: true,
+    });
+    await jest.runOnlyPendingTimersAsync();
+  });
+
+  // Then
+  await waitFor(() => expect(session.accountId).toBe(replacementId));
+  expect(screen.getByLabelText("2 abonnés")).toBeOnTheScreen();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
+  );
+  expect(
+    mockFetch.mock.calls.filter(([url]) => url.endsWith("/follower-count")),
   ).toHaveLength(1);
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toHaveLength(0);
 });
 
 it.each([true, false])(
@@ -871,12 +1458,15 @@ it("keeps a refused member withdrawn after a delayed successful write until an o
   await act(() => client.invalidateQueries({ queryKey: key, exact: true }));
 
   // Then
-  await screen.findByRole("button", { name: "Réessayer", busy: false });
+  await screen.findByRole("button", {
+    name: "Réessayer le suivi",
+    busy: false,
+  });
   expect(client.getQueryData(key)).toBeUndefined();
 
   // When
   member = "transient";
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(screen.getByRole("button", { name: "Réessayer le suivi" }));
 
   // Then
   await waitFor(() =>
@@ -889,13 +1479,16 @@ it("keeps a refused member withdrawn after a delayed successful write until an o
   await act(async () => response.resolve(Response.json({ following })));
 
   // Then
-  await screen.findByRole("button", { name: "Réessayer", busy: false });
+  await screen.findByRole("button", {
+    name: "Réessayer le suivi",
+    busy: false,
+  });
   expect(client.getQueryData(key)).toBeUndefined();
   expect(screen.queryByRole("button", { name: "Suivi" })).toBeNull();
 
   // When
   member = "available";
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(screen.getByRole("button", { name: "Réessayer le suivi" }));
 
   // Then
   expect(
@@ -934,15 +1527,21 @@ it("keeps an uncertain follow refused through a failed read and a remount until 
 
   // When
   await user.press(screen.getByRole("button", { name: "Suivre" }));
-  await screen.findByRole("button", { name: "Réessayer" });
+  await screen.findByRole("button", { name: "Réessayer le suivi" });
   member = "transient";
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
-  await screen.findByRole("button", { name: "Réessayer", busy: false });
+  await user.press(screen.getByRole("button", { name: "Réessayer le suivi" }));
+  await screen.findByRole("button", {
+    name: "Réessayer le suivi",
+    busy: false,
+  });
   await rendered.rerender(<Text>Another page</Text>);
   await rendered.rerender(<FollowButton target={team} season={season} />);
 
   // Then
-  await screen.findByRole("button", { name: "Réessayer", busy: false });
+  await screen.findByRole("button", {
+    name: "Réessayer le suivi",
+    busy: false,
+  });
   expect(screen.queryByRole("button", { name: "Suivre" })).toBeNull();
   expect(
     mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
@@ -950,7 +1549,7 @@ it("keeps an uncertain follow refused through a failed read and a remount until 
 
   // When
   member = "available";
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(screen.getByRole("button", { name: "Réessayer le suivi" }));
 
   // Then
   await waitFor(() =>

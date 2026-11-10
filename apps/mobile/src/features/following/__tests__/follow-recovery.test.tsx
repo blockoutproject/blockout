@@ -18,7 +18,7 @@ import { FollowerCount } from "../components/follower-count";
 import { TeamScreen } from "../../sporting/screens/team-screen";
 import { PoolScreen } from "../../sporting/screens/pool-screen";
 import { FollowButton } from "../components/follow-button";
-import "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { SportingActions } from "../../sporting/components/sporting-actions";
 import type { InfiniteData } from "@tanstack/react-query";
 import type { ListTeamFollows200 } from "../../../../.generated/schemas/index.zod";
@@ -69,6 +69,24 @@ async function transport(url: string, request?: RequestInit) {
   }
   if (url.endsWith("/follower-count")) {
     return Response.json({ count: 2 });
+  }
+  const parsed = new URL(url);
+  if (parsed.pathname === "/matches") {
+    return Response.json({
+      category: parsed.searchParams.get("category"),
+      timeZone: parsed.searchParams.get("timeZone"),
+      evaluatedAt: "2026-11-10T12:00:00Z",
+      days: [],
+    });
+  }
+  if (parsed.pathname.endsWith("/standings")) {
+    return Response.json({
+      poolId: team.id,
+      availability: "not-published",
+      lastAttemptFailed: false,
+      columns: [],
+      rows: [],
+    });
   }
   if (request?.method === "PUT") {
     following = JSON.parse(String(request.body)).following;
@@ -152,6 +170,7 @@ it.each([true, false])(
     // Given
     const response = Promise.withResolvers<Response>();
     let accepted = false;
+    let saved = !following;
     mockFetch.mockImplementation((url, request) => {
       if (request?.method === "PUT") {
         return response.promise;
@@ -163,7 +182,7 @@ it.each([true, false])(
         return Promise.reject(new TypeError("dependent read failed"));
       }
       if (url.includes("/team-follows/")) {
-        return Promise.resolve(Response.json({ following: !following }));
+        return Promise.resolve(Response.json({ following: saved }));
       }
       return transport(url, request);
     });
@@ -196,6 +215,7 @@ it.each([true, false])(
 
     // When
     accepted = true;
+    saved = following;
     await act(async () => response.resolve(Response.json({ following })));
 
     // Then
@@ -205,7 +225,7 @@ it.each([true, false])(
         selected: following,
         busy: false,
       }),
-    ).toBeDisabled();
+    ).toBeEnabled();
     expect(fixture.client.getQueryData(followStateKey(owner, team))).toEqual({
       following,
     });
@@ -217,6 +237,35 @@ it.each([true, false])(
         .filter(([, request]) => request?.method === "PUT")
         .map(([, request]) => JSON.parse(String(request?.body))),
     ).toEqual([{ following }]);
+
+    expect(
+      await screen.findByText("Actualisation du suivi indisponible."),
+    ).toBeOnTheScreen();
+
+    // When: a safe relationship Retry does not repeat the accepted command or repair the count.
+    accepted = false;
+    await user.press(
+      screen.getByRole("button", { name: "Réessayer le suivi" }),
+    );
+
+    // Then
+    await waitFor(() =>
+      expect(
+        screen.queryByText("Actualisation du suivi indisponible."),
+      ).toBeNull(),
+    );
+    expect(
+      screen.getByRole("button", {
+        name: following ? "Suivi" : "Suivre",
+        selected: following,
+      }),
+    ).toBeEnabled();
+    expect(
+      screen.getByLabelText("2 abonnés, actualisation indisponible"),
+    ).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+    ).toHaveLength(1);
   },
 );
 
@@ -403,7 +452,7 @@ it.each(["team", "pool"] as const)(
         );
       }
       if (url.includes("/matches?")) {
-        return Promise.resolve(Response.json({ days: [] }));
+        return transport(url, request);
       }
       if (url.endsWith("/follower-count")) {
         return Promise.resolve(Response.json({ count: 2 }));
@@ -426,6 +475,8 @@ it.each(["team", "pool"] as const)(
         <FollowButton target={target} season={season} />
       </>,
     );
+    await screen.findAllByRole("tab", { includeHiddenElements: true });
+    await layoutNativeTabs();
     await screen.findByText("Current sporting identity");
     await screen.findByLabelText("2 abonnés");
     await waitFor(() =>
@@ -457,8 +508,10 @@ it.each(["team", "pool"] as const)(
   },
 );
 
-it("keeps public sporting content when the private opaque member read returns 404", async () => {
+it("keeps admitted public sporting content when the private opaque member read returns 404", async () => {
   // Given
+  let memberRefused = false;
+  following = true;
   mockFetch.mockImplementation((url, request) => {
     if (url.endsWith(`/teams/${team.id}`)) {
       return Promise.resolve(
@@ -473,16 +526,15 @@ it("keeps public sporting content when the private opaque member read returns 40
         }),
       );
     }
-    if (url.includes("/team-follows/")) {
+    if (url.includes("/team-follows/") && memberRefused) {
       return Promise.resolve(new Response(null, { status: 404 }));
     }
     if (url.includes("/matches?")) {
-      return Promise.resolve(Response.json({ days: [] }));
+      return transport(url, request);
     }
     return transport(url, request);
   });
 
-  // When
   await fixture.render(
     <TeamScreen
       teamId={team.id}
@@ -490,9 +542,24 @@ it("keeps public sporting content when the private opaque member read returns 40
     />,
   );
   await screen.findByText("Public team remains viewable");
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled(),
+  );
+
+  // When
+  memberRefused = true;
+  await act(() =>
+    fixture.client.refetchQueries({
+      queryKey: followStateKey(
+        { ...fixture.session, accountId: accountResponse().accountId },
+        team,
+      ),
+      exact: true,
+    }),
+  );
 
   // Then
-  await screen.findAllByRole("button", { name: "Réessayer" });
+  await screen.findByRole("button", { name: "Réessayer le suivi" });
   expect(await screen.findByLabelText("2 abonnés")).toBeOnTheScreen();
   expect(screen.getByText("Public team remains viewable")).toBeOnTheScreen();
 });
@@ -526,7 +593,7 @@ it("keeps a refused count withdrawn when its detail removes the control and the 
       return Promise.resolve(Response.json({ count: 2 }));
     }
     if (url.includes("/matches?")) {
-      return Promise.resolve(Response.json({ days: [] }));
+      return transport(url, request);
     }
     return transport(url, request);
   });
@@ -598,7 +665,7 @@ it("applies public absence to an account established while the first counter is 
       return Promise.resolve(Response.json({ following: true }));
     }
     if (url.includes("/matches?")) {
-      return Promise.resolve(Response.json({ days: [] }));
+      return transport(url, request);
     }
     return transport(url, request);
   });

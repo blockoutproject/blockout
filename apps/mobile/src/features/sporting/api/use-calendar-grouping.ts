@@ -4,16 +4,20 @@ import { currentSportingTimeZone } from "../model/sporting-time";
 import { refreshCalendar } from "./sporting-calendar";
 
 /**
- * A changed grouping zone selects a normal new infinite-query key immediately, with its own
- * loading/error state. Refreshing the current zone uses native invalidation of all retained pages.
- * No observer, previous-zone adoption transaction or special cache retention is needed.
+ * The first active attempt retains its loading zone, even when the read fails or becomes inactive.
+ * Deferred mounts use the current zone without retaining it. An explicit changed-zone refresh
+ * selects a normal new key; refreshing the retained zone invalidates its complete traversal.
  */
 export function useCalendarGrouping(
   create: (timeZone: string) => { queryKey: QueryKey },
   active = true,
 ) {
   const client = useQueryClient();
-  const [timeZone, setTimeZone] = useState(currentSportingTimeZone);
+  const [retainedTimeZone, setTimeZone] = useState<string>();
+  const timeZone = retainedTimeZone ?? currentSportingTimeZone();
+  if (active && retainedTimeZone === undefined) {
+    setTimeZone(timeZone);
+  }
 
   /** Changes the visible query key, or explicitly refreshes the current active traversal. */
   async function refresh(nextZone: string) {

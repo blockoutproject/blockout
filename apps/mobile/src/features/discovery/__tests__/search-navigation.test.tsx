@@ -196,7 +196,7 @@ function publicReads(url: string): Promise<Response> {
     return Promise.resolve(
       Response.json({
         poolId: firstId,
-        availability: "unavailable",
+        availability: "not-published",
         lastAttemptFailed: false,
         columns: [],
         rows: [],
@@ -830,6 +830,12 @@ it.each([
 
     // Then
     expect(screen).toHavePathname(`/${path}/${firstId}`);
+    // Measure the real sporting pager while initial composition still hides its scenes.
+    await screen.findAllByRole("tab", {
+      name: "À venir",
+      includeHiddenElements: true,
+    });
+    await layoutNativeTabs();
     expect(await screen.findByText(title)).toBeOnTheScreen();
   },
 );
