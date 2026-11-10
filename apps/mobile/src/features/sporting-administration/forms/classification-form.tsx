@@ -11,9 +11,6 @@ import { SelectField } from "../../../shared/components/select-field";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { FieldSkeleton } from "../../../shared/components/form-loading";
 import { LoadingGroup } from "../../../shared/components/loading-group";
-import { FormScrollView } from "../../../shared/components/form-scroll-view";
-import { PageContent } from "../../../shared/components/page";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -84,25 +81,6 @@ export function ClassificationForm({
       mounted.current = false;
     };
   }, []);
-
-  /** Refreshes only the active intention's reads; local choice recovery owns catalogue failures. */
-  async function refresh() {
-    if (editing.save.isPending || rereading) {
-      return;
-    }
-    actionFeedback.clear();
-    const [result] = await Promise.all(
-      !editing.authority.enabled
-        ? [editing.authority.account.refetch()]
-        : [
-            editing.query.refetch(),
-            ...(custom ? [divisions.query.refetch()] : []),
-          ],
-    );
-    if (result.isError && result.data && !custom) {
-      actionFeedback.error();
-    }
-  }
 
   /** Retries the custom composition without accepting a new editing baseline or replaying a write. */
   async function retryReads() {
@@ -228,187 +206,164 @@ export function ClassificationForm({
 
   const effective = current.effective;
   return (
-    <FormScrollView
-      refreshControl={
-        editing.authority.sessionStatus === "authenticated" ? (
-          <DataRefreshControl
-            enabled={!editing.save.isPending && !rereading}
-            onRefresh={refresh}
-          />
-        ) : undefined
-      }
-    >
-      <PageContent>
-        <View style={styles.form}>
-          <Text style={[tokens.typography.body, { color: colors.text }]}>
-            {effective
-              ? `Collecte : ${divisions.query.data?.items.find((item) => item.id === effective.divisionId)?.name ?? "Division indisponible"}, ${effective.format}, ${genderLabel(effective.gender)}.`
-              : "Aucune classification de collecte. La dernière classification publiée et les identités sont conservées."}
-          </Text>
-          <Controller
-            control={control}
-            name="custom"
-            render={({ field }) => (
-              <View
-                style={[styles.segment, { backgroundColor: colors.subtle }]}
-              >
-                <Choice
-                  label={
-                    target.kind === "pool" ? "Du pack" : "Sans classification"
-                  }
-                  selected={!field.value}
-                  disabled={busy}
-                  onPress={() => field.onChange(false)}
-                />
-                <Choice
-                  label={
-                    target.kind === "pool"
-                      ? "Personnalisé"
-                      : "Classification du pack"
-                  }
-                  selected={field.value}
-                  disabled={busy}
-                  onPress={() => field.onChange(true)}
-                />
-              </View>
-            )}
-          />
-          {custom && (
-            <>
-              {(!divisions.query.data ||
-                divisions.query.isError ||
-                editing.query.isError) && (
-                <ReadFeedback
-                  query={{
-                    ...divisions.query,
-                    isError: divisions.query.isError || editing.query.isError,
-                    isFetching:
-                      divisions.query.isFetching || editing.query.isFetching,
-                    refetch: retryReads,
-                  }}
-                  loadingContent={
-                    <LoadingGroup label="Chargement des divisions">
-                      <FieldSkeleton labelWidth="30%" />
-                    </LoadingGroup>
-                  }
-                />
-              )}
-              <Controller
-                control={control}
-                name="divisionId"
-                render={({ field, fieldState }) => (
-                  <SelectField
-                    onPress={() =>
-                      router.push({
-                        pathname: "/administration/classification-selection",
-                        params: { ...target, field: "divisionId" },
-                      })
-                    }
-                    label="Division"
-                    value={
-                      divisions.query.data?.items.find(
-                        (choice) => choice.id === field.value,
-                      )?.name
-                    }
-                    disabled={
-                      choicesBusy || isAccessDenied(divisions.query.error)
-                    }
-                    error={
-                      divisions.query.isSuccess
-                        ? fieldState.error?.message
-                        : undefined
-                    }
-                  />
-                )}
-              />
-              {divisionId &&
-                divisions.query.isSuccess &&
-                !choices.some((choice) => choice.id === divisionId) && (
-                  <Text
-                    style={[
-                      tokens.typography.metadata,
-                      { color: colors.secondaryText },
-                    ]}
-                  >
-                    La division sélectionnée est inactive ou indisponible.
-                    Choisissez une division active avant une nouvelle
-                    affectation.
-                  </Text>
-                )}
-              <View style={styles.row}>
-                <Controller
-                  control={control}
-                  name="gender"
-                  render={({ field }) => (
-                    <SelectField
-                      onPress={() =>
-                        router.push({
-                          pathname: "/administration/classification-selection",
-                          params: { ...target, field: "gender" },
-                        })
-                      }
-                      label="Genre"
-                      value={genderLabel(field.value)}
-                      disabled={busy}
-                    />
-                  )}
-                />
-                <Controller
-                  control={control}
-                  name="format"
-                  render={({ field }) => (
-                    <SelectField
-                      onPress={() =>
-                        router.push({
-                          pathname: "/administration/classification-selection",
-                          params: { ...target, field: "format" },
-                        })
-                      }
-                      label="Format"
-                      value={formatLabel(field.value)}
-                      disabled={busy}
-                    />
-                  )}
-                />
-              </View>
-            </>
-          )}
-          {isDirty && (
-            <Text
-              style={[
-                tokens.typography.metadata,
-                { color: colors.secondaryText },
-              ]}
-            >
-              Modifications non enregistrées
-            </Text>
-          )}
-          {feedback && (
-            <Text
-              accessibilityLiveRegion="polite"
-              style={[tokens.typography.body, { color: colors.text }]}
-            >
-              {feedback}
-            </Text>
-          )}
-          {rereadRequired && (
-            <Button
-              label="Relire la classification"
-              variant="secondary"
+    <View style={styles.form}>
+      <Text style={[tokens.typography.body, { color: colors.text }]}>
+        {effective
+          ? `Collecte : ${divisions.query.data?.items.find((item) => item.id === effective.divisionId)?.name ?? "Division indisponible"}, ${effective.format}, ${genderLabel(effective.gender)}.`
+          : "Aucune classification de collecte. La dernière classification publiée et les identités sont conservées."}
+      </Text>
+      <Controller
+        control={control}
+        name="custom"
+        render={({ field }) => (
+          <View style={[styles.segment, { backgroundColor: colors.subtle }]}>
+            <Choice
+              label={target.kind === "pool" ? "Du pack" : "Sans classification"}
+              selected={!field.value}
               disabled={busy}
-              onPress={() => void reread()}
+              onPress={() => field.onChange(false)}
+            />
+            <Choice
+              label={
+                target.kind === "pool"
+                  ? "Personnalisé"
+                  : "Classification du pack"
+              }
+              selected={field.value}
+              disabled={busy}
+              onPress={() => field.onChange(true)}
+            />
+          </View>
+        )}
+      />
+      {custom && (
+        <>
+          {(!divisions.query.data ||
+            divisions.query.isError ||
+            editing.query.isError) && (
+            <ReadFeedback
+              query={{
+                ...divisions.query,
+                isError: divisions.query.isError || editing.query.isError,
+                isFetching:
+                  divisions.query.isFetching || editing.query.isFetching,
+                refetch: retryReads,
+              }}
+              loadingContent={
+                <LoadingGroup label="Chargement des divisions">
+                  <FieldSkeleton labelWidth="30%" />
+                </LoadingGroup>
+              }
             />
           )}
-          <Button
-            label="Enregistrer"
-            fullWidth
-            disabled={busy || rereadRequired || (custom && choicesBusy)}
-            loading={editing.save.isPending}
-            onPress={() => void handleSubmit(submit)()}
+          <Controller
+            control={control}
+            name="divisionId"
+            render={({ field, fieldState }) => (
+              <SelectField
+                onPress={() =>
+                  router.push({
+                    pathname: "/administration/classification-selection",
+                    params: { ...target, field: "divisionId" },
+                  })
+                }
+                label="Division"
+                value={
+                  divisions.query.data?.items.find(
+                    (choice) => choice.id === field.value,
+                  )?.name
+                }
+                disabled={choicesBusy || isAccessDenied(divisions.query.error)}
+                error={
+                  divisions.query.isSuccess
+                    ? fieldState.error?.message
+                    : undefined
+                }
+              />
+            )}
           />
-        </View>
-      </PageContent>
-    </FormScrollView>
+          {divisionId &&
+            divisions.query.isSuccess &&
+            !choices.some((choice) => choice.id === divisionId) && (
+              <Text
+                style={[
+                  tokens.typography.metadata,
+                  { color: colors.secondaryText },
+                ]}
+              >
+                La division sélectionnée est inactive ou indisponible.
+                Choisissez une division active avant une nouvelle affectation.
+              </Text>
+            )}
+          <View style={styles.row}>
+            <Controller
+              control={control}
+              name="gender"
+              render={({ field }) => (
+                <SelectField
+                  onPress={() =>
+                    router.push({
+                      pathname: "/administration/classification-selection",
+                      params: { ...target, field: "gender" },
+                    })
+                  }
+                  label="Genre"
+                  value={genderLabel(field.value)}
+                  disabled={busy}
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="format"
+              render={({ field }) => (
+                <SelectField
+                  onPress={() =>
+                    router.push({
+                      pathname: "/administration/classification-selection",
+                      params: { ...target, field: "format" },
+                    })
+                  }
+                  label="Format"
+                  value={formatLabel(field.value)}
+                  disabled={busy}
+                />
+              )}
+            />
+          </View>
+        </>
+      )}
+      {isDirty && (
+        <Text
+          style={[tokens.typography.metadata, { color: colors.secondaryText }]}
+        >
+          Modifications non enregistrées
+        </Text>
+      )}
+      {feedback && (
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[tokens.typography.body, { color: colors.text }]}
+        >
+          {feedback}
+        </Text>
+      )}
+      {rereadRequired && (
+        <Button
+          label="Relire la classification"
+          variant="secondary"
+          disabled={busy}
+          onPress={() => void reread()}
+        />
+      )}
+      <Button
+        label="Enregistrer"
+        fullWidth
+        disabled={busy || rereadRequired || (custom && choicesBusy)}
+        loading={editing.save.isPending}
+        onPress={() => void handleSubmit(submit)()}
+      />
+    </View>
   );
 }
 
