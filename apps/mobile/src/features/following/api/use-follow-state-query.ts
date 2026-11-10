@@ -1,29 +1,23 @@
 import { useQuery } from "@tanstack/react-query";
 import { ApiError } from "../../../shared/api/api-fetch";
-import {
-  useAccountSession,
-  useCurrentAccount,
-} from "../../accounts/current-account";
+import { useAccountAvailability } from "../../accounts/current-account";
 import { useOrdinaryRequest } from "../../access/ordinary-request";
 import { captureFollowingOwner, type FollowingTarget } from "./following-keys";
 import { createFollowStateQueryOptions } from "./follow-queries";
 
 /**
  * Binds the generated member read to the original account and current admission.
- * Profile errors suspend personal actions without removing public sporting content.
- * Reopening shares a current confirmed read; each mounted mutation owns its pending presentation.
+ * F05 keeps a known matching account usable after technical reread failure; actual refusals
+ * withdraw its protected availability. Routes can share this result with their initial page
+ * composition and the query-free control without mounting another relationship observer.
  */
 export function useFollowStateQuery(target: FollowingTarget) {
-  const session = useAccountSession();
-  const profile = useCurrentAccount();
+  const availability = useAccountAvailability();
+  const { session, account: profile } = availability;
   const admission = useOrdinaryRequest();
   const { getCredentials } = session;
   const owner = captureFollowingOwner(session);
-  const usable =
-    admission.admitted &&
-    session.status === "authenticated" &&
-    profile.isSuccess &&
-    profile.data.accountId === owner?.accountId;
+  const usable = admission.admitted && availability.usable;
   const bypass = Boolean(admission.bypass);
 
   /** Prepares each captured-owner request after native credentials so F12 rechecks current intent. */
@@ -50,6 +44,7 @@ export function useFollowStateQuery(target: FollowingTarget) {
     query,
     owner,
     usable,
+    accountUsable: availability.usable,
     admitted: admission.admitted,
     request,
     options,
@@ -58,3 +53,6 @@ export function useFollowStateQuery(target: FollowingTarget) {
     sessionStatus: session.status,
   };
 }
+
+/** One captured relationship read shared by the sporting admission boundary and its protected control. */
+export type FollowStateRead = ReturnType<typeof useFollowStateQuery>;

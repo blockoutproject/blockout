@@ -11,7 +11,9 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import {
   FollowButton,
+  FollowControl,
   FollowerCount,
+  type FollowStateRead,
   type FollowingTarget,
 } from "../../following";
 
@@ -19,15 +21,29 @@ import {
 export interface SportingActionsProps {
   target: FollowingTarget;
   season: SportingSeasonResponse;
+  /** The route shares this same reader with F03's initial composition. */
+  read?: FollowStateRead;
 }
 
-/** One shared follow/audience region stays inside the identity card above the scene tabs; private reads remain with F06. */
+/** F06 keeps the shared action/audience row stable inside the identity card and resets only its private control state. */
 export function SportingActions(props: Readonly<SportingActionsProps>) {
   const { colors } = useTheme();
   return (
     <View style={[styles.actions, { borderTopColor: colors.border }]}>
-      <FollowButton {...props} />
-      <FollowerCount target={props.target} />
+      {props.read ? (
+        <FollowControl
+          target={props.target}
+          season={props.season}
+          read={props.read}
+          audience={<FollowerCount target={props.target} />}
+        />
+      ) : (
+        <FollowButton
+          target={props.target}
+          season={props.season}
+          audience={<FollowerCount target={props.target} />}
+        />
+      )}
     </View>
   );
 }
@@ -63,10 +79,6 @@ export function SportingSupportAction({
 
 const styles = StyleSheet.create({
   actions: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    gap: tokens.spacing.md,
     minHeight: tokens.touch.minimum,
     borderTopWidth: tokens.border.thin,
     paddingTop: tokens.spacing.md,

@@ -91,7 +91,9 @@ jest.mock("react-native-purchases-ui", () => {
   return {
     __esModule: true,
     default: {
-      Paywall: (props: ComponentProps<typeof RevenueCatUI.Paywall>) => {
+      Paywall: (
+        props: Readonly<ComponentProps<typeof RevenueCatUI.Paywall>>,
+      ) => {
         mockPaywall = props;
         return <Text>Native store offer</Text>;
       },
@@ -313,8 +315,17 @@ async function openInstallation(initialUrl = poolPath) {
     },
     { initialUrl },
   );
-  await screen.findByRole("tab", { name: "Carte" });
+  await layoutPoolPage();
+}
+
+/** Supplies native layout while the real initial pool composition is hidden, then waits for its admitted public tab. */
+async function layoutPoolPage() {
+  await screen.findAllByRole("tab", {
+    name: "Carte",
+    includeHiddenElements: true,
+  });
   await layoutNativeTabs();
+  await screen.findByRole("tab", { name: "Carte" });
 }
 
 /** Exercises map selection plus both complete-day club traversals through their actual route/query owners. */
@@ -647,8 +658,7 @@ it("does not transfer a gifted exemption to the guest after actual F05 sign-out"
   await userEvent.press(screen.getByRole("button", { name: "Se déconnecter" }));
   await waitFor(() => expect(owners.session.status).toBe("guest"));
   await act(() => router.push(poolPath));
-  await screen.findByRole("tab", { name: "Carte" });
-  await layoutNativeTabs();
+  await layoutPoolPage();
 
   // Then
   expect(owners.pro.state.status).toBe("guest");
@@ -750,8 +760,7 @@ it("keeps public consultation usable after an interrupted native purchase withou
   );
   mockPurchases.getOfferings.mockClear();
   await act(() => router.push(poolPath));
-  await screen.findByRole("tab", { name: "Carte" });
-  await layoutNativeTabs();
+  await layoutPoolPage();
   await consultPublicSport();
 
   // Then

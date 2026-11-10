@@ -30,6 +30,14 @@ Club seasons, club-season teams and current participation identities use focused
 
 **Evidence**: The [native infinite-query guidance](https://tanstack.com/query/latest/docs/framework/react/guides/infinite-queries), installed Query source and [Expo Image documentation](https://docs.expo.dev/versions/latest/sdk/image/) support these APIs. Use controlled generated-transport/provider checks for JavaScript/cache behavior. Native image loading and device-zone transitions require actual iOS/Android runtime checks; Jest does not establish those outcomes.
 
+## First useful sporting composition
+
+**Decision**: Keep the measured pager and its first scene mounted beneath the initial presentation. Observe the scene's existing standings key without enabling another fetch; share Team Upcoming's actual calendar result with the page boundary.
+
+**Rationale**: The real scene must mount to start its read. TanStack Query's [disabled-query contract](https://tanstack.com/query/v5/docs/framework/react/guides/disabling-queries) supports observing that cache without a second automatic request or a copied result.
+
+**Alternatives**: Hoisting every scene reader adds visit/freshness coordination. Reporting scene status through callbacks duplicates Query state; inferring another calendar key can select a different grouping zone.
+
 ## Participation titles
 
 **Decision**: Display the complete published pool title and applicable phase with ordinary native Text in the existing compact participation link. The zero-minimum-width flex entry wraps without a line limit and grows intrinsically beside the fixed logo, chevron and list/card selector. The enclosing link retains its full accessible name, exact pool UUID and active-scene navigation admission.

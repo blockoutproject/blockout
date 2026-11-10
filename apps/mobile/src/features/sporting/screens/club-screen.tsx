@@ -1,7 +1,7 @@
 import { SportingEntityCardLoading } from "../entity-card";
 import { SportingClubLoading } from "../components/sporting-loading";
 import { PageList } from "../../../shared/components/page-list";
-import { PageViewport } from "../../../shared/components/navigation-backdrop";
+import { SportingInitialComposition } from "../components/sporting-initial-composition";
 import { SportingSupportAction } from "../components/sporting-actions";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingPageHeader } from "../components/sporting-page-header";
@@ -14,7 +14,6 @@ import { ReadFeedback } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { PageHeader } from "../../../shared/components/page-header";
 import {
-  Page,
   PageContent,
   PageScrollView,
   pageContentStyle,
@@ -164,31 +163,20 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
       )}
     </View>
   ) : undefined;
-  const blockingState = !data ? (
-    <ReadFeedback query={club} loadingContent={<SportingClubLoading />} />
-  ) : undefined;
   return (
-    <Page fullBleed>
-      {blockingState ? (
-        <PageViewport
-          header={
-            <PageHeader
-              title="Club"
-              action={
-                <SportingSupportAction target={{ type: "club", id: clubId }} />
-              }
-            />
+    <SportingInitialComposition
+      detail={club}
+      header={
+        <PageHeader
+          title="Le club"
+          action={
+            <SportingSupportAction target={{ type: "club", id: clubId }} />
           }
-        >
-          <PageScrollView>
-            {club.isPending ? (
-              <PageContent>{blockingState}</PageContent>
-            ) : (
-              <ScreenState>{blockingState}</ScreenState>
-            )}
-          </PageScrollView>
-        </PageViewport>
-      ) : (
+        />
+      }
+      loading={<SportingClubLoading />}
+    >
+      {data && (
         <SportingTabs
           key={season?.id}
           selected={tab}
@@ -422,7 +410,7 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
           })}
         />
       )}
-    </Page>
+    </SportingInitialComposition>
   );
 }
 

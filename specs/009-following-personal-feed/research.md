@@ -16,6 +16,14 @@ Ordinary calendar refresh keeps [F03's current native Query/grouping policy](../
 
 **Alternatives**: Retaining old personal rows after a confirmed follow change can present the former selection after a failed reload. Copying per-match origins or building a synchronization/recovery store is unnecessary; the native reset preserves the component-owned season/category and leaves ordinary loading/error/retry to the existing views. Optimistic full-list/count rewrites and automatic mutation replay remain excluded.
 
+## Shared sporting Follow read and compact recovery
+
+**Decision**: Share one route-owned relationship read between F03's initial boundary and F06's control, using F05's matching account availability. Key only the private action/recovery subtrees by account and target.
+
+**Rationale**: Sharing the actual result avoids a second observer's unconditional opening refetch. [React identity](https://react.dev/learn/preserving-and-resetting-state) resets private command state when the account changes while preserving the public audience and pager.
+
+**Alternatives**: Requiring the latest account read to succeed would hide an authorized confirmed result after a technical failure. Remounting the whole page discards independent scene state; a separate recovery store duplicates Query ownership.
+
 ## Relations, ordering and erasure
 
 **Decision**: Persist ordinary unique account–target associations, lock the account during writes and erasure, and accept last server-recorded state between devices. A recreated follow has a new identity.

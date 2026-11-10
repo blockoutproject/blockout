@@ -61,6 +61,8 @@ Keep Paris/New York conversion, both zones' DST transitions, date-only values, u
 
 For that observation, verify a concise full date/time such as “7 novembre 2026 à 20h40” and one device-zone/foreground change: formatting updates while retained calendar groups and their captured zone/cursor stay unchanged until explicit refresh. Visual calendar rails retain compact day/weekday/abbreviated month and complete accessible absolute dates. This does not change sporting instants, results or date-only semantics.
 
+For a deferred Team calendar, mount in zone A and activate it after travel to B: its first request uses B. Retain B through failure, departure and travel to C until explicit refresh. No calendar starts before Team detail or solely from an inactive mount.
+
 ### Complete-day calendar qualification
 
 Keep Paris/New York/Tokyo, known/date-only/absent times, both DST changes, Paris midnight, all selectors, multiple participations, 150 matches on one day, more than seven gapped days and equal/unknown-time ordering in the deterministic calendar/backend tests. Expect complete-day pages, exclusive continuation, one identity per page and a coherent response; a between-page change may require refresh.
@@ -88,6 +90,10 @@ Check top, partial scroll, fully revealed and return-to-top behavior against [FR
 Compare [Match top](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03?node-id=976-293), [scrolled document view](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03?node-id=5362-41722), [Team top](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03?node-id=1010-15711) and [scrolled Team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03?node-id=7785-11617). Static design references do not qualify native motion or accessibility.
 
 ### Sporting recovery and match rereads
+
+Hold or fail Team/Pool detail, the usable member's Follow read and first active content separately: one initial waiting/Error owns the page until indispensable data or successful empty content resolves. Check empty/prefilled caches and source-unavailable standings; guest entry needs no private read, and optional count/media do not gate it. Retry sends only reads. Compare [the approved composition](plan.md#constitution-check).
+
+After admission, fail a new tab: identity, Follow and selection remain while content recovers locally. On Club season change, retain the category and selector without showing former-season teams. Use [F06 A29](../009-following-personal-feed/quickstart.md#native-recovery-and-accessibility) for confirmed Follow recovery, explicit commands and account isolation.
 
 Fail initial, common and independent section reads on Club/Team/Pool/Match; distinguish genuine absence from failure. Preserve authorized facts after ordinary failure, withdraw current refused contacts/images/resources and reject obsolete resource/season/account completions. Verify distinct ordinary/bypass image admission and the shared error/Retry feedback.
 

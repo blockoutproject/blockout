@@ -1,20 +1,21 @@
 import { SportingTeamLoading } from "../components/sporting-loading";
-import { PageViewport } from "../../../shared/components/navigation-backdrop";
 import { SportingSupportAction } from "../components/sporting-actions";
 import { PoolParticipationLink } from "../components/pool-participation-link";
 import { PoolStandings } from "../components/pool-standings";
-import { SportingCalendar } from "../components/sporting-calendar";
+import {
+  SportingCalendar,
+  SportingCalendarView,
+} from "../components/sporting-calendar";
+import { useSportingCalendar } from "../api/use-sporting-calendar";
+import {
+  SportingInitialComposition,
+  type SportingInitialRead,
+} from "../components/sporting-initial-composition";
 import { SportingPageHeader } from "../components/sporting-page-header";
 import { SportingTabs } from "../components/sporting-tabs";
 import { ResourceText } from "../components/resource-text";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
-import { ScreenState } from "../../../shared/components/screen-state";
 import { PageHeader } from "../../../shared/components/page-header";
-import {
-  Page,
-  PageScrollView,
-  PageContent,
-} from "../../../shared/components/page";
+import { PageScrollView, PageContent } from "../../../shared/components/page";
 import { hashKey, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import type {
@@ -29,6 +30,8 @@ import { poolLabel, type RenderStandings } from "../model/resource-sections";
 /** Route-owned F06 and optional standings compositions receive stable public identities. */
 export interface TeamScreenProps {
   teamId: string;
+  /** F06 supplies its same usable-holder read to this first composition and the single control. */
+  initialFollow?: SportingInitialRead;
   renderFollow?: (
     identity: SportingIdentityResponse,
     season: SportingSeasonResponse,
@@ -48,6 +51,7 @@ export function TeamScreen(props: Readonly<TeamScreenProps>) {
 /** One follow region and aggregate calendars remain attached to the team while phase tabs change. */
 function TeamPage({
   teamId,
+  initialFollow,
   renderFollow,
   renderStandings,
 }: Readonly<TeamScreenProps>) {
@@ -66,6 +70,24 @@ function TeamPage({
   const tab = tabs.some((item) => item.id === selected)
     ? selected
     : (data?.participations[0]?.pool.id ?? "upcoming");
+  const participation = data?.participations.find(
+    (entry) => entry.pool.id === tab,
+  );
+  const standings = useQuery({
+    ...queries.standings(participation?.pool.id ?? ""),
+    enabled: false,
+  });
+  const upcoming = useSportingCalendar(
+    { teamId, category: "upcoming" },
+    !!data && tab === "upcoming",
+  );
+  const activeRead = data
+    ? participation && !renderStandings
+      ? standings
+      : tab === "upcoming"
+        ? upcoming.calendar
+        : undefined
+    : undefined;
   /** One shared identity owns its club link and the single follow lifetime above all scenes. */
   const identity = data ? (
     <SportingIdentity
@@ -82,31 +104,27 @@ function TeamPage({
       )}
     </SportingIdentity>
   ) : undefined;
-  const blockingState = !data ? (
-    <ReadFeedback query={team} loadingContent={<SportingTeamLoading />} />
-  ) : undefined;
   return (
-    <Page fullBleed>
-      {blockingState ? (
-        <PageViewport
-          header={
-            <PageHeader
-              title="Équipe"
-              action={
-                <SportingSupportAction target={{ type: "team", id: teamId }} />
-              }
-            />
+    <SportingInitialComposition
+      detail={team}
+      follow={initialFollow}
+      active={activeRead}
+      activeUnavailable={
+        !!participation &&
+        !renderStandings &&
+        standings.data?.availability === "unavailable"
+      }
+      header={
+        <PageHeader
+          title="L’équipe"
+          action={
+            <SportingSupportAction target={{ type: "team", id: teamId }} />
           }
-        >
-          <PageScrollView>
-            {team.isPending ? (
-              <PageContent>{blockingState}</PageContent>
-            ) : (
-              <ScreenState>{blockingState}</ScreenState>
-            )}
-          </PageScrollView>
-        </PageViewport>
-      ) : (
+        />
+      }
+      loading={<SportingTeamLoading calendar={!!data && tab === "upcoming"} />}
+    >
+      {data && (
         <SportingTabs
           selected={tab ?? "upcoming"}
           onSelect={setSelected}
@@ -128,6 +146,16 @@ function TeamPage({
             /** Selects the existing team calendar, standings or information panel without changing native tab lifetimes. */
             function renderTeamTab() {
               if (category) {
+                if (category === "upcoming") {
+                  return (
+                    <SportingCalendarView
+                      key={hashKey(upcoming.queryKey)}
+                      calendar={upcoming.calendar}
+                      active={tab === item.id}
+                      onRefresh={upcoming.refresh}
+                    />
+                  );
+                }
                 return (
                   <SportingCalendar
                     selection={{ teamId, category }}
@@ -185,6 +213,6 @@ function TeamPage({
           })}
         />
       )}
-    </Page>
+    </SportingInitialComposition>
   );
 }

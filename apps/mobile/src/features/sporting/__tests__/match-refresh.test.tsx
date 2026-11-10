@@ -363,6 +363,9 @@ it("retains an already loaded calendar across match focus/foreground reads witho
       <MatchScreen matchId={sportingId} focused={false} />
     </>,
   );
+  // The Team's actual first scene measures before the initial presentation reveals its identity.
+  await screen.findAllByRole("tab", { includeHiddenElements: true });
+  await layoutNativeTabs();
   await screen.findByText("Équipe des Rives");
   await layoutNativeTabs();
   await userEvent.setup().press(screen.getByRole("tab", { name: "À venir" }));

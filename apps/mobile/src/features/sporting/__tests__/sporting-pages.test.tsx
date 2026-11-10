@@ -4,7 +4,11 @@ import {
   type PropsWithChildren as QueryFixtureProps,
   ReactElement,
 } from "react";
-import { useQueryClient, type QueryClient } from "@tanstack/react-query";
+import {
+  onlineManager,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 import * as proSessionModule from "../../pro/pro-session";
@@ -30,6 +34,10 @@ import type {
   TeamDetailResponse,
   PoolDetailResponse,
 } from "../../../../.generated/schemas/index.zod";
+import {
+  getGetApplicationAccessQueryKey,
+  getGetPoolStandingsQueryKey,
+} from "../../../../.generated/mobile";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import {
@@ -219,7 +227,7 @@ function reads(url: string, request?: RequestInit): Promise<Response> {
     return Promise.resolve(
       Response.json({
         poolId: path.split("/")[2],
-        availability: "unavailable",
+        availability: "not-published",
         lastAttemptFailed: false,
         columns: [],
         rows: [],
@@ -318,11 +326,429 @@ afterEach(async () => {
   await cleanup();
   client?.clear();
   publicClient.clear();
+  onlineManager.setOnline(true);
   // Jest owns pending native/Query batching; restore real time only after unmounted work is drained.
   await act(async () => jest.runOnlyPendingTimersAsync());
   jest.useRealTimers();
   process.env = { ...environment };
   jest.restoreAllMocks();
+});
+
+it.each(["team", "pool"] as const)(
+  "waits for the first %s standings before exposing its useful composition",
+  async (kind) => {
+    // Given: the actual first scene owns its read; only its HTTP completion is held.
+    const standings = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url: string, request?: RequestInit) =>
+      new URL(url).pathname.endsWith("/standings")
+        ? standings.promise
+        : reads(url, request),
+    );
+
+    // When
+    await renderPage(
+      kind === "team" ? (
+        <TeamScreen teamId={sportingId} />
+      ) : (
+        <PoolScreen poolId={sportingId} />
+      ),
+    );
+    await layoutSportingPage();
+    await waitFor(() =>
+      expect(
+        mockFetch.mock.calls.filter(([url]) =>
+          new URL(url).pathname.endsWith("/standings"),
+        ),
+      ).toHaveLength(1),
+    );
+    await layoutNativeTabs();
+    await screen.findByRole("progressbar", {
+      name:
+        kind === "team" ? "Chargement de l’équipe" : "Chargement de la poule",
+    });
+
+    // Then
+    expect(
+      screen.queryByText(
+        kind === "team" ? team.team.team.name : pool.pool.pool.name,
+      ),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryAllByRole("tab")).toHaveLength(0);
+    expect(screen.getAllByRole("progressbar")).toHaveLength(1);
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+
+    // When: a successful empty first table resolves the dependency.
+    await act(async () =>
+      standings.resolve(
+        Response.json({
+          poolId: sportingId,
+          availability: "available",
+          lastAttemptFailed: false,
+          columns: [],
+          rows: [],
+        }),
+      ),
+    );
+
+    // Then
+    await screen.findByRole("tab", { name: "À venir" });
+    await layoutNativeTabs();
+    expect(
+      await screen.findByText("Aucune équipe dans ce classement"),
+    ).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        ["/matches", `/pools/${sportingId}/participants`].includes(
+          new URL(url).pathname,
+        ),
+      ),
+    ).toHaveLength(0);
+  },
+);
+
+it.each(["team", "pool", "club"] as const)(
+  "offers non-busy recovery for a paused initial %s read and resumes once",
+  async (kind) => {
+    // Given: real application providers are ready before a new resource opens offline.
+    const page = await renderPage(<Text>Read scope ready</Text>);
+    await screen.findByText("Read scope ready");
+    await waitFor(() =>
+      expect(
+        publicClient.getQueryData(getGetApplicationAccessQueryKey()),
+      ).toBeDefined(),
+    );
+    const detail = Promise.withResolvers<Response>();
+    const resourcePath = `/${kind}s/${sportingId}`;
+    const response = { team, pool, club }[kind];
+    const identity = {
+      team: team.team.team.name,
+      pool: pool.pool.pool.name,
+      club: club.club.name,
+    }[kind];
+    mockFetch
+      .mockClear()
+      .mockImplementation((url: string, request?: RequestInit) =>
+        new URL(url).pathname === resourcePath
+          ? detail.promise
+          : reads(url, request),
+      );
+    await act(() => onlineManager.setOnline(false));
+    const user = userEvent.setup();
+
+    try {
+      // When
+      await page.rerender(
+        {
+          team: <TeamScreen teamId={sportingId} />,
+          pool: <PoolScreen poolId={sportingId} />,
+          club: <ClubScreen clubId={sportingId} />,
+        }[kind],
+      );
+      await user.press(
+        await screen.findByRole("button", { name: "Réessayer", busy: false }),
+      );
+
+      // Then: the suspended read has neither loading nor a competing useful composition.
+      expect(
+        screen.getByRole("button", { name: "Réessayer", busy: false }),
+      ).toBeEnabled();
+      expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+      expect(screen.queryByRole("tab")).not.toBeOnTheScreen();
+      expect(screen.queryByText(identity)).not.toBeOnTheScreen();
+      expect(mockFetch).not.toHaveBeenCalled();
+
+      // When: native Query resumes the same explicit recovery when connectivity returns.
+      await act(() => onlineManager.setOnline(true));
+      await screen.findByRole("button", { name: "Réessayer", busy: true });
+      await act(async () => detail.resolve(Response.json(response)));
+      await layoutSportingPage();
+
+      // Then
+      await screen.findByRole("tab", { name: "À venir" });
+      expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+      expect(
+        mockFetch.mock.calls.filter(
+          ([url]) => new URL(url).pathname === resourcePath,
+        ),
+      ).toHaveLength(1);
+      expect(
+        mockFetch.mock.calls.some(([, request]) => request?.method === "PUT"),
+      ).toBe(false);
+    } finally {
+      await act(async () => {
+        onlineManager.setOnline(true);
+        detail.resolve(Response.json(response));
+      });
+    }
+  },
+);
+
+it("owns the first member relationship failure with one page Retry", async () => {
+  // Given: F05 establishes the holder before the held detail response reveals its composition.
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  const detail = Promise.withResolvers<TeamDetailResponse>();
+  let relationshipFailed = true;
+  mockFetch.mockImplementation((url: string, request?: RequestInit) => {
+    const path = new URL(url).pathname;
+    if (path === `/teams/${sportingId}`) {
+      return detail.promise.then((value) => Response.json(value));
+    }
+    if (path.includes("/team-follows/") && relationshipFailed) {
+      return Promise.resolve(Response.json({}, { status: 503 }));
+    }
+    return reads(url, request);
+  });
+  const user = userEvent.setup();
+  await renderPage(<TeamRoute />);
+  await waitFor(() => expect(session.accountId).toBe(account.accountId));
+
+  // When
+  await act(async () => detail.resolve(team));
+  await layoutSportingPage();
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+
+  // Then
+  expect(screen.queryByText(team.team.team.name)).not.toBeOnTheScreen();
+  expect(screen.queryAllByRole("tab")).toHaveLength(0);
+  expect(
+    screen.queryByRole("button", { name: "Suivre" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.getAllByRole("button", { name: "Réessayer" })).toHaveLength(1);
+
+  // When
+  relationshipFailed = false;
+  mockFetch.mockClear();
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then: the recovery reads the missing relation without replaying a command or optional count.
+  await screen.findByRole("button", { name: "Suivre", disabled: false });
+  expect(
+    mockFetch.mock.calls.some(([, request]) => request?.method === "PUT"),
+  ).toBe(false);
+  expect(mockFetch.mock.calls.map(([url]) => new URL(url).pathname)).toEqual([
+    `/accounts/${account.accountId}/team-follows/${sportingId}`,
+  ]);
+});
+
+it("starts initial Retry progress only for its explicit gesture while another read is pending", async () => {
+  // Given: both native Query owners are real; their controlled responses settle independently.
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  const detail = Promise.withResolvers<TeamDetailResponse>();
+  const table = Promise.withResolvers<Response>();
+  const retriedRelation = Promise.withResolvers<Response>();
+  let relations = 0;
+  mockFetch.mockImplementation((url: string, request?: RequestInit) => {
+    const path = new URL(url).pathname;
+    if (path === `/teams/${sportingId}`) {
+      return detail.promise.then((value) => Response.json(value));
+    }
+    if (path.endsWith("/standings")) {
+      return table.promise;
+    }
+    if (path.includes("/team-follows/")) {
+      relations += 1;
+      return relations === 1
+        ? Promise.resolve(Response.json({}, { status: 503 }))
+        : retriedRelation.promise;
+    }
+    return reads(url, request);
+  });
+  const user = userEvent.setup();
+  await renderPage(<TeamRoute />);
+  await waitFor(() => expect(session.accountId).toBe(account.accountId));
+  await act(async () => detail.resolve(team));
+  await layoutSportingPage();
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(url).pathname.endsWith("/standings"),
+      ),
+    ).toHaveLength(1),
+  );
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+
+  // When: no recovery gesture has happened, although the first table is still in flight.
+  const retry = screen.getByRole("button", { name: "Réessayer" });
+
+  // Then
+  expect(retry).not.toBeBusy();
+  expect(retry).toBeEnabled();
+
+  // When
+  await user.press(retry);
+
+  // Then: this gesture owns progress and joins the same table request without a write.
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeBusy();
+  await waitFor(() => expect(relations).toBe(2));
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).pathname.endsWith("/standings"),
+    ),
+  ).toHaveLength(1);
+  expect(
+    mockFetch.mock.calls.some(([, request]) => request?.method === "PUT"),
+  ).toBe(false);
+  await act(async () => {
+    retriedRelation.resolve(Response.json({ following: false }));
+    table.resolve(
+      Response.json({
+        poolId: sportingId,
+        availability: "available",
+        lastAttemptFailed: false,
+        columns: [],
+        rows: [],
+      }),
+    );
+  });
+  await screen.findByRole("button", { name: "Suivre", disabled: false });
+});
+
+it("keeps source-unavailable first standings in the common initial recovery", async () => {
+  // Given
+  let unavailable = true;
+  mockFetch.mockImplementation((url: string, request?: RequestInit) =>
+    new URL(url).pathname.endsWith("/standings") && unavailable
+      ? Promise.resolve(
+          Response.json({
+            poolId: sportingId,
+            availability: "unavailable",
+            lastAttemptFailed: true,
+            columns: [],
+            rows: [],
+          }),
+        )
+      : reads(url, request),
+  );
+  const user = userEvent.setup();
+
+  // When
+  await renderPage(<PoolScreen poolId={sportingId} />);
+  await layoutSportingPage();
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+
+  // Then
+  expect(screen.queryAllByRole("tab")).toHaveLength(0);
+  expect(screen.queryByText(pool.pool.pool.name)).not.toBeOnTheScreen();
+
+  // When
+  unavailable = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  await screen.findByRole("tab", { name: "Classement", selected: true });
+  expect(
+    await screen.findByText("Pas de classement pour cette phase"),
+  ).toBeOnTheScreen();
+});
+
+it("admits a prefilled first table while its one scene-owned reread is pending", async () => {
+  // Given: an earlier resource supplies the same real private QueryClient.
+  const page = await renderPage(<ClubScreen clubId={sportingId} />);
+  await screen.findByText(club.club.name);
+  const cached = {
+    poolId: sportingId,
+    availability: "not-published",
+    lastAttemptFailed: false,
+    columns: [],
+    rows: [],
+  };
+  await act(async () =>
+    client.setQueryData(getGetPoolStandingsQueryKey(sportingId), cached),
+  );
+  const current = Promise.withResolvers<Response>();
+  mockFetch
+    .mockClear()
+    .mockImplementation((url: string, request?: RequestInit) =>
+      new URL(url).pathname.endsWith("/standings")
+        ? current.promise
+        : reads(url, request),
+    );
+
+  // When
+  await page.rerender(<PoolScreen poolId={sportingId} />);
+  await screen.findByRole("tab", { name: "Classement" });
+  await layoutNativeTabs();
+
+  // Then
+  expect(screen.getByText(pool.pool.pool.name)).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("progressbar", { name: "Chargement de la poule" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).pathname.endsWith("/standings"),
+    ),
+  ).toHaveLength(1);
+  await act(async () => current.resolve(Response.json(cached)));
+});
+
+it("admits a guest with an unavailable optional count without a private relation read", async () => {
+  // Given
+  mockFetch.mockImplementation((url: string, request?: RequestInit) =>
+    new URL(url).pathname.endsWith("/follower-count")
+      ? Promise.resolve(Response.json({}, { status: 503 }))
+      : reads(url, request),
+  );
+
+  // When
+  await renderPage(<TeamRoute />);
+  await layoutSportingPage();
+  await screen.findByRole("button", { name: "Suivre", disabled: false });
+  await layoutNativeTabs();
+
+  // Then
+  expect(screen.getByRole("tab", { name: "À venir" })).toBeOnTheScreen();
+  expect(
+    await screen.findByLabelText("Nombre d’abonnés indisponible"),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([url]) =>
+      new URL(url).pathname.includes("/team-follows/"),
+    ),
+  ).toBe(false);
+});
+
+it("keeps admitted identity and Follow while a newly visited calendar fails and recovers", async () => {
+  // Given
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  let calendarFailed = true;
+  mockFetch.mockImplementation((url: string, request?: RequestInit) =>
+    new URL(url).pathname === "/matches" && calendarFailed
+      ? Promise.resolve(Response.json({}, { status: 503 }))
+      : reads(url, request),
+  );
+  const user = userEvent.setup();
+  await renderPage(<TeamRoute />);
+  await waitFor(() => expect(session.accountId).toBe(account.accountId));
+  await layoutSportingPage();
+  await screen.findByRole("button", { name: "Suivre", disabled: false });
+  await layoutNativeTabs();
+
+  // When
+  await user.press(screen.getByRole("tab", { name: "À venir" }));
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+
+  // Then
+  expect(screen.getByText(team.team.team.name)).toBeOnTheScreen();
+  expect(screen.getAllByRole("button", { name: "Suivre" })).toHaveLength(1);
+  expect(
+    screen.getByRole("tab", { name: "À venir", selected: true }),
+  ).toBeOnTheScreen();
+
+  // When
+  calendarFailed = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByText("Aucun match pour cette sélection"),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("tab", { name: "À venir", selected: true }),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([, request]) => request?.method === "PUT"),
+  ).toBe(false);
 });
 
 it.each(["club", "team", "pool"] as const)(
@@ -350,7 +776,8 @@ it.each(["club", "team", "pool"] as const)(
     );
     // F05 replaces the guest lifetime during restoration; measure the current authenticated pager.
     await waitFor(() => expect(session.accountId).toBe(account.accountId));
-    await layoutNativeTabs();
+    await layoutSportingPage();
+    await screen.findByRole("tab", { name: "À venir" });
     expect(screen.getByTestId("native-tabs-pager")).toBeOnTheScreen();
 
     // When
@@ -407,7 +834,8 @@ it.each(["team", "pool"] as const)(
     await renderPage(kind === "team" ? <TeamRoute /> : <PoolRoute />);
     // The native layout belongs to the restored principal, not the retired guest subtree.
     await waitFor(() => expect(session.accountId).toBe(account.accountId));
-    await layoutNativeTabs();
+    await layoutSportingPage();
+    await screen.findByRole("tab", { name: "À venir" });
     expect(screen.getByTestId("native-tabs-pager")).toBeOnTheScreen();
     await screen.findByRole("button", { name: "Suivre", disabled: false });
 
@@ -443,8 +871,8 @@ it("keeps public team/count available while credential restoration is unresolved
 
   // When
   await renderPage(<TeamRoute />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
 
   // Then
   expect(await screen.findByText(team.team.team.name)).toBeOnTheScreen();
@@ -468,12 +896,13 @@ it("retires authorized editing on sign-out while keeping guest follow and public
   const user = userEvent.setup();
   await renderPage(<TeamRoute />);
   await waitFor(() => expect(session.accountId).toBe(account.accountId));
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   await screen.findByRole("button", { name: "Modifier l’équipe" });
 
   // When
   await act(async () => session.signOut());
+  await layoutSportingPage();
   await screen.findByRole("button", { name: "Suivre", disabled: false });
   await user.press(screen.getByRole("button", { name: "Suivre" }));
 
@@ -591,10 +1020,16 @@ it.each(["guest", "other", "owner"] as const)(
   },
 );
 
+/** Measures the real mounted pager even while its first useful composition is inaccessible. */
+async function layoutSportingPage() {
+  await screen.findAllByRole("tab", { includeHiddenElements: true });
+  await layoutNativeTabs();
+}
+
 /** Supplies the actual application owners above real editor routes without unrelated root SDKs. */
 function renderPage(content: ReactElement, editorRoute = false) {
   const options = {
-    wrapper: ({ children }: QueryFixtureProps) => (
+    wrapper: ({ children }: Readonly<QueryFixtureProps>) => (
       <GestureHandlerRootView>
         <SafeAreaProvider
           initialMetrics={{
@@ -686,8 +1121,8 @@ it("shares the newest/selected club season between teams and both calendar entri
   // Given
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   await screen.findByText(club.club.name);
 
   // When
@@ -744,8 +1179,8 @@ it("replaces the club's native scroll context on season change while retaining i
   // Given: a visited calendar belongs to the original season and its native pager.
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   await user.press(screen.getByRole("tab", { name: "Terminés" }));
   await screen.findByText("Aucun match pour cette sélection");
   const originalPager = screen.getByTestId("native-tabs-pager");
@@ -789,8 +1224,8 @@ it("retains a valid season through failed retrieval and falls back only after su
   // Given
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   await screen.findByText(club.club.name);
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
   await user.press(screen.getByRole("button", { name: "Saison du club" }));
@@ -854,8 +1289,8 @@ it.each(["empty", "populated"] as const)(
     });
     const user = userEvent.setup();
     await renderPage(<ClubScreen clubId={sportingId} />);
+    await layoutSportingPage();
     await screen.findByRole("tab", { name: "À venir" });
-    await layoutNativeTabs();
     await screen.findByText(club.club.name);
     await user.press(screen.getByRole("tab", { name: "Équipes" }));
     await screen.findByRole("progressbar", {
@@ -905,8 +1340,8 @@ it("keeps the selected participation and permits selecting its former index afte
     pool: { ...entry.pool, name: index === 0 ? "Phase A" : "Phase B" },
   }));
   await renderPage(<TeamScreen teamId={sportingId} />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   await user.press(screen.getByRole("tab", { name: /Phase B/ }));
 
   // When: B stays selected while a new phase moves B and A to different native page indices.
@@ -941,8 +1376,8 @@ it("keeps a clubless professional team and one follow action across distinct pha
   // Given
   const user = userEvent.setup();
   await renderPage(<TeamRoute />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
 
   // When
   await user.press(
@@ -987,8 +1422,8 @@ it("opens exact club and long participation identities without substituting a na
   };
   const user = userEvent.setup();
   await renderPage(<TeamScreen teamId={sportingId} />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
 
   // When
   await user.press(
@@ -1038,8 +1473,8 @@ it("keeps the pool season and phase independent of later standings and map conte
       renderMap={(context) => <Text>{`Map ${context.pool.id}`}</Text>}
     />,
   );
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "Carte" });
-  await layoutNativeTabs();
 
   // When
   await user.press(screen.getByRole("tab", { name: "Carte" }));
@@ -1058,8 +1493,8 @@ it.each(["Équipes", "À venir", "Terminés"])(
     club = { ...club, seasons: [] };
     const user = userEvent.setup();
     await renderPage(<ClubScreen clubId={sportingId} />);
+    await layoutSportingPage();
     await screen.findByRole("tab", { name: "À venir" });
-    await layoutNativeTabs();
     await screen.findByText("Coordonnées");
     mockFetch.mockClear();
 
@@ -1175,8 +1610,8 @@ it("opens only effective safe contacts and labels the club municipality separate
   const open = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
 
   // When
   await user.press(
@@ -1318,8 +1753,8 @@ it("keeps missing or unusable contacts inert", async () => {
     website: "https://private:password@example.invalid",
   };
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   await screen.findByText(club.club.name);
 
   // When
@@ -1337,8 +1772,8 @@ it("reports a refused external opening while keeping club information usable", a
   jest.spyOn(Linking, "openURL").mockRejectedValue(new Error("No handler"));
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
 
   // When
   await user.press(
@@ -1358,8 +1793,8 @@ it("hides retained club teams when their parent becomes unavailable", async () =
   // Given
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   await user.press(await screen.findByRole("tab", { name: "Équipes" }));
   await screen.findByRole("link", { name: team.team.team.name });
   mockFetch.mockImplementation((url: string) =>
@@ -1396,8 +1831,8 @@ it("distinguishes an empty club season from a failed team read", async () => {
   });
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   await user.press(await screen.findByRole("tab", { name: "Équipes" }));
 
   // When
@@ -1435,8 +1870,8 @@ it("retains a club season's teams after failed pull-to-refresh and retries only 
   // Given: the club header, selection and accepted team catalogue have their real Query owners.
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
   await screen.findByRole("link", { name: team.team.team.name });
   mockFetch
@@ -1487,8 +1922,8 @@ it("suppresses a retained team after a current visibility refusal", async () => 
   // Given
   const user = userEvent.setup();
   await renderPage(<TeamScreen teamId={sportingId} />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   await screen.findByText(team.team.team.name);
   mockFetch.mockImplementation((url: string) =>
     url.endsWith(`/teams/${sportingId}`)
@@ -1522,8 +1957,8 @@ it("keeps a team readable when its native public logo fails", async () => {
   // Given
   team.team.team.logoUrl = `/teams/${sportingId}/logo`;
   await renderPage(<TeamScreen teamId={sportingId} />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   const image = await screen.findByRole("image", {
     name: `Logo : ${team.team.team.name}`,
   });
@@ -1565,8 +2000,8 @@ it("keeps sharp artwork, classification and the follow action usable when the de
       )}
     />,
   );
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   const image = await screen.findByRole("image", {
     name: `Logo : ${team.team.team.name}`,
   });
@@ -1606,8 +2041,8 @@ it("loads a public logo directly without native caching and unmounts it after it
   // Given
   team.team.team.logoUrl = `/teams/${sportingId}/logo`;
   await renderPage(<TeamScreen teamId={sportingId} />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   const image = await screen.findByRole("image", {
     name: `Logo : ${team.team.team.name}`,
   });
@@ -1647,8 +2082,8 @@ it("shows a new native logo source after the previously published source failed"
   // Given
   team.team.team.logoUrl = `/teams/${sportingId}/logo?revision=1`;
   await renderPage(<TeamScreen teamId={sportingId} />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   await fireEvent(
     await screen.findByRole("image", { name: `Logo : ${team.team.team.name}` }),
     "error",
@@ -1695,8 +2130,8 @@ it("retains the club teams when returning to a visited tab without an implicit r
   // Given
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   await user.press(await screen.findByRole("tab", { name: "Équipes" }));
   await screen.findByRole("link", { name: team.team.team.name });
   mockFetch.mockClear();
@@ -1734,8 +2169,8 @@ it("shows the known match competition independently of a generic pool name", asy
 it("rereads common club information on a fresh opening while retaining the same QueryClient", async () => {
   // Given
   const opened = await renderPage(<ClubScreen clubId={sportingId} />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   await screen.findByText(club.club.name);
   await opened.rerender(<Text>Closed resource</Text>);
   club = {
@@ -1771,6 +2206,7 @@ it("retries a previous common read failure on a fresh resource opening", async (
 
   // When
   await opened.rerender(<TeamScreen teamId={sportingId} />);
+  await layoutSportingPage();
 
   // Then
   expect(await screen.findByText(team.team.team.name)).toBeOnTheScreen();
@@ -1782,8 +2218,8 @@ it.each(["network", "503"])(
     // Given
     const user = userEvent.setup();
     await renderPage(<ClubScreen clubId={sportingId} />);
+    await layoutSportingPage();
     await screen.findByRole("tab", { name: "À venir" });
-    await layoutNativeTabs();
     await screen.findByText(club.club.name);
     mockFetch.mockImplementation((url: string) =>
       url.endsWith(`/clubs/${sportingId}`)
@@ -1832,8 +2268,8 @@ it("refreshes the active club team tab only and preserves the selected season", 
   // Given
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   await screen.findByText(club.club.name);
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
   await screen.findByRole("link", { name: team.team.team.name });
@@ -1865,8 +2301,8 @@ it("opens the generated club-season calendar with its own explicit refresh", asy
   // Given
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
   await screen.findByText(club.club.name);
 
   // When
@@ -1894,8 +2330,8 @@ it.each([
 
   // When
   await renderPage(<TeamScreen teamId={sportingId} />);
+  await layoutSportingPage();
   await screen.findByRole("tab", { name: "À venir" });
-  await layoutNativeTabs();
 
   // Then
   expect(

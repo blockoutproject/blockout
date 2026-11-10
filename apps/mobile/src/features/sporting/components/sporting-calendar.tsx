@@ -6,7 +6,6 @@ import {
 } from "../../../shared/components/page";
 import { type LegendListRef } from "@legendapp/list/react-native";
 import {
-  useInfiniteQuery,
   hashKey,
   isCancelledError,
   type InfiniteData,
@@ -43,13 +42,8 @@ import { resourceUnavailable } from "../model/consultation-availability";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
-import {
-  createCalendarOptions,
-  calendarDays,
-  type CalendarSelection,
-} from "../api/sporting-calendar";
-import { useConsultationQueries } from "../api/use-consultation-queries";
-import { useCalendarGrouping } from "../api/use-calendar-grouping";
+import { calendarDays, type CalendarSelection } from "../api/sporting-calendar";
+import { useSportingCalendar } from "../api/use-sporting-calendar";
 import { calendarRows, type CalendarRow } from "../model/calendar-rows";
 import {
   currentSportingTimeZone,
@@ -79,22 +73,13 @@ export function SportingCalendar({
   active = true,
   children,
 }: Readonly<SportingCalendarProps>) {
-  const queries = useConsultationQueries();
-  const { timeZone, refresh } = useCalendarGrouping(
-    (zone) => createCalendarOptions(queries, { ...selection, timeZone: zone }),
+  const { calendar, refresh, queryKey } = useSportingCalendar(
+    selection,
     active,
   );
-  const options = createCalendarOptions(queries, {
-    ...selection,
-    timeZone,
-  });
-  const calendar = useInfiniteQuery({
-    ...options,
-    enabled: active,
-  });
   return (
     <SportingCalendarView
-      key={hashKey(options.queryKey)}
+      key={hashKey(queryKey)}
       calendar={calendar}
       active={active}
       onRefresh={refresh}
