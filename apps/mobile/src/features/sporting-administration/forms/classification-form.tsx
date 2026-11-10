@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Controller, useFormState, useWatch } from "react-hook-form";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ClassificationDetailResponse } from "../../../../.generated/schemas/index.zod";
@@ -8,6 +8,9 @@ import { ApiError } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { SelectField } from "../../../shared/components/select-field";
+import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { FieldSkeleton } from "../../../shared/components/form-loading";
+import { LoadingGroup } from "../../../shared/components/loading-group";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -46,6 +49,7 @@ export function ClassificationForm({
   const actionFeedback = useActionFeedback();
   const confirmAction = useActionConfirmation();
   const mounted = useRef(false);
+  const [rereading, setRereading] = useState(false);
   const editor = useClassificationDraft(target, current);
   const state = editor.state;
   const { baseline } = state;
@@ -61,11 +65,13 @@ export function ClassificationForm({
   const custom = useWatch({ control, name: "custom" });
   const divisionId = useWatch({ control, name: "divisionId" });
   const busy =
+    rereading ||
     editing.query.isError ||
     !editing.authority.enabled ||
     editing.save.isPending ||
-    editing.query.isFetching ||
-    divisions.query.isFetching;
+    editing.query.isFetching;
+  const choicesUnavailable = !divisions.query.isSuccess;
+  const choicesBusy = busy || divisions.query.isFetching || choicesUnavailable;
   const rereadRequired = current.revision !== baseline.revision;
   const choices =
     divisions.query.data?.items.filter((item) => item.active) ?? [];
@@ -76,15 +82,26 @@ export function ClassificationForm({
     };
   }, []);
 
+  /** Retries the custom composition without accepting a new editing baseline or replaying a write. */
+  async function retryReads() {
+    const [available] = await Promise.all([
+      divisions.query.refetch(),
+      ...(editing.query.isError ? [editing.query.refetch()] : []),
+    ]);
+    return available;
+  }
+
   /** Validates active choices, awaits confirmation and sends the complete state against its original revision. */
   async function submit(values: ClassificationValues) {
     if (busy || rereadRequired) {
       return;
     }
+    if (values.custom && (choicesUnavailable || divisions.query.isFetching)) {
+      return;
+    }
     if (
       values.custom &&
-      (!divisions.query.isSuccess ||
-        !choices.some((choice) => choice.id === values.divisionId))
+      !choices.some((choice) => choice.id === values.divisionId)
     ) {
       setError("divisionId", {
         message: "Choisissez une division active disponible.",
@@ -151,24 +168,40 @@ export function ClassificationForm({
 
   /** Updates the revision and non-dirty values only after successful reads, without sending a write. */
   async function reread() {
-    const [result, available] = await (() =>
-      Promise.all([editing.query.refetch(), divisions.query.refetch()]))();
-    if (!mounted.current) {
+    if (rereading || editing.save.isPending) {
       return;
     }
-    if (result.isError || !result.data || available.isError) {
-      actionFeedback.error();
-      return;
+    setRereading(true);
+    try {
+      const [result, available] = await Promise.all([
+        editing.query.refetch(),
+        ...(custom ? [divisions.query.refetch()] : []),
+      ]);
+      if (!mounted.current) {
+        return;
+      }
+      if (result.isError || !result.data || available?.isError) {
+        editor.update({
+          ...editor.state,
+          feedback:
+            "La relecture a échoué. Votre brouillon est conservé. Relisez l’état courant avant de confirmer.",
+        });
+        return;
+      }
+      reset(classificationValues(result.data), {
+        keepDirtyValues: true,
+        keepDirty: true,
+      });
+      editor.update({
+        baseline: result.data,
+        feedback:
+          "État relu. Vérifiez le brouillon puis confirmez explicitement l’enregistrement.",
+      });
+    } finally {
+      if (mounted.current) {
+        setRereading(false);
+      }
     }
-    reset(classificationValues(result.data), {
-      keepDirtyValues: true,
-      keepDirty: true,
-    });
-    editor.update({
-      baseline: result.data,
-      feedback:
-        "État relu. Vérifiez le brouillon puis confirmez explicitement l’enregistrement.",
-    });
   }
 
   const effective = current.effective;
@@ -176,7 +209,7 @@ export function ClassificationForm({
     <View style={styles.form}>
       <Text style={[tokens.typography.body, { color: colors.text }]}>
         {effective
-          ? `Collecte : ${divisions.query.data?.items.find((item) => item.id === effective.divisionId)?.name ?? effective.divisionId}, ${effective.format}, ${genderLabel(effective.gender)}.`
+          ? `Collecte : ${divisions.query.data?.items.find((item) => item.id === effective.divisionId)?.name ?? "Division indisponible"}, ${effective.format}, ${genderLabel(effective.gender)}.`
           : "Aucune classification de collecte. La dernière classification publiée et les identités sont conservées."}
       </Text>
       <Controller
@@ -205,6 +238,24 @@ export function ClassificationForm({
       />
       {custom && (
         <>
+          {(!divisions.query.data ||
+            divisions.query.isError ||
+            editing.query.isError) && (
+            <ReadFeedback
+              query={{
+                ...divisions.query,
+                isError: divisions.query.isError || editing.query.isError,
+                isFetching:
+                  divisions.query.isFetching || editing.query.isFetching,
+                refetch: retryReads,
+              }}
+              loadingContent={
+                <LoadingGroup label="Chargement des divisions">
+                  <FieldSkeleton labelWidth="30%" />
+                </LoadingGroup>
+              }
+            />
+          )}
           <Controller
             control={control}
             name="divisionId"
@@ -218,14 +269,21 @@ export function ClassificationForm({
                 }
                 label="Division"
                 value={
-                  choices.find((choice) => choice.id === field.value)?.name
+                  divisions.query.data?.items.find(
+                    (choice) => choice.id === field.value,
+                  )?.name
                 }
-                disabled={busy || isAccessDenied(divisions.query.error)}
-                error={fieldState.error?.message}
+                disabled={choicesBusy || isAccessDenied(divisions.query.error)}
+                error={
+                  divisions.query.isSuccess
+                    ? fieldState.error?.message
+                    : undefined
+                }
               />
             )}
           />
           {divisionId &&
+            divisions.query.isSuccess &&
             !choices.some((choice) => choice.id === divisionId) && (
               <Text
                 style={[
@@ -301,7 +359,7 @@ export function ClassificationForm({
       <Button
         label="Enregistrer"
         fullWidth
-        disabled={busy || rereadRequired}
+        disabled={busy || rereadRequired || (custom && choicesBusy)}
         loading={editing.save.isPending}
         onPress={() => void handleSubmit(submit)()}
       />
