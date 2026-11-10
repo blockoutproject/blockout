@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 import { Page, PageContent } from "../../../shared/components/page";
 import { PageHeader } from "../../../shared/components/page-header";
@@ -40,19 +40,17 @@ export function ClassificationScreen({
   // Initial choice admission is visit-local; a later refusal must not dispose the RHF draft.
   const [admission, setAdmission] = useState({ identity, ready: false });
   const needsInitialChoices = current?.setting != null;
-  useEffect(() => {
-    if (current && (!needsInitialChoices || divisions.query.data)) {
-      setAdmission((previous) =>
-        previous.identity === identity && previous.ready
-          ? previous
-          : { identity, ready: true },
-      );
-    }
-  }, [current, needsInitialChoices, divisions.query.data, identity]);
+  if (admission.identity !== identity) {
+    setAdmission({ identity, ready: false });
+  } else if (
+    !admission.ready &&
+    current &&
+    (!needsInitialChoices || divisions.query.data)
+  ) {
+    setAdmission({ identity, ready: true });
+  }
   const waitingForChoices =
-    !(admission.identity === identity && admission.ready) &&
-    needsInitialChoices &&
-    !divisions.query.data;
+    !admission.ready && needsInitialChoices && !divisions.query.data;
 
   /** Reads the live RHF intention without mirroring it; catalogue errors have the form's recovery owner. */
   async function refresh() {
