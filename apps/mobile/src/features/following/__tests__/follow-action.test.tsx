@@ -97,7 +97,7 @@ let access: ReturnType<typeof useApplicationAccess>;
 const environment = { ...process.env };
 
 /** Captures the real session API; private query cleanup is the same root-owned binding as production. */
-function SessionProbe({ children }: { children: ReactNode }) {
+function SessionProbe({ children }: Readonly<{ children: ReactNode }>) {
   const current = useAccountSession();
   const currentAccess = useApplicationAccess();
   useEffect(() => {
@@ -1136,7 +1136,7 @@ it("suspends the canonical confirmed relation when its maintenance bypass is cle
 });
 
 /** Captures the real private client while the fixture retains its separate public-cache owner for cleanup. */
-function PrivateQueries({ children }: PropsWithChildren) {
+function PrivateQueries({ children }: Readonly<PropsWithChildren>) {
   const privateClient = useQueryClient();
   // Configure deterministic failure presentation before child Query observers mount.
   privateClient.setQueryDefaults([], { retry: false, gcTime: Infinity });

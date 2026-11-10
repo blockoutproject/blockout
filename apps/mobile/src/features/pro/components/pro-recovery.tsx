@@ -39,7 +39,7 @@ export function ProRecovery({
   onRestore,
   onManagement,
   onSupport,
-}: ProRecoveryProps) {
+}: Readonly<ProRecoveryProps>) {
   const { state, refreshing, verificationFailed } = usePro();
   const { colors } = useTheme();
   const associated = hasAssociatedCustomer(state);

@@ -32,11 +32,11 @@ export function SourceChildrenScreen({
   seasonId,
   sourceId,
   parentId,
-}: {
+}: Readonly<{
   seasonId: string;
   sourceId: string;
   parentId?: string;
-}) {
+}>) {
   const { authority, query } = useSourceChildren(sourceId, parentId);
   const { colors } = useTheme();
   const router = useRouter();

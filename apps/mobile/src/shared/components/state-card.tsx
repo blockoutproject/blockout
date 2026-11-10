@@ -22,7 +22,7 @@ export function EmptyState({
   description,
   artwork,
   children,
-}: EmptyStateProps) {
+}: Readonly<EmptyStateProps>) {
   return (
     <StateCard
       kind="empty"
@@ -53,7 +53,7 @@ export function ErrorState({
   onRetry,
   retrying = false,
   children,
-}: ErrorStateProps) {
+}: Readonly<ErrorStateProps>) {
   return (
     <StateCard kind="error" title={title} description={description}>
       {onRetry ? (
@@ -80,7 +80,7 @@ function StateCard({
   description,
   artwork,
   children,
-}: EmptyStateProps & { kind: "empty" | "error" }) {
+}: Readonly<EmptyStateProps & { kind: "empty" | "error" }>) {
   const { colors, scheme } = useTheme();
   return (
     <View

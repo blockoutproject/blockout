@@ -25,7 +25,7 @@ import {
 } from "./inbox-expiry";
 
 /** Mounts current private synchronization under ordinary access, with no secondary cache or session owner. */
-export function NotificationState({ children }: PropsWithChildren) {
+export function NotificationState({ children }: Readonly<PropsWithChildren>) {
   const client = useQueryClient();
   useEffect(() => subscribeInboxVisibility(client), [client]);
   const { session, queries } = useInboxQueries();
@@ -41,10 +41,10 @@ export function NotificationState({ children }: PropsWithChildren) {
 function NotificationSync({
   session,
   queries,
-}: {
+}: Readonly<{
   session: import("../../accounts").SessionSnapshot;
   queries: ReturnType<typeof createInboxQueries>;
-}) {
+}>) {
   const summary = useQuery(queries.summary);
   useNotificationBadge(session, confirmedUnreadCount(summary.data));
   return <InboxExpiry queries={queries} />;
@@ -53,9 +53,9 @@ function NotificationSync({
 /** One ordinary timeout follows the earliest loaded or summary expiry; resume checks age before refresh. */
 function InboxExpiry({
   queries,
-}: {
+}: Readonly<{
   queries: ReturnType<typeof createInboxQueries>;
-}) {
+}>) {
   const client = useQueryClient();
   const [active, setActive] = useState(
     () =>

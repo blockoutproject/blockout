@@ -28,10 +28,10 @@ import type { ClassificationValues } from "../schemas/classification-schema";
 export function ClassificationSelectionScreen({
   target,
   field,
-}: {
+}: Readonly<{
   target: ClassificationTarget;
   field: "divisionId" | "gender" | "format";
-}) {
+}>) {
   const router = useRouter();
   const visit = useClassificationVisit()?.visit;
   const editor =
@@ -54,13 +54,13 @@ function Selection({
   editor,
   field,
   target,
-}: {
+}: Readonly<{
   target: ClassificationTarget;
   editor: {
     form: UseFormReturn<ClassificationValues>;
   };
   field: "divisionId" | "gender" | "format";
-}) {
+}>) {
   const feedback = useActionFeedback();
   const router = useRouter();
   const divisions = useDivisions();

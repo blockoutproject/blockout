@@ -20,7 +20,7 @@ export function DataRefreshControl({
   onRefresh,
   enabled = true,
   ...nativeContent
-}: DataRefreshControlProps) {
+}: Readonly<DataRefreshControlProps>) {
   const { colors, context } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
 

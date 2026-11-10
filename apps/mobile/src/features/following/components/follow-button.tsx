@@ -18,7 +18,7 @@ export interface FollowButtonProps {
 }
 
 /** Query keeps the confirmed follow state visible; native mutation state owns progress and shared failure feedback. */
-export function FollowButton({ target, season }: FollowButtonProps) {
+export function FollowButton({ target, season }: Readonly<FollowButtonProps>) {
   const context = useFollowStateQuery(target);
   const action = useFollowMutation(target, context);
   const router = useRouter();

@@ -13,10 +13,10 @@ import { tokens } from "../theme/tokens";
 export function FieldSkeleton({
   labelWidth = "35%",
   height,
-}: {
+}: Readonly<{
   labelWidth?: DimensionValue;
   height?: number;
-}) {
+}>) {
   const { fontScale } = useWindowDimensions();
   const fieldHeight =
     height ??
@@ -34,7 +34,7 @@ export function FieldSkeleton({
 }
 
 /** Three ordinary fields and one action; different forms compose FieldSkeleton for their actual anatomy. */
-export function FormLoading({ label }: { label: string }) {
+export function FormLoading({ label }: Readonly<{ label: string }>) {
   return (
     <LoadingGroup label={label} style={styles.form}>
       <FieldSkeleton />

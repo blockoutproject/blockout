@@ -50,7 +50,7 @@ it.each([
 });
 
 /** Real Query state drives read feedback; the controlled boundary is never executed while paused. */
-function PausedRead({ read }: { read: () => Promise<string> }) {
+function PausedRead({ read }: Readonly<{ read: () => Promise<string> }>) {
   const query = useQuery({ queryKey: ["paused-read"], queryFn: read });
   return query.data ? (
     <Text>{query.data}</Text>

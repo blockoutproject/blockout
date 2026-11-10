@@ -18,7 +18,7 @@ export interface PresentationExamplesProps {
 export function PresentationExamplesScreen({
   onOpenSheet,
   onOpenForm,
-}: PresentationExamplesProps) {
+}: Readonly<PresentationExamplesProps>) {
   const { colors } = useTheme();
   const [draft, setDraft] = useState("");
   return (
@@ -54,7 +54,9 @@ export function PresentationExamplesScreen({
 }
 
 /** A native sheet route owns dismissal; this small choice resets when the route unmounts. */
-export function ShortSheetExampleScreen({ onClose }: { onClose: () => void }) {
+export function ShortSheetExampleScreen({
+  onClose,
+}: Readonly<{ onClose: () => void }>) {
   const { colors } = useTheme();
   const [finished, setFinished] = useState(false);
   return (

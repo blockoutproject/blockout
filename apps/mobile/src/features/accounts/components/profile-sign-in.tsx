@@ -16,7 +16,7 @@ export interface ProfileSignInProps {
 }
 
 /** Approved guest profile invitation and benefits, using the same artwork as contextual invitations. */
-export function ProfileSignIn({ onSignIn }: ProfileSignInProps) {
+export function ProfileSignIn({ onSignIn }: Readonly<ProfileSignInProps>) {
   const { colors } = useTheme();
   return (
     <SignInInvitationCard

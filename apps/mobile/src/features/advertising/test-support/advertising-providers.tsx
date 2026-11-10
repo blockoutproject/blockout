@@ -9,7 +9,9 @@ import { AgeDeclarationProvider } from "../age-declaration-provider";
  * Independent consumer suites leave installation reads disabled and supply their native I/O mocks;
  * counter/consent integration suites instead mount an enabled owner with explicit unit configuration.
  */
-export function AdvertisingProviders({ children }: PropsWithChildren) {
+export function AdvertisingProviders({
+  children,
+}: Readonly<PropsWithChildren>) {
   const [privacy] = useState(createInstallationAdvertisingPrivacy);
   useEffect(() => () => privacy.dispose(), [privacy]);
   return (

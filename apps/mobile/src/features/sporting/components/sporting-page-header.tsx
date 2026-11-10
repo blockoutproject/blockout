@@ -26,7 +26,7 @@ export function SportingPageHeader({
   kind,
   division,
   action,
-}: SportingPageHeaderProps) {
+}: Readonly<SportingPageHeaderProps>) {
   const { colors } = useTheme();
   const progress = useCollapseProgress();
   return (

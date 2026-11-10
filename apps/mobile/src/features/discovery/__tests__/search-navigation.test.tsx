@@ -250,7 +250,7 @@ function publicReads(url: string): Promise<Response> {
 }
 
 /** Retrieves the real private lifetime client; failure scenarios explicitly disable read retries. */
-function PrivateQueries({ children }: QueryFixtureProps) {
+function PrivateQueries({ children }: Readonly<QueryFixtureProps>) {
   const current = useQueryClient();
   const account = useAccountSession();
   useLayoutEffect(() => {
@@ -302,7 +302,7 @@ afterEach(async () => {
 });
 
 /** Captures the committed public entitlement owner for controlled native-I/O scenarios. */
-function CurrentPro({ children }: QueryFixtureProps) {
+function CurrentPro({ children }: Readonly<QueryFixtureProps>) {
   const current = usePro();
   useLayoutEffect(() => {
     pro = current;

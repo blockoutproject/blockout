@@ -29,7 +29,7 @@ export function CollectionControl({
   season,
   seasonFetching = false,
   stateUnavailable = false,
-}: CollectionControlProps) {
+}: Readonly<CollectionControlProps>) {
   const { colors } = useTheme();
   const actionFeedback = useActionFeedback();
   const confirmAction = useActionConfirmation();

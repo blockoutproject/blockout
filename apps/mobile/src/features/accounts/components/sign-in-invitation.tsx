@@ -34,7 +34,7 @@ export function SignInInvitation({
   message,
   onClose,
   onSignIn,
-}: SignInInvitationProps) {
+}: Readonly<SignInInvitationProps>) {
   return (
     <Sheet title="Connexion" onClose={onClose}>
       <SheetContent>
@@ -70,7 +70,7 @@ export function SignInInvitationCard({
   message,
   onSignIn,
   children,
-}: SignInInvitationCardProps) {
+}: Readonly<SignInInvitationCardProps>) {
   const { colors } = useTheme();
   return (
     <View

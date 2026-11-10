@@ -88,7 +88,7 @@ afterEach(async () => {
 });
 
 /** Real session, SDK-state consumption, access query and theme; only native I/O and HTTP are controlled. */
-function JourneyProviders({ children }: PropsWithChildren) {
+function JourneyProviders({ children }: Readonly<PropsWithChildren>) {
   return (
     <QueryClientProvider client={client}>
       <ThemeProvider>

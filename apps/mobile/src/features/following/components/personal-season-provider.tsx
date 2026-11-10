@@ -28,7 +28,9 @@ export interface PersonalSeasonScope {
 const PersonalSeasonContext = createContext<PersonalSeasonScope | null>(null);
 
 /** Scopes Home's shared choice to the native principal and business account UUID. */
-export function PersonalSeasonProvider({ children }: PropsWithChildren) {
+export function PersonalSeasonProvider({
+  children,
+}: Readonly<PropsWithChildren>) {
   const session = useAccountSession();
   const profile = useCurrentAccount();
   const owner = captureFollowingOwner(session);
@@ -55,10 +57,12 @@ function SeasonScope({
   owner,
   profile,
   children,
-}: PropsWithChildren<{
-  owner: FollowingOwner;
-  profile: ReturnType<typeof useCurrentAccount>;
-}>) {
+}: Readonly<
+  PropsWithChildren<{
+    owner: FollowingOwner;
+    profile: ReturnType<typeof useCurrentAccount>;
+  }>
+>) {
   const { getCredentials } = useAccountSession();
   const admission = useOrdinaryRequest();
   const usable =

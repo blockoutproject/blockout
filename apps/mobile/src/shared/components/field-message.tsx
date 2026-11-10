@@ -10,7 +10,11 @@ export interface FieldMessageProps {
 }
 
 /** Keeps validation announcement and supporting typography identical across native controls. */
-export function FieldMessage({ error, helper, disabled }: FieldMessageProps) {
+export function FieldMessage({
+  error,
+  helper,
+  disabled,
+}: Readonly<FieldMessageProps>) {
   const { colors } = useTheme();
   const message = error || helper;
   if (!message) {

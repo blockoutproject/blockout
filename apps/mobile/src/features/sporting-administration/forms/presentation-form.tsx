@@ -50,7 +50,7 @@ export function PresentationForm({
   disabled,
   seasonLabel,
   professionalTeam,
-}: PresentationFormProps) {
+}: Readonly<PresentationFormProps>) {
   const router = useRouter();
   const confirmAction = useActionConfirmation();
   const activity = useDivisionActivity(target.id ?? "");

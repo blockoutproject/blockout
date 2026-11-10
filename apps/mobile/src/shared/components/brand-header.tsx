@@ -10,7 +10,7 @@ export interface BrandHeaderProps {
 }
 
 /** Shares entry branding and trailing actions across discovery, age and admission; Page owns the native safe area. */
-export function BrandHeader({ children }: BrandHeaderProps) {
+export function BrandHeader({ children }: Readonly<BrandHeaderProps>) {
   const { colors } = useTheme();
   return (
     <View style={[styles.header, { borderColor: colors.border }]}>

@@ -36,7 +36,7 @@ export function EntryRow({
   disabled,
   style,
   ...props
-}: EntryRowProps) {
+}: Readonly<EntryRowProps>) {
   const { colors } = useTheme();
   let disclosureIcon: ReactNode = null;
   if (typeof props.accessibilityState?.expanded === "boolean" && !trailing) {

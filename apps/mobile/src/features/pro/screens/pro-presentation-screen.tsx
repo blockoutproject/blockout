@@ -41,7 +41,7 @@ export function ProPresentationScreen({
   admitted,
   management = false,
   onSupport,
-}: ProPresentationScreenProps) {
+}: Readonly<ProPresentationScreenProps>) {
   const account = useAccountSession();
   const router = useRouter();
   const feedback = useActionFeedback({ retainOnUnmount: true });

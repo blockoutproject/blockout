@@ -9,9 +9,9 @@ import { tokens } from "../../../shared/theme/tokens";
 /** Original Figma illustration; optional artwork motion stays inside the fixed source crop. */
 export function DiscoveryBackdrop({
   artworkStyle,
-}: {
+}: Readonly<{
   artworkStyle?: ComponentProps<typeof Animated.View>["style"];
-}) {
+}>) {
   const { scheme } = useTheme();
   return (
     <View
@@ -36,7 +36,7 @@ export function DiscoveryBackdrop({
 }
 
 /** Noninteractive approved examples accompany notification and reporting discovery steps. */
-export function DiscoveryExample({ step }: { step: number }) {
+export function DiscoveryExample({ step }: Readonly<{ step: number }>) {
   const { colors, scheme } = useTheme();
   // Approved Ligue B illustration aliases (Figma 4913:2810 / 4913:2833), not a sporting palette owner.
   const division =

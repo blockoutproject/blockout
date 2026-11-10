@@ -20,7 +20,7 @@ export interface SupportChoiceProps {
 }
 
 /** Edits the same RHF draft behind the native sheet; closing or selecting never abandons the form. */
-export function SupportChoice({ field }: SupportChoiceProps) {
+export function SupportChoice({ field }: Readonly<SupportChoiceProps>) {
   const { form } = useSupportVisit();
   const values = useWatch({ control: form.control });
   const router = useRouter();

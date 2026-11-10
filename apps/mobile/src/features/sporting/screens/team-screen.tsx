@@ -38,7 +38,7 @@ export interface TeamScreenProps {
 }
 
 /** Public team page retains clubless professional teams and exact participation identities. */
-export function TeamScreen(props: TeamScreenProps) {
+export function TeamScreen(props: Readonly<TeamScreenProps>) {
   const queries = useConsultationQueries();
   return (
     <TeamPage key={hashKey(queries.team(props.teamId).queryKey)} {...props} />
@@ -46,7 +46,11 @@ export function TeamScreen(props: TeamScreenProps) {
 }
 
 /** One follow region and aggregate calendars remain attached to the team while phase tabs change. */
-function TeamPage({ teamId, renderFollow, renderStandings }: TeamScreenProps) {
+function TeamPage({
+  teamId,
+  renderFollow,
+  renderStandings,
+}: Readonly<TeamScreenProps>) {
   const queries = useConsultationQueries();
   const team = useQuery(queries.team(teamId));
   const [selected, setSelected] = useState<string>();

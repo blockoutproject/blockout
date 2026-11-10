@@ -60,7 +60,9 @@ function useProcessAccess() {
 }
 
 /** Supplies current configuration and one ordinary React-owned maintenance choice. */
-export function ApplicationAccessProvider({ children }: PropsWithChildren) {
+export function ApplicationAccessProvider({
+  children,
+}: Readonly<PropsWithChildren>) {
   const access = useProcessAccess();
   return <AccessContext value={access}>{children}</AccessContext>;
 }

@@ -34,7 +34,7 @@ export function PageList<T>({
   contentContainerStyle,
   stickyHeaderConfig,
   ...props
-}: PageListProps<T>) {
+}: Readonly<PageListProps<T>>) {
   const inset = useNavigationInset();
   const tab = useContext(PagedTabContext);
   const scrollOffset = useContext(NavigationScrollOffsetContext);
@@ -80,7 +80,7 @@ export function PageFlatList<T>({
   contentContainerStyle,
   ref,
   ...props
-}: FlatListProps<T> & { ref?: Ref<FlatList<T>> }) {
+}: Readonly<FlatListProps<T> & { ref?: Ref<FlatList<T>> }>) {
   const inset = useNavigationInset();
   const tab = useContext(PagedTabContext);
   const offset = useContext(NavigationScrollOffsetContext);

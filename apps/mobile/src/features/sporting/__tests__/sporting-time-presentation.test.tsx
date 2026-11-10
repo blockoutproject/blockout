@@ -57,7 +57,7 @@ let client: QueryClient;
 let publicClient = createQueryClient();
 
 /** Retrieves the real private lifetime client; failure scenarios explicitly disable read retries. */
-function PrivateQueries({ children }: QueryFixtureProps) {
+function PrivateQueries({ children }: Readonly<QueryFixtureProps>) {
   const current = useQueryClient();
   // Configure this fresh real client before descendant public observers start their first request.
   useQueryFixtureState(() => {
@@ -100,7 +100,7 @@ afterEach(async () => {
 });
 
 /** Real feature providers; HTTP, native identity and the device's default zone are controlled. */
-function Providers({ children }: PropsWithChildren) {
+function Providers({ children }: Readonly<PropsWithChildren>) {
   return (
     <QueryClientProvider client={publicClient}>
       <ThemeProvider>

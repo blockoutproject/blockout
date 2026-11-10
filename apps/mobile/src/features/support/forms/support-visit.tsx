@@ -30,7 +30,7 @@ export function SupportVisitProvider({
   context,
   replyEmail,
   children,
-}: SupportVisitProviderProps) {
+}: Readonly<SupportVisitProviderProps>) {
   const form = useForm<SupportValues>({
     resolver: zodResolver(supportSchema),
     defaultValues: supportValues(context, replyEmail),

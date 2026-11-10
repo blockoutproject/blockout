@@ -90,7 +90,7 @@ let currentSession: ReturnType<typeof useAccountSession>;
 let readResponseLost = false;
 
 /** Native and HTTP are controlled; session, admission, Query, generated clients and visible controls stay real. */
-function Harness({ children }: PropsWithChildren) {
+function Harness({ children }: Readonly<PropsWithChildren>) {
   const session = useAccountSession();
   const cache = useQueryClient();
   useLayoutEffect(() => {

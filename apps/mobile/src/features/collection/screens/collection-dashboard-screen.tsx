@@ -191,7 +191,7 @@ export interface CollectionControlScreenProps {
 export function CollectionControlScreen({
   family,
   seasonId,
-}: CollectionControlScreenProps) {
+}: Readonly<CollectionControlScreenProps>) {
   return seasonId ? (
     <SeasonControlScope family={family} seasonId={seasonId} />
   ) : (
@@ -203,7 +203,7 @@ export function CollectionControlScreen({
 function SeasonControlScope({
   family,
   seasonId,
-}: Required<CollectionControlScreenProps>) {
+}: Readonly<Required<CollectionControlScreenProps>>) {
   const { authority, season } = useCollectionSeason(seasonId);
   const feedback = useActionFeedback();
   const sessionPending =
@@ -277,13 +277,13 @@ function ControlScope({
   seasonUnavailable = false,
   seasonFetching = false,
   rereadSeason,
-}: {
+}: Readonly<{
   family: CollectionFamilyEnum;
   season?: CollectionSeasonResponse;
   seasonUnavailable?: boolean;
   seasonFetching?: boolean;
   rereadSeason?: () => Promise<QueryObserverResult<CollectionSeasonResponse>>;
-}) {
+}>) {
   const { authority, query } = useCollectionControls(season?.id);
   const feedback = useActionFeedback();
   const selected =
@@ -377,14 +377,14 @@ function ControlDashboard({
   seasonUnavailable,
   seasonFetching,
   rereadSeason,
-}: {
+}: Readonly<{
   controlId: string;
   family: CollectionFamilyEnum;
   season?: CollectionSeasonResponse;
   seasonUnavailable: boolean;
   seasonFetching: boolean;
   rereadSeason?: () => Promise<QueryObserverResult<CollectionSeasonResponse>>;
-}) {
+}>) {
   const editing = useCollectionControl(controlId, season?.id);
   const { authority, query, results } = editing;
   const feedback = useActionFeedback();

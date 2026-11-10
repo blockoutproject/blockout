@@ -21,7 +21,10 @@ export interface ExampleFormProps {
  * Exercises ordinary editing with one platform-owned keyboard mechanism and an explicit native confirmation.
  * The hosting native stack owns the top inset; Page owns the remaining safe edges.
  */
-export function ExampleForm({ long = false, onConfirm }: ExampleFormProps) {
+export function ExampleForm({
+  long = false,
+  onConfirm,
+}: Readonly<ExampleFormProps>) {
   const { colors } = useTheme();
   const confirmAction = useActionConfirmation();
   const { control, handleSubmit } = useForm<ExampleValues>({

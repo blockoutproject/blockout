@@ -12,7 +12,7 @@ import { Linking } from "react-native";
 import { useNativeHandoff } from "../use-native-handoff";
 
 /** Provides the real transient presentation owner for native handoff events. */
-function HandoffProviders({ children }: PropsWithChildren) {
+function HandoffProviders({ children }: Readonly<PropsWithChildren>) {
   return (
     <ThemeProvider>
       <ActionFeedbackProvider scopeKey="test">

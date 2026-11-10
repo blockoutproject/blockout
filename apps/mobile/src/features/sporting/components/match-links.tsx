@@ -29,7 +29,7 @@ export function MatchLinks({
   action,
   primaryAction,
   reportAction,
-}: MatchLinksProps) {
+}: Readonly<MatchLinksProps>) {
   const { colors } = useTheme();
   const url = safeWebsite(detail.streamUrl);
   if (!url && !action && !primaryAction) {
@@ -81,12 +81,12 @@ function StreamLink({
   target,
   detail,
   action,
-}: {
+}: Readonly<{
   url: string;
   target: string;
   detail: MatchDetailResponse;
   action?: ReactNode;
-}) {
+}>) {
   const transition = useSportingTransition();
   const navigation = useNavigation();
   const feedback = useActionFeedback();

@@ -22,7 +22,7 @@ export interface SourcePreparationScreenProps {
 export function SourcePreparationScreen({
   seasonId,
   sourceId,
-}: SourcePreparationScreenProps) {
+}: Readonly<SourcePreparationScreenProps>) {
   const editing = useSourcePreparation(seasonId, sourceId);
   const { authority, source, season } = editing;
   const current =

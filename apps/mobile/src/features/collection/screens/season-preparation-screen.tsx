@@ -23,7 +23,9 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { useCollectionSeason } from "../api/use-source-preparation";
 
 /** Opens seasonal controls, source preparation and definitive closure after current admission. */
-export function SeasonPreparationScreen({ seasonId }: { seasonId: string }) {
+export function SeasonPreparationScreen({
+  seasonId,
+}: Readonly<{ seasonId: string }>) {
   const { authority, season } = useCollectionSeason(seasonId);
   const router = useRouter();
   const { colors } = useTheme();

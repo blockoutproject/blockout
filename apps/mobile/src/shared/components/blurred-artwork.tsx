@@ -24,7 +24,7 @@ export function BlurredArtwork({
   style,
   onError,
   testID,
-}: BlurredArtworkProps) {
+}: Readonly<BlurredArtworkProps>) {
   return (
     <Image
       accessible={false}

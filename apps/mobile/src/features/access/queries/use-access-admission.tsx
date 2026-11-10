@@ -82,7 +82,9 @@ function useAdmission() {
 }
 
 /** Connects public admission with existing F05 identity; ordinary and operational groups consume separate guards. */
-export function AccessAdmissionProvider({ children }: PropsWithChildren) {
+export function AccessAdmissionProvider({
+  children,
+}: Readonly<PropsWithChildren>) {
   const admission = useAdmission();
   return <AdmissionContext value={admission}>{children}</AdmissionContext>;
 }

@@ -8,10 +8,10 @@ import { standingColumnLabel } from "../model/standing-columns";
 export function StandingPerformanceBar({
   row,
   columns,
-}: {
+}: Readonly<{
   row: StandingRowResponse;
   columns: readonly string[];
-}) {
+}>) {
   const wonColumn = columns.find(
     (column) => standingColumnLabel(column) === "G",
   );
@@ -43,7 +43,10 @@ export function StandingPerformanceBar({
 }
 
 /** Draws caller-validated nonnegative win/loss weights with a positive total; text owns their meaning. */
-export function WinLossBar({ won, lost }: { won: number; lost: number }) {
+export function WinLossBar({
+  won,
+  lost,
+}: Readonly<{ won: number; lost: number }>) {
   const { colors } = useTheme();
   return (
     <View accessible={false} pointerEvents="none" style={styles.performanceBar}>

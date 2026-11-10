@@ -16,7 +16,10 @@ export interface MatchPageHeaderProps {
 }
 
 /** The ordinary page's existing native offset reveals ordered logos and accepted result context without measuring the summary. */
-export function MatchPageHeader({ match, action }: MatchPageHeaderProps) {
+export function MatchPageHeader({
+  match,
+  action,
+}: Readonly<MatchPageHeaderProps>) {
   const offset = useContext(NavigationScrollOffsetContext);
   const progress = useDerivedValue(() =>
     Math.min(1, Math.max(0, offset?.get() ?? 0) / tokens.layout.header),

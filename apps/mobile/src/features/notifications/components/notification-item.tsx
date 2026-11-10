@@ -30,7 +30,7 @@ export function NotificationItem({
   notification: row,
   onPress,
   pending = false,
-}: NotificationItemProps) {
+}: Readonly<NotificationItemProps>) {
   const { colors } = useTheme();
   const { fontScale } = useWindowDimensions();
   // Approved normal/large score slots are 36/48 points; text keeps native scaling beyond those minima.

@@ -14,7 +14,9 @@ export interface PresentationEntryProps {
 }
 
 /** Discreet contextual editor; route admission and server authorization remain independently enforced. */
-export function PresentationEntry({ target }: PresentationEntryProps) {
+export function PresentationEntry({
+  target,
+}: Readonly<PresentationEntryProps>) {
   /** Names the sporting resource addressed by this contextual editor entry. */
   function presentationEntryLabel() {
     if (target.kind === "team") {
@@ -57,9 +59,9 @@ export function PresentationEntry({ target }: PresentationEntryProps) {
 /** Contextual pack/pool entry exposes no collection or presentation power. */
 export function ClassificationEntry({
   target,
-}: {
+}: Readonly<{
   target: ClassificationTarget;
-}) {
+}>) {
   const { permissions } = useAdministrationCapabilities();
   if (permissions?.manageSportingClassification !== true) {
     return null;

@@ -10,12 +10,12 @@ export function PreparationLink({
   detail,
   icon: Icon,
   onPress,
-}: {
+}: Readonly<{
   label: string;
   detail?: string;
   icon: LucideIcon;
   onPress: () => void;
-}) {
+}>) {
   const { colors } = useTheme();
   return (
     <Pressable

@@ -27,11 +27,11 @@ function GateStrip({
   labels,
   coverageWidth,
   progress,
-}: {
+}: Readonly<{
   labels: readonly string[];
   coverageWidth: number;
   progress: SharedValue<number>;
-}) {
+}>) {
   const { colors } = useTheme();
   const [period, setPeriod] = useState(0);
   const copies = period > 0 ? Math.ceil(coverageWidth / period) + 2 : 2;

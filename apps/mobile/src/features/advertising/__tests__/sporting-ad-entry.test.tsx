@@ -428,13 +428,13 @@ function Entries({
   calendarActive = true,
   resourcePage,
   consumer,
-}: {
+}: Readonly<{
   detail?: MatchDetailResponse;
   notifications?: boolean;
   calendarActive?: boolean;
   resourcePage?: "club" | "pool" | "team";
   consumer?: "search" | "personal" | "profile";
-}) {
+}>) {
   const current = useAccountSession();
   const currentClient = useQueryClient();
   useLayoutEffect(() => {
@@ -495,7 +495,7 @@ function Entries({
 }
 
 /** Matches the production root ownership without mounting unrelated navigation screens. */
-function Owners({ children }: PropsWithChildren) {
+function Owners({ children }: Readonly<PropsWithChildren>) {
   const [privacy] = useState(createInstallationAdvertisingPrivacy);
   useEffect(() => () => privacy.dispose(), [privacy]);
   return (

@@ -22,7 +22,7 @@ export interface SportingActionsProps {
 }
 
 /** One shared follow/audience region stays inside the identity card above the scene tabs; private reads remain with F06. */
-export function SportingActions(props: SportingActionsProps) {
+export function SportingActions(props: Readonly<SportingActionsProps>) {
   const { colors } = useTheme();
   return (
     <View style={[styles.actions, { borderTopColor: colors.border }]}>
@@ -38,7 +38,9 @@ export interface SportingSupportActionProps {
 }
 
 /** Keeps the shared support form reachable from every existing sporting detail state. */
-export function SportingSupportAction({ target }: SportingSupportActionProps) {
+export function SportingSupportAction({
+  target,
+}: Readonly<SportingSupportActionProps>) {
   const router = useRouter();
   const { colors } = useTheme();
   return (

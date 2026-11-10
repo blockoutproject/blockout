@@ -299,11 +299,11 @@ function DivisionCard({
   division,
   canEdit,
   onPress,
-}: {
+}: Readonly<{
   division: DivisionResponse;
   canEdit: boolean;
   onPress: () => void;
-}) {
+}>) {
   const { colors } = useTheme();
   const artwork = usePresentationLogo(
     { kind: "division", id: division.id },

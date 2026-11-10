@@ -33,7 +33,7 @@ export function SportingMedia({
   size = tokens.size.media.row,
   presentation = "logo",
   renderWithAtmosphere,
-}: SportingMediaProps) {
+}: Readonly<SportingMediaProps>) {
   /** Keeps the native image, loading skeleton and absent-artwork fallback in the same media slot. */
   function renderArtwork() {
     if (available) {
@@ -172,7 +172,7 @@ export interface SportingCoverProps {
 }
 
 /** Decorative cover and its tint disappear together after native decoding fails; no fallback artwork is invented. */
-export function SportingCover({ uri, primary }: SportingCoverProps) {
+export function SportingCover({ uri, primary }: Readonly<SportingCoverProps>) {
   const [failedUri, setFailedUri] = useState<string>();
   return failedUri === uri ? null : (
     <View pointerEvents="none" accessible={false} style={styles.artwork}>

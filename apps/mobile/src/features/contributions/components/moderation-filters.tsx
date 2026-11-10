@@ -31,7 +31,9 @@ export interface ModerationFiltersProps {
 }
 
 /** Selects private criteria with existing F13 controls; F05 recovers the session before private choices load. */
-export function ModerationFilters({ initial }: ModerationFiltersProps) {
+export function ModerationFilters({
+  initial,
+}: Readonly<ModerationFiltersProps>) {
   const router = useRouter();
   const { colors } = useTheme();
   const reading = useModerationQueue({ state: "all" });

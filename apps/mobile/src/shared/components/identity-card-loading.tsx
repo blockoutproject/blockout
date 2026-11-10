@@ -6,7 +6,9 @@ import { tokens } from "../theme/tokens";
 import { useTheme } from "../theme/theme-provider";
 
 /** Sporting identities reserve metadata and following; a club reserves its municipality instead. */
-export function IdentityCardSkeleton({ club = false }: { club?: boolean }) {
+export function IdentityCardSkeleton({
+  club = false,
+}: Readonly<{ club?: boolean }>) {
   const { colors } = useTheme();
   const { fontScale } = useWindowDimensions();
   const badgeHeight =

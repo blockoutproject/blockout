@@ -34,7 +34,7 @@ export function ProviderPreparationForm({
   season,
   provider,
   editing,
-}: ProviderPreparationFormProps) {
+}: Readonly<ProviderPreparationFormProps>) {
   const { authority } = editing;
   const router = useRouter();
   const { colors } = useTheme();

@@ -55,7 +55,7 @@ export function ModerationPublicationForm({
   onSuccess,
   children,
   ref,
-}: ModerationPublicationFormProps) {
+}: Readonly<ModerationPublicationFormProps>) {
   const { colors } = useTheme();
   const active = current.activeContribution;
   const handoff = useNativeHandoff(active?.url);

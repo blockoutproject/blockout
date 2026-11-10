@@ -39,7 +39,7 @@ export function SourceCandidateForm({
   source,
   season,
   editing,
-}: SourceCandidateFormProps) {
+}: Readonly<SourceCandidateFormProps>) {
   const { authority } = editing;
   const { colors } = useTheme();
   const actionFeedback = useActionFeedback();
@@ -101,7 +101,7 @@ export function SourceCandidateForm({
     editor.update({ ...editor.state, editingUrl: false });
   }
 
-  /** A refusal retains input; ambiguous acknowledgements additionally prevent any new command until reread. */
+  /** Preserves candidate input and distinguishes revision conflicts from ordinary action failures. */
   function failed(error: unknown) {
     if (error instanceof ApiError && error.status === 409) {
       editor.update({

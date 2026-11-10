@@ -128,7 +128,7 @@ it("retains caller content and ignores former events when an image source return
   }
 
   /** Keeps the real composition stable while only its native media source changes. */
-  function Card({ uri }: { uri: string }) {
+  function Card({ uri }: Readonly<{ uri: string }>) {
     return (
       <ThemeProvider>
         <SportingMedia

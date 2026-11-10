@@ -155,7 +155,7 @@ let proposed = older;
 let following = false;
 
 /** Uses the root's real private-query cleanup; native identity/inset I/O and HTTP are controlled. */
-function SessionBinding({ children }: PropsWithChildren) {
+function SessionBinding({ children }: Readonly<PropsWithChildren>) {
   const current = useAccountSession();
   const privateClient = useQueryClient();
   privateClient.setDefaultOptions({

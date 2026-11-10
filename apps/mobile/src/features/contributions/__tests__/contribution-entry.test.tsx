@@ -78,7 +78,7 @@ const mockFetch = jest.fn<
 const previous = { ...process.env };
 
 /** Uses the actual public action and its read owner, as the match refresh composition does. */
-function Entry({ header = false }: { header?: boolean }) {
+function Entry({ header = false }: Readonly<{ header?: boolean }>) {
   const entry = useMatchContributionAction(
     "00000000-0000-4000-8000-000000000002",
   );
@@ -847,7 +847,7 @@ it("routes the viewed contributed version to reporting independently of support"
 });
 
 /** Uses the real private cache, with one-shot failures instead of retry backoff in journey fixtures. */
-function PrivateQueries({ children }: PropsWithChildren) {
+function PrivateQueries({ children }: Readonly<PropsWithChildren>) {
   const cache = useQueryClient();
   useState(() => cache.setDefaultOptions({ queries: { retry: false } }));
   useLayoutEffect(() => {

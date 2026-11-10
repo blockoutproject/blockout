@@ -46,7 +46,7 @@ beforeEach(() => {
 });
 
 /** The demonstration uses the real theme, feedback, selection and preview owners. */
-function MediaProviders({ children }: PropsWithChildren) {
+function MediaProviders({ children }: Readonly<PropsWithChildren>) {
   return (
     <ThemeProvider>
       <ActionFeedbackProvider scopeKey="image-example-test">

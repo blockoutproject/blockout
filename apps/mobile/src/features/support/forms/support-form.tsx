@@ -28,7 +28,7 @@ export interface SupportFormProps {
 }
 
 /** Uses shared native controls, current-journey retention and explicit dirty-form abandonment. */
-export function SupportForm({ onSubmit }: SupportFormProps) {
+export function SupportForm({ onSubmit }: Readonly<SupportFormProps>) {
   const { form, context } = useSupportVisit();
   const { control, handleSubmit, reset, setValue, getValues } = form;
   const { isSubmitting } = useFormState({ control });

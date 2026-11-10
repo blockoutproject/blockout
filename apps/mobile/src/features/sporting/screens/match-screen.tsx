@@ -39,7 +39,10 @@ export interface MatchScreenProps {
 }
 
 /** Presents accepted facts and rereads only this match on route focus and foreground return. */
-export function MatchScreen({ matchId, focused = true }: MatchScreenProps) {
+export function MatchScreen({
+  matchId,
+  focused = true,
+}: Readonly<MatchScreenProps>) {
   /** Keeps initial read feedback separate from the accepted match content and its actions. */
   function renderMatchContent() {
     if (blockingState) {

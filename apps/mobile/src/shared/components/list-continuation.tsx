@@ -23,7 +23,7 @@ export function ListContinuation({
   failed,
   disabled,
   onRetry,
-}: ListContinuationProps) {
+}: Readonly<ListContinuationProps>) {
   const { colors } = useTheme();
   if (loading) {
     return (

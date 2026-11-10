@@ -27,7 +27,7 @@ export function CalendarMatch({
   match,
   displayTimeZone,
   active = true,
-}: CalendarMatchProps) {
+}: Readonly<CalendarMatchProps>) {
   const { colors, context } = useTheme();
   const { fontScale } = useWindowDimensions();
   const sporting = useSportingNavigation(active);

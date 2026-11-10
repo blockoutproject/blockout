@@ -39,7 +39,7 @@ export function ContributionForm({
   current,
   editing,
   replacement,
-}: ContributionFormProps) {
+}: Readonly<ContributionFormProps>) {
   const { colors } = useTheme();
   const router = useRouter();
   const feedback = useActionFeedback();

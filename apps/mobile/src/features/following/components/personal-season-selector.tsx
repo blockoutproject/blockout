@@ -16,7 +16,7 @@ export function PersonalSeasonSelector({
   seasonId,
   disabled = false,
   onPress,
-}: PersonalSeasonSelectorProps) {
+}: Readonly<PersonalSeasonSelectorProps>) {
   const fallbackLabel = seasonId ? "Saison" : "Toutes saisons";
   const label = !options
     ? "Saison"

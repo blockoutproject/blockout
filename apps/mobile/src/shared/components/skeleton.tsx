@@ -8,13 +8,13 @@ export function Skeleton({
   height = 16,
   shape = "text",
   color,
-}: {
+}: Readonly<{
   width?: DimensionValue;
   height?: DimensionValue;
   shape?: "text" | "rectangle";
   /** Compact pending controls may retain their current foreground contrast. */
   color?: string;
-}) {
+}>) {
   const { colors } = useTheme();
   return (
     <View

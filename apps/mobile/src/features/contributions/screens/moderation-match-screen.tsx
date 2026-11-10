@@ -54,7 +54,9 @@ type Decide = (
 ) => void;
 
 /** Reuses the application's native pager; its retained active scene owns the ordinary address editor. */
-export function ModerationMatchScreen({ matchId }: ModerationMatchScreenProps) {
+export function ModerationMatchScreen({
+  matchId,
+}: Readonly<ModerationMatchScreenProps>) {
   const [tab, setTab] = useState("active");
   const [confirmed, setConfirmed] = useState(false);
   const editing = useModerationMatch(matchId, "active", tab === "active");
@@ -224,7 +226,7 @@ function ActiveScene({
   onAction,
   onSuccess,
   confirmed,
-}: {
+}: Readonly<{
   matchId: string;
   active: boolean;
   editing: ReturnType<typeof useModerationMatch>;
@@ -233,7 +235,7 @@ function ActiveScene({
   onAction: Decide;
   onSuccess: () => void;
   confirmed: boolean;
-}) {
+}>) {
   const form = useRef<ModerationPublicationFormHandle>(null);
   const { colors } = useTheme();
   const feedback = useActionFeedback();
@@ -389,7 +391,7 @@ function VersionScene({
   busy,
   onAction,
   refreshContext,
-}: {
+}: Readonly<{
   matchId: string;
   state: "pending" | "historical";
   reading: ReturnType<typeof useModerationVersions>;
@@ -398,7 +400,7 @@ function VersionScene({
   busy: boolean;
   onAction: Decide;
   refreshContext: () => Promise<unknown>;
-}) {
+}>) {
   const [refreshing, setRefreshing] = useState(false);
   const { query } = reading;
   const current =

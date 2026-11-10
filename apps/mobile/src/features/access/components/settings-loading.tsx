@@ -76,7 +76,7 @@ function PlatformLoading() {
 }
 
 /** Matches the approved flat card's inside stroke and sixteen-point content inset. */
-function SettingsCard({ children }: PropsWithChildren) {
+function SettingsCard({ children }: Readonly<PropsWithChildren>) {
   const { colors } = useTheme();
   return (
     <View
