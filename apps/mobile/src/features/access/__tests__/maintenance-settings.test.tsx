@@ -528,6 +528,85 @@ it("clears the optional image using explicit null", async () => {
     imageUrl: null,
   });
 });
+it("finishes local image progress only when the native image is displayed", async () => {
+  // Given: the real form is mounted; jest-expo controls native image events.
+  stored = { ...initial, imageUrl: "https://assets.example.invalid/ready.png" };
+  await renderSettings();
+  const image = await screen.findByRole("image", {
+    name: "Aperçu de l’image de maintenance",
+  });
+  expect(
+    screen.getByRole("progressbar", { name: "Chargement de l’aperçu" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Message de maintenance")).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+
+  // When
+  await fireEvent(image, "display");
+
+  // Then
+  expect(
+    screen.queryByRole("progressbar", { name: "Chargement de l’aperçu" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("image", { name: "Aperçu de l’image de maintenance" }),
+  ).toBeOnTheScreen();
+});
+
+it.each(["loading", "failed"])(
+  "saves a dirty message at its original revision while its optional image is %s",
+  async (status) => {
+    // Given
+    const user = userEvent.setup();
+    const imageUrl = "https://assets.example.invalid/optional.png";
+    stored = { ...initial, imageUrl };
+    await renderSettings();
+    await user.clear(await screen.findByLabelText("Message de maintenance"));
+    await user.type(
+      screen.getByLabelText("Message de maintenance"),
+      "Texte enregistré sans attendre l’image",
+    );
+    if (status === "failed") {
+      await fireEvent(
+        screen.getByRole("image", { name: "Aperçu de l’image de maintenance" }),
+        "error",
+        { nativeEvent: { error: "Unavailable" } },
+      );
+    }
+    const accepted = {
+      ...stored,
+      revision: 3,
+      message: "Texte enregistré sans attendre l’image",
+    };
+    mockFetch.mockClear().mockResolvedValue(json(accepted));
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+    await act(async () => nativeAlertAction("Enregistrer")());
+    await waitFor(() =>
+      expect(
+        screen.queryByText("Modifications non enregistrées"),
+      ).not.toBeOnTheScreen(),
+    );
+
+    // Then: decoding neither removes the URL nor changes the submitted baseline.
+    const write = mockFetch.mock.calls.find(
+      ([, options]) => options?.method === "PATCH",
+    );
+    expect(JSON.parse(String(write?.[1]?.body))).toStrictEqual({
+      revision: initial.revision,
+      message: "Texte enregistré sans attendre l’image",
+    });
+    expect(screen.getByLabelText("URL de l’image")).toHaveDisplayValue(
+      imageUrl,
+    );
+    expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(
+      accepted.message,
+    );
+    expect(screen.getByLabelText("Maintenance inactive")).toBeOnTheScreen();
+  },
+);
+
 it("keeps text and actions usable when preview display fails", async () => {
   // Given
   stored = {
@@ -545,7 +624,12 @@ it("keeps text and actions usable when preview display fails", async () => {
   );
 
   // Then
-  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
+  expect(
+    await screen.findByRole("image", { name: "Aperçu indisponible" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(screen.getByLabelText("Message de maintenance")).toBeEnabled();
+  expect(screen.getByLabelText("URL de l’image")).toBeEnabled();
   expect(screen.getByDisplayValue(initial.message)).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
 });
@@ -568,7 +652,7 @@ it("retries the same maintenance image URL without changing the dirty draft or s
   mockFetch.mockClear();
 
   // When
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(screen.getByRole("button", { name: "Réessayer l’aperçu" }));
 
   // Then
   expect(
@@ -596,7 +680,9 @@ it("starts a fresh draft image preview when a previously failed URL returns", as
       nativeEvent: { error: "Unavailable" },
     },
   );
-  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
+  expect(
+    await screen.findByRole("image", { name: "Aperçu indisponible" }),
+  ).toBeOnTheScreen();
 
   // When
   await user.clear(screen.getByLabelText("URL de l’image"));
@@ -611,7 +697,12 @@ it("starts a fresh draft image preview when a previously failed URL returns", as
   expect(
     screen.getByLabelText("Aperçu de l’image de maintenance"),
   ).toBeOnTheScreen();
-  expect(screen.queryByText("Une erreur est survenue")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("image", { name: "Aperçu indisponible" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("progressbar", { name: "Chargement de l’aperçu" }),
+  ).toBeOnTheScreen();
   expect(screen.getByDisplayValue(initial.message)).toBeOnTheScreen();
 });
 

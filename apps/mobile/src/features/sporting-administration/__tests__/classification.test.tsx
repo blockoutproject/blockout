@@ -629,9 +629,7 @@ it("keeps dirty choices through a failed ordinary refresh without retrying the w
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
-  await screen.findByText(
-    "Une erreur est survenue. Veuillez réessayer plus tard.",
-  );
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
   expect(
     screen.getByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });
@@ -643,7 +641,7 @@ it("keeps dirty choices through a failed ordinary refresh without retrying the w
   ).toHaveLength(1);
 });
 
-it("reports one grouped classification refresh failure after both reads settle and preserves dirty choices", async () => {
+it("keeps one catalogue recovery owner after grouped refresh failure and preserves dirty choices", async () => {
   // Given
   stored.setting = classification;
   const classificationRead = Promise.withResolvers<Response>();
@@ -683,16 +681,33 @@ it("reports one grouped classification refresh failure after both reads settle a
   // Then
   expect(
     await screen.findByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      name: "Une erreur est survenue",
     }),
   ).toBeOnTheScreen();
-  expect(announce).toHaveBeenCalledTimes(1);
+  expect(screen.getAllByRole("alert")).toHaveLength(1);
+  expect(announce).not.toHaveBeenCalled();
   expect(
     screen.getByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({
     text: "4 × 4",
   });
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
+  ).toBe(false);
+
+  // When: Retry recovers both failed dependencies without advancing the draft revision.
+  mockFetch.mockImplementation(respond);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+  );
+  expect(
+    screen.getByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
   ).toBe(false);
@@ -1221,13 +1236,15 @@ it("keeps classification choices but disables editing after a current resource r
   // Then
   expect(
     await screen.findByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      name: "Une erreur est survenue",
     }),
   ).toBeOnTheScreen();
   expect(
     screen.getByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });
-  expect(screen.getByRole("button", { name: "Format" })).toBeDisabled();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Format" })).toBeDisabled(),
+  );
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
   expect(screen.getByText("Modifications non enregistrées")).toBeOnTheScreen();
 });
@@ -1546,7 +1563,7 @@ it("retains the draft when the server refuses a held save after its current read
   );
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await screen.findByRole("alert", {
-    name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    name: "Une erreur est survenue",
   });
 
   // When
@@ -1559,5 +1576,306 @@ it("retains the draft when the server refuses a held save after its current read
   expect(
     screen.getByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
+  );
+});
+
+it("waits for classification and indispensable initial custom choices before admitting the form", async () => {
+  // Given
+  stored.setting = classification;
+  const catalogue = Promise.withResolvers<Response>();
+  const classificationRead = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/divisions?")
+      ? catalogue.promise
+      : String(url).includes("/classification")
+        ? classificationRead.promise
+        : respond(url, options),
+  );
+
+  // When
+  await renderEditor();
+  await act(() => classificationRead.resolve(json(stored)));
+
+  // Then
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.getAllByRole("progressbar")).toHaveLength(1);
+
+  // When
+  await act(() => catalogue.resolve(json({ items: [division] })));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Division" }),
+  ).toHaveAccessibilityValue({ text: "National 2" });
+});
+
+it("recovers a failed initial custom catalogue as one read without exposing a UUID or field error", async () => {
+  // Given
+  stored.setting = classification;
+  let unavailable = true;
+  mockFetch.mockImplementation((url, options) =>
+    unavailable && String(url).includes("/divisions?")
+      ? Promise.reject(new TypeError("Catalogue unavailable"))
+      : respond(url, options),
+  );
+  const user = userEvent.setup();
+  await renderEditor();
+
+  // Then
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(screen.queryByText(new RegExp(divisionId))).not.toBeOnTheScreen();
+  expect(
+    screen.queryByText(/Choisissez une division active disponible/),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Actualiser les données"),
+  ).not.toBeOnTheScreen();
+
+  // When
+  unavailable = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Division" }),
+  ).toHaveAccessibilityValue({ text: "National 2" });
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
+  ).toBe(false);
+});
+
+it("keeps removal available while an unrelated catalogue read is pending", async () => {
+  // Given
+  const catalogue = Promise.withResolvers<Response>();
+  jest.spyOn(Alert, "alert");
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/divisions?")
+      ? catalogue.promise
+      : respond(url, options),
+  );
+  const user = userEvent.setup();
+  await renderEditor("pack");
+
+  // When
+  await user.press(await screen.findByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  expect(Alert.alert).toHaveBeenCalled();
+  expect(screen.queryByText(new RegExp(divisionId))).not.toBeOnTheScreen();
+
+  // When: cancelling confirmation never writes, including with pending unrelated data.
+  await act(async () => nativeAlertAction("Annuler")());
+  await act(() => catalogue.resolve(json({ items: [division] })));
+
+  // Then
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
+  ).toBe(false);
+});
+
+it("does not turn a failed catalogue into invalid input after selecting custom classification", async () => {
+  // Given
+  jest.spyOn(Alert, "alert");
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/divisions?")
+      ? Promise.reject(new TypeError("Catalogue unavailable"))
+      : respond(url, options),
+  );
+  const user = userEvent.setup();
+  await renderEditor();
+
+  // When
+  await user.press(await screen.findByRole("radio", { name: "Personnalisé" }));
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(
+    screen.queryByText(/Choisissez une division active disponible/),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByText(/La division sélectionnée est inactive/),
+  ).not.toBeOnTheScreen();
+  expect(screen.getByText("Modifications non enregistrées")).toBeOnTheScreen();
+  expect(Alert.alert).not.toHaveBeenCalled();
+});
+
+it("keeps the known draft and revision when indispensable catalogue rereading fails", async () => {
+  // Given
+  stored.setting = classification;
+  jest.spyOn(Alert, "alert");
+  const user = userEvent.setup();
+  await renderEditor();
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+  stored = { ...stored, revision: "r2" };
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/divisions?")
+      ? Promise.reject(new TypeError("Catalogue unavailable"))
+      : respond(url, options),
+  );
+
+  // When
+  await user.press(
+    await screen.findByRole("button", { name: "Relire la classification" }),
+  );
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
+  );
+  expect(
+    screen.getByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
+  expect(
+    screen.getByRole("button", { name: "Relire la classification" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText(/État relu/)).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
+  ).toBe(false);
+});
+
+it.each(["pack", "pool"] as const)(
+  "rereads and confirms %s removal without waiting for the catalogue",
+  async (kind) => {
+    // Given
+    stored.setting = classification;
+    jest.spyOn(Alert, "alert");
+    const user = userEvent.setup();
+    await renderEditor(kind);
+    await user.press(
+      await screen.findByRole("radio", {
+        name: kind === "pack" ? "Sans classification" : "Du pack",
+      }),
+    );
+    stored = { ...stored, revision: "r2" };
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    const catalogue = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url, options) => {
+      if (String(url).includes("/divisions?")) {
+        return catalogue.promise;
+      }
+      if (options?.method === "PUT") {
+        stored = { ...stored, revision: "r3", setting: null };
+        return Promise.resolve(json(stored));
+      }
+      return respond(url, options);
+    });
+
+    // When
+    await user.press(
+      await screen.findByRole("button", { name: "Relire la classification" }),
+    );
+
+    // Then
+    await screen.findByText(/État relu/);
+    expect(
+      screen.getByRole("radio", {
+        name: kind === "pack" ? "Sans classification" : "Du pack",
+        checked: true,
+      }),
+    ).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
+    ).toBe(false);
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+    await act(async () => nativeAlertAction("Enregistrer")());
+    await act(() => catalogue.resolve(json({ items: [division] })));
+
+    // Then
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining(`/${kind}s/${id}/classification`),
+        expect.objectContaining({
+          method: "PUT",
+          body: JSON.stringify({ revision: "r2", classification: null }),
+        }),
+      ),
+    );
+  },
+);
+
+it("treats a successfully read inactive division as field validation", async () => {
+  // Given
+  stored.setting = { ...classification, divisionId: inactiveId };
+  jest.spyOn(Alert, "alert");
+  const user = userEvent.setup();
+  await renderEditor();
+
+  // When
+  await user.press(await screen.findByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  expect(
+    await screen.findByText("Choisissez une division active disponible."),
+  ).toBeOnTheScreen();
+  expect(Alert.alert).not.toHaveBeenCalled();
+});
+
+it("serializes explicit custom rereading until its catalogue settles, then permits catalogue-independent removal", async () => {
+  // Given
+  stored.setting = classification;
+  const user = userEvent.setup();
+  await renderEditor();
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+  stored = { ...stored, revision: "r2" };
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  const catalogue = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/divisions?")
+      ? catalogue.promise
+      : respond(url, options),
+  );
+
+  // When
+  await user.press(
+    await screen.findByRole("button", { name: "Relire la classification" }),
+  );
+
+  // Then: a composite reread cannot be overlapped by another revision-changing intention.
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Relire la classification" }),
+    ).toBeDisabled(),
+  );
+  expect(screen.getByRole("radio", { name: "Du pack" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+
+  // When
+  await act(() => catalogue.resolve(json({ items: [division] })));
+  await screen.findByText(/État relu/);
+  await user.press(screen.getByRole("radio", { name: "Du pack" }));
+  stored = { ...stored, revision: "r3" };
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/divisions?")
+      ? Promise.reject(new TypeError("Catalogue unavailable"))
+      : respond(url, options),
+  );
+  await user.press(
+    await screen.findByRole("button", { name: "Relire la classification" }),
+  );
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+  );
+  expect(
+    screen.getByRole("radio", { name: "Du pack", checked: true }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Relire la classification" }),
+  ).not.toBeOnTheScreen();
 });
