@@ -66,6 +66,17 @@ NX_LOAD_DOT_ENV_FILES=false NX_DAEMON=false BLOCKOUT_ACCESS_CONSUMERS_TEST=true 
 
 Exercise the real Maintenance content-editing route under its ordinary providers on a compatible installed iOS Simulator/client. Check ordinary text focus/typing, first/last content fields, keyboard/“Enregistrer” reachability, validation/draft retention, back confirmation and the representative theme/text cases under [F13 FR-030](../003-shared-quality/spec.md#platforms-accessibility-and-bounded-continuity). Maintenance has no secret field; no temporary secure-entry mount is required. T045 retains its bounded recorded iOS 17 content-editing scope, without qualifying the complete activation page. Cold-launch maximum-text title/activation truncation remains in F13 T072/T073's general qualification, alongside T077's live-setting limitation. Keep exact runtime/build/toolchain, captures and observed limits in the PR; this evidence does not qualify iOS 16.4, actual Auth0/provider behavior or general F13/F12 acceptance.
 
+## Optional maintenance preview
+
+Use the actual Maintenance form with a syntactically valid HTTPS image URL. Observe loading, displayed media, decode failure, explicit “Réessayer l’aperçu” and URL replacement. Each state occupies the same 96-point media region, with no illustrated State Card or form-wide progress. Retry must remount only the current image: no configuration reread, write, URL removal or draft/revision reset. A pending or failed image leaves message and URL inputs editable and allows explicitly saving valid changed text; invalid URL/message validation and navigation confirmation still apply.
+
+```sh
+npm run test --workspace=@blockout/mobile -- --runInBand --reporters=default \
+  --runTestsByPath src/features/access/__tests__/maintenance-settings.test.tsx
+```
+
+Qualify representative compact and enlarged-text compositions on explicitly allocated iOS/Android development clients, in both themes across those cases. Check that the fallback and minimum-size retry target stay inside the media region, text inputs remain usable and Save remains reachable with the ordinary keyboard/scroll owner. Use controlled demonstration media when necessary and distinguish a native rendering/decoding harness from real account/API/provider integration. Captures, build identifiers and delivery evidence belong in the PR, not here. Broader F12/F13/provider qualifications retain their existing owners and limits.
+
 ## Shared maintenance admission
 
 Exercise the exact ordinary/operational method/resource boundary, complete public read, typed maintenance refusal and current-account identification exception:
