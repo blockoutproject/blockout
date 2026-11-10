@@ -88,6 +88,8 @@ A maintenance refusal is 503 with a specific Problem Details type and current ma
 
 ## Mobile state and native behavior
 
+Sporting classification retains the F02-owned [classification read dependencies](../002-sporting-data/plan.md#classification-read-dependencies): read recovery is separate from input validation, and only custom assignment consumes the division catalogue. Removal/revision rereading keeps current action grants and server inheritance/correction checks without a catalogue prerequisite. This bounded form correction does not change shared operational route/draft retention.
+
 Consumers read ordinary admission from the existing F12 access context and pass explicit booleans to presentational screens. No account-owned mirror or second admission provider is required. Ordinary HTTP refusals invalidate the complete access read through the shared transport; an unused maintenance-problem decoder adds no separate recovery path.
 
 Minimum-version and store-link inputs remain inline in the existing configuration page or an ordinary edit route. Preserve all fields, platform separation, independent save groups, dirty values and conflict/uncertainty rules. Use [F13 ordinary form composition](../003-shared-quality/plan.md#native-ui-and-approved-design); no keyboard form sheet, fixed action footer or private resize calculation is needed. Use the [F13 native UI guide](../003-shared-quality/quickstart.md#native-ui-and-approved-design) for presentation validation; gate approvals and runtime admission rules retain their scope.

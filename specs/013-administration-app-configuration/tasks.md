@@ -245,3 +245,7 @@ Serialize edits to `access.xml` (T007/T015), the F05 response mapper and shared 
 2. **Incremental settings and admission**: Deliver US2's atomic settings, then US3's server/native gates. Develop with bounded F05/F13/F14 inputs; retain actual owner/native proofs as explicit obligations rather than waiting for all feature programmes before coding.
 3. **Complete maintenance and versions**: Integrate US4 with F07 and finish US5 native stores/settings/preparation. Validate combined restrictions and latest complete configuration through actual consumers; no privileged bootstrap.
 4. **Close only supported evidence**: Complete polish and each story's acceptance evidence. Documentation, generated schema validation, mocked providers and native screenshots each retain their limits; production and F14 launch operations require their own authorization.
+
+## Bounded sporting classification consumer
+
+- [x] T084 [US1] Verify the F02 T079–T081 classification correction retains purpose-specific current grants and admitted drafts under FR-004/FR-005/FR-009/FR-010, distinguishes catalogue read failure from field validation under F13 FR-038, and leaves shared operational route lifecycle unchanged. Implementation and native form dependencies remain F02-owned.
