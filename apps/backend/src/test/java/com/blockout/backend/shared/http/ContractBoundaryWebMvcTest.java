@@ -173,7 +173,7 @@ class ContractBoundaryWebMvcTest {
   @DisplayName("Serializes and decodes valid additive root and nested response fields")
   void acceptsAdditiveResponse() throws Exception {
     // Given
-    MockHttpServletRequestBuilder request = get(ACCOUNT);
+    MockHttpServletRequestBuilder request = post("/accounts");
 
     // When
     MvcResult result = mvc.perform(request).andReturn();
@@ -181,7 +181,7 @@ class ContractBoundaryWebMvcTest {
         mapper.readValue(result.getResponse().getContentAsString(), AccountResponse.class);
 
     // Then
-    assertThat(result.getResponse().getStatus()).isEqualTo(200);
+    assertThat(result.getResponse().getStatus()).isEqualTo(201);
     assertThat(response.getUsername()).isEqualTo("Ada");
     assertThat(response.getPrincipalCreatedAt().isPresent()).isTrue();
     assertThat(response.getPrincipalCreatedAt().get()).isNull();
@@ -230,12 +230,6 @@ class ContractBoundaryWebMvcTest {
     @Override
     public ResponseEntity<AccountResponse> establishAccount(Boolean bypass) {
       return ResponseEntity.created(URI.create(ACCOUNT)).body(account());
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public ResponseEntity<AccountResponse> getAccount(UUID accountId, Boolean bypass) {
-      return ResponseEntity.ok(account());
     }
 
     /** Builds a complete harmless owner profile, including permitted additive properties. */

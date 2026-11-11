@@ -11,7 +11,7 @@ public class AccountUnavailableException extends RuntimeException {
   /**
    * Retains the internal technical cause without including its message in the public refusal.
    *
-   * @param cause provider failure, never serialized or rendered in logs by this boundary
+   * @param cause internal provider or persistence failure, never rendered by this boundary
    */
   public AccountUnavailableException(Throwable cause) {
     super(null, cause);

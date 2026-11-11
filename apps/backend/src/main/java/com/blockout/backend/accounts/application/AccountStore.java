@@ -1,6 +1,7 @@
 package com.blockout.backend.accounts.application;
 
 import com.blockout.backend.accounts.application.exception.AccountCreationConflictException;
+import com.blockout.backend.accounts.application.exception.AccountUnavailableException;
 import com.blockout.backend.accounts.application.exception.UsernameUnavailableException;
 import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.generated.mobile.model.ProfilePhotoActionEnum;
@@ -95,7 +96,8 @@ public interface AccountStore {
 
   /**
    * Creates a new lifecycle. PostgreSQL enforces principal and case-insensitive username
-   * uniqueness; the caller handles a rejected competing creation after rollback.
+   * uniqueness; the caller may read a concurrent principal winner after rollback but does not
+   * replay a rejected generated-name creation.
    *
    * @param issuer exact validated issuer
    * @param subject exact validated subject
@@ -103,7 +105,8 @@ public interface AccountStore {
    * @param email usable required provider email
    * @param principalCreatedAt trustworthy provider creation instant, or null
    * @return the new account with its generated business UUID
-   * @throws AccountCreationConflictException for a competing principal or username creation
+   * @throws AccountCreationConflictException for a competing principal creation
+   * @throws AccountUnavailableException when the generated username is already held
    */
   Account create(
       String issuer, String subject, String username, String email, Instant principalCreatedAt);

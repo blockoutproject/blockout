@@ -55,13 +55,6 @@ public class AccountsController implements AccountsApi {
 
   /** {@inheritDoc} */
   @Override
-  public ResponseEntity<AccountResponse> getAccount(UUID id, Boolean bypass) {
-    AccountContext context = request.original(id);
-    return response(true, reads.original(context.issuer(), context.subject(), id));
-  }
-
-  /** {@inheritDoc} */
-  @Override
   public ResponseEntity<AccountResponse> changeAccountProfile(
       UUID id, ChangeAccountProfileRequest metadata, Boolean bypass, MultipartFile image) {
     AccountContext context = request.original(id);

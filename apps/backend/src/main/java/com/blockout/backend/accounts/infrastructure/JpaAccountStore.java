@@ -3,6 +3,7 @@ package com.blockout.backend.accounts.infrastructure;
 import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.accounts.application.ProfilePhoto;
 import com.blockout.backend.accounts.application.exception.AccountCreationConflictException;
+import com.blockout.backend.accounts.application.exception.AccountUnavailableException;
 import com.blockout.backend.accounts.application.exception.UsernameUnavailableException;
 import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.generated.mobile.model.ProfilePhotoActionEnum;
@@ -110,14 +111,18 @@ public class JpaAccountStore implements AccountStore {
   public Account create(
       String issuer, String subject, String username, String email, Instant principalCreatedAt) {
     try {
-      // Immediate uniqueness must be translated here, then retried only after caller rollback.
+      // The principal winner is read after rollback; a generated-name collision is an ordinary
+      // failure.
       return mapper.toDomain(
           accounts.saveAndFlush(
               new AccountEntity(issuer, subject, username, email, principalCreatedAt)));
     } catch (DataIntegrityViolationException failure) {
       String constraint = constraintName(failure);
-      if ("uk_account_principal".equals(constraint) || "uk_account_username".equals(constraint)) {
+      if ("uk_account_principal".equals(constraint)) {
         throw new AccountCreationConflictException(failure);
+      }
+      if ("uk_account_username".equals(constraint)) {
+        throw new AccountUnavailableException(failure);
       }
       throw failure;
     }

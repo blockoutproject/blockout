@@ -1,11 +1,14 @@
 package com.blockout.backend.accounts.application.exception;
 
-/** A competing principal or username creation that can be reconsidered only after rollback. */
+/**
+ * A concurrent principal creation whose winner can be read only after the rejected insert rolls
+ * back.
+ */
 public class AccountCreationConflictException extends RuntimeException {
   /**
    * Retains the failed insert internally without exposing database diagnostics in its message.
    *
-   * @param cause immediate account uniqueness refusal
+   * @param cause immediate principal uniqueness refusal
    */
   public AccountCreationConflictException(Throwable cause) {
     super(null, cause);
