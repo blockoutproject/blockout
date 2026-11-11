@@ -326,9 +326,11 @@ it("replaces failed standings and their controls while retaining the authorized 
     await screen.findByLabelText("Actualiser les données"),
     "refresh",
   );
-  await waitFor(() => expect(client.isFetching()).toBe(0));
 
   // Then
+  expect(
+    await screen.findByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
+  ).toBeOnTheScreen();
   expect(screen.queryByText("Official Z")).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("radio", { name: "Afficher en cartes" }),
@@ -336,9 +338,6 @@ it("replaces failed standings and their controls while retaining the authorized 
   expect(
     screen.queryByLabelText("Actualiser les données"),
   ).not.toBeOnTheScreen();
-  expect(
-    await screen.findByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
-  ).toBeOnTheScreen();
   expect(
     screen.queryByText(
       /Observé le|Dernière actualisation|conservées restent affichées/,
