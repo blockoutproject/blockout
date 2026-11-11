@@ -8,7 +8,13 @@ import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import type { PropsWithChildren, ReactElement, ReactNode } from "react";
+import {
+  useRef,
+  type PropsWithChildren,
+  type ReactElement,
+  type ReactNode,
+} from "react";
+import type { LegendListRef } from "@legendapp/list/react-native";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { SearchResultCard } from "./search-result-card";
@@ -21,6 +27,11 @@ export interface SearchResultsProps {
   emptyComponent?: ReactElement | null;
   continuation?: ReactNode;
   onEndReached?: () => void;
+  /**
+   * Restores the same native list offset after scoped feedback temporarily replaces its rows.
+   * RNCT owns the returning heading's measured inset; only data changes need additional anchoring.
+   */
+  preserveScrollPosition?: boolean;
   /** Routes a selected identity through the scene's existing sporting-opening owner. */
   onOpen(item: SearchResult): void;
 }
@@ -39,18 +50,44 @@ export function SearchResults({
   emptyComponent,
   continuation,
   onEndReached,
+  preserveScrollPosition = false,
   onOpen,
 }: Readonly<SearchResultsProps>) {
+  const list = useRef<LegendListRef>(null);
+  const offset = useRef(0);
   if (items.length === 0) {
     return <PageScrollView>{emptyComponent}</PageScrollView>;
   }
   return (
     <PageList
+      ref={preserveScrollPosition ? list : undefined}
       {...hiddenScrollIndicators}
+      maintainVisibleContentPosition={
+        preserveScrollPosition ? { size: false, data: true } : undefined
+      }
       accessibilityRole="list"
       accessibilityLabel={examples ? "Exemples" : "Résultats de recherche"}
       alwaysBounceVertical
       onEndReached={onEndReached}
+      onScroll={
+        preserveScrollPosition
+          ? ({ nativeEvent }) => {
+              offset.current = nativeEvent.contentOffset.y;
+            }
+          : undefined
+      }
+      onLoad={
+        preserveScrollPosition
+          ? () => {
+              if (offset.current > 0) {
+                void list.current?.scrollToOffset({
+                  offset: offset.current,
+                  animated: false,
+                });
+              }
+            }
+          : undefined
+      }
       ListFooterComponent={
         <>
           {continuation ? (

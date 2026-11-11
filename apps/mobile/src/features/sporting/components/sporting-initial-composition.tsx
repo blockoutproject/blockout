@@ -9,42 +9,42 @@ import {
 import { PageViewport } from "../../../shared/components/navigation-backdrop";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { ErrorState } from "../../../shared/components/state-card";
+import { hasReadError } from "../../../shared/components/read-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 
 /** An existing Query result supplies indispensable data and safe read recovery, never a copied cache. */
 export type SportingInitialRead = Pick<
   UseQueryResult<unknown, Error>,
-  "data" | "isError" | "isFetching" | "refetch"
+  "data" | "isError" | "isPending" | "errorUpdatedAt" | "isFetching" | "refetch"
 >;
 
 /** The public page retains its real measured scenes while one initial presentation owns unresolved inputs. */
 export interface SportingInitialCompositionProps {
   detail: SportingInitialRead;
   follow?: SportingInitialRead;
-  active?: SportingInitialRead;
-  /** A successful transport may explicitly report that no usable source table exists. */
-  activeUnavailable?: boolean;
+  /** Adopted destinations mask dependent content after a failed common read, retaining native scenes. */
+  replaceOnFailure?: boolean;
   header: ReactNode;
   loading: ReactNode;
   children: ReactNode;
 }
 
-/** Reveals a useful composition once; later scene failures retain their existing local feedback owners. */
+/** Common detail and applicable Follow admission never depends on an independently read tab. */
 export function SportingInitialComposition({
   detail,
   follow,
-  active,
-  activeUnavailable = false,
+  replaceOnFailure = false,
   header,
   loading,
   children,
 }: Readonly<SportingInitialCompositionProps>) {
   const { colors } = useTheme();
-  const reads = [detail, follow, active].filter(
+  const reads = [detail, follow].filter(
     (read): read is SportingInitialRead => read !== undefined,
   );
   const unresolved = reads.filter(
-    (read) => read.data === undefined || (read === active && activeUnavailable),
+    (read) =>
+      read.data === undefined || (replaceOnFailure && hasReadError(read)),
   );
   const ready = unresolved.length === 0;
   const [admitted, setAdmitted] = useState(false);
@@ -52,10 +52,13 @@ export function SportingInitialComposition({
   if (!admitted && ready) {
     setAdmitted(true);
   }
-  const blocked = detail.data === undefined || (!admitted && !ready);
+  const blocked =
+    detail.data === undefined ||
+    (!admitted && !ready) ||
+    (replaceOnFailure && reads.some(hasReadError));
   const fetching = unresolved.some((read) => read.isFetching);
   const failed =
-    activeUnavailable || unresolved.some((read) => read.isError) || !fetching;
+    unresolved.some(hasReadError) || (!replaceOnFailure && !fetching);
 
   /** Rereads unresolved inputs; Query joins pending or paused attempts and owns their actual fetch progress. */
   async function retry() {
@@ -92,9 +95,9 @@ export function SportingInitialComposition({
                     retrying={retrying && fetching}
                   />
                 </ScreenState>
-              ) : (
+              ) : fetching ? (
                 <PageContent>{loading}</PageContent>
-              )}
+              ) : null}
             </PageScrollView>
           </PageViewport>
         </View>

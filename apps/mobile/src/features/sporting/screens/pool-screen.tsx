@@ -58,7 +58,6 @@ function PoolPage({
   const pool = useQuery(queries.pool(poolId));
   const [tab, setTab] = useState("standings");
   const data = pool.data;
-  const standings = useQuery({ ...queries.standings(poolId), enabled: false });
   const identity = data ? (
     <SportingIdentity
       identity={data.pool.pool}
@@ -86,10 +85,6 @@ function PoolPage({
     <SportingInitialComposition
       detail={pool}
       follow={initialFollow}
-      active={data && !renderStandings ? standings : undefined}
-      activeUnavailable={
-        !renderStandings && standings.data?.availability === "unavailable"
-      }
       header={
         <PageHeader
           title="La poule"
@@ -132,7 +127,11 @@ function PoolPage({
               }
               if (value === "standings" && data && !renderStandings) {
                 return (
-                  <PoolStandings pool={data.pool} active={tab === value} />
+                  <PoolStandings
+                    pool={data.pool}
+                    active={tab === value}
+                    replaceOnFailure
+                  />
                 );
               }
               if (value === "map" && data && !renderMap) {

@@ -10,6 +10,8 @@ import { reconcileSearchFilters } from "../model/search-filters";
 import { Page } from "../../../shared/components/page";
 import { PagedTabs } from "../../../shared/components/paged-tabs";
 import { Button } from "../../../shared/components/button";
+import { useAccountSession } from "../../accounts/current-account";
+import { useOrdinaryRequest } from "../../access/ordinary-request";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
@@ -50,8 +52,8 @@ const searchTabs = [
  * Filters retain one selection per sporting tab; empty/whitespace reads explicitly present examples.
  * The fixed heading follows that text intent while initial options and result cards are pending.
  * Native end events continue the selected focused context. Initial errors use the shared card;
- * failed continuation retains accepted pages and offers retry only at the list edge.
- * Owner-authorized reread failures retain usable rows with explicit retry; an old empty response
+ * The text Clubs reference masks its failed content and retries the same safe read/cursor on-card;
+ * other tabs retain their feature-owned adoption boundary. Query retains accepted pages; an old empty response
  * cannot establish current absence. There is no refresh gesture or additional background read trigger.
  * Generated Unicode validation rejects over-limit text without truncating the user's draft.
  * The existing F10 route receives only Search provenance; RHF text and visit criteria stay local.
@@ -59,6 +61,8 @@ const searchTabs = [
  */
 export function SearchScreen() {
   const visit = useSearchVisit();
+  const session = useAccountSession();
+  const admission = useOrdinaryRequest();
   const router = useRouter();
   const { colors } = useTheme();
   const { fontScale } = useWindowDimensions();
@@ -89,6 +93,15 @@ export function SearchScreen() {
   const textKey = hashKey(
     createDiscoveryContext("club", { q: queryText }).queryKey,
   );
+  // Bypass changes select another Query context even when the actor and criteria stay unchanged.
+  const clubReadScope = hashKey([
+    textKey,
+    session.subject,
+    session.accountId,
+    !!admission.bypass,
+  ]);
+  const [clubRetryScope, setClubRetryScope] = useState<string>();
+  const retryingClubs = clubRetryScope === clubReadScope;
   const teamQuery = useDiscoveryQuery(
     "team",
     { q: queryText, ...visit.team.filters },
@@ -103,6 +116,7 @@ export function SearchScreen() {
     "club",
     { q: queryText },
     resource === "club" && searchable,
+    retryingClubs,
   );
   const examples = text.replace(/\p{White_Space}/gu, "") === "";
   const teamExamples = useSearchExamplesQuery(
@@ -126,6 +140,11 @@ export function SearchScreen() {
     club: clubExamples,
   };
   const queries = { team: teamQuery, pool: poolQuery, club: clubQuery };
+  const clubsFailed =
+    resource === "club" &&
+    !examples &&
+    (clubQuery.isError ||
+      (clubQuery.isPending && clubQuery.errorUpdatedAt > 0));
   let emptyDescription = "Essayez un autre nom.";
   if (examples) {
     emptyDescription = changed
@@ -154,6 +173,19 @@ export function SearchScreen() {
     const selection = target === "club" ? undefined : visit[target];
     if (selection?.query.data) {
       selection.apply(reconcileSearchFilters(undefined, selection.query.data));
+    }
+  }
+
+  /** Keeps a card-triggered GET or failed cursor observed until its original query settles. */
+  async function retryClubs() {
+    const scope = clubReadScope;
+    setClubRetryScope(scope);
+    try {
+      return await (clubQuery.isFetchNextPageError
+        ? clubQuery.fetchNextPage({ cancelRefetch: false })
+        : clubQuery.refetch({ cancelRefetch: false }));
+    } finally {
+      setClubRetryScope((current) => (current === scope ? undefined : current));
     }
   }
 
@@ -187,6 +219,8 @@ export function SearchScreen() {
               examples={examples}
               items={items[id]}
               emptyDescription={emptyDescription}
+              onRetryClubs={id === "club" ? retryClubs : undefined}
+              retryingClubs={id === "club" && retryingClubs}
               emptyAction={
                 !examples || changed ? (
                   <Button
@@ -293,19 +327,21 @@ export function SearchScreen() {
                   </Pressable>
                 )}
               </View>
-              <SearchHeading
-                examples={examples}
-                count={
-                  searchable && queries[resource].data
-                    ? items[resource].length
-                    : undefined
-                }
-                onClear={
-                  examples && !changed
-                    ? undefined
-                    : () => clearCriteria(resource)
-                }
-              />
+              {!clubsFailed && (
+                <SearchHeading
+                  examples={examples}
+                  count={
+                    searchable && queries[resource].data
+                      ? items[resource].length
+                      : undefined
+                  }
+                  onClear={
+                    examples && !changed
+                      ? undefined
+                      : () => clearCriteria(resource)
+                  }
+                />
+              )}
             </View>
           </>
         )}

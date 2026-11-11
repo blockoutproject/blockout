@@ -243,7 +243,7 @@ function panel(active = true) {
   );
 }
 
-it("opens independent participants lazily after admitted pool standings become unavailable", async () => {
+it("opens independent participants lazily after the admitted standings pane fails", async () => {
   // Given
   participants.items = [
     participant(sportingId, "Rives", {
@@ -264,10 +264,31 @@ it("opens independent participants lazily after admitted pool standings become u
   await screen.findAllByRole("tab", { includeHiddenElements: true });
   await layoutNativeTabs();
   await screen.findByRole("tab", { name: "Carte" });
-  await screen.findByRole("button", { name: "Actualiser" });
+  await screen.findByRole("header", {
+    name: "Pas de classement pour cette phase",
+  });
   standingsFailure = 503;
-  await user.press(screen.getByRole("button", { name: "Actualiser" }));
-  await screen.findByRole("alert", { name: TECHNICAL_ERROR_TITLE });
+
+  // When: a native Query background reread fails after a successful Empty admitted the table.
+  await act(async () =>
+    client.invalidateQueries({
+      queryKey: getGetPoolStandingsQueryKey(pool.pool.id),
+      exact: true,
+    }),
+  );
+
+  // Then: the failed pane masks its controls while independent navigation remains available.
+  expect(
+    await screen.findByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText(pool.pool.name)).toBeOnTheScreen();
+  expect(screen.getByRole("tab", { name: "Carte" })).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Actualiser" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("radio", { name: "Afficher en cartes" }),
+  ).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.some(([url]) =>
       new URL(url).pathname.endsWith("/participants"),
@@ -281,6 +302,11 @@ it("opens independent participants lazily after admitted pool standings become u
   expect(
     await screen.findByRole("button", { name: "La Rochelle: Rives" }),
   ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).pathname.endsWith("/participants"),
+    ),
+  ).toHaveLength(1);
   expect(screen.queryByText("4 équipes, dont 2 localisées")).toBeNull();
   expect(
     screen.getByRole("button", { name: "Niort: Marais" }),

@@ -9,6 +9,8 @@ export type DataRefreshControlProps = Pick<
 > & {
   /** Completes the explicit read; the feature retains its data, errors and recovery behavior. */
   onRefresh: () => Promise<unknown>;
+  /** Actual native Query fetch activity; a suspended gesture keeps its promise without progress. */
+  fetching?: boolean;
 };
 
 /**
@@ -19,10 +21,12 @@ export type DataRefreshControlProps = Pick<
 export function DataRefreshControl({
   onRefresh,
   enabled = true,
+  fetching,
   ...nativeContent
 }: Readonly<DataRefreshControlProps>) {
   const { colors, context } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
+  const progressing = refreshing && (fetching ?? true);
 
   /** The callback's promise bounds this gesture; read failures remain with the feature owner. */
   async function refresh() {
@@ -38,10 +42,10 @@ export function DataRefreshControl({
     <RefreshControl
       {...nativeContent}
       enabled={enabled}
-      refreshing={refreshing}
+      refreshing={progressing}
       onRefresh={!enabled || refreshing ? undefined : () => void refresh()}
       accessibilityLabel="Actualiser les données"
-      accessibilityState={{ busy: refreshing, disabled: !enabled }}
+      accessibilityState={{ busy: progressing, disabled: !enabled }}
       colors={[context.primary]}
       tintColor={context.primary}
       progressBackgroundColor={colors.raised}

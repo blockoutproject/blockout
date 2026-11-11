@@ -28,6 +28,7 @@ import {
 } from "@testing-library/react-native";
 import { SearchScreen } from "../screens/search-screen";
 import { useDiscoveryQuery } from "../api/use-discovery-query";
+import { createDiscoveryContext } from "../api/discovery-context";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import {
@@ -40,6 +41,11 @@ import {
 } from "../../accounts/test-support/native-auth0";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
+import {
+  AccessAdmissionProvider,
+  useAccessAdmission,
+} from "../../access/queries/use-access-admission";
+import { accountResponse } from "../../accounts/test-support/account-response";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
@@ -620,7 +626,7 @@ it("clears empty search criteria from the card and keeps its focus action free o
   expect(mockFetch).not.toHaveBeenCalled();
 });
 
-it("keeps clearing available without pull-to-refresh through replacement reads and preserves the selected tab", async () => {
+it("keeps common search clearing available while masking failed Clubs controls", async () => {
   // Given: replacement text is pasted directly, without unmounting results through an empty draft.
   const pending = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url: string) => {
@@ -676,8 +682,11 @@ it("keeps clearing available without pull-to-refresh through replacement reads a
   await user.paste(input, "Failed");
   // Then
   await screen.findByRole("button", { name: "Réessayer" });
-  expect(screen.getByRole("header", { name: "Résultats" })).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Effacer" })).toBeEnabled();
+  expect(screen.queryByRole("header", { name: "Résultats" })).toBeNull();
+  expect(screen.queryByRole("button", { name: /^Effacer$/ })).toBeNull();
+  expect(
+    screen.getByRole("button", { name: "Effacer la recherche" }),
+  ).toBeEnabled();
   expect(
     screen.queryByLabelText("Actualiser les données"),
   ).not.toBeOnTheScreen();
@@ -975,7 +984,7 @@ it("shares one pending cursor read across repeated native end events", async () 
   expect(screen.queryByRole("button", { name: "Charger la suite" })).toBeNull();
 });
 
-it("retains loaded rows with local failure feedback and retries only the same cursor", async () => {
+it("replaces a failed Clubs continuation and keeps its card while retrying the same cursor", async () => {
   // Given
   const user = userEvent.setup();
   const retry = Promise.withResolvers<Response>();
@@ -1003,19 +1012,25 @@ it("retains loaded rows with local failure feedback and retries only the same cu
   await fireEvent(await screen.findByText("Volley Lyon"), "endReached", {
     distanceFromEnd: 0,
   });
-  await screen.findByRole("button", {
-    name: "Réessayer",
-  });
-  expect(screen.getByText("Volley Lyon")).toBeOnTheScreen();
+  const card = await screen.findByRole("alert");
+  expect(card).toHaveTextContent("Une erreur est survenue");
+  expect(screen.queryByText("Volley Lyon")).not.toBeOnTheScreen();
   expect(
-    screen.getByRole("header", { name: "1 résultat chargé" }),
+    screen.queryByRole("header", { name: "1 résultat chargé" }),
+  ).toBeNull();
+  expect(screen.queryByRole("button", { name: /^Effacer$/ })).toBeNull();
+  expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Effacer la recherche" }),
   ).toBeOnTheScreen();
   expect(
-    screen.queryByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-    }),
-  ).toBeNull();
-  expect(screen.getByText("Une erreur est survenue.")).toBeOnTheScreen();
+    client.getQueryData(
+      createDiscoveryContext("club", { q: "Volley" }).queryKey,
+    ),
+  ).toEqual({
+    pages: [{ clubs: [first], nextCursor: "next-page" }],
+    pageParams: [undefined],
+  });
   expect(
     screen.queryByLabelText("Actualiser les données"),
   ).not.toBeOnTheScreen();
@@ -1029,19 +1044,26 @@ it("retains loaded rows with local failure feedback and retries only the same cu
     }),
   );
 
-  // Then: the same continuation becomes pending while already loaded rows stay readable.
+  // Then: explicit Retry keeps its card, while the footer belongs only to automatic pagination.
+  expect(card).toBeOnTheScreen();
   expect(
-    await screen.findByRole("progressbar", {
-      name: "Chargement de la suite…",
-      busy: true,
-    }),
-  ).toBeOnTheScreen();
-  expect(screen.getByText("Volley Lyon")).toBeOnTheScreen();
+    screen.getByRole("button", { name: "Réessayer", busy: true }),
+  ).toBeDisabled();
+  expect(screen.queryByText("Volley Lyon")).not.toBeOnTheScreen();
   expect(
-    screen.queryByRole("button", {
-      name: "Réessayer",
-    }),
-  ).not.toBeOnTheScreen();
+    screen.queryByRole("progressbar", { name: "Chargement de la suite…" }),
+  ).toBeNull();
+
+  // When: an unrelated tab remains usable and returning joins the same read.
+  await user.press(screen.getByRole("tab", { name: "Équipes" }));
+  expect(await screen.findByText("Volley professionnel")).toBeOnTheScreen();
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+
+  // Then
+  expect(card).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Réessayer", busy: true }),
+  ).toBeDisabled();
 
   // When
   await act(async () => {
@@ -1067,16 +1089,434 @@ it("retains loaded rows with local failure feedback and retries only the same cu
   await fireEvent(screen.getByText("Volley Niort"), "endReached", {
     distanceFromEnd: 0,
   });
-  expect(mockFetch).toHaveBeenCalledTimes(1);
+  const clubReads = mockFetch.mock.calls
+    .map(([url]) => new URL(String(url)))
+    .filter((url) => url.pathname.endsWith("/clubs"));
+  expect(clubReads.map((url) => url.searchParams.get("cursor"))).toEqual([
+    "next-page",
+  ]);
+});
+
+it.each(["content", "empty", "error"] as const)(
+  "keeps an initial Clubs error card through background and explicit reads before %s",
+  async (outcome) => {
+    // Given: the initial failure has no accepted page; Query and HTTP validation stay real.
+    let pending: Promise<Response> | undefined;
+    mockFetch.mockImplementation((url: string) =>
+      new URL(url).pathname.endsWith("/clubs")
+        ? (pending ?? Promise.reject(new TypeError("Controlled outage")))
+        : publicReads(url),
+    );
+    const user = userEvent.setup();
+    await renderSearch();
+    await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+    await user.press(screen.getByRole("tab", { name: "Clubs" }));
+    const card = await screen.findByRole("alert");
+    const background = Promise.withResolvers<Response>();
+    pending = background.promise;
+    let backgroundRead: Promise<void> | undefined;
+
+    // When: an ordinary owner reread is pending, without a card click.
+    await act(async () => {
+      backgroundRead = client.refetchQueries({
+        queryKey: createDiscoveryContext("club", { q: "Volley" }).queryKey,
+        exact: true,
+      });
+    });
+
+    // Then: pending-without-data remains the same error, without fictitious button progress.
+    expect(card).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeEnabled();
+    expect(
+      screen.queryByRole("progressbar", { name: "Chargement des résultats" }),
+    ).toBeNull();
+    await act(async () => {
+      background.reject(new TypeError("Controlled outage"));
+      await backgroundRead;
+    });
+    const retry = Promise.withResolvers<Response>();
+    pending = retry.promise;
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(card).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: true }),
+    ).toBeDisabled();
+    expect(
+      screen.queryByRole("progressbar", { name: "Chargement des résultats" }),
+    ).toBeNull();
+    expect(screen.queryByRole("header", { name: "Résultats" })).toBeNull();
+    expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
+
+    // When
+    await act(async () => {
+      retry.resolve(
+        outcome === "error"
+          ? Response.json({}, { status: 503 })
+          : outcome === "empty"
+            ? Response.json({ clubs: [] })
+            : await publicReads("https://api.example.invalid/clubs?q=Volley"),
+      );
+    });
+
+    // Then
+    if (outcome === "error") {
+      expect(card).toBeOnTheScreen();
+      expect(
+        screen.getByRole("button", { name: "Réessayer", busy: false }),
+      ).toBeEnabled();
+    } else if (outcome === "empty") {
+      expect(
+        await screen.findByText("Aucun résultat pour ces critères"),
+      ).toBeOnTheScreen();
+      expect(screen.queryByRole("alert")).toBeNull();
+    } else {
+      expect(await screen.findByText("Niort")).toBeOnTheScreen();
+      expect(screen.queryByRole("alert")).toBeNull();
+    }
+  },
+);
+
+it.each(["content", "empty", "error"] as const)(
+  "keeps the settled Clubs %s outcome during ordinary return freshness",
+  async (outcome) => {
+    // Given: explicit Retry remains observed while another search resource is selected.
+    const retry = Promise.withResolvers<Response>();
+    const background = Promise.withResolvers<Response>();
+    let read: Promise<Response> = Promise.resolve(
+      Response.json({}, { status: 503 }),
+    );
+    mockFetch.mockImplementation((url: string) =>
+      new URL(url).pathname.endsWith("/clubs") ? read : publicReads(url),
+    );
+    const user = userEvent.setup();
+    await renderSearch();
+    await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+    await user.press(screen.getByRole("tab", { name: "Clubs" }));
+    await screen.findByRole("alert");
+    read = retry.promise;
+    mockFetch.mockClear();
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    await user.press(screen.getByRole("tab", { name: "Équipes" }));
+    await screen.findByText("Volley professionnel");
+    await act(async () => {
+      retry.resolve(
+        outcome === "error"
+          ? Response.json({}, { status: 503 })
+          : outcome === "empty"
+            ? Response.json({ clubs: [] })
+            : await publicReads("https://api.example.invalid/clubs?q=Volley"),
+      );
+    });
+    const queryKey = createDiscoveryContext("club", { q: "Volley" }).queryKey;
+    await waitFor(() =>
+      expect(client.getQueryState(queryKey)?.fetchStatus).toBe("idle"),
+    );
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(String(url)).pathname.endsWith("/clubs"),
+      ),
+    ).toHaveLength(1);
+    read = background.promise;
+    mockFetch.mockClear();
+
+    // When: reactivating the ordinary observer may reread its stale result.
+    await user.press(screen.getByRole("tab", { name: "Clubs" }));
+    await waitFor(() =>
+      expect(client.getQueryState(queryKey)?.fetchStatus).toBe("fetching"),
+    );
+
+    // Then: this background read has no remaining explicit Retry intent.
+    expect(screen.queryByRole("progressbar")).toBeNull();
+    expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
+    if (outcome === "error") {
+      expect(screen.getByRole("alert")).toBeOnTheScreen();
+      expect(
+        screen.getByRole("button", { name: "Réessayer", busy: false }),
+      ).toBeEnabled();
+    } else if (outcome === "empty") {
+      expect(
+        screen.getByText("Aucun résultat pour ces critères"),
+      ).toBeOnTheScreen();
+      expect(screen.queryByRole("alert")).toBeNull();
+    } else {
+      expect(screen.getByText("Niort")).toBeOnTheScreen();
+      expect(
+        screen.getByRole("header", { name: "2 résultats chargés" }),
+      ).toBeOnTheScreen();
+      expect(screen.queryByRole("alert")).toBeNull();
+    }
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(String(url)).pathname.endsWith("/clubs"),
+      ),
+    ).toHaveLength(1);
+
+    // When: the ordinary owner settles its read independently of the completed button action.
+    await act(async () => {
+      background.resolve(
+        outcome === "error"
+          ? Response.json({}, { status: 503 })
+          : outcome === "empty"
+            ? Response.json({ clubs: [] })
+            : await publicReads("https://api.example.invalid/clubs?q=Volley"),
+      );
+    });
+
+    // Then
+    await waitFor(() =>
+      expect(client.getQueryState(queryKey)?.fetchStatus).toBe("idle"),
+    );
+  },
+);
+
+it("keeps a suspended Clubs card retry without active progress and resumes the same read", async () => {
+  // Given
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname.endsWith("/clubs")
+      ? Promise.reject(new TypeError("Controlled outage"))
+      : publicReads(url),
+  );
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  const card = await screen.findByRole("alert");
+  const retry = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname.endsWith("/clubs") ? retry.promise : publicReads(url),
+  );
+  await act(async () => onlineManager.setOnline(false));
+  mockFetch.mockClear();
+
+  // When: repeated explicit requests join the existing paused Query attempt.
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(card).toBeOnTheScreen();
   expect(
-    mockFetch.mock.calls.map(([url]) =>
-      new URL(String(url)).searchParams.get("cursor"),
+    screen.getByRole("button", { name: "Réessayer", busy: false }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).toBeNull();
+  expect(mockFetch).not.toHaveBeenCalled();
+
+  // When
+  await act(async () => onlineManager.setOnline(true));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer", busy: true }),
+  ).toBeDisabled();
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(String(url)).pathname.endsWith("/clubs"),
     ),
-  ).toEqual(["next-page"]);
+  ).toHaveLength(1);
+  await act(async () =>
+    retry.resolve(
+      await publicReads("https://api.example.invalid/clubs?q=Volley"),
+    ),
+  );
+  expect(await screen.findByText("Niort")).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
+it("cancels a card retry when the shared text changes and ignores its old cursor response", async () => {
+  // Given
+  const old = Promise.withResolvers<Response>();
+  let retryAvailable = false;
+  let oldSignal: AbortSignal | undefined;
+  mockFetch.mockImplementation((url: string, options: RequestInit) => {
+    const parsed = new URL(url);
+    if (!parsed.pathname.endsWith("/clubs")) {
+      return publicReads(url);
+    }
+    if (parsed.searchParams.get("q") === "Nouveau") {
+      return Promise.resolve(
+        Response.json({
+          clubs: [{ club: { id: secondId, name: "Nouveau club" } }],
+        }),
+      );
+    }
+    if (parsed.searchParams.has("cursor")) {
+      if (retryAvailable) {
+        oldSignal = options.signal ?? undefined;
+        return old.promise;
+      }
+      return Promise.resolve(Response.json({}, { status: 503 }));
+    }
+    return Promise.resolve(
+      Response.json({
+        clubs: [{ club: { id: firstId, name: "Volley Lyon" } }],
+        nextCursor: "next-page",
+      }),
+    );
+  });
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await fireEvent(await screen.findByText("Volley Lyon"), "endReached");
+  await screen.findByRole("alert");
+  retryAvailable = true;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await waitFor(() => expect(oldSignal).toBeDefined());
+
+  // When
+  await user.paste(screen.getByLabelText("Rechercher"), "Nouveau");
+  await screen.findByText("Nouveau club");
+  await act(async () =>
+    old.resolve(
+      Response.json({
+        clubs: [{ club: { id: firstId, name: "Obsolete club" } }],
+      }),
+    ),
+  );
+
+  // Then
+  expect(oldSignal?.aborted).toBe(true);
+  expect(screen.getByText("Nouveau club")).toBeOnTheScreen();
+  expect(screen.queryByText("Obsolete club")).not.toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.getByDisplayValue("Nouveau")).toBeOnTheScreen();
+});
+
+it("ends an inactive Clubs retry with its bypass context before ordinary public admission", async () => {
+  // Given: the real admission owner records a current account's explicit bypass.
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  const account = accountResponse();
+  account.permissions.bypassMaintenance = true;
+  const complete = applicationAccessResponse();
+  complete.maintenance = {
+    revision: 1,
+    active: true,
+    message: "Maintenance",
+    imageUrl: null,
+  };
+  const response = Promise.withResolvers<Response>();
+  let retryAvailable = false;
+  let signal: AbortSignal | undefined;
+  mockFetch.mockImplementation((url: string, options: RequestInit) => {
+    const parsed = new URL(url);
+    if (parsed.pathname.endsWith("/application-access")) {
+      return Promise.resolve(Response.json(complete));
+    }
+    if (parsed.pathname.endsWith("/accounts/me")) {
+      return Promise.resolve(Response.json(account));
+    }
+    if (
+      parsed.pathname.endsWith("/clubs") &&
+      parsed.searchParams.get("q") === "Volley"
+    ) {
+      if (parsed.searchParams.has("cursor")) {
+        if (retryAvailable) {
+          signal = options.signal ?? undefined;
+          return response.promise;
+        }
+        return Promise.resolve(Response.json({}, { status: 500 }));
+      }
+      return Promise.resolve(
+        Response.json({
+          clubs: [
+            {
+              club: {
+                id: firstId,
+                name: complete.maintenance.active
+                  ? "Club en bypass"
+                  : "Club public actuel",
+              },
+            },
+          ],
+          nextCursor: "next-page",
+        }),
+      );
+    }
+    return publicReads(url);
+  });
+  const user = userEvent.setup();
+  const { result } = await renderHook(() => useAccessAdmission(), {
+    wrapper: ({ children }) => (
+      <SearchOwners>
+        <AccessAdmissionProvider>
+          {children}
+          <SearchScreen />
+        </AccessAdmissionProvider>
+      </SearchOwners>
+    ),
+  });
+  await layoutNativeTabs();
+  await waitFor(() => expect(result.current.canBypass).toBe(true));
+  await act(() => {
+    expect(result.current.bypassMaintenance()).toBe(true);
+  });
+  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+  await fireEvent(await screen.findByText("Club en bypass"), "endReached");
+  await screen.findByRole("alert");
+  retryAvailable = true;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await waitFor(() => expect(signal).toBeDefined());
+  await user.press(screen.getByRole("tab", { name: "Équipes" }));
+  await screen.findByText("Volley professionnel");
+  mockFetch.mockClear();
+
+  // When: maintenance ends without changing the actor or removing ordinary routes.
+  complete.maintenance = {
+    revision: 2,
+    active: false,
+    message: null,
+    imageUrl: null,
+  };
+  await act(async () => {
+    await result.current.retry();
+  });
+  await waitFor(() => expect(result.current.bypass).toBeUndefined());
+
+  // Then: the original attempt is canceled; inactive Clubs cannot read another admission context.
+  expect(signal?.aborted).toBe(true);
+  expect(result.current.ordinary).toBe(true);
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(String(url)).pathname.endsWith("/clubs"),
+    ),
+  ).toHaveLength(0);
+  await act(() =>
+    response.resolve(
+      Response.json({
+        clubs: [{ club: { id: secondId, name: "Ancien résultat bypass" } }],
+      }),
+    ),
+  );
+  expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("tab", { name: "Équipes", selected: true }),
+  ).toBeOnTheScreen();
+
+  // When: only explicit tab selection admits the new public query.
+  await user.press(screen.getByRole("tab", { name: "Clubs" }));
+
+  // Then
+  expect(await screen.findByText("Club public actuel")).toBeOnTheScreen();
+  expect(screen.queryByText("Ancien résultat bypass")).not.toBeOnTheScreen();
+  expect(screen.queryByText("Club en bypass")).not.toBeOnTheScreen();
+  const clubs = mockFetch.mock.calls.filter(([url]) =>
+    new URL(String(url)).pathname.endsWith("/clubs"),
+  );
+  expect(clubs).toHaveLength(1);
+  expect(new Headers(clubs[0][1].headers).has("Authorization")).toBe(false);
+  expect(
+    new Headers(clubs[0][1].headers).has("Blockout-Maintenance-Bypass"),
+  ).toBe(false);
 });
 
 it.each([false, true])(
-  "retains accepted pages through a failed background read and accepts the next traversal: %s",
+  "keeps accepted pages in Query behind a failed Clubs background read and accepts the next traversal: %s",
   async (fails) => {
     // Given
     const user = userEvent.setup();
@@ -1142,12 +1582,17 @@ it.each([false, true])(
       });
     });
     if (fails) {
-      expect(await screen.findByText("Volley Lyon")).toBeOnTheScreen();
-      expect(screen.getByText("Volley Niort")).toBeOnTheScreen();
-      expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Une erreur est survenue",
+      );
+      expect(screen.queryByText("Volley Lyon")).not.toBeOnTheScreen();
+      expect(screen.queryByText("Volley Niort")).not.toBeOnTheScreen();
       expect(
-        screen.getByRole("header", { name: "2 résultats chargés" }),
-      ).toBeOnTheScreen();
+        screen.queryByRole("header", { name: "2 résultats chargés" }),
+      ).toBeNull();
+      expect(
+        screen.getByRole("button", { name: "Réessayer", busy: false }),
+      ).toBeEnabled();
       expect(mockFetch).toHaveBeenCalledTimes(1);
       mockFetch.mockClear();
       mockFetch.mockImplementation((url: string) =>
