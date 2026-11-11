@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -91,7 +92,7 @@ class AccountMaintenanceAdmissionIntegrationTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"establish", "original", "photo", "edit", "erase"})
+  @ValueSource(strings = {"establish", "photo", "edit", "erase"})
   @DisplayName("Refuses every ordinary account operation with the observed active maintenance")
   void refusesOrdinaryAccountOperation(String operation) throws Exception {
     // Given
@@ -99,7 +100,6 @@ class AccountMaintenanceAdmissionIntegrationTest {
     AbstractMockHttpServletRequestBuilder<?> request =
         switch (operation) {
           case "establish" -> post("/accounts");
-          case "original" -> get("/accounts/" + ACCOUNT);
           case "photo" -> get("/accounts/" + ACCOUNT + "/photo");
           case "edit" ->
               multipart(HttpMethod.PATCH, "/accounts/" + ACCOUNT)
@@ -164,20 +164,28 @@ class AccountMaintenanceAdmissionIntegrationTest {
         "auth0|existing",
         "Existing_175",
         "existing@example.invalid");
+    // Stored bytes exercise admission and binary reading; image decoding has its own boundary.
+    byte[] photo = {1, 2, 3};
+    sql.update(
+        "UPDATE account SET photo_bytes=?, photo_media_type='image/png', photo_dimension=1 WHERE id=?",
+        photo,
+        ACCOUNT);
     sql.update(
         "INSERT INTO account_permission (account_id, permission) VALUES (?, 'maintenance.bypass')",
         ACCOUNT);
 
     // When
     mvc.perform(
-            get("/accounts/" + ACCOUNT)
+            get("/accounts/" + ACCOUNT + "/photo")
                 .header("Blockout-Maintenance-Bypass", "true")
                 .with(principal("auth0|existing")))
         // Then
-        .andExpect(status().isOk());
+        .andExpect(status().isOk())
+        .andExpect(content().contentType("image/png"))
+        .andExpect(content().bytes(photo));
     sql.update("DELETE FROM account_permission WHERE account_id=?", ACCOUNT);
     mvc.perform(
-            get("/accounts/" + ACCOUNT)
+            get("/accounts/" + ACCOUNT + "/photo")
                 .header("Blockout-Maintenance-Bypass", "true")
                 .with(principal("auth0|existing")))
         .andExpect(status().isForbidden());
@@ -291,13 +299,22 @@ class AccountMaintenanceAdmissionIntegrationTest {
         "auth0|existing",
         "Existing_175",
         "existing@example.invalid");
+    UUID other = UUID.fromString("00000000-0000-4000-8000-000000000999");
+    sql.update(
+        "INSERT INTO account (id, issuer, subject, username, email, photo_bytes, photo_media_type, photo_dimension) VALUES (?, ?, ?, ?, ?, ?, 'image/png', 1)",
+        other,
+        ISSUER,
+        "auth0|other",
+        "Other_175",
+        "other@example.invalid",
+        new byte[] {4, 5, 6});
     sql.update(
         "INSERT INTO account_permission (account_id, permission) VALUES (?, 'maintenance.bypass')",
         ACCOUNT);
 
     // When
     mvc.perform(
-            get("/accounts/00000000-0000-4000-8000-000000000999")
+            get("/accounts/" + other + "/photo")
                 .header("Blockout-Maintenance-Bypass", "true")
                 .with(principal("auth0|existing")))
         // Then

@@ -245,8 +245,6 @@ class TransitionResetIntegrationTest {
     mvc.perform(get("/accounts/me").with(principal(SUBJECT_B)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.accountId").value(second.id().toString()));
-    mvc.perform(get("/accounts/{id}", first.id()).with(principal(SUBJECT_B)))
-        .andExpect(status().isNotFound());
     mvc.perform(get("/accounts/{id}/notifications", first.id()).with(principal(SUBJECT_B)))
         .andExpect(status().isNotFound());
     mvc.perform(
