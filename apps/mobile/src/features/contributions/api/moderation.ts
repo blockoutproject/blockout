@@ -104,11 +104,20 @@ function isModerationResource(key: unknown) {
   );
 }
 
-/** Removes refused private content; ordinary transport outages retain authorized pages. */
+/** Withdraws permission-refused content and retains a known missing target through technical failures until a successful read. */
 async function refuse(
   error: unknown,
   context: QueryFunctionContext,
 ): Promise<never> {
+  const previousError = context.client.getQueryState(context.queryKey)?.error;
+  if (
+    !context.signal.aborted &&
+    !isAccessDenied(error) &&
+    previousError instanceof ApiError &&
+    previousError.status === 404
+  ) {
+    throw previousError;
+  }
   if (
     !context.signal.aborted &&
     error instanceof ApiError &&

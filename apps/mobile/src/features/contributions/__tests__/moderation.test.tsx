@@ -1851,7 +1851,7 @@ it.each(["queue", "active", "pending"] as const)(
         await waitFor(() =>
           expect(
             screen.getByRole("button", { name: "Remplacer le lien" }),
-          ).toBeDisabled(),
+          ).toBeEnabled(),
         );
       }
 
@@ -1861,6 +1861,11 @@ it.each(["queue", "active", "pending"] as const)(
       await act(async () => {
         finish(response);
         await reading;
+      });
+      // The public admission read settles independently of this retained private traversal.
+      await waitFor(() => {
+        expect(client.isFetching()).toBe(0);
+        expect(publicClient.isFetching()).toBe(0);
       });
     }
   },

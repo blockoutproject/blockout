@@ -143,7 +143,7 @@ The approved Account composition covers A02, A16–A17, FR-004/FR-017 and SC-009
 
 **Scope**: A17–A24; FR-005–008, FR-010, FR-016–026, FR-028, FR-031–034; SC-005–006, SC-008.
 
-**Independent Test**: Distinguish no applicable purchase, current active restoration and uncertainty; then qualify receipt-wide transfer, original-store limitations and delete/recreate with actual owners. Insufficient evidence authorizes neither a transfer nor a compensatory gift.
+**Independent Test**: Distinguish no applicable purchase, current active restoration and ordinary failure; then qualify receipt-wide transfer, original-store limitations and delete/recreate with actual owners. Insufficient evidence authorizes neither a transfer nor a compensatory gift.
 
 ### Tests and qualification cases for User Story 4
 

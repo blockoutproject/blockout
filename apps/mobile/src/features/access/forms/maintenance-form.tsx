@@ -66,21 +66,10 @@ export function MaintenanceForm({
   }, []);
   const imageUrl = useWatch({ control, name: "imageUrl" });
   const busy =
-    disabled ||
-    editing.content.isPending ||
-    editing.activation.isPending ||
-    editing.query.isFetching;
+    disabled || editing.content.isPending || editing.activation.isPending;
   const rereadRequired = Math.max(settings.revision, 0) > baseline.revision;
   const validPreview =
     imageUrl !== "" && maintenanceImageSchema.safeParse(imageUrl).success;
-
-  /** Reports a failed action while preserving the mounted draft and accepted revision. */
-  function failed() {
-    if (!mounted.current) {
-      return;
-    }
-    actionFeedback.error();
-  }
 
   /** Submits supplied dirty content against its accepted editing revision, without activation. */
   async function submit(draft: MaintenanceValues) {
@@ -110,7 +99,7 @@ export function MaintenanceForm({
       });
       reset(maintenanceValues(accepted));
     } catch {
-      failed();
+      actionFeedback.error();
     }
   }
 
@@ -145,14 +134,14 @@ export function MaintenanceForm({
         baseline: accepted,
       });
     } catch {
-      failed();
+      actionFeedback.error();
     }
   }
 
   /** Adopts explicitly reread settings while preserving dirty fields for a later submission. */
   async function reread() {
     actionFeedback.clear();
-    const result = await (() => editing.query.refetch())();
+    const result = await editing.query.refetch();
     if (!mounted.current) {
       return;
     }

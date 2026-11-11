@@ -969,6 +969,7 @@ it("restarts the selected completed traversal after a confirmed follow change an
     url: string,
     id: string,
     home: string,
+    day: string,
     nextDay?: string,
   ): Response {
     const match = matchDetail().match;
@@ -984,7 +985,7 @@ it("restarts the selected completed traversal after a confirmed follow change an
         evaluatedAt: "2026-10-28T12:00:00Z",
         days: [
           {
-            date: "2026-10-20",
+            date: day,
             pools: [
               {
                 poolId: team.id,
@@ -993,7 +994,7 @@ it("restarts the selected completed traversal after a confirmed follow change an
                     ...match,
                     id,
                     category,
-                    schedule: { ...match.schedule, localDate: "2026-10-20" },
+                    schedule: { ...match.schedule, localDate: day },
                     home: { ...match.home, name: home },
                   },
                 ],
@@ -1016,15 +1017,23 @@ it("restarts the selected completed traversal after a confirmed follow change an
       return transport(url, request);
     }
     if (changed) {
-      return Promise.resolve(calendar(url, replacement, "Current"));
+      return Promise.resolve(
+        calendar(url, replacement, "Current", "2026-10-20"),
+      );
     }
     if (parsed.searchParams.get("nextDay") === "2026-10-19") {
       return late.promise;
     }
     return Promise.resolve(
       parsed.searchParams.has("nextDay")
-        ? calendar(url, oldSecond, "Second", "2026-10-19")
-        : calendar(url, matchDetail().match.id, "First", "2026-10-20"),
+        ? calendar(url, oldSecond, "Second", "2026-10-19", "2026-10-19")
+        : calendar(
+            url,
+            matchDetail().match.id,
+            "First",
+            "2026-10-20",
+            "2026-10-20",
+          ),
     );
   });
   await mount(<FollowButton target={team} season={older} />);
@@ -1063,6 +1072,7 @@ it("restarts the selected completed traversal after a confirmed follow change an
         "https://api.example.invalid/?category=completed&timeZone=Europe/Paris",
         oldThird,
         "Obsolete",
+        "2026-10-18",
       ),
     ),
   );

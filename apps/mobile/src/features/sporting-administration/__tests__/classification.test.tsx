@@ -648,7 +648,7 @@ it("keeps dirty choices through a failed ordinary refresh without retrying the w
     screen.getByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });
   await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
   );
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),

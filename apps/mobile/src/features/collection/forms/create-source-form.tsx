@@ -50,7 +50,7 @@ export function CreateSourceForm({
       editor.update({
         ...editor.state,
         adding: false,
-        feedback: "Source ajoutée. Relisez l’état avant une nouvelle action.",
+        feedback: "Source ajoutée.",
       });
     } catch {
       editor.update({ ...editor.state, feedback: undefined });

@@ -26,6 +26,7 @@ import { useConsultationQueries } from "../../sporting/api/use-consultation-quer
 import { supportHref } from "../../support";
 import { usePresentation, type PresentationTarget } from "../api/presentation";
 import { PresentationForm } from "../forms/presentation-form";
+import { isSportingReadRefused } from "../api/sporting-administration-queries";
 
 /** Route-owned target; the form reads its own dirty state and F12 supplies current action grants. */
 export interface PresentationScreenProps {
@@ -215,7 +216,7 @@ export function PresentationScreen({
             presentation={presentation}
             target={target}
             editing={editing}
-            disabled={!canManage || editing.query.isError}
+            disabled={!canManage || isSportingReadRefused(editing.query.error)}
             seasonLabel={seasonLabel}
             professionalTeam={
               publicContextEnabled &&

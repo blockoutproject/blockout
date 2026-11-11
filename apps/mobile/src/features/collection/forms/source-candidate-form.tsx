@@ -1,4 +1,5 @@
 import { SeasonIdentity, SourceBadge } from "../components/source-summary";
+import { isCollectionReadRefused } from "../api/collection-queries";
 import { Surface } from "../../../shared/components/surface";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useNativeHandoff } from "../../../shared/native/use-native-handoff";
@@ -68,15 +69,14 @@ export function SourceCandidateForm({
   const closed = (editing.season.data ?? season).state === "closed";
   const readOnly = closed || current.locked || current.launched;
   const busy =
-    editing.source.isError ||
+    isCollectionReadRefused(editing.source.error) ||
     !authority.enabled ||
     editing.candidate.isPending ||
     editing.validation.isPending ||
-    editing.confirmation.isPending ||
-    editing.source.isFetching ||
-    editing.season.isFetching;
+    editing.confirmation.isPending;
   const reconciliationRequired = current.revision > baseline.revision;
-  const rereadRequired = reconciliationRequired || editing.season.isError;
+  const rereadRequired =
+    reconciliationRequired || isCollectionReadRefused(editing.season.error);
   useEffect(() => {
     mounted.current = true;
     return () => {

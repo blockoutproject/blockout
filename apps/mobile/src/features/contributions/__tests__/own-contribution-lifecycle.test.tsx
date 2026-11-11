@@ -1213,10 +1213,10 @@ it("retains the draft and every authorized page with toast-only refresh failure 
   expect(
     await screen.findByText("https://youtu.be/history-21"),
   ).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Retirer" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Retirer" })).toBeEnabled();
   expect(
     screen.getByRole("button", { name: "Remplacer le lien" }),
-  ).toBeDisabled();
+  ).toBeEnabled();
 
   // When: a new explicit refresh succeeds without submitting the retained draft.
   failRead = false;

@@ -14,6 +14,7 @@ import { tokens } from "../../../shared/theme/tokens";
 import type { useCloseCollectionSeason } from "../api/use-collection-controls";
 import { type CloseSeasonValues } from "../schemas/close-season-schema";
 import { useCloseSeasonDraft } from "./use-close-season-draft";
+import { isCollectionReadRefused } from "../api/collection-queries";
 
 /** Exact typed input belongs to the mounted original-season visit. */
 export interface CloseSeasonFormProps {
@@ -40,8 +41,7 @@ export function CloseSeasonForm({
   const confirmation = useWatch({ control, name: "confirmation" });
   const current = editing.season.data ?? season;
   const closed = current.state === "closed";
-  const busy =
-    !authority.enabled || editing.close.isPending || editing.season.isFetching;
+  const busy = !authority.enabled || editing.close.isPending;
   const needsRead = current.revision !== baseline.revision;
   useDiscardChanges(isDirty && !closed, editor.discard);
   useEffect(() => {
@@ -57,7 +57,7 @@ export function CloseSeasonForm({
       busy ||
       closed ||
       needsRead ||
-      editing.season.isError ||
+      isCollectionReadRefused(editing.season.error) ||
       values.confirmation !== current.label ||
       values.confirmation !== baseline.label
     ) {
@@ -148,7 +148,7 @@ export function CloseSeasonForm({
             disabled={
               busy ||
               needsRead ||
-              editing.season.isError ||
+              isCollectionReadRefused(editing.season.error) ||
               confirmation !== current.label ||
               confirmation !== baseline.label
             }

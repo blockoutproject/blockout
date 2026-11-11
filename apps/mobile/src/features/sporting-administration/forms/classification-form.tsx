@@ -28,6 +28,7 @@ import { toClassificationRequest } from "../api/classification-request";
 import { type ClassificationValues } from "../schemas/classification-schema";
 import { classificationValues } from "./classification-values";
 import { useClassificationDraft } from "./use-classification-draft";
+import { isSportingReadRefused } from "../api/sporting-administration-queries";
 
 /** One current resource, its generated operations and original-session draft. */
 export interface ClassificationFormProps {
@@ -66,10 +67,9 @@ export function ClassificationForm({
   const divisionId = useWatch({ control, name: "divisionId" });
   const busy =
     rereading ||
-    editing.query.isError ||
+    isSportingReadRefused(editing.query.error) ||
     !editing.authority.enabled ||
-    editing.save.isPending ||
-    editing.query.isFetching;
+    editing.save.isPending;
   const choicesUnavailable = !divisions.query.isSuccess;
   const choicesBusy = busy || divisions.query.isFetching || choicesUnavailable;
   const rereadRequired = current.revision !== baseline.revision;

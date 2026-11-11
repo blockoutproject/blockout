@@ -29,6 +29,7 @@ import { prepareSportingLogo } from "../images/prepare-sporting-logo";
 import { type PresentationValues } from "../schemas/presentation-schema";
 import { presentationValues } from "./presentation-values";
 import { usePresentationDraft } from "./use-presentation-draft";
+import { isSportingReadRefused } from "../api/sporting-administration-queries";
 
 /** One original resource and session; background reads never replace this form's editable snapshot. */
 export interface PresentationFormProps {
@@ -120,8 +121,7 @@ export function PresentationForm({
     created ||
     imageSelection.pending ||
     editing.save.isPending ||
-    activity.save.isPending ||
-    editing.query.isFetching;
+    activity.save.isPending;
   const {
     logo: currentLogo,
     title,
@@ -269,7 +269,7 @@ export function PresentationForm({
       imageSelection.isPending() ||
       editing.save.isPending ||
       activity.save.isPending ||
-      editing.query.isFetching ||
+      isSportingReadRefused(editing.query.error) ||
       !activity.authority.enabled ||
       rereadRequired
     ) {
@@ -387,7 +387,7 @@ export function PresentationForm({
               disabled={
                 imageSelection.pending ||
                 editing.save.isPending ||
-                editing.query.isFetching ||
+                isSportingReadRefused(editing.query.error) ||
                 rereadRequired
               }
               onPress={() => void changeActivity()}

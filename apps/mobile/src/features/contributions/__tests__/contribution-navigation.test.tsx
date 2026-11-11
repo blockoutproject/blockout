@@ -761,7 +761,7 @@ it("keeps a confirmed replacement distinct from retained proposals after returni
   expect(
     screen.queryByRole("button", { name: "Réessayer la lecture" }),
   ).not.toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Retirer" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Retirer" })).toBeEnabled();
   expect(submissions).toBe(1);
   expect(Alert.alert).toHaveBeenCalledTimes(1);
 });

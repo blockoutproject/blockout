@@ -826,9 +826,7 @@ it("adds only an unqualified candidate for the explicit provider and current sea
   await act(() => created.resolve(json(sources[0], 201)));
 
   // Then
-  await screen.findByText(
-    "Source ajoutée. Relisez l’état avant une nouvelle action.",
-  );
+  await screen.findByText("Source ajoutée.");
   const writes = mockFetch.mock.calls.filter(
     ([, options]) => options?.method === "POST",
   );
@@ -1386,7 +1384,7 @@ it("preserves a newer source read when an older accepted candidate response arri
   ).toHaveLength(1);
 });
 
-it("keeps every provider blocked when an acknowledged source invalidates a season whose refresh fails", async () => {
+it("keeps another provider's known preparation usable when a post-creation season refresh fails", async () => {
   // Given
   const user = userEvent.setup();
   const view = await renderPreparation(
@@ -1414,9 +1412,7 @@ it("keeps every provider blocked when an acknowledged source invalidates a seaso
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await screen.findByText(
-    "Source ajoutée. Relisez l’état avant une nouvelle action.",
-  );
+  await screen.findByText("Source ajoutée.");
   await waitFor(() =>
     expect(
       client
@@ -1432,13 +1428,12 @@ it("keeps every provider blocked when an acknowledged source invalidates a seaso
     <ProviderSourcesScreen seasonId={seasonId} provider="ffvb" />,
   );
 
-  // Then
-  // When
+  // When: the provider keeps its own empty draft and original season revision.
   await user.press(
     await screen.findByRole("button", { name: "Ajouter une source" }),
   );
   // Then
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
   expect(screen.queryByText("Une erreur est survenue")).toBeNull();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
@@ -1621,7 +1616,7 @@ it("explains missing collection permission without leaving a disabled catalog in
   ).toBe(false);
 });
 
-it("retains a source draft but disables its commands after the current source read is refused", async () => {
+it("retains a refused source draft through technical failure until a successful current read", async () => {
   // Given
   const user = userEvent.setup();
   await renderPreparation();
@@ -1661,6 +1656,16 @@ it("retains a source draft but disables its commands after the current source re
   );
   expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+
+  // When: successful owner verification restores the normal command without replacing dirty input.
+  mockFetch.mockImplementation(reads);
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+  );
+  expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
 });
 
 it("keeps refused season navigation hidden through a failed reread until a successful owner retry", async () => {

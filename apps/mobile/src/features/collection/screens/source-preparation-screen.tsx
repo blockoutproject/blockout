@@ -18,7 +18,7 @@ export interface SourcePreparationScreenProps {
   sourceId: string;
 }
 
-/** Retains a source draft read-only on grant/read failure; identity changes discard the obsolete editor. */
+/** Retains an editable source draft through technical failures; current refusals suspend commands and identity changes discard the editor. */
 export function SourcePreparationScreen({
   seasonId,
   sourceId,

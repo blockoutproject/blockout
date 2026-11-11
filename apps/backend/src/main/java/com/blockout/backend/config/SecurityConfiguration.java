@@ -250,10 +250,7 @@ public class SecurityConfiguration {
             "/administration/collection-controls/{controlId}/requests",
             "/administration/divisions"),
         methods(HttpMethod.POST, "/accounts"),
-        methods(
-            HttpMethod.GET,
-            "/accounts/{accountId:[0-9a-fA-F-]{36}}",
-            "/accounts/{accountId:[0-9a-fA-F-]{36}}/photo"),
+        methods(HttpMethod.GET, "/accounts/{accountId:[0-9a-fA-F-]{36}}/photo"),
         methods(HttpMethod.PATCH, "/accounts/{accountId:[0-9a-fA-F-]{36}}"),
         methods(HttpMethod.DELETE, "/accounts/{accountId:[0-9a-fA-F-]{36}}"));
   }

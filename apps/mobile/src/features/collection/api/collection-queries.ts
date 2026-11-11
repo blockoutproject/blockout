@@ -22,7 +22,15 @@ import {
   listCollectionSourceChildren,
   listCollectionSources,
 } from "../../../../.generated/mobile";
-import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
+import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
+
+/** A refused permission or missing exact collection resource cannot authorize another command. */
+export function isCollectionReadRefused(error: unknown): boolean {
+  return (
+    isAccessDenied(error) ||
+    (error instanceof ApiError && error.kind === "http" && error.status === 404)
+  );
+}
 
 /** Collection query availability and native authenticated request preparation. */
 export interface CollectionQueryAuthority {
@@ -32,9 +40,27 @@ export interface CollectionQueryAuthority {
 
 /** Defines every collection read once; native Query owns data, cancellation, pagination and status. */
 export function createCollectionQueries(authority: CollectionQueryAuthority) {
-  /** Removes a refused list or control snapshot so a later technical failure cannot resurrect it. */
+  /** Retains the draft snapshot and a known refusal in Query until success; cancellation keeps its own outcome. */
+  async function readRetained<T>(
+    context: QueryFunctionContext,
+    execute: (options: ApiFetchOptions) => Promise<T>,
+  ): Promise<T> {
+    const previousError = context.client.getQueryState(context.queryKey)?.error;
+    try {
+      return await execute({
+        ...(await authority.request()),
+        signal: context.signal,
+      });
+    } catch (error) {
+      throw !context.signal.aborted && isCollectionReadRefused(previousError)
+        ? previousError
+        : error;
+    }
+  }
+
+  /** Removes a refused or missing list/control snapshot so a technical failure cannot restore it. */
   function rejectDenied(error: unknown, context: QueryFunctionContext): never {
-    if (!context.signal.aborted && isAccessDenied(error)) {
+    if (!context.signal.aborted && isCollectionReadRefused(error)) {
       context.client
         .getQueryCache()
         .find({ queryKey: context.queryKey, exact: true })
@@ -67,18 +93,10 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
         queryKey: getGetCollectionSeasonQueryKey(seasonId),
         enabled: authority.enabled,
         gcTime: 0,
-        queryFn: async ({ signal, client, queryKey }) => {
-          const previousError = client.getQueryState(queryKey)?.error;
-          try {
-            return await getCollectionSeason(seasonId, {
-              ...(await authority.request()),
-              signal,
-            });
-          } catch (error) {
-            // Shared editor data stays available to its draft, but navigation remains refused until a successful read.
-            throw isAccessDenied(previousError) ? previousError : error;
-          }
-        },
+        queryFn: (context) =>
+          readRetained(context, (options) =>
+            getCollectionSeason(seasonId, options),
+          ),
       }),
     /** Complete source configuration for the selected season. */
     sources: (seasonId: string) =>
@@ -86,23 +104,21 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
         queryKey: getListCollectionSourcesQueryKey(seasonId),
         enabled: authority.enabled,
         gcTime: 0,
-        queryFn: async ({ signal }) =>
-          listCollectionSources(seasonId, {
-            ...(await authority.request()),
-            signal,
-          }),
+        queryFn: (context) =>
+          readRetained(context, (options) =>
+            listCollectionSources(seasonId, options),
+          ),
       }),
-    /** Exact source binding whose accepted response also reconciles candidate commands. */
+    /** Exact source binding supplies the retained candidate editor and its ordinary commands. */
     source: (sourceId: string) =>
       queryOptions({
         queryKey: getGetCollectionSourceQueryKey(sourceId),
         enabled: authority.enabled,
         gcTime: 0,
-        queryFn: async ({ signal }) =>
-          getCollectionSource(sourceId, {
-            ...(await authority.request()),
-            signal,
-          }),
+        queryFn: (context) =>
+          readRetained(context, (options) =>
+            getCollectionSource(sourceId, options),
+          ),
       }),
     /** Direct children use one infinite entry per parent and page size; page numbers stay in pageParam. */
     children: (sourceId: string, parentId?: string) => {
@@ -145,7 +161,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
         },
       });
     },
-    /** Current control configuration shared by observation and explicit command reconciliation. */
+    /** Current control configuration shared by observation and explicit commands. */
     control: (controlId: string) =>
       queryOptions({
         queryKey: getGetCollectionControlQueryKey(controlId),

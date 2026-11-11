@@ -220,6 +220,67 @@ it("reports one failed refresh while retaining the editable maintenance draft", 
   expect(screen.queryByText("Une erreur est survenue")).not.toBeOnTheScreen();
   expect(mockFetch).toHaveBeenCalledTimes(1);
 });
+it("keeps a failed save editable during its normal settings refresh", async () => {
+  // Given: the form and private Query owner are real; only HTTP is controlled.
+  const user = userEvent.setup();
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Brouillon conservé",
+  );
+  const refresh = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation(async (url, options) => {
+    if (String(url).endsWith("/accounts/me")) {
+      return json(account);
+    }
+    if (options?.method === "PATCH") {
+      throw new TypeError("Lost response");
+    }
+    return refresh.promise;
+  });
+
+  // When
+  try {
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+    await act(async () => nativeAlertAction("Enregistrer")());
+
+    // Then: a pending refresh neither locks the draft nor repeats the command.
+    expect(
+      await screen.findByText(
+        "Une erreur est survenue. Veuillez réessayer plus tard.",
+      ),
+    ).toBeOnTheScreen();
+    expect(
+      client.getQueryState(getGetMaintenanceSettingsQueryKey())?.fetchStatus,
+    ).toBe("fetching");
+    expect(screen.getByLabelText("Message de maintenance")).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+    ).toHaveLength(1);
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+    await act(async () => nativeAlertAction("Enregistrer")());
+
+    // Then
+    expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(
+      "Brouillon conservé",
+    );
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+    ).toHaveLength(2);
+  } finally {
+    await act(async () => refresh.resolve(json(initial)));
+    await waitFor(() => {
+      expect(client.isFetching()).toBe(0);
+      expect(publicClient.isFetching()).toBe(0);
+    });
+  }
+});
+
 it("does not publish defaults after an initial load failure", async () => {
   // Given
   mockFetch.mockImplementation(async (url) =>

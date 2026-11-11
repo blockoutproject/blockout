@@ -45,7 +45,7 @@ export interface ApplicationVersionsFormProps {
   disabled?: boolean;
 }
 
-/** Publishes atomic dirty-field changes without changing maintenance or replaying uncertain writes. */
+/** Publishes atomic dirty-field changes without changing maintenance or replaying commands. */
 export function ApplicationVersionsForm({
   settings,
   editing,
@@ -94,8 +94,7 @@ export function ApplicationVersionsForm({
   const raised = raisesMinimum(current, baseline);
   const storeChoice = JSON.stringify([current.ios, current.android]);
   const checked = acknowledged === storeChoice;
-  const busy =
-    disabled || editing.content.isPending || editing.query.isFetching;
+  const busy = disabled || editing.content.isPending;
   const rereadRequired = Math.max(settings.revision, 0) > baseline.revision;
   useEffect(() => {
     mounted.current = true;
@@ -139,7 +138,7 @@ export function ApplicationVersionsForm({
   /** Adopts the current settings revision while preserving dirty fields for explicit resubmission. */
   async function reread() {
     actionFeedback.clear();
-    const result = await (() => editing.query.refetch())();
+    const result = await editing.query.refetch();
     // Query may restore its old success when route removal cancels this read.
     if (!mounted.current) {
       return;

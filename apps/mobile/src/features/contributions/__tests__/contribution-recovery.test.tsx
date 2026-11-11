@@ -653,6 +653,45 @@ it("retains a dirty contribution after conflict and failed explicit refresh with
   expect(writes).toHaveLength(1);
 });
 
+it("keeps an ordinary failed contribution editable for another explicit submission after failed reads", async () => {
+  // Given: only HTTP is controlled; the real form and mutation retain their original account and match.
+  const user = userEvent.setup();
+  await render(<ContributionScreen matchId={match.match.id} />, {
+    wrapper: Wrapper,
+  });
+  await user.type(await screen.findByLabelText("Adresse du lien"), version.url);
+  write = async () => {
+    failRead = true;
+    throw new TypeError("Lost contribution response");
+  };
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+  await confirm("Soumettre le lien");
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+
+  // Then
+  expect(screen.getByLabelText("Adresse du lien")).toHaveProp("editable", true);
+  expect(
+    screen.getByRole("button", { name: "Soumettre le lien" }),
+  ).toBeEnabled();
+  expect(screen.getByDisplayValue(version.url)).toBeOnTheScreen();
+  expect(writes).toHaveLength(1);
+
+  // When: only another manual confirmation sends the retained URL again.
+  await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+  await confirm("Soumettre le lien");
+
+  // Then
+  await waitFor(() => expect(writes).toHaveLength(2));
+  expect(writes[1].body).toMatchObject({
+    revision: owner.revision,
+    url: version.url,
+  });
+  expect(screen.getByDisplayValue(version.url)).toBeOnTheScreen();
+  expect(mockDismissTo).not.toHaveBeenCalled();
+});
+
 it.each(["submit", "withdraw"] as const)(
   "keeps confirmed %s separate from failed derivative reads",
   async (action) => {

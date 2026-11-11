@@ -1,4 +1,5 @@
 import { SeasonIdentity, SourceBadge } from "../components/source-summary";
+import { isCollectionReadRefused } from "../api/collection-queries";
 import { Surface } from "../../../shared/components/surface";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
@@ -58,14 +59,13 @@ export function ProviderPreparationForm({
     ) ?? [];
   const closed = season.state === "closed";
   const busy =
-    editing.sources.isError ||
+    isCollectionReadRefused(editing.sources.error) ||
     !authority.enabled ||
     editing.create.isPending ||
-    editing.launch.isPending ||
-    editing.season.isFetching ||
-    editing.sources.isFetching;
+    editing.launch.isPending;
   const reconciliationRequired = season.revision > baseline.revision;
-  const rereadRequired = reconciliationRequired || editing.season.isError;
+  const rereadRequired =
+    reconciliationRequired || isCollectionReadRefused(editing.season.error);
   const ready = sources
     .filter(
       (source) =>
