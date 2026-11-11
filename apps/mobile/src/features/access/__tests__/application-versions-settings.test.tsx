@@ -457,20 +457,24 @@ it("requires store acknowledgement before raising a minimum, and cancellation pr
   expect(screen.getByRole("checkbox")).not.toBeChecked();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
 });
-it.each([403, 422])(
-  "preserves input after a confirmed %i refusal",
-  async (status) => {
+it.each([403, 409, 422, "stale-revision"] as const)(
+  "preserves input after a confirmed %s refusal",
+  async (refusal) => {
     // Given
     const user = userEvent.setup();
     await renderSettings();
     await screen.findByDisplayValue(initial.message);
     await user.clear(screen.getByLabelText("Message commun"));
     await user.type(screen.getByLabelText("Message commun"), "Mon brouillon");
+    const status = refusal === "stale-revision" ? 409 : refusal;
     mockFetch.mockImplementation(async (url, options) => {
       if (options?.method === "PATCH") {
         return json(
           {
-            type: "urn:blockout:problem:forbidden",
+            type:
+              refusal === "stale-revision"
+                ? "urn:blockout:problem:stale-revision"
+                : "urn:blockout:problem:forbidden",
             title: "Refused",
             status,
           },
@@ -502,7 +506,7 @@ it.each([403, 422])(
   },
 );
 it.each(["conflict", "lost", "invalid-response"])(
-  "rereads after %s and requires explicit resubmission without merging dirty fields",
+  "keeps dirty fields when invalidation finds a newer revision after %s",
   async (outcome) => {
     // Given
     const user = userEvent.setup();

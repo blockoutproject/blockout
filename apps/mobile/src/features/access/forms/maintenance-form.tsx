@@ -1,4 +1,3 @@
-import { ApiError } from "../../../shared/api/api-fetch";
 import { IconButton } from "../../../shared/components/icon-button";
 import { ImageFallback } from "../../../shared/components/image-fallback";
 import { LoadingGroup } from "../../../shared/components/loading-group";
@@ -75,14 +74,12 @@ export function MaintenanceForm({
   const validPreview =
     imageUrl !== "" && maintenanceImageSchema.safeParse(imageUrl).success;
 
-  /** Reports ordinary failures while newer revisions retain their separate reread prompt. */
-  function failed(error: unknown) {
+  /** Reports a failed action while preserving the mounted draft and accepted revision. */
+  function failed() {
     if (!mounted.current) {
       return;
     }
-    if (!(error instanceof ApiError && error.status === 409)) {
-      actionFeedback.error();
-    }
+    actionFeedback.error();
   }
 
   /** Submits supplied dirty content against its accepted editing revision, without activation. */
@@ -112,8 +109,8 @@ export function MaintenanceForm({
         baseline: accepted,
       });
       reset(maintenanceValues(accepted));
-    } catch (error) {
-      failed(error);
+    } catch {
+      failed();
     }
   }
 
@@ -147,8 +144,8 @@ export function MaintenanceForm({
       setState({
         baseline: accepted,
       });
-    } catch (error) {
-      failed(error);
+    } catch {
+      failed();
     }
   }
 

@@ -648,7 +648,7 @@ it("validates and saves division colors, gradient and name without touching acti
 });
 
 it.each(["conflict", "network", "schema"])(
-  "preserves dirty fields after %s and requires a successful read before explicit retry",
+  "preserves dirty fields after %s when ordinary invalidation finds a newer revision",
   async (outcome) => {
     // Given
     const user = userEvent.setup();
@@ -752,6 +752,46 @@ it.each(["conflict", "network", "schema"])(
     });
   },
 );
+
+it("keeps an unknown conflict as an ordinary failure with an editable draft", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderEditor();
+  await screen.findByDisplayValue("Current name");
+  await user.clear(screen.getByLabelText("Nom complet personnalisé"));
+  await user.type(
+    screen.getByLabelText("Nom complet personnalisé"),
+    "My draft",
+  );
+  mockFetch.mockImplementation(async (url, options) =>
+    options?.method === "PATCH"
+      ? json(
+          {
+            type: "urn:blockout:problem:conflict",
+            title: "Conflict",
+            status: 409,
+          },
+          409,
+        )
+      : respond(url, options),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("My draft")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Relire la présentation" }),
+  ).not.toBeOnTheScreen();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+  );
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(1);
+});
 
 it("keeps a dirty draft and the editing revision during background refetch", async () => {
   // Given

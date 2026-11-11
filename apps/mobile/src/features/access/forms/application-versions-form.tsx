@@ -1,5 +1,4 @@
 import { controlOpacity } from "../../../shared/components/control-styles";
-import { ApiError } from "../../../shared/api/api-fetch";
 import {
   ActionFeedbackProvider,
   useActionFeedback,
@@ -132,14 +131,12 @@ export function ApplicationVersionsForm({
       if (mounted.current) {
         setAcknowledged(undefined);
       }
-    } catch (error) {
-      if (!(error instanceof ApiError && error.status === 409)) {
-        actionFeedback.error();
-      }
+    } catch {
+      actionFeedback.error();
     }
   }
 
-  /** Reads the actual outcome and keeps dirty fields, without submitting or merging conflicting input. */
+  /** Adopts the current settings revision while preserving dirty fields for explicit resubmission. */
   async function reread() {
     actionFeedback.clear();
     const result = await (() => editing.query.refetch())();

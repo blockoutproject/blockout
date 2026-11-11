@@ -97,9 +97,7 @@ class SupportReceiptIntegrationTest {
     }
   }
 
-  /**
-   * Every expected provider write/read happens once; unconfirmed intake leaves no live originals.
-   */
+  /** Every expected provider write happens once; unconfirmed intake leaves no live originals. */
   @AfterEach
   void verifiesEffects() {
     provider.server().verify();
@@ -203,8 +201,9 @@ class SupportReceiptIntegrationTest {
   }
 
   /**
-   * Expects only creation, all-file completion and a secondary signal, with one bounded ambiguity
-   * read. No old-case search, upload replay, rollback or issue-body update is accepted.
+   * Expects creation, all-file completion and a secondary signal only after confirmed acceptance.
+   * No confirmation read, old-case search, upload replay, rollback or issue-body update is
+   * accepted.
    *
    * @param issue synthetic case number for this independent attempt
    * @param title immutable title selected before sending
@@ -253,19 +252,9 @@ class SupportReceiptIntegrationTest {
             withStatus(
                 scenario == Scenario.MARK_REFUSED
                     ? HttpStatus.FORBIDDEN
-                    : scenario.ambiguous() ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.OK));
-    if (scenario.ambiguous()) {
-      provider
-          .server()
-          .expect(requestTo(issueUrl + "/" + issue))
-          .andExpect(method(HttpMethod.GET))
-          .andRespond(
-              withSuccess(
-                  scenario == Scenario.MARK_AMBIGUOUS_COMPLETE
-                      ? "{\"labels\":[{\"name\":\"complete\"}]}"
-                      : "{\"labels\":[{\"name\":\"complete\"},{\"name\":\"incomplete\"}]}",
-                  MediaType.APPLICATION_JSON));
-    }
+                    : scenario == Scenario.MARK_UNCONFIRMED
+                        ? HttpStatus.SERVICE_UNAVAILABLE
+                        : HttpStatus.OK));
     if (scenario.accepted()) {
       provider
           .server()
@@ -362,22 +351,15 @@ class SupportReceiptIntegrationTest {
     COMPLETE,
     PARTIAL,
     MARK_REFUSED,
-    MARK_AMBIGUOUS_COMPLETE,
-    MARK_AMBIGUOUS_INCOMPLETE,
+    MARK_UNCONFIRMED,
     SIGNAL_FAILED,
     LOST_RESPONSE;
 
     /** Whether this backend attempt can confirm every attachment and its complete marking. */
     boolean accepted() {
       return this == Scenario.COMPLETE
-          || this == Scenario.MARK_AMBIGUOUS_COMPLETE
           || this == Scenario.SIGNAL_FAILED
           || this == Scenario.LOST_RESPONSE;
-    }
-
-    /** Whether a failed final label response permits one read of the already-known case. */
-    boolean ambiguous() {
-      return this == Scenario.MARK_AMBIGUOUS_COMPLETE || this == Scenario.MARK_AMBIGUOUS_INCOMPLETE;
     }
 
     /** Names the scenario for the single mobile process, without test-only production state. */

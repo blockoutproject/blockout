@@ -305,81 +305,93 @@ it("retains an incorrect draft through a background revision change and refuses 
   ).toHaveLength(0);
 });
 
-it("retains the draft after a definite refusal and can explicitly submit again", async () => {
-  // Given
-  const user = userEvent.setup();
-  mockFetch.mockImplementation((url, options) =>
-    options?.method === "POST"
-      ? Promise.resolve(refused(422))
-      : peer.reads(url, options),
-  );
-  await renderCollection(
-    <CloseSeasonScreen seasonId={seasonId} />,
-    client,
-    (cache) => {
-      privateClient = cache;
-    },
-  );
-  await user.type(
-    await screen.findByLabelText("Nom exact de la saison"),
-    "2026/2027",
-  );
+it.each([422, 409])(
+  "retains the draft after a definite %i refusal and can explicitly submit again",
+  async (status) => {
+    // Given
+    const user = userEvent.setup();
+    mockFetch.mockImplementation((url, options) =>
+      options?.method === "POST"
+        ? Promise.resolve(
+            json(
+              {
+                type: "urn:blockout:problem:conflict",
+                title: "Refused",
+                status,
+              },
+              status,
+            ),
+          )
+        : peer.reads(url, options),
+    );
+    await renderCollection(
+      <CloseSeasonScreen seasonId={seasonId} />,
+      client,
+      (cache) => {
+        privateClient = cache;
+      },
+    );
+    await user.type(
+      await screen.findByLabelText("Nom exact de la saison"),
+      "2026/2027",
+    );
 
-  // When
-  await user.press(
-    await screen.findByRole("button", { name: "Clôturer définitivement" }),
-  );
+    // When
+    await user.press(
+      await screen.findByRole("button", { name: "Clôturer définitivement" }),
+    );
 
-  // Then
-  expect(
-    await screen.findByText(
-      "Une erreur est survenue. Veuillez réessayer plus tard.",
-    ),
-  ).toBeOnTheScreen();
-  expect(screen.getByDisplayValue("2026/2027")).toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Clôturer définitivement" }),
-  ).toBeEnabled();
-  expect(
-    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
-  ).toHaveLength(1);
+    // Then
+    expect(
+      await screen.findByText(
+        "Une erreur est survenue. Veuillez réessayer plus tard.",
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.getByDisplayValue("2026/2027")).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Clôturer définitivement" }),
+    ).toBeEnabled();
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+    ).toHaveLength(1);
 
-  // When
-  mockFetch.mockImplementation((url, options) =>
-    options?.method === "POST"
-      ? Promise.resolve(
-          json(
-            (peer.season = { ...peer.season, revision: 6, state: "closed" }),
-          ),
-        )
-      : peer.reads(url, options),
-  );
-  await user.press(
-    screen.getByRole("button", { name: "Clôturer définitivement" }),
-  );
+    // When
+    mockFetch.mockImplementation((url, options) =>
+      options?.method === "POST"
+        ? Promise.resolve(
+            json(
+              (peer.season = { ...peer.season, revision: 6, state: "closed" }),
+            ),
+          )
+        : peer.reads(url, options),
+    );
+    await user.press(
+      screen.getByRole("button", { name: "Clôturer définitivement" }),
+    );
 
-  // Then
-  expect(
-    await screen.findByText("Saison clôturée · historique conservé"),
-  ).toBeOnTheScreen();
-  expect(
-    mockFetch.mock.calls
-      .filter(([, options]) => options?.method === "POST")
-      .map(([url, options]) => ({
-        path: new URL(String(url)).pathname,
-        body: JSON.parse(String(options?.body)),
-      })),
-  ).toEqual([
-    {
-      path: `/administration/collection-seasons/${seasonId}/closure`,
-      body: { revision: 5, confirmation: "2026/2027" },
-    },
-    {
-      path: `/administration/collection-seasons/${seasonId}/closure`,
-      body: { revision: 5, confirmation: "2026/2027" },
-    },
-  ]);
-});
+    // Then
+    expect(
+      await screen.findByText("Saison clôturée · historique conservé"),
+    ).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls
+        .filter(([, options]) => options?.method === "POST")
+        .map(([url, options]) => ({
+          path: new URL(String(url)).pathname,
+          body: JSON.parse(String(options?.body)),
+        })),
+    ).toEqual([
+      {
+        path: `/administration/collection-seasons/${seasonId}/closure`,
+        body: { revision: 5, confirmation: "2026/2027" },
+      },
+      {
+        path: `/administration/collection-seasons/${seasonId}/closure`,
+        body: { revision: 5, confirmation: "2026/2027" },
+      },
+    ]);
+  },
+);
 
 it("retains a failed draft while an ordinary refresh is unavailable", async () => {
   // Given

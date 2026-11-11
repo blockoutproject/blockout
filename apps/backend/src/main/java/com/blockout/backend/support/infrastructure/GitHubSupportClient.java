@@ -96,32 +96,7 @@ public final class GitHubSupportClient implements SupportCases {
           .retrieve()
           .toBodilessEntity();
     } catch (RestClientException failure) {
-      if (reason(failure) == Reason.UNCONFIRMED && confirmsComplete(issueNumber)) {
-        return;
-      }
       throw new SupportUnavailableException(Stage.COMPLETE, reason(failure), failure);
-    }
-  }
-
-  /**
-   * Reads only this attempt's known case once after an ambiguous marking, without replaying writes.
-   * Both intake labels mean incomplete; operator labels and open/closed state remain independent.
-   *
-   * @param issueNumber current known private case
-   * @return whether the complete label exists and the incomplete label is absent
-   */
-  private boolean confirmsComplete(long issueNumber) {
-    try {
-      IssueLabels issue =
-          http.get()
-              .uri(repositoryPath + "/issues/{issue}", issueNumber)
-              .retrieve()
-              .body(IssueLabels.class);
-      return issue != null
-          && hasLabel(issue.labels(), destination.completeLabel())
-          && !hasLabel(issue.labels(), destination.incompleteLabel());
-    } catch (RestClientException failure) {
-      return false;
     }
   }
 
@@ -169,10 +144,6 @@ public final class GitHubSupportClient implements SupportCases {
    */
   @JsonIgnoreProperties(ignoreUnknown = true)
   private record IssueCreated(long number, List<Label> labels) {}
-
-  /** Narrow current marking observation, used only during this same request. */
-  @JsonIgnoreProperties(ignoreUnknown = true)
-  private record IssueLabels(List<Label> labels) {}
 
   /** Provider label spelling; GitHub label identity is case insensitive. */
   @JsonIgnoreProperties(ignoreUnknown = true)

@@ -22,7 +22,6 @@ import {
   type ContributionValues,
 } from "../schemas/contribution-schema";
 import { contributionValues } from "./contribution-values";
-import { contributionErrorMessage } from "../api/contribution-errors";
 
 /** One mounted original-match address draft; normal RHF lifetime ends when the route is removed. */
 export interface ContributionFormProps {
@@ -111,7 +110,7 @@ export function ContributionForm({
           message: "Le lien a été refusé. Votre saisie est conservée.",
         });
       } else {
-        feedback.error(contributionErrorMessage(error));
+        feedback.error();
       }
     }
   }
@@ -140,11 +139,11 @@ export function ContributionForm({
     try {
       const accepted = await attempt;
       finish(accepted.contribution.url);
-    } catch (error) {
+    } catch {
       if (!mounted.current) {
         return;
       }
-      feedback.error(contributionErrorMessage(error));
+      feedback.error();
     }
   }
 

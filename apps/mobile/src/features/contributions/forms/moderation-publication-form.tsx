@@ -143,9 +143,7 @@ export function ModerationPublicationForm({
       }
     } catch {
       if (mounted.current) {
-        feedback.error(
-          "La publication n’a pas pu être confirmée. Votre saisie est conservée.",
-        );
+        feedback.error();
       }
     }
   }

@@ -1,4 +1,3 @@
-import { ApiError } from "../../../shared/api/api-fetch";
 import { SeasonIdentity, SourceBadge } from "../components/source-summary";
 import { Surface } from "../../../shared/components/surface";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
@@ -101,17 +100,10 @@ export function SourceCandidateForm({
     editor.update({ ...editor.state, editingUrl: false });
   }
 
-  /** Preserves candidate input and distinguishes revision conflicts from ordinary action failures. */
-  function failed(error: unknown) {
-    if (error instanceof ApiError && error.status === 409) {
-      editor.update({
-        ...editor.state,
-        feedback: "Le résultat doit être vérifié avant une nouvelle action.",
-      });
-    } else {
-      editor.update({ ...editor.state, feedback: undefined });
-      actionFeedback.error();
-    }
+  /** Reports a failed action without replacing the candidate draft or its accepted revision. */
+  function failed() {
+    editor.update({ ...editor.state, feedback: undefined });
+    actionFeedback.error();
   }
 
   /** Replaces only the candidate against its editing revision; a successful response invalidates old evidence. */
@@ -136,8 +128,8 @@ export function SourceCandidateForm({
             ? "Lien enregistré. La source doit être validée à nouveau."
             : undefined,
       });
-    } catch (error) {
-      failed(error);
+    } catch {
+      failed();
     }
   }
 
@@ -158,8 +150,8 @@ export function SourceCandidateForm({
         baseline: accepted,
         feedback: undefined,
       });
-    } catch (error) {
-      failed(error);
+    } catch {
+      failed();
     }
   }
 
@@ -205,8 +197,8 @@ export function SourceCandidateForm({
         baseline: accepted,
         feedback: undefined,
       });
-    } catch (error) {
-      failed(error);
+    } catch {
+      failed();
     }
   }
 

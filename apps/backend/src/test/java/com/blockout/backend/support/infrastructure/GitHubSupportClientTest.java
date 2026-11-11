@@ -162,49 +162,31 @@ class GitHubSupportClientTest {
     assertThat(calls.getLast().body()).isEmpty();
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"complete", "incomplete", "both", "unreadable", "lost"})
-  @DisplayName("Uses one known-issue read after an ambiguous final label response")
-  void resolvesOnlyCurrentAmbiguity(String observation) {
-    // Given
+  @Test
+  @DisplayName("Propagates lost final marking without a confirmation read or write replay")
+  void propagatesUnconfirmedFinalMarking() {
+    // Given: a lookup would report complete, but this failed attempt must not recover itself.
     server.createContext(
         "/",
         exchange -> {
           record(exchange);
           if (exchange.getRequestMethod().equals("GET")) {
-            String labels =
-                switch (observation) {
-                  case "complete", "lost" ->
-                      "[{\"name\":\"INTAKE COMPLETE\"},{\"name\":\"operator-label\"}]";
-                  case "both" ->
-                      "[{\"name\":\"intake complete\"},{\"name\":\"intake incomplete\"}]";
-                  default -> "[{\"name\":\"intake incomplete\"}]";
-                };
-            respond(
-                exchange,
-                observation.equals("unreadable") ? 503 : 200,
-                "{\"labels\":" + labels + "}");
+            respond(exchange, 200, "{\"labels\":[{\"name\":\"intake complete\"}]}");
           } else {
-            if (observation.equals("lost") && exchange.getRequestMethod().equals("DELETE")) {
-              try {
-                Thread.sleep(2_000);
-              } catch (InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-              }
-            }
             respond(exchange, exchange.getRequestMethod().equals("DELETE") ? 503 : 200, "[]");
           }
         });
 
     // When / Then
-    if (observation.equals("complete") || observation.equals("lost")) {
-      client().complete(17L);
-    } else {
-      assertThatThrownBy(() -> client().complete(17L))
-          .isInstanceOf(SupportUnavailableException.class);
-    }
-    assertThat(calls).extracting(Call::method).containsExactly("POST", "DELETE", "GET");
-    assertThat(calls.getLast().path()).isEqualTo("/repos/fictional-org/private-support/issues/17");
+    assertThatThrownBy(() -> client().complete(17L))
+        .isInstanceOfSatisfying(
+            SupportUnavailableException.class,
+            failure -> {
+              assertThat(failure.getStage()).isEqualTo(SupportUnavailableException.Stage.COMPLETE);
+              assertThat(failure.getReason())
+                  .isEqualTo(SupportUnavailableException.Reason.UNCONFIRMED);
+            });
+    assertThat(calls).extracting(Call::method).containsExactly("POST", "DELETE");
   }
 
   @ParameterizedTest

@@ -40,11 +40,12 @@ OwnCollection:
       - StreamSubmission
     summary: Submit a stream address
     description:
-      Requires the original usable owner account and a currently viewable match.
-      A stale revision returns 409 before duplicate detection; no effects. After an uncertain response, read
-      current state before a new explicit action. Rechecks seven-day account age, H−1, ownership and quotas.
-      Post-result submissions and unresolved hiding waits require approval. An identical current active or
-      pending address for this owner returns 200 without quota use; a new version returns 201.
+      Requires the original usable owner account and a currently viewable match. A stale revision
+      returns 409 before duplicate detection; no effects. A failed or lost response permits explicit
+      manual retry without a verification read. Rechecks seven-day account age, H−1, ownership and
+      quotas. Post-result submissions and unresolved hiding waits require approval. An identical
+      current active or pending address for this owner returns 200 without quota use; a new version
+      returns 201.
     requestBody:
       required: true
       description: Complete input for this atomic operation; unknown fields and null values are rejected.
@@ -346,12 +347,12 @@ AdministrationCollection:
       - StreamSubmission
     summary: Publish a stream address directly
     description:
-      Requires current stream-link moderation permission. Publication never bypasses sporting visibility
-      or professional restrictions. A stale revision returns
-      409 before duplicate detection; no effects. After an uncertain response, read current state before a
-      new explicit action. Verifies the original actor account. Bypasses ordinary age, time and quota rules.
-      Replaces the active version, supersedes pending alternatives and clears the report hold atomically. An
-      unchanged current address for this actor returns 200 without a new version; otherwise 201.
+      Requires current stream-link moderation permission. Publication never bypasses sporting
+      visibility or professional restrictions. A stale revision returns 409 before duplicate
+      detection; no effects. A failed or lost response permits explicit manual retry without a verification read. Verifies the original actor
+      account. Bypasses ordinary age, time and quota rules. Replaces the active version, supersedes
+      pending alternatives and clears the report hold atomically. An unchanged current address for
+      this actor returns 200 without a new version; otherwise 201.
     requestBody:
       required: true
       description: Complete input for this atomic operation; unknown fields and null values are rejected.
@@ -441,13 +442,13 @@ AdministrationMember:
       - StreamContributions
     summary: Decide a contribution version
     description:
-      Requires current stream-link moderation permission. Publication never bypasses sporting visibility
-      or professional restrictions. A stale revision returns
-      409 before duplicate detection; no effects. After an uncertain response, read current state before a
-      new explicit action. Verifies the original actor account. Approval selects a pending version, supersedes
-      all alternatives and clears the hold. Rejection changes only a pending proposal; withdrawal changes only
-      the active version. These latter actions do not clear an independent hold. A current repeated completed
-      transition has no new effect.
+      Requires current stream-link moderation permission. Publication never bypasses sporting
+      visibility or professional restrictions. A stale revision returns 409 before duplicate
+      detection; no effects. A failed or lost response permits explicit manual retry without a verification read. Verifies the original actor
+      account. Approval selects a pending version, supersedes all alternatives and clears the hold.
+      Rejection changes only a pending proposal; withdrawal changes only the active version. These
+      latter actions do not clear an independent hold. A current repeated completed transition has
+      no new effect.
     requestBody:
       required: true
       description: Complete input for this atomic operation; unknown fields and null values are rejected.
@@ -494,12 +495,12 @@ Reactivations:
       - StreamContributions
     summary: Reactivate a historical address
     description:
-      Requires current stream-link moderation permission. Publication never bypasses sporting visibility
-      or professional restrictions. A stale revision returns
-      409 before duplicate detection; no effects. After an uncertain response, read current state before a
-      new explicit action. Verifies the original actor account. Accepts rejected, withdrawn, hidden, replaced
-      or superseded versions. Creates a new active version with the remaining original owner and zero reports,
-      replaces the active link, supersedes pending alternatives and clears the hold. Uses no ordinary quota.
+      Requires current stream-link moderation permission. Publication never bypasses sporting
+      visibility or professional restrictions. A stale revision returns 409 before duplicate
+      detection; no effects. A failed or lost response permits explicit manual retry without a verification read. Verifies the original actor
+      account. Accepts rejected, withdrawn, hidden, replaced or superseded versions. Creates a new
+      active version with the remaining original owner and zero reports, replaces the active link,
+      supersedes pending alternatives and clears the hold. Uses no ordinary quota.
     requestBody:
       required: true
       description: Complete input for this atomic operation; unknown fields and null values are rejected.

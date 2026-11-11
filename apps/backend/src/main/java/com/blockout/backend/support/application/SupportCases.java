@@ -12,8 +12,8 @@ public interface SupportCases {
   long create(SupportCaseDraft draft);
 
   /**
-   * Changes only intake labels after all attachments succeed. One bounded read of this known case
-   * may establish an ambiguous final marking; no uploads or writes are replayed.
+   * Changes only intake labels after all attachments succeed. A failed or lost marking response
+   * propagates without a confirmation read or replaying uploads or writes.
    *
    * @param issueNumber case created during this request
    * @throws SupportUnavailableException when complete marking cannot be established

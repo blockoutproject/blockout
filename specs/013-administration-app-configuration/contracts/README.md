@@ -20,7 +20,7 @@ The same modular backend serves the native mobile. F12 owns settings/admission a
 
 Patch media type is `application/json`, with the explicitly described partial-change semantics, not an undocumented claim of JSON Merge Patch. Requests reject unknown properties; responses tolerate additive properties and validate known ones. Null removes only optional values; omission preserves them. Shape violations use 400; resulting-state violations use 422; stale revisions use 409. Do not translate body revision conflicts into HTTP-precondition 412. Accepted writes return the full current group, including no-op results; no asynchronous acceptance or job resource.
 
-GET is safe. Activation PUT specifies the desired value and never toggles. Retrying against an old revision can return 409 even if the desired value already exists; after an uncertain result, GET first. Relevant state changes advance the JPA revision and matching no-ops do not. Admin responses are partial for admission purposes: only the complete public read can establish ordinary access.
+GET is safe. Activation PUT specifies the desired value and never toggles. Retrying against an old revision can return 409 even if the desired value already exists; after a failed or lost response, retain editable input and ordinary failure feedback/invalidation and permit an explicit manual retry without a verification read. Relevant state changes advance the JPA revision and matching no-ops do not. Admin responses are partial for admission purposes: only the complete public read can establish ordinary access.
 
 ## Bypass and errors
 

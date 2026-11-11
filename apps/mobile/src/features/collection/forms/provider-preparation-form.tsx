@@ -1,4 +1,3 @@
-import { ApiError } from "../../../shared/api/api-fetch";
 import { SeasonIdentity, SourceBadge } from "../components/source-summary";
 import { Surface } from "../../../shared/components/surface";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
@@ -98,17 +97,10 @@ export function ProviderPreparationForm({
     editor.update({ ...editor.state, adding: false });
   }
 
-  /** Preserves mounted input and reports a server revision conflict distinctly. */
-  function failed(error: unknown) {
-    if (error instanceof ApiError && error.status === 409) {
-      editor.update({
-        ...editor.state,
-        feedback: "Le résultat doit être vérifié avant une nouvelle action.",
-      });
-    } else {
-      editor.update({ ...editor.state, feedback: undefined });
-      actionFeedback.error();
-    }
+  /** Reports a failed launch while preserving its selected sources and accepted revision. */
+  function failed() {
+    editor.update({ ...editor.state, feedback: undefined });
+    actionFeedback.error();
   }
 
   /** Presents the actual selected labels; a native confirmation never broadens the atomic launch scope. */
@@ -153,8 +145,8 @@ export function ProviderPreparationForm({
         selected: null,
         feedback: "Sources sélectionnées lancées.",
       });
-    } catch (error) {
-      failed(error);
+    } catch {
+      failed();
     }
   }
 

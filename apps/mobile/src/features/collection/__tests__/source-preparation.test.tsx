@@ -877,7 +877,7 @@ it("keeps a manual draft read-only when ordinary refresh establishes terminal se
   );
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await screen.findByText(
-    "Le résultat doit être vérifié avant une nouvelle action.",
+    "Une erreur est survenue. Veuillez réessayer plus tard.",
   );
   season = { ...season, revision: 6, state: "closed" };
 
@@ -1213,7 +1213,16 @@ it("retains the manual supported-source draft after a duplicate conflict", async
   );
   await user.type(screen.getByLabelText("URL officielle"), candidateUrl);
   mockFetch.mockImplementation(async (url, options) =>
-    options?.method === "POST" ? refused(409) : reads(url),
+    options?.method === "POST"
+      ? json(
+          {
+            type: "urn:blockout:problem:conflict",
+            title: "Conflict",
+            status: 409,
+          },
+          409,
+        )
+      : reads(url),
   );
 
   // When
@@ -1221,10 +1230,11 @@ it("retains the manual supported-source draft after a duplicate conflict", async
 
   // Then
   await screen.findByText(
-    "Le résultat doit être vérifié avant une nouvelle action.",
+    "Une erreur est survenue. Veuillez réessayer plus tard.",
   );
   expect(screen.getByDisplayValue("137")).toBeOnTheScreen();
   expect(screen.getByDisplayValue(candidateUrl)).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
 });
 
 it("shows a server refusal after grant revocation while retaining a read-only draft", async () => {

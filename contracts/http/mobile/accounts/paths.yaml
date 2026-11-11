@@ -122,8 +122,9 @@ Member:
     description:
       Saves supplied username and photo changes atomically for the usable owner. Omitted
       fields preserve current values, including concurrent changes. Supplied values replace the last
-      accepted value; no revision token is required. After an uncertain response, read this account
-      before an explicit retry.
+      accepted value; no revision token is required. A lost response may follow a committed change.
+      Clients may submit again explicitly without a preceding verification read; commands are not
+      retried automatically.
     responses:
       "400":
         $ref: ../../common/problems.yaml#/responses/BadRequest

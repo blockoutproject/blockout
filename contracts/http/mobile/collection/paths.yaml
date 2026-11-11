@@ -70,10 +70,10 @@ Closure:
       - Collection
     summary: Close a season definitively
     description:
-      Requires current global collection-management permission. Requires the exact displayed
-      label. Cancels unstarted work; already-running cycles may finish once. Other seasons and club controls
-      are unchanged. No reopening. Stale revisions return 409 without changes. Read current state after
-      an uncertain result before an explicit retry.
+      Requires current global collection-management permission. Requires the exact displayed label.
+      Cancels unstarted work; already-running cycles may finish once. Other seasons and club
+      controls are unchanged. No reopening. Stale revisions return 409 without changes. A failed or
+      lost response permits explicit manual retry without a verification read.
     responses:
       "200":
         description: Season closed; already admitted work may finish.
@@ -125,11 +125,11 @@ Launch:
     summary: Launch qualified sources
     description:
       Requires current global collection-management permission. Atomically locks the selected
-      qualified sources in a preparing or active season and activates that season. Already periodically
-      launched sources are unchanged. References locked by initial reconstruction may be activated without
-      editing them. Mapping readiness is irrelevant; pauses are preserved. Repeating already-launched
-      selection has no extra effect. Stale revisions return 409 without changes. Read current state after
-      an uncertain result before an explicit retry.
+      qualified sources in a preparing or active season and activates that season. Already
+      periodically launched sources are unchanged. References locked by initial reconstruction may
+      be activated without editing them. Mapping readiness is irrelevant; pauses are preserved.
+      Repeating already-launched selection has no extra effect. Stale revisions return 409 without
+      changes. A failed or lost response permits explicit manual retry without a verification read.
     responses:
       "200":
         description: Current season after activation of the selected sources.
@@ -217,11 +217,11 @@ Sources:
       - CollectionSources
     summary: Add a missing supported source
     description:
-      Requires current global collection-management permission. Creates an unqualified organizer/championship
-      candidate only in an open season. The collector must qualify its supported scope before launch.
-      Rejects duplicate bindings; existing
-      locked bindings are never replaced. Stale revisions return 409 without changes. Read current state
-      after an uncertain result before an explicit retry.
+      Requires current global collection-management permission. Creates an unqualified
+      organizer/championship candidate only in an open season. The collector must qualify its
+      supported scope before launch. Rejects duplicate bindings; existing locked bindings are never
+      replaced. Stale revisions return 409 without changes. A failed or lost response permits
+      explicit manual retry without a verification read.
     responses:
       "201":
         description: Missing supported source binding created.
@@ -317,10 +317,10 @@ Candidate:
       - CollectionSources
     summary: Replace an unlaunched source candidate
     description:
-      Requires current global collection-management permission. Replaces the URL and clears
-      its old qualification. Locked sources and closed seasons refuse changes; no provider call occurs
-      in this write. Stale revisions return 409 without changes. Read current state after an uncertain
-      result before an explicit retry.
+      Requires current global collection-management permission. Replaces the URL and clears its old
+      qualification. Locked sources and closed seasons refuse changes; no provider call occurs in
+      this write. Stale revisions return 409 without changes. A failed or lost response permits
+      explicit manual retry without a verification read.
     responses:
       "200":
         description: Candidate URL saved; prior qualification cleared when changed.
@@ -371,11 +371,12 @@ Validation:
       - CollectionSources
     summary: Request source qualification
     description:
-      Requires current global collection-management permission. Accepts one pending validation
-      for the exact current candidate in an open season. It does not prove qualification or a start time.
-      Read the source binding to observe the result; repeated pending requests create no duplicate. Stale
-      revisions return 409 without changes. Read current state after an uncertain result before an explicit
-      retry. A new explicit request replaces an obsolete interrupted validation; it is not automatically replayed.
+      Requires current global collection-management permission. Accepts one pending validation for
+      the exact current candidate in an open season. It does not prove qualification or a start
+      time. Read the source binding to observe the result; repeated pending requests create no
+      duplicate. Stale revisions return 409 without changes. A failed or lost response permits
+      explicit manual retry without a verification read. A new explicit request replaces an obsolete
+      interrupted validation; it is not automatically replayed.
     responses:
       "202":
         description: Validation request accepted or already pending; qualification is not yet established.
@@ -426,10 +427,10 @@ Confirmation:
       - CollectionSources
     summary: Confirm missing source season
     description:
-      Requires current global collection-management permission. Accepts explicit attribution
-      only for compatible input lacking seasonal proof. Wrong host, format or contradictory season cannot
-      be overridden; locked/closed sources refuse changes. Stale revisions return 409 without changes.
-      Read current state after an uncertain result before an explicit retry.
+      Requires current global collection-management permission. Accepts explicit attribution only
+      for compatible input lacking seasonal proof. Wrong host, format or contradictory season cannot
+      be overridden; locked/closed sources refuse changes. Stale revisions return 409 without
+      changes. A failed or lost response permits explicit manual retry without a verification read.
     responses:
       "200":
         description: Missing seasonal attribution confirmed for the current candidate.
@@ -555,9 +556,9 @@ Activity:
     summary: Set collection activity
     description:
       Requires current global collection-management permission. Pause cancels pending unstarted
-      collection and drains the current cycle. Resume restores ordinary eligibility without catch-up,
-      source unlocking or request replay. Stale revisions return 409 without changes. Read current state
-      after an uncertain result before an explicit retry.
+      collection and drains the current cycle. Resume restores ordinary eligibility without
+      catch-up, source unlocking or request replay. Stale revisions return 409 without changes. A
+      failed or lost response permits explicit manual retry without a verification read.
     responses:
       "200":
         description: Desired activity saved; pending work cancelled when paused.
@@ -608,11 +609,12 @@ Requests:
       - Collection
     summary: Request one collection passage
     description:
-      Requires current global collection-management permission. Returns 202 for an accepted
-      or already pending request, 200 for an existing running cycle. Neither adds duplicate work. Activity is checked before returning existing work. Paused,
-      pausing, unlaunched or closed competition scopes refuse the request. Read the control to observe
-      admission/result; there is no individual pool or club rerun. Stale revisions return 409 without
-      changes. Read current state after an uncertain result before an explicit retry.
+      Requires current global collection-management permission. Returns 202 for an accepted or
+      already pending request, 200 for an existing running cycle. Neither adds duplicate work.
+      Activity is checked before returning existing work. Paused, pausing, unlaunched or closed
+      competition scopes refuse the request. Read the control to observe admission/result; there is
+      no individual pool or club rerun. Stale revisions return 409 without changes. A failed or lost
+      response permits explicit manual retry without a verification read.
     responses:
       "202":
         description: Collection request accepted or already pending.

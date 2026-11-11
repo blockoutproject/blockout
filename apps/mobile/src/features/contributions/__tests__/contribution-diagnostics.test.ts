@@ -1,11 +1,6 @@
 import * as Sentry from "@sentry/react-native";
 import { createStreamContribution } from "../../../../.generated/mobile";
-import {
-  ApiError,
-  isUncertainMutationFailure,
-} from "../../../shared/api/api-fetch";
 import { initializeSentry } from "../../../shared/observability/sentry";
-import { contributionErrorMessage } from "../api/contribution-errors";
 
 jest.mock("@sentry/react-native", () => ({
   init: jest.fn(),
@@ -29,82 +24,40 @@ afterEach(() => {
   process.env = { ...previous };
 });
 
-it.each([
-  { status: 403, uncertain: false },
-  { status: 409, uncertain: false },
-  { status: 422, uncertain: false },
-  { status: 500, uncertain: true },
-  { status: 503, uncertain: true },
-])(
-  "keeps HTTP $status distinct from mutation uncertainty without exposing private problem content",
-  async ({ status, uncertain }) => {
-    // Given
-    mockFetch.mockResolvedValue(
-      Response.json(
-        {
-          type: "urn:blockout:problem:conflict",
-          title: "Failure",
-          status,
-          detail: privateContent,
-          instance: privateContent,
-          identity: privateContent,
-        },
-        { status, headers: { "Content-Type": "application/problem+json" } },
-      ),
-    );
-
-    // When
-    const failure = await createStreamContribution(
-      "00000000-0000-4000-8000-000000000001",
-      "00000000-0000-4000-8000-000000000002",
+it("does not send private rejected contribution content to automatic diagnostics", async () => {
+  // Given
+  mockFetch.mockResolvedValue(
+    Response.json(
       {
-        revision: "viewed",
-        url: "https://youtu.be/private?token=synthetic-secret",
+        type: "urn:blockout:problem:conflict",
+        title: "Failure",
+        status: 503,
+        detail: privateContent,
+        instance: privateContent,
+        identity: privateContent,
       },
-    ).catch((error: unknown) => error);
+      {
+        status: 503,
+        headers: { "Content-Type": "application/problem+json" },
+      },
+    ),
+  );
 
-    // Then
-    expect(failure).toBeInstanceOf(ApiError);
-    expect(isUncertainMutationFailure(failure)).toBe(uncertain);
-    expect(contributionErrorMessage(failure)).toBe(
-      status === 409
-        ? "La contribution a changé. Vérifiez les données avant une nouvelle action."
-        : "La contribution est indisponible. Votre saisie est conservée.",
-    );
-    expect(contributionErrorMessage(failure)).not.toMatch(
-      /synthetic-secret|private-reason|auth0\|private|provider-payload|youtu.be/,
-    );
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-    expect(Sentry.captureException).not.toHaveBeenCalled();
-  },
-);
+  // When
+  const failure = await createStreamContribution(
+    "00000000-0000-4000-8000-000000000001",
+    "00000000-0000-4000-8000-000000000002",
+    {
+      revision: "viewed",
+      url: "https://youtu.be/private?token=synthetic-secret",
+    },
+  ).catch((error: unknown) => error);
 
-it.each(["network", "schema"] as const)(
-  "retains safe %s failure classification without claiming rollback or retrying",
-  async (kind) => {
-    // Given
-    if (kind === "network") {
-      mockFetch.mockRejectedValue(new TypeError(privateContent));
-    } else {
-      mockFetch.mockResolvedValue(
-        Response.json({ contribution: privateContent }),
-      );
-    }
-
-    // When
-    const failure = await createStreamContribution(
-      "00000000-0000-4000-8000-000000000001",
-      "00000000-0000-4000-8000-000000000002",
-      { revision: "viewed", url: "https://youtu.be/example" },
-    ).catch((error: unknown) => error);
-
-    // Then
-    expect(failure).toMatchObject({ kind });
-    expect(isUncertainMutationFailure(failure)).toBe(true);
-    expect(JSON.stringify(failure)).not.toContain("private");
-    expect(mockFetch).toHaveBeenCalledTimes(1);
-  },
-);
+  // Then
+  expect(failure).toMatchObject({ kind: "http", status: 503 });
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(Sentry.captureException).not.toHaveBeenCalled();
+});
 
 it("F13 retains diagnostic event correlation and packaged source coordinates while stripping all contribution content", async () => {
   // Given

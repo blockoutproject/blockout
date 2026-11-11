@@ -218,41 +218,29 @@ export function PresentationForm({
     }
   }
 
-  /** Preserves the current draft and routes rejected writes to their existing field or read feedback. */
+  /** Preserves the draft and reports image or name corrections at their field; other failures use ordinary feedback. */
   function handleSaveError(error: unknown) {
+    editor.update({
+      ...editor.state,
+      feedback: undefined,
+    });
     if (
       error instanceof ApiError &&
-      error.status === 409 &&
-      error.problem?.type !== "urn:blockout:problem:conflict"
+      (error.problem?.type === "urn:blockout:problem:invalid-image" ||
+        error.status === 413)
     ) {
-      editor.update({
-        ...editor.state,
-        feedback:
-          "Le résultat doit être vérifié. Relisez la présentation avant de réessayer.",
+      setError("logo", {
+        message:
+          "Ce logo ne peut pas être enregistré. Choisissez une autre image.",
       });
+    } else if (
+      isDivision &&
+      error instanceof ApiError &&
+      error.problem?.type === "urn:blockout:problem:conflict"
+    ) {
+      setError("name", { message: "Ce nom de division est déjà utilisé." });
     } else {
-      editor.update({
-        ...editor.state,
-        feedback: undefined,
-      });
-      if (
-        error instanceof ApiError &&
-        (error.problem?.type === "urn:blockout:problem:invalid-image" ||
-          error.status === 413)
-      ) {
-        setError("logo", {
-          message:
-            "Ce logo ne peut pas être enregistré. Choisissez une autre image.",
-        });
-      } else if (
-        isDivision &&
-        error instanceof ApiError &&
-        error.problem?.type === "urn:blockout:problem:conflict"
-      ) {
-        setError("name", { message: "Ce nom de division est déjà utilisé." });
-      } else {
-        actionFeedback.error();
-      }
+      actionFeedback.error();
     }
   }
 
@@ -318,17 +306,9 @@ export function PresentationForm({
           : "Division désactivée. L’historique est conservé.",
       });
       editor.reset(presentationValues(accepted), true);
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 409) {
-        editor.update({
-          ...editor.state,
-          feedback:
-            "L’action n’a pas abouti. Relisez l’état courant avant de réessayer.",
-        });
-      } else {
-        editor.update({ ...editor.state, feedback: undefined });
-        actionFeedback.error();
-      }
+    } catch {
+      editor.update({ ...editor.state, feedback: undefined });
+      actionFeedback.error();
     }
   }
 

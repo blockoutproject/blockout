@@ -672,11 +672,14 @@ it("refreshes after conflict without transferring the old confirmation to a new 
       context = { ...context, revision: "concurrent" };
       return Response.json(
         {
-          type: "urn:blockout:problem:conflict",
+          type: "urn:blockout:problem:stale-revision",
           title: "Conflict",
           status: 409,
         },
-        { status: 409 },
+        {
+          status: 409,
+          headers: { "Content-Type": "application/problem+json" },
+        },
       );
     }
     return boundary(url, init);
@@ -696,7 +699,7 @@ it("refreshes after conflict without transferring the old confirmation to a new 
   // Then
   expect(
     await screen.findByText(
-      "La contribution a changé. Vérifiez les données avant une nouvelle action.",
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
     ),
   ).toBeOnTheScreen();
   expect(pages).toEqual([0, 0]);

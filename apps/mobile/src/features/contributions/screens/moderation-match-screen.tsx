@@ -146,9 +146,7 @@ export function ModerationMatchScreen({
       }
     } catch {
       if (mounted.current) {
-        feedback.error(
-          "La décision n’a pas pu être confirmée. Actualisez avant une nouvelle décision.",
-        );
+        feedback.error();
       }
     }
   }

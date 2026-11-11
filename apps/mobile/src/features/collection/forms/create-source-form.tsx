@@ -1,4 +1,3 @@
-import { ApiError } from "../../../shared/api/api-fetch";
 import { tokens } from "../../../shared/theme/tokens";
 import { Controller } from "react-hook-form";
 import { StyleSheet, View } from "react-native";
@@ -53,16 +52,9 @@ export function CreateSourceForm({
         adding: false,
         feedback: "Source ajoutée. Relisez l’état avant une nouvelle action.",
       });
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 409) {
-        editor.update({
-          ...editor.state,
-          feedback: "Le résultat doit être vérifié avant une nouvelle action.",
-        });
-      } else {
-        editor.update({ ...editor.state, feedback: undefined });
-        actionFeedback.error();
-      }
+    } catch {
+      editor.update({ ...editor.state, feedback: undefined });
+      actionFeedback.error();
     }
   }
 
