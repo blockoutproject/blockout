@@ -1199,7 +1199,7 @@ function AccessProbe() {
       <AccessGateScreen />
       <Text>
         {account.isSuccess &&
-        account.data.permissions.manageSportingPresentation
+        account.data?.permissions.manageSportingPresentation
           ? "Presentation authority available"
           : "Authority pending"}
       </Text>

@@ -382,12 +382,21 @@ it("keeps missing-email establishment unusable until an explicit account retry w
       return Response.json(applicationAccessResponse());
     }
     return Response.json(
+      String(url).endsWith("/accounts")
+        ? {
+            type: "urn:blockout:problem:provider-email-unavailable",
+            title: "Unavailable",
+            status: 422,
+          }
+        : {
+            type: "urn:blockout:problem:not-found",
+            title: "Not found",
+            status: 404,
+          },
       {
-        type: "urn:blockout:problem:provider-email-unavailable",
-        title: "Unavailable",
-        status: 422,
+        status: String(url).endsWith("/accounts") ? 422 : 404,
+        headers: { "Content-Type": "application/problem+json" },
       },
-      { status: String(url).endsWith("/accounts") ? 422 : 404 },
     );
   });
   const user = userEvent.setup();
@@ -425,7 +434,17 @@ it("keeps missing-email establishment unusable until an explicit account retry w
     }
     return mockAccountExists
       ? Response.json(mockAccount)
-      : new Response(null, { status: 404 });
+      : Response.json(
+          {
+            type: "urn:blockout:problem:not-found",
+            title: "Not found",
+            status: 404,
+          },
+          {
+            status: 404,
+            headers: { "Content-Type": "application/problem+json" },
+          },
+        );
   });
   await user.press(screen.getByRole("button", { name: "Créer mon compte" }));
 

@@ -751,7 +751,19 @@ it.each([
   async (initialUrl, reason) => {
     // Given: account reads and session state remain real; only HTTP/native I/O fails.
     if (reason === "missing account") {
-      mockFetch.mockResolvedValue(new Response(null, { status: 404 }));
+      mockFetch.mockResolvedValue(
+        Response.json(
+          {
+            type: "urn:blockout:problem:not-found",
+            title: "Not found",
+            status: 404,
+          },
+          {
+            status: 404,
+            headers: { "Content-Type": "application/problem+json" },
+          },
+        ),
+      );
     } else {
       mockAuth0.getCredentials.mockRejectedValue({
         code: "invalid_grant",
@@ -888,47 +900,50 @@ it.each([503, 403])(
   },
 );
 
-it("removes the complete overview after a current account refusal and restores it only after successful retry", async () => {
-  // Given
-  const user = userEvent.setup();
-  await openProfile();
-  await screen.findByText(account.username);
-  mockFetch.mockResolvedValue(new Response(null, { status: 403 }));
+it.each([401, 403, 404])(
+  "withdraws the overview after HTTP %i until a successful fresh read",
+  async (status) => {
+    // Given
+    const user = userEvent.setup();
+    await openProfile();
+    await screen.findByText(account.username);
+    mockFetch.mockResolvedValue(new Response(null, { status }));
 
-  // When
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    // When
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
-  // Then
-  await screen.findByRole("alert", { name: "Une erreur est survenue" });
-  expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
-  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
-  expect(screen.queryByText(account.username)).not.toBeOnTheScreen();
-  expect(
-    screen.queryByRole("header", { name: "Mon compte" }),
-  ).not.toBeOnTheScreen();
-  expect(
-    screen.queryByRole("header", { name: "Informations légales" }),
-  ).not.toBeOnTheScreen();
+    // Then
+    await screen.findByRole("alert", { name: "Une erreur est survenue" });
+    expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+    expect(screen.queryByText(account.username)).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("header", { name: "Mon compte" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("header", { name: "Informations légales" }),
+    ).not.toBeOnTheScreen();
 
-  // When
-  mockFetch.mockRejectedValue(new TypeError("Network unavailable"));
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    // When
+    mockFetch.mockRejectedValue(new TypeError("Network unavailable"));
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
-  // Then
-  await screen.findByRole("button", { name: "Réessayer", busy: false });
-  expect(screen.queryByText(account.username)).not.toBeOnTheScreen();
+    // Then
+    await screen.findByRole("button", { name: "Réessayer", busy: false });
+    expect(screen.queryByText(account.username)).not.toBeOnTheScreen();
 
-  // When
-  mockFetch.mockResolvedValue(Response.json(account));
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    // When
+    mockFetch.mockResolvedValue(Response.json(account));
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
-  // Then
-  expect(await screen.findByText(account.username)).toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Modifier mon profil" }),
-  ).toBeEnabled();
-  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
-});
+    // Then
+    expect(await screen.findByText(account.username)).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Modifier mon profil" }),
+    ).toBeEnabled();
+    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+  },
+);
 
 it("retains the accepted overview after a technical refresh failure without an inline error card", async () => {
   // Given

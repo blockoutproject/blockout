@@ -18,6 +18,7 @@ import {
 } from "../api/use-current-account";
 import { PublicAccountLinks } from "../components/public-account-links";
 import { useGuestNavigation } from "../hooks/use-guest-navigation";
+import { isAccountMissing } from "../api/current-account-query";
 
 /**
  * Presents first member waiting/recovery after public admission; the root owns route admission.
@@ -43,7 +44,7 @@ export function MemberAdmissionScreen() {
       account.errorUpdatedAt === 0 &&
       !establishment.isPending);
   const missing =
-    (session.subject !== null && refusal?.status === 404) ||
+    (session.subject !== null && isAccountMissing(refusal)) ||
     establishment.isPending;
   const reauthentication = session.status === "reauthentication-required";
   const primaryPending = establishment.isPending || account.isFetching;

@@ -63,14 +63,14 @@ function useModerationAuthority() {
     session.status === "authenticated" &&
     profile.data?.accountId === session.accountId &&
     !isAccessDenied(profile.error) &&
-    profile.data.permissions?.moderateStreamLinks === true;
+    profile.data?.permissions?.moderateStreamLinks === true;
   const allowed = canRetain && profile.isSuccess;
   const client = useQueryClient();
   // These are this feature's generated HTTP resources, not a cross-cache propagation registry.
   useEffect(() => {
     if (
       profile.isSuccess &&
-      profile.data.permissions?.moderateStreamLinks !== true
+      profile.data?.permissions?.moderateStreamLinks !== true
     ) {
       client.removeQueries({
         predicate: (query) => isModerationResource(query.queryKey[0]),

@@ -15,7 +15,7 @@ import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useProfilePhoto } from "../api/use-profile-editing";
 import { StyleSheet, Text, View } from "react-native";
-import { ApiError } from "../../../shared/api/api-fetch";
+import { isAccountMissing } from "../api/current-account-query";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { AdministrationEntry } from "../../access/entry";
@@ -71,8 +71,7 @@ export function ProfileScreen({
   const { colors } = useTheme();
   const { saving, refresh } = useProfileRefresh(account);
   const connected = session.status === "authenticated";
-  const missing =
-    account.error instanceof ApiError && account.error.status === 404;
+  const missing = isAccountMissing(account.error);
   const recovery = accountSessionRecovery(session);
 
   /** Keeps whole-page account/session recovery separate from an already admitted profile. */
@@ -147,7 +146,7 @@ export function ProfileScreen({
           <DataRefreshControl enabled={!saving} onRefresh={refresh} />
         ) : undefined
       }
-      account={connected ? account.data : undefined}
+      account={connected ? (account.data ?? undefined) : undefined}
       disabled={!account.isSuccess}
       membershipStatus={membershipStatus}
       onEdit={() => router.push("/profile/edit")}
@@ -155,6 +154,7 @@ export function ProfileScreen({
     >
       {connected &&
         account.isSuccess &&
+        account.data &&
         account.data.principalCreatedAt === null && <AccountAgeRetry />}
       <AdministrationEntry />
       <View style={styles.group}>

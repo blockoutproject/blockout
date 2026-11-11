@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Text } from "react-native";
+import { AppState, Text, type AppStateStatus } from "react-native";
 import {
   act,
   cleanup,
@@ -690,6 +690,13 @@ it.each(["grant-withdrawal", "mandatory-update"])(
   "removes an already bypassed support form after %s",
   async (restriction) => {
     // Given
+    const listeners = new Set<(state: AppStateStatus) => void>();
+    jest
+      .spyOn(AppState, "addEventListener")
+      .mockImplementation((_, listener) => {
+        listeners.add(listener);
+        return { remove: () => listeners.delete(listener) };
+      });
     mockAuth0.hasValidCredentials.mockResolvedValue(true);
     account.permissions = { bypassMaintenance: true };
     access.maintenance = {
@@ -710,8 +717,9 @@ it.each(["grant-withdrawal", "mandatory-update"])(
       };
     }
 
-    // When: native Query focus recovery reads the current owners, without injecting their context.
+    // When: foreground rereads the account owner; Query focus rereads public access.
     await act(() => {
+      listeners.forEach((listener) => listener("active"));
       focusManager.setFocused(false);
       focusManager.setFocused(true);
     });

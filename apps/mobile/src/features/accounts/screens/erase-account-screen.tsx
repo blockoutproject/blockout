@@ -32,6 +32,7 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useOrdinaryRequest } from "../../access/ordinary-request";
 import { useCurrentAccount } from "../api/use-current-account";
+import { isAccountMissing } from "../api/current-account-query";
 import { accountSessionRecovery } from "../session/account-session-recovery";
 import { useAccountSession } from "../session/account-session-provider";
 
@@ -53,10 +54,9 @@ export function EraseAccountScreen({
   const needsSignIn =
     session.status !== "initialization-error" &&
     session.status !== "authentication-error" &&
-    (session.status !== "authenticated" ||
-      (account.error instanceof ApiError && account.error.status === 404));
+    (session.status !== "authenticated" || isAccountMissing(account.error));
   // This route's target survives an ordinary current-account refresh, including absence or replacement.
-  if (!originalAccountId && account.isSuccess) {
+  if (!originalAccountId && account.isSuccess && account.data) {
     setOriginalAccountId(account.data.accountId);
   }
   const recovery = accountSessionRecovery(session);
@@ -180,7 +180,7 @@ function ErasureConfirmation({
     router.replace("/");
   }
 
-  /** Only original-resource absence confirms removal; a mismatched successful response remains unavailable. */
+  /** Only typed original-resource absence confirms removal; a mismatched successful response remains unavailable. */
   async function readOriginal(options: Parameters<typeof getAccount>[1]) {
     try {
       const original = await getAccount(accountId, options);
@@ -189,7 +189,7 @@ function ErasureConfirmation({
       }
       return false;
     } catch (error) {
-      if (error instanceof ApiError && error.status === 404) {
+      if (isAccountMissing(error)) {
         return true;
       }
       throw error;
@@ -205,7 +205,7 @@ function ErasureConfirmation({
       await eraseAccount(accountId, options);
       return true;
     } catch (error) {
-      if (error instanceof ApiError && error.status === 404) {
+      if (isAccountMissing(error)) {
         return true;
       } else {
         if (!isUncertainMutationFailure(error)) {

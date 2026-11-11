@@ -5,6 +5,7 @@ import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
 import { nativeImageChoiceAction } from "../../../shared/native/test-support/native-image-choices";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import {
   act,
@@ -407,7 +408,7 @@ it.each([401, 403])(
     // Then
     expect(mockFetch).toHaveBeenCalledTimes(1);
     expect(
-      await screen.findByRole("progressbar", { name: "Chargement du profil" }),
+      await screen.findByRole("button", { name: "Réessayer", busy: true }),
     ).toBeOnTheScreen();
     expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
 
@@ -715,6 +716,91 @@ it("uses the accepted profile result before returning from the editor", async ()
   expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
 });
 
+it("keeps confirmed profile fields and newer permissions when the following account read fails", async () => {
+  // Given: Query and RHF remain real, including a concurrent authorized account read.
+  const user = userEvent.setup();
+  await mountProfile();
+  await screen.findByDisplayValue("Original");
+  await user.clear(screen.getByLabelText("Pseudo"));
+  await user.type(screen.getByLabelText("Pseudo"), "Chosen");
+  const response = Promise.withResolvers<Response>();
+  const newer = {
+    ...account,
+    permissions: { ...account.permissions, moderateStreamLinks: true },
+  };
+  mockFetch.mockImplementation(async (_url, request) =>
+    request?.method === "PATCH" ? response.promise : json(newer),
+  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  await user.press(screen.getByRole("button", { name: "Relire le compte" }));
+  await waitFor(() =>
+    expect(client.getQueryData(getGetMyAccountQueryKey())).toEqual(newer),
+  );
+
+  // When: the PATCH confirms the name with older permissions; its independent invalidation fails.
+  mockFetch.mockResolvedValue(json({ title: "Unavailable", status: 503 }, 503));
+  await act(() => response.resolve(json({ ...account, username: "Chosen" })));
+
+  // Then
+  await waitFor(() =>
+    expect(client.getQueryState(getGetMyAccountQueryKey())?.status).toBe(
+      "error",
+    ),
+  );
+  expect(client.getQueryData(getGetMyAccountQueryKey())).toEqual({
+    ...newer,
+    username: "Chosen",
+  });
+  expect(screen.getByDisplayValue("Chosen")).toBeOnTheScreen();
+  expect(mockNavigate).toHaveBeenCalledTimes(1);
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PATCH"),
+  ).toHaveLength(1);
+});
+
+it.each(["refused", "replacement"] as const)(
+  "does not restore an obsolete profile after its owner is %s during a save",
+  async (outcome) => {
+    // Given
+    const user = userEvent.setup();
+    await mountProfile();
+    await screen.findByDisplayValue("Original");
+    await user.clear(screen.getByLabelText("Pseudo"));
+    await user.type(screen.getByLabelText("Pseudo"), "Chosen");
+    const response = Promise.withResolvers<Response>();
+    const replacement = {
+      ...account,
+      accountId: "00000000-0000-4000-8000-000000000174",
+      username: "Replacement",
+    };
+    mockFetch.mockImplementation(async (_url, request) =>
+      request?.method === "PATCH"
+        ? response.promise
+        : outcome === "refused"
+          ? json({ title: "Forbidden", status: 403 }, 403)
+          : json(replacement),
+    );
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+    await user.press(screen.getByRole("button", { name: "Relire le compte" }));
+    await waitFor(() =>
+      expect(client.getQueryData(getGetMyAccountQueryKey())).toEqual(
+        outcome === "refused" ? null : replacement,
+      ),
+    );
+
+    // When
+    await act(() => response.resolve(json({ ...account, username: "Chosen" })));
+
+    // Then
+    await waitFor(() => expect(client.isMutating()).toBe(0));
+    expect(client.getQueryData(getGetMyAccountQueryKey())).toEqual(
+      outcome === "refused" ? null : replacement,
+    );
+    expect(screen.queryByDisplayValue("Chosen")).not.toBeOnTheScreen();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  },
+);
+
 it.each(["keep", "replace"] as const)(
   "refreshes the displayed remote photo while preserving a %s draft",
   async (intent) => {
@@ -934,6 +1020,46 @@ it("sends one atomic multipart save with JSON metadata and no omitted photo", as
   expect((entries[0][1] as Blob).type).toBe("application/json");
   expect(await (entries[0][1] as Blob).text()).toBe('{"username":"Chosen"}');
 });
+
+it.each([
+  { status: 422, type: "invalid-image" },
+  { status: 413, type: "payload-too-large" },
+  { status: 415, type: "unsupported-media-type" },
+])(
+  "routes $type to the photo field and keeps the username",
+  async ({ status, type }) => {
+    // Given: real form, Query and decoded Problem Details; only HTTPS is controlled.
+    const user = userEvent.setup();
+    await mountProfile();
+    await screen.findByDisplayValue("Original");
+    await user.clear(screen.getByLabelText("Pseudo"));
+    await user.type(screen.getByLabelText("Pseudo"), "Chosen");
+    mockFetch.mockImplementation(async (_url, request) =>
+      request?.method === "PATCH"
+        ? json(
+            { type: `urn:blockout:problem:${type}`, title: "Rejected", status },
+            status,
+          )
+        : json(account),
+    );
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+    // Then
+    expect(
+      await screen.findByText(
+        "Cette photo ne peut pas être enregistrée. Choisissez une autre image.",
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.getByDisplayValue("Chosen")).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+    expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([, request]) => request?.method === "PATCH"),
+    ).toHaveLength(1);
+  },
+);
 
 it("retains a dirty draft on background refetch and whole-save username refusal", async () => {
   // Given

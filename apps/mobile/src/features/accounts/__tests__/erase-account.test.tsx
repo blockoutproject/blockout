@@ -424,7 +424,14 @@ it("uses original absence after response loss to leave without repeating deletio
     if (request?.method === "DELETE") {
       throw new TypeError("Lost response");
     }
-    return new Response(null, { status: 404 });
+    return Response.json(
+      {
+        type: "urn:blockout:problem:not-found",
+        title: "Not found",
+        status: 404,
+      },
+      { status: 404, headers: { "Content-Type": "application/problem+json" } },
+    );
   });
   await user.press(screen.getByRole("checkbox"));
 
@@ -439,6 +446,41 @@ it("uses original absence after response loss to leave without repeating deletio
     mockFetch.mock.calls.filter(([, request]) => request?.method === "DELETE"),
   ).toHaveLength(1);
 });
+
+it.each(["DELETE", "GET"])(
+  "does not confirm original-account deletion from an untyped %s 404",
+  async (responseMethod) => {
+    // Given
+    const user = await openErasure();
+    mockFetch.mockClear().mockImplementation(async (_url, request) => {
+      if (request?.method === "DELETE" && responseMethod === "GET") {
+        throw new TypeError("Lost response");
+      }
+      return new Response(null, { status: 404 });
+    });
+    await user.press(screen.getByRole("checkbox"));
+
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Supprimer mon compte" }),
+    );
+
+    // Then
+    expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
+    expect(screen).toHavePathname("/profile/erase");
+    expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+    expect(
+      mockFetch.mock.calls.filter(
+        ([, request]) => request?.method === "DELETE",
+      ),
+    ).toHaveLength(1);
+    if (responseMethod === "GET") {
+      expect(
+        screen.getByRole("button", { name: "Vérifier la suppression" }),
+      ).toBeEnabled();
+    }
+  },
+);
 
 it("offers local departure after an unavailable reread without claiming deletion", async () => {
   // Given
@@ -487,7 +529,17 @@ it.each(["absent", "replacement"])(
     // When
     mockFetch.mockResolvedValue(
       state === "absent"
-        ? new Response(null, { status: 404 })
+        ? Response.json(
+            {
+              type: "urn:blockout:problem:not-found",
+              title: "Not found",
+              status: 404,
+            },
+            {
+              status: 404,
+              headers: { "Content-Type": "application/problem+json" },
+            },
+          )
         : Response.json({
             ...account,
             accountId: "00000000-0000-4000-8000-000000000999",
@@ -499,9 +551,19 @@ it.each(["absent", "replacement"])(
         exact: true,
       }),
     );
-    mockFetch
-      .mockClear()
-      .mockResolvedValue(new Response(null, { status: 404 }));
+    mockFetch.mockClear().mockResolvedValue(
+      Response.json(
+        {
+          type: "urn:blockout:problem:not-found",
+          title: "Not found",
+          status: 404,
+        },
+        {
+          status: 404,
+          headers: { "Content-Type": "application/problem+json" },
+        },
+      ),
+    );
     await user.press(
       screen.getByRole("button", { name: "Vérifier la suppression" }),
     );

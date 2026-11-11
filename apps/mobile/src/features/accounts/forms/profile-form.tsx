@@ -186,7 +186,11 @@ export function ProfileForm({
         setError("username", { message: "Ce pseudo est déjà utilisé." });
       } else if (
         error instanceof ApiError &&
-        error.problem?.type === "urn:blockout:problem:invalid-image"
+        [
+          "urn:blockout:problem:invalid-image",
+          "urn:blockout:problem:payload-too-large",
+          "urn:blockout:problem:unsupported-media-type",
+        ].includes(error.problem?.type ?? "")
       ) {
         setError("photo", {
           message:

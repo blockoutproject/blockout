@@ -718,7 +718,16 @@ it("establishes a missing account only from its explicit creation action", async
       return json(operator, 201);
     }
     if (String(url).endsWith("/accounts/me")) {
-      return established ? json(operator) : new Response(null, { status: 404 });
+      return established
+        ? json(operator)
+        : json(
+            {
+              type: "urn:blockout:problem:not-found",
+              title: "Not found",
+              status: 404,
+            },
+            404,
+          );
     }
     return String(url).endsWith("/notifications/summary")
       ? json({ unreadCount: 0 })

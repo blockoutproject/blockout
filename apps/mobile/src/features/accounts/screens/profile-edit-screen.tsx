@@ -6,7 +6,7 @@ import { LogIn } from "lucide-react-native";
 import { StyleSheet } from "react-native";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 
-import { ApiError } from "../../../shared/api/api-fetch";
+import { isAccountMissing } from "../api/current-account-query";
 import { Button } from "../../../shared/components/button";
 import { useCurrentAccount } from "../api/use-current-account";
 import { ProfileForm } from "../forms/profile-form";
@@ -33,8 +33,7 @@ export function ProfileEditScreen({
   const router = useRouter();
   const navigation = useNavigation();
   const { saving, refresh } = useProfileRefresh(account, true);
-  const missing =
-    account.error instanceof ApiError && account.error.status === 404;
+  const missing = isAccountMissing(account.error);
 
   /** Pops only the profile stack, including a save acknowledged while another tab is active. The route anchors direct entries. */
   function close() {

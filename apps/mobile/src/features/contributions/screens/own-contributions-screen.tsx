@@ -221,7 +221,7 @@ export function OwnContributionsScreen({
         </FeedbackLayout>
       );
     }
-    if (!editing.profile.data) {
+    if (!editing.profile.data || (editing.profile.isError && !current)) {
       return (
         <FeedbackLayout style={pending ? undefined : styles.feedback}>
           <ReadFeedback
