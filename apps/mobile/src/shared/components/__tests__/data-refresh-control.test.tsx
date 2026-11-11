@@ -91,3 +91,43 @@ it("keeps native pull progress and the Android child until the explicit read com
     await act(() => response.resolve());
   }
 });
+
+it("removes native pull progress while the owning read is suspended without disposing the retained field", async () => {
+  // Given: the feature reports actual Query activity separately from the gesture's unresolved promise.
+  const response = Promise.withResolvers<void>();
+  const refresh = jest.fn(() => response.promise);
+  const view = (fetching: boolean) => (
+    <ThemeProvider>
+      <DataRefreshControl onRefresh={refresh} fetching={fetching}>
+        <Draft />
+      </DataRefreshControl>
+    </ThemeProvider>
+  );
+  const result = await render(view(true));
+  await userEvent.type(screen.getByLabelText("Draft"), "Retained");
+
+  try {
+    // When: userEvent cannot express a native pull.
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await result.rerender(view(false));
+
+    // Then
+    expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+    expect(screen.getByDisplayValue("Retained")).toBeOnTheScreen();
+    expect(refresh).toHaveBeenCalledTimes(1);
+
+    // When
+    await result.rerender(view(true));
+
+    // Then
+    expect(screen.getByLabelText("Actualiser les données")).toBeBusy();
+
+    // When
+    await act(() => response.resolve());
+
+    // Then
+    expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+  } finally {
+    await act(() => response.resolve());
+  }
+});

@@ -112,9 +112,9 @@ it.each(["resource", "season"] as const)(
 );
 
 it.each([401, 403, 404, 503])(
-  "preserves refusal %i without a public retry or successful empty value",
+  "preserves HTTP failure %i without a public fallback or successful empty value",
   async (status) => {
-    // Given
+    // Given: repeated technical failures use the common policy; timing is qualified by the factory suite.
     const session = { subject: null, accountId: null };
     const queries = createConsultationQueries(
       session,
@@ -126,12 +126,12 @@ it.each([401, 403, 404, 503])(
     const options = queries.match(sportingId);
     try {
       // When
-      const result = client.query(options);
+      const result = client.query({ ...options, retryDelay: 0 });
 
       // Then
       await expect(result).rejects.toMatchObject({ kind: "http", status });
       expect(client.getQueryData(options.queryKey)).toBeUndefined();
-      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledTimes(status === 503 ? 4 : 1);
     } finally {
       client.clear();
     }

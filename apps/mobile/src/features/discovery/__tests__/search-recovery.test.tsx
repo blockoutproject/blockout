@@ -35,6 +35,7 @@ import {
 } from "@testing-library/react-native";
 import SearchLayout from "../../../app/(ordinary)/(tabs)/search/_layout";
 import { SearchScreen } from "../screens/search-screen";
+import { createDiscoveryContext } from "../api/discovery-context";
 import { SearchFilters } from "../components/search-filters";
 import { SearchFilterChoice } from "../components/search-filter-choice";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
@@ -252,7 +253,7 @@ function PoolChildRead() {
 }
 
 it.each([401, 403, 404, "network"] as const)(
-  "keeps benign text cards until their own refresh after a detail %s outcome",
+  "keeps the Search-owned failure and cached pages independent of a detail %s outcome",
   async (outcome) => {
     // Given: the exact F03 route is opened externally; card activation belongs to T031.
     const user = userEvent.setup();
@@ -260,6 +261,9 @@ it.each([401, 403, 404, "network"] as const)(
     await user.press(screen.getByRole("tab", { name: "Clubs" }));
     await user.paste(screen.getByLabelText("Rechercher"), "Volley");
     await screen.findByText("Niort");
+    const cached = client.getQueryData(
+      createDiscoveryContext("club", { q: "Volley" }).queryKey,
+    );
     mockFetch.mockImplementation((url: string) =>
       new URL(url).pathname.endsWith("/clubs")
         ? Promise.reject(new TypeError("offline"))
@@ -292,9 +296,17 @@ it.each([401, 403, 404, "network"] as const)(
     await screen.findByRole("alert");
     await act(async () => router.back());
 
-    // Then: detail failures preserve the accepted collection and its current criteria.
-    expect(screen.getByText("Lyon")).toBeOnTheScreen();
-    expect(screen.getByText("Niort")).toBeOnTheScreen();
+    // Then: detail failures cannot rewrite the Search owner's pages, criteria or failed-read outcome.
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Une erreur est survenue",
+    );
+    expect(screen.queryByText("Lyon")).not.toBeOnTheScreen();
+    expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
+    expect(
+      client.getQueryData(
+        createDiscoveryContext("club", { q: "Volley" }).queryKey,
+      ),
+    ).toEqual(cached);
     expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
     expect(
       mockFetch.mock.calls.filter(([url]) =>
@@ -365,7 +377,7 @@ it("opens the existing support form from failed Search without publishing the ed
   expect(mockFetch).toHaveBeenCalledTimes(reads);
 });
 
-it("keeps both authorized pages after a failed reread and explicitly retries the whole traversal", async () => {
+it("keeps both authorized pages in Query while its failed read card retries the whole traversal", async () => {
   // Given: accepted pages and their cursor belong to the same real infinite Query.
   const user = userEvent.setup();
   await renderSearch();
@@ -415,8 +427,8 @@ it("keeps both authorized pages after a failed reread and explicitly retries the
 
   // Then
   const retry = await screen.findByRole("button", { name: "Réessayer" });
-  expect(screen.getByText("Niort")).toBeOnTheScreen();
-  expect(screen.getByText("Dernier club")).toBeOnTheScreen();
+  expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
+  expect(screen.queryByText("Dernier club")).not.toBeOnTheScreen();
   expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
   expect(
     client.getQueriesData({
@@ -430,17 +442,13 @@ it("keeps both authorized pages after a failed reread and explicitly retries the
       /Aucun résultat|Fin des résultats|private upstream payload/,
     ),
   ).not.toBeOnTheScreen();
-  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "Une erreur est survenue",
+  );
   expect(
     screen.queryByRole("button", { name: /Actualiser|Rafraîchir/ }),
   ).not.toBeOnTheScreen();
-  const attempts = mockFetch.mock.calls.length;
-  await fireEvent(screen.getByLabelText("Résultats de recherche"), "refresh");
-  await fireEvent(
-    screen.getByLabelText("Résultats de recherche"),
-    "endReached",
-  );
-  expect(mockFetch).toHaveBeenCalledTimes(attempts);
+  expect(screen.queryByLabelText("Résultats de recherche")).toBeNull();
   const reread = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url: string) =>
     new URL(url).pathname.endsWith("/clubs")
@@ -452,8 +460,8 @@ it("keeps both authorized pages after a failed reread and explicitly retries the
   await user.press(retry);
 
   // Then: an exhausted traversal's reread cannot announce another page.
-  expect(screen.getByText("Niort")).toBeOnTheScreen();
-  expect(screen.getByText("Dernier club")).toBeOnTheScreen();
+  expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
+  expect(screen.queryByText("Dernier club")).not.toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Réessayer" })).toBeDisabled();
   expect(
     screen.queryByRole("progressbar", { name: "Chargement de la suite…" }),
@@ -587,7 +595,7 @@ it("does not present a retained empty response as certain absence after a failed
   expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
 });
 
-it("offers safe recovery without a loading announcement for a paused new search key", async () => {
+it("leaves a paused first Clubs read honest without a skeleton, false error or empty state", async () => {
   // Given: admission and current catalogues settle before the network pauses.
   const user = userEvent.setup();
   await renderSearch();
@@ -603,9 +611,15 @@ it("offers safe recovery without a loading announcement for a paused new search 
   );
 
   // Then
-  expect(
-    await screen.findByRole("button", { name: "Réessayer", busy: false }),
-  ).toBeOnTheScreen();
+  await waitFor(() =>
+    expect(
+      client.getQueryState(
+        createDiscoveryContext("club", { q: "Paused context" }).queryKey,
+      )?.fetchStatus,
+    ).toBe("paused"),
+  );
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+  expect(screen.queryByRole("alert")).toBeNull();
   expect(screen.queryByRole("progressbar")).toBeNull();
   expect(screen.queryByText("Aucun résultat pour ces critères")).toBeNull();
   expect(mockFetch).not.toHaveBeenCalled();
@@ -683,7 +697,7 @@ it("retries a failed initial read through its card without losing criteria", asy
 });
 
 it.each([401, 403, 404])(
-  "retains benign cards and retry after an established HTTP %i refusal",
+  "masks the failed Clubs content after an established HTTP %i refusal",
   async (status) => {
     // Given: collection refusal is qualified here; propagation from F03 restrictions belongs to T038.
     const user = userEvent.setup();
@@ -710,7 +724,10 @@ it.each([401, 403, 404])(
     expect(
       await screen.findByRole("button", { name: "Réessayer" }),
     ).toBeEnabled();
-    expect(screen.getByText("Niort")).toBeOnTheScreen();
+    expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Une erreur est survenue",
+    );
     expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
     expect(
       screen.queryByText("Aucun résultat pour ces critères"),
@@ -924,7 +941,9 @@ it("cancels a pending append when a reread fails without admitting its late page
   expect(
     await screen.findByRole("button", { name: "Réessayer" }),
   ).toBeOnTheScreen();
-  expect(screen.getByText("Niort")).toBeOnTheScreen();
+  expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
   expect(screen.queryByText("Page obsolète")).not.toBeOnTheScreen();
-  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "Une erreur est survenue",
+  );
 });

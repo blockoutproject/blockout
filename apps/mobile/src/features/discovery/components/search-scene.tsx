@@ -27,9 +27,16 @@ export interface SearchSceneProps {
   items: readonly SearchResult[];
   emptyDescription: string;
   emptyAction: ReactNode;
+  /** The text Clubs reference keeps its explicit safe-read intent in the parent query owner. */
+  onRetryClubs?: () => Promise<unknown>;
+  retryingClubs?: boolean;
 }
 
-/** Retains accepted cards and retries the failed Query operation without introducing another read owner. */
+/**
+ * Keeps queries and criteria in their existing owners while presenting each tab's content.
+ * The text Clubs reference masks failed results and resumes its safe read or failed cursor;
+ * the other discovery consumers retain their feature-owned adoption boundary.
+ */
 export function SearchScene({
   resource,
   criteria,
@@ -41,6 +48,8 @@ export function SearchScene({
   items: textItems,
   emptyDescription,
   emptyAction,
+  onRetryClubs,
+  retryingClubs = false,
 }: Readonly<SearchSceneProps>) {
   const visit = useSearchVisit();
   const query = examples ? exampleQuery : textQuery;
@@ -51,6 +60,10 @@ export function SearchScene({
   const sporting = resource === "club" ? undefined : visit[resource];
   const filters = sporting?.filters;
   const resultsReady = (searchable || examples) && (!sporting || !!filters);
+  const clubsReference = resource === "club" && !examples;
+  const clubsFailed =
+    clubsReference &&
+    (query.isError || (query.isPending && query.errorUpdatedAt > 0));
 
   /** The visible valid context owns continuation; explicit retry may resume its failed cursor. */
   async function loadMore() {
@@ -67,13 +80,26 @@ export function SearchScene({
     await textQuery.fetchNextPage({ cancelRefetch: false });
   }
 
-  const error = searchReadError(
-    query,
-    textQuery,
-    examples,
-    items.length === 0,
-    active,
-    loadMore,
+  const error = clubsReference ? (
+    clubsFailed ? (
+      <ErrorState
+        onRetry={
+          active && query.isEnabled && onRetryClubs
+            ? () => void onRetryClubs()
+            : undefined
+        }
+        retrying={retryingClubs && query.fetchStatus === "fetching"}
+      />
+    ) : undefined
+  ) : (
+    searchReadError(
+      query,
+      textQuery,
+      examples,
+      items.length === 0,
+      active,
+      loadMore,
+    )
   );
   const filtersPending = sporting?.query.isFetching ?? false;
   const initialLoading = (
@@ -89,14 +115,21 @@ export function SearchScene({
         void sportingNavigation.navigate(kind, identity.id);
       }}
       examples={examples}
-      items={resultsReady ? items : []}
+      items={resultsReady && !clubsFailed ? items : []}
+      preserveScrollPosition={clubsReference}
       onEndReached={() => {
         if (!query.isError) {
           loadMore();
         }
       }}
       emptyComponent={
-        searchable || examples ? (
+        (searchable || examples) &&
+        !(
+          clubsReference &&
+          query.isPending &&
+          !query.isFetching &&
+          !clubsFailed
+        ) ? (
           <SearchEmptyFeedback
             filtersMissing={!!sporting && !filters}
             filtersPending={filtersPending}
@@ -105,7 +138,7 @@ export function SearchScene({
                 ? () => void sporting.query.refetch()
                 : undefined
             }
-            loading={query.isPending && query.isFetching}
+            loading={query.isPending && query.isFetching && !clubsFailed}
             initialLoading={initialLoading}
             error={error}
             examples={examples}
@@ -115,11 +148,11 @@ export function SearchScene({
         ) : null
       }
       continuation={
-        resultsReady && query.data
+        resultsReady && query.data && !clubsFailed
           ? searchContinuation({
               examples,
               textQuery,
-              failed: query.isError,
+              failed: clubsReference ? false : query.isError,
               fetching: query.isFetching,
               active,
               loadMore,

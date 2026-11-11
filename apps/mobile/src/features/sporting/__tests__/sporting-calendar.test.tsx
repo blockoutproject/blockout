@@ -867,7 +867,7 @@ it("reports a failed active cursor and retries the same boundary from its footer
 });
 
 it("does not append from a covered or inactive calendar", async () => {
-  // Given: two complete days arrive through the real Query owner, with a controlled continuation failure.
+  // Given: the real calendar has accepted rows and an available continuation.
   calendar = { ...calendar, nextDay: "2026-09-21" };
   mockFetch.mockImplementation(async (url: string) =>
     new URL(url).pathname.endsWith("/application-access")
@@ -1270,7 +1270,7 @@ it("changes calendar category with the native horizontal pager without rereading
   ).toHaveLength(1);
 });
 
-it("admits the team's useful composition only after identity and first standings resolve", async () => {
+it("admits team identity and independent tabs while its first standings remain pending", async () => {
   // Given: the real team and standings observers are held at their HTTP boundaries.
   const teamRead = Promise.withResolvers<Response>();
   const standingsRead = Promise.withResolvers<Response>();
@@ -1330,7 +1330,7 @@ it("admits the team's useful composition only after identity and first standings
       ),
     ).toHaveLength(0);
 
-    // When: the known participation mounts its actual first scene behind the initial presentation.
+    // When: common identity admits the page and its known participation starts its own read.
     await act(() => teamRead.resolve(Response.json(team)));
     await screen.findAllByRole("tab", { includeHiddenElements: true });
     await layoutNativeTabs();
@@ -1342,17 +1342,21 @@ it("admits the team's useful composition only after identity and first standings
       ).toHaveLength(1),
     );
 
-    // Then: the still-incomplete page owns one announcement and exposes no partial identity or tabs.
+    // Then: only the standings scene waits; common identity and independent tabs remain usable.
     expect(
       screen.getByRole("progressbar", {
-        name: "Chargement de l’équipe",
+        name: "Chargement du classement",
       }),
     ).toBeOnTheScreen();
     expect(screen.getAllByRole("progressbar")).toHaveLength(1);
-    expect(screen.queryByRole("tab")).not.toBeOnTheScreen();
-    expect(screen.queryByText("Team awaiting admission")).not.toBeOnTheScreen();
     expect(
-      screen.queryByRole("progressbar", { name: "Chargement du classement" }),
+      screen.getByRole("tab", { name: "Pool", selected: true }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getAllByText("Team awaiting admission").length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.queryByRole("progressbar", { name: "Chargement de l’équipe" }),
     ).not.toBeOnTheScreen();
     expect(
       mockFetch.mock.calls.filter(
@@ -1360,7 +1364,23 @@ it("admits the team's useful composition only after identity and first standings
       ),
     ).toHaveLength(0);
 
-    // When
+    // When: the user opens an independent calendar before the standings read settles.
+    const user = userEvent.setup();
+    await user.press(screen.getByRole("tab", { name: "À venir" }));
+
+    // Then: that calendar is usable without completing or replacing the standings read.
+    expect(
+      await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    ).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(url).pathname.endsWith("/standings"),
+      ),
+    ).toHaveLength(1);
+
+    // When: the user returns to the original scene and its held read succeeds.
+    await user.press(screen.getByRole("tab", { name: "Pool" }));
+
     await act(() => standingsRead.resolve(Response.json(standings)));
 
     // Then

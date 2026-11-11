@@ -70,24 +70,10 @@ function TeamPage({
   const tab = tabs.some((item) => item.id === selected)
     ? selected
     : (data?.participations[0]?.pool.id ?? "upcoming");
-  const participation = data?.participations.find(
-    (entry) => entry.pool.id === tab,
-  );
-  const standings = useQuery({
-    ...queries.standings(participation?.pool.id ?? ""),
-    enabled: false,
-  });
   const upcoming = useSportingCalendar(
     { teamId, category: "upcoming" },
     !!data && tab === "upcoming",
   );
-  const activeRead = data
-    ? participation && !renderStandings
-      ? standings
-      : tab === "upcoming"
-        ? upcoming.calendar
-        : undefined
-    : undefined;
   /** One shared identity owns its club link and the single follow lifetime above all scenes. */
   const identity = data ? (
     <SportingIdentity
@@ -108,12 +94,7 @@ function TeamPage({
     <SportingInitialComposition
       detail={team}
       follow={initialFollow}
-      active={activeRead}
-      activeUnavailable={
-        !!participation &&
-        !renderStandings &&
-        standings.data?.availability === "unavailable"
-      }
+      replaceOnFailure
       header={
         <PageHeader
           title="L’équipe"

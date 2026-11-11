@@ -8,11 +8,16 @@ import {
   createDiscoveryQueryOptions,
 } from "./discovery-queries";
 
-/** Observes the visible text context through native Query; stale benign cards wait for their own refresh. */
+/**
+ * Observes the visible text context through native Query and its ordinary freshness policy.
+ * A card-triggered read may retain its existing observer across tab changes until it settles.
+ * Changed keys still cancel obsolete contexts through Query's consumed signal.
+ */
 export function useDiscoveryQuery(
   resource: DiscoveryResource,
   input: Omit<ListTeamsParams, "cursor">,
   active = true,
+  retainExplicitRead = false,
 ) {
   const session = useAccountSession();
   const admission = useOrdinaryRequest();
@@ -23,7 +28,10 @@ export function useDiscoveryQuery(
     admission,
     session.getCredentials,
   );
-  return useInfiniteQuery({ ...options, subscribed: active });
+  return useInfiniteQuery({
+    ...options,
+    subscribed: active || retainExplicitRead,
+  });
 }
 
 /**

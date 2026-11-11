@@ -12,10 +12,10 @@ import {
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { FlatList } from "react-native";
 import { router, Stack } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { DiscoveryPage } from "../api/discovery-queries";
+import { createDiscoveryContext } from "../api/discovery-context";
 import { uniqueSearchResults } from "../model/search-result";
 import {
   act,
@@ -398,7 +398,7 @@ it("announces each namesake with its available public context", async () => {
 });
 
 it.each(["network", "schema", "http"])(
-  "keeps loaded namesakes through %s append failure and retries the same cursor before reaching a real end",
+  "masks namesakes after %s append failure and restores the same cursor before reaching a real end",
   async (failure) => {
     // Given
     const pending = Promise.withResolvers<Response>();
@@ -412,6 +412,8 @@ it.each(["network", "schema", "http"])(
     await user.press(screen.getByRole("tab", { name: "Clubs" }));
     await user.paste(screen.getByLabelText("Rechercher"), "Volley");
     await screen.findByText("Niort");
+    const queryKey = createDiscoveryContext("club", { q: "Volley" }).queryKey;
+    const accepted = client.getQueryData<InfiniteData<DiscoveryPage>>(queryKey);
 
     // When
     await fireEvent(
@@ -452,48 +454,74 @@ it.each(["network", "schema", "http"])(
         pending.resolve(Response.json({ status: 500 }, { status: 500 }));
       }
     });
-    const retry = await screen.findByRole("button", {
-      name: "Réessayer",
+    // Then: failed content is masked while Query retains its accepted pages and cursor.
+    const card = await screen.findByRole("alert", {
+      name: "Une erreur est survenue",
     });
+    const retry = screen.getByRole("button", { name: "Réessayer" });
+    expect(screen.getByText("Veuillez réessayer plus tard.")).toBeOnTheScreen();
+    expect(screen.queryByLabelText("Résultats de recherche")).toBeNull();
+    expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
+    expect(screen.queryByText("Lyon")).not.toBeOnTheScreen();
     expect(
-      screen.queryByRole("alert", {
-        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-      }),
+      screen.queryByRole("header", { name: "2 résultats chargés" }),
     ).toBeNull();
-    expect(screen.getByText("Une erreur est survenue.")).toBeOnTheScreen();
-    const attempts = mockFetch.mock.calls.length;
-    await fireEvent(
-      screen.getByLabelText("Résultats de recherche"),
-      "endReached",
-    );
-
-    // Then: reaching the edge again must not silently replay the failed page.
-    expect(mockFetch).toHaveBeenCalledTimes(attempts);
-    expect(screen.getByText("Niort")).toBeOnTheScreen();
+    expect(screen.queryByRole("button", { name: /^Effacer$/ })).toBeNull();
+    expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Effacer la recherche" }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("tab", { name: "Clubs", selected: true }),
+    ).toBeOnTheScreen();
+    expect(client.getQueryData(queryKey)).toEqual(accepted);
     expect(
       screen.queryByText(/Fin des résultats|private transport diagnostic/),
     ).not.toBeOnTheScreen();
+    const recovery = Promise.withResolvers<Response>();
     mockFetch.mockImplementation((url: string) =>
       new URL(url).searchParams.has("cursor")
-        ? Promise.resolve(
-            Response.json({
-              clubs: [
-                { club: { id: firstId.toUpperCase(), name: "Volley actuel" } },
-                {
-                  club: {
-                    id: "cccccccc-0000-4000-8000-000000000003",
-                    name: "Volley",
-                  },
-                  city: "Tours",
-                },
-              ],
-            }),
-          )
+        ? recovery.promise
         : publicReads(url),
     );
 
     // When
     await user.press(retry);
+
+    // Then: explicit Retry retains the same card, not the failed-page footer or old rows.
+    expect(card).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: true }),
+    ).toBeDisabled();
+    expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("progressbar", { name: "Chargement de la suite…" }),
+    ).toBeNull();
+    expect(client.getQueryData(queryKey)).toEqual(accepted);
+    await user.press(retry);
+    expect(
+      mockFetch.mock.calls
+        .filter(([url]) => new URL(String(url)).searchParams.has("cursor"))
+        .map(([url]) => new URL(String(url)).searchParams.get("cursor")),
+    ).toEqual(["next", "next"]);
+
+    // When: a successful continuation accepts changed namesakes and genuine exhaustion.
+    await act(() =>
+      recovery.resolve(
+        Response.json({
+          clubs: [
+            { club: { id: firstId.toUpperCase(), name: "Volley actuel" } },
+            {
+              club: {
+                id: "cccccccc-0000-4000-8000-000000000003",
+                name: "Volley",
+              },
+              city: "Tours",
+            },
+          ],
+        }),
+      ),
+    );
 
     // Then
     expect(
@@ -506,6 +534,10 @@ it.each(["network", "schema", "http"])(
     expect(
       screen.queryByRole("button", { name: /Réessayer/ }),
     ).not.toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(
+      client.getQueryData<InfiniteData<DiscoveryPage>>(queryKey)?.pageParams,
+    ).toEqual([undefined, "next"]);
     const completedAttempts = mockFetch.mock.calls.length;
     await fireEvent(
       screen.getByLabelText("Résultats de recherche"),
@@ -590,7 +622,8 @@ it("opens the selected namesake and retains context and loaded pages on return",
   await user.press(screen.getByRole("tab", { name: "Clubs" }));
   await user.paste(screen.getByLabelText("Rechercher"), "Volley");
   await screen.findByText("Niort");
-  const scroll = jest.spyOn(FlatList.prototype, "scrollToOffset");
+  const queryKey = createDiscoveryContext("club", { q: "Volley" }).queryKey;
+  const accepted = client.getQueryData<InfiniteData<DiscoveryPage>>(queryKey);
 
   // When
   await user.press(screen.getByRole("link", { name: "Volley, Niort" }));
@@ -607,7 +640,7 @@ it("opens the selected namesake and retains context and loaded pages on return",
   expect(
     screen.getByRole("header", { name: "2 résultats chargés" }),
   ).toBeOnTheScreen();
-  expect(scroll).not.toHaveBeenCalled();
+  expect(client.getQueryData(queryKey)).toEqual(accepted);
   expect(mockFetch).not.toHaveBeenCalled();
 });
 

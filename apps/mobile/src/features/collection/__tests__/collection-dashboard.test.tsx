@@ -98,7 +98,7 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-it("presents a paused first collection read as retryable without loading or an empty success", async () => {
+it("does not invent an Error, Empty or active loading before a suspended first collection read runs", async () => {
   // Given: identity is already usable before the ordinary list is opened offline.
   const view = await renderCollection(<AccountActions />, client, (cache) => {
     privateClient = cache;
@@ -112,16 +112,19 @@ it("presents a paused first collection read as retryable without loading or an e
   // When
   await view.rerender(<CollectionDashboardScreen />);
 
-  // Then
+  // Then: a first suspended read has no failure or successful empty result to present.
+  await waitFor(() =>
+    expect(
+      privateClient.getQueryState(getListCollectionSeasonsQueryKey())
+        ?.fetchStatus,
+    ).toBe("paused"),
+  );
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   expect(
-    await screen.findByRole("button", { name: "Réessayer", busy: false }),
-  ).toBeOnTheScreen();
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
   expect(screen.queryByText("Aucune saison découverte")).not.toBeOnTheScreen();
-  expect(
-    privateClient.getQueryState(getListCollectionSeasonsQueryKey())
-      ?.fetchStatus,
-  ).toBe("paused");
   expect(
     mockFetch.mock.calls.some(([url]) =>
       new URL(String(url)).pathname.endsWith("/collection-seasons"),
@@ -135,6 +138,11 @@ it("presents a paused first collection read as retryable without loading or an e
   expect(
     await screen.findByRole("link", { name: /2026\/2027/ }),
   ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(String(url)).pathname.endsWith("/collection-seasons"),
+    ),
+  ).toHaveLength(1);
 });
 
 it("reloads empty seasons from their card and recovers a failed read without losing the cached envelope", async () => {

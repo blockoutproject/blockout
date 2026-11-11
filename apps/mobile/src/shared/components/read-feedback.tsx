@@ -1,40 +1,73 @@
 import type { UseQueryResult } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { ErrorState } from "./state-card";
 
-/** Initial-read presentation only; owners retain usable rows, independent sections and drafts under their safeguards. */
+/** Native Query metadata; data, failures and request lifetimes remain with the query owner. */
+export type ReadFeedbackQuery = Pick<
+  UseQueryResult,
+  "isPending" | "isError" | "refetch" | "isFetching"
+> &
+  Partial<Pick<UseQueryResult, "isEnabled" | "errorUpdatedAt">>;
+
+/** Required-read feedback; the owner chooses its scope and preserves authorized data and children separately. */
 export interface ReadFeedbackProps {
   /** The known content supplies its shape; its owner places pending content in the normal content flow. */
   loadingContent: ReactNode;
-  query: Pick<
-    UseQueryResult,
-    "isPending" | "isError" | "refetch" | "isFetching"
-  > &
-    Partial<Pick<UseQueryResult, "isEnabled">>;
+  query: ReadFeedbackQuery;
+  /** A successful response may report required content unavailable without becoming a transport error. */
+  failed?: boolean;
+  /** A composed read retries only its own failed prerequisites; the default refetches this query. */
+  onRetry?: () => Promise<unknown>;
 }
 
 /**
- * Presents only an actively fetching initial read or its safe retry.
- * An admitted pending read without an active fetch uses the existing unavailable card.
- * Disabled observations never start recovery here; their prerequisite belongs to the feature owner.
+ * Keeps a first failed read visible when Query returns to pending during recovery.
+ * Query retains errorUpdatedAt across that fetch; a new key starts with its own native metadata.
+ */
+export function hasReadError(query: ReadFeedbackQuery): boolean {
+  return query.isError || (query.isPending && !!query.errorUpdatedAt);
+}
+
+/**
+ * Uses structural loading only for an active first read and retains Error through its explicit Retry.
+ * Only the gesture's promise combined with actual fetching makes the button busy; background and paused reads do not.
+ * Owners key this component by their read context when the same mounted region changes resource or criteria.
  */
 export function ReadFeedback({
   query,
   loadingContent,
+  failed = false,
+  onRetry,
 }: Readonly<ReadFeedbackProps>) {
-  if (query.isEnabled === false) {
-    return query.isError ? <ErrorState /> : null;
+  const [retryRequested, setRetryRequested] = useState(false);
+  const error = failed || hasReadError(query);
+
+  /** Tracks only the explicit gesture; Query and the feature retain the read outcome and cancellation. */
+  async function retry() {
+    if (retryRequested) {
+      return;
+    }
+    setRetryRequested(true);
+    try {
+      await (onRetry ? onRetry() : query.refetch());
+    } finally {
+      setRetryRequested(false);
+    }
   }
-  if (query.isPending && query.isFetching) {
+
+  if (query.isEnabled === false) {
+    return error ? <ErrorState /> : null;
+  }
+  if (!error && !retryRequested && query.isPending && query.isFetching) {
     return loadingContent;
   }
-  if (!query.isError && !query.isPending) {
+  if (!error && !retryRequested) {
     return null;
   }
   return (
     <ErrorState
-      onRetry={() => void query.refetch()}
-      retrying={query.isFetching}
+      onRetry={() => void retry()}
+      retrying={retryRequested && query.isFetching}
     />
   );
 }

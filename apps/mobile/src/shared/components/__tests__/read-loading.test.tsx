@@ -1,5 +1,11 @@
 import { Text } from "react-native";
-import { act, render, screen, userEvent } from "@testing-library/react-native";
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from "@testing-library/react-native";
 import {
   onlineManager,
   QueryClient,
@@ -9,7 +15,7 @@ import {
 import { ThemeProvider } from "../../theme/theme-provider";
 import { LoadingGroup } from "../loading-group";
 import { Skeleton } from "../skeleton";
-import { ReadFeedback } from "../read-feedback";
+import { hasReadError, ReadFeedback } from "../read-feedback";
 import { ListContinuation } from "../list-continuation";
 
 it.each([
@@ -66,7 +72,7 @@ function PausedRead({ read }: Readonly<{ read: () => Promise<string> }>) {
   );
 }
 
-it("offers non-busy recovery for a suspended read and admits its result after native Query resumes", async () => {
+it("does not invent an Error or loading state before a suspended first read runs", async () => {
   // Given
   const client = new QueryClient({
     defaultOptions: { queries: { gcTime: Infinity, retry: false } },
@@ -82,15 +88,9 @@ it("offers non-busy recovery for a suspended read and admits its result after na
       </ThemeProvider>,
     );
 
-    // When
-    await userEvent.press(
-      screen.getByRole("button", { name: "Réessayer", busy: false }),
-    );
-
     // Then
-    expect(
-      screen.getByRole("alert", { name: "Une erreur est survenue" }),
-    ).toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+    expect(screen.queryByRole("button")).not.toBeOnTheScreen();
     expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
     expect(read).not.toHaveBeenCalled();
 
@@ -103,6 +103,189 @@ it("offers non-busy recovery for a suspended read and admits its result after na
     expect(read).toHaveBeenCalledTimes(1);
   } finally {
     onlineManager.setOnline(true);
+    client.clear();
+  }
+});
+
+/** A real Query drives both accepted content and shared feedback; only its transport is controlled. */
+function RecoveringRead({
+  read,
+  resource = "matches",
+}: Readonly<{ read: () => Promise<string[]>; resource?: string }>) {
+  const query = useQuery({ queryKey: [resource], queryFn: read });
+  if (!hasReadError(query) && query.data) {
+    return <Text>{query.data.join(", ") || "Aucun match"}</Text>;
+  }
+  return (
+    <ReadFeedback
+      key={resource}
+      query={query}
+      loadingContent={
+        <LoadingGroup label="Chargement des matchs">
+          <Skeleton />
+        </LoadingGroup>
+      }
+    />
+  );
+}
+
+it("keeps the first Error card while an explicit retry pauses, resumes and confirms Empty", async () => {
+  // Given: the real query has exhausted its first read without accepted data.
+  const client = new QueryClient({
+    defaultOptions: { queries: { gcTime: Infinity, retry: false } },
+  });
+  const response = Promise.withResolvers<string[]>();
+  const read = jest
+    .fn()
+    .mockRejectedValueOnce(new Error("Unavailable"))
+    .mockImplementationOnce(() => response.promise);
+  const user = userEvent.setup();
+  await render(
+    <ThemeProvider>
+      <QueryClientProvider client={client}>
+        <RecoveringRead read={read} />
+      </QueryClientProvider>
+    </ThemeProvider>,
+  );
+  await screen.findByRole("alert");
+
+  try {
+    // When: Query owns suspension; the attempted safe read has not reached the transport.
+    await act(() => onlineManager.setOnline(false));
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(screen.getByRole("alert")).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+    expect(read).toHaveBeenCalledTimes(1);
+
+    // When
+    await act(() => onlineManager.setOnline(true));
+
+    // Then
+    expect(
+      await screen.findByRole("button", {
+        name: "Réessayer",
+        busy: true,
+        disabled: true,
+      }),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole("alert")).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("progressbar", { name: "Chargement des matchs" }),
+    ).not.toBeOnTheScreen();
+
+    // When
+    await act(() => response.resolve([]));
+
+    // Then
+    expect(await screen.findByText("Aucun match")).toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+    expect(read).toHaveBeenCalledTimes(2);
+  } finally {
+    onlineManager.setOnline(true);
+    await act(() => response.resolve([]));
+    client.clear();
+  }
+});
+
+it("keeps authorized cached data hidden after background failure and never animates the card for background recovery", async () => {
+  // Given: accepted data stays in Query while its later read fails.
+  const client = new QueryClient({
+    defaultOptions: { queries: { gcTime: Infinity, retry: false } },
+  });
+  client.setQueryData(["matches"], ["Match conservé"]);
+  const response = Promise.withResolvers<string[]>();
+  const read = jest
+    .fn()
+    .mockRejectedValueOnce(new Error("Unavailable"))
+    .mockImplementationOnce(() => response.promise);
+  await render(
+    <ThemeProvider>
+      <QueryClientProvider client={client}>
+        <RecoveringRead read={read} />
+      </QueryClientProvider>
+    </ThemeProvider>,
+  );
+  await screen.findByRole("alert");
+
+  try {
+    // When: automatic recovery is not an explicit card action.
+    let recovery: Promise<void>;
+    await act(() => {
+      recovery = client.refetchQueries({ queryKey: ["matches"] });
+    });
+
+    // Then
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(2));
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText("Match conservé")).not.toBeOnTheScreen();
+    expect(client.getQueryData(["matches"])).toEqual(["Match conservé"]);
+
+    // When
+    await act(async () => {
+      response.resolve(["Match confirmé"]);
+      await recovery;
+    });
+
+    // Then
+    expect(await screen.findByText("Match confirmé")).toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  } finally {
+    await act(() => response.resolve([]));
+    client.clear();
+  }
+});
+
+it("leaves Retry available after another failed explicit read and starts a new resource with its own skeleton", async () => {
+  // Given
+  const client = new QueryClient({
+    defaultOptions: { queries: { gcTime: Infinity, retry: false } },
+  });
+  const next = Promise.withResolvers<string[]>();
+  const read = jest.fn().mockRejectedValue(new Error("Unavailable"));
+  const view = (resource: string, transport: () => Promise<string[]>) => (
+    <ThemeProvider>
+      <QueryClientProvider client={client}>
+        <RecoveringRead resource={resource} read={transport} />
+      </QueryClientProvider>
+    </ThemeProvider>
+  );
+  const result = await render(view("first", read));
+  await screen.findByRole("alert");
+
+  try {
+    // When
+    await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(2));
+    expect(
+      await screen.findByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole("alert")).toBeOnTheScreen();
+
+    // When
+    await result.rerender(view("second", () => next.promise));
+
+    // Then
+    expect(
+      await screen.findByRole("progressbar", { name: "Chargement des matchs" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+
+    // When
+    await act(() => next.resolve(["Autre contexte"]));
+
+    // Then
+    expect(await screen.findByText("Autre contexte")).toBeOnTheScreen();
+  } finally {
+    await act(() => next.resolve([]));
     client.clear();
   }
 });

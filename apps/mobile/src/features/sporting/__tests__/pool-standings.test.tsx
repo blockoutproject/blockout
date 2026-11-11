@@ -3,11 +3,16 @@ import {
   useState as useQueryFixtureState,
   type PropsWithChildren as QueryFixtureProps,
 } from "react";
-import { useQueryClient, type QueryClient } from "@tanstack/react-query";
+import {
+  onlineManager,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -19,6 +24,7 @@ import {
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import type { PoolStandingsResponse } from "../../../../.generated/schemas/index.zod";
+import { getGetPoolStandingsQueryKey } from "../../../../.generated/mobile";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
@@ -168,6 +174,7 @@ afterEach(async () => {
   await cleanup();
   client?.clear();
   publicClient.clear();
+  onlineManager.setOnline(true);
   process.env = { ...environment };
   jest.restoreAllMocks();
 });
@@ -205,7 +212,7 @@ function open(
 }
 
 /** Supplies the official native scroll owner for an isolated standings panel. */
-function panel() {
+function panel(replaceOnFailure = false) {
   return (
     <PagedTabs
       selected="standings"
@@ -214,7 +221,13 @@ function panel() {
         {
           id: "standings",
           label: "Classement",
-          content: <PoolStandings pool={pool} highlightTeamId={sportingId} />,
+          content: (
+            <PoolStandings
+              pool={pool}
+              highlightTeamId={sportingId}
+              replaceOnFailure={replaceOnFailure}
+            />
+          ),
         },
       ]}
     />
@@ -300,9 +313,9 @@ it.each([
   },
 );
 
-it("retains source metadata silently after a failed explicit refresh", async () => {
+it("replaces failed standings and their controls while retaining the authorized Query data", async () => {
   // Given
-  await open(panel());
+  await open(panel(true));
   await screen.findByRole("tab", { name: "Classement" });
   await layoutNativeTabs();
   await screen.findByText("Official Z");
@@ -313,13 +326,18 @@ it("retains source metadata silently after a failed explicit refresh", async () 
     await screen.findByLabelText("Actualiser les données"),
     "refresh",
   );
-  await waitFor(() => expect(client.isFetching()).toBe(0));
 
   // Then
-  expect(screen.getByText("Official Z")).toBeOnTheScreen();
   expect(
-    await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
+    await screen.findByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
   ).toBeOnTheScreen();
+  expect(screen.queryByText("Official Z")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("radio", { name: "Afficher en cartes" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Actualiser les données"),
+  ).not.toBeOnTheScreen();
   expect(
     screen.queryByText(
       /Observé le|Dernière actualisation|conservées restent affichées/,
@@ -423,8 +441,8 @@ it("keeps an admitted pool calendar usable after its standings refresh fails", a
   await screen.findByText("Official Z");
   failed = true;
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-  await screen.findByRole("alert", { name: TECHNICAL_ERROR });
-  expect(screen.getByText("Official Z")).toBeOnTheScreen();
+  await screen.findByRole("alert", { name: TECHNICAL_ERROR_TITLE });
+  expect(screen.queryByText("Official Z")).not.toBeOnTheScreen();
 
   // When
   await user.press(await screen.findByRole("tab", { name: "À venir" }));
@@ -569,6 +587,136 @@ it("retries an initial failure without announcing a successful empty table", asy
   expect(screen.getByLabelText("Actualiser les données")).toBeOnTheScreen();
 });
 
+it("keeps the initial pool error and its active Retry when returning from another tab", async () => {
+  // Given: the exact standings read fails before any table has been admitted.
+  failed = true;
+  const user = userEvent.setup();
+  await open(<PoolScreen poolId={pool.pool.id} />);
+  await screen.findAllByRole("tab", { includeHiddenElements: true });
+  await layoutNativeTabs();
+  await screen.findByRole("button", { name: "Réessayer", busy: false });
+  const retried = Promise.withResolvers<Response>();
+  mockFetch.mockClear().mockImplementationOnce(() => retried.promise);
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(screen.getByRole("tab", { name: "À venir" }));
+  await screen.findByText("Aucun match pour cette sélection");
+  await user.press(screen.getByRole("tab", { name: "Classement" }));
+
+  // Then: the mounted scene rejoins its read instead of replacing the card with a skeleton.
+  expect(
+    screen.getByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeBusy();
+  expect(
+    screen.queryByRole("progressbar", { name: "Chargement du classement" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("radio", { name: "Afficher en cartes" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("tab", { name: "Classement", selected: true }),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).pathname.endsWith("/standings"),
+    ),
+  ).toHaveLength(1);
+
+  // When
+  await act(async () => retried.resolve(Response.json(table)));
+
+  // Then
+  expect(await screen.findByText("Official Z")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("radio", { name: "Afficher en liste", checked: true }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+});
+
+it("masks a background table failure without losing the selected presentation", async () => {
+  // Given
+  const user = userEvent.setup();
+  await open(panel(true));
+  await screen.findByRole("tab", { name: "Classement" });
+  await layoutNativeTabs();
+  await user.press(
+    await screen.findByRole("radio", { name: "Afficher en cartes" }),
+  );
+  failed = true;
+
+  // When: native Query invalidation fails without any explicit read gesture.
+  await act(async () =>
+    client.invalidateQueries({
+      queryKey: getGetPoolStandingsQueryKey(pool.pool.id),
+      exact: true,
+    }),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).not.toBeBusy();
+  expect(
+    screen.queryByRole("radio", { name: "Afficher en cartes" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByText("Official Z")).not.toBeOnTheScreen();
+
+  // When
+  failed = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByRole("radio", {
+      name: "Afficher en cartes",
+      checked: true,
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("Official Z")).toBeOnTheScreen();
+});
+
+it("keeps a paused table Retry non-busy and resumes the same safe read", async () => {
+  // Given: the adopted table has failed after displaying authorized rows.
+  const user = userEvent.setup();
+  await open(panel(true));
+  await screen.findByRole("tab", { name: "Classement" });
+  await layoutNativeTabs();
+  await screen.findByText("Official Z");
+  failed = true;
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await screen.findByRole("button", { name: "Réessayer", busy: false });
+  await act(() => onlineManager.setOnline(false));
+  failed = false;
+  mockFetch.mockClear();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    screen.getByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).not.toBeBusy();
+  expect(
+    screen.queryByRole("progressbar", { name: "Chargement du classement" }),
+  ).not.toBeOnTheScreen();
+  expect(mockFetch).not.toHaveBeenCalled();
+
+  // When
+  await act(() => onlineManager.setOnline(true));
+
+  // Then
+  expect(await screen.findByText("Official Z")).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).pathname.endsWith("/standings"),
+    ),
+  ).toHaveLength(1);
+});
+
 it("does not claim retained table information after a first failed acquisition", async () => {
   // Given
   table = {
@@ -591,6 +739,72 @@ it("does not claim retained table information after a first failed acquisition",
   expect(
     screen.queryByText(/Dernière acquisition|conservées restent affichées/),
   ).toBeNull();
+});
+
+it.each([
+  { availability: "available", title: "Aucune équipe dans ce classement" },
+  {
+    availability: "not-published",
+    title: "Pas de classement pour cette phase",
+  },
+] as const)(
+  "shows the adopted $availability empty card without a refresh action",
+  async ({ availability, title }) => {
+    // Given
+    table = { ...table, availability, rows: [] };
+
+    // When
+    await open(panel(true));
+    await screen.findByRole("tab", { name: "Classement" });
+    await layoutNativeTabs();
+
+    // Then: successful Empty has neither a standing refresh command nor a competing pull gesture.
+    expect(
+      await screen.findByRole("header", { name: title }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Actualiser" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByLabelText("Actualiser les données"),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  },
+);
+
+it("keeps declared table unavailability successful and retries it only explicitly", async () => {
+  // Given
+  table = { ...table, availability: "unavailable", rows: [] };
+  const user = userEvent.setup();
+  await open(panel(true));
+  await screen.findByRole("tab", { name: "Classement" });
+  await layoutNativeTabs();
+  await screen.findByRole("button", { name: "Réessayer", busy: false });
+
+  // Then: HTTP 200 business unavailability never enters the automatic failure-retry policy.
+  expect(
+    client.getQueryState(getGetPoolStandingsQueryKey(pool.pool.id))?.status,
+  ).toBe("success");
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).pathname.endsWith("/standings"),
+    ),
+  ).toHaveLength(1);
+
+  // When
+  table = { ...table, availability: "not-published" };
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByRole("header", {
+      name: "Pas de classement pour cette phase",
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Actualiser" }),
+  ).not.toBeOnTheScreen();
 });
 
 it.each(["unavailable", "not-published"] as const)(

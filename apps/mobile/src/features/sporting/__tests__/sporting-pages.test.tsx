@@ -37,6 +37,7 @@ import type {
 import {
   getGetApplicationAccessQueryKey,
   getGetPoolStandingsQueryKey,
+  getGetTeamQueryKey,
 } from "../../../../.generated/mobile";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
@@ -335,7 +336,7 @@ afterEach(async () => {
 });
 
 it.each(["team", "pool"] as const)(
-  "waits for the first %s standings before exposing its useful composition",
+  "admits the %s common context independently of its first standings read",
   async (kind) => {
     // Given: the actual first scene owns its read; only its HTTP completion is held.
     const standings = Promise.withResolvers<Response>();
@@ -363,17 +364,16 @@ it.each(["team", "pool"] as const)(
     );
     await layoutNativeTabs();
     await screen.findByRole("progressbar", {
-      name:
-        kind === "team" ? "Chargement de l’équipe" : "Chargement de la poule",
+      name: "Chargement du classement",
     });
 
     // Then
     expect(
-      screen.queryByText(
+      screen.getByText(
         kind === "team" ? team.team.team.name : pool.pool.pool.name,
       ),
-    ).not.toBeOnTheScreen();
-    expect(screen.queryAllByRole("tab")).toHaveLength(0);
+    ).toBeOnTheScreen();
+    expect(screen.getByRole("tab", { name: "À venir" })).toBeOnTheScreen();
     expect(screen.getAllByRole("progressbar")).toHaveLength(1);
     expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 
@@ -407,7 +407,7 @@ it.each(["team", "pool"] as const)(
 );
 
 it.each(["team", "pool", "club"] as const)(
-  "offers non-busy recovery for a paused initial %s read and resumes once",
+  "resumes a paused initial %s read with its scoped feedback",
   async (kind) => {
     // Given: real application providers are ready before a new resource opens offline.
     const page = await renderPage(<Text>Read scope ready</Text>);
@@ -444,14 +444,23 @@ it.each(["team", "pool", "club"] as const)(
           club: <ClubScreen clubId={sportingId} />,
         }[kind],
       );
-      await user.press(
-        await screen.findByRole("button", { name: "Réessayer", busy: false }),
-      );
+      if (kind !== "team") {
+        await user.press(
+          await screen.findByRole("button", { name: "Réessayer", busy: false }),
+        );
+      }
 
       // Then: the suspended read has neither loading nor a competing useful composition.
-      expect(
-        screen.getByRole("button", { name: "Réessayer", busy: false }),
-      ).toBeEnabled();
+      if (kind === "team") {
+        expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+        expect(
+          screen.queryByRole("button", { name: "Réessayer" }),
+        ).not.toBeOnTheScreen();
+      } else {
+        expect(
+          screen.getByRole("button", { name: "Réessayer", busy: false }),
+        ).toBeEnabled();
+      }
       expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
       expect(screen.queryByRole("tab")).not.toBeOnTheScreen();
       expect(screen.queryByText(identity)).not.toBeOnTheScreen();
@@ -459,7 +468,13 @@ it.each(["team", "pool", "club"] as const)(
 
       // When: native Query resumes the same explicit recovery when connectivity returns.
       await act(() => onlineManager.setOnline(true));
-      await screen.findByRole("button", { name: "Réessayer", busy: true });
+      if (kind === "team") {
+        await screen.findByRole("progressbar", {
+          name: "Chargement de l’équipe",
+        });
+      } else {
+        await screen.findByRole("button", { name: "Réessayer", busy: true });
+      }
       await act(async () => detail.resolve(Response.json(response)));
       await layoutSportingPage();
 
@@ -577,7 +592,7 @@ it("starts initial Retry progress only for its explicit gesture while another re
   // When
   await user.press(retry);
 
-  // Then: this gesture owns progress and joins the same table request without a write.
+  // Then: this gesture retries the failed relation while the independent table read continues, without a write.
   expect(screen.getByRole("button", { name: "Réessayer" })).toBeBusy();
   await waitFor(() => expect(relations).toBe(2));
   expect(
@@ -603,7 +618,7 @@ it("starts initial Retry progress only for its explicit gesture while another re
   await screen.findByRole("button", { name: "Suivre", disabled: false });
 });
 
-it("keeps source-unavailable first standings in the common initial recovery", async () => {
+it("keeps source-unavailable first standings inside their own pool pane", async () => {
   // Given
   let unavailable = true;
   mockFetch.mockImplementation((url: string, request?: RequestInit) =>
@@ -627,8 +642,11 @@ it("keeps source-unavailable first standings in the common initial recovery", as
   await screen.findByRole("alert", { name: "Une erreur est survenue" });
 
   // Then
-  expect(screen.queryAllByRole("tab")).toHaveLength(0);
-  expect(screen.queryByText(pool.pool.pool.name)).not.toBeOnTheScreen();
+  expect(screen.getByRole("tab", { name: "Classement" })).toBeOnTheScreen();
+  expect(screen.getByText(pool.pool.pool.name)).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("radio", { name: "Afficher en cartes" }),
+  ).not.toBeOnTheScreen();
 
   // When
   unavailable = false;
@@ -640,6 +658,78 @@ it("keeps source-unavailable first standings in the common initial recovery", as
     await screen.findByText("Pas de classement pour cette phase"),
   ).toBeOnTheScreen();
 });
+
+it.each(["initial", "retained"] as const)(
+  "keeps a %s team-detail failure at the destination throughout explicit Retry",
+  async (entry) => {
+    // Given: the real team query either has no data or retains an earlier successful detail.
+    let phase = entry === "initial" ? "failed" : "ready";
+    const retried = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url: string, request?: RequestInit) => {
+      if (new URL(url).pathname !== `/teams/${sportingId}`) {
+        return reads(url, request);
+      }
+      if (phase === "failed") {
+        return Promise.resolve(Response.json({}, { status: 503 }));
+      }
+      return phase === "retry" ? retried.promise : reads(url, request);
+    });
+    const user = userEvent.setup();
+    await renderPage(<TeamScreen teamId={sportingId} />);
+    if (entry === "retained") {
+      await screen.findByText(team.team.team.name);
+      await layoutSportingPage();
+      await user.press(screen.getByRole("tab", { name: "Terminés" }));
+      await screen.findByText("Aucun match pour cette sélection");
+      phase = "failed";
+      await act(async () =>
+        client.invalidateQueries({
+          queryKey: getGetTeamQueryKey(sportingId),
+          exact: true,
+        }),
+      );
+    }
+    await screen.findByRole("alert", { name: "Une erreur est survenue" });
+
+    // When
+    phase = "retry";
+    mockFetch.mockClear();
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then: only the read action progresses; dependent content stays masked and Back remains usable.
+    expect(
+      screen.getByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeBusy();
+    expect(
+      screen.queryByRole("progressbar", { name: "Chargement de l’équipe" }),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByText(team.team.team.name)).not.toBeOnTheScreen();
+    expect(screen.queryAllByRole("tab")).toHaveLength(0);
+    expect(
+      screen.getByRole("button", { name: "Signaler un problème" }),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Retour" })).toBeEnabled();
+    expect(mockFetch.mock.calls.map(([url]) => new URL(url).pathname)).toEqual([
+      `/teams/${sportingId}`,
+    ]);
+    if (entry === "retained") {
+      expect(client.getQueryData(getGetTeamQueryKey(sportingId))).toEqual(team);
+    }
+
+    // When
+    await act(async () => retried.resolve(Response.json(team)));
+
+    // Then
+    expect(await screen.findByText(team.team.team.name)).toBeOnTheScreen();
+    if (entry === "retained") {
+      expect(
+        screen.getByRole("tab", { name: "Terminés", selected: true }),
+      ).toBeOnTheScreen();
+    }
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  },
+);
 
 it("admits a prefilled first table while its one scene-owned reread is pending", async () => {
   // Given: an earlier resource supplies the same real private QueryClient.
