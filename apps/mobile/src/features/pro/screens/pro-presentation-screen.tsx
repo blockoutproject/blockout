@@ -35,7 +35,7 @@ export interface ProPresentationScreenProps {
 
 /**
  * Owns Pro admission/recovery with unwrapped, session-scoped provider content.
- * Current native outcomes outlive route removal; its feedback and navigation do not.
+ * The SDK entitlement listener survives route removal; view callbacks, feedback and navigation do not.
  */
 export function ProPresentationScreen({
   admitted,
@@ -45,16 +45,7 @@ export function ProPresentationScreen({
   const account = useAccountSession();
   const router = useRouter();
   const feedback = useActionFeedback({ retainOnUnmount: true });
-  const {
-    state,
-    getState,
-    refresh,
-    beginPurchase,
-    beginRestore,
-    restore,
-    completeOperation,
-    dismissPresentation,
-  } = usePro();
+  const { state, getState, refresh, restore, completeOperation } = usePro();
   const restoration = useMutation({
     mutationFn: restore,
     retry: false,
@@ -111,7 +102,7 @@ export function ProPresentationScreen({
     if (closed.current || !isCurrentPresentation()) {
       return;
     }
-    restoreStarted.current = beginRestore();
+    restoreStarted.current = hasAssociatedCustomer(getState());
   }
 
   /** Accepts one attributed native result without equating operation completion with active rights. */
@@ -124,14 +115,18 @@ export function ProPresentationScreen({
     if (current.status === "guest") {
       return;
     }
+    const outcome = customerInfo ? "restored" : restoreErrorOutcome(error);
     void completeOperation(
-      restoredProOperation(
-        current.operation,
-        customerInfo ? "restored" : restoreErrorOutcome(error),
-      ),
+      restoredProOperation(current.operation, outcome),
       customerInfo,
     );
     if (closed.current) {
+      return;
+    }
+    if (outcome === "failed") {
+      feedback.error();
+    }
+    if (!customerInfo) {
       return;
     }
     const completed = getState();
@@ -142,13 +137,19 @@ export function ProPresentationScreen({
     }
   }
 
-  /** The fallback remains independent of offers; the existing owner gates native execution. */
-  function restoreExplicitly() {
+  /** Restores independently of offers and reports ordinary failures only to the still-current caller. */
+  async function restoreExplicitly() {
     if (closed.current || !isCurrentPresentation()) {
       return;
     }
     setView("outcome");
-    restoration.mutate();
+    try {
+      await restoration.mutateAsync();
+    } catch {
+      if (!closed.current && isCurrentPresentation()) {
+        feedback.error();
+      }
+    }
   }
 
   /** Removes the route once, even when native dismissal follows a completion callback. */
@@ -174,10 +175,7 @@ export function ProPresentationScreen({
     if (admitted && current) {
       void refresh();
     }
-    return () => {
-      void dismissPresentation();
-    };
-  }, [admitted, current, refresh, dismissPresentation]);
+  }, [admitted, current, refresh]);
   useEffect(() => {
     if (!admitted || !current) {
       close();
@@ -214,7 +212,7 @@ export function ProPresentationScreen({
             !closed.current &&
               !paywallFinished.current &&
               isCurrentPresentation() &&
-              beginPurchase(),
+              canPurchasePro(getState()),
           )
         }
         onPurchaseCompleted={({ customerInfo }) => {
@@ -273,7 +271,6 @@ export function ProPresentationScreen({
           ) {
             return;
           }
-          void dismissPresentation();
           close();
         }}
       />
@@ -341,7 +338,7 @@ export function ProPresentationScreen({
   );
 }
 
-/** An active native operation keeps its mounted paywall even after purchase eligibility changes. */
+/** Native provider UI owns in-flight operations; current SDK rights admit its initial purchase presentation. */
 function canPresentPaywall(
   view: "automatic" | "management" | "outcome",
   state: ProState,
@@ -349,11 +346,7 @@ function canPresentPaywall(
   if (view !== "automatic") {
     return false;
   }
-  return (
-    canPurchasePro(state) ||
-    (state.status !== "guest" &&
-      ["purchasing", "restoring"].includes(state.operation))
-  );
+  return canPurchasePro(state);
 }
 
 /** Explicit management and settled active rights share the SDK-owned Customer Center. */

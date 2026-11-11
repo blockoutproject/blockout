@@ -192,6 +192,50 @@ it.each([
     readsBeforeTrigger,
   );
 });
+it("settles pending payment from SDK-purchased rights delivered through the surviving entitlement listener", async () => {
+  // Given
+  await renderAccount();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  mockAccountId = "00000000-0000-4000-8000-000000000001";
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
+  await screen.findByText("Pro: inactive");
+  await act(() => pro.completeOperation("pending"));
+  await screen.findByText(/Le paiement est en attente/);
+  const active = { "Blockout Pro": entitlement({ store: "APP_STORE" }) };
+  const paid = customerInfo({
+    active,
+    all: active,
+    verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+  });
+  mockPurchases.getCustomerInfo.mockResolvedValue(paid);
+  const listener =
+    mockPurchases.addCustomerInfoUpdateListener.mock.calls.at(-1)?.[0];
+  if (!listener) {
+    throw new Error("Expected native entitlement subscription");
+  }
+
+  // When
+  await act(() => listener(paid));
+
+  // Then
+  await waitFor(() =>
+    expect(pro.state).toMatchObject({
+      status: "active",
+      operation: "completed",
+    }),
+  );
+  expect(screen.queryByText(/Le paiement est en attente/)).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "Vérifier mes droits" }),
+  ).toBeNull();
+  expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
+});
+
 it("removes native subscriptions when the provider unmounts", async () => {
   // Given
   const foreground = jest.spyOn(AppState, "addEventListener");

@@ -146,7 +146,7 @@ it.each([
     });
 
     // When
-    const preparation = privacy.prepare();
+    const preparation = privacy.synchronize();
 
     // Then: no native consent or request can overtake configuration acknowledgement.
     expect(mobileAds().setRequestConfiguration).toHaveBeenCalledWith({
@@ -187,7 +187,7 @@ it("requests iOS ATT only after applicable adult UMP, without a duplicate even i
   const privacy = createAdvertisingPrivacy({ getContext: () => context });
 
   // When
-  const preparation = privacy.prepare();
+  const preparation = privacy.synchronize();
   await Promise.resolve();
 
   // Then
@@ -197,7 +197,7 @@ it("requests iOS ATT only after applicable adult UMP, without a duplicate even i
   await preparation;
   expect(requestTrackingPermissionsAsync).toHaveBeenCalledTimes(1);
   expect(privacy.getSnapshot().choices?.authorizedMode).toBe("contextual");
-  await privacy.prepare();
+  await privacy.showOptions();
   expect(requestTrackingPermissionsAsync).toHaveBeenCalledTimes(1);
   privacy.dispose();
 });
@@ -242,7 +242,7 @@ it.each([
   const privacy = createAdvertisingPrivacy({ getContext: () => context });
 
   // When
-  await privacy.prepare();
+  await privacy.synchronize();
 
   // Then
   expect(requestTrackingPermissionsAsync).not.toHaveBeenCalled();
@@ -289,7 +289,7 @@ it.each([
     });
 
     // When
-    await privacy.prepare()?.catch(() => undefined);
+    await privacy.synchronize()?.catch(() => undefined);
     const open = jest.fn();
     await privacy.openSportingTransition({
       key: {},
@@ -318,13 +318,13 @@ it.each(["configuration", "gathering"])(
       getContext: () => context,
       adUnitId: "test-unit",
     });
-    await privacy.prepare();
+    await privacy.synchronize();
     context = { ...context, category: "under16" };
     privacy.suspend();
     mockAds.setRequestConfiguration.mockRejectedValueOnce(
       new Error("private failure"),
     );
-    await privacy.prepare()?.catch(() => undefined);
+    await privacy.synchronize()?.catch(() => undefined);
     const priorGatherings = jest.mocked(AdsConsent.gatherConsent).mock.calls
       .length;
     const priorRequests = jest.mocked(InterstitialAd.createForAdRequest).mock
@@ -337,7 +337,6 @@ it.each(["configuration", "gathering"])(
     expect(privacy.getSnapshot()).toMatchObject({
       privacyOptionsRequired: true,
       choices: null,
-      failure: "gather",
     });
     expect(AdsConsent.gatherConsent).toHaveBeenCalledTimes(priorGatherings);
     expect(InterstitialAd.createForAdRequest).toHaveBeenCalledTimes(
@@ -357,7 +356,6 @@ it.each(["configuration", "gathering"])(
     expect(privacy.getSnapshot()).toMatchObject({
       privacyOptionsRequired: true,
       choices: null,
-      failure: "options",
     });
     expect(AdsConsent.showPrivacyOptionsForm).not.toHaveBeenCalled();
     await privacy.showOptions();
@@ -383,7 +381,7 @@ it("reuses native cached choices and supports limited advertising after optional
   });
 
   // When
-  await privacy.prepare();
+  await privacy.synchronize();
 
   // Then
   expect(privacy.getSnapshot().choices?.authorizedMode).toBe("limited");
@@ -401,7 +399,7 @@ it("invalidates initialized adult → teen → child → adult preparation befor
     getContext: () => context,
     adUnitId: "test-unit",
   });
-  await privacy.prepare();
+  await privacy.synchronize();
   for (let index = 0; index < 9; index++) {
     await privacy.openSportingTransition({
       key: {},
@@ -419,7 +417,7 @@ it("invalidates initialized adult → teen → child → adult preparation befor
 
     // When
     context.category = category;
-    const preparation = privacy.prepare();
+    const preparation = privacy.synchronize();
 
     // Then: retire the previous ad before acknowledging the next configuration.
     expect(previous?.destroy).toHaveBeenCalledTimes(1);
@@ -468,7 +466,7 @@ it("keeps SDK privacy options conditional and refreshes authorization after a su
     getContext: () => context,
     adUnitId: "test-unit",
   });
-  await privacy.prepare();
+  await privacy.synchronize();
   const previous = jest.mocked(InterstitialAd.createForAdRequest).mock
     .results[0].value;
   const form =
@@ -515,7 +513,7 @@ it("discards late private callbacks across a session change without inheriting t
     getContext: () => context,
     adUnitId: "test-unit",
   });
-  const preparing = privacy.prepare();
+  const preparing = privacy.synchronize();
   await Promise.resolve();
 
   // When
@@ -543,7 +541,7 @@ it("sets Meta's documented tracking flag only on older iOS before initialization
   });
 
   // When
-  await privacy.prepare();
+  await privacy.synchronize();
 
   // Then
   expect(setAdvertiserTrackingEnabled).toHaveBeenCalledWith(true);
@@ -557,12 +555,12 @@ it("reestablishes UMP age treatment before privacy options can recover a failed 
     getContext: () => context,
     adUnitId: "test-unit",
   });
-  await privacy.prepare();
+  await privacy.synchronize();
   context.category = "under16";
   mockAds.setRequestConfiguration.mockRejectedValueOnce(
     new Error("private configuration error"),
   );
-  await privacy.prepare()?.catch(() => undefined);
+  await privacy.synchronize()?.catch(() => undefined);
   expect(privacy.getSnapshot().privacyOptionsRequired).toBe(false);
 
   // When
@@ -598,7 +596,7 @@ it("refreshes Pro privacy applicability after an obsolete in-flight free prepara
   const consent = Promise.withResolvers<AdsConsentInfo>();
   jest.mocked(AdsConsent.gatherConsent).mockReturnValueOnce(consent.promise);
   const privacy = createAdvertisingPrivacy({ getContext: () => context });
-  const preparation = privacy.prepare();
+  const preparation = privacy.synchronize();
   await Promise.resolve();
   context = {
     ...context,

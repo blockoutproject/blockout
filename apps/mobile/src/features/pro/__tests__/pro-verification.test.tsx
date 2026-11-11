@@ -284,46 +284,44 @@ it("accepts an SDK-inactive result without reconstructing historical rights", as
   expect(screen.getByText("Pro: inactive")).toBeOnTheScreen();
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 });
-it.each(["pending", "uncertain"] as const)(
-  "keeps %s operation feedback separate from active rights and never repeats a transaction",
-  async (operation) => {
-    // Given
-    await renderAccount();
-    await waitFor(() => expect(account.status).toBe("authenticated"));
-    mockAccountId = "00000000-0000-4000-8000-000000000001";
-    mockAuth0.webAuth.mockResolvedValue(
-      credentialsFor(`auth0|${mockAccountId}`),
-    );
-    mockAuth0.getCredentials.mockResolvedValue(
-      credentialsFor(`auth0|${mockAccountId}`),
-    );
-    mockAuth0.saveCredentials.mockResolvedValue();
-    await act(() => account.signIn("https://api.example.invalid"));
-    await waitFor(() =>
-      expect(account.accountId).toBe("00000000-0000-4000-8000-000000000001"),
-    );
-    await screen.findByText("Pro: inactive");
-    const active = { "Blockout Pro": entitlement() };
-    mockPurchases.getCustomerInfo.mockResolvedValue(
-      customerInfo({
-        active,
-        all: active,
-        verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
-      }),
-    );
-    // When
-    await act(() => pro.completeOperation(operation));
-    // Then
-    expect(screen.getByText("Pro: active")).toBeOnTheScreen();
-    expect(screen.getByRole("alert")).toHaveTextContent(/en attente|incertain/);
-    expect(
-      screen.getByRole("button", { name: "Vérifier mes droits" }),
-    ).toBeOnTheScreen();
-    expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(Error), {
-      tags: { feature: "pro", operation: "operation", outcome: operation },
-    });
-  },
-);
+it("keeps native pending payment separate from active rights without replaying a transaction", async () => {
+  // Given
+  const operation = "pending";
+  await renderAccount();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  mockAccountId = "00000000-0000-4000-8000-000000000001";
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
+  await waitFor(() =>
+    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000001"),
+  );
+  await screen.findByText("Pro: inactive");
+  const active = {
+    "Blockout Pro": entitlement({ store: "PROMOTIONAL", willRenew: false }),
+  };
+  mockPurchases.getCustomerInfo.mockResolvedValue(
+    customerInfo({
+      active,
+      all: active,
+      verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+    }),
+  );
+  // When
+  await act(() => pro.completeOperation(operation));
+  // Then
+  expect(screen.getByText("Pro: active")).toBeOnTheScreen();
+  expect(screen.getByRole("alert")).toHaveTextContent(/en attente/);
+  expect(
+    screen.getByRole("button", { name: "Vérifier mes droits" }),
+  ).toBeOnTheScreen();
+  expect(Sentry.captureException).toHaveBeenCalledWith(expect.any(Error), {
+    tags: { feature: "pro", operation: "operation", outcome: operation },
+  });
+});
 it("preserves known rights without a persistent error block after a definite purchase failure", async () => {
   // Given
   await renderAccount();
@@ -351,7 +349,7 @@ it("preserves known rights without a persistent error block after a definite pur
   expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
 });
 it.each(["inactive", "unavailable"] as const)(
-  "toasts a failed explicit verification from %s while preserving its uncertain business outcome",
+  "toasts a failed explicit verification from %s while preserving native pending payment",
   async (status) => {
     // Given
     const user = userEvent.setup();
@@ -375,7 +373,7 @@ it.each(["inactive", "unavailable"] as const)(
       expect(account.accountId).toBe("00000000-0000-4000-8000-000000000001"),
     );
     await screen.findByText(`Pro: ${status}`);
-    await act(() => pro.completeOperation("uncertain"));
+    await act(() => pro.completeOperation("pending"));
     mockPurchases.getCustomerInfo.mockRejectedValue(
       new Error("private provider response"),
     );
@@ -389,9 +387,7 @@ it.each(["inactive", "unavailable"] as const)(
         name: "Une erreur est survenue. Veuillez réessayer plus tard.",
       }),
     ).toBeOnTheScreen();
-    expect(
-      screen.getByText(/Le résultat de l’achat est incertain/),
-    ).toBeOnTheScreen();
+    expect(screen.getByText(/Le paiement est en attente/)).toBeOnTheScreen();
     expect(
       screen.queryByRole("button", { name: "Réessayer" }),
     ).not.toBeOnTheScreen();

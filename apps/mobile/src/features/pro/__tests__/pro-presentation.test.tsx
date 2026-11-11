@@ -240,7 +240,7 @@ it("passes the explicit V2 offering to the native host and requests dismissal on
   expect(mockRouter.back).toHaveBeenCalledTimes(1);
   expect(resume).toHaveBeenCalledWith(false);
 });
-it("refuses a repeated native initiation and shows confirmed payment without claiming inactive rights are active", async () => {
+it("admits native initiation and shows confirmed payment without claiming inactive rights are active", async () => {
   // Given
   const user = userEvent.setup();
   await mount();
@@ -270,10 +270,6 @@ it("refuses a repeated native initiation and shows confirmed payment without cla
       packageBeingPurchased: v2Offering.availablePackages[0],
       resume,
     });
-    callbacks.onPurchasePackageInitiated!({
-      packageBeingPurchased: v2Offering.availablePackages[0],
-      resume,
-    });
   });
   mockPurchases.getCustomerInfo.mockRejectedValue(
     new Error("provider unavailable"),
@@ -296,7 +292,7 @@ it("refuses a repeated native initiation and shows confirmed payment without cla
     }),
   );
   // Then
-  expect(resume.mock.calls).toEqual([[true], [false]]);
+  expect(resume).toHaveBeenCalledWith(true);
   expect(await screen.findByText(/Paiement confirmé/)).toBeOnTheScreen();
   expect(screen.queryByText(/Pro est actif/)).not.toBeOnTheScreen();
   expect(
@@ -550,10 +546,9 @@ it.each([
   [PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR, /Le paiement est en attente/],
   [PURCHASES_ERROR_CODE.NETWORK_ERROR, TECHNICAL_ERROR],
   [PURCHASES_ERROR_CODE.OFFLINE_CONNECTION_ERROR, TECHNICAL_ERROR],
-  [
-    PURCHASES_ERROR_CODE.STORE_PROBLEM_ERROR,
-    /Le résultat de l’achat est incertain/,
-  ],
+  [PURCHASES_ERROR_CODE.STORE_PROBLEM_ERROR, TECHNICAL_ERROR],
+  [PURCHASES_ERROR_CODE.UNKNOWN_ERROR, TECHNICAL_ERROR],
+  [PURCHASES_ERROR_CODE.OPERATION_ALREADY_IN_PROGRESS_ERROR, TECHNICAL_ERROR],
   [
     PURCHASES_ERROR_CODE.PRODUCT_ALREADY_PURCHASED_ERROR,
     /Cet achat est déjà détenu/,
@@ -602,6 +597,23 @@ it.each([
     expect(await screen.findByText(message)).toBeOnTheScreen();
     expect(screen.queryByText(/Pro est actif/)).not.toBeOnTheScreen();
     expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(1);
+    if (message === TECHNICAL_ERROR) {
+      expect(pro.state).toMatchObject({
+        status: "inactive",
+        operation: "failed",
+      });
+
+      // When
+      await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
+
+      // Then
+      expect(
+        await screen.findByText("Native paywall double"),
+      ).toBeOnTheScreen();
+      expect(
+        screen.queryByRole("button", { name: "Vérifier mes droits" }),
+      ).toBeNull();
+    }
   },
 );
 it("returns to Profile only after the callback establishes current SDK-active rights", async () => {
@@ -949,100 +961,6 @@ it("ignores dismissal and purchase initiation from a provider whose route was re
   expect(resume).toHaveBeenCalledWith(false);
   expect(screen.queryByText("Native paywall double")).not.toBeOnTheScreen();
 });
-it.each(["purchased", "cancelled", "pending", "failed"] as const)(
-  "retains a late native %s outcome after route removal without navigating or publishing feedback",
-  async (outcome) => {
-    // Given: the real Pro owner survives the removed route, while native callbacks and reads are controlled.
-    const user = userEvent.setup();
-    await mount();
-    await waitFor(() => expect(account.status).toBe("authenticated"));
-    mockAccountId = "00000000-0000-4000-8000-000000000251";
-    mockAuth0.webAuth.mockResolvedValue(
-      credentialsFor(`auth0|${mockAccountId}`),
-    );
-    mockAuth0.getCredentials.mockResolvedValue(
-      credentialsFor(`auth0|${mockAccountId}`),
-    );
-    mockAuth0.saveCredentials.mockResolvedValue();
-    await act(() => account.signIn("https://api.example.invalid"));
-    await waitFor(() =>
-      expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
-    );
-    await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-    await screen.findByText("Native paywall double");
-    const callbacks = mockPaywall;
-    const resume = jest.fn();
-    await act(() =>
-      callbacks.onPurchasePackageInitiated!({
-        packageBeingPurchased: v2Offering.availablePackages[0],
-        resume,
-      }),
-    );
-    await act(() => closePresentation());
-    await waitFor(() =>
-      expect(pro.state).toEqual({ status: "inactive", operation: "uncertain" }),
-    );
-    mockPurchases.getCustomerInfo.mockRejectedValue(new Error("unavailable"));
-    // When
-    await act(() => {
-      if (outcome === "purchased") {
-        callbacks.onPurchaseCompleted!({
-          customerInfo: customerInfo({
-            active: {},
-            all: {},
-            verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
-          }),
-          storeTransaction: {
-            transactionIdentifier: "synthetic",
-            productIdentifier: "monthly",
-            purchaseDate: "2026-10-23",
-            purchaseToken: null,
-            originalJson: null,
-            signature: null,
-          },
-        });
-      } else if (outcome === "cancelled") {
-        callbacks.onPurchaseCancelled!();
-      } else {
-        callbacks.onPurchaseError!({
-          error: {
-            code:
-              outcome === "pending"
-                ? PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR
-                : PURCHASES_ERROR_CODE.PURCHASE_NOT_ALLOWED_ERROR,
-            message: "private",
-            readableErrorCode: "private",
-            underlyingErrorMessage: "private",
-            userInfo: { readableErrorCode: "private" },
-            userCancelled: false,
-          },
-        });
-      }
-    });
-    // Then
-    await waitFor(() =>
-      expect(pro.state).toEqual({ status: "inactive", operation: outcome }),
-    );
-    expect(resume).toHaveBeenCalledWith(true);
-    expect(mockRouter.back).not.toHaveBeenCalled();
-    expect(screen.queryByText("Native paywall double")).not.toBeOnTheScreen();
-    expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
-    // When
-    await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-    // Then
-    if (outcome === "purchased") {
-      expect(await screen.findByText(/Paiement confirmé/)).toBeOnTheScreen();
-    } else if (outcome === "pending") {
-      expect(
-        await screen.findByText(/Le paiement est en attente/),
-      ).toBeOnTheScreen();
-    } else {
-      expect(
-        await screen.findByText("Native paywall double"),
-      ).toBeOnTheScreen();
-    }
-  },
-);
 it("returns quietly to Profile after cancellation and ignores the provider's later dismissal", async () => {
   // Given
   const user = userEvent.setup();

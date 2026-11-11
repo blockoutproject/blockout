@@ -1,5 +1,7 @@
 import { waitFor } from "@testing-library/react-native";
 import { createProSession } from "../pro-session";
+import { getProState } from "../pro-state";
+import { canPurchasePro } from "../pro-offering";
 import { purchaseErrorOutcome } from "../pro-operations";
 import { mockPurchases } from "../test-support/native-purchases";
 import { customerInfo, entitlement } from "../test-support/customer-info";
@@ -41,15 +43,15 @@ it.each([
   [PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR, "pending"],
   [PURCHASES_ERROR_CODE.PURCHASE_NOT_ALLOWED_ERROR, "failed"],
   [PURCHASES_ERROR_CODE.PRODUCT_ALREADY_PURCHASED_ERROR, "already-owned"],
-  [PURCHASES_ERROR_CODE.OPERATION_ALREADY_IN_PROGRESS_ERROR, "uncertain"],
+  [PURCHASES_ERROR_CODE.OPERATION_ALREADY_IN_PROGRESS_ERROR, "failed"],
   [PURCHASES_ERROR_CODE.NETWORK_ERROR, "failed"],
   [PURCHASES_ERROR_CODE.OFFLINE_CONNECTION_ERROR, "failed"],
   [PURCHASES_ERROR_CODE.PRODUCT_REQUEST_TIMED_OUT_ERROR, "failed"],
   [PURCHASES_ERROR_CODE.INVALID_PROMOTIONAL_OFFER_ERROR, "failed"],
   [PURCHASES_ERROR_CODE.UNSUPPORTED_ERROR, "failed"],
   [PURCHASES_ERROR_CODE.TEST_STORE_SIMULATED_PURCHASE_ERROR, "failed"],
-  [PURCHASES_ERROR_CODE.STORE_PROBLEM_ERROR, "uncertain"],
-  [PURCHASES_ERROR_CODE.UNKNOWN_ERROR, "uncertain"],
+  [PURCHASES_ERROR_CODE.STORE_PROBLEM_ERROR, "failed"],
+  [PURCHASES_ERROR_CODE.UNKNOWN_ERROR, "failed"],
 ])(
   "maps native error %s to %s without inferring entitlement",
   (code, expected) => {
@@ -63,27 +65,6 @@ it.each([
   },
 );
 
-it("refuses duplicate starts and keeps a lost response uncertain after closure and verification", async () => {
-  // Given
-  const owner = createProSession();
-  owner.setTarget(session);
-  await waitFor(() =>
-    expect(owner.getSnapshot().evidence?.association).toBe("associated"),
-  );
-
-  // When
-  const first = owner.beginPurchase(session);
-  const second = owner.beginPurchase(session);
-  await owner.dismissPresentation(session);
-  await owner.refresh(session);
-
-  // Then
-  expect(first).toBe(true);
-  expect(second).toBe(false);
-  expect(owner.getSnapshot().evidence?.operation).toBe("uncertain");
-  expect(owner.beginPurchase(session)).toBe(false);
-});
-
 it("allows an explicit new purchase after a documented SDK network failure", async () => {
   // Given
   const owner = createProSession();
@@ -91,7 +72,6 @@ it("allows an explicit new purchase after a documented SDK network failure", asy
   await waitFor(() =>
     expect(owner.getSnapshot().evidence?.association).toBe("associated"),
   );
-  owner.beginPurchase(session);
 
   // When
   await owner.completeOperation(
@@ -101,7 +81,14 @@ it("allows an explicit new purchase after a documented SDK network failure", asy
 
   // Then
   expect(owner.getSnapshot().evidence?.operation).toBe("failed");
-  expect(owner.beginPurchase(session)).toBe(true);
+  expect(
+    canPurchasePro(
+      getProState(
+        { status: "authenticated", ...session },
+        owner.getSnapshot().evidence,
+      ),
+    ),
+  ).toBe(true);
 });
 
 it("keeps confirmed payment separate from activation when verification is unavailable", async () => {
@@ -111,7 +98,6 @@ it("keeps confirmed payment separate from activation when verification is unavai
   await waitFor(() =>
     expect(owner.getSnapshot().evidence?.association).toBe("associated"),
   );
-  owner.beginPurchase(session);
   mockPurchases.getCustomerInfo.mockRejectedValue(
     new Error("private provider data"),
   );
@@ -123,7 +109,14 @@ it("keeps confirmed payment separate from activation when verification is unavai
   // Then
   expect(owner.getSnapshot().evidence?.operation).toBe("purchased");
   expect(owner.getSnapshot().verificationFailed).toBe(true);
-  expect(owner.beginPurchase(session)).toBe(false);
+  expect(
+    canPurchasePro(
+      getProState(
+        { status: "authenticated", ...session },
+        owner.getSnapshot().evidence,
+      ),
+    ),
+  ).toBe(false);
 });
 
 it("accepts the SDK completion's active entitlement immediately and preserves gifts on cancellation", async () => {
@@ -151,7 +144,14 @@ it("accepts the SDK completion's active entitlement immediately and preserves gi
 
   // Then
   expect(owner.getSnapshot().evidence?.customerInfo).toBe(gifted);
-  expect(owner.beginPurchase(session)).toBe(false);
+  expect(
+    canPurchasePro(
+      getProState(
+        { status: "authenticated", ...session },
+        owner.getSnapshot().evidence,
+      ),
+    ),
+  ).toBe(false);
 });
 
 it("rejects old starts and completions across A → guest → A and restarts from native state", async () => {
@@ -161,7 +161,6 @@ it("rejects old starts and completions across A → guest → A and restarts fro
   await waitFor(() =>
     expect(owner.getSnapshot().evidence?.association).toBe("associated"),
   );
-  owner.beginPurchase(session);
 
   // When
   owner.setTarget({ subject: "guest", accountId: null });
@@ -174,12 +173,19 @@ it("rejects old starts and completions across A → guest → A and restarts fro
 
   // Then
   expect(owner.getSnapshot().evidence).toBeNull();
-  expect(owner.beginPurchase(session)).toBe(false);
+  expect(
+    canPurchasePro(
+      getProState(
+        { status: "authenticated", ...session },
+        owner.getSnapshot().evidence,
+      ),
+    ),
+  ).toBe(false);
   expect(restarted.getSnapshot().evidence?.operation).toBe("idle");
   expect(restarted.getSnapshot().evidence?.customerInfo).toBe(inactive);
 });
 
-it.each(["purchased", "already-owned"] as const)(
+it.each(["purchased", "already-owned", "pending"] as const)(
   "allows a new explicit acquisition after %s was recognized as paid active and then expired",
   async (operation) => {
     // Given
@@ -202,11 +208,18 @@ it.each(["purchased", "already-owned"] as const)(
     await owner.refresh(session);
 
     // Then
-    expect(owner.beginPurchase(session)).toBe(true);
+    expect(
+      canPurchasePro(
+        getProState(
+          { status: "authenticated", ...session },
+          owner.getSnapshot().evidence,
+        ),
+      ),
+    ).toBe(true);
   },
 );
 
-it.each(["purchased", "pending", "uncertain", "already-owned"] as const)(
+it.each(["purchased", "pending", "already-owned"] as const)(
   "does not resolve %s from an independent gift that later expires",
   async (operation) => {
     // Given
@@ -232,6 +245,13 @@ it.each(["purchased", "pending", "uncertain", "already-owned"] as const)(
 
     // Then
     expect(owner.getSnapshot().evidence?.operation).toBe(operation);
-    expect(owner.beginPurchase(session)).toBe(false);
+    expect(
+      canPurchasePro(
+        getProState(
+          { status: "authenticated", ...session },
+          owner.getSnapshot().evidence,
+        ),
+      ),
+    ).toBe(false);
   },
 );

@@ -4,12 +4,7 @@ import { Platform } from "react-native";
 import Purchases from "react-native-purchases";
 import type { CustomerInfo } from "react-native-purchases";
 import type { SessionSnapshot } from "../accounts";
-import {
-  getProState,
-  type ProOperation,
-  type ProSessionState,
-} from "./pro-state";
-import { canPurchasePro } from "./pro-offering";
+import { type ProOperation, type ProSessionState } from "./pro-state";
 import {
   restoredProOperation,
   restoreErrorOutcome,
@@ -27,7 +22,7 @@ export interface ProSessionSnapshot {
 /** Records bounded context only; raw SDK errors never enter the diagnostic pipeline. */
 function diagnose(
   operation: "association" | "read" | "operation",
-  outcome: "failed" | "pending" | "uncertain",
+  outcome: "failed" | "pending",
 ) {
   Sentry.captureException(new Error("Pro verification"), {
     tags: { feature: "pro", operation, outcome },
@@ -192,7 +187,7 @@ export function createProSession() {
     }
   }
 
-  /** Accepts supplied current SDK evidence directly; outcomes without information use ordinary verification. */
+  /** Accepts current SDK evidence directly; a normal refresh without supplied information never delays command feedback. */
   async function completeOperation(
     session: SessionSnapshot,
     operation: ProOperation,
@@ -213,40 +208,12 @@ export function createProSession() {
         customerInfo: customerInfo ?? snapshot.evidence.customerInfo,
       },
     });
-    if (
-      operation === "pending" ||
-      operation === "uncertain" ||
-      operation === "restore-uncertain" ||
-      operation === "failed"
-    ) {
-      diagnose(
-        "operation",
-        operation === "restore-uncertain" ? "uncertain" : operation,
-      );
+    if (operation === "pending" || operation === "failed") {
+      diagnose("operation", operation);
     }
     if (!customerInfo) {
-      await refresh(session);
+      void refresh(session);
     }
-  }
-
-  /** Records native restoration without replacing unresolved payment or starting a second store call. */
-  function beginRestore(session: SessionSnapshot): boolean {
-    if (
-      !isAssociated(session) ||
-      !snapshot.evidence ||
-      ["purchasing", "restoring"].includes(snapshot.evidence.operation)
-    ) {
-      return false;
-    }
-    const previous = snapshot.evidence.operation;
-    // Keep unresolved payment visible even if restoration is interrupted or its callback never arrives.
-    if (restoredProOperation(previous, "restoring") === "restoring") {
-      publish({
-        ...snapshot,
-        evidence: { ...snapshot.evidence, operation: "restoring" },
-      });
-    }
-    return true;
   }
 
   return {
@@ -308,32 +275,9 @@ export function createProSession() {
       void associate();
     },
 
-    /** Atomically reserves one native explicit purchase; this does not execute or replay store payment. */
-    beginPurchase(session: SessionSnapshot): boolean {
-      if (
-        !isAssociated(session) ||
-        !snapshot.evidence ||
-        !canPurchasePro(
-          getProState(
-            { status: "authenticated", ...session },
-            snapshot.evidence,
-          ),
-        )
-      ) {
-        return false;
-      }
-      publish({
-        ...snapshot,
-        evidence: { ...snapshot.evidence, operation: "purchasing" },
-      });
-      return true;
-    },
-
-    beginRestore,
-
-    /** Explicit fallback for a missing offer/unknown rights; no retry or restoration on account entry. */
+    /** Explicit fallback independent of offers; SDK failures reject for ordinary feedback and never replay restoration. */
     async restore(session: SessionSnapshot) {
-      if (!beginRestore(session)) {
+      if (!isAssociated(session) || !snapshot.evidence) {
         return;
       }
       const association = snapshot.evidence?.session;
@@ -351,25 +295,14 @@ export function createProSession() {
         if (!snapshot.evidence || snapshot.evidence.session !== association) {
           return;
         }
+        const outcome = restoreErrorOutcome(error);
         await completeOperation(
           session,
-          restoredProOperation(
-            snapshot.evidence.operation,
-            restoreErrorOutcome(error),
-          ),
+          restoredProOperation(snapshot.evidence.operation, outcome),
         );
-      }
-    },
-
-    /** Closing an in-flight presentation proves no cancellation; verification is the only follow-up. */
-    async dismissPresentation(session: SessionSnapshot) {
-      if (!isAssociated(session)) {
-        return;
-      }
-      if (snapshot.evidence?.operation === "purchasing") {
-        await completeOperation(session, "uncertain");
-      } else if (snapshot.evidence?.operation === "restoring") {
-        await completeOperation(session, "restore-uncertain");
+        if (outcome === "failed") {
+          throw error;
+        }
       }
     },
 

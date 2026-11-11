@@ -219,9 +219,55 @@ it.each(["none", "expired", "active"])(
         await screen.findByText(/Restauration terminée.*Aucun droit Pro actif/),
       ).toBeOnTheScreen();
       expect(pro.state.status).toBe("inactive");
+      expect(
+        screen.queryByRole("button", { name: "Vérifier mes droits" }),
+      ).toBeNull();
     }
   },
 );
+
+it("reports a native restore failure without replacing the SDK view or replaying restoration", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderProRoutes();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  mockAccountId = accountA;
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+  mockAuth0.getCredentials.mockResolvedValue(
+    credentialsFor(`auth0|${mockAccountId}`),
+  );
+  mockAuth0.saveCredentials.mockResolvedValue();
+  await act(() => account.signIn("https://api.example.invalid"));
+  await waitFor(() => expect(account.accountId).toBe(accountA));
+  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
+  await screen.findByText("Native paywall");
+
+  // When
+  await act(() => mockPaywall.onRestoreStarted!());
+  await act(() =>
+    mockPaywall.onRestoreError!({
+      error: {
+        code: mockPurchases.PURCHASES_ERROR_CODE.NETWORK_ERROR,
+        message: "private provider data",
+        readableErrorCode: "NETWORK_ERROR",
+        underlyingErrorMessage: "private provider data",
+        userCancelled: false,
+        userInfo: { readableErrorCode: "NETWORK_ERROR" },
+      },
+    }),
+  );
+
+  // Then
+  expect(
+    await screen.findByText(
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
+    ),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("Native paywall")).toBeOnTheScreen();
+  expect(pro.state).toMatchObject({ status: "inactive", operation: "failed" });
+  expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
+  expect(screen.queryByText(/private provider data/)).toBeNull();
+});
 
 it("restores explicitly without an offer or prior purchase and preserves receipt scope information", async () => {
   // Given
@@ -430,7 +476,7 @@ it("disables restoration until explicit association retry succeeds", async () =>
   expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
 });
 
-it("keeps an uncertain restore distinct from no active rights and never replays it on verification", async () => {
+it("reports a failed restore normally and retries only from a new explicit action", async () => {
   // Given
   const user = userEvent.setup();
   mockPurchases.getOfferings.mockResolvedValue({ current: null, all: {} });
@@ -451,21 +497,52 @@ it("keeps an uncertain restore distinct from no active rights and never replays 
   mockPurchases.restorePurchases.mockRejectedValueOnce(
     new Error("private provider data"),
   );
+  const read = Promise.withResolvers<CustomerInfo>();
+  mockPurchases.getCustomerInfo.mockReturnValueOnce(read.promise);
+
+  // When
+  try {
+    await user.press(
+      screen.getByRole("button", { name: "Restaurer mes achats" }),
+    );
+    await screen.findByText(
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
+    );
+
+    // Then: a normal SDK read may remain pending without holding the failed action or its feedback.
+    expect(
+      screen.getByRole("button", { name: "Restaurer mes achats" }),
+    ).toBeEnabled();
+  } finally {
+    await act(() =>
+      read.resolve(
+        customerInfo({
+          active: {},
+          all: {},
+          verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+        }),
+      ),
+    );
+  }
+
+  // Then
+  expect(
+    screen.queryByRole("button", { name: "Vérifier mes droits" }),
+  ).toBeNull();
+  expect(screen.queryByText(/private provider data/)).not.toBeOnTheScreen();
+  expect(mockPurchases.restorePurchases).toHaveBeenCalledTimes(1);
+  expect(pro.state.status).toBe("inactive");
 
   // When
   await user.press(
     screen.getByRole("button", { name: "Restaurer mes achats" }),
   );
-  await screen.findByText(/Le résultat de la restauration est incertain/);
-  await user.press(screen.getByRole("button", { name: "Vérifier mes droits" }));
 
   // Then
+  expect(mockPurchases.restorePurchases).toHaveBeenCalledTimes(2);
   expect(
-    screen.getByText(/Le résultat de la restauration est incertain/),
+    await screen.findByText(/Restauration terminée.*Aucun droit Pro actif/),
   ).toBeOnTheScreen();
-  expect(screen.queryByText(/private provider data/)).not.toBeOnTheScreen();
-  expect(mockPurchases.restorePurchases).toHaveBeenCalledTimes(1);
-  expect(pro.state.status).toBe("inactive");
 });
 
 it.each([
@@ -571,11 +648,10 @@ it.each(["empty", "cancelled"])(
     await waitFor(() =>
       expect(mockPurchases.restorePurchases).toHaveBeenCalledTimes(1),
     );
-    await waitFor(() =>
-      expect(pro.state).not.toEqual(
-        expect.objectContaining({ operation: "restoring" }),
-      ),
-    );
+    await screen.findByRole("button", {
+      name: "Restaurer mes achats",
+      busy: false,
+    });
     await user.press(screen.getByRole("button", { name: "Retour" }));
     await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
 
@@ -585,7 +661,7 @@ it.each(["empty", "cancelled"])(
   },
 );
 
-it("consumes current native restore evidence while preserving a pending payment", async () => {
+it("consumes SDK-purchased restore evidence without retaining resolved pending payment", async () => {
   // Given
   const user = userEvent.setup();
   await renderProRoutes();
@@ -621,11 +697,9 @@ it("consumes current native restore evidence while preserving a pending payment"
 
   // Then
   expect(pro.state).toEqual(
-    expect.objectContaining({ status: "active", operation: "pending" }),
+    expect.objectContaining({ status: "active", operation: "completed" }),
   );
-  expect(
-    await screen.findByText(/Le paiement est en attente/),
-  ).toBeOnTheScreen();
+  expect(screen.queryByText(/Le paiement est en attente/)).toBeNull();
   expect(screen.queryByText("Native paywall")).not.toBeOnTheScreen();
 });
 
@@ -696,7 +770,7 @@ it.each(["direct", "customer center"])(
       .setup()
       .press(screen.getByRole("button", { name: "Blockout Pro" }));
     await screen.findByText("Native paywall");
-    await act(() => pro.completeOperation("uncertain"));
+    await act(() => pro.completeOperation("pending"));
     const result = Promise.withResolvers<CustomerInfo>();
     mockPurchases.restorePurchases.mockReturnValueOnce(result.promise);
     if (source === "direct") {
