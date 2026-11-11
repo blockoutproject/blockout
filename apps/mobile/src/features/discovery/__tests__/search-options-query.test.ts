@@ -106,7 +106,7 @@ it.each([
 );
 
 it.each([401, 403, 503])(
-  "preserves explicit options bypass refusal %i without a public fallback",
+  "preserves explicit options bypass HTTP failure %i without a public fallback",
   async (status) => {
     // Given: current grant admission is controlled; generated HTTP and captured session are real.
     const generation = { subject: null, accountId: null };
@@ -130,15 +130,17 @@ it.each([401, 403, 503])(
     mockFetch.mockResolvedValue(Response.json({ status }, { status }));
     try {
       // When
-      const result = client.query(options);
+      const result = client.query({ ...options, retryDelay: 0 });
 
       // Then
       await expect(result).rejects.toMatchObject({ kind: "http", status });
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(mockFetch.mock.calls[0][1].headers).toMatchObject({
-        Authorization: "Bearer synthetic-token",
-        "Blockout-Maintenance-Bypass": "true",
-      });
+      expect(mockFetch).toHaveBeenCalledTimes(status === 503 ? 4 : 1);
+      for (const [, request] of mockFetch.mock.calls) {
+        expect(request.headers).toMatchObject({
+          Authorization: "Bearer synthetic-token",
+          "Blockout-Maintenance-Bypass": "true",
+        });
+      }
     } finally {
       client.clear();
     }

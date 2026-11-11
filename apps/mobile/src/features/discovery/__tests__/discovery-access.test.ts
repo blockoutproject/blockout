@@ -50,9 +50,9 @@ it("starts public discovery without credentials or account/entitlement lookup", 
 });
 
 it.each([401, 403, 503])(
-  "preserves server bypass refusal %i without attempting a public fallback",
+  "preserves server bypass HTTP failure %i without attempting a public fallback",
   async (status) => {
-    // Given
+    // Given: repeated technical failures use the common policy; timing is qualified by the factory suite.
     const credentials = jest.fn(async () => ({
       accessToken: "captured-token",
     }));
@@ -73,20 +73,17 @@ it.each([401, 403, 503])(
     mockFetch.mockResolvedValue(Response.json({}, { status }));
     try {
       // When
-      const read = client.infiniteQuery(options);
+      const read = client.infiniteQuery({ ...options, retryDelay: 0 });
 
       // Then
       await expect(read).rejects.toMatchObject({ kind: "http", status });
-      expect(credentials).toHaveBeenCalledTimes(1);
-      expect(mockFetch).toHaveBeenCalledTimes(1);
-      expect(
-        new Headers(mockFetch.mock.calls[0][1].headers).get("Authorization"),
-      ).toBe("Bearer captured-token");
-      expect(
-        new Headers(mockFetch.mock.calls[0][1].headers).get(
-          "Blockout-Maintenance-Bypass",
-        ),
-      ).toBe("true");
+      expect(credentials).toHaveBeenCalledTimes(status === 503 ? 4 : 1);
+      expect(mockFetch).toHaveBeenCalledTimes(status === 503 ? 4 : 1);
+      for (const [, request] of mockFetch.mock.calls) {
+        const headers = new Headers(request.headers);
+        expect(headers.get("Authorization")).toBe("Bearer captured-token");
+        expect(headers.get("Blockout-Maintenance-Bypass")).toBe("true");
+      }
     } finally {
       client.clear();
     }

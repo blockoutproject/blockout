@@ -242,24 +242,28 @@ it.each([
   },
 );
 
-it("preserves a safe sporting refusal without caching a successful table", async () => {
+it("preserves a safe sporting outage after bounded retries without caching a successful table", async () => {
   // Given
-  mockFetch.mockResolvedValue(
-    new Response(
-      JSON.stringify({
-        type: "urn:blockout:problem:unavailable",
-        title: "Service Unavailable",
-        status: 503,
-      }),
-      { status: 503, headers: { "Content-Type": "application/problem+json" } },
-    ),
+  mockFetch.mockImplementation(
+    async () =>
+      new Response(
+        JSON.stringify({
+          type: "urn:blockout:problem:unavailable",
+          title: "Service Unavailable",
+          status: 503,
+        }),
+        {
+          status: 503,
+          headers: { "Content-Type": "application/problem+json" },
+        },
+      ),
   );
   const client = createQueryClient();
   const options = getGetPoolStandingsQueryOptions(poolId);
 
   try {
     // When
-    const request = client.fetchQuery(options);
+    const request = client.fetchQuery({ ...options, retryDelay: 0 });
 
     // Then
     await expect(request).rejects.toMatchObject({
@@ -268,6 +272,7 @@ it("preserves a safe sporting refusal without caching a successful table", async
       problem: { type: "urn:blockout:problem:unavailable" },
     });
     expect(client.getQueryData(options.queryKey)).toBeUndefined();
+    expect(mockFetch).toHaveBeenCalledTimes(4);
   } finally {
     client.clear();
   }

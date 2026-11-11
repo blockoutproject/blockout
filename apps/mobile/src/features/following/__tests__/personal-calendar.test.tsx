@@ -459,9 +459,10 @@ it.each(["success", "failure"])(
     );
 
     // When
-    const reload = client.fetchQuery(
-      createFollowOptionsQueryOptions(owner, request),
-    );
+    const reload = client.fetchQuery({
+      ...createFollowOptionsQueryOptions(owner, request),
+      retryDelay: 0,
+    });
     if (outcome === "success") {
       await reload;
     } else {

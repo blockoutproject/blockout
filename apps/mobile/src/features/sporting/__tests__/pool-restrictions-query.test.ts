@@ -19,7 +19,7 @@ afterEach(() => {
   }
 });
 
-it("purges refused club contacts so a later network failure cannot republish them", async () => {
+it("purges refused club contacts so a later technical outage cannot republish them", async () => {
   // Given
   const client = createQueryClient();
   const queries = createConsultationQueries(
@@ -46,12 +46,13 @@ it("purges refused club contacts so a later network failure cannot republish the
       kind: "http",
       status: 403,
     });
-    mockFetch.mockResolvedValueOnce(Response.json({}, { status: 503 }));
-    const later = client.query(options);
+    mockFetch.mockResolvedValue(Response.json({}, { status: 503 }));
+    const later = client.query({ ...options, retryDelay: 0 });
 
     // Then
     await expect(later).rejects.toMatchObject({ kind: "http", status: 503 });
     expect(client.getQueryData(options.queryKey)).toBeUndefined();
+    expect(mockFetch).toHaveBeenCalledTimes(6);
   } finally {
     client.clear();
   }

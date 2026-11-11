@@ -62,19 +62,20 @@ it.each(["network", "server"])(
     mockFetch.mockResolvedValueOnce(Response.json(participants));
     await client.query(options);
     if (failure === "network") {
-      mockFetch.mockRejectedValueOnce(new TypeError("Unavailable"));
+      mockFetch.mockRejectedValue(new TypeError("Unavailable"));
     } else {
-      mockFetch.mockResolvedValueOnce(Response.json({}, { status: 503 }));
+      mockFetch.mockResolvedValue(Response.json({}, { status: 503 }));
     }
     try {
       // When
-      const read = client.query(options);
+      const read = client.query({ ...options, retryDelay: 0 });
 
       // Then
       await expect(read).rejects.toMatchObject({
         kind: failure === "network" ? "network" : "http",
       });
       expect(client.getQueryData(options.queryKey)).toEqual(participants);
+      expect(mockFetch).toHaveBeenCalledTimes(5);
     } finally {
       client.clear();
     }
