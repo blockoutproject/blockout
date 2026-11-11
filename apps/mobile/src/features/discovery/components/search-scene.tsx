@@ -154,8 +154,6 @@ export function SearchScene({
               textQuery,
               failed: clubsReference ? false : query.isError,
               fetching: query.isFetching,
-              continuationActive:
-                !clubsReference || query.fetchStatus === "fetching",
               active,
               loadMore,
               refetch: () => void query.refetch(),
@@ -250,7 +248,6 @@ function searchContinuation({
   textQuery,
   failed,
   fetching,
-  continuationActive,
   active,
   loadMore,
   refetch,
@@ -259,7 +256,6 @@ function searchContinuation({
   textQuery: ReturnType<typeof useDiscoveryQuery>;
   failed: boolean;
   fetching: boolean;
-  continuationActive: boolean;
   active: boolean;
   loadMore: () => Promise<void>;
   refetch: () => void;
@@ -269,7 +265,7 @@ function searchContinuation({
   }
   return (
     <ListContinuation
-      loading={!examples && textQuery.isFetchingNextPage && continuationActive}
+      loading={!examples && textQuery.isFetchingNextPage}
       failed={failed}
       disabled={!active || fetching}
       onRetry={!examples && textQuery.isFetchNextPageError ? loadMore : refetch}
