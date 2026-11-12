@@ -7,6 +7,10 @@ import {
 import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { ListLoading } from "../../../shared/components/list-loading";
 import { ErrorState } from "../../../shared/components/state-card";
+import {
+  hasReadError,
+  ReadFeedback,
+} from "../../../shared/components/read-feedback";
 import { EntryGroup } from "../../../shared/components/entry-group";
 import { SelectionRow } from "../../../shared/components/selection-row";
 import {
@@ -73,21 +77,18 @@ export function SearchFilterChoice() {
   }
   return (
     <Sheet title={title} onClose={() => router.back()}>
-      {!options && (
+      {hasReadError(query) || !options ? (
         <SheetContent>
-          {query.isFetching && !query.isError ? (
-            <EntryGroup>
-              <ListLoading label="Chargement des choix" />
-            </EntryGroup>
-          ) : (
-            <ErrorState
-              onRetry={query.isEnabled ? () => void query.refetch() : undefined}
-              retrying={query.isFetching}
-            />
-          )}
+          <ReadFeedback
+            query={query}
+            loadingContent={
+              <EntryGroup>
+                <ListLoading label="Chargement des choix" />
+              </EntryGroup>
+            }
+          />
         </SheetContent>
-      )}
-      {options && (
+      ) : (
         <SheetContent>
           <EntryGroup>
             {choices.map((choice) => (

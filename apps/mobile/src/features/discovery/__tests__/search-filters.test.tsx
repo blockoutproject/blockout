@@ -353,7 +353,7 @@ it("reconciles unavailable choices after success while failed catalogue reads pr
   choicesFail = true;
 
   // When
-  await openFilters();
+  await user.press(screen.getByRole("button", { name: /Filtres/ }));
   await waitFor(() =>
     expect(
       client
@@ -366,12 +366,11 @@ it("reconciles unavailable choices after success while failed catalogue reads pr
         ),
     ).toBe(true),
   );
+  expect(screen.getByRole("alert")).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Saison" })).toBeNull();
   expect(
-    screen.getByRole("button", { name: "Saison" }),
-  ).toHaveAccessibilityValue({ text: oldSeason.label });
-  expect(
-    screen.getByRole("button", { name: "Division" }),
-  ).toHaveAccessibilityValue({ text: division.name });
+    screen.queryByRole("button", { name: "Appliquer les filtres" }),
+  ).toBeNull();
   await user.press(screen.getByRole("button", { name: "Fermer" }));
   choicesFail = false;
   await openFilters();
@@ -513,7 +512,6 @@ it("keeps initial option failure distinct from an empty successful catalogue and
   choicesFail = true;
   const user = userEvent.setup();
   await renderSearch();
-  await user.press(await screen.findByRole("button", { name: "Filtres" }));
   await screen.findByRole("button", { name: "Réessayer" });
   expect(screen.queryByRole("button", { name: "Saison" })).toBeNull();
   choicesFail = false;
@@ -523,6 +521,7 @@ it("keeps initial option failure distinct from an empty successful catalogue and
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
+  await user.press(await screen.findByRole("button", { name: "Filtres" }));
   expect(
     await screen.findByRole("button", { name: "Saison" }),
   ).toHaveAccessibilityValue({ text: "Toutes les saisons" });
@@ -693,4 +692,91 @@ it("retains filters when clearing text and resets the current criteria from the 
   expect(
     screen.getByRole("button", { name: "Genre" }),
   ).toHaveAccessibilityValue({ text: "Tout afficher" });
+});
+
+it.each(["Saison", "Division", "Format", "Genre"])(
+  "replaces failed %s choices with the shared card and keeps the draft through Retry",
+  async (field) => {
+    // Given: a real mounted RHF draft has an unapplied choice.
+    const user = userEvent.setup();
+    await renderSearch();
+    await openFilters();
+    await choose("Genre", "Féminin");
+    await user.press(screen.getByRole("button", { name: field }));
+    await screen.findAllByRole("radio");
+    choicesFail = true;
+
+    // When
+    await act(async () =>
+      client.refetchQueries({
+        queryKey: ["/sporting-search-options"],
+        type: "active",
+      }),
+    );
+
+    // Then
+    expect(await screen.findByRole("alert")).toBeOnTheScreen();
+    expect(screen.queryAllByRole("radio")).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "Fermer" })).toBeEnabled();
+    const pending = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url: string) =>
+      new URL(url).pathname.endsWith("/sporting-search-options")
+        ? pending.promise
+        : publicReads(url),
+    );
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: true }),
+    ).toBeDisabled();
+    expect(screen.queryAllByRole("radio")).toHaveLength(0);
+
+    // When
+    await act(async () =>
+      pending.resolve(Response.json({ status: 503 }, { status: 503 })),
+    );
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeEnabled();
+
+    // When
+    choicesFail = false;
+    mockFetch.mockImplementation(publicReads);
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    await screen.findAllByRole("radio");
+    await user.press(screen.getByRole("button", { name: "Fermer" }));
+
+    // Then
+    expect(
+      screen.getByRole("button", { name: "Genre" }),
+    ).toHaveAccessibilityValue({ text: "Féminin" });
+  },
+);
+
+it("keeps invalid choice parameters closable without inventing a retry", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderSearch();
+  await openFilters();
+
+  // When
+  await act(async () => router.push("/search/choice?field=unknown"));
+
+  // Then
+  expect(await screen.findByRole("alert")).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+  expect(screen.queryAllByRole("radio")).toHaveLength(0);
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+
+  // Then
+  expect(
+    screen.getByRole("button", { name: "Appliquer les filtres" }),
+  ).toBeOnTheScreen();
 });
