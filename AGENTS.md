@@ -24,7 +24,7 @@
 
 ## Select by task
 
-- Significant requirement/technical tradeoffs or structural friction: `proportionate-design`; keep routine implementation choices autonomous within accepted constraints.
+- Requirements and implementation that add behavior, state, safeguards or custom mechanisms: `proportionate-design`; enforce the minimal default from the first addition. Keep routine choices autonomous within accepted constraints, without a separate design review.
 - Prototype construction/review: `design-prototyping`. Figma organization/evidence: `figma-design-governance` plus the applicable Figma tool skill. The constitution owns prerequisites.
 - Java/Spring/JPA: `java-spring`; JVM/database tests: `java-testing`.
 - HTTP contracts and generation: `openapi-codegen`; Liquibase changes only: `liquibase-schema`.
