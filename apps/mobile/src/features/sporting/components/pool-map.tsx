@@ -69,7 +69,7 @@ export interface PoolMapProps {
 
 /**
  * Keeps participant failures in this pane and its authorized native map mounted; optional standings never block navigation.
- * The refresh host stays attached to preserve the native map's selection and camera while failed content disables its pull.
+ * Its refresh host and map geometry stay attached while failed content disables its pull and covers the retained map.
  */
 export function PoolMap({
   pool,
@@ -121,7 +121,12 @@ export function PoolMap({
       }
     >
       {data && hasLocations && (
-        <PageContent style={failed ? styles.hidden : undefined}>
+        <PageContent
+          style={failed ? styles.hidden : undefined}
+          pointerEvents={failed ? "none" : "auto"}
+          accessibilityElementsHidden={failed}
+          importantForAccessibility={failed ? "no-hide-descendants" : "auto"}
+        >
           {children}
           <ParticipantMap
             items={data.items}
@@ -132,7 +137,7 @@ export function PoolMap({
         </PageContent>
       )}
       {failed ? (
-        <ScreenState>
+        <ScreenState style={hasLocations ? StyleSheet.absoluteFill : undefined}>
           <ReadFeedback
             key={pool.pool.id}
             query={participants}
@@ -600,7 +605,7 @@ function ParticipantSummary({
 }
 
 const styles = StyleSheet.create({
-  hidden: { display: "none" },
+  hidden: { opacity: 0 },
   stateControls: { paddingBottom: 0 },
   map: {
     height: mapHeight,

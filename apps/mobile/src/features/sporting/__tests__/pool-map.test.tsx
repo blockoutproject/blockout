@@ -1118,14 +1118,9 @@ it.each(["initial", "refresh"] as const)(
       screen.queryByRole("button", { name: "La Rochelle: Rives" }),
     ).not.toBeOnTheScreen();
     if (origin === "refresh") {
-      // Native hiding may report zero geometry; restoring the same map must not reframe its camera.
-      await fireEvent(
-        screen.getByTestId("native-map-boundary", {
-          includeHiddenElements: true,
-        }),
-        "layout",
-        { nativeEvent: { layout: { x: 0, y: 0, width: 0, height: 0 } } },
-      );
+      expect(
+        screen.queryByRole("link", { name: "Rives" }),
+      ).not.toBeOnTheScreen();
     }
     expect(
       screen.queryByLabelText("Chargement des participants"),
