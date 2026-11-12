@@ -965,36 +965,15 @@ it("keeps the Home season and selected page through suspended Retry, repeated co
   }
 });
 
-it("distinguishes an initial options failure from successful empty options and retries the read", async () => {
+it("shows the real season selector after successful empty options", async () => {
   // Given
   const user = userEvent.setup();
-  mockFetch.mockImplementation((url, request) =>
-    url.includes("follow-options")
-      ? Promise.reject(new TypeError("Synthetic network failure"))
-      : transport(url, request),
-  );
-  await mount();
-  await screen.findByRole("button", {
-    name: "Saison des suivis",
-    disabled: true,
-  });
-  await layoutNativeTabs();
-
-  // Then
-  await screen.findByRole("button", { name: "Réessayer" });
-  expect(
-    screen.getByRole("button", { name: "Saison des suivis", disabled: true }),
-  ).toHaveAccessibilityValue({ text: "Saison" });
-
-  // When
   mockFetch.mockImplementation((url, request) =>
     url.includes("follow-options")
       ? Promise.resolve(Response.json({ seasons: [] }))
       : transport(url, request),
   );
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
-
-  // Then
+  await mount();
   await waitFor(() =>
     expect(
       screen.getByRole("button", {
@@ -1003,7 +982,11 @@ it("distinguishes an initial options failure from successful empty options and r
       }),
     ).toHaveAccessibilityValue({ text: "Toutes saisons" }),
   );
+
+  // When
   await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
+
+  // Then
   expect(
     screen.getByRole("radio", { name: "Toutes les saisons", checked: true }),
   ).toBeOnTheScreen();

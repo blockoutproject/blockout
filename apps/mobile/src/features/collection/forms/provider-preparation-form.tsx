@@ -150,10 +150,12 @@ export function ProviderPreparationForm({
     }
   }
 
-  /** Reads the entire launch context; a failed half-read cannot unlock an old selection or replay its command. */
+  /** Reads launch choices and season revision; failure or an older season response preserves selection and baseline. */
   async function reread() {
-    const [seasonResult, sourcesResult] = await (() =>
-      Promise.all([editing.season.refetch(), editing.sources.refetch()]))();
+    const [seasonResult, sourcesResult] = await Promise.all([
+      editing.season.refetch(),
+      editing.sources.refetch(),
+    ]);
     if (!mounted.current) {
       return;
     }

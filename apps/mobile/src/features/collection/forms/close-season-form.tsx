@@ -82,7 +82,7 @@ export function CloseSeasonForm({
     if (busy) {
       return;
     }
-    const read = await (() => editing.season.refetch())();
+    const read = await editing.season.refetch();
     if (!mounted.current) {
       return;
     }

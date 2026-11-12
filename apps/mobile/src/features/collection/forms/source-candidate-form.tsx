@@ -202,10 +202,12 @@ export function SourceCandidateForm({
     }
   }
 
-  /** Reads source and season together; neither a failed read nor retained cache can unlock resubmission. */
+  /** Reads source and season; failure or an older source response preserves the baseline and dirty URL. */
   async function reread() {
-    const [sourceResult, seasonResult] = await (() =>
-      Promise.all([editing.source.refetch(), editing.season.refetch()]))();
+    const [sourceResult, seasonResult] = await Promise.all([
+      editing.source.refetch(),
+      editing.season.refetch(),
+    ]);
     if (!mounted.current) {
       return;
     }
