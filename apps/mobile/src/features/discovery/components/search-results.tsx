@@ -1,19 +1,13 @@
 import { PageList } from "../../../shared/components/page-list";
 import {
   PageScrollView,
-  PageContent,
   pageContentStyle,
 } from "../../../shared/components/page";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { ListSeparator } from "../../../shared/components/list-separator";
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import {
-  useRef,
-  type PropsWithChildren,
-  type ReactElement,
-  type ReactNode,
-} from "react";
+import { useRef, type ReactElement, type ReactNode } from "react";
 import type { LegendListRef } from "@legendapp/list/react-native";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
@@ -29,13 +23,6 @@ export interface SearchResultsProps {
   onEndReached?: () => void;
   /** Routes a selected identity through the scene's existing sporting-opening owner. */
   onOpen(item: SearchResult): void;
-}
-
-/** Pending cards use the same content edge as the list beneath the fixed Examples/Results heading. */
-export function SearchResultsContent({
-  children,
-}: Readonly<PropsWithChildren>) {
-  return <PageContent>{children}</PageContent>;
 }
 
 /**
@@ -98,7 +85,7 @@ export function SearchResults({
   );
 }
 
-/** The search heading labels loaded results; an absent count represents a pending or failed first read. */
+/** Labels available examples/results; an absent count represents a pending first read. */
 export interface SearchHeadingProps {
   count?: number;
   examples?: boolean;

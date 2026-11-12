@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { Keyboard } from "react-native";
 import { useNavigation } from "expo-router";
 import { useSportingNavigation } from "../../sporting/navigation";
@@ -9,7 +9,8 @@ import type {
   useSearchExamplesQuery,
 } from "../api/use-discovery-query";
 import { uniqueSearchResults, type SearchResult } from "../model/search-result";
-import { SearchResults, SearchResultsContent } from "./search-results";
+import { SearchResults } from "./search-results";
+import { PageContent } from "../../../shared/components/page";
 import { SearchLoading } from "./search-loading";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { ListContinuation } from "../../../shared/components/list-continuation";
@@ -60,7 +61,7 @@ export function SearchScene({
   const resultsReady = (searchable || examples) && !filtersMissing;
 
   /** Only the selected focused valid text context may request automatic continuation. */
-  async function loadMore() {
+  function loadMore() {
     if (
       !active ||
       !navigation.isFocused() ||
@@ -72,7 +73,55 @@ export function SearchScene({
     ) {
       return;
     }
-    await textQuery.fetchNextPage({ cancelRefetch: false });
+    void textQuery.fetchNextPage({ cancelRefetch: false });
+  }
+
+  let emptyContent: ReactElement | null = null;
+  if (searchable || examples) {
+    if (failed) {
+      emptyContent = (
+        <ScreenState>
+          <ReadFeedback
+            key={filtersMissing ? "options" : criteria}
+            query={read}
+            loadingContent={null}
+            onRetry={
+              active
+                ? () =>
+                    !filtersMissing &&
+                    !examples &&
+                    textQuery.isFetchNextPageError
+                      ? textQuery.fetchNextPage({ cancelRefetch: false })
+                      : read.refetch({ cancelRefetch: false })
+                : undefined
+            }
+          />
+        </ScreenState>
+      );
+    } else if (filtersMissing || read.isPending) {
+      if (read.isFetching) {
+        emptyContent = (
+          <PageContent>
+            <SearchLoading />
+          </PageContent>
+        );
+      }
+    } else {
+      emptyContent = (
+        <ScreenState>
+          <EmptyState
+            title={
+              examples
+                ? "Aucun exemple disponible"
+                : "Aucun résultat pour ces critères"
+            }
+            description={emptyDescription}
+          >
+            {emptyAction}
+          </EmptyState>
+        </ScreenState>
+      );
+    }
   }
 
   return (
@@ -84,49 +133,8 @@ export function SearchScene({
       }}
       examples={examples}
       items={resultsReady && !failed ? items : []}
-      onEndReached={() => void loadMore()}
-      emptyComponent={
-        searchable || examples ? (
-          !failed && (filtersMissing || read.isPending) ? (
-            read.isFetching ? (
-              <SearchResultsContent>
-                <SearchLoading />
-              </SearchResultsContent>
-            ) : null
-          ) : failed ? (
-            <ScreenState>
-              <ReadFeedback
-                key={filtersMissing ? "options" : criteria}
-                query={read}
-                loadingContent={null}
-                onRetry={
-                  active
-                    ? () =>
-                        !filtersMissing &&
-                        !examples &&
-                        textQuery.isFetchNextPageError
-                          ? textQuery.fetchNextPage({ cancelRefetch: false })
-                          : read.refetch({ cancelRefetch: false })
-                    : undefined
-                }
-              />
-            </ScreenState>
-          ) : (
-            <ScreenState>
-              <EmptyState
-                title={
-                  examples
-                    ? "Aucun exemple disponible"
-                    : "Aucun résultat pour ces critères"
-                }
-                description={emptyDescription}
-              >
-                {emptyAction}
-              </EmptyState>
-            </ScreenState>
-          )
-        ) : null
-      }
+      onEndReached={loadMore}
+      emptyComponent={emptyContent}
       continuation={
         resultsReady && !failed && !examples && textQuery.isFetchingNextPage ? (
           <ListContinuation loading failed={false} onRetry={loadMore} />
