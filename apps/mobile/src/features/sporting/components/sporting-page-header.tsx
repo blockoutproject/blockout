@@ -20,7 +20,7 @@ export interface SportingPageHeaderProps {
   action?: ReactNode;
 }
 
-/** Native collapse reveals only the compact identity; permission-gated editing and support remain independent. */
+/** Native collapse reveals the compact identity, with up to two lines for pool names; editing and support remain independent. */
 export function SportingPageHeader({
   identity,
   kind,
@@ -55,7 +55,11 @@ export function SportingPageHeader({
           kind={kind === "pool" ? "division" : kind}
           size={28}
         />
-        <Text numberOfLines={1} style={[styles.name, { color: colors.text }]}>
+        <Text
+          numberOfLines={kind === "pool" ? 2 : 1}
+          ellipsizeMode="tail"
+          style={[styles.name, { color: colors.text }]}
+        >
           {identity.name}
         </Text>
       </View>

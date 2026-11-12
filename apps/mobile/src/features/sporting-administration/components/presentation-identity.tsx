@@ -1,10 +1,11 @@
-import { Image } from "expo-image";
+import { RoundedContainedImage } from "../../../shared/components/rounded-contained-image";
 import { StyleSheet, Text, View } from "react-native";
 import { ImageFallback } from "../../../shared/components/image-fallback";
 import { LoadingGroup } from "../../../shared/components/loading-group";
 import { Skeleton } from "../../../shared/components/skeleton";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
+import { useNativeImageLifecycle } from "../../../shared/images/use-native-image-lifecycle";
 
 /** The retained draft preview uses current artwork, editable division colors and optional public season context. */
 export interface PresentationIdentityProps {
@@ -18,7 +19,7 @@ export interface PresentationIdentityProps {
   gradient: readonly string[];
 }
 
-/** Presents the form's existing preview without owning selection, loading or editable state. */
+/** Keeps the form's context logo slot through missing/failed native artwork without changing selection or editable state. */
 export function PresentationIdentity({
   uri,
   loading,
@@ -30,22 +31,29 @@ export function PresentationIdentity({
   gradient,
 }: Readonly<PresentationIdentityProps>) {
   const { colors } = useTheme();
+  const nativeImage = useNativeImageLifecycle(uri ?? undefined);
+  const available = !!uri && nativeImage.status !== "failed";
+  const identityName = isDivision ? name.trim() || "Nouvelle division" : title;
   const placeholderStyle = isDivision
     ? styles.divisionPlaceholder
     : styles.contextLogo;
   const skeletonSize = isDivision ? 38 : 64;
   return (
     <>
-      {uri && (
-        <Image
+      {available && (
+        <RoundedContainedImage
+          key={nativeImage.attemptKey}
           source={{ uri }}
-          contentFit="contain"
           cachePolicy="none"
-          accessible={false}
+          accessible
+          accessibilityRole="image"
+          accessibilityLabel={`Logo : ${identityName}`}
           style={isDivision ? styles.divisionLogo : styles.contextLogo}
+          onDisplay={nativeImage.onDisplay}
+          onError={nativeImage.onError}
         />
       )}
-      {!uri && loading ? (
+      {!available && loading ? (
         <LoadingGroup label="Chargement du logo" style={placeholderStyle}>
           <Skeleton
             width={skeletonSize}
@@ -54,7 +62,7 @@ export function PresentationIdentity({
           />
         </LoadingGroup>
       ) : (
-        !uri && (
+        !available && (
           <View
             style={[
               placeholderStyle,
@@ -62,7 +70,11 @@ export function PresentationIdentity({
               { backgroundColor: colors.mediaPlaceholder },
             ]}
           >
-            <ImageFallback size={tokens.size.icon.lg} color={colors.icon} />
+            <ImageFallback
+              size={tokens.size.icon.lg}
+              color={colors.icon}
+              label={`${uri ? "Logo indisponible" : "Logo absent"} : ${identityName}`}
+            />
           </View>
         )
       )}
@@ -111,13 +123,19 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: tokens.media.radius.preview,
+    overflow: "hidden",
   },
   contextName: { flex: 1, gap: tokens.spacing.xs },
-  divisionLogo: { width: 38, height: 38 },
+  divisionLogo: {
+    width: 38,
+    height: 38,
+    borderRadius: tokens.media.radius.tile,
+  },
   divisionPlaceholder: {
     width: 38,
     height: 38,
-    borderRadius: tokens.radius.full,
+    borderRadius: tokens.media.radius.tile,
+    overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
   },

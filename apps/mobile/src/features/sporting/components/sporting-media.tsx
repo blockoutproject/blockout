@@ -1,4 +1,4 @@
-import { Image } from "expo-image";
+import { RoundedContainedImage } from "../../../shared/components/rounded-contained-image";
 import { BlurredArtwork } from "../../../shared/components/blurred-artwork";
 import { ImageFallback } from "../../../shared/components/image-fallback";
 import { useState, type ReactNode } from "react";
@@ -8,6 +8,7 @@ import { Skeleton } from "../../../shared/components/skeleton";
 import { useNativeImageLifecycle } from "../../../shared/images/use-native-image-lifecycle";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import { mediaRadius } from "../../../shared/theme/media-radius";
 
 /** Optional sports artwork keeps its fixed slot and native lifecycle; absent or failed artwork uses the nominal fallback. */
 export interface SportingMediaProps {
@@ -39,7 +40,7 @@ export function SportingMedia({
   function renderArtwork() {
     if (available) {
       return (
-        <Image
+        <RoundedContainedImage
           key={image.attemptKey}
           accessible
           accessibilityRole="image"
@@ -48,12 +49,13 @@ export function SportingMedia({
           source={{ uri }}
           cachePolicy="none"
           recyclingKey={uri}
-          contentFit="contain"
           onDisplay={image.onDisplay}
           onError={image.onError}
           style={{
-            width: kind === "division" ? size : size * (5 / 6),
-            height: kind === "division" ? size : size * (5 / 6),
+            width: imageSize,
+            height: imageSize,
+            borderRadius: mediaRadius(imageSize),
+            overflow: "hidden",
           }}
         />
       );
@@ -83,8 +85,8 @@ export function SportingMedia({
       : error || failed
         ? "Logo indisponible"
         : "Logo absent";
-  const borderRadius =
-    presentation === "entity" ? tokens.radius.media : tokens.radius.sm;
+  const imageSize = kind === "division" ? size : size * (5 / 6);
+  const borderRadius = mediaRadius(size);
   const logo = (
     <View
       style={[

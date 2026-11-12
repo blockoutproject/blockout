@@ -10,6 +10,7 @@ import type { StandingRowResponse } from "../../../../.generated/schemas/index.z
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { SportingLogo } from "./sporting-identity";
+import { SportingMedia } from "./sporting-media";
 import { StandingPerformanceBar } from "./standing-performance-bar";
 
 /** Accepted source rows and columns; presentation never supplies a missing rank, statistic or association. */
@@ -72,7 +73,7 @@ interface StandingCardProps {
   active: boolean;
 }
 
-/** Source identity, square admitted artwork and exact statistics share one optional real-team link. */
+/** Source identity, nominal artwork/fallback and exact statistics share one optional real-team link. */
 function StandingCard({
   row,
   columns,
@@ -115,8 +116,8 @@ function StandingCard({
     minHeight = tokens.sporting.standingsCard.rowMinHeight;
   }
 
-  /** The image owner supplies both decoded layers, keeping card placement separate from media state. */
-  function renderCard(logo?: ReactNode, atmosphere?: ReactNode) {
+  /** The media owner supplies the foreground slot and optional atmosphere, independently of card placement. */
+  function renderCard(logo: ReactNode, atmosphere?: ReactNode) {
     const content = (
       <>
         {podium && <RankTint color={rank.fill} />}
@@ -234,7 +235,12 @@ function StandingCard({
       renderWithAtmosphere={renderCard}
     />
   ) : (
-    renderCard()
+    <SportingMedia
+      identity={{ name: row.sourceName }}
+      kind="team"
+      size={podium ? tokens.size.media.row : tokens.size.media.match}
+      renderWithAtmosphere={renderCard}
+    />
   );
 }
 

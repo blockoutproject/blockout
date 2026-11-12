@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import { ImageFallback } from "../../../shared/components/image-fallback";
 
 /** Original Figma illustration; optional artwork motion stays inside the fixed source crop. */
 export function DiscoveryBackdrop({
@@ -98,14 +99,14 @@ export function DiscoveryExample({ step }: Readonly<{ step: number }>) {
       >
         {(notification
           ? [
-              ["", "Saint-Quentin Volley", "3"],
-              ["", "REC Volley", "2"],
+              ["Saint-Quentin Volley", "3"],
+              ["REC Volley", "2"],
             ]
           : [
-              ["SV", "Saintes Volley-Ball", "3"],
-              ["VBP", "Volley-Ball Pexinois Niort", "2"],
+              ["Saintes Volley-Ball", "3"],
+              ["Volley-Ball Pexinois Niort", "2"],
             ]
-        ).map(([mark, team, score], index) => {
+        ).map(([team, score], index) => {
           let backgroundColor = colors.subtle;
           let color = colors.text;
           if (notification) {
@@ -125,10 +126,10 @@ export function DiscoveryExample({ step }: Readonly<{ step: number }>) {
                   },
               ]}
             >
-              {!!mark && (
-                <Text style={[styles.mark, { color: colors.text }]}>
-                  {mark}
-                </Text>
+              {!notification && (
+                <View style={styles.mark}>
+                  <ImageFallback color={colors.icon} />
+                </View>
               )}
               <Text
                 style={[
@@ -229,7 +230,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  mark: { ...tokens.typography.metadata, width: 32, textAlign: "center" },
+  mark: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   resultFooter: {
     borderTopWidth: tokens.border.thin,
     paddingTop: tokens.spacing.sm,

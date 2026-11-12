@@ -267,12 +267,13 @@ const styles = StyleSheet.create({
     height: tokens.size.media.profile + 2 * tokens.spacing.sm,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: tokens.radius.panelInset,
+    borderRadius: tokens.media.radius.profile,
     overflow: "hidden",
   },
   image: {
     width: "100%",
     height: "100%",
+    borderRadius: tokens.media.radius.profile,
   },
   entry: {
     minHeight: tokens.size.control.default,

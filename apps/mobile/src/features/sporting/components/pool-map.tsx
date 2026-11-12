@@ -67,7 +67,10 @@ export interface PoolMapProps {
   children?: ReactNode;
 }
 
-/** Keeps participant failures in this pane and its authorized native map mounted; optional standings never block navigation. */
+/**
+ * Keeps participant failures in this pane and its authorized native map mounted; optional standings never block navigation.
+ * The refresh host stays attached to preserve the native map's selection and camera while failed content disables its pull.
+ */
 export function PoolMap({
   pool,
   active = true,
@@ -110,13 +113,11 @@ export function PoolMap({
     <PageScrollView
       alwaysBounceVertical={hasLocations && !failed}
       refreshControl={
-        hasLocations && !failed ? (
-          <DataRefreshControl
-            onRefresh={refresh}
-            enabled={active}
-            fetching={participants.isFetching || standings.isFetching}
-          />
-        ) : undefined
+        <DataRefreshControl
+          onRefresh={refresh}
+          enabled={active && hasLocations && !failed}
+          fetching={participants.isFetching || standings.isFetching}
+        />
       }
     >
       {data && hasLocations && (

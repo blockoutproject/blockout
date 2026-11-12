@@ -5,7 +5,7 @@ import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Image } from "expo-image";
+import { RoundedContainedImage } from "../../../shared/components/rounded-contained-image";
 import { FileText, Wrench } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
@@ -271,9 +271,10 @@ export function MaintenanceForm({
               />
             )}
           />
-          {validPreview && (
-            <MaintenanceImagePreview key={imageUrl} uri={imageUrl} />
-          )}
+          <MaintenanceImagePreview
+            key={imageUrl}
+            uri={validPreview ? imageUrl : undefined}
+          />
           {isDirty && (
             <Text
               style={[
@@ -313,28 +314,27 @@ export function MaintenanceForm({
   );
 }
 
-/** Optional URL artwork keeps native progress and a plain failure fallback; a changed URL starts its own keyed preview without editing RHF. */
-function MaintenanceImagePreview({ uri }: Readonly<{ uri: string }>) {
+/** Keeps the nominal slot without a usable URL; only a validated URL starts native loading, independently of RHF. */
+function MaintenanceImagePreview({ uri }: Readonly<{ uri?: string }>) {
   const [status, setStatus] = useState<"loading" | "displayed" | "failed">(
     "loading",
   );
   return (
     <View style={styles.preview}>
-      {status === "failed" ? (
-        <ImageFallback label="Aperçu indisponible" />
+      {!uri || status === "failed" ? (
+        <ImageFallback label={uri ? "Aperçu indisponible" : "Aperçu absent"} />
       ) : (
-        <Image
+        <RoundedContainedImage
           accessible
           accessibilityRole="image"
           accessibilityLabel="Aperçu de l’image de maintenance"
           source={{ uri }}
-          style={StyleSheet.absoluteFill}
-          contentFit="contain"
+          style={[StyleSheet.absoluteFill, styles.previewImage]}
           onDisplay={() => setStatus("displayed")}
           onError={() => setStatus("failed")}
         />
       )}
-      {status === "loading" && (
+      {uri && status === "loading" && (
         <LoadingGroup
           label="Chargement de l’aperçu"
           style={StyleSheet.absoluteFill}
@@ -367,5 +367,8 @@ const styles = StyleSheet.create({
     height: 96,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: tokens.media.radius.profile,
+    overflow: "hidden",
   },
+  previewImage: { borderRadius: tokens.media.radius.profile },
 } as const);

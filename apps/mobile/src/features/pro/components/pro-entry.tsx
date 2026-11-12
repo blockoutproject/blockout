@@ -1,4 +1,4 @@
-import { Image } from "expo-image";
+import { RoundedContainedImage } from "../../../shared/components/rounded-contained-image";
 import { useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import { useAccountSession } from "../../accounts/current-account";
@@ -25,11 +25,10 @@ export function ProEntry({ onOpenPresentation }: Readonly<ProEntryProps>) {
       label="Blockout Pro"
       disabled={!available}
       icon={
-        <Image
+        <RoundedContainedImage
           accessible={false}
           source={require("../../../../assets/accounts/pro.png")}
           style={styles.icon}
-          contentFit="contain"
         />
       }
       onPress={() => {
@@ -77,7 +76,7 @@ const styles = StyleSheet.create({
   icon: {
     width: tokens.size.icon.md,
     height: tokens.size.icon.md,
-    borderRadius: tokens.radius.media,
+    borderRadius: tokens.media.radius.compact,
   },
   badge: {
     alignSelf: "flex-start",

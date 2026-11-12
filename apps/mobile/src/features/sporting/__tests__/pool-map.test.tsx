@@ -613,7 +613,7 @@ it("distinguishes no usable locations from no participating teams", async () => 
       .filter((node) => node.props.coordinate !== undefined),
   ).toHaveLength(0);
   expect(screen.queryByText(/Aucune équipe/)).toBeNull();
-  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
   const background = Promise.withResolvers<Response>();
   mockFetch.mockImplementationOnce(() => background.promise);
 
@@ -1094,6 +1094,7 @@ it.each(["initial", "refresh"] as const)(
       );
     }
     await screen.findByRole("button", { name: "Réessayer", busy: false });
+    expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
     const pending = Promise.withResolvers<Response>();
     mockFetch.mockImplementation((url: string) =>
       new URL(url).pathname.endsWith("/participants")
@@ -1112,6 +1113,7 @@ it.each(["initial", "refresh"] as const)(
     expect(
       screen.getByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
     ).toBeOnTheScreen();
+    expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
     expect(
       screen.queryByRole("button", { name: "La Rochelle: Rives" }),
     ).not.toBeOnTheScreen();
@@ -1144,6 +1146,7 @@ it.each(["initial", "refresh"] as const)(
       await screen.findByRole("button", { name: "La Rochelle: Rives" }),
     ).toBeOnTheScreen();
     expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+    expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
     if (origin === "refresh") {
       expect(screen.getByRole("link", { name: "Rives" })).toBeOnTheScreen();
       await fireEvent(screen.getByTestId("native-map-boundary"), "layout", {

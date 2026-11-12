@@ -1784,6 +1784,38 @@ it.each(["provisional", "unconfirmed", "final"] as const)(
   },
 );
 
+it.each(["summary", "context"] as const)(
+  "keeps the %s pool logo slot without a division or an invented media read",
+  async (presentation) => {
+    // Given: the accepted pool has no associated division.
+    match.match.pool.classification = {};
+    match.match.pool.pool.name =
+      "Championnat interdépartemental de la Vallée et des Montagnes · Poule A · Phase initiale";
+
+    // When
+    await renderPage(
+      <MatchSummary match={match.match} presentation={presentation} />,
+    );
+
+    // Then: real identities remain readable without a fabricated division or logo request.
+    expect(
+      screen.getByRole("image", {
+        name: `Logo absent : ${match.match.pool.pool.name}`,
+      }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByRole("header", { name: match.match.pool.pool.name }),
+    ).toBeOnTheScreen();
+    expect(screen.getByText(match.match.home.name)).toBeOnTheScreen();
+    expect(screen.getByText(match.match.away.name)).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.some(([url]) =>
+        new URL(url).pathname.endsWith("/logo"),
+      ),
+    ).toBe(false);
+  },
+);
+
 it.each(["provisional", "unconfirmed"] as const)(
   "retains the full %s uncertainty when the contribution context has no status band",
   async (state) => {

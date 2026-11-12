@@ -540,6 +540,9 @@ it("refuses an invalid image URL without losing the draft", async () => {
   const user = userEvent.setup();
   await renderSettings();
   await screen.findByDisplayValue(initial.message);
+  expect(
+    screen.getByRole("image", { name: "Aperçu absent" }),
+  ).toBeOnTheScreen();
   await user.clear(screen.getByLabelText("Message de maintenance"));
   await user.type(
     screen.getByLabelText("Message de maintenance"),
@@ -560,6 +563,16 @@ it("refuses an invalid image URL without losing the draft", async () => {
     ),
   ).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("image", { name: "Aperçu absent" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("image", { name: "Aperçu de l’image de maintenance" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
+  ).toBe(false);
 });
 it("clears the optional image using explicit null", async () => {
   // Given
@@ -571,6 +584,9 @@ it("clears the optional image using explicit null", async () => {
   await screen.findByDisplayValue(initial.message);
   const user = userEvent.setup();
   await user.clear(screen.getByLabelText("URL de l’image"));
+  expect(
+    screen.getByRole("image", { name: "Aperçu absent" }),
+  ).toBeOnTheScreen();
   mockFetch.mockImplementation(async () => json({ ...initial, revision: 3 }));
 
   // When

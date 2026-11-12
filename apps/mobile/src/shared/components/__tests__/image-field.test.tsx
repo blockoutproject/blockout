@@ -443,6 +443,59 @@ it("preserves the controlled image when its owner supplies a validation error", 
   expect(onSelect).not.toHaveBeenCalled();
 });
 
+it("keeps a failed attachment thumbnail in its nominal slot without removing its preview or file actions", async () => {
+  // Given: the field retains its caller-owned attachment and native selection actions.
+  const onSelect = jest.fn();
+  const onRemove = jest.fn();
+  const view = await renderField({ images: [logo], onSelect, onRemove });
+  const preview = screen.getByRole("button", {
+    name: "Aperçu : Logo du club",
+  });
+
+  // When: the native bitmap decoder fails independently of the available preview action.
+  await fireEvent(
+    screen.getByRole("image", { name: "Miniature : Logo du club" }),
+    "error",
+    { nativeEvent: { error: "Controlled native decode failure" } },
+  );
+
+  // Then
+  expect(
+    screen.getByRole("image", { name: "Image indisponible : Logo du club" }),
+  ).toBeOnTheScreen();
+  expect(preview).toBeEnabled();
+  expect(
+    screen.getByRole("button", { name: "Changer l’image : Logo du club" }),
+  ).toBeEnabled();
+  expect(
+    screen.getByRole("button", { name: "Supprimer l’image : Logo du club" }),
+  ).toBeEnabled();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+  expect(onSelect).not.toHaveBeenCalled();
+  expect(onRemove).not.toHaveBeenCalled();
+  expect(mockDeleteFile).not.toHaveBeenCalled();
+
+  // When: the owner accepts another URI for the same attachment.
+  await view.rerender(
+    <MediaProviders>
+      <ImageField
+        images={[{ ...logo, uri: "file:///replacement.png" }]}
+        onSelect={onSelect}
+        onRemove={onRemove}
+      />
+    </MediaProviders>,
+  );
+
+  // Then: only the former native failure is discarded.
+  expect(
+    screen.queryByRole("image", { name: "Image indisponible : Logo du club" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Aperçu : Logo du club" }),
+  ).toBeEnabled();
+});
+
 it("blocks reselection during owner preparation and recovers safely from rejection", async () => {
   // Given
   launch.mockResolvedValue({ canceled: false, assets: [photo] });
@@ -638,6 +691,25 @@ it("keeps preview dismissal available when native image decoding fails", async (
 
   // When
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  const decodingImage = screen.getByRole("image", {
+    name: "Logo du club",
+    includeHiddenElements: true,
+  });
+  // Native dimensions may repeat after a local bounds update; only display completes the attempt.
+  for (let event = 0; event < 2; event += 1) {
+    await fireEvent(decodingImage, "load", {
+      nativeEvent: {
+        cacheType: "none",
+        source: {
+          url: logo.uri,
+          width: 1600,
+          height: 900,
+          mediaType: "image/png",
+          isAnimated: false,
+        },
+      },
+    });
+  }
 
   // Then
   expect(screen.getByRole("alert")).toBeOnTheScreen();

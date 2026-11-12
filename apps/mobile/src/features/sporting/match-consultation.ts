@@ -8,6 +8,8 @@ export { MatchSurface } from "./components/match-surface";
 
 export { SportingLogo, SportingArtwork } from "./components/sporting-identity";
 
+export { SportingMedia } from "./components/sporting-media";
+
 export { DivisionPaint } from "./components/division-paint";
 
 export { formatSportingSchedule } from "./model/sporting-time";

@@ -273,6 +273,39 @@ it("opens the exact match while keeping final special notation and supplied tota
   expect(screen.queryByText("Résultat indisponible")).not.toBeOnTheScreen();
 });
 
+it("keeps a nominal calendar logo without inventing a missing division or reading its media", async () => {
+  // Given: this accepted calendar group has neither a division nor gender metadata.
+  const pool = calendar.days[0].pools[0].matches[0].pool;
+  pool.pool.name = "Poule sans division";
+  pool.classification = {};
+
+  // When
+  await render(
+    <CalendarTab>
+      <SportingCalendar
+        selection={{ teamId: sportingId, category: "upcoming" }}
+      />
+    </CalendarTab>,
+    { wrapper: Providers },
+  );
+  await layoutNativeTabs();
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+
+  // Then: the shared media slot remains meaningful without a fabricated classification or logo read.
+  expect(
+    screen.getByRole("image", { name: "Logo absent : Poule sans division" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "Poule sans division" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText(/Féminin|Masculin|Mixte/)).toBeNull();
+  expect(
+    mockFetch.mock.calls
+      .map(([url]) => new URL(url).pathname)
+      .filter((path) => path !== "/application-access"),
+  ).toEqual(["/matches"]);
+});
+
 it("retains loaded calendar data and its active context through native font-size changes without a reread", async () => {
   // Given: native metrics and the real calendar owner; Legend's geometry remains native evidence.
   const original = {

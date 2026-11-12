@@ -1,4 +1,4 @@
-import { Image } from "expo-image";
+import { Image, type ImageProps } from "expo-image";
 import type { ImageSelection } from "../images/use-image-selection";
 import { X } from "lucide-react-native";
 import { ImageFallback } from "./image-fallback";
@@ -17,6 +17,7 @@ import { BottomContentSpacer } from "./bottom-content-inset";
 import { useNativeImageLifecycle } from "../images/use-native-image-lifecycle";
 import { LoadingGroup } from "./loading-group";
 import { Skeleton } from "./skeleton";
+import { RoundedContainedImage } from "./rounded-contained-image";
 
 /** Stable caller identity and accessible description for an existing or prepared local preview. */
 export interface ImageFieldImage {
@@ -109,16 +110,10 @@ export function ImageField({
                 opacity: pressed ? tokens.opacity.pressed : 1,
               })}
             >
-              <Image
-                source={{ uri: image.uri }}
-                accessible={false}
-                cachePolicy="none"
+              <ImageThumbnail
+                image={image}
+                compact={compact}
                 contentFit={contentFit}
-                style={[
-                  styles.thumbnail,
-                  compact && styles.compactThumbnail,
-                  { backgroundColor: colors.mediaPlaceholder },
-                ]}
               />
             </Pressable>
             <Pressable
@@ -223,7 +218,67 @@ export function ImageField({
   );
 }
 
-/** Keeps the caller's image and draft intact; native decoding owns pending/success/failure and Retry retains its card. */
+/** One retained attachment owns its native thumbnail decode; failure keeps the slot and caller's file/actions intact. */
+function ImageThumbnail({
+  image,
+  compact,
+  contentFit,
+}: Readonly<{
+  image: ImageFieldImage;
+  compact: boolean;
+  contentFit: NonNullable<ImageFieldProps["contentFit"]>;
+}>) {
+  const { colors } = useTheme();
+  const nativeImage = useNativeImageLifecycle(image.uri);
+  const thumbnailProps = {
+    source: { uri: image.uri },
+    accessible: true,
+    accessibilityRole: "image",
+    accessibilityLabel: `Miniature : ${image.label}`,
+    cachePolicy: "none",
+    style: [
+      StyleSheet.absoluteFill,
+      {
+        borderRadius: compact
+          ? tokens.media.radius.preview
+          : tokens.media.radius.profile,
+      },
+    ],
+    onDisplay: nativeImage.onDisplay,
+    onError: nativeImage.onError,
+  } satisfies ImageProps;
+  return (
+    <View
+      style={[
+        styles.thumbnail,
+        compact && styles.compactThumbnail,
+        { backgroundColor: colors.mediaPlaceholder },
+      ]}
+    >
+      {image.uri && nativeImage.status !== "failed" ? (
+        contentFit === "contain" ? (
+          <RoundedContainedImage
+            key={nativeImage.attemptKey}
+            {...thumbnailProps}
+          />
+        ) : (
+          <Image
+            key={nativeImage.attemptKey}
+            {...thumbnailProps}
+            contentFit={contentFit}
+          />
+        )
+      ) : (
+        <ImageFallback
+          label={`${image.uri ? "Image indisponible" : "Image absente"} : ${image.label}`}
+          color={colors.icon}
+        />
+      )}
+    </View>
+  );
+}
+
+/** Keeps the caller's image/draft intact; shared contain clipping leaves native decoding and same-card Retry with this owner. */
 export function ImagePreview({
   image,
   onClose,
@@ -243,7 +298,7 @@ export function ImagePreview({
       </IconButton>
       <View style={styles.previewBody}>
         {nativeImage.status !== "failed" && (
-          <Image
+          <RoundedContainedImage
             key={nativeImage.attemptKey}
             onError={nativeImage.onError}
             onDisplay={nativeImage.onDisplay}
@@ -252,7 +307,6 @@ export function ImagePreview({
             accessibilityLabel={image.label}
             accessible
             cachePolicy="none"
-            contentFit="contain"
             style={[
               styles.fullImage,
               nativeImage.status !== "displayed" && styles.pendingImage,
@@ -316,12 +370,16 @@ const styles = StyleSheet.create({
   thumbnail: {
     width: 92,
     height: 92,
-    borderRadius: tokens.media.radius.preview,
+    borderRadius: tokens.media.radius.profile,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
   },
-  compactThumbnail: { width: 64, height: 64 },
+  compactThumbnail: {
+    width: 64,
+    height: 64,
+    borderRadius: tokens.media.radius.preview,
+  },
   action: {
     minWidth: tokens.touch.minimum,
     minHeight: tokens.size.control.default,
@@ -341,6 +399,9 @@ const styles = StyleSheet.create({
   removeLabel: tokens.typography.strong,
   previewBody: { flex: 1 },
   previewLoading: { flex: 1, padding: tokens.spacing.screen },
-  fullImage: StyleSheet.absoluteFill,
+  fullImage: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: tokens.media.radius.profile,
+  },
   pendingImage: { opacity: 0 },
 } as const);

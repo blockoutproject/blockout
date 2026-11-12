@@ -54,6 +54,7 @@ import { genderLabel } from "../classification-presentation";
 import { CalendarMatch } from "./calendar-match";
 import { DivisionPaint } from "./division-paint";
 import { SportingLogo, SportingArtwork } from "./sporting-identity";
+import { SportingMedia } from "./sporting-media";
 
 /** One native tab owns its exact calendar traversal; inactive panels keep data without issuing reads. */
 export interface SportingCalendarProps {
@@ -389,7 +390,7 @@ function CalendarGroupPart({
   );
 }
 
-/** A real pool heading appears once before its individually virtualized accepted encounters. */
+/** Pool headings retain a two-line name, full accessible label and nominal media slot without inventing a division. */
 function CalendarPoolHeader({
   group,
 }: Readonly<{ group: MatchPoolGroupResponse }>) {
@@ -402,16 +403,21 @@ function CalendarPoolHeader({
     <CalendarGroupPart match={group.matches[0]} first>
       <View style={styles.groupInset}>
         <View style={[styles.pool, { backgroundColor: accent }]}>
-          {division && (
+          {division ? (
             <>
               <DivisionPaint division={division} />
               <SportingArtwork division={division} />
               <SportingLogo identity={division} kind="division" size={40} />
             </>
+          ) : (
+            <SportingMedia identity={pool.pool} kind="division" size={40} />
           )}
           <View style={styles.identity}>
             <Text
               accessibilityRole="header"
+              accessibilityLabel={pool.pool.name}
+              numberOfLines={2}
+              ellipsizeMode="tail"
               style={[styles.poolName, { color: foreground }]}
             >
               {pool.pool.name}
