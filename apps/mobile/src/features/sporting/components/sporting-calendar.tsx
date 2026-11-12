@@ -421,9 +421,6 @@ function CalendarPoolHeader({
                 .filter(Boolean)
                 .join(" ")}
             </Text>
-            <Text style={[styles.metadata, { color: foreground }]}>
-              {group.matches.length} match{group.matches.length > 1 ? "s" : ""}
-            </Text>
           </View>
         </View>
       </View>
