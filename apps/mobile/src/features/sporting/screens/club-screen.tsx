@@ -93,11 +93,11 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
     currentScope.current = scope;
   }, [scope]);
 
-  /** Explicit refresh retains each authorized scope; late failure feedback stays with the attempted selection. */
+  /** Common detail uses destination recovery; the independent teams reader retains its own adoption scope. */
   async function refresh() {
-    feedback.clear();
-    const attemptedScope = scope;
     if (tab === "teams" && data && season) {
+      feedback.clear();
+      const attemptedScope = scope;
       const result = await teams.refetch({ cancelRefetch: false });
       if (
         currentScope.current === attemptedScope &&
@@ -109,16 +109,7 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
       }
       return;
     }
-    const result = await club.refetch({ cancelRefetch: false });
-    if (
-      currentScope.current === attemptedScope &&
-      result.isError &&
-      result.data &&
-      (tab === "info" || result.data.seasons.length > 0) &&
-      !isAccessDenied(result.error)
-    ) {
-      feedback.error();
-    }
+    await club.refetch({ cancelRefetch: false });
   }
 
   const identity = data ? (
@@ -212,6 +203,11 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
                         <DataRefreshControl
                           onRefresh={refresh}
                           enabled={tab === value}
+                          fetching={
+                            value === "teams" && data && season
+                              ? teams.isFetching
+                              : club.isFetching
+                          }
                         />
                       ) : undefined
                     }

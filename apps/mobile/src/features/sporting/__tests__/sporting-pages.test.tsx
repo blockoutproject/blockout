@@ -1331,16 +1331,24 @@ it("retains a valid season through failed retrieval and falls back only after su
   // When
   await act(async () => {
     await client.refetchQueries({
-      predicate: (q) =>
-        q.queryKey.some(
-          (k) => typeof k === "string" && k.endsWith(`/clubs/${sportingId}`),
-        ),
+      queryKey: getGetClubQueryKey(sportingId),
+      exact: true,
     });
   });
 
+  // Then: required-read failure masks the control without discarding its selected season.
+  await screen.findByRole("alert");
+  expect(
+    screen.queryByRole("button", { name: "Saison du club" }),
+  ).not.toBeOnTheScreen();
+
+  // When: the same authorized detail recovers through its card.
+  mockFetch.mockImplementation(reads);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
   // Then
   expect(
-    screen.getByRole("button", { name: "Saison du club" }),
+    await screen.findByRole("button", { name: "Saison du club" }),
   ).toHaveAccessibilityValue({ text: olderSeason.label });
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   club = { ...club, seasons: [season] };
@@ -1348,7 +1356,8 @@ it("retains a valid season through failed retrieval and falls back only after su
   // When
   await act(async () => {
     await client.refetchQueries({
-      predicate: (query) => query.queryKey.includes(`/clubs/${sportingId}`),
+      queryKey: getGetClubQueryKey(sportingId),
+      exact: true,
     });
   });
   // The accepted fallback replaces the old season's native container before its new layout arrives.

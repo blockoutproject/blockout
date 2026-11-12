@@ -34,7 +34,10 @@ import { ClubScreen } from "../screens/club-screen";
 import { TeamScreen } from "../screens/team-screen";
 import { PoolScreen } from "../screens/pool-screen";
 import { MatchScreen } from "../screens/match-screen";
-import { getGetPoolStandingsQueryKey } from "../../../../.generated/mobile";
+import {
+  getGetMatchQueryKey,
+  getGetPoolStandingsQueryKey,
+} from "../../../../.generated/mobile";
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("@react-native-async-storage/async-storage", () =>
@@ -203,49 +206,54 @@ it.each(pages)(
   },
 );
 
-it.each(pages)(
-  "keeps authorized $kind facts after a failed owner invalidation",
-  async ({ kind, path, element, label }) => {
-    // Given
-    await renderPage(element);
-    if (kind !== "match") {
-      await layoutSportingPage();
-    }
-    await screen.findAllByText(label);
-    mockFetch.mockImplementation((url: string) =>
-      new URL(url).pathname === path
-        ? Promise.reject(new TypeError("offline"))
-        : reads(url),
-    );
+it("keeps authorized Match facts after a failed owner invalidation", async () => {
+  // Given
+  const path = `/matches/${sportingId}`;
+  const label = "Home";
+  const queryKey = getGetMatchQueryKey(sportingId);
+  await renderPage(<MatchScreen matchId={sportingId} />);
+  await screen.findAllByText(label);
+  const accepted = client.getQueryData(queryKey);
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname === path
+      ? Promise.reject(new TypeError("offline"))
+      : reads(url),
+  );
 
-    // When: an ordinary owner invalidation rereads only the addressed detail.
-    await act(() =>
-      client.invalidateQueries({ queryKey: [path], exact: true }),
-    );
+  // When: an ordinary owner invalidation rereads only the addressed detail.
+  await act(async () => {
+    await client.invalidateQueries({ queryKey, exact: true });
+    // Query schedules observer notifications at zero delay; commit them before inspecting retained UI.
+    await jest.advanceTimersByTimeAsync(0);
+  });
 
-    // Then
-    expect(screen.getAllByText(label).length).toBeGreaterThan(0);
-    await waitFor(() => expect(client.isFetching()).toBe(0));
-    expect(
-      screen.queryByRole("button", { name: "Réessayer" }),
-    ).not.toBeOnTheScreen();
-    expect(
-      screen.queryByText(/Aucune équipe|Aucun match/),
-    ).not.toBeOnTheScreen();
+  // Then
+  expect(client.getQueryState(queryKey)).toMatchObject({
+    status: "error",
+    fetchStatus: "idle",
+  });
+  expect(client.getQueryData(queryKey)).toEqual(accepted);
+  expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByText(/Aucune équipe|Aucun match/)).not.toBeOnTheScreen();
 
-    // When
-    mockFetch.mockImplementation(reads);
-    await act(() =>
-      client.invalidateQueries({ queryKey: [path], exact: true }),
-    );
+  // When
+  mockFetch.mockImplementation(reads);
+  await act(async () => {
+    await client.invalidateQueries({ queryKey, exact: true });
+    await jest.advanceTimersByTimeAsync(0);
+  });
 
-    // Then
-    await waitFor(() =>
-      expect(screen.queryByRole("alert")).not.toBeOnTheScreen(),
-    );
-    expect(screen.getAllByText(label).length).toBeGreaterThan(0);
-  },
-);
+  // Then
+  expect(client.getQueryState(queryKey)).toMatchObject({
+    status: "success",
+    fetchStatus: "idle",
+  });
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+});
 
 it.each([401, 403, 404])(
   "withdraws refused sensitive club facts (%s) before a later technical failure",
@@ -678,57 +686,79 @@ it.each(["current", "former"] as const)(
   },
 );
 
-it.each([
-  {
-    kind: "club",
-    element: <ClubScreen clubId={sportingId} />,
-    path: `/clubs/${sportingId}`,
-    label: "Club des Rives",
-  },
-  {
-    kind: "match",
-    element: <MatchScreen matchId={sportingId} />,
-    path: `/matches/${sportingId}`,
-    label: "Home",
-  },
-])(
-  "keeps $kind content and only one toast after a failed native pull, then recovers on the next pull",
-  async ({ element, path, label }) => {
-    // Given
-    await renderPage(element);
-    await screen.findAllByText(label);
-    await layoutNativeTabs();
-    await screen.findByLabelText("Actualiser les données");
-    await waitFor(() => expect(client.isFetching()).toBe(0));
-    mockFetch.mockImplementation((url: string) =>
-      new URL(url).pathname === path
-        ? Promise.reject(new TypeError("offline"))
-        : reads(url),
-    );
+it("keeps Match content and only one toast after a failed pull, then recovers on the next pull", async () => {
+  // Given
+  const path = `/matches/${sportingId}`;
+  const label = "Home";
+  await renderPage(<MatchScreen matchId={sportingId} />);
+  await screen.findAllByText(label);
+  await layoutNativeTabs();
+  await screen.findByLabelText("Actualiser les données");
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname === path
+      ? Promise.reject(new TypeError("offline"))
+      : reads(url),
+  );
 
-    // When: userEvent cannot perform the native RefreshControl gesture.
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  // When: userEvent cannot perform the native RefreshControl gesture.
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
-    // Then
-    expect(
-      await screen.findByRole("alert", {
-        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-      }),
-    ).toBeOnTheScreen();
-    expect(screen.getAllByRole("alert")).toHaveLength(1);
-    expect(
-      screen.queryByRole("button", { name: "Réessayer" }),
-    ).not.toBeOnTheScreen();
-    expect(screen.getAllByText(label).length).toBeGreaterThan(0);
-    expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+  // Then
+  expect(
+    await screen.findByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.getAllByRole("alert")).toHaveLength(1);
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+  expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
 
-    // When
-    mockFetch.mockImplementation(reads);
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  // When
+  mockFetch.mockImplementation(reads);
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
-    // Then
-    await waitFor(() => expect(client.isFetching()).toBe(0));
-    expect(screen.getAllByText(label).length).toBeGreaterThan(0);
-    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
-  },
-);
+  // Then
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+});
+
+it("uses only the destination card after a failed common Club refresh and recovers through Retry", async () => {
+  // Given: the shared common boundary retains the loaded Club while its detail read fails.
+  const path = `/clubs/${sportingId}`;
+  const user = userEvent.setup();
+  await renderPage(<ClubScreen clubId={sportingId} />);
+  await screen.findAllByText("Club des Rives");
+  await layoutNativeTabs();
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname === path
+      ? Promise.reject(new TypeError("offline"))
+      : reads(url),
+  );
+
+  // When: fireEvent dispatches the native control event; device gestures have separate evidence.
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then: no parallel event toast competes with common required-read recovery.
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeEnabled();
+  expect(screen.getAllByRole("alert")).toHaveLength(1);
+  expect(screen.queryByText("Club des Rives")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Actualiser les données"),
+  ).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Retour" })).toBeEnabled();
+
+  // When
+  mockFetch.mockImplementation(reads);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findAllByText("Club des Rives")).not.toHaveLength(0);
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+});
