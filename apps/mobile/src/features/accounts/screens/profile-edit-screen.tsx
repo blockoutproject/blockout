@@ -2,6 +2,7 @@ import { Page, PageContent } from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { useNavigation, useRouter } from "expo-router";
+import { StackActions } from "expo-router/react-navigation";
 import { LogIn } from "lucide-react-native";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 
@@ -39,9 +40,9 @@ export function ProfileEditScreen({
   const { saving, refresh } = useProfileRefresh(account, true);
   const missing = isAccountMissing(account.error);
 
-  /** Pops only the profile stack, including a save acknowledged while another tab is active. The route anchors direct entries. */
+  /** Returns this stack to its overview, including an unanchored warm link or a save acknowledged on another tab. */
   function close() {
-    navigation.goBack();
+    navigation.dispatch(StackActions.popTo("index"));
   }
 
   const recovery = accountSessionRecovery(session);
@@ -137,6 +138,7 @@ export function ProfileEditScreen({
       header={
         <PageHeader
           title="Modifier mon profil"
+          onBack={close}
           action={<ProfileSupportAction />}
         />
       }

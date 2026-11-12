@@ -20,7 +20,7 @@ import { Tabs, TabList, TabSlot, TabTrigger } from "expo-router/ui";
 import ProfileLayout, {
   unstable_settings as profileStackSettings,
 } from "../../../app/(ordinary)/(tabs)/profile/_layout";
-import { renderRouter } from "expo-router/testing-library";
+import { renderRouter, testRouter } from "expo-router/testing-library";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
@@ -95,7 +95,7 @@ afterEach(async () => {
 /** The installed headless tab navigator retains its nested profile Stack while another destination has focus. */
 function ProfileTabs() {
   return (
-    <Tabs>
+    <Tabs options={{ backBehavior: "history" }}>
       <TabSlot />
       <TabList>
         <TabTrigger name="profile" href="/profile" accessibilityLabel="Profil">
@@ -731,6 +731,48 @@ it("returns a directly opened editor to its anchored profile overview", async ()
   expect(screen.getByRole("header", { name: "Mon profil" })).toBeOnTheScreen();
   expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
 });
+
+it.each(["Retour", "Annuler"])(
+  "confirms dirty %s after entering the unanchored editor from mounted tabs",
+  async (departure) => {
+    // Given: ordinary NAVIGATE, like a warm URL, does not add the cold-entry overview anchor.
+    jest.spyOn(Alert, "alert").mockImplementation(() => {});
+    const user = userEvent.setup();
+    await openProfile("/search");
+    await screen.findByText("Recherche ouverte");
+    await testRouter.navigate("/profile/edit");
+    await user.clear(await screen.findByLabelText("Pseudo"));
+    await user.type(screen.getByLabelText("Pseudo"), "Warm_draft");
+
+    // When
+    await user.press(screen.getByRole("button", { name: departure }));
+
+    // Then
+    expect(Alert.alert).toHaveBeenCalledTimes(1);
+    expect(screen).toHavePathname("/profile/edit");
+
+    // When
+    await act(() => nativeAlertAction("Continuer la saisie")());
+
+    // Then
+    expect(await screen.findByDisplayValue("Warm_draft")).toBeOnTheScreen();
+
+    // When
+    await user.press(screen.getByRole("button", { name: departure }));
+    await act(() => nativeAlertAction("Abandonner")());
+
+    // Then
+    expect(screen).toHavePathname("/profile");
+    expect(
+      await screen.findByRole("header", { name: "Mon profil" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByDisplayValue("Warm_draft")).not.toBeOnTheScreen();
+    expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+    expect(
+      mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),
+    ).toBe(true);
+  },
+);
 
 it("opens support from the editor with its safe profile origin and returns to the unchanged draft", async () => {
   // Given
