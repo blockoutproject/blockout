@@ -1,5 +1,9 @@
 import { useLayoutEffect, type PropsWithChildren } from "react";
-import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  useQueryClient,
+  QueryClientProvider,
+  onlineManager,
+} from "@tanstack/react-query";
 import { accountResponse } from "../test-support/account-response";
 import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
@@ -354,7 +358,7 @@ it("defers clean profile updates until native photo selection has settled", asyn
   expect(await screen.findByDisplayValue("Remote_name")).toBeOnTheScreen();
 });
 
-it("reports an explicit failed refresh while keeping the profile and dirty input", async () => {
+it("replaces the editor body with required-read recovery after an explicit refresh fails", async () => {
   // Given
   const user = userEvent.setup();
   await mountProfile();
@@ -369,17 +373,122 @@ it("reports an explicit failed refresh while keeping the profile and dirty input
   // Then
   expect(
     await screen.findByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      name: "Une erreur est survenue",
     }),
   ).toBeOnTheScreen();
-  expect(screen.getByDisplayValue("Unsaved")).toBeOnTheScreen();
-  expect(screen.getByDisplayValue(account.email)).toBeOnTheScreen();
-  expect(
-    screen.queryByText("Votre profil Blockout est indisponible."),
-  ).not.toBeOnTheScreen();
+  expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
+  expect(screen.queryByDisplayValue(account.email)).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+  expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
   expect(mockFetch).toHaveBeenCalledTimes(1);
 });
+
+it.each(["active", "paused"] as const)(
+  "restores the same dirty editor and prepared photo after %s required-read Retry",
+  async (mode) => {
+    // Given: Query, RHF and preparation stay real; only native image I/O and HTTP are controlled.
+    const user = userEvent.setup();
+    await mountProfile();
+    await user.clear(await screen.findByLabelText("Pseudo"));
+    await user.type(screen.getByLabelText("Pseudo"), "Unsaved");
+    jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+      canceled: false,
+      assets: [
+        {
+          uri: "file:///cache/ImagePicker/source.heic",
+          width: 64,
+          height: 64,
+        },
+      ],
+    });
+    await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
+    await act(nativeImageChoiceAction("Choisir une photo"));
+    await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+    mockFetch.mockRejectedValue(new TypeError("Account refresh unavailable"));
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Relire le compte" }));
+    await screen.findByRole("alert", { name: "Une erreur est survenue" });
+    const retry = screen.getByRole("button", { name: "Réessayer" });
+    const response = Promise.withResolvers<Response>();
+    let accepted = false;
+    mockFetch.mockImplementation(async (url, request) => {
+      if (String(url).endsWith("/photo")) {
+        return new Response(png, { headers: { "Content-Type": "image/png" } });
+      }
+      if (request?.method === "PATCH") {
+        accepted = true;
+      }
+      return accepted
+        ? json({ ...account, username: "Unsaved", hasPhoto: true })
+        : response.promise;
+    });
+    if (mode === "paused") {
+      onlineManager.setOnline(false);
+    }
+    try {
+      await user.press(retry);
+
+      // Then: the same card stays; only an actual Retry fetch shows progress.
+      expect(
+        screen.getByRole("alert", { name: "Une erreur est survenue" }),
+      ).toBeOnTheScreen();
+      expect(
+        screen.getByRole("button", {
+          name: "Réessayer",
+          busy: mode === "active",
+        }),
+      ).toBeOnTheScreen();
+      expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
+      expect(mockFile.delete).not.toHaveBeenCalled();
+      expect(
+        mockFetch.mock.calls.filter(
+          ([, request]) => request?.method === "PATCH",
+        ),
+      ).toHaveLength(0);
+
+      // When
+      await act(async () => {
+        onlineManager.setOnline(true);
+        response.resolve(json({ ...account, username: "Remote" }));
+      });
+
+      // Then: no reset, preparation or write is invented by recovery.
+      expect(await screen.findByDisplayValue("Unsaved")).toBeOnTheScreen();
+      expect(
+        screen.getByRole("button", { name: "Aperçu : Photo de profil" }),
+      ).toBeOnTheScreen();
+      expect(mockFile.delete).not.toHaveBeenCalled();
+      expect(ImagePicker.launchImageLibraryAsync).toHaveBeenCalledTimes(1);
+
+      // When: only this explicit Save sends the preserved input and file.
+      await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+      // Then
+      await waitFor(() => expect(mockNavigate).toHaveBeenCalledTimes(1));
+      const writes = mockFetch.mock.calls.filter(
+        ([, request]) => request?.method === "PATCH",
+      );
+      expect(writes).toHaveLength(1);
+      const body = writes[0][1]?.body as FormData;
+      expect(JSON.parse(await (body.get("metadata") as Blob).text())).toEqual({
+        username: "Unsaved",
+        photoAction: "replace",
+      });
+      const image = body.get("image") as Blob;
+      expect(image.type).toBe("image/png");
+      expect(new Uint8Array(await image.arrayBuffer())).toEqual(png);
+    } finally {
+      onlineManager.setOnline(true);
+      await act(() => response.resolve(json(account)));
+      await waitFor(() => {
+        expect(client.isFetching()).toBe(0);
+        expect(publicClient.isFetching()).toBe(0);
+      });
+    }
+  },
+);
 
 it.each([401, 403])(
   "presents an initial account refusal %s with opaque copy and owner-controlled retry",
@@ -669,7 +778,13 @@ it("preserves the active save and suspends refresh and cancellation", async () =
   await user.clear(screen.getByLabelText("Pseudo"));
   await user.type(screen.getByLabelText("Pseudo"), "Chosen");
   const save = Promise.withResolvers<Response>();
-  mockFetch.mockClear().mockReturnValue(save.promise);
+  mockFetch
+    .mockClear()
+    .mockImplementation(async (_url, request) =>
+      request?.method === "PATCH"
+        ? save.promise
+        : json({ ...account, username: "Chosen" }),
+    );
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
 
@@ -704,7 +819,9 @@ it("uses the accepted profile result before returning from the editor", async ()
   await screen.findByDisplayValue("Original");
   await user.clear(screen.getByLabelText("Pseudo"));
   await user.type(screen.getByLabelText("Pseudo"), "Entered");
-  mockFetch.mockResolvedValue(json({ ...account, username: "Accepted" }));
+  mockFetch.mockImplementation(async () =>
+    json({ ...account, username: "Accepted" }),
+  );
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
@@ -751,7 +868,9 @@ it("keeps confirmed profile fields and newer permissions when the following acco
     ...newer,
     username: "Chosen",
   });
-  expect(screen.getByDisplayValue("Chosen")).toBeOnTheScreen();
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(screen.queryByDisplayValue("Chosen")).not.toBeOnTheScreen();
+  expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
   expect(mockNavigate).toHaveBeenCalledTimes(1);
   expect(
     mockFetch.mock.calls.filter(([, request]) => request?.method === "PATCH"),
@@ -1079,15 +1198,17 @@ it("retains a dirty draft on background refetch and whole-save username refusal"
     json({ ...account, username: "Other_device" }),
   );
   await act(() => client.refetchQueries({ queryKey: key, exact: true }));
-  mockFetch.mockImplementation(async () =>
-    json(
-      {
-        type: "urn:blockout:problem:username-unavailable",
-        title: "Conflict",
-        status: 409,
-      },
-      409,
-    ),
+  mockFetch.mockImplementation(async (_url, request) =>
+    request?.method === "PATCH"
+      ? json(
+          {
+            type: "urn:blockout:problem:username-unavailable",
+            title: "Conflict",
+            status: 409,
+          },
+          409,
+        )
+      : json({ ...account, username: "Other_device" }),
   );
 
   // When

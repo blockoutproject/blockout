@@ -1,5 +1,9 @@
 import { useLayoutEffect, type PropsWithChildren } from "react";
-import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import {
+  onlineManager,
+  QueryClientProvider,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   act,
   cleanup,
@@ -211,6 +215,166 @@ it("requires the checkbox, keeps plain store guidance and cancels without deleti
     mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),
   ).toBe(true);
   expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+});
+
+it.each(["explicit", "background"] as const)(
+  "keeps the confirmation behind its required-read card during %s reading",
+  async (retry) => {
+    // Given: the real route, RHF and Query retain the original account and checked confirmation.
+    const user = await openErasure();
+    await user.press(screen.getByRole("checkbox"));
+    mockFetch.mockResolvedValue(
+      Response.json(
+        {
+          type: "urn:blockout:problem:unavailable",
+          title: "Unavailable",
+          status: 503,
+        },
+        { status: 503 },
+      ),
+    );
+
+    // When
+    await act(() =>
+      privateClient.refetchQueries({
+        queryKey: getGetMyAccountQueryKey(),
+        exact: true,
+      }),
+    );
+
+    // Then
+    const card = await screen.findByRole("alert", {
+      name: "Une erreur est survenue",
+    });
+    expect(screen.queryByRole("checkbox")).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Supprimer mon compte" }),
+    ).not.toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Retour" })).toBeEnabled();
+    expect(privateClient.getQueryData(getGetMyAccountQueryKey())).toEqual(
+      account,
+    );
+
+    const response = Promise.withResolvers<Response>();
+    mockFetch.mockClear().mockReturnValue(response.promise);
+    let reading: Promise<void> | undefined;
+    try {
+      // When: a background request does not impersonate the card's explicit Retry gesture.
+      if (retry === "explicit") {
+        await user.press(screen.getByRole("button", { name: "Réessayer" }));
+      } else {
+        await act(async () => {
+          reading = privateClient.refetchQueries({
+            queryKey: getGetMyAccountQueryKey(),
+            exact: true,
+          });
+        });
+      }
+
+      // Then
+      await waitFor(() => expect(privateClient.isFetching()).toBe(1));
+      expect(card).toBeOnTheScreen();
+      expect(
+        await screen.findByRole("button", {
+          name: "Réessayer",
+          busy: retry === "explicit",
+        }),
+      ).toBeOnTheScreen();
+      expect(
+        screen.queryByLabelText("Chargement de la suppression du compte"),
+      ).not.toBeOnTheScreen();
+      expect(
+        mockFetch.mock.calls.map(([url, request]) => [
+          String(url),
+          request?.method,
+        ]),
+      ).toEqual([["https://api.example.invalid/accounts/me", "GET"]]);
+
+      // When
+      await act(async () => {
+        response.resolve(Response.json(account));
+        await reading;
+      });
+
+      // Then: restoring the read reveals the existing RHF value without sending DELETE.
+      expect(
+        await screen.findByRole("checkbox", { checked: true }),
+      ).toBeEnabled();
+      expect(
+        screen.getByRole("button", { name: "Supprimer mon compte" }),
+      ).toBeEnabled();
+      expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+    } finally {
+      await act(async () => {
+        response.resolve(Response.json(account));
+        await reading;
+      });
+    }
+  },
+);
+
+it("keeps the same required-read card idle while Retry is paused and restores the checkbox after resume", async () => {
+  // Given
+  const user = await openErasure();
+  await user.press(screen.getByRole("checkbox"));
+  mockFetch.mockRejectedValue(new TypeError("Account read unavailable"));
+  await act(() =>
+    privateClient.refetchQueries({
+      queryKey: getGetMyAccountQueryKey(),
+      exact: true,
+    }),
+  );
+  const card = await screen.findByRole("alert", {
+    name: "Une erreur est survenue",
+  });
+  const response = Promise.withResolvers<Response>();
+  mockFetch.mockClear().mockReturnValue(response.promise);
+  try {
+    // When
+    await act(() => onlineManager.setOnline(false));
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    await waitFor(() =>
+      expect(
+        privateClient.getQueryState(getGetMyAccountQueryKey())?.fetchStatus,
+      ).toBe("paused"),
+    );
+    expect(card).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeOnTheScreen();
+    expect(mockFetch).not.toHaveBeenCalled();
+    expect(screen.queryByRole("checkbox")).not.toBeOnTheScreen();
+
+    // When
+    await act(() => onlineManager.setOnline(true));
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: "Réessayer", busy: true }),
+    ).toBeOnTheScreen();
+    expect(card).toBeOnTheScreen();
+    await act(() => response.resolve(Response.json(account)));
+    expect(
+      await screen.findByRole("checkbox", { checked: true }),
+    ).toBeEnabled();
+    expect(
+      mockFetch.mock.calls.map(([url, request]) => [
+        String(url),
+        request?.method,
+      ]),
+    ).toEqual([["https://api.example.invalid/accounts/me", "GET"]]);
+    expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+  } finally {
+    await act(async () => {
+      onlineManager.setOnline(true);
+      response.resolve(Response.json(account));
+      await privateClient.cancelQueries();
+    });
+  }
 });
 
 it.each(["refused", "lost-response"])(
@@ -444,15 +608,25 @@ it.each(["absent", "replacement"])(
       }),
     );
     mockFetch.mockClear();
-    await user.press(
-      screen.getByRole("button", { name: "Supprimer mon compte" }),
-    );
 
     // Then
-    expect(screen.getByRole("checkbox", { checked: true })).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: "Supprimer mon compte" }),
-    ).toBeDisabled();
+    if (state === "absent") {
+      expect(
+        await screen.findByRole("button", { name: "Se connecter" }),
+      ).toBeEnabled();
+      expect(screen.queryByRole("checkbox")).not.toBeOnTheScreen();
+      expect(
+        screen.queryByRole("button", { name: "Supprimer mon compte" }),
+      ).not.toBeOnTheScreen();
+    } else {
+      await user.press(
+        screen.getByRole("button", { name: "Supprimer mon compte" }),
+      );
+      expect(screen.getByRole("checkbox", { checked: true })).toBeDisabled();
+      expect(
+        screen.getByRole("button", { name: "Supprimer mon compte" }),
+      ).toBeDisabled();
+    }
     expect(mockFetch).not.toHaveBeenCalled();
     expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
   },

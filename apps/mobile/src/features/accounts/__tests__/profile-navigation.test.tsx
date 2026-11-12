@@ -226,7 +226,7 @@ it("opens and cancels the separate editor without ending the account session", a
   ).toBe(true);
 });
 
-it("asks once before discarding editor changes and preserves the session", async () => {
+it("keeps dirty-exit protection through a required-read card and restores the draft before explicit abandonment", async () => {
   // Given
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
   const user = userEvent.setup();
@@ -237,21 +237,33 @@ it("asks once before discarding editor changes and preserves the session", async
   await screen.findByDisplayValue(account.username);
   await user.clear(screen.getByLabelText("Pseudo"));
   await user.type(screen.getByLabelText("Pseudo"), "Unsaved");
+  mockFetch.mockRejectedValue(new TypeError("Account refresh unavailable"));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
 
   // When
-  await user.press(screen.getByRole("button", { name: "Annuler" }));
+  await user.press(screen.getByRole("button", { name: "Retour" }));
 
   // Then
   expect(Alert.alert).toHaveBeenCalledTimes(1);
   expect(screen).toHavePathname("/profile/edit");
-  expect(screen.getByDisplayValue("Unsaved")).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
 
   // When
   await act(() => nativeAlertAction("Continuer la saisie")());
 
   // Then
   expect(screen).toHavePathname("/profile/edit");
-  expect(screen.getByDisplayValue("Unsaved")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+
+  // When: safe Retry restores the retained draft, without dismissing the dirty owner.
+  mockFetch.mockResolvedValue(Response.json(account));
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByDisplayValue("Unsaved")).toBeOnTheScreen();
 
   // When
   await user.press(screen.getByRole("button", { name: "Annuler" }));
@@ -264,6 +276,97 @@ it("asks once before discarding editor changes and preserves the session", async
   expect(screen.queryByDisplayValue("Unsaved")).not.toBeOnTheScreen();
   expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
 });
+
+it("returns from an acknowledged save to overview read recovery without replaying the PATCH", async () => {
+  // Given: the real Router closes the editor on ACK; only the following account GET fails.
+  const user = userEvent.setup();
+  await openProfile();
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier mon profil" }),
+  );
+  await user.clear(await screen.findByLabelText("Pseudo"));
+  await user.type(screen.getByLabelText("Pseudo"), "Confirmed");
+  let accepted = false;
+  mockFetch.mockImplementation(async (_url, request) => {
+    if (request?.method === "PATCH") {
+      accepted = true;
+      return Response.json({ ...account, username: "Confirmed" });
+    }
+    return accepted
+      ? new Response(null, { status: 503 })
+      : Response.json(account);
+  });
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then: failed reading does not turn the acknowledged write into failure or reopen its form.
+  await waitFor(() => expect(screen).toHavePathname("/profile"));
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
+  expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PATCH"),
+  ).toHaveLength(1);
+
+  // When: ordinary safe Retry restores the confirmed profile.
+  mockFetch.mockResolvedValue(
+    Response.json({ ...account, username: "Confirmed" }),
+  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByText("Confirmed")).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PATCH"),
+  ).toHaveLength(1);
+});
+
+it.each([
+  { context: "guest", message: "Connectez-vous pour modifier votre profil." },
+  { context: "missing", message: "Votre compte n’est plus disponible." },
+] as const)(
+  "uses the contextual shared sign-in invitation for a $context editor",
+  async ({ context, message }) => {
+    // Given: only SDK presence and the typed account response differ.
+    if (context === "guest") {
+      mockAuth0.hasValidCredentials.mockResolvedValue(false);
+    } else {
+      mockFetch.mockResolvedValue(
+        Response.json(
+          {
+            type: "urn:blockout:problem:not-found",
+            title: "Not found",
+            status: 404,
+          },
+          {
+            status: 404,
+            headers: { "Content-Type": "application/problem+json" },
+          },
+        ),
+      );
+    }
+    const user = userEvent.setup();
+    await openProfile("/profile/edit");
+
+    // Then: context is explicit, with no technical-error card or editable account fields.
+    expect(await screen.findByText(message)).toBeOnTheScreen();
+    expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("alert", { name: "Une erreur est survenue" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Réessayer" }),
+    ).not.toBeOnTheScreen();
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Se connecter" }));
+
+    // Then
+    expect(screen).toHavePathname("/sign-in");
+    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+  },
+);
 
 it("keeps a refused draft in the editor and returns only after an explicitly retried save succeeds", async () => {
   // Given
@@ -945,7 +1048,7 @@ it.each([401, 403, 404])(
   },
 );
 
-it("retains the accepted overview after a technical refresh failure without an inline error card", async () => {
+it("replaces the overview body with scoped recovery after a required account refresh fails", async () => {
   // Given
   await openProfile();
   await screen.findByText(account.username);
@@ -955,16 +1058,14 @@ it("retains the accepted overview after a technical refresh failure without an i
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
-  await screen.findByText(TECHNICAL_ERROR);
-  expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
-  expect(screen.getByText(account.username)).toBeOnTheScreen();
-  expect(screen.getByRole("header", { name: "Mon compte" })).toBeOnTheScreen();
-  expect(
-    screen.queryByRole("alert", { name: "Une erreur est survenue" }),
-  ).not.toBeOnTheScreen();
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
+  expect(screen.queryByText(account.username)).not.toBeOnTheScreen();
+  expect(screen.getByRole("header", { name: "Mon profil" })).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
   expect(
     screen.getByRole("button", { name: "Modifier mon profil" }),
-  ).toBeDisabled();
+  ).toBeEnabled();
 });
 
 /** Captures private query access without replacing the fixture's separately owned public cache. */

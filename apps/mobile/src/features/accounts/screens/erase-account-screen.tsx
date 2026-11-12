@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigation, usePreventRemove, useRouter } from "expo-router";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -24,6 +24,10 @@ import { Skeleton } from "../../../shared/components/skeleton";
 
 import { ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
+import {
+  hasReadError,
+  ReadFeedback,
+} from "../../../shared/components/read-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useOrdinaryRequest } from "../../access/ordinary-request";
@@ -56,13 +60,9 @@ export function EraseAccountScreen({
     setOriginalAccountId(account.data.accountId);
   }
   const recovery = accountSessionRecovery(session);
-  let onRetry = recovery.onRetry;
-  if (!onRetry && !needsSignIn) {
-    onRetry = () => void account.refetch();
-  }
 
-  /** Retains the original confirmation across refresh failures; admission still gates every presentation. */
-  function readContent() {
+  /** Uses the shared read card and preserves the native session's own sign-in/recovery actions. */
+  function readFeedback() {
     if (!admitted) {
       return (
         <ScreenState>
@@ -70,31 +70,33 @@ export function EraseAccountScreen({
         </ScreenState>
       );
     }
-    if (originalAccountId && session.subject) {
-      return (
-        <ErasureConfirmation
-          accountId={originalAccountId}
-          disabled={
-            !account.isSuccess ||
-            session.status !== "authenticated" ||
-            session.accountId !== originalAccountId
-          }
-        />
-      );
-    }
-    if (
-      recovery.pending ||
-      (session.status === "authenticated" && account.isPending)
-    ) {
+    if (recovery.pending) {
       return (
         <PageContent>
           <ErasureLoading />
         </PageContent>
       );
     }
+    if (!recovery.failed && !needsSignIn) {
+      const feedback = (
+        <ReadFeedback
+          query={account}
+          loadingContent={
+            <PageContent>
+              <ErasureLoading />
+            </PageContent>
+          }
+        />
+      );
+      return hasReadError(account) ? (
+        <ScreenState>{feedback}</ScreenState>
+      ) : (
+        feedback
+      );
+    }
     return (
       <ScreenState>
-        <ErrorState onRetry={onRetry} retrying={account.isFetching}>
+        <ErrorState onRetry={recovery.onRetry}>
           {needsSignIn && (
             <Button
               label="Se connecter"
@@ -109,7 +111,25 @@ export function EraseAccountScreen({
 
   return (
     <Page header={<PageHeader title="Supprimer mon compte ?" />}>
-      <PageScrollView>{readContent()}</PageScrollView>
+      <PageScrollView>
+        {admitted && originalAccountId && session.subject ? (
+          <ErasureConfirmation
+            accountId={originalAccountId}
+            disabled={
+              !account.isSuccess ||
+              session.status !== "authenticated" ||
+              session.accountId !== originalAccountId
+            }
+            readFeedback={
+              hasReadError(account) || recovery.failed
+                ? readFeedback()
+                : undefined
+            }
+          />
+        ) : (
+          readFeedback()
+        )}
+      </PageScrollView>
     </Page>
   );
 }
@@ -138,13 +158,15 @@ function ErasureLoading() {
   );
 }
 
-/** Keeps this route's original UUID and confirmation; failed commands permit an explicit new attempt. */
+/** Keeps this route's original UUID and RHF confirmation mounted behind read feedback; failed commands permit an explicit new attempt. */
 function ErasureConfirmation({
   accountId,
   disabled,
+  readFeedback,
 }: Readonly<{
   accountId: string;
   disabled: boolean;
+  readFeedback?: ReactNode;
 }>) {
   const session = useAccountSession();
   const { request } = useOrdinaryRequest();
@@ -200,6 +222,10 @@ function ErasureConfirmation({
   function run() {
     feedback.clear();
     command.mutate();
+  }
+
+  if (readFeedback) {
+    return readFeedback;
   }
 
   return (

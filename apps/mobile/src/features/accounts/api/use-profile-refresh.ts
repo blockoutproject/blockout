@@ -3,11 +3,10 @@ import {
   getChangeAccountProfileMutationKey,
   getGetAccountPhotoQueryKey,
 } from "../../../../.generated/mobile";
-import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import type { useCurrentAccount } from "./use-current-account";
 
-/** Shares profile/photo refresh; a retained editor owns failure feedback even before its first optional photo is accepted. */
+/** Shares profile/photo refresh; required-read errors belong to the card, while optional-photo failures retain local feedback. */
 export function useProfileRefresh(
   account: ReturnType<typeof useCurrentAccount>,
   retainedDraft = false,
@@ -17,7 +16,7 @@ export function useProfileRefresh(
   const mutationKey = getChangeAccountProfileMutationKey();
   const saving = useIsMutating({ mutationKey }) > 0;
 
-  /** Refreshes the current account then its active photo; retained-data failures use the existing action feedback. */
+  /** Refreshes the account then its active optional photo, without a toast competing with required-read recovery. */
   async function refresh() {
     if (client.isMutating({ mutationKey })) {
       return;
@@ -25,9 +24,6 @@ export function useProfileRefresh(
     feedback.clear();
     const result = await account.refetch({ cancelRefetch: false });
     if (result.isError) {
-      if (result.data && (retainedDraft || !isAccessDenied(result.error))) {
-        feedback.error();
-      }
       return;
     }
     if (client.isMutating({ mutationKey }) || !result.data?.hasPhoto) {

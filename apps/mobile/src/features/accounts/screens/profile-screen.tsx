@@ -12,7 +12,6 @@ import { LogIn, SquarePen } from "lucide-react-native";
 import { IconButton } from "../../../shared/components/icon-button";
 import type { ReactNode } from "react";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
-import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useProfilePhoto } from "../api/use-profile-editing";
 import { StyleSheet, Text, View } from "react-native";
 import { isAccountMissing } from "../api/current-account-query";
@@ -36,6 +35,10 @@ import { PageHeader } from "../../../shared/components/page-header";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import {
+  hasReadError,
+  ReadFeedback,
+} from "../../../shared/components/read-feedback";
 
 /** Ordinary account overview; route-owned account controls and membership retain their independent authorities. */
 export interface ProfileScreenProps {
@@ -83,7 +86,13 @@ export function ProfileScreen({
         </ScreenState>
       );
     }
-    if (recovery.pending || (connected && account.isPending)) {
+    if (
+      recovery.pending ||
+      (connected &&
+        account.isPending &&
+        account.isFetching &&
+        !hasReadError(account))
+    ) {
       return (
         <PageContent>
           <ProfileLoading />
@@ -105,25 +114,20 @@ export function ProfileScreen({
         </ScreenState>
       );
     }
-    if (
-      connected &&
-      account.isError &&
-      (!account.data || isAccessDenied(account.error))
-    ) {
+    if (connected && (account.isPending || hasReadError(account))) {
       return (
         <ScreenState>
-          <ErrorState
-            onRetry={missing ? undefined : () => void account.refetch()}
-            retrying={account.isFetching}
-          >
-            {missing && (
+          {missing ? (
+            <ErrorState>
               <Button
                 label="Se connecter"
                 leadingIcon={LogIn}
                 onPress={() => router.push("/sign-in")}
               />
-            )}
-          </ErrorState>
+            </ErrorState>
+          ) : (
+            <ReadFeedback query={account} loadingContent={null} />
+          )}
         </ScreenState>
       );
     }
@@ -133,7 +137,17 @@ export function ProfileScreen({
   const blockingContent = readFeedback();
   if (blockingContent) {
     return (
-      <Page header={<ProfileHeader />}>
+      <Page
+        header={
+          <ProfileHeader
+            onEdit={
+              admitted && connected && account.data
+                ? () => router.push("/profile/edit")
+                : undefined
+            }
+          />
+        }
+      >
         <PageScrollView>{blockingContent}</PageScrollView>
       </Page>
     );
@@ -143,7 +157,11 @@ export function ProfileScreen({
       key={`${session.subject}:${account.data?.accountId ?? "guest"}`}
       refreshControl={
         connected ? (
-          <DataRefreshControl enabled={!saving} onRefresh={refresh} />
+          <DataRefreshControl
+            enabled={!saving}
+            fetching={account.isFetching}
+            onRefresh={refresh}
+          />
         ) : undefined
       }
       account={connected ? (account.data ?? undefined) : undefined}
