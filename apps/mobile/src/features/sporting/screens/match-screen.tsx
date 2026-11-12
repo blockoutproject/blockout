@@ -170,7 +170,6 @@ export function MatchScreen({
         key={`${matchId}:ownership`}
         query={ownership}
         onRetry={() => ownership.refetch({ cancelRefetch: false })}
-        failed
         loadingContent={null}
       />
     ) : undefined;

@@ -193,7 +193,6 @@ export function SportingCalendarView({
         <ScreenState>
           <ReadFeedback
             query={calendar}
-            failed
             loadingContent={null}
             onRetry={retry}
           />

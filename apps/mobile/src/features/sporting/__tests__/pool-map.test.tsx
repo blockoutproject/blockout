@@ -719,15 +719,11 @@ it("opens participant identity and navigation while the optional standings respo
       label: "Test city",
     }),
   ];
-  let resolveStandings!: (response: Response) => void;
-  const pendingStandings = new Promise<Response>((resolve) => {
-    resolveStandings = resolve;
-  });
-  const ordinaryFetch = mockFetch.getMockImplementation()!;
+  const pendingStandings = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url: string) =>
     new URL(url).pathname.endsWith("/standings")
-      ? pendingStandings
-      : ordinaryFetch(url),
+      ? pendingStandings.promise
+      : mapResponse(url),
   );
   const user = userEvent.setup();
   await open(panel());
@@ -749,7 +745,7 @@ it("opens participant identity and navigation while the optional standings respo
     params: { teamId: sportingId },
   });
   expect(screen.queryByLabelText(/^Joués :/)).toBeNull();
-  await act(async () => resolveStandings(Response.json(table)));
+  await act(async () => pendingStandings.resolve(Response.json(table)));
   await waitFor(() => expect(client.isFetching()).toBe(0));
 });
 
@@ -1095,6 +1091,7 @@ it.each(["initial", "refresh"] as const)(
     }
     await screen.findByRole("button", { name: "Réessayer", busy: false });
     expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
+    expect(screen.queryByText("Aucune localisation disponible")).toBeNull();
     const pending = Promise.withResolvers<Response>();
     mockFetch.mockImplementation((url: string) =>
       new URL(url).pathname.endsWith("/participants")
@@ -1125,6 +1122,7 @@ it.each(["initial", "refresh"] as const)(
     expect(
       screen.queryByLabelText("Chargement des participants"),
     ).not.toBeOnTheScreen();
+    expect(screen.queryByText("Aucune localisation disponible")).toBeNull();
     expect(mockFetch.mock.calls.map(([url]) => new URL(url).pathname)).toEqual([
       `/pools/${pool.pool.id}/participants`,
     ]);
@@ -1142,6 +1140,15 @@ it.each(["initial", "refresh"] as const)(
     ).toBeOnTheScreen();
     expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
     expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
+    // The real access provider may recheck admission after 503; Retry owns only these pool reads.
+    expect(
+      mockFetch.mock.calls
+        .map(([url]) => new URL(url).pathname)
+        .filter((path) => path.startsWith(`/pools/${pool.pool.id}/`)),
+    ).toEqual([
+      `/pools/${pool.pool.id}/participants`,
+      `/pools/${pool.pool.id}/participants`,
+    ]);
     if (origin === "refresh") {
       expect(screen.getByRole("link", { name: "Rives" })).toBeOnTheScreen();
       await fireEvent(screen.getByTestId("native-map-boundary"), "layout", {
@@ -1247,37 +1254,6 @@ it.each([401, 403, 404])(
     expect(screen.queryByText("Aucune localisation disponible")).toBeNull();
   },
 );
-
-it("retries an initial participant failure without announcing empty geography", async () => {
-  // Given
-  participantsFailure = 503;
-  participants.items = [
-    participant(sportingId, "Rives", {
-      latitude: 46.16,
-      longitude: -1.15,
-      label: "La Rochelle",
-    }),
-  ];
-  const user = userEvent.setup();
-  await open();
-  await screen.findByRole("tab", { name: "Carte" });
-  await layoutNativeTabs();
-  await screen.findByRole("button", { name: "Réessayer" });
-  expect(screen.queryByText("Aucune localisation disponible")).toBeNull();
-  participantsFailure = undefined;
-  mockFetch.mockClear();
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
-
-  // Then
-  expect(
-    await screen.findByRole("button", { name: "La Rochelle: Rives" }),
-  ).toBeOnTheScreen();
-  expect(mockFetch.mock.calls.map(([url]) => new URL(url).pathname)).toEqual([
-    `/pools/${pool.pool.id}/participants`,
-  ]);
-});
 
 it("replaces cached empty geography with a read error and restores it only after a successful retry", async () => {
   // Given
@@ -1460,12 +1436,12 @@ it("ignores an already pending zoom and team action after the map becomes inacti
       label: "Test city",
     }),
   ];
-  let resolveCamera!: (camera: { altitude: number; zoom: number }) => void;
+  const pendingCamera = Promise.withResolvers<{
+    altitude: number;
+    zoom: number;
+  }>();
   nativeMapCommands.getCamera.mockImplementationOnce(
-    () =>
-      new Promise((resolve) => {
-        resolveCamera = resolve;
-      }),
+    () => pendingCamera.promise,
   );
   const user = userEvent.setup();
   const rendered = await open();
@@ -1487,7 +1463,7 @@ it("ignores an already pending zoom and team action after the map becomes inacti
   // When
   await rendered.rerender(panel(false));
   await user.press(screen.getByRole("link", { name: "Rives" }));
-  await act(async () => resolveCamera({ altitude: 10000, zoom: 8 }));
+  await act(async () => pendingCamera.resolve({ altitude: 10000, zoom: 8 }));
 
   // Then
   expect(nativeMapCommands.animateCamera).not.toHaveBeenCalled();

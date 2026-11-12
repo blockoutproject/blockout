@@ -145,7 +145,6 @@ export function PoolMap({
             <ReadFeedback
               key={pool.pool.id}
               query={participants}
-              failed
               onRetry={async () => {
                 if (active) {
                   await participants.refetch({ cancelRefetch: false });
@@ -154,7 +153,7 @@ export function PoolMap({
               loadingContent={null}
             />
           </ScreenState>
-        ) : !data || !hasLocations ? (
+        ) : !hasLocations ? (
           participants.isLoading ? (
             <PageContent>
               {children}

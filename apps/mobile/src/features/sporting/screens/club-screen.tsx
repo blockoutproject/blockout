@@ -261,7 +261,6 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
               if (value === "teams" && season) {
                 return (
                   <ClubTeams
-                    key={season.id}
                     clubId={clubId}
                     seasonId={season.id}
                     active={tab === value}
@@ -321,12 +320,7 @@ function ClubTeams({
     return (
       <PageScrollView>
         <ScreenState>
-          <ReadFeedback
-            query={teams}
-            failed
-            loadingContent={null}
-            onRetry={refresh}
-          />
+          <ReadFeedback query={teams} loadingContent={null} onRetry={refresh} />
         </ScreenState>
       </PageScrollView>
     );

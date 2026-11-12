@@ -40,7 +40,7 @@ export function PresentationIdentity({
   const skeletonSize = isDivision ? 38 : 64;
   return (
     <>
-      {available && (
+      {available ? (
         <RoundedContainedImage
           key={nativeImage.attemptKey}
           source={{ uri }}
@@ -52,8 +52,7 @@ export function PresentationIdentity({
           onDisplay={nativeImage.onDisplay}
           onError={nativeImage.onError}
         />
-      )}
-      {!available && loading ? (
+      ) : loading ? (
         <LoadingGroup label="Chargement du logo" style={placeholderStyle}>
           <Skeleton
             width={skeletonSize}
@@ -67,25 +66,23 @@ export function PresentationIdentity({
           />
         </LoadingGroup>
       ) : (
-        !available && (
-          <View
-            style={[
-              placeholderStyle,
-              styles.imagePlaceholder,
-              { backgroundColor: colors.mediaPlaceholder },
-            ]}
-          >
-            <ImageFallback
-              size={tokens.size.icon.lg}
-              color={colors.icon}
-              label={`${uri ? "Logo indisponible" : "Logo absent"} : ${identityName}`}
-            />
-          </View>
-        )
+        <View
+          style={[
+            placeholderStyle,
+            styles.imagePlaceholder,
+            { backgroundColor: colors.mediaPlaceholder },
+          ]}
+        >
+          <ImageFallback
+            size={tokens.size.icon.lg}
+            color={colors.icon}
+            label={`${uri ? "Logo indisponible" : "Logo absent"} : ${identityName}`}
+          />
+        </View>
       )}
       <View style={styles.contextName}>
         <Text style={[tokens.typography.strong, { color: colors.text }]}>
-          {isDivision ? name.trim() || "Nouvelle division" : title}
+          {identityName}
         </Text>
         {(isDivision || seasonLabel) && (
           <Text
