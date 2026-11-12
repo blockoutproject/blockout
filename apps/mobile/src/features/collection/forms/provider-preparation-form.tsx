@@ -1,5 +1,5 @@
-import { ApiError } from "../../../shared/api/api-fetch";
 import { SeasonIdentity, SourceBadge } from "../components/source-summary";
+import { isCollectionReadRefused } from "../api/collection-queries";
 import { Surface } from "../../../shared/components/surface";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
@@ -59,14 +59,13 @@ export function ProviderPreparationForm({
     ) ?? [];
   const closed = season.state === "closed";
   const busy =
-    editing.sources.isError ||
+    isCollectionReadRefused(editing.sources.error) ||
     !authority.enabled ||
     editing.create.isPending ||
-    editing.launch.isPending ||
-    editing.season.isFetching ||
-    editing.sources.isFetching;
+    editing.launch.isPending;
   const reconciliationRequired = season.revision > baseline.revision;
-  const rereadRequired = reconciliationRequired || editing.season.isError;
+  const rereadRequired =
+    reconciliationRequired || isCollectionReadRefused(editing.season.error);
   const ready = sources
     .filter(
       (source) =>
@@ -98,17 +97,10 @@ export function ProviderPreparationForm({
     editor.update({ ...editor.state, adding: false });
   }
 
-  /** Preserves mounted input and reports a server revision conflict distinctly. */
-  function failed(error: unknown) {
-    if (error instanceof ApiError && error.status === 409) {
-      editor.update({
-        ...editor.state,
-        feedback: "Le résultat doit être vérifié avant une nouvelle action.",
-      });
-    } else {
-      editor.update({ ...editor.state, feedback: undefined });
-      actionFeedback.error();
-    }
+  /** Reports a failed launch while preserving its selected sources and accepted revision. */
+  function failed() {
+    editor.update({ ...editor.state, feedback: undefined });
+    actionFeedback.error();
   }
 
   /** Presents the actual selected labels; a native confirmation never broadens the atomic launch scope. */
@@ -153,15 +145,17 @@ export function ProviderPreparationForm({
         selected: null,
         feedback: "Sources sélectionnées lancées.",
       });
-    } catch (error) {
-      failed(error);
+    } catch {
+      failed();
     }
   }
 
-  /** Reads the entire launch context; a failed half-read cannot unlock an old selection or replay its command. */
+  /** Reads launch choices and season revision; failure or an older season response preserves selection and baseline. */
   async function reread() {
-    const [seasonResult, sourcesResult] = await (() =>
-      Promise.all([editing.season.refetch(), editing.sources.refetch()]))();
+    const [seasonResult, sourcesResult] = await Promise.all([
+      editing.season.refetch(),
+      editing.sources.refetch(),
+    ]);
     if (!mounted.current) {
       return;
     }

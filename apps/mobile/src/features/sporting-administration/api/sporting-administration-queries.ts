@@ -1,5 +1,5 @@
 import { isAccessDenied } from "../../../shared/api/access-denied";
-import { queryOptions } from "@tanstack/react-query";
+import { queryOptions, type QueryFunctionContext } from "@tanstack/react-query";
 import {
   getClubPresentation,
   getTeamPresentation,
@@ -16,7 +16,15 @@ import {
   getGetPackClassificationQueryKey,
   getGetPoolClassificationQueryKey,
 } from "../../../../.generated/mobile";
-import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
+import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
+
+/** Current permission or target refusals suspend commands; technical failures retain the admitted draft. */
+export function isSportingReadRefused(error: unknown): boolean {
+  return (
+    isAccessDenied(error) ||
+    (error instanceof ApiError && error.kind === "http" && error.status === 404)
+  );
+}
 
 /** Current sporting authority prepares credentials and rechecks the action grant for every execution. */
 export interface SportingQueryAuthority {
@@ -28,6 +36,21 @@ export interface SportingQueryAuthority {
 export function createSportingAdministrationQueries(
   authority: SportingQueryAuthority,
 ) {
+  /** Keeps a known refusal in Query until a successful read, without changing native cancellation or retaining another state. */
+  async function read<T>(
+    context: QueryFunctionContext,
+    execute: (options: ApiFetchOptions) => Promise<T>,
+  ): Promise<T> {
+    const previousError = context.client.getQueryState(context.queryKey)?.error;
+    try {
+      return await execute(await authority.request(context.signal));
+    } catch (error) {
+      throw !context.signal.aborted && isSportingReadRefused(previousError)
+        ? previousError
+        : error;
+    }
+  }
+
   return {
     /** The same complete division list supplies lifecycle navigation and creation validation. */
     divisions: () => {
@@ -58,8 +81,8 @@ export function createSportingAdministrationQueries(
         queryKey: getGetDivisionQueryKey(id),
         enabled: authority.enabled,
         gcTime: 0,
-        queryFn: async ({ signal }) =>
-          getDivision(id, await authority.request(signal)),
+        queryFn: (context) =>
+          read(context, (options) => getDivision(id, options)),
       }),
     /** Original club presentation retains its editing revision without a cache-specific wrapper. */
     clubPresentation: (id: string) =>
@@ -67,8 +90,8 @@ export function createSportingAdministrationQueries(
         queryKey: getGetClubPresentationQueryKey(id),
         enabled: authority.enabled,
         gcTime: 0,
-        queryFn: async ({ signal }) =>
-          getClubPresentation(id, await authority.request(signal)),
+        queryFn: (context) =>
+          read(context, (options) => getClubPresentation(id, options)),
       }),
     /** Original team presentation includes effective and automatic artwork selection. */
     teamPresentation: (id: string) =>
@@ -76,8 +99,8 @@ export function createSportingAdministrationQueries(
         queryKey: getGetTeamPresentationQueryKey(id),
         enabled: authority.enabled,
         gcTime: 0,
-        queryFn: async ({ signal }) =>
-          getTeamPresentation(id, await authority.request(signal)),
+        queryFn: (context) =>
+          read(context, (options) => getTeamPresentation(id, options)),
       }),
     /** Pool presentation remains distinct from sporting classification and public consultation. */
     poolPresentation: (id: string) =>
@@ -85,8 +108,8 @@ export function createSportingAdministrationQueries(
         queryKey: getGetPoolPresentationQueryKey(id),
         enabled: authority.enabled,
         gcTime: 0,
-        queryFn: async ({ signal }) =>
-          getPoolPresentation(id, await authority.request(signal)),
+        queryFn: (context) =>
+          read(context, (options) => getPoolPresentation(id, options)),
       }),
     /** Pack classification retains one generated key for all correction consumers. */
     packClassification: (id: string) =>
@@ -94,8 +117,8 @@ export function createSportingAdministrationQueries(
         queryKey: getGetPackClassificationQueryKey(id),
         enabled: authority.enabled,
         gcTime: 0,
-        queryFn: async ({ signal }) =>
-          getPackClassification(id, await authority.request(signal)),
+        queryFn: (context) =>
+          read(context, (options) => getPackClassification(id, options)),
       }),
     /** Pool classification retains the same read shape as its revision-guarded command response. */
     poolClassification: (id: string) =>
@@ -103,8 +126,8 @@ export function createSportingAdministrationQueries(
         queryKey: getGetPoolClassificationQueryKey(id),
         enabled: authority.enabled,
         gcTime: 0,
-        queryFn: async ({ signal }) =>
-          getPoolClassification(id, await authority.request(signal)),
+        queryFn: (context) =>
+          read(context, (options) => getPoolClassification(id, options)),
       }),
   };
 }

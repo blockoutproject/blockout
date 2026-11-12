@@ -554,10 +554,9 @@ it("keeps an unsuccessful queue read distinct from an empty successful selection
   expect(screen.queryByText("Aucun lien à traiter")).toBeNull();
 });
 
-it("recovers the profile before starting disabled report reads without a false loading state", async () => {
+it("reads reports from retained moderator authority after a technical account failure", async () => {
   // Given: the original account is established before its current profile reread fails.
   reportReason = "Controlled report reason";
-  const user = userEvent.setup();
   const view = await mount(<ModerationMatchScreen matchId={sporting.id} />);
   await screen.findByDisplayValue("https://youtu.be/retained");
   profileFails = true;
@@ -572,22 +571,10 @@ it("recovers the profile before starting disabled report reads without a false l
   );
 
   // Then
-  expect(
-    await screen.findByRole("button", { name: "Réessayer", busy: false }),
-  ).toBeOnTheScreen();
+  expect(await screen.findByText("Controlled report reason")).toBeOnTheScreen();
   expect(
     screen.queryByRole("progressbar", { name: "Chargement des signalements" }),
   ).not.toBeOnTheScreen();
-  expect(
-    mockFetch.mock.calls.some(([url]) => String(url).includes("/reports?")),
-  ).toBe(false);
-
-  // When
-  profileFails = false;
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
-
-  // Then
-  expect(await screen.findByText("Controlled report reason")).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("/reports?")),
   ).toHaveLength(1);
@@ -618,7 +605,7 @@ it("shows a read error instead of a stale empty queue after a failed explicit re
   ).not.toBeOnTheScreen();
 });
 
-it("retains authorized reports while an unavailable profile disables further reads", async () => {
+it("continues authorized report paging after a technical account failure", async () => {
   // Given
   reportsPaged = true;
   reportReason = "First authorized page";
@@ -640,9 +627,14 @@ it("retains authorized reports while an unavailable profile disables further rea
 
   // Then
   expect(screen.getByText("First authorized page")).toBeOnTheScreen();
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.filter(([url]) => String(url).includes("/reports?")),
+    ).toHaveLength(requests + 1),
+  );
   expect(
-    mockFetch.mock.calls.filter(([url]) => String(url).includes("/reports?")),
-  ).toHaveLength(requests);
+    await screen.findByText("Historique de la seconde page"),
+  ).toBeOnTheScreen();
 });
 
 it("reloads an empty queue from its card and restores native refresh only when rows return", async () => {
@@ -1610,9 +1602,10 @@ it("does not poll the mounted private queue", async () => {
   }
 });
 
-it("retains an editable draft and authorized context through an ordinary F05 outage", async () => {
-  // Given
+it("allows an explicit replacement from the retained draft after a technical account read failure", async () => {
+  // Given: the actual account, Query, form and mutation owners retain an authorized moderator.
   detail = { ...detail, canPublish: true };
+  const alert = jest.spyOn(Alert, "alert");
   await mount(<ModerationMatchScreen matchId={sporting.id} />);
   const user = userEvent.setup();
   await user.clear(await screen.findByLabelText("Adresse du lien"));
@@ -1634,17 +1627,29 @@ it("retains an editable draft and authorized context through an ordinary F05 out
   ).toBeOnTheScreen();
   expect(
     screen.getByRole("button", { name: "Remplacer le lien" }),
-  ).toBeDisabled();
-  profileFails = false;
-  await user.press(screen.getByRole("button", { name: "Réessayer le profil" }));
+  ).toBeEnabled();
+  expect(writes).toHaveLength(0);
+
+  // When: only a new explicit confirmation sends the retained address and viewed revision.
+  await user.press(screen.getByRole("button", { name: "Remplacer le lien" }));
+  await act(async () => {
+    alert.mock.calls
+      .at(-1)?.[2]
+      ?.find((button) => button.text === "Remplacer le lien")
+      ?.onPress?.();
+  });
+
+  // Then
   await waitFor(() =>
-    expect(
-      screen.queryByRole("button", { name: "Réessayer le profil" }),
-    ).toBeNull(),
+    expect(writes).toEqual([
+      {
+        actorAccountId: accountResponse().accountId,
+        revision: "viewed:1",
+        url: "https://youtu.be/profile-outage",
+      },
+    ]),
   );
-  expect(
-    screen.getByDisplayValue("https://youtu.be/profile-outage"),
-  ).toBeOnTheScreen();
+  await waitFor(() => expect(client.isFetching()).toBe(0));
 });
 
 it("presents an explicit refusal on another already loaded moderation screen", async () => {
@@ -1851,7 +1856,7 @@ it.each(["queue", "active", "pending"] as const)(
         await waitFor(() =>
           expect(
             screen.getByRole("button", { name: "Remplacer le lien" }),
-          ).toBeDisabled(),
+          ).toBeEnabled(),
         );
       }
 
@@ -1861,6 +1866,11 @@ it.each(["queue", "active", "pending"] as const)(
       await act(async () => {
         finish(response);
         await reading;
+      });
+      // The public admission read settles independently of this retained private traversal.
+      await waitFor(() => {
+        expect(client.isFetching()).toBe(0);
+        expect(publicClient.isFetching()).toBe(0);
       });
     }
   },

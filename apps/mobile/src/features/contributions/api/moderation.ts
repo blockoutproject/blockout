@@ -63,14 +63,13 @@ function useModerationAuthority() {
     session.status === "authenticated" &&
     profile.data?.accountId === session.accountId &&
     !isAccessDenied(profile.error) &&
-    profile.data.permissions?.moderateStreamLinks === true;
-  const allowed = canRetain && profile.isSuccess;
+    profile.data?.permissions?.moderateStreamLinks === true;
   const client = useQueryClient();
   // These are this feature's generated HTTP resources, not a cross-cache propagation registry.
   useEffect(() => {
     if (
       profile.isSuccess &&
-      profile.data.permissions?.moderateStreamLinks !== true
+      profile.data?.permissions?.moderateStreamLinks !== true
     ) {
       client.removeQueries({
         predicate: (query) => isModerationResource(query.queryKey[0]),
@@ -81,16 +80,13 @@ function useModerationAuthority() {
   /** Captured native credentials refuse a different subject before private dispatch. */
   async function request(signal?: AbortSignal) {
     const credentials = await session.getCredentials();
-    if (!credentials) {
-      throw new ApiError("http", 401);
-    }
     return admission.request({
       signal,
       headers: { Authorization: `Bearer ${credentials.accessToken}` },
     });
   }
 
-  return { allowed, canRetain, session, profile, request };
+  return { allowed: canRetain, canRetain, session, profile, request };
 }
 
 /** Identifies only generated private video-moderation resources for known grant withdrawal. */
@@ -104,11 +100,20 @@ function isModerationResource(key: unknown) {
   );
 }
 
-/** Removes refused private content; ordinary transport outages retain authorized pages. */
+/** Withdraws permission-refused content and retains a known missing target through technical failures until a successful read. */
 async function refuse(
   error: unknown,
   context: QueryFunctionContext,
 ): Promise<never> {
+  const previousError = context.client.getQueryState(context.queryKey)?.error;
+  if (
+    !context.signal.aborted &&
+    !isAccessDenied(error) &&
+    previousError instanceof ApiError &&
+    previousError.status === 404
+  ) {
+    throw previousError;
+  }
   if (
     !context.signal.aborted &&
     error instanceof ApiError &&

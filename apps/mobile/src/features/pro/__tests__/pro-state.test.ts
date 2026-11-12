@@ -126,13 +126,7 @@ it("waits for association when there is no evidence for this session", () => {
   });
 });
 
-it.each([
-  "idle",
-  "failed",
-  "pending",
-  "uncertain",
-  "completed",
-] satisfies ProOperation[])(
+it.each(["idle", "failed", "pending", "completed"] satisfies ProOperation[])(
   "keeps missing or failed native reads unavailable after an operation marked %s",
   (operation) => {
     // Given
@@ -239,7 +233,6 @@ it("uses the active map rather than historical rights, other entitlements or sub
 it.each([
   "cancelled",
   "pending",
-  "uncertain",
   "failed",
   "completed",
 ] satisfies ProOperation[])(
@@ -260,12 +253,7 @@ it.each([
   },
 );
 
-it.each([
-  "cancelled",
-  "pending",
-  "uncertain",
-  "completed",
-] satisfies ProOperation[])(
+it.each(["cancelled", "pending", "completed"] satisfies ProOperation[])(
   "does not invent Pro activation from an operation marked %s",
   (operation) => {
     // Given

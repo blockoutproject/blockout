@@ -736,7 +736,7 @@ it("keeps unknown signed-in rights out of advertising and repurchase in the real
   expect(mockCreateAd).not.toHaveBeenCalled();
 });
 
-it("keeps public consultation usable after an interrupted native purchase without reopening a paywall", async () => {
+it("uses the SDK entitlement listener after the native purchase view is removed", async () => {
   // Given
   await openInstallation();
   await waitFor(() => expect(owners.pro.state.status).toBe("inactive"));
@@ -756,7 +756,7 @@ it("keeps public consultation usable after an interrupted native purchase withou
   // When
   await act(() => mockPaywall.onDismiss?.());
   await waitFor(() =>
-    expect(owners.pro.state).toMatchObject({ operation: "uncertain" }),
+    expect(owners.pro.state).toMatchObject({ operation: "idle" }),
   );
   mockPurchases.getOfferings.mockClear();
   await act(() => router.push(poolPath));
@@ -766,19 +766,23 @@ it("keeps public consultation usable after an interrupted native purchase withou
   // Then
   expect(owners.pro.state).toMatchObject({
     status: "inactive",
-    operation: "uncertain",
+    operation: "idle",
   });
-  await act(() => router.push("/profile"));
-  await screen.findByText("Original");
-  await userEvent.press(
-    await screen.findByRole("button", { name: "Blockout Pro" }),
-  );
-  await waitFor(() => expect(screen).toHavePathname("/pro"));
-  expect(
-    await screen.findByText(/Le résultat de l’achat est incertain/),
-  ).toBeOnTheScreen();
-  expect(screen.queryByText("Native store offer")).toBeNull();
+  const paid = rights("APP_STORE");
+  mockPurchases.getCustomerInfo.mockResolvedValue(paid);
+  const listener =
+    mockPurchases.addCustomerInfoUpdateListener.mock.calls.at(-1)?.[0];
+  if (!listener) {
+    throw new Error("Expected native entitlement subscription");
+  }
+
+  // When: this subscription belongs to the process owner, not the removed provider view.
+  await act(() => listener(paid));
+
+  // Then
+  await waitFor(() => expect(owners.pro.state.status).toBe("active"));
   expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
+  expect(screen.queryByText(/Vérifier mes droits|incertain/)).toBeNull();
 });
 
 it("keeps inactive sporting access public when native consent cannot authorize advertising", async () => {

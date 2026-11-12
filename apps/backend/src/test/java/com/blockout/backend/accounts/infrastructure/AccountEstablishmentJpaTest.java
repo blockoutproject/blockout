@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.accounts.application.exception.AccountCreationConflictException;
+import com.blockout.backend.accounts.application.exception.AccountUnavailableException;
 import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
@@ -109,11 +110,12 @@ class AccountEstablishmentJpaTest {
       // Then
       assertThat(outcomes.stream().filter(Account.class::isInstance)).hasSize(1);
       List<Object> failures = outcomes.stream().filter(Throwable.class::isInstance).toList();
-      assertThat(failures)
-          .singleElement()
-          .isInstanceOfSatisfying(
-              AccountCreationConflictException.class,
-              failure -> assertThat(failure).hasStackTraceContaining(constraint));
+      Class<? extends RuntimeException> expectedFailure =
+          constraint.equals("uk_account_principal")
+              ? AccountCreationConflictException.class
+              : AccountUnavailableException.class;
+      assertThat(failures).singleElement().isInstanceOf(expectedFailure);
+      assertThat((Throwable) failures.getFirst()).hasStackTraceContaining(constraint);
       assertThat(sql.queryForObject("SELECT COUNT(*) FROM account", Long.class)).isEqualTo(1L);
     }
   }

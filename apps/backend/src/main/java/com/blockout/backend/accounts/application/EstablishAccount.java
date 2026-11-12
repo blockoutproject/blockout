@@ -25,8 +25,9 @@ public class EstablishAccount {
   private final PlatformTransactionManager transactions;
 
   /**
-   * Establishes the exact validated principal after explicit login or targeted retry. Each native
-   * uniqueness refusal rolls back before a new neutral candidate or the concurrent winner is read.
+   * Establishes the exact validated principal after explicit login or targeted retry. Creation is
+   * attempted once; a concurrent principal winner is read only after the rejected insert rolls
+   * back.
    *
    * @param issuer exact validated issuer
    * @param subject exact validated subject
@@ -83,17 +84,19 @@ public class EstablishAccount {
     PrincipalReader.Evidence available = evidence;
     boolean providerUnavailable = unavailable;
     TransactionTemplate transaction = new TransactionTemplate(transactions);
-    for (int attempt = 0; attempt < 5; attempt++) {
-      try {
-        Committed committed =
-            transaction.execute(
-                status -> commit(issuer, subject, original, available, providerUnavailable));
-        return outcome(issuer, subject, committed);
-      } catch (AccountCreationConflictException conflict) {
-        // The failed insert transaction has rolled back before another candidate is considered.
-      }
+    Committed committed;
+    try {
+      committed =
+          transaction.execute(
+              status -> commit(issuer, subject, original, available, providerUnavailable));
+    } catch (AccountCreationConflictException conflict) {
+      UUID winner =
+          capture
+              .execute(status -> accounts.findIdByPrincipal(issuer, subject))
+              .orElseThrow(AccountUnavailableException::new);
+      committed = new Committed(winner, false);
     }
-    throw new AccountUnavailableException();
+    return outcome(issuer, subject, committed);
   }
 
   /**

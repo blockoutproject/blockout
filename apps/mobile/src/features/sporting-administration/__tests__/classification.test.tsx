@@ -498,42 +498,56 @@ it("retains dirty choices and displays conflicting scopes without applying a sub
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
   ).toHaveLength(1);
 });
-it("preserves a failed write draft without requiring recovery or replaying the request", async () => {
-  // Given
-  stored.setting = classification;
-  jest.spyOn(Alert, "alert");
-  mockFetch.mockImplementation((url, options) =>
-    options?.method === "PUT"
-      ? Promise.reject(new TypeError("Lost response"))
-      : respond(url, options),
-  );
-  const user = userEvent.setup();
-  await renderEditor();
-  await user.press(await screen.findByRole("button", { name: "Format" }));
-  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
-  await screen.findByRole("button", { name: "Format" });
+it.each(["lost-response", "unknown-conflict"])(
+  "preserves a %s draft without requiring recovery or replaying the request",
+  async (failure) => {
+    // Given
+    stored.setting = classification;
+    jest.spyOn(Alert, "alert");
+    mockFetch.mockImplementation((url, options) =>
+      options?.method === "PUT"
+        ? failure === "lost-response"
+          ? Promise.reject(new TypeError("Lost response"))
+          : Promise.resolve(
+              json(
+                {
+                  type: "urn:blockout:problem:conflict",
+                  title: "Conflict",
+                  status: 409,
+                },
+                409,
+              ),
+            )
+        : respond(url, options),
+    );
+    const user = userEvent.setup();
+    await renderEditor();
+    await user.press(await screen.findByRole("button", { name: "Format" }));
+    await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+    await screen.findByRole("button", { name: "Format" });
 
-  // When
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAlertAction("Enregistrer")());
+    // When
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+    await act(async () => nativeAlertAction("Enregistrer")());
 
-  // Then
-  await screen.findByText(
-    "Une erreur est survenue. Veuillez réessayer plus tard.",
-  );
-  expect(
-    screen.getByRole("button", { name: "Format" }),
-  ).toHaveAccessibilityValue({ text: "4 × 4" });
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
-  );
-  expect(
-    screen.queryByRole("button", { name: "Relire la classification" }),
-  ).not.toBeOnTheScreen();
-  expect(
-    mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
-  ).toHaveLength(1);
-});
+    // Then
+    await screen.findByText(
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
+    );
+    expect(
+      screen.getByRole("button", { name: "Format" }),
+    ).toHaveAccessibilityValue({ text: "4 × 4" });
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+    );
+    expect(
+      screen.queryByRole("button", { name: "Relire la classification" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+    ).toHaveLength(1);
+  },
+);
 it("uses an independent explicit activity command with the division revision", async () => {
   // Given
   jest.spyOn(Alert, "alert");
@@ -634,7 +648,7 @@ it("keeps dirty choices through a failed ordinary refresh without retrying the w
     screen.getByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });
   await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
   );
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
@@ -945,7 +959,7 @@ it.each(["classification", "activity"])(
   },
 );
 
-it("distinguishes a stale revision and uses the reread revision only on explicit resubmission", async () => {
+it("reports a refused save and uses a newer revision only on explicit resubmission", async () => {
   // Given
   stored.setting = classification;
   jest.spyOn(Alert, "alert");
@@ -983,7 +997,9 @@ it("distinguishes a stale revision and uses the reread revision only on explicit
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await act(async () => nativeAlertAction("Enregistrer")());
-  await screen.findByText(/La classification a changé depuis votre lecture/);
+  await screen.findByText(
+    "Une erreur est survenue. Veuillez réessayer plus tard.",
+  );
   stored = { ...stored, revision: "r2" };
   await user.press(
     await screen.findByRole("button", { name: "Relire la classification" }),

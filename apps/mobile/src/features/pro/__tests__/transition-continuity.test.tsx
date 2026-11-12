@@ -382,12 +382,21 @@ it("keeps missing-email establishment unusable until an explicit account retry w
       return Response.json(applicationAccessResponse());
     }
     return Response.json(
+      String(url).endsWith("/accounts")
+        ? {
+            type: "urn:blockout:problem:provider-email-unavailable",
+            title: "Unavailable",
+            status: 422,
+          }
+        : {
+            type: "urn:blockout:problem:not-found",
+            title: "Not found",
+            status: 404,
+          },
       {
-        type: "urn:blockout:problem:provider-email-unavailable",
-        title: "Unavailable",
-        status: 422,
+        status: String(url).endsWith("/accounts") ? 422 : 404,
+        headers: { "Content-Type": "application/problem+json" },
       },
-      { status: String(url).endsWith("/accounts") ? 422 : 404 },
     );
   });
   const user = userEvent.setup();
@@ -425,7 +434,17 @@ it("keeps missing-email establishment unusable until an explicit account retry w
     }
     return mockAccountExists
       ? Response.json(mockAccount)
-      : new Response(null, { status: 404 });
+      : Response.json(
+          {
+            type: "urn:blockout:problem:not-found",
+            title: "Not found",
+            status: 404,
+          },
+          {
+            status: 404,
+            headers: { "Content-Type": "application/problem+json" },
+          },
+        );
   });
   await user.press(screen.getByRole("button", { name: "Créer mon compte" }));
 
@@ -580,7 +599,10 @@ it.each(["APP_STORE", "PLAY_STORE"] as const)(
       screen.getByRole("button", { name: "Restaurer mes achats" }),
     );
     expect(
-      await screen.findByText(/La restauration est en cours/),
+      await screen.findByRole("button", {
+        name: "Restaurer mes achats",
+        busy: true,
+      }),
     ).toBeOnTheScreen();
     expect(mockPurchases.restorePurchases).toHaveBeenCalledTimes(1);
     const paid = rights(store);
@@ -600,7 +622,7 @@ it.each(["APP_STORE", "PLAY_STORE"] as const)(
   },
 );
 
-it("keeps an uncertain restoration distinct from an empty receipt without replay during verification", async () => {
+it("reports a restoration failure without replay or a verification prerequisite", async () => {
   // Given
   prepareLogin("apple|retained");
   mockPurchases.getOfferings.mockResolvedValue({ current: null, all: {} });
@@ -618,20 +640,21 @@ it("keeps an uncertain restoration distinct from an empty receipt without replay
   await user.press(
     screen.getByRole("button", { name: "Restaurer mes achats" }),
   );
-  await screen.findByText(/Le résultat de la restauration est incertain/);
-  await user.press(screen.getByRole("button", { name: "Vérifier mes droits" }));
+  await screen.findByText(
+    "Une erreur est survenue. Veuillez réessayer plus tard.",
+  );
 
   // Then
   expect(
-    screen.getByText(/Le résultat de la restauration est incertain/),
-  ).toBeOnTheScreen();
+    screen.queryByRole("button", { name: "Vérifier mes droits" }),
+  ).toBeNull();
   expect(
     screen.queryByText(/Restauration terminée|Native store offer/),
   ).toBeNull();
   expect(mockPurchases.restorePurchases).toHaveBeenCalledTimes(1);
   expect(owners.pro.state).toMatchObject({
     status: "inactive",
-    operation: "restore-uncertain",
+    operation: "failed",
   });
 });
 

@@ -12,13 +12,13 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import type { useCollectionControl } from "../api/use-collection-controls";
 import { formatCollectionTimestamp } from "../model/collection-time";
+import { isCollectionReadRefused } from "../api/collection-queries";
 
 /** A selected control displays its native mutation state and the applicable season facts. */
 export interface CollectionControlProps {
   control: CollectionControlResponse;
   editing: ReturnType<typeof useCollectionControl>;
   season?: CollectionSeasonResponse;
-  seasonFetching?: boolean;
   stateUnavailable?: boolean;
 }
 
@@ -27,7 +27,6 @@ export function CollectionControl({
   control,
   editing,
   season,
-  seasonFetching = false,
   stateUnavailable = false,
 }: Readonly<CollectionControlProps>) {
   const { colors } = useTheme();
@@ -35,13 +34,12 @@ export function CollectionControl({
   const confirmAction = useActionConfirmation();
   const { authority } = editing;
   const mounted = useRef(false);
-  const reading = editing.query.isFetching || seasonFetching;
   const closed = season?.state === "closed";
   const busy =
     !authority.enabled ||
     editing.activity.isPending ||
-    editing.request.isPending ||
-    reading;
+    editing.request.isPending;
+  const refused = isCollectionReadRefused(editing.query.error);
   const running = control.cycle?.state === "running";
   useEffect(() => {
     mounted.current = true;
@@ -57,7 +55,7 @@ export function CollectionControl({
       busy ||
       closed ||
       stateUnavailable ||
-      editing.query.isError ||
+      refused ||
       (command === "request" && !control.enabled)
     ) {
       return;
@@ -79,7 +77,7 @@ export function CollectionControl({
 
   /** Native confirmation belongs to the mounted control; the backend rechecks current permission and revision. */
   async function confirm(command: "activity" | "request") {
-    if (busy || closed || stateUnavailable || editing.query.isError) {
+    if (busy || closed || stateUnavailable || refused) {
       return;
     }
 
@@ -188,7 +186,7 @@ export function CollectionControl({
               fullWidth
               variant="secondary"
               label={control.enabled ? "Mettre en pause" : "Reprendre"}
-              disabled={busy || stateUnavailable || editing.query.isError}
+              disabled={busy || stateUnavailable || refused}
               loading={editing.activity.isPending}
               onPress={() => confirm("activity")}
             />
@@ -200,7 +198,7 @@ export function CollectionControl({
               disabled={
                 busy ||
                 stateUnavailable ||
-                editing.query.isError ||
+                refused ||
                 !control.enabled ||
                 !!control.pendingRequestId ||
                 running

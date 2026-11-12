@@ -1,4 +1,3 @@
-import { PageViewport } from "../../../shared/components/navigation-backdrop";
 import { useState, type ReactNode } from "react";
 import { useRouter, useIsFocused } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
@@ -17,9 +16,11 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { PagedTabs } from "../../../shared/components/paged-tabs";
 import { PersonalCalendar } from "../components/personal-calendar";
 import { FollowedLists } from "../components/followed-lists";
-import { Tabs } from "../../../shared/components/tabs";
 import { ScreenState } from "../../../shared/components/screen-state";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
+import {
+  hasReadError,
+  ReadFeedback,
+} from "../../../shared/components/read-feedback";
 import { CalendarLoading } from "../../sporting/calendar";
 import { SportingEntityCardLoading } from "../../sporting/entity-card";
 import { Button } from "../../../shared/components/button";
@@ -112,23 +113,27 @@ function PersonalHeader() {
   );
 }
 
-/** Keeps the choice and selected tab mounted while ordinary sporting routes cover Home. */
+/** Keeps the common read owner and native pager mounted across failures and ordinary sporting visits. */
 function PersonalSpace({ scope }: Readonly<{ scope: PersonalSeasonScope }>) {
   const { owner, profile, season, request, admitted, usable, blocked, bypass } =
     scope;
   const router = useRouter();
   const [tab, setTab] = useState("upcoming");
   const focused = useIsFocused();
-  const ready = usable && !!season.options.data && !blocked;
-  const blockingQuery = !usable ? profile : season.options;
-  const loadingContent =
-    tab === "following" ? (
-      <SportingEntityCardLoading label="Chargement des suivis" />
-    ) : (
-      <CalendarLoading />
-    );
+  const profileFailed = hasReadError(profile);
+  const ready =
+    usable &&
+    !!season.options.data &&
+    !blocked &&
+    !profileFailed &&
+    !hasReadError(season.options);
+  const blockingQuery = !usable || profileFailed ? profile : season.options;
+  const FeedbackLayout =
+    blockingQuery.isPending && !hasReadError(blockingQuery)
+      ? PageContent
+      : ScreenState;
 
-  /** Composes the native pager bar or non-paged admission choices beside the same season owner. */
+  /** Keeps shared tab navigation and the retained season beside their existing readiness guard. */
   function controls(tabBar: ReactNode) {
     return (
       <View style={styles.controls}>
@@ -137,7 +142,7 @@ function PersonalSpace({ scope }: Readonly<{ scope: PersonalSeasonScope }>) {
           options={blocked ? undefined : season.options.data}
           seasonId={season.seasonId}
           onPress={() => router.push("/season")}
-          disabled={!usable || blocked || !season.options.data}
+          disabled={!ready}
         />
       </View>
     );
@@ -145,73 +150,56 @@ function PersonalSpace({ scope }: Readonly<{ scope: PersonalSeasonScope }>) {
 
   return (
     <Page fullBleed>
-      {ready ? (
-        <PagedTabs
-          resetKey={season.seasonId ?? "all-seasons"}
-          selected={tab}
-          onSelect={setTab}
-          collapsibleHeader={<PersonalHeader />}
-          fadeHeaderOnScroll
-          renderTabBar={controls}
-          tabs={tabs.map(({ id, label }) => ({
-            id,
-            label,
-            content:
-              id === "upcoming" || id === "completed" ? (
-                <PersonalCalendar
-                  key={season.seasonId ?? "all-seasons"}
-                  owner={owner}
-                  request={request}
-                  seasonId={season.seasonId}
-                  category={id}
-                  active={focused && tab === id}
-                  bypass={bypass}
-                />
-              ) : (
-                <FollowedLists
-                  key={season.seasonId ?? "all-seasons"}
-                  owner={owner}
-                  request={request}
-                  seasonId={season.seasonId}
-                  active={focused && tab === id}
-                  bypass={bypass}
-                />
-              ),
-          }))}
-        />
-      ) : (
-        <PageViewport
-          header={
-            <>
-              <PersonalHeader />
-              {controls(
-                <Tabs
-                  size="compact"
-                  items={tabs}
-                  selected={tab}
-                  onSelect={setTab}
-                />,
-              )}
-            </>
-          }
-        >
-          <PageScrollView>
-            {blockingQuery.isPending && blockingQuery.isFetching ? (
-              <PageContent>{loadingContent}</PageContent>
-            ) : (
-              <ScreenState>
+      <PagedTabs
+        resetKey={season.seasonId ?? "all-seasons"}
+        selected={tab}
+        onSelect={setTab}
+        collapsibleHeader={<PersonalHeader />}
+        fadeHeaderOnScroll
+        renderTabBar={controls}
+        tabs={tabs.map(({ id, label }) => ({
+          id,
+          label,
+          content: !ready ? (
+            <PageScrollView>
+              <FeedbackLayout>
                 <ReadFeedback
                   query={{
                     ...blockingQuery,
                     isEnabled: admitted && blockingQuery.isEnabled,
                   }}
-                  loadingContent={loadingContent}
+                  loadingContent={
+                    id === "following" ? (
+                      <SportingEntityCardLoading label="Chargement des suivis" />
+                    ) : (
+                      <CalendarLoading />
+                    )
+                  }
                 />
-              </ScreenState>
-            )}
-          </PageScrollView>
-        </PageViewport>
-      )}
+              </FeedbackLayout>
+            </PageScrollView>
+          ) : id === "upcoming" || id === "completed" ? (
+            <PersonalCalendar
+              key={season.seasonId ?? "all-seasons"}
+              owner={owner}
+              request={request}
+              seasonId={season.seasonId}
+              category={id}
+              active={focused && tab === id}
+              bypass={bypass}
+            />
+          ) : (
+            <FollowedLists
+              key={season.seasonId ?? "all-seasons"}
+              owner={owner}
+              request={request}
+              seasonId={season.seasonId}
+              active={focused && tab === id}
+              bypass={bypass}
+            />
+          ),
+        }))}
+      />
     </Page>
   );
 }

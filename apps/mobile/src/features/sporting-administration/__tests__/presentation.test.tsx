@@ -34,7 +34,11 @@ import { Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { ComponentType, PropsWithChildren, ReactNode } from "react";
 import { useDivisions } from "../api/classification";
-import { getListDivisionsQueryKey } from "../../../../.generated/mobile";
+import {
+  getGetTeamPresentationQueryKey,
+  getGetDivisionQueryKey,
+  getListDivisionsQueryKey,
+} from "../../../../.generated/mobile";
 import RootLayout from "../../../app/_layout";
 import OnboardingRoute from "../../../app/onboarding";
 import OperationsLayout from "../../../app/(operations)/_layout";
@@ -648,7 +652,7 @@ it("validates and saves division colors, gradient and name without touching acti
 });
 
 it.each(["conflict", "network", "schema"])(
-  "preserves dirty fields after %s and requires a successful read before explicit retry",
+  "preserves dirty fields after %s when ordinary invalidation finds a newer revision",
   async (outcome) => {
     // Given
     const user = userEvent.setup();
@@ -752,6 +756,195 @@ it.each(["conflict", "network", "schema"])(
     });
   },
 );
+
+it("keeps an unknown conflict as an ordinary failure with an editable draft", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderEditor();
+  await screen.findByDisplayValue("Current name");
+  await user.clear(screen.getByLabelText("Nom complet personnalisé"));
+  await user.type(
+    screen.getByLabelText("Nom complet personnalisé"),
+    "My draft",
+  );
+  mockFetch.mockImplementation(async (url, options) =>
+    options?.method === "PATCH"
+      ? json(
+          {
+            type: "urn:blockout:problem:conflict",
+            title: "Conflict",
+            status: 409,
+          },
+          409,
+        )
+      : respond(url, options),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("My draft")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Relire la présentation" }),
+  ).not.toBeOnTheScreen();
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+  );
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(1);
+});
+
+it.each(["pending", "failed"] as const)(
+  "keeps an editable draft and permits an explicit save while dependent reads are %s",
+  async (phase) => {
+    // Given
+    const user = userEvent.setup();
+    await renderEditor();
+    await screen.findByDisplayValue("Current name");
+    await user.clear(screen.getByLabelText("Nom complet personnalisé"));
+    await user.type(
+      screen.getByLabelText("Nom complet personnalisé"),
+      "My draft",
+    );
+    const refresh = Promise.withResolvers<void>();
+    let writes = 0;
+    mockFetch.mockImplementation(async (url, options) => {
+      if (options?.method === "PATCH") {
+        writes++;
+        throw new TypeError("Lost save response");
+      }
+      if (writes > 0 && String(url).endsWith("/presentation")) {
+        await refresh.promise;
+        return json(
+          { type: "urn:blockout:problem:unavailable", status: 503 },
+          503,
+        );
+      }
+      return respond(url, options);
+    });
+
+    // When
+    try {
+      await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+      await screen.findByText(TECHNICAL_ERROR);
+      if (phase === "failed") {
+        refresh.resolve();
+        await waitFor(() => expect(client.isFetching()).toBe(0));
+      }
+
+      // Then
+      expect(screen.getByDisplayValue("My draft")).toBeOnTheScreen();
+      expect(screen.getByLabelText("Nom complet personnalisé")).toHaveProp(
+        "editable",
+        true,
+      );
+      expect(
+        screen.queryByRole("button", { name: "Relire la présentation" }),
+      ).not.toBeOnTheScreen();
+      expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+      expect(writes).toBe(1);
+
+      // When: only this new press sends the retained draft again.
+      await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+      // Then
+      await waitFor(() => expect(writes).toBe(2));
+      expect(screen.getByDisplayValue("My draft")).toBeOnTheScreen();
+      const latest = mockFetch.mock.calls
+        .filter(([, options]) => options?.method === "PATCH")
+        .at(-1);
+      expect(
+        JSON.parse(
+          await (
+            (latest?.[1]?.body as FormData).get("metadata") as Blob
+          ).text(),
+        ),
+      ).toMatchObject({ revision: initial.revision, manualName: "My draft" });
+    } finally {
+      refresh.resolve();
+      await waitFor(() => expect(client.isFetching()).toBe(0));
+    }
+  },
+);
+
+it("keeps a known presentation refusal through a technical failure until a successful read", async () => {
+  // Given: the retained form owns the draft; real Query and HTTP decoding own its refusal.
+  const user = userEvent.setup();
+  await renderEditor();
+  await user.clear(await screen.findByLabelText("Nom complet personnalisé"));
+  await user.type(
+    screen.getByLabelText("Nom complet personnalisé"),
+    "My draft",
+  );
+  let status = 403;
+  const queryKey = getGetTeamPresentationQueryKey(resourceId);
+  mockFetch.mockImplementation((url, options) =>
+    String(url).endsWith("/presentation") && status !== 200
+      ? Promise.resolve(json({ type: "about:blank", status }, status))
+      : respond(url, options),
+  );
+
+  // When
+  await act(async () => client.refetchQueries({ queryKey, exact: true }));
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
+  );
+  status = 503;
+  await act(async () => client.refetchQueries({ queryKey, exact: true }));
+
+  // Then: a technical error cannot restore the resource's withdrawn authority.
+  expect(client.getQueryState(queryKey)?.error).toMatchObject({
+    kind: "http",
+    status: 403,
+  });
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
+  );
+  expect(screen.getByDisplayValue("My draft")).toBeOnTheScreen();
+
+  // When: cancellation of a delayed read keeps Query's previous refusal and the same draft.
+  const delayed = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    String(url).endsWith("/presentation")
+      ? delayed.promise
+      : respond(url, options),
+  );
+  let reading: Promise<void> | undefined;
+  await act(async () => {
+    reading = client.refetchQueries({ queryKey, exact: true });
+  });
+  await waitFor(() =>
+    expect(client.getQueryState(queryKey)?.fetchStatus).toBe("fetching"),
+  );
+  await act(async () => {
+    await client.cancelQueries({ queryKey, exact: true });
+    delayed.resolve(json({ status: 503 }, 503));
+    await reading;
+  });
+
+  // Then
+  expect(client.getQueryState(queryKey)?.error).toMatchObject({
+    kind: "http",
+    status: 403,
+  });
+  expect(screen.getByDisplayValue("My draft")).toBeOnTheScreen();
+
+  // When: a successful current read restores authority without replacing dirty input.
+  mockFetch.mockImplementation(respond);
+  await act(async () => client.refetchQueries({ queryKey, exact: true }));
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+  );
+  expect(screen.getByDisplayValue("My draft")).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(0);
+});
 
 it("keeps a dirty draft and the editing revision during background refetch", async () => {
   // Given
@@ -1199,7 +1392,7 @@ function AccessProbe() {
       <AccessGateScreen />
       <Text>
         {account.isSuccess &&
-        account.data.permissions.manageSportingPresentation
+        account.data?.permissions.manageSportingPresentation
           ? "Presentation authority available"
           : "Authority pending"}
       </Text>
@@ -1593,6 +1786,78 @@ it("keeps lifecycle independent at the end of the division editor for a lifecycl
       body: JSON.stringify({ revision: "d1", active: false }),
     }),
   );
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
+});
+
+it("suspends lifecycle-only commands after a missing division read until the resource is read successfully", async () => {
+  // Given: lifecycle authority remains present independently of presentation permission.
+  permissions = { manageDivisionLifecycle: true };
+  const division = {
+    id: resourceId,
+    revision: "d1",
+    name: "National 2",
+    color: "#123456",
+    gradient: null,
+    logo,
+    active: true,
+  };
+  stored = division;
+  const user = userEvent.setup();
+  await renderEditor("division");
+  await screen.findByRole("button", { name: "Désactiver la division" });
+  jest.spyOn(Alert, "alert");
+  let status = 404;
+  const queryKey = getGetDivisionQueryKey(resourceId);
+  mockFetch.mockImplementation((url, options) => {
+    if (options?.method === "PUT") {
+      stored = { ...division, revision: "d2", active: false };
+      return Promise.resolve(json(stored));
+    }
+    return String(url).endsWith(`/divisions/${resourceId}`) && status !== 200
+      ? Promise.resolve(json({ type: "about:blank", status }, status))
+      : respond(url, options);
+  });
+
+  // When: target absence is established, then only a technical failure is received.
+  await act(async () => client.refetchQueries({ queryKey, exact: true }));
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Désactiver la division" }),
+    ).toBeDisabled(),
+  );
+  status = 503;
+  await act(async () => client.refetchQueries({ queryKey, exact: true }));
+  await user.press(
+    screen.getByRole("button", { name: "Désactiver la division" }),
+  );
+
+  // Then: the retained lifecycle grant cannot authorize this refused target.
+  expect(client.getQueryState(queryKey)?.error).toMatchObject({ status: 404 });
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+  ).toHaveLength(0);
+  expect(Alert.alert).not.toHaveBeenCalled();
+
+  // When: only a successful current resource read restores the ordinary action.
+  status = 200;
+  await act(async () => client.refetchQueries({ queryKey, exact: true }));
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Désactiver la division" }),
+    ).toBeEnabled(),
+  );
+  await user.press(
+    screen.getByRole("button", { name: "Désactiver la division" }),
+  );
+  await act(async () => nativeAlertAction("Désactiver")());
+
+  // Then
+  await screen.findByRole("button", { name: "Réactiver la division" });
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+  ).toHaveLength(1);
   expect(
     screen.queryByRole("button", { name: "Enregistrer" }),
   ).not.toBeOnTheScreen();

@@ -9,6 +9,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -117,6 +118,12 @@ class TransitionIdentityIntegrationTest {
     when(provider.read(ISSUER, other))
         .thenReturn(new PrincipalReader.Evidence(secondEmail, CREATED));
     Account first = establishment.establish(ISSUER, SUBJECT).view().account();
+    // Stored synthetic bytes make private-read refusal distinguishable from a missing photo.
+    byte[] photo = new byte[] {1, 2, 3};
+    sql.update(
+        "UPDATE account SET photo_bytes=?, photo_media_type='image/png', photo_dimension=1 WHERE id=?",
+        photo,
+        first.id());
 
     // When
     Account second = establishment.establish(ISSUER, other).view().account();
@@ -124,7 +131,10 @@ class TransitionIdentityIntegrationTest {
     // Then
     assertThat(second.id()).isNotEqualTo(first.id());
     assertThat(second.email()).isEqualTo(secondEmail);
-    mvc.perform(get("/accounts/{id}", first.id()).with(principal(other)))
+    mvc.perform(get("/accounts/{id}/photo", first.id()).with(principal(SUBJECT)))
+        .andExpect(status().isOk())
+        .andExpect(content().bytes(photo));
+    mvc.perform(get("/accounts/{id}/photo", first.id()).with(principal(other)))
         .andExpect(status().isNotFound());
     assertThat(accounts.current(ISSUER, SUBJECT).account()).isEqualTo(first);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM account", Long.class)).isEqualTo(2L);

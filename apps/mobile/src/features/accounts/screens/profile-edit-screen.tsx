@@ -2,11 +2,11 @@ import { Page, PageContent } from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { useNavigation, useRouter } from "expo-router";
+import { StackActions } from "expo-router/react-navigation";
 import { LogIn } from "lucide-react-native";
-import { StyleSheet } from "react-native";
 import { FormScrollView } from "../../../shared/components/form-scroll-view";
 
-import { ApiError } from "../../../shared/api/api-fetch";
+import { isAccountMissing } from "../api/current-account-query";
 import { Button } from "../../../shared/components/button";
 import { useCurrentAccount } from "../api/use-current-account";
 import { ProfileForm } from "../forms/profile-form";
@@ -18,6 +18,11 @@ import { PageHeader } from "../../../shared/components/page-header";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { useProfileRefresh } from "../api/use-profile-refresh";
 import { ProfileSupportAction } from "../components/profile-support-action";
+import { SignInInvitationCard } from "../components/sign-in-invitation";
+import {
+  hasReadError,
+  ReadFeedback,
+} from "../../../shared/components/read-feedback";
 
 /** Ordinary admission gates editing independently from identity-only account reads. */
 export interface ProfileEditScreenProps {
@@ -33,12 +38,11 @@ export function ProfileEditScreen({
   const router = useRouter();
   const navigation = useNavigation();
   const { saving, refresh } = useProfileRefresh(account, true);
-  const missing =
-    account.error instanceof ApiError && account.error.status === 404;
+  const missing = isAccountMissing(account.error);
 
-  /** Pops only the profile stack, including a save acknowledged while another tab is active. The route anchors direct entries. */
+  /** Returns this stack to its overview, including an unanchored warm link or a save acknowledged on another tab. */
   function close() {
-    navigation.goBack();
+    navigation.dispatch(StackActions.popTo("index"));
   }
 
   const recovery = accountSessionRecovery(session);
@@ -54,7 +58,10 @@ export function ProfileEditScreen({
     }
     if (
       recovery.pending ||
-      (session.status === "authenticated" && account.isPending)
+      (session.status === "authenticated" &&
+        account.isPending &&
+        account.isFetching &&
+        !hasReadError(account))
     ) {
       return (
         <PageContent>
@@ -77,32 +84,27 @@ export function ProfileEditScreen({
         </ScreenState>
       );
     }
-    if (session.status !== "authenticated") {
+    if (session.status === "guest" || missing) {
       return (
-        <ScreenState style={styles.centered}>
-          <Button
-            label="Se connecter"
-            fullWidth
-            onPress={() => router.replace("/sign-in")}
+        <ScreenState>
+          <SignInInvitationCard
+            message={
+              missing
+                ? "Votre compte n’est plus disponible."
+                : "Connectez-vous pour modifier votre profil."
+            }
+            onSignIn={() => router.replace("/sign-in")}
           />
         </ScreenState>
       );
     }
-    if (account.isError) {
+    if (
+      session.status === "authenticated" &&
+      (account.isPending || hasReadError(account))
+    ) {
       return (
         <ScreenState>
-          <ErrorState
-            onRetry={missing ? undefined : () => void account.refetch()}
-            retrying={account.isFetching}
-          >
-            {missing && (
-              <Button
-                label="Se connecter"
-                leadingIcon={LogIn}
-                onPress={() => router.replace("/sign-in")}
-              />
-            )}
-          </ErrorState>
+          <ReadFeedback query={account} loadingContent={null} />
         </ScreenState>
       );
     }
@@ -115,10 +117,15 @@ export function ProfileEditScreen({
       <ProfileForm
         key={`${session.subject}:${account.data.accountId}`}
         refreshControl={
-          <DataRefreshControl enabled={!saving} onRefresh={refresh} />
+          <DataRefreshControl
+            enabled={!saving && !hasReadError(account)}
+            fetching={account.isFetching}
+            onRefresh={refresh}
+          />
         }
         account={account.data}
         disabled={!account.isSuccess}
+        readFeedback={readFeedback()}
         onCancel={close}
         onSaved={close}
       />
@@ -131,6 +138,7 @@ export function ProfileEditScreen({
       header={
         <PageHeader
           title="Modifier mon profil"
+          onBack={close}
           action={<ProfileSupportAction />}
         />
       }
@@ -139,5 +147,3 @@ export function ProfileEditScreen({
     </Page>
   );
 }
-
-const styles = StyleSheet.create({ centered: { justifyContent: "center" } });

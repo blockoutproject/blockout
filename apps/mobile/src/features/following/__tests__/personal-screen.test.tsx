@@ -1,5 +1,9 @@
 import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
-import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import {
+  onlineManager,
+  QueryClientProvider,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import {
   act,
@@ -51,7 +55,7 @@ import {
 } from "../../sporting/test-support/consultation-data";
 import { PersonalScreen } from "../screens/personal-screen";
 import { FollowButton } from "../components/follow-button";
-import { followListKey } from "../api/following-keys";
+import { followListKey, followOptionsKey } from "../api/following-keys";
 import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
 import * as proSessionModule from "../../pro/pro-session";
 import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
@@ -216,6 +220,18 @@ async function mount(extra?: ReactNode) {
       ),
     },
   );
+}
+
+/** Completes a native horizontal page gesture through the existing pager I/O double. */
+async function swipeHomePage(position: number) {
+  const pager = screen.getByTestId("native-tabs-pager");
+  await fireEvent(pager, "pageSelected", { nativeEvent: { position } });
+  await fireEvent(pager, "pageScroll", {
+    nativeEvent: { position, offset: 0 },
+  });
+  await fireEvent(pager, "pageScrollStateChanged", {
+    nativeEvent: { pageScrollState: "idle" },
+  });
 }
 
 /** Synthetic current-owner HTTP responses go through the actual generated validation. */
@@ -449,7 +465,7 @@ it("keeps list failures distinct from emptiness and retains the accepted persona
   expect(mockFetch).not.toHaveBeenCalled();
 });
 
-it("keeps current choices after a failed explicit refresh and offers the next opening as retry", async () => {
+it("keeps current choices in their open sheet and retries Home's failed common read after dismissal", async () => {
   // Given
   const user = userEvent.setup();
   await mount();
@@ -458,6 +474,7 @@ it("keeps current choices after a failed explicit refresh and offers the next op
       screen.getByRole("button", { name: "Saison des suivis" }),
     ).toHaveAccessibilityValue({ text: older.label }),
   );
+  await layoutNativeTabs();
   mockFetch.mockImplementation((url, request) =>
     url.includes("follow-options")
       ? Promise.reject(new TypeError("Synthetic network failure"))
@@ -480,18 +497,36 @@ it("keeps current choices after a failed explicit refresh and offers the next op
 
   // When
   await user.press(screen.getByRole("button", { name: "Fermer" }));
+
+  // Then: the dismissed sheet does not make Home's failed prerequisite usable.
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(
+    screen.getByRole("button", { name: "Saison des suivis", disabled: true }),
+  ).toHaveAccessibilityValue({ text: older.label });
+
+  // When
+  mockFetch.mockClear().mockImplementation(transport);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
+  expect(
+    mockFetch.mock.calls.filter(([url]) => url.includes("follow-options")),
+  ).toHaveLength(1);
+
+  // When
   await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
 
   // Then
-  await waitFor(() =>
-    expect(
-      mockFetch.mock.calls.filter(([url]) => url.includes("follow-options"))
-        .length,
-    ).toBe(3),
-  );
+  expect(
+    await screen.findByRole("radio", { name: older.label, checked: true }),
+  ).toBeOnTheScreen();
 });
 
-it("retains the personal calendar, tab and season after a technical profile refetch failure", async () => {
+it("replaces Home's content after a technical profile failure and restores the retained calendar, tab and season", async () => {
   // Given: Home and Query are real; only the profile HTTP response changes.
   const user = userEvent.setup();
   await mount();
@@ -518,19 +553,25 @@ it("retains the personal calendar, tab and season after a technical profile refe
     }),
   );
 
-  await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
-
   // Then
+  await screen.findByRole("button", { name: "Réessayer" });
   expect(
-    await screen.findByRole("radio", { name: newer.label, checked: true }),
+    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Saison des suivis", disabled: true }),
+  ).toHaveAccessibilityValue({ text: newer.label });
+  expect(
+    screen.getByRole("tab", { name: "Terminés", selected: true }),
   ).toBeOnTheScreen();
 
   // When
-  await user.press(screen.getByRole("button", { name: "Fermer" }));
+  mockFetch.mockClear().mockImplementation(transport);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
-  // Then: retained data remains readable without replacing the current view.
+  // Then: the same confirmed selection and cached calendar return without another collection request.
   expect(
-    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ }),
   ).toBeOnTheScreen();
   expect(
     screen.getByRole("tab", { name: "Terminés", selected: true }),
@@ -538,6 +579,11 @@ it("retains the personal calendar, tab and season after a technical profile refe
   expect(
     screen.getByRole("button", { name: "Saison des suivis", disabled: false }),
   ).toHaveAccessibilityValue({ text: newer.label });
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      /\/(matches|team-follows|pool-follows)\?/.test(url),
+    ),
+  ).toHaveLength(0);
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
 });
 
@@ -690,31 +736,244 @@ it("leaves the actual club-season and search-input owners unchanged", async () =
   ).toHaveAccessibilityValue({ text: newer.label });
 });
 
-it("distinguishes an initial options failure from successful empty options and retries the read", async () => {
-  // Given
-  const user = userEvent.setup();
+it("keeps all Home pages during the first common read, failure and active Retry without premature collection reads", async () => {
+  // Given: Query, generated validation and PagedTabs are real; HTTP completion and native pager I/O are controlled.
+  const initial = Promise.withResolvers<Response>();
+  const retry = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url, request) =>
-    url.includes("follow-options")
-      ? Promise.reject(new TypeError("Synthetic network failure"))
-      : transport(url, request),
+    url.endsWith("/follow-options") ? initial.promise : transport(url, request),
   );
   await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: true,
+  });
 
-  // Then
+  try {
+    // Then: an active first read retains the native gesture owner and defers every dependent read.
+    await layoutNativeTabs();
+    const pager = screen.getByTestId("native-tabs-pager");
+    expect(pager).toBeOnTheScreen();
+    expect(screen.getAllByRole("tab")).toHaveLength(3);
+    expect(
+      screen.getByRole("progressbar", { name: "Chargement des matchs" }),
+    ).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        /\/(matches|team-follows|pool-follows)\?/.test(url),
+      ),
+    ).toHaveLength(0);
+
+    // When
+    await act(() => initial.resolve(new Response(null, { status: 503 })));
+    await screen.findByRole("button", { name: "Réessayer", busy: false });
+    await swipeHomePage(1);
+
+    // Then
+    expect(pager).toBeOnTheScreen();
+    expect(
+      screen.getByRole("tab", { name: "Terminés", selected: true }),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
+    await userEvent.press(screen.getByRole("tab", { name: "Suivis" }));
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Saison des suivis", disabled: true }),
+    ).toHaveAccessibilityValue({ text: "Saison" });
+    expect(
+      mockFetch.mock.calls.filter(([url]) => url.endsWith("/follow-options")),
+    ).toHaveLength(1);
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        /\/(matches|team-follows|pool-follows)\?/.test(url),
+      ),
+    ).toHaveLength(0);
+
+    // When: a no-data Retry returns Query to pending, retaining the card in its initiating scene.
+    mockFetch.mockImplementation((url, request) =>
+      url.endsWith("/follow-options")
+        ? retry.promise
+        : /\/(team|pool)-follows\?/.test(url)
+          ? Promise.resolve(Response.json({ items: [] }))
+          : transport(url, request),
+    );
+    await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+    await screen.findByRole("button", { name: "Réessayer", busy: true });
+    await swipeHomePage(0);
+
+    // Then: the shared request does not animate another scene's idle action or start a collection.
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeOnTheScreen();
+    await userEvent.press(screen.getByRole("tab", { name: "Suivis" }));
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: true }),
+    ).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([url]) => url.endsWith("/follow-options")),
+    ).toHaveLength(2);
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        /\/(matches|team-follows|pool-follows)\?/.test(url),
+      ),
+    ).toHaveLength(0);
+
+    // When
+    await act(() => retry.resolve(Response.json({ seasons: [] })));
+
+    // Then: only a successful common result admits the selected collections and confirmed Empty.
+    await screen.findByRole("button", {
+      name: "Saison des suivis",
+      disabled: false,
+    });
+    await screen.findByText("Aucun suivi à afficher");
+    expect(
+      screen.getByRole("tab", { name: "Suivis", selected: true }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+  } finally {
+    await act(() => {
+      initial.resolve(Response.json({ seasons: [] }));
+      retry.resolve(Response.json({ seasons: [] }));
+    });
+  }
+});
+
+it("keeps the Home season and selected page through suspended Retry, repeated common failure and recovery", async () => {
+  // Given
+  await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
+  await userEvent.press(
+    screen.getByRole("button", { name: "Saison des suivis" }),
+  );
+  await userEvent.press(
+    await screen.findByRole("radio", { name: newer.label }),
+  );
+  await layoutNativeTabs();
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  mockFetch.mockImplementation((url, request) =>
+    url.endsWith("/follow-options")
+      ? Promise.resolve(new Response(null, { status: 503 }))
+      : transport(url, request),
+  );
+  await act(() =>
+    client.refetchQueries({
+      queryKey: followOptionsKey({ accountId, subject: session.subject }),
+      exact: true,
+    }),
+  );
   await screen.findByRole("button", { name: "Réessayer" });
-  expect(
-    screen.getByRole("button", { name: "Saison des suivis", disabled: true }),
-  ).toHaveAccessibilityValue({ text: "Saison" });
+  const repeated = Promise.withResolvers<Response>();
+  const recovered = Promise.withResolvers<Response>();
+  mockFetch
+    .mockClear()
+    .mockImplementation((url, request) =>
+      url.endsWith("/follow-options")
+        ? repeated.promise
+        : transport(url, request),
+    );
 
-  // When
+  try {
+    // When: an ordinary offline Query suspends the explicit action without simulated active progress.
+    await act(() => onlineManager.setOnline(false));
+    await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeOnTheScreen();
+    expect(mockFetch).not.toHaveBeenCalled();
+    await swipeHomePage(1);
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeOnTheScreen();
+
+    // When
+    await act(() => onlineManager.setOnline(true));
+    await waitFor(() =>
+      expect(
+        mockFetch.mock.calls.filter(([url]) => url.endsWith("/follow-options")),
+      ).toHaveLength(1),
+    );
+
+    // Then: completion is shared, but only the initiating scene presents its gesture's active progress.
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeOnTheScreen();
+    await userEvent.press(screen.getByRole("tab", { name: "À venir" }));
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: true }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Saison des suivis", disabled: true }),
+    ).toHaveAccessibilityValue({ text: newer.label });
+
+    // When
+    await act(() => repeated.resolve(new Response(null, { status: 503 })));
+    await screen.findByRole("button", { name: "Réessayer", busy: false });
+    await userEvent.press(screen.getByRole("tab", { name: "Suivis" }));
+    mockFetch.mockImplementation((url, request) =>
+      url.endsWith("/follow-options")
+        ? recovered.promise
+        : transport(url, request),
+    );
+    await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+    await screen.findByRole("button", { name: "Réessayer", busy: true });
+    await swipeHomePage(1);
+
+    // Then
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        /\/(matches|team-follows|pool-follows)\?/.test(url),
+      ),
+    ).toHaveLength(0);
+
+    // When
+    await act(() =>
+      recovered.resolve(
+        Response.json({ seasons: [newer, older], defaultSeasonId: older.id }),
+      ),
+    );
+
+    // Then
+    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+    expect(
+      screen.getByRole("tab", { name: "Terminés", selected: true }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", {
+        name: "Saison des suivis",
+        disabled: false,
+      }),
+    ).toHaveAccessibilityValue({ text: newer.label });
+    expect(
+      mockFetch.mock.calls.filter(([url]) => url.endsWith("/follow-options")),
+    ).toHaveLength(2);
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  } finally {
+    await act(() => {
+      onlineManager.setOnline(true);
+      repeated.resolve(Response.json({ seasons: [] }));
+      recovered.resolve(Response.json({ seasons: [] }));
+    });
+  }
+});
+
+it("shows the real season selector after successful empty options", async () => {
+  // Given
+  const user = userEvent.setup();
   mockFetch.mockImplementation((url, request) =>
     url.includes("follow-options")
       ? Promise.resolve(Response.json({ seasons: [] }))
       : transport(url, request),
   );
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
-
-  // Then
+  await mount();
   await waitFor(() =>
     expect(
       screen.getByRole("button", {
@@ -723,7 +982,11 @@ it("distinguishes an initial options failure from successful empty options and r
       }),
     ).toHaveAccessibilityValue({ text: "Toutes saisons" }),
   );
+
+  // When
   await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
+
+  // Then
   expect(
     screen.getByRole("radio", { name: "Toutes les saisons", checked: true }),
   ).toBeOnTheScreen();
@@ -743,8 +1006,10 @@ it.each([403, 404])(
         screen.getByRole("button", { name: "Saison des suivis" }),
       ).toHaveAccessibilityValue({ text: older.label }),
     );
+    await layoutNativeTabs();
     await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
     await user.press(screen.getByRole("radio", { name: newer.label }));
+    await layoutNativeTabs();
     mockFetch.mockImplementation((url, request) =>
       url.includes("follow-options")
         ? Promise.resolve(new Response(null, { status }))
@@ -753,6 +1018,8 @@ it.each([403, 404])(
 
     // When
     await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
+    await waitFor(() => expect(screen).toHavePathname("/"));
+    await layoutNativeTabs();
 
     // Then
     await screen.findByRole("button", { name: "Réessayer" });
@@ -969,6 +1236,7 @@ it("restarts the selected completed traversal after a confirmed follow change an
     url: string,
     id: string,
     home: string,
+    day: string,
     nextDay?: string,
   ): Response {
     const match = matchDetail().match;
@@ -984,7 +1252,7 @@ it("restarts the selected completed traversal after a confirmed follow change an
         evaluatedAt: "2026-10-28T12:00:00Z",
         days: [
           {
-            date: "2026-10-20",
+            date: day,
             pools: [
               {
                 poolId: team.id,
@@ -993,7 +1261,7 @@ it("restarts the selected completed traversal after a confirmed follow change an
                     ...match,
                     id,
                     category,
-                    schedule: { ...match.schedule, localDate: "2026-10-20" },
+                    schedule: { ...match.schedule, localDate: day },
                     home: { ...match.home, name: home },
                   },
                 ],
@@ -1016,15 +1284,23 @@ it("restarts the selected completed traversal after a confirmed follow change an
       return transport(url, request);
     }
     if (changed) {
-      return Promise.resolve(calendar(url, replacement, "Current"));
+      return Promise.resolve(
+        calendar(url, replacement, "Current", "2026-10-20"),
+      );
     }
     if (parsed.searchParams.get("nextDay") === "2026-10-19") {
       return late.promise;
     }
     return Promise.resolve(
       parsed.searchParams.has("nextDay")
-        ? calendar(url, oldSecond, "Second", "2026-10-19")
-        : calendar(url, matchDetail().match.id, "First", "2026-10-20"),
+        ? calendar(url, oldSecond, "Second", "2026-10-19", "2026-10-19")
+        : calendar(
+            url,
+            matchDetail().match.id,
+            "First",
+            "2026-10-20",
+            "2026-10-20",
+          ),
     );
   });
   await mount(<FollowButton target={team} season={older} />);
@@ -1063,6 +1339,7 @@ it("restarts the selected completed traversal after a confirmed follow change an
         "https://api.example.invalid/?category=completed&timeZone=Europe/Paris",
         oldThird,
         "Obsolete",
+        "2026-10-18",
       ),
     ),
   );

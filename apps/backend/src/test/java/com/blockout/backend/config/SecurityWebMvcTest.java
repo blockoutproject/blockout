@@ -486,12 +486,6 @@ class SecurityWebMvcTest {
 
     /** {@inheritDoc} */
     @Override
-    public ResponseEntity<AccountResponse> getAccount(UUID accountId, Boolean bypass) {
-      return ResponseEntity.notFound().build();
-    }
-
-    /** {@inheritDoc} */
-    @Override
     public ResponseEntity<AccountResponse> changeAccountProfile(
         UUID accountId, ChangeAccountProfileRequest metadata, Boolean bypass, MultipartFile image) {
       return ResponseEntity.notFound().build();

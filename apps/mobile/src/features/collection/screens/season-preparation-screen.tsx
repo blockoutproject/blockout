@@ -11,7 +11,6 @@ import {
 } from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
 import { ReadFeedback } from "../../../shared/components/read-feedback";
-import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useRouter } from "expo-router";
 import { Globe, Trophy } from "lucide-react-native";
 import { Text } from "react-native";
@@ -21,6 +20,7 @@ import { CollectionLoading } from "../components/collection-loading";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { useCollectionSeason } from "../api/use-source-preparation";
+import { isCollectionReadRefused } from "../api/collection-queries";
 
 /** Opens seasonal controls, source preparation and definitive closure after current admission. */
 export function SeasonPreparationScreen({
@@ -34,7 +34,11 @@ export function SeasonPreparationScreen({
   /** Refreshes this admitted season, retaining authorized content after a technical failure. */
   async function refresh() {
     const result = await season.refetch({ cancelRefetch: false });
-    if (result.isError && result.data && !isAccessDenied(result.error)) {
+    if (
+      result.isError &&
+      result.data &&
+      !isCollectionReadRefused(result.error)
+    ) {
       feedback.error();
     }
   }
@@ -53,7 +57,7 @@ export function SeasonPreparationScreen({
         <AccessFeedback {...authority} loadingContent={<CollectionLoading />} />
       );
     }
-    if (isAccessDenied(season.error)) {
+    if (isCollectionReadRefused(season.error)) {
       return (
         <ErrorState
           onRetry={() => void season.refetch()}
@@ -124,7 +128,7 @@ export function SeasonPreparationScreen({
                   <Button
                     label="Clôturer la saison"
                     variant="secondary"
-                    disabled={season.isError || season.isFetching}
+                    disabled={isCollectionReadRefused(season.error)}
                     onPress={() =>
                       router.push({
                         pathname: "/collection/[seasonId]/closure",

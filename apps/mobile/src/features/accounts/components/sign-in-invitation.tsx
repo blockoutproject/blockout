@@ -127,6 +127,7 @@ export function SignInInvitationCard({
 
 const styles = StyleSheet.create({
   card: {
+    alignSelf: "stretch",
     borderWidth: tokens.border.thin,
     borderRadius: tokens.radius.panel,
     overflow: "hidden",

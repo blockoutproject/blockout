@@ -90,15 +90,7 @@ it.each([
     label: "active rights",
     state: { status: "active", entitlement: entitlement(), operation: "idle" },
   },
-  ...(
-    [
-      "purchasing",
-      "pending",
-      "uncertain",
-      "purchased",
-      "already-owned",
-    ] as const
-  ).map((operation) => ({
+  ...(["pending", "purchased", "already-owned"] as const).map((operation) => ({
     label: `inactive rights during ${operation}`,
     state: { status: "inactive" as const, operation },
   })),

@@ -2,7 +2,7 @@ import { applicationAccessResponse } from "../../../shared/api/test-support/appl
 import { accountResponse } from "../../accounts/test-support/account-response";
 import {
   changeApplicationVersionSettings,
-  getAccount,
+  getAccountPhoto,
   getApplicationAccess,
   getGetApplicationAccessQueryOptions,
   getMyAccount,
@@ -228,7 +228,7 @@ it.each([
   );
 
   // When
-  const request = getAccount(accountId);
+  const request = getAccountPhoto(accountId);
 
   // Then
   await expect(request).rejects.toMatchObject({

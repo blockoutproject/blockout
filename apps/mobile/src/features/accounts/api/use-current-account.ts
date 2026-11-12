@@ -42,8 +42,7 @@ export function useAccountAvailability() {
     usable:
       session.status === "authenticated" &&
       session.accountId !== null &&
-      account.data?.accountId === session.accountId &&
-      !refusal,
+      account.data?.accountId === session.accountId,
     hasLoadedAccount,
     canEnter:
       hasLoadedAccount ||

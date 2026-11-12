@@ -72,9 +72,9 @@ TeamFollow:
       - Following
     summary: Replace my team follow state
     description:
-      Atomically replaces the usable owner’s desired state. Repetition does not duplicate a relationship.
-      Last server-recorded state wins across devices. After an uncertain response, read current state before an
-      explicit retry.
+      Atomically replaces the usable owner’s desired state. Repetition does not duplicate a
+      relationship. Last server-recorded state wins across devices. A failed or lost response
+      permits explicit manual retry without a verification read.
     requestBody:
       required: true
       description: Desired state for this owner and target.
@@ -213,9 +213,9 @@ PoolFollow:
       - Following
     summary: Replace my pool follow state
     description:
-      Atomically replaces the usable owner’s desired state. Repetition does not duplicate a relationship.
-      Last server-recorded state wins across devices. After an uncertain response, read current state before an
-      explicit retry.
+      Atomically replaces the usable owner’s desired state. Repetition does not duplicate a
+      relationship. Last server-recorded state wins across devices. A failed or lost response
+      permits explicit manual retry without a verification read.
     requestBody:
       required: true
       description: Desired state for this owner and target.

@@ -250,7 +250,7 @@ it("does not encourage a second purchase while payment is pending or paid but un
   await screen.findByRole("button", { name: offerName });
 
   // When
-  await act(() => pro.beginPurchase());
+  await act(() => pro.completeOperation("pending"));
 
   // Then
   expect(screen.queryByRole("button", { name: offerName })).toBeNull();

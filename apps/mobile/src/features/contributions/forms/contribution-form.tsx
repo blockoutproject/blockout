@@ -16,13 +16,15 @@ import { useActionConfirmation } from "../../../shared/forms/use-action-confirma
 import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
-import { type useOwnContributions } from "../api/own-contributions";
+import {
+  isOwnContributionAccessDenied,
+  type useOwnContributions,
+} from "../api/own-contributions";
 import {
   contributionSchema,
   type ContributionValues,
 } from "../schemas/contribution-schema";
 import { contributionValues } from "./contribution-values";
-import { contributionErrorMessage } from "../api/contribution-errors";
 
 /** One mounted original-match address draft; normal RHF lifetime ends when the route is removed. */
 export interface ContributionFormProps {
@@ -67,9 +69,9 @@ export function ContributionForm({
     reset(contributionValues());
   });
   const { submit, change, query } = editing;
-  const busy = submit.isPending || change.isPending || query.isFetching;
-  const disabled =
-    !editing.usable || query.isError || !current.eligibility.canSubmit;
+  const busy = submit.isPending || change.isPending;
+  const refused = isOwnContributionAccessDenied(query.error);
+  const disabled = !editing.usable || refused || !current.eligibility.canSubmit;
 
   /** Acknowledges the saved address before leaving for the exact match, without abandoning a dirty form. */
   function finish(url: string) {
@@ -111,14 +113,14 @@ export function ContributionForm({
           message: "Le lien a été refusé. Votre saisie est conservée.",
         });
       } else {
-        feedback.error(contributionErrorMessage(error));
+        feedback.error();
       }
     }
   }
 
   /** Withdraws the exact displayed published version independently of eligibility for a new proposal. */
   async function withdraw() {
-    if (!replacement?.canWithdraw || !editing.usable || query.isError || busy) {
+    if (!replacement?.canWithdraw || !editing.usable || refused || busy) {
       return;
     }
     const target = {
@@ -140,11 +142,11 @@ export function ContributionForm({
     try {
       const accepted = await attempt;
       finish(accepted.contribution.url);
-    } catch (error) {
+    } catch {
       if (!mounted.current) {
         return;
       }
-      feedback.error(contributionErrorMessage(error));
+      feedback.error();
     }
   }
 
@@ -162,9 +164,9 @@ export function ContributionForm({
             accessibilityRole="button"
             accessibilityLabel="Retirer"
             accessibilityState={{
-              disabled: !editing.usable || query.isError || busy,
+              disabled: !editing.usable || refused || busy,
             }}
-            disabled={!editing.usable || query.isError || busy}
+            disabled={!editing.usable || refused || busy}
             onPress={() => void withdraw()}
             style={styles.withdraw}
           >

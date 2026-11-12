@@ -113,13 +113,17 @@ class AccountAccessWebMvcTest {
   void readsCurrentForIdentification() throws Exception {
     // Given
     when(store.findByPrincipal(ISSUER, "auth0|one")).thenReturn(Optional.of(ACCOUNT));
+    when(store.hasPhoto(ID)).thenReturn(true);
     when(permissions.forAccount(ID)).thenReturn(Set.of());
 
     // When
     ResultActions response = mvc.perform(get("/accounts/me").with(principal("mobile-test")));
 
     // Then
-    response.andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"));
+    response
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.hasPhoto").value(true))
+        .andExpect(header().string("Cache-Control", "no-store"));
     verifyNoInteractions(establishment, admission);
   }
 
@@ -184,27 +188,7 @@ class AccountAccessWebMvcTest {
   }
 
   @Test
-  @DisplayName("Hides another principal's original UUID")
-  void hidesAnotherOwner() throws Exception {
-    // Given
-    when(store.findById(ID))
-        .thenReturn(
-            Optional.of(
-                new Account(
-                    ID, ISSUER, "auth0|other", "Other_player", "shared@example.invalid", null)));
-
-    // When
-    ResultActions response = mvc.perform(get("/accounts/" + ID).with(principal("mobile-test")));
-
-    // Then
-    response
-        .andExpect(status().isNotFound())
-        .andExpect(header().string("Cache-Control", "no-store"));
-    verifyNoInteractions(permissions, establishment);
-  }
-
-  @Test
-  @DisplayName("Applies ordinary admission to original reads and establishment only")
+  @DisplayName("Applies ordinary admission to establishment and private photo reads")
   void requiresOrdinaryAdmission() throws Exception {
     // Given
     doThrow(new AccountUnavailableException())
@@ -214,14 +198,14 @@ class AccountAccessWebMvcTest {
     // When
     ResultActions establishmentResponse =
         mvc.perform(post("/accounts").with(principal("mobile-test")));
-    ResultActions accountResponse =
-        mvc.perform(get("/accounts/" + ID).with(principal("mobile-test")));
+    ResultActions photoResponse =
+        mvc.perform(get("/accounts/" + ID + "/photo").with(principal("mobile-test")));
 
     // Then
     establishmentResponse
         .andExpect(status().isServiceUnavailable())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:unavailable"));
-    accountResponse.andExpect(status().isServiceUnavailable());
+    photoResponse.andExpect(status().isServiceUnavailable());
     verifyNoInteractions(store, establishment);
   }
 
@@ -271,26 +255,6 @@ class AccountAccessWebMvcTest {
         .andExpect(status().isUnauthorized())
         .andExpect(header().string("Cache-Control", "no-store"));
     verifyNoInteractions(store, establishment, admission);
-  }
-
-  @Test
-  @DisplayName("Reads the owner's original resource with current photo presence")
-  void readsOriginalOwner() throws Exception {
-    // Given
-    when(store.findById(ID)).thenReturn(Optional.of(ACCOUNT));
-    when(store.hasPhoto(ID)).thenReturn(true);
-    when(permissions.forAccount(ID)).thenReturn(Set.of());
-
-    // When
-    ResultActions response = mvc.perform(get("/accounts/" + ID).with(principal("mobile-test")));
-
-    // Then
-    response
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.hasPhoto").value(true))
-        .andExpect(header().string("Accept-Patch", "multipart/form-data"))
-        .andExpect(header().string("Cache-Control", "no-store"));
-    verifyNoInteractions(establishment);
   }
 
   @Test
@@ -374,10 +338,9 @@ class AccountAccessWebMvcTest {
     verify(establishment).establish(context);
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"", "/photo"})
+  @Test
   @DisplayName("Refuses a foreign bypass lifecycle before reading private account data")
-  void refusesForeignAdmittedLifecycle(String suffix) throws Exception {
+  void refusesForeignAdmittedLifecycle() throws Exception {
     // Given
     UUID admitted = UUID.fromString("00000000-0000-4000-8000-000000000170");
     when(admission.requireOrdinaryAccess(ISSUER, "auth0|one", true))
@@ -386,7 +349,7 @@ class AccountAccessWebMvcTest {
     // When
     ResultActions response =
         mvc.perform(
-            get("/accounts/" + ID + suffix)
+            get("/accounts/" + ID + "/photo")
                 .header("Blockout-Maintenance-Bypass", "true")
                 .with(principal("mobile-test")));
 
@@ -402,7 +365,8 @@ class AccountAccessWebMvcTest {
   @DisplayName("Rejects a malformed original identifier with canonical non-cacheable validation")
   void rejectsMalformedOriginal() throws Exception {
     // Given
-    MockHttpServletRequestBuilder request = get("/accounts/invalid").with(principal("mobile-test"));
+    MockHttpServletRequestBuilder request =
+        get("/accounts/invalid/photo").with(principal("mobile-test"));
 
     // When
     ResultActions response = mvc.perform(request);

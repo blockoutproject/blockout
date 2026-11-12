@@ -156,8 +156,8 @@ class EstablishAccountIntegrationTest {
   }
 
   @Test
-  @DisplayName("Generates a new neutral candidate after a real case-insensitive name collision")
-  void retriesNeutralNameCollision() {
+  @DisplayName("Refuses a neutral name collision without creating a replacement candidate")
+  void rejectsNeutralNameCollision() {
     // Given
     when(provider.read(ISSUER, "auth0|one"))
         .thenReturn(new PrincipalReader.Evidence("shared@example.invalid", CREATED));
@@ -184,14 +184,12 @@ class EstablishAccountIntegrationTest {
         .when(target)
         .create(eq(ISSUER), eq("auth0|one"), anyString(), anyString(), any());
 
-    // When
-    Account created = establishment.establish(ISSUER, "auth0|one").view().account();
-
-    // Then
-    assertThat(created.id()).isNotEqualTo(competitor);
-    assertThat(created.username())
-        .isNotEqualToIgnoringCase(accounts.findById(competitor).orElseThrow().username());
-    assertThat(sql.queryForObject("SELECT COUNT(*) FROM account", Long.class)).isEqualTo(2L);
+    // When / Then
+    assertThatThrownBy(() -> establishment.establish(ISSUER, "auth0|one"))
+        .isInstanceOf(AccountUnavailableException.class);
+    assertThat(accounts.findByPrincipal(ISSUER, "auth0|one")).isEmpty();
+    assertThat(accounts.findById(competitor)).isPresent();
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM account", Long.class)).isEqualTo(1L);
   }
 
   @Test

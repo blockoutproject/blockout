@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigation, usePreventRemove, useRouter } from "expo-router";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -8,13 +8,9 @@ import { Check, LogIn } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
   eraseAccount,
-  getAccount,
   getEraseAccountMutationKey,
 } from "../../../../.generated/mobile";
-import {
-  ApiError,
-  isUncertainMutationFailure,
-} from "../../../shared/api/api-fetch";
+import { ApiError } from "../../../shared/api/api-fetch";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import {
@@ -28,10 +24,15 @@ import { Skeleton } from "../../../shared/components/skeleton";
 
 import { ErrorState } from "../../../shared/components/state-card";
 import { ScreenState } from "../../../shared/components/screen-state";
+import {
+  hasReadError,
+  ReadFeedback,
+} from "../../../shared/components/read-feedback";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useOrdinaryRequest } from "../../access/ordinary-request";
 import { useCurrentAccount } from "../api/use-current-account";
+import { isAccountMissing } from "../api/current-account-query";
 import { accountSessionRecovery } from "../session/account-session-recovery";
 import { useAccountSession } from "../session/account-session-provider";
 
@@ -53,20 +54,15 @@ export function EraseAccountScreen({
   const needsSignIn =
     session.status !== "initialization-error" &&
     session.status !== "authentication-error" &&
-    (session.status !== "authenticated" ||
-      (account.error instanceof ApiError && account.error.status === 404));
+    (session.status !== "authenticated" || isAccountMissing(account.error));
   // This route's target survives an ordinary current-account refresh, including absence or replacement.
-  if (!originalAccountId && account.isSuccess) {
+  if (!originalAccountId && account.isSuccess && account.data) {
     setOriginalAccountId(account.data.accountId);
   }
   const recovery = accountSessionRecovery(session);
-  let onRetry = recovery.onRetry;
-  if (!onRetry && !needsSignIn) {
-    onRetry = () => void account.refetch();
-  }
 
-  /** Retains the original confirmation across refresh failures; admission still gates every presentation. */
-  function readContent() {
+  /** Uses the shared read card and preserves the native session's own sign-in/recovery actions. */
+  function readFeedback() {
     if (!admitted) {
       return (
         <ScreenState>
@@ -74,31 +70,33 @@ export function EraseAccountScreen({
         </ScreenState>
       );
     }
-    if (originalAccountId && session.subject) {
-      return (
-        <ErasureConfirmation
-          accountId={originalAccountId}
-          disabled={
-            !account.isSuccess ||
-            session.status !== "authenticated" ||
-            session.accountId !== originalAccountId
-          }
-        />
-      );
-    }
-    if (
-      recovery.pending ||
-      (session.status === "authenticated" && account.isPending)
-    ) {
+    if (recovery.pending) {
       return (
         <PageContent>
           <ErasureLoading />
         </PageContent>
       );
     }
+    if (!recovery.failed && !needsSignIn) {
+      const feedback = (
+        <ReadFeedback
+          query={account}
+          loadingContent={
+            <PageContent>
+              <ErasureLoading />
+            </PageContent>
+          }
+        />
+      );
+      return hasReadError(account) ? (
+        <ScreenState>{feedback}</ScreenState>
+      ) : (
+        feedback
+      );
+    }
     return (
       <ScreenState>
-        <ErrorState onRetry={onRetry} retrying={account.isFetching}>
+        <ErrorState onRetry={recovery.onRetry}>
           {needsSignIn && (
             <Button
               label="Se connecter"
@@ -113,7 +111,25 @@ export function EraseAccountScreen({
 
   return (
     <Page header={<PageHeader title="Supprimer mon compte ?" />}>
-      <PageScrollView>{readContent()}</PageScrollView>
+      <PageScrollView>
+        {admitted && originalAccountId && session.subject ? (
+          <ErasureConfirmation
+            accountId={originalAccountId}
+            disabled={
+              !account.isSuccess ||
+              session.status !== "authenticated" ||
+              session.accountId !== originalAccountId
+            }
+            readFeedback={
+              hasReadError(account) || recovery.failed
+                ? readFeedback()
+                : undefined
+            }
+          />
+        ) : (
+          readFeedback()
+        )}
+      </PageScrollView>
     </Page>
   );
 }
@@ -142,16 +158,16 @@ function ErasureLoading() {
   );
 }
 
-/** Captures the original UUID for this route; recovery never substitutes a refreshed current-account mapping. */
+/** Keeps this route's original UUID and RHF confirmation mounted behind read feedback; failed commands permit an explicit new attempt. */
 function ErasureConfirmation({
   accountId,
   disabled,
+  readFeedback,
 }: Readonly<{
   accountId: string;
   disabled: boolean;
+  readFeedback?: ReactNode;
 }>) {
-  const [needsVerification, setNeedsVerification] = useState(false);
-  const [deleted, setDeleted] = useState(false);
   const session = useAccountSession();
   const { request } = useOrdinaryRequest();
   const feedback = useActionFeedback();
@@ -171,85 +187,26 @@ function ErasureConfirmation({
   });
   const confirmed = useWatch({ control, name: "confirmed" });
 
-  /** Clears through the existing native action independently of browser/provider logout; failures permit local retry. */
-  async function leaveLocally() {
-    await session.clearCredentials();
-    if (active.current) {
-      disablePrevention();
-    }
-    router.replace("/");
-  }
-
-  /** Only original-resource absence confirms removal; a mismatched successful response remains unavailable. */
-  async function readOriginal(options: Parameters<typeof getAccount>[1]) {
-    try {
-      const original = await getAccount(accountId, options);
-      if (original.accountId !== accountId) {
-        throw new ApiError("schema");
-      }
-      return false;
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 404) {
-        return true;
-      }
-      throw error;
-    }
-  }
-
-  /** Issues one original-target deletion; only uncertain results trigger a read, never another write. */
-  async function eraseOriginal(options: Parameters<typeof getAccount>[1]) {
-    if (session.accountId !== accountId) {
-      throw new ApiError("cancelled");
-    }
-    try {
-      await eraseAccount(accountId, options);
-      return true;
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 404) {
-        return true;
-      } else {
-        if (!isUncertainMutationFailure(error)) {
-          throw error;
-        }
-        if (active.current) {
-          setNeedsVerification(true);
-        }
-        return readOriginal(options);
-      }
-    }
-  }
-
   const command = useMutation({
     mutationKey: [...getEraseAccountMutationKey(), accountId],
     retry: false,
     networkMode: "always",
-    mutationFn: async (action: "erase" | "verify" | "leave") => {
-      if (action === "leave") {
-        await leaveLocally();
-        return;
+    mutationFn: async () => {
+      if (session.accountId !== accountId) {
+        throw new ApiError("cancelled");
       }
       const credentials = await session.getCredentials();
-      const options = request({
-        headers: { Authorization: `Bearer ${credentials.accessToken}` },
-      });
-
-      let absent: boolean;
-      if (action === "verify") {
-        absent = await readOriginal(options);
-      } else {
-        absent = await eraseOriginal(options);
-      }
+      await eraseAccount(
+        accountId,
+        request({
+          headers: { Authorization: `Bearer ${credentials.accessToken}` },
+        }),
+      );
+      await session.clearCredentials();
       if (active.current) {
-        setNeedsVerification(false);
+        disablePrevention();
       }
-      if (absent) {
-        if (active.current) {
-          setDeleted(true);
-        }
-        await leaveLocally();
-      } else if (active.current) {
-        feedback.error();
-      }
+      router.replace("/");
     },
     onError: () => {
       if (active.current) {
@@ -257,18 +214,18 @@ function ErasureConfirmation({
       }
     },
   });
-  // Confirmed removal keeps local departure mandatory, including an explicit retry after native storage failure.
-  const disablePrevention = usePreventRemove(
-    command.isPending || deleted,
-    () => {},
-  );
+  const disablePrevention = usePreventRemove(command.isPending, () => {});
   const busy = command.isPending;
   const unavailable = disabled || session.accountId !== accountId;
 
   /** One explicit event owns each command; Query never retries or replays a destructive write. */
-  function run(action: "erase" | "verify" | "leave") {
+  function run() {
     feedback.clear();
-    command.mutate(action);
+    command.mutate();
+  }
+
+  if (readFeedback) {
+    return readFeedback;
   }
 
   return (
@@ -289,9 +246,9 @@ function ErasureConfirmation({
             accessibilityLabel="Je confirme la suppression de mon compte."
             accessibilityState={{
               checked: field.value,
-              disabled: busy || deleted || unavailable,
+              disabled: busy || unavailable,
             }}
-            disabled={busy || deleted || unavailable}
+            disabled={busy || unavailable}
             onPress={() => field.onChange(!field.value)}
             style={styles.confirmation}
           >
@@ -318,43 +275,21 @@ function ErasureConfirmation({
           </Pressable>
         )}
       />
-      {!deleted && (
-        <Button
-          label={
-            needsVerification
-              ? "Vérifier la suppression"
-              : "Supprimer mon compte"
-          }
-          variant={needsVerification ? "secondary" : "destructive"}
-          fullWidth
-          loading={busy && command.variables !== "leave"}
-          disabled={busy || (!needsVerification && (!confirmed || unavailable))}
-          onPress={
-            needsVerification
-              ? () => run("verify")
-              : () => void handleSubmit(() => run("erase"))()
-          }
-        />
-      )}
-      {(needsVerification || deleted) && (
-        <Button
-          label="Continuer en tant qu’invité"
-          variant="secondary"
-          fullWidth
-          loading={busy && command.variables === "leave"}
-          disabled={busy}
-          onPress={() => run("leave")}
-        />
-      )}
-      {!deleted && (
-        <Button
-          label="Annuler"
-          variant="secondary"
-          fullWidth
-          disabled={busy}
-          onPress={() => navigation.goBack()}
-        />
-      )}
+      <Button
+        label="Supprimer mon compte"
+        variant="destructive"
+        fullWidth
+        loading={busy}
+        disabled={busy || !confirmed || unavailable}
+        onPress={() => void handleSubmit(run)()}
+      />
+      <Button
+        label="Annuler"
+        variant="secondary"
+        fullWidth
+        disabled={busy}
+        onPress={() => navigation.goBack()}
+      />
     </PageContent>
   );
 }

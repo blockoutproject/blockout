@@ -3,7 +3,7 @@ import type { File } from "expo-file-system";
 import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
 import { useImageSelection } from "../../../shared/images/use-image-selection";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
 import { StyleSheet, View } from "react-native";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
@@ -32,8 +32,10 @@ export interface ProfileFormProps {
   /** Native refresh remains available for an authorized account independently of its optional photo. */
   refreshControl: FormScrollViewProps["refreshControl"];
   account: AccountResponse;
-  /** Keeps the local draft visible while the current account read cannot authorize personal edits. */
+  /** Prevents personal edits while required account/session authority is unavailable. */
   disabled: boolean;
+  /** Replaces the fields while keeping RHF, prepared files and native scroll ancestors mounted. */
+  readFeedback?: ReactNode;
   /** Ordinary route departure; the shared dirty-form guard owns cancellation confirmation. */
   onCancel: () => void;
   /** Called only after a current acknowledged save resets the draft. */
@@ -45,6 +47,7 @@ export function ProfileForm({
   refreshControl,
   account,
   disabled,
+  readFeedback,
   onCancel,
   onSaved,
 }: Readonly<ProfileFormProps>) {
@@ -186,7 +189,11 @@ export function ProfileForm({
         setError("username", { message: "Ce pseudo est déjà utilisé." });
       } else if (
         error instanceof ApiError &&
-        error.problem?.type === "urn:blockout:problem:invalid-image"
+        [
+          "urn:blockout:problem:invalid-image",
+          "urn:blockout:problem:payload-too-large",
+          "urn:blockout:problem:unsupported-media-type",
+        ].includes(error.problem?.type ?? "")
       ) {
         setError("photo", {
           message:
@@ -210,7 +217,14 @@ export function ProfileForm({
 
   return (
     <FormScrollView refreshControl={refreshControl}>
-      <PageContent>
+      {readFeedback}
+      <PageContent
+        style={readFeedback ? styles.hidden : undefined}
+        accessibilityElementsHidden={!!readFeedback}
+        importantForAccessibility={
+          readFeedback ? "no-hide-descendants" : "auto"
+        }
+      >
         <View style={styles.form}>
           <Controller
             control={control}
@@ -294,4 +308,5 @@ export function ProfileForm({
 
 const styles = StyleSheet.create({
   form: { gap: tokens.layout.form.gap },
+  hidden: { display: "none" },
 });

@@ -10,6 +10,8 @@ import { ArrowUpRight } from "lucide-react-native";
 import { Controller, useForm, useFormState } from "react-hook-form";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ModeratedStreamContributionsResponse } from "../../../../.generated/schemas/index.zod";
+import { ApiError } from "../../../shared/api/api-fetch";
+import { isAccessDenied } from "../../../shared/api/access-denied";
 import { Button } from "../../../shared/components/button";
 import { TextField } from "../../../shared/components/text-field";
 import { IconButton } from "../../../shared/components/icon-button";
@@ -102,10 +104,12 @@ export function ModerationPublicationForm({
   const busy =
     editing.publish.isPending ||
     editing.change.isPending ||
-    editing.reactivate.isPending ||
-    editing.query.isFetching;
-  const disabled =
-    !editing.allowed || !current.canPublish || editing.query.isError;
+    editing.reactivate.isPending;
+  const refused =
+    isAccessDenied(editing.query.error) ||
+    (editing.query.error instanceof ApiError &&
+      editing.query.error.status === 404);
+  const disabled = !editing.allowed || !current.canPublish || refused;
 
   /** Captures the coherent draft baseline and original actor before one native confirmation, without retrying writes. */
   async function send(values: ContributionValues) {
@@ -143,9 +147,7 @@ export function ModerationPublicationForm({
       }
     } catch {
       if (mounted.current) {
-        feedback.error(
-          "La publication n’a pas pu être confirmée. Votre saisie est conservée.",
-        );
+        feedback.error();
       }
     }
   }
@@ -181,7 +183,7 @@ export function ModerationPublicationForm({
             accessibilityRole="button"
             accessibilityLabel="Retirer"
             accessibilityState={{ disabled: !editing.allowed || busy }}
-            disabled={!editing.allowed || busy || editing.query.isError}
+            disabled={!editing.allowed || busy || refused}
             onPress={onWithdraw}
             style={styles.withdraw}
           >

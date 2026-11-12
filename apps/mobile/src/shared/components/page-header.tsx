@@ -13,13 +13,15 @@ import { tokens } from "../theme/tokens";
 import { IconButton } from "./icon-button";
 import { useReducedMotion } from "../theme/use-reduced-motion";
 
-/** Ordinary back navigation with an optional centered identity; direct entry returns home. */
+/** Ordinary page chrome; the default Back uses global history or Home, while nested owners can supply their departure. */
 export interface PageHeaderProps {
   title?: string;
   /** A composed compact identity may replace the plain title between the navigation rails. */
   children?: ReactNode;
   /** An owner-supplied action remains available independently of the detail read. */
   action?: ReactNode;
+  /** A nested destination can leave through its own stack instead of the global tab history. */
+  onBack?: () => void;
   /** Native normalized reveal affects only the center; navigation and actions remain available. */
   revealProgress?: SharedValue<number>;
 }
@@ -29,6 +31,7 @@ export function PageHeader({
   title,
   children,
   action,
+  onBack,
   revealProgress,
 }: Readonly<PageHeaderProps>) {
   const router = useRouter();
@@ -85,8 +88,9 @@ export function PageHeader({
       <View style={[styles.rail, { width: actionWidth }]}>
         <IconButton
           label="Retour"
-          onPress={() =>
-            router.canGoBack() ? router.back() : router.replace("/")
+          onPress={
+            onBack ??
+            (() => (router.canGoBack() ? router.back() : router.replace("/")))
           }
         >
           <ChevronLeft

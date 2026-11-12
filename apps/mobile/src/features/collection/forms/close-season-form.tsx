@@ -1,4 +1,3 @@
-import { ApiError } from "../../../shared/api/api-fetch";
 import { SeasonIdentity } from "../components/source-summary";
 import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
@@ -15,6 +14,7 @@ import { tokens } from "../../../shared/theme/tokens";
 import type { useCloseCollectionSeason } from "../api/use-collection-controls";
 import { type CloseSeasonValues } from "../schemas/close-season-schema";
 import { useCloseSeasonDraft } from "./use-close-season-draft";
+import { isCollectionReadRefused } from "../api/collection-queries";
 
 /** Exact typed input belongs to the mounted original-season visit. */
 export interface CloseSeasonFormProps {
@@ -41,8 +41,7 @@ export function CloseSeasonForm({
   const confirmation = useWatch({ control, name: "confirmation" });
   const current = editing.season.data ?? season;
   const closed = current.state === "closed";
-  const busy =
-    !authority.enabled || editing.close.isPending || editing.season.isFetching;
+  const busy = !authority.enabled || editing.close.isPending;
   const needsRead = current.revision !== baseline.revision;
   useDiscardChanges(isDirty && !closed, editor.discard);
   useEffect(() => {
@@ -58,7 +57,7 @@ export function CloseSeasonForm({
       busy ||
       closed ||
       needsRead ||
-      editing.season.isError ||
+      isCollectionReadRefused(editing.season.error) ||
       values.confirmation !== current.label ||
       values.confirmation !== baseline.label
     ) {
@@ -73,24 +72,17 @@ export function CloseSeasonForm({
       actionFeedback.clear();
       const accepted = await attempt;
       editor.update({ baseline: accepted });
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 409) {
-        editor.update({
-          ...editor.state,
-          feedback: "Le résultat doit être vérifié avant une nouvelle action.",
-        });
-      } else {
-        actionFeedback.error();
-      }
+    } catch {
+      actionFeedback.error();
     }
   }
 
-  /** Reads the actual lifecycle before any explicit retry; entered text stays RHF-owned and unchanged. */
+  /** Adopts the current season revision without replacing the RHF-owned confirmation text. */
   async function reread() {
     if (busy) {
       return;
     }
-    const read = await (() => editing.season.refetch())();
+    const read = await editing.season.refetch();
     if (!mounted.current) {
       return;
     }
@@ -156,7 +148,7 @@ export function CloseSeasonForm({
             disabled={
               busy ||
               needsRead ||
-              editing.season.isError ||
+              isCollectionReadRefused(editing.season.error) ||
               confirmation !== current.label ||
               confirmation !== baseline.label
             }

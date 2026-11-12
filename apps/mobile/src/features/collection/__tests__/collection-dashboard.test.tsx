@@ -1096,7 +1096,7 @@ it("rejects a malformed acknowledgement without inventing success and shows a fa
       "Une erreur est survenue. Veuillez réessayer plus tard.",
     ),
   ).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Relancer" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Relancer" })).toBeEnabled();
   expect(screen.queryByText("En attente de démarrage")).toBeNull();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),

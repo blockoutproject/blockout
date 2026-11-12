@@ -457,20 +457,24 @@ it("requires store acknowledgement before raising a minimum, and cancellation pr
   expect(screen.getByRole("checkbox")).not.toBeChecked();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
 });
-it.each([403, 422])(
-  "preserves input after a confirmed %i refusal",
-  async (status) => {
+it.each([403, 409, 422, "stale-revision"] as const)(
+  "preserves input after a confirmed %s refusal",
+  async (refusal) => {
     // Given
     const user = userEvent.setup();
     await renderSettings();
     await screen.findByDisplayValue(initial.message);
     await user.clear(screen.getByLabelText("Message commun"));
     await user.type(screen.getByLabelText("Message commun"), "Mon brouillon");
+    const status = refusal === "stale-revision" ? 409 : refusal;
     mockFetch.mockImplementation(async (url, options) => {
       if (options?.method === "PATCH") {
         return json(
           {
-            type: "urn:blockout:problem:forbidden",
+            type:
+              refusal === "stale-revision"
+                ? "urn:blockout:problem:stale-revision"
+                : "urn:blockout:problem:forbidden",
             title: "Refused",
             status,
           },
@@ -501,8 +505,69 @@ it.each([403, 422])(
     );
   },
 );
+it("keeps a failed save editable during its normal settings refresh", async () => {
+  // Given: the form and private Query owner are real; only HTTP is controlled.
+  const user = userEvent.setup();
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  await user.clear(screen.getByLabelText("Message commun"));
+  await user.type(
+    screen.getByLabelText("Message commun"),
+    "Brouillon conservé",
+  );
+  const refresh = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation(async (url, options) => {
+    if (String(url).endsWith("/accounts/me")) {
+      return json(account);
+    }
+    if (options?.method === "PATCH") {
+      return json(
+        { type: "about:blank", title: "Unavailable", status: 503 },
+        503,
+      );
+    }
+    return refresh.promise;
+  });
+
+  // When
+  try {
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+    await act(async () => nativeAlertAction("Appliquer")());
+
+    // Then: a pending refresh neither locks the draft nor repeats the command.
+    expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
+    expect(
+      client.getQueryState(getGetApplicationVersionSettingsQueryKey())
+        ?.fetchStatus,
+    ).toBe("fetching");
+    expect(screen.getByLabelText("Message commun")).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+    ).toHaveLength(1);
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+    await act(async () => nativeAlertAction("Appliquer")());
+
+    // Then
+    expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
+      "Brouillon conservé",
+    );
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+    ).toHaveLength(2);
+  } finally {
+    await act(async () => refresh.resolve(json(initial)));
+    await waitFor(() => {
+      expect(client.isFetching()).toBe(0);
+      expect(publicClient.isFetching()).toBe(0);
+    });
+  }
+});
+
 it.each(["conflict", "lost", "invalid-response"])(
-  "rereads after %s and requires explicit resubmission without merging dirty fields",
+  "keeps dirty fields when invalidation finds a newer revision after %s",
   async (outcome) => {
     // Given
     const user = userEvent.setup();

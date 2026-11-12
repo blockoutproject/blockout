@@ -31,7 +31,10 @@ beforeEach(() => {
   jest.useFakeTimers({ now: new Date("2026-10-27T12:00:00Z") });
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   client = createQueryClient();
-  client.setDefaultOptions({ queries: { retry: false } });
+  client.setDefaultOptions({
+    ...client.getDefaultOptions(),
+    queries: { retry: false },
+  });
   mockFetch.mockReset();
 });
 
@@ -174,6 +177,68 @@ it("reports a lost acknowledgement and permits a later explicit true-only attemp
     "PATCH",
     "PATCH",
   ]);
+});
+
+it("reports a failed read action without waiting for ordinary refreshes", async () => {
+  // Given: real Query observers retain the inbox while only HTTP is controlled.
+  const { owner, queries } = context();
+  client.setQueryData(queries.inbox.queryKey, {
+    pages: [{ notifications: [row] }],
+    pageParams: [undefined],
+  });
+  client.setQueryData(queries.summary.queryKey, { unreadCount: 1 });
+  const inbox = new InfiniteQueryObserver(client, {
+    ...queries.inbox,
+    staleTime: Infinity,
+  });
+  const summary = new QueryObserver(client, {
+    ...queries.summary,
+    staleTime: Infinity,
+  });
+  const stopInbox = inbox.subscribe(() => undefined);
+  const stopSummary = summary.subscribe(() => undefined);
+  const command = new MutationObserver(
+    client,
+    createReadNotificationOptions(client, owner, queries),
+  );
+  const stopCommand = command.subscribe(() => undefined);
+  const feedback = jest.fn();
+  const refreshedInbox = Promise.withResolvers<Response>();
+  const refreshedSummary = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation(async (url: string, init: RequestInit) => {
+    if (init.method === "PATCH") {
+      throw new TypeError("lost read response");
+    }
+    return url.endsWith("notification-summary")
+      ? refreshedSummary.promise
+      : refreshedInbox.promise;
+  });
+
+  // When: the explicit PATCH fails while both invalidated GETs remain in flight.
+  const attempt = command
+    .mutate(row.id, { onError: feedback })
+    .catch(() => undefined);
+  try {
+    await waitFor(() => expect(feedback).toHaveBeenCalledTimes(1));
+
+    // Then: the tap reports failure without waiting for those reads or replaying the write.
+    expect(command.getCurrentResult().isError).toBe(true);
+    expect(inbox.getCurrentResult().isFetching).toBe(true);
+    expect(summary.getCurrentResult().isFetching).toBe(true);
+    expect(
+      mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
+    ).toHaveLength(1);
+    expect(inbox.getCurrentResult().data?.pages[0].notifications).toEqual([
+      row,
+    ]);
+  } finally {
+    refreshedInbox.resolve(Response.json({ notifications: [row] }));
+    refreshedSummary.resolve(Response.json({ unreadCount: 1 }));
+    await attempt;
+    stopCommand();
+    stopSummary();
+    stopInbox();
+  }
 });
 
 it("does not restore a known missing row from an older page", async () => {
@@ -440,8 +505,10 @@ it("keeps other notifications but invalidates the exact total when a member is m
       client.getQueryData(queries.inbox.queryKey)?.pages[0].notifications,
     ).toEqual([survivor]);
     expect(client.getQueryData(queries.summary.queryKey)).toBeUndefined();
-    expect(list.getCurrentResult().error).toMatchObject({ kind: "network" });
-    expect(count.getCurrentResult().error).toMatchObject({ kind: "network" });
+    await waitFor(() => {
+      expect(list.getCurrentResult().error).toMatchObject({ kind: "network" });
+      expect(count.getCurrentResult().error).toMatchObject({ kind: "network" });
+    });
     expect(
       mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
     ).toHaveLength(1);

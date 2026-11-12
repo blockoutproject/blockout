@@ -8,7 +8,7 @@ import {
   type createInboxQueries,
 } from "./inbox-queries";
 
-/** Sends true-only read intent; ordinary invalidation establishes the next server representation. */
+/** Sends true-only read intent; ordinary invalidation refreshes the representation without delaying the tap's outcome. */
 export function createReadNotificationOptions(
   client: QueryClient,
   owner: InboxOwner,
@@ -67,16 +67,15 @@ export function createReadNotificationOptions(
       }
       refuseInboxAccess(client, owner, error);
     },
-    onSettled: () =>
-      Promise.all([
-        client.invalidateQueries({
-          queryKey: queries.inbox.queryKey,
-          exact: true,
-        }),
-        client.invalidateQueries({
-          queryKey: queries.summary.queryKey,
-          exact: true,
-        }),
-      ]),
+    onSettled: () => {
+      void client.invalidateQueries({
+        queryKey: queries.inbox.queryKey,
+        exact: true,
+      });
+      void client.invalidateQueries({
+        queryKey: queries.summary.queryKey,
+        exact: true,
+      });
+    },
   });
 }

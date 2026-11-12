@@ -1,4 +1,3 @@
-import { ApiError } from "../../../shared/api/api-fetch";
 import { IconButton } from "../../../shared/components/icon-button";
 import { ImageFallback } from "../../../shared/components/image-fallback";
 import { LoadingGroup } from "../../../shared/components/loading-group";
@@ -67,23 +66,10 @@ export function MaintenanceForm({
   }, []);
   const imageUrl = useWatch({ control, name: "imageUrl" });
   const busy =
-    disabled ||
-    editing.content.isPending ||
-    editing.activation.isPending ||
-    editing.query.isFetching;
+    disabled || editing.content.isPending || editing.activation.isPending;
   const rereadRequired = Math.max(settings.revision, 0) > baseline.revision;
   const validPreview =
     imageUrl !== "" && maintenanceImageSchema.safeParse(imageUrl).success;
-
-  /** Reports ordinary failures while newer revisions retain their separate reread prompt. */
-  function failed(error: unknown) {
-    if (!mounted.current) {
-      return;
-    }
-    if (!(error instanceof ApiError && error.status === 409)) {
-      actionFeedback.error();
-    }
-  }
 
   /** Submits supplied dirty content against its accepted editing revision, without activation. */
   async function submit(draft: MaintenanceValues) {
@@ -112,8 +98,8 @@ export function MaintenanceForm({
         baseline: accepted,
       });
       reset(maintenanceValues(accepted));
-    } catch (error) {
-      failed(error);
+    } catch {
+      actionFeedback.error();
     }
   }
 
@@ -147,15 +133,15 @@ export function MaintenanceForm({
       setState({
         baseline: accepted,
       });
-    } catch (error) {
-      failed(error);
+    } catch {
+      actionFeedback.error();
     }
   }
 
   /** Adopts explicitly reread settings while preserving dirty fields for a later submission. */
   async function reread() {
     actionFeedback.clear();
-    const result = await (() => editing.query.refetch())();
+    const result = await editing.query.refetch();
     if (!mounted.current) {
       return;
     }

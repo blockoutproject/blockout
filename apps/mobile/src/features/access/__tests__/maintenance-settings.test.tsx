@@ -220,6 +220,67 @@ it("reports one failed refresh while retaining the editable maintenance draft", 
   expect(screen.queryByText("Une erreur est survenue")).not.toBeOnTheScreen();
   expect(mockFetch).toHaveBeenCalledTimes(1);
 });
+it("keeps a failed save editable during its normal settings refresh", async () => {
+  // Given: the form and private Query owner are real; only HTTP is controlled.
+  const user = userEvent.setup();
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Brouillon conservé",
+  );
+  const refresh = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation(async (url, options) => {
+    if (String(url).endsWith("/accounts/me")) {
+      return json(account);
+    }
+    if (options?.method === "PATCH") {
+      throw new TypeError("Lost response");
+    }
+    return refresh.promise;
+  });
+
+  // When
+  try {
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+    await act(async () => nativeAlertAction("Enregistrer")());
+
+    // Then: a pending refresh neither locks the draft nor repeats the command.
+    expect(
+      await screen.findByText(
+        "Une erreur est survenue. Veuillez réessayer plus tard.",
+      ),
+    ).toBeOnTheScreen();
+    expect(
+      client.getQueryState(getGetMaintenanceSettingsQueryKey())?.fetchStatus,
+    ).toBe("fetching");
+    expect(screen.getByLabelText("Message de maintenance")).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+    ).toHaveLength(1);
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+    await act(async () => nativeAlertAction("Enregistrer")());
+
+    // Then
+    expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(
+      "Brouillon conservé",
+    );
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+    ).toHaveLength(2);
+  } finally {
+    await act(async () => refresh.resolve(json(initial)));
+    await waitFor(() => {
+      expect(client.isFetching()).toBe(0);
+      expect(publicClient.isFetching()).toBe(0);
+    });
+  }
+});
+
 it("does not publish defaults after an initial load failure", async () => {
   // Given
   mockFetch.mockImplementation(async (url) =>
@@ -706,9 +767,9 @@ it("starts a fresh draft image preview when a previously failed URL returns", as
   expect(screen.getByDisplayValue(initial.message)).toBeOnTheScreen();
 });
 
-it.each([400, 403, 422])(
-  "retains the draft after a confirmed %i refusal",
-  async (status) => {
+it.each([400, 403, 409, 422, "stale-revision"] as const)(
+  "retains the draft and revision after a confirmed %s refusal",
+  async (refusal) => {
     // Given
     const user = userEvent.setup();
     await renderSettings();
@@ -718,16 +779,29 @@ it.each([400, 403, 422])(
       screen.getByLabelText("Message de maintenance"),
       "Mon brouillon",
     );
-    mockFetch.mockImplementation(async () =>
-      json(
+    const status = refusal === "stale-revision" ? 409 : refusal;
+    mockFetch.mockImplementation(async (url, options) => {
+      if (String(url).endsWith("/accounts/me")) {
+        return json(account);
+      }
+      if (options?.method !== "PATCH") {
+        return json(
+          { type: "about:blank", title: "Unavailable", status: 503 },
+          503,
+        );
+      }
+      return json(
         {
-          type: "urn:blockout:problem:unprocessable-content",
+          type:
+            refusal === "stale-revision"
+              ? "urn:blockout:problem:stale-revision"
+              : "urn:blockout:problem:unprocessable-content",
           title: "Refused",
           status,
         },
         status,
-      ),
-    );
+      );
+    });
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
@@ -740,10 +814,31 @@ it.each([400, 403, 422])(
       ),
     ).toBeOnTheScreen();
     expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+    );
+    expect(stored).toEqual(initial);
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+    ).toHaveLength(1);
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+    await act(async () => nativeAlertAction("Enregistrer")());
+
+    // Then
+    const writes = mockFetch.mock.calls.filter(
+      ([, options]) => options?.method === "PATCH",
+    );
+    expect(writes).toHaveLength(2);
+    expect(JSON.parse(String(writes[1][1]?.body))).toMatchObject({
+      revision: initial.revision,
+      message: "Mon brouillon",
+    });
   },
 );
 it.each(["conflict", "lost"])(
-  "keeps the original revision until explicit reread and resubmission after %s",
+  "keeps dirty fields when invalidation finds a newer revision after %s",
   async (outcome) => {
     // Given
     const user = userEvent.setup();

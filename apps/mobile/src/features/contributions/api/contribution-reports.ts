@@ -7,7 +7,6 @@ import {
   StreamReportStateResponse,
   type CreateStreamReportRequest,
 } from "../../../../.generated/schemas/index.zod";
-import { ApiError } from "../../../shared/api/api-fetch";
 import { useOrdinaryRequest } from "../../access/ordinary-request";
 import {
   useAccountSession,
@@ -31,15 +30,11 @@ export function useContributionReport(matchId: string, contributionId: string) {
   const usable =
     admission.admitted &&
     session.status === "authenticated" &&
-    profile.isSuccess &&
     profile.data?.accountId === actor.accountId;
 
   /** Uses the existing generated transport with no publication eligibility or persistent reason payload. */
   async function request(signal?: AbortSignal) {
     const credentials = await session.getCredentials();
-    if (!credentials) {
-      throw new ApiError("http", 401);
-    }
     return admission.request({
       signal,
       headers: { Authorization: `Bearer ${credentials.accessToken}` },

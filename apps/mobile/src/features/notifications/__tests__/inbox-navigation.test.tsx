@@ -41,7 +41,7 @@ import { applicationAccessResponse } from "../../../shared/api/test-support/appl
 import { notificationResponse } from "../test-support/notification-data";
 import { nativeNotificationResponse } from "../test-support/native-notification-data";
 import { createInboxQueries } from "../api/inbox-queries";
-import { currentAccountQuery } from "../../accounts/api/current-account-query";
+import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
 import type { MatchDetailResponse } from "../../../../.generated/schemas/index.zod";
 import {
   AccessAdmissionProvider,
@@ -643,10 +643,6 @@ it("keeps current-match restriction handling mounted while this subject's privat
     { subject: "synthetic-owner", accountId: row.id },
     async () => ({}),
   );
-  const account = currentAccountQuery({
-    status: "authenticated",
-    getCredentials: async () => credentialsFor("synthetic-owner"),
-  });
   const ordinary = mockFetch.getMockImplementation();
   if (!ordinary) {
     throw new Error("Synthetic HTTP implementation is required");
@@ -670,9 +666,10 @@ it("keeps current-match restriction handling mounted while this subject's privat
     return ordinary(url, init);
   });
   await act(async () => {
-    await privateClient
-      .fetchQuery({ ...account, retry: false })
-      .catch(() => undefined);
+    await privateClient.invalidateQueries({
+      queryKey: getGetMyAccountQueryKey(),
+      exact: true,
+    });
   });
   await waitFor(() =>
     expect(screen.queryByRole("link", { name: /non lue$/ })).toBeNull(),
@@ -691,7 +688,10 @@ it("keeps current-match restriction handling mounted while this subject's privat
   // When: the same account returns, while the ordinary inbox refresh is offline.
   suspended = false;
   await act(async () => {
-    await privateClient.fetchQuery({ ...account, retry: false });
+    await privateClient.invalidateQueries({
+      queryKey: getGetMyAccountQueryKey(),
+      exact: true,
+    });
     router.back();
   });
 

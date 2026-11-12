@@ -1,5 +1,5 @@
-import { ApiError } from "../../../shared/api/api-fetch";
 import { SeasonIdentity, SourceBadge } from "../components/source-summary";
+import { isCollectionReadRefused } from "../api/collection-queries";
 import { Surface } from "../../../shared/components/surface";
 import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useNativeHandoff } from "../../../shared/native/use-native-handoff";
@@ -69,15 +69,14 @@ export function SourceCandidateForm({
   const closed = (editing.season.data ?? season).state === "closed";
   const readOnly = closed || current.locked || current.launched;
   const busy =
-    editing.source.isError ||
+    isCollectionReadRefused(editing.source.error) ||
     !authority.enabled ||
     editing.candidate.isPending ||
     editing.validation.isPending ||
-    editing.confirmation.isPending ||
-    editing.source.isFetching ||
-    editing.season.isFetching;
+    editing.confirmation.isPending;
   const reconciliationRequired = current.revision > baseline.revision;
-  const rereadRequired = reconciliationRequired || editing.season.isError;
+  const rereadRequired =
+    reconciliationRequired || isCollectionReadRefused(editing.season.error);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -101,17 +100,10 @@ export function SourceCandidateForm({
     editor.update({ ...editor.state, editingUrl: false });
   }
 
-  /** Preserves candidate input and distinguishes revision conflicts from ordinary action failures. */
-  function failed(error: unknown) {
-    if (error instanceof ApiError && error.status === 409) {
-      editor.update({
-        ...editor.state,
-        feedback: "Le résultat doit être vérifié avant une nouvelle action.",
-      });
-    } else {
-      editor.update({ ...editor.state, feedback: undefined });
-      actionFeedback.error();
-    }
+  /** Reports a failed action without replacing the candidate draft or its accepted revision. */
+  function failed() {
+    editor.update({ ...editor.state, feedback: undefined });
+    actionFeedback.error();
   }
 
   /** Replaces only the candidate against its editing revision; a successful response invalidates old evidence. */
@@ -136,8 +128,8 @@ export function SourceCandidateForm({
             ? "Lien enregistré. La source doit être validée à nouveau."
             : undefined,
       });
-    } catch (error) {
-      failed(error);
+    } catch {
+      failed();
     }
   }
 
@@ -158,8 +150,8 @@ export function SourceCandidateForm({
         baseline: accepted,
         feedback: undefined,
       });
-    } catch (error) {
-      failed(error);
+    } catch {
+      failed();
     }
   }
 
@@ -205,15 +197,17 @@ export function SourceCandidateForm({
         baseline: accepted,
         feedback: undefined,
       });
-    } catch (error) {
-      failed(error);
+    } catch {
+      failed();
     }
   }
 
-  /** Reads source and season together; neither a failed read nor retained cache can unlock resubmission. */
+  /** Reads source and season; failure or an older source response preserves the baseline and dirty URL. */
   async function reread() {
-    const [sourceResult, seasonResult] = await (() =>
-      Promise.all([editing.source.refetch(), editing.season.refetch()]))();
+    const [sourceResult, seasonResult] = await Promise.all([
+      editing.source.refetch(),
+      editing.season.refetch(),
+    ]);
     if (!mounted.current) {
       return;
     }

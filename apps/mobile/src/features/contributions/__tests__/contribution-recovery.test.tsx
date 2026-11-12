@@ -17,6 +17,7 @@ import {
 import { Alert, Text } from "react-native";
 import {
   getGetMatchQueryKey,
+  getGetMyAccountQueryKey,
   getGetModeratedStreamContributionQueryKey,
 } from "../../../../.generated/mobile";
 import type {
@@ -42,6 +43,7 @@ import { useConsultationQueries } from "../../sporting/match-consultation";
 import { useOwnContributions } from "../api/own-contributions";
 import { useModerationMatch, useModerationQueue } from "../api/moderation";
 import { ContributionScreen } from "../screens/contribution-screen";
+import { OwnContributionsScreen } from "../screens/own-contributions-screen";
 import { ReportContributionScreen } from "../screens/report-contribution-screen";
 import { ownContributions } from "../test-support/contribution-data";
 
@@ -59,6 +61,7 @@ jest.mock("react-native-auth0", () => {
 });
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
+  useNavigation: () => ({ isFocused: () => true }),
   usePreventRemove: jest.fn(),
   useRouter: () => ({
     push: jest.fn(),
@@ -269,6 +272,88 @@ async function confirm(label: string) {
   );
 }
 
+it.each([
+  { status: 401, type: "unauthenticated" },
+  { status: 403, type: "forbidden" },
+  { status: 404, type: "not-found" },
+])(
+  "withdraws moderator availability after a current-account $status without a render exception",
+  async ({ status, type }) => {
+    // Given: actual account and moderation owners share the principal's Query client.
+    const { result } = await renderHook(useModerator, { wrapper: Wrapper });
+    await waitFor(() => expect(result.current.allowed).toBe(true));
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+    mockFetch.mockResolvedValueOnce(
+      Response.json(
+        { status, type: `urn:blockout:problem:${type}`, title: "Refused" },
+        { status },
+      ),
+    );
+
+    // When
+    await act(async () => {
+      await result.current.profile.refetch();
+    });
+
+    // Then
+    await waitFor(() => expect(result.current.allowed).toBe(false));
+    expect(result.current.canRetain).toBe(false);
+    expect(result.current.profile.data).toBeNull();
+    expect(writes).toHaveLength(0);
+
+    // When: a fresh authorized read restores this same account's current grant.
+    await act(async () => {
+      await result.current.profile.refetch();
+    });
+
+    // Then
+    await waitFor(() => expect(result.current.allowed).toBe(true));
+    expect(result.current.profile.data?.accountId).toBe(account.accountId);
+    expect(writes).toHaveLength(0);
+  },
+);
+
+it("loads proposals from retained owner authority after a technical account read failure", async () => {
+  // Given: the account was accepted on a different screen, then its reread failed.
+  const view = await render(<Text>Another route</Text>, { wrapper: Wrapper });
+  await waitFor(() =>
+    expect(client.getQueryData(getGetMyAccountQueryKey())).toEqual(account),
+  );
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  const boundary = mockFetch.getMockImplementation();
+  if (!boundary) {
+    throw new Error("Missing test HTTP boundary");
+  }
+  mockFetch.mockImplementation((url, init) =>
+    String(url).endsWith("/me")
+      ? Promise.reject(new TypeError("Controlled account outage"))
+      : boundary(url, init),
+  );
+  let reading: Promise<void> | undefined;
+  await act(async () => {
+    reading = client.refetchQueries({
+      queryKey: getGetMyAccountQueryKey(),
+      exact: true,
+    });
+  });
+  await act(async () => {
+    await jest.advanceTimersByTimeAsync(7_000);
+    await reading;
+  });
+
+  // When
+  await view.rerender(<OwnContributionsScreen matchId={match.match.id} />);
+
+  // Then: retained authorized data admits this first dependent read without a mandatory account retry.
+  expect(
+    await screen.findByRole("header", { name: "Mes propositions (0)" }),
+  ).toBeOnTheScreen();
+  expect(reads.some((path) => path.includes("/stream-contributions"))).toBe(
+    true,
+  );
+  expect(writes).toHaveLength(0);
+});
+
 it.each(
   (["submit", "withdraw"] as const).flatMap((action) =>
     (["lost", "conflict"] as const).map((outcome) => ({ action, outcome })),
@@ -473,6 +558,65 @@ it("keeps confirmed report success when both dependent reads fail", async () => 
   expect(writes).toHaveLength(1);
 });
 
+it("allows an explicit report from the retained reason after a technical account read failure", async () => {
+  // Given: generated HTTP, account, Query and RHF owners retain the exact report target.
+  const user = userEvent.setup();
+  await render(
+    <ReportContributionScreen
+      matchId={match.match.id}
+      contributionId={version.id}
+      contributionUrl={version.url}
+    />,
+    { wrapper: Wrapper },
+  );
+  await user.type(
+    await screen.findByLabelText("Motif du signalement"),
+    "Fictional retained reason",
+  );
+  const boundary = mockFetch.getMockImplementation()!;
+  mockFetch.mockImplementation((url, init) =>
+    String(url).endsWith("/me")
+      ? Promise.resolve(
+          Response.json({ title: "Unavailable", status: 503 }, { status: 503 }),
+        )
+      : boundary(url, init),
+  );
+
+  // When
+  await act(() =>
+    client.refetchQueries({ queryKey: getGetMyAccountQueryKey(), exact: true }),
+  );
+
+  // Then
+  expect(
+    screen.getByDisplayValue("Fictional retained reason"),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Envoyer le signalement" }),
+  ).toBeEnabled();
+  expect(writes).toHaveLength(0);
+
+  // When: only a new explicit action sends this reason to its original version.
+  write = async () => Response.json({ reported: true });
+  await user.press(
+    screen.getByRole("button", { name: "Envoyer le signalement" }),
+  );
+
+  // Then
+  expect(
+    await screen.findByText("Votre signalement a été envoyé."),
+  ).toBeOnTheScreen();
+  expect(writes).toEqual([
+    {
+      url: expect.stringContaining(
+        `/accounts/${account.accountId}/stream-contributions/${version.id}/report`,
+      ),
+      body: { reason: "Fictional retained reason" },
+      authorization: "Bearer test-access-token",
+    },
+  ]);
+});
+
 it("retains a lost report's draft for a later explicit retry on the same version", async () => {
   // Given
   const user = userEvent.setup();
@@ -556,6 +700,45 @@ it("retains a dirty contribution after conflict and failed explicit refresh with
   expect(screen.queryByText(/L’état courant a été relu/)).not.toBeOnTheScreen();
   expect(mockDismissTo).not.toHaveBeenCalled();
   expect(writes).toHaveLength(1);
+});
+
+it("keeps an ordinary failed contribution editable for another explicit submission after failed reads", async () => {
+  // Given: only HTTP is controlled; the real form and mutation retain their original account and match.
+  const user = userEvent.setup();
+  await render(<ContributionScreen matchId={match.match.id} />, {
+    wrapper: Wrapper,
+  });
+  await user.type(await screen.findByLabelText("Adresse du lien"), version.url);
+  write = async () => {
+    failRead = true;
+    throw new TypeError("Lost contribution response");
+  };
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+  await confirm("Soumettre le lien");
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+
+  // Then
+  expect(screen.getByLabelText("Adresse du lien")).toHaveProp("editable", true);
+  expect(
+    screen.getByRole("button", { name: "Soumettre le lien" }),
+  ).toBeEnabled();
+  expect(screen.getByDisplayValue(version.url)).toBeOnTheScreen();
+  expect(writes).toHaveLength(1);
+
+  // When: only another manual confirmation sends the retained URL again.
+  await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
+  await confirm("Soumettre le lien");
+
+  // Then
+  await waitFor(() => expect(writes).toHaveLength(2));
+  expect(writes[1].body).toMatchObject({
+    revision: owner.revision,
+    url: version.url,
+  });
+  expect(screen.getByDisplayValue(version.url)).toBeOnTheScreen();
+  expect(mockDismissTo).not.toHaveBeenCalled();
 });
 
 it.each(["submit", "withdraw"] as const)(

@@ -51,7 +51,7 @@ export interface ActionFeedbackProviderProps extends PropsWithChildren {
 
 /**
  * Projects UI Library Error Toast 3326:321 above native navigation without moving content or focus.
- * The newest failure replaces the previous toast. Expiry and unmount never acknowledge an uncertain write.
+ * The newest failure replaces the previous toast. Presentation expiry and unmount never change a mutation.
  * The iOS window overlay stays non-modal so VoiceOver can reach the page even when no toast is visible.
  */
 export function ActionFeedbackProvider({
@@ -137,7 +137,7 @@ export function ActionFeedbackProvider({
 
 /**
  * Supplies event-only technical/functional failure feedback for the mounted original interaction.
- * Pass safe product copy; field validation and uncertain outcomes remain inline at their owning form.
+ * Pass safe product copy; field validation and domain outcome presentation remain with their owners.
  * A native handoff may retain an already-published notice after closing its route; late events
  * remain ignored, and the root still owns session invalidation and the ordinary toast timeout.
  */

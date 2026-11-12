@@ -110,7 +110,7 @@ const suite = provider ? describe : describe.skip;
 const retryRequired = [
   "partial",
   "mark-refused",
-  "mark-ambiguous-incomplete",
+  "mark-unconfirmed",
   "lost-response",
 ].includes(scenario ?? "");
 const receipts: { status: number; body: unknown }[] = [];
@@ -158,8 +158,7 @@ suite(`support receipt through real adapters: ${scenario}`, () => {
       "complete",
       "partial",
       "mark-refused",
-      "mark-ambiguous-complete",
-      "mark-ambiguous-incomplete",
+      "mark-unconfirmed",
       "signal-failed",
       "lost-response",
     ]).toContain(scenario);

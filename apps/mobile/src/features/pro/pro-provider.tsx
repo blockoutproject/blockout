@@ -30,20 +30,14 @@ export interface ProContext {
   retry(): Promise<boolean | undefined>;
   /**
    * Consumes attributed operation outcomes and supplied CustomerInfo directly;
-   * rereads ordinary SDK state only when no CustomerInfo was supplied.
+   * starts an independent ordinary SDK refresh only when no CustomerInfo was supplied.
    */
   completeOperation(
     operation: ProOperation,
     customerInfo?: CustomerInfo,
   ): Promise<void>;
-  /** Reserves one eligible native purchase synchronously; false must resume(false) at the SDK boundary. */
-  beginPurchase(): boolean;
-  /** Records explicit provider restoration; false rejects obsolete/busy starts without replacing payment evidence. */
-  beginRestore(): boolean;
-  /** Explicitly invokes native restoration only after current-account association. */
+  /** Explicitly restores after current-account association; SDK failure rejects for the caller's ordinary feedback. */
   restore(): Promise<void>;
-  /** Records an interrupted purchase/restoration as uncertain without cancelling the store transaction. */
-  dismissPresentation(): Promise<void>;
 }
 
 const ProSessionContext = createContext<ProContext | null>(null);
@@ -102,24 +96,11 @@ export function ProProvider({ children }: Readonly<PropsWithChildren>) {
         : Promise.resolve(),
     [session],
   );
-  const beginPurchase = useCallback(
-    () => proSession.beginPurchase(session),
-    [session],
-  );
-  const beginRestore = useCallback(
-    () =>
-      mountedSession.current === session && proSession.beginRestore(session),
-    [session],
-  );
   const restore = useCallback(
     () =>
       mountedSession.current === session
         ? proSession.restore(session)
         : Promise.resolve(),
-    [session],
-  );
-  const dismissPresentation = useCallback(
-    () => proSession.dismissPresentation(session),
     [session],
   );
   return (
@@ -132,10 +113,7 @@ export function ProProvider({ children }: Readonly<PropsWithChildren>) {
         refresh,
         retry,
         completeOperation,
-        beginPurchase,
-        beginRestore,
         restore,
-        dismissPresentation,
       }}
     >
       {children}

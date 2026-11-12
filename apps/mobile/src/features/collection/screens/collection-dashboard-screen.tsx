@@ -49,6 +49,7 @@ import { CollectionResult } from "../components/collection-result";
 import { PreparationLink } from "../components/preparation-link";
 import { SeasonIdentity, seasonStatus } from "../components/source-summary";
 import { ProviderSourcesScreen } from "./provider-sources-screen";
+import { isCollectionReadRefused } from "../api/collection-queries";
 
 /** Navigation labels correspond to F01's four independent control families. */
 const familyLabels: Record<CollectionFamilyEnum, string> = {
@@ -214,7 +215,11 @@ function SeasonControlScope({
     ? sessionPending
     : !season.data && season.isLoading;
   const FeedbackLayout = pending ? PageContent : ScreenState;
-  if (!authority.enabled || !season.data || isAccessDenied(season.error)) {
+  if (
+    !authority.enabled ||
+    !season.data ||
+    isCollectionReadRefused(season.error)
+  ) {
     /** Renders season admission and read feedback before current controls. */
     function renderSeasonState() {
       if (!authority.enabled) {
@@ -263,7 +268,7 @@ function SeasonControlScope({
     <ControlScope
       family={family}
       season={season.data}
-      seasonUnavailable={season.isError || season.isFetching}
+      seasonUnavailable={isCollectionReadRefused(season.error)}
       seasonFetching={season.isFetching}
       rereadSeason={() => season.refetch({ cancelRefetch: false })}
     />
@@ -479,7 +484,6 @@ function ControlDashboard({
             control={current}
             editing={editing}
             season={season}
-            seasonFetching={seasonFetching}
             stateUnavailable={seasonUnavailable}
           />
         )}

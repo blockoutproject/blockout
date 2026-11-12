@@ -8,19 +8,11 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { usePro } from "../pro-provider";
 import type { ProState } from "../pro-state";
 
-/** Unsettled native operations require verification even when an independent entitlement is active. */
+/** Identifies actual store facts that remain separate from entitlement activation. */
 export function hasUnsettledProOperation(state: ProState): boolean {
   return (
     state.status !== "guest" &&
-    [
-      "purchasing",
-      "restoring",
-      "restore-uncertain",
-      "pending",
-      "uncertain",
-      "already-owned",
-      "purchased",
-    ].includes(state.operation)
+    ["pending", "already-owned", "purchased"].includes(state.operation)
   );
 }
 
@@ -29,7 +21,7 @@ export interface ProVerificationProps {
   onSupport?: () => void;
 }
 
-/** Identifies initial association/rights loading only; known entitlements and uncertain operations keep their own feedback. */
+/** Identifies initial association/rights loading only; known entitlements and native operations keep their own feedback. */
 export function isProVerificationLoading(
   state: ProState,
   refreshing: boolean,
@@ -52,7 +44,7 @@ export function ProVerification({ onSupport }: Readonly<ProVerificationProps>) {
   async function verify() {
     feedback.clear();
     const known =
-      state.status === "active" || state.status === "inactive" || uncertain;
+      state.status === "active" || state.status === "inactive" || unsettled;
     if ((await retry()) === false && known) {
       feedback.error();
     }
@@ -61,10 +53,10 @@ export function ProVerification({ onSupport }: Readonly<ProVerificationProps>) {
   if (state.status === "guest") {
     return null;
   }
-  const uncertain = hasUnsettledProOperation(state);
+  const unsettled = hasUnsettledProOperation(state);
   if (
     state.status !== "unavailable" &&
-    !uncertain &&
+    !unsettled &&
     state.operation !== "restored"
   ) {
     return null;
@@ -77,12 +69,12 @@ export function ProVerification({ onSupport }: Readonly<ProVerificationProps>) {
   const message = verificationMessage(state);
   const operation = state.operation;
 
-  /** Keeps association waiting, unsettled outcomes and a failed read as distinct recovery states. */
+  /** Shows the returned restoration result directly; unfinished payment and unavailable reads retain recovery. */
   function renderFeedback() {
     if (waiting) {
       return <ProReadLoading label="Vérification des droits Pro" />;
     }
-    if (uncertain || operation === "restored") {
+    if (unsettled || operation === "restored") {
       return (
         <>
           <Text
@@ -92,12 +84,13 @@ export function ProVerification({ onSupport }: Readonly<ProVerificationProps>) {
           >
             {message}
           </Text>
-          <Button
-            label="Vérifier mes droits"
-            onPress={() => void verify()}
-            loading={refreshing}
-            disabled={operation === "restoring"}
-          />
+          {["pending", "already-owned", "purchased"].includes(operation) && (
+            <Button
+              label="Vérifier mes droits"
+              onPress={() => void verify()}
+              loading={refreshing}
+            />
+          )}
         </>
       );
     }
@@ -116,17 +109,10 @@ export function ProVerification({ onSupport }: Readonly<ProVerificationProps>) {
 
 /** Describes the current native outcome without treating operation completion as an active entitlement. */
 function verificationMessage(state: Exclude<ProState, { status: "guest" }>) {
-  const uncertain = hasUnsettledProOperation(state);
   let message = "";
-  if (state.operation === "restoring") {
+  if (state.operation === "restored") {
     message =
-      "La restauration est en cours. Aucun nouvel achat n’est nécessaire.";
-  } else if (state.operation === "restored") {
-    message =
-      "Restauration terminée. Aucun droit Pro actif n’a été établi pour ce compte. Vérifiez vos droits ou contactez l’assistance sans acheter à nouveau.";
-  } else if (state.operation === "restore-uncertain") {
-    message =
-      "Le résultat de la restauration est incertain. Vérifiez vos droits ou contactez l’assistance sans acheter à nouveau.";
+      "Restauration terminée. Aucun droit Pro actif n’a été établi pour ce compte.";
   } else if (state.operation === "purchased") {
     message =
       state.status === "active"
@@ -135,11 +121,9 @@ function verificationMessage(state: Exclude<ProState, { status: "guest" }>) {
   } else if (state.operation === "already-owned") {
     message =
       "Cet achat est déjà détenu. Vérifiez vos droits ou retrouvez la restauration dans la gestion des achats.";
-  } else if (uncertain) {
+  } else if (state.operation === "pending") {
     message =
-      state.operation === "pending"
-        ? "Le paiement est en attente de validation du store. Vérifiez vos droits sans renouveler l’achat."
-        : "Le résultat de l’achat est incertain. Vérifiez vos droits sans acheter à nouveau.";
+      "Le paiement est en attente de validation du store. Vérifiez vos droits sans renouveler l’achat.";
   }
   return message;
 }

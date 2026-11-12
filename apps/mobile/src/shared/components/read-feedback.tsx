@@ -40,6 +40,8 @@ export function ReadFeedback({
   onRetry,
 }: Readonly<ReadFeedbackProps>) {
   const [retryRequested, setRetryRequested] = useState(false);
+  // Observe fetch changes before the gesture so Query also notifies a card mounted after an earlier failure.
+  const fetching = query.isFetching;
   const error = failed || hasReadError(query);
 
   /** Tracks only the explicit gesture; Query and the feature retain the read outcome and cancellation. */
@@ -58,7 +60,7 @@ export function ReadFeedback({
   if (query.isEnabled === false) {
     return error ? <ErrorState /> : null;
   }
-  if (!error && !retryRequested && query.isPending && query.isFetching) {
+  if (!error && !retryRequested && query.isPending && fetching) {
     return loadingContent;
   }
   if (!error && !retryRequested) {
@@ -67,7 +69,7 @@ export function ReadFeedback({
   return (
     <ErrorState
       onRetry={() => void retry()}
-      retrying={retryRequested && query.isFetching}
+      retrying={retryRequested && fetching}
     />
   );
 }

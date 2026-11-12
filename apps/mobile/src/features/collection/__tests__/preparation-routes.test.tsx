@@ -463,7 +463,10 @@ it("uses the current ready launch selection after a refusal removed its prior ro
               title: "Conflict",
               status: 409,
             },
-            { status: 409 },
+            {
+              status: 409,
+              headers: { "Content-Type": "application/problem+json" },
+            },
           )
         : Response.json({ ...season, revision: 7 });
     }
@@ -499,7 +502,7 @@ it("uses the current ready launch selection after a refusal removed its prior ro
   );
   await act(async () => nativeAlertAction("Lancer")());
   await screen.findByText(
-    "Le résultat doit être vérifié avant une nouvelle action.",
+    "Une erreur est survenue. Veuillez réessayer plus tard.",
   );
 
   // When

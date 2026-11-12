@@ -38,7 +38,6 @@ export interface AdvertisingPrivacySnapshot {
   choices: AdvertisingChoices | null;
   privacyOptionsRequired: boolean;
   pending: boolean;
-  failure: "gather" | "refresh" | "options" | null;
 }
 
 /** Current context reader and optional configured V2 unit; absent units authorize no ad request. */
@@ -76,7 +75,7 @@ function contextKey(context: AdvertisingPrivacyContext) {
 /**
  * Orders native configuration, UMP and conditional ATT, with one interstitial lifecycle.
  * No consent is mirrored or reset. Context changes retire preparation synchronously; an active
- * native call settles before the next context can start. Failed attempts require explicit retry.
+ * native call settles before the next context can start. Unchanged contexts never retry automatically.
  */
 export function createAdvertisingPrivacy({
   getContext: initialContext,
@@ -87,7 +86,6 @@ export function createAdvertisingPrivacy({
     choices: null,
     privacyOptionsRequired: false,
     pending: false,
-    failure: null,
   };
   let attempted: string | null = null;
   let revision = 0;
@@ -118,7 +116,6 @@ export function createAdvertisingPrivacy({
       ...snapshot,
       choices: null,
       privacyOptionsRequired: false,
-      failure: null,
     });
     interstitial?.invalidate();
   }
@@ -272,7 +269,6 @@ export function createAdvertisingPrivacy({
       ...snapshot,
       privacyOptionsRequired,
       pending: true,
-      failure: null,
     });
     const current = () =>
       !disposed && revision === attempt && contextKey(getContext()) === key;
@@ -324,7 +320,7 @@ export function createAdvertisingPrivacy({
         return optionsShown;
       } catch {
         if (current()) {
-          publish({ ...snapshot, choices: null, failure: action });
+          publish({ ...snapshot, choices: null });
         }
         throw new Error("Advertising choices could not be established");
       } finally {
@@ -337,7 +333,7 @@ export function createAdvertisingPrivacy({
     return run();
   }
 
-  /** Reads native entry-point applicability without changing consent, readiness, failure or frequency. */
+  /** Reads native entry-point applicability without changing consent, readiness or frequency. */
   function refreshOptions(): Promise<boolean> | undefined {
     if (disposed || snapshot.pending || !getContext().admission.ordinary) {
       return;
@@ -389,13 +385,9 @@ export function createAdvertisingPrivacy({
       };
     },
     suspend,
-    /** Explicit preparation/retry; UMP reuses applicable decisions through its own persistence. */
-    prepare: () => start("gather"),
     refreshOptions,
     /** Native applicability is rechecked at activation; an unavailable form is never invoked. */
     showOptions: () => start("options"),
-    /** Retries only the failed native interaction, after an explicit user action. */
-    retry: () => (snapshot.failure ? start(snapshot.failure) : undefined),
     /** Synchronizes changed owner inputs once; errors for unchanged inputs never cause an automatic retry. */
     synchronize() {
       if (contextKey(getContext()) === attempted || snapshot.pending) {

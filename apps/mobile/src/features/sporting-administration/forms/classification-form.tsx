@@ -28,6 +28,7 @@ import { toClassificationRequest } from "../api/classification-request";
 import { type ClassificationValues } from "../schemas/classification-schema";
 import { classificationValues } from "./classification-values";
 import { useClassificationDraft } from "./use-classification-draft";
+import { isSportingReadRefused } from "../api/sporting-administration-queries";
 
 /** One current resource, its generated operations and original-session draft. */
 export interface ClassificationFormProps {
@@ -66,10 +67,9 @@ export function ClassificationForm({
   const divisionId = useWatch({ control, name: "divisionId" });
   const busy =
     rereading ||
-    editing.query.isError ||
+    isSportingReadRefused(editing.query.error) ||
     !editing.authority.enabled ||
-    editing.save.isPending ||
-    editing.query.isFetching;
+    editing.save.isPending;
   const choicesUnavailable = !divisions.query.isSuccess;
   const choicesBusy = busy || divisions.query.isFetching || choicesUnavailable;
   const rereadRequired = current.revision !== baseline.revision;
@@ -131,7 +131,11 @@ export function ClassificationForm({
       });
       reset(classificationValues(accepted));
     } catch (error) {
-      if (!(error instanceof ApiError && error.status === 409)) {
+      if (
+        !(error instanceof ApiError) ||
+        error.status !== 409 ||
+        error.problem?.type !== "urn:blockout:problem:classification-conflict"
+      ) {
         editor.update({ ...editor.state, feedback: undefined });
         actionFeedback.error();
         return;
@@ -140,26 +144,14 @@ export function ClassificationForm({
     }
   }
 
-  /** Keeps the draft and explains the rejected revision or classification scope. */
+  /** Keeps the draft and identifies classification scopes requiring correction. */
   function showConflict(error: ApiError) {
     const conflictIds =
-      error instanceof ApiError &&
-      error.problem &&
-      "conflictingResourceIds" in error.problem
+      error.problem && "conflictingResourceIds" in error.problem
         ? error.problem.conflictingResourceIds
         : undefined;
-    const type = error instanceof ApiError ? error.problem?.type : undefined;
-    let reason;
-    if (type === "urn:blockout:problem:classification-conflict") {
-      reason =
-        "Correction entièrement refusée : division inactive, participations partagées ou identité d’équipe incompatible. Réduisez le périmètre ou demandez une intervention technique.";
-    } else if (type === "urn:blockout:problem:stale-revision") {
-      reason =
-        "La classification a changé depuis votre lecture. Relisez l’état courant avant de confirmer votre brouillon.";
-    } else {
-      reason =
-        "Le résultat doit être vérifié. Relisez l’état courant avant de réessayer.";
-    }
+    const reason =
+      "Correction entièrement refusée : division inactive, participations partagées ou identité d’équipe incompatible. Réduisez le périmètre ou demandez une intervention technique.";
     editor.update({
       ...editor.state,
       feedback: `${reason}${Array.isArray(conflictIds) && conflictIds.length > 0 ? ` Périmètres en conflit : ${conflictIds.join(", ")}.` : ""} Votre brouillon est conservé.`,

@@ -7,14 +7,10 @@ import type { AccountSession, SessionSnapshot } from "../accounts";
 /** Transient operation presentation, independent of SDK entitlement and never persisted. */
 export type ProOperation =
   | "idle"
-  | "restoring"
   | "restored"
-  | "restore-uncertain"
-  | "purchasing"
   | "cancelled"
   | "pending"
   | "failed"
-  | "uncertain"
   | "purchased"
   | "already-owned"
   | "completed";
@@ -34,7 +30,7 @@ export interface ProSessionState {
 /**
  * Current-account presentation only. Active/inactive come exclusively from the SDK;
  * unavailable suppresses ads and purchase encouragement, while guests follow F11 rules.
- * Pending/uncertain operations require verification, even when SDK rights are inactive.
+ * Store-pending and confirmed-but-unrecognized purchase facts remain separate from inactive rights.
  */
 export type ProState =
   | {

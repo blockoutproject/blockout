@@ -384,12 +384,9 @@ function CurrentAccountIdentity({
     });
     return () => subscription.remove();
   }, []);
-  const unavailable =
-    account.error instanceof ApiError &&
-    [401, 403, 404].includes(account.error.status ?? 0);
   const value = {
     ...session,
-    accountId: unavailable ? null : (account.data?.accountId ?? null),
+    accountId: account.data?.accountId ?? null,
   };
   return (
     <AccountSessionContext value={value}>{children}</AccountSessionContext>

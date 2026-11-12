@@ -85,10 +85,8 @@ export function ProRecovery({
           <Button
             label="Restaurer mes achats"
             onPress={onRestore}
-            disabled={
-              !associated || ["restoring", "purchasing"].includes(operation)
-            }
-            loading={restoring || operation === "restoring"}
+            disabled={!associated || restoring}
+            loading={restoring}
           />
           {associated && (
             <Button

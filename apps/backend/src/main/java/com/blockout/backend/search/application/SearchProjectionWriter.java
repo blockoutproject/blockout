@@ -9,7 +9,10 @@ import java.util.UUID;
 /** Native derived-index lifecycle; callers serialize operations outside SQL transactions. */
 public interface SearchProjectionWriter {
   /**
-   * @return fresh unpublished indexes for all three searchable resource kinds
+   * Creates fresh unpublished indexes for all three searchable resource kinds.
+   *
+   * @return the owned candidate index for each resource kind
+   * @throws SearchUnavailableException when candidate creation is not acknowledged
    */
   Map<Kind, String> createGeneration();
 
@@ -18,6 +21,7 @@ public interface SearchProjectionWriter {
    *
    * @param index owned candidate index
    * @param documents at most 200 current public documents
+   * @throws SearchUnavailableException when the batch is unavailable or any item fails
    */
   void write(String index, List<SearchDocuments> documents);
 
@@ -27,13 +31,16 @@ public interface SearchProjectionWriter {
    * @param kind club, team or pool
    * @param ids at most 200 current affected identities
    * @param documents current eligible inputs; missing identities must be deleted
+   * @throws SearchUnavailableException when the batch is unavailable or any item fails
    */
   void update(Kind kind, Set<UUID> ids, List<SearchDocuments> documents);
 
   /**
-   * Refreshes candidates and atomically publishes all three aliases; resolves uncertain outcomes.
+   * Refreshes candidates and atomically publishes all three aliases. An unacknowledged switch
+   * propagates as failure without a confirmation read, replay or rollback.
    *
    * @param generation complete unpublished resource indexes
+   * @throws SearchUnavailableException when refresh or publication is not confirmed
    */
   void publish(Map<Kind, String> generation);
 
