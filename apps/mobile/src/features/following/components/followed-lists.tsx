@@ -1,6 +1,5 @@
 import { PageList } from "../../../shared/components/page-list";
-import { useRef, useState } from "react";
-import type { LegendListRef } from "@legendapp/list/react-native";
+import { useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { Search } from "lucide-react-native";
@@ -133,11 +132,9 @@ function useFollowedList(
   return { query, items: followedItems(query.data?.pages), append, refresh };
 }
 
-/** Approved Home sections retain native scroll context and open exact F03 sheets through the existing F11 owner. */
+/** Home sections share one native list and open exact F03 sheets through the existing F11 owner. */
 export function FollowedLists(props: Readonly<FollowedListsProps>) {
   const [expanded, setExpanded] = useState({ team: true, pool: true });
-  const list = useRef<LegendListRef>(null);
-  const offset = useRef(0);
   const teams = useFollowedList(props, "team", expanded.team);
   const pools = useFollowedList(props, "pool", expanded.pool);
   const lists = { team: teams, pool: pools };
@@ -235,7 +232,6 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
   }
   return (
     <PageList
-      ref={list}
       {...hiddenScrollIndicators}
       accessibilityRole="list"
       accessibilityLabel="Équipes et poules suivies"
@@ -244,17 +240,6 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
       getItemType={(row) => row.kind}
       recycleItems
       alwaysBounceVertical
-      onScroll={({ nativeEvent }) => {
-        offset.current = nativeEvent.contentOffset.y;
-      }}
-      onLoad={() => {
-        if (offset.current > 0) {
-          list.current?.scrollToOffset({
-            offset: offset.current,
-            animated: false,
-          });
-        }
-      }}
       refreshControl={refreshControl}
       contentContainerStyle={styles.content}
       onEndReached={() => {
