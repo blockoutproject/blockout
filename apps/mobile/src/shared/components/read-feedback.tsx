@@ -63,11 +63,8 @@ export function ReadFeedback({
   if (query.isEnabled === false && !onRetry) {
     return error ? <ErrorState /> : null;
   }
-  if (!error && !retryRequested && query.isPending && fetching) {
-    return loadingContent;
-  }
   if (!error && !retryRequested) {
-    return null;
+    return query.isPending && fetching ? loadingContent : null;
   }
   return (
     <ErrorState

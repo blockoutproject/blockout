@@ -81,8 +81,7 @@ export function SearchScene({
     clubsFailed ? (
       <ReadFeedback
         query={query}
-        failed
-        loadingContent={<SearchLoading />}
+        loadingContent={null}
         onRetry={
           active && searchable
             ? () =>
@@ -104,6 +103,7 @@ export function SearchScene({
     )
   );
   const filtersPending = sporting?.query.isFetching ?? false;
+  const loadingNextPage = !examples && textQuery.isFetchingNextPage;
   const initialLoading = (
     <SearchResultsContent>
       <SearchLoading />
@@ -150,17 +150,21 @@ export function SearchScene({
         ) : null
       }
       continuation={
-        resultsReady && query.data && !clubsFailed
-          ? searchContinuation({
-              examples,
-              textQuery,
-              failed: clubsReference ? false : query.isError,
-              fetching: query.isFetching,
-              active,
-              loadMore,
-              refetch: () => void query.refetch(),
-            })
-          : undefined
+        resultsReady &&
+        query.data &&
+        !clubsFailed &&
+        (loadingNextPage || query.isError) ? (
+          <ListContinuation
+            loading={loadingNextPage}
+            failed={query.isError}
+            disabled={!active || query.isFetching}
+            onRetry={
+              !examples && textQuery.isFetchNextPageError
+                ? loadMore
+                : () => void query.refetch()
+            }
+          />
+        ) : undefined
       }
     />
   );
@@ -241,36 +245,5 @@ function SearchEmptyFeedback({
         </EmptyState>
       )}
     </ScreenState>
-  );
-}
-
-/** Keeps continuation feedback separate from initial empty states without triggering new reads. */
-function searchContinuation({
-  examples,
-  textQuery,
-  failed,
-  fetching,
-  active,
-  loadMore,
-  refetch,
-}: {
-  examples: boolean;
-  textQuery: ReturnType<typeof useDiscoveryQuery>;
-  failed: boolean;
-  fetching: boolean;
-  active: boolean;
-  loadMore: () => Promise<void>;
-  refetch: () => void;
-}) {
-  if (!(!examples && textQuery.isFetchingNextPage) && !failed) {
-    return null;
-  }
-  return (
-    <ListContinuation
-      loading={!examples && textQuery.isFetchingNextPage}
-      failed={failed}
-      disabled={!active || fetching}
-      onRetry={!examples && textQuery.isFetchNextPageError ? loadMore : refetch}
-    />
   );
 }

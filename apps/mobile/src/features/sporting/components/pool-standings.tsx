@@ -67,13 +67,6 @@ export function PoolStandings({
   const failed =
     hasReadError(standings) || data?.availability === "unavailable";
 
-  const refreshControl = hasRows ? (
-    <DataRefreshControl
-      onRefresh={refresh}
-      enabled={active}
-      fetching={standings.isFetching}
-    />
-  ) : undefined;
   const headerRow = (
     <View style={styles.headerRow}>
       {children && <View style={styles.participation}>{children}</View>}
@@ -119,7 +112,7 @@ export function PoolStandings({
             query={standings}
             failed
             onRetry={refresh}
-            loadingContent={<StandingsLoading layout={layout} />}
+            loadingContent={null}
           />
         </ScreenState>
       </PageScrollView>
@@ -127,8 +120,8 @@ export function PoolStandings({
   }
   if (!hasRows) {
     return (
-      <PageScrollView refreshControl={refreshControl}>
-        {standings.isLoading && !hasReadError(standings) ? (
+      <PageScrollView>
+        {standings.isLoading ? (
           <PageContent style={styles.content}>
             <View style={styles.standings}>
               {headerRow}
@@ -167,7 +160,16 @@ export function PoolStandings({
     );
   }
   return (
-    <PageScrollView alwaysBounceVertical refreshControl={refreshControl}>
+    <PageScrollView
+      alwaysBounceVertical
+      refreshControl={
+        <DataRefreshControl
+          onRefresh={refresh}
+          enabled={active}
+          fetching={standings.isFetching}
+        />
+      }
+    >
       <PageContent style={styles.content}>
         <View style={styles.standings}>
           {headerRow}

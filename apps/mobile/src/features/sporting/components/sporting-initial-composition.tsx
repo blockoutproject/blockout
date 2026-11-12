@@ -36,9 +36,7 @@ export function SportingInitialComposition({
   children,
 }: Readonly<SportingInitialCompositionProps>) {
   const { colors } = useTheme();
-  const reads = [detail, follow].filter(
-    (read): read is SportingInitialRead => read !== undefined,
-  );
+  const reads = follow ? [detail, follow] : [detail];
   const unresolved = reads.filter(
     (read) => read.data === undefined || hasReadError(read),
   );
