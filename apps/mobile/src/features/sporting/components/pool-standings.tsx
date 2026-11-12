@@ -7,13 +7,12 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useSportingNavigation } from "../navigation";
 import { Columns3, List, RefreshCw } from "lucide-react-native";
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type {
   PoolSummaryResponse,
   StandingRowResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { Button } from "../../../shared/components/button";
 
@@ -22,8 +21,7 @@ import {
   ReadFeedback,
 } from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
-import { EmptyState, ErrorState } from "../../../shared/components/state-card";
-import { resourceUnavailable } from "../model/consultation-availability";
+import { EmptyState } from "../../../shared/components/state-card";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { useConsultationQueries } from "../api/use-consultation-queries";
@@ -39,101 +37,36 @@ export interface PoolStandingsProps {
   active?: boolean;
   /** Optional exact pool entry shares the compact row with the layout controls. */
   children?: ReactNode;
-  /** Adopted table destinations replace only this pane on final technical or business unavailability. */
-  replaceOnFailure?: boolean;
+  /** Team participation Empty retains its refresh action; the approved Pool pane has no such action. */
+  refreshEmpty?: boolean;
 }
 
-/** Retains each table's native scroller and layout; adopted failures mask the pane while Query keeps its data. */
+/** Retains each table's layout and Query data while failures replace only its dependent pane. */
 export function PoolStandings({
   pool,
   highlightTeamId,
   active = true,
   children,
-  replaceOnFailure = false,
+  refreshEmpty = true,
 }: Readonly<PoolStandingsProps>) {
-  /** Distinguishes a missing table, failed retained read and supplier-declared empty standings. */
-  function renderStandingsState() {
-    if (!data) {
-      return (
-        <ReadFeedback
-          query={standings}
-          loadingContent={<StandingsLoading layout={layout} />}
-        />
-      );
-    }
-    if (standings.isError || data.availability === "unavailable") {
-      return (
-        <ErrorState
-          onRetry={() => void refresh()}
-          retrying={standings.isFetching}
-        />
-      );
-    }
-    return (
-      <EmptyState
-        title={
-          data.availability === "not-published"
-            ? "Pas de classement pour cette phase"
-            : "Aucune équipe dans ce classement"
-        }
-      >
-        {!replaceOnFailure && (
-          <Button
-            label="Actualiser"
-            leadingIcon={RefreshCw}
-            onPress={() => void refresh()}
-            loading={standings.isFetching}
-            disabled={!active}
-          />
-        )}
-      </EmptyState>
-    );
-  }
-
   const queries = useConsultationQueries();
   const standings = useQuery(queries.standings(pool.pool.id));
-  const feedback = useActionFeedback();
   const { colors } = useTheme();
   const [layout, setLayout] = useState<"list" | "cards">("list");
-  const currentActive = useRef(active);
-  useLayoutEffect(() => {
-    currentActive.current = active;
-  }, [active]);
   const data = standings.data;
   const columns = standingVisibleColumns(data?.columns ?? []);
 
-  /** Refetches only this table; ordinary failure preserves its original supplier attribution. */
+  /** Joins or starts this table's safe read; Query owns retries, suspension and its result. */
   async function refresh() {
-    if (!active) {
-      return;
-    }
-    feedback.clear();
-    const result = await standings.refetch({ cancelRefetch: false });
-    if (
-      !replaceOnFailure &&
-      result.isError &&
-      currentActive.current &&
-      result.data &&
-      result.data.availability === "available" &&
-      result.data.rows.length > 0 &&
-      !resourceUnavailable(result.error)
-    ) {
-      feedback.error();
+    if (active) {
+      await standings.refetch({ cancelRefetch: false });
     }
   }
 
   const hasRows = data?.availability === "available" && data.rows.length > 0;
   const failed =
-    replaceOnFailure &&
-    (hasReadError(standings) || data?.availability === "unavailable");
+    hasReadError(standings) || data?.availability === "unavailable";
 
-  const refreshControl = hasRows ? (
-    <DataRefreshControl
-      onRefresh={refresh}
-      enabled={active}
-      fetching={replaceOnFailure ? standings.isFetching : undefined}
-    />
-  ) : undefined;
   const headerRow = (
     <View style={styles.headerRow}>
       {children && <View style={styles.participation}>{children}</View>}
@@ -179,7 +112,7 @@ export function PoolStandings({
             query={standings}
             failed
             onRetry={refresh}
-            loadingContent={<StandingsLoading layout={layout} />}
+            loadingContent={null}
           />
         </ScreenState>
       </PageScrollView>
@@ -187,7 +120,7 @@ export function PoolStandings({
   }
   if (!hasRows) {
     return (
-      <PageScrollView refreshControl={refreshControl}>
+      <PageScrollView>
         {standings.isLoading ? (
           <PageContent style={styles.content}>
             <View style={styles.standings}>
@@ -200,14 +133,43 @@ export function PoolStandings({
             {children && (
               <PageContent style={styles.stateControls}>{children}</PageContent>
             )}
-            <ScreenState>{renderStandingsState()}</ScreenState>
+            <ScreenState>
+              {data ? (
+                <EmptyState
+                  title={
+                    data.availability === "not-published"
+                      ? "Pas de classement pour cette phase"
+                      : "Aucune équipe dans ce classement"
+                  }
+                >
+                  {refreshEmpty && (
+                    <Button
+                      label="Actualiser"
+                      leadingIcon={RefreshCw}
+                      onPress={() => void refresh()}
+                      loading={standings.isFetching}
+                      disabled={!active}
+                    />
+                  )}
+                </EmptyState>
+              ) : null}
+            </ScreenState>
           </>
         )}
       </PageScrollView>
     );
   }
   return (
-    <PageScrollView alwaysBounceVertical refreshControl={refreshControl}>
+    <PageScrollView
+      alwaysBounceVertical
+      refreshControl={
+        <DataRefreshControl
+          onRefresh={refresh}
+          enabled={active}
+          fetching={standings.isFetching}
+        />
+      }
+    >
       <PageContent style={styles.content}>
         <View style={styles.standings}>
           {headerRow}

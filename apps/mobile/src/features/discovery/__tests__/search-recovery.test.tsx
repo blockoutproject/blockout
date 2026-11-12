@@ -405,11 +405,8 @@ it("keeps both authorized pages in Query while its failed read card retries the 
     "endReached",
   );
   await screen.findByText("Dernier club");
-  const accepted = client.getQueriesData<InfiniteData<DiscoveryPage>>({
-    predicate: ({ queryKey }) =>
-      ["/clubs", "/teams", "/pools"].includes(String(queryKey[0])),
-    type: "active",
-  });
+  const queryKey = createDiscoveryContext("club", { q: "Volley" }).queryKey;
+  const accepted = client.getQueryData<InfiniteData<DiscoveryPage>>(queryKey);
   mockFetch.mockImplementation((url: string) =>
     new URL(url).pathname.endsWith("/clubs")
       ? Promise.reject(new TypeError("private upstream payload"))
@@ -417,26 +414,14 @@ it("keeps both authorized pages in Query while its failed read card retries the 
   );
 
   // When: an existing owner requests a reread; no Search refresh gesture is introduced.
-  await act(async () =>
-    client.refetchQueries({
-      predicate: ({ queryKey }) =>
-        ["/clubs", "/teams", "/pools"].includes(String(queryKey[0])),
-      type: "active",
-    }),
-  );
+  await act(async () => client.refetchQueries({ queryKey, exact: true }));
 
   // Then
   const retry = await screen.findByRole("button", { name: "Réessayer" });
   expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
   expect(screen.queryByText("Dernier club")).not.toBeOnTheScreen();
   expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
-  expect(
-    client.getQueriesData({
-      predicate: ({ queryKey }) =>
-        ["/clubs", "/teams", "/pools"].includes(String(queryKey[0])),
-      type: "active",
-    }),
-  ).toEqual(accepted);
+  expect(client.getQueryData(queryKey)).toEqual(accepted);
   expect(
     screen.queryByText(
       /Aucun résultat|Fin des résultats|private upstream payload/,

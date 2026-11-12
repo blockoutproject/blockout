@@ -9,15 +9,15 @@ import {
 } from "./discovery-queries";
 
 /**
- * Observes the visible text context through native Query and its ordinary freshness policy.
- * A card-triggered read may retain its existing observer across tab changes until it settles.
- * Changed keys still cancel obsolete contexts through Query's consumed signal.
+ * Observes text searches without copying their pages or cursor.
+ * Clubs keeps its observer while inactive: tab return reuses a successful result or the
+ * failed continuation, whose next attempt is explicit. New criteria still change the
+ * native key and cancel an obsolete signal-consuming read. Other tabs retain their adoption scope.
  */
 export function useDiscoveryQuery(
   resource: DiscoveryResource,
   input: Omit<ListTeamsParams, "cursor">,
   active = true,
-  retainExplicitRead = false,
 ) {
   const session = useAccountSession();
   const admission = useOrdinaryRequest();
@@ -30,7 +30,15 @@ export function useDiscoveryQuery(
   );
   return useInfiniteQuery({
     ...options,
-    subscribed: active || retainExplicitRead,
+    subscribed: resource === "club" || active,
+    enabled:
+      resource === "club"
+        ? (query) =>
+            active &&
+            options.enabled !== false &&
+            query.state.status !== "error"
+        : options.enabled,
+    staleTime: resource === "club" ? Infinity : undefined,
   });
 }
 

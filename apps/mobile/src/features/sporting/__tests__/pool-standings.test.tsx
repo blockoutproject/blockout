@@ -212,7 +212,7 @@ function open(
 }
 
 /** Supplies the official native scroll owner for an isolated standings panel. */
-function panel(replaceOnFailure = false) {
+function panel(refreshEmpty = true) {
   return (
     <PagedTabs
       selected="standings"
@@ -225,7 +225,7 @@ function panel(replaceOnFailure = false) {
             <PoolStandings
               pool={pool}
               highlightTeamId={sportingId}
-              replaceOnFailure={replaceOnFailure}
+              refreshEmpty={refreshEmpty}
             />
           ),
         },
@@ -315,7 +315,7 @@ it.each([
 
 it("replaces failed standings and their controls while retaining the authorized Query data", async () => {
   // Given
-  await open(panel(true));
+  await open(panel());
   await screen.findByRole("tab", { name: "Classement" });
   await layoutNativeTabs();
   await screen.findByText("Official Z");
@@ -638,7 +638,7 @@ it("keeps the initial pool error and its active Retry when returning from anothe
 it("masks a background table failure without losing the selected presentation", async () => {
   // Given
   const user = userEvent.setup();
-  await open(panel(true));
+  await open(panel());
   await screen.findByRole("tab", { name: "Classement" });
   await layoutNativeTabs();
   await user.press(
@@ -681,7 +681,7 @@ it("masks a background table failure without losing the selected presentation", 
 it("keeps a paused table Retry non-busy and resumes the same safe read", async () => {
   // Given: the adopted table has failed after displaying authorized rows.
   const user = userEvent.setup();
-  await open(panel(true));
+  await open(panel());
   await screen.findByRole("tab", { name: "Classement" });
   await layoutNativeTabs();
   await screen.findByText("Official Z");
@@ -748,13 +748,13 @@ it.each([
     title: "Pas de classement pour cette phase",
   },
 ] as const)(
-  "shows the adopted $availability empty card without a refresh action",
+  "shows the Pool $availability empty card without a refresh action",
   async ({ availability, title }) => {
     // Given
     table = { ...table, availability, rows: [] };
 
     // When
-    await open(panel(true));
+    await open(panel(false));
     await screen.findByRole("tab", { name: "Classement" });
     await layoutNativeTabs();
 
@@ -776,7 +776,7 @@ it("keeps declared table unavailability successful and retries it only explicitl
   // Given
   table = { ...table, availability: "unavailable", rows: [] };
   const user = userEvent.setup();
-  await open(panel(true));
+  await open(panel(false));
   await screen.findByRole("tab", { name: "Classement" });
   await layoutNativeTabs();
   await screen.findByRole("button", { name: "Réessayer", busy: false });

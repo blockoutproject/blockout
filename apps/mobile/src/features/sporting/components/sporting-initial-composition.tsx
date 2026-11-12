@@ -22,8 +22,6 @@ export type SportingInitialRead = Pick<
 export interface SportingInitialCompositionProps {
   detail: SportingInitialRead;
   follow?: SportingInitialRead;
-  /** Adopted destinations mask dependent content after a failed common read, retaining native scenes. */
-  replaceOnFailure?: boolean;
   header: ReactNode;
   loading: ReactNode;
   children: ReactNode;
@@ -33,32 +31,19 @@ export interface SportingInitialCompositionProps {
 export function SportingInitialComposition({
   detail,
   follow,
-  replaceOnFailure = false,
   header,
   loading,
   children,
 }: Readonly<SportingInitialCompositionProps>) {
   const { colors } = useTheme();
-  const reads = [detail, follow].filter(
-    (read): read is SportingInitialRead => read !== undefined,
-  );
+  const reads = follow ? [detail, follow] : [detail];
   const unresolved = reads.filter(
-    (read) =>
-      read.data === undefined || (replaceOnFailure && hasReadError(read)),
+    (read) => read.data === undefined || hasReadError(read),
   );
-  const ready = unresolved.length === 0;
-  const [admitted, setAdmitted] = useState(false);
   const [retrying, setRetrying] = useState(false);
-  if (!admitted && ready) {
-    setAdmitted(true);
-  }
-  const blocked =
-    detail.data === undefined ||
-    (!admitted && !ready) ||
-    (replaceOnFailure && reads.some(hasReadError));
+  const blocked = unresolved.length > 0;
   const fetching = unresolved.some((read) => read.isFetching);
-  const failed =
-    unresolved.some(hasReadError) || (!replaceOnFailure && !fetching);
+  const failed = unresolved.some(hasReadError);
 
   /** Rereads unresolved inputs; Query joins pending or paused attempts and owns their actual fetch progress. */
   async function retry() {
