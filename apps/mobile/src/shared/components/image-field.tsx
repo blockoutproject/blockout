@@ -1,21 +1,15 @@
-import { Image } from "expo-image";
+import { Image, type ImageProps } from "expo-image";
 import type { ImageSelection } from "../images/use-image-selection";
-import { X } from "lucide-react-native";
 import { ImageFallback } from "./image-fallback";
-import { useState } from "react";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
-import { IconButton } from "./icon-button";
 import { LoadingIndicator } from "./loading-indicator";
 import { FieldMessage } from "./field-message";
-import { ScreenState } from "./screen-state";
-import { ErrorState } from "./state-card";
-import { Page, PageScrollView } from "./page";
-import { BottomContentSpacer } from "./bottom-content-inset";
+import { useNativeImageLifecycle } from "../images/use-native-image-lifecycle";
+import { RoundedContainedImage } from "./rounded-contained-image";
 
-/** Stable caller identity and accessible description for an existing or prepared local preview. */
+/** Stable caller identity and accessible description for an existing or prepared local image. */
 export interface ImageFieldImage {
   id: string;
   uri: string;
@@ -23,7 +17,7 @@ export interface ImageFieldImage {
 }
 
 /**
- * Controlled preview and actions; `selection` is the caller-owned native picker/preparation lifecycle.
+ * Controlled image display and actions; `selection` is the caller-owned native picker/preparation lifecycle.
  * The caller retains accepted values and supplies safe French validation messages. The shared owner
  * hides native diagnostics; feature owners validate bytes and decide removal/restoration semantics.
  * `multiple` only exposes the add action beside existing images; configure the same policy on the owner.
@@ -33,14 +27,14 @@ export interface ImageFieldProps {
   label?: string;
   images: readonly ImageFieldImage[];
   selection: ImageSelection;
-  /** Omit when the current image permits preview/replacement but no removal. */
+  /** Omit when the current image permits replacement but no removal. */
   onRemove?: (id: string) => void;
   multiple?: boolean;
   disabled?: boolean;
-  /** Uses the published standard or compact preview/action composition. */
+  /** Uses the published standard or compact image/action composition. */
   size?: "standard" | "compact";
   chooseLabel?: string;
-  /** Thumbnail fitting only; use contain for logos. This does not transform selected assets or full previews. */
+  /** Image fitting only; use contain for logos. This does not transform selected assets. */
   contentFit?: "cover" | "contain";
   replaceLabel?: string;
   removeLabel?: string;
@@ -48,7 +42,7 @@ export interface ImageFieldProps {
   error?: string;
 }
 
-/** Renders the caller-owned selection lifecycle and a local full-screen preview. */
+/** Displays passive images and the caller-owned selection, replacement and removal actions. */
 export function ImageField({
   label,
   images,
@@ -65,15 +59,13 @@ export function ImageField({
   error,
 }: Readonly<ImageFieldProps>) {
   const { colors } = useTheme();
-  const [previewId, setPreviewId] = useState<string>();
-  const preview = images.find((image) => image.id === previewId);
   const busy = selection.pending;
   const unavailable = disabled || busy;
   const compact = size === "compact";
 
   return (
     <View
-      // Keep preview and action parentage stable as the disabled opacity ends during a native save transition.
+      // Keep image and action parentage stable as the disabled opacity ends during a native save transition.
       collapsable={false}
       style={[styles.field, disabled && styles.disabled]}
     >
@@ -94,30 +86,11 @@ export function ImageField({
               },
             ]}
           >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Aperçu : ${image.label}`}
-              disabled={unavailable}
-              accessibilityState={{ disabled: unavailable }}
-              onPress={() => {
-                setPreviewId(image.id);
-              }}
-              style={({ pressed }) => ({
-                opacity: pressed ? tokens.opacity.pressed : 1,
-              })}
-            >
-              <Image
-                source={{ uri: image.uri }}
-                accessible={false}
-                cachePolicy="none"
-                contentFit={contentFit}
-                style={[
-                  styles.thumbnail,
-                  compact && styles.compactThumbnail,
-                  { backgroundColor: colors.mediaPlaceholder },
-                ]}
-              />
-            </Pressable>
+            <ImageThumbnail
+              image={image}
+              compact={compact}
+              contentFit={contentFit}
+            />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`${replaceLabel} : ${image.label}`}
@@ -199,64 +172,67 @@ export function ImageField({
         </Pressable>
       )}
       <FieldMessage error={error} helper={helper} />
-      <Modal
-        visible={!!preview}
-        presentationStyle="fullScreen"
-        animationType="none"
-        onRequestClose={() => setPreviewId(undefined)}
-      >
-        {preview && (
-          // A native Modal has its own view root; measure its insets inside that root.
-          <SafeAreaProvider>
-            <ImagePreview
-              key={`${preview.id}:${preview.uri}`}
-              image={preview}
-              onClose={() => setPreviewId(undefined)}
-            />
-          </SafeAreaProvider>
-        )}
-      </Modal>
     </View>
   );
 }
 
-/** Keeps the static image inside the native safe frame; failed decode retry remounts only the image and preserves the draft. */
-export function ImagePreview({
+/** One retained attachment owns its native thumbnail decode; failure keeps the slot and caller's file/actions intact. */
+function ImageThumbnail({
   image,
-  onClose,
+  compact,
+  contentFit,
 }: Readonly<{
   image: ImageFieldImage;
-  onClose: () => void;
+  compact: boolean;
+  contentFit: NonNullable<ImageFieldProps["contentFit"]>;
 }>) {
   const { colors } = useTheme();
-  const [failed, setFailed] = useState(false);
+  const nativeImage = useNativeImageLifecycle(image.uri);
+  const thumbnailProps = {
+    source: { uri: image.uri },
+    accessible: true,
+    accessibilityRole: "image",
+    accessibilityLabel: `Miniature : ${image.label}`,
+    cachePolicy: "none",
+    style: [
+      StyleSheet.absoluteFill,
+      {
+        borderRadius: compact
+          ? tokens.media.radius.preview
+          : tokens.media.radius.profile,
+      },
+    ],
+    onDisplay: nativeImage.onDisplay,
+    onError: nativeImage.onError,
+  } satisfies ImageProps;
   return (
-    <Page accessibilityViewIsModal>
-      <IconButton label="Fermer" onPress={onClose}>
-        <X accessible={false} size={tokens.size.icon.lg} color={colors.icon} />
-      </IconButton>
-      {failed ? (
-        <PageScrollView>
-          <ScreenState>
-            <ErrorState onRetry={() => setFailed(false)} />
-          </ScreenState>
-        </PageScrollView>
-      ) : (
-        <>
-          <Image
-            onError={() => setFailed(true)}
-            source={{ uri: image.uri }}
-            accessibilityRole="image"
-            accessibilityLabel={image.label}
-            accessible
-            cachePolicy="none"
-            contentFit="contain"
-            style={styles.fullImage}
+    <View
+      style={[
+        styles.thumbnail,
+        compact && styles.compactThumbnail,
+        { backgroundColor: colors.mediaPlaceholder },
+      ]}
+    >
+      {image.uri && nativeImage.status !== "failed" ? (
+        contentFit === "contain" ? (
+          <RoundedContainedImage
+            key={nativeImage.attemptKey}
+            {...thumbnailProps}
           />
-          <BottomContentSpacer />
-        </>
+        ) : (
+          <Image
+            key={nativeImage.attemptKey}
+            {...thumbnailProps}
+            contentFit={contentFit}
+          />
+        )
+      ) : (
+        <ImageFallback
+          label={`${image.uri ? "Image indisponible" : "Image absente"} : ${image.label}`}
+          color={colors.icon}
+        />
       )}
-    </Page>
+    </View>
   );
 }
 
@@ -286,12 +262,16 @@ const styles = StyleSheet.create({
   thumbnail: {
     width: 92,
     height: 92,
-    borderRadius: tokens.media.radius.preview,
+    borderRadius: tokens.media.radius.profile,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
   },
-  compactThumbnail: { width: 64, height: 64 },
+  compactThumbnail: {
+    width: 64,
+    height: 64,
+    borderRadius: tokens.media.radius.preview,
+  },
   action: {
     minWidth: tokens.touch.minimum,
     minHeight: tokens.size.control.default,
@@ -309,5 +289,4 @@ const styles = StyleSheet.create({
   },
   compactRemove: { alignSelf: "flex-end" },
   removeLabel: tokens.typography.strong,
-  fullImage: { flex: 1, width: "100%" },
 } as const);

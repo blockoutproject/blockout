@@ -252,6 +252,9 @@ it("preserves official labels positions and missing values without guessed links
   expect(screen.getByText("7")).toBeOnTheScreen();
   expect(screen.getByText("4")).toBeOnTheScreen();
   expect(screen.getByText("Unmatched")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("image", { name: "Logo absent : Unmatched" }),
+  ).toBeOnTheScreen();
   expect(screen.queryByRole("link", { name: /Unmatched/ })).toBeNull();
   expect(screen.queryByText("1")).toBeNull();
   expect(screen.getAllByText("0")).toHaveLength(1);
@@ -478,13 +481,16 @@ it("switches to the approved cards without another read or team emphasis", async
     screen.getByRole("link", { name: /Official Z.*Jou\. : 4/ }),
   ).toBeOnTheScreen();
   expect(screen.getByText("Unmatched")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("image", { name: "Logo absent : Unmatched" }),
+  ).toBeOnTheScreen();
   expect(screen.queryByRole("link", { name: /Unmatched/ })).toBeNull();
   expect(screen.queryByRole("link", { selected: true })).toBeNull();
   expect(mockFetch).toHaveBeenCalledTimes(reads);
 });
 
 it("projects only official podium ranks as 2–1–3 and preserves the remaining order", async () => {
-  // Given
+  // Given: the official third-place row has no resolved team and must keep its nominal logo without a link.
   const user = userEvent.setup();
   table.rows = [
     table.rows[0],
@@ -493,7 +499,6 @@ it("projects only official podium ranks as 2–1–3 and preserves the remaining
       sourceName: "Third",
       position: 3,
       statistics: { Pts: "9" },
-      team: { id: "00000000-0000-4000-8000-000000002093", name: "Third" },
     },
     {
       sourceName: "Second",
@@ -515,11 +520,14 @@ it("projects only official podium ranks as 2–1–3 and preserves the remaining
 
   // Then
   const links = screen.getAllByRole("link");
-  expect(links).toHaveLength(4);
+  expect(links).toHaveLength(3);
   expect(links[0]).toHaveAccessibleName(/^Second(?:\.|$)/);
   expect(links[1]).toHaveAccessibleName(/^Official A(?:\.|$)/);
-  expect(links[2]).toHaveAccessibleName(/^Third(?:\.|$)/);
-  expect(links[3]).toHaveAccessibleName(/^Official Z(?:\.|$)/);
+  expect(links[2]).toHaveAccessibleName(/^Official Z(?:\.|$)/);
+  expect(screen.queryByRole("link", { name: /^Third(?:\.|$)/ })).toBeNull();
+  expect(
+    screen.getByRole("image", { name: "Logo absent : Third" }),
+  ).toBeOnTheScreen();
   expect(
     client
       .getQueryCache()

@@ -78,7 +78,7 @@ function CalendarLoadingContent({
   );
 }
 
-/** A neutral three-line pool heading and fixture keep the loaded card's borders and insets. */
+/** A neutral two-line pool identity heading and fixture keep the loaded card's borders and insets. */
 function PoolGroupSkeleton({
   stacked,
   status,
@@ -103,11 +103,11 @@ function PoolGroupSkeleton({
           <Skeleton
             width={tokens.size.media.row}
             height={tokens.size.media.row}
+            radius={tokens.media.radius.tile}
           />
           <View style={styles.headingCopy}>
             <TextSkeleton width="85%" />
             <TextSkeleton role="metadata" width="84%" />
-            <TextSkeleton role="metadata" width={42 * fontScale} />
           </View>
         </View>
       </View>
@@ -168,6 +168,7 @@ function TeamSkeleton({
       <Skeleton
         width={tokens.size.media.match}
         height={tokens.size.media.match}
+        radius={tokens.media.radius.list}
       />
       <View style={styles.teamCopy}>
         <TextSkeleton width="90%" />

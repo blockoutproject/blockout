@@ -87,7 +87,7 @@ export interface SportingIdentityProps extends Omit<
   children?: ReactNode;
 }
 
-/** Approved identity metadata and actions remain mounted while each authorized image layer handles its own decoding. */
+/** Identity metadata/actions retain independent image decoding; pool names use at most two lines with their full accessible name. */
 export function SportingIdentity({
   identity,
   kind,
@@ -175,6 +175,9 @@ export function SportingIdentity({
         </Text>
         <Text
           accessibilityRole="header"
+          accessibilityLabel={identity.name}
+          numberOfLines={kind === "pool" ? 2 : undefined}
+          ellipsizeMode="tail"
           style={[
             kind === "club" ? styles.clubName : styles.name,
             { color: colors.text },

@@ -37,7 +37,7 @@ export function ProfileEditScreen({
   const account = useCurrentAccount();
   const router = useRouter();
   const navigation = useNavigation();
-  const { saving, refresh } = useProfileRefresh(account, true);
+  const { saving, refresh } = useProfileRefresh(account);
   const missing = isAccountMissing(account.error);
 
   /** Returns this stack to its overview, including an unanchored warm link or a save acknowledged on another tab. */

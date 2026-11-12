@@ -68,7 +68,7 @@ async function openForm() {
   return { user, submit };
 }
 
-it("prepares five images without square crop, previews them and rejects a sixth without losing text", async () => {
+it("prepares five images without square crop and rejects a sixth without losing text", async () => {
   // Given
   const { user } = await openForm();
   picker.launchImageLibraryAsync.mockResolvedValueOnce({
@@ -81,7 +81,7 @@ it("prepares five images without square crop, previews them and rejects a sixth 
 
   // Then
   expect(
-    await screen.findAllByRole("button", { name: /Aperçu : Image/ }),
+    await screen.findAllByRole("image", { name: /Miniature : Image/ }),
   ).toHaveLength(5);
   expect(picker.launchImageLibraryAsync).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -95,11 +95,6 @@ it("prepares five images without square crop, previews them and rejects a sixth 
     pickedImage(0).uri,
     { maxWidth: 2560, maxHeight: 2560 },
   );
-  await user.press(screen.getByRole("button", { name: "Aperçu : Image 1" }));
-  expect(
-    await screen.findByRole("image", { name: "Image 1" }),
-  ).toBeOnTheScreen();
-  await user.press(screen.getByRole("button", { name: "Fermer" }));
   await user.press(screen.getByRole("button", { name: "Ajouter des images" }));
   expect(
     await screen.findByText("Vous pouvez joindre cinq images maximum."),
@@ -129,7 +124,7 @@ it("refuses an over-capacity picker result before preparing any image and preser
     await screen.findByText("Vous pouvez joindre cinq images maximum."),
   ).toBeOnTheScreen();
   expect(
-    screen.getAllByRole("button", { name: /Aperçu : Image/ }),
+    screen.getAllByRole("image", { name: /Miniature : Image/ }),
   ).toHaveLength(1);
   expect(manipulator.ImageManipulator.manipulate).toHaveBeenCalledTimes(1);
   expect(screen.getByDisplayValue("Texte conservé")).toBeOnTheScreen();
@@ -206,7 +201,7 @@ it.each([5242881, 0])(
       screen.getByRole("button", { name: "Envoyer la demande" }),
     ).toBeEnabled();
     expect(
-      screen.getAllByRole("button", { name: /Aperçu : Image/ }),
+      screen.getAllByRole("image", { name: /Miniature : Image/ }),
     ).toHaveLength(2);
     expect(picker.launchImageLibraryAsync).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -281,5 +276,5 @@ it("blocks sending during preparation and ignores a late output after the visit 
   const old = preparedImage("file:///cache/old.png");
   await act(async () => finish({ uri: old.uri }));
   expect(old.delete).toHaveBeenCalled();
-  expect(screen.queryByRole("button", { name: /Aperçu : Image/ })).toBeNull();
+  expect(screen.queryByRole("image", { name: /Miniature : Image/ })).toBeNull();
 });

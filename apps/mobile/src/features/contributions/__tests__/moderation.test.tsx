@@ -450,13 +450,23 @@ it("requires the literal current moderation capability before private reads", as
 });
 
 it("shows private dateless context and the active member independently of pending history", async () => {
-  // Given: the retained private fixture has no public date or consultation permission.
+  // Given: the retained private fixture has no public date, division or consultation permission.
 
   // When
   await mount(<ModerationMatchScreen matchId={sporting.id} />);
 
   // Then
   await screen.findByText("Match non consultable publiquement");
+  expect(
+    screen.getByRole("image", {
+      name: `Logo absent : ${detail.match.pool.pool.name}`,
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.some(([url]) =>
+      new URL(String(url)).pathname.endsWith("/logo"),
+    ),
+  ).toBe(false);
   expect(screen.getByText("Date indisponible")).toBeOnTheScreen();
   expect(
     screen.getByDisplayValue("https://youtu.be/retained"),

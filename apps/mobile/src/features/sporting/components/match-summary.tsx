@@ -8,6 +8,7 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import { formatSportingSchedule } from "../model/sporting-time";
 import { MatchSurface } from "./match-surface";
 import { SportingArtwork, SportingLogo } from "./sporting-identity";
+import { SportingMedia } from "./sporting-media";
 import { DivisionPaint } from "./division-paint";
 import { matchStatusLabel } from "../model/match-presentation";
 
@@ -19,7 +20,7 @@ export interface MatchSummaryProps {
   presentation?: "summary" | "context";
 }
 
-/** Figma Match Summary shares its pool/teams between full consultation and compact informational contribution context. */
+/** Shares accepted pool/team facts and their nominal media slots between consultation and informational contribution context. */
 export function MatchSummary({
   match,
   displayTimeZone,
@@ -53,9 +54,16 @@ export function MatchSummary({
       >
         {division && <DivisionPaint division={division} />}
         {division && <SportingArtwork division={division} />}
-        {division && <SportingLogo kind="division" identity={division} />}
+        {division ? (
+          <SportingLogo kind="division" identity={division} />
+        ) : (
+          <SportingMedia kind="division" identity={match.pool.pool} />
+        )}
         <Text
           accessibilityRole="header"
+          accessibilityLabel={match.pool.pool.name}
+          numberOfLines={2}
+          ellipsizeMode="tail"
           style={[
             styles.poolName,
             {

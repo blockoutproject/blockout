@@ -1784,6 +1784,38 @@ it.each(["provisional", "unconfirmed", "final"] as const)(
   },
 );
 
+it.each(["summary", "context"] as const)(
+  "keeps the %s pool logo slot without a division or an invented media read",
+  async (presentation) => {
+    // Given: the accepted pool has no associated division.
+    match.match.pool.classification = {};
+    match.match.pool.pool.name =
+      "Championnat interdépartemental de la Vallée et des Montagnes · Poule A · Phase initiale";
+
+    // When
+    await renderPage(
+      <MatchSummary match={match.match} presentation={presentation} />,
+    );
+
+    // Then: real identities remain readable without a fabricated division or logo request.
+    expect(
+      screen.getByRole("image", {
+        name: `Logo absent : ${match.match.pool.pool.name}`,
+      }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByRole("header", { name: match.match.pool.pool.name }),
+    ).toBeOnTheScreen();
+    expect(screen.getByText(match.match.home.name)).toBeOnTheScreen();
+    expect(screen.getByText(match.match.away.name)).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.some(([url]) =>
+        new URL(url).pathname.endsWith("/logo"),
+      ),
+    ).toBe(false);
+  },
+);
+
 it.each(["provisional", "unconfirmed"] as const)(
   "retains the full %s uncertainty when the contribution context has no status band",
   async (state) => {
@@ -1969,7 +2001,7 @@ it("distinguishes an empty club season from a failed team read", async () => {
   ).toHaveLength(3);
 });
 
-it("retains a club season's teams after failed pull-to-refresh and retries only that bounded catalogue on another pull", async () => {
+it("masks a failed club-team catalogue and retries only that season while sibling tabs stay usable", async () => {
   // Given: the club header, selection and accepted team catalogue have their real Query owners.
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
@@ -1989,13 +2021,11 @@ it("retains a club season's teams after failed pull-to-refresh and retries only 
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await screen.findByRole("alert", { name: /Une erreur est survenue/ });
 
-  // Then: the authorized catalogue and independent club identity remain visible with one toast.
+  // Then: Query retains the catalogue while its card replaces the failed tab content.
   expect(
-    screen.getByRole("link", { name: team.team.team.name }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.queryByRole("button", { name: "Réessayer" }),
+    screen.queryByRole("link", { name: team.team.team.name }),
   ).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
   expect(screen.getAllByRole("alert")).toHaveLength(1);
   expect(screen.getByText(club.club.name)).toBeOnTheScreen();
   expect(
@@ -2004,7 +2034,7 @@ it("retains a club season's teams after failed pull-to-refresh and retries only 
 
   // When
   mockFetch.mockImplementation(reads);
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
   expect(

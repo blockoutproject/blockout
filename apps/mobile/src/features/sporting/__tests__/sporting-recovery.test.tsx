@@ -206,7 +206,7 @@ it.each(pages)(
   },
 );
 
-it("keeps authorized Match facts after a failed owner invalidation", async () => {
+it("retains authorized Match facts in Query while the destination shows a failed owner read", async () => {
   // Given
   const path = `/matches/${sportingId}`;
   const label = "Home";
@@ -233,10 +233,8 @@ it("keeps authorized Match facts after a failed owner invalidation", async () =>
     fetchStatus: "idle",
   });
   expect(client.getQueryData(queryKey)).toEqual(accepted);
-  expect(screen.getAllByText(label).length).toBeGreaterThan(0);
-  expect(
-    screen.queryByRole("button", { name: "Réessayer" }),
-  ).not.toBeOnTheScreen();
+  expect(screen.queryAllByText(label)).toHaveLength(0);
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
   expect(screen.queryByText(/Aucune équipe|Aucun match/)).not.toBeOnTheScreen();
 
   // When
@@ -686,7 +684,7 @@ it.each(["current", "former"] as const)(
   },
 );
 
-it("keeps Match content and only one toast after a failed pull, then recovers on the next pull", async () => {
+it("replaces failed Match content with one destination card and recovers through Retry", async () => {
   // Given
   const path = `/matches/${sportingId}`;
   const label = "Home";
@@ -707,19 +705,17 @@ it("keeps Match content and only one toast after a failed pull, then recovers on
   // Then
   expect(
     await screen.findByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      name: "Une erreur est survenue",
     }),
   ).toBeOnTheScreen();
   expect(screen.getAllByRole("alert")).toHaveLength(1);
-  expect(
-    screen.queryByRole("button", { name: "Réessayer" }),
-  ).not.toBeOnTheScreen();
-  expect(screen.getAllByText(label).length).toBeGreaterThan(0);
-  expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
+  expect(screen.queryAllByText(label)).toHaveLength(0);
+  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
 
   // When
   mockFetch.mockImplementation(reads);
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
   await waitFor(() => expect(client.isFetching()).toBe(0));

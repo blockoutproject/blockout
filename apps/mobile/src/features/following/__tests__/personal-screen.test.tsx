@@ -1149,7 +1149,55 @@ it.each([false, true])(
   },
 );
 
-it("retains encounters after an ordinary failed pull but withdraws them after a confirmed follow change fails to reload", async () => {
+it("keeps a failed personal calendar on its shared card across tab return until explicit Retry", async () => {
+  // Given: F06 owns its envelope; the shared F03 view must not make tab return replay a failed read.
+  let failUpcoming = true;
+  mockFetch.mockImplementation((url, request) =>
+    new URL(url).pathname === `/accounts/${accountId}/matches` &&
+    new URL(url).searchParams.get("category") === "upcoming" &&
+    failUpcoming
+      ? Promise.reject(new TypeError("Synthetic initial calendar outage"))
+      : transport(url, request),
+  );
+  await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
+  await layoutNativeTabs();
+  await screen.findByRole("button", { name: "Réessayer" });
+  /** Counts only the original failed category, independently of sibling-tab reads. */
+  const upcomingReads = () =>
+    mockFetch.mock.calls.filter(
+      ([url]) =>
+        new URL(url).pathname === `/accounts/${accountId}/matches` &&
+        new URL(url).searchParams.get("category") === "upcoming",
+    );
+
+  // When
+  await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await userEvent.press(screen.getByRole("tab", { name: "À venir" }));
+  await screen.findByRole("button", { name: "Réessayer", busy: false });
+
+  // Then
+  expect(upcomingReads()).toHaveLength(1);
+  expect(
+    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  failUpcoming = false;
+  await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).toBeOnTheScreen();
+  expect(upcomingReads()).toHaveLength(2);
+});
+
+it("uses the shared calendar card after failed pull and preserves the confirmed-follow reset boundary", async () => {
   // Given
   await mount(<FollowButton target={team} season={older} />);
   await screen.findByRole("button", {
@@ -1170,8 +1218,8 @@ it("retains encounters after an ordinary failed pull but withdraws them after a 
 
   // Then
   expect(
-    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
-  ).toBeOnTheScreen();
+    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).not.toBeOnTheScreen();
 
   // When
   await userEvent.press(

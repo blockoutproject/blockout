@@ -91,7 +91,7 @@ describe.each(["ios", "android"] as const)(
       { appearance: "photo" as const, label: "Photo de profil", loading: true },
       { appearance: "logo" as const, label: "Logo", loading: false },
     ])(
-      "keeps authorized $appearance choice and local reset available without a preview",
+      "keeps authorized $appearance choice and local reset available without a displayed image",
       async ({ appearance, label, loading }) => {
         // Given
         const user = userEvent.setup();
@@ -517,7 +517,7 @@ it("treats Android Back or outside dismissal as cancellation and lets the field 
   expect(launch).not.toHaveBeenCalled();
 });
 
-it("opens a direct preview and withdraws it with its source without opening a system menu", async () => {
+it("keeps the displayed image passive and updates it with its source", async () => {
   // Given
   const user = userEvent.setup();
   const select = jest.fn();
@@ -533,11 +533,16 @@ it("opens a direct preview and withdraws it with its source without opening a sy
 
   // When
   await user.press(
-    screen.getByRole("button", { name: "Aperçu : Logo du club" }),
+    screen.getByRole("image", { name: "Miniature : Logo du club" }),
   );
 
   // Then
-  expect(screen.getByRole("image", { name: "Logo du club" })).toBeOnTheScreen();
+  expect(
+    screen.getByRole("image", { name: "Miniature : Logo du club" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: /Aperçu|Fermer/ }),
+  ).not.toBeOnTheScreen();
   expect(ActionSheetIOS.showActionSheetWithOptions).not.toHaveBeenCalled();
   expect(Alert.alert).not.toHaveBeenCalled();
 
@@ -545,14 +550,21 @@ it("opens a direct preview and withdraws it with its source without opening a sy
   await view.rerender(
     <EditableImage label="Logo" hasImage onSelect={select} />,
   );
+
+  // Then
+  expect(
+    screen.getByRole("image", { name: "Logo indisponible" }),
+  ).toBeOnTheScreen();
+
+  // When
   await view.rerender(
     <EditableImage label="Logo" hasImage image={image} onSelect={select} />,
   );
 
   // Then
   expect(
-    screen.queryByRole("button", { name: "Fermer" }),
-  ).not.toBeOnTheScreen();
+    screen.getByRole("image", { name: "Miniature : Logo du club" }),
+  ).toBeOnTheScreen();
   expect(
     screen.getByRole("button", { name: "Modifier l’image" }),
   ).toBeEnabled();

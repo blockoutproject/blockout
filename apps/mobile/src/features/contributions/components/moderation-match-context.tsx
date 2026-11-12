@@ -8,6 +8,7 @@ import { useTheme } from "../../../shared/theme/theme-provider";
 import {
   MatchSurface,
   SportingLogo,
+  SportingMedia,
   DivisionPaint,
   formatSportingSchedule,
 } from "../../sporting/match-consultation";
@@ -20,7 +21,7 @@ export interface ModerationMatchContextProps {
   children?: ReactNode;
 }
 
-/** Uses F03 sporting identities/paint without constructing its public dated-match wrapper. */
+/** Uses F03 identities and nominal media slots without fabricating a division or public dated-match wrapper. */
 export function ModerationMatchContext({
   match,
   showMatchLink = true,
@@ -40,13 +41,18 @@ export function ModerationMatchContext({
           { backgroundColor: division?.color ?? context.primary },
         ]}
       >
-        {division && (
+        {division ? (
           <>
             <DivisionPaint division={division} />
             <SportingLogo kind="division" identity={division} />
           </>
+        ) : (
+          <SportingMedia kind="division" identity={match.pool.pool} />
         )}
         <Text
+          accessibilityLabel={match.pool.pool.name}
+          numberOfLines={2}
+          ellipsizeMode="tail"
           style={[
             tokens.typography.strong,
             { color: colors.onDarkAccent, flex: 1 },

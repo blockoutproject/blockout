@@ -1,6 +1,9 @@
 import { SportingMatchLoading } from "../components/sporting-loading";
 import { ContributionReportEntry } from "../../contributions/entry";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
+import {
+  hasReadError,
+  ReadFeedback,
+} from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { PageHeader } from "../../../shared/components/page-header";
@@ -9,8 +12,6 @@ import {
   PageScrollView,
   PageContent,
 } from "../../../shared/components/page";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";
@@ -43,10 +44,10 @@ export function MatchScreen({
   matchId,
   focused = true,
 }: Readonly<MatchScreenProps>) {
-  /** Keeps initial read feedback separate from the accepted match content and its actions. */
+  /** A required Match or public-link ownership failure replaces its dependent summary and actions. */
   function renderMatchContent() {
     if (blockingState) {
-      if (match.isPending) {
+      if (!failed && match.isPending) {
         return <PageContent>{blockingState}</PageContent>;
       }
       return <ScreenState>{blockingState}</ScreenState>;
@@ -108,7 +109,6 @@ export function MatchScreen({
   const queries = useConsultationQueries();
   const match = useQuery(queries.match(matchId));
   const { refetch } = match;
-  const feedback = useActionFeedback();
   // Focus/foreground rereads retain Query state without publishing action feedback.
   useEffect(() => {
     if (focused) {
@@ -145,28 +145,38 @@ export function MatchScreen({
     data?.streamUrl,
   );
 
-  /** A failed explicit refresh keeps authorized content and reports only the attempted read. */
+  /** Refreshes ordinary Match and contribution-owner reads without attributing read failures to an action toast. */
   async function refresh() {
-    feedback.clear();
-    const [result, entryResult] = await Promise.all([
+    await Promise.all([
       match.refetch({ cancelRefetch: false }),
       contribution.refresh(),
     ]);
-    if (
-      (result.isError && result.data && !isAccessDenied(result.error)) ||
-      (entryResult?.isError && !isAccessDenied(entryResult.error))
-    ) {
-      feedback.error();
-    }
   }
 
-  const blockingState = !data ? (
-    <ReadFeedback query={match} loadingContent={<SportingMatchLoading />} />
-  ) : undefined;
+  const ownership = contribution.publicOwnershipUnknown
+    ? contribution.ownershipRead
+    : undefined;
+  const failed =
+    hasReadError(match) || (!!ownership && hasReadError(ownership));
+  const blockingState =
+    hasReadError(match) || !data ? (
+      <ReadFeedback
+        key={matchId}
+        query={match}
+        loadingContent={<SportingMatchLoading />}
+      />
+    ) : ownership && hasReadError(ownership) ? (
+      <ReadFeedback
+        key={`${matchId}:ownership`}
+        query={ownership}
+        onRetry={() => ownership.refetch({ cancelRefetch: false })}
+        loadingContent={null}
+      />
+    ) : undefined;
   return (
     <Page
       header={
-        data ? (
+        data && !failed ? (
           <MatchPageHeader
             match={data.match}
             action={
@@ -185,7 +195,14 @@ export function MatchScreen({
     >
       <PageScrollView
         refreshControl={
-          data ? <DataRefreshControl onRefresh={refresh} /> : undefined
+          data && !failed ? (
+            <DataRefreshControl
+              onRefresh={refresh}
+              fetching={
+                match.isFetching || !!contribution.ownershipRead?.isFetching
+              }
+            />
+          ) : undefined
         }
       >
         {renderMatchContent()}

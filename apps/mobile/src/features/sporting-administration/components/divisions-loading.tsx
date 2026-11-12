@@ -29,7 +29,12 @@ function DivisionLoading() {
       ]}
     >
       <View style={[styles.rail, { backgroundColor: colors.skeletonHeader }]}>
-        <Skeleton width={52} height={52} shape="rectangle" />
+        <Skeleton
+          width={52}
+          height={52}
+          shape="rectangle"
+          radius={tokens.media.radius.preview}
+        />
       </View>
       <View style={styles.copy}>
         <TextSkeleton width={130} />

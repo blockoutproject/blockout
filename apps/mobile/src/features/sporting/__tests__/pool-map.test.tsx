@@ -18,7 +18,10 @@ import {
 } from "@testing-library/react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { getGetPoolStandingsQueryKey } from "../../../../.generated/mobile";
+import {
+  getGetPoolStandingsQueryKey,
+  getListPoolParticipantsQueryKey,
+} from "../../../../.generated/mobile";
 import type {
   ClubLocationResponse,
   PoolParticipantResponse,
@@ -38,10 +41,7 @@ import { matchDetail, sportingId } from "../test-support/consultation-data";
 import { PoolScreen } from "../screens/pool-screen";
 import { PoolMap } from "../components/pool-map";
 import { nativeMapCommands } from "../test-support/native-maps";
-import {
-  TECHNICAL_ERROR,
-  TECHNICAL_ERROR_TITLE,
-} from "../../../shared/components/error-copy";
+import { TECHNICAL_ERROR_TITLE } from "../../../shared/components/error-copy";
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("@react-native-async-storage/async-storage", () =>
@@ -100,6 +100,7 @@ function PrivateQueries({ children }: Readonly<QueryFixtureProps>) {
 }
 
 beforeEach(() => {
+  jest.useFakeTimers({ doNotFake: ["Date"] });
   publicClient = createQueryClient();
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
@@ -120,38 +121,43 @@ beforeEach(() => {
     columns: [],
     rows: [],
   };
-  mockFetch.mockReset().mockImplementation((url: string) => {
-    const parsed = new URL(url);
-    if (parsed.pathname === "/application-access") {
-      return Promise.resolve(Response.json(applicationAccessResponse()));
-    }
-    if (parsed.pathname.endsWith("/participants")) {
-      return Promise.resolve(
-        participantsFailure
-          ? Response.json({}, { status: participantsFailure })
-          : Response.json(participants),
-      );
-    }
-    if (parsed.pathname.endsWith("/standings")) {
-      return Promise.resolve(
-        standingsFailure
-          ? Response.json({}, { status: standingsFailure })
-          : Response.json(table),
-      );
-    }
-    if (parsed.pathname === `/pools/${pool.pool.id}`) {
-      return Promise.resolve(Response.json({ pool }));
-    }
-    return Promise.reject(
-      new Error(`Unexpected synthetic path ${parsed.pathname}`),
-    );
-  });
+  mockFetch.mockReset().mockImplementation(mapResponse);
 });
+
+/** Serves synthetic resource responses through the real generated clients; each scenario declares its outcome above. */
+function mapResponse(url: string) {
+  const parsed = new URL(url);
+  if (parsed.pathname === "/application-access") {
+    return Promise.resolve(Response.json(applicationAccessResponse()));
+  }
+  if (parsed.pathname.endsWith("/participants")) {
+    return Promise.resolve(
+      participantsFailure
+        ? Response.json({}, { status: participantsFailure })
+        : Response.json(participants),
+    );
+  }
+  if (parsed.pathname.endsWith("/standings")) {
+    return Promise.resolve(
+      standingsFailure
+        ? Response.json({}, { status: standingsFailure })
+        : Response.json(table),
+    );
+  }
+  if (parsed.pathname === `/pools/${pool.pool.id}`) {
+    return Promise.resolve(Response.json({ pool }));
+  }
+  return Promise.reject(
+    new Error(`Unexpected synthetic path ${parsed.pathname}`),
+  );
+}
 
 afterEach(async () => {
   await cleanup();
   client?.clear();
   publicClient.clear();
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
   process.env = { ...environment };
   jest.restoreAllMocks();
 });
@@ -320,6 +326,73 @@ it("opens independent participants lazily after the admitted standings pane fail
     screen.queryByText("Localisation à la commune, pas au gymnase."),
   ).toBeNull();
 });
+
+it.each(["success", "known error", "in flight", "never loaded"] as const)(
+  "opens Map with one standings GET when the shared query is %s",
+  async (state) => {
+    // Given: real Query observers share the generated standings key; HTTP alone controls its outcome.
+    participants.items = [
+      participant(sportingId, "Rives", {
+        latitude: 0,
+        longitude: 0,
+        label: "Test city",
+      }),
+    ];
+    table = publishedTable({ "Jou.": "8", "Gag.": "7", "Per.": "1" });
+    standingsFailure = state === "known error" ? 503 : undefined;
+    const pending = Promise.withResolvers<Response>();
+    if (state === "in flight") {
+      mockFetch.mockImplementation((url: string) =>
+        new URL(url).pathname.endsWith("/standings")
+          ? pending.promise
+          : mapResponse(url),
+      );
+    }
+    const user = userEvent.setup();
+    await open(
+      state === "never loaded" ? panel() : <PoolScreen poolId={pool.pool.id} />,
+    );
+    await screen.findAllByRole("tab", { includeHiddenElements: true });
+    await layoutNativeTabs();
+    if (state === "known error") {
+      await screen.findByRole("button", { name: "Réessayer" });
+    } else if (state === "success") {
+      await screen.findByRole("radio", { name: "Afficher en cartes" });
+    }
+
+    // When
+    if (state !== "never loaded") {
+      await user.press(await screen.findByRole("tab", { name: "Carte" }));
+    }
+    await fireEvent(
+      await screen.findByRole("button", { name: "Test city: Rives" }),
+      "press",
+      { stopPropagation: jest.fn() },
+    );
+    if (state === "in flight") {
+      await act(async () => pending.resolve(Response.json(table)));
+    }
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+
+    // Then: cached success/error and the existing attempt are reused; an untouched query still loads once.
+    if (state === "known error") {
+      expect(await screen.findByText("Bilan indisponible")).toBeOnTheScreen();
+    } else {
+      expect(await screen.findByLabelText("Joués : 8")).toBeOnTheScreen();
+    }
+    await waitFor(() => expect(publicClient.isFetching()).toBe(0));
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(url).pathname.endsWith("/standings"),
+      ),
+    ).toHaveLength(1);
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        new URL(url).pathname.endsWith("/participants"),
+      ),
+    ).toHaveLength(1);
+  },
+);
 
 it("opens the existing card without team choices for a single resolved location", async () => {
   // Given: the public city label carries no address precision or fallback state.
@@ -540,7 +613,25 @@ it("distinguishes no usable locations from no participating teams", async () => 
       .filter((node) => node.props.coordinate !== undefined),
   ).toHaveLength(0);
   expect(screen.queryByText(/Aucune équipe/)).toBeNull();
-  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
+  const background = Promise.withResolvers<Response>();
+  mockFetch.mockImplementationOnce(() => background.promise);
+
+  // When: a normal invalidation rereads the empty participants in the background.
+  await act(() => {
+    void client.invalidateQueries({
+      queryKey: getListPoolParticipantsQueryKey(pool.pool.id),
+      exact: true,
+    });
+  });
+  await waitFor(() => expect(client.isFetching()).toBe(1));
+
+  // Then: network work does not impersonate the Actualiser gesture.
+  expect(
+    screen.getByRole("button", { name: "Actualiser", busy: false }),
+  ).toBeOnTheScreen();
+  await act(() => background.resolve(Response.json(participants)));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
   mockFetch.mockClear();
 
   // When: missing geography is reloaded through the existing map read action.
@@ -628,15 +719,11 @@ it("opens participant identity and navigation while the optional standings respo
       label: "Test city",
     }),
   ];
-  let resolveStandings!: (response: Response) => void;
-  const pendingStandings = new Promise<Response>((resolve) => {
-    resolveStandings = resolve;
-  });
-  const ordinaryFetch = mockFetch.getMockImplementation()!;
+  const pendingStandings = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url: string) =>
     new URL(url).pathname.endsWith("/standings")
-      ? pendingStandings
-      : ordinaryFetch(url),
+      ? pendingStandings.promise
+      : mapResponse(url),
   );
   const user = userEvent.setup();
   await open(panel());
@@ -658,11 +745,16 @@ it("opens participant identity and navigation while the optional standings respo
     params: { teamId: sportingId },
   });
   expect(screen.queryByLabelText(/^Joués :/)).toBeNull();
-  await act(async () => resolveStandings(Response.json(table)));
+  await act(async () => pendingStandings.resolve(Response.json(table)));
   await waitFor(() => expect(client.isFetching()).toBe(0));
 });
 
-it.each(["initial failure", "not published", "unmatched row"] as const)(
+it.each([
+  "initial failure",
+  "declared unavailable",
+  "not published",
+  "unmatched row",
+] as const)(
   "keeps markers and the exact team action available with optional standings %s",
   async (state) => {
     // Given
@@ -675,6 +767,9 @@ it.each(["initial failure", "not published", "unmatched row"] as const)(
     ];
     if (state === "initial failure") {
       standingsFailure = 503;
+    }
+    if (state === "declared unavailable") {
+      table.availability = "unavailable";
     }
     if (state === "unmatched row") {
       table = publishedTable({ "Jou.": "8", "Gag.": "7", "Per.": "1" });
@@ -700,6 +795,11 @@ it.each(["initial failure", "not published", "unmatched row"] as const)(
 
     // Then
     expect(screen.getByText("Rives")).toBeOnTheScreen();
+    if (state === "initial failure" || state === "declared unavailable") {
+      expect(screen.getByText("Bilan indisponible")).toBeOnTheScreen();
+    } else {
+      expect(screen.queryByText("Bilan indisponible")).not.toBeOnTheScreen();
+    }
     expect(screen.queryByLabelText(/^Joués :/)).toBeNull();
     expect(screen.queryByLabelText(/^Gagnés :/)).toBeNull();
     expect(screen.queryByLabelText(/^Perdus :/)).toBeNull();
@@ -917,7 +1017,7 @@ it("refreshes both resources and drops a selected invalidated locality", async (
   ]);
 });
 
-it("retains authorized markers, selection and published record after technical refresh failures", async () => {
+it("keeps markers and selection usable with a simple unavailable record after a standings refresh failure", async () => {
   // Given
   table = publishedTable({ "Jou.": "8", "Gag.": "7", "Per.": "1" });
   participants.items = [
@@ -935,27 +1035,129 @@ it("retains authorized markers, selection and published record after technical r
     "press",
     { stopPropagation: jest.fn() },
   );
-  await screen.findByRole("link", { name: "Rives" });
-  expect(await screen.findByLabelText("Joués : 8")).toBeOnTheScreen();
-  participantsFailure = 503;
+  await screen.findByLabelText("Joués : 8");
   standingsFailure = 503;
 
   // When
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
-  // Then
-  expect(
-    await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
-  ).toBeOnTheScreen();
+  // Then: retained facts stay in Query while only this optional display changes.
+  expect(await screen.findByText("Bilan indisponible")).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   expect(
     screen.getByRole("button", { name: "La Rochelle: Rives" }),
   ).toBeOnTheScreen();
   expect(screen.getByRole("link", { name: "Rives" })).toBeOnTheScreen();
-  expect(screen.queryByText("Aucune localisation disponible")).toBeNull();
-  expect(screen.getByLabelText("Joués : 8")).toBeOnTheScreen();
-  expect(screen.getByLabelText("Gagnés : 7")).toBeOnTheScreen();
-  expect(screen.getByLabelText("Perdus : 1")).toBeOnTheScreen();
+  expect(screen.queryByLabelText(/^Joués :/)).not.toBeOnTheScreen();
+  expect(
+    client.getQueryData(getGetPoolStandingsQueryKey(pool.pool.id)),
+  ).toEqual(table);
 });
+
+it.each(["initial", "refresh"] as const)(
+  "keeps the participant error card during delayed Retry after %s failure and restores valid selection",
+  async (origin) => {
+    // Given
+    participants.items = [
+      participant(sportingId, "Rives", {
+        latitude: 46.16,
+        longitude: -1.15,
+        label: "La Rochelle",
+      }),
+    ];
+    participantsFailure = origin === "initial" ? 503 : undefined;
+    const user = userEvent.setup();
+    await open();
+    await screen.findByRole("tab", { name: "Carte" });
+    await layoutNativeTabs();
+    if (origin === "refresh") {
+      await fireEvent(
+        await screen.findByRole("button", { name: "La Rochelle: Rives" }),
+        "press",
+        { stopPropagation: jest.fn() },
+      );
+      await screen.findByRole("link", { name: "Rives" });
+      const nativeMap = screen.getByTestId("native-map-boundary");
+      await fireEvent(nativeMap, "mapReady");
+      await fireEvent(nativeMap, "layout", {
+        nativeEvent: { layout: { x: 0, y: 0, width: 370, height: 440 } },
+      });
+      expect(nativeMapCommands.fitToCoordinates).toHaveBeenCalledTimes(1);
+      participantsFailure = 503;
+      await fireEvent(
+        screen.getByLabelText("Actualiser les données"),
+        "refresh",
+      );
+    }
+    await screen.findByRole("button", { name: "Réessayer", busy: false });
+    expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
+    expect(screen.queryByText("Aucune localisation disponible")).toBeNull();
+    const pending = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url: string) =>
+      new URL(url).pathname.endsWith("/participants")
+        ? pending.promise
+        : mapResponse(url),
+    );
+    mockFetch.mockClear();
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then: the same failed region owns its explicit attempt, including with cached participants.
+    expect(
+      await screen.findByRole("button", { name: "Réessayer", busy: true }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
+    ).toBeOnTheScreen();
+    expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
+    expect(
+      screen.queryByRole("button", { name: "La Rochelle: Rives" }),
+    ).not.toBeOnTheScreen();
+    if (origin === "refresh") {
+      expect(
+        screen.queryByRole("link", { name: "Rives" }),
+      ).not.toBeOnTheScreen();
+    }
+    expect(
+      screen.queryByLabelText("Chargement des participants"),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByText("Aucune localisation disponible")).toBeNull();
+    expect(mockFetch.mock.calls.map(([url]) => new URL(url).pathname)).toEqual([
+      `/pools/${pool.pool.id}/participants`,
+    ]);
+
+    // When: another failure leaves a usable Retry, then a later explicit read succeeds.
+    await act(async () => pending.resolve(Response.json({}, { status: 503 })));
+    await screen.findByRole("button", { name: "Réessayer", busy: false });
+    participantsFailure = undefined;
+    mockFetch.mockImplementation(mapResponse);
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: "La Rochelle: Rives" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+    expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
+    // The real access provider may recheck admission after 503; Retry owns only these pool reads.
+    expect(
+      mockFetch.mock.calls
+        .map(([url]) => new URL(url).pathname)
+        .filter((path) => path.startsWith(`/pools/${pool.pool.id}/`)),
+    ).toEqual([
+      `/pools/${pool.pool.id}/participants`,
+      `/pools/${pool.pool.id}/participants`,
+    ]);
+    if (origin === "refresh") {
+      expect(screen.getByRole("link", { name: "Rives" })).toBeOnTheScreen();
+      await fireEvent(screen.getByTestId("native-map-boundary"), "layout", {
+        nativeEvent: { layout: { x: 0, y: 0, width: 370, height: 440 } },
+      });
+      expect(nativeMapCommands.fitToCoordinates).toHaveBeenCalledTimes(1);
+    }
+  },
+);
 
 it.each([401, 403, 404])(
   "withdraws a refused optional record (%i) without hiding participants or reviving it on later 503",
@@ -982,14 +1184,14 @@ it.each([401, 403, 404])(
 
     // When
     await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-    await waitFor(() => {
-      expect(client.isFetching()).toBe(0);
-      expect(screen.queryByLabelText(/^Joués :/)).toBeNull();
-    });
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+    await waitFor(() => expect(publicClient.isFetching()).toBe(0));
+    await screen.findByText("Bilan indisponible");
     standingsFailure = 503;
     mockFetch.mockClear();
     await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
     await waitFor(() => expect(client.isFetching()).toBe(0));
+    await waitFor(() => expect(publicClient.isFetching()).toBe(0));
 
     // Then
     expect(
@@ -1052,37 +1254,6 @@ it.each([401, 403, 404])(
     expect(screen.queryByText("Aucune localisation disponible")).toBeNull();
   },
 );
-
-it("retries an initial participant failure without announcing empty geography", async () => {
-  // Given
-  participantsFailure = 503;
-  participants.items = [
-    participant(sportingId, "Rives", {
-      latitude: 46.16,
-      longitude: -1.15,
-      label: "La Rochelle",
-    }),
-  ];
-  const user = userEvent.setup();
-  await open();
-  await screen.findByRole("tab", { name: "Carte" });
-  await layoutNativeTabs();
-  await screen.findByRole("button", { name: "Réessayer" });
-  expect(screen.queryByText("Aucune localisation disponible")).toBeNull();
-  participantsFailure = undefined;
-  mockFetch.mockClear();
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
-
-  // Then
-  expect(
-    await screen.findByRole("button", { name: "La Rochelle: Rives" }),
-  ).toBeOnTheScreen();
-  expect(mockFetch.mock.calls.map(([url]) => new URL(url).pathname)).toEqual([
-    `/pools/${pool.pool.id}/participants`,
-  ]);
-});
 
 it("replaces cached empty geography with a read error and restores it only after a successful retry", async () => {
   // Given
@@ -1265,12 +1436,12 @@ it("ignores an already pending zoom and team action after the map becomes inacti
       label: "Test city",
     }),
   ];
-  let resolveCamera!: (camera: { altitude: number; zoom: number }) => void;
+  const pendingCamera = Promise.withResolvers<{
+    altitude: number;
+    zoom: number;
+  }>();
   nativeMapCommands.getCamera.mockImplementationOnce(
-    () =>
-      new Promise((resolve) => {
-        resolveCamera = resolve;
-      }),
+    () => pendingCamera.promise,
   );
   const user = userEvent.setup();
   const rendered = await open();
@@ -1292,7 +1463,7 @@ it("ignores an already pending zoom and team action after the map becomes inacti
   // When
   await rendered.rerender(panel(false));
   await user.press(screen.getByRole("link", { name: "Rives" }));
-  await act(async () => resolveCamera({ altitude: 10000, zoom: 8 }));
+  await act(async () => pendingCamera.resolve({ altitude: 10000, zoom: 8 }));
 
   // Then
   expect(nativeMapCommands.animateCamera).not.toHaveBeenCalled();

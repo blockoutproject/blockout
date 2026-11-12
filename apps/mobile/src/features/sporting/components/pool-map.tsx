@@ -34,7 +34,10 @@ import { DataRefreshControl } from "../../../shared/components/data-refresh-cont
 import { Button } from "../../../shared/components/button";
 import { IconButton } from "../../../shared/components/icon-button";
 
-import { ReadFeedback } from "../../../shared/components/read-feedback";
+import {
+  hasReadError,
+  ReadFeedback,
+} from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { EmptyState } from "../../../shared/components/state-card";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
@@ -44,7 +47,6 @@ import { useReducedMotion } from "../../../shared/theme/use-reduced-motion";
 import { consultationOpeningPolicy } from "../api/consultation-queries";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 import { useSportingNavigation } from "../navigation";
-import { resourceUnavailable } from "../model/consultation-availability";
 import {
   publishedMapRecord,
   type PublishedMapRecord,
@@ -57,7 +59,7 @@ import { Skeleton } from "../../../shared/components/skeleton";
 /** The bounded native map and its pending participant read reserve the same content height. */
 const mapHeight = 440;
 
-/** One pool's participant map; active controls the existing accepted-opening boundary. */
+/** One exact pool's participant map; active permits its retained pane's explicit actions. */
 export interface PoolMapProps {
   pool: PoolSummaryResponse;
   active?: boolean;
@@ -65,7 +67,10 @@ export interface PoolMapProps {
   children?: ReactNode;
 }
 
-/** Reads participants and an optional record independently; empty geography recovers on its card and native providers own basemap loading. */
+/**
+ * Keeps participant failures in this pane and its authorized native map mounted; optional standings never block navigation.
+ * Its refresh host and map geometry stay attached while failed content disables its pull and covers the retained map.
+ */
 export function PoolMap({
   pool,
   active = true,
@@ -76,89 +81,114 @@ export function PoolMap({
     ...queries.participants(pool.pool.id),
     ...consultationOpeningPolicy,
   });
-  const standings = useQuery(queries.standings(pool.pool.id));
-  const feedback = useActionFeedback();
-  const currentActive = useRef(active);
-  useLayoutEffect(() => {
-    currentActive.current = active;
-  }, [active]);
+  const standings = useQuery({
+    ...queries.standings(pool.pool.id),
+    refetchOnMount: false,
+    retryOnMount: false,
+  });
+  const [refreshing, setRefreshing] = useState(false);
   const data = participants.data;
   const hasLocations = data?.items.some((item) => item.location) ?? false;
+  const failed = hasReadError(participants);
+  const recordUnavailable =
+    hasReadError(standings) || standings.data?.availability === "unavailable";
 
-  /** Refetches both existing resources without making optional statistics a condition of the map. */
+  /** Refetches both existing resources; optional statistics never condition map identity or navigation. */
   async function refresh() {
-    if (!active) {
+    if (!active || refreshing) {
       return;
     }
-    feedback.clear();
-    const [currentParticipants, currentStandings] = await Promise.all([
-      participants.refetch({ cancelRefetch: false }),
-      standings.refetch({ cancelRefetch: false }),
-    ]);
-    if (
-      currentActive.current &&
-      currentParticipants.data?.items.some((item) => item.location) &&
-      [currentParticipants, currentStandings].some(
-        (result) => result.isError && !resourceUnavailable(result.error),
-      )
-    ) {
-      feedback.error();
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        participants.refetch({ cancelRefetch: false }),
+        standings.refetch({ cancelRefetch: false }),
+      ]);
+    } finally {
+      setRefreshing(false);
     }
   }
 
-  const refreshControl =
-    data && hasLocations ? (
-      <DataRefreshControl onRefresh={refresh} enabled={active} />
-    ) : undefined;
-  if (!data || !hasLocations) {
-    return (
-      <PageScrollView refreshControl={refreshControl}>
-        {participants.isLoading ? (
-          <PageContent>
-            {children}
-            <MapLoading />
-          </PageContent>
-        ) : (
-          <>
-            {children && (
-              <PageContent style={styles.stateControls}>{children}</PageContent>
-            )}
-            <ScreenState>
-              {!data || participants.isError ? (
-                <ReadFeedback
-                  query={participants}
-                  loadingContent={<MapLoading />}
-                />
-              ) : (
-                <EmptyState
-                  title="Aucune localisation disponible"
-                  description="La localisation des équipes n’est pas renseignée."
-                >
-                  <Button
-                    label="Actualiser"
-                    leadingIcon={RefreshCw}
-                    onPress={() => void refresh()}
-                    loading={participants.isFetching || standings.isFetching}
-                    disabled={!active}
-                  />
-                </EmptyState>
-              )}
-            </ScreenState>
-          </>
-        )}
-      </PageScrollView>
-    );
-  }
   return (
-    <PageScrollView alwaysBounceVertical refreshControl={refreshControl}>
-      <PageContent>
-        {children}
-        <ParticipantMap
-          items={data.items}
-          standings={standings.data}
-          active={active}
+    <PageScrollView
+      alwaysBounceVertical={hasLocations && !failed}
+      refreshControl={
+        <DataRefreshControl
+          onRefresh={refresh}
+          enabled={active && hasLocations && !failed}
+          fetching={participants.isFetching || standings.isFetching}
         />
-      </PageContent>
+      }
+    >
+      {/* Anchor the overlay after the pager's scroll inset, retaining the map's normal-flow bounds. */}
+      <View style={styles.content} collapsable={false}>
+        {data && hasLocations && (
+          <PageContent
+            style={failed ? styles.hidden : undefined}
+            pointerEvents={failed ? "none" : "auto"}
+            accessibilityElementsHidden={failed}
+            importantForAccessibility={failed ? "no-hide-descendants" : "auto"}
+          >
+            {children}
+            <ParticipantMap
+              items={data.items}
+              standings={standings.data}
+              recordUnavailable={recordUnavailable}
+              active={active && !failed}
+            />
+          </PageContent>
+        )}
+        {failed ? (
+          <ScreenState
+            style={hasLocations ? StyleSheet.absoluteFill : undefined}
+          >
+            <ReadFeedback
+              key={pool.pool.id}
+              query={participants}
+              onRetry={async () => {
+                if (active) {
+                  await participants.refetch({ cancelRefetch: false });
+                }
+              }}
+              loadingContent={null}
+            />
+          </ScreenState>
+        ) : !hasLocations ? (
+          participants.isLoading ? (
+            <PageContent>
+              {children}
+              <MapLoading />
+            </PageContent>
+          ) : (
+            <>
+              {children && (
+                <PageContent style={styles.stateControls}>
+                  {children}
+                </PageContent>
+              )}
+              <ScreenState>
+                {data && (
+                  <EmptyState
+                    title="Aucune localisation disponible"
+                    description="La localisation des équipes n’est pas renseignée."
+                  >
+                    <Button
+                      label="Actualiser"
+                      leadingIcon={RefreshCw}
+                      onPress={() => void refresh()}
+                      loading={
+                        refreshing &&
+                        (participants.isFetching || standings.isFetching)
+                      }
+                      disabled={!active}
+                    />
+                  </EmptyState>
+                )}
+              </ScreenState>
+            </>
+          )
+        ) : null}
+      </View>
     </PageScrollView>
   );
 }
@@ -208,9 +238,11 @@ function participantPoints(
 function ParticipantMap({
   items,
   standings,
+  recordUnavailable,
   active,
 }: Readonly<{
   active: boolean;
+  recordUnavailable: boolean;
   items: PoolParticipantResponse[];
   standings: PoolStandingsResponse | undefined;
 }>) {
@@ -321,7 +353,9 @@ function ParticipantMap({
         onMapReady={() => setReady(true)}
         onLayout={({ nativeEvent }) => {
           const { width, height } = nativeEvent.layout;
-          setLaidOut(width > 0 && height > 0);
+          if (width > 0 && height > 0) {
+            setLaidOut(true);
+          }
         }}
         onPress={() => setSelectedId(undefined)}
       >
@@ -469,7 +503,12 @@ function ParticipantMap({
               <ParticipantSummary
                 participant={selected}
                 active={active}
-                record={publishedMapRecord(standings, selected.team.team.id)}
+                recordUnavailable={recordUnavailable}
+                record={
+                  recordUnavailable
+                    ? undefined
+                    : publishedMapRecord(standings, selected.team.team.id)
+                }
               />
             </ScrollView>
           </View>
@@ -484,7 +523,9 @@ function ParticipantSummary({
   participant,
   active,
   record,
+  recordUnavailable,
 }: Readonly<{
+  recordUnavailable: boolean;
   participant: PoolParticipantResponse;
   active: boolean;
   record: PublishedMapRecord | undefined;
@@ -518,6 +559,13 @@ function ParticipantSummary({
           color={colors.secondaryText}
         />
       </Pressable>
+      {recordUnavailable && (
+        <Text
+          style={[tokens.typography.metadata, { color: colors.secondaryText }]}
+        >
+          Bilan indisponible
+        </Text>
+      )}
       {record && (
         <View style={styles.record}>
           {record.proportion && <WinLossBar {...record.proportion} />}
@@ -563,6 +611,8 @@ function ParticipantSummary({
 }
 
 const styles = StyleSheet.create({
+  content: { flex: 1 },
+  hidden: { opacity: 0 },
   stateControls: { paddingBottom: 0 },
   map: {
     height: mapHeight,

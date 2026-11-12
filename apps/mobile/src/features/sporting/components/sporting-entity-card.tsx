@@ -192,6 +192,7 @@ function EntityCardSkeleton() {
         <Skeleton
           width={tokens.size.media.entity}
           height={tokens.size.media.entity}
+          radius={tokens.media.radius.tile}
         />
         <View style={styles.name}>
           <Skeleton />

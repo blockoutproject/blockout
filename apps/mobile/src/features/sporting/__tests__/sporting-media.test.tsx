@@ -58,7 +58,7 @@ it.each([
     ).toBeOnTheScreen();
     expect(screen.queryByText("VR")).not.toBeOnTheScreen();
     if (error) {
-      expect(screen.getByText("Logo indisponible")).toBeOnTheScreen();
+      expect(screen.queryByText("Logo indisponible")).not.toBeOnTheScreen();
     }
   },
 );
@@ -272,7 +272,7 @@ it.each(["foreground", "atmosphere"] as const)(
         name: `Logo indisponible : ${identity.name}`,
       }),
     ).toBeOnTheScreen();
-    expect(screen.getByText("Logo indisponible")).toBeOnTheScreen();
+    expect(screen.queryByText("Logo indisponible")).not.toBeOnTheScreen();
     expect(
       screen.getByRole("image", { name: "Logo : Autre équipe" }),
     ).toBeOnTheScreen();

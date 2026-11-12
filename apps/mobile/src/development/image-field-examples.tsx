@@ -11,7 +11,7 @@ import { useTheme } from "../shared/theme/theme-provider";
 import { Button } from "../shared/components/button";
 import { tokens } from "../shared/theme/tokens";
 
-/** Isolated native qualification host; accepted previews contain memory data URIs, never retained picker files or uploads. */
+/** Isolated native qualification host; accepted images contain memory data URIs, never retained picker files or uploads. */
 export function ImageFieldExamplesScreen() {
   const { colors } = useTheme();
   const [images, setImages] = useState<ImageFieldImage[]>([]);
@@ -28,7 +28,7 @@ export function ImageFieldExamplesScreen() {
       if (fail) {
         throw new Error("Demonstration preparation failure");
       }
-      // This preview-only host checks picker metadata, not authoritative upload contents.
+      // This display-only host checks picker metadata, not authoritative upload contents.
       if (
         assets.some(
           (asset) =>
@@ -93,7 +93,7 @@ export function ImageFieldExamplesScreen() {
             </View>
           ))}
           <Button
-            label="Charger un aperçu de test"
+            label="Charger une image de test"
             onPress={() => {
               const source = Image.resolveAssetSource(
                 require("./assets/image-field-sample.png"),

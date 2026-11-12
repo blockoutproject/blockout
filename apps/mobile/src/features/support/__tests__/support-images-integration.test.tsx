@@ -281,7 +281,7 @@ it("requires explicit removal of an oversized image, retains other files after t
   expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
   expect(good.exists).toBe(true);
   expect(
-    screen.getByRole("button", { name: "Aperçu : Image 1" }),
+    screen.getByRole("image", { name: "Miniature : Image 1" }),
   ).toBeOnTheScreen();
 
   // When
@@ -329,7 +329,7 @@ it("retains the sent bytes until settlement after unmount, without restoring a r
   );
   expect(prepared.exists).toBe(false);
   await openSupport();
-  expect(screen.queryByRole("button", { name: /Aperçu : Image/ })).toBeNull();
+  expect(screen.queryByRole("image", { name: /Miniature : Image/ })).toBeNull();
   expect(screen.queryByText("Demande reçue")).toBeNull();
 });
 
@@ -404,6 +404,6 @@ it("discards selected images and late preparation across guest → A → guest u
   // Then
   expect(old.delete).toHaveBeenCalled();
   expect(screen.getByLabelText("Titre")).toHaveDisplayValue("");
-  expect(screen.queryByRole("button", { name: /Aperçu : Image/ })).toBeNull();
+  expect(screen.queryByRole("image", { name: /Miniature : Image/ })).toBeNull();
   expect(supportHttp).not.toHaveBeenCalled();
 });

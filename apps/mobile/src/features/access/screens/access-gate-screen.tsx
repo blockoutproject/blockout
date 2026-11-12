@@ -5,7 +5,7 @@ import {
 } from "../../../shared/components/page";
 import { ErrorState } from "../../../shared/components/state-card";
 import { applicationUpdateMessage } from "../application-update-message";
-import { Image } from "expo-image";
+import { RoundedContainedImage } from "../../../shared/components/rounded-contained-image";
 import { ImageFallback } from "../../../shared/components/image-fallback";
 import { useRouter } from "expo-router";
 import { X } from "lucide-react-native";
@@ -203,9 +203,8 @@ function GateImage({ uri }: Readonly<{ uri?: string | null }>) {
   const { colors } = useTheme();
   const [failed, setFailed] = useState(false);
   return uri && !failed ? (
-    <Image
+    <RoundedContainedImage
       source={{ uri }}
-      contentFit="contain"
       accessible={false}
       style={styles.media}
       onError={() => setFailed(true)}
@@ -311,7 +310,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.xl,
     alignItems: "center",
   },
-  media: { width: "100%", maxWidth: 280, height: 140 },
+  media: {
+    width: "100%",
+    maxWidth: 280,
+    height: 140,
+    borderRadius: tokens.media.radius.profile,
+  },
   placeholder: {
     alignItems: "center",
     width: "100%",
@@ -320,7 +324,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: tokens.border.thin,
     borderStyle: "dashed",
-    borderRadius: tokens.radius.control,
+    borderRadius: tokens.media.radius.profile,
+    overflow: "hidden",
     padding: tokens.spacing.sm,
   },
   copy: { ...tokens.typography.body, lineHeight: 21 },

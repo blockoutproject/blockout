@@ -172,7 +172,7 @@ const spacing = {
   optical: 2,
 };
 
-/** Active Core radius roles, including the distinct entity-media and preview radii. */
+/** Active Core radius values; media roles below project their existing aliases by frame size. */
 const radius = {
   // UI Library Inputs / Checkbox 6476:136382 retains the compact selection corner.
   xs: 4,
@@ -207,7 +207,14 @@ export const tokens = {
   },
   radius,
   media: {
-    radius: { preview: radius.lg },
+    radius: {
+      inline: radius.xs,
+      compact: radius.media,
+      list: radius.sm,
+      tile: radius.control,
+      preview: radius.lg,
+      profile: radius.panelInset,
+    },
     // Product identity patterns repeat the same accepted image behind the foreground slot.
     identityAtmosphere: { blur: 40, opacity: 0.23 },
   },

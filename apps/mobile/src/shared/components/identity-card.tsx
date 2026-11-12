@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
   artwork: {
     width: tokens.size.media.profile,
     height: tokens.size.media.profile,
-    borderRadius: tokens.radius.panelInset,
+    borderRadius: tokens.media.radius.profile,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",

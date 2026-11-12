@@ -3,6 +3,7 @@ import { useState, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import { tokens } from "../theme/tokens";
 import { Skeleton } from "./skeleton";
+import { RoundedContainedImage } from "./rounded-contained-image";
 
 /** One authorized identity source; the caller keys this presentation by URI and supplies its named fallback. */
 export interface IdentityArtworkProps {
@@ -27,21 +28,28 @@ export function IdentityArtwork({
     "loading",
   );
   const pending = uri ? status === "loading" : loading;
+  const artworkProps = {
+    accessible: true,
+    accessibilityRole: "image",
+    accessibilityLabel: label,
+    accessibilityState: { busy: pending },
+    source: { uri },
+    style: styles.image,
+    cachePolicy,
+    onDisplay: () => setStatus("displayed"),
+    onError: () => setStatus("failed"),
+  } satisfies ImageProps;
   return (
     <View style={styles.artwork}>
       {uri && status !== "failed" ? (
-        <Image
-          accessible
-          accessibilityRole="image"
-          accessibilityLabel={label}
-          accessibilityState={{ busy: pending }}
-          source={{ uri }}
-          style={StyleSheet.absoluteFill}
-          contentFit={contentFit}
-          cachePolicy={cachePolicy}
-          onDisplay={() => setStatus("displayed")}
-          onError={() => setStatus("failed")}
-        />
+        contentFit === "contain" ? (
+          <RoundedContainedImage
+            {...artworkProps}
+            radius={tokens.media.radius.profile}
+          />
+        ) : (
+          <Image {...artworkProps} contentFit={contentFit} />
+        )
       ) : (
         !pending && fallback
       )}
@@ -58,6 +66,7 @@ export function IdentityArtwork({
             width={tokens.size.media.profile}
             height={tokens.size.media.profile}
             shape="rectangle"
+            radius={tokens.media.radius.profile}
           />
         </View>
       )}
@@ -69,7 +78,13 @@ const styles = StyleSheet.create({
   artwork: {
     width: tokens.size.media.profile,
     height: tokens.size.media.profile,
+    borderRadius: tokens.media.radius.profile,
+    overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
+  },
+  image: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: tokens.media.radius.profile,
   },
 });

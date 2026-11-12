@@ -22,7 +22,7 @@ export interface PersonalCalendarProps {
   bypass: boolean;
 }
 
-/** Keeps personal envelopes canonical in Query while selecting only F03 days for its presentation. */
+/** Keeps personal envelopes canonical in Query; returning to a failed shared pane requires explicit Retry. */
 export function PersonalCalendar({
   owner,
   request,
@@ -50,7 +50,7 @@ export function PersonalCalendar({
   );
   const calendar = useInfiniteQuery({
     ...options,
-    enabled: active,
+    enabled: (query) => active && query.state.status !== "error",
     select: (data) => {
       const latest = data.pages.at(-1);
       return {

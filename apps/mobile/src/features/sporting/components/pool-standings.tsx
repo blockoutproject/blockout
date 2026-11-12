@@ -26,6 +26,7 @@ import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 import { SportingLogo } from "./sporting-identity";
+import { SportingMedia } from "./sporting-media";
 import { StandingCards } from "./standing-cards";
 import { StandingsLoading } from "./standings-loading";
 
@@ -208,7 +209,7 @@ interface StandingEntryProps {
   active: boolean;
 }
 
-/** Preserves source labels and optional values; only an explicitly associated team opens a route. */
+/** Preserves source labels, nominal media and optional values; only an explicitly associated team opens a route. */
 function StandingEntry({
   row,
   columns,
@@ -265,9 +266,15 @@ function StandingEntry({
         {row.position ?? "—"}
       </Text>
       <View style={styles.identity}>
-        {row.team && (
+        {row.team ? (
           <SportingLogo
             identity={row.team}
+            kind="team"
+            size={tokens.size.media.match}
+          />
+        ) : (
+          <SportingMedia
+            identity={{ name: row.sourceName }}
             kind="team"
             size={tokens.size.media.match}
           />

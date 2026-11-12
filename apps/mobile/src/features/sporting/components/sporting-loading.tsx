@@ -67,6 +67,7 @@ function MatchSummarySkeleton() {
         <Skeleton
           width={tokens.size.media.row}
           height={tokens.size.media.row}
+          radius={tokens.media.radius.tile}
         />
         <View style={styles.copy}>
           <TextSkeleton width="85%" />
@@ -90,6 +91,7 @@ function MatchSummarySkeleton() {
             <Skeleton
               width={tokens.size.media.row}
               height={tokens.size.media.row}
+              radius={tokens.media.radius.tile}
             />
             <View style={styles.copy}>
               <TextSkeleton role="navigation" width="85%" />

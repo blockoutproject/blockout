@@ -1,19 +1,21 @@
-import { Image } from "expo-image";
+import { RoundedContainedImage } from "../../../shared/components/rounded-contained-image";
 import { BlurredArtwork } from "../../../shared/components/blurred-artwork";
 import { ImageFallback } from "../../../shared/components/image-fallback";
 import { useState, type ReactNode } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import type { SportingIdentityResponse } from "../../../../.generated/schemas/index.zod";
 import { Skeleton } from "../../../shared/components/skeleton";
 import { useNativeImageLifecycle } from "../../../shared/images/use-native-image-lifecycle";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
+import { mediaRadius } from "../../../shared/theme/media-radius";
 
-/** Native sports media keeps a shared skeleton until a public URI or admitted authenticated preview is displayed. */
+/** Optional sports artwork keeps its fixed slot and native lifecycle; absent or failed artwork uses the nominal fallback. */
 export interface SportingMediaProps {
   identity: Pick<SportingIdentityResponse, "name" | "shortName">;
   uri?: string;
   loading?: boolean;
+  /** Failure uses the nominal fallback; only its accessible alternative distinguishes absence. */
   error?: boolean;
   kind: "club" | "team" | "division";
   /** The owning composition sizes the slot; Media/Logo and Entity Card retain their approved shapes. */
@@ -38,7 +40,7 @@ export function SportingMedia({
   function renderArtwork() {
     if (available) {
       return (
-        <Image
+        <RoundedContainedImage
           key={image.attemptKey}
           accessible
           accessibilityRole="image"
@@ -47,18 +49,26 @@ export function SportingMedia({
           source={{ uri }}
           cachePolicy="none"
           recyclingKey={uri}
-          contentFit="contain"
           onDisplay={image.onDisplay}
           onError={image.onError}
           style={{
-            width: kind === "division" ? size : size * (5 / 6),
-            height: kind === "division" ? size : size * (5 / 6),
+            width: imageSize,
+            height: imageSize,
+            borderRadius: mediaRadius(imageSize),
+            overflow: "hidden",
           }}
         />
       );
     }
     if (loading) {
-      return <Skeleton width={size} height={size} shape="rectangle" />;
+      return (
+        <Skeleton
+          width={size}
+          height={size}
+          shape="rectangle"
+          radius={borderRadius}
+        />
+      );
     }
     return (
       <ImageFallback
@@ -75,18 +85,20 @@ export function SportingMedia({
   const failed = image.status === "failed";
   const available = !!uri && !failed;
   const pending = available && image.status === "pending";
-  const { notice, label } = mediaDescription(
-    available,
-    loading,
-    error || failed,
-  );
-  const borderRadius =
-    presentation === "entity" ? tokens.radius.media : tokens.radius.sm;
+  const label = available
+    ? "Logo"
+    : loading
+      ? "Chargement du logo"
+      : error || failed
+        ? "Logo indisponible"
+        : "Logo absent";
+  const imageSize = kind === "division" ? size : size * (5 / 6);
+  const borderRadius = mediaRadius(size);
   const logo = (
     <View
       style={[
         styles.media,
-        notice ? { minWidth: size } : { width: size },
+        { width: size },
         { borderRadius, backgroundColor: colors.logoSurface },
       ]}
     >
@@ -110,18 +122,15 @@ export function SportingMedia({
         {renderArtwork()}
         {pending && (
           <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-            <Skeleton width={size} height={size} shape="rectangle" />
+            <Skeleton
+              width={size}
+              height={size}
+              shape="rectangle"
+              radius={borderRadius}
+            />
           </View>
         )}
       </View>
-      {notice && (
-        <Text
-          accessible={false}
-          style={[styles.notice, { color: colors.logoInk }]}
-        >
-          {notice}
-        </Text>
-      )}
     </View>
   );
   if (!renderWithAtmosphere) {
@@ -144,25 +153,6 @@ export function SportingMedia({
     />
   ) : null;
   return renderWithAtmosphere(logo, atmosphere);
-}
-
-/** Distinguishes a retained stale logo from absent, pending and failed artwork. */
-function mediaDescription(
-  available: boolean,
-  loading: boolean,
-  error: boolean,
-) {
-  let notice: string | undefined;
-  if (error) {
-    notice = available ? "Logo non actualisé" : "Logo indisponible";
-  }
-  if (available) {
-    return { notice, label: error ? "Logo non actualisé" : "Logo" };
-  }
-  if (loading) {
-    return { notice, label: "Chargement du logo" };
-  }
-  return { notice, label: error ? "Logo indisponible" : "Logo absent" };
 }
 
 /** Decorative cover inputs preserve the current source and its accepted tint without introducing fallback artwork. */
@@ -219,12 +209,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
-  },
-  notice: {
-    ...tokens.typography.metadata,
-    textAlign: "center",
-    marginTop: tokens.spacing.xs,
-    paddingHorizontal: tokens.spacing.xs,
-    paddingBottom: tokens.spacing.xs,
   },
 });

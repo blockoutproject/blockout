@@ -278,7 +278,7 @@ suite(`support receipt through real adapters: ${scenario}`, () => {
     await user.press(
       screen.getByRole("button", { name: "Ajouter des images" }),
     );
-    await screen.findByRole("button", { name: "Aperçu : Image 2" });
+    await screen.findByRole("image", { name: "Miniature : Image 2" });
 
     // When
     await user.press(
@@ -312,10 +312,10 @@ suite(`support receipt through real adapters: ${scenario}`, () => {
         true,
       );
       expect(
-        screen.getByRole("button", { name: "Aperçu : Image 1" }),
+        screen.getByRole("image", { name: "Miniature : Image 1" }),
       ).toBeOnTheScreen();
       expect(
-        screen.getByRole("button", { name: "Aperçu : Image 2" }),
+        screen.getByRole("image", { name: "Miniature : Image 2" }),
       ).toBeOnTheScreen();
       expect(originals.every((file) => file.exists)).toBe(true);
       expect(

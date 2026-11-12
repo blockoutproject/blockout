@@ -7,7 +7,6 @@ import {
 import { type LegendListRef } from "@legendapp/list/react-native";
 import {
   hashKey,
-  isCancelledError,
   type InfiniteData,
   type UseInfiniteQueryResult,
 } from "@tanstack/react-query";
@@ -15,7 +14,6 @@ import { useNavigation } from "expo-router";
 import { RefreshCw } from "lucide-react-native";
 import {
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -30,15 +28,16 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { Button } from "../../../shared/components/button";
-import { ErrorState, EmptyState } from "../../../shared/components/state-card";
+import { EmptyState } from "../../../shared/components/state-card";
+import {
+  hasReadError,
+  ReadFeedback,
+} from "../../../shared/components/read-feedback";
 import { CalendarLoading } from "./calendar-loading";
 import { useCalendarLayout } from "../hooks/use-calendar-layout";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { ListContinuation } from "../../../shared/components/list-continuation";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { resourceUnavailable } from "../model/consultation-availability";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
@@ -55,6 +54,7 @@ import { genderLabel } from "../classification-presentation";
 import { CalendarMatch } from "./calendar-match";
 import { DivisionPaint } from "./division-paint";
 import { SportingLogo, SportingArtwork } from "./sporting-identity";
+import { SportingMedia } from "./sporting-media";
 
 /** One native tab owns its exact calendar traversal; inactive panels keep data without issuing reads. */
 export interface SportingCalendarProps {
@@ -96,13 +96,15 @@ export interface SportingCalendarViewProps {
     | "data"
     | "isPending"
     | "isError"
+    | "errorUpdatedAt"
+    | "refetch"
     | "isFetching"
     | "isFetchNextPageError"
     | "isFetchingNextPage"
     | "hasNextPage"
     | "fetchNextPage"
   > & {
-    /** Native Query admission, when supplied; a disabled observer cannot start recovery from this view. */
+    /** Native Query eligibility; an explicit scoped Retry can reread a failed disabled observer. */
     isEnabled?: boolean;
   };
   active?: boolean;
@@ -112,7 +114,7 @@ export interface SportingCalendarViewProps {
   children?: ReactNode;
 }
 
-/** Shares complete-day rendering and navigation; empty reads recover on their card, while populated calendars retain native refresh. */
+/** Keeps complete days/cursors in Query while failed calendar content and controls yield to one scoped Retry card. */
 export function SportingCalendarView({
   calendar,
   active = true,
@@ -121,14 +123,10 @@ export function SportingCalendarView({
   children,
 }: Readonly<SportingCalendarViewProps>) {
   const navigation = useNavigation();
-  const feedback = useActionFeedback();
   const [displayZone, setDisplayZone] = useState(currentSportingTimeZone);
   const [refreshing, setRefreshing] = useState(false);
   const list = useRef<LegendListRef>(null);
-  const currentActive = useRef(active);
-  useLayoutEffect(() => {
-    currentActive.current = active;
-  }, [active]);
+  const offset = useRef(0);
   const [listWidth, setListWidth] = useState(0);
   const { stacked, columns } = useCalendarLayout(listWidth);
   const days = useMemo(() => calendarDays(calendar.data), [calendar.data]);
@@ -146,52 +144,70 @@ export function SportingCalendarView({
     return () => subscription.remove();
   }, []);
 
-  /** A zone change selects its native read state; same-zone failure reports feedback only when usable rows survive. */
+  /** Explicit refresh chooses the current zone; Query owns failure and the native control owns pull progress. */
   async function refresh() {
-    if (refreshing || !active || calendar.isEnabled === false) {
+    if (refreshing || !active || !navigation.isFocused()) {
       return;
     }
-    feedback.clear();
     setRefreshing(true);
-    const nextZone = currentSportingTimeZone();
     try {
-      await onRefresh(nextZone);
+      await onRefresh(currentSportingTimeZone());
+      offset.current = 0;
       list.current?.scrollToOffset({ offset: 0, animated: false });
-    } catch (error) {
-      if (
-        currentActive.current &&
-        navigation.isFocused() &&
-        rows.length > 0 &&
-        !resourceUnavailable(error) &&
-        !isCancelledError(error) &&
-        !(error instanceof ApiError && error.kind === "cancelled")
-      ) {
-        feedback.error();
-      }
+    } catch {
+      // The existing Query result renders the final read failure in this pane.
     } finally {
       setRefreshing(false);
     }
   }
 
-  /** The focused idle list may retry a failed cursor explicitly; its edge callback blocks automatic error replay. */
-  async function loadMore() {
-    if (
-      !active ||
-      !navigation.isFocused() ||
-      !calendar.hasNextPage ||
-      refreshing ||
-      calendar.isFetching ||
-      (calendar.isError && !calendar.isFetchNextPageError)
-    ) {
+  /** A card resumes its failed cursor or rereads the same traversal, without changing its loading zone. */
+  async function retry() {
+    if (!active || !navigation.isFocused()) {
       return;
     }
-    feedback.clear();
-    await calendar.fetchNextPage({ cancelRefetch: false });
+    if (calendar.isFetchNextPageError) {
+      await calendar.fetchNextPage({ cancelRefetch: false });
+    } else {
+      await calendar.refetch({ cancelRefetch: false });
+    }
+  }
+
+  /** Only an active idle successful traversal may request its server-owned continuation automatically. */
+  async function loadMore() {
+    if (
+      active &&
+      navigation.isFocused() &&
+      calendar.hasNextPage &&
+      !refreshing &&
+      !calendar.isFetching &&
+      !calendar.isError
+    ) {
+      await calendar.fetchNextPage({ cancelRefetch: false });
+    }
+  }
+
+  if (hasReadError(calendar)) {
+    return (
+      <PageScrollView>
+        <ScreenState>
+          <ReadFeedback
+            query={calendar}
+            loadingContent={null}
+            onRetry={retry}
+          />
+        </ScreenState>
+      </PageScrollView>
+    );
   }
 
   const refreshControl =
     rows.length > 0 ? (
-      <DataRefreshControl onRefresh={refresh} enabled={active} />
+      <DataRefreshControl
+        onRefresh={refresh}
+        enabled={active}
+        fetching={calendar.isFetching}
+      />
     ) : undefined;
   if (rows.length === 0) {
     return (
@@ -209,28 +225,18 @@ export function SportingCalendarView({
               <PageContent style={styles.stateControls}>{children}</PageContent>
             )}
             <ScreenState>
-              {calendar.isError || calendar.isPending ? (
-                <ErrorState
-                  onRetry={
-                    active && calendar.isEnabled !== false
-                      ? () => void refresh()
-                      : undefined
-                  }
-                  retrying={calendar.isFetching}
-                />
-              ) : (
+              {!calendar.isPending &&
                 (emptyState ?? (
                   <EmptyState title="Aucun match pour cette sélection">
                     <Button
                       label="Actualiser"
                       leadingIcon={RefreshCw}
                       onPress={() => void refresh()}
-                      loading={refreshing || calendar.isFetching}
+                      loading={refreshing && calendar.isFetching}
                       disabled={!active}
                     />
                   </EmptyState>
-                ))
-              )}
+                ))}
             </ScreenState>
           </>
         )}
@@ -246,6 +252,17 @@ export function SportingCalendarView({
       alwaysBounceVertical
       contentContainerStyle={pageContentStyle}
       data={rows}
+      onScroll={({ nativeEvent }) => {
+        offset.current = nativeEvent.contentOffset.y;
+      }}
+      onLoad={() => {
+        if (offset.current > 0) {
+          void list.current?.scrollToOffset({
+            offset: offset.current,
+            animated: false,
+          });
+        }
+      }}
       // Re-evaluate retained cells after travel without replacing their grouping or viewport.
       extraData={displayZone}
       numColumns={columns}
@@ -295,17 +312,12 @@ export function SportingCalendarView({
           </CalendarGroupPart>
         );
       }}
-      onEndReached={() => {
-        if (calendar.hasNextPage && !calendar.isFetching && !calendar.isError) {
-          loadMore();
-        }
-      }}
+      onEndReached={() => void loadMore()}
       ListFooterComponent={
         <>
           <ListContinuation
             loading={calendar.isFetchingNextPage}
-            failed={!!calendar.data && calendar.isFetchNextPageError}
-            disabled={calendar.isFetching || refreshing}
+            failed={false}
             onRetry={loadMore}
           />
           <BottomContentSpacer />
@@ -377,7 +389,7 @@ function CalendarGroupPart({
   );
 }
 
-/** A real pool heading appears once before its individually virtualized accepted encounters. */
+/** Pool headings retain a two-line name, full accessible label and nominal media slot without inventing a division. */
 function CalendarPoolHeader({
   group,
 }: Readonly<{ group: MatchPoolGroupResponse }>) {
@@ -390,16 +402,21 @@ function CalendarPoolHeader({
     <CalendarGroupPart match={group.matches[0]} first>
       <View style={styles.groupInset}>
         <View style={[styles.pool, { backgroundColor: accent }]}>
-          {division && (
+          {division ? (
             <>
               <DivisionPaint division={division} />
               <SportingArtwork division={division} />
               <SportingLogo identity={division} kind="division" size={40} />
             </>
+          ) : (
+            <SportingMedia identity={pool.pool} kind="division" size={40} />
           )}
           <View style={styles.identity}>
             <Text
               accessibilityRole="header"
+              accessibilityLabel={pool.pool.name}
+              numberOfLines={2}
+              ellipsizeMode="tail"
               style={[styles.poolName, { color: foreground }]}
             >
               {pool.pool.name}
@@ -408,9 +425,6 @@ function CalendarPoolHeader({
               {[division?.name, genderLabel(pool.classification.gender)]
                 .filter(Boolean)
                 .join(" ")}
-            </Text>
-            <Text style={[styles.metadata, { color: foreground }]}>
-              {group.matches.length} match{group.matches.length > 1 ? "s" : ""}
             </Text>
           </View>
         </View>
