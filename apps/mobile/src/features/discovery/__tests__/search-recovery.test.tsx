@@ -1009,44 +1009,69 @@ it.each([
   },
 );
 
-it("waits for a new visit's current options instead of turning cached options into false empty examples", async () => {
-  // Given: cached options do not initialize the new visit before its own read succeeds.
-  await renderSearch();
-  await screen.findByText("Club public");
-  await act(async () => router.replace(`/clubs/${secondId}`));
-  await screen.findByText("Volley Niort");
-  const pending = Promise.withResolvers<Response>();
-  mockFetch.mockImplementation((url: string) =>
-    new URL(url).pathname.endsWith("/sporting-search-options")
-      ? pending.promise
-      : publicReads(url),
-  );
+it.each([
+  {
+    destination: "results",
+    route: undefined,
+    loading: "Chargement des résultats",
+  },
+  {
+    destination: "filters",
+    route: "/search/filters",
+    loading: "Chargement des filtres",
+  },
+  {
+    destination: "season choices",
+    route: "/search/choice?field=seasonId",
+    loading: "Chargement des choix",
+  },
+] as const)(
+  "waits for a new visit's current options in $destination despite cached options",
+  async ({ route, loading }) => {
+    // Given: cached options do not initialize the new visit before its own read succeeds.
+    await renderSearch();
+    await screen.findByText("Club public");
+    await act(async () => router.replace(`/clubs/${secondId}`));
+    await screen.findByText("Volley Niort");
+    const pending = Promise.withResolvers<void>();
+    mockFetch.mockImplementation(async (url: string) => {
+      if (new URL(url).pathname.endsWith("/sporting-search-options")) {
+        await pending.promise;
+      }
+      return publicReads(url);
+    });
 
-  // When
-  await act(async () => router.replace("/search"));
-  await layoutNativeTabs();
+    // When
+    await act(async () => router.replace("/search"));
+    await layoutNativeTabs();
+    if (route) {
+      await act(async () => router.push(route));
+    }
 
-  // Then
-  expect(
-    await screen.findByRole("progressbar", {
-      name: "Chargement des résultats",
-    }),
-  ).toBeOnTheScreen();
-  expect(screen.queryByText("Aucun exemple disponible")).toBeNull();
-  expect(screen.queryByRole("alert")).toBeNull();
+    // Then
+    expect(
+      await screen.findByRole("progressbar", { name: loading }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText("Aucun exemple disponible")).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
 
-  // When
-  await act(async () =>
-    pending.resolve(
-      await publicReads(
-        "https://api.example.invalid/sporting-search-options?resourceType=team",
-      ),
-    ),
-  );
+    // When
+    await act(async () => pending.resolve());
 
-  // Then
-  expect(await screen.findByText("Club public")).toBeOnTheScreen();
-});
+    // Then
+    if (route === "/search/filters") {
+      expect(
+        await screen.findByRole("button", { name: "Appliquer les filtres" }),
+      ).toBeOnTheScreen();
+    } else if (route) {
+      expect(
+        await screen.findByRole("radio", { name: season.label }),
+      ).toBeOnTheScreen();
+    } else {
+      expect(await screen.findByText("Club public")).toBeOnTheScreen();
+    }
+  },
+);
 
 it.each([
   { tab: "Équipes", resource: "team", path: "/teams", content: "Club public" },
@@ -1126,3 +1151,47 @@ it.each([
     expect(screen.queryByRole("alert")).toBeNull();
   },
 );
+
+it("retains the initial catalogue Retry while editing the independent shared text", async () => {
+  // Given: the visit awaits the same catalogue Query through failure and explicit Retry.
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname.endsWith("/sporting-search-options")
+      ? Promise.resolve(Response.json({ status: 503 }, { status: 503 }))
+      : publicReads(url),
+  );
+  const user = userEvent.setup();
+  await renderSearch();
+  await screen.findByRole("alert");
+  const pending = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url: string) =>
+    new URL(url).pathname.endsWith("/sporting-search-options")
+      ? pending.promise
+      : publicReads(url),
+  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // When: editing text does not replace the catalogue or its in-flight operation.
+  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
+
+  // Then
+  expect(
+    screen.getByRole("button", { name: "Réessayer", busy: true }),
+  ).toBeDisabled();
+  expect(screen.queryByRole("progressbar")).toBeNull();
+
+  // When
+  await act(async () =>
+    pending.resolve(
+      await publicReads(
+        "https://api.example.invalid/sporting-search-options?resourceType=team",
+      ),
+    ),
+  );
+
+  // Then: the successful catalogue releases the current edited text, not the original empty context.
+  expect(await screen.findByText("Club public")).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
+  const request = new URL(mockFetch.mock.calls.at(-1)?.[0]);
+  expect(request.searchParams.get("q")).toBe("Volley");
+  expect(request.searchParams.get("seasonId")).toBe(season.id);
+});

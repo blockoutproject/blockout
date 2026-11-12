@@ -75,18 +75,20 @@ export function SearchFilterChoice() {
       ...available[field],
     ];
   }
+  const loadingContent = (
+    <EntryGroup>
+      <ListLoading label="Chargement des choix" />
+    </EntryGroup>
+  );
   return (
     <Sheet title={title} onClose={() => router.back()}>
       {hasReadError(query) || !options ? (
         <SheetContent>
-          <ReadFeedback
-            query={query}
-            loadingContent={
-              <EntryGroup>
-                <ListLoading label="Chargement des choix" />
-              </EntryGroup>
-            }
-          />
+          {!filters && !hasReadError(query) && query.isFetching ? (
+            loadingContent
+          ) : (
+            <ReadFeedback query={query} loadingContent={loadingContent} />
+          )}
         </SheetContent>
       ) : (
         <SheetContent>

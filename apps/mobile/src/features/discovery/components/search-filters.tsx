@@ -29,6 +29,7 @@ export function SearchFilters() {
   const initialized = useRef(false);
   const values = useWatch({ control: visit.draft.control });
   const options = query.data;
+  const loadingContent = <SearchFiltersLoading />;
   // Initialize once, then reconcile only disappeared choices; every other editable value survives rereads.
   useEffect(() => {
     if (!query.isSuccess || !options || !filters) {
@@ -55,10 +56,11 @@ export function SearchFilters() {
     >
       {hasReadError(query) || !options || !filters ? (
         <SheetContent>
-          <ReadFeedback
-            query={query}
-            loadingContent={<SearchFiltersLoading />}
-          />
+          {!filters && !hasReadError(query) && query.isFetching ? (
+            loadingContent
+          ) : (
+            <ReadFeedback query={query} loadingContent={loadingContent} />
+          )}
         </SheetContent>
       ) : (
         <SheetContent>

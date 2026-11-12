@@ -169,45 +169,49 @@ export function SearchScreen() {
             setResource(id);
           }
         }}
-        tabs={searchTabs.map(({ id, label }) => ({
-          id,
-          label,
-          resetKey: hashKey([
-            textKey,
-            id === "club" ? undefined : visit[id].filters,
-          ]),
-          content: (
-            <SearchScene
-              resource={id}
-              criteria={hashKey([
-                textKey,
-                id === "club" ? undefined : visit[id].filters,
-              ])}
-              active={resource === id}
-              searchable={searchable}
-              query={queries[id]}
-              exampleQuery={exampleQueries[id]}
-              examples={examples}
-              items={items[id]}
-              emptyDescription={emptyDescription}
-              emptyAction={
-                !examples || changed ? (
-                  <Button
-                    label="Effacer les critères"
-                    leadingIcon={Eraser}
-                    onPress={() => clearCriteria(id)}
-                  />
-                ) : (
-                  <Button
-                    label="Rechercher"
-                    leadingIcon={Search}
-                    onPress={() => setFocus("q")}
-                  />
-                )
-              }
-            />
-          ),
-        }))}
+        tabs={searchTabs.map(({ id, label }) => {
+          // The catalogue is independent of text until its successful read initializes filters.
+          const criteria =
+            id !== "club" && !visit[id].filters
+              ? "options"
+              : hashKey([
+                  textKey,
+                  id === "club" ? undefined : visit[id].filters,
+                ]);
+          return {
+            id,
+            label,
+            resetKey: criteria,
+            content: (
+              <SearchScene
+                resource={id}
+                criteria={criteria}
+                active={resource === id}
+                searchable={searchable}
+                query={queries[id]}
+                exampleQuery={exampleQueries[id]}
+                examples={examples}
+                items={items[id]}
+                emptyDescription={emptyDescription}
+                emptyAction={
+                  !examples || changed ? (
+                    <Button
+                      label="Effacer les critères"
+                      leadingIcon={Eraser}
+                      onPress={() => clearCriteria(id)}
+                    />
+                  ) : (
+                    <Button
+                      label="Rechercher"
+                      leadingIcon={Search}
+                      onPress={() => setFocus("q")}
+                    />
+                  )
+                }
+              />
+            ),
+          };
+        })}
         renderTabBar={(tabBar) => (
           <>
             <View style={styles.navigation}>
