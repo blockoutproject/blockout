@@ -6,7 +6,7 @@ import {
 import { useCalendarGrouping } from "./use-calendar-grouping";
 import { useConsultationQueries } from "./use-consultation-queries";
 
-/** Owns one native sporting traversal and its retained loading zone; inactive readers do not start requests. */
+/** Owns one retained traversal and loading zone; returning to a failed pane never replays its read automatically. */
 export function useSportingCalendar(
   selection: Omit<CalendarSelection, "timeZone">,
   active = true,
@@ -22,7 +22,8 @@ export function useSportingCalendar(
   });
   const calendar = useInfiniteQuery({
     ...options,
-    enabled: active,
+    enabled: (query) => active && query.state.status !== "error",
+    staleTime: Infinity,
   });
   return { calendar, refresh, queryKey: options.queryKey };
 }

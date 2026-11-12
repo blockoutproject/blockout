@@ -101,6 +101,7 @@ function PrivateQueries({ children }: Readonly<QueryFixtureProps>) {
 }
 
 beforeEach(() => {
+  jest.useFakeTimers({ doNotFake: ["Date"] });
   publicClient = createQueryClient();
   mockFetch.mockReset();
   mockPush.mockReset();
@@ -135,6 +136,8 @@ afterEach(async () => {
   await cleanup();
   client?.clear();
   publicClient.clear();
+  await act(async () => jest.runOnlyPendingTimersAsync());
+  jest.useRealTimers();
   jest.restoreAllMocks();
   process.env = { ...environment };
   onlineManager.setOnline(true);
@@ -339,6 +342,21 @@ it("reloads an empty calendar through its card and restores native refresh only 
   await layoutNativeTabs();
   await screen.findByText("Aucun match pour cette sélection");
   expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  const background = Promise.withResolvers<Response>();
+  mockFetch.mockImplementationOnce(() => background.promise);
+
+  // When: the existing empty traversal is invalidated outside the button action.
+  await act(() => {
+    void client.invalidateQueries({ queryKey: ["/matches"] });
+  });
+  await waitFor(() => expect(client.isFetching()).toBe(1));
+
+  // Then: its Actualiser action stays idle while Query alone owns the background read.
+  expect(
+    screen.getByRole("button", { name: "Actualiser", busy: false }),
+  ).toBeOnTheScreen();
+  await act(() => background.resolve(Response.json(calendar)));
+  await waitFor(() => expect(client.isFetching()).toBe(0));
   const pending = Promise.withResolvers<Response>();
   mockFetch
     .mockClear()
@@ -434,8 +452,9 @@ it("does not announce a paused new calendar as loading or successfully empty", a
 
   // Then
   expect(
-    await screen.findByRole("button", { name: "Réessayer", busy: false }),
-  ).toBeOnTheScreen();
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   expect(screen.queryByRole("progressbar")).toBeNull();
   expect(screen.queryByText("Aucun match pour cette sélection")).toBeNull();
   expect(mockFetch).not.toHaveBeenCalled();
@@ -455,7 +474,7 @@ it("keeps a disabled calendar idle without a loading announcement or an admitted
 
   // When: the native scene mounts while its read scope remains inactive.
   await layoutNativeTabs();
-  await screen.findByRole("alert");
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 
   // Then
   expect(
@@ -471,12 +490,16 @@ it("keeps a disabled calendar idle without a loading announcement or an admitted
 it("uses the device zone on the first active calendar attempt after a deferred mount", async () => {
   // Given: the real calendar stays mounted but inactive while the device travels.
   let deviceZone = "Europe/Paris";
-  const resolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
-  jest
-    .spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions")
-    .mockImplementation(function (this: Intl.DateTimeFormat) {
-      return { ...resolvedOptions.call(this), timeZone: deviceZone };
-    });
+  const DateTimeFormat = Intl.DateTimeFormat;
+  jest.spyOn(Intl, "DateTimeFormat").mockImplementation((locales, options) => {
+    const formatter = new DateTimeFormat(locales, options);
+    const resolved = formatter.resolvedOptions();
+    jest.spyOn(formatter, "resolvedOptions").mockImplementation(() => ({
+      ...resolved,
+      timeZone: deviceZone,
+    }));
+    return formatter;
+  });
   mockFetch.mockImplementation(async (url: string) =>
     new URL(url).pathname.endsWith("/application-access")
       ? Response.json(applicationAccessResponse())
@@ -495,7 +518,7 @@ it("uses the device zone on the first active calendar attempt after a deferred m
     { wrapper: Providers },
   );
   await layoutNativeTabs();
-  await screen.findByRole("alert");
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(
       ([url]) => new URL(url).pathname === "/matches",
@@ -523,15 +546,19 @@ it("uses the device zone on the first active calendar attempt after a deferred m
   ).toEqual(["America/New_York"]);
 });
 
-it("retains the first attempted zone after failure and travel until an explicit retry", async () => {
+it("retains the first attempted zone through departure, failure and explicit Retry despite travel", async () => {
   // Given: the first active attempt is held at the HTTP boundary after a deferred mount.
   let deviceZone = "Europe/Paris";
-  const resolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
-  jest
-    .spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions")
-    .mockImplementation(function (this: Intl.DateTimeFormat) {
-      return { ...resolvedOptions.call(this), timeZone: deviceZone };
-    });
+  const DateTimeFormat = Intl.DateTimeFormat;
+  jest.spyOn(Intl, "DateTimeFormat").mockImplementation((locales, options) => {
+    const formatter = new DateTimeFormat(locales, options);
+    const resolved = formatter.resolvedOptions();
+    jest.spyOn(formatter, "resolvedOptions").mockImplementation(() => ({
+      ...resolved,
+      timeZone: deviceZone,
+    }));
+    return formatter;
+  });
   const pending = Promise.withResolvers<Response>();
   let firstAttempt = true;
   let unavailable = true;
@@ -561,7 +588,7 @@ it("retains the first attempted zone after failure and travel until an explicit 
     { wrapper: Providers },
   );
   await layoutNativeTabs();
-  await screen.findByRole("alert");
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   deviceZone = "America/New_York";
 
   try {
@@ -592,14 +619,14 @@ it("retains the first attempted zone after failure and travel until an explicit 
       </CalendarTab>,
     );
 
-    // Then: Query may reread on activation, but it still owns the first attempted zone.
+    // Then: returning leaves the failed read intact, with no automatic replay or zone change.
     expect(
       await screen.findByRole("button", { name: "Réessayer", busy: false }),
     ).toBeEnabled();
     const attemptedZones = mockFetch.mock.calls
       .filter(([url]) => new URL(url).pathname === "/matches")
       .map(([url]) => new URL(url).searchParams.get("timeZone"));
-    expect(new Set(attemptedZones)).toEqual(new Set(["America/New_York"]));
+    expect(attemptedZones).toEqual(["America/New_York"]);
 
     // When
     unavailable = false;
@@ -611,13 +638,13 @@ it("retains the first attempted zone after failure and travel until an explicit 
     ).toBeOnTheScreen();
     expect(
       new URL(mockFetch.mock.calls.at(-1)?.[0]).searchParams.get("timeZone"),
-    ).toBe("Asia/Tokyo");
+    ).toBe("America/New_York");
   } finally {
     await act(async () => pending.resolve(Response.json({}, { status: 503 })));
   }
 });
 
-it("retains calendar rows with one toast after refresh failure and replaces them only after a successful pull", async () => {
+it("retains calendar rows in Query while a failed refresh shows one card until explicit Retry succeeds", async () => {
   // Given
   await render(
     <CalendarTab>
@@ -641,11 +668,11 @@ it("retains calendar rows with one toast after refresh failure and replaces them
 
   // Then
   expect(
-    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.queryByRole("button", { name: /Réessayer/ }),
+    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
   ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Réessayer", busy: false }),
+  ).toBeOnTheScreen();
 
   // When
   mockFetch.mockImplementation((url: string) =>
@@ -657,7 +684,7 @@ it("retains calendar rows with one toast after refresh failure and replaces them
       ),
     ),
   );
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
   await screen.findByText("Aucun match pour cette sélection");
@@ -709,12 +736,16 @@ it("keeps pagination unavailable while a successful first-page replacement is pe
 it("selects normal new-zone loading and error before an explicit retry", async () => {
   // Given
   let deviceZone = "Europe/Paris";
-  const resolvedOptions = Intl.DateTimeFormat.prototype.resolvedOptions;
-  jest
-    .spyOn(Intl.DateTimeFormat.prototype, "resolvedOptions")
-    .mockImplementation(function (this: Intl.DateTimeFormat) {
-      return { ...resolvedOptions.call(this), timeZone: deviceZone };
-    });
+  const DateTimeFormat = Intl.DateTimeFormat;
+  jest.spyOn(Intl, "DateTimeFormat").mockImplementation((locales, options) => {
+    const formatter = new DateTimeFormat(locales, options);
+    const resolved = formatter.resolvedOptions();
+    jest.spyOn(formatter, "resolvedOptions").mockImplementation(() => ({
+      ...resolved,
+      timeZone: deviceZone,
+    }));
+    return formatter;
+  });
   await render(
     <CalendarTab>
       <SportingCalendar
@@ -774,7 +805,7 @@ it("selects normal new-zone loading and error before an explicit retry", async (
   ]);
 });
 
-it("reports a failed active cursor and retries the same boundary from its footer", async () => {
+it("replaces failed continuation content with one card and retries the same server cursor", async () => {
   // Given: two complete days arrive through the real Query owner, with a controlled continuation failure.
   calendar = { ...calendar, nextDay: "2026-09-21" };
   const nextMatch = {
@@ -782,6 +813,17 @@ it("reports a failed active cursor and retries the same boundary from its footer
     id: "00000000-0000-4000-8000-000000000002",
     away: { ...matchDetail().match.away, name: "Next opponent" },
   };
+  const nextPage = {
+    ...calendar,
+    nextDay: undefined,
+    days: [
+      {
+        date: "2026-09-21",
+        pools: [{ poolId: sportingId, matches: [nextMatch] }],
+      },
+    ],
+  };
+  const retryRead = Promise.withResolvers<Response>();
   let failNext = true;
   mockFetch.mockImplementation((url: string) => {
     const target = new URL(url);
@@ -794,18 +836,7 @@ it("reports a failed active cursor and retries the same boundary from its footer
     if (failNext) {
       return Promise.reject(new TypeError("offline"));
     }
-    return Promise.resolve(
-      Response.json({
-        ...calendar,
-        nextDay: undefined,
-        days: [
-          {
-            date: "2026-09-21",
-            pools: [{ poolId: sportingId, matches: [nextMatch] }],
-          },
-        ],
-      }),
-    );
+    return retryRead.promise;
   });
   await render(
     <CalendarTab>
@@ -827,32 +858,38 @@ it("reports a failed active cursor and retries the same boundary from its footer
   await screen.findByRole("button", {
     name: "Réessayer",
   });
-  await fireEvent(
-    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
-    "endReached",
-  );
-
-  // Then: only the local footer reports failure; rows/cursor remain and no automatic retry runs.
+  // Then: the failed content is hidden while Query retains its pages and cursor.
   expect(mockFetch).toHaveBeenCalledTimes(1);
   expect(
-    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.queryByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-    }),
-  ).toBeNull();
+    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).not.toBeOnTheScreen();
+  expect(screen.getAllByRole("alert")).toHaveLength(1);
 
   // When
   failNext = false;
   await userEvent.press(screen.getByRole("button", { name: /Réessayer/ }));
+
+  // Then: the failed continuation keeps its card and real button progress, with first-day rows still hidden.
+  expect(
+    await screen.findByRole("button", { name: "Réessayer", busy: true }),
+  ).toBeOnTheScreen();
+  expect(screen.getAllByRole("alert")).toHaveLength(1);
+  expect(
+    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  await act(() => retryRead.resolve(Response.json(nextPage)));
   await screen.findByRole("link", { name: /Home — Next opponent/ });
   await fireEvent(
     screen.getByRole("link", { name: /Home — Next opponent/ }),
     "endReached",
   );
 
-  // Then: retry uses the same cursor, and exhaustion sends no extra request or normal load button.
+  // Then: retained first-day rows reappear; Retry uses the same cursor and exhaustion adds no request.
+  expect(
+    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.map(([url]) =>
       new URL(url).searchParams.get("nextDay"),
@@ -976,10 +1013,10 @@ it("keeps a delayed cursor failure in its original scene after departure", async
   await waitFor(() => expect(client.isFetching()).toBe(0));
   await screen.findByRole("button", { name: "Réessayer" });
 
-  // Then: authorized rows/cursor retry remain local, with no toast over the new context.
+  // Then: the failed content stays scoped, with retained cursor and no request from the inactive scene.
   expect(
-    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
-  ).toBeOnTheScreen();
+    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).not.toBeOnTheScreen();
   await userEvent.press(
     await screen.findByRole("button", { name: "Réessayer" }),
   );
@@ -989,11 +1026,7 @@ it("keeps a delayed cursor failure in its original scene after departure", async
       .filter((url) => url.pathname === "/matches")
       .map((url) => url.searchParams.get("nextDay")),
   ).toEqual(["2026-09-21"]);
-  expect(
-    screen.queryByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-    }),
-  ).toBeNull();
+  expect(screen.getAllByRole("alert")).toHaveLength(1);
 });
 
 it("keeps a pending former selection refresh outside the newly selected calendar", async () => {

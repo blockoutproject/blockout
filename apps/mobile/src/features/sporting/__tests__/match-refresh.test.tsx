@@ -182,7 +182,9 @@ it("shows pull progress only for the native gesture while a focus reread keeps t
     await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
     // Then
-    expect(screen.getByLabelText("Actualiser les données")).toBeBusy();
+    await waitFor(() =>
+      expect(screen.getByLabelText("Actualiser les données")).toBeBusy(),
+    );
     expect(screen.getByText("Home")).toBeOnTheScreen();
 
     // When
@@ -433,7 +435,7 @@ it("refreshes only the active club tab while preserving common information and s
   );
 });
 
-it("keeps accepted match facts without action feedback after a failed focus reread", async () => {
+it("retains accepted facts in Query while a failed focus reread replaces Match content with its card", async () => {
   // Given
   const opened = await renderPage(
     <MatchScreen matchId={sportingId} focused={false} />,
@@ -450,11 +452,10 @@ it("keeps accepted match facts without action feedback after a failed focus rere
 
   // Then
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(screen.queryByRole("alert")).toBeNull();
-  expect(screen.getByText("Home")).toBeOnTheScreen();
-  expect(
-    screen.queryByRole("button", { name: "Réessayer" }),
-  ).not.toBeOnTheScreen();
+  expect(await screen.findByRole("alert")).toBeOnTheScreen();
+  expect(screen.queryByText("Home")).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
+  expect(client.getQueryData([`/matches/${sportingId}`])).toEqual(detail);
 });
 
 it("does not retain a successful empty club-team state after its explicit read fails", async () => {
@@ -492,7 +493,7 @@ it("does not retain a successful empty club-team state after its explicit read f
   expect(screen.queryByRole("alert")).toBeNull();
 });
 
-it("retains permitted facts after failed refresh and reconnect, then accepts an explicit current reread without issuing a business command", async () => {
+it("retains permitted Match facts in Query through failed refresh and reconnect until explicit Retry succeeds", async () => {
   // Given: real screen, generated reader and Query owners; only the HTTP boundary is controlled.
   detail.venueName = "Salle conservée";
   await renderPage(<MatchScreen matchId={sportingId} />);
@@ -510,11 +511,11 @@ it("retains permitted facts after failed refresh and reconnect, then accepts an 
 
   // Then
   await screen.findByRole("alert");
-  expect(screen.getByLabelText("Lieu : Salle conservée")).toBeOnTheScreen();
-  expect(screen.getByText("Home")).toBeOnTheScreen();
   expect(
-    screen.queryByRole("button", { name: "Réessayer" }),
+    screen.queryByLabelText("Lieu : Salle conservée"),
   ).not.toBeOnTheScreen();
+  expect(screen.queryByText("Home")).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
 
   // When: ordinary Query reconnect reads may run; they cannot replay a business command.
   await act(() => onlineManager.setOnline(false));
@@ -522,7 +523,9 @@ it("retains permitted facts after failed refresh and reconnect, then accepts an 
   await waitFor(() => expect(client.isFetching()).toBe(0));
 
   // Then: reconnect with the source still failing does not invent absence or recovery.
-  expect(screen.getByLabelText("Lieu : Salle conservée")).toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Lieu : Salle conservée"),
+  ).not.toBeOnTheScreen();
   expect(
     client.getQueryData<{ match: typeof detail.match }>([
       `/matches/${sportingId}`,
@@ -534,10 +537,10 @@ it("retains permitted facts after failed refresh and reconnect, then accepts an 
     ),
   ).toBe(true);
 
-  // When: the next explicit pull reads accepted current facts through the same owner.
+  // When: explicit Retry reads current facts through the same owner.
   detail = { ...detail, venueName: "Salle corrigée" };
   mockFetch.mockImplementation(reads);
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
   await screen.findByLabelText("Lieu : Salle corrigée");

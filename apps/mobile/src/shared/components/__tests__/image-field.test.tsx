@@ -308,6 +308,17 @@ it("opens a full-screen preview and closes it without changing caller values", a
   await user.press(
     screen.getByRole("button", { name: "Aperçu : Logo du club" }),
   );
+  expect(
+    screen.getByRole("progressbar", { name: "Chargement de l’image" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Fermer" })).toBeEnabled();
+  await fireEvent(
+    screen.getByRole("image", {
+      name: "Logo du club",
+      includeHiddenElements: true,
+    }),
+    "display",
+  );
 
   // Then
   expect(screen.getByRole("image", { name: "Logo du club" })).toBeOnTheScreen();
@@ -608,7 +619,10 @@ it("keeps preview dismissal available when native image decoding fails", async (
 
   // When
   await fireEvent(
-    screen.getByRole("image", { name: "Logo du club" }),
+    screen.getByRole("image", {
+      name: "Logo du club",
+      includeHiddenElements: true,
+    }),
     "error",
     {
       nativeEvent: { error: "private file path" },
@@ -624,6 +638,39 @@ it("keeps preview dismissal available when native image decoding fails", async (
 
   // When
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(screen.getByRole("alert")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Réessayer", busy: true }),
+  ).toBeDisabled();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+
+  // When
+  await fireEvent(
+    screen.getByRole("image", {
+      name: "Logo du club",
+      includeHiddenElements: true,
+    }),
+    "error",
+    { nativeEvent: { error: "Native decoding failed again" } },
+  );
+
+  // Then
+  expect(
+    screen.getByRole("button", { name: "Réessayer", busy: false }),
+  ).toBeEnabled();
+  expect(screen.getByRole("alert")).toBeOnTheScreen();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(
+    screen.getByRole("image", {
+      name: "Logo du club",
+      includeHiddenElements: true,
+    }),
+    "display",
+  );
 
   // Then
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
@@ -645,7 +692,10 @@ it("starts a new preview attempt when an image URI returns or the viewer reopens
     screen.getByRole("button", { name: "Aperçu : Logo du club" }),
   );
   await fireEvent(
-    screen.getByRole("image", { name: "Logo du club" }),
+    screen.getByRole("image", {
+      name: "Logo du club",
+      includeHiddenElements: true,
+    }),
     "error",
     { nativeEvent: { error: "Native decoding failed" } },
   );
@@ -661,18 +711,25 @@ it("starts a new preview attempt when an image URI returns or the viewer reopens
 
   // Then
   expect(screen.queryByText(TECHNICAL_ERROR_TITLE)).not.toBeOnTheScreen();
-  expect(screen.getByRole("image", { name: "Logo du club" })).toBeOnTheScreen();
+  expect(
+    screen.getByRole("progressbar", { name: "Chargement de l’image" }),
+  ).toBeOnTheScreen();
 
   // When the same original URI returns, its previous error belongs to an unmounted attempt.
   await view.rerender(<ImageField images={[logo]} onSelect={onSelect} />);
 
   // Then
   expect(screen.queryByText(TECHNICAL_ERROR_TITLE)).not.toBeOnTheScreen();
-  expect(screen.getByRole("image", { name: "Logo du club" })).toBeOnTheScreen();
+  expect(
+    screen.getByRole("progressbar", { name: "Chargement de l’image" }),
+  ).toBeOnTheScreen();
 
   // When the current attempt fails and the user closes and reopens it.
   await fireEvent(
-    screen.getByRole("image", { name: "Logo du club" }),
+    screen.getByRole("image", {
+      name: "Logo du club",
+      includeHiddenElements: true,
+    }),
     "error",
     { nativeEvent: { error: "Native decoding failed" } },
   );

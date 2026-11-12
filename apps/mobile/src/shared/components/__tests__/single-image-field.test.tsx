@@ -1,6 +1,7 @@
 import {
   act,
   cleanup,
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -534,6 +535,13 @@ it("opens a direct preview and withdraws it with its source without opening a sy
   // When
   await user.press(
     screen.getByRole("button", { name: "Aperçu : Logo du club" }),
+  );
+  await fireEvent(
+    screen.getByRole("image", {
+      name: "Logo du club",
+      includeHiddenElements: true,
+    }),
+    "display",
   );
 
   // Then

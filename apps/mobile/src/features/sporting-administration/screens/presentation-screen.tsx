@@ -133,7 +133,7 @@ export function PresentationScreen({
   const title = getTitle();
   const feedback = useActionFeedback();
 
-  /** Native refresh rereads current presentation and only its mounted remote logo; a prepared local replacement stays untouched. */
+  /** Refreshes required presentation and its active optional logo; optional artwork failure adds no notice and a local replacement stays untouched. */
   async function refresh() {
     if (editing.save.isPending) {
       return;
@@ -160,13 +160,6 @@ export function PresentationScreen({
       { queryKey: logoKey, type: "active" },
       { cancelRefetch: false },
     );
-    const logoFailure = client
-      .getQueryCache()
-      .findAll({ queryKey: logoKey, type: "active" })
-      .some(({ state }) => state.status === "error");
-    if (result.data && logoFailure) {
-      feedback.error();
-    }
   }
 
   /** Keeps session restoration, account read failure and unavailable grants in their existing feedback states. */

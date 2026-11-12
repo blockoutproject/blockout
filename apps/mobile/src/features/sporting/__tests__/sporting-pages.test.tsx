@@ -1969,7 +1969,7 @@ it("distinguishes an empty club season from a failed team read", async () => {
   ).toHaveLength(3);
 });
 
-it("retains a club season's teams after failed pull-to-refresh and retries only that bounded catalogue on another pull", async () => {
+it("masks a failed club-team catalogue and retries only that season while sibling tabs stay usable", async () => {
   // Given: the club header, selection and accepted team catalogue have their real Query owners.
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
@@ -1989,13 +1989,11 @@ it("retains a club season's teams after failed pull-to-refresh and retries only 
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await screen.findByRole("alert", { name: /Une erreur est survenue/ });
 
-  // Then: the authorized catalogue and independent club identity remain visible with one toast.
+  // Then: Query retains the catalogue while its card replaces the failed tab content.
   expect(
-    screen.getByRole("link", { name: team.team.team.name }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.queryByRole("button", { name: "Réessayer" }),
+    screen.queryByRole("link", { name: team.team.team.name }),
   ).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
   expect(screen.getAllByRole("alert")).toHaveLength(1);
   expect(screen.getByText(club.club.name)).toBeOnTheScreen();
   expect(
@@ -2004,7 +2002,7 @@ it("retains a club season's teams after failed pull-to-refresh and retries only 
 
   // When
   mockFetch.mockImplementation(reads);
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
   expect(

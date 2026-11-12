@@ -705,7 +705,7 @@ it.each(["loading", "error"] as const)(
   },
 );
 
-it("announces one failed explicit photo refresh before a first preview while preserving the mounted draft", async () => {
+it("keeps optional photo failure at its fallback after explicit refresh without disturbing the mounted draft", async () => {
   // Given: an initial optional photo failure is silent and leaves the real form usable.
   mockFetch.mockImplementation(async (url) =>
     String(url).endsWith("/photo")
@@ -724,8 +724,13 @@ it("announces one failed explicit photo refresh before a first preview while pre
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
-  expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
-  expect(screen.getAllByText(TECHNICAL_ERROR)).toHaveLength(1);
+  await waitFor(() =>
+    expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy(),
+  );
+  expect(
+    screen.getByRole("image", { name: "Photo de profil indisponible" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
   expect(screen.getByDisplayValue("Refresh_draft")).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
   expect(
@@ -993,17 +998,19 @@ it.each(["keep", "replace"] as const)(
       );
 
       // Then
-      expect(screen.getByRole("image", { name: "Photo de profil" })).toHaveProp(
-        "source",
-        [
-          {
-            uri:
-              intent === "keep"
-                ? "data:image/png;base64,photo2"
-                : "file:///prepared.png",
-          },
-        ],
-      );
+      expect(
+        screen.getByRole("image", {
+          name: "Photo de profil",
+          includeHiddenElements: true,
+        }),
+      ).toHaveProp("source", [
+        {
+          uri:
+            intent === "keep"
+              ? "data:image/png;base64,photo2"
+              : "file:///prepared.png",
+        },
+      ]);
       expect(mockFetch).toHaveBeenCalledTimes(intent === "keep" ? 2 : 1);
       expect(
         mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),
@@ -1062,8 +1069,11 @@ it("removes a refused remote photo until a successful photo read without treatin
 
     // Then
     expect(
-      await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
+      await screen.findByRole("image", {
+        name: "Photo de profil indisponible",
+      }),
     ).toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
     expect(
       screen.queryByRole("button", { name: "Aperçu : Photo de profil" }),
     ).toBeNull();
@@ -1076,9 +1086,7 @@ it("removes a refused remote photo until a successful photo read without treatin
     await waitFor(() => expect(client.isFetching()).toBe(0));
 
     // Then
-    expect(
-      screen.getByRole("alert", { name: TECHNICAL_ERROR }),
-    ).toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
     expect(
       screen.queryByRole("button", { name: "Aperçu : Photo de profil" }),
     ).toBeNull();

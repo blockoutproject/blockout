@@ -229,6 +229,15 @@ it("keeps ordinary failure retry explicit and preserves the match reporting cont
   // Then
   expect(pdfReads).toBe(1);
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await waitFor(() => expect(documentFiles).toHaveLength(1));
+  await act(() =>
+    jest
+      .mocked(Pdf)
+      .mock.lastCall?.[0].onLoadComplete?.(1, documentFiles[0].uri, {
+        width: 600,
+        height: 800,
+      }),
+  );
   await screen.findByTestId("native-pdf");
   expect(pdfReads).toBe(2);
   await user.press(
@@ -247,33 +256,59 @@ it("keeps ordinary failure retry explicit and preserves the match reporting cont
   expect(documentFiles.every((file) => !file.exists)).toBe(true);
 });
 
-it("cancels a closed opening and rejects its obsolete successful completion", async () => {
-  // Given
-  const user = userEvent.setup();
-  const pending = Promise.withResolvers<Response>();
-  let signal: AbortSignal | undefined;
-  mockFetch.mockImplementation((url: string, request: RequestInit) => {
-    if (!url.includes("/documents/")) {
-      return reads(url);
+it.each(["initial", "retry"])(
+  "cancels a closed %s opening and rejects its obsolete successful completion",
+  async (opening) => {
+    // Given
+    const user = userEvent.setup();
+    const pending = Promise.withResolvers<Response>();
+    let signal: AbortSignal | undefined;
+    let documentReads = 0;
+    mockFetch.mockImplementation((url: string, request: RequestInit) => {
+      if (!url.includes("/documents/")) {
+        return reads(url);
+      }
+      if (++documentReads === 1 && opening === "retry") {
+        return Promise.resolve(new Response(null, { status: 503 }));
+      }
+      signal = request.signal ?? undefined;
+      return pending.promise;
+    });
+    await renderPage(<MatchScreen matchId={sportingId} />);
+    await user.press(
+      await screen.findByRole("link", { name: /Lieu.*Fiche d’information/ }),
+    );
+    if (opening === "retry") {
+      await user.press(
+        await screen.findByRole("button", { name: "Réessayer" }),
+      );
+      expect(
+        screen.getByRole("button", { name: "Réessayer", busy: true }),
+      ).toBeDisabled();
+    } else {
+      expect(
+        screen.getByRole("progressbar", { name: "Chargement du document" }),
+      ).toBeOnTheScreen();
     }
-    signal = request.signal ?? undefined;
-    return pending.promise;
-  });
-  await renderPage(<MatchScreen matchId={sportingId} />);
-  await user.press(
-    await screen.findByRole("link", { name: /Lieu.*Fiche d’information/ }),
-  );
+    expect(
+      screen.getByRole("button", { name: "Fermer le document" }),
+    ).toBeEnabled();
 
-  // When
-  await user.press(screen.getByRole("button", { name: "Fermer le document" }));
-  await act(async () => pending.resolve(await reads("/documents/information")));
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Fermer le document" }),
+    );
+    await act(async () =>
+      pending.resolve(await reads("/documents/information")),
+    );
 
-  // Then
-  expect(signal?.aborted).toBe(true);
-  expect(documentFiles).toHaveLength(0);
-  expect(screen.queryByTestId("native-pdf")).not.toBeOnTheScreen();
-  expect(screen.getByText("Home")).toBeOnTheScreen();
-});
+    // Then
+    expect(signal?.aborted).toBe(true);
+    expect(documentFiles).toHaveLength(0);
+    expect(screen.queryByTestId("native-pdf")).not.toBeOnTheScreen();
+    expect(screen.getByText("Home")).toBeOnTheScreen();
+  },
+);
 
 it("releases a decoder failure before explicit retry", async () => {
   // Given
@@ -292,6 +327,74 @@ it("releases a decoder failure before explicit retry", async () => {
     await screen.findByRole("button", { name: "Réessayer" }),
   ).toBeOnTheScreen();
   expect(documentFiles[0].exists).toBe(false);
+});
+
+it("retains the reader card through a renewed failed download and native decode", async () => {
+  // Given: transport and native callbacks are controlled; the file and reader owners are real.
+  const user = userEvent.setup();
+  const pending = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url: string) =>
+    url.includes("/documents/")
+      ? Promise.resolve(new Response(null, { status: 503 }))
+      : reads(url),
+  );
+  await renderPage(<MatchScreen matchId={sportingId} />);
+  await user.press(
+    await screen.findByRole("link", { name: /Lieu.*Fiche d’information/ }),
+  );
+  await screen.findByRole("button", { name: "Réessayer" });
+  mockFetch.mockImplementation((url: string) =>
+    url.includes("/documents/") ? pending.promise : reads(url),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(screen.getByRole("alert")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Réessayer", busy: true }),
+  ).toBeDisabled();
+  expect(
+    screen.queryByRole("progressbar", { name: "Chargement du document" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Fermer le document" }),
+  ).toBeEnabled();
+
+  // When
+  await act(() => pending.resolve(new Response(null, { status: 503 })));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer", busy: false }),
+  ).toBeEnabled();
+  expect(screen.getByRole("alert")).toBeOnTheScreen();
+
+  // When: the next download succeeds, while the PDF decoder has not completed.
+  mockFetch.mockImplementation(reads);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await waitFor(() => expect(documentFiles).toHaveLength(1));
+
+  // Then
+  expect(
+    screen.getByRole("button", { name: "Réessayer", busy: true }),
+  ).toBeDisabled();
+  expect(screen.getByRole("alert")).toBeOnTheScreen();
+
+  // When
+  await act(() =>
+    jest
+      .mocked(Pdf)
+      .mock.lastCall?.[0].onLoadComplete?.(1, documentFiles[0].uri, {
+        width: 600,
+        height: 800,
+      }),
+  );
+
+  // Then
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(screen.getByTestId("native-pdf")).toBeOnTheScreen();
 });
 
 it("withdraws an active document on a current match refusal and never reopens it after recovery", async () => {

@@ -4,6 +4,7 @@ import {
   userEvent,
   cleanup,
   act,
+  fireEvent,
 } from "@testing-library/react-native";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
@@ -96,6 +97,10 @@ it("prepares five images without square crop, previews them and rejects a sixth 
     { maxWidth: 2560, maxHeight: 2560 },
   );
   await user.press(screen.getByRole("button", { name: "Aperçu : Image 1" }));
+  await fireEvent(
+    screen.getByRole("image", { name: "Image 1", includeHiddenElements: true }),
+    "display",
+  );
   expect(
     await screen.findByRole("image", { name: "Image 1" }),
   ).toBeOnTheScreen();

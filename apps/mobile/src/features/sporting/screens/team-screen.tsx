@@ -2,11 +2,7 @@ import { SportingTeamLoading } from "../components/sporting-loading";
 import { SportingSupportAction } from "../components/sporting-actions";
 import { PoolParticipationLink } from "../components/pool-participation-link";
 import { PoolStandings } from "../components/pool-standings";
-import {
-  SportingCalendar,
-  SportingCalendarView,
-} from "../components/sporting-calendar";
-import { useSportingCalendar } from "../api/use-sporting-calendar";
+import { SportingCalendar } from "../components/sporting-calendar";
 import {
   SportingInitialComposition,
   type SportingInitialRead,
@@ -70,10 +66,6 @@ function TeamPage({
   const tab = tabs.some((item) => item.id === selected)
     ? selected
     : (data?.participations[0]?.pool.id ?? "upcoming");
-  const upcoming = useSportingCalendar(
-    { teamId, category: "upcoming" },
-    !!data && tab === "upcoming",
-  );
   /** One shared identity owns its club link and the single follow lifetime above all scenes. */
   const identity = data ? (
     <SportingIdentity
@@ -126,16 +118,6 @@ function TeamPage({
             /** Selects the existing team calendar, standings or information panel without changing native tab lifetimes. */
             function renderTeamTab() {
               if (category) {
-                if (category === "upcoming") {
-                  return (
-                    <SportingCalendarView
-                      key={hashKey(upcoming.queryKey)}
-                      calendar={upcoming.calendar}
-                      active={tab === item.id}
-                      onRefresh={upcoming.refresh}
-                    />
-                  );
-                }
                 return (
                   <SportingCalendar
                     selection={{ teamId, category }}

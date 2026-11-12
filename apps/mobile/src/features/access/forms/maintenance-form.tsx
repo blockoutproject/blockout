@@ -1,4 +1,3 @@
-import { IconButton } from "../../../shared/components/icon-button";
 import { ImageFallback } from "../../../shared/components/image-fallback";
 import { LoadingGroup } from "../../../shared/components/loading-group";
 import { Skeleton } from "../../../shared/components/skeleton";
@@ -7,7 +6,7 @@ import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
 import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Image } from "expo-image";
-import { FileText, RotateCw, Wrench } from "lucide-react-native";
+import { FileText, Wrench } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
@@ -314,28 +313,15 @@ export function MaintenanceForm({
   );
 }
 
-/** Keeps decode progress, fallback and explicit retry in the current URL's media slot, independently of RHF. */
+/** Optional URL artwork keeps native progress and a plain failure fallback; a changed URL starts its own keyed preview without editing RHF. */
 function MaintenanceImagePreview({ uri }: Readonly<{ uri: string }>) {
-  const { colors } = useTheme();
   const [status, setStatus] = useState<"loading" | "displayed" | "failed">(
     "loading",
   );
   return (
     <View style={styles.preview}>
       {status === "failed" ? (
-        <>
-          <ImageFallback label="Aperçu indisponible" />
-          <IconButton
-            label="Réessayer l’aperçu"
-            onPress={() => setStatus("loading")}
-          >
-            <RotateCw
-              accessible={false}
-              size={tokens.size.icon.lg}
-              color={colors.icon}
-            />
-          </IconButton>
-        </>
+        <ImageFallback label="Aperçu indisponible" />
       ) : (
         <Image
           accessible
@@ -379,9 +365,7 @@ const styles = StyleSheet.create({
   preview: {
     width: "100%",
     height: 96,
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: tokens.spacing.sm,
   },
 } as const);

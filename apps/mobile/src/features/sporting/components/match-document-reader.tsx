@@ -32,13 +32,12 @@ export interface MatchDocumentReaderProps {
   onClose(): void;
 }
 
-/** Full-screen local-file reading with a fully named, one-line title; retry creates a new cancellable attempt. */
+/** Full-screen local-file reading; the file owner keeps Retry feedback through download and native decoding. */
 export function MatchDocumentReader({
   matchId,
   kind,
   onClose,
 }: Readonly<MatchDocumentReaderProps>) {
-  const [attempt, setAttempt] = useState(0);
   const admission = useOrdinaryRequest();
   const [openingBypass] = useState(admission.bypass);
   const current = admission.admitted && openingBypass === admission.bypass;
@@ -93,10 +92,9 @@ export function MatchDocumentReader({
           <SafeAreaView edges={["bottom"]} style={styles.pdf}>
             {current && (
               <DocumentAttempt
-                key={`${matchId}:${kind}:${attempt}`}
+                key={`${matchId}:${kind}`}
                 matchId={matchId}
                 kind={kind}
-                onRetry={() => setAttempt((value) => value + 1)}
               />
             )}
           </SafeAreaView>
@@ -106,16 +104,19 @@ export function MatchDocumentReader({
   );
 }
 
-/** Owns one file attempt; failed reads retain native overflow for retry, and identity or admission replacement releases the file before paint. */
+/** Owns cancellable file attempts and decoding; Retry retains its card until the native reader completes. */
 function DocumentAttempt({
   matchId,
   kind,
-  onRetry,
-}: Readonly<Omit<MatchDocumentReaderProps, "onClose"> & { onRetry(): void }>) {
+}: Readonly<Omit<MatchDocumentReaderProps, "onClose">>) {
   const session = useAccountSession();
   const admission = useOrdinaryRequest();
-  const [state, setState] = useState<{ file?: File; failed: boolean }>({
-    failed: false,
+  const [attempt, setAttempt] = useState(0);
+  const [state, setState] = useState<{
+    file?: File;
+    status: "loading" | "failed" | "ready";
+  }>({
+    status: "loading",
   });
   const { colors } = useTheme();
   /** Captures only the current admission/credentials for this native attempt, without restarting it on rerenders. */
@@ -152,11 +153,11 @@ function DocumentAttempt({
         if (controller.signal.aborted) {
           releaseMatchDocument(file);
         } else {
-          setState({ file, failed: false });
+          setState({ file, status: "loading" });
         }
       } catch {
         if (!controller.signal.aborted) {
-          setState({ failed: true });
+          setState({ status: "failed" });
         }
       }
     }
@@ -168,35 +169,57 @@ function DocumentAttempt({
         releaseMatchDocument(file);
       }
     };
-  }, [matchId, kind]);
-  if (state.failed) {
-    return (
-      <ScrollView
-        {...hiddenScrollIndicators}
-        style={styles.pdf}
-        contentContainerStyle={styles.stateContent}
-      >
-        <ScreenState>
-          <ErrorState onRetry={onRetry} />
-        </ScreenState>
-      </ScrollView>
-    );
-  }
-  if (!state.file) {
-    return <DocumentLoading />;
-  }
+  }, [matchId, kind, attempt]);
+  const retrying = attempt > 0 && state.status === "loading";
+  const showError = state.status === "failed" || retrying;
   return (
-    <Pdf
-      style={[styles.pdf, { backgroundColor: colors.canvas }]}
-      source={{ uri: state.file.uri }}
-      renderActivityIndicator={() => <DocumentLoading />}
-      onError={() => {
-        if (state.file) {
-          releaseMatchDocument(state.file);
-        }
-        setState({ failed: true });
-      }}
-    />
+    <View style={styles.pdf}>
+      {state.file && (
+        <View
+          style={[styles.pdf, showError && styles.hiddenReader]}
+          pointerEvents={showError ? "none" : "auto"}
+          accessibilityElementsHidden={showError}
+          importantForAccessibility={showError ? "no-hide-descendants" : "auto"}
+        >
+          <Pdf
+            key={state.file.uri}
+            style={[styles.pdf, { backgroundColor: colors.canvas }]}
+            source={{ uri: state.file.uri }}
+            renderActivityIndicator={() =>
+              showError ? <></> : <DocumentLoading />
+            }
+            onLoadComplete={() =>
+              setState((current) => ({ ...current, status: "ready" }))
+            }
+            onError={() => {
+              if (state.file) {
+                releaseMatchDocument(state.file);
+              }
+              setState({ status: "failed" });
+            }}
+          />
+        </View>
+      )}
+      {showError ? (
+        <ScrollView
+          {...hiddenScrollIndicators}
+          style={styles.stateOverlay}
+          contentContainerStyle={styles.stateContent}
+        >
+          <ScreenState>
+            <ErrorState
+              retrying={retrying}
+              onRetry={() => {
+                setState({ status: "loading" });
+                setAttempt((value) => value + 1);
+              }}
+            />
+          </ScreenState>
+        </ScrollView>
+      ) : (
+        !state.file && <DocumentLoading />
+      )}
+    </View>
   );
 }
 
@@ -218,6 +241,8 @@ const styles = StyleSheet.create({
   },
   title: { ...tokens.typography.navigation, flex: 1, textAlign: "center" },
   pdf: { flex: 1 },
+  hiddenReader: { opacity: 0 },
+  stateOverlay: StyleSheet.absoluteFill,
   stateContent: { flexGrow: 1 },
   loading: { flex: 1, width: "100%", padding: tokens.spacing.screen },
 });

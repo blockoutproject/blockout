@@ -668,36 +668,10 @@ it.each(["loading", "failed"])(
   },
 );
 
-it("keeps text and actions usable when preview display fails", async () => {
-  // Given
-  stored = {
-    ...initial,
-    imageUrl: "https://assets.example.invalid:8443/broken.png?width=800",
-  };
-  await renderSettings();
-  await screen.findByDisplayValue(initial.message);
-
-  // When
-  await fireEvent(
-    screen.getByLabelText("Aperçu de l’image de maintenance"),
-    "error",
-    { nativeEvent: { error: "Unavailable" } },
-  );
-
-  // Then
-  expect(
-    await screen.findByRole("image", { name: "Aperçu indisponible" }),
-  ).toBeOnTheScreen();
-  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
-  expect(screen.getByLabelText("Message de maintenance")).toBeEnabled();
-  expect(screen.getByLabelText("URL de l’image")).toBeEnabled();
-  expect(screen.getByDisplayValue(initial.message)).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
-});
-it("retries the same maintenance image URL without changing the dirty draft or submitting it", async () => {
-  // Given
+it("keeps a failed optional preview at its fallback while dirty input and actions remain usable", async () => {
+  // Given: the editable URL is valid, and only native image display fails.
   const user = userEvent.setup();
-  const imageUrl = "https://assets.example.invalid/maintenance.png";
+  const imageUrl = "https://assets.example.invalid:8443/broken.png?width=800";
   stored = { ...initial, imageUrl };
   await renderSettings();
   await user.clear(await screen.findByLabelText("Message de maintenance"));
@@ -705,20 +679,25 @@ it("retries the same maintenance image URL without changing the dirty draft or s
     screen.getByLabelText("Message de maintenance"),
     "Texte conservé",
   );
-  await fireEvent(
-    screen.getByLabelText("Aperçu de l’image de maintenance"),
-    "error",
-    { nativeEvent: { error: "Unavailable" } },
-  );
   mockFetch.mockClear();
 
   // When
-  await user.press(screen.getByRole("button", { name: "Réessayer l’aperçu" }));
-
-  // Then
-  expect(
+  await fireEvent(
     screen.getByLabelText("Aperçu de l’image de maintenance"),
+    "error",
+    {
+      nativeEvent: { error: "Unavailable" },
+    },
+  );
+
+  // Then: the optional artwork supplies no visible notice or separate recovery action.
+  expect(
+    await screen.findByRole("image", { name: "Aperçu indisponible" }),
   ).toBeOnTheScreen();
+  expect(screen.queryByText("Aperçu indisponible")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer l’aperçu" }),
+  ).not.toBeOnTheScreen();
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   expect(screen.getByLabelText("URL de l’image")).toHaveDisplayValue(imageUrl);
   expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(

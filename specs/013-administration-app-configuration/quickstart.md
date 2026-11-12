@@ -145,7 +145,7 @@ NX_LOAD_DOT_ENV_FILES=false NX_DAEMON=false NX_ISOLATE_PLUGINS=false \
   npx nx run mobile:verify --output-style=static
 ```
 
-On compatible native clients, exercise first/last fields and final action with the software keyboard open, representative themes and enlarged text. Expect omitted fields to remain unchanged, explicit null removal, independent platform values under one revision, retained failed-save drafts, explicit reread after conflict and a reachable full-screen preview close action. Use [the plan's form/design decisions](plan.md#mobile-state-and-native-behavior); actual operator authentication, SQL and released-binary/store outcomes retain their distinct qualification boundaries.
+On compatible native clients, exercise first/last fields and final action with the software keyboard open, representative themes and enlarged text. Expect omitted fields to remain unchanged, explicit null removal, independent platform values under one revision, retained failed-save drafts, explicit reread after conflict and an inline optional-image fallback with settings fields/actions still available. Maintenance adds no full-screen image reader or dedicated preview Retry. Use [the plan's form/design decisions](plan.md#mobile-state-and-native-behavior); actual operator authentication, SQL and released-binary/store outcomes retain their distinct qualification boundaries.
 
 ## Direct Profile operational navigation
 

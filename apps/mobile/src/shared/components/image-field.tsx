@@ -14,6 +14,9 @@ import { ScreenState } from "./screen-state";
 import { ErrorState } from "./state-card";
 import { Page, PageScrollView } from "./page";
 import { BottomContentSpacer } from "./bottom-content-inset";
+import { useNativeImageLifecycle } from "../images/use-native-image-lifecycle";
+import { LoadingGroup } from "./loading-group";
+import { Skeleton } from "./skeleton";
 
 /** Stable caller identity and accessible description for an existing or prepared local preview. */
 export interface ImageFieldImage {
@@ -220,7 +223,7 @@ export function ImageField({
   );
 }
 
-/** Keeps the static image inside the native safe frame; failed decode retry remounts only the image and preserves the draft. */
+/** Keeps the caller's image and draft intact; native decoding owns pending/success/failure and Retry retains its card. */
 export function ImagePreview({
   image,
   onClose,
@@ -229,33 +232,60 @@ export function ImagePreview({
   onClose: () => void;
 }>) {
   const { colors } = useTheme();
-  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const nativeImage = useNativeImageLifecycle(image.uri, attempt);
+  const retrying = attempt > 0 && nativeImage.status === "pending";
+  const showError = nativeImage.status === "failed" || retrying;
   return (
     <Page accessibilityViewIsModal>
       <IconButton label="Fermer" onPress={onClose}>
         <X accessible={false} size={tokens.size.icon.lg} color={colors.icon} />
       </IconButton>
-      {failed ? (
-        <PageScrollView>
-          <ScreenState>
-            <ErrorState onRetry={() => setFailed(false)} />
-          </ScreenState>
-        </PageScrollView>
-      ) : (
-        <>
+      <View style={styles.previewBody}>
+        {nativeImage.status !== "failed" && (
           <Image
-            onError={() => setFailed(true)}
+            key={nativeImage.attemptKey}
+            onError={nativeImage.onError}
+            onDisplay={nativeImage.onDisplay}
             source={{ uri: image.uri }}
             accessibilityRole="image"
             accessibilityLabel={image.label}
             accessible
             cachePolicy="none"
             contentFit="contain"
-            style={styles.fullImage}
+            style={[
+              styles.fullImage,
+              nativeImage.status !== "displayed" && styles.pendingImage,
+            ]}
+            accessibilityElementsHidden={nativeImage.status !== "displayed"}
+            importantForAccessibility={
+              nativeImage.status !== "displayed"
+                ? "no-hide-descendants"
+                : "auto"
+            }
           />
-          <BottomContentSpacer />
-        </>
-      )}
+        )}
+        {showError ? (
+          <PageScrollView>
+            <ScreenState>
+              <ErrorState
+                onRetry={() => setAttempt((value) => value + 1)}
+                retrying={retrying}
+              />
+            </ScreenState>
+          </PageScrollView>
+        ) : (
+          nativeImage.status === "pending" && (
+            <LoadingGroup
+              label="Chargement de l’image"
+              style={styles.previewLoading}
+            >
+              <Skeleton height="100%" shape="rectangle" />
+            </LoadingGroup>
+          )
+        )}
+      </View>
+      {!showError && <BottomContentSpacer />}
     </Page>
   );
 }
@@ -309,5 +339,8 @@ const styles = StyleSheet.create({
   },
   compactRemove: { alignSelf: "flex-end" },
   removeLabel: tokens.typography.strong,
-  fullImage: { flex: 1, width: "100%" },
+  previewBody: { flex: 1 },
+  previewLoading: { flex: 1, padding: tokens.spacing.screen },
+  fullImage: StyleSheet.absoluteFill,
+  pendingImage: { opacity: 0 },
 } as const);

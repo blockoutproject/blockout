@@ -991,7 +991,7 @@ it("keeps a dirty draft and the editing revision during background refetch", asy
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
 });
 
-it("announces one failed explicit logo refresh before a first preview while preserving the editable draft", async () => {
+it("keeps optional logo failure at its fallback after explicit refresh while preserving the editable draft", async () => {
   // Given: presentation is authorized and usable while its optional first logo read fails silently.
   stored = {
     ...initial,
@@ -1017,8 +1017,13 @@ it("announces one failed explicit logo refresh before a first preview while pres
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
-  expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
-  expect(screen.getAllByText(TECHNICAL_ERROR)).toHaveLength(1);
+  await waitFor(() =>
+    expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy(),
+  );
+  expect(
+    screen.getByRole("image", { name: "Logo indisponible" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
   expect(screen.getByDisplayValue("Refresh draft")).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
   expect(
@@ -1089,9 +1094,10 @@ it.each([403, 404])(
       );
 
       // Then
-      await screen.findByRole("alert", {
-        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-      });
+      await waitFor(() =>
+        expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy(),
+      );
+      expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
       expect(
         screen.getByRole("button", { name: "Aperçu : Logo" }),
       ).toBeOnTheScreen();
@@ -1106,13 +1112,16 @@ it.each([403, 404])(
       );
 
       // Then
-      await screen.findByRole("alert", {
-        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-      });
+      await waitFor(() =>
+        expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy(),
+      );
+      expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
       expect(screen.queryByText("Une erreur est survenue")).toBeNull();
-      expect(
-        screen.queryByRole("button", { name: "Aperçu : Logo" }),
-      ).toBeNull();
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("button", { name: "Aperçu : Logo" }),
+        ).not.toBeOnTheScreen(),
+      );
       expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
       expect(screen.getByDisplayValue("Local name")).toBeEnabled();
 
@@ -1126,9 +1135,11 @@ it.each([403, 404])(
 
       // Then
       expect(screen.queryByText("Une erreur est survenue")).toBeNull();
-      expect(
-        screen.queryByRole("button", { name: "Aperçu : Logo" }),
-      ).toBeNull();
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("button", { name: "Aperçu : Logo" }),
+        ).not.toBeOnTheScreen(),
+      );
 
       // When
       logoStatus = 200;
