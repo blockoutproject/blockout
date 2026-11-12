@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { Keyboard } from "react-native";
 import { useNavigation } from "expo-router";
 import { useSportingNavigation } from "../../sporting/navigation";
@@ -9,11 +9,12 @@ import type {
   useSearchExamplesQuery,
 } from "../api/use-discovery-query";
 import { uniqueSearchResults, type SearchResult } from "../model/search-result";
-import { SearchResults, SearchResultsContent } from "./search-results";
+import { SearchResults } from "./search-results";
+import { PageContent } from "../../../shared/components/page";
 import { SearchLoading } from "./search-loading";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { ListContinuation } from "../../../shared/components/list-continuation";
-import { ErrorState, EmptyState } from "../../../shared/components/state-card";
+import { EmptyState } from "../../../shared/components/state-card";
 import {
   hasReadError,
   ReadFeedback,
@@ -33,11 +34,7 @@ export interface SearchSceneProps {
   emptyAction: ReactNode;
 }
 
-/**
- * Keeps queries and criteria in their existing owners while presenting each tab's content.
- * The text Clubs reference masks failed results and resumes its safe read or failed cursor;
- * the other discovery consumers retain their feature-owned adoption boundary.
- */
+/** Masks a failed tab while Query retains its pages/cursor and the visit retains its criteria. */
 export function SearchScene({
   resource,
   criteria,
@@ -52,63 +49,81 @@ export function SearchScene({
 }: Readonly<SearchSceneProps>) {
   const visit = useSearchVisit();
   const query = examples ? exampleQuery : textQuery;
-  const examplePages = exampleQuery.data ? [exampleQuery.data] : undefined;
-  const items = examples ? uniqueSearchResults(examplePages) : textItems;
+  const items = examples
+    ? uniqueSearchResults(exampleQuery.data ? [exampleQuery.data] : undefined)
+    : textItems;
   const navigation = useNavigation();
   const sportingNavigation = useSportingNavigation(active);
   const sporting = resource === "club" ? undefined : visit[resource];
-  const filters = sporting?.filters;
-  const resultsReady = (searchable || examples) && (!sporting || !!filters);
-  const clubsReference = resource === "club" && !examples;
-  const clubsFailed = clubsReference && hasReadError(query);
+  const filtersMissing = !!sporting && !sporting.filters;
+  const read = filtersMissing ? sporting.query : query;
+  const failed = hasReadError(read);
+  const resultsReady = (searchable || examples) && !filtersMissing;
 
-  /** The visible valid context owns continuation; explicit retry may resume its failed cursor. */
-  async function loadMore() {
+  /** Only the selected focused valid text context may request automatic continuation. */
+  function loadMore() {
     if (
       !active ||
       !navigation.isFocused() ||
       !resultsReady ||
       examples ||
       !textQuery.hasNextPage ||
-      query.isFetching
+      query.isFetching ||
+      failed
     ) {
       return;
     }
-    await textQuery.fetchNextPage({ cancelRefetch: false });
+    void textQuery.fetchNextPage({ cancelRefetch: false });
   }
 
-  const error = clubsReference ? (
-    clubsFailed ? (
-      <ReadFeedback
-        query={query}
-        loadingContent={null}
-        onRetry={
-          active && searchable
-            ? () =>
-                textQuery.isFetchNextPageError
-                  ? textQuery.fetchNextPage({ cancelRefetch: false })
-                  : textQuery.refetch({ cancelRefetch: false })
-            : undefined
-        }
-      />
-    ) : undefined
-  ) : (
-    searchReadError(
-      query,
-      textQuery,
-      examples,
-      items.length === 0,
-      active,
-      loadMore,
-    )
-  );
-  const filtersPending = sporting?.query.isFetching ?? false;
-  const loadingNextPage = !examples && textQuery.isFetchingNextPage;
-  const initialLoading = (
-    <SearchResultsContent>
-      <SearchLoading />
-    </SearchResultsContent>
-  );
+  let emptyContent: ReactElement | null = null;
+  if (searchable || examples) {
+    if (failed) {
+      emptyContent = (
+        <ScreenState>
+          <ReadFeedback
+            key={filtersMissing ? "options" : criteria}
+            query={read}
+            loadingContent={null}
+            onRetry={
+              active
+                ? () =>
+                    !filtersMissing &&
+                    !examples &&
+                    textQuery.isFetchNextPageError
+                      ? textQuery.fetchNextPage({ cancelRefetch: false })
+                      : read.refetch({ cancelRefetch: false })
+                : undefined
+            }
+          />
+        </ScreenState>
+      );
+    } else if (filtersMissing || read.isPending) {
+      if (read.isFetching) {
+        emptyContent = (
+          <PageContent>
+            <SearchLoading />
+          </PageContent>
+        );
+      }
+    } else {
+      emptyContent = (
+        <ScreenState>
+          <EmptyState
+            title={
+              examples
+                ? "Aucun exemple disponible"
+                : "Aucun résultat pour ces critères"
+            }
+            description={emptyDescription}
+          >
+            {emptyAction}
+          </EmptyState>
+        </ScreenState>
+      );
+    }
+  }
+
   return (
     <SearchResults
       key={criteria}
@@ -117,133 +132,14 @@ export function SearchScene({
         void sportingNavigation.navigate(kind, identity.id);
       }}
       examples={examples}
-      items={resultsReady && !clubsFailed ? items : []}
-      preserveScrollPosition={clubsReference}
-      onEndReached={() => {
-        if (!query.isError) {
-          loadMore();
-        }
-      }}
-      emptyComponent={
-        (searchable || examples) &&
-        !(
-          clubsReference &&
-          query.isPending &&
-          !query.isFetching &&
-          !clubsFailed
-        ) ? (
-          <SearchEmptyFeedback
-            filtersMissing={!!sporting && !filters}
-            filtersPending={filtersPending}
-            onRetryFilters={
-              sporting?.query.isEnabled
-                ? () => void sporting.query.refetch()
-                : undefined
-            }
-            loading={query.isPending && query.isFetching && !clubsFailed}
-            initialLoading={initialLoading}
-            error={error}
-            examples={examples}
-            description={emptyDescription}
-            action={emptyAction}
-          />
-        ) : null
-      }
+      items={resultsReady && !failed ? items : []}
+      onEndReached={loadMore}
+      emptyComponent={emptyContent}
       continuation={
-        resultsReady &&
-        query.data &&
-        !clubsFailed &&
-        (loadingNextPage || query.isError) ? (
-          <ListContinuation
-            loading={loadingNextPage}
-            failed={query.isError}
-            disabled={!active || query.isFetching}
-            onRetry={
-              !examples && textQuery.isFetchNextPageError
-                ? loadMore
-                : () => void query.refetch()
-            }
-          />
+        resultsReady && !failed && !examples && textQuery.isFetchingNextPage ? (
+          <ListContinuation loading failed={false} onRetry={loadMore} />
         ) : undefined
       }
     />
-  );
-}
-
-/** An unfinished empty traversal keeps its explicit continuation retry; nonempty results have no initial error. */
-function searchReadError(
-  query:
-    | ReturnType<typeof useDiscoveryQuery>
-    | ReturnType<typeof useSearchExamplesQuery>,
-  textQuery: ReturnType<typeof useDiscoveryQuery>,
-  examples: boolean,
-  empty: boolean,
-  active: boolean,
-  loadMore: () => Promise<void>,
-) {
-  const continueEmpty =
-    !examples &&
-    empty &&
-    textQuery.hasNextPage &&
-    (!query.isError || textQuery.isFetchNextPageError);
-  if (!(query.isError || query.isPending || continueEmpty) || !empty) {
-    return undefined;
-  }
-  let onRetry: (() => void) | undefined;
-  if (active && query.isEnabled) {
-    onRetry = continueEmpty ? loadMore : () => void query.refetch();
-  }
-  return <ErrorState onRetry={onRetry} retrying={query.isFetching} />;
-}
-
-/** Presents the first-read outcome while the scene retains queries, criteria and navigation. */
-function SearchEmptyFeedback({
-  filtersMissing,
-  filtersPending,
-  onRetryFilters,
-  loading,
-  initialLoading,
-  error,
-  examples,
-  description,
-  action,
-}: Readonly<{
-  filtersMissing: boolean;
-  filtersPending: boolean;
-  onRetryFilters?: () => void;
-  loading: boolean;
-  initialLoading: ReactNode;
-  error: ReactNode;
-  examples: boolean;
-  description: string;
-  action: ReactNode;
-}>) {
-  if (filtersMissing) {
-    return filtersPending ? (
-      initialLoading
-    ) : (
-      <ScreenState>
-        <ErrorState onRetry={onRetryFilters} />
-      </ScreenState>
-    );
-  }
-  if (loading) {
-    return initialLoading;
-  }
-  return (
-    <ScreenState>
-      {error ?? (
-        <EmptyState
-          title={
-            examples
-              ? "Aucun exemple disponible"
-              : "Aucun résultat pour ces critères"
-          }
-          description={description}
-        >
-          {action}
-        </EmptyState>
-      )}
-    </ScreenState>
   );
 }

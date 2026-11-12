@@ -50,9 +50,8 @@ const searchTabs = [
  * Public discovery with shared text and current examples cached per tab/filter context.
  * Filters retain one selection per sporting tab; empty/whitespace reads explicitly present examples.
  * The fixed heading follows that text intent while initial options and result cards are pending.
- * Native end events continue the selected focused context. Initial errors use the shared card;
- * The text Clubs reference masks its failed content and retries the same safe read/cursor on-card;
- * other tabs retain their feature-owned adoption boundary. Query retains accepted pages; an old empty response
+ * Native end events continue the selected focused context. Failed reads mask tab content and controls;
+ * the shared card retries the same safe read/cursor. Query retains accepted pages; an old empty response
  * cannot establish current absence. There is no refresh gesture or additional background read trigger.
  * Generated Unicode validation rejects over-limit text without truncating the user's draft.
  * The existing F10 route receives only Search provenance; RHF text and visit criteria stay local.
@@ -127,8 +126,9 @@ export function SearchScreen() {
     club: clubExamples,
   };
   const queries = { team: teamQuery, pool: poolQuery, club: clubQuery };
-  const clubsFailed =
-    resource === "club" && !examples && hasReadError(clubQuery);
+  const failed =
+    hasReadError(examples ? exampleQueries[resource] : queries[resource]) ||
+    (!!sporting && !filters && hasReadError(sporting.query));
   let emptyDescription = "Essayez un autre nom.";
   if (examples) {
     emptyDescription = changed
@@ -169,45 +169,49 @@ export function SearchScreen() {
             setResource(id);
           }
         }}
-        tabs={searchTabs.map(({ id, label }) => ({
-          id,
-          label,
-          resetKey: hashKey([
-            textKey,
-            id === "club" ? undefined : visit[id].filters,
-          ]),
-          content: (
-            <SearchScene
-              resource={id}
-              criteria={hashKey([
-                textKey,
-                id === "club" ? undefined : visit[id].filters,
-              ])}
-              active={resource === id}
-              searchable={searchable}
-              query={queries[id]}
-              exampleQuery={exampleQueries[id]}
-              examples={examples}
-              items={items[id]}
-              emptyDescription={emptyDescription}
-              emptyAction={
-                !examples || changed ? (
-                  <Button
-                    label="Effacer les critères"
-                    leadingIcon={Eraser}
-                    onPress={() => clearCriteria(id)}
-                  />
-                ) : (
-                  <Button
-                    label="Rechercher"
-                    leadingIcon={Search}
-                    onPress={() => setFocus("q")}
-                  />
-                )
-              }
-            />
-          ),
-        }))}
+        tabs={searchTabs.map(({ id, label }) => {
+          // The catalogue is independent of text until its successful read initializes filters.
+          const criteria =
+            id !== "club" && !visit[id].filters
+              ? "options"
+              : hashKey([
+                  textKey,
+                  id === "club" ? undefined : visit[id].filters,
+                ]);
+          return {
+            id,
+            label,
+            resetKey: criteria,
+            content: (
+              <SearchScene
+                resource={id}
+                criteria={criteria}
+                active={resource === id}
+                searchable={searchable}
+                query={queries[id]}
+                exampleQuery={exampleQueries[id]}
+                examples={examples}
+                items={items[id]}
+                emptyDescription={emptyDescription}
+                emptyAction={
+                  !examples || changed ? (
+                    <Button
+                      label="Effacer les critères"
+                      leadingIcon={Eraser}
+                      onPress={() => clearCriteria(id)}
+                    />
+                  ) : (
+                    <Button
+                      label="Rechercher"
+                      leadingIcon={Search}
+                      onPress={() => setFocus("q")}
+                    />
+                  )
+                }
+              />
+            ),
+          };
+        })}
         renderTabBar={(tabBar) => (
           <>
             <View style={styles.navigation}>
@@ -252,7 +256,7 @@ export function SearchScreen() {
                     )}
                   />
                 </View>
-                {resource !== "club" && (
+                {resource !== "club" && !failed && (
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={changed ? "Filtres actifs" : "Filtres"}
@@ -296,7 +300,7 @@ export function SearchScreen() {
                   </Pressable>
                 )}
               </View>
-              {!clubsFailed && (
+              {!failed && (
                 <SearchHeading
                   examples={examples}
                   count={

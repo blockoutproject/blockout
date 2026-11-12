@@ -474,9 +474,8 @@ it("reads changed text only for the selected resource and preserves equivalent n
   await fireEvent.changeText(screen.getByLabelText("Rechercher"), "Volley");
   await screen.findByText("Volley professionnel");
 
-  // Then: only the selected resource rereads the changed criteria; native position is qualified separately.
-  expect(mockFetch).toHaveBeenCalledTimes(1);
-  expect(new URL(String(mockFetch.mock.calls[0][0])).pathname).toBe("/teams");
+  // Then: returning reuses this valid text context; native position is qualified separately.
+  expect(mockFetch).not.toHaveBeenCalled();
 });
 
 it("clears the shared query and opens examples for the selected tab", async () => {
@@ -765,7 +764,7 @@ it("keeps failure and criteria honest during native focus/reconnect/return rerea
   await renderSearch();
   await user.paste(await screen.findByLabelText("Rechercher"), "Volley");
   await screen.findByRole("alert");
-  expect(screen.getByRole("header", { name: "Résultats" })).toBeOnTheScreen();
+  expect(screen.queryByRole("header", { name: "Résultats" })).toBeNull();
   mockFetch.mockClear();
 
   // When
@@ -784,13 +783,13 @@ it("keeps failure and criteria honest during native focus/reconnect/return rerea
 
   // Then
   await waitFor(() => expect(screen.getByRole("alert")).toBeOnTheScreen());
-  expect(screen.getByRole("header", { name: "Résultats" })).toBeOnTheScreen();
+  expect(screen.queryByRole("header", { name: "Résultats" })).toBeNull();
   expect(
     screen.queryByRole("header", { name: "2 résultats chargés" }),
   ).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("/teams?")),
-  ).not.toHaveLength(0);
+  ).toHaveLength(0);
 });
 
 it("treats empty and whitespace-only text as the same example context", async () => {
@@ -1680,7 +1679,7 @@ it("cancels pending pagination before a background read and rejects its late res
 });
 
 it.each([401, 403, 404])(
-  "retains benign cards with an explicit retry after a current HTTP refusal (%s)",
+  "masks retained cards with an explicit retry after a current HTTP refusal (%s)",
   async (status) => {
     // Given
     const user = userEvent.setup();
@@ -1708,10 +1707,12 @@ it.each([401, 403, 404])(
     expect(
       await screen.findByRole("button", { name: "Réessayer" }),
     ).toBeEnabled();
-    expect(screen.getByText("Volley professionnel")).toBeOnTheScreen();
+    expect(screen.queryByText("Volley professionnel")).not.toBeOnTheScreen();
     expect(
       screen.queryByText("Aucun résultat pour ces critères"),
     ).not.toBeOnTheScreen();
-    expect(screen.queryByText("Une erreur est survenue")).not.toBeOnTheScreen();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Une erreur est survenue",
+    );
   },
 );

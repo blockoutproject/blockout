@@ -10,9 +10,9 @@ import {
 
 /**
  * Observes text searches without copying their pages or cursor.
- * Clubs keeps its observer while inactive: tab return reuses a successful result or the
+ * Each tab keeps its observer while inactive: tab return reuses a successful result or the
  * failed continuation, whose next attempt is explicit. New criteria still change the
- * native key and cancel an obsolete signal-consuming read. Other tabs retain their adoption scope.
+ * native key and cancel an obsolete signal-consuming read.
  */
 export function useDiscoveryQuery(
   resource: DiscoveryResource,
@@ -30,22 +30,16 @@ export function useDiscoveryQuery(
   );
   return useInfiniteQuery({
     ...options,
-    subscribed: resource === "club" || active,
-    enabled:
-      resource === "club"
-        ? (query) =>
-            active &&
-            options.enabled !== false &&
-            query.state.status !== "error"
-        : options.enabled,
-    staleTime: resource === "club" ? Infinity : undefined,
+    enabled: (query) =>
+      active && options.enabled !== false && query.state.status !== "error",
+    staleTime: Infinity,
   });
 }
 
 /**
  * Observes the visible empty-text context through ordinary Query retention and stale rereads.
  * Returning may display the same context's cached page while a successful current read replaces it.
- * Inactive contexts release their observer for ordinary cancellation and unused-cache collection.
+ * Mounted observers retain explicit Retry across tab changes; changed keys keep native cancellation.
  */
 export function useSearchExamplesQuery(
   resource: DiscoveryResource,
@@ -61,5 +55,8 @@ export function useSearchExamplesQuery(
     admission,
     session.getCredentials,
   );
-  return useQuery({ ...options, subscribed: active });
+  return useQuery({
+    ...options,
+    enabled: (query) => active && query.state.status !== "error",
+  });
 }

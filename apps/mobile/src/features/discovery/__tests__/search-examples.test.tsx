@@ -511,7 +511,7 @@ it.each(["tab", "text"])(
   },
 );
 
-it("retains usable examples on failure and repopulates a formerly empty current selection", async () => {
+it("masks cached examples on failure and repopulates a formerly empty current selection", async () => {
   // Given: a failed reread follows successful usable examples.
   const user = userEvent.setup();
   await renderSearch();
@@ -532,7 +532,7 @@ it("retains usable examples on failure and repopulates a formerly empty current 
   expect(
     await screen.findByRole("button", { name: "Réessayer" }),
   ).toBeOnTheScreen();
-  expect(screen.getByText("Niort")).toBeOnTheScreen();
+  expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
   expect(screen.queryByText("Aucun exemple disponible")).not.toBeOnTheScreen();
   mockFetch.mockImplementation((url: string) =>
     new URL(url).pathname.endsWith("/clubs")
@@ -684,7 +684,7 @@ it("keeps an initial example failure retryable instead of presenting an empty ca
 
   // Then
   expect(screen.queryByText(/Aucun résultat/)).not.toBeOnTheScreen();
-  expect(screen.getByRole("header", { name: "Exemples" })).toBeOnTheScreen();
+  expect(screen.queryByRole("header", { name: "Exemples" })).toBeNull();
   expect(collectionCalls("teams")).toHaveLength(1);
   mockFetch.mockImplementation(publicReads);
 
@@ -754,8 +754,8 @@ it("reuses the same admitted context cache across a new Search visit while readi
   expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
 });
 
-it("cancels inactive example reads and never admits their late response into the visible context", async () => {
-  // Given: HTTP deliberately returns after the examples observer is unsubscribed.
+it("keeps an inactive example read separate from the visible context", async () => {
+  // Given: a mounted observer retains its pending read while another tab is visible.
   const pending = Promise.withResolvers<Response>();
   let signal: AbortSignal | undefined;
   mockFetch.mockImplementation((url: string, options: RequestInit) => {
@@ -786,7 +786,7 @@ it("cancels inactive example reads and never admits their late response into the
   );
 
   // Then
-  expect(signal?.aborted).toBe(true);
+  expect(signal?.aborted).toBe(false);
   expect(screen.queryByText("Ancien exemple")).not.toBeOnTheScreen();
   expect(screen.getByRole("header", { name: "Exemples" })).toBeOnTheScreen();
 });

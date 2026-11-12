@@ -5,7 +5,10 @@ import { StyleSheet, View } from "react-native";
 import { Sheet, SheetContent } from "../../../shared/components/sheet";
 import { SelectField } from "../../../shared/components/select-field";
 import { Button } from "../../../shared/components/button";
-import { ErrorState } from "../../../shared/components/state-card";
+import {
+  hasReadError,
+  ReadFeedback,
+} from "../../../shared/components/read-feedback";
 import { LoadingGroup } from "../../../shared/components/loading-group";
 import { FieldSkeleton } from "../../../shared/components/form-loading";
 import { Skeleton } from "../../../shared/components/skeleton";
@@ -26,9 +29,10 @@ export function SearchFilters() {
   const initialized = useRef(false);
   const values = useWatch({ control: visit.draft.control });
   const options = query.data;
+  const loadingContent = <SearchFiltersLoading />;
   // Initialize once, then reconcile only disappeared choices; every other editable value survives rereads.
   useEffect(() => {
-    if (!options || !filters) {
+    if (!query.isSuccess || !options || !filters) {
       return;
     }
     if (!initialized.current) {
@@ -44,21 +48,18 @@ export function SearchFilters() {
     ) {
       reset(next, { keepDirty: true });
     }
-  }, [options, filters, getValues, reset]);
+  }, [query.isSuccess, options, filters, getValues, reset]);
   return (
     <Sheet
       title={`Filtrer les ${visit.editing === "team" ? "équipes" : "poules"}`}
       onClose={() => router.back()}
     >
-      {!options || !filters ? (
+      {hasReadError(query) || !options || !filters ? (
         <SheetContent>
-          {query.isFetching && !query.isError ? (
-            <SearchFiltersLoading />
+          {!filters && !hasReadError(query) && query.isFetching ? (
+            loadingContent
           ) : (
-            <ErrorState
-              onRetry={query.isEnabled ? () => void query.refetch() : undefined}
-              retrying={query.isFetching}
-            />
+            <ReadFeedback query={query} loadingContent={loadingContent} />
           )}
         </SheetContent>
       ) : (
