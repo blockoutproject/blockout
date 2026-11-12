@@ -64,7 +64,6 @@ function useModerationAuthority() {
     profile.data?.accountId === session.accountId &&
     !isAccessDenied(profile.error) &&
     profile.data?.permissions?.moderateStreamLinks === true;
-  const allowed = canRetain && profile.isSuccess;
   const client = useQueryClient();
   // These are this feature's generated HTTP resources, not a cross-cache propagation registry.
   useEffect(() => {
@@ -81,16 +80,13 @@ function useModerationAuthority() {
   /** Captured native credentials refuse a different subject before private dispatch. */
   async function request(signal?: AbortSignal) {
     const credentials = await session.getCredentials();
-    if (!credentials) {
-      throw new ApiError("http", 401);
-    }
     return admission.request({
       signal,
       headers: { Authorization: `Bearer ${credentials.accessToken}` },
     });
   }
 
-  return { allowed, canRetain, session, profile, request };
+  return { allowed: canRetain, canRetain, session, profile, request };
 }
 
 /** Identifies only generated private video-moderation resources for known grant withdrawal. */

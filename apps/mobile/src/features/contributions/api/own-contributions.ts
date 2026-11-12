@@ -109,14 +109,10 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
     session.status === "authenticated" &&
     profile.data?.accountId === actor.accountId &&
     !isOwnContributionAccessDenied(profile.error);
-  const usable = canRetain && profile.isSuccess;
 
   /** Applies the captured F12 intent only after fresh native credentials and original-owner checks. */
   async function request(signal?: AbortSignal) {
     const credentials = await session.getCredentials();
-    if (!credentials) {
-      throw new ApiError("http", 401);
-    }
     return admission.request({
       signal,
       headers: { Authorization: `Bearer ${credentials.accessToken}` },
@@ -146,7 +142,7 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
     },
     getNextPageParam: (page) => page.nextPage,
   });
-  const query = useInfiniteQuery({ ...options, enabled: usable && enabled });
+  const query = useInfiniteQuery({ ...options, enabled: canRetain && enabled });
 
   /** Native Query replaces the traversal only after a successful first-page read, retaining all authorized pages on failure. */
   async function readFirstPage() {
@@ -161,7 +157,7 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
     request,
     session,
     profile,
-    usable,
+    usable: canRetain,
     canRetain,
     readFirstPage,
     refuseAccess: (error: unknown) => refuseOwnAccess(client, queryKey, error),

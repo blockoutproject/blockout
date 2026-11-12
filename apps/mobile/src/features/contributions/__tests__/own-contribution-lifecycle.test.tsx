@@ -996,8 +996,8 @@ it.each(["refresh", "reconcile", "acknowledgement"])(
   },
 );
 
-it("keeps original-owner history read-only through a technical profile refresh failure", async () => {
-  // Given
+it("allows an explicit original-version withdrawal after a technical account read failure", async () => {
+  // Given: the real owner, Query and RHF form retain the viewed version and edited address.
   const boundary = mockFetch.getMockImplementation();
   if (!boundary) {
     throw new Error("Missing test HTTP boundary");
@@ -1005,13 +1005,20 @@ it("keeps original-owner history read-only through a technical profile refresh f
   let unavailable = false;
   mockFetch.mockImplementation((url, init) => {
     if (String(url).endsWith("/me") && unavailable) {
-      throw new TypeError("Controlled profile read failure");
+      return Promise.resolve(
+        Response.json({ title: "Unavailable", status: 503 }, { status: 503 }),
+      );
     }
     return boundary(url, init);
   });
   const user = userEvent.setup();
   await mount();
   await screen.findByText("Votre lien public");
+  await user.clear(screen.getByLabelText("Adresse du lien"));
+  await user.type(
+    screen.getByLabelText("Adresse du lien"),
+    "https://youtu.be/profile-outage-draft",
+  );
 
   // When
   unavailable = true;
@@ -1023,7 +1030,30 @@ it("keeps original-owner history read-only through a technical profile refresh f
   // Then
   expect(screen.getByText("Votre lien public")).toBeOnTheScreen();
   expect(screen.getByText("En attente de validation")).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Retirer" })).toBeDisabled();
+  expect(
+    screen.getByDisplayValue("https://youtu.be/profile-outage-draft"),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Retirer" })).toBeEnabled();
+  expect(patches).toHaveLength(0);
+
+  // When: withdrawing remains a separately confirmed command on the viewed active version.
+  await user.press(screen.getByRole("button", { name: "Retirer" }));
+  await act(async () => {
+    alert.mock.calls
+      .at(-1)?.[2]
+      ?.find((button: { style?: string }) => button.style === "destructive")
+      ?.onPress?.();
+  });
+
+  // Then
+  await waitFor(() =>
+    expect(patches).toEqual([
+      {
+        id: version(2, "active").id,
+        body: { action: "withdraw", revision: "initial" },
+      },
+    ]),
+  );
 });
 
 it.each([401, 403, 404])(

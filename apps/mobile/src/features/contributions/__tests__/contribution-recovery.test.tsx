@@ -313,9 +313,8 @@ it.each([
   },
 );
 
-it("offers account recovery when proposals open after a failed retained-account read", async () => {
+it("loads proposals from retained owner authority after a technical account read failure", async () => {
   // Given: the account was accepted on a different screen, then its reread failed.
-  const user = userEvent.setup();
   const view = await render(<Text>Another route</Text>, { wrapper: Wrapper });
   await waitFor(() =>
     expect(client.getQueryData(getGetMyAccountQueryKey())).toEqual(account),
@@ -325,9 +324,8 @@ it("offers account recovery when proposals open after a failed retained-account 
   if (!boundary) {
     throw new Error("Missing test HTTP boundary");
   }
-  let unavailable = true;
   mockFetch.mockImplementation((url, init) =>
-    String(url).endsWith("/me") && unavailable
+    String(url).endsWith("/me")
       ? Promise.reject(new TypeError("Controlled account outage"))
       : boundary(url, init),
   );
@@ -346,21 +344,13 @@ it("offers account recovery when proposals open after a failed retained-account 
   // When
   await view.rerender(<OwnContributionsScreen matchId={match.match.id} />);
 
-  // Then: the disabled dependent Query must not leave an empty body.
-  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
-  expect(reads.some((path) => path.includes("/stream-contributions"))).toBe(
-    false,
-  );
-
-  // When
-  unavailable = false;
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
-
-  // Then
+  // Then: retained authorized data admits this first dependent read without a mandatory account retry.
   expect(
     await screen.findByRole("header", { name: "Mes propositions (0)" }),
   ).toBeOnTheScreen();
+  expect(reads.some((path) => path.includes("/stream-contributions"))).toBe(
+    true,
+  );
   expect(writes).toHaveLength(0);
 });
 
@@ -566,6 +556,65 @@ it("keeps confirmed report success when both dependent reads fail", async () => 
   ).toBeOnTheScreen();
   expect(screen.queryByLabelText("Motif du signalement")).not.toBeOnTheScreen();
   expect(writes).toHaveLength(1);
+});
+
+it("allows an explicit report from the retained reason after a technical account read failure", async () => {
+  // Given: generated HTTP, account, Query and RHF owners retain the exact report target.
+  const user = userEvent.setup();
+  await render(
+    <ReportContributionScreen
+      matchId={match.match.id}
+      contributionId={version.id}
+      contributionUrl={version.url}
+    />,
+    { wrapper: Wrapper },
+  );
+  await user.type(
+    await screen.findByLabelText("Motif du signalement"),
+    "Fictional retained reason",
+  );
+  const boundary = mockFetch.getMockImplementation()!;
+  mockFetch.mockImplementation((url, init) =>
+    String(url).endsWith("/me")
+      ? Promise.resolve(
+          Response.json({ title: "Unavailable", status: 503 }, { status: 503 }),
+        )
+      : boundary(url, init),
+  );
+
+  // When
+  await act(() =>
+    client.refetchQueries({ queryKey: getGetMyAccountQueryKey(), exact: true }),
+  );
+
+  // Then
+  expect(
+    screen.getByDisplayValue("Fictional retained reason"),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Envoyer le signalement" }),
+  ).toBeEnabled();
+  expect(writes).toHaveLength(0);
+
+  // When: only a new explicit action sends this reason to its original version.
+  write = async () => Response.json({ reported: true });
+  await user.press(
+    screen.getByRole("button", { name: "Envoyer le signalement" }),
+  );
+
+  // Then
+  expect(
+    await screen.findByText("Votre signalement a été envoyé."),
+  ).toBeOnTheScreen();
+  expect(writes).toEqual([
+    {
+      url: expect.stringContaining(
+        `/accounts/${account.accountId}/stream-contributions/${version.id}/report`,
+      ),
+      body: { reason: "Fictional retained reason" },
+      authorization: "Bearer test-access-token",
+    },
+  ]);
 });
 
 it("retains a lost report's draft for a later explicit retry on the same version", async () => {

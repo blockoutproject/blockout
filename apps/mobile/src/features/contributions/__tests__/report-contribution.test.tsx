@@ -425,7 +425,7 @@ it.each(["initialization", "restoration"] as const)(
   },
 );
 
-it("recovers a retained profile failure before admitting a report whose initial read is still pending", async () => {
+it("keeps the initial report read pending after a technical failure of the retained account", async () => {
   // Given
   const reportRead = Promise.withResolvers<Response>();
   const peer = mockFetch.getMockImplementation();
@@ -442,7 +442,6 @@ it("recovers a retained profile failure before admitting a report whose initial 
     }
     return peer(url, init);
   });
-  const user = userEvent.setup();
   await mount();
   await waitFor(() =>
     expect(
@@ -462,18 +461,19 @@ it("recovers a retained profile failure before admitting a report whose initial 
 
     // Then
     expect(
-      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+      await screen.findByRole("progressbar", {
+        name: "Chargement du signalement",
+      }),
     ).toBeOnTheScreen();
-    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Réessayer" }),
+    ).not.toBeOnTheScreen();
     expect(
       screen.queryByLabelText("Motif du signalement"),
     ).not.toBeOnTheScreen();
     expect(posts).toHaveLength(0);
-
-    // When
-    profileUnavailable = false;
-    await user.press(screen.getByRole("button", { name: "Réessayer" }));
   } finally {
+    // When: only the original prerequisite read settles; no account reread is required.
     await act(async () =>
       reportRead.resolve(Response.json({ reported: false })),
     );
@@ -483,6 +483,9 @@ it("recovers a retained profile failure before admitting a report whose initial 
   expect(
     await screen.findByLabelText("Motif du signalement"),
   ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Envoyer le signalement" }),
+  ).toBeEnabled();
   expect(posts).toHaveLength(0);
 });
 
