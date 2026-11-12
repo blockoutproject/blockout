@@ -120,69 +120,76 @@ export function PoolMap({
         />
       }
     >
-      {data && hasLocations && (
-        <PageContent
-          style={failed ? styles.hidden : undefined}
-          pointerEvents={failed ? "none" : "auto"}
-          accessibilityElementsHidden={failed}
-          importantForAccessibility={failed ? "no-hide-descendants" : "auto"}
-        >
-          {children}
-          <ParticipantMap
-            items={data.items}
-            standings={standings.data}
-            recordUnavailable={recordUnavailable}
-            active={active && !failed}
-          />
-        </PageContent>
-      )}
-      {failed ? (
-        <ScreenState style={hasLocations ? StyleSheet.absoluteFill : undefined}>
-          <ReadFeedback
-            key={pool.pool.id}
-            query={participants}
-            failed
-            onRetry={async () => {
-              if (active) {
-                await participants.refetch({ cancelRefetch: false });
-              }
-            }}
-            loadingContent={null}
-          />
-        </ScreenState>
-      ) : !data || !hasLocations ? (
-        participants.isLoading ? (
-          <PageContent>
+      {/* Anchor the overlay after the pager's scroll inset, retaining the map's normal-flow bounds. */}
+      <View style={styles.content} collapsable={false}>
+        {data && hasLocations && (
+          <PageContent
+            style={failed ? styles.hidden : undefined}
+            pointerEvents={failed ? "none" : "auto"}
+            accessibilityElementsHidden={failed}
+            importantForAccessibility={failed ? "no-hide-descendants" : "auto"}
+          >
             {children}
-            <MapLoading />
+            <ParticipantMap
+              items={data.items}
+              standings={standings.data}
+              recordUnavailable={recordUnavailable}
+              active={active && !failed}
+            />
           </PageContent>
-        ) : (
-          <>
-            {children && (
-              <PageContent style={styles.stateControls}>{children}</PageContent>
-            )}
-            <ScreenState>
-              {data && (
-                <EmptyState
-                  title="Aucune localisation disponible"
-                  description="La localisation des équipes n’est pas renseignée."
-                >
-                  <Button
-                    label="Actualiser"
-                    leadingIcon={RefreshCw}
-                    onPress={() => void refresh()}
-                    loading={
-                      refreshing &&
-                      (participants.isFetching || standings.isFetching)
-                    }
-                    disabled={!active}
-                  />
-                </EmptyState>
+        )}
+        {failed ? (
+          <ScreenState
+            style={hasLocations ? StyleSheet.absoluteFill : undefined}
+          >
+            <ReadFeedback
+              key={pool.pool.id}
+              query={participants}
+              failed
+              onRetry={async () => {
+                if (active) {
+                  await participants.refetch({ cancelRefetch: false });
+                }
+              }}
+              loadingContent={null}
+            />
+          </ScreenState>
+        ) : !data || !hasLocations ? (
+          participants.isLoading ? (
+            <PageContent>
+              {children}
+              <MapLoading />
+            </PageContent>
+          ) : (
+            <>
+              {children && (
+                <PageContent style={styles.stateControls}>
+                  {children}
+                </PageContent>
               )}
-            </ScreenState>
-          </>
-        )
-      ) : null}
+              <ScreenState>
+                {data && (
+                  <EmptyState
+                    title="Aucune localisation disponible"
+                    description="La localisation des équipes n’est pas renseignée."
+                  >
+                    <Button
+                      label="Actualiser"
+                      leadingIcon={RefreshCw}
+                      onPress={() => void refresh()}
+                      loading={
+                        refreshing &&
+                        (participants.isFetching || standings.isFetching)
+                      }
+                      disabled={!active}
+                    />
+                  </EmptyState>
+                )}
+              </ScreenState>
+            </>
+          )
+        ) : null}
+      </View>
     </PageScrollView>
   );
 }
@@ -605,6 +612,7 @@ function ParticipantSummary({
 }
 
 const styles = StyleSheet.create({
+  content: { flex: 1 },
   hidden: { opacity: 0 },
   stateControls: { paddingBottom: 0 },
   map: {
