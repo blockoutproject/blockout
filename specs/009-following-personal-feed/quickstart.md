@@ -99,7 +99,7 @@ for every appearance, text size and platform.
 
 ### Home pager with an unavailable common read
 
-[A30/FR-008/FR-029](spec.md#errors-concurrency-and-shared-responsibilities) and [T056](tasks.md#shared-account-and-sporting-composition) cover only the existing Home pager during common-prerequisite loading or failure. The affected [prototype scope](spec.md#design-evidence) is approved; its Figma reproduction awaits separate Home approval before native adoption. Follow/count adoption and Following's internal section recovery retain T053/T054.
+[A30/FR-008/FR-029](spec.md#errors-concurrency-and-shared-responsibilities) and [T056](tasks.md#shared-account-and-sporting-composition) cover only the existing Home pager during common-prerequisite loading or failure. The affected [prototype and separate Figma scope](spec.md#design-evidence) are approved; native adoption and qualification remain with T056. Follow/count adoption and Following's internal section recovery retain T053/T054.
 
 Use the existing real Query/generated-consumer `personal-screen` suite, with controlled HTTP responses and native pager events:
 
@@ -107,7 +107,7 @@ Use the existing real Query/generated-consumer `personal-screen` suite, with con
 2. Retry that shared failed read with a delayed response. Keep the same card during its active request, show progress only in the initiating scene's Retry button and keep the card without active progress while suspended. Swipe to another scene: its card action stays idle. Return to the initiating scene and observe the same attempt without starting another read. Repeated failure restores available Retry; successful options restore the selected scene's content or confirmed Empty, retaining a valid season and selected tab.
 3. Preserve existing checks for current account/options refusals, refusal followed by technical failure, account/UUID replacement and independent calendar/list queries. A failed common read must neither invent All seasons nor restore refused private content. Pending background reads retain usable content under F13; their final failure uses the dependent cards. Existing retained data stays with its owner.
 
-After the scoped design approvals and implementation checks, observe one controlled common-read failure and delayed Retry on compatible iOS/Android clients: tab press and native swipe use the same shared pager as Search, with Home's existing collapsible brand and season rail. Verify card movement, reachable actions and successful return without extra common reads or premature collection reads. Reuse F13's representative theme/text/reduced-motion scope; add no provider operation or VoiceOver/TalkBack qualification. These observations do not complete T053/T054 or broader T045.
+After the native implementation checks, observe one controlled common-read failure and delayed Retry on compatible iOS/Android clients: tab press and native swipe use the same shared pager as Search, with Home's existing collapsible brand and season rail. Verify card movement, reachable actions and successful return without extra common reads or premature collection reads. Reuse F13's representative theme/text/reduced-motion scope; add no provider operation or VoiceOver/TalkBack qualification. These observations do not complete T053/T054 or broader T045.
 
 ### Shared personal season boundary
 
