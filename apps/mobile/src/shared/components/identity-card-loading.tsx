@@ -23,6 +23,7 @@ export function IdentityCardSkeleton({
           width={tokens.size.media.profile}
           height={tokens.size.media.profile}
           shape="rectangle"
+          radius={tokens.media.radius.profile}
         />
       }
     >

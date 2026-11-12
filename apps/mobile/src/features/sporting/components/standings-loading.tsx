@@ -87,6 +87,7 @@ function StandingIdentitySkeleton({
       <Skeleton
         width={tokens.size.media.match}
         height={tokens.size.media.match}
+        radius={tokens.media.radius.list}
       />
       <View style={[styles.copy, card && styles.cardCopy]}>
         <TextSkeleton width="90%" />
@@ -128,6 +129,7 @@ function PodiumSkeleton({ height }: Readonly<{ height: number }>) {
         <Skeleton
           width={tokens.size.media.row}
           height={tokens.size.media.row}
+          radius={tokens.media.radius.tile}
         />
       </View>
       <View style={styles.podiumName}>

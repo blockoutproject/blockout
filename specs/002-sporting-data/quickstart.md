@@ -92,7 +92,7 @@ is part of this mobile scope.
 
 On native iOS and Android, run both system themes at ordinary and narrow widths,
 then enlarged text including the approved 320-point/200% specimen. Check labels,
-image preview/close, replacement and restoration, validation focus, keyboard
+passive image display, replacement and restoration, validation focus, keyboard
 reachability of the final field/save action, and back/gesture cancellation versus
 explicit draft discard. This preparation does not
 qualify the separately retained iOS text-resizing/minimum-iOS limits.

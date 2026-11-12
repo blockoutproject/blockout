@@ -339,7 +339,11 @@ function MaintenanceImagePreview({ uri }: Readonly<{ uri?: string }>) {
           label="Chargement de l’aperçu"
           style={StyleSheet.absoluteFill}
         >
-          <Skeleton height="100%" shape="rectangle" />
+          <Skeleton
+            height="100%"
+            shape="rectangle"
+            radius={tokens.media.radius.profile}
+          />
         </LoadingGroup>
       )}
     </View>

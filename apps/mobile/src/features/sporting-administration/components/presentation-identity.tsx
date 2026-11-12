@@ -59,6 +59,11 @@ export function PresentationIdentity({
             width={skeletonSize}
             height={skeletonSize}
             shape="rectangle"
+            radius={
+              isDivision
+                ? tokens.media.radius.tile
+                : tokens.media.radius.preview
+            }
           />
         </LoadingGroup>
       ) : (

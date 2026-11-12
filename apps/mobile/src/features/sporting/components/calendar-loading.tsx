@@ -103,6 +103,7 @@ function PoolGroupSkeleton({
           <Skeleton
             width={tokens.size.media.row}
             height={tokens.size.media.row}
+            radius={tokens.media.radius.tile}
           />
           <View style={styles.headingCopy}>
             <TextSkeleton width="85%" />
@@ -167,6 +168,7 @@ function TeamSkeleton({
       <Skeleton
         width={tokens.size.media.match}
         height={tokens.size.media.match}
+        radius={tokens.media.radius.list}
       />
       <View style={styles.teamCopy}>
         <TextSkeleton width="90%" />

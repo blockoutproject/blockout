@@ -61,7 +61,14 @@ export function SportingMedia({
       );
     }
     if (loading) {
-      return <Skeleton width={size} height={size} shape="rectangle" />;
+      return (
+        <Skeleton
+          width={size}
+          height={size}
+          shape="rectangle"
+          radius={borderRadius}
+        />
+      );
     }
     return (
       <ImageFallback
@@ -115,7 +122,12 @@ export function SportingMedia({
         {renderArtwork()}
         {pending && (
           <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-            <Skeleton width={size} height={size} shape="rectangle" />
+            <Skeleton
+              width={size}
+              height={size}
+              shape="rectangle"
+              radius={borderRadius}
+            />
           </View>
         )}
       </View>

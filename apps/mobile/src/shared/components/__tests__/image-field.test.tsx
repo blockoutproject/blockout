@@ -1,5 +1,5 @@
 import { ActionFeedbackProvider } from "../action-feedback";
-import { TECHNICAL_ERROR, TECHNICAL_ERROR_TITLE } from "../error-copy";
+import { TECHNICAL_ERROR } from "../error-copy";
 import {
   act,
   fireEvent,
@@ -138,7 +138,7 @@ it("loans native image copies without imposing cropping and releases them after 
   expect(onSelect).toHaveBeenCalledWith([photo], undefined);
   expect(mockDeleteFile).toHaveBeenCalledWith(photo.uri);
   expect(
-    screen.queryByRole("button", { name: "Aperçu : Logo du club" }),
+    screen.queryByRole("image", { name: "Miniature : Logo du club" }),
   ).not.toBeOnTheScreen();
 });
 
@@ -264,7 +264,7 @@ it("preserves the existing image when native selection is cancelled", async () =
   expect(onRemove).not.toHaveBeenCalled();
   expect(mockDeleteFile).not.toHaveBeenCalled();
   expect(
-    screen.getByRole("button", { name: "Aperçu : Logo du club" }),
+    screen.getByRole("image", { name: "Miniature : Logo du club" }),
   ).toBeOnTheScreen();
 });
 
@@ -297,7 +297,7 @@ it.each(["ERR_USER_REJECTED_PERMISSIONS", "ERR_TEST_PICKER"])(
   },
 );
 
-it("opens a full-screen preview and closes it without changing caller values", async () => {
+it("keeps the attachment passive without changing caller values", async () => {
   // Given
   const user = userEvent.setup();
   const onSelect = jest.fn();
@@ -306,29 +306,15 @@ it("opens a full-screen preview and closes it without changing caller values", a
 
   // When
   await user.press(
-    screen.getByRole("button", { name: "Aperçu : Logo du club" }),
+    screen.getByRole("image", { name: "Miniature : Logo du club" }),
   );
+
+  // Then
   expect(
-    screen.getByRole("progressbar", { name: "Chargement de l’image" }),
+    screen.getByRole("image", { name: "Miniature : Logo du club" }),
   ).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Fermer" })).toBeEnabled();
-  await fireEvent(
-    screen.getByRole("image", {
-      name: "Logo du club",
-      includeHiddenElements: true,
-    }),
-    "display",
-  );
-
-  // Then
-  expect(screen.getByRole("image", { name: "Logo du club" })).toBeOnTheScreen();
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Fermer" }));
-
-  // Then
   expect(
-    screen.queryByRole("image", { name: "Logo du club" }),
+    screen.queryByRole("button", { name: /Aperçu|Fermer/ }),
   ).not.toBeOnTheScreen();
   expect(onSelect).not.toHaveBeenCalled();
   expect(onRemove).not.toHaveBeenCalled();
@@ -361,7 +347,7 @@ it("replaces a specific image and delegates automatic-logo restoration meaning",
   expect(onSelect).toHaveBeenCalledWith([photo], logo.id);
   expect(onRemove).toHaveBeenCalledWith(logo.id);
   expect(
-    screen.getByRole("button", { name: "Aperçu : Logo du club" }),
+    screen.getByRole("image", { name: "Miniature : Logo du club" }),
   ).toBeOnTheScreen();
 });
 
@@ -438,21 +424,17 @@ it("preserves the controlled image when its owner supplies a validation error", 
     "PNG/JPEG, 5 Mio maximum après préparation.",
   );
   expect(
-    screen.getByRole("button", { name: "Aperçu : Logo du club" }),
+    screen.getByRole("image", { name: "Miniature : Logo du club" }),
   ).toBeOnTheScreen();
   expect(onSelect).not.toHaveBeenCalled();
 });
 
-it("keeps a failed attachment thumbnail in its nominal slot without removing its preview or file actions", async () => {
+it("keeps a failed attachment thumbnail in its nominal slot with its file actions", async () => {
   // Given: the field retains its caller-owned attachment and native selection actions.
   const onSelect = jest.fn();
   const onRemove = jest.fn();
   const view = await renderField({ images: [logo], onSelect, onRemove });
-  const preview = screen.getByRole("button", {
-    name: "Aperçu : Logo du club",
-  });
-
-  // When: the native bitmap decoder fails independently of the available preview action.
+  // When: the native bitmap decoder fails independently of the caller-owned file.
   await fireEvent(
     screen.getByRole("image", { name: "Miniature : Logo du club" }),
     "error",
@@ -463,7 +445,6 @@ it("keeps a failed attachment thumbnail in its nominal slot without removing its
   expect(
     screen.getByRole("image", { name: "Image indisponible : Logo du club" }),
   ).toBeOnTheScreen();
-  expect(preview).toBeEnabled();
   expect(
     screen.getByRole("button", { name: "Changer l’image : Logo du club" }),
   ).toBeEnabled();
@@ -492,8 +473,8 @@ it("keeps a failed attachment thumbnail in its nominal slot without removing its
     screen.queryByRole("image", { name: "Image indisponible : Logo du club" }),
   ).not.toBeOnTheScreen();
   expect(
-    screen.getByRole("button", { name: "Aperçu : Logo du club" }),
-  ).toBeEnabled();
+    screen.getByRole("image", { name: "Miniature : Logo du club" }),
+  ).toBeOnTheScreen();
 });
 
 it("blocks reselection during owner preparation and recovers safely from rejection", async () => {
@@ -643,10 +624,10 @@ it("shows accepted caller values and removes them only when the owner updates", 
 
   // Then
   expect(
-    screen.getByRole("button", { name: "Aperçu : Nouveau logo" }),
+    screen.getByRole("image", { name: "Miniature : Nouveau logo" }),
   ).toBeOnTheScreen();
   expect(
-    screen.queryByRole("button", { name: "Aperçu : Logo du club" }),
+    screen.queryByRole("image", { name: "Miniature : Logo du club" }),
   ).not.toBeOnTheScreen();
 
   // When
@@ -658,160 +639,6 @@ it("shows accepted caller values and removes them only when the owner updates", 
   expect(
     screen.getByRole("button", { name: "Choisir une image" }),
   ).toBeOnTheScreen();
-});
-
-it("keeps preview dismissal available when native image decoding fails", async () => {
-  // Given
-  const user = userEvent.setup();
-  const onSelect = jest.fn();
-  const onRemove = jest.fn();
-  await renderField({ onSelect, onRemove, images: [logo] });
-  await user.press(
-    screen.getByRole("button", { name: "Aperçu : Logo du club" }),
-  );
-
-  // When
-  await fireEvent(
-    screen.getByRole("image", {
-      name: "Logo du club",
-      includeHiddenElements: true,
-    }),
-    "error",
-    {
-      nativeEvent: { error: "private file path" },
-    },
-  );
-
-  // Then
-  expect(await screen.findByRole("alert")).toHaveTextContent(
-    TECHNICAL_ERROR_TITLE,
-  );
-  expect(screen.getByRole("button", { name: "Fermer" })).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
-  const decodingImage = screen.getByRole("image", {
-    name: "Logo du club",
-    includeHiddenElements: true,
-  });
-  // Native dimensions may repeat after a local bounds update; only display completes the attempt.
-  for (let event = 0; event < 2; event += 1) {
-    await fireEvent(decodingImage, "load", {
-      nativeEvent: {
-        cacheType: "none",
-        source: {
-          url: logo.uri,
-          width: 1600,
-          height: 900,
-          mediaType: "image/png",
-          isAnimated: false,
-        },
-      },
-    });
-  }
-
-  // Then
-  expect(screen.getByRole("alert")).toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Réessayer", busy: true }),
-  ).toBeDisabled();
-  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
-
-  // When
-  await fireEvent(
-    screen.getByRole("image", {
-      name: "Logo du club",
-      includeHiddenElements: true,
-    }),
-    "error",
-    { nativeEvent: { error: "Native decoding failed again" } },
-  );
-
-  // Then
-  expect(
-    screen.getByRole("button", { name: "Réessayer", busy: false }),
-  ).toBeEnabled();
-  expect(screen.getByRole("alert")).toBeOnTheScreen();
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
-  await fireEvent(
-    screen.getByRole("image", {
-      name: "Logo du club",
-      includeHiddenElements: true,
-    }),
-    "display",
-  );
-
-  // Then
-  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
-  expect(screen.getByRole("image", { name: "Logo du club" })).toBeOnTheScreen();
-  expect(screen.queryByText(/private file path/)).not.toBeOnTheScreen();
-  expect(onSelect).not.toHaveBeenCalled();
-  expect(onRemove).not.toHaveBeenCalled();
-});
-
-it("starts a new preview attempt when an image URI returns or the viewer reopens", async () => {
-  // Given
-  const user = userEvent.setup();
-  const onSelect = jest.fn();
-  const view = await render(
-    <ImageField images={[logo]} onSelect={onSelect} />,
-    { wrapper: MediaProviders },
-  );
-  await user.press(
-    screen.getByRole("button", { name: "Aperçu : Logo du club" }),
-  );
-  await fireEvent(
-    screen.getByRole("image", {
-      name: "Logo du club",
-      includeHiddenElements: true,
-    }),
-    "error",
-    { nativeEvent: { error: "Native decoding failed" } },
-  );
-  expect(screen.getByText(TECHNICAL_ERROR_TITLE)).toBeOnTheScreen();
-
-  // When
-  await view.rerender(
-    <ImageField
-      images={[{ ...logo, uri: "file:///replacement.png" }]}
-      onSelect={onSelect}
-    />,
-  );
-
-  // Then
-  expect(screen.queryByText(TECHNICAL_ERROR_TITLE)).not.toBeOnTheScreen();
-  expect(
-    screen.getByRole("progressbar", { name: "Chargement de l’image" }),
-  ).toBeOnTheScreen();
-
-  // When the same original URI returns, its previous error belongs to an unmounted attempt.
-  await view.rerender(<ImageField images={[logo]} onSelect={onSelect} />);
-
-  // Then
-  expect(screen.queryByText(TECHNICAL_ERROR_TITLE)).not.toBeOnTheScreen();
-  expect(
-    screen.getByRole("progressbar", { name: "Chargement de l’image" }),
-  ).toBeOnTheScreen();
-
-  // When the current attempt fails and the user closes and reopens it.
-  await fireEvent(
-    screen.getByRole("image", {
-      name: "Logo du club",
-      includeHiddenElements: true,
-    }),
-    "error",
-    { nativeEvent: { error: "Native decoding failed" } },
-  );
-  await user.press(screen.getByRole("button", { name: "Fermer" }));
-  await user.press(
-    screen.getByRole("button", { name: "Aperçu : Logo du club" }),
-  );
-
-  // Then
-  expect(screen.queryByText(TECHNICAL_ERROR_TITLE)).not.toBeOnTheScreen();
 });
 
 it("retains the caller's image choice after an empty-field validation error", async () => {

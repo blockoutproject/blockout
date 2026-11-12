@@ -1,10 +1,4 @@
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  userEvent,
-} from "@testing-library/react-native";
+import { act, render, screen, userEvent } from "@testing-library/react-native";
 import * as ImagePicker from "expo-image-picker";
 import type { PropsWithChildren } from "react";
 import { ActionFeedbackProvider } from "../../shared/components/action-feedback";
@@ -51,7 +45,7 @@ beforeEach(() => {
   launch.mockReset();
 });
 
-/** The demonstration uses the real theme, feedback, selection and preview owners. */
+/** The demonstration uses the real theme, feedback and selection owners. */
 function MediaProviders({ children }: Readonly<PropsWithChildren>) {
   return (
     <ThemeProvider>
@@ -62,7 +56,7 @@ function MediaProviders({ children }: Readonly<PropsWithChildren>) {
   );
 }
 
-it("keeps the demonstration preview in memory after its picker cache copy is released", async () => {
+it("keeps the demonstration image in memory after its picker cache copy is released", async () => {
   // Given
   launch.mockResolvedValue({ canceled: false, assets: [photo] });
   const bytes = Promise.withResolvers<string>();
@@ -86,32 +80,24 @@ it("keeps the demonstration preview in memory after its picker cache copy is rel
 
   // Then
   expect(
-    await screen.findByRole("button", { name: "Aperçu : Image 1" }),
+    await screen.findByRole("image", { name: "Miniature : Image 1" }),
   ).toBeOnTheScreen();
   expect(mockDeleteFile).toHaveBeenCalledWith(photo.uri);
 
-  // When
-  await user.press(screen.getByRole("button", { name: "Aperçu : Image 1" }));
-  await fireEvent(
-    screen.getByRole("image", { name: "Image 1", includeHiddenElements: true }),
-    "display",
+  // Expo Image receives independent bytes; Jest does not decode them in a native image view.
+  expect(screen.getByRole("image", { name: "Miniature : Image 1" })).toHaveProp(
+    "source",
+    [expect.objectContaining({ uri: "data:image/jpeg;base64,cHJldmlldw==" })],
   );
 
-  // Then
-  // Expo Image receives independent bytes; Jest does not decode them in a native image view.
-  expect(screen.getByRole("image", { name: "Image 1" })).toHaveProp("source", [
-    expect.objectContaining({ uri: "data:image/jpeg;base64,cHJldmlldw==" }),
-  ]);
-
   // When
-  await user.press(screen.getByRole("button", { name: "Fermer" }));
   await user.press(
     screen.getByRole("button", { name: "Supprimer l’image : Image 1" }),
   );
 
   // Then
   expect(
-    screen.queryByRole("button", { name: "Aperçu : Image 1" }),
+    screen.queryByRole("image", { name: "Miniature : Image 1" }),
   ).not.toBeOnTheScreen();
   expect(mockDeleteFile).toHaveBeenCalledTimes(1);
 });

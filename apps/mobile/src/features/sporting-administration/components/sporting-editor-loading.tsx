@@ -43,6 +43,9 @@ export function PresentationLoading({
             width={division ? 38 : 64}
             height={division ? 38 : 64}
             shape="rectangle"
+            radius={
+              division ? tokens.media.radius.tile : tokens.media.radius.preview
+            }
           />
           <View style={styles.column}>
             <TextSkeleton width="70%" />

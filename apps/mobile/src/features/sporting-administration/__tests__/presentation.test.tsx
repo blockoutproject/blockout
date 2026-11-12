@@ -345,7 +345,7 @@ it("saves independent names and a nonsquare logo in one generated multipart PATC
   });
   await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
   await act(nativeImageChoiceAction("Choisir un logo"));
-  await screen.findByRole("button", { name: "Aperçu : Logo" });
+  await screen.findByRole("image", { name: "Miniature : Logo" });
   mockFetch.mockImplementation((url, options) => {
     if (options?.method === "PATCH") {
       stored = {
@@ -385,7 +385,7 @@ it("saves independent names and a nonsquare logo in one generated multipart PATC
   );
 });
 
-it("restores known customized artwork without a preview and clears only the selected name customization atomically", async () => {
+it("restores known customized artwork without decoded bytes and clears only the selected name customization atomically", async () => {
   // Given
   stored = {
     ...initial,
@@ -399,7 +399,7 @@ it("restores known customized artwork without a preview and clears only the sele
   await renderEditor();
   await screen.findByDisplayValue("Current name");
   expect(
-    screen.queryByRole("button", { name: "Aperçu : Logo" }),
+    screen.queryByRole("image", { name: "Miniature : Logo" }),
   ).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "Réessayer" }),
@@ -1052,12 +1052,12 @@ it.each([403, 404])(
       "FileReader",
     );
 
-    /** Controls only native binary decoding; the actual generated transport and Query owners remain mounted. */
+    /** Controls only binary-to-URI conversion; the actual generated transport and Query owners remain mounted. */
     class LogoReader {
       result = "data:image/png;base64,sporting-logo";
       onload?: () => void;
 
-      /** Makes an accepted binary response observable in the semantic image preview. */
+      /** Makes an accepted binary response observable in the semantic thumbnail. */
       readAsDataURL() {
         this.onload?.();
       }
@@ -1079,7 +1079,7 @@ it.each([403, 404])(
     try {
       const user = userEvent.setup();
       await renderEditor();
-      await screen.findByRole("button", { name: "Aperçu : Logo" });
+      await screen.findByRole("image", { name: "Miniature : Logo" });
       await user.clear(screen.getByLabelText("Nom complet personnalisé"));
       await user.type(
         screen.getByLabelText("Nom complet personnalisé"),
@@ -1099,7 +1099,7 @@ it.each([403, 404])(
       );
       expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
       expect(
-        screen.getByRole("button", { name: "Aperçu : Logo" }),
+        screen.getByRole("image", { name: "Miniature : Logo" }),
       ).toBeOnTheScreen();
       expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
       expect(screen.getByDisplayValue("Local name")).toBeOnTheScreen();
@@ -1119,7 +1119,7 @@ it.each([403, 404])(
       expect(screen.queryByText("Une erreur est survenue")).toBeNull();
       await waitFor(() =>
         expect(
-          screen.queryByRole("button", { name: "Aperçu : Logo" }),
+          screen.queryByRole("image", { name: "Miniature : Logo" }),
         ).not.toBeOnTheScreen(),
       );
       expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
@@ -1137,7 +1137,7 @@ it.each([403, 404])(
       expect(screen.queryByText("Une erreur est survenue")).toBeNull();
       await waitFor(() =>
         expect(
-          screen.queryByRole("button", { name: "Aperçu : Logo" }),
+          screen.queryByRole("image", { name: "Miniature : Logo" }),
         ).not.toBeOnTheScreen(),
       );
 
@@ -1150,7 +1150,7 @@ it.each([403, 404])(
 
       // Then
       expect(
-        await screen.findByRole("button", { name: "Aperçu : Logo" }),
+        await screen.findByRole("image", { name: "Miniature : Logo" }),
       ).toBeOnTheScreen();
       expect(screen.queryByText("Une erreur est survenue")).toBeNull();
 
@@ -1178,7 +1178,7 @@ it.each([403, 404])(
 
       // Then
       expect(
-        screen.getByRole("button", { name: "Aperçu : Logo" }),
+        screen.getByRole("image", { name: "Miniature : Logo" }),
       ).toBeOnTheScreen();
       expect(screen.getByDisplayValue("Local name")).toBeOnTheScreen();
       expect(
@@ -1300,7 +1300,7 @@ it("retains a read-only draft and drops a held native selection when the current
   );
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
   expect(
-    screen.queryByRole("button", { name: "Aperçu : Logo" }),
+    screen.queryByRole("image", { name: "Miniature : Logo" }),
   ).not.toBeOnTheScreen();
   expect(mockContext.renderAsync).not.toHaveBeenCalled();
   expect(mockPickedFile.delete).toHaveBeenCalledTimes(1);
@@ -1491,7 +1491,7 @@ it("enters the real protected route with only the presentation grant and confirm
   });
   await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
   await act(nativeImageChoiceAction("Choisir un logo"));
-  await screen.findByRole("button", { name: "Aperçu : Logo" });
+  await screen.findByRole("image", { name: "Miniature : Logo" });
   await act(async () => router.back());
 
   // Then
@@ -1541,7 +1541,7 @@ it("drops the draft and releases its logo when revoked grants remove the protect
   });
   await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
   await act(nativeImageChoiceAction("Choisir un logo"));
-  await screen.findByRole("button", { name: "Aperçu : Logo" });
+  await screen.findByRole("image", { name: "Miniature : Logo" });
 
   // When
   permissions = {};
@@ -1571,7 +1571,7 @@ it("drops the draft and releases its logo when revoked grants remove the protect
     await screen.findByLabelText("Nom complet personnalisé"),
   ).toHaveDisplayValue("Current name");
   expect(
-    screen.queryByRole("button", { name: "Aperçu : Logo" }),
+    screen.queryByRole("image", { name: "Miniature : Logo" }),
   ).not.toBeOnTheScreen();
   expect(
     screen.queryByText("Modifications non enregistrées"),
@@ -2039,7 +2039,7 @@ it("deletes a removed logo copy after the picker loan was released", async () =>
   });
   await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
   await act(nativeImageChoiceAction("Choisir un logo"));
-  await screen.findByRole("button", { name: "Aperçu : Logo" });
+  await screen.findByRole("image", { name: "Miniature : Logo" });
 
   // When
   await user.press(screen.getByRole("button", { name: "Modifier le logo" }));
@@ -2049,7 +2049,7 @@ it("deletes a removed logo copy after the picker loan was released", async () =>
   expect(mockFile.delete).toHaveBeenCalledTimes(1);
   expect(mockPickedFile.delete).toHaveBeenCalledTimes(1);
   expect(
-    screen.queryByRole("button", { name: "Aperçu : Logo" }),
+    screen.queryByRole("image", { name: "Miniature : Logo" }),
   ).not.toBeOnTheScreen();
 });
 
@@ -2066,7 +2066,7 @@ it("keeps a sent logo until upload settlement after session invalidation", async
   });
   await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
   await act(nativeImageChoiceAction("Choisir un logo"));
-  await screen.findByRole("button", { name: "Aperçu : Logo" });
+  await screen.findByRole("image", { name: "Miniature : Logo" });
   const response = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url, options) =>
     options?.method === "PATCH" ? response.promise : respond(url, options),
@@ -2242,7 +2242,7 @@ it("releases only the replaced logo copy while the new draft remains usable", as
     });
   await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
   await act(nativeImageChoiceAction("Choisir un logo"));
-  await screen.findByRole("button", { name: "Aperçu : Logo" });
+  await screen.findByRole("image", { name: "Miniature : Logo" });
 
   // When
   await user.press(screen.getByRole("button", { name: "Modifier le logo" }));
@@ -2253,7 +2253,7 @@ it("releases only the replaced logo copy while the new draft remains usable", as
   expect(replacement.delete).not.toHaveBeenCalled();
   expect(mockPickedFile.delete).toHaveBeenCalledTimes(2);
   expect(
-    screen.getByRole("button", { name: "Aperçu : Logo" }),
+    screen.getByRole("image", { name: "Miniature : Logo" }),
   ).toBeOnTheScreen();
 });
 

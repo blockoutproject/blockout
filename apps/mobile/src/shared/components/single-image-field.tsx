@@ -1,24 +1,22 @@
 import { controlOpacity } from "./control-styles";
 import { Image } from "expo-image";
 import { UserRound } from "lucide-react-native";
-import { useState } from "react";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ImageSelection } from "../images/use-image-selection";
 import { useNativeImageLifecycle } from "../images/use-native-image-lifecycle";
 import { useTheme } from "../theme/theme-provider";
 import { tokens } from "../theme/tokens";
 import { FieldMessage } from "./field-message";
-import { ImagePreview, type ImageFieldImage } from "./image-field";
+import type { ImageFieldImage } from "./image-field";
 import { ImageFallback } from "./image-fallback";
 import { useImageChoices } from "./image-choices";
 import { LoadingIndicator } from "./loading-indicator";
 import { TextSkeleton } from "./text-skeleton";
 
 /**
- * A single image owns one preview and contextual choices. Known presence is independent from the
+ * A single passive image owns contextual editing choices. Known presence is independent from the
  * available URI; the feature alone supplies removal/restoration meaning, preparation and authorization.
- * Remote loading and decoding failure affect only the preview. Preparation uses the existing selection owner.
+ * Remote loading and decoding failure affect only the displayed image. Preparation uses the existing selection owner.
  */
 export interface SingleImageFieldProps {
   label: string;
@@ -35,13 +33,13 @@ export interface SingleImageFieldProps {
   editLabel?: string;
   chooseLabel?: string;
   removeLabel?: string;
-  /** Requests a local draft intention; an unavailable preview never removes this supplied capability. */
+  /** Requests a local draft intention; an unavailable image never removes this supplied capability. */
   onRemove?: () => void;
   helper?: string;
   error?: string;
 }
 
-/** Shares the token-sized single-image entry, native choices and direct preview without owning an upload or draft. */
+/** Shares the token-sized single-image entry, native choices and passive image without owning an upload or draft. */
 export function SingleImageField({
   label,
   image,
@@ -60,7 +58,6 @@ export function SingleImageField({
   error,
 }: Readonly<SingleImageFieldProps>) {
   const { colors } = useTheme();
-  const [previewUri, setPreviewUri] = useState<string>();
   const unavailable = disabled || selection.pending;
   const nativeImage = useNativeImageLifecycle(image?.uri, readRevision);
   const visibleImage = nativeImage.status === "failed" ? undefined : image;
@@ -84,16 +81,6 @@ export function SingleImageField({
       : undefined,
   });
 
-  // Source withdrawal closes this visit; a later read cannot reopen the viewer without another explicit press.
-  if (
-    previewUri &&
-    (!visibleImage || visibleImage.uri !== previewUri || disabled)
-  ) {
-    setPreviewUri(undefined);
-  }
-
-  const showPreview =
-    !!visibleImage && previewUri === visibleImage.uri && !disabled;
   const mediaStyle = [
     styles.media,
     {
@@ -103,25 +90,20 @@ export function SingleImageField({
   return (
     <View style={styles.field}>
       {visibleImage ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Aperçu : ${visibleImage.label}`}
-          accessibilityState={{ disabled: unavailable }}
-          disabled={unavailable}
-          onPress={() => setPreviewUri(visibleImage.uri)}
-          style={mediaStyle}
-        >
+        <View style={mediaStyle}>
           <Image
             key={nativeImage.attemptKey}
             source={{ uri: visibleImage.uri }}
-            accessible={false}
+            accessible
+            accessibilityRole="image"
+            accessibilityLabel={`Miniature : ${visibleImage.label}`}
             cachePolicy="none"
             contentFit="cover"
             style={styles.image}
             onDisplay={nativeImage.onDisplay}
             onError={nativeImage.onError}
           />
-        </Pressable>
+        </View>
       ) : (
         <SingleImagePlaceholder
           label={label}
@@ -158,27 +140,11 @@ export function SingleImageField({
         </Text>
       </Pressable>
       <FieldMessage error={error} />
-      <Modal
-        visible={showPreview}
-        presentationStyle="fullScreen"
-        animationType="none"
-        onRequestClose={() => setPreviewUri(undefined)}
-      >
-        {showPreview && (
-          <SafeAreaProvider>
-            <ImagePreview
-              key={`${visibleImage.id}:${visibleImage.uri}`}
-              image={visibleImage}
-              onClose={() => setPreviewUri(undefined)}
-            />
-          </SafeAreaProvider>
-        )}
-      </Modal>
     </View>
   );
 }
 
-/** Keeps missing, withdrawn and loading media distinct without owning selection or the viewer. */
+/** Keeps missing, withdrawn and loading media distinct without owning selection. */
 function SingleImagePlaceholder({
   label,
   appearance,
@@ -231,7 +197,7 @@ function SingleImagePlaceholder({
   );
 }
 
-/** Reserves the shared rounded-square preview and entry without controls or a second pending announcement. */
+/** Reserves the shared rounded-square image and entry without controls or a second pending announcement. */
 export function SingleImageFieldSkeleton() {
   const { colors } = useTheme();
   return (

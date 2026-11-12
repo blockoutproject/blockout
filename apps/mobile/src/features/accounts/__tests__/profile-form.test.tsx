@@ -404,7 +404,7 @@ it.each(["active", "paused"] as const)(
     });
     await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
     await act(nativeImageChoiceAction("Choisir une photo"));
-    await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+    await screen.findByRole("image", { name: "Miniature : Photo de profil" });
     mockFetch.mockRejectedValue(new TypeError("Account refresh unavailable"));
 
     // When
@@ -457,7 +457,7 @@ it.each(["active", "paused"] as const)(
       // Then: no reset, preparation or write is invented by recovery.
       expect(await screen.findByDisplayValue("Unsaved")).toBeOnTheScreen();
       expect(
-        screen.getByRole("button", { name: "Aperçu : Photo de profil" }),
+        screen.getByRole("image", { name: "Miniature : Photo de profil" }),
       ).toBeOnTheScreen();
       expect(mockFile.delete).not.toHaveBeenCalled();
       expect(ImagePicker.launchImageLibraryAsync).toHaveBeenCalledTimes(1);
@@ -649,7 +649,7 @@ it("admits the authorized editor before its optional photo and preserves that ph
 });
 
 it.each(["loading", "error"] as const)(
-  "removes a known photo without a preview during initial %s only on explicit Save",
+  "removes a known photo without decoded artwork during initial %s only on explicit Save",
   async (phase) => {
     // Given
     const user = userEvent.setup();
@@ -673,7 +673,7 @@ it.each(["loading", "error"] as const)(
       );
     }
     expect(
-      screen.queryByRole("button", { name: "Aperçu : Photo de profil" }),
+      screen.queryByRole("image", { name: "Miniature : Photo de profil" }),
     ).not.toBeOnTheScreen();
 
     // When
@@ -940,12 +940,12 @@ it.each(["keep", "replace"] as const)(
     );
     const nativeRead = jest.fn();
 
-    /** Controls only the native binary decoder, so each successful photo read is observable in the preview. */
+    /** Controls only binary-to-URI conversion, so each accepted photo read is observable in the inline image. */
     class PhotoReader {
       result = "";
       onload?: () => void;
 
-      /** Publishes the native decoder result while keeping real Fetch and Query ownership. */
+      /** Publishes the converted URI while keeping real Fetch and Query ownership. */
       readAsDataURL() {
         nativeRead();
         this.result = `data:image/png;base64,photo${nativeRead.mock.calls.length}`;
@@ -961,7 +961,7 @@ it.each(["keep", "replace"] as const)(
       const user = userEvent.setup();
       await mountProfile();
       await screen.findByDisplayValue("Original");
-      await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+      await screen.findByRole("image", { name: "Miniature : Photo de profil" });
       if (intent === "replace") {
         jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
           canceled: false,
@@ -993,24 +993,21 @@ it.each(["keep", "replace"] as const)(
       await waitFor(() =>
         expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy(),
       );
-      await user.press(
-        screen.getByRole("button", { name: "Aperçu : Photo de profil" }),
-      );
-
       // Then
-      expect(
-        screen.getByRole("image", {
-          name: "Photo de profil",
-          includeHiddenElements: true,
-        }),
-      ).toHaveProp("source", [
-        {
-          uri:
-            intent === "keep"
-              ? "data:image/png;base64,photo2"
-              : "file:///prepared.png",
-        },
-      ]);
+      await waitFor(() =>
+        expect(
+          screen.getByRole("image", {
+            name: "Miniature : Photo de profil",
+          }),
+        ).toHaveProp("source", [
+          {
+            uri:
+              intent === "keep"
+                ? "data:image/png;base64,photo2"
+                : "file:///prepared.png",
+          },
+        ]),
+      );
       expect(mockFetch).toHaveBeenCalledTimes(intent === "keep" ? 2 : 1);
       expect(
         mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),
@@ -1039,7 +1036,7 @@ it("removes a refused remote photo until a successful photo read without treatin
     result = "data:image/png;base64,remote";
     onload?: () => void;
 
-    /** Completes a successful binary preview without invoking native I/O in Jest. */
+    /** Completes an accepted inline image read without invoking native I/O in Jest. */
     readAsDataURL() {
       this.onload?.();
     }
@@ -1061,7 +1058,7 @@ it("removes a refused remote photo until a successful photo read without treatin
   try {
     await mountProfile();
     await screen.findByDisplayValue("Original");
-    await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+    await screen.findByRole("image", { name: "Miniature : Photo de profil" });
 
     // When
     photoStatus = 403;
@@ -1075,7 +1072,7 @@ it("removes a refused remote photo until a successful photo read without treatin
     ).toBeOnTheScreen();
     expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
     expect(
-      screen.queryByRole("button", { name: "Aperçu : Photo de profil" }),
+      screen.queryByRole("image", { name: "Miniature : Photo de profil" }),
     ).toBeNull();
     expect(screen.getByLabelText("Pseudo")).toBeEnabled();
     expect(screen.queryByText("Une erreur est survenue")).toBeNull();
@@ -1088,7 +1085,7 @@ it("removes a refused remote photo until a successful photo read without treatin
     // Then
     expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
     expect(
-      screen.queryByRole("button", { name: "Aperçu : Photo de profil" }),
+      screen.queryByRole("image", { name: "Miniature : Photo de profil" }),
     ).toBeNull();
 
     // When
@@ -1097,7 +1094,7 @@ it("removes a refused remote photo until a successful photo read without treatin
 
     // Then
     expect(
-      await screen.findByRole("button", { name: "Aperçu : Photo de profil" }),
+      await screen.findByRole("image", { name: "Miniature : Photo de profil" }),
     ).toBeOnTheScreen();
     expect(screen.queryByText("Une erreur est survenue")).toBeNull();
   } finally {
@@ -1304,7 +1301,7 @@ it("submits prepared replacement then explicit removal without a username edit",
   });
   await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
   await act(nativeImageChoiceAction("Choisir une photo"));
-  await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+  await screen.findByRole("image", { name: "Miniature : Photo de profil" });
   const bodies: FormData[] = [];
   mockFetch.mockImplementation(async (_url, request) => {
     if (request?.method === "PATCH") {
@@ -1368,7 +1365,7 @@ it.each([
     });
     await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
     await act(nativeImageChoiceAction("Choisir une photo"));
-    await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+    await screen.findByRole("image", { name: "Miniature : Photo de profil" });
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
@@ -1402,7 +1399,7 @@ it("retains the previous prepared choice and username when another preparation f
   });
   await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
   await act(nativeImageChoiceAction("Choisir une photo"));
-  await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+  await screen.findByRole("image", { name: "Miniature : Photo de profil" });
   mockContext.renderAsync.mockRejectedValue(new Error("Native failure"));
 
   // When
@@ -1412,7 +1409,7 @@ it("retains the previous prepared choice and username when another preparation f
   // Then
   await screen.findByText(TECHNICAL_ERROR);
   expect(
-    screen.getByRole("button", { name: "Aperçu : Photo de profil" }),
+    screen.getByRole("image", { name: "Miniature : Photo de profil" }),
   ).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Original")).toBeOnTheScreen();
   expect(mockFile.delete).not.toHaveBeenCalled();
@@ -1475,7 +1472,7 @@ it.each(["preparation", "save"])(
     expect(screen.getByDisplayValue("Original")).toBeOnTheScreen();
     expect(screen.queryByDisplayValue("Stale_name")).not.toBeOnTheScreen();
     expect(
-      screen.queryByRole("button", { name: "Aperçu : Photo de profil" }),
+      screen.queryByRole("image", { name: "Miniature : Photo de profil" }),
     ).not.toBeOnTheScreen();
     expect(screen.queryByText("Profil enregistré.")).not.toBeOnTheScreen();
     expect(mockNavigate).not.toHaveBeenCalled();
@@ -1504,7 +1501,7 @@ it.each(["unmount", "session"])(
     });
     await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
     await act(nativeImageChoiceAction("Choisir une photo"));
-    await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+    await screen.findByRole("image", { name: "Miniature : Photo de profil" });
 
     // When
     if (exit === "unmount") {
@@ -1550,7 +1547,7 @@ it("deletes the replaced profile copy while preserving the new draft", async () 
   });
   await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
   await act(nativeImageChoiceAction("Choisir une photo"));
-  await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+  await screen.findByRole("image", { name: "Miniature : Photo de profil" });
 
   // When
   await user.press(screen.getByRole("button", { name: "Modifier la photo" }));
@@ -1560,7 +1557,7 @@ it("deletes the replaced profile copy while preserving the new draft", async () 
   await waitFor(() => expect(mockFile.delete).toHaveBeenCalledTimes(1));
   expect(replacement.delete).not.toHaveBeenCalled();
   expect(
-    screen.getByRole("button", { name: "Aperçu : Photo de profil" }),
+    screen.getByRole("image", { name: "Miniature : Photo de profil" }),
   ).toBeOnTheScreen();
 });
 
@@ -1577,7 +1574,7 @@ it("keeps a sent profile file until its upload settles after sign-out", async ()
   });
   await user.press(screen.getByRole("button", { name: "Ajouter une photo" }));
   await act(nativeImageChoiceAction("Choisir une photo"));
-  await screen.findByRole("button", { name: "Aperçu : Photo de profil" });
+  await screen.findByRole("image", { name: "Miniature : Photo de profil" });
   const response = Promise.withResolvers<Response>();
   mockFetch.mockImplementation(async (_url, request) =>
     request?.method === "PATCH" ? response.promise : json(account),
