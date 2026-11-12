@@ -62,6 +62,7 @@ function page(
 
 beforeEach(() => {
   client = createQueryClient();
+  client.setDefaultOptions({ queries: { retry: false } });
   owner = {
     accountId,
     subject: "auth0|original",
