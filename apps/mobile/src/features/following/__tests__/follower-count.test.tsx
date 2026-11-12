@@ -1,10 +1,4 @@
-import {
-  cleanup,
-  act,
-  screen,
-  userEvent,
-  waitFor,
-} from "@testing-library/react-native";
+import { cleanup, act, screen, waitFor } from "@testing-library/react-native";
 import { useCurrentAccount } from "../../accounts/current-account";
 import { onlineManager, QueryObserver } from "@tanstack/react-query";
 import { getGetTeamQueryOptions } from "../../../../.generated/mobile";
@@ -187,9 +181,36 @@ it("does not announce a loading count or offer a count retry before admission", 
   expect(await screen.findByLabelText("2 abonnés")).toBeOnTheScreen();
 });
 
-it("keeps a paused initial count idle and retryable without inventing a result", async () => {
+it("shows count loading only while its first read is active", async () => {
   // Given
-  const user = userEvent.setup();
+  const first = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, request) =>
+    url.endsWith("/follower-count") ? first.promise : transport(url, request),
+  );
+
+  // When
+  await fixture.render(<FollowerCount target={team} />);
+
+  // Then
+  expect(
+    await screen.findByRole("text", {
+      name: "Chargement du nombre d’abonnés",
+      busy: true,
+    }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Indisponible")).not.toBeOnTheScreen();
+
+  // When
+  await act(async () => first.resolve(Response.json({ count: 2 })));
+
+  // Then
+  expect(
+    await screen.findByRole("text", { name: "2 abonnés", busy: false }),
+  ).toBeOnTheScreen();
+});
+
+it("keeps a paused initial count static without inventing a result or Retry", async () => {
+  // Given
   const rendered = await fixture.render(<PrivateProfile />);
   await waitFor(() => expect(fixture.session.accountId).not.toBeNull());
   await act(async () => onlineManager.setOnline(false));
@@ -210,19 +231,12 @@ it("keeps a paused initial count idle and retryable without inventing a result",
     }),
   ).toBeOnTheScreen();
   expect(
-    screen.getByRole("button", {
+    screen.queryByRole("button", {
       name: "Réessayer le nombre d’abonnés",
-      busy: false,
     }),
-  ).toBeOnTheScreen();
+  ).not.toBeOnTheScreen();
   expect(screen.queryByLabelText("0 abonné")).not.toBeOnTheScreen();
 
-  // When
-  await user.press(
-    screen.getByRole("button", { name: "Réessayer le nombre d’abonnés" }),
-  );
-
-  // Then
   expect(
     mockFetch.mock.calls.some(([url]) => url.endsWith("/follower-count")),
   ).toBe(false);
@@ -248,54 +262,100 @@ it.each([{}, { count: -1 }, { count: 9007199254740992 }])(
     await fixture.render(<FollowerCount target={team} />);
 
     // Then
+    await waitFor(() =>
+      expect(fixture.client.getQueryState(followerCountKey(team))?.status).toBe(
+        "error",
+      ),
+    );
     expect(
-      await screen.findByRole("button", {
-        name: "Réessayer le nombre d’abonnés",
-      }),
+      await screen.findByLabelText("Nombre d’abonnés indisponible"),
     ).toBeOnTheScreen();
+    expect(screen.getByText("Indisponible")).toBeOnTheScreen();
     expect(screen.queryByLabelText("0 abonné")).not.toBeOnTheScreen();
     expect(fixture.client.getQueryData(followerCountKey(team))).toBeUndefined();
   },
 );
 
-it("keeps an honest retained count after failed refresh and retries only this count", async () => {
-  // Given
-  const user = userEvent.setup();
-  await fixture.render(<FollowerCount target={team} />);
-  await screen.findByLabelText("2 abonnés");
-  mockFetch.mockImplementation((url, request) =>
-    url.endsWith("/follower-count")
-      ? Promise.reject(new TypeError("count unavailable"))
-      : transport(url, request),
-  );
+it.each([undefined, 2])(
+  "shows unavailable after count failure with retained value %s and restores an ordinary later read",
+  async (initialCount) => {
+    // Given
+    const later = Promise.withResolvers<Response>();
+    let outcome: "initial" | "error" | "pending" = "initial";
+    mockFetch.mockImplementation((url, request) => {
+      if (url.endsWith("/follower-count")) {
+        if (outcome === "pending") {
+          return later.promise;
+        }
+        return outcome === "error" || initialCount === undefined
+          ? Promise.reject(new TypeError("count unavailable"))
+          : Promise.resolve(Response.json({ count: initialCount }));
+      }
+      return transport(url, request);
+    });
+    await fixture.render(<FollowerCount target={team} />);
+    if (initialCount !== undefined) {
+      await screen.findByLabelText("2 abonnés");
+    }
 
-  // When
-  await act(() =>
-    fixture.client.invalidateQueries({
-      queryKey: followerCountKey(team),
-      exact: true,
-    }),
-  );
+    // When
+    outcome = "error";
+    await act(() =>
+      fixture.client.invalidateQueries({
+        queryKey: followerCountKey(team),
+        exact: true,
+      }),
+    );
 
-  // Then
-  expect(
-    await screen.findByLabelText("2 abonnés, actualisation indisponible"),
-  ).toBeOnTheScreen();
-  expect(screen.queryByLabelText("0 abonné")).not.toBeOnTheScreen();
+    // Then
+    await waitFor(() =>
+      expect(fixture.client.getQueryState(followerCountKey(team))?.status).toBe(
+        "error",
+      ),
+    );
+    expect(
+      await screen.findByLabelText("Nombre d’abonnés indisponible"),
+    ).toBeOnTheScreen();
+    expect(screen.getByText("Indisponible")).toBeOnTheScreen();
+    expect(screen.queryByLabelText("2 abonnés")).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Réessayer le nombre d’abonnés" }),
+    ).not.toBeOnTheScreen();
+    expect(fixture.client.getQueryData(followerCountKey(team))).toEqual(
+      initialCount === undefined ? undefined : { count: initialCount },
+    );
 
-  // When
-  mockFetch.mockImplementation((url, request) =>
-    url.endsWith("/follower-count")
-      ? Promise.resolve(Response.json({ count: 1 }))
-      : transport(url, request),
-  );
-  await user.press(
-    screen.getByRole("button", { name: "Réessayer le nombre d’abonnés" }),
-  );
+    // When
+    outcome = "pending";
+    let reading: Promise<void>;
+    await act(async () => {
+      reading = fixture.client.invalidateQueries({
+        queryKey: followerCountKey(team),
+        exact: true,
+      });
+    });
 
-  // Then
-  expect(await screen.findByLabelText("1 abonné")).toBeOnTheScreen();
-});
+    // Then: the static failure does not become a new initial skeleton during the ordinary read.
+    expect(
+      screen.getByRole("text", {
+        name: "Nombre d’abonnés indisponible",
+        busy: false,
+      }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByLabelText("Chargement du nombre d’abonnés"),
+    ).not.toBeOnTheScreen();
+
+    // When
+    await act(async () => {
+      later.resolve(Response.json({ count: 1 }));
+      await reading;
+    });
+
+    // Then
+    expect(await screen.findByLabelText("1 abonné")).toBeOnTheScreen();
+  },
+);
 
 it.each([403, 404])(
   "withdraws a retained count after current %s refusal",
@@ -318,9 +378,7 @@ it.each([403, 404])(
     );
 
     // Then
-    await screen.findByRole("button", {
-      name: "Réessayer le nombre d’abonnés",
-    });
+    await screen.findByLabelText("Nombre d’abonnés indisponible");
     expect(screen.queryByLabelText(/2 abonnés/)).not.toBeOnTheScreen();
 
     // When: a later network loss cannot restore a currently refused count.
@@ -490,10 +548,7 @@ it.each([7, "transient"] as const)(
         </>,
       );
       if (reopened === "transient") {
-        await screen.findByRole("button", {
-          name: "Réessayer le nombre d’abonnés",
-          busy: false,
-        });
+        await screen.findByLabelText("Nombre d’abonnés indisponible");
       } else {
         await screen.findByLabelText("7 abonnés");
       }

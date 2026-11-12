@@ -1,10 +1,6 @@
 import { PageList } from "../../../shared/components/page-list";
-import { useRef, useLayoutEffect, useState } from "react";
-import {
-  hashKey,
-  useInfiniteQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { Search } from "lucide-react-native";
 import { DisclosureChevron } from "../../../shared/components/disclosure-chevron";
@@ -12,14 +8,16 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
 import { PageScrollView } from "../../../shared/components/page";
 import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
 import { Button } from "../../../shared/components/button";
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { ListContinuation } from "../../../shared/components/list-continuation";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
+import {
+  hasReadError,
+  ReadFeedback,
+} from "../../../shared/components/read-feedback";
 import { ScreenState } from "../../../shared/components/screen-state";
-import { EmptyState, ErrorState } from "../../../shared/components/state-card";
+import { EmptyState } from "../../../shared/components/state-card";
 import { tokens } from "../../../shared/theme/tokens";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import {
@@ -47,7 +45,7 @@ export interface FollowedListsProps {
 type FollowedItem = SportingEntityCardProps & {
   kind: FollowingTarget["type"];
 };
-/** One virtualized native list holds headers, cards and independent read boundaries. */
+/** One virtualized native list holds the two collapsible collections and their native loading feedback. */
 type FollowedRow =
   | {
       key: string;
@@ -96,13 +94,12 @@ function followedItems(
   ];
 }
 
-/** Query owns retained pages and reset semantics; only an explicit grouped refresh may publish gesture feedback. */
+/** Query owns each open collection's retained pages, continuation and reset semantics. */
 function useFollowedList(
   props: FollowedListsProps,
   type: FollowingTarget["type"],
   expanded: boolean,
 ) {
-  const client = useQueryClient();
   const options = createFollowListOptions(
     props.owner,
     props.request,
@@ -111,55 +108,31 @@ function useFollowedList(
     props.bypass,
   );
   const active = props.active && expanded;
-  const identity = hashKey(options.queryKey);
-  const current = useRef<string | undefined>(undefined);
-  useLayoutEffect(() => {
-    current.current = active ? identity : undefined;
-    return () => {
-      current.current = undefined;
-    };
-  }, [active, identity]);
   const query = useInfiniteQuery({
     ...options,
     enabled: (state) => active && state.state.status !== "error",
   });
 
-  /** Native scroll continuation stops after failure; only its explicit footer retries the same page. */
-  async function append(retry = false) {
-    if (
-      !active ||
-      query.isFetching ||
-      !query.hasNextPage ||
-      (query.isError && !retry)
-    ) {
+  /** Native scroll continuation stops after failure; the tab's card resumes the failed page. */
+  async function append() {
+    if (!active || query.isFetching || !query.hasNextPage || query.isError) {
       return;
     }
     await query.fetchNextPage({ cancelRefetch: false });
   }
 
-  /** Retains authorized pages on failure; footer retries stay silent and a grouped gesture supplies its sole notice callback. */
-  async function refresh(onFailure?: () => void) {
+  /** Refetches the ordinary retained traversal; final failure belongs to the shared Following card. */
+  async function refresh() {
     if (!active || !query.data || query.isFetching) {
       return;
     }
-    await client.cancelQueries({ queryKey: options.queryKey, exact: true });
-    try {
-      await client.infiniteQuery({ ...options, staleTime: 0, pages: 1 });
-    } catch {
-      const retained = client.getQueryData(options.queryKey);
-      if (
-        current.current === identity &&
-        followedItems(retained?.pages).length > 0
-      ) {
-        onFailure?.();
-      }
-    }
+    await query.refetch({ cancelRefetch: false });
   }
 
   return { query, items: followedItems(query.data?.pages), append, refresh };
 }
 
-/** Approved Home sections retain native scroll context and open exact F03 sheets through the existing F11 owner. */
+/** Home sections share one native list and open exact F03 sheets through the existing F11 owner. */
 export function FollowedLists(props: Readonly<FollowedListsProps>) {
   const [expanded, setExpanded] = useState({ team: true, pool: true });
   const teams = useFollowedList(props, "team", expanded.team);
@@ -167,26 +140,44 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
   const lists = { team: teams, pool: pools };
   const { colors } = useTheme();
   const sporting = useSportingNavigation(props.active);
-  const feedback = useActionFeedback();
+  const failed = (["team", "pool"] as const)
+    .filter((type) => expanded[type] && hasReadError(lists[type].query))
+    .map((type) => lists[type].query);
 
-  /** One pull waits for both collections and shares one notice; each read retains its own current-context guard. */
+  /** One pull refetches the open collections; their existing queries own both outcomes. */
   async function refresh() {
-    feedback.clear();
-    let reported = false;
+    await Promise.all([teams.refresh(), pools.refresh()]);
+  }
 
-    /** Publishes at most one error for this gesture, without changing either read's independent outcome. */
-    function reportFailure() {
-      if (reported) {
-        return;
-      }
-      reported = true;
-      feedback.error();
+  /** Rereads only failed open collections, preserving the native failed continuation cursor. */
+  async function retry() {
+    if (!props.active) {
+      return;
     }
+    await Promise.all(
+      failed.map((query) =>
+        query.isFetchNextPageError
+          ? query.fetchNextPage({ cancelRefetch: false })
+          : query.refetch({ cancelRefetch: false }),
+      ),
+    );
+  }
 
-    await Promise.all([
-      teams.refresh(reportFailure),
-      pools.refresh(reportFailure),
-    ]);
+  if (failed.length > 0) {
+    return (
+      <PageScrollView>
+        <ScreenState>
+          <ReadFeedback
+            query={{
+              ...failed[0],
+              isFetching: failed.some((query) => query.isFetching),
+            }}
+            loadingContent={null}
+            onRetry={retry}
+          />
+        </ScreenState>
+      </PageScrollView>
+    );
   }
 
   const rows: FollowedRow[] = (["team", "pool"] as const).flatMap(
@@ -212,7 +203,14 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
   const refreshControl = [teams, pools].some(
     (list) => list.items.length > 0,
   ) ? (
-    <DataRefreshControl enabled={props.active} onRefresh={refresh} />
+    <DataRefreshControl
+      enabled={props.active}
+      onRefresh={refresh}
+      fetching={
+        (expanded.team && teams.query.isFetching) ||
+        (expanded.pool && pools.query.isFetching)
+      }
+    />
   ) : undefined;
   if (
     teams.query.data &&
@@ -293,41 +291,22 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
           );
         }
 
-        /** Keeps the section's retained rows independent from initial failure, empty state and continuation retry. */
+        /** Sections show only their first active skeleton, confirmed empty state and automatic continuation. */
         function renderListFeedback() {
-          if (!list.items.length && list.query.isError) {
-            return (
-              <ErrorState
-                onRetry={
-                  props.active && expanded[row.resource]
-                    ? () => {
-                        if (props.active && expanded[row.resource]) {
-                          void list.query.refetch();
-                        }
-                      }
-                    : undefined
-                }
-                retrying={list.query.isFetching}
-              />
-            );
-          }
           if (!list.query.data) {
-            return (
-              <ReadFeedback
-                query={list.query}
-                loadingContent={
-                  <View style={styles.card}>
-                    <SportingEntityCardLoading
-                      label={
-                        row.resource === "team"
-                          ? "Chargement des équipes suivies"
-                          : "Chargement des poules suivies"
-                      }
-                    />
-                  </View>
-                }
-              />
-            );
+            return list.query.isEnabled &&
+              list.query.isPending &&
+              list.query.isFetching ? (
+              <View style={styles.card}>
+                <SportingEntityCardLoading
+                  label={
+                    row.resource === "team"
+                      ? "Chargement des équipes suivies"
+                      : "Chargement des poules suivies"
+                  }
+                />
+              </View>
+            ) : null;
           }
           if (!list.items.length && !list.query.hasNextPage) {
             return <NoAvailableFollows />;
@@ -335,13 +314,8 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
           return (
             <ListContinuation
               loading={list.query.isFetchingNextPage}
-              failed={list.query.isError && !!list.query.hasNextPage}
-              disabled={!props.active || list.query.isFetching}
-              onRetry={() =>
-                void (list.query.isRefetchError
-                  ? list.refresh()
-                  : list.append(true))
-              }
+              failed={false}
+              onRetry={() => void list.append()}
             />
           );
         }

@@ -4,7 +4,7 @@ The decisions below implement the accepted [F06 specification](spec.md) and the 
 
 ## Follow mutation and personal traversal
 
-**Decision**: Follow actions use the current [F13 mutation owner](../003-shared-quality/plan.md#frontend-mutation-conventions) within [F05's native principal/private-client lifetime](../005-accounts-identity/plan.md#mobile-session-and-shared-consumers). Confirmed desired-state writes reset affected personal lists/calendars through native `resetQueries`; failed/uncertain writes retain ordinary invalidation and explicit retry. No session generation, shared command guard or confirmation-read protocol is added.
+**Decision**: Follow actions use the current [F13 mutation owner](../003-shared-quality/plan.md#frontend-mutation-conventions) within [F05's native principal/private-client lifetime](../005-accounts-identity/plan.md#mobile-session-and-shared-consumers). Confirmed desired-state writes reset affected personal lists/calendars through native `resetQueries`; failed or lost responses retain ordinary invalidation and later explicit retry without a successful-read prerequisite. No session generation, shared command guard or confirmation-read protocol is added.
 
 Each mounted control owns its native mutation's pending state while retaining its confirmed label and selection; independent visits may send the same target concurrent desired-state requests. The confirmed response updates already admitted member data through native `onSuccess`/`setQueryData`, without restoring a known refusal; ordinary reads still refresh after settlement. This preserves F03's single team-follow action, database uniqueness/idempotence and last server-recorded state without a target-wide guard.
 
@@ -18,7 +18,7 @@ Ordinary calendar refresh keeps [F03's current native Query/grouping policy](../
 
 ## Shared sporting Follow read and scoped recovery
 
-**Decision**: Share one route-owned relationship read between F03’s common-context boundary and F06’s control, using F05’s matching account availability. Key only the private action/recovery subtrees by account and target. Required-read presentation consumes [F13 FR-031/FR-036–FR-038](../003-shared-quality/spec.md#functional-requirements) at the scope defined by [F13 FR-041](../003-shared-quality/spec.md#first-useful-composition); preserve confirmation in Query independently of its current visible recovery state.
+**Decision**: Share one route-owned relationship read between F03’s common-context boundary and F06’s control, using F05’s matching account availability. Key only the private action subtrees by account and target. Required-read presentation consumes [F13 FR-031/FR-036–FR-038](../003-shared-quality/spec.md#functional-requirements) at the scope defined by [F13 FR-041](../003-shared-quality/spec.md#first-useful-composition); preserve confirmation in Query independently of its current visible recovery state. A failed private relationship read takes the signed-in page scope; the existing common card relaunches that relationship read and masks its inverse action. Guests have no private prerequisite.
 
 **Rationale**: Sharing the actual result avoids a second observer's unconditional opening refetch. [React identity](https://react.dev/learn/preserving-and-resetting-state) resets private command state when the account changes while preserving the public audience and pager.
 
@@ -30,7 +30,7 @@ Ordinary calendar refresh keeps [F03's current native Query/grouping policy](../
 
 **Rationale and evidence**: [Spring Data JPA locking](https://docs.spring.io/spring-data/jpa/reference/jpa/locking.html) and [PostgreSQL row locks](https://www.postgresql.org/docs/18/explicit-locking.html) support the existing F05 serialization mechanism. This protects transaction ordering and erasure, not global gesture chronology. Relation identity also supports F07's existing prohibition on reviving cancelled sends after re-follow.
 
-**Alternatives**: Client gesture ordering, stale-write conflicts, durable request ledgers and tombstones were rejected in favour of the owner-selected last-recorded rule. A single lost-response reread observes current state without a retry loop or a guarantee about delayed completion.
+**Alternatives**: Client gesture ordering, stale-write conflicts, durable request ledgers and tombstones were rejected in favour of the owner-selected last-recorded rule. Existing invalidation and ordinary reads may observe current state after an ordinary failure; they are not a special verification protocol or a prerequisite to a later explicit desired-state command.
 
 ## Retained personal collections
 
@@ -52,7 +52,7 @@ Ordinary calendar refresh keeps [F03's current native Query/grouping policy](../
 
 ## Lists, count and feed projections
 
-**Decision**: Use Spring Data Slice for twenty-item alphabetical follow pages, direct relational counts and a sporting-calendar read selected by follow existence. Reuse F03's complete-day traversal rather than its public resource selector endpoint.
+**Decision**: Use Spring Data Slice for twenty-item alphabetical follow pages, direct relational counts and a sporting-calendar read selected by follow existence. Reuse F03's complete-day traversal rather than its public resource selector endpoint. Public-count final failure derives a static unavailable label from the existing Query and retains the icon; ordinary subsequent reads restore a number. No dedicated Retry, polling or count synchronization is necessary. Teams/Pools remain collapsible sections of one Following tab: only open sections read, and any necessary open-section failure uses the tab card while Query retains both sections for recovery.
 
 **Rationale and evidence**: [Spring Data query methods](https://docs.spring.io/spring-data/jpa/reference/repositories/query-methods-details.html) describe Slice's extra-row continuation without a total count. [Hibernate HQL](https://docs.hibernate.org/orm/7.4/querylanguage/html_single/) supports projections, existence predicates and collate. [PostgreSQL 18 collations](https://www.postgresql.org/docs/18/collation.html) document native fr-x-icu; the actual image must include ICU. Use the quoted native collation name through the supported HQL expression and test accented/homonymous names against that image.
 

@@ -84,8 +84,6 @@ export function createFollowListOptions(
     retryOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    retry: false,
-    networkMode: "always",
   });
 }
 
@@ -192,8 +190,6 @@ export function createPersonalCalendarOptions(
     retryOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    retry: false,
-    networkMode: "always",
   });
 }
 

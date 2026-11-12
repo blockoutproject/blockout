@@ -5,6 +5,7 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
+import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { accountResponse } from "../../accounts/test-support/account-response";
 import {
   mockAuth0,
@@ -17,8 +18,8 @@ import { followingFixture } from "../test-support/following-fixture";
 import { FollowerCount } from "../components/follower-count";
 import { TeamScreen } from "../../sporting/screens/team-screen";
 import { PoolScreen } from "../../sporting/screens/pool-screen";
+import TeamRoute from "../../../app/(ordinary)/teams/[teamId]";
 import { FollowButton } from "../components/follow-button";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
 import { SportingActions } from "../../sporting/components/sporting-actions";
 import type { InfiniteData } from "@tanstack/react-query";
 import type { ListTeamFollows200 } from "../../../../.generated/schemas/index.zod";
@@ -41,6 +42,7 @@ jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => ({ push: jest.fn() }),
   useNavigation: () => ({ isFocused: () => true }),
+  useLocalSearchParams: () => mockRouteParams,
 }));
 jest.mock("expo/fetch", () => ({
   fetch: (url: string, request?: RequestInit) => mockFetch(url, request),
@@ -50,6 +52,7 @@ const team = {
   type: "team",
   id: "00000000-0000-4000-8000-000000000227",
 } as const;
+const mockRouteParams = { teamId: team.id, poolId: team.id };
 const season = {
   id: "00000000-0000-4000-8000-000000000003",
   label: "2026/2027",
@@ -69,6 +72,17 @@ async function transport(url: string, request?: RequestInit) {
   }
   if (url.endsWith("/follower-count")) {
     return Response.json({ count: 2 });
+  }
+  if (url.endsWith(`/teams/${team.id}`)) {
+    return Response.json({
+      team: {
+        team: { id: team.id, name: "Volley Démo" },
+        season,
+        classification: {},
+        professional: true,
+      },
+      participations: [],
+    });
   }
   const parsed = new URL(url);
   if (parsed.pathname === "/matches") {
@@ -165,7 +179,7 @@ it("reports a failed write through shared feedback while preserving the ordinary
 });
 
 it.each([true, false])(
-  "shows confirmed following=%s after a delayed success even when member and counter rereads fail",
+  "retains confirmed following=%s behind the page card when member and counter rereads fail",
   async (following) => {
     // Given
     const response = Promise.withResolvers<Response>();
@@ -187,7 +201,9 @@ it.each([true, false])(
       return transport(url, request);
     });
     const user = userEvent.setup();
-    await fixture.render(<SportingActions target={team} season={season} />);
+    await fixture.render(<TeamRoute />);
+    await screen.findAllByRole("tab", { includeHiddenElements: true });
+    await layoutNativeTabs();
     await screen.findByLabelText("2 abonnés");
     const label = following ? "Suivre" : "Suivi";
     await waitFor(() =>
@@ -218,41 +234,32 @@ it.each([true, false])(
     saved = following;
     await act(async () => response.resolve(Response.json({ following })));
 
-    // Then
+    // Then: confirmation stays in Query while the shared required-read card owns presentation.
     expect(
-      await screen.findByRole("button", {
-        name: following ? "Suivi" : "Suivre",
-        selected: following,
-        busy: false,
-      }),
+      await screen.findByRole("button", { name: "Réessayer" }),
     ).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: following ? "Suivi" : "Suivre" }),
+    ).not.toBeOnTheScreen();
     expect(fixture.client.getQueryData(followStateKey(owner, team))).toEqual({
       following,
     });
-    expect(
-      await screen.findByLabelText("2 abonnés, actualisation indisponible"),
-    ).toBeOnTheScreen();
+    expect(fixture.client.getQueryData(followerCountKey(team))).toEqual({
+      count: 2,
+    });
     expect(
       mockFetch.mock.calls
         .filter(([, request]) => request?.method === "PUT")
         .map(([, request]) => JSON.parse(String(request?.body))),
     ).toEqual([{ following }]);
 
-    expect(
-      await screen.findByText("Actualisation du suivi indisponible."),
-    ).toBeOnTheScreen();
-
     // When: a safe relationship Retry does not repeat the accepted command or repair the count.
     accepted = false;
-    await user.press(
-      screen.getByRole("button", { name: "Réessayer le suivi" }),
-    );
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
     // Then
     await waitFor(() =>
-      expect(
-        screen.queryByText("Actualisation du suivi indisponible."),
-      ).toBeNull(),
+      expect(screen.queryByText("Une erreur est survenue")).toBeNull(),
     );
     expect(
       screen.getByRole("button", {
@@ -261,7 +268,7 @@ it.each([true, false])(
       }),
     ).toBeEnabled();
     expect(
-      screen.getByLabelText("2 abonnés, actualisation indisponible"),
+      screen.getByLabelText("Nombre d’abonnés indisponible"),
     ).toBeOnTheScreen();
     expect(
       mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
@@ -508,7 +515,7 @@ it.each(["team", "pool"] as const)(
   },
 );
 
-it("keeps admitted public sporting content when the private opaque member read returns 404", async () => {
+it("shows the shared page card when the private opaque member read returns 404", async () => {
   // Given
   let memberRefused = false;
   following = true;
@@ -529,18 +536,13 @@ it("keeps admitted public sporting content when the private opaque member read r
     if (url.includes("/team-follows/") && memberRefused) {
       return Promise.resolve(new Response(null, { status: 404 }));
     }
-    if (url.includes("/matches?")) {
-      return transport(url, request);
-    }
     return transport(url, request);
   });
 
-  await fixture.render(
-    <TeamScreen
-      teamId={team.id}
-      renderFollow={() => <SportingActions target={team} season={season} />}
-    />,
-  );
+  const user = userEvent.setup();
+  await fixture.render(<TeamRoute />);
+  await screen.findAllByRole("tab", { includeHiddenElements: true });
+  await layoutNativeTabs();
   await screen.findByText("Public team remains viewable");
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivi" })).toBeEnabled(),
@@ -559,9 +561,24 @@ it("keeps admitted public sporting content when the private opaque member read r
   );
 
   // Then
-  await screen.findByRole("button", { name: "Réessayer le suivi" });
-  expect(await screen.findByLabelText("2 abonnés")).toBeOnTheScreen();
-  expect(screen.getByText("Public team remains viewable")).toBeOnTheScreen();
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(
+    screen.queryByText("Public team remains viewable"),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Suivi" })).not.toBeOnTheScreen();
+  memberRefused = false;
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByText("Public team remains viewable"),
+  ).toBeOnTheScreen();
+  expect(await screen.findByRole("button", { name: "Suivi" })).toBeEnabled();
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "PUT"),
+  ).toHaveLength(0);
 });
 
 it("keeps a refused count withdrawn when its detail removes the control and the reopened count fails technically", async () => {
@@ -591,9 +608,6 @@ it("keeps a refused count withdrawn when its detail removes the control and the 
         return Promise.reject(new TypeError("Synthetic reopened count outage"));
       }
       return Promise.resolve(Response.json({ count: 2 }));
-    }
-    if (url.includes("/matches?")) {
-      return transport(url, request);
     }
     return transport(url, request);
   });
@@ -625,10 +639,7 @@ it("keeps a refused count withdrawn when its detail removes the control and the 
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
-  await screen.findByRole("button", {
-    name: "Réessayer le nombre d’abonnés",
-    busy: false,
-  });
+  await screen.findByLabelText("Nombre d’abonnés indisponible");
   expect(screen.getByText("Counter recovery team")).toBeOnTheScreen();
   expect(screen.queryByLabelText("2 abonnés")).not.toBeOnTheScreen();
   expect(fixture.client.getQueryData(followerCountKey(team))).toBeUndefined();
@@ -663,9 +674,6 @@ it("applies public absence to an account established while the first counter is 
     }
     if (url.includes("/team-follows/")) {
       return Promise.resolve(Response.json({ following: true }));
-    }
-    if (url.includes("/matches?")) {
-      return transport(url, request);
     }
     return transport(url, request);
   });

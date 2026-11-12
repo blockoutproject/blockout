@@ -435,10 +435,10 @@ it("keeps list failures distinct from emptiness and retains the accepted persona
   await layoutNativeTabs();
   await user.press(screen.getByRole("tab", { name: "Suivis" }));
 
-  // Then: each failed collection keeps its own explicit retry, with no false empty state.
+  // Then: the open collections share one Following card, with no false empty state.
   expect(
     await screen.findAllByRole("button", { name: "Réessayer" }),
-  ).toHaveLength(2);
+  ).toHaveLength(1);
   expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
   expect(screen.queryByText("Aucun suivi à afficher")).not.toBeOnTheScreen();
   expect(
@@ -465,7 +465,144 @@ it("keeps list failures distinct from emptiness and retains the accepted persona
   expect(mockFetch).not.toHaveBeenCalled();
 });
 
-it("keeps current choices in their open sheet and retries Home's failed common read after dismissal", async () => {
+it("waits for a collapsed Following section before reading its reset collection", async () => {
+  // Given: the accepted sibling stays in Query while the collapsed pool traversal is reset.
+  await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
+  await layoutNativeTabs();
+  await userEvent.press(screen.getByRole("tab", { name: "Suivis" }));
+  await screen.findByRole("link", { name: /Étoile/ });
+  await screen.findByRole("link", { name: /Poule A/ });
+  await userEvent.press(
+    screen.getByRole("button", { name: "Poules suivies", expanded: true }),
+  );
+  mockFetch
+    .mockClear()
+    .mockImplementation((url, request) =>
+      new URL(url).pathname.endsWith("/pool-follows")
+        ? Promise.reject(new TypeError("Synthetic pool outage"))
+        : transport(url, request),
+    );
+
+  // When
+  await act(async () => {
+    await client.resetQueries({
+      queryKey: followListKey({ accountId, subject: session.subject }, "pool", {
+        seasonId: older.id,
+      }),
+      exact: true,
+    });
+  });
+
+  // Then
+  expect(mockFetch).not.toHaveBeenCalled();
+  expect(screen.getByRole("link", { name: /Étoile/ })).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+
+  // When
+  await userEvent.press(
+    screen.getByRole("button", { name: "Poules suivies", expanded: false }),
+  );
+
+  // Then: the necessary open-section failure owns the whole Following content.
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(screen.queryByRole("link", { name: /Étoile/ })).toBeNull();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+});
+
+it("keeps one Following card through a paused multi-read Retry and until its last failed section succeeds", async () => {
+  // Given: both open collections fail after the shared account and season are usable.
+  const teamRetry = Promise.withResolvers<Response>();
+  const poolRetry = Promise.withResolvers<Response>();
+  await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
+  await layoutNativeTabs();
+  mockFetch.mockImplementation((url, request) =>
+    /\/(team|pool)-follows\?/.test(url)
+      ? Promise.reject(new TypeError("Synthetic collection outage"))
+      : transport(url, request),
+  );
+  await userEvent.press(screen.getByRole("tab", { name: "Suivis" }));
+  await screen.findByRole("button", { name: "Réessayer", busy: false });
+  mockFetch.mockClear().mockImplementation((url, request) => {
+    const pathname = new URL(url).pathname;
+    if (pathname.endsWith("/team-follows")) {
+      return teamRetry.promise;
+    }
+    if (pathname.endsWith("/pool-follows")) {
+      return poolRetry.promise;
+    }
+    return transport(url, request);
+  });
+
+  try {
+    // When: Query pauses the explicit attempt while offline.
+    await act(() => onlineManager.setOnline(false));
+    await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeOnTheScreen();
+    expect(mockFetch).not.toHaveBeenCalled();
+
+    // When
+    await act(() => onlineManager.setOnline(true));
+    await screen.findByRole("button", { name: "Réessayer", busy: true });
+    await act(async () =>
+      teamRetry.resolve(
+        await transport(
+          `https://api.example.invalid/accounts/${accountId}/team-follows`,
+        ),
+      ),
+    );
+
+    // Then: resolving one read does not replace the shared card or stop its real remaining progress.
+    await screen.findByRole("button", { name: "Réessayer", busy: true });
+    expect(screen.queryByRole("link", { name: /Étoile/ })).toBeNull();
+
+    // When
+    await act(async () =>
+      poolRetry.resolve(
+        await transport(
+          `https://api.example.invalid/accounts/${accountId}/pool-follows`,
+        ),
+      ),
+    );
+
+    // Then
+    await screen.findByRole("link", { name: /Étoile/ });
+    await screen.findByRole("link", { name: /Poule A/ });
+    expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        /\/(team|pool)-follows\?/.test(url),
+      ),
+    ).toHaveLength(2);
+  } finally {
+    await act(async () => {
+      onlineManager.setOnline(true);
+      teamRetry.resolve(
+        await transport(
+          `https://api.example.invalid/accounts/${accountId}/team-follows`,
+        ),
+      );
+      poolRetry.resolve(
+        await transport(
+          `https://api.example.invalid/accounts/${accountId}/pool-follows`,
+        ),
+      );
+    });
+  }
+});
+
+it("replaces failed season choices with their read card and restores the retained selection after Retry", async () => {
   // Given
   const user = userEvent.setup();
   await mount();
@@ -485,37 +622,33 @@ it("keeps current choices in their open sheet and retries Home's failed common r
   await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
 
   // Then
-  await screen.findByRole("radio", { name: older.label, checked: true });
-  await screen.findByRole("alert");
+  await screen.findByRole("button", { name: "Réessayer" });
   await waitFor(() =>
     expect(
       mockFetch.mock.calls.filter(([url]) => url.includes("follow-options"))
         .length,
     ).toBe(2),
   );
-  expect(screen.getByRole("radio", { name: newer.label })).toBeOnTheScreen();
+  expect(screen.queryByRole("radio", { name: newer.label })).toBeNull();
+  expect(screen.queryByRole("alert", { name: TECHNICAL_ERROR })).toBeNull();
 
-  // When
-  await user.press(screen.getByRole("button", { name: "Fermer" }));
-
-  // Then: the dismissed sheet does not make Home's failed prerequisite usable.
-  await screen.findByRole("button", { name: "Réessayer" });
-  expect(
-    screen.getByRole("button", { name: "Saison des suivis", disabled: true }),
-  ).toHaveAccessibilityValue({ text: older.label });
-
-  // When
+  // When: the sheet retries its existing shared read without changing the choice.
   mockFetch.mockClear().mockImplementation(transport);
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
-  await screen.findByRole("button", {
-    name: "Saison des suivis",
-    disabled: false,
-  });
+  await screen.findByRole("radio", { name: older.label, checked: true });
   expect(
     mockFetch.mock.calls.filter(([url]) => url.includes("follow-options")),
   ).toHaveLength(1);
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+
+  // Then: the successful shared read also restores Home's prerequisite.
+  expect(
+    screen.getByRole("button", { name: "Saison des suivis", disabled: false }),
+  ).toHaveAccessibilityValue({ text: older.label });
 
   // When
   await user.press(screen.getByRole("button", { name: "Saison des suivis" }));
@@ -1951,11 +2084,7 @@ it.each(
     // When
     refused = true;
     await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-    const feedback =
-      tab === "Suivis"
-        ? within(screen.getByLabelText("Équipes et poules suivies"))
-        : screen;
-    const retry = await feedback.findByRole("button", { name: "Réessayer" });
+    const retry = await screen.findByRole("button", { name: "Réessayer" });
 
     // Then
     expect(
@@ -1970,9 +2099,9 @@ it.each(
       ),
     ).toHaveLength(1);
 
-    // When: only the user's new attempt may recheck uncertainty.
+    // When: only the user's new attempt rereads the refused collection.
     await userEvent.press(retry);
-    await feedback.findByRole("button", { name: "Réessayer", busy: false });
+    await screen.findByRole("button", { name: "Réessayer", busy: false });
 
     // Then
     expect(
@@ -2039,7 +2168,7 @@ it.each([false, true])(
     await screen.findByRole("button", { name: "Réessayer" });
     expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
     if (!emptyPools) {
-      expect(screen.getByRole("link", { name: /Poule A/ })).toBeOnTheScreen();
+      expect(screen.queryByRole("link", { name: /Poule A/ })).toBeNull();
       expect(
         screen.queryByText("Aucun suivi à afficher"),
       ).not.toBeOnTheScreen();
@@ -2104,9 +2233,11 @@ it("retains pages on append failure, deduplicates UUIDs and keeps homonyms disti
   await screen.findByRole("button", { name: "Réessayer" });
 
   // Then
-  expect(screen.getAllByRole("link", { name: /Étoile/ })).toHaveLength(1);
+  expect(screen.queryByRole("link", { name: /Étoile/ })).toBeNull();
   expect(screen.queryByText("Aucun suivi à afficher")).not.toBeOnTheScreen();
-  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("alert", { name: TECHNICAL_ERROR }),
+  ).not.toBeOnTheScreen();
 
   // When
   failAppend = false;
@@ -2239,7 +2370,7 @@ it("shares All seasons across both lists and offers Search only after successful
 });
 
 it.each(["team", "pool"] as const)(
-  "reports one Following refresh failure when the %s read fails before the other collection",
+  "shows one Following card when the %s refresh fails before the other collection",
   async (first) => {
     // Given
     const teamRead = Promise.withResolvers<Response>();
@@ -2266,22 +2397,31 @@ it.each(["team", "pool"] as const)(
     });
 
     try {
-      // When
+      // When: a paused pull keeps content without announcing active native progress.
+      await act(() => onlineManager.setOnline(false));
       await fireEvent(
         screen.getByLabelText("Actualiser les données"),
         "refresh",
       );
-      expect(screen.getByLabelText("Actualiser les données")).toBeBusy();
+      expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+      expect(screen.getByRole("link", { name: /Étoile/ })).toBeOnTheScreen();
+      expect(mockFetch).not.toHaveBeenCalled();
+
+      // When: Query resumes its same reads online.
+      await act(() => onlineManager.setOnline(true));
+      await waitFor(() =>
+        expect(screen.getByLabelText("Actualiser les données")).toBeBusy(),
+      );
       await act(async () =>
         (first === "team" ? teamRead : poolRead).reject(
           new TypeError("Unavailable"),
         ),
       );
-      await screen.findByRole("alert", {
-        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-      });
-      // The other collection still belongs to this one pull even after the first failure.
-      expect(screen.getByLabelText("Actualiser les données")).toBeBusy();
+      await screen.findByRole("button", { name: "Réessayer", busy: false });
+      // The sibling read remains Query-owned; its pending operation is not a card click.
+      expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+      expect(screen.queryByRole("link", { name: /Étoile/ })).toBeNull();
+      expect(screen.queryByRole("link", { name: /Poule A/ })).toBeNull();
       await act(async () =>
         (first === "team" ? poolRead : teamRead).reject(
           new TypeError("Unavailable"),
@@ -2290,10 +2430,10 @@ it.each(["team", "pool"] as const)(
       await waitFor(() => expect(client.isFetching()).toBe(0));
 
       // Then
-      expect(announce).toHaveBeenCalledTimes(1);
-      expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
-      expect(screen.getByRole("link", { name: /Étoile/ })).toBeOnTheScreen();
-      expect(screen.getByRole("link", { name: /Poule A/ })).toBeOnTheScreen();
+      expect(announce).not.toHaveBeenCalled();
+      expect(screen.getAllByRole("button", { name: "Réessayer" })).toHaveLength(
+        1,
+      );
       expect(
         screen.getByRole("button", { name: "Saison des suivis" }),
       ).toHaveAccessibilityValue({ text: older.label });
@@ -2304,6 +2444,7 @@ it.each(["team", "pool"] as const)(
       ).toBe(true);
     } finally {
       await act(async () => {
+        onlineManager.setOnline(true);
         teamRead.resolve(Response.json({ items: [] }));
         poolRead.resolve(Response.json({ items: [] }));
       });
@@ -2311,7 +2452,7 @@ it.each(["team", "pool"] as const)(
   },
 );
 
-it("keeps an explicit read retry at the list edge after a failed first-page refresh", async () => {
+it("retries a failed Following refresh from its card before reopening native continuation", async () => {
   // Given
   let unavailable = false;
   const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility");
@@ -2340,20 +2481,25 @@ it("keeps an explicit read retry at the list edge after a failed first-page refr
   await screen.findByRole("button", { name: "Réessayer" });
 
   // Then
-  expect(screen.getByRole("link", { name: /Étoile/ })).toBeOnTheScreen();
-  await waitFor(() => expect(announce).toHaveBeenCalledTimes(1));
+  expect(screen.queryByRole("link", { name: /Étoile/ })).toBeNull();
+  expect(announce).not.toHaveBeenCalled();
 
-  // When: a failed footer retry stays local instead of publishing another refresh toast.
+  // When: a second failed card attempt retains the same scope without publishing a toast.
   announce.mockClear();
   await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
   await waitFor(() => expect(client.isFetching()).toBe(0));
 
   // Then
   expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
-  expect(screen.getByRole("link", { name: /Étoile/ })).toBeOnTheScreen();
+  expect(screen.queryByRole("link", { name: /Étoile/ })).toBeNull();
   expect(announce).not.toHaveBeenCalled();
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).pathname.endsWith("/pool-follows"),
+    ),
+  ).toHaveLength(2);
 
-  // When: retry belongs to the failed refresh; successful recovery reopens native continuation.
+  // When: successful card recovery reopens native continuation.
   unavailable = false;
   await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
   await waitFor(() =>
@@ -2361,6 +2507,11 @@ it("keeps an explicit read retry at the list edge after a failed first-page refr
       screen.queryByRole("button", { name: "Réessayer" }),
     ).not.toBeOnTheScreen(),
   );
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).pathname.endsWith("/pool-follows"),
+    ),
+  ).toHaveLength(2);
   mockFetch.mockClear();
   await fireEvent(screen.getByRole("link", { name: /Étoile/ }), "endReached");
 
