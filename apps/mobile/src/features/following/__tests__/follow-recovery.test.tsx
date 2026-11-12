@@ -536,9 +536,6 @@ it("shows the shared page card when the private opaque member read returns 404",
     if (url.includes("/team-follows/") && memberRefused) {
       return Promise.resolve(new Response(null, { status: 404 }));
     }
-    if (url.includes("/matches?")) {
-      return transport(url, request);
-    }
     return transport(url, request);
   });
 
@@ -612,9 +609,6 @@ it("keeps a refused count withdrawn when its detail removes the control and the 
       }
       return Promise.resolve(Response.json({ count: 2 }));
     }
-    if (url.includes("/matches?")) {
-      return transport(url, request);
-    }
     return transport(url, request);
   });
   const user = userEvent.setup();
@@ -680,9 +674,6 @@ it("applies public absence to an account established while the first counter is 
     }
     if (url.includes("/team-follows/")) {
       return Promise.resolve(Response.json({ following: true }));
-    }
-    if (url.includes("/matches?")) {
-      return transport(url, request);
     }
     return transport(url, request);
   });

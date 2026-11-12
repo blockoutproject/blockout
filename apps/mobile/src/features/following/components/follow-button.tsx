@@ -40,16 +40,6 @@ export function FollowControl({
   read,
   audience,
 }: Readonly<FollowControlProps>) {
-  const { query, usable, accountUsable, sessionStatus } = read;
-  const guest = sessionStatus === "guest";
-  const following = accountUsable ? query.data?.following : undefined;
-  const initialLoading =
-    !guest &&
-    usable &&
-    query.data === undefined &&
-    query.isPending &&
-    query.isFetching;
-  const unavailable = !guest && following === undefined && !initialLoading;
   const privateKey = hashKey(read.options.queryKey);
 
   return (
@@ -59,9 +49,6 @@ export function FollowControl({
         target={target}
         season={season}
         read={read}
-        following={following}
-        initialLoading={initialLoading}
-        unavailable={unavailable}
       />
       {audience}
     </View>
@@ -73,24 +60,23 @@ interface FollowActionProps {
   target: FollowingTarget;
   season: SportingSeasonResponse;
   read: FollowStateRead;
-  following: boolean | undefined;
-  initialLoading: boolean;
-  unavailable: boolean;
 }
 
 /** Owns one explicit mutation and guest invitation without remounting the adjacent public audience. */
-function FollowAction({
-  target,
-  season,
-  read,
-  following,
-  initialLoading,
-  unavailable,
-}: Readonly<FollowActionProps>) {
+function FollowAction({ target, season, read }: Readonly<FollowActionProps>) {
   const action = useFollowMutation(target, read);
   const router = useRouter();
   const feedback = useActionFeedback();
-  const guest = read.sessionStatus === "guest";
+  const { query, usable, accountUsable, sessionStatus } = read;
+  const guest = sessionStatus === "guest";
+  const following = accountUsable ? query.data?.following : undefined;
+  const initialLoading =
+    !guest &&
+    usable &&
+    query.data === undefined &&
+    query.isPending &&
+    query.isFetching;
+  const unavailable = !guest && following === undefined && !initialLoading;
   const followIcon = following ? Check : Plus;
   let label = "Suivre";
   if (unavailable) {

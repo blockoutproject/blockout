@@ -2084,8 +2084,7 @@ it.each(
     // When
     refused = true;
     await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-    const feedback = screen;
-    const retry = await feedback.findByRole("button", { name: "Réessayer" });
+    const retry = await screen.findByRole("button", { name: "Réessayer" });
 
     // Then
     expect(
@@ -2102,7 +2101,7 @@ it.each(
 
     // When: only the user's new attempt rereads the refused collection.
     await userEvent.press(retry);
-    await feedback.findByRole("button", { name: "Réessayer", busy: false });
+    await screen.findByRole("button", { name: "Réessayer", busy: false });
 
     // Then
     expect(
@@ -2413,7 +2412,6 @@ it.each(["team", "pool"] as const)(
       await waitFor(() =>
         expect(screen.getByLabelText("Actualiser les données")).toBeBusy(),
       );
-      expect(screen.getByLabelText("Actualiser les données")).toBeBusy();
       await act(async () =>
         (first === "team" ? teamRead : poolRead).reject(
           new TypeError("Unavailable"),

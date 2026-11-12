@@ -365,30 +365,6 @@ it.each(["team", "pool"] as const)(
   "composes the %s route with its exact target and sporting season",
   async (type) => {
     // Given
-    const publicPool = {
-      ...matchDetail().match.pool,
-      pool: { id: pool.id, name: "Phase 01" },
-      season,
-    };
-    mockFetch.mockImplementation((url, request) => {
-      if (url.endsWith(`/teams/${team.id}`)) {
-        return Promise.resolve(
-          Response.json({
-            team: {
-              team: { id: team.id, name: "Volley Démo" },
-              season,
-              classification: {},
-              professional: true,
-            },
-            participations: [],
-          }),
-        );
-      }
-      if (url.endsWith(`/pools/${pool.id}`)) {
-        return Promise.resolve(Response.json({ pool: publicPool }));
-      }
-      return transport(url, request);
-    });
     const user = userEvent.setup();
     await renderFollowing(type === "team" ? <TeamRoute /> : <PoolRoute />);
     await waitFor(() => expect(session.status).toBe("authenticated"));

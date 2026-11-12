@@ -291,25 +291,22 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
           );
         }
 
-        /** Successful section content uses its native first-load, empty and pending-continuation feedback. */
+        /** Sections show only their first active skeleton, confirmed empty state and automatic continuation. */
         function renderListFeedback() {
           if (!list.query.data) {
-            return (
-              <ReadFeedback
-                query={list.query}
-                loadingContent={
-                  <View style={styles.card}>
-                    <SportingEntityCardLoading
-                      label={
-                        row.resource === "team"
-                          ? "Chargement des équipes suivies"
-                          : "Chargement des poules suivies"
-                      }
-                    />
-                  </View>
-                }
-              />
-            );
+            return list.query.isEnabled &&
+              list.query.isPending &&
+              list.query.isFetching ? (
+              <View style={styles.card}>
+                <SportingEntityCardLoading
+                  label={
+                    row.resource === "team"
+                      ? "Chargement des équipes suivies"
+                      : "Chargement des poules suivies"
+                  }
+                />
+              </View>
+            ) : null;
           }
           if (!list.items.length && !list.query.hasNextPage) {
             return <NoAvailableFollows />;
