@@ -36,6 +36,8 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import {
   getGetApplicationAccessQueryKey,
+  getGetClubQueryKey,
+  getGetPoolQueryKey,
   getGetPoolStandingsQueryKey,
   getGetTeamQueryKey,
 } from "../../../../.generated/mobile";
@@ -433,7 +435,6 @@ it.each(["team", "pool", "club"] as const)(
           : reads(url, request),
       );
     await act(() => onlineManager.setOnline(false));
-    const user = userEvent.setup();
 
     try {
       // When
@@ -444,37 +445,19 @@ it.each(["team", "pool", "club"] as const)(
           club: <ClubScreen clubId={sportingId} />,
         }[kind],
       );
-      if (kind !== "team") {
-        await user.press(
-          await screen.findByRole("button", { name: "Réessayer", busy: false }),
-        );
-      }
-
       // Then: the suspended read has neither loading nor a competing useful composition.
-      if (kind === "team") {
-        expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
-        expect(
-          screen.queryByRole("button", { name: "Réessayer" }),
-        ).not.toBeOnTheScreen();
-      } else {
-        expect(
-          screen.getByRole("button", { name: "Réessayer", busy: false }),
-        ).toBeEnabled();
-      }
+      expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+      expect(
+        screen.queryByRole("button", { name: "Réessayer" }),
+      ).not.toBeOnTheScreen();
       expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
       expect(screen.queryByRole("tab")).not.toBeOnTheScreen();
       expect(screen.queryByText(identity)).not.toBeOnTheScreen();
       expect(mockFetch).not.toHaveBeenCalled();
 
-      // When: native Query resumes the same explicit recovery when connectivity returns.
+      // When: native Query resumes its first read when connectivity returns.
       await act(() => onlineManager.setOnline(true));
-      if (kind === "team") {
-        await screen.findByRole("progressbar", {
-          name: "Chargement de l’équipe",
-        });
-      } else {
-        await screen.findByRole("button", { name: "Réessayer", busy: true });
-      }
+      await screen.findByRole("progressbar");
       await act(async () => detail.resolve(Response.json(response)));
       await layoutSportingPage();
 
@@ -659,14 +642,31 @@ it("keeps source-unavailable first standings inside their own pool pane", async 
   ).toBeOnTheScreen();
 });
 
-it.each(["initial", "retained"] as const)(
-  "keeps a %s team-detail failure at the destination throughout explicit Retry",
-  async (entry) => {
-    // Given: the real team query either has no data or retains an earlier successful detail.
+it.each([
+  { kind: "team", entry: "initial" },
+  { kind: "team", entry: "retained" },
+  { kind: "pool", entry: "retained" },
+  { kind: "club", entry: "retained" },
+] as const)(
+  "keeps a $entry $kind-detail failure at the destination throughout explicit Retry",
+  async ({ kind, entry }) => {
+    // Given: common detail either has no data or retains an earlier successful read.
+    const resourcePath = `/${kind}s/${sportingId}`;
+    const response = { team, pool, club }[kind];
+    const queryKey = {
+      team: getGetTeamQueryKey(sportingId),
+      pool: getGetPoolQueryKey(sportingId),
+      club: getGetClubQueryKey(sportingId),
+    }[kind];
+    const identity = {
+      team: team.team.team.name,
+      pool: pool.pool.pool.name,
+      club: club.club.name,
+    }[kind];
     let phase = entry === "initial" ? "failed" : "ready";
     const retried = Promise.withResolvers<Response>();
     mockFetch.mockImplementation((url: string, request?: RequestInit) => {
-      if (new URL(url).pathname !== `/teams/${sportingId}`) {
+      if (new URL(url).pathname !== resourcePath) {
         return reads(url, request);
       }
       if (phase === "failed") {
@@ -675,16 +675,22 @@ it.each(["initial", "retained"] as const)(
       return phase === "retry" ? retried.promise : reads(url, request);
     });
     const user = userEvent.setup();
-    await renderPage(<TeamScreen teamId={sportingId} />);
+    await renderPage(
+      {
+        team: <TeamScreen teamId={sportingId} />,
+        pool: <PoolScreen poolId={sportingId} />,
+        club: <ClubScreen clubId={sportingId} />,
+      }[kind],
+    );
     if (entry === "retained") {
-      await screen.findByText(team.team.team.name);
+      await screen.findByText(identity);
       await layoutSportingPage();
       await user.press(screen.getByRole("tab", { name: "Terminés" }));
       await screen.findByText("Aucun match pour cette sélection");
       phase = "failed";
       await act(async () =>
         client.invalidateQueries({
-          queryKey: getGetTeamQueryKey(sportingId),
+          queryKey,
           exact: true,
         }),
       );
@@ -701,27 +707,25 @@ it.each(["initial", "retained"] as const)(
       screen.getByRole("alert", { name: "Une erreur est survenue" }),
     ).toBeOnTheScreen();
     expect(screen.getByRole("button", { name: "Réessayer" })).toBeBusy();
-    expect(
-      screen.queryByRole("progressbar", { name: "Chargement de l’équipe" }),
-    ).not.toBeOnTheScreen();
-    expect(screen.queryByText(team.team.team.name)).not.toBeOnTheScreen();
+    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+    expect(screen.queryByText(identity)).not.toBeOnTheScreen();
     expect(screen.queryAllByRole("tab")).toHaveLength(0);
     expect(
       screen.getByRole("button", { name: "Signaler un problème" }),
     ).toBeOnTheScreen();
     expect(screen.getByRole("button", { name: "Retour" })).toBeEnabled();
     expect(mockFetch.mock.calls.map(([url]) => new URL(url).pathname)).toEqual([
-      `/teams/${sportingId}`,
+      resourcePath,
     ]);
     if (entry === "retained") {
-      expect(client.getQueryData(getGetTeamQueryKey(sportingId))).toEqual(team);
+      expect(client.getQueryData(queryKey)).toEqual(response);
     }
 
     // When
-    await act(async () => retried.resolve(Response.json(team)));
+    await act(async () => retried.resolve(Response.json(response)));
 
     // Then
-    expect(await screen.findByText(team.team.team.name)).toBeOnTheScreen();
+    expect(await screen.findByText(identity)).toBeOnTheScreen();
     if (entry === "retained") {
       expect(
         screen.getByRole("tab", { name: "Terminés", selected: true }),

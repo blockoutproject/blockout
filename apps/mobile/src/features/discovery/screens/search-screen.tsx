@@ -10,8 +10,7 @@ import { reconcileSearchFilters } from "../model/search-filters";
 import { Page } from "../../../shared/components/page";
 import { PagedTabs } from "../../../shared/components/paged-tabs";
 import { Button } from "../../../shared/components/button";
-import { useAccountSession } from "../../accounts/current-account";
-import { useOrdinaryRequest } from "../../access/ordinary-request";
+import { hasReadError } from "../../../shared/components/read-feedback";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
@@ -61,8 +60,6 @@ const searchTabs = [
  */
 export function SearchScreen() {
   const visit = useSearchVisit();
-  const session = useAccountSession();
-  const admission = useOrdinaryRequest();
   const router = useRouter();
   const { colors } = useTheme();
   const { fontScale } = useWindowDimensions();
@@ -93,15 +90,6 @@ export function SearchScreen() {
   const textKey = hashKey(
     createDiscoveryContext("club", { q: queryText }).queryKey,
   );
-  // Bypass changes select another Query context even when the actor and criteria stay unchanged.
-  const clubReadScope = hashKey([
-    textKey,
-    session.subject,
-    session.accountId,
-    !!admission.bypass,
-  ]);
-  const [clubRetryScope, setClubRetryScope] = useState<string>();
-  const retryingClubs = clubRetryScope === clubReadScope;
   const teamQuery = useDiscoveryQuery(
     "team",
     { q: queryText, ...visit.team.filters },
@@ -116,7 +104,6 @@ export function SearchScreen() {
     "club",
     { q: queryText },
     resource === "club" && searchable,
-    retryingClubs,
   );
   const examples = text.replace(/\p{White_Space}/gu, "") === "";
   const teamExamples = useSearchExamplesQuery(
@@ -141,10 +128,7 @@ export function SearchScreen() {
   };
   const queries = { team: teamQuery, pool: poolQuery, club: clubQuery };
   const clubsFailed =
-    resource === "club" &&
-    !examples &&
-    (clubQuery.isError ||
-      (clubQuery.isPending && clubQuery.errorUpdatedAt > 0));
+    resource === "club" && !examples && hasReadError(clubQuery);
   let emptyDescription = "Essayez un autre nom.";
   if (examples) {
     emptyDescription = changed
@@ -173,19 +157,6 @@ export function SearchScreen() {
     const selection = target === "club" ? undefined : visit[target];
     if (selection?.query.data) {
       selection.apply(reconcileSearchFilters(undefined, selection.query.data));
-    }
-  }
-
-  /** Keeps a card-triggered GET or failed cursor observed until its original query settles. */
-  async function retryClubs() {
-    const scope = clubReadScope;
-    setClubRetryScope(scope);
-    try {
-      return await (clubQuery.isFetchNextPageError
-        ? clubQuery.fetchNextPage({ cancelRefetch: false })
-        : clubQuery.refetch({ cancelRefetch: false }));
-    } finally {
-      setClubRetryScope((current) => (current === scope ? undefined : current));
     }
   }
 
@@ -219,8 +190,6 @@ export function SearchScreen() {
               examples={examples}
               items={items[id]}
               emptyDescription={emptyDescription}
-              onRetryClubs={id === "club" ? retryClubs : undefined}
-              retryingClubs={id === "club" && retryingClubs}
               emptyAction={
                 !examples || changed ? (
                   <Button

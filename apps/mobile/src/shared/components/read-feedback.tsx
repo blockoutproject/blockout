@@ -16,7 +16,10 @@ export interface ReadFeedbackProps {
   query: ReadFeedbackQuery;
   /** A successful response may report required content unavailable without becoming a transport error. */
   failed?: boolean;
-  /** A composed read retries only its own failed prerequisites; the default refetches this query. */
+  /**
+   * The owner supplies a safe explicit read, including when automatic fetching is disabled.
+   * Omitted consumers use this enabled query's refetch.
+   */
   onRetry?: () => Promise<unknown>;
 }
 
@@ -57,7 +60,7 @@ export function ReadFeedback({
     }
   }
 
-  if (query.isEnabled === false) {
+  if (query.isEnabled === false && !onRetry) {
     return error ? <ErrorState /> : null;
   }
   if (!error && !retryRequested && query.isPending && fetching) {

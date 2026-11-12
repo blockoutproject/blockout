@@ -14,6 +14,10 @@ import { SearchLoading } from "./search-loading";
 import { ScreenState } from "../../../shared/components/screen-state";
 import { ListContinuation } from "../../../shared/components/list-continuation";
 import { ErrorState, EmptyState } from "../../../shared/components/state-card";
+import {
+  hasReadError,
+  ReadFeedback,
+} from "../../../shared/components/read-feedback";
 
 /** One tab's current queries and criteria; the parent retains the shared text, filters and empty-state actions. */
 export interface SearchSceneProps {
@@ -27,9 +31,6 @@ export interface SearchSceneProps {
   items: readonly SearchResult[];
   emptyDescription: string;
   emptyAction: ReactNode;
-  /** The text Clubs reference keeps its explicit safe-read intent in the parent query owner. */
-  onRetryClubs?: () => Promise<unknown>;
-  retryingClubs?: boolean;
 }
 
 /**
@@ -48,8 +49,6 @@ export function SearchScene({
   items: textItems,
   emptyDescription,
   emptyAction,
-  onRetryClubs,
-  retryingClubs = false,
 }: Readonly<SearchSceneProps>) {
   const visit = useSearchVisit();
   const query = examples ? exampleQuery : textQuery;
@@ -61,9 +60,7 @@ export function SearchScene({
   const filters = sporting?.filters;
   const resultsReady = (searchable || examples) && (!sporting || !!filters);
   const clubsReference = resource === "club" && !examples;
-  const clubsFailed =
-    clubsReference &&
-    (query.isError || (query.isPending && query.errorUpdatedAt > 0));
+  const clubsFailed = clubsReference && hasReadError(query);
 
   /** The visible valid context owns continuation; explicit retry may resume its failed cursor. */
   async function loadMore() {
@@ -82,13 +79,18 @@ export function SearchScene({
 
   const error = clubsReference ? (
     clubsFailed ? (
-      <ErrorState
+      <ReadFeedback
+        query={query}
+        failed
+        loadingContent={<SearchLoading />}
         onRetry={
-          active && query.isEnabled && onRetryClubs
-            ? () => void onRetryClubs()
+          active && searchable
+            ? () =>
+                textQuery.isFetchNextPageError
+                  ? textQuery.fetchNextPage({ cancelRefetch: false })
+                  : textQuery.refetch({ cancelRefetch: false })
             : undefined
         }
-        retrying={retryingClubs && query.fetchStatus === "fetching"}
       />
     ) : undefined
   ) : (

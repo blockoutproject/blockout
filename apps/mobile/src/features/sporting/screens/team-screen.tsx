@@ -94,7 +94,6 @@ function TeamPage({
     <SportingInitialComposition
       detail={team}
       follow={initialFollow}
-      replaceOnFailure
       header={
         <PageHeader
           title="L’équipe"

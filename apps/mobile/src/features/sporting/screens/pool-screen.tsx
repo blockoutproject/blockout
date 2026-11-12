@@ -130,7 +130,7 @@ function PoolPage({
                   <PoolStandings
                     pool={data.pool}
                     active={tab === value}
-                    replaceOnFailure
+                    refreshEmpty={false}
                   />
                 );
               }
