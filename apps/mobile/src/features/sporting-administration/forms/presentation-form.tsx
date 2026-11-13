@@ -28,14 +28,14 @@ import {
 import { prepareSportingLogo } from "../images/prepare-sporting-logo";
 import { type PresentationValues } from "../schemas/presentation-schema";
 import { presentationValues } from "./presentation-values";
-import { usePresentationDraft } from "./use-presentation-draft";
-import { isSportingReadRefused } from "../api/sporting-administration-queries";
+import type { usePresentationDraft } from "./use-presentation-draft";
 
 /** One original resource and session; background reads never replace this form's editable snapshot. */
 export interface PresentationFormProps {
   presentation: Presentation;
   target: PresentationTarget;
   editing: ReturnType<typeof usePresentation>;
+  editor: ReturnType<typeof usePresentationDraft>;
   disabled: boolean;
   /** Current F03 team/pool context when publicly readable; absence never blocks editing. */
   seasonLabel?: string;
@@ -48,6 +48,7 @@ export function PresentationForm({
   presentation,
   target,
   editing,
+  editor,
   disabled,
   seasonLabel,
   professionalTeam,
@@ -60,10 +61,9 @@ export function PresentationForm({
   const { colors } = useTheme();
   const actionFeedback = useActionFeedback();
   const mounted = useRef(false);
-  const editor = usePresentationDraft(presentation);
   const state = editor.state;
-  const { baseline } = state;
-  const feedback = state.feedback ?? undefined;
+  const baseline = state.baseline ?? presentation;
+  const feedback = state.feedback;
   const { control, handleSubmit, setError, setValue } = editor.form;
   const imageSelection = useImageSelection({
     canSelect: () =>
@@ -110,11 +110,10 @@ export function PresentationForm({
   // This subscription also lets RHF retain all dirty fields during the explicit reread reset.
   const selectedLogo =
     dirtyFields.logo !== undefined && draft.action === "replace";
-  const changed =
+  const rereadRequired =
     presentation.kind !== "division-creation" &&
     baseline.kind !== "division-creation" &&
     presentation.data.revision !== baseline.data.revision;
-  const rereadRequired = changed;
   const created = creating && baseline.kind === "division";
   const busy =
     disabled ||
@@ -130,11 +129,14 @@ export function PresentationForm({
   } = presentationContext(baseline);
   const selection = draft.action === "automatic" ? "automatic" : "effective";
   const hasLogo =
-    draft.action === "automatic"
+    editing.query.data !== null &&
+    (draft.action === "automatic"
       ? currentLogo?.automaticUrl != null
-      : currentLogo?.effectiveUrl != null;
+      : currentLogo?.effectiveUrl != null);
   const artwork = usePresentationLogo(
-    target,
+    created && baseline.kind === "division"
+      ? { kind: "division", id: baseline.data.id }
+      : target,
     selection,
     hasLogo && draft.action !== "replace",
     revision,
@@ -164,39 +166,11 @@ export function PresentationForm({
     ) {
       return;
     }
-    if (
-      baseline.kind === "division-creation" &&
-      baseline.data.items.some(
-        (item) =>
-          item.name.toLocaleLowerCase() ===
-          values.name.trim().toLocaleLowerCase(),
-      )
-    ) {
-      setError("name", {
-        message:
-          "Ce nom de division est déjà utilisé. Vérifiez la liste des divisions.",
-      });
-      return;
-    }
-    if (
-      creating &&
-      !(await confirmAction({
-        title: "Créer la division ?",
-        message:
-          "La nouvelle division sera active. Sa présentation ne changera jamais implicitement son activité.",
-        confirmLabel: "Créer la division",
-      }))
-    ) {
-      return;
-    }
-    if (!mounted.current || imageSelection.isPending()) {
-      return;
-    }
     editor.update({ ...state, feedback: undefined });
     const file =
       values.logo.action === "replace" ? values.logo.prepared : undefined;
     const attempt = editing.save.mutateAsync({
-      revision: revision,
+      revision,
       values,
     });
     actionFeedback.clear();
@@ -208,9 +182,6 @@ export function PresentationForm({
         feedback: undefined,
       });
       editor.reset(presentationValues(accepted));
-      if (creating) {
-        editor.discard();
-      }
     } catch (error) {
       handleSaveError(error);
     } finally {
@@ -220,10 +191,6 @@ export function PresentationForm({
 
   /** Preserves the draft and reports image or name corrections at their field; other failures use ordinary feedback. */
   function handleSaveError(error: unknown) {
-    editor.update({
-      ...editor.state,
-      feedback: undefined,
-    });
     if (
       error instanceof ApiError &&
       (error.problem?.type === "urn:blockout:problem:invalid-image" ||
@@ -246,7 +213,7 @@ export function PresentationForm({
 
   /** Refreshes non-dirty fields and the revision only after a successful explicit read; no write is replayed. */
   async function reread() {
-    const result = await (() => editing.query.refetch())();
+    const result = await editing.query.refetch();
     if (!mounted.current || imageSelection.isPending()) {
       return;
     }
@@ -269,7 +236,7 @@ export function PresentationForm({
       imageSelection.isPending() ||
       editing.save.isPending ||
       activity.save.isPending ||
-      isSportingReadRefused(editing.query.error) ||
+      editing.query.data === null ||
       !activity.authority.enabled ||
       rereadRequired
     ) {
@@ -307,7 +274,6 @@ export function PresentationForm({
       });
       editor.reset(presentationValues(accepted), true);
     } catch {
-      editor.update({ ...editor.state, feedback: undefined });
       actionFeedback.error();
     }
   }
@@ -387,7 +353,7 @@ export function PresentationForm({
               disabled={
                 imageSelection.pending ||
                 editing.save.isPending ||
-                isSportingReadRefused(editing.query.error) ||
+                editing.query.data === null ||
                 rereadRequired
               }
               onPress={() => void changeActivity()}

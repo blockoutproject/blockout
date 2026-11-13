@@ -19,7 +19,7 @@ import {
 import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
 
 /** Current permission or target refusals suspend commands; technical failures retain the admitted draft. */
-export function isSportingReadRefused(error: unknown): boolean {
+function isSportingReadRefused(error: unknown): boolean {
   return (
     isAccessDenied(error) ||
     (error instanceof ApiError && error.kind === "http" && error.status === 404)
@@ -36,48 +36,42 @@ export interface SportingQueryAuthority {
 export function createSportingAdministrationQueries(
   authority: SportingQueryAuthority,
 ) {
-  /** Keeps a known refusal in Query until a successful read, without changing native cancellation or retaining another state. */
+  /** Withdraws refused data; the failed attempt always reports its own error. */
   async function read<T>(
     context: QueryFunctionContext,
     execute: (options: ApiFetchOptions) => Promise<T>,
-  ): Promise<T> {
-    const previousError = context.client.getQueryState(context.queryKey)?.error;
+  ): Promise<T | null> {
     try {
       return await execute(await authority.request(context.signal));
     } catch (error) {
-      throw !context.signal.aborted && isSportingReadRefused(previousError)
-        ? previousError
-        : error;
+      if (context.signal.aborted) {
+        throw new ApiError("cancelled");
+      }
+      if (isSportingReadRefused(error)) {
+        context.client.setQueryData<T | null>(context.queryKey, null, {
+          updatedAt:
+            context.client.getQueryState(context.queryKey)?.dataUpdatedAt ?? 0,
+        });
+      }
+      throw error;
     }
   }
 
   return {
-    /** The same complete division list supplies lifecycle navigation and creation validation. */
+    /** The complete division list supplies lifecycle navigation and custom classification choices. */
     divisions: () => {
       const params = { includeInactive: true };
-      return queryOptions<Awaited<ReturnType<typeof listDivisions>>>({
+      return queryOptions<Awaited<ReturnType<typeof listDivisions>> | null>({
         queryKey: getListDivisionsQueryKey(params),
         enabled: authority.enabled,
         gcTime: 0,
-        queryFn: async ({ signal, client, queryKey }) => {
-          try {
-            return await listDivisions(params, await authority.request(signal));
-          } catch (error) {
-            // A later technical failure cannot restore a catalog whose current read was refused.
-            if (!signal.aborted && isAccessDenied(error)) {
-              client
-                .getQueryCache()
-                .find({ queryKey, exact: true })
-                ?.setState({ data: undefined, dataUpdatedAt: 0 });
-            }
-            throw error;
-          }
-        },
+        queryFn: (context) =>
+          read(context, (options) => listDivisions(params, options)),
       });
     },
     /** One division DTO is shared by presentation and lifecycle consumers. */
     division: (id: string) =>
-      queryOptions<Awaited<ReturnType<typeof getDivision>>>({
+      queryOptions<Awaited<ReturnType<typeof getDivision>> | null>({
         queryKey: getGetDivisionQueryKey(id),
         enabled: authority.enabled,
         gcTime: 0,
@@ -86,7 +80,7 @@ export function createSportingAdministrationQueries(
       }),
     /** Original club presentation retains its editing revision without a cache-specific wrapper. */
     clubPresentation: (id: string) =>
-      queryOptions<Awaited<ReturnType<typeof getClubPresentation>>>({
+      queryOptions<Awaited<ReturnType<typeof getClubPresentation>> | null>({
         queryKey: getGetClubPresentationQueryKey(id),
         enabled: authority.enabled,
         gcTime: 0,
@@ -95,7 +89,7 @@ export function createSportingAdministrationQueries(
       }),
     /** Original team presentation includes effective and automatic artwork selection. */
     teamPresentation: (id: string) =>
-      queryOptions<Awaited<ReturnType<typeof getTeamPresentation>>>({
+      queryOptions<Awaited<ReturnType<typeof getTeamPresentation>> | null>({
         queryKey: getGetTeamPresentationQueryKey(id),
         enabled: authority.enabled,
         gcTime: 0,
@@ -104,7 +98,7 @@ export function createSportingAdministrationQueries(
       }),
     /** Pool presentation remains distinct from sporting classification and public consultation. */
     poolPresentation: (id: string) =>
-      queryOptions<Awaited<ReturnType<typeof getPoolPresentation>>>({
+      queryOptions<Awaited<ReturnType<typeof getPoolPresentation>> | null>({
         queryKey: getGetPoolPresentationQueryKey(id),
         enabled: authority.enabled,
         gcTime: 0,
@@ -113,7 +107,7 @@ export function createSportingAdministrationQueries(
       }),
     /** Pack classification retains one generated key for all correction consumers. */
     packClassification: (id: string) =>
-      queryOptions<Awaited<ReturnType<typeof getPackClassification>>>({
+      queryOptions<Awaited<ReturnType<typeof getPackClassification>> | null>({
         queryKey: getGetPackClassificationQueryKey(id),
         enabled: authority.enabled,
         gcTime: 0,
@@ -122,7 +116,7 @@ export function createSportingAdministrationQueries(
       }),
     /** Pool classification retains the same read shape as its revision-guarded command response. */
     poolClassification: (id: string) =>
-      queryOptions<Awaited<ReturnType<typeof getPoolClassification>>>({
+      queryOptions<Awaited<ReturnType<typeof getPoolClassification>> | null>({
         queryKey: getGetPoolClassificationQueryKey(id),
         enabled: authority.enabled,
         gcTime: 0,

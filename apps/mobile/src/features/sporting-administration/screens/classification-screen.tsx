@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { getListDivisionsQueryKey } from "../../../../.generated/mobile";
 import { FormScrollView } from "@/shared/components/form-scroll-view";
 import { Page, PageContent } from "@/shared/components/page";
 import { PageHeader } from "@/shared/components/page-header";
@@ -8,12 +10,10 @@ import { useClassificationVisit } from "../forms/classification-visit";
 import { ClassificationLoading } from "../components/sporting-editor-loading";
 import { ScreenState } from "@/shared/components/screen-state";
 import { ReadFeedback } from "@/shared/components/read-feedback";
-import { ErrorState } from "@/shared/components/state-card";
 
 import { AccessFeedback } from "@/features/access/components/access-feedback";
 import {
   useClassification,
-  useDivisions,
   type ClassificationTarget,
 } from "../api/classification";
 import { ClassificationForm } from "../forms/classification-form";
@@ -28,29 +28,19 @@ export function ClassificationScreen({
   target,
 }: Readonly<ClassificationScreenProps>) {
   const editing = useClassification(target);
-  const divisions = useDivisions();
+  const client = useQueryClient();
   const { authority } = editing;
   const visit = useClassificationVisit()?.visit;
   const feedback = useActionFeedback();
   const current =
-    authority.sessionStatus === "authenticated"
-      ? editing.query.data
-      : undefined;
+    authority.sessionStatus === "authenticated" ? editing.query.data : null;
   const identity = `${authority.session.subject}:${target.kind}:${target.id}`;
-  // Initial choice admission is visit-local; a later refusal must not dispose the RHF draft.
   const [admission, setAdmission] = useState({ identity, ready: false });
-  const needsInitialChoices = current?.setting != null;
   if (admission.identity !== identity) {
     setAdmission({ identity, ready: false });
-  } else if (
-    !admission.ready &&
-    current &&
-    (!needsInitialChoices || divisions.query.data)
-  ) {
+  } else if (!admission.ready && current) {
     setAdmission({ identity, ready: true });
   }
-  const waitingForChoices =
-    !admission.ready && needsInitialChoices && !divisions.query.data;
 
   /** Reads the live RHF intention without mirroring it; catalogue errors have the form's recovery owner. */
   async function refresh() {
@@ -67,7 +57,16 @@ export function ClassificationScreen({
         ? [authority.account.refetch()]
         : [
             editing.query.refetch(),
-            ...(custom ? [divisions.query.refetch()] : []),
+            ...(custom
+              ? [
+                  client.refetchQueries({
+                    queryKey: getListDivisionsQueryKey({
+                      includeInactive: true,
+                    }),
+                    exact: true,
+                  }),
+                ]
+              : []),
           ],
     );
     if (result.isError && result.data && !custom) {
@@ -75,23 +74,14 @@ export function ClassificationScreen({
     }
   }
 
-  /** Recovers only the first composition's required reads; it never sends a correction. */
-  async function retryInitial() {
-    await Promise.all([
-      editing.query.refetch(),
-      ...(needsInitialChoices ? [divisions.query.refetch()] : []),
-    ]);
-  }
-
   const loading = authority.enabled
-    ? editing.query.isLoading ||
-      (waitingForChoices && divisions.query.isLoading)
+    ? editing.query.isLoading
     : authority.sessionStatus === "restoring" ||
       (authority.sessionStatus === "authenticated" &&
         authority.account.isLoading);
   const FeedbackLayout = loading ? PageContent : ScreenState;
   let blockingState;
-  if (!current) {
+  if (!admission.ready) {
     if (!authority.enabled) {
       blockingState = (
         <AccessFeedback
@@ -107,15 +97,6 @@ export function ClassificationScreen({
         />
       );
     }
-  } else if (waitingForChoices) {
-    blockingState = loading ? (
-      <ClassificationLoading />
-    ) : (
-      <ErrorState
-        onRetry={() => void retryInitial()}
-        retrying={editing.query.isFetching || divisions.query.isFetching}
-      />
-    );
   } else {
     blockingState = undefined;
   }
@@ -145,13 +126,12 @@ export function ClassificationScreen({
           <FeedbackLayout>{blockingState}</FeedbackLayout>
         ) : (
           <PageContent>
-            {current && (
+            {admission.ready && (
               <ClassificationForm
                 key={identity}
                 target={target}
-                current={current}
+                current={current ?? null}
                 editing={editing}
-                divisions={divisions}
               />
             )}
           </PageContent>

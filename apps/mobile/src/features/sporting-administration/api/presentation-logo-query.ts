@@ -51,7 +51,6 @@ export function createPresentationLogoQueryOptions(
       target.kind !== "division-creation",
     gcTime: 0,
     queryFn: async ({ signal, client, queryKey }) => {
-      const previousError = client.getQueryState(queryKey)?.error;
       try {
         const options = await authority.request(signal);
         let blob;
@@ -77,11 +76,11 @@ export function createPresentationLogoQueryOptions(
           throw new ApiError("cancelled");
         }
         if (isRefusedOrMissingPreview(error)) {
-          client.getQueryCache().find({ queryKey, exact: true })?.setState({
-            data: null,
+          client.setQueryData<string | null>(queryKey, null, {
+            updatedAt: client.getQueryState(queryKey)?.dataUpdatedAt ?? 0,
           });
         }
-        throw isRefusedOrMissingPreview(previousError) ? previousError : error;
+        throw error;
       }
     },
   });

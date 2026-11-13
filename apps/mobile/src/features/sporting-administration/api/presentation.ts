@@ -2,10 +2,12 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+  skipToken,
   type QueryKey,
 } from "@tanstack/react-query";
 import {
   createDivision,
+  getGetDivisionQueryKey,
   getCreateDivisionMutationKey,
   getSetClubPresentationMutationKey,
   getSetDivisionPresentationMutationKey,
@@ -17,7 +19,6 @@ import {
   setTeamPresentation,
 } from "../../../../.generated/mobile";
 import type {
-  DivisionListResponse,
   DivisionResponse,
   PoolPresentationResponse,
   SportingPresentationResponse,
@@ -65,10 +66,9 @@ export type Presentation =
     }
   | {
       kind: "division-creation";
-      data: DivisionListResponse;
     };
 
-/** A confirmed write always returns one resource, never the division-creation list read. */
+/** A confirmed write always returns one resource. */
 type SavedPresentation = Exclude<
   Presentation,
   {
@@ -77,18 +77,15 @@ type SavedPresentation = Exclude<
 >;
 /** Raw generated response families remain canonical regardless of the editor observing them. */
 type PresentationData =
-  | SportingPresentationResponse
-  | PoolPresentationResponse
-  | DivisionResponse
-  | DivisionListResponse;
+  SportingPresentationResponse | PoolPresentationResponse | DivisionResponse;
 
 /** Adds the editor's discriminant after cache observation; generated schemas already validated each DTO. */
 function toPresentation(
   target: PresentationTarget,
-  data: PresentationData,
-): Presentation {
-  if ("items" in data) {
-    return { kind: "division-creation", data };
+  data: PresentationData | null,
+): Presentation | null {
+  if (data === null) {
+    return null;
   }
   if ("name" in data) {
     return { kind: "division", data };
@@ -121,15 +118,22 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
     options = queries.poolPresentation(target.id);
   } else if (target.kind === "division") {
     options = queries.division(target.id);
-  } else {
-    options = queries.divisions();
   }
-  const queryKey = options.queryKey;
-  const query = useQuery<PresentationData, Error, Presentation, QueryKey>({
-    queryKey: options.queryKey,
-    queryFn: options.queryFn,
-    gcTime: options.gcTime,
-    enabled: enabled && authority.enabled && session.status === "authenticated",
+  const queryKey = options?.queryKey ?? getCreateDivisionMutationKey();
+  const query = useQuery<
+    PresentationData | null,
+    Error,
+    Presentation | null,
+    QueryKey
+  >({
+    queryKey,
+    queryFn: options?.queryFn ?? skipToken,
+    gcTime: 0,
+    enabled:
+      target.kind !== "division-creation" &&
+      enabled &&
+      authority.enabled &&
+      session.status === "authenticated",
     select: (data) => toPresentation(target, data),
   });
 
@@ -214,6 +218,18 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
           break;
       }
       return accepted;
+    },
+    onSuccess: (accepted, { revision }) => {
+      // A late save cannot restore refused data or replace a newer observed revision.
+      const acceptedKey =
+        target.kind === "division-creation"
+          ? getGetDivisionQueryKey(accepted.data.id)
+          : queryKey;
+      client.setQueryData<PresentationData | null>(acceptedKey, (current) =>
+        current === null || (current && current.revision !== revision)
+          ? undefined
+          : accepted.data,
+      );
     },
     onSettled: accept,
   });

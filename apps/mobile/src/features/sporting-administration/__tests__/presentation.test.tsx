@@ -36,7 +36,9 @@ import type { ComponentType, PropsWithChildren, ReactNode } from "react";
 import { useDivisions } from "../api/classification";
 import {
   getGetTeamPresentationQueryKey,
+  getGetTeamLogoQueryKey,
   getGetDivisionQueryKey,
+  getGetDivisionLogoQueryKey,
   getListDivisionsQueryKey,
 } from "../../../../.generated/mobile";
 import RootLayout from "@/app/_layout";
@@ -438,6 +440,72 @@ it("restores known customized artwork without decoded bytes and clears only the 
     manualShortName: null,
     logoAction: "automatic",
   });
+});
+
+it("keeps the accepted revision editable when the following presentation read fails", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderEditor();
+  await user.clear(await screen.findByLabelText("Nom complet personnalisé"));
+  await user.type(
+    screen.getByLabelText("Nom complet personnalisé"),
+    "Accepted name",
+  );
+  let writes = 0;
+  mockFetch.mockImplementation((url, options) => {
+    if (options?.method === "PATCH") {
+      writes += 1;
+      return Promise.resolve(
+        json({
+          ...initial,
+          revision: `r${writes + 1}`,
+          names: {
+            ...names,
+            manualName: "Accepted name",
+            effectiveName: "Accepted name",
+          },
+        }),
+      );
+    }
+    return String(url).endsWith("/presentation")
+      ? Promise.resolve(json({ status: 503 }, 503))
+      : respond(url, options);
+  });
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  const queryKey = getGetTeamPresentationQueryKey(resourceId);
+  await waitFor(() =>
+    expect(client.getQueryState(queryKey)?.error).toMatchObject({
+      status: 503,
+    }),
+  );
+  expect(client.getQueryData(queryKey)).toMatchObject({ revision: "r2" });
+  expect(screen.getByDisplayValue("Accepted name")).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Modifications non enregistrées"),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Relire la présentation" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  await waitFor(() => expect(writes).toBe(2));
+  const secondWrite = mockFetch.mock.calls.filter(
+    ([, options]) => options?.method === "PATCH",
+  )[1][1];
+  expect(
+    JSON.parse(
+      await ((secondWrite?.body as FormData).get("metadata") as Blob).text(),
+    ),
+  ).toMatchObject({ revision: "r2" });
 });
 
 it("keeps inherited artwork editable while its read is pending without offering customization removal", async () => {
@@ -870,7 +938,7 @@ it.each(["pending", "failed"] as const)(
   },
 );
 
-it("keeps a known presentation refusal through a technical failure until a successful read", async () => {
+it("shows the current presentation error without restoring refused data or losing the draft", async () => {
   // Given: the retained form owns the draft; real Query and HTTP decoding own its refusal.
   const user = userEvent.setup();
   await renderEditor();
@@ -898,14 +966,18 @@ it("keeps a known presentation refusal through a technical failure until a succe
   // Then: a technical error cannot restore the resource's withdrawn authority.
   expect(client.getQueryState(queryKey)?.error).toMatchObject({
     kind: "http",
-    status: 403,
+    status: 503,
   });
+  expect(client.getQueryData(queryKey)).toBeNull();
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeEnabled();
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
   );
   expect(screen.getByDisplayValue("My draft")).toBeOnTheScreen();
 
-  // When: cancellation of a delayed read keeps Query's previous refusal and the same draft.
+  // When: cancellation of a delayed read keeps Query's current error and the same draft.
   const delayed = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url, options) =>
     String(url).endsWith("/presentation")
@@ -928,8 +1000,9 @@ it("keeps a known presentation refusal through a technical failure until a succe
   // Then
   expect(client.getQueryState(queryKey)?.error).toMatchObject({
     kind: "http",
-    status: 403,
+    status: 503,
   });
+  expect(client.getQueryData(queryKey)).toBeNull();
   expect(screen.getByDisplayValue("My draft")).toBeOnTheScreen();
 
   // When: a successful current read restores authority without replacing dirty input.
@@ -944,6 +1017,66 @@ it("keeps a known presentation refusal through a technical failure until a succe
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
   ).toHaveLength(0);
+});
+
+it("keeps withdrawn data and its current error while an earlier accepted save invalidates the read", async () => {
+  // Given
+  const user = userEvent.setup();
+  const save = Promise.withResolvers<Response>();
+  const pendingRead = Promise.withResolvers<Response>();
+  await renderEditor();
+  await user.clear(await screen.findByLabelText("Nom complet personnalisé"));
+  await user.type(
+    screen.getByLabelText("Nom complet personnalisé"),
+    "Submitted draft",
+  );
+  let status = 200;
+  mockFetch.mockImplementation((url, options) => {
+    if (options?.method === "PATCH") {
+      return save.promise;
+    }
+    if (String(url).endsWith("/presentation")) {
+      if (status === 0) {
+        return pendingRead.promise;
+      }
+      if (status !== 200) {
+        return Promise.resolve(json({ status }, status));
+      }
+    }
+    return respond(url, options);
+  });
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  const queryKey = getGetTeamPresentationQueryKey(resourceId);
+  status = 403;
+  await act(async () => client.refetchQueries({ queryKey, exact: true }));
+  status = 503;
+  await act(async () => client.refetchQueries({ queryKey, exact: true }));
+
+  // When
+  status = 0;
+  await act(async () =>
+    save.resolve(
+      json({
+        ...initial,
+        revision: "r2",
+        names: { ...names, manualName: "Submitted draft" },
+      }),
+    ),
+  );
+  await waitFor(() =>
+    expect(client.getQueryState(queryKey)?.fetchStatus).toBe("fetching"),
+  );
+
+  // Then
+  expect(client.getQueryData(queryKey)).toBeNull();
+  expect(client.getQueryState(queryKey)?.error).toMatchObject({ status: 503 });
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+
+  await act(async () => {
+    await client.cancelQueries({ queryKey, exact: true });
+    pendingRead.resolve(json({ status: 503 }, 503));
+  });
 });
 
 it("keeps a dirty draft and the editing revision during background refetch", async () => {
@@ -1135,6 +1268,14 @@ it.each([403, 404])(
 
       // Then
       expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+      const logoQueryKey = [
+        ...getGetTeamLogoQueryKey(resourceId, { selection: "effective" }),
+        "r1",
+      ];
+      expect(client.getQueryData(logoQueryKey)).toBeNull();
+      expect(client.getQueryState(logoQueryKey)?.error).toMatchObject({
+        status: 503,
+      });
       await waitFor(() =>
         expect(
           screen.queryByRole("image", { name: "Miniature : Logo" }),
@@ -1234,6 +1375,93 @@ it("retains input and shows the invalid-image field refusal", async () => {
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
   );
+});
+
+it("shows accepted division bytes after releasing the submitted creation logo", async () => {
+  // Given: the picker, owned files and binary conversion are controlled native boundaries.
+  permissions = { manageDivisionLifecycle: true };
+  const created = {
+    id: resourceId,
+    revision: "d1",
+    name: "Division with logo",
+    color: "#245FD8",
+    gradient: null,
+    logo: {
+      ...logo,
+      manualUrl: `/divisions/${resourceId}/logo`,
+      effectiveUrl: `/divisions/${resourceId}/logo`,
+    },
+    active: true,
+  };
+  const previousReader = Object.getOwnPropertyDescriptor(
+    globalThis,
+    "FileReader",
+  );
+
+  class LogoReader {
+    result = "data:image/png;base64,accepted-division-logo";
+    onload?: () => void;
+
+    readAsDataURL() {
+      this.onload?.();
+    }
+  }
+
+  Object.defineProperty(globalThis, "FileReader", {
+    configurable: true,
+    value: LogoReader,
+  });
+  mockFetch.mockImplementation((url, options) => {
+    if (options?.method === "POST") {
+      return Promise.resolve(json(created, 201));
+    }
+    if (String(url).endsWith(`/divisions/${resourceId}/logo`)) {
+      return Promise.resolve(
+        new Response(mockFile, { headers: { "Content-Type": "image/png" } }),
+      );
+    }
+    return respond(url, options);
+  });
+  jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+    canceled: false,
+    assets: [{ uri: "file:///picker.png", width: 120, height: 60 }],
+  });
+  try {
+    const user = userEvent.setup();
+    await renderEditor("division-creation");
+    await user.type(
+      await screen.findByLabelText("Nom de la division"),
+      created.name,
+    );
+    await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
+    await act(nativeImageChoiceAction("Choisir un logo"));
+    await screen.findByRole("image", { name: "Miniature : Logo" });
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+    // Then
+    await screen.findByRole("button", { name: "Voir les divisions" });
+    await waitFor(() => expect(mockFile.delete).toHaveBeenCalledTimes(1));
+    const logoQueryKey = [...getGetDivisionLogoQueryKey(resourceId), "d1"];
+    await waitFor(() =>
+      expect(client.getQueryData(logoQueryKey)).toBe(
+        "data:image/png;base64,accepted-division-logo",
+      ),
+    );
+    expect(
+      await screen.findByRole("image", { name: "Miniature : Logo" }),
+    ).toBeOnTheScreen();
+    expect(client.getQueryData(getGetDivisionQueryKey(resourceId))).toEqual(
+      created,
+    );
+  } finally {
+    if (previousReader) {
+      Object.defineProperty(globalThis, "FileReader", previousReader);
+    } else {
+      Reflect.deleteProperty(globalThis, "FileReader");
+    }
+  }
 });
 
 it.each([
@@ -1653,7 +1881,7 @@ it("rejects a delayed save result after the session has ended", async () => {
   ).toHaveLength(1);
 });
 
-it("creates an active division through the existing atomic presentation form with the lifecycle grant alone", async () => {
+it("opens without a catalogue read and directly creates an active division with a stable accepted baseline", async () => {
   // Given
   permissions = { manageDivisionLifecycle: true };
   stored = { items: [] };
@@ -1678,6 +1906,11 @@ it("creates an active division through the existing atomic presentation form wit
   const user = userEvent.setup();
   await renderEditor("division-creation");
   await screen.findByLabelText("Nom de la division");
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      String(url).includes("/administration/divisions"),
+    ),
+  ).toHaveLength(0);
   await user.clear(screen.getByLabelText("Nom de la division"));
   await user.type(screen.getByLabelText("Nom de la division"), "National 2");
   await user.clear(screen.getByLabelText("Couleur HEX"));
@@ -1685,16 +1918,14 @@ it("creates an active division through the existing atomic presentation form wit
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  expect(
-    mockFetch.mock.calls.some(([, options]) => options?.method === "POST"),
-  ).toBe(false);
-  const confirm = nativeAlertAction("Créer la division");
-  await act(async () => {
-    confirm();
-  });
 
   // Then
   await screen.findByRole("button", { name: "Voir les divisions" });
+  expect(screen.getByLabelText("Nom de la division")).toHaveDisplayValue(
+    "National 2",
+  );
+  expect(screen.getByLabelText("Couleur HEX")).toHaveDisplayValue("#123456");
+  expect(Alert.alert).not.toHaveBeenCalled();
   const request = mockFetch.mock.calls.find(
     ([, options]) => options?.method === "POST",
   )?.[1];
@@ -1713,48 +1944,55 @@ it("creates an active division through the existing atomic presentation form wit
   ).toBe(false);
 });
 
-it("preserves a proposed division name when the server reports an existing name", async () => {
-  // Given
-  permissions = { manageDivisionLifecycle: true };
-  stored = { items: [] };
-  jest.spyOn(Alert, "alert");
-  mockFetch.mockImplementation((url, options) =>
-    options?.method === "POST"
-      ? Promise.resolve(
-          json(
-            {
-              type: "urn:blockout:problem:conflict",
-              title: "Conflict",
-              status: 409,
-            },
-            409,
-          ),
-        )
-      : respond(url, options),
-  );
-  const user = userEvent.setup();
-  await renderEditor("division-creation");
-  await user.clear(await screen.findByLabelText("Nom de la division"));
-  await user.type(screen.getByLabelText("Nom de la division"), "National 2");
-  await user.clear(screen.getByLabelText("Couleur HEX"));
-  await user.type(screen.getByLabelText("Couleur HEX"), "#123456");
+it.each([
+  { type: "conflict", feedback: "Ce nom de division est déjà utilisé." },
+  { type: "stale-revision", feedback: TECHNICAL_ERROR },
+])(
+  "retains creation input after a server $type without proposing an unavailable reread",
+  async ({ type, feedback }) => {
+    // Given
+    permissions = { manageDivisionLifecycle: true };
+    stored = { items: [] };
+    mockFetch.mockImplementation((url, options) =>
+      options?.method === "POST"
+        ? Promise.resolve(
+            json(
+              {
+                type: `urn:blockout:problem:${type}`,
+                title: "Conflict",
+                status: 409,
+              },
+              409,
+            ),
+          )
+        : respond(url, options),
+    );
+    const user = userEvent.setup();
+    await renderEditor("division-creation");
+    await user.clear(await screen.findByLabelText("Nom de la division"));
+    await user.type(screen.getByLabelText("Nom de la division"), "National 2");
+    await user.clear(screen.getByLabelText("Couleur HEX"));
+    await user.type(screen.getByLabelText("Couleur HEX"), "#123456");
 
-  // When
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAlertAction("Créer la division")());
+    // When
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
-  // Then
-  await screen.findByText("Ce nom de division est déjà utilisé.");
-  expect(screen.getByLabelText("Nom de la division")).toHaveDisplayValue(
-    "National 2",
-  );
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
-  );
-  expect(
-    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
-  ).toHaveLength(1);
-});
+    // Then
+    await screen.findByText(feedback);
+    expect(
+      screen.queryByRole("button", { name: "Relire la présentation" }),
+    ).not.toBeOnTheScreen();
+    expect(screen.getByLabelText("Nom de la division")).toHaveDisplayValue(
+      "National 2",
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+    );
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+    ).toHaveLength(1);
+  },
+);
 
 it("keeps lifecycle independent at the end of the division editor for a lifecycle-only operator", async () => {
   // Given
@@ -1845,7 +2083,8 @@ it("suspends lifecycle-only commands after a missing division read until the res
   );
 
   // Then: the retained lifecycle grant cannot authorize this refused target.
-  expect(client.getQueryState(queryKey)?.error).toMatchObject({ status: 404 });
+  expect(client.getQueryState(queryKey)?.error).toMatchObject({ status: 503 });
+  expect(client.getQueryData(queryKey)).toBeNull();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
   ).toHaveLength(0);
@@ -2129,77 +2368,50 @@ it("deletes a prepared logo completed after its form unmounts", async () => {
   expect(mockPickedFile.delete).toHaveBeenCalledTimes(1);
 });
 
-it.each(["division-creation", "division"] as const)(
-  "ignores the retained %s confirmation after protected-route removal and readmission",
-  async (kind) => {
-    // Given
-    permissions = { manageDivisionLifecycle: true };
-    stored =
-      kind === "division-creation"
-        ? { items: [] }
-        : {
-            id: resourceId,
-            revision: "d1",
-            name: "National 2",
-            color: "#123456",
-            gradient: null,
-            logo,
-            active: true,
-          };
-    jest.spyOn(Alert, "alert").mockImplementation(() => {});
-    const user = userEvent.setup();
-    await openRoutes();
-    await screen.findByRole("button", { name: "Relire les permissions" });
-    const path =
-      kind === "division-creation"
-        ? "/administration/divisions/new"
-        : `/administration/divisions/${resourceId}`;
-    await act(async () => router.push(path));
-    if (kind === "division-creation") {
-      await screen.findByLabelText("Nom de la division");
-      await user.clear(screen.getByLabelText("Nom de la division"));
-      await user.type(
-        screen.getByLabelText("Nom de la division"),
-        "National 2",
-      );
-      await user.clear(screen.getByLabelText("Couleur HEX"));
-      await user.type(screen.getByLabelText("Couleur HEX"), "#123456");
-      await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    } else {
-      await user.press(
-        await screen.findByRole("button", { name: "Désactiver la division" }),
-      );
-    }
-    const confirm = nativeAlertAction(
-      kind === "division-creation" ? "Créer la division" : "Désactiver",
-    );
+it("ignores the retained lifecycle confirmation after protected-route removal and readmission", async () => {
+  // Given
+  permissions = { manageDivisionLifecycle: true };
+  stored = {
+    id: resourceId,
+    revision: "d1",
+    name: "National 2",
+    color: "#123456",
+    gradient: null,
+    logo,
+    active: true,
+  };
+  jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  const user = userEvent.setup();
+  await openRoutes();
+  await screen.findByRole("button", { name: "Relire les permissions" });
+  const path = `/administration/divisions/${resourceId}`;
+  await act(async () => router.push(path));
+  await user.press(
+    await screen.findByRole("button", { name: "Désactiver la division" }),
+  );
+  const confirm = nativeAlertAction("Désactiver");
 
-    // When
-    permissions = {};
-    await user.press(
-      await screen.findByRole("button", { name: "Relire les permissions" }),
-    );
-    await waitFor(() =>
-      expect(
-        screen.queryByLabelText("Nom de la division"),
-      ).not.toBeOnTheScreen(),
-    );
-    permissions = { manageDivisionLifecycle: true };
-    await user.press(
-      await screen.findByRole("button", { name: "Relire les permissions" }),
-    );
-    await act(async () => router.push(path));
-    await screen.findByLabelText("Nom de la division");
-    await act(async () => confirm());
+  // When
+  permissions = {};
+  await user.press(
+    await screen.findByRole("button", { name: "Relire les permissions" }),
+  );
+  await waitFor(() =>
+    expect(screen.queryByLabelText("Nom de la division")).not.toBeOnTheScreen(),
+  );
+  permissions = { manageDivisionLifecycle: true };
+  await user.press(
+    await screen.findByRole("button", { name: "Relire les permissions" }),
+  );
+  await act(async () => router.push(path));
+  await screen.findByLabelText("Nom de la division");
+  await act(async () => confirm());
 
-    // Then
-    expect(
-      mockFetch.mock.calls.filter(([, options]) =>
-        ["POST", "PUT"].includes(options?.method ?? ""),
-      ),
-    ).toHaveLength(0);
-  },
-);
+  // Then
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+  ).toHaveLength(0);
+});
 
 it("releases only the replaced logo copy while the new draft remains usable", async () => {
   // Given
@@ -2257,7 +2469,7 @@ it("releases only the replaced logo copy while the new draft remains usable", as
   ).toBeOnTheScreen();
 });
 
-/** A second real consumer makes the shared list and its creation invalidation visible. */
+/** A mounted list makes creation invalidation observable without admitting creation through the catalogue. */
 function DivisionListObserver() {
   const { query, authority } = useDivisions();
   return (
@@ -2281,66 +2493,79 @@ function DivisionListObserver() {
   );
 }
 
-it("shares one raw division list across creation and navigation and refreshes it after creation", async () => {
-  // Given
-  permissions = { manageDivisionLifecycle: true };
-  stored = { items: [] };
-  const created = {
-    id: resourceId,
-    revision: "d1",
-    name: "National 2",
-    color: "#123456",
-    gradient: null,
-    logo,
-    active: true,
-  };
-  mockFetch.mockImplementation((url, options) => {
-    if (options?.method === "POST") {
-      stored = { items: [created] };
-      return Promise.resolve(json(created, 201));
-    }
-    return respond(url, options);
-  });
-  jest.spyOn(Alert, "alert");
-  const user = userEvent.setup();
-  await renderEditor("division-creation", <DivisionListObserver />);
-  await screen.findByLabelText("Nom de la division");
-  expect(
-    mockFetch.mock.calls.filter(([url]) =>
-      String(url).includes("/administration/divisions"),
-    ),
-  ).toHaveLength(1);
-  const listPath = getListDivisionsQueryKey({ includeInactive: true })[0];
-  const entries = client
-    .getQueryCache()
-    .findAll({ predicate: ({ queryKey }) => queryKey.includes(listPath) });
-  expect(entries).toHaveLength(1);
-  expect(entries[0]?.state.data).toEqual({ items: [] });
-  await user.clear(screen.getByLabelText("Nom de la division"));
-  await user.type(screen.getByLabelText("Nom de la division"), "National 2");
-  await user.clear(screen.getByLabelText("Couleur HEX"));
-  await user.type(screen.getByLabelText("Couleur HEX"), "#123456");
+it.each([200, 503])(
+  "keeps accepted creation values when the independently observed catalogue refresh returns HTTP %i",
+  async (refreshStatus) => {
+    // Given
+    permissions = { manageDivisionLifecycle: true };
+    stored = { items: [] };
+    const created = {
+      id: resourceId,
+      revision: "d1",
+      name: "National 2",
+      color: "#123456",
+      gradient: null,
+      logo,
+      active: true,
+    };
+    let accepted = false;
+    mockFetch.mockImplementation((url, options) => {
+      if (options?.method === "POST") {
+        accepted = true;
+        stored = { items: [created] };
+        return Promise.resolve(json(created, 201));
+      }
+      return accepted &&
+        refreshStatus === 503 &&
+        String(url).includes("/administration/divisions")
+        ? Promise.resolve(json({ status: 503 }, 503))
+        : respond(url, options);
+    });
+    const user = userEvent.setup();
+    await renderEditor("division-creation", <DivisionListObserver />);
+    await screen.findByLabelText("Nom de la division");
+    await waitFor(() =>
+      expect(
+        mockFetch.mock.calls.filter(([url]) =>
+          String(url).includes("/administration/divisions"),
+        ),
+      ).toHaveLength(1),
+    );
+    const catalogueKey = getListDivisionsQueryKey({ includeInactive: true });
+    expect(client.getQueryData(catalogueKey)).toEqual({ items: [] });
+    await user.clear(screen.getByLabelText("Nom de la division"));
+    await user.type(screen.getByLabelText("Nom de la division"), "National 2");
+    await user.clear(screen.getByLabelText("Couleur HEX"));
+    await user.type(screen.getByLabelText("Couleur HEX"), "#123456");
 
-  // When
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  const confirm = nativeAlertAction("Créer la division");
-  await act(async () => {
-    confirm();
-  });
+    // When
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
-  // Then
-  expect(
-    await screen.findByText("Known divisions: National 2"),
-  ).toBeOnTheScreen();
-  expect(entries[0]?.state.data).toEqual({ items: [created] });
-  expect(
-    mockFetch.mock.calls.filter(
-      ([url, options]) =>
-        String(url).includes("/administration/divisions") &&
-        options?.method === "GET",
-    ),
-  ).toHaveLength(2);
-});
+    // Then
+    await screen.findByRole("button", { name: "Voir les divisions" });
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+    expect(client.getQueryData(catalogueKey)).toEqual({
+      items: refreshStatus === 200 ? [created] : [],
+    });
+    expect(client.getQueryState(catalogueKey)?.error).toEqual(
+      refreshStatus === 200 ? null : expect.objectContaining({ status: 503 }),
+    );
+    expect(screen.getByLabelText("Nom de la division")).toHaveDisplayValue(
+      "National 2",
+    );
+    expect(screen.getByLabelText("Couleur HEX")).toHaveDisplayValue("#123456");
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(
+        ([url, options]) =>
+          String(url).includes("/administration/divisions") &&
+          options?.method === "GET",
+      ),
+    ).toHaveLength(2);
+  },
+);
 
 it("keeps the shared division read authorized when creation loses its separate lifecycle grant", async () => {
   // Given
@@ -2589,7 +2814,6 @@ it("preserves a fresh local creation draft when an abandoned creation succeeds l
   await user.clear(screen.getByLabelText("Couleur HEX"));
   await user.type(screen.getByLabelText("Couleur HEX"), "#123456");
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAlertAction("Créer la division")());
   await screen.findByRole("button", { name: "Enregistrer", busy: true });
 
   // When

@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import { Controller, useFormState, useWatch } from "react-hook-form";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ClassificationDetailResponse } from "../../../../.generated/schemas/index.zod";
-import { isAccessDenied } from "@/shared/api/access-denied";
 import { ApiError } from "@/shared/api/api-fetch";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { Button } from "@/shared/components/button";
@@ -11,7 +10,6 @@ import { SelectField } from "@/shared/components/select-field";
 import { ReadFeedback } from "@/shared/components/read-feedback";
 import { FieldSkeleton } from "@/shared/components/form-loading";
 import { LoadingGroup } from "@/shared/components/loading-group";
-import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
 import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
@@ -19,42 +17,38 @@ import {
   formatLabel,
   genderLabel,
 } from "@/features/sporting/classification-presentation";
-import type {
-  ClassificationTarget,
-  useClassification,
+import {
   useDivisions,
+  type ClassificationTarget,
+  type useClassification,
 } from "../api/classification";
 import { toClassificationRequest } from "../api/classification-request";
 import { type ClassificationValues } from "../schemas/classification-schema";
 import { classificationValues } from "./classification-values";
 import { useClassificationDraft } from "./use-classification-draft";
-import { isSportingReadRefused } from "../api/sporting-administration-queries";
 
 /** One current resource, its generated operations and original-session draft. */
 export interface ClassificationFormProps {
   target: ClassificationTarget;
-  current: ClassificationDetailResponse;
+  current: ClassificationDetailResponse | null;
   editing: ReturnType<typeof useClassification>;
-  divisions: ReturnType<typeof useDivisions>;
 }
 
-/** Complete override/inheritance correction with native confirmation and explicit current-state recovery. */
+/** Complete override/inheritance correction with explicit revision recovery. */
 export function ClassificationForm({
   target,
   current,
   editing,
-  divisions,
 }: Readonly<ClassificationFormProps>) {
   const router = useRouter();
   const { colors } = useTheme();
   const actionFeedback = useActionFeedback();
-  const confirmAction = useActionConfirmation();
   const mounted = useRef(false);
   const [rereading, setRereading] = useState(false);
   const editor = useClassificationDraft(target, current);
   const state = editor.state;
-  const { baseline } = state;
-  const feedback = state.feedback ?? undefined;
+  const { revision } = state;
+  const feedback = state.feedback;
   const { control, handleSubmit, reset, setError } = editor.form;
   const { isDirty, dirtyFields } = useFormState({
     control,
@@ -65,14 +59,15 @@ export function ClassificationForm({
   void dirtyFields;
   const custom = useWatch({ control, name: "custom" });
   const divisionId = useWatch({ control, name: "divisionId" });
+  const divisions = useDivisions(custom);
   const busy =
     rereading ||
-    isSportingReadRefused(editing.query.error) ||
+    !current ||
     !editing.authority.enabled ||
     editing.save.isPending;
   const choicesUnavailable = !divisions.query.isSuccess;
   const choicesBusy = busy || divisions.query.isFetching || choicesUnavailable;
-  const rereadRequired = current.revision !== baseline.revision;
+  const rereadRequired = current !== null && current.revision !== revision;
   const choices =
     divisions.query.data?.items.filter((item) => item.active) ?? [];
   useEffect(() => {
@@ -91,9 +86,9 @@ export function ClassificationForm({
     return available;
   }
 
-  /** Validates active choices, awaits confirmation and sends the complete state against its original revision. */
+  /** Validates active custom choices and sends the complete state against its editing revision. */
   async function submit(values: ClassificationValues) {
-    if (busy || rereadRequired) {
+    if (busy || !revision || rereadRequired) {
       return;
     }
     if (values.custom && (choicesUnavailable || divisions.query.isFetching)) {
@@ -108,25 +103,15 @@ export function ClassificationForm({
       });
       return;
     }
-    if (
-      !(await confirmAction({
-        title: "Enregistrer la classification ?",
-        message:
-          "La correction est appliquée entièrement ou refusée. Retirer le réglage conserve les identités et la dernière classification publiée ; cela peut arrêter la collecte.",
-        confirmLabel: "Enregistrer",
-      }))
-    ) {
-      return;
-    }
     try {
       const attempt = editing.save.mutateAsync(
-        toClassificationRequest(baseline.revision, values),
+        toClassificationRequest(revision, values),
       );
       editor.update({ ...editor.state, feedback: undefined });
       actionFeedback.clear();
       const accepted = await attempt;
       editor.update({
-        baseline: accepted,
+        revision: accepted.revision,
         feedback: undefined,
       });
       reset(classificationValues(accepted));
@@ -136,7 +121,6 @@ export function ClassificationForm({
         error.status !== 409 ||
         error.problem?.type !== "urn:blockout:problem:classification-conflict"
       ) {
-        editor.update({ ...editor.state, feedback: undefined });
         actionFeedback.error();
         return;
       }
@@ -176,7 +160,7 @@ export function ClassificationForm({
         editor.update({
           ...editor.state,
           feedback:
-            "La relecture a échoué. Votre brouillon est conservé. Relisez l’état courant avant de confirmer.",
+            "La relecture a échoué. Votre brouillon est conservé. Réessayez la relecture.",
         });
         return;
       }
@@ -185,9 +169,8 @@ export function ClassificationForm({
         keepDirty: true,
       });
       editor.update({
-        baseline: result.data,
-        feedback:
-          "État relu. Vérifiez le brouillon puis confirmez explicitement l’enregistrement.",
+        revision: result.data.revision,
+        feedback: "État relu. Vérifiez le brouillon puis enregistrez-le.",
       });
     } finally {
       if (mounted.current) {
@@ -196,14 +179,22 @@ export function ClassificationForm({
     }
   }
 
-  const effective = current.effective;
+  const effective = current?.effective;
+  const effectiveDivision = divisions.query.data?.items.find(
+    (item) => item.id === effective?.divisionId,
+  );
   return (
     <View style={styles.form}>
-      <Text style={[tokens.typography.body, { color: colors.text }]}>
-        {effective
-          ? `Collecte : ${divisions.query.data?.items.find((item) => item.id === effective.divisionId)?.name ?? "Division indisponible"}, ${effective.format}, ${genderLabel(effective.gender)}.`
-          : "Aucune classification de collecte. La dernière classification publiée et les identités sont conservées."}
-      </Text>
+      {current && (
+        <Text style={[tokens.typography.body, { color: colors.text }]}>
+          {effective
+            ? `Collecte : ${effectiveDivision ? `${effectiveDivision.name}, ` : ""}${effective.format}, ${genderLabel(effective.gender)}.`
+            : "Aucune classification de collecte. La dernière classification publiée et les identités sont conservées."}
+        </Text>
+      )}
+      {!custom && editing.query.isError && (
+        <ReadFeedback query={editing.query} loadingContent={null} />
+      )}
       <Controller
         control={control}
         name="custom"
@@ -265,7 +256,7 @@ export function ClassificationForm({
                     (choice) => choice.id === field.value,
                   )?.name
                 }
-                disabled={choicesBusy || isAccessDenied(divisions.query.error)}
+                disabled={choicesBusy}
                 error={
                   divisions.query.isSuccess
                     ? fieldState.error?.message
@@ -344,7 +335,9 @@ export function ClassificationForm({
         <Button
           label="Relire la classification"
           variant="secondary"
-          disabled={busy}
+          disabled={
+            rereading || !editing.authority.enabled || editing.save.isPending
+          }
           onPress={() => void reread()}
         />
       )}

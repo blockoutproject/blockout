@@ -10,6 +10,7 @@ import {
 } from "../../../../.generated/mobile";
 import type {
   AccountPermissionsResponse,
+  ClassificationDetailResponse,
   SetClassificationRequest,
   SetDivisionActivityRequest,
 } from "../../../../.generated/schemas/index.zod";
@@ -111,16 +112,26 @@ export function useClassification(target: ClassificationTarget) {
         ? setPackClassification(target.id, body, options)
         : setPoolClassification(target.id, body, options);
     },
+    // A late save cannot restore refused data or replace a newer observed revision.
+    onSuccess: (accepted, { revision }) => {
+      client.setQueryData<ClassificationDetailResponse | null>(
+        queryKey,
+        (current) =>
+          current === null || (current && current.revision !== revision)
+            ? undefined
+            : accepted,
+      );
+    },
     onSettled: accept,
   });
   return { authority, query, save, queryKey };
 }
 
 /** Configuration list includes inactive entries for lifecycle context; consumers filter assignable choices. */
-export function useDivisions() {
+export function useDivisions(enabled = true) {
   const authority = useSportingAuthority("divisions");
   const options = createSportingAdministrationQueries(authority).divisions();
-  const query = useQuery(options);
+  const query = useQuery({ ...options, enabled: options.enabled && enabled });
   return { authority, query, queryKey: options.queryKey };
 }
 

@@ -64,7 +64,11 @@ For standings, preserve official order, unknown rank/statistics, nonnumeric rati
 
 Use the existing F05 session and F12 operational admission. Enter pack/pool classification from discovered collection children with collection-read and classification-action grants. `manageSportingClassification` and `manageDivisionLifecycle` independently admit technical administration and the division list; collection, presentation and activity retain separate grants. Routes live under `apps/mobile/src/app/(operations)/administration/`.
 
-Exercise complete overrides, explicit null/inheritance, incomplete/inactive choices, all-request conflict refusal, retained dirty input, failed then successful current-state recovery and protected-route withdrawal/reentry. Create a division through the name/color/logo form with generated multipart metadata, native confirmation and no activity write. A failed or lost response retains editable input and ordinary failure feedback; another command is explicit and needs no verification read. Name uniqueness, original target and revision checks remain authoritative; no automatic duplicate creation is attempted.
+Exercise complete overrides, explicit null/inheritance, incomplete/inactive choices, all-request conflict refusal and retained dirty input. With valid classification and permissions, fail only the division catalogue with 503: `Du pack` remains usable and saves directly. Switch to custom choices and verify their loading, current error and explicit Retry; after recovery select only an active division. Catalogue unavailability must not be confused with confirmed division absence.
+
+Create a division through the name/color/logo form without a catalogue GET. Save directly through generated multipart metadata, with no extra confirmation or activity write. Submit a duplicate differing only by letter case: the server 409 remains at the name field and preserves all entered values and the logo candidate. A non-name refusal on creation keeps ordinary feedback and editable values, without unavailable reread advice. Accept POST 201 and verify the terminal form retains the accepted name, colors and identity. Exercise the existing reset/discard paths and fail a later GET: none restores the empty creation draft or labels that read failure as a failed save. This adds no new action to the terminal creation screen.
+
+For classification and existing presentation, exercise typed stale-revision refusal, failed then successful explicit original-target reread and protected-route withdrawal/reentry. Relire remains usable after its own failure; a sporting-scope collision still refuses the entire correction after reread. A technical or lost save response retains the exact editable draft with ordinary failure feedback and normal settlement invalidation; a later explicit save needs no verification read. Name uniqueness, original target and current revision/permission checks remain authoritative; no write is replayed automatically. Keep division activity as a distinct lifecycle command and keep unsaved-draft exit guards.
 
 Compare the [mapping controls](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4652-28674), [division catalogue](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1340-9338), [creation](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1370-10242) and [gradient/lifecycle](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1368-10291). Native design qualification requires actual integrated journeys; implementation illustrations and controlled native SDK/HTTP inputs cannot establish that qualification.
 
@@ -76,7 +80,7 @@ For a retained-chain upgrade, preserve applied checksums, accepted image bytes/m
 
 Exercise the [shared single-image cases](../003-shared-quality/quickstart.md#single-image-fields) in representative club/team/division forms: open native choices/cancel without a draft change, replace, reset a customization without preview, retain a candidate through remote refusal and save explicitly. Verify nonprofessional club inheritance and professional team → LNV → optional club precedence using different source images. Changing or losing parent media never removes an unsaved team choice or grants new removal rights. Pool editing stays names-only. Current permission loss makes callbacks from an already open OS menu inert; cancellation/dismissal remains system-owned, without requiring dynamically disabled native buttons; prepared work stays with its original field/session. Multi-image support remains F10-owned.
 
-Invoke `prepareSportingLogo` with the actual native file owner: await copy completion, preserve borrowed input bytes and dispose only owned output. Qualify picker/editor/upload separately on the native platforms.
+Invoke `prepareSportingLogo` with the actual native file owner: await copy completion, preserve borrowed input bytes and dispose only owned output. Keep a prepared candidate while a save borrows it, including field replacement or route exit; release it only when its last owner/request is done. A failed save retains the mounted candidate for explicit retry, while accepted saving or explicit discard releases the owned candidate without resetting accepted form values. Qualify picker/editor/upload separately on the native platforms. The known ImagePicker limit remains with its own qualification; these checks establish no additional picker/provider support.
 
 In existing native journeys, verify a professional team with no club remains readable/followable without a club link or invented point. Exercise team override → LNV → optional club → missing artwork, plus unchanged nonprofessional inheritance. Fail logo retrieval/replacement and retain the last valid presentation. Check both themes, enlarged text, focus and meaningful accessible action labels.
 
@@ -101,12 +105,17 @@ Save names and a nonsquare PNG/JPEG in one multipart request, including manual
 logo → automatic → missing fallback, and reject invalid/oversized artwork without
 changing names or the last valid image. Exercise protected binary retrieval under
 current visibility/maintenance, including an unavailable logo with usable editor
-fields. Keep dirty fields during refetch. Race another editor, lose a save
-response, fail the subsequent read and withdraw the action grant/session while
-the picker or save is pending. No mutation may replay automatically; re-enable an
-explicit retry only after a successful original-target read, preserving dirty
-fields and updating untouched fields/current revision. A current matching state
-establishes only the observed outcome.
+fields. Refuse a private-logo or resource read, then fail its next explicit read
+with a network error: report the current error and keep withdrawn bytes/values
+unavailable; an admissible local draft remains intact. Keep dirty fields during
+refetch. Race another editor, lose a save response, fail the subsequent read and
+withdraw the action grant/session while the picker or save is pending. Ordinary
+failed/lost saves retain exact input and allow another explicit save under current
+domain rules, with normal settlement invalidation and no successful-read
+prerequisite. Typed stale-revision conflicts keep their explicit original-target
+reread and preserve dirty fields while updating untouched fields/current revision;
+failed reread remains retryable. No mutation may replay automatically. A current
+matching state establishes only the observed outcome, never a historical receipt.
 
 In the F03-owned journey, separately check the professional team without a club,
 the optional club link when present, and partial maps without invented locations.

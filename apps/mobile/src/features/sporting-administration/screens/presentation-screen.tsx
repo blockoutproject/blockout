@@ -24,9 +24,13 @@ import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import { useAccountSession } from "@/features/accounts/current-account";
 import { useConsultationQueries } from "@/features/sporting/api/use-consultation-queries";
 import { supportHref } from "@/features/support";
-import { usePresentation, type PresentationTarget } from "../api/presentation";
+import {
+  usePresentation,
+  type Presentation,
+  type PresentationTarget,
+} from "../api/presentation";
 import { PresentationForm } from "../forms/presentation-form";
-import { isSportingReadRefused } from "../api/sporting-administration-queries";
+import { usePresentationDraft } from "../forms/use-presentation-draft";
 
 /** Route-owned target; the form reads its own dirty state and F12 supplies current action grants. */
 export interface PresentationScreenProps {
@@ -37,9 +41,21 @@ export interface PresentationScreenProps {
 export function PresentationScreen({
   target,
 }: Readonly<PresentationScreenProps>) {
+  const session = useAccountSession();
+  return (
+    <PresentationScreenContent
+      key={`${session.subject}:${target.kind}:${target.id}`}
+      target={target}
+    />
+  );
+}
+
+/** Keeps the mounted draft within its original session and target through read refusal. */
+function PresentationScreenContent({
+  target,
+}: Readonly<PresentationScreenProps>) {
   const { permissions, account, sessionStatus } =
     useAdministrationCapabilities();
-  const session = useAccountSession();
   const client = useQueryClient();
   const router = useRouter();
   const { colors } = useTheme();
@@ -76,10 +92,18 @@ export function PresentationScreen({
 
   const { canManage, canRead } = presentationCapabilities();
   const editing = usePresentation(target, canRead);
-  const presentation =
-    sessionStatus === "authenticated" ? editing.query.data : undefined;
+  const presentation: Presentation | null | undefined =
+    sessionStatus !== "authenticated"
+      ? undefined
+      : target.kind === "division-creation"
+        ? canRead
+          ? { kind: "division-creation" }
+          : undefined
+        : editing.query.data;
+  const editor = usePresentationDraft(presentation);
+  const baseline = editor.state.baseline;
   const publicContextEnabled =
-    ordinary.admitted && canRead && presentation !== undefined;
+    ordinary.admitted && canRead && presentation != null;
   const [teamContext, poolContext] = useQueries({
     queries: [
       {
@@ -141,7 +165,7 @@ export function PresentationScreen({
     feedback.clear();
     if (!canRead) {
       const result = await account.refetch();
-      if (result.isError && presentation) {
+      if (result.isError && baseline) {
         feedback.error();
       }
       return;
@@ -184,7 +208,7 @@ export function PresentationScreen({
   }
 
   const accessState = getAccessState();
-  const blockingState = !presentation
+  const blockingState = !baseline
     ? (accessState ?? (
         <ReadFeedback
           query={editing.query}
@@ -193,7 +217,7 @@ export function PresentationScreen({
       ))
     : undefined;
   const FeedbackLayout =
-    !presentation && (pending || (!accessState && editing.query.isLoading))
+    !baseline && (pending || (!accessState && editing.query.isLoading))
       ? PageContent
       : ScreenState;
 
@@ -203,13 +227,16 @@ export function PresentationScreen({
       <FeedbackLayout>{blockingState}</FeedbackLayout>
     ) : (
       <PageContent>
-        {presentation && (
+        {editing.query.data === null && (
+          <ReadFeedback query={editing.query} loadingContent={null} />
+        )}
+        {baseline && (
           <PresentationForm
-            key={`${session.subject}:${target.kind}:${target.id}`}
-            presentation={presentation}
+            presentation={presentation ?? baseline}
             target={target}
             editing={editing}
-            disabled={!canManage || isSportingReadRefused(editing.query.error)}
+            editor={editor}
+            disabled={!canManage || editing.query.data === null}
             seasonLabel={seasonLabel}
             professionalTeam={
               publicContextEnabled &&
