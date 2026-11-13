@@ -28,7 +28,7 @@ For the collector, exercise valid nullable/additive responses through the config
 
 ## Mapping and conversion
 
-Validate the [selected mapping boundaries](plan.md#mapping-and-conversion-boundaries) with the owning generated, MVC, persistence and mobile suites. Executable tests own assertions and their controlled boundaries; the following cases define the qualification purpose.
+Validate the [selected mapping boundaries](plan.md#mapping-and-conversion-boundaries) with their owning generated, MVC, persistence and mobile suites when the change affects those semantics. Do not add a suite for an identical copied representation, trivial forwarding or an unchanged read path without a threatened behavior. Executable tests own assertions and their controlled boundaries; the following cases define the qualification purpose.
 
 ### Java coverage
 
@@ -55,7 +55,7 @@ Run [repository verification](../../README.md#verification), including the exist
 
 ## Application transactions
 
-Validate transaction/effect boundaries from the [selected application families](plan.md#application-use-case-families), using the actual [verification setup](../../README.md#verification). Current operation names and collaborators belong to code, not a second catalogue here.
+Validate transaction/effect boundaries from the [selected application families](plan.md#application-use-case-families), using the actual [verification setup](../../README.md#verification). Current operation names and collaborators belong to code, not a second catalogue here. Exercise actual authorization, transaction and integrity guarantees; a current check alone does not introduce serialization with independent administrative changes. Existing service/store/repository responsibilities stay coherent, without requiring a port or extra test layer for each operation.
 
 | Owner                                                                   | Required observable boundary                                                                                                                                                                                                                                                                                                                                                 |
 | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -125,7 +125,7 @@ Apply the [accepted native image-preparation limits](research.md#prepared-images
 
 Accessibility qualification follows [F13 FR-030](spec.md#platforms-accessibility-and-bounded-continuity).
 
-Choose representative compositions for every changed shared mechanism under [the qualification model](plan.md#proportionate-qualification). Across those cases cover ordinary keyboard/focus, labels/roles/states, narrow/enlarged content, reduced motion and both themes; do not repeat each consumer state on every combination. Dedicated VoiceOver/TalkBack campaigns remain excluded for current and future work unless explicitly requested by the owner.
+Choose distinct representative compositions for the changed shared mechanisms under [the qualification model](plan.md#proportionate-qualification). Inspect copy, theme, width and busy-action properties through existing frames/components rather than drawing each combination. Keep short notes only for interactions the composition cannot show and record review history/coverage outside the canvas. Across those cases cover ordinary keyboard/focus, labels/roles/states, narrow/enlarged content, reduced motion and both themes; do not repeat each consumer state on every combination. Dedicated VoiceOver/TalkBack campaigns remain excluded for current and future work unless explicitly requested by the owner.
 
 Use compatible native development/release builds from the committed dependency graph. Qualify iOS 16.4 and Android 10/API 29 plus the latest stable runtime available to the supported simulator toolchain. If an application floor is unavailable, identify the oldest compatible substitute; it does not certify the untested floor. [Xcode 27.1 supports simulators from iOS 17.0](https://developer.apple.com/support/xcode/), so the documented iOS matrix uses 17.0/27.1; Android uses API 29/37. Select representative settings/gates and administration compositions through the [F12 native boundaries](../013-administration-app-configuration/plan.md#mobile-state-and-native-behavior) on that matrix; keep distinct admission/store-handoff semantics with that owner.
 

@@ -7,6 +7,8 @@ description: "Enforce minimal product behavior and implementation during require
 
 Deliver the smallest coherent solution to the requested need. Apply this rule to every change, including a single state, branch, wrapper or safeguard. Reduce first. Do not add behavior merely because it is technically possible, more defensive or easier for an agent to generate.
 
+Keep code clean and comparable needs consistent: use the project's recognizable responsibilities, library patterns and writing conventions. Useful service, transaction and provider boundaries remain legitimate even for a small operation. Do not add an interface, representation or conversion solely to fill a template, remove useful layers to reduce file counts, or introduce a different architecture for one comparable consumer.
+
 ## Minimize the behavior before the code
 
 Separate the useful user outcome from the proposed interaction, mechanism and hypothetical failure cases. Implement only the requested behavior and indispensable authorization, privacy, transaction and data-integrity guarantees. Do not promote imagined failures, exhaustive coverage or extra precision into product requirements.
@@ -39,4 +41,4 @@ Read only the official documentation and current integration needed to resolve t
 
 Verify the changed behavior and meaningful regressions proportionately at their actual owners. Do not build a larger test framework to sustain an unnecessary implementation. Preserve the distinction between documented, observed and unverified behavior; mocks, generated schemas and prototypes do not certify native, provider or production behavior.
 
-During the existing review, remove avoidable code, duplicated responsibility and scope expansion. Explain unavoidable complexity briefly in the normal plan or PR. Add no separate simplicity report, checklist, scoring system, approval stage or parallel roadmap. Follow the project's existing procedures and approval gates.
+Assess necessity while defining the behavior and plan, then remove avoidable code, duplicated responsibility and scope expansion during ordinary implementation and review. Do not wait for a separate KISS request or stop at compliance with an unnecessarily complex plan. A review need not find a reduction when the result is already proportionate. Explain unavoidable complexity briefly in the normal plan or PR. Add no separate simplicity report, checklist, scoring system, approval stage or parallel roadmap. Follow the project's existing procedures and approval gates.

@@ -28,6 +28,16 @@ explicitly approved before the first `speckit-plan` starts. Spec Kit's Constitut
 Check verifies this prerequisite; installing a design skill or completing an issue
 does not satisfy it.
 
+The prototype MUST make the requested visual direction and essential interactions
+reviewable with fixtures and local behavior; it does not prescribe production
+architecture or require backend/provider simulations. Product Design MUST express
+distinct compositions precisely through shared tokens and live library instances.
+State, theme and copy variations that preserve a composition use its existing
+properties; they do not each require a frame. Scroll positions are not separate
+screens. Canvas notes explain an otherwise invisible interaction or constraint,
+not delivery administration. Native and provider behavior remains qualified at its
+actual runtime boundary.
+
 Later material UI evolutions follow this sequence for the affected journeys,
 except for revisions discovered during an authorized planning effort, which follow
 the feedback loop below. Existing approvals remain valid for unchanged scope;
@@ -80,20 +90,31 @@ alone does not establish runtime compatibility.
 
 ### V. Proportionate Simplicity
 
-Choose the simplest solution that satisfies accepted intent. Prefer supported
-library and platform mechanisms and ordinary configuration. Material decisions
-MUST state their rationale, relevant alternatives and verification in the owning
-native artifacts. Custom mechanisms, including specialized recovery, automation
-and shared abstractions, require a concrete unmet need. If simpler behavior changes
-an accepted requirement, make that product decision explicit before implementation;
-do not hide it in a plan.
+Deliver the smallest useful behavior through supported library and platform
+mechanisms and ordinary configuration. A custom mechanism or stronger guarantee
+MUST answer a concrete unmet need; a possible failure or extra precision alone is
+not that need. Existing specifications, plans, code and tests do not prove the
+necessity of their mechanisms. Challenge disproportionate requirements before
+implementation, state the visible consequence of the simpler behavior, and obtain
+the required owner decision before changing accepted intent. Reconcile that choice
+in the owning native artifacts.
+
+Code MUST remain clean and use recognizable responsibilities, library patterns and
+writing conventions for comparable needs. Useful service, transaction, domain and
+provider boundaries remain legitimate. Additional layers and representations MUST
+have an identifiable responsibility; neither a template nor a file-count reduction
+justifies them. Review necessity during ordinary planning, implementation and review,
+without waiting for a separate simplification request or adding an approval stage,
+scoring system or parallel dossier. Material technical choices and their rationale
+belong in owning native artifacts; delivery verification belongs in the existing
+review record.
 
 Do not invent availability commitments, load/capacity programmes, performance
 benchmarks, automatic recovery or speculative roadmap items. Preserve actual
-domain timing, security, data integrity and continuity requirements. Verify the
-changed behavior proportionately; ordinary manual operations are acceptable where
-they meet the agreed need. Task decomposition and implementation MUST preserve
-accepted failure and manual-recovery limits unless an explicit decision changes them.
+domain timing, security, data integrity and continuity requirements. Verify changed
+behavior proportionately; ordinary manual operations are acceptable where they
+meet the agreed need. Task decomposition and implementation MUST preserve accepted
+failure and manual-recovery limits unless an explicit decision changes them.
 
 ## Project Constraints
 
@@ -137,4 +158,4 @@ ratification date. Use MAJOR for incompatible principle changes, MINOR for new o
 materially expanded principles, and PATCH for clarifications. Apply the official
 constitution checks and record any justified exception in the owning plan.
 
-**Version**: 9.0.2 | **Ratified**: 2026-08-29 | **Last Amended**: 2026-10-16
+**Version**: 9.1.0 | **Ratified**: 2026-08-29 | **Last Amended**: 2026-11-13

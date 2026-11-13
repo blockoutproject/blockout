@@ -1,46 +1,21 @@
 # Canonical Java tests
 
-Adapt the names to the actual application; these excerpts are not a new testkit. `ReservationService.create` accepts an application command and uses a `ReservationStore` port. Its constructor takes that port. The store returns the created view. DTOs, views and commands are real values, never Mockito mocks. The repository's existing suffix/build discovery remains authoritative.
+Adapt these excerpts to the actual application and its existing suffix/build discovery. The example service already uses a `ReservationStore` that owns persistence translation; this is not a requirement to add a port. DTOs, entities, views and commands are real values, never Mockito mocks.
 
-## Unit behavior and a rich factory
+## An owned rejection
 
-Place `ReservationServiceUnitTest` beside the mirrored production package, for example `src/test/java/example/reservation/application`. Imports below show the tools involved; application types belong to that package. `CreateReservation` contains customer ID, customer name, contact email and guest count; `ReservationView` contains ID and guest count. In this example the command permits an unknown ID and the use case owns customer rejection.
+`ReservationService.create` accepts a command containing customer ID, customer name, contact email and guest count. Its use case rejects a missing customer before touching persistence. This rejection and absence of effects are meaningful behavior; returning a value supplied by a mock would prove only delegation.
 
 ```java
-import java.util.Locale;
-import java.util.Random;
 import java.util.UUID;
-import net.datafaker.Faker;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
 
 @DisplayName("Reservation creation")
-class ReservationServiceUnitTest {
-    @Test
-    @DisplayName("Returns the persisted reservation for the supplied customer")
-    void returnsCreatedReservation() {
-        // Given
-        Faker faker = new Faker(Locale.ENGLISH, new Random(42L));
-        UUID customerId = UUID.fromString("00000000-0000-0000-0000-000000000001");
-        CreateReservation command = validReservation(faker, customerId, 2);
-        ReservationView stored = new ReservationView(
-                UUID.fromString("00000000-0000-0000-0000-000000000002"), 2);
-        ReservationStore store = mock(ReservationStore.class);
-        when(store.create(command)).thenReturn(stored);
-        ReservationService service = new ReservationService(store);
-
-        // When
-        ReservationView result = service.create(command);
-
-        // Then
-        assertThat(result).isEqualTo(stored);
-    }
-
+class ReservationServiceTest {
     @Test
     @DisplayName("Rejects a missing customer before storing a reservation")
     void rejectsMissingCustomer() {
@@ -54,27 +29,14 @@ class ReservationServiceUnitTest {
                 .isInstanceOf(MissingCustomerException.class);
         verifyNoInteractions(store);
     }
-
-    /**
-     * Constructs valid secondary values without hiding the scenario's customer or capacity.
-     * @param faker this test's seeded value generator
-     * @param customerId explicit valid customer identity
-     * @param guests scenario-owned guest count
-     * @return a command with stable shape and generated secondary contact values
-     */
-    private static CreateReservation validReservation(
-            Faker faker, UUID customerId, int guests) {
-        return new CreateReservation(
-                customerId, faker.name().fullName(), faker.internet().emailAddress(), guests);
-    }
 }
 ```
 
-Keep this factory local until another test genuinely needs the same valid shape, then move it to the feature's test support and import it; do not duplicate or build a universal object mother. A private helper need not have multiple callers to explain a coherent step.
+A real authorization rule likewise warrants checking that an unauthorized caller causes no write or provider action. Do not add an interface solely to mock that action. If a service only forwards a call and returns its result, omit a separate unit test; use the existing API or persistence test that proves the actual boundary. Do not add unchanged read-path tests merely because a write was added, unless that change threatens a concrete shared behavior.
 
-## Parameterized input variants
+## Input variants of the same rule
 
-When the same rule rejects several inputs, use a native source rather than a loop hiding the individual cases. Here the use case accepts 1–8 guests and rejects other counts before calling the store. Place this method in the unit test above, with these imports:
+The use case accepts 1–8 guests and rejects other counts before calling the store. Add this method to the test above using native parameterization; keep scenario-defining values visible.
 
 ```java
 import org.junit.jupiter.params.ParameterizedTest;
@@ -98,9 +60,11 @@ void rejectsGuestCount(int guests) {
 }
 ```
 
+If the upper boundary is the changed behavior, also prove that 8 is accepted through an observable write or result at its existing owner. Do not manufacture a success test that only compares a mock's supplied return value. Small inputs like these stay inline. Use a local typed factory only when a richer valid shape obscures the scenario or is actually reused; expose the decisive overrides. Datafaker is optional for secondary values, with a per-test fixed seed and an existing compatible dependency.
+
 ## Database integration
 
-Mirror the infrastructure package and use an `IntegrationTest` suffix discovered by Failsafe. The example assumes the module's existing test configuration supplies the real supported database, runs the accepted migration mechanism and wires the real `ReservationStore`. It deliberately does not invent a container superclass. The actual schema in this example guarantees uniqueness of `externalReference`; a service check alone is not that guarantee.
+Mirror the infrastructure package and use an `IntegrationTest` suffix discovered by Failsafe. The module's existing test configuration supplies the real supported database, runs the accepted migrations and wires the real `ReservationStore`. No new container superclass is needed. The schema guarantees uniqueness of `externalReference`; a service check alone cannot establish it.
 
 ```java
 @SpringBootTest
@@ -131,6 +95,6 @@ class ReservationStoreIntegrationTest {
 }
 ```
 
-Use the exact exception exposed by the application's actual flush/translation boundary; if the adapter flushes and translates before returning, assert that translated constraint exception instead. Keep both writes visible and force the second write to reach the database. Rollback isolates test data; it does not prove application commit semantics. Add a separate transaction test without an enclosing test transaction when commit/rollback ownership is the behavior. Never claim this example ran without the module, migrations and database.
+Use the exception exposed by the actual flush/translation boundary. If the adapter flushes and translates before returning, assert that translated constraint exception instead. Keep both writes visible and force the second to reach the database. Rollback isolates test data; it does not prove application commit semantics. Use a test without an enclosing test transaction when application commit/rollback ownership is the changed behavior. Never claim these excerpts ran without the module, migrations and database.
 
-Tool mechanics: [AssertJ exception assertions](https://assertj.github.io/doc/#assertj-core-exception-assertions), [JUnit parameterized tests](https://docs.junit.org/current/writing-tests/parameterized-classes-and-tests.html) and [Datafaker setup](https://www.datafaker.net/documentation/getting-started/). Use the versions supported by the owning project.
+Tool mechanics: [AssertJ exception assertions](https://assertj.github.io/doc/#assertj-core-exception-assertions) and [JUnit parameterized tests](https://docs.junit.org/current/writing-tests/parameterized-classes-and-tests.html). Use the versions supported by the owning project.

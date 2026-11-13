@@ -5,7 +5,7 @@ description: "Design, implement or review Java Spring Boot features, application
 
 # Java and Spring
 
-This pack chooses feature-first application architecture, explicit persistence ports and explicit Java types. These are personal conventions, not requirements imposed by Spring. Inspect the accepted task, repository instructions, module build and existing runtime first. A policy update does not authorize a dependency upgrade or whole-project migration.
+This pack chooses feature-first ownership, clean service boundaries and explicit Java types. Use the same recognizable structure for comparable needs in the project; add boundaries only for responsibilities they actually own. These are personal conventions, not requirements imposed by Spring. Inspect the accepted task, repository instructions, module build and existing runtime first. A policy update does not authorize a dependency upgrade or whole-project migration.
 
 ## Structure and dependency direction
 
@@ -14,7 +14,7 @@ Group a growing service by business capability, then by role. Create only occupi
 ```text
 feature/
   api/                 # HTTP implementations, validation, error translation, transport mappers
-  application/         # use cases, commands, views, outbound ports
+  application/         # service decisions, transactions and any needed values or ports
   domain/              # pure concepts and invariants when the feature needs them
   infrastructure/      # persistence, provider, messaging and other adapters
 config/                # executable application's wiring and typed settings
@@ -28,9 +28,9 @@ Before splitting a package, inspect Java visibility and actual callers: subpacka
 These subdivisions are personal conventions. [Spring Boot's layout guidance](https://docs.spring.io/spring-boot/reference/using/structuring-your-code.html) imposes no fixed hierarchy; [Spring Modulith's package discussion](https://docs.spring.io/spring-modulith/reference/fundamentals.html#advanced) explains the visibility tradeoff without requiring that library.
 
 - Keep controllers and adapters thin. Application code owns decisions and orchestration.
-- Always place persistence behind an application-owned port and an infrastructure adapter, including basic CRUD. Design the port around needed reads and writes, not a copy of `JpaRepository`.
-- Do not create `Service`/`ServiceImpl` pairs by default. Other ports need a real external seam, such as a provider, storage, clock or messaging.
-- Return immutable application views or meaningful domain values. Do not return entities, Spring Data `Page`, generated object DTOs, servlet objects or HTTP client types from application APIs.
+- A short Controller → Service → Repository path is valid. A persistence port and adapter need a concrete responsibility, such as isolating a provider, translating persistence semantics or serving an independent domain boundary. Do not add them merely because an operation persists data, or remove useful existing boundaries to reduce a file count. Keep comparable consumers coherent.
+- Do not create `Service`/`ServiceImpl` pairs or interfaces solely for mocking. Ports describe needed operations at a real boundary, not a copy of `JpaRepository`.
+- Return values with the caller's actual semantics. Keep managed entities, lazy state, Spring Data pages and servlet/client runtime objects inside their owning lifecycle. Create a distinct command or view when meaning, ownership, presence or editing semantics differ; do not create a type and mapper merely to rename an identical value. A contract-owned generated DTO may serve an application boundary when it expresses that same concept and fits the project's common pattern.
 - A generated OpenAPI enum may appear in Java application code only when the contract owns that exact concept. Application-only and provider vocabularies stay with their owner. Pure domain code remains independent of OpenAPI, Spring, JPA and messaging, including generated enums.
 - Create domain objects for invariants, values and behavior; do not duplicate every CRUD entity into a ceremonial domain model.
 
@@ -44,7 +44,7 @@ An exported contract or public boundary can be justified with one consumer. Do n
 
 Use explicit Java types everywhere in handwritten code, including loops, resources and tests: no `var`. Use enums for owned known finite concepts rather than string status vocabularies. Reuse an exact contract-owned enum in application code where allowed; identifiers and extensible provider keys are not enum vocabularies. Qualify enum constants except switch case labels. Preserve serialized values and handle supported unknown provider values without accidentally granting access.
 
-Use records for immutable commands and views, and constructor injection for dependencies. Apply the focused Lombok conventions below to handwritten classes; generated contracts retain their generator-owned construction and accessors.
+Use records for needed immutable application values, and constructor injection for dependencies. Apply the focused Lombok conventions below to handwritten classes; generated contracts retain their generator-owned construction and accessors.
 
 Put mappers at the boundary they translate. Mechanical mapping defaults to MapStruct; decisions, aggregation, union dispatch and exceptional construction stay explicit. Read [mapping](references/mapping.md) when adding or changing a mapper.
 
@@ -78,9 +78,9 @@ Mechanics: [accessors](https://projectlombok.org/features/GetterSetter), [constr
 
 ## Use cases, transactions and failures
 
-Place `@Transactional` on the application service operation owning a coherent database write. The service calls explicit port methods; adapter-internal dirty checking is an implementation detail. Complete lazy reads and entity mapping inside that transaction. Do not rely on HTTP serialization or keep a database transaction open during external network calls.
+Place `@Transactional` on the application service operation owning a coherent database write. The service uses the feature's existing repository or justified persistence boundary; managed dirty checking is valid inside the owning transaction. Complete lazy reads and entity mapping inside that transaction. Do not rely on HTTP serialization or keep a database transaction open during external network calls.
 
-Atomicity covers participating local transactional resources only. Multiple databases, messaging and HTTP do not become atomic through an annotation. Define ordering, idempotency, locking, optimistic conflict handling or an outbox only when the accepted invariant needs them; prove their failure behavior.
+Atomicity covers participating local transactional resources only. Multiple databases, messaging and HTTP do not become atomic through an annotation. A current data or permission check does not by itself require serializing independent operations that might change it. Define ordering, idempotency, locking, optimistic conflict handling or an outbox only when the accepted invariant needs them; prove their failure behavior.
 
 Use targeted application exceptions for expected rejections such as not-found, conflict or forbidden operations, translated once at the API boundary. Ordinary alternatives use values, enums or `Optional`. Do not introduce a generic `Result` framework or exceptions for normal branching. Preserve causes for technical failures without exposing provider details.
 
