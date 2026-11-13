@@ -2,6 +2,7 @@ import { createQueryClient } from "@/shared/query/query-client";
 import {
   act,
   cleanup,
+  fireEvent,
   screen,
   userEvent,
   waitFor,
@@ -178,7 +179,7 @@ it.each([409, "lost"])(
   },
 );
 
-it("observes an accepted closure through ordinary invalidation after a lost response", async () => {
+it("observes an accepted closure on a later explicit read after a lost response", async () => {
   // Given
   const user = userEvent.setup();
   mockFetch.mockImplementation((url, options) => {
@@ -204,6 +205,16 @@ it("observes an accepted closure through ordinary invalidation after a lost resp
   await user.press(
     await screen.findByRole("button", { name: "Clôturer définitivement" }),
   );
+  // Then
+  await screen.findByRole("alert");
+  expect(
+    screen.getByRole("button", { name: "Clôturer définitivement" }),
+  ).toBeEnabled();
+  expect(screen.getByDisplayValue("2026/2027")).toBeOnTheScreen();
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
   // Then
   expect(
     await screen.findByText("Saison clôturée · historique conservé"),
@@ -263,13 +274,26 @@ it("retains entered text while current collection permission is unavailable", as
   );
 
   // Then
-  await waitFor(() =>
-    expect(
-      screen.getByRole("button", { name: "Clôturer définitivement" }),
-    ).toBeDisabled(),
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
+  expect(screen.queryByLabelText("Nom exact de la saison")).toBeNull();
+  expect(
+    screen.getByLabelText("Nom exact de la saison", {
+      includeHiddenElements: true,
+    }),
+  ).toHaveDisplayValue("2026/");
+
+  // When
+  peer.permissions = { manageCollection: true };
+  await user.press(
+    screen.getByRole("button", { name: "Actualiser les permissions" }),
   );
-  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
-  expect(screen.getByDisplayValue("2026/")).toBeOnTheScreen();
+
+  // Then
+  expect(
+    await screen.findByLabelText("Nom exact de la saison"),
+  ).toHaveDisplayValue("2026/");
+  expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
   expect(
     screen.getByRole("button", { name: "Clôturer définitivement" }),
   ).toBeDisabled();
@@ -392,79 +416,63 @@ it.each([422, 409])(
   },
 );
 
-it.each(["pending", "failed"] as const)(
-  "permits another explicit closure with the retained confirmation while refresh is %s",
-  async (phase) => {
-    // Given
-    const user = userEvent.setup();
-    const refreshed = Promise.withResolvers<void>();
-    let writes = 0;
-    mockFetch.mockImplementation(async (url, options) => {
-      if (options?.method === "POST") {
-        writes++;
-        throw new TypeError("Connection lost");
-      }
-      if (
-        writes > 0 &&
-        String(url).endsWith(`/collection-seasons/${seasonId}`)
-      ) {
-        await refreshed.promise;
-        return refused(503);
-      }
-      return peer.reads(url, options);
-    });
-    await renderCollection(
-      <CloseSeasonScreen seasonId={seasonId} />,
-      client,
-      (cache) => {
-        privateClient = cache;
-      },
-    );
-    await user.type(
-      await screen.findByLabelText("Nom exact de la saison"),
-      "2026/2027",
-    );
-    // When
-    try {
-      await user.press(
-        screen.getByRole("button", { name: "Clôturer définitivement" }),
-      );
-      await screen.findByRole("alert");
-      if (phase === "failed") {
-        refreshed.resolve();
-        await waitFor(() => expect(privateClient.isFetching()).toBe(0));
-      }
+it("allows another explicit closure after a lost response without a prerequisite read or replay", async () => {
+  // Given
+  const user = userEvent.setup();
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "POST"
+      ? Promise.reject(new TypeError("Connection lost"))
+      : peer.reads(url, options),
+  );
+  await renderCollection(
+    <CloseSeasonScreen seasonId={seasonId} />,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
+  await user.type(
+    await screen.findByLabelText("Nom exact de la saison"),
+    "2026/2027",
+  );
+  mockFetch.mockClear();
 
-      // Then
-      expect(screen.getByLabelText("Nom exact de la saison")).toHaveProp(
-        "editable",
-        true,
-      );
-      expect(
-        screen.getByRole("button", { name: "Clôturer définitivement" }),
-      ).toBeEnabled();
-      expect(screen.getByDisplayValue("2026/2027")).toBeOnTheScreen();
-      expect(writes).toBe(1);
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Clôturer définitivement" }),
+  );
 
-      // When: this press, not the dependent read, sends the second command.
-      await user.press(
-        screen.getByRole("button", { name: "Clôturer définitivement" }),
-      );
+  // Then
+  await screen.findByRole("alert");
+  expect(screen.getByDisplayValue("2026/2027")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Clôturer définitivement" }),
+  ).toBeEnabled();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
 
-      // Then
-      await waitFor(() => expect(writes).toBe(2));
-      expect(screen.getByDisplayValue("2026/2027")).toBeOnTheScreen();
-      expect(
-        mockFetch.mock.calls
-          .filter(([, options]) => options?.method === "POST")
-          .map(([, options]) => JSON.parse(String(options?.body))),
-      ).toEqual([
-        { revision: 5, confirmation: "2026/2027" },
-        { revision: 5, confirmation: "2026/2027" },
-      ]);
-    } finally {
-      refreshed.resolve();
-      await waitFor(() => expect(privateClient.isFetching()).toBe(0));
-    }
-  },
-);
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Clôturer définitivement" }),
+  );
+
+  // Then
+  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
+  expect(
+    mockFetch.mock.calls.map(([url, options]) => ({
+      path: new URL(String(url)).pathname,
+      method: options?.method,
+      body: JSON.parse(String(options?.body)),
+    })),
+  ).toEqual([
+    {
+      path: `/administration/collection-seasons/${seasonId}/closure`,
+      method: "POST",
+      body: { revision: 5, confirmation: "2026/2027" },
+    },
+    {
+      path: `/administration/collection-seasons/${seasonId}/closure`,
+      method: "POST",
+      body: { revision: 5, confirmation: "2026/2027" },
+    },
+  ]);
+});

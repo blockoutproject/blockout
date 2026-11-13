@@ -7,7 +7,6 @@ import {
 import {
   closeCollectionSeason,
   getCloseCollectionSeasonMutationKey,
-  getGetCollectionSeasonQueryKey,
   getRequestCollectionMutationKey,
   getSetCollectionActivityMutationKey,
   requestCollection,
@@ -43,30 +42,26 @@ export function useCollectionControl(controlId: string, seasonId?: string) {
   const queries = createCollectionQueries(authority);
   const controlOptions = queries.control(controlId);
   const key = controlOptions.queryKey;
-  const seasonKey = seasonId
-    ? getGetCollectionSeasonQueryKey(seasonId)
-    : undefined;
   const query = useQuery(controlOptions);
   const results = useInfiniteQuery(queries.results(controlId));
 
-  /** Invalidates the control and its owning season projections after settlement. */
-  function accept() {
+  /** Same-revision reads may carry fresher execution facts; an ACK cannot revive withdrawn data. */
+  function acceptResponse(accepted: CollectionControlResponse) {
+    client.setQueryData<CollectionControlResponse>(key, (current) =>
+      current && accepted.revision > current.revision ? accepted : current,
+    );
     void client.invalidateQueries({ queryKey: key, exact: true });
     invalidateCollectionControls(client, seasonId);
     invalidateCollectionSeasons(client);
   }
 
   const activity = useMutation({
-    retry: false,
-    networkMode: "always",
     mutationKey: [...key, ...getSetCollectionActivityMutationKey()],
     mutationFn: async (body: SetCollectionActivityRequest) =>
       setCollectionActivity(controlId, body, await authority.request()),
-    onSettled: accept,
+    onSuccess: acceptResponse,
   });
   const request = useMutation({
-    retry: false,
-    networkMode: "always",
     mutationKey: [...key, ...getRequestCollectionMutationKey()],
     // Orval's multi-success-status function supplies no decoder. Validate once at this consuming boundary.
     mutationFn: async (body: RequestCollectionRequest) =>
@@ -74,7 +69,7 @@ export function useCollectionControl(controlId: string, seasonId?: string) {
         ...(await authority.request()),
         schema: CollectionControlResponse,
       }),
-    onSettled: accept,
+    onSuccess: acceptResponse,
   });
   return {
     authority,
@@ -82,8 +77,6 @@ export function useCollectionControl(controlId: string, seasonId?: string) {
     results,
     activity,
     request,
-    queryKey: key,
-    seasonKey,
   };
 }
 
@@ -92,7 +85,7 @@ export function useCloseCollectionSeason(seasonId: string) {
   const { authority, season, seasonKey: key } = useCollectionSeason(seasonId);
   const client = useQueryClient();
 
-  /** Invalidates the closed season and its related controls after settlement. */
+  /** Invalidates the season and its related controls after accepted closure. */
   function accept() {
     void client.invalidateQueries({ queryKey: key, exact: true });
     invalidateCollectionControls(client, seasonId);
@@ -100,12 +93,10 @@ export function useCloseCollectionSeason(seasonId: string) {
   }
 
   const close = useMutation({
-    retry: false,
-    networkMode: "always",
     mutationKey: [...key, ...getCloseCollectionSeasonMutationKey()],
     mutationFn: async (body: CloseCollectionSeasonRequest) =>
       closeCollectionSeason(seasonId, body, await authority.request()),
-    onSettled: accept,
+    onSuccess: accept,
   });
-  return { authority, season, close, seasonKey: key };
+  return { authority, season, close };
 }

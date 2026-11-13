@@ -1,5 +1,4 @@
 import { SeasonIdentity, SourceBadge } from "../components/source-summary";
-import { isCollectionReadRefused } from "../api/collection-queries";
 import { Surface } from "@/shared/components/surface";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { useNativeHandoff } from "@/shared/native/use-native-handoff";
@@ -48,8 +47,7 @@ export function SourceCandidateForm({
   const mounted = useRef(false);
   const editor = useSourceCandidateDraft(source);
   const state = editor.state;
-  const { baseline, editingUrl } = state;
-  const feedback = state.feedback ?? undefined;
+  const { baseline, editingUrl, feedback } = state;
   const { control, handleSubmit, reset } = editor.form;
   const { isDirty, dirtyFields } = useFormState({
     control,
@@ -57,7 +55,10 @@ export function SourceCandidateForm({
   const confirmDiscard = useDiscardChanges(isDirty, editor.discard);
   // Subscribe to RHF's dirty fields so keepDirtyValues retains the editable snapshot on reread.
   void dirtyFields;
-  const current = editing.source.data ?? source;
+  const current =
+    editing.source.data && editing.source.data.revision >= baseline.revision
+      ? editing.source.data
+      : baseline;
   const savedUrl = current.acceptedUrl ?? current.candidateUrl;
   const officialUrl =
     savedUrl && candidateUrlSchema.safeParse(savedUrl).success
@@ -69,14 +70,13 @@ export function SourceCandidateForm({
   const closed = (editing.season.data ?? season).state === "closed";
   const readOnly = closed || current.locked || current.launched;
   const busy =
-    isCollectionReadRefused(editing.source.error) ||
+    !editing.source.data ||
+    !editing.season.data ||
     !authority.enabled ||
     editing.candidate.isPending ||
     editing.validation.isPending ||
     editing.confirmation.isPending;
   const reconciliationRequired = current.revision > baseline.revision;
-  const rereadRequired =
-    reconciliationRequired || isCollectionReadRefused(editing.season.error);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -108,7 +108,7 @@ export function SourceCandidateForm({
 
   /** Replaces only the candidate against its editing revision; a successful response invalidates old evidence. */
   async function save(values: SourceCandidateValues) {
-    if (busy || readOnly || rereadRequired) {
+    if (busy || readOnly || reconciliationRequired) {
       return;
     }
     try {
@@ -135,7 +135,7 @@ export function SourceCandidateForm({
 
   /** Requests validation once; 202 stays pending until an operator rereads the binding. */
   async function validate() {
-    if (busy || readOnly || rereadRequired || isDirty) {
+    if (busy || readOnly || reconciliationRequired || isDirty) {
       return;
     }
     try {
@@ -160,7 +160,7 @@ export function SourceCandidateForm({
     if (
       busy ||
       readOnly ||
-      rereadRequired ||
+      reconciliationRequired ||
       isDirty ||
       current.validation !== "confirmation-required"
     ) {
@@ -181,7 +181,7 @@ export function SourceCandidateForm({
 
   /** The request boundary rechecks live grants/session even when a native alert callback was held. */
   async function acceptSeason() {
-    if (busy || readOnly || rereadRequired || isDirty) {
+    if (busy || readOnly || reconciliationRequired || isDirty) {
       return;
     }
     try {
@@ -348,7 +348,7 @@ export function SourceCandidateForm({
                   label="Enregistrer"
                   fullWidth
                   onPress={() => void handleSubmit(save)()}
-                  disabled={busy || readOnly || rereadRequired}
+                  disabled={busy || readOnly || reconciliationRequired}
                   loading={editing.candidate.isPending}
                 />
                 <Button
@@ -376,7 +376,7 @@ export function SourceCandidateForm({
                   label="Valider la source"
                   fullWidth
                   onPress={() => void validate()}
-                  disabled={busy || rereadRequired || isDirty}
+                  disabled={busy || reconciliationRequired || isDirty}
                   loading={editing.validation.isPending}
                 />
               )}
@@ -385,7 +385,7 @@ export function SourceCandidateForm({
                 label="Confirmer la saison"
                 fullWidth
                 onPress={confirmSeason}
-                disabled={busy || rereadRequired || isDirty}
+                disabled={busy || reconciliationRequired || isDirty}
                 loading={editing.confirmation.isPending}
               />
             )}

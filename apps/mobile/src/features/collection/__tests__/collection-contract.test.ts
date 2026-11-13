@@ -1,5 +1,10 @@
+import { QueryClient } from "@tanstack/react-query";
+import { createCollectionQueries } from "../api/collection-queries";
 import { getCollectionControl } from "../../../../.generated/mobile";
-import type { CollectionControlResponse } from "../../../../.generated/schemas/index.zod";
+import type {
+  CollectionControlResponse,
+  CollectionSeasonResponse,
+} from "../../../../.generated/schemas/index.zod";
 
 const control: CollectionControlResponse = {
   id: "00000000-0000-4000-8000-000000000001",
@@ -106,3 +111,54 @@ it("retains the shared conflict problem without treating it as collection state"
   });
   expect(mockFetch).toHaveBeenCalledTimes(1);
 });
+
+it.each([403, 404])(
+  "shows the current technical error after a %i withdrawal without restoring the season",
+  async (status) => {
+    // Given
+    const client = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const season: CollectionSeasonResponse = {
+      id: control.id,
+      label: "2026/2027",
+      startYear: 2026,
+      revision: 5,
+      state: "active",
+    };
+    const options = createCollectionQueries({
+      enabled: true,
+      request: async () => ({}),
+    }).season(season.id);
+    client.setQueryData(options.queryKey, season);
+    mockFetch.mockResolvedValue(
+      Response.json({ status, title: "Refused" }, { status }),
+    );
+
+    try {
+      // When
+      await expect(client.fetchQuery(options)).rejects.toMatchObject({
+        status,
+      });
+
+      // Then
+      expect(client.getQueryData(options.queryKey)).toBeNull();
+
+      // When
+      mockFetch.mockResolvedValue(
+        Response.json({ status: 503, title: "Unavailable" }, { status: 503 }),
+      );
+      await expect(client.fetchQuery(options)).rejects.toMatchObject({
+        status: 503,
+      });
+
+      // Then
+      expect(client.getQueryState(options.queryKey)?.error).toMatchObject({
+        status: 503,
+      });
+      expect(client.getQueryData(options.queryKey)).toBeNull();
+    } finally {
+      client.clear();
+    }
+  },
+);

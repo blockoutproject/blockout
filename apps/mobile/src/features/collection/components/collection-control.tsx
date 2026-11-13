@@ -19,7 +19,6 @@ export interface CollectionControlProps {
   control: CollectionControlResponse;
   editing: ReturnType<typeof useCollectionControl>;
   season?: CollectionSeasonResponse;
-  stateUnavailable?: boolean;
 }
 
 /** Presents desired activity, execution observations and ordinary mutation feedback. */
@@ -27,7 +26,6 @@ export function CollectionControl({
   control,
   editing,
   season,
-  stateUnavailable = false,
 }: Readonly<CollectionControlProps>) {
   const { colors } = useTheme();
   const actionFeedback = useActionFeedback();
@@ -48,13 +46,12 @@ export function CollectionControl({
     };
   }, []);
 
-  /** Sends the confirmed desired state and revision; native mutation callbacks own invalidation. */
+  /** Sends the desired state and revision; native mutation callbacks own invalidation. */
   async function send(command: "activity" | "request") {
     if (
       !mounted.current ||
       busy ||
       closed ||
-      stateUnavailable ||
       refused ||
       (command === "request" && !control.enabled)
     ) {
@@ -76,46 +73,22 @@ export function CollectionControl({
   }
 
   /** Native confirmation belongs to the mounted control; the backend rechecks current permission and revision. */
-  async function confirm(command: "activity" | "request") {
-    if (busy || closed || stateUnavailable || refused) {
+  async function confirmRequest() {
+    if (busy || closed || refused) {
       return;
     }
 
-    /** Names the explicit control command before native confirmation. */
-    function confirmationLabel() {
-      if (command === "request") {
-        return "Relancer";
-      }
-      if (control.enabled) {
-        return "Mettre en pause";
-      }
-      return "Reprendre";
-    }
-
-    const label = confirmationLabel();
-
-    /** Explains only the requested command and its collection effects. */
-    function confirmationDetail() {
-      if (command === "request") {
-        return "Demander une collecte de ce périmètre. L’acceptation ne garantit ni son démarrage ni son achèvement.";
-      }
-      if (control.enabled) {
-        return "La demande en attente sera annulée. Une collecte déjà en cours pourra se terminer.";
-      }
-      return "La collecte reprendra aux prochaines échéances éligibles, sans rejouer les passages manqués.";
-    }
-
-    const detail = confirmationDetail();
     if (
       !(await confirmAction({
-        title: `${label} ?`,
-        message: detail,
-        confirmLabel: label,
+        title: "Relancer ?",
+        message:
+          "Demander une collecte de ce périmètre. L’acceptation ne garantit ni son démarrage ni son achèvement.",
+        confirmLabel: "Relancer",
       }))
     ) {
       return;
     }
-    await send(command);
+    await send("request");
   }
 
   /** Distinguishes execution observations from requested control activity. */
@@ -186,9 +159,9 @@ export function CollectionControl({
               fullWidth
               variant="secondary"
               label={control.enabled ? "Mettre en pause" : "Reprendre"}
-              disabled={busy || stateUnavailable || refused}
+              disabled={busy || refused}
               loading={editing.activity.isPending}
-              onPress={() => confirm("activity")}
+              onPress={() => send("activity")}
             />
           </View>
           <View style={styles.action}>
@@ -197,14 +170,13 @@ export function CollectionControl({
               label={requestLabel()}
               disabled={
                 busy ||
-                stateUnavailable ||
                 refused ||
                 !control.enabled ||
                 !!control.pendingRequestId ||
                 running
               }
               loading={editing.request.isPending}
-              onPress={() => confirm("request")}
+              onPress={confirmRequest}
             />
           </View>
         </View>

@@ -1,15 +1,17 @@
-import type { CollectionProviderEnum } from "../../../../.generated/schemas/index.zod";
-import { useActionFeedback } from "@/shared/components/action-feedback";
+import { useState } from "react";
+import { StyleSheet } from "react-native";
+import type {
+  CollectionProviderEnum,
+  CollectionSeasonResponse,
+} from "../../../../.generated/schemas/index.zod";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { FormScrollView } from "@/shared/components/form-scroll-view";
 import { Page, PageContent } from "@/shared/components/page";
 import { PageHeader } from "@/shared/components/page-header";
-import { ProviderPreparationLoading } from "../components/collection-loading";
 import { ScreenState } from "@/shared/components/screen-state";
-import { ReadFeedback } from "@/shared/components/read-feedback";
-
-import { ErrorState } from "@/shared/components/state-card";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { AccessFeedback } from "@/features/access/components/access-feedback";
+import { ProviderPreparationLoading } from "../components/collection-loading";
 import { useSeasonPreparation } from "../api/use-source-preparation";
 import { ProviderPreparationForm } from "../forms/provider-preparation-form";
 
@@ -19,117 +21,82 @@ export interface ProviderSourcesScreenProps {
   provider: CollectionProviderEnum;
 }
 
-/** Lists missing/discovered source coverage and launches only explicitly selected qualified bindings. */
+/** Keeps source selection and manual input with their native form while required reads recover. */
 export function ProviderSourcesScreen({
   seasonId,
   provider,
 }: Readonly<ProviderSourcesScreenProps>) {
   const editing = useSeasonPreparation(seasonId);
   const { authority, season, sources } = editing;
-  const current =
-    authority.sessionStatus === "authenticated" ? season.data : undefined;
-  const retained = Boolean(current && sources.data);
-  const feedback = useActionFeedback();
-
-  /** Refreshes the provider's context; an empty source failure belongs to its card rather than a duplicate toast. */
-  async function refresh() {
-    if (editing.create.isPending) {
-      return;
-    }
-    feedback.clear();
-    const results = await Promise.all(
-      !authority.enabled
-        ? [authority.account.refetch({ cancelRefetch: false })]
-        : [
-            season.refetch({ cancelRefetch: false }),
-            sources.refetch({ cancelRefetch: false }),
-          ],
-    );
-    if (
-      retained &&
-      results.some(
-        (result, index) =>
-          result.isError &&
-          (!authority.enabled ||
-            index === 0 ||
-            sources.data?.items.some((source) => source.provider === provider)),
-      )
-    ) {
-      feedback.error();
-    }
+  const visitKey = `${authority.session.subject}:${seasonId}:${provider}`;
+  const [snapshot, setSnapshot] = useState<
+    { key: string; season: CollectionSeasonResponse } | undefined
+  >();
+  const seed = snapshot?.key === visitKey ? snapshot : undefined;
+  if (!seed && season.data && sources.data) {
+    // This initial snapshot only seeds the form visit; it never follows background projections.
+    setSnapshot({ key: visitKey, season: season.data });
   }
-
-  const pending =
-    !retained &&
-    (!authority.enabled
-      ? authority.sessionStatus === "restoring" ||
-        (authority.sessionStatus === "authenticated" &&
-          authority.account.isLoading)
-      : !season.isError &&
-        !sources.isError &&
-        (season.isLoading || sources.isLoading));
+  const requiredRead =
+    [season, sources].find(hasReadError) ?? (!season.data ? season : sources);
+  const blocked =
+    !authority.enabled ||
+    !season.data ||
+    !sources.data ||
+    hasReadError(season) ||
+    hasReadError(sources);
+  const pending = !authority.enabled
+    ? authority.sessionStatus === "restoring" ||
+      (authority.sessionStatus === "authenticated" &&
+        authority.account.isLoading)
+    : !hasReadError(requiredRead) && (season.isLoading || sources.isLoading);
   const FeedbackLayout = pending ? PageContent : ScreenState;
 
-  /** Keeps the retained provider form mounted while first reads resolve admission. */
-  function renderBlockingState() {
-    if (!retained) {
-      if (!authority.enabled) {
-        return (
-          <AccessFeedback
-            {...authority}
-            loadingContent={<ProviderPreparationLoading />}
-          />
-        );
-      }
-      if (season.isError || sources.isError) {
-        return (
-          <ErrorState
-            onRetry={() => {
-              void season.refetch();
-              void sources.refetch();
-            }}
-            retrying={season.isFetching || sources.isFetching}
-          />
-        );
-      }
-      return (
-        <ReadFeedback
-          query={!season.data ? season : sources}
-          loadingContent={<ProviderPreparationLoading />}
-        />
-      );
-    }
-    return undefined;
-  }
-
-  const blockingState = renderBlockingState();
+  // Removing RefreshControl changes React Native’s content ancestry and disposes the mounted draft.
   return (
     <Page header={<PageHeader title={provider === "lnv" ? "LNV" : "FFVB"} />}>
       <FormScrollView
         refreshControl={
-          authority.sessionStatus === "authenticated" && !blockingState ? (
-            <DataRefreshControl
-              enabled={!editing.create.isPending}
-              onRefresh={refresh}
-            />
-          ) : undefined
+          <DataRefreshControl
+            fetching={sources.isFetching || season.isFetching}
+            enabled={!blocked && !editing.create.isPending}
+            onRefresh={() =>
+              Promise.all([
+                season.refetch({ cancelRefetch: false }),
+                sources.refetch({ cancelRefetch: false }),
+              ])
+            }
+          />
         }
       >
-        {blockingState ? (
-          <FeedbackLayout>{blockingState}</FeedbackLayout>
-        ) : (
-          <PageContent>
-            {current && sources.data && (
-              <ProviderPreparationForm
-                key={`${authority.session.subject}:${seasonId}:${provider}`}
-                season={current}
-                provider={provider}
-                editing={editing}
+        {blocked && (
+          <FeedbackLayout>
+            {!authority.enabled ? (
+              <AccessFeedback
+                {...authority}
+                loadingContent={<ProviderPreparationLoading />}
+              />
+            ) : (
+              <ReadFeedback
+                query={requiredRead}
+                loadingContent={<ProviderPreparationLoading />}
               />
             )}
-          </PageContent>
+          </FeedbackLayout>
         )}
+        <PageContent style={blocked ? styles.hidden : undefined}>
+          {seed && (
+            <ProviderPreparationForm
+              key={visitKey}
+              season={seed.season}
+              provider={provider}
+              editing={editing}
+            />
+          )}
+        </PageContent>
       </FormScrollView>
     </Page>
   );
 }
+
+const styles = StyleSheet.create({ hidden: { display: "none" } });

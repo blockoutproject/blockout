@@ -23,7 +23,6 @@ import type {
   RequestSourceValidationRequest,
   SetSourceCandidateRequest,
 } from "../../../../.generated/schemas/index.zod";
-import { ApiError } from "@/shared/api/api-fetch";
 import { useAdministrationCapabilities } from "@/features/access/api/use-administration-capabilities";
 import { useOperationalVersionAdmission } from "@/features/access/operational-version-admission";
 import { useAccountSession } from "@/features/accounts/current-account";
@@ -45,9 +44,6 @@ export function useCollectionAuthority() {
   /** Supplies original-principal credentials; the server validates the action grant and revision. */
   async function request() {
     const credentials = await session.getCredentials();
-    if (!credentials) {
-      throw new ApiError("http", 401);
-    }
     return {
       headers: { Authorization: `Bearer ${credentials.accessToken}` },
     };
@@ -75,9 +71,9 @@ export function useCollectionSeason(seasonId: string) {
 export function useSeasonPreparation(seasonId: string) {
   const { authority, season, seasonKey } = useCollectionSeason(seasonId);
   const client = useQueryClient();
-  const sourcesOptions = createCollectionQueries(authority).sources(seasonId);
-  const sourcesKey = sourcesOptions.queryKey;
-  const sources = useQuery(sourcesOptions);
+  const sources = useQuery(
+    createCollectionQueries(authority).sources(seasonId),
+  );
 
   /** A confirmed creation has no complete season projection; invalidate its two owning reads. */
   function acceptCreatedSource() {
@@ -86,27 +82,22 @@ export function useSeasonPreparation(seasonId: string) {
 
   /** Refreshes source/season decisions and controls that a first launch can create. */
   function acceptLaunchedSources() {
-    void client.invalidateQueries({ queryKey: seasonKey, exact: true });
-    void client.invalidateQueries({ queryKey: sourcesKey, exact: true });
+    invalidateSeasonPreparation(client, seasonId);
     invalidateCollectionSeasons(client);
     invalidateCollectionControls(client, seasonId);
   }
 
   const create = useMutation({
-    retry: false,
-    networkMode: "always",
     mutationKey: [...seasonKey, ...getCreateCollectionSourceMutationKey()],
     mutationFn: async (body: CreateSourceBindingRequest) =>
       createCollectionSource(seasonId, body, await authority.request()),
-    onSettled: acceptCreatedSource,
+    onSuccess: acceptCreatedSource,
   });
   const launch = useMutation({
-    retry: false,
-    networkMode: "always",
     mutationKey: [...seasonKey, ...getLaunchCollectionSourcesMutationKey()],
     mutationFn: async (body: LaunchCollectionSourcesRequest) =>
       launchCollectionSources(seasonId, body, await authority.request()),
-    onSettled: acceptLaunchedSources,
+    onSuccess: acceptLaunchedSources,
   });
   return {
     authority,
@@ -114,36 +105,30 @@ export function useSeasonPreparation(seasonId: string) {
     sources,
     create,
     launch,
-    seasonKey,
-    sourcesKey,
   };
 }
 
 /** Candidate commands use canonical generated decoders, with explicit status reads and no polling. */
 export function useSourcePreparation(seasonId: string, sourceId: string) {
-  const { authority, season, seasonKey } = useCollectionSeason(seasonId);
+  const { authority, season } = useCollectionSeason(seasonId);
   const client = useQueryClient();
   const sourceOptions = createCollectionQueries(authority).source(sourceId);
   const queryKey = sourceOptions.queryKey;
   const source = useQuery(sourceOptions);
 
-  /** Refreshes the original source and owning season after any explicit attempt. */
+  /** Refreshes the original source and owning season after an accepted command. */
   function accept() {
     void client.invalidateQueries({ queryKey, exact: true });
     invalidateSeasonPreparation(client, seasonId);
   }
 
   const candidate = useMutation({
-    retry: false,
-    networkMode: "always",
     mutationKey: [...queryKey, ...getSetCollectionSourceCandidateMutationKey()],
     mutationFn: async (body: SetSourceCandidateRequest) =>
       setCollectionSourceCandidate(sourceId, body, await authority.request()),
-    onSettled: accept,
+    onSuccess: accept,
   });
   const validation = useMutation({
-    retry: false,
-    networkMode: "always",
     mutationKey: [
       ...queryKey,
       ...getRequestCollectionSourceValidationMutationKey(),
@@ -154,18 +139,16 @@ export function useSourcePreparation(seasonId: string, sourceId: string) {
         body,
         await authority.request(),
       ),
-    onSettled: accept,
+    onSuccess: accept,
   });
   const confirmation = useMutation({
-    retry: false,
-    networkMode: "always",
     mutationKey: [
       ...queryKey,
       ...getConfirmCollectionSourceSeasonMutationKey(),
     ],
     mutationFn: async (body: ConfirmSourceSeasonRequest) =>
       confirmCollectionSourceSeason(sourceId, body, await authority.request()),
-    onSettled: accept,
+    onSuccess: accept,
   });
   return {
     authority,
@@ -174,8 +157,6 @@ export function useSourcePreparation(seasonId: string, sourceId: string) {
     candidate,
     validation,
     confirmation,
-    sourceKey: queryKey,
-    seasonKey,
   };
 }
 

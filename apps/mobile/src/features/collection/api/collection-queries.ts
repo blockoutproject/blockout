@@ -40,21 +40,21 @@ export interface CollectionQueryAuthority {
 
 /** Defines every collection read once; native Query owns data, cancellation, pagination and status. */
 export function createCollectionQueries(authority: CollectionQueryAuthority) {
-  /** Retains the draft snapshot and a known refusal in Query until success; cancellation keeps its own outcome. */
-  async function readRetained<T>(
+  /** Withdraws refused preparation data without masking a later read error; mounted forms own their drafts. */
+  async function readPreparation<T>(
     context: QueryFunctionContext,
     execute: (options: ApiFetchOptions) => Promise<T>,
-  ): Promise<T> {
-    const previousError = context.client.getQueryState(context.queryKey)?.error;
+  ): Promise<T | null> {
     try {
       return await execute({
         ...(await authority.request()),
         signal: context.signal,
       });
     } catch (error) {
-      throw !context.signal.aborted && isCollectionReadRefused(previousError)
-        ? previousError
-        : error;
+      if (!context.signal.aborted && isCollectionReadRefused(error)) {
+        context.client.setQueryData<T | null>(context.queryKey, null);
+      }
+      throw error;
     }
   }
 
@@ -94,7 +94,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
         enabled: authority.enabled,
         gcTime: 0,
         queryFn: (context) =>
-          readRetained(context, (options) =>
+          readPreparation(context, (options) =>
             getCollectionSeason(seasonId, options),
           ),
       }),
@@ -105,7 +105,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
         enabled: authority.enabled,
         gcTime: 0,
         queryFn: (context) =>
-          readRetained(context, (options) =>
+          readPreparation(context, (options) =>
             listCollectionSources(seasonId, options),
           ),
       }),
@@ -116,7 +116,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
         enabled: authority.enabled,
         gcTime: 0,
         queryFn: (context) =>
-          readRetained(context, (options) =>
+          readPreparation(context, (options) =>
             getCollectionSource(sourceId, options),
           ),
       }),
