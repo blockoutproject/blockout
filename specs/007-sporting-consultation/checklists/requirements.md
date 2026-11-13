@@ -31,4 +31,4 @@
 
 ## Notes
 
-- FR-018 specifies which visible data refreshes and what survives failure without assigning an endpoint per tab. A17/A29 and SC-004 retain refresh, stale-response and context guarantees. API boundaries remain technical-planning choices.
+- FR-008 owns exact sporting opening, ordinary history/Back and direct-link Search default under F13’s shared main-navigation rule. FR-018 specifies which visible data refreshes and what survives failure without assigning an endpoint per tab. A17/A29 and SC-004 retain refresh, stale-response and context guarantees. API boundaries remain technical-planning choices.

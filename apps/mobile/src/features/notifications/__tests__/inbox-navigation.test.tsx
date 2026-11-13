@@ -16,12 +16,15 @@ import { Dimensions, Linking, Text } from "react-native";
 import { useEffect, useState, useLayoutEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import TabsLayout from "../../../app/(ordinary)/(tabs)/_layout";
-import NotificationsRoute from "../../../app/(ordinary)/(tabs)/notifications";
-import SearchLayout from "../../../app/(ordinary)/(tabs)/search/_layout";
-import SearchRoute from "../../../app/(ordinary)/(tabs)/search/index";
-import SearchFiltersRoute from "../../../app/(ordinary)/(tabs)/search/(sheets)/filters";
-import SearchChoiceRoute from "../../../app/(ordinary)/(tabs)/search/(sheets)/choice";
-import MatchRoute from "../../../app/(ordinary)/matches/[matchId]";
+import SharedTabLayout, {
+  unstable_settings as sharedTabSettings,
+} from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/_layout";
+import NotificationsRoute from "../../../app/(ordinary)/(tabs)/(notifications)/notifications";
+import SearchLayout from "../../../app/(ordinary)/(tabs)/(discovery)/search/_layout";
+import SearchRoute from "../../../app/(ordinary)/(tabs)/(discovery)/search/index";
+import SearchFiltersRoute from "../../../app/(ordinary)/(tabs)/(discovery)/search/(sheets)/filters";
+import SearchChoiceRoute from "../../../app/(ordinary)/(tabs)/(discovery)/search/(sheets)/choice";
+import MatchRoute from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/matches/[matchId]";
 import { NotificationState } from "../state/notification-state";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
@@ -264,14 +267,21 @@ async function openInbox() {
         <Stack screenOptions={{ headerShown: false }} />
       ),
       "(ordinary)/(tabs)/_layout": TabsLayout,
-      "(ordinary)/(tabs)/index": () => <Text>Accueil</Text>,
-      "(ordinary)/(tabs)/search/_layout": SearchLayout,
-      "(ordinary)/(tabs)/search/index": SearchRoute,
-      "(ordinary)/(tabs)/search/(sheets)/filters": SearchFiltersRoute,
-      "(ordinary)/(tabs)/search/(sheets)/choice": SearchChoiceRoute,
-      "(ordinary)/(tabs)/profile": () => <Text>Profil</Text>,
-      "(ordinary)/(tabs)/notifications": NotificationsRoute,
-      "(ordinary)/matches/[matchId]": MatchRoute,
+      "(ordinary)/(tabs)/(discovery,home,notifications,profile)/_layout": {
+        default: SharedTabLayout,
+        unstable_settings: sharedTabSettings,
+      },
+      "(ordinary)/(tabs)/(home)/(personal)/_layout": () => <Stack />,
+      "(ordinary)/(tabs)/(home)/(personal)/index": () => <Text>Accueil</Text>,
+      "(ordinary)/(tabs)/(discovery)/search/_layout": SearchLayout,
+      "(ordinary)/(tabs)/(discovery)/search/index": SearchRoute,
+      "(ordinary)/(tabs)/(discovery)/search/(sheets)/filters":
+        SearchFiltersRoute,
+      "(ordinary)/(tabs)/(discovery)/search/(sheets)/choice": SearchChoiceRoute,
+      "(ordinary)/(tabs)/(profile)/profile": () => <Text>Profil</Text>,
+      "(ordinary)/(tabs)/(notifications)/notifications": NotificationsRoute,
+      "(ordinary)/(tabs)/(discovery,home,notifications,profile)/matches/[matchId]":
+        MatchRoute,
     },
     { initialUrl: "/notifications" },
   );

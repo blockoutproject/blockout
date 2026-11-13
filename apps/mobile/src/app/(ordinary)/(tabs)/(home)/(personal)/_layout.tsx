@@ -1,9 +1,9 @@
 import { Redirect } from "expo-router";
-import { useAccountSession } from "../../../../features/accounts/current-account";
-import { StartupAccessGate } from "../../../../features/access/screens/access-gate-screen";
-import { useAgeDeclaration } from "../../../../features/advertising/age-declaration-provider";
-import { PersonalSeasonProvider } from "../../../../features/following/components/personal-season-provider";
-import { PersonalNavigation } from "../../../../features/following/screens/personal-navigation";
+import { useAccountSession } from "../../../../../features/accounts/current-account";
+import { StartupAccessGate } from "../../../../../features/access/screens/access-gate-screen";
+import { useAgeDeclaration } from "../../../../../features/advertising/age-declaration-provider";
+import { PersonalSeasonProvider } from "../../../../../features/following/components/personal-season-provider";
+import { PersonalNavigation } from "../../../../../features/following/screens/personal-navigation";
 
 /** Direct season entries retain Home behind the native contextual route. */
 export const unstable_settings = { anchor: "index" };

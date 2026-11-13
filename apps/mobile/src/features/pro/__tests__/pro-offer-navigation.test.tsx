@@ -11,6 +11,14 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import TabsLayout from "../../../app/(ordinary)/(tabs)/_layout";
+import { redirectSystemPath } from "../../../app/+native-intent";
+import SharedTabLayout, {
+  unstable_settings as sharedTabSettings,
+} from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/_layout";
+import ProfileLayout, {
+  unstable_settings as profileSettings,
+} from "../../../app/(ordinary)/(tabs)/(profile)/profile/_layout";
+import { sheetScreenOptions } from "../../../shared/components/sheet";
 import {
   AccountSessionProvider,
   useAccountSession,
@@ -61,6 +69,7 @@ jest.mock("react-native-auth0", () => {
 });
 
 const offerName = "Blockout Pro, sans publicité";
+const entityId = "00000000-0000-4000-8000-000000000720";
 const environment = { ...process.env };
 let client = createQueryClient();
 let account: AccountSession;
@@ -111,22 +120,68 @@ function JourneyLayout() {
     account = currentAccount;
     pro = currentPro;
   }, [currentAccount, currentPro]);
-  return <Stack screenOptions={{ headerShown: false, animation: "none" }} />;
+  return (
+    <Stack screenOptions={{ headerShown: false, animation: "none" }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="invitation" options={sheetScreenOptions} />
+      <Stack.Screen name="pro" options={{ presentation: "fullScreenModal" }} />
+    </Stack>
+  );
 }
 
-/** Uses the production tab composition; leaf probes identify navigation without unrelated feature dependencies. */
+/** Keeps the production tab stacks and profile anchor; probes omit unrelated feature reads and forms. */
 async function openJourney(initialUrl = "/search") {
   await renderRouter(
     {
-      _layout: JourneyLayout,
-      "(tabs)/_layout": TabsLayout,
-      "(tabs)/index": () => <Text>Home destination</Text>,
-      "(tabs)/search/_layout": () => <Stack />,
-      "(tabs)/search/index": () => <Text>Search destination</Text>,
-      "(tabs)/search/(sheets)/filters": () => <Text>Filter destination</Text>,
-      "(tabs)/notifications": () => <Text>Notifications destination</Text>,
-      "(tabs)/profile": () => <Text>Profile destination</Text>,
-      pro: () => <Text>Pro destination</Text>,
+      _layout: () => <Stack screenOptions={{ headerShown: false }} />,
+      "(ordinary)/_layout": JourneyLayout,
+      "+native-intent": { redirectSystemPath },
+      "(ordinary)/(tabs)/_layout": TabsLayout,
+      "(ordinary)/(tabs)/(discovery,home,notifications,profile)/_layout": {
+        default: SharedTabLayout,
+        unstable_settings: sharedTabSettings,
+      },
+      "(ordinary)/(tabs)/(home)/(personal)/_layout": () => <Stack />,
+      "(ordinary)/(tabs)/(home)/(personal)/index": () => (
+        <Text>Home destination</Text>
+      ),
+      "(ordinary)/(tabs)/(discovery)/search/_layout": () => (
+        <Stack>
+          <Stack.Screen name="(sheets)/filters" options={sheetScreenOptions} />
+        </Stack>
+      ),
+      "(ordinary)/(tabs)/(discovery)/search/index": () => (
+        <Text>Search destination</Text>
+      ),
+      "(ordinary)/(tabs)/(discovery)/search/(sheets)/filters": () => (
+        <Text>Filter destination</Text>
+      ),
+      "(ordinary)/(tabs)/(notifications)/notifications": () => (
+        <Text>Notifications destination</Text>
+      ),
+      "(ordinary)/(tabs)/(profile)/profile/_layout": {
+        default: ProfileLayout,
+        unstable_settings: profileSettings,
+      },
+      "(ordinary)/(tabs)/(profile)/profile/index": () => (
+        <Text>Profile destination</Text>
+      ),
+      "(ordinary)/(tabs)/(profile)/profile/(forms)/edit": () => (
+        <Text>Edit destination</Text>
+      ),
+      "(ordinary)/(tabs)/(profile)/profile/(forms)/erase": () => (
+        <Text>Erase destination</Text>
+      ),
+      "(ordinary)/(tabs)/(discovery,home,notifications,profile)/clubs/[clubId]":
+        () => <Text>Club destination</Text>,
+      "(ordinary)/(tabs)/(discovery,home,notifications,profile)/pools/[poolId]":
+        () => <Text>Pool destination</Text>,
+      "(ordinary)/(tabs)/(discovery,home,notifications,profile)/teams/[teamId]":
+        () => <Text>Team destination</Text>,
+      "(ordinary)/(tabs)/(discovery,home,notifications,profile)/matches/[matchId]":
+        () => <Text>Match destination</Text>,
+      "(ordinary)/invitation": () => <Text>Invitation destination</Text>,
+      "(ordinary)/pro": () => <Text>Pro destination</Text>,
     },
     { initialUrl, wrapper: JourneyProviders },
   );
@@ -146,6 +201,166 @@ it.each(["/", "/search", "/notifications", "/profile"])(
     ).toBeVisible();
     expect(screen.getByRole("button", { name: "Rechercher" })).toBeVisible();
     expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
+  },
+);
+
+it.each([
+  { root: "/", selected: "Accueil", kind: "clubs" },
+  { root: "/search", selected: "Rechercher", kind: "pools" },
+  { root: "/notifications", selected: "Notifications", kind: "matches" },
+  { root: "/profile", selected: "Profil", kind: "teams" },
+])(
+  "retains $selected and its native Back history on a $kind detail",
+  async ({ root, selected, kind }) => {
+    // Given
+    await openJourney(root);
+    await screen.findByRole("button", { name: offerName });
+
+    // When
+    await act(() => router.push(`/${kind}/${entityId}`));
+
+    // Then
+    expect(screen).toHavePathname(`/${kind}/${entityId}`);
+    expect(
+      screen.getByRole("button", { name: selected, selected: true }),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: offerName })).toBeVisible();
+
+    // When
+    await act(() => router.back());
+
+    // Then
+    expect(screen).toHavePathname(root);
+    expect(
+      screen.getByRole("button", { name: selected, selected: true }),
+    ).toBeVisible();
+  },
+);
+
+it.each(["clubs", "pools", "teams", "matches"])(
+  "defaults a direct %s detail to Search and returns to its root",
+  async (kind) => {
+    // Given
+    const path = `/${kind}/${entityId}`;
+
+    // When
+    await openJourney(path);
+
+    // Then
+    await screen.findByRole("button", { name: offerName });
+    expect(screen).toHavePathname(path);
+    expect(
+      screen.getByRole("button", { name: "Rechercher", selected: true }),
+    ).toBeVisible();
+
+    // When
+    await act(() => router.back());
+
+    // Then
+    expect(screen).toHavePathname("/search");
+  },
+);
+
+it("opens a rewritten warm sporting link in Search after visiting Home", async () => {
+  // Given: the public system-path adapter and Router remain real; native URL delivery is observed on devices.
+  const user = userEvent.setup();
+  await openJourney("/");
+  await screen.findByRole("button", { name: offerName });
+
+  // When
+  const destination = redirectSystemPath({
+    path: `blockout-local://teams/${entityId}?tab=matches&label=Rives%20Est#standings`,
+    initial: false,
+  });
+  await act(() => router.navigate(destination));
+
+  // Then
+  expect(screen).toHavePathname(`/teams/${entityId}`);
+  expect(screen).toHaveSearchParams({
+    teamId: entityId,
+    tab: "matches",
+    label: "Rives Est",
+    "#": "standings",
+  });
+  expect(
+    screen.getByRole("button", { name: "Rechercher", selected: true }),
+  ).toBeVisible();
+
+  // When
+  await act(() => router.back());
+
+  // Then
+  expect(screen).toHavePathname("/");
+  expect(
+    screen.getByRole("button", { name: "Accueil", selected: true }),
+  ).toBeVisible();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Rechercher" }));
+
+  // Then
+  expect(screen).toHavePathname(`/teams/${entityId}`);
+  expect(
+    screen.getByRole("button", { name: "Rechercher", selected: true }),
+  ).toBeVisible();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Rechercher" }));
+
+  // Then
+  expect(screen).toHavePathname("/search");
+  expect(screen.getByText("Search destination")).toBeVisible();
+});
+
+it("restores the same sporting detail and tab after dismissing an outer native sheet", async () => {
+  // Given
+  await openJourney("/notifications");
+  await screen.findByRole("button", { name: offerName });
+  await act(() => router.push(`/matches/${entityId}`));
+
+  // When
+  await act(() => router.push("/invitation"));
+
+  // Then
+  expect(screen.getByText("Invitation destination")).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Rechercher" })).toBeNull();
+  expect(screen.queryByRole("button", { name: offerName })).toBeNull();
+
+  // When
+  await act(() => router.back());
+
+  // Then
+  expect(screen).toHavePathname(`/matches/${entityId}`);
+  expect(
+    screen.getByRole("button", { name: "Notifications", selected: true }),
+  ).toBeVisible();
+  expect(screen.getByRole("button", { name: offerName })).toBeVisible();
+});
+
+it.each(["edit", "erase"])(
+  "keeps the bar and offer out of the dedicated Profile %s form",
+  async (form) => {
+    // Given
+    await openJourney("/profile");
+    await screen.findByRole("button", { name: offerName });
+
+    // When
+    await act(() => router.push(`/profile/${form}`));
+
+    // Then
+    expect(screen).toHavePathname(`/profile/${form}`);
+    expect(screen.queryByRole("button", { name: "Rechercher" })).toBeNull();
+    expect(screen.queryByRole("button", { name: offerName })).toBeNull();
+
+    // When
+    await act(() => router.back());
+
+    // Then
+    expect(screen).toHavePathname("/profile");
+    expect(
+      screen.getByRole("button", { name: "Profil", selected: true }),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: offerName })).toBeVisible();
   },
 );
 
@@ -185,13 +400,20 @@ it.each(["active", "guest", "unavailable"])(
     }
 
     // When
-    await openJourney();
+    await openJourney(`/teams/${entityId}`);
     await waitFor(() => expect(pro.state.status).toBe(state));
 
     // Then
     expect(screen.getByRole("button", { name: "Rechercher" })).toBeVisible();
     expect(screen.queryByRole("button", { name: offerName })).toBeNull();
     expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
+    if (state === "guest") {
+      expect(screen.queryByRole("button", { name: "Accueil" })).toBeNull();
+      expect(
+        screen.queryByRole("button", { name: "Notifications" }),
+      ).toBeNull();
+      expect(screen.getByRole("button", { name: "Profil" })).toBeVisible();
+    }
   },
 );
 

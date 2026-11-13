@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from "expo-router";
-import { PoolScreen } from "../../../features/sporting/screens/pool-screen";
-import { SportingActions } from "../../../features/sporting/components/sporting-actions";
-import { useFollowStateQuery } from "../../../features/following";
+import { PoolScreen } from "../../../../../features/sporting/screens/pool-screen";
+import { SportingActions } from "../../../../../features/sporting/components/sporting-actions";
+import { useFollowStateQuery } from "../../../../../features/following";
 
 /** UUID route keeps same-named phases separate under ordinary admission. */
 export default function PoolRoute() {

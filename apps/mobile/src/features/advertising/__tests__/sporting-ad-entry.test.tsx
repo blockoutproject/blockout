@@ -84,7 +84,7 @@ import { createPushRegistration } from "../../notifications/native/push-registra
 import { notificationResponse } from "../../notifications/test-support/notification-data";
 import { router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
-import ProfileRoute from "../../../app/(ordinary)/(tabs)/profile";
+import ProfileRoute from "../../../app/(ordinary)/(tabs)/(profile)/profile";
 import PrivacyRoute from "../../../app/(ordinary)/privacy";
 import { SearchScreen } from "../../discovery/screens/search-screen";
 import { SearchVisitProvider } from "../../discovery/forms/search-visit";

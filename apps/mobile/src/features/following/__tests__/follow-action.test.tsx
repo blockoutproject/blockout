@@ -44,8 +44,8 @@ import {
 import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
 import { FollowButton } from "../components/follow-button";
 import { FollowerCount } from "../components/follower-count";
-import TeamRoute from "../../../app/(ordinary)/teams/[teamId]";
-import PoolRoute from "../../../app/(ordinary)/pools/[poolId]";
+import TeamRoute from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/teams/[teamId]";
+import PoolRoute from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/pools/[poolId]";
 import { matchDetail } from "../../sporting/test-support/consultation-data";
 import {
   followStateKey,

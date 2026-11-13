@@ -1,5 +1,5 @@
 import { useEffect, useState, type ComponentPropsWithRef } from "react";
-import { useSegments } from "expo-router";
+import { useIsFocused, useRouter, useSegments } from "expo-router";
 import {
   Pressable,
   StyleSheet,
@@ -47,7 +47,10 @@ import { ProOffer } from "../../../features/pro";
 
 /** Expo owns focus/history; the measured offer/capsule group shares visibility and enlarged-text clearance. */
 export default function TabsLayout() {
-  const sheetVisible = useSegments().includes("(sheets)");
+  const focused = useIsFocused();
+  const segments = useSegments();
+  const navigationVisible =
+    focused && !segments.includes("(sheets)") && !segments.includes("(forms)");
   const { session, queries } = useInboxQueries();
   const summary = useQuery({
     ...queries?.summary,
@@ -70,7 +73,7 @@ export default function TabsLayout() {
   return (
     <BottomContentInsetContext
       value={
-        navigationHeight > 0
+        navigationVisible && navigationHeight > 0
           ? navigationHeight + insets.bottom + tokens.spacing.sm
           : 0
       }
@@ -93,7 +96,7 @@ export default function TabsLayout() {
               marginBottom: insets.bottom + tokens.spacing.sm,
               marginHorizontal:
                 fontScale >= 1.5 ? tokens.spacing.lg : tokens.spacing.sm,
-              display: sheetVisible ? "none" : "flex",
+              display: navigationVisible ? "flex" : "none",
             }}
           >
             <TabTrigger name="index" href="/" asChild>
@@ -184,7 +187,7 @@ function NavigationCapsule({
   );
 }
 
-/** Router-supplied press/focus/ref props remain intact; hidden personal entries retain their route definitions. */
+/** Router supplies the exact root and current focus; hidden personal entries retain their route definitions. */
 interface TabButtonProps extends Omit<TabTriggerSlotProps, "ref"> {
   /** React Native 0.88 supplies the host-element ref type for Router's asChild forwarding. */
   ref?: ComponentPropsWithRef<typeof Pressable>["ref"];
@@ -196,7 +199,7 @@ interface TabButtonProps extends Omit<TabTriggerSlotProps, "ref"> {
   onFocusedLayout: (layout: LayoutRectangle | undefined) => void;
 }
 
-/** Router alone selects the trigger; native geometry and one focus animation drive its decoration. */
+/** Reselecting reaches the exact root even after an unanchored warm link; other presses keep Router's tab switching. */
 function TabButton({
   label,
   icon: Icon,
@@ -209,6 +212,7 @@ function TabButton({
   onFocusedLayout,
   ...props
 }: Readonly<TabButtonProps>) {
+  const router = useRouter();
   const { colors, membership } = useTheme();
   const [layout, setLayout] = useState<LayoutRectangle>();
   useEffect(() => {
@@ -242,6 +246,13 @@ function TabButton({
   return (
     <Pressable
       {...props}
+      onPress={(event) => {
+        if (isFocused && props.href) {
+          router.dismissTo(props.href);
+        } else {
+          props.onPress?.(event);
+        }
+      }}
       accessibilityRole="button"
       accessibilityState={{ selected: isFocused }}
       accessibilityLabel={

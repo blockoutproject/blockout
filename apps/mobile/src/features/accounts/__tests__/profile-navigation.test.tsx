@@ -15,11 +15,14 @@ import {
 } from "@testing-library/react-native";
 import { Alert, Pressable, Text } from "react-native";
 import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { Tabs, TabList, TabSlot, TabTrigger } from "expo-router/ui";
+import { Stack, router, useLocalSearchParams, useRouter } from "expo-router";
+import TabsLayout from "../../../app/(ordinary)/(tabs)/_layout";
+import SharedTabLayout, {
+  unstable_settings as sharedTabSettings,
+} from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/_layout";
 import ProfileLayout, {
   unstable_settings as profileStackSettings,
-} from "../../../app/(ordinary)/(tabs)/profile/_layout";
+} from "../../../app/(ordinary)/(tabs)/(profile)/profile/_layout";
 import { renderRouter, testRouter } from "expo-router/testing-library";
 import { createQueryClient } from "../../../shared/query/query-client";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
@@ -29,6 +32,9 @@ import { ProfileScreen } from "../screens/profile-screen";
 import { ProfileEditScreen } from "../screens/profile-edit-screen";
 import { EraseAccountScreen } from "../screens/erase-account-screen";
 import { credentialsFor, mockAuth0 } from "../test-support/native-auth0";
+import { ProProvider } from "../../pro";
+import * as proSessionModule from "../../pro/pro-session";
+import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
 
 // Route history, account ownership and HTTP decoding remain real; only native/network I/O is controlled.
 jest.mock("react-native-keyboard-controller", () =>
@@ -44,6 +50,17 @@ jest.mock("react-native-auth0", () => {
   return jest.requireActual("react-native-auth0");
 });
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+jest.mock("expo-constants", () => ({
+  __esModule: true,
+  default: {
+    expoConfig: { extra: { revenueCat: { iosApiKey: "test_public" } } },
+  },
+}));
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual("../../pro/test-support/native-purchases")
+    .mockPurchases,
+}));
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, request?: RequestInit) =>
     String(url).endsWith("/application-access")
@@ -66,6 +83,12 @@ const account = accountResponse({
 });
 
 beforeEach(() => {
+  jest.replaceProperty(
+    proSessionModule,
+    "proSession",
+    proSessionModule.createProSession(),
+  );
+  prepareProNativeIO();
   publicClient = createQueryClient();
   client = publicClient;
   Object.assign(process.env, {
@@ -91,27 +114,6 @@ afterEach(async () => {
   process.env = { ...previousEnvironment };
   jest.restoreAllMocks();
 });
-
-/** The installed headless tab navigator retains its nested profile Stack while another destination has focus. */
-function ProfileTabs() {
-  return (
-    <Tabs options={{ backBehavior: "history" }}>
-      <TabSlot />
-      <TabList>
-        <TabTrigger name="profile" href="/profile" accessibilityLabel="Profil">
-          <Text>Profil</Text>
-        </TabTrigger>
-        <TabTrigger
-          name="search"
-          href="/search"
-          accessibilityLabel="Rechercher"
-        >
-          <Text>Rechercher</Text>
-        </TabTrigger>
-      </TabList>
-    </Tabs>
-  );
-}
 
 /** F10 navigation probe observes the actual safe origin and pops its route without owning profile state. */
 function SupportProbe() {
@@ -139,17 +141,28 @@ async function openProfile(initialUrl = "/profile") {
       _layout: () => (
         <Stack screenOptions={{ headerShown: false, animation: "none" }} />
       ),
-      "(tabs)/_layout": ProfileTabs,
-      "(tabs)/profile/_layout": {
+      "(tabs)/_layout": TabsLayout,
+      "(tabs)/(discovery,home,notifications,profile)/_layout": {
+        default: SharedTabLayout,
+        unstable_settings: sharedTabSettings,
+      },
+      "(tabs)/(home)/(personal)/_layout": () => <Stack />,
+      "(tabs)/(home)/(personal)/index": () => <Text>Accueil ouvert</Text>,
+      "(tabs)/(notifications)/notifications": () => <Text>Notifications</Text>,
+      "(tabs)/(profile)/profile/_layout": {
         default: ProfileLayout,
         unstable_settings: profileStackSettings,
       },
-      "(tabs)/profile/index": () => (
+      "(tabs)/(profile)/profile/index": () => (
         <ProfileScreen admitted proEntry={null} privacyEntry={null} />
       ),
-      "(tabs)/profile/edit": () => <ProfileEditScreen admitted />,
-      "(tabs)/profile/erase": () => <EraseAccountScreen admitted />,
-      "(tabs)/search": () => <Text>Recherche ouverte</Text>,
+      "(tabs)/(profile)/profile/(forms)/edit": () => (
+        <ProfileEditScreen admitted />
+      ),
+      "(tabs)/(profile)/profile/(forms)/erase": () => (
+        <EraseAccountScreen admitted />
+      ),
+      "(tabs)/(discovery)/search": () => <Text>Recherche ouverte</Text>,
       "sign-in": () => <Text>Connexion ouverte</Text>,
       support: SupportProbe,
     },
@@ -161,7 +174,11 @@ async function openProfile(initialUrl = "/profile") {
             <ApplicationAccessProvider>
               <AccountSessionProvider>
                 <PrivateQueries>
-                  <AccountFeedbackProvider>{children}</AccountFeedbackProvider>
+                  <ProProvider>
+                    <AccountFeedbackProvider>
+                      {children}
+                    </AccountFeedbackProvider>
+                  </ProProvider>
                 </PrivateQueries>
               </AccountSessionProvider>
             </ApplicationAccessProvider>
@@ -478,36 +495,41 @@ it("offers sign-in and independent public links to a guest without profile-editi
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
 });
 
-it("retains the editor and dirty values across ordinary tab changes", async () => {
+it("keeps a dirty editor without the main bar when Back is refused", async () => {
   // Given
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
   const user = userEvent.setup();
-  await openProfile();
-  await user.press(
-    await screen.findByRole("button", { name: "Modifier mon profil" }),
-  );
-  await screen.findByDisplayValue(account.username);
-  await user.clear(screen.getByLabelText("Pseudo"));
+  await openProfile("/profile/edit");
+  await user.clear(await screen.findByLabelText("Pseudo"));
   await user.type(screen.getByLabelText("Pseudo"), "Retained");
+  expect(screen.queryByRole("button", { name: "Rechercher" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Profil" })).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "Blockout Pro, sans publicité" }),
+  ).toBeNull();
 
   // When
-  await user.press(screen.getByLabelText("Rechercher"));
-
-  // Then
-  expect(await screen.findByText("Recherche ouverte")).toBeOnTheScreen();
-  expect(screen).toHavePathname("/search");
-  expect(Alert.alert).not.toHaveBeenCalled();
-
-  // When
-  await user.press(screen.getByLabelText("Profil"));
+  await act(() => router.back());
+  await act(() => nativeAlertAction("Continuer la saisie")());
 
   // Then
   expect(screen).toHavePathname("/profile/edit");
-  expect(await screen.findByDisplayValue("Retained")).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Retained")).toBeOnTheScreen();
+  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+
+  // When
+  await act(() => router.back());
+  await act(() => nativeAlertAction("Abandonner")());
+
+  // Then
+  expect(screen).toHavePathname("/profile");
+  expect(await screen.findByText(account.username)).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Profil", selected: true }),
+  ).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),
   ).toBe(true);
-  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
 });
 
 it("recovers a whole-page initial account failure without establishing an account", async () => {
@@ -548,60 +570,6 @@ it("recovers a whole-page initial account failure without establishing an accoun
   ).toBe(true);
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
   expect(screen).toHavePathname("/profile");
-});
-
-it("keeps the selected search tab when an editor save completes in the background", async () => {
-  // Given
-  const user = userEvent.setup();
-  await openProfile();
-  await user.press(
-    await screen.findByRole("button", { name: "Modifier mon profil" }),
-  );
-  await screen.findByDisplayValue(account.username);
-  await user.clear(screen.getByLabelText("Pseudo"));
-  await user.type(screen.getByLabelText("Pseudo"), "Accepted_background");
-  const response = Promise.withResolvers<Response>();
-  try {
-    mockFetch.mockImplementation(async (_url, request) =>
-      request?.method === "PATCH" ? response.promise : Response.json(account),
-    );
-    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await screen.findByRole("button", { name: "Enregistrer", busy: true });
-    await user.press(screen.getByLabelText("Rechercher"));
-    await screen.findByText("Recherche ouverte");
-
-    // When
-    mockFetch.mockImplementation(async () =>
-      Response.json({ ...account, username: "Accepted_background" }),
-    );
-    await act(() =>
-      response.resolve(
-        Response.json({ ...account, username: "Accepted_background" }),
-      ),
-    );
-
-    // Then
-    await waitFor(() => expect(client.isMutating()).toBe(0));
-    expect(screen).toHavePathname("/search");
-    expect(screen.getByText("Recherche ouverte")).toBeOnTheScreen();
-
-    // When
-    await user.press(screen.getByLabelText("Profil"));
-
-    // Then
-    expect(screen).toHavePathname("/profile");
-    expect(await screen.findByText("Accepted_background")).toBeOnTheScreen();
-    expect(
-      screen.getByRole("header", { name: "Mon profil" }),
-    ).toBeOnTheScreen();
-    expect(
-      screen.queryByRole("button", { name: "Enregistrer" }),
-    ).not.toBeOnTheScreen();
-    expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
-  } finally {
-    // Settle this controlled transport even when a regression assertion fails before acknowledgement.
-    await act(() => response.resolve(Response.json(account)));
-  }
 });
 
 it.each([

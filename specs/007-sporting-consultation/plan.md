@@ -4,11 +4,11 @@
 
 **Input**: [spec.md](spec.md), [F02 sporting data](../002-sporting-data/plan.md) and [F09 entitlements](../006-pro-subscriptions/plan.md).
 
-**Status**: Approved technical baseline, scoped prototype and separate Figma composition for the remaining read, reader and optional-media adoption. [Tasks](tasks.md) track implementation and qualification. The headerless map, clickable team row and wrapping participation title retain their existing approved scope under the Constitution Check.
+**Status**: Approved technical baseline, scoped prototype and separate Figma composition for the remaining read, reader and optional-media adoption. The main-navigation route composition consumes F13 T221/T222’s scoped prototype and separate Figma approvals; T223/T224 retain native adoption and qualification. [Tasks](tasks.md) track implementation and qualification. The headerless map, clickable team row and wrapping participation title retain their existing approved scope under the Constitution Check.
 
 ## Summary
 
-Expose public club, team, pool and match reads from the existing modular backend, retaining F02 sporting truth. Serve calendars as seven complete nonempty display days, preserve their mobile state until explicit refresh and use the native map providers. Relay qualified match PDFs for direct temporary reading in the mobile application. Reconcile the narrow professional-document acquisition exception without introducing another sporting authority, scheduler or recovery process.
+Expose public club, team, pool and match reads from the existing modular backend, retaining F02 sporting truth. FR-008 consumes [F13’s native shared-route composition](../003-shared-quality/plan.md#native-paging-and-scroll-composition): sporting leaves belong to each permitted root Stack, retain exact UUID URLs and ordinary opening/Back history, and use Search for direct detail links. Dedicated editing, native sheets and full-screen PDF/provider presentations keep their own host without the main bar; current Map/PDF providers, personal rights and public visibility remain unchanged. Serve calendars as seven complete nonempty display days, preserve their mobile state until explicit refresh and use the native map providers. Relay qualified match PDFs for direct temporary reading in the mobile application. Reconcile the narrow professional-document acquisition exception without introducing another sporting authority, scheduler or recovery process.
 
 ## Technical Context
 

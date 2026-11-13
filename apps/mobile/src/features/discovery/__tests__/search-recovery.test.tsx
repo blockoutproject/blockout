@@ -18,7 +18,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { router, Stack } from "expo-router";
 import { Text } from "react-native";
-import ClubRoute from "../../../app/(ordinary)/clubs/[clubId]";
+import ClubRoute from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/clubs/[clubId]";
 import SupportLayout from "../../../app/(recovery)/support/_layout";
 import { SupportScreen } from "../../support/screens/support-screen";
 import { AccessAdmissionProvider } from "../../access/queries/use-access-admission";
@@ -33,7 +33,7 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import SearchLayout from "../../../app/(ordinary)/(tabs)/search/_layout";
+import SearchLayout from "../../../app/(ordinary)/(tabs)/(discovery)/search/_layout";
 import { SearchScreen } from "../screens/search-screen";
 import { createDiscoveryContext } from "../api/discovery-context";
 import { SearchFilters } from "../components/search-filters";

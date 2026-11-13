@@ -25,9 +25,9 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import SearchLayout from "../../../app/(ordinary)/(tabs)/search/_layout";
+import SearchLayout from "../../../app/(ordinary)/(tabs)/(discovery)/search/_layout";
 import { SearchScreen } from "../screens/search-screen";
-import ClubRoute from "../../../app/(ordinary)/clubs/[clubId]";
+import ClubRoute from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/clubs/[clubId]";
 import { SearchFilters } from "../components/search-filters";
 import { SearchFilterChoice } from "../components/search-filter-choice";
 import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
@@ -62,8 +62,8 @@ import {
   useAccountSession,
   type AccountSession,
 } from "../../accounts/session/account-session-provider";
-import TeamRoute from "../../../app/(ordinary)/teams/[teamId]";
-import PoolRoute from "../../../app/(ordinary)/pools/[poolId]";
+import TeamRoute from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/teams/[teamId]";
+import PoolRoute from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/pools/[poolId]";
 
 jest.mock("react-native-google-mobile-ads", () => ({
   ...jest.requireActual("../../advertising/test-support/native-privacy")
