@@ -536,6 +536,32 @@ it("preserves dirty input through a background refetch and requires an explicit 
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
   );
+
+  // When
+  mockFetch.mockImplementation((url) =>
+    String(url).endsWith(`/source-bindings/${sourceId}`)
+      ? Promise.resolve(refused(503))
+      : reads(url),
+  );
+  await user.press(screen.getByRole("button", { name: "Relire l’état" }));
+
+  // Then
+  await screen.findByRole("button", { name: "Réessayer", busy: false });
+  expect(screen.queryByLabelText("URL officielle")).toBeNull();
+  expect(
+    screen.queryByText(
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
+    ),
+  ).toBeNull();
+
+  // When
+  mockFetch.mockImplementation(reads);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByLabelText("URL officielle")).toHaveDisplayValue(
+    draftUrl,
+  );
 });
 
 it.each([400, 403, 422])(
@@ -1534,6 +1560,55 @@ it.each(["source", "provider"] as const)(
     ).toBe(true);
   },
 );
+
+it("hides the whole source editor when its current account reread fails", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderPreparation(
+    <>
+      <SourcePreparationScreen seasonId={seasonId} sourceId={sourceId} />
+      <AccountActions />
+    </>,
+  );
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
+  const input = screen.getByLabelText("URL officielle");
+  await user.clear(input);
+  await user.type(input, draftUrl);
+  mockFetch.mockImplementation((url) =>
+    String(url).endsWith("/accounts/me")
+      ? Promise.resolve(refused(503))
+      : reads(url),
+  );
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Relire les permissions" }),
+  );
+
+  // Then
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(screen.queryByLabelText("URL officielle")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Enregistrer" })).toBeNull();
+  expect(
+    screen.getByLabelText("URL officielle", { includeHiddenElements: true }),
+  ).toBe(input);
+
+  // When
+  mockFetch.mockClear().mockImplementation(reads);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByLabelText("URL officielle")).toBe(input);
+  expect(input).toHaveDisplayValue(draftUrl);
+  expect(
+    mockFetch.mock.calls.map(([url, options]) => ({
+      path: new URL(String(url)).pathname,
+      method: options?.method,
+    })),
+  ).toEqual([{ path: "/accounts/me", method: "GET" }]);
+});
 
 it("preserves an edited source URL when pull-to-refresh reads a newer source revision", async () => {
   // Given

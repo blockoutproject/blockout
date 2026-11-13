@@ -658,11 +658,16 @@ it("keeps dirty choices through a failed ordinary refresh without retrying the w
   // Then
   await screen.findByRole("alert", { name: "Une erreur est survenue" });
   expect(
-    screen.getByRole("button", { name: "Format" }),
+    screen.queryByRole("button", { name: "Format" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
+  failedRead = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  expect(
+    await screen.findByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
-  );
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
   ).toHaveLength(1);
@@ -695,12 +700,10 @@ it("keeps one catalogue recovery owner after grouped refresh failure and preserv
   );
 
   // Then
-  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
   expect(
-    screen.getByRole("button", { name: "Format" }),
-  ).toHaveAccessibilityValue({
-    text: "4 × 4",
-  });
+    screen.queryByRole("button", { name: "Format" }),
+  ).not.toBeOnTheScreen();
 
   // When
   await act(async () => divisionsRead.reject(new TypeError("Unavailable")));
@@ -714,11 +717,11 @@ it("keeps one catalogue recovery owner after grouped refresh failure and preserv
   expect(screen.getAllByRole("alert")).toHaveLength(1);
   expect(announce).not.toHaveBeenCalled();
   expect(
-    screen.getByRole("button", { name: "Format" }),
-  ).toHaveAccessibilityValue({
-    text: "4 × 4",
-  });
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+    screen.queryByRole("button", { name: "Format" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
   ).toBe(false);
@@ -1187,7 +1190,7 @@ it("opens division creation from the catalogue for a lifecycle-only operator", a
   expect(await screen.findByLabelText("Nom de la division")).toBeOnTheScreen();
 });
 
-it("keeps classification choices but disables editing after a current resource refusal", async () => {
+it("hides every classification command after a current resource refusal", async () => {
   // Given
   stored.setting = classification;
   const user = userEvent.setup();
@@ -1211,16 +1214,17 @@ it("keeps classification choices but disables editing after a current resource r
     }),
   ).toBeOnTheScreen();
   expect(
-    screen.getByRole("button", { name: "Format" }),
+    screen.queryByRole("button", { name: "Format" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Format", includeHiddenElements: true }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Format" })).toBeDisabled(),
-  );
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-  expect(screen.getByText("Modifications non enregistrées")).toBeOnTheScreen();
 });
 
-it("keeps an open selector's known choices visible and read-only after its grant is withdrawn", async () => {
+it("hides every choice in an open selector after its grant is withdrawn", async () => {
   // Given
   stored.setting = classification;
   const user = userEvent.setup();
@@ -1240,186 +1244,49 @@ it("keeps an open selector's known choices visible and read-only after its grant
   );
 
   // Then
-  await waitFor(() =>
-    expect(screen.getByRole("radio", { name: "2 × 2" })).toBeDisabled(),
-  );
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(screen.queryByRole("radio", { name: "2 × 2" })).not.toBeOnTheScreen();
   expect(
-    screen.getByRole("radio", { name: "4 × 4", checked: true }),
-  ).toBeDisabled();
-  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
-  // When
-  await user.press(screen.getByRole("radio", { name: "2 × 2" }));
-  // Then
-  expect(
-    screen.getByRole("radio", { name: "4 × 4", checked: true }),
+    screen.getByRole("radio", {
+      name: "4 × 4",
+      checked: true,
+      includeHiddenElements: true,
+    }),
   ).toBeOnTheScreen();
 });
 
-it.each([
-  {
-    authority: "retained after an account outage",
-    accountStatus: 503,
-    canRetry: true,
-  },
-  { authority: "withdrawn", accountStatus: 200, canRetry: false },
-])(
-  "keeps a refused division selector explicit when its authority is $authority",
-  async ({ accountStatus, canRetry }) => {
-    // Given
-    stored.setting = classification;
-    const user = userEvent.setup();
-    await renderEditor();
-    await user.press(await screen.findByRole("button", { name: "Format" }));
-    await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
-    await screen.findByRole("button", { name: "Format" });
-    await user.press(screen.getByRole("button", { name: "Division" }));
-    await screen.findByRole("radio", { name: "National 2" });
-    mockFetch.mockImplementation((url, options) =>
-      String(url).includes("/divisions?")
-        ? Promise.resolve(json({ title: "Forbidden", status: 403 }, 403))
-        : respond(url, options),
-    );
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-    await screen.findByRole("alert", { name: "Une erreur est survenue" });
-    expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+it("blocks an open selector after an account read fails and restores the same parent draft on Retry", async () => {
+  stored.setting = classification;
+  const user = userEvent.setup();
+  await renderEditor();
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  mockFetch.mockImplementation((url, options) =>
+    String(url).endsWith("/accounts/me")
+      ? Promise.resolve(json({ title: "Unavailable", status: 503 }, 503))
+      : respond(url, options),
+  );
 
-    // When
-    permissions = {};
-    mockFetch.mockImplementation((url, options) =>
-      String(url).endsWith("/accounts/me") && accountStatus !== 200
-        ? Promise.resolve(
-            json(
-              { title: "Unavailable", status: accountStatus },
-              accountStatus,
-            ),
-          )
-        : respond(url, options),
-    );
-    await act(async () =>
-      client.refetchQueries({
-        predicate: ({ queryKey }) => queryKey.includes("/accounts/me"),
-      }),
-    );
+  await act(() =>
+    client.refetchQueries({
+      predicate: ({ queryKey }) => queryKey.includes("/accounts/me"),
+    }),
+  );
 
-    // Then
-    await waitFor(() => {
-      const format = screen.getByRole("button", {
-        name: "Format",
-        includeHiddenElements: true,
-      });
-      if (accountStatus === 503) {
-        expect(format).toBeEnabled();
-      } else {
-        expect(format).toBeDisabled();
-      }
-    });
-    expect(
-      screen.getByRole("alert", { name: "Une erreur est survenue" }),
-    ).toBeOnTheScreen();
-    expect(
-      screen.queryByRole("radio", { name: "National 2" }),
-    ).not.toBeOnTheScreen();
-    expect(screen.queryAllByRole("button", { name: "Réessayer" })).toHaveLength(
-      canRetry ? 1 : 0,
-    );
-
-    // When
-    await user.press(screen.getByRole("button", { name: "Fermer" }));
-
-    // Then
-    expect(
-      await screen.findByRole("button", { name: "Format" }),
-    ).toHaveAccessibilityValue({ text: "4 × 4" });
-    expect(
-      screen.getByText("Modifications non enregistrées"),
-    ).toBeOnTheScreen();
-    expect(
-      mockFetch.mock.calls.every(([, options]) => options?.method === "GET"),
-    ).toBe(true);
-  },
-);
-
-it.each([200, 403, 503])(
-  "retains or withdraws the empty division selector's commands according to account response %s",
-  async (accountStatus) => {
-    // Given
-    stored.setting = classification;
-    mockFetch.mockImplementation((url, options) =>
-      String(url).includes("/divisions?")
-        ? Promise.resolve(json({ items: [] }))
-        : respond(url, options),
-    );
-    const user = userEvent.setup();
-    await renderEditor();
-    await user.press(await screen.findByRole("button", { name: "Format" }));
-    await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
-    await screen.findByRole("button", { name: "Format" });
-    await user.press(screen.getByRole("button", { name: "Division" }));
-    await screen.findByRole("header", { name: "Aucune division active" });
-    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
-    expect(screen.getByRole("button", { name: "Actualiser" })).toBeEnabled();
-
-    // When
-    permissions = {};
-    mockFetch.mockImplementation((url, options) => {
-      if (String(url).endsWith("/accounts/me") && accountStatus !== 200) {
-        return Promise.resolve(
-          json({ title: "Unavailable", status: accountStatus }, accountStatus),
-        );
-      }
-      if (String(url).includes("/divisions?")) {
-        return Promise.resolve(json({ items: [] }));
-      }
-      return respond(url, options);
-    });
-    await act(async () =>
-      client.refetchQueries({
-        predicate: ({ queryKey }) => queryKey.includes("/accounts/me"),
-      }),
-    );
-
-    // Then
-    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
-    if (accountStatus === 503) {
-      expect(
-        screen.getByRole("header", { name: "Aucune division active" }),
-      ).toBeOnTheScreen();
-      expect(screen.getByRole("button", { name: "Actualiser" })).toBeEnabled();
-      expect(screen.queryByRole("alert")).toBeNull();
-      expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
-    } else {
-      expect(
-        await screen.findByRole("alert", { name: "Une erreur est survenue" }),
-      ).toBeOnTheScreen();
-      expect(screen.queryByRole("button", { name: "Actualiser" })).toBeNull();
-      expect(
-        screen.queryByRole("header", { name: "Aucune division active" }),
-      ).toBeNull();
-      expect(
-        screen.queryAllByRole("button", { name: "Réessayer" }),
-      ).toHaveLength(accountStatus === 200 ? 0 : 1);
-    }
-
-    // When
-    await user.press(screen.getByRole("button", { name: "Fermer" }));
-
-    // Then
-    expect(
-      await screen.findByRole("button", { name: "Format" }),
-    ).toHaveAccessibilityValue({ text: "4 × 4" });
-    if (accountStatus === 503) {
-      expect(screen.getByRole("button", { name: "Format" })).toBeEnabled();
-    } else {
-      expect(screen.getByRole("button", { name: "Format" })).toBeDisabled();
-    }
-    expect(
-      screen.getByText("Modifications non enregistrées"),
-    ).toBeOnTheScreen();
-    expect(
-      mockFetch.mock.calls.every(([, options]) => options?.method === "GET"),
-    ).toBe(true);
-  },
-);
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(screen.queryByRole("radio", { name: "2 × 2" })).not.toBeOnTheScreen();
+  mockFetch.mockImplementation(respond);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await screen.findByRole("radio", { name: "4 × 4", checked: true });
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+  expect(
+    await screen.findByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
+  expect(
+    mockFetch.mock.calls.every(([, options]) => options?.method === "GET"),
+  ).toBe(true);
+});
 
 it("replaces an empty division selector with its read error after a failed reload and preserves the parent draft", async () => {
   // Given
@@ -1443,7 +1310,7 @@ it("replaces an empty division selector with its read error after a failed reloa
   );
 
   // When
-  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
   await user.press(screen.getByRole("button", { name: "Actualiser" }));
 
   // Then
@@ -1460,7 +1327,13 @@ it("replaces an empty division selector with its read error after a failed reloa
   // When
   await user.press(screen.getByRole("button", { name: "Fermer" }));
 
-  // Then
+  // Then: the same consumed catalogue also blocks the parent editor.
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(
+    screen.queryByRole("button", { name: "Format" }),
+  ).not.toBeOnTheScreen();
+  mockFetch.mockImplementation(respond);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
   expect(
     await screen.findByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });
@@ -1493,10 +1366,8 @@ it("keeps an open format selector unavailable through a refused then failed clas
   );
 
   // Then
-  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
-  await waitFor(() =>
-    expect(screen.getByRole("radio", { name: "2 × 2" })).toBeDisabled(),
-  );
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(screen.queryByRole("radio", { name: "2 × 2" })).not.toBeOnTheScreen();
 
   // When
   status = 503;
@@ -1505,19 +1376,19 @@ it("keeps an open format selector unavailable through a refused then failed clas
       predicate: ({ queryKey }) => queryKey.includes(classificationPath),
     }),
   );
-  await user.press(await screen.findByRole("radio", { name: "2 × 2" }));
-
   // Then
-  await waitFor(() =>
-    expect(screen.getByRole("radio", { name: "2 × 2" })).toBeDisabled(),
-  );
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(screen.queryByRole("radio", { name: "2 × 2" })).not.toBeOnTheScreen();
   expect(
-    screen.getByRole("radio", { name: "4 × 4", checked: true }),
+    screen.getByRole("radio", {
+      name: "4 × 4",
+      checked: true,
+      includeHiddenElements: true,
+    }),
   ).toBeOnTheScreen();
-  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
 });
 
-it("admits classification while loading only its custom choices", async () => {
+it("uses the first-load skeleton until all consumed classification data loads", async () => {
   // Given
   stored.setting = classification;
   const catalogue = Promise.withResolvers<Response>();
@@ -1535,11 +1406,13 @@ it("admits classification while loading only its custom choices", async () => {
   await act(() => classificationRead.resolve(json(stored)));
 
   // Then
+  await screen.findByRole("progressbar");
   expect(
-    await screen.findByRole("button", { name: "Enregistrer" }),
-  ).toBeDisabled();
-  expect(screen.getByRole("radio", { name: "Du pack" })).toBeEnabled();
-  expect(screen.getAllByRole("progressbar")).toHaveLength(1);
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("radio", { name: "Du pack" }),
+  ).not.toBeOnTheScreen();
 
   // When
   await act(() => catalogue.resolve(json({ items: [division] })));
@@ -1570,7 +1443,7 @@ it("recovers a failed initial custom catalogue as one read without exposing a UU
   expect(
     screen.queryByText(/Choisissez une division active disponible/),
   ).not.toBeOnTheScreen();
-  expect(screen.queryByLabelText("Actualiser les données")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
 
   // When
   unavailable = false;
@@ -1585,51 +1458,52 @@ it("recovers a failed initial custom catalogue as one read without exposing a UU
   ).toBe(false);
 });
 
-it("requires the catalogue for custom choices and saves Du pack during catalogue 503", async () => {
-  // Given
-  jest.spyOn(Alert, "alert");
+it("keeps the complete classification form hidden through active and repeated catalogue Retry, then returns to its draft", async () => {
+  stored.setting = classification;
+  const user = userEvent.setup();
+  await renderEditor();
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
   mockFetch.mockImplementation((url, options) =>
     String(url).includes("/divisions?")
       ? Promise.resolve(json({ title: "Unavailable", status: 503 }, 503))
       : respond(url, options),
   );
-  const user = userEvent.setup();
-  await renderEditor();
 
-  // When
-  await user.press(await screen.findByRole("radio", { name: "Personnalisé" }));
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
-  // Then
+  await screen.findByRole("button", { name: "Réessayer" });
   expect(
-    await screen.findByRole("button", { name: "Réessayer" }),
-  ).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-  expect(
-    screen.queryByText(/Choisissez une division active disponible/),
+    screen.queryByRole("radio", { name: "Du pack" }),
   ).not.toBeOnTheScreen();
   expect(
-    screen.queryByText(/La division sélectionnée est inactive/),
+    screen.queryByRole("button", { name: "Enregistrer" }),
   ).not.toBeOnTheScreen();
-  expect(screen.getByText("Modifications non enregistrées")).toBeOnTheScreen();
-  expect(Alert.alert).not.toHaveBeenCalled();
-
-  // When
-  await user.press(screen.getByRole("radio", { name: "Du pack" }));
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-
-  // Then
-  await waitFor(() =>
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining(`/pools/${id}/classification`),
-      expect.objectContaining({
-        method: "PUT",
-        body: JSON.stringify({ revision: "r1", classification: null }),
-      }),
-    ),
+  const retry = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/divisions?") ? retry.promise : respond(url, options),
   );
-  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
-  expect(Alert.alert).not.toHaveBeenCalled();
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeBusy();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+  await act(() =>
+    retry.resolve(json({ title: "Unavailable", status: 503 }, 503)),
+  );
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled(),
+  );
+  expect(
+    screen.queryByRole("radio", { name: "Du pack" }),
+  ).not.toBeOnTheScreen();
+  mockFetch.mockImplementation(respond);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  expect(
+    await screen.findByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
+  ).toBe(false);
 });
 
 it("keeps the known draft and revision when indispensable catalogue rereading fails", async () => {
@@ -1653,14 +1527,18 @@ it("keeps the known draft and revision when indispensable catalogue rereading fa
   );
 
   // Then
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
-  );
+  await screen.findByRole("button", { name: "Réessayer" });
   expect(
-    screen.getByRole("button", { name: "Format" }),
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Format", includeHiddenElements: true }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });
   expect(
-    screen.getByRole("button", { name: "Relire la classification" }),
+    screen.getByRole("button", {
+      name: "Relire la classification",
+      includeHiddenElements: true,
+    }),
   ).toBeOnTheScreen();
   expect(screen.queryByText(/État relu/)).not.toBeOnTheScreen();
   expect(
@@ -1854,17 +1732,18 @@ it("keeps explicit revision rereading available after its classification read fa
   );
 
   // Then
-  await screen.findByText(/La relecture a échoué/);
+  await screen.findByRole("button", { name: "Réessayer" });
   expect(
-    screen.getByRole("button", { name: "Relire la classification" }),
-  ).toBeEnabled();
+    screen.queryByRole("button", { name: "Relire la classification" }),
+  ).not.toBeOnTheScreen();
   expect(
-    screen.getByRole("button", { name: "Format" }),
+    screen.getByRole("button", { name: "Format", includeHiddenElements: true }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
 
   // When
   mockFetch.mockImplementation(respond);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await screen.findByRole("button", { name: "Relire la classification" });
   await user.press(
     screen.getByRole("button", { name: "Relire la classification" }),
   );
@@ -1911,21 +1790,41 @@ it("retains the accepted classification revision when the following read fails",
   // Then
   await screen.findByRole("alert", { name: "Une erreur est survenue" });
   expect(
-    screen.getByRole("button", { name: "Format" }),
+    screen.queryByRole("button", { name: "Format" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Format", includeHiddenElements: true }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });
   expect(
     screen.queryByRole("button", { name: "Relire la classification" }),
   ).not.toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
   expect(
     screen.queryByText("Modifications non enregistrées"),
   ).not.toBeOnTheScreen();
 
-  // When
+  // When: recovery is read-only and returns to the acknowledged baseline.
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PUT"
+      ? Promise.resolve(json(stored))
+      : respond(url, options),
+  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await screen.findByRole("button", { name: "Enregistrer" });
+  expect(writes).toBe(1);
+  expect(
+    screen.queryByRole("button", { name: "Relire la classification" }),
+  ).not.toBeOnTheScreen();
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
-  await waitFor(() => expect(writes).toBe(2));
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+    ).toHaveLength(2),
+  );
   const requests = mockFetch.mock.calls.filter(
     ([, options]) => options?.method === "PUT",
   );

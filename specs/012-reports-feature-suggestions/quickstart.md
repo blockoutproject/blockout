@@ -49,7 +49,7 @@ Run the form/admission boundary after contract generation:
 npm run test --workspace=@blockout/mobile -- --runInBand --runTestsByPath src/features/support/__tests__/support-owner-integration.test.tsx
 ```
 
-Exercise the form and access rows through the actual application root, F05 session, F12 admission, F13 transport and support routes. Expect no credential acquisition on ordinary preparation/sending, no direct-route bypass of global gates, reliable allowlisted context and no ownership authority from a declared contact or account. Controlled 201 responses establish client behavior, not real private receipt.
+Exercise the form and access rows through the actual application root, F05 session, F12 admission, F13 transport and support routes. Keep account data absent or its existing read failed and verify the same Support draft stays editable without an active account/context lookup; late passive contact must not replace an edited address. Expect no credential acquisition on ordinary preparation/sending, no direct-route bypass of global gates, reliable allowlisted context and no ownership authority from a declared contact or account. Controlled 201 responses establish client behavior, not real private receipt.
 
 ## Native attachments and current-visit lifetime
 

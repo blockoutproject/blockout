@@ -34,7 +34,7 @@ export function CreateSourceForm({
 
   /** Keeps the original scope and input after refusal; acceptance resets only this candidate's fields. */
   async function submit(values: CreateSourceValues) {
-    if (disabled) {
+    if (disabled || !baseline) {
       return;
     }
     try {

@@ -64,18 +64,21 @@ export function AgeDeclarationScreen() {
 
   /** Waits for installation storage before mounting the ready declaration form. */
   function renderContent() {
+    if (age.readFailed) {
+      return (
+        <ScreenState>
+          <ErrorState
+            onRetry={() => void age.retryRead()}
+            retrying={age.loading}
+          />
+        </ScreenState>
+      );
+    }
     if (age.loading) {
       return (
         <PageContent>
           <AgeLoading />
         </PageContent>
-      );
-    }
-    if (age.readFailed) {
-      return (
-        <ScreenState>
-          <ErrorState onRetry={age.retryRead} />
-        </ScreenState>
       );
     }
     return (

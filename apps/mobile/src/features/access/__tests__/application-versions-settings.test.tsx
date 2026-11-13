@@ -205,7 +205,7 @@ it("shows loading without publishing defaults, then retries a failed initial rea
   expect(
     screen.queryByRole("button", { name: "Enregistrer" }),
   ).not.toBeOnTheScreen();
-  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
 
   // When
   await act(async () =>
@@ -224,7 +224,7 @@ it("shows loading without publishing defaults, then retries a failed initial rea
   // Then
   expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
   expect(screen.queryByLabelText("Message commun")).not.toBeOnTheScreen();
-  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
 
   // When
   mockFetch.mockImplementation(async (url) =>
@@ -700,20 +700,30 @@ it("keeps dirty values and blocks writes after a newer refetch and a failed rere
   await user.press(screen.getByRole("button", { name: "Relire les réglages" }));
 
   // Then
-  await screen.findByText(
-    "Une erreur est survenue. Veuillez réessayer plus tard.",
+  expect(
+    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Message commun")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  mockFetch.mockImplementation(async (url) =>
+    json(String(url).endsWith("/accounts/me") ? account : stored),
   );
-  expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
-    "Mon brouillon",
-  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByDisplayValue("Mon brouillon")).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(
+    screen.getByRole("button", { name: "Relire les réglages" }),
+  ).toBeEnabled();
 });
-it.each([
-  { outcome: "revoked", editable: false },
-  { outcome: "unavailable", editable: true },
-])(
-  "retains input and editing=$editable after $outcome permissions while the server refuses a held save",
-  async ({ outcome, editable }) => {
+it.each(["revoked", "unavailable"])(
+  "hides the mounted draft after %s account data while a held command remains server-authorized",
+  async (outcome) => {
     // Given
     const user = userEvent.setup();
     await renderSettings();
@@ -770,26 +780,17 @@ it.each([
       }),
     );
 
-    // Then: a confirmed revocation withdraws editing; a technical reread keeps matching grants and data.
+    // Then: retained matching data does not expose an editor with an unavailable dependency.
     if (outcome === "unavailable") {
       expect(accountQuery.state.error).toMatchObject({ status: 503 });
       expect(client.getQueryData(accountQuery.queryKey)).toEqual(account);
     }
-    await waitFor(() => {
-      if (editable) {
-        expect(screen.getByLabelText("Message commun")).toBeEnabled();
-      } else {
-        expect(screen.getByLabelText("Message commun")).toBeDisabled();
-      }
-    });
     expect(
-      screen.getByRole("button", {
-        name: "Enregistrer",
-        disabled: !editable,
-      }),
+      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
     ).toBeOnTheScreen();
+    expect(screen.queryByLabelText("Message commun")).not.toBeOnTheScreen();
     expect(
-      screen.queryByRole("alert", { name: "Une erreur est survenue" }),
+      screen.queryByRole("button", { name: "Enregistrer" }),
     ).not.toBeOnTheScreen();
 
     // When: the already-held confirmation still lets the server authorize its exact original command.
@@ -799,16 +800,7 @@ it.each([
     expect(
       await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
     ).toBeOnTheScreen();
-    expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
-      "Mon brouillon",
-    );
-    await waitFor(() => {
-      if (editable) {
-        expect(screen.getByLabelText("Message commun")).toBeEnabled();
-      } else {
-        expect(screen.getByLabelText("Message commun")).toBeDisabled();
-      }
-    });
+    expect(screen.queryByLabelText("Message commun")).not.toBeOnTheScreen();
     const writes = mockFetch.mock.calls.filter(
       ([, options]) => options?.method === "PATCH",
     );
@@ -818,6 +810,17 @@ it.each([
       message: "Mon brouillon",
     });
     expect(client.getQueryData(settingsKey())).toEqual(initial);
+
+    // When
+    mockFetch.mockImplementation(async (url) =>
+      json(String(url).endsWith("/accounts/me") ? account : stored),
+    );
+    await act(async () =>
+      client.refetchQueries({ queryKey: accountQuery.queryKey, exact: true }),
+    );
+
+    // Then
+    expect(await screen.findByDisplayValue("Mon brouillon")).toBeOnTheScreen();
   },
 );
 
@@ -844,7 +847,7 @@ it("retains its draft when the server refuses a held confirmation after a settin
   );
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await screen.findByRole("alert", {
-    name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    name: "Une erreur est survenue",
   });
 
   // When
@@ -856,16 +859,16 @@ it("retains its draft when the server refuses a held confirmation after a settin
       mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
     ).toHaveLength(1),
   );
-  expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
-    "Mon brouillon",
-  );
-  expect(screen.getByLabelText("Message commun")).toBeDisabled();
+  expect(screen.queryByLabelText("Message commun")).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
 
   // When
   mockFetch.mockImplementation(async (url) =>
     json(String(url).endsWith("/accounts/me") ? account : stored),
   );
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
   await waitFor(() =>
@@ -953,12 +956,19 @@ it("preserves dirty input through older valid data and an invalid refresh respon
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
-  await screen.findByText(
-    "Une erreur est survenue. Veuillez réessayer plus tard.",
+  expect(
+    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Message commun")).not.toBeOnTheScreen();
+
+  // When
+  mockFetch.mockImplementation(async (url) =>
+    json(String(url).endsWith("/accounts/me") ? account : stored),
   );
-  expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
-    "Mon brouillon",
-  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByDisplayValue("Mon brouillon")).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
   ).toBe(false);

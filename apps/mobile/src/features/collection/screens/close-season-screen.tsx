@@ -1,6 +1,4 @@
-import { useState } from "react";
 import { StyleSheet } from "react-native";
-import type { CollectionSeasonResponse } from "../../../../.generated/schemas/index.zod";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { FormScrollView } from "@/shared/components/form-scroll-view";
 import { Page, PageContent } from "@/shared/components/page";
@@ -19,20 +17,14 @@ export function CloseSeasonScreen({
   const editing = useCloseCollectionSeason(seasonId);
   const { authority, season } = editing;
   const visitKey = `${authority.session.subject}:${seasonId}`;
-  const [snapshot, setSnapshot] = useState<
-    { key: string; season: CollectionSeasonResponse } | undefined
-  >();
-  const seed = snapshot?.key === visitKey ? snapshot : undefined;
-  if (!seed && season.data) {
-    // This initial snapshot only seeds the form visit; it never follows background projections.
-    setSnapshot({ key: visitKey, season: season.data });
-  }
-  const blocked = !authority.enabled || !season.data || hasReadError(season);
+  const requiredRead = [authority.account, season].find(hasReadError) ?? season;
+  const blocked =
+    !authority.enabled || !season.data || hasReadError(requiredRead);
   const pending = !authority.enabled
     ? authority.sessionStatus === "restoring" ||
       (authority.sessionStatus === "authenticated" &&
         authority.account.isLoading)
-    : !hasReadError(season) && season.isLoading;
+    : !hasReadError(requiredRead) && season.isLoading;
   const FeedbackLayout = pending ? PageContent : ScreenState;
 
   // Removing RefreshControl changes React Native’s content ancestry and disposes the mounted draft.
@@ -56,20 +48,18 @@ export function CloseSeasonScreen({
               />
             ) : (
               <ReadFeedback
-                query={season}
+                query={requiredRead}
                 loadingContent={<CloseSeasonLoading />}
               />
             )}
           </FeedbackLayout>
         )}
         <PageContent style={blocked ? styles.hidden : undefined}>
-          {seed && (
-            <CloseSeasonForm
-              key={visitKey}
-              season={seed.season}
-              editing={editing}
-            />
-          )}
+          <CloseSeasonForm
+            key={visitKey}
+            season={season.data}
+            editing={editing}
+          />
         </PageContent>
       </FormScrollView>
     </Page>

@@ -230,6 +230,8 @@ RevenueCat's existing process owner serializes native identity work and attribut
 
 ### Query resources and commands
 
+The [whole-form composition](plan.md#frontend-form-conventions) uses the mounted RHF visit and stable native scroller instead of first-success admission, copied initial responses or a recovery store. A failed consumed dependency hides the whole editable region; successful Retry reveals the same draft/files. Catalogue partial availability and reread-error toasts add a second behavior and are not retained. Passive Support contact and photo/logo previews introduce no form read prerequisite; age storage remains local.
+
 Generated functions/key factories and one generated Zod response boundary feed native Query. Reads use ordinary retry/remount behavior unless their resource owns a narrower policy; the default three retries permit four attempts. Native foreground/network detection requires its actual platform adapter; deleting opt-outs creates none. Mutations use retry false and networkMode always, with required invalidation in mutation-option callbacks. Native unmount/removal does not cancel them. Original credentials/targets, server permission/revision checks and route-local form errors remain independent of pending UI.
 
 ### Resource-specific read policies

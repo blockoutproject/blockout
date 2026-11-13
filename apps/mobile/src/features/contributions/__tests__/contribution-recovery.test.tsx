@@ -7,7 +7,6 @@ import {
 import {
   act,
   cleanup,
-  fireEvent,
   render,
   renderHook,
   screen,

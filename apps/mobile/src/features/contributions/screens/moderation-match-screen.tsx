@@ -256,6 +256,8 @@ function ActiveScene({
       ? editing.profile
       : editing.query;
   const blocked = !current || hasReadError(read);
+  const initialPending = !hasReadError(read) && read.isLoading;
+  const FeedbackLayout = initialPending ? View : ScreenState;
 
   /** Session recovery stays with F05; this destination presents its own required private read. */
   function renderReadState() {
@@ -296,7 +298,11 @@ function ActiveScene({
       }
     >
       <View style={styles.header}>
-        {renderReadState()}
+        {blocked && (
+          <FeedbackLayout style={initialPending ? undefined : styles.feedback}>
+            {renderReadState()}
+          </FeedbackLayout>
+        )}
         <View style={[styles.content, blocked && styles.hidden]}>
           {confirmed && (
             <Text
@@ -315,6 +321,7 @@ function ActiveScene({
             </Text>
           )}
           <ModerationPublicationForm
+            key={`${editing.session.subject}:${editing.session.accountId}:${matchId}`}
             ref={form}
             current={current}
             editing={editing}
@@ -565,6 +572,7 @@ function VersionScene({
 }
 
 const styles = StyleSheet.create({
+  feedback: { padding: 0 },
   hidden: { display: "none" },
   content: { gap: tokens.layout.list.gap },
   empty: { alignItems: "center" },

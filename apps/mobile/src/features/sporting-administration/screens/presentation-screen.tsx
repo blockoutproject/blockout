@@ -6,7 +6,6 @@ import {
   getGetDivisionLogoQueryKey,
   getGetTeamLogoQueryKey,
 } from "../../../../.generated/mobile";
-import { useActionFeedback } from "@/shared/components/action-feedback";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { FormScrollView } from "@/shared/components/form-scroll-view";
 import { Page, PageContent } from "@/shared/components/page";
@@ -16,7 +15,8 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { PresentationLoading } from "../components/sporting-editor-loading";
 import { ScreenState } from "@/shared/components/screen-state";
-import { ReadFeedback } from "@/shared/components/read-feedback";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
+import { StyleSheet } from "react-native";
 
 import { ErrorState } from "@/shared/components/state-card";
 import { useAdministrationCapabilities } from "@/features/access/api/use-administration-capabilities";
@@ -137,7 +137,9 @@ function PresentationScreenContent({
       : undefined;
   const pending =
     sessionStatus === "restoring" ||
-    (sessionStatus === "authenticated" && account.isLoading);
+    (sessionStatus === "authenticated" &&
+      account.isLoading &&
+      !hasReadError(account));
 
   /** Names creation separately from editing the addressed sporting resource. */
   function getTitle() {
@@ -155,26 +157,18 @@ function PresentationScreenContent({
   }
 
   const title = getTitle();
-  const feedback = useActionFeedback();
 
   /** Refreshes required presentation and its active optional logo; optional artwork failure adds no notice and a local replacement stays untouched. */
   async function refresh() {
     if (editing.save.isPending) {
       return;
     }
-    feedback.clear();
     if (!canRead) {
-      const result = await account.refetch();
-      if (result.isError && baseline) {
-        feedback.error();
-      }
+      await account.refetch();
       return;
     }
     const result = await editing.query.refetch();
     if (result.isError) {
-      if (result.data) {
-        feedback.error();
-      }
       return;
     }
     if (editing.save.isPending) {
@@ -192,7 +186,7 @@ function PresentationScreenContent({
       return <PresentationLoading kind={target.kind} />;
     } else if (
       sessionStatus === "authenticated" &&
-      (account.isError || account.isPending)
+      (hasReadError(account) || account.isPending)
     ) {
       return (
         <ReadFeedback
@@ -208,48 +202,24 @@ function PresentationScreenContent({
   }
 
   const accessState = getAccessState();
-  const blockingState = !baseline
-    ? (accessState ?? (
-        <ReadFeedback
-          query={editing.query}
-          loadingContent={<PresentationLoading kind={target.kind} />}
-        />
-      ))
-    : undefined;
-  const FeedbackLayout =
-    !baseline && (pending || (!accessState && editing.query.isLoading))
-      ? PageContent
-      : ScreenState;
-
-  /** Keeps loading feedback separate from the retained, current-session editable form. */
-  function renderEditor() {
-    return blockingState ? (
-      <FeedbackLayout>{blockingState}</FeedbackLayout>
-    ) : (
-      <PageContent>
-        {editing.query.data === null && (
-          <ReadFeedback query={editing.query} loadingContent={null} />
-        )}
-        {baseline && (
-          <PresentationForm
-            presentation={presentation ?? baseline}
-            target={target}
-            editing={editing}
-            editor={editor}
-            disabled={!canManage || editing.query.data === null}
-            seasonLabel={seasonLabel}
-            professionalTeam={
-              publicContextEnabled &&
-              target.kind === "team" &&
-              !teamContext.isError
-                ? teamContext.data?.team.professional
-                : undefined
-            }
-          />
-        )}
-      </PageContent>
-    );
-  }
+  const reading =
+    target.kind !== "division-creation" &&
+    (hasReadError(editing.query) || editing.query.isPending);
+  const blockingState =
+    accessState ??
+    (reading ? (
+      <ReadFeedback
+        query={editing.query}
+        loadingContent={<PresentationLoading kind={target.kind} />}
+      />
+    ) : undefined);
+  const loading =
+    pending ||
+    (!accessState &&
+      reading &&
+      !hasReadError(editing.query) &&
+      editing.query.isFetching);
+  const FeedbackLayout = loading ? PageContent : ScreenState;
 
   return (
     <Page
@@ -283,18 +253,50 @@ function PresentationScreenContent({
     >
       <FormScrollView
         refreshControl={
-          !blockingState &&
-          sessionStatus === "authenticated" &&
           target.kind !== "division-creation" ? (
             <DataRefreshControl
-              enabled={!editing.save.isPending}
+              enabled={
+                !blockingState &&
+                sessionStatus === "authenticated" &&
+                !editing.save.isPending
+              }
+              fetching={account.isFetching || editing.query.isFetching}
               onRefresh={refresh}
             />
           ) : undefined
         }
       >
-        {renderEditor()}
+        {blockingState && <FeedbackLayout>{blockingState}</FeedbackLayout>}
+        <PageContent
+          style={blockingState ? styles.hidden : undefined}
+          accessibilityElementsHidden={!!blockingState}
+          importantForAccessibility={
+            blockingState ? "no-hide-descendants" : "auto"
+          }
+        >
+          {baseline && (
+            <PresentationForm
+              presentation={presentation ?? baseline}
+              target={target}
+              editing={editing}
+              editor={editor}
+              disabled={
+                !!blockingState || !canManage || editing.query.data === null
+              }
+              seasonLabel={seasonLabel}
+              professionalTeam={
+                publicContextEnabled &&
+                target.kind === "team" &&
+                !teamContext.isError
+                  ? teamContext.data?.team.professional
+                  : undefined
+              }
+            />
+          )}
+        </PageContent>
       </FormScrollView>
     </Page>
   );
 }
+
+const styles = StyleSheet.create({ hidden: { display: "none" } });

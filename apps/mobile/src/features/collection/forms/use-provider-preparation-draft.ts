@@ -10,19 +10,24 @@ import { createSourceValues } from "./create-source-values";
 
 /** Original revision and local feedback belong to this mounted editing visit. */
 interface DraftState {
-  baseline: CollectionSeasonResponse;
+  baseline?: CollectionSeasonResponse;
   selected: string[] | null;
   adding: boolean;
   feedback?: string;
 }
 
-/** Owns RHF fields and their coherent baseline for the mounted route only. */
-export function useProviderPreparationDraft(season: CollectionSeasonResponse) {
+/** Seeds the single editable baseline from the first available read; the mounted visit owns it thereafter. */
+export function useProviderPreparationDraft(
+  season: CollectionSeasonResponse | null | undefined,
+) {
   const [state, update] = useState<DraftState>({
-    baseline: season,
+    baseline: season ?? undefined,
     selected: null,
     adding: false,
   });
+  if (!state.baseline && season) {
+    update({ ...state, baseline: season });
+  }
   const form = useForm<CreateSourceValues>({
     resolver: zodResolver(createSourceSchema),
     defaultValues: createSourceValues(),

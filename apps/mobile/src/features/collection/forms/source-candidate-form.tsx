@@ -28,8 +28,8 @@ import { useSourceCandidateDraft } from "./use-source-candidate-draft";
 
 /** One source editor snapshot; failures and current-state reads preserve its dirty URL until explicit submission. */
 export interface SourceCandidateFormProps {
-  source: SourceBindingResponse;
-  season: CollectionSeasonResponse;
+  source: SourceBindingResponse | null | undefined;
+  season: CollectionSeasonResponse | null | undefined;
   editing: ReturnType<typeof useSourcePreparation>;
 }
 
@@ -47,7 +47,7 @@ export function SourceCandidateForm({
   const mounted = useRef(false);
   const editor = useSourceCandidateDraft(source);
   const state = editor.state;
-  const { baseline, editingUrl, feedback } = state;
+  const { editingUrl, feedback } = state;
   const { control, handleSubmit, reset } = editor.form;
   const { isDirty, dirtyFields } = useFormState({
     control,
@@ -55,11 +55,11 @@ export function SourceCandidateForm({
   const confirmDiscard = useDiscardChanges(isDirty, editor.discard);
   // Subscribe to RHF's dirty fields so keepDirtyValues retains the editable snapshot on reread.
   void dirtyFields;
-  const current =
-    editing.source.data && editing.source.data.revision >= baseline.revision
-      ? editing.source.data
-      : baseline;
-  const savedUrl = current.acceptedUrl ?? current.candidateUrl;
+  const displayed =
+    source && (!state.baseline || source.revision >= state.baseline.revision)
+      ? source
+      : state.baseline;
+  const savedUrl = displayed?.acceptedUrl ?? displayed?.candidateUrl;
   const officialUrl =
     savedUrl && candidateUrlSchema.safeParse(savedUrl).success
       ? new URL(savedUrl)
@@ -67,8 +67,8 @@ export function SourceCandidateForm({
   const handoff = useNativeHandoff(
     officialUrl ? (savedUrl ?? undefined) : undefined,
   );
-  const closed = (editing.season.data ?? season).state === "closed";
-  const readOnly = closed || current.locked || current.launched;
+  const closed = season?.state === "closed";
+  const readOnly = closed || !!displayed?.locked || !!displayed?.launched;
   const busy =
     !editing.source.data ||
     !editing.season.data ||
@@ -76,13 +76,22 @@ export function SourceCandidateForm({
     editing.candidate.isPending ||
     editing.validation.isPending ||
     editing.confirmation.isPending;
-  const reconciliationRequired = current.revision > baseline.revision;
+  const reconciliationRequired =
+    !!displayed &&
+    !!state.baseline &&
+    displayed.revision > state.baseline.revision;
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
     };
   }, []);
+
+  if (!state.baseline || !displayed) {
+    return null;
+  }
+  const baseline = state.baseline;
+  const current = displayed;
 
   /** Cancels the URL draft without releasing the owner needed by later edits and temporary route removal. */
   async function cancelEditing() {
@@ -91,7 +100,11 @@ export function SourceCandidateForm({
     }
     const accepted = await confirmDiscard(() => {
       if (mounted.current && !editing.candidate.isPending) {
-        reset(sourceCandidateValues(editor.state.baseline));
+        reset(sourceCandidateValues(baseline), {
+          keepDirtyValues: false,
+          keepDirty: false,
+          keepErrors: false,
+        });
       }
     });
     if (!accepted || !mounted.current || editing.candidate.isPending) {
@@ -119,7 +132,11 @@ export function SourceCandidateForm({
       editor.update({ ...editor.state, feedback: undefined });
       actionFeedback.clear();
       const accepted = await attempt;
-      reset(sourceCandidateValues(accepted));
+      reset(sourceCandidateValues(accepted), {
+        keepDirtyValues: false,
+        keepDirty: false,
+        keepErrors: false,
+      });
       editor.update({
         baseline: accepted,
         editingUrl: false,
@@ -162,6 +179,7 @@ export function SourceCandidateForm({
       readOnly ||
       reconciliationRequired ||
       isDirty ||
+      !season ||
       current.validation !== "confirmation-required"
     ) {
       return;
@@ -181,7 +199,7 @@ export function SourceCandidateForm({
 
   /** The request boundary rechecks live grants/session even when a native alert callback was held. */
   async function acceptSeason() {
-    if (busy || readOnly || reconciliationRequired || isDirty) {
+    if (busy || readOnly || reconciliationRequired || isDirty || !season) {
       return;
     }
     try {
@@ -218,7 +236,6 @@ export function SourceCandidateForm({
       !seasonResult.data ||
       sourceResult.data.revision < baseline.revision
     ) {
-      actionFeedback.error();
       return;
     }
     reset(sourceCandidateValues(sourceResult.data), {
@@ -234,7 +251,7 @@ export function SourceCandidateForm({
 
   return (
     <View style={styles.form}>
-      <SeasonIdentity season={editing.season.data ?? season} />
+      {season && <SeasonIdentity season={season} />}
       {closed && (
         <Text style={[tokens.typography.strong, { color: colors.text }]}>
           Saison clôturée
@@ -410,7 +427,7 @@ export function SourceCandidateForm({
         onPress={() =>
           router.push({
             pathname: "/collection/[seasonId]/sources/[sourceId]/children",
-            params: { seasonId: season.id, sourceId: current.id },
+            params: { seasonId: baseline.seasonId, sourceId: current.id },
           })
         }
       >

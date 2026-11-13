@@ -148,7 +148,6 @@ export function ApplicationVersionsForm({
       result.isError ||
       result.data.revision < baseline.revision
     ) {
-      actionFeedback.error();
       return;
     }
     editor.update({

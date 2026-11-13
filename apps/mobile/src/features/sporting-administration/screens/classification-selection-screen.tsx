@@ -1,12 +1,12 @@
 import { RefreshCw } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { type UseFormReturn, useWatch } from "react-hook-form";
-import { useActionFeedback } from "@/shared/components/action-feedback";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { Button } from "@/shared/components/button";
 import { EntryGroup } from "@/shared/components/entry-group";
 import { ListLoading } from "@/shared/components/list-loading";
-import { ReadFeedback } from "@/shared/components/read-feedback";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
+import { StyleSheet, View } from "react-native";
 import { SelectionRow } from "@/shared/components/selection-row";
 import { Sheet, SheetContent } from "@/shared/components/sheet";
 import { EmptyState, ErrorState } from "@/shared/components/state-card";
@@ -60,12 +60,12 @@ function Selection({
   };
   field: "divisionId" | "gender" | "format";
 }>) {
-  const feedback = useActionFeedback();
   const router = useRouter();
-  const divisions = useDivisions(field === "divisionId");
+  const custom = useWatch({ control: editor.form.control, name: "custom" });
+  const divisions = useDivisions(custom === true);
   const classification = useClassification(target);
   const value = useWatch({ control: editor.form.control, name: field });
-  // Refused remote choices disappear; static choices and the parent's RHF draft remain available read-only.
+  // Selection edits the same parent draft; consumed data failures hide every choice.
   const catalog = divisions.query.data;
   let label;
   if (field === "divisionId") {
@@ -94,94 +94,101 @@ function Selection({
       { value: "2x2", label: formatLabel("2x2") },
     ];
   }
-  const disabled =
-    divisions.authority.permissions?.manageSportingClassification !== true ||
-    !classification.query.isSuccess;
+  const { authority } = classification;
+  const disabled = !authority.enabled || !classification.query.isSuccess;
+  const reads = [
+    authority.account,
+    classification.query,
+    ...(custom ? [divisions.query] : []),
+  ];
+  const read =
+    reads.find(hasReadError) ??
+    reads.find((query) => query.isPending && query.isFetching);
 
-  /** Rereads the current remote choice owner while preserving static choices and the parent draft. */
+  /** Reuses this form visit's existing reads and never changes its editing revision or draft. */
   async function refresh() {
-    const result = divisions.authority.enabled
-      ? await divisions.query.refetch()
-      : await divisions.authority.account.refetch();
-    if (result.isError && choices.length > 0) {
-      feedback.error();
+    if (!authority.enabled) {
+      await authority.account.refetch();
+      return;
     }
+    await Promise.all([
+      ...(hasReadError(authority.account) ? [authority.account.refetch()] : []),
+      classification.query.refetch(),
+      ...(custom ? [divisions.query.refetch()] : []),
+    ]);
   }
+
+  const blockingState = !authority.enabled ? (
+    <AccessFeedback
+      {...authority}
+      loadingContent={<ListLoading label="Chargement des divisions" />}
+    />
+  ) : read ? (
+    <ReadFeedback
+      query={{ ...read, isFetching: reads.some((query) => query.isFetching) }}
+      onRetry={refresh}
+      loadingContent={<ListLoading label="Chargement des divisions" />}
+    />
+  ) : undefined;
 
   return (
     <Sheet
       title={label}
       onClose={() => router.back()}
       refreshControl={
-        field === "divisionId" &&
-        catalog &&
-        choices.length > 0 &&
-        divisions.authority.sessionStatus === "authenticated" ? (
-          <DataRefreshControl onRefresh={refresh} />
+        field === "divisionId" ? (
+          <DataRefreshControl
+            enabled={!blockingState && !!catalog && choices.length > 0}
+            fetching={reads.some((query) => query.isFetching)}
+            onRefresh={refresh}
+          />
         ) : undefined
       }
     >
-      {!divisions.authority.enabled &&
-        field === "divisionId" &&
-        choices.length === 0 && (
+      {blockingState && <SheetContent>{blockingState}</SheetContent>}
+      <View
+        style={blockingState ? styles.hidden : undefined}
+        accessibilityElementsHidden={!!blockingState}
+        importantForAccessibility={
+          blockingState ? "no-hide-descendants" : "auto"
+        }
+      >
+        {field === "divisionId" && catalog && choices.length === 0 && (
           <SheetContent>
-            <AccessFeedback
-              {...divisions.authority}
-              loadingContent={<ListLoading label="Chargement des divisions" />}
-            />
+            <EmptyState title="Aucune division active">
+              <Button
+                label="Actualiser"
+                leadingIcon={RefreshCw}
+                onPress={() => void refresh()}
+                loading={divisions.query.isFetching}
+              />
+            </EmptyState>
           </SheetContent>
         )}
-      {divisions.authority.enabled && field === "divisionId" && !catalog && (
-        <SheetContent>
-          <ReadFeedback
-            query={divisions.query}
-            loadingContent={<ListLoading label="Chargement des divisions" />}
-          />
-        </SheetContent>
-      )}
-      {divisions.authority.enabled &&
-        field === "divisionId" &&
-        catalog &&
-        choices.length === 0 && (
+        {choices.length > 0 && (
           <SheetContent>
-            {divisions.query.isError ? (
-              <ErrorState
-                onRetry={() => void refresh()}
-                retrying={divisions.query.isFetching}
-              />
-            ) : (
-              <EmptyState title="Aucune division active">
-                <Button
-                  label="Actualiser"
-                  leadingIcon={RefreshCw}
-                  onPress={() => void refresh()}
-                  loading={divisions.query.isFetching}
+            <EntryGroup>
+              {choices.map((choice) => (
+                <SelectionRow
+                  key={choice.value}
+                  label={choice.label}
+                  selected={choice.value === value}
+                  disabled={disabled}
+                  onPress={() => {
+                    editor.form.setValue(field, choice.value, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                    router.back();
+                  }}
                 />
-              </EmptyState>
-            )}
+              ))}
+            </EntryGroup>
           </SheetContent>
         )}
-      {choices.length > 0 && (
-        <SheetContent>
-          <EntryGroup>
-            {choices.map((choice) => (
-              <SelectionRow
-                key={choice.value}
-                label={choice.label}
-                selected={choice.value === value}
-                disabled={disabled}
-                onPress={() => {
-                  editor.form.setValue(field, choice.value, {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  });
-                  router.back();
-                }}
-              />
-            ))}
-          </EntryGroup>
-        </SheetContent>
-      )}
+      </View>
     </Sheet>
   );
 }
+
+const styles = StyleSheet.create({ hidden: { display: "none" } });

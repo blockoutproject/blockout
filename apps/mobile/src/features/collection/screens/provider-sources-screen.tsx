@@ -1,9 +1,5 @@
-import { useState } from "react";
 import { StyleSheet } from "react-native";
-import type {
-  CollectionProviderEnum,
-  CollectionSeasonResponse,
-} from "../../../../.generated/schemas/index.zod";
+import type { CollectionProviderEnum } from "../../../../.generated/schemas/index.zod";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { FormScrollView } from "@/shared/components/form-scroll-view";
 import { Page, PageContent } from "@/shared/components/page";
@@ -29,18 +25,12 @@ export function ProviderSourcesScreen({
   const editing = useSeasonPreparation(seasonId);
   const { authority, season, sources } = editing;
   const visitKey = `${authority.session.subject}:${seasonId}:${provider}`;
-  const [snapshot, setSnapshot] = useState<
-    { key: string; season: CollectionSeasonResponse } | undefined
-  >();
-  const seed = snapshot?.key === visitKey ? snapshot : undefined;
-  if (!seed && season.data && sources.data) {
-    // This initial snapshot only seeds the form visit; it never follows background projections.
-    setSnapshot({ key: visitKey, season: season.data });
-  }
   const requiredRead =
-    [season, sources].find(hasReadError) ?? (!season.data ? season : sources);
+    [authority.account, season, sources].find(hasReadError) ??
+    (!season.data ? season : sources);
   const blocked =
     !authority.enabled ||
+    hasReadError(authority.account) ||
     !season.data ||
     !sources.data ||
     hasReadError(season) ||
@@ -85,14 +75,12 @@ export function ProviderSourcesScreen({
           </FeedbackLayout>
         )}
         <PageContent style={blocked ? styles.hidden : undefined}>
-          {seed && (
-            <ProviderPreparationForm
-              key={visitKey}
-              season={seed.season}
-              provider={provider}
-              editing={editing}
-            />
-          )}
+          <ProviderPreparationForm
+            key={visitKey}
+            season={sources.data ? season.data : null}
+            provider={provider}
+            editing={editing}
+          />
         </PageContent>
       </FormScrollView>
     </Page>

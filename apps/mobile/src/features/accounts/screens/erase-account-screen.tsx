@@ -13,7 +13,8 @@ import {
 import { ApiError } from "@/shared/api/api-fetch";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { Button } from "@/shared/components/button";
-import { Page, PageContent, PageScrollView } from "@/shared/components/page";
+import { Page, PageContent } from "@/shared/components/page";
+import { FormScrollView } from "@/shared/components/form-scroll-view";
 import { PageHeader } from "@/shared/components/page-header";
 import { LoadingGroup } from "@/shared/components/loading-group";
 import { Skeleton } from "@/shared/components/skeleton";
@@ -104,7 +105,7 @@ export function EraseAccountScreen({
 
   return (
     <Page header={<PageHeader title="Supprimer mon compte ?" />}>
-      <PageScrollView>
+      <FormScrollView>
         {admitted && originalAccountId && session.subject ? (
           <ErasureConfirmation
             accountId={originalAccountId}
@@ -122,7 +123,7 @@ export function EraseAccountScreen({
         ) : (
           readFeedback()
         )}
-      </PageScrollView>
+      </FormScrollView>
     </Page>
   );
 }
@@ -217,78 +218,84 @@ function ErasureConfirmation({
     command.mutate();
   }
 
-  if (readFeedback) {
-    return readFeedback;
-  }
-
   return (
-    <PageContent style={styles.content}>
-      <Text style={[styles.body, { color: colors.text }]}>
-        Votre compte et vos données seront supprimés définitivement.
-      </Text>
-      <Text style={[styles.body, { color: colors.text }]}>
-        Supprimer le compte ne résilie pas votre abonnement Pro : gérez-le dans
-        l’App Store ou Google Play.
-      </Text>
-      <Controller
-        control={control}
-        name="confirmed"
-        render={({ field }) => (
-          <Pressable
-            accessibilityRole="checkbox"
-            accessibilityLabel="Je confirme la suppression de mon compte."
-            accessibilityState={{
-              checked: field.value,
-              disabled: busy || unavailable,
-            }}
-            disabled={busy || unavailable}
-            onPress={() => field.onChange(!field.value)}
-            style={styles.confirmation}
-          >
-            <View
-              style={[
-                styles.checkbox,
-                {
-                  backgroundColor: colors.surface,
-                  borderColor: colors.secondaryText,
-                },
-              ]}
+    <>
+      {readFeedback}
+      <PageContent
+        style={[styles.content, readFeedback ? styles.hidden : undefined]}
+        accessibilityElementsHidden={!!readFeedback}
+        importantForAccessibility={
+          readFeedback ? "no-hide-descendants" : "auto"
+        }
+      >
+        <Text style={[styles.body, { color: colors.text }]}>
+          Votre compte et vos données seront supprimés définitivement.
+        </Text>
+        <Text style={[styles.body, { color: colors.text }]}>
+          Supprimer le compte ne résilie pas votre abonnement Pro : gérez-le
+          dans l’App Store ou Google Play.
+        </Text>
+        <Controller
+          control={control}
+          name="confirmed"
+          render={({ field }) => (
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityLabel="Je confirme la suppression de mon compte."
+              accessibilityState={{
+                checked: field.value,
+                disabled: busy || unavailable,
+              }}
+              disabled={busy || unavailable}
+              onPress={() => field.onChange(!field.value)}
+              style={styles.confirmation}
             >
-              {field.value && (
-                <Check
-                  accessible={false}
-                  size={tokens.size.icon.md}
-                  color={colors.icon}
-                />
-              )}
-            </View>
-            <Text style={[styles.label, { color: colors.text }]}>
-              Je confirme la suppression de mon compte.
-            </Text>
-          </Pressable>
-        )}
-      />
-      <Button
-        label="Supprimer mon compte"
-        variant="destructive"
-        fullWidth
-        loading={busy}
-        disabled={busy || !confirmed || unavailable}
-        onPress={() => void handleSubmit(run)()}
-      />
-      <Button
-        label="Annuler"
-        variant="secondary"
-        fullWidth
-        disabled={busy}
-        onPress={() => navigation.goBack()}
-      />
-    </PageContent>
+              <View
+                style={[
+                  styles.checkbox,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.secondaryText,
+                  },
+                ]}
+              >
+                {field.value && (
+                  <Check
+                    accessible={false}
+                    size={tokens.size.icon.md}
+                    color={colors.icon}
+                  />
+                )}
+              </View>
+              <Text style={[styles.label, { color: colors.text }]}>
+                Je confirme la suppression de mon compte.
+              </Text>
+            </Pressable>
+          )}
+        />
+        <Button
+          label="Supprimer mon compte"
+          variant="destructive"
+          fullWidth
+          loading={busy}
+          disabled={busy || !confirmed || unavailable}
+          onPress={() => void handleSubmit(run)()}
+        />
+        <Button
+          label="Annuler"
+          variant="secondary"
+          fullWidth
+          disabled={busy}
+          onPress={() => navigation.goBack()}
+        />
+      </PageContent>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   content: { gap: tokens.spacing.md },
+  hidden: { display: "none" },
   body: { ...tokens.typography.body },
   confirmation: {
     flexDirection: "row",

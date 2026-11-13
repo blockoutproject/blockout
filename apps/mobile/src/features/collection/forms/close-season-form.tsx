@@ -17,7 +17,7 @@ import { useCloseSeasonDraft } from "./use-close-season-draft";
 
 /** Exact typed input belongs to the mounted original-season visit. */
 export interface CloseSeasonFormProps {
-  season: CollectionSeasonResponse;
+  season: CollectionSeasonResponse | null | undefined;
   editing: ReturnType<typeof useCloseCollectionSeason>;
 }
 
@@ -33,10 +33,23 @@ export function CloseSeasonForm({
   const mounted = useRef(false);
   const editor = useCloseSeasonDraft(season);
   const state = editor.state;
-  const { baseline, feedback } = state;
+  const { feedback } = state;
   const { control, handleSubmit } = editor.form;
   const { isDirty } = useFormState({ control });
   const confirmation = useWatch({ control, name: "confirmation" });
+  useDiscardChanges(isDirty && season?.state !== "closed", editor.discard);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  if (!state.baseline) {
+    return null;
+  }
+  const baseline = state.baseline;
+
   const current =
     editing.season.data && editing.season.data.revision >= baseline.revision
       ? editing.season.data
@@ -45,13 +58,6 @@ export function CloseSeasonForm({
   const busy =
     !authority.enabled || !editing.season.data || editing.close.isPending;
   const needsRead = current.revision !== baseline.revision;
-  useDiscardChanges(isDirty && !closed, editor.discard);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
 
   /** Exact equality and the original revision are checked before sending; the backend atomically rechecks both. */
   async function close(values: CloseSeasonValues) {
@@ -88,7 +94,6 @@ export function CloseSeasonForm({
       return;
     }
     if (read.isError || !read.data || read.data.revision < baseline.revision) {
-      actionFeedback.error();
       return;
     }
     editor.update({

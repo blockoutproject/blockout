@@ -45,6 +45,7 @@ export function AgeDeclarationProvider({
   }));
   const mounted = useRef(false);
   const [pending, setPending] = useState(false);
+  const [retryingRead, setRetryingRead] = useState(false);
   const category = getAdvertisingAgeCategory(
     state.status === "ready" ? state.declaration : null,
     state.evaluatedAt,
@@ -134,9 +135,26 @@ export function AgeDeclarationProvider({
   }, [state.status, enabled]);
 
   /** Explicit recovery preserves storage ownership; no automatic retries or guessed declaration. */
-  function retryRead() {
-    if (state.status === "read-error") {
-      setState({ status: "loading", evaluatedAt: state.evaluatedAt });
+  async function retryRead() {
+    if (!enabled || state.status !== "read-error" || retryingRead) {
+      return;
+    }
+    setRetryingRead(true);
+    try {
+      const declaration = await readAgeDeclaration();
+      if (mounted.current) {
+        setState({
+          status: "ready",
+          evaluatedAt: state.evaluatedAt,
+          declaration,
+        });
+      }
+    } catch {
+      // The same failed-read card remains until storage succeeds.
+    } finally {
+      if (mounted.current) {
+        setRetryingRead(false);
+      }
     }
   }
 
@@ -172,7 +190,7 @@ export function AgeDeclarationProvider({
         category,
         required: pro.status !== "active" && status !== "current",
         renewal: status === "expired",
-        loading: state.status === "loading",
+        loading: state.status === "loading" || retryingRead,
         readFailed: state.status === "read-error",
         pending,
         privacy,
