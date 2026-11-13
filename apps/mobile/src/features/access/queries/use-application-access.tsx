@@ -32,6 +32,8 @@ function useProcessAccess() {
   const query = useQuery({
     queryKey: getGetApplicationAccessQueryKey(),
     queryFn: ({ signal }) => getApplicationAccess({ signal }),
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
   return {
     bypass,
@@ -55,6 +57,7 @@ function useProcessAccess() {
       checking: query.isFetching,
     },
     checking: query.isFetching,
+    query,
     retry: () => query.refetch(),
   };
 }

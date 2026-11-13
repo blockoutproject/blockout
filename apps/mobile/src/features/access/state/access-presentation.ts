@@ -33,7 +33,7 @@ export function accessPresentation(
     gate = "maintenance";
   } else if (version === "outdated") {
     gate = "update";
-  } else if (snapshot.checking) {
+  } else if (snapshot.checking && !snapshot.complete) {
     gate = "checking";
   }
   return { versions, version, ordinary, gate } as const;
