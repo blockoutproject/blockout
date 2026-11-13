@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useAccessAdmission } from "../../features/access/queries/use-access-admission";
-import { ProPresentationScreen } from "../../features/pro/presentation";
-import { supportHref } from "../../features/support";
+import { useAccessAdmission } from "@/features/access/queries/use-access-admission";
+import { ProPresentationScreen } from "@/features/pro/presentation";
+import { supportHref } from "@/features/support";
 
 /** Thin native provider route; ordinary F12 admission remains authoritative. */
 export default function ProRoute() {

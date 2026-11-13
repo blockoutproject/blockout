@@ -22,23 +22,23 @@ import type {
   PoolDetailResponse,
   TeamDetailResponse,
 } from "../../../../.generated/schemas/index.zod";
-import RootLayout from "../../../app/_layout";
-import OnboardingRoute from "../../../app/onboarding";
-import OperationsLayout from "../../../app/(operations)/_layout";
-import PresentationRoute from "../../../app/(operations)/administration/presentation/[kind]/[id]";
-import RecoveryLayout from "../../../app/(recovery)/_layout";
-import SupportLayout from "../../../app/(recovery)/support/_layout";
-import SupportRoute from "../../../app/(recovery)/support/index";
-import SupportChoiceRoute from "../../../app/(recovery)/support/choice";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { accountResponse } from "../../accounts/test-support/account-response";
+import RootLayout from "@/app/_layout";
+import OnboardingRoute from "@/app/onboarding";
+import OperationsLayout from "@/app/(operations)/_layout";
+import PresentationRoute from "@/app/(operations)/administration/presentation/[kind]/[id]";
+import RecoveryLayout from "@/app/(recovery)/_layout";
+import SupportLayout from "@/app/(recovery)/support/_layout";
+import SupportRoute from "@/app/(recovery)/support/index";
+import SupportChoiceRoute from "@/app/(recovery)/support/choice";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
-import { completeDiscovery } from "../../onboarding/discovery-state";
-import { TeamScreen } from "../../sporting/screens/team-screen";
-import { PoolScreen } from "../../sporting/screens/pool-screen";
+} from "@/features/accounts/test-support/native-auth0";
+import { completeDiscovery } from "@/features/onboarding/discovery-state";
+import { TeamScreen } from "@/features/sporting/screens/team-screen";
+import { PoolScreen } from "@/features/sporting/screens/pool-screen";
 
 // Root, F05/F12 admission, F03 reads, F02 fields and F10 navigation remain real.
 // Only native SDK/storage/file boundaries and HTTP are controlled.
@@ -53,7 +53,7 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 jest.mock(
   "expo-file-system",
   () =>
-    jest.requireActual("../../sporting/test-support/native-document-files")
+    jest.requireActual("@/features/sporting/test-support/native-document-files")
       .nativeDocumentFiles,
 );
 jest.mock("@sentry/react-native", () => ({
@@ -63,16 +63,16 @@ jest.mock("@sentry/react-native", () => ({
 }));
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(async () => {}),
 }));
 jest.mock("expo/fetch", () => ({

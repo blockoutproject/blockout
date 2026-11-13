@@ -2,8 +2,8 @@ import { StyleSheet, View, useWindowDimensions } from "react-native";
 import { IdentityCard } from "./identity-card";
 import { Skeleton } from "./skeleton";
 import { TextSkeleton } from "./text-skeleton";
-import { tokens } from "../theme/tokens";
-import { useTheme } from "../theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 
 /** Sporting identities reserve metadata and following; a club reserves its municipality instead. */
 export function IdentityCardSkeleton({

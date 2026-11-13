@@ -10,9 +10,9 @@ import Animated, {
   withTiming,
   type SharedValue,
 } from "react-native-reanimated";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
-import { useReducedMotion } from "../../../shared/theme/use-reduced-motion";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 
 const strips = [
   ["RVC", "25–19", "NVB", "REC", "LIEN", "ASV"],

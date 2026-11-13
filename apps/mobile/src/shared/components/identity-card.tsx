@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
-import { tokens } from "../theme/tokens";
-import { useTheme } from "../theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 
 /** Common identity geometry; feature owners supply accepted media, decoration, metadata and permitted actions. */
 export interface IdentityCardProps {

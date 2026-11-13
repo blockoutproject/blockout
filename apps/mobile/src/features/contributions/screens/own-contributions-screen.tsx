@@ -1,4 +1,4 @@
-import { PageFlatList } from "../../../shared/components/page-list";
+import { PageFlatList } from "@/shared/components/page-list";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
@@ -18,26 +18,26 @@ import type {
   OwnStreamContributionResponse,
   StreamContributionStateEnum,
 } from "../../../../.generated/schemas/index.zod";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
-import { Button } from "../../../shared/components/button";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { EntryGroupSeparator } from "../../../shared/components/entry-group";
-import { ListContinuation } from "../../../shared/components/list-continuation";
-import { Page, pageContentStyle } from "../../../shared/components/page";
-import { PageHeader } from "../../../shared/components/page-header";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
+import { Button } from "@/shared/components/button";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { EntryGroupSeparator } from "@/shared/components/entry-group";
+import { ListContinuation } from "@/shared/components/list-continuation";
+import { Page, pageContentStyle } from "@/shared/components/page";
+import { PageHeader } from "@/shared/components/page-header";
+import { ReadFeedback } from "@/shared/components/read-feedback";
 import { ContributionProposalsLoading } from "../components/contribution-loading";
-import { ScreenState } from "../../../shared/components/screen-state";
+import { ScreenState } from "@/shared/components/screen-state";
 
-import { ErrorState } from "../../../shared/components/state-card";
-import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { ErrorState } from "@/shared/components/state-card";
+import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import {
   MatchSummary,
   useConsultationQueries,
-} from "../../sporting/match-consultation";
+} from "@/features/sporting/match-consultation";
 import {
   isOwnContributionAccessDenied,
   useOwnContributions,

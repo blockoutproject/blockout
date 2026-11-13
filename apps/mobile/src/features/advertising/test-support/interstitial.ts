@@ -1,4 +1,4 @@
-import type { SessionSnapshot } from "../../accounts";
+import type { SessionSnapshot } from "@/features/accounts";
 import type { AdError, AdEventType } from "react-native-google-mobile-ads";
 import type { AdvertisingEligibilityInput } from "../advertising-eligibility";
 

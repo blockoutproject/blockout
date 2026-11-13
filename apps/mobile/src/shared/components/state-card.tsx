@@ -2,8 +2,8 @@ import { Image } from "expo-image";
 import { RotateCcw } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { Button } from "./button";
 import { TECHNICAL_ERROR_TITLE, TECHNICAL_ERROR_HELP } from "./error-copy";
 

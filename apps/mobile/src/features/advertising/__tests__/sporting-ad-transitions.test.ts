@@ -1,6 +1,6 @@
 import type { AdvertisingEligibilityInput } from "../advertising-eligibility";
 import { AdEventType } from "react-native-google-mobile-ads";
-import { entitlement } from "../../pro/test-support/customer-info";
+import { entitlement } from "@/features/pro/test-support/customer-info";
 import { createInterstitialLifecycle } from "../interstitial-lifecycle";
 import {
   advertisingContext,

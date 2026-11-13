@@ -6,13 +6,13 @@ import {
 } from "react-hook-form";
 import { ChevronRight } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { TextField } from "../../../shared/components/text-field";
-import { Surface } from "../../../shared/components/surface";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { TextField } from "@/shared/components/text-field";
+import { Surface } from "@/shared/components/surface";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import type { PresentationValues } from "../schemas/presentation-schema";
-import { divisionTextColor } from "../../sporting/presentation";
-import { DivisionPaint } from "../../sporting/components/division-paint";
+import { divisionTextColor } from "@/features/sporting/presentation";
+import { DivisionPaint } from "@/features/sporting/components/division-paint";
 
 /** Shared HEX fields retain the RHF draft; primary examples and the gradient preview display their colors. */
 export function DivisionColorFields({

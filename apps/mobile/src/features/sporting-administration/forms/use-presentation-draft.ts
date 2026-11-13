@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { File } from "expo-file-system";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
-import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
+import { deleteOwnedImage } from "@/shared/images/delete-owned-image";
 import type { Presentation } from "../api/presentation";
 import {
   presentationSchema,

@@ -1,7 +1,7 @@
 import { screen, userEvent } from "@testing-library/react-native";
 import { renderRouter } from "expo-router/testing-library";
 import { Text } from "react-native";
-import { ThemeProvider } from "../../theme/theme-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { NavigationLink } from "../navigation-link";
 
 it("opens its route through the full named native link", async () => {

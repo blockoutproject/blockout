@@ -1,13 +1,13 @@
-import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { useActionFeedback } from "@/shared/components/action-feedback";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Slider from "@react-native-community/slider";
 import { Minus, Plus } from "lucide-react-native";
 import { Controller, useForm } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
-import { Button } from "../../../shared/components/button";
-import { IconButton } from "../../../shared/components/icon-button";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { Button } from "@/shared/components/button";
+import { IconButton } from "@/shared/components/icon-button";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import {
   ageSchema,
   type AgeValues,

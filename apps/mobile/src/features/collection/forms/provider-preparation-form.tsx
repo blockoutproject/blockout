@@ -1,10 +1,10 @@
 import { SeasonIdentity, SourceBadge } from "../components/source-summary";
 import { isCollectionReadRefused } from "../api/collection-queries";
-import { Surface } from "../../../shared/components/surface";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
+import { Surface } from "@/shared/components/surface";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
 import { useFormState } from "react-hook-form";
-import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
+import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
 import { useRouter } from "expo-router";
 import { ChevronRight, Globe, RefreshCw, Trophy } from "lucide-react-native";
 import { useEffect, useRef } from "react";
@@ -13,10 +13,10 @@ import type {
   CollectionProviderEnum,
   CollectionSeasonResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { Button } from "../../../shared/components/button";
-import { EmptyState, ErrorState } from "../../../shared/components/state-card";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { Button } from "@/shared/components/button";
+import { EmptyState, ErrorState } from "@/shared/components/state-card";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 import type { useSeasonPreparation } from "../api/use-source-preparation";
 import { CreateSourceForm } from "./create-source-form";
 import { useProviderPreparationDraft } from "./use-provider-preparation-draft";

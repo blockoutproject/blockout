@@ -7,7 +7,7 @@ import {
 } from "@testing-library/react-native";
 import { useState } from "react";
 import { TextInput } from "react-native";
-import { ThemeProvider } from "../../theme/theme-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { DataRefreshControl } from "../data-refresh-control";
 
 /** A local field makes native child disposal observable; it is not a replacement for ScrollView. */

@@ -1,4 +1,4 @@
-import { nativeAlertAction } from "../../native/test-support/native-alert";
+import { nativeAlertAction } from "@/shared/native/test-support/native-alert";
 import { cleanup, act, renderHook } from "@testing-library/react-native";
 import { Alert } from "react-native";
 import { useActionConfirmation } from "../use-action-confirmation";

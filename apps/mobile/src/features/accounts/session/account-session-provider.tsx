@@ -18,10 +18,10 @@ import Auth0, {
   useAuth0,
   type Credentials,
 } from "react-native-auth0";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { createQueryClient } from "../../../shared/query/query-client";
+import { ApiError } from "@/shared/api/api-fetch";
+import { createQueryClient } from "@/shared/query/query-client";
 import { currentAccountQuery } from "../api/current-account-query";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import { requiresReauthentication } from "./native-session";
 
 /** Native identity and the currently observed business account; neither carries a client epoch. */

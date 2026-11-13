@@ -1,21 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { StyleSheet } from "react-native";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { Button } from "../../../shared/components/button";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { FormScrollView } from "../../../shared/components/form-scroll-view";
-import { Page, PageContent } from "../../../shared/components/page";
-import { PageHeader } from "../../../shared/components/page-header";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { Button } from "@/shared/components/button";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { FormScrollView } from "@/shared/components/form-scroll-view";
+import { Page, PageContent } from "@/shared/components/page";
+import { PageHeader } from "@/shared/components/page-header";
+import { ReadFeedback } from "@/shared/components/read-feedback";
 import { ContributionFormLoading } from "../components/contribution-loading";
-import { ScreenState } from "../../../shared/components/screen-state";
+import { ScreenState } from "@/shared/components/screen-state";
 
-import { ErrorState } from "../../../shared/components/state-card";
+import { ErrorState } from "@/shared/components/state-card";
 import {
   MatchSummary,
   useConsultationQueries,
-} from "../../sporting/match-consultation";
+} from "@/features/sporting/match-consultation";
 import { useOwnContributions } from "../api/own-contributions";
 import { ContributionForm } from "../forms/contribution-form";
 

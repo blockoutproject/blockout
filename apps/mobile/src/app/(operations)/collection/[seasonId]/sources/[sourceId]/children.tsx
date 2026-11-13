@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import { SourceChildrenScreen } from "../../../../../../features/collection/screens/source-children-screen";
+import { SourceChildrenScreen } from "@/features/collection/screens/source-children-screen";
 
 /** Read-only child navigation retains the source and optional native pack scope. */
 export default function SourceChildrenRoute() {

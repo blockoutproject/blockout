@@ -1,12 +1,12 @@
 import { Image, type ImageProps } from "expo-image";
-import type { ImageSelection } from "../images/use-image-selection";
+import type { ImageSelection } from "@/shared/images/use-image-selection";
 import { ImageFallback } from "./image-fallback";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { LoadingIndicator } from "./loading-indicator";
 import { FieldMessage } from "./field-message";
-import { useNativeImageLifecycle } from "../images/use-native-image-lifecycle";
+import { useNativeImageLifecycle } from "@/shared/images/use-native-image-lifecycle";
 import { RoundedContainedImage } from "./rounded-contained-image";
 
 /** Stable caller identity and accessible description for an existing or prepared local image. */

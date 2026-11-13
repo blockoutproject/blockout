@@ -8,8 +8,8 @@ import {
   View,
   type PressableProps,
 } from "react-native";
-import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { LoadingIndicator } from "./loading-indicator";
 import { DisclosureChevron } from "./disclosure-chevron";
 

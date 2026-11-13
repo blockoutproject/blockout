@@ -6,8 +6,8 @@ import {
   useWindowDimensions,
 } from "react-native";
 import type { NotificationResponse } from "../../../../.generated/schemas/index.zod";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 import {
   MatchSurface,
   SportingLogo,
@@ -16,7 +16,7 @@ import {
   divisionTextColor,
   currentSportingTimeZone,
   formatSportingTime,
-} from "../../sporting/notification-presentation";
+} from "@/features/sporting/notification-presentation";
 
 /** Validated current entry and exact tap intent; pending blocks repetition without changing its read state. */
 export interface NotificationItemProps {

@@ -1,30 +1,26 @@
-import { PageFlatList } from "../../../shared/components/page-list";
-import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
-import { ListSeparator } from "../../../shared/components/list-separator";
-import {
-  Page,
-  PageContent,
-  pageContentStyle,
-} from "../../../shared/components/page";
+import { PageFlatList } from "@/shared/components/page-list";
+import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
+import { ListSeparator } from "@/shared/components/list-separator";
+import { Page, PageContent, pageContentStyle } from "@/shared/components/page";
 import { PreparationLink } from "../components/preparation-link";
-import { AccessFeedback } from "../../access/components/access-feedback";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { ListContinuation } from "../../../shared/components/list-continuation";
-import { ErrorState, EmptyState } from "../../../shared/components/state-card";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { PageHeader } from "../../../shared/components/page-header";
+import { AccessFeedback } from "@/features/access/components/access-feedback";
+import { isAccessDenied } from "@/shared/api/access-denied";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { ListContinuation } from "@/shared/components/list-continuation";
+import { ErrorState, EmptyState } from "@/shared/components/state-card";
+import { ScreenState } from "@/shared/components/screen-state";
+import { PageHeader } from "@/shared/components/page-header";
 
-import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
+import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { useNavigation, useRouter } from "expo-router";
 import { Layers, RefreshCw } from "lucide-react-native";
 import { StyleSheet, Text } from "react-native";
 
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { Button } from "../../../shared/components/button";
-import { ListLoading } from "../../../shared/components/list-loading";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { Button } from "@/shared/components/button";
+import { ListLoading } from "@/shared/components/list-loading";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 import { useSourceChildren } from "../api/use-source-preparation";
 
 /** Read-only discovery traversal; pack navigation never exposes sporting classification actions. Authorized rows survive technical failures and continuation retries stay local. */

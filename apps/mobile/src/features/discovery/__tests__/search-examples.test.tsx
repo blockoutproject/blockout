@@ -1,17 +1,17 @@
-import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
+import { AdvertisingProviders } from "@/features/advertising/test-support/advertising-providers";
 import {
   useLayoutEffect,
   useState as useQueryFixtureState,
   type PropsWithChildren as QueryFixtureProps,
 } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Text } from "react-native";
 import { router, Stack } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
-import { useConsultationQueries } from "../../sporting/match-consultation";
+import { useConsultationQueries } from "@/features/sporting/match-consultation";
 import { useQuery, QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -20,35 +20,35 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import SearchLayout from "../../../app/(ordinary)/(tabs)/(discovery)/search/_layout";
+import SearchLayout from "@/app/(ordinary)/(tabs)/(discovery)/search/_layout";
 import { SearchScreen } from "../screens/search-screen";
-import ClubRoute from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/clubs/[clubId]";
+import ClubRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/clubs/[clubId]";
 import { SearchFilters } from "../components/search-filters";
 import { SearchFilterChoice } from "../components/search-filter-choice";
-import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
+import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
 import {
   AccountSessionProvider,
   useAccountSession,
   type AccountSession,
-} from "../../accounts/session/account-session-provider";
+} from "@/features/accounts/session/account-session-provider";
 import {
   mockAuth0,
   credentialsFor,
-} from "../../accounts/test-support/native-auth0";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { usePro, type ProContext } from "../../pro";
-import { mockPurchases } from "../../pro/test-support/native-purchases";
+} from "@/features/accounts/test-support/native-auth0";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { usePro, type ProContext } from "@/features/pro";
+import { mockPurchases } from "@/features/pro/test-support/native-purchases";
 import {
   customerInfo,
   entitlement,
-} from "../../pro/test-support/customer-info";
-import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
-import * as proSessionModule from "../../pro/pro-session";
-import { accountResponse } from "../../accounts/test-support/account-response";
+} from "@/features/pro/test-support/customer-info";
+import { prepareProNativeIO } from "@/features/pro/test-support/pro-harness";
+import * as proSessionModule from "@/features/pro/pro-session";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 
 jest.mock("expo-constants", () => ({
   __esModule: true,
@@ -67,15 +67,15 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 );
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

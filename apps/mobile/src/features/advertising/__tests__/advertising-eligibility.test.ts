@@ -1,13 +1,13 @@
-import type { SessionSnapshot, AccountSession } from "../../accounts";
+import type { SessionSnapshot, AccountSession } from "@/features/accounts";
 import Purchases, {
   type CustomerInfo,
   type PurchasesEntitlementInfo,
 } from "react-native-purchases";
-import { getProState, type ProSessionState } from "../../pro/pro-state";
+import { getProState, type ProSessionState } from "@/features/pro/pro-state";
 import {
   customerInfo,
   entitlement,
-} from "../../pro/test-support/customer-info";
+} from "@/features/pro/test-support/customer-info";
 import { getAdvertisingEligibility } from "../advertising-eligibility";
 
 // Only native SDK I/O is replaced; plain native principal snapshots and the real F09 state projection are used.

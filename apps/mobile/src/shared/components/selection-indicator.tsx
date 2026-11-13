@@ -5,8 +5,8 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
-import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 
 /** The owner supplies a selected child's native rectangle in the same borderless coordinate space. */
 export interface SelectionIndicatorProps {

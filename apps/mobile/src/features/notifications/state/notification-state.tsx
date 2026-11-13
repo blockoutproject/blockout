@@ -42,7 +42,7 @@ function NotificationSync({
   session,
   queries,
 }: Readonly<{
-  session: import("../../accounts").SessionSnapshot;
+  session: import("@/features/accounts").SessionSnapshot;
   queries: ReturnType<typeof createInboxQueries>;
 }>) {
   const summary = useQuery(queries.summary);

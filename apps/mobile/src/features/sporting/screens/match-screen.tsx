@@ -1,17 +1,10 @@
 import { SportingMatchLoading } from "../components/sporting-loading";
-import { ContributionReportEntry } from "../../contributions/entry";
-import {
-  hasReadError,
-  ReadFeedback,
-} from "../../../shared/components/read-feedback";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { PageHeader } from "../../../shared/components/page-header";
-import {
-  Page,
-  PageScrollView,
-  PageContent,
-} from "../../../shared/components/page";
+import { ContributionReportEntry } from "@/features/contributions/entry";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
+import { ScreenState } from "@/shared/components/screen-state";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { PageHeader } from "@/shared/components/page-header";
+import { Page, PageScrollView, PageContent } from "@/shared/components/page";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";

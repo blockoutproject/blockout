@@ -1,14 +1,14 @@
 import { StyleSheet, View, useWindowDimensions } from "react-native";
-import { EntryGroup } from "../../../shared/components/entry-group";
-import { IdentityCard } from "../../../shared/components/identity-card";
-import { EntryRowSkeleton } from "../../../shared/components/list-loading";
-import { LoadingGroup } from "../../../shared/components/loading-group";
-import { Skeleton } from "../../../shared/components/skeleton";
-import { TextSkeleton } from "../../../shared/components/text-skeleton";
-import { SingleImageFieldSkeleton } from "../../../shared/components/single-image-field";
-import { Surface } from "../../../shared/components/surface";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { EntryGroup } from "@/shared/components/entry-group";
+import { IdentityCard } from "@/shared/components/identity-card";
+import { EntryRowSkeleton } from "@/shared/components/list-loading";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { Skeleton } from "@/shared/components/skeleton";
+import { TextSkeleton } from "@/shared/components/text-skeleton";
+import { SingleImageFieldSkeleton } from "@/shared/components/single-image-field";
+import { Surface } from "@/shared/components/surface";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 
 /** Selects the account overview or its photo/fields editor for an initial read without content. */
 export interface ProfileLoadingProps {

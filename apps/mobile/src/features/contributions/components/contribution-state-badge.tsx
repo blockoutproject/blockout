@@ -1,7 +1,7 @@
 import { StyleSheet, Text } from "react-native";
 import type { StreamContributionStateEnum } from "../../../../.generated/schemas/index.zod";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 
 /** The same textual state treatment serves personal and authorized moderator version lists. */
 export interface ContributionStateBadgeProps {

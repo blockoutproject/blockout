@@ -1,8 +1,8 @@
-import { accountResponse as mockAccountResponse } from "../../accounts/test-support/account-response";
+import { accountResponse as mockAccountResponse } from "@/features/accounts/test-support/account-response";
 import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
-import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
+import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
 import { useEffect } from "react";
 import {
   act,
@@ -14,20 +14,20 @@ import {
 import { Text } from "react-native";
 import { renderRouter } from "expo-router/testing-library";
 import Purchases from "react-native-purchases";
-import type { AccountSession } from "../../accounts";
+import type { AccountSession } from "@/features/accounts";
 import {
   AccountSessionProvider,
   useAccountSession,
-} from "../../accounts/session/account-session-provider";
-import { ProfileScreen } from "../../accounts/screens/profile-screen";
-import { SignInInvitationScreen } from "../../accounts/screens/sign-in-invitation-screen";
+} from "@/features/accounts/session/account-session-provider";
+import { ProfileScreen } from "@/features/accounts/screens/profile-screen";
+import { SignInInvitationScreen } from "@/features/accounts/screens/sign-in-invitation-screen";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+} from "@/features/accounts/test-support/native-auth0";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import { mockPurchases } from "../test-support/native-purchases";
 import { ProEntry, ProProfileBadge } from "../components/pro-entry";
 import * as proSessionModule from "../pro-session";
@@ -35,7 +35,7 @@ import { customerInfo, entitlement } from "../test-support/customer-info";
 import { prepareProNativeIO } from "../test-support/pro-harness";
 import { ProProfileEntry } from "../components/pro-profile-entry";
 import { ProProvider, usePro, type ProContext } from "../pro-provider";
-import { PrivacyEntry } from "../../privacy/components/privacy-sheet";
+import { PrivacyEntry } from "@/features/privacy/components/privacy-sheet";
 
 jest.mock("expo-constants", () => ({
   __esModule: true,
@@ -58,12 +58,12 @@ jest.mock("react-native-purchases", () => ({
     getOfferings: jest.fn(),
   },
 }));
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

@@ -4,8 +4,8 @@ import type {
   CollectionSeasonResponse,
   SourceBindingResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 
 /** Canonical season identity in the preparation context; never inferred from a provider identifier. */
 export function SeasonIdentity({

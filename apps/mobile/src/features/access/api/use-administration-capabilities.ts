@@ -1,4 +1,4 @@
-import { useAccountAvailability } from "../../accounts/current-account";
+import { useAccountAvailability } from "@/features/accounts/current-account";
 import { canReadDivisions } from "../division-catalog-access";
 
 /**

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { SportingIdentityResponse } from "../../../../.generated/schemas/index.zod";
-import { useOrdinaryRequest } from "../../access/ordinary-request";
+import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import { consultationOpeningPolicy } from "./consultation-queries";
 import { useConsultationQueries } from "./use-consultation-queries";
 

@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { useActionFeedback } from "@/shared/components/action-feedback";
 import { useAccountSession } from "../session/account-session-provider";
 
 /**

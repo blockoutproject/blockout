@@ -1,5 +1,5 @@
 import { useLayoutEffect, type PropsWithChildren } from "react";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
@@ -23,19 +23,19 @@ import {
   fireEvent,
 } from "@testing-library/react-native";
 import { Alert, AppState } from "react-native";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
-import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
-import { accountResponse } from "../../accounts/test-support/account-response";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { AccountSessionProvider } from "@/features/accounts/session/account-session-provider";
+import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import { matchDetail } from "../../sporting/test-support/consultation-data";
+} from "@/features/accounts/test-support/native-auth0";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { matchDetail } from "@/features/sporting/test-support/consultation-data";
 import { ModerationScreen } from "../screens/moderation-screen";
 import { ModerationMatchScreen } from "../screens/moderation-match-screen";
 import { ModerationReportsScreen } from "../screens/moderation-reports-screen";
@@ -48,12 +48,12 @@ import type {
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),
 );
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

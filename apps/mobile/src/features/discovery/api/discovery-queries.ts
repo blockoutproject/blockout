@@ -13,9 +13,9 @@ import type {
   TeamSearchResponse,
   PoolSearchResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
-import type { SessionSnapshot } from "../../accounts/session/account-session-provider";
-import type { useOrdinaryRequest } from "../../access/ordinary-request";
+import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
+import type { SessionSnapshot } from "@/features/accounts/session/account-session-provider";
+import type { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import {
   createDiscoveryContext,
   type DiscoveryResource,

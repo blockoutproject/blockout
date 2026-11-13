@@ -1,9 +1,9 @@
 import { useRouter } from "expo-router";
 import { Text } from "react-native";
-import { Button } from "../../../shared/components/button";
-import { Surface } from "../../../shared/components/surface";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { Button } from "@/shared/components/button";
+import { Surface } from "@/shared/components/surface";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 
 /** Replaces the form only after complete receipt; subsequent exchanges remain outside the app by email. */
 export function SupportConfirmation() {

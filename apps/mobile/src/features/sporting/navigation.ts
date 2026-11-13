@@ -1,7 +1,7 @@
 import { useNavigation, useRouter } from "expo-router";
 import { useLayoutEffect, useRef } from "react";
-import { useActionFeedback } from "../../shared/components/action-feedback";
-import { useSportingTransition } from "../advertising/use-sporting-transition";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { useSportingTransition } from "@/features/advertising/use-sporting-transition";
 
 /** Exact UUID routes share F11's boundary; composed actions may own failure feedback, and inactive tabs cannot release old intent. */
 export function useSportingNavigation(active = true) {

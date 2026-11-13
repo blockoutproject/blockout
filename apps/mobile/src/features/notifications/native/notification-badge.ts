@@ -1,6 +1,6 @@
 import { setBadgeCountAsync } from "expo-notifications";
 import { useEffect } from "react";
-import type { SessionSnapshot } from "../../accounts";
+import type { SessionSnapshot } from "@/features/accounts";
 
 /** Best effort only: unsupported launchers/permissions never block account or inbox use. */
 function setBadge(count: number) {

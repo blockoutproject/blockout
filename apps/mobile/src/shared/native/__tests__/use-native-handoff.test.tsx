@@ -1,6 +1,6 @@
-import { ThemeProvider } from "../../theme/theme-provider";
-import { ActionFeedbackProvider } from "../../components/action-feedback";
-import { TECHNICAL_ERROR } from "../../components/error-copy";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
+import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
 import type { PropsWithChildren } from "react";
 import {
   act,

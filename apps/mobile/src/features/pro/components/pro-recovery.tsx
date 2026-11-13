@@ -1,14 +1,10 @@
 import { StyleSheet, Text } from "react-native";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { Button } from "../../../shared/components/button";
-import {
-  Page,
-  PageContent,
-  PageScrollView,
-} from "../../../shared/components/page";
-import { PageHeader } from "../../../shared/components/page-header";
-import { ScreenState } from "../../../shared/components/screen-state";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { Button } from "@/shared/components/button";
+import { Page, PageContent, PageScrollView } from "@/shared/components/page";
+import { PageHeader } from "@/shared/components/page-header";
+import { ScreenState } from "@/shared/components/screen-state";
 import { usePro } from "../pro-provider";
 import type { useProOffering } from "../api/use-pro-offering";
 import { ProOfferingFeedback } from "./pro-offering-feedback";

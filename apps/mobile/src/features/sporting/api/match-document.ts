@@ -2,7 +2,7 @@ import { randomUUID } from "expo-crypto";
 import { Directory, File, Paths } from "expo-file-system";
 import { getMatchDocument } from "../../../../.generated/mobile";
 import type { MatchDocumentKindEnum } from "../../../../.generated/schemas/index.zod";
-import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
+import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
 
 /** The reader and match information share the canonical document-kind labels. */
 export const matchDocumentLabels: Record<MatchDocumentKindEnum, string> = {

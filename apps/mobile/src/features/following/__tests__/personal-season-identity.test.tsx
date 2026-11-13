@@ -6,26 +6,26 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { Text } from "react-native";
-import { Button } from "../../../shared/components/button";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { accountResponse } from "../../accounts/test-support/account-response";
+import { Button } from "@/shared/components/button";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+} from "@/features/accounts/test-support/native-auth0";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import {
   PersonalSeasonProvider,
   usePersonalSeasonScope,
 } from "../components/personal-season-provider";
 import { followingFixture } from "../test-support/following-fixture";
 
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

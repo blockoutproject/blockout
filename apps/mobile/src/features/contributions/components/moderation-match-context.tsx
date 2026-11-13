@@ -3,15 +3,15 @@ import { ArrowUpRight } from "lucide-react-native";
 import { Link } from "expo-router";
 import type { ReactNode } from "react";
 import type { StreamModerationMatchResponse } from "../../../../.generated/schemas/index.zod";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 import {
   MatchSurface,
   SportingLogo,
   SportingMedia,
   DivisionPaint,
   formatSportingSchedule,
-} from "../../sporting/match-consultation";
+} from "@/features/sporting/match-consultation";
 
 /** Retained private context preserves unknown date and independent public viewability. */
 export interface ModerationMatchContextProps {

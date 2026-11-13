@@ -5,12 +5,12 @@ import {
   onlineManager,
 } from "@tanstack/react-query";
 import { accountResponse } from "../test-support/account-response";
-import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
+import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
-import { nativeImageChoiceAction } from "../../../shared/native/test-support/native-image-choices";
-import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import { nativeImageChoiceAction } from "@/shared/native/test-support/native-image-choices";
+import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
 import {
   act,
   cleanup,
@@ -22,9 +22,9 @@ import {
 } from "@testing-library/react-native";
 import * as ImagePicker from "expo-image-picker";
 import { File } from "expo-file-system";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import { ActionSheetIOS, Pressable, Text } from "react-native";
 import {
   AccountSessionProvider,
@@ -38,7 +38,7 @@ import { credentialsFor, mockAuth0 } from "../test-support/native-auth0";
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),
 );
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {

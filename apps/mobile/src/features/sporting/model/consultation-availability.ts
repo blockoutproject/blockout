@@ -1,4 +1,4 @@
-import { ApiError } from "../../../shared/api/api-fetch";
+import { ApiError } from "@/shared/api/api-fetch";
 
 /** Current admission/visibility refusal invalidates the retained public representation. */
 export function resourceUnavailable(error: unknown): boolean {

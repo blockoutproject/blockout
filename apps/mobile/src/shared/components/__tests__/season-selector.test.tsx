@@ -1,5 +1,5 @@
 import { render, screen, userEvent } from "@testing-library/react-native";
-import { ThemeProvider } from "../../theme/theme-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { SeasonSelector } from "../season-selector";
 
 it("announces the caller's season and activates its presentation once", async () => {

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { PresentationIdentity } from "../components/presentation-identity";
 
 it.each([false, true])(

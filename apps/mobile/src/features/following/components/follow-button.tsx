@@ -4,9 +4,9 @@ import { Check, Plus } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import type { SportingSeasonResponse } from "../../../../.generated/schemas/index.zod";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { Button } from "../../../shared/components/button";
-import { tokens } from "../../../shared/theme/tokens";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { Button } from "@/shared/components/button";
+import { tokens } from "@/shared/theme/tokens";
 import {
   useFollowStateQuery,
   type FollowStateRead,

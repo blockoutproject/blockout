@@ -1,7 +1,7 @@
 import {
   layoutNativeTabs,
   mockPagerCommands,
-} from "../../native/test-support/tab-view-native";
+} from "@/shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useState } from "react";
 import { AccessibilityInfo, Platform, Text, TextInput } from "react-native";
@@ -11,7 +11,7 @@ import {
   screen,
   userEvent,
 } from "@testing-library/react-native";
-import { ThemeProvider } from "../../theme/theme-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { PagedTabs } from "../paged-tabs";
 
 /** A retained feature draft exposes scene lifetime without observing component internals. */

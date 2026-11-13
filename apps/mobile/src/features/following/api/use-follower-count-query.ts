@@ -6,12 +6,12 @@ import {
   getGetMyAccountQueryKey,
 } from "../../../../.generated/mobile";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { useSportingTargetAvailability } from "../../sporting/availability";
+import { ApiError } from "@/shared/api/api-fetch";
+import { isAccessDenied } from "@/shared/api/access-denied";
+import { useSportingTargetAvailability } from "@/features/sporting/availability";
 import { restrictFollowTarget, isFollowRestriction } from "./follow-mutations";
-import { useAccountSession } from "../../accounts/current-account";
-import { useOrdinaryRequest } from "../../access/ordinary-request";
+import { useAccountSession } from "@/features/accounts/current-account";
+import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import {
   followerCountKey,
   captureFollowingOwner,

@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { accessPresentation } from "../state/access-presentation";
 import {
   installedVersionStatus,

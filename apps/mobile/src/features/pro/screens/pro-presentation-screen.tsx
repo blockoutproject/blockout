@@ -10,7 +10,7 @@ import {
 } from "react";
 import { StyleSheet } from "react-native";
 import RevenueCatUI from "react-native-purchases-ui";
-import { useAccountSession } from "../../accounts/current-account";
+import { useAccountSession } from "@/features/accounts/current-account";
 import type { CustomerInfo } from "react-native-purchases";
 import { usePro } from "../pro-provider";
 import { canPurchasePro } from "../pro-offering";
@@ -20,7 +20,7 @@ import {
   restoreErrorOutcome,
 } from "../pro-operations";
 import { useProOffering } from "../api/use-pro-offering";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { useActionFeedback } from "@/shared/components/action-feedback";
 import { ProRecovery } from "../components/pro-recovery";
 import { hasAssociatedCustomer } from "../pro-presentation-state";
 import type { ProState } from "../pro-state";

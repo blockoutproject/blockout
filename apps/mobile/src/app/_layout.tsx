@@ -1,4 +1,4 @@
-import { createInstallationAdvertisingPrivacy } from "../features/advertising/advertising-privacy";
+import { createInstallationAdvertisingPrivacy } from "@/features/advertising/advertising-privacy";
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as Sentry from "@sentry/react-native";
 import { Stack } from "expo-router";
@@ -9,34 +9,34 @@ import { useEffect, useState } from "react";
 import {
   AccountSessionProvider,
   useAccountSession,
-} from "../features/accounts/session/account-session-provider";
-import { ApplicationAccessProvider } from "../features/access/queries/use-application-access";
+} from "@/features/accounts/session/account-session-provider";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
 import {
   AccessAdmissionProvider,
   useAccessAdmission,
-} from "../features/access/queries/use-access-admission";
-import { StartupAccessGate } from "../features/access/screens/access-gate-screen";
-import { createQueryClient } from "../shared/query/query-client";
-import { initializeSentry } from "../shared/observability/sentry";
-import { ThemeProvider, useTheme } from "../shared/theme/theme-provider";
-import { ActionFeedbackProvider } from "../shared/components/action-feedback";
-import { ProProvider, usePro } from "../features/pro";
+} from "@/features/access/queries/use-access-admission";
+import { StartupAccessGate } from "@/features/access/screens/access-gate-screen";
+import { createQueryClient } from "@/shared/query/query-client";
+import { initializeSentry } from "@/shared/observability/sentry";
+import { ThemeProvider, useTheme } from "@/shared/theme/theme-provider";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
+import { ProProvider, usePro } from "@/features/pro";
 import {
   DiscoveryProvider,
   useDiscovery,
-} from "../features/onboarding/discovery-provider";
+} from "@/features/onboarding/discovery-provider";
 import {
   AgeDeclarationProvider,
   useAgeDeclaration,
-} from "../features/advertising/age-declaration-provider";
-import { NotificationLifecycle } from "../features/notifications/native/notification-lifecycle";
+} from "@/features/advertising/age-declaration-provider";
+import { NotificationLifecycle } from "@/features/notifications/native/notification-lifecycle";
 import {
   createPushRegistration,
   type PushRegistration,
-} from "../features/notifications/native/push-registration";
+} from "@/features/notifications/native/push-registration";
 
-import { cleanupMatchDocuments } from "../features/sporting/api/match-document";
-import { useAccountAvailability } from "../features/accounts/current-account";
+import { cleanupMatchDocuments } from "@/features/sporting/api/match-document";
+import { useAccountAvailability } from "@/features/accounts/current-account";
 
 initializeSentry();
 

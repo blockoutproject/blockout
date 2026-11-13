@@ -1,6 +1,6 @@
 import { ArrowUpRight } from "lucide-react-native";
-import { useNativeHandoff } from "../../../shared/native/use-native-handoff";
-import { Button } from "../../../shared/components/button";
+import { useNativeHandoff } from "@/shared/native/use-native-handoff";
+import { Button } from "@/shared/components/button";
 
 /** Approved platform URL; a successful handoff never claims installation or changes admission. */
 export interface StoreActionProps {

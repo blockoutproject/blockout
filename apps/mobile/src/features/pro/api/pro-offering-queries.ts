@@ -1,6 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
-import { ApiError } from "../../../shared/api/api-fetch";
-import type { SessionSnapshot } from "../../accounts/session/account-session-provider";
+import { ApiError } from "@/shared/api/api-fetch";
+import type { SessionSnapshot } from "@/features/accounts/session/account-session-provider";
 import { loadProOffering } from "../pro-offering";
 
 /**

@@ -1,10 +1,10 @@
 import { SeasonIdentity, SourceBadge } from "../components/source-summary";
 import { isCollectionReadRefused } from "../api/collection-queries";
-import { Surface } from "../../../shared/components/surface";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { useNativeHandoff } from "../../../shared/native/use-native-handoff";
-import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
-import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
+import { Surface } from "@/shared/components/surface";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { useNativeHandoff } from "@/shared/native/use-native-handoff";
+import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
+import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
 import { formatCollectionTimestamp } from "../model/collection-time";
 import { useRouter } from "expo-router";
 import { ChevronRight, Globe } from "lucide-react-native";
@@ -15,10 +15,10 @@ import type {
   CollectionSeasonResponse,
   SourceBindingResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { Button } from "../../../shared/components/button";
-import { TextField } from "../../../shared/components/text-field";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { Button } from "@/shared/components/button";
+import { TextField } from "@/shared/components/text-field";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 import { type useSourcePreparation } from "../api/use-source-preparation";
 import {
   candidateUrlSchema,

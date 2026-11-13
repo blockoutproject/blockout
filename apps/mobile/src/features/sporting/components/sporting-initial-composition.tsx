@@ -1,16 +1,12 @@
 import { useState, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import type { UseQueryResult } from "@tanstack/react-query";
-import {
-  Page,
-  PageContent,
-  PageScrollView,
-} from "../../../shared/components/page";
-import { PageViewport } from "../../../shared/components/navigation-backdrop";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { ErrorState } from "../../../shared/components/state-card";
-import { hasReadError } from "../../../shared/components/read-feedback";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { Page, PageContent, PageScrollView } from "@/shared/components/page";
+import { PageViewport } from "@/shared/components/navigation-backdrop";
+import { ScreenState } from "@/shared/components/screen-state";
+import { ErrorState } from "@/shared/components/state-card";
+import { hasReadError } from "@/shared/components/read-feedback";
+import { useTheme } from "@/shared/theme/theme-provider";
 
 /** An existing Query result supplies indispensable data and safe read recovery, never a copied cache. */
 export type SportingInitialRead = Pick<

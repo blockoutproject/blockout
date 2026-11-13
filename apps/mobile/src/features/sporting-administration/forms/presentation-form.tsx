@@ -1,24 +1,24 @@
 import { PresentationIdentity } from "../components/presentation-identity";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
-import { useImageSelection } from "../../../shared/images/use-image-selection";
-import { ImageValidationError } from "../../../shared/images/image-validation-error";
-import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
-import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
+import { useImageSelection } from "@/shared/images/use-image-selection";
+import { ImageValidationError } from "@/shared/images/image-validation-error";
+import { deleteOwnedImage } from "@/shared/images/delete-owned-image";
+import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
 import { useDivisionActivity } from "../api/classification";
 import { DivisionColorFields } from "../components/division-color-fields";
 import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import { Controller, useFormState, useWatch } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
-import { ApiError } from "../../../shared/api/api-fetch";
+import { ApiError } from "@/shared/api/api-fetch";
 import { DivisionActivityAction } from "../components/division-activity-action";
-import { Button } from "../../../shared/components/button";
-import { SingleImageField } from "../../../shared/components/single-image-field";
-import { TextField } from "../../../shared/components/text-field";
-import { Surface } from "../../../shared/components/surface";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { Button } from "@/shared/components/button";
+import { SingleImageField } from "@/shared/components/single-image-field";
+import { TextField } from "@/shared/components/text-field";
+import { Surface } from "@/shared/components/surface";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import {
   usePresentationLogo,
   type Presentation,

@@ -7,15 +7,15 @@ import type {
   OwnStreamContributionResponse,
   OwnStreamContributionsResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { Button } from "../../../shared/components/button";
-import { Surface } from "../../../shared/components/surface";
-import { TextField } from "../../../shared/components/text-field";
-import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
-import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { ApiError } from "@/shared/api/api-fetch";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { Button } from "@/shared/components/button";
+import { Surface } from "@/shared/components/surface";
+import { TextField } from "@/shared/components/text-field";
+import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
+import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 import {
   isOwnContributionAccessDenied,
   type useOwnContributions,

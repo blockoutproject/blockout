@@ -1,7 +1,7 @@
 import { InfiniteQueryObserver } from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react-native";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { matchDetail } from "../../sporting/test-support/consultation-data";
+import { createQueryClient } from "@/shared/query/query-client";
+import { matchDetail } from "@/features/sporting/test-support/consultation-data";
 import {
   createFollowListOptions,
   createPersonalCalendarOptions,

@@ -1,8 +1,8 @@
-import { accountResponse as mockAccountResponse } from "../../accounts/test-support/account-response";
+import { accountResponse as mockAccountResponse } from "@/features/accounts/test-support/account-response";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
+} from "@/features/accounts/test-support/native-auth0";
 import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as proSessionModule from "../pro-session";
 import type { PurchasesOfferings } from "react-native-purchases";
@@ -19,15 +19,15 @@ import { useEffect, useState, type ComponentProps } from "react";
 import RevenueCatUI, {
   type CustomerCenterViewProps,
 } from "react-native-purchases-ui";
-import type { AccountSession } from "../../accounts";
+import type { AccountSession } from "@/features/accounts";
 import {
   AccountSessionProvider,
   useAccountSession,
-} from "../../accounts/session/account-session-provider";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
-import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
+} from "@/features/accounts/session/account-session-provider";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
+import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
 import { ProProvider, usePro, type ProContext } from "../pro-provider";
 import { ProProfileEntry } from "../components/pro-profile-entry";
 import {
@@ -98,12 +98,12 @@ jest.mock("react-native-purchases-ui", () => {
   };
 });
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

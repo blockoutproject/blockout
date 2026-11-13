@@ -6,8 +6,8 @@ import {
   Text,
   View,
 } from "react-native";
-import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 
 /** Feature owners retain the cursor, data, request guards and retry; this footer only presents their state. */
 export interface ListContinuationProps {

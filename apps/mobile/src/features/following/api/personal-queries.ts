@@ -4,9 +4,9 @@ import type {
   ListTeamFollows200,
   ListPoolFollows200,
 } from "../../../../.generated/schemas/index.zod";
-import { filterCalendarMatches } from "../../sporting/calendar-data";
+import { filterCalendarMatches } from "@/features/sporting/calendar-data";
 import { withdrawUnavailableFollowLists } from "../lists";
-import { isAccessDenied } from "../../../shared/api/access-denied";
+import { isAccessDenied } from "@/shared/api/access-denied";
 import {
   hashKey,
   infiniteQueryOptions,
@@ -22,7 +22,7 @@ import {
   listTeamFollows,
   listPoolFollows,
 } from "../../../../.generated/mobile";
-import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
+import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
 import {
   personalCalendarKey,
   personalCalendarCollectionKey,

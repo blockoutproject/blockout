@@ -2,10 +2,10 @@ import { createContext, useContext, type PropsWithChildren } from "react";
 import {
   useAccountSession,
   useCurrentAccount,
-} from "../../accounts/current-account";
-import { useOrdinaryRequest } from "../../access/ordinary-request";
-import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
-import { isAccessDenied } from "../../../shared/api/access-denied";
+} from "@/features/accounts/current-account";
+import { useOrdinaryRequest } from "@/features/access/ordinary-request";
+import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
+import { isAccessDenied } from "@/shared/api/access-denied";
 import {
   captureFollowingOwner,
   type FollowingOwner,

@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/react-native";
 import { AdEventType, InterstitialAd } from "react-native-google-mobile-ads";
-import type { SessionSnapshot } from "../accounts";
+import type { SessionSnapshot } from "@/features/accounts";
 import {
   getAdvertisingEligibility,
   type AdvertisingEligibilityInput,

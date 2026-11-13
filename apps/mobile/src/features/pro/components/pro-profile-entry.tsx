@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import type { ReactNode } from "react";
-import { EntryGroup } from "../../../shared/components/entry-group";
+import { EntryGroup } from "@/shared/components/entry-group";
 import { ProEntry } from "./pro-entry";
 
 /** Independent account entries follow Pro in the same navigation group. */

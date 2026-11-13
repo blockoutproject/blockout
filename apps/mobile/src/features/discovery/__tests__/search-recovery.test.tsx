@@ -1,4 +1,4 @@
-import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
+import { AdvertisingProviders } from "@/features/advertising/test-support/advertising-providers";
 import {
   useLayoutEffect,
   useState as useQueryFixtureState,
@@ -13,16 +13,16 @@ import {
   onlineManager,
   type InfiniteData,
 } from "@tanstack/react-query";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { router, Stack } from "expo-router";
 import { Text } from "react-native";
-import ClubRoute from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/clubs/[clubId]";
-import SupportLayout from "../../../app/(recovery)/support/_layout";
-import { SupportScreen } from "../../support/screens/support-screen";
-import { AccessAdmissionProvider } from "../../access/queries/use-access-admission";
-import { useConsultationQueries } from "../../sporting/match-consultation";
+import ClubRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/clubs/[clubId]";
+import SupportLayout from "@/app/(recovery)/support/_layout";
+import { SupportScreen } from "@/features/support/screens/support-screen";
+import { AccessAdmissionProvider } from "@/features/access/queries/use-access-admission";
+import { useConsultationQueries } from "@/features/sporting/match-consultation";
 import { renderRouter } from "expo-router/testing-library";
 import { type DiscoveryPage } from "../api/discovery-queries";
 import {
@@ -33,19 +33,19 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import SearchLayout from "../../../app/(ordinary)/(tabs)/(discovery)/search/_layout";
+import SearchLayout from "@/app/(ordinary)/(tabs)/(discovery)/search/_layout";
 import { SearchScreen } from "../screens/search-screen";
 import { createDiscoveryContext } from "../api/discovery-context";
 import { SearchFilters } from "../components/search-filters";
 import { SearchFilterChoice } from "../components/search-filter-choice";
-import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
-import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
-import { mockAuth0 } from "../../accounts/test-support/native-auth0";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
+import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
+import { AccountSessionProvider } from "@/features/accounts/session/account-session-provider";
+import { mockAuth0 } from "@/features/accounts/test-support/native-auth0";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 
 jest.mock("@react-native-async-storage/async-storage", () =>
   jest.requireActual(
@@ -54,15 +54,15 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 );
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

@@ -11,15 +11,15 @@ import {
   useAccountSession,
 } from "../session/account-session-provider";
 import { mockAuth0, credentialsFor } from "../test-support/native-auth0";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import * as proSessionModule from "../../pro/pro-session";
-import { ProProvider, usePro } from "../../pro/pro-provider";
-import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
-import { mockPurchases } from "../../pro/test-support/native-purchases";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import * as proSessionModule from "@/features/pro/pro-session";
+import { ProProvider, usePro } from "@/features/pro/pro-provider";
+import { prepareProNativeIO } from "@/features/pro/test-support/pro-harness";
+import { mockPurchases } from "@/features/pro/test-support/native-purchases";
 import {
   customerInfo,
   entitlement,
-} from "../../pro/test-support/customer-info";
+} from "@/features/pro/test-support/customer-info";
 import type { CustomerInfo } from "react-native-purchases";
 
 jest.mock("expo/fetch", () => ({ fetch: jest.fn() }));
@@ -32,11 +32,11 @@ jest.mock("expo-constants", () => ({
 }));
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {

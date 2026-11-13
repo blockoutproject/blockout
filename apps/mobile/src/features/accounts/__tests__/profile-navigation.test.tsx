@@ -1,10 +1,10 @@
 import { useLayoutEffect, type PropsWithChildren } from "react";
 import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
+import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
 import { accountResponse } from "../test-support/account-response";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
-import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
+import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
 import {
   act,
   cleanup,
@@ -14,33 +14,33 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { Alert, Pressable, Text } from "react-native";
-import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
+import { nativeAlertAction } from "@/shared/native/test-support/native-alert";
 import { Stack, router, useLocalSearchParams, useRouter } from "expo-router";
-import TabsLayout from "../../../app/(ordinary)/(tabs)/_layout";
+import TabsLayout from "@/app/(ordinary)/(tabs)/_layout";
 import SharedTabLayout, {
   unstable_settings as sharedTabSettings,
-} from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/_layout";
+} from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/_layout";
 import ProfileLayout, {
   unstable_settings as profileStackSettings,
-} from "../../../app/(ordinary)/(tabs)/(profile)/profile/_layout";
+} from "@/app/(ordinary)/(tabs)/(profile)/profile/_layout";
 import { renderRouter, testRouter } from "expo-router/testing-library";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import { AccountSessionProvider } from "../session/account-session-provider";
 import { ProfileScreen } from "../screens/profile-screen";
 import { ProfileEditScreen } from "../screens/profile-edit-screen";
 import { EraseAccountScreen } from "../screens/erase-account-screen";
 import { credentialsFor, mockAuth0 } from "../test-support/native-auth0";
-import { ProProvider } from "../../pro";
-import * as proSessionModule from "../../pro/pro-session";
-import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
+import { ProProvider } from "@/features/pro";
+import * as proSessionModule from "@/features/pro/pro-session";
+import { prepareProNativeIO } from "@/features/pro/test-support/pro-harness";
 
 // Route history, account ownership and HTTP decoding remain real; only native/network I/O is controlled.
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),
 );
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
@@ -58,7 +58,7 @@ jest.mock("expo-constants", () => ({
 }));
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
 jest.mock("expo/fetch", () => ({

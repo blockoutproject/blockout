@@ -2,8 +2,8 @@ import { useRouter } from "expo-router";
 import {
   useAccessAdmission,
   useOperationalAdmission,
-} from "../../../features/access/queries/use-access-admission";
-import { AdministrationScreen } from "../../../features/access/screens/administration-screen";
+} from "@/features/access/queries/use-access-admission";
+import { AdministrationScreen } from "@/features/access/screens/administration-screen";
 
 /** Keeps isolated mounts closed; production admission uses current operational grants and native minimums. */
 export default function AdministrationRoute() {

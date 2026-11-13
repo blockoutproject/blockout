@@ -1,5 +1,5 @@
 import { StyleSheet, View } from "react-native";
-import { tokens } from "../theme/tokens";
+import { tokens } from "@/shared/theme/tokens";
 import { Skeleton } from "./skeleton";
 
 /** Shared compact skeleton for caller-owned pending controls; the control retains its name and busy state. */

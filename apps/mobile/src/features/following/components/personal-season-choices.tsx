@@ -1,7 +1,7 @@
 import type { FollowOptionsResponse } from "../../../../.generated/schemas/index.zod";
-import { Button } from "../../../shared/components/button";
-import { EntryGroup } from "../../../shared/components/entry-group";
-import { SelectionRow } from "../../../shared/components/selection-row";
+import { Button } from "@/shared/components/button";
+import { EntryGroup } from "@/shared/components/entry-group";
+import { SelectionRow } from "@/shared/components/selection-row";
 
 /** Bounded choices use their caller's existing selection; choosing or resetting never creates a second draft. */
 export interface PersonalSeasonChoicesProps {

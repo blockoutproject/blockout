@@ -1,4 +1,4 @@
-import { useActionFeedback } from "../../shared/components/action-feedback";
+import { useActionFeedback } from "@/shared/components/action-feedback";
 import { openLegalDocument, type LegalDocument } from "./open-legal-document";
 
 /** Shares safe opening feedback across existing account entries; retry is another explicit press. */

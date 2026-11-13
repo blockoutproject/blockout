@@ -5,26 +5,19 @@ import {
   useAccountSession,
   useCurrentAccount,
   AccountSessionFeedback,
-} from "../../accounts/current-account";
-import {
-  Page,
-  PageContent,
-  PageScrollView,
-} from "../../../shared/components/page";
-import { BrandMark } from "../../../shared/components/brand-mark";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { PagedTabs } from "../../../shared/components/paged-tabs";
+} from "@/features/accounts/current-account";
+import { Page, PageContent, PageScrollView } from "@/shared/components/page";
+import { BrandMark } from "@/shared/components/brand-mark";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { PagedTabs } from "@/shared/components/paged-tabs";
 import { PersonalCalendar } from "../components/personal-calendar";
 import { FollowedLists } from "../components/followed-lists";
-import { ScreenState } from "../../../shared/components/screen-state";
-import {
-  hasReadError,
-  ReadFeedback,
-} from "../../../shared/components/read-feedback";
-import { CalendarLoading } from "../../sporting/calendar";
-import { SportingEntityCardLoading } from "../../sporting/entity-card";
-import { Button } from "../../../shared/components/button";
-import { tokens } from "../../../shared/theme/tokens";
+import { ScreenState } from "@/shared/components/screen-state";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
+import { CalendarLoading } from "@/features/sporting/calendar";
+import { SportingEntityCardLoading } from "@/features/sporting/entity-card";
+import { Button } from "@/shared/components/button";
+import { tokens } from "@/shared/theme/tokens";
 import {
   usePersonalSeasonScope,
   type PersonalSeasonScope,

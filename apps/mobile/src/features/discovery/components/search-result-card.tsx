@@ -1,8 +1,8 @@
-import { SportingEntityCard } from "../../sporting/entity-card";
+import { SportingEntityCard } from "@/features/sporting/entity-card";
 import type { SearchResult } from "../model/search-result";
 
 /** Search loading retains the same badge geometry as the F03 identity card. */
-export { entityBadgeSize as resultBadgeSize } from "../../sporting/entity-card";
+export { entityBadgeSize as resultBadgeSize } from "@/features/sporting/entity-card";
 
 /** Current summary with one voluntary opening action supplied by the active search scene. */
 export interface SearchResultCardProps extends SearchResult {

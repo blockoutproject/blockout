@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { useAccountSession } from "../accounts/current-account";
-import { useAccessAdmission } from "../access/queries/use-access-admission";
+import { useAccountSession } from "@/features/accounts/current-account";
+import { useAccessAdmission } from "@/features/access/queries/use-access-admission";
 import { useAgeDeclaration } from "./age-declaration-context";
 import type { SportingAdTransitionResult } from "./sporting-ad-transition";
 

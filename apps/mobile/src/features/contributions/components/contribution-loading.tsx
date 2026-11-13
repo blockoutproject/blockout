@@ -1,10 +1,10 @@
 import { StyleSheet, View } from "react-native";
-import { FieldSkeleton } from "../../../shared/components/form-loading";
-import { LoadingGroup } from "../../../shared/components/loading-group";
-import { Skeleton } from "../../../shared/components/skeleton";
-import { TextSkeleton } from "../../../shared/components/text-skeleton";
-import { Surface } from "../../../shared/components/surface";
-import { tokens } from "../../../shared/theme/tokens";
+import { FieldSkeleton } from "@/shared/components/form-loading";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { Skeleton } from "@/shared/components/skeleton";
+import { TextSkeleton } from "@/shared/components/text-skeleton";
+import { Surface } from "@/shared/components/surface";
+import { tokens } from "@/shared/theme/tokens";
 
 /** The original-match editor waits with one address field and its submit slot, without admitting commands. */
 export function ContributionFormLoading() {

@@ -1,7 +1,7 @@
 import { RefreshCw } from "lucide-react-native";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
-import { PageFlatList } from "../../../shared/components/page-list";
-import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
+import { ReadFeedback } from "@/shared/components/read-feedback";
+import { PageFlatList } from "@/shared/components/page-list";
+import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import {
   useInfiniteQuery,
   useMutation,
@@ -16,28 +16,28 @@ import {
   PageContent,
   PageScrollView,
   pageContentStyle,
-} from "../../../shared/components/page";
-import { PageHeader } from "../../../shared/components/page-header";
+} from "@/shared/components/page";
+import { PageHeader } from "@/shared/components/page-header";
 
-import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
-import { ListContinuation } from "../../../shared/components/list-continuation";
-import { Button } from "../../../shared/components/button";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { EmptyState, ErrorState } from "../../../shared/components/state-card";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { ListSeparator } from "../../../shared/components/list-separator";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
+import { ListContinuation } from "@/shared/components/list-continuation";
+import { Button } from "@/shared/components/button";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { EmptyState, ErrorState } from "@/shared/components/state-card";
+import { ScreenState } from "@/shared/components/screen-state";
+import { ListSeparator } from "@/shared/components/list-separator";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { isAccessDenied } from "@/shared/api/access-denied";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { useInboxQueries } from "../api/use-inbox-queries";
 import { refreshNotificationSummary } from "../api/inbox-queries";
 import { createReadNotificationOptions } from "../api/inbox-mutations";
 import { notificationExpiry } from "../state/inbox-expiry";
 import { NotificationItem } from "../components/notification-item";
 import { NotificationLoading } from "../components/notification-loading";
-import { AccountSessionFeedback } from "../../accounts/current-account";
-import { useSportingNavigation } from "../../sporting/navigation";
+import { AccountSessionFeedback } from "@/features/accounts/current-account";
+import { useSportingNavigation } from "@/features/sporting/navigation";
 
 /** Current F05/F12 admission precedes private inbox observers, including direct guest entry. */
 export function NotificationsScreen() {

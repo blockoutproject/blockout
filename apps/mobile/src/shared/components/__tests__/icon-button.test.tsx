@@ -2,7 +2,7 @@ import { render, screen, userEvent } from "@testing-library/react-native";
 import { useState } from "react";
 import { Text } from "react-native";
 import { RotateCw, X } from "lucide-react-native";
-import { ThemeProvider } from "../../theme/theme-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { IconButton } from "../icon-button";
 
 /** The caller retains form visibility; the icon control supplies only its named native action. */

@@ -61,7 +61,7 @@ jest.mock(
 jest.mock(
   "react-native-google-mobile-ads",
   () =>
-    jest.requireActual("./src/features/advertising/test-support/native-privacy")
+    jest.requireActual("@/features/advertising/test-support/native-privacy")
       .nativeAdvertising,
 );
 jest.mock("@react-native-google-mobile-ads/facebook", () => ({
@@ -72,7 +72,7 @@ jest.mock("@react-native-google-mobile-ads/facebook", () => ({
 jest.mock(
   "react-native-maps",
   () =>
-    jest.requireActual("./src/features/sporting/test-support/native-maps")
+    jest.requireActual("@/features/sporting/test-support/native-maps")
       .nativeMaps,
 );
 jest.mock("expo-tracking-transparency", () => ({

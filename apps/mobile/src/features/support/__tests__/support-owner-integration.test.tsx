@@ -11,26 +11,26 @@ import {
 import { focusManager, onlineManager } from "@tanstack/react-query";
 import { Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
-import RootLayout from "../../../app/_layout";
-import AccessRoute from "../../../app/access";
-import NotFoundRoute from "../../../app/+not-found";
-import OnboardingRoute from "../../../app/onboarding";
-import OperationsLayout from "../../../app/(operations)/_layout";
-import AdministrationRoute from "../../../app/(operations)/administration";
-import ProfileRoute from "../../../app/(ordinary)/(tabs)/(profile)/profile/index";
-import SignInRoute from "../../../app/(recovery)/sign-in";
-import RecoveryLayout from "../../../app/(recovery)/_layout";
-import MatchRoute from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/matches/[matchId]";
-import SupportLayout from "../../../app/(recovery)/support/_layout";
-import SupportRoute from "../../../app/(recovery)/support/index";
-import SupportChoiceRoute from "../../../app/(recovery)/support/choice";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { accountResponse } from "../../accounts/test-support/account-response";
+import RootLayout from "@/app/_layout";
+import AccessRoute from "@/app/access";
+import NotFoundRoute from "@/app/+not-found";
+import OnboardingRoute from "@/app/onboarding";
+import OperationsLayout from "@/app/(operations)/_layout";
+import AdministrationRoute from "@/app/(operations)/administration";
+import ProfileRoute from "@/app/(ordinary)/(tabs)/(profile)/profile/index";
+import SignInRoute from "@/app/(recovery)/sign-in";
+import RecoveryLayout from "@/app/(recovery)/_layout";
+import MatchRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/matches/[matchId]";
+import SupportLayout from "@/app/(recovery)/support/_layout";
+import SupportRoute from "@/app/(recovery)/support/index";
+import SupportChoiceRoute from "@/app/(recovery)/support/choice";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
-import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
+} from "@/features/accounts/test-support/native-auth0";
+import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
 import type { SubmitSupportRequest } from "../../../../.generated/schemas/index.zod";
 
 // Root, F14 initialization, Auth0 JS, F05/Query, F12 guards, RHF and generated transport are real.
@@ -68,12 +68,12 @@ jest.mock("@sentry/react-native", () => ({
 }));
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

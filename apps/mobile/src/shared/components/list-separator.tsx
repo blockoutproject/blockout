@@ -1,5 +1,5 @@
 import { StyleSheet, View } from "react-native";
-import { tokens } from "../theme/tokens";
+import { tokens } from "@/shared/theme/tokens";
 
 /** Native lists share the approved gap without coupling rows to request or selection state. */
 export function ListSeparator() {

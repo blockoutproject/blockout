@@ -3,22 +3,22 @@ import { useEffect, useRef, useState } from "react";
 import { Controller, useFormState, useWatch } from "react-hook-form";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ClassificationDetailResponse } from "../../../../.generated/schemas/index.zod";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { Button } from "../../../shared/components/button";
-import { SelectField } from "../../../shared/components/select-field";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
-import { FieldSkeleton } from "../../../shared/components/form-loading";
-import { LoadingGroup } from "../../../shared/components/loading-group";
-import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
-import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { isAccessDenied } from "@/shared/api/access-denied";
+import { ApiError } from "@/shared/api/api-fetch";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { Button } from "@/shared/components/button";
+import { SelectField } from "@/shared/components/select-field";
+import { ReadFeedback } from "@/shared/components/read-feedback";
+import { FieldSkeleton } from "@/shared/components/form-loading";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
+import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import {
   formatLabel,
   genderLabel,
-} from "../../sporting/classification-presentation";
+} from "@/features/sporting/classification-presentation";
 import type {
   ClassificationTarget,
   useClassification,

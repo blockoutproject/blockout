@@ -1,17 +1,17 @@
-import { Page, PageContent } from "../../../shared/components/page";
-import { ErrorState } from "../../../shared/components/state-card";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { FormScrollView } from "../../../shared/components/form-scroll-view";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { PageHeader } from "../../../shared/components/page-header";
-import { useAccountSession } from "../../accounts/current-account";
+import { Page, PageContent } from "@/shared/components/page";
+import { ErrorState } from "@/shared/components/state-card";
+import { ScreenState } from "@/shared/components/screen-state";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { isAccessDenied } from "@/shared/api/access-denied";
+import { FormScrollView } from "@/shared/components/form-scroll-view";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { PageHeader } from "@/shared/components/page-header";
+import { useAccountSession } from "@/features/accounts/current-account";
 import { useAdministrationCapabilities } from "../api/use-administration-capabilities";
 import { useMaintenanceSettings } from "../api/use-maintenance-settings";
 import { MaintenanceForm } from "../forms/maintenance-form";
 import { MaintenanceLoading } from "../components/settings-loading";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { ReadFeedback } from "@/shared/components/read-feedback";
 
 /** Loads only with current grants and retains an existing draft read-only when they become unavailable. */
 export function MaintenanceSettingsScreen() {

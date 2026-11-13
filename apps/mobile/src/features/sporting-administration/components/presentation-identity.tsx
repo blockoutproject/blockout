@@ -1,11 +1,11 @@
-import { RoundedContainedImage } from "../../../shared/components/rounded-contained-image";
+import { RoundedContainedImage } from "@/shared/components/rounded-contained-image";
 import { StyleSheet, Text, View } from "react-native";
-import { ImageFallback } from "../../../shared/components/image-fallback";
-import { LoadingGroup } from "../../../shared/components/loading-group";
-import { Skeleton } from "../../../shared/components/skeleton";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { useNativeImageLifecycle } from "../../../shared/images/use-native-image-lifecycle";
+import { ImageFallback } from "@/shared/components/image-fallback";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { Skeleton } from "@/shared/components/skeleton";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { useNativeImageLifecycle } from "@/shared/images/use-native-image-lifecycle";
 
 /** The retained draft preview uses current artwork, editable division colors and optional public season context. */
 export interface PresentationIdentityProps {

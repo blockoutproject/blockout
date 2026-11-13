@@ -1,6 +1,6 @@
 import { render, screen, userEvent } from "@testing-library/react-native";
 import { useState } from "react";
-import { ThemeProvider } from "../../theme/theme-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { SearchField, type SearchFieldProps } from "../search-field";
 
 /** The feature retains the search draft and clears it only after the shared action. */

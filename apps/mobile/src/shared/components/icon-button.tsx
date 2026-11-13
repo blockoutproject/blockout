@@ -1,8 +1,8 @@
 import { controlOpacity } from "./control-styles";
 import type { PropsWithChildren } from "react";
 import { Pressable, StyleSheet, View, type PressableProps } from "react-native";
-import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { LoadingIndicator } from "./loading-indicator";
 
 /** Plain icon action with a required caller-owned name and decorative glyph content. */

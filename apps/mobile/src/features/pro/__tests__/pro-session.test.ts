@@ -1,4 +1,4 @@
-import type { SessionSnapshot } from "../../accounts";
+import type { SessionSnapshot } from "@/features/accounts";
 import { waitFor } from "@testing-library/react-native";
 import Purchases from "react-native-purchases";
 import { createProSession } from "../pro-session";

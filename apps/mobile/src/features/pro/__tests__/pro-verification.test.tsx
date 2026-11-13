@@ -1,8 +1,8 @@
-import { accountResponse as mockAccountResponse } from "../../accounts/test-support/account-response";
+import { accountResponse as mockAccountResponse } from "@/features/accounts/test-support/account-response";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
+} from "@/features/accounts/test-support/native-auth0";
 import * as proSessionModule from "../pro-session";
 import {
   act,
@@ -18,7 +18,7 @@ import type {
   CustomerInfo,
   PurchasesEntitlementInfo,
 } from "react-native-purchases";
-import type { AccountSession } from "../../accounts";
+import type { AccountSession } from "@/features/accounts";
 import type { ProContext } from "../pro-provider";
 import { customerInfo, entitlement } from "../test-support/customer-info";
 import { mockPurchases } from "../test-support/native-purchases";
@@ -37,12 +37,12 @@ jest.mock("react-native-purchases", () => ({
   default: jest.requireActual("../test-support/native-purchases").mockPurchases,
 }));
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

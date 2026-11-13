@@ -12,7 +12,7 @@ import {
   useTabScrollLifecycle,
 } from "react-native-collapsible-tab";
 import { PagedTabContext } from "./paged-tab-context";
-import { hiddenScrollIndicators } from "../native/scroll-indicators";
+import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import {
   Platform,
   StyleSheet,

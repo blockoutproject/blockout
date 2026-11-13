@@ -1,8 +1,8 @@
 import { useRouter } from "expo-router";
 import { LogIn } from "lucide-react-native";
 import type { ReactNode } from "react";
-import { Button } from "../../../shared/components/button";
-import { ErrorState } from "../../../shared/components/state-card";
+import { Button } from "@/shared/components/button";
+import { ErrorState } from "@/shared/components/state-card";
 import { accountSessionRecovery } from "../session/account-session-recovery";
 import { useAccountSession } from "../session/account-session-provider";
 

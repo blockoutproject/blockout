@@ -6,19 +6,19 @@ import { Flag, X } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import type { File } from "expo-file-system";
 import type { MatchDocumentKindEnum } from "../../../../.generated/schemas/index.zod";
-import { useAccountSession } from "../../accounts/current-account";
-import { useOrdinaryRequest } from "../../access/ordinary-request";
-import { supportHref } from "../../support";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { Page } from "../../../shared/components/page";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { ErrorState } from "../../../shared/components/state-card";
-import { LoadingGroup } from "../../../shared/components/loading-group";
-import { Skeleton } from "../../../shared/components/skeleton";
-import { IconButton } from "../../../shared/components/icon-button";
-import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { useAccountSession } from "@/features/accounts/current-account";
+import { useOrdinaryRequest } from "@/features/access/ordinary-request";
+import { supportHref } from "@/features/support";
+import { ApiError } from "@/shared/api/api-fetch";
+import { Page } from "@/shared/components/page";
+import { ScreenState } from "@/shared/components/screen-state";
+import { ErrorState } from "@/shared/components/state-card";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { Skeleton } from "@/shared/components/skeleton";
+import { IconButton } from "@/shared/components/icon-button";
+import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import {
   downloadMatchDocument,
   matchDocumentLabels,

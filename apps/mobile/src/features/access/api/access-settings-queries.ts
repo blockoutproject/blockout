@@ -5,7 +5,7 @@ import {
   getGetMaintenanceSettingsQueryKey,
   getMaintenanceSettings,
 } from "../../../../.generated/mobile";
-import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
+import type { ApiFetchOptions } from "@/shared/api/api-fetch";
 
 /** The mounted settings reader supplies normal authenticated request options. */
 export interface AccessSettingsQueryContext {

@@ -1,40 +1,37 @@
 import { SportingEntityCardLoading } from "../entity-card";
 import { SportingClubLoading } from "../components/sporting-loading";
-import { PageList } from "../../../shared/components/page-list";
+import { PageList } from "@/shared/components/page-list";
 import { SportingInitialComposition } from "../components/sporting-initial-composition";
 import { SportingSupportAction } from "../components/sporting-actions";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingPageHeader } from "../components/sporting-page-header";
-import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
+import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import { SportingTabs } from "../components/sporting-tabs";
-import { ListSeparator } from "../../../shared/components/list-separator";
-import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
+import { ListSeparator } from "@/shared/components/list-separator";
+import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { ResourceText } from "../components/resource-text";
-import {
-  hasReadError,
-  ReadFeedback,
-} from "../../../shared/components/read-feedback";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { PageHeader } from "../../../shared/components/page-header";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
+import { ScreenState } from "@/shared/components/screen-state";
+import { PageHeader } from "@/shared/components/page-header";
 import {
   PageContent,
   PageScrollView,
   pageContentStyle,
-} from "../../../shared/components/page";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { EmptyState } from "../../../shared/components/state-card";
-import { Surface } from "../../../shared/components/surface";
+} from "@/shared/components/page";
+import { isAccessDenied } from "@/shared/api/access-denied";
+import { EmptyState } from "@/shared/components/state-card";
+import { Surface } from "@/shared/components/surface";
 import { hashKey, useQuery } from "@tanstack/react-query";
 import { useRef, useState, type ReactNode } from "react";
 import type { LegendListRef } from "@legendapp/list/react-native";
 import { Globe, Mail, MapPin, Phone, RefreshCw } from "lucide-react-native";
 import { StyleSheet, View } from "react-native";
-import { tokens } from "../../../shared/theme/tokens";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { Button } from "../../../shared/components/button";
-import { EntryGroup } from "../../../shared/components/entry-group";
-import { SeasonSelector } from "../../../shared/components/season-selector";
-import { SelectionRow } from "../../../shared/components/selection-row";
+import { tokens } from "@/shared/theme/tokens";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { Button } from "@/shared/components/button";
+import { EntryGroup } from "@/shared/components/entry-group";
+import { SeasonSelector } from "@/shared/components/season-selector";
+import { SelectionRow } from "@/shared/components/selection-row";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 
 import {

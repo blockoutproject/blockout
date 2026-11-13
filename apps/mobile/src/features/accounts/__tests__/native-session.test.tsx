@@ -5,7 +5,7 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { CredentialsManagerErrorCodes } from "react-native-auth0";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import {
   AccountSessionProvider,
   useAccountSession,
@@ -13,7 +13,7 @@ import {
 import { credentialsFor, mockAuth0 } from "../test-support/native-auth0";
 import { accountResponse } from "../test-support/account-response";
 
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {

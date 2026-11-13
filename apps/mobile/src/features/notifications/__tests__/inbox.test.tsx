@@ -4,7 +4,7 @@ import {
   QueryObserver,
 } from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react-native";
-import { createQueryClient } from "../../../shared/query/query-client";
+import { createQueryClient } from "@/shared/query/query-client";
 import { createInboxQueries, refreshInbox } from "../api/inbox-queries";
 import { createReadNotificationOptions } from "../api/inbox-mutations";
 import { notificationResponse } from "../test-support/notification-data";

@@ -1,7 +1,7 @@
 import { QueryObserver } from "@tanstack/react-query";
 import { createConsultationQueries } from "../api/consultation-queries";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { type ApiFetchOptions } from "../../../shared/api/api-fetch";
+import { createQueryClient } from "@/shared/query/query-client";
+import { type ApiFetchOptions } from "@/shared/api/api-fetch";
 import { clubDetail, sportingId } from "../test-support/consultation-data";
 
 const mockFetch = jest.fn();

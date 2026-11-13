@@ -1,6 +1,6 @@
 import { useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { tokens } from "../../../shared/theme/tokens";
+import { tokens } from "@/shared/theme/tokens";
 
 /** One existing native-grid calculation serves accepted calendars and pre-admission calendar placeholders. */
 export function useCalendarLayout(listWidth = 0) {

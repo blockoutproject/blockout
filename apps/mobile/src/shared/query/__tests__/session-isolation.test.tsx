@@ -12,22 +12,22 @@ import {
 import {
   AccountSessionProvider,
   useAccountSession,
-} from "../../../features/accounts/session/account-session-provider";
-import { initializeV2Installation } from "../../../features/onboarding/initialize-v2-installation";
+} from "@/features/accounts/session/account-session-provider";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../../features/accounts/test-support/native-auth0";
-import { accountResponse } from "../../../features/accounts/test-support/account-response";
+} from "@/features/accounts/test-support/native-auth0";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import { createQueryClient } from "../query-client";
 import type { PropsWithChildren } from "react";
 
-jest.mock("../../../features/onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../../features/accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });
@@ -35,9 +35,7 @@ jest.mock("expo/fetch", () => ({
   fetch: async () =>
     Response.json(
       jest
-        .requireActual(
-          "../../../features/accounts/test-support/account-response",
-        )
+        .requireActual("@/features/accounts/test-support/account-response")
         .accountResponse(),
     ),
 }));

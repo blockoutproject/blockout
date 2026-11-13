@@ -1,7 +1,7 @@
 import { QueryObserver } from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react-native";
 import type { PoolStandingsResponse } from "../../../../.generated/schemas/index.zod";
-import { createQueryClient } from "../../../shared/query/query-client";
+import { createQueryClient } from "@/shared/query/query-client";
 import { createConsultationQueries } from "../api/consultation-queries";
 import { sportingId } from "../test-support/consultation-data";
 

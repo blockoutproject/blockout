@@ -1,16 +1,16 @@
 import { hashKey } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { Eraser, Flag, Search } from "lucide-react-native";
-import { IconButton } from "../../../shared/components/icon-button";
-import { supportHref } from "../../support";
+import { IconButton } from "@/shared/components/icon-button";
+import { supportHref } from "@/features/support";
 import { Image } from "expo-image";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { useTheme } from "@/shared/theme/theme-provider";
 import { useSearchVisit } from "../forms/search-visit";
 import { reconcileSearchFilters } from "../model/search-filters";
-import { Page } from "../../../shared/components/page";
-import { PagedTabs } from "../../../shared/components/paged-tabs";
-import { Button } from "../../../shared/components/button";
-import { hasReadError } from "../../../shared/components/read-feedback";
+import { Page } from "@/shared/components/page";
+import { PagedTabs } from "@/shared/components/paged-tabs";
+import { Button } from "@/shared/components/button";
+import { hasReadError } from "@/shared/components/read-feedback";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
@@ -25,8 +25,8 @@ import {
 
 import { searchSchema, type SearchValues } from "../schemas/search-schema";
 import { searchValues } from "../forms/search-values";
-import { tokens } from "../../../shared/theme/tokens";
-import { SearchField } from "../../../shared/components/search-field";
+import { tokens } from "@/shared/theme/tokens";
+import { SearchField } from "@/shared/components/search-field";
 
 import {
   createDiscoveryContext,

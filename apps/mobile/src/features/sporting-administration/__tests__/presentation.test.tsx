@@ -1,12 +1,12 @@
 import { useLayoutEffect } from "react";
-import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
+import { nativeAlertAction } from "@/shared/native/test-support/native-alert";
 import {
   nativeImageChoiceAction,
   nativeImageChoiceLabels,
-} from "../../../shared/native/test-support/native-image-choices";
-import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
-import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
-import { accountResponse } from "../../accounts/test-support/account-response";
+} from "@/shared/native/test-support/native-image-choices";
+import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
+import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import type {
   AccountPermissionsResponse,
   DivisionListResponse,
@@ -39,29 +39,29 @@ import {
   getGetDivisionQueryKey,
   getListDivisionsQueryKey,
 } from "../../../../.generated/mobile";
-import RootLayout from "../../../app/_layout";
-import OnboardingRoute from "../../../app/onboarding";
-import OperationsLayout from "../../../app/(operations)/_layout";
-import PresentationRoute from "../../../app/(operations)/administration/presentation/[kind]/[id]";
-import DivisionCreationRoute from "../../../app/(operations)/administration/divisions/new";
-import DivisionRoute from "../../../app/(operations)/administration/divisions/[id]";
+import RootLayout from "@/app/_layout";
+import OnboardingRoute from "@/app/onboarding";
+import OperationsLayout from "@/app/(operations)/_layout";
+import PresentationRoute from "@/app/(operations)/administration/presentation/[kind]/[id]";
+import DivisionCreationRoute from "@/app/(operations)/administration/divisions/new";
+import DivisionRoute from "@/app/(operations)/administration/divisions/[id]";
 import { PresentationEntry } from "../entry";
-import { useCurrentAccount } from "../../accounts/current-account";
-import { AccessGateScreen } from "../../access/screens/access-gate-screen";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { applicationAccessResponse as mockAccess } from "../../../shared/api/test-support/application-access";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
+import { useCurrentAccount } from "@/features/accounts/current-account";
+import { AccessGateScreen } from "@/features/access/screens/access-gate-screen";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { applicationAccessResponse as mockAccess } from "@/shared/api/test-support/application-access";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
 import {
   AccountSessionProvider,
   useAccountSession,
-} from "../../accounts/session/account-session-provider";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import { completeDiscovery } from "../../onboarding/discovery-state";
+} from "@/features/accounts/session/account-session-provider";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { completeDiscovery } from "@/features/onboarding/discovery-state";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
+} from "@/features/accounts/test-support/native-auth0";
 import { PresentationScreen } from "../screens/presentation-screen";
 
 jest.mock(
@@ -78,15 +78,15 @@ jest.mock("@sentry/react-native", () => ({
 }));
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

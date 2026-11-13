@@ -1,4 +1,4 @@
-import { nativeAlertAction } from "../../native/test-support/native-alert";
+import { nativeAlertAction } from "@/shared/native/test-support/native-alert";
 import { cleanup, act, screen, userEvent } from "@testing-library/react-native";
 import { Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";

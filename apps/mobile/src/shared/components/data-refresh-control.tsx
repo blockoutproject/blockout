@@ -1,6 +1,6 @@
 import { RefreshControl, type RefreshControlProps } from "react-native";
 import { useState } from "react";
-import { useTheme } from "../theme/theme-provider";
+import { useTheme } from "@/shared/theme/theme-provider";
 
 /** Native refresh inputs; ScrollView also injects its Android child and layout into this element. */
 export type DataRefreshControlProps = Pick<

@@ -1,4 +1,4 @@
-import { isAccessDenied } from "../../../shared/api/access-denied";
+import { isAccessDenied } from "@/shared/api/access-denied";
 import {
   infiniteQueryOptions,
   queryOptions,
@@ -22,7 +22,7 @@ import {
   listCollectionSourceChildren,
   listCollectionSources,
 } from "../../../../.generated/mobile";
-import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
+import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
 
 /** A refused permission or missing exact collection resource cannot authorize another command. */
 export function isCollectionReadRefused(error: unknown): boolean {

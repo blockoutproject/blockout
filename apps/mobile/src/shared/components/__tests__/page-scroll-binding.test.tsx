@@ -6,7 +6,7 @@ import {
   screen,
   userEvent,
 } from "@testing-library/react-native";
-import { ThemeProvider } from "../../theme/theme-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { Page, PageScrollView } from "../page";
 import { PageFlatList } from "../page-list";
 

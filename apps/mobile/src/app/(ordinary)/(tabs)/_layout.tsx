@@ -36,14 +36,14 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { getGetNotificationSummaryQueryKey } from "../../../../.generated/mobile";
-import { useInboxQueries } from "../../../features/notifications/api/use-inbox-queries";
-import { confirmedUnreadCount } from "../../../features/notifications/state/inbox-expiry";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
-import { useReducedMotion } from "../../../shared/theme/use-reduced-motion";
-import { SelectionIndicator } from "../../../shared/components/selection-indicator";
-import { BottomContentInsetContext } from "../../../shared/components/bottom-content-inset";
-import { ProOffer } from "../../../features/pro";
+import { useInboxQueries } from "@/features/notifications/api/use-inbox-queries";
+import { confirmedUnreadCount } from "@/features/notifications/state/inbox-expiry";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
+import { SelectionIndicator } from "@/shared/components/selection-indicator";
+import { BottomContentInsetContext } from "@/shared/components/bottom-content-inset";
+import { ProOffer } from "@/features/pro";
 
 /** Expo owns focus/history; the measured offer/capsule group shares visibility and enlarged-text clearance. */
 export default function TabsLayout() {

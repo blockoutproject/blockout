@@ -1,4 +1,4 @@
-import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
 import {
   cleanup,
   render,
@@ -7,7 +7,7 @@ import {
 } from "@testing-library/react-native";
 import { Linking } from "react-native";
 import { StoreAction } from "../components/store-action";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 
 beforeEach(() => jest.spyOn(Linking, "openURL"));
 afterEach(async () => {

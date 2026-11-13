@@ -10,8 +10,8 @@ import {
 import { SportingPageHeader } from "../components/sporting-page-header";
 import { SportingTabs } from "../components/sporting-tabs";
 import { ResourceText } from "../components/resource-text";
-import { PageHeader } from "../../../shared/components/page-header";
-import { PageScrollView, PageContent } from "../../../shared/components/page";
+import { PageHeader } from "@/shared/components/page-header";
+import { PageScrollView, PageContent } from "@/shared/components/page";
 import { hashKey, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import type {

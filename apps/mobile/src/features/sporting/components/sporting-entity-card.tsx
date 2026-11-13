@@ -10,10 +10,10 @@ import type {
   SportingSeasonResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { useSportingLogo } from "../api/use-sporting-logo";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
-import { LoadingGroup } from "../../../shared/components/loading-group";
-import { Skeleton } from "../../../shared/components/skeleton";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { Skeleton } from "@/shared/components/skeleton";
 
 /** Entity Card metadata uses a 24-point badge minimum; its loading representation shares this owner. */
 export const entityBadgeSize = 24;

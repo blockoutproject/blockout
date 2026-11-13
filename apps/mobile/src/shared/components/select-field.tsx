@@ -1,7 +1,7 @@
 import { ChevronDown } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { tokens } from "../theme/tokens";
-import { useTheme } from "../theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 import { FieldMessage } from "./field-message";
 
 /** Controlled selection trigger; the caller owns options, navigation and the accepted value. */

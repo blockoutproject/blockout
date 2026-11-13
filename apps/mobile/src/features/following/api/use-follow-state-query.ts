@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { useAccountAvailability } from "../../accounts/current-account";
-import { useOrdinaryRequest } from "../../access/ordinary-request";
+import { ApiError } from "@/shared/api/api-fetch";
+import { useAccountAvailability } from "@/features/accounts/current-account";
+import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import { captureFollowingOwner, type FollowingTarget } from "./following-keys";
 import { createFollowStateQueryOptions } from "./follow-queries";
 

@@ -1,5 +1,5 @@
 // Install native pager/animation doubles before production layout imports can load their consumers.
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   act,
@@ -19,22 +19,22 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import RevenueCatUI from "react-native-purchases-ui";
 import { requestTrackingPermissionsAsync } from "expo-tracking-transparency";
-import OrdinaryLayout from "../../../app/(ordinary)/_layout";
-import { useAccountSession } from "../../accounts/current-account";
-import { accountResponse } from "../../accounts/test-support/account-response";
+import OrdinaryLayout from "@/app/(ordinary)/_layout";
+import { useAccountSession } from "@/features/accounts/current-account";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
-import { submitAgeDeclaration } from "../../advertising/age-declaration";
-import { nativeAdvertising } from "../../advertising/test-support/native-privacy";
-import { controlledInterstitial } from "../../advertising/test-support/interstitial";
-import { completeDiscovery } from "../../onboarding/discovery-state";
+} from "@/features/accounts/test-support/native-auth0";
+import { submitAgeDeclaration } from "@/features/advertising/age-declaration";
+import { nativeAdvertising } from "@/features/advertising/test-support/native-privacy";
+import { controlledInterstitial } from "@/features/advertising/test-support/interstitial";
+import { completeDiscovery } from "@/features/onboarding/discovery-state";
 import {
   consultationResponse,
   matchDetail,
   sportingId,
-} from "../../sporting/test-support/consultation-data";
+} from "@/features/sporting/test-support/consultation-data";
 import { usePro } from "../index";
 import * as proSessionModule from "../pro-session";
 import { customerInfo, entitlement } from "../test-support/customer-info";
@@ -78,7 +78,7 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 );
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });
@@ -102,7 +102,7 @@ jest.mock("react-native-purchases-ui", () => {
   };
 });
 jest.mock("react-native-google-mobile-ads", () => ({
-  ...jest.requireActual("../../advertising/test-support/native-privacy")
+  ...jest.requireActual("@/features/advertising/test-support/native-privacy")
     .nativeAdvertising,
   AdEventType: {
     LOADED: "loaded",

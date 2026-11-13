@@ -15,29 +15,29 @@ import { renderRouter } from "expo-router/testing-library";
 import { Stack, router } from "expo-router";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Alert, Text } from "react-native";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { createQueryClient } from "../../../shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { createQueryClient } from "@/shared/query/query-client";
 
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
-import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
-import { accountResponse } from "../../accounts/test-support/account-response";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { AccountSessionProvider } from "@/features/accounts/session/account-session-provider";
+import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+} from "@/features/accounts/test-support/native-auth0";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import { OwnContributionsScreen } from "../screens/own-contributions-screen";
 import { ContributionScreen } from "../screens/contribution-screen";
-import { matchDetail } from "../../sporting/test-support/consultation-data";
+import { matchDetail } from "@/features/sporting/test-support/consultation-data";
 import { ownContributions } from "../test-support/contribution-data";
-import { MatchScreen } from "../../sporting/screens/match-screen";
-import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
-import * as proSessionModule from "../../pro/pro-session";
-import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
-import SignInInvitationRoute from "../../../app/(ordinary)/sign-in-invitation";
-import { AccessAdmissionProvider } from "../../access/queries/use-access-admission";
+import { MatchScreen } from "@/features/sporting/screens/match-screen";
+import { AdvertisingProviders } from "@/features/advertising/test-support/advertising-providers";
+import * as proSessionModule from "@/features/pro/pro-session";
+import { prepareProNativeIO } from "@/features/pro/test-support/pro-harness";
+import SignInInvitationRoute from "@/app/(ordinary)/sign-in-invitation";
+import { AccessAdmissionProvider } from "@/features/access/queries/use-access-admission";
 
 jest.mock("@sentry/react-native", () => ({
   init: jest.fn(),
@@ -51,18 +51,18 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 );
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),
 );
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

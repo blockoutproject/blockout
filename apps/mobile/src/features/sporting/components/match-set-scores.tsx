@@ -5,8 +5,8 @@ import type {
   MatchSetsResponse,
   MatchSummaryResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 import { MatchSurface } from "./match-surface";
 import { SportingLogo } from "./sporting-identity";
 

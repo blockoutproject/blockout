@@ -9,8 +9,8 @@ import { createReadNotificationOptions } from "../api/inbox-mutations";
 import { refreshInbox, refreshNotificationSummary } from "../api/inbox-queries";
 import { useInboxQueries } from "../api/use-inbox-queries";
 import type { PushRegistration } from "./push-registration";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { useSportingTransition } from "../../advertising/use-sporting-transition";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { useSportingTransition } from "@/features/advertising/use-sporting-transition";
 
 // SDK 58 otherwise presents foreground messages while F14/native authentication is still initializing.
 Notifications.setNotificationHandler({

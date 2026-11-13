@@ -10,10 +10,10 @@ import {
   QueryClientProvider,
   onlineManager,
 } from "@tanstack/react-query";
-import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
-import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
-import { accountResponse } from "../../accounts/test-support/account-response";
+import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
+import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
+import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import {
   act,
   cleanup,
@@ -25,28 +25,28 @@ import {
 import { Text } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
 import {
   ApplicationAccessProvider,
   useApplicationAccess,
-} from "../../access/queries/use-application-access";
+} from "@/features/access/queries/use-application-access";
 import {
   AccountSessionProvider,
   useAccountSession,
-} from "../../accounts/session/account-session-provider";
-import type { AccountSession } from "../../accounts";
+} from "@/features/accounts/session/account-session-provider";
+import type { AccountSession } from "@/features/accounts";
 import {
   mockAuth0,
   credentialsFor,
-} from "../../accounts/test-support/native-auth0";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+} from "@/features/accounts/test-support/native-auth0";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import { FollowButton } from "../components/follow-button";
 import { FollowerCount } from "../components/follower-count";
-import TeamRoute from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/teams/[teamId]";
-import PoolRoute from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/pools/[poolId]";
-import { matchDetail } from "../../sporting/test-support/consultation-data";
+import TeamRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/teams/[teamId]";
+import PoolRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/pools/[poolId]";
+import { matchDetail } from "@/features/sporting/test-support/consultation-data";
 import {
   followStateKey,
   followListKey,
@@ -55,12 +55,12 @@ import {
   followerCountKey,
 } from "../api/following-keys";
 
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

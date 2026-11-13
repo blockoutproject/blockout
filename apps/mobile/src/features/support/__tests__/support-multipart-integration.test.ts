@@ -5,7 +5,7 @@ import {
   CreateSupportRequest201,
   SubmitSupportRequest,
 } from "../../../../.generated/schemas/index.zod";
-import { apiFetch } from "../../../shared/api/api-fetch";
+import { apiFetch } from "@/shared/api/api-fetch";
 
 // Jest Expo supplies native doubles. This suite replaces only the native HTTP boundary with
 // Node's ordinary Fetch/FormData implementation; every response comes from the Java provider.

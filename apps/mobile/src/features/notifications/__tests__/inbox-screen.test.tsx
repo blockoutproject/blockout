@@ -16,23 +16,23 @@ import {
 } from "react-native";
 import { NotificationsScreen } from "../screens/notifications-screen";
 import { NotificationState } from "../state/notification-state";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import {
   AccountSessionProvider,
   useAccountSession,
-} from "../../accounts/session/account-session-provider";
-import { useCurrentAccount } from "../../accounts/current-account";
-import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
-import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
-import { accountResponse } from "../../accounts/test-support/account-response";
+} from "@/features/accounts/session/account-session-provider";
+import { useCurrentAccount } from "@/features/accounts/current-account";
+import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
+import { AdvertisingProviders } from "@/features/advertising/test-support/advertising-providers";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
+} from "@/features/accounts/test-support/native-auth0";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { notificationResponse } from "../test-support/notification-data";
 import { notificationMessageSamples } from "../test-support/notification-message-samples";
 import { useLayoutEffect, useState, type PropsWithChildren } from "react";
@@ -46,15 +46,15 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 );
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

@@ -1,5 +1,5 @@
 import { createDiscoveryQueryOptions } from "../api/discovery-queries";
-import { createQueryClient } from "../../../shared/query/query-client";
+import { createQueryClient } from "@/shared/query/query-client";
 
 jest.mock("expo/fetch", () => ({
   fetch: (...args: unknown[]) => mockFetch(...args),

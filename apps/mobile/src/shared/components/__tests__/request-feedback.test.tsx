@@ -1,6 +1,6 @@
 import { ErrorState } from "../state-card";
 import { render, screen, userEvent } from "@testing-library/react-native";
-import { ThemeProvider } from "../../theme/theme-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { RequestLoading } from "../request-feedback";
 
 it("announces a busy read without visible loading copy", async () => {

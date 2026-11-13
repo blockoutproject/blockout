@@ -1,8 +1,8 @@
 import { act, render, screen, userEvent } from "@testing-library/react-native";
 import * as ImagePicker from "expo-image-picker";
 import type { PropsWithChildren } from "react";
-import { ActionFeedbackProvider } from "../../shared/components/action-feedback";
-import { ThemeProvider } from "../../shared/theme/theme-provider";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { ImageFieldExamplesScreen } from "../image-field-examples";
 
 jest.mock("expo-image-picker", () => ({ launchImageLibraryAsync: jest.fn() }));

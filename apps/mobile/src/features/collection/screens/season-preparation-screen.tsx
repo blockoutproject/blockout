@@ -1,24 +1,20 @@
 import { seasonStatus } from "../components/source-summary";
 import { PreparationLink } from "../components/preparation-link";
-import { AccessFeedback } from "../../access/components/access-feedback";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { PageHeader } from "../../../shared/components/page-header";
-import {
-  Page,
-  PageScrollView,
-  PageContent,
-} from "../../../shared/components/page";
-import { ErrorState } from "../../../shared/components/state-card";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { AccessFeedback } from "@/features/access/components/access-feedback";
+import { ScreenState } from "@/shared/components/screen-state";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { PageHeader } from "@/shared/components/page-header";
+import { Page, PageScrollView, PageContent } from "@/shared/components/page";
+import { ErrorState } from "@/shared/components/state-card";
+import { ReadFeedback } from "@/shared/components/read-feedback";
 import { useRouter } from "expo-router";
 import { Globe, Trophy } from "lucide-react-native";
 import { Text } from "react-native";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { Button } from "../../../shared/components/button";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { Button } from "@/shared/components/button";
 import { CollectionLoading } from "../components/collection-loading";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 import { useCollectionSeason } from "../api/use-source-preparation";
 import { isCollectionReadRefused } from "../api/collection-queries";
 

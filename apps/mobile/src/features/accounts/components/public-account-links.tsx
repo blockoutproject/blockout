@@ -1,4 +1,4 @@
-import { controlOpacity } from "../../../shared/components/control-styles";
+import { controlOpacity } from "@/shared/components/control-styles";
 import { Link } from "expo-router";
 import { FileText } from "lucide-react-native";
 import {
@@ -8,12 +8,12 @@ import {
   View,
   type PressableProps,
 } from "react-native";
-import { EntryRow } from "../../../shared/components/entry-row";
-import { EntryGroup } from "../../../shared/components/entry-group";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
-import { supportHref, type SupportOrigin } from "../../support";
-import { useLegalDocuments } from "../../privacy/use-legal-documents";
+import { EntryRow } from "@/shared/components/entry-row";
+import { EntryGroup } from "@/shared/components/entry-group";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { supportHref, type SupportOrigin } from "@/features/support";
+import { useLegalDocuments } from "@/features/privacy/use-legal-documents";
 
 /** Existing account consumers supply only known navigation or safe failed-sign-in facts. */
 export interface PublicAccountLinksProps {

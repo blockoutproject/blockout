@@ -8,8 +8,8 @@ import {
   type TextInputInstance,
   type TextInputProps,
 } from "react-native";
-import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { IconButton } from "./icon-button";
 import { FieldMessage } from "./field-message";
 

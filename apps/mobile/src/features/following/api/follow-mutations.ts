@@ -11,8 +11,8 @@ import {
   getListPersonalMatchesQueryKey,
   getGetFollowOptionsQueryKey,
 } from "../../../../.generated/mobile";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { isAccessDenied } from "../../../shared/api/access-denied";
+import { ApiError } from "@/shared/api/api-fetch";
+import { isAccessDenied } from "@/shared/api/access-denied";
 import {
   followMutationKey,
   followStateKey,

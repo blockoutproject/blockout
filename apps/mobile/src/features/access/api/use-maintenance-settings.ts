@@ -11,7 +11,7 @@ import type {
   SetMaintenanceActivationRequest,
 } from "../../../../.generated/schemas/index.zod";
 import { createMaintenanceSettingsQueryOptions } from "./access-settings-queries";
-import { useAccountSession } from "../../accounts/current-account";
+import { useAccountSession } from "@/features/accounts/current-account";
 
 /** Reads one settings group and lets normal Query invalidation refresh its server projections. */
 export function useMaintenanceSettings(enabled: boolean) {

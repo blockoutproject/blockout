@@ -1,13 +1,13 @@
 import { useRouter } from "expo-router";
 import { X } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
-import { Page, PageContent } from "../../../shared/components/page";
+import { Page, PageContent } from "@/shared/components/page";
 
-import { FormScrollView } from "../../../shared/components/form-scroll-view";
-import { Surface } from "../../../shared/components/surface";
-import { IconButton } from "../../../shared/components/icon-button";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { FormScrollView } from "@/shared/components/form-scroll-view";
+import { Surface } from "@/shared/components/surface";
+import { IconButton } from "@/shared/components/icon-button";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { SupportForm } from "../forms/support-form";
 import { useSupportVisit } from "../forms/support-visit";
 import { SupportConfirmation } from "../forms/support-confirmation";

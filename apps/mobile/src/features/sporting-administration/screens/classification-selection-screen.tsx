@@ -1,21 +1,21 @@
 import { RefreshCw } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { type UseFormReturn, useWatch } from "react-hook-form";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { Button } from "../../../shared/components/button";
-import { EntryGroup } from "../../../shared/components/entry-group";
-import { ListLoading } from "../../../shared/components/list-loading";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
-import { SelectionRow } from "../../../shared/components/selection-row";
-import { Sheet, SheetContent } from "../../../shared/components/sheet";
-import { EmptyState, ErrorState } from "../../../shared/components/state-card";
-import { AccessFeedback } from "../../access/components/access-feedback";
+import { isAccessDenied } from "@/shared/api/access-denied";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { Button } from "@/shared/components/button";
+import { EntryGroup } from "@/shared/components/entry-group";
+import { ListLoading } from "@/shared/components/list-loading";
+import { ReadFeedback } from "@/shared/components/read-feedback";
+import { SelectionRow } from "@/shared/components/selection-row";
+import { Sheet, SheetContent } from "@/shared/components/sheet";
+import { EmptyState, ErrorState } from "@/shared/components/state-card";
+import { AccessFeedback } from "@/features/access/components/access-feedback";
 import {
   formatLabel,
   sportingGenderLabels,
-} from "../../sporting/classification-presentation";
+} from "@/features/sporting/classification-presentation";
 import {
   useClassification,
   useDivisions,

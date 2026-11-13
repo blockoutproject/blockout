@@ -1,11 +1,11 @@
 import { StyleSheet, View } from "react-native";
-import { Skeleton } from "../../../shared/components/skeleton";
-import { TextSkeleton } from "../../../shared/components/text-skeleton";
-import { LoadingGroup } from "../../../shared/components/loading-group";
-import { FieldSkeleton } from "../../../shared/components/form-loading";
-import { Surface } from "../../../shared/components/surface";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { Skeleton } from "@/shared/components/skeleton";
+import { TextSkeleton } from "@/shared/components/text-skeleton";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { FieldSkeleton } from "@/shared/components/form-loading";
+import { Surface } from "@/shared/components/surface";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 
 /** Product Design 6019:46573: two decorative destination rows while the season catalogue is unknown. */
 export function CollectionLoading() {

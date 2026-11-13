@@ -18,14 +18,14 @@ import {
   type UpdateOwnStreamContributionRequest,
   OwnStreamContributionDetailResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { useOrdinaryRequest } from "../../access/ordinary-request";
+import { isAccessDenied } from "@/shared/api/access-denied";
+import { ApiError } from "@/shared/api/api-fetch";
+import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import {
   useAccountSession,
   useCurrentAccount,
-} from "../../accounts/current-account";
-import { useConsultationQueries } from "../../sporting/match-consultation";
+} from "@/features/accounts/current-account";
+import { useConsultationQueries } from "@/features/sporting/match-consultation";
 import { contributionKeys } from "./contribution-keys";
 
 /** A current owner refusal or unavailable match revokes the personal resource, unlike a technical outage. */

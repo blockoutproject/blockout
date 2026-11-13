@@ -10,8 +10,8 @@ import {
   SportingInitialComposition,
   type SportingInitialRead,
 } from "../components/sporting-initial-composition";
-import { PageHeader } from "../../../shared/components/page-header";
-import { PageScrollView, PageContent } from "../../../shared/components/page";
+import { PageHeader } from "@/shared/components/page-header";
+import { PageScrollView, PageContent } from "@/shared/components/page";
 import { hashKey, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import type {

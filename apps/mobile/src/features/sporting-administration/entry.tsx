@@ -1,10 +1,10 @@
-import { NavigationLink } from "../../shared/components/navigation-link";
+import { NavigationLink } from "@/shared/components/navigation-link";
 import { useRouter } from "expo-router";
 import { SquarePen } from "lucide-react-native";
-import { IconButton } from "../../shared/components/icon-button";
-import { tokens } from "../../shared/theme/tokens";
-import { useTheme } from "../../shared/theme/theme-provider";
-import { useAdministrationCapabilities } from "../access/api/use-administration-capabilities";
+import { IconButton } from "@/shared/components/icon-button";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { useAdministrationCapabilities } from "@/features/access/api/use-administration-capabilities";
 import type { ClassificationTarget } from "./api/classification";
 import type { PresentationTarget } from "./api/presentation";
 

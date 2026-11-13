@@ -1,9 +1,9 @@
-import { ClassificationVisitProvider } from "../../features/sporting-administration/forms/classification-visit";
+import { ClassificationVisitProvider } from "@/features/sporting-administration/forms/classification-visit";
 import { Stack } from "expo-router";
-import { sheetScreenOptions } from "../../shared/components/sheet";
-import { useTheme } from "../../shared/theme/theme-provider";
-import { useAccessAdmission } from "../../features/access/queries/use-access-admission";
-import { canReadDivisions } from "../../features/access/division-catalog-access";
+import { sheetScreenOptions } from "@/shared/components/sheet";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { useAccessAdmission } from "@/features/access/queries/use-access-admission";
+import { canReadDivisions } from "@/features/access/division-catalog-access";
 
 /** Protects each implemented operational destination with its own current action grant. */
 export default function OperationsLayout() {

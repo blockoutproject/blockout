@@ -6,16 +6,16 @@ import {
   StreamModerationFilterEnum,
   StreamPlatformEnum,
 } from "../../../../.generated/schemas/index.zod";
-import { Button } from "../../../shared/components/button";
-import { SelectField } from "../../../shared/components/select-field";
-import { SelectionRow } from "../../../shared/components/selection-row";
-import { EntryGroup } from "../../../shared/components/entry-group";
-import { Sheet, SheetContent } from "../../../shared/components/sheet";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { Button } from "@/shared/components/button";
+import { SelectField } from "@/shared/components/select-field";
+import { SelectionRow } from "@/shared/components/selection-row";
+import { EntryGroup } from "@/shared/components/entry-group";
+import { Sheet, SheetContent } from "@/shared/components/sheet";
+import { ReadFeedback } from "@/shared/components/read-feedback";
 import { ModerationFiltersLoading } from "./moderation-loading";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { AccountSessionFeedback } from "../../accounts/current-account";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { AccountSessionFeedback } from "@/features/accounts/current-account";
 import {
   useModerationQueue,
   type ModerationFilters as Filters,

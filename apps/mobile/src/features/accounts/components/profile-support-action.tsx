@@ -1,9 +1,9 @@
 import { useRouter } from "expo-router";
 import { Flag } from "lucide-react-native";
-import { IconButton } from "../../../shared/components/icon-button";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
-import { supportHref } from "../../support";
+import { IconButton } from "@/shared/components/icon-button";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { supportHref } from "@/features/support";
 
 /** Shared profile header action opens the existing support sheet without removing the underlying editor or its draft. */
 export function ProfileSupportAction() {

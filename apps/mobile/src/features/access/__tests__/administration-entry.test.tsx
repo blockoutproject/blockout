@@ -1,7 +1,7 @@
-import { accountResponse } from "../../accounts/test-support/account-response";
-import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
+import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
 import { ApplicationAccessProvider } from "../queries/use-application-access";
-import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
   cleanup,
@@ -14,33 +14,33 @@ import {
 import { Pressable, Text } from "react-native";
 import { useLayoutEffect, useState, type PropsWithChildren } from "react";
 import { renderRouter } from "expo-router/testing-library";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import {
   AccountSessionProvider,
   useAccountSession,
-} from "../../accounts/session/account-session-provider";
-import { useCurrentAccount } from "../../accounts/api/use-current-account";
-import { ProfileScreen } from "../../accounts/screens/profile-screen";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+} from "@/features/accounts/session/account-session-provider";
+import { useCurrentAccount } from "@/features/accounts/api/use-current-account";
+import { ProfileScreen } from "@/features/accounts/screens/profile-screen";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
+} from "@/features/accounts/test-support/native-auth0";
 import { AdministrationEntry } from "../components/administration-entry";
 import { AdministrationScreen } from "../screens/administration-screen";
-import AdministrationRoute from "../../../app/(operations)/administration";
+import AdministrationRoute from "@/app/(operations)/administration";
 
 // The installed library controls native keyboard I/O; profile and admission behavior remain real.
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),
 );
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

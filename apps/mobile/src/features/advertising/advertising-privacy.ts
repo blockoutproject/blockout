@@ -12,7 +12,7 @@ import {
   requestTrackingPermissionsAsync,
 } from "expo-tracking-transparency";
 import { setAdvertiserTrackingEnabled } from "@react-native-google-mobile-ads/facebook";
-import type { SessionSnapshot } from "../accounts";
+import type { SessionSnapshot } from "@/features/accounts";
 import type { AgeDeclaration } from "./age-declaration";
 import {
   getAdvertisingEligibility,

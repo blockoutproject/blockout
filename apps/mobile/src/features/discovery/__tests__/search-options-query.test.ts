@@ -1,6 +1,6 @@
 import { createSearchOptionsQueryOptions } from "../api/discovery-queries";
-import { createQueryClient } from "../../../shared/query/query-client";
-import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
+import { createQueryClient } from "@/shared/query/query-client";
+import type { ApiFetchOptions } from "@/shared/api/api-fetch";
 import type { SportingSearchOptionsResponse } from "../../../../.generated/schemas/index.zod";
 
 const mockFetch = jest.fn();

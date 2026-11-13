@@ -1,11 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "expo-router";
-import { Sheet, SheetContent } from "../../../shared/components/sheet";
-import { ErrorState } from "../../../shared/components/state-card";
-import {
-  hasReadError,
-  ReadFeedback,
-} from "../../../shared/components/read-feedback";
+import { Sheet, SheetContent } from "@/shared/components/sheet";
+import { ErrorState } from "@/shared/components/state-card";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { PersonalSeasonChoices } from "../components/personal-season-choices";
 import { usePersonalSeasonScope } from "../components/personal-season-provider";
 

@@ -1,10 +1,10 @@
 import type { FollowingTarget } from "../api/following-keys";
 import { StyleSheet, Text, View } from "react-native";
 import { UsersRound } from "lucide-react-native";
-import { hasReadError } from "../../../shared/components/read-feedback";
-import { LoadingIndicator } from "../../../shared/components/loading-indicator";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { hasReadError } from "@/shared/components/read-feedback";
+import { LoadingIndicator } from "@/shared/components/loading-indicator";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 import { useFollowerCountQuery } from "../api/use-follower-count-query";
 
 /** Exact public target; private account and personal season are not count selectors. */

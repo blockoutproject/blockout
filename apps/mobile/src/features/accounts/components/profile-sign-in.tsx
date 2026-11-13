@@ -1,7 +1,7 @@
 import { Bell, Check, UserRound } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { SignInInvitationCard } from "./sign-in-invitation";
 
 const benefits = [

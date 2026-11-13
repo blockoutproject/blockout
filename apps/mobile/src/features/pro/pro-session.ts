@@ -3,7 +3,7 @@ import Constants from "expo-constants";
 import { Platform } from "react-native";
 import Purchases from "react-native-purchases";
 import type { CustomerInfo } from "react-native-purchases";
-import type { SessionSnapshot } from "../accounts";
+import type { SessionSnapshot } from "@/features/accounts";
 import { type ProOperation, type ProSessionState } from "./pro-state";
 import {
   restoredProOperation,

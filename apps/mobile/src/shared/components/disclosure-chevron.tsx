@@ -5,9 +5,9 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
-import { useTheme } from "../theme/theme-provider";
-import { useReducedMotion } from "../theme/use-reduced-motion";
-import { tokens } from "../theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
+import { tokens } from "@/shared/theme/tokens";
 
 /** Decorative disclosure direction; the enclosing control owns the accessible expanded state. */
 export interface DisclosureChevronProps {

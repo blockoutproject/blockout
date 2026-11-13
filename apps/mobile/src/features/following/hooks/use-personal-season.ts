@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
+import type { ApiFetchOptions } from "@/shared/api/api-fetch";
 import type { FollowingOwner } from "../api/following-keys";
 import { createFollowOptionsQueryOptions } from "../api/personal-queries";
 

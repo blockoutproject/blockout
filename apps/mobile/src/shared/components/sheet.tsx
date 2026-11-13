@@ -1,4 +1,4 @@
-import { hiddenScrollIndicators } from "../native/scroll-indicators";
+import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import { X } from "lucide-react-native";
 import type { PropsWithChildren } from "react";
 import {
@@ -14,8 +14,8 @@ import {
   useSafeAreaFrame,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { IconButton } from "./icon-button";
 
 /** Register these options in the owning Expo Router layout before opening a sheet route. */

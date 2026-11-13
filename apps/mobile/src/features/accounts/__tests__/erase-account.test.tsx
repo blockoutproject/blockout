@@ -14,29 +14,29 @@ import {
 import { Stack } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import { Pressable, Text } from "react-native";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
-import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import {
   AccountSessionProvider,
   useAccountSession,
 } from "../session/account-session-provider";
-import { AccessAdmissionProvider } from "../../access/queries/use-access-admission";
+import { AccessAdmissionProvider } from "@/features/access/queries/use-access-admission";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
 import { accountResponse } from "../test-support/account-response";
 import { credentialsFor, mockAuth0 } from "../test-support/native-auth0";
 import { ProfileScreen } from "../screens/profile-screen";
-import EraseAccountRoute from "../../../app/(ordinary)/(tabs)/(profile)/profile/(forms)/erase";
+import EraseAccountRoute from "@/app/(ordinary)/(tabs)/(profile)/profile/(forms)/erase";
 import {
   getGetApplicationAccessQueryKey,
   getGetMyAccountQueryKey,
 } from "../../../../.generated/mobile";
 
 // Router, Auth0 reducer, Query and generated transport are real; only native/network I/O is controlled.
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {

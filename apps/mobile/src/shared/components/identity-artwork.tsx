@@ -1,7 +1,7 @@
 import { Image, type ImageProps } from "expo-image";
 import { useState, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
-import { tokens } from "../theme/tokens";
+import { tokens } from "@/shared/theme/tokens";
 import { Skeleton } from "./skeleton";
 import { RoundedContainedImage } from "./rounded-contained-image";
 

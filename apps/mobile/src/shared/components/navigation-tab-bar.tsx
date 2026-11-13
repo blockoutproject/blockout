@@ -6,8 +6,8 @@ import Animated, {
   useAnimatedStyle,
   type SharedValue,
 } from "react-native-reanimated";
-import { tokens } from "../theme/tokens";
-import { useTheme } from "../theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 import { Tabs } from "./tabs";
 
 /** Every pager keeps library navigation and binds only label color to its existing native progress. */

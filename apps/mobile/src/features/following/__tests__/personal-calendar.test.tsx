@@ -4,12 +4,12 @@ import {
 } from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react-native";
 import type { PersonalMatchCalendarResponse } from "../../../../.generated/schemas/index.zod";
-import { createQueryClient } from "../../../shared/query/query-client";
+import { createQueryClient } from "@/shared/query/query-client";
 import {
   matchDetail,
   sportingId,
-} from "../../sporting/test-support/consultation-data";
-import { refreshCalendar } from "../../sporting/api/sporting-calendar";
+} from "@/features/sporting/test-support/consultation-data";
+import { refreshCalendar } from "@/features/sporting/api/sporting-calendar";
 import {
   createFollowOptionsQueryOptions,
   createPersonalCalendarOptions,

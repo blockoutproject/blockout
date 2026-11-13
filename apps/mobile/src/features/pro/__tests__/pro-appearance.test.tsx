@@ -1,5 +1,5 @@
-import { accountResponse as mockAccountResponse } from "../../accounts/test-support/account-response";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import { accountResponse as mockAccountResponse } from "@/features/accounts/test-support/account-response";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { fetch } from "expo/fetch";
 import * as proSessionModule from "../pro-session";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -15,19 +15,19 @@ import { Stack, useTheme as useNavigationTheme } from "expo-router";
 import { useEffect, useState, type ComponentType } from "react";
 import { Appearance, Pressable, Text, TextInput } from "react-native";
 import type { CustomerInfo } from "react-native-purchases";
-import RootLayout from "../../../app/_layout";
-import { useAccountSession } from "../../accounts/session/account-session-provider";
-import type { AccountSession } from "../../accounts";
+import RootLayout from "@/app/_layout";
+import { useAccountSession } from "@/features/accounts/session/account-session-provider";
+import type { AccountSession } from "@/features/accounts";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
-import { useTheme } from "../../../shared/theme/theme-provider";
+} from "@/features/accounts/test-support/native-auth0";
+import { useTheme } from "@/shared/theme/theme-provider";
 import {
   appearanceColors,
   membershipColors,
   neutralContext,
-} from "../../../shared/theme/tokens";
+} from "@/shared/theme/tokens";
 import { usePro, type ProContext } from "../index";
 import { customerInfo, entitlement } from "../test-support/customer-info";
 import { mockPurchases } from "../test-support/native-purchases";
@@ -55,7 +55,7 @@ jest.mock("@sentry/react-native", () => ({
   captureException: jest.fn(),
   wrap: (component: ComponentType) => component,
 }));
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("@react-native-async-storage/async-storage", () =>
@@ -65,7 +65,7 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 );
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

@@ -1,5 +1,5 @@
-import { Page, PageScrollView } from "../../../shared/components/page";
-import { ErrorState } from "../../../shared/components/state-card";
+import { Page, PageScrollView } from "@/shared/components/page";
+import { ErrorState } from "@/shared/components/state-card";
 import { ArrowRight, ChevronLeft } from "lucide-react-native";
 import { useEffect, useRef, useState, type ComponentRef } from "react";
 import {
@@ -11,13 +11,13 @@ import {
   View,
 } from "react-native";
 
-import { BrandHeader } from "../../../shared/components/brand-header";
-import { Button } from "../../../shared/components/button";
-import { IconButton } from "../../../shared/components/icon-button";
+import { BrandHeader } from "@/shared/components/brand-header";
+import { Button } from "@/shared/components/button";
+import { IconButton } from "@/shared/components/icon-button";
 
-import { ScreenState } from "../../../shared/components/screen-state";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { ScreenState } from "@/shared/components/screen-state";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import {
   DiscoveryBackdrop,
   DiscoveryExample,

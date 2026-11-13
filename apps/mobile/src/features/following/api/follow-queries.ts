@@ -7,8 +7,8 @@ import {
   getPoolFollowState,
   getTeamFollowState,
 } from "../../../../.generated/mobile";
-import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
-import { isAccessDenied } from "../../../shared/api/access-denied";
+import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
+import { isAccessDenied } from "@/shared/api/access-denied";
 import {
   followStateKey,
   type FollowingOwner,

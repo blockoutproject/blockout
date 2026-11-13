@@ -1,7 +1,7 @@
 import type { UseQueryResult } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import type { AccountSession } from "../../accounts/current-account";
-import { ErrorState } from "../../../shared/components/state-card";
+import type { AccountSession } from "@/features/accounts/current-account";
+import { ErrorState } from "@/shared/components/state-card";
 
 /** Presentation inputs only; the owning authority still checks grants, identity and request admission. */
 export interface AccessFeedbackProps {

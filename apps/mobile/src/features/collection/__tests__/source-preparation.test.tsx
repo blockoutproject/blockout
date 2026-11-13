@@ -1,8 +1,8 @@
 import { useLayoutEffect, type PropsWithChildren } from "react";
 import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
-import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
-import { accountResponse } from "../../accounts/test-support/account-response";
+import { nativeAlertAction } from "@/shared/native/test-support/native-alert";
+import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import {
   cleanup,
   act,
@@ -18,35 +18,35 @@ import type {
   SourceBindingResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { getGetCollectionSourceQueryKey } from "../../../../.generated/mobile";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { AccountSessionProvider } from "@/features/accounts/session/account-session-provider";
 import {
   useAccountSession,
   useCurrentAccount,
-} from "../../accounts/current-account";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+} from "@/features/accounts/current-account";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
+} from "@/features/accounts/test-support/native-auth0";
 import { CollectionDashboardScreen } from "../screens/collection-dashboard-screen";
 import { SeasonPreparationScreen } from "../screens/season-preparation-screen";
 import { ProviderSourcesScreen } from "../screens/provider-sources-screen";
 import { SourcePreparationScreen } from "../screens/source-preparation-screen";
 import { SourceChildrenScreen } from "../screens/source-children-screen";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
 
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),
 );
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

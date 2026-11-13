@@ -1,7 +1,7 @@
-import { ErrorState } from "../../../shared/components/state-card";
+import { ErrorState } from "@/shared/components/state-card";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
-import { Sheet, SheetContent } from "../../../shared/components/sheet";
+import { Sheet, SheetContent } from "@/shared/components/sheet";
 import {
   SignInInvitation,
   SignInInvitationLoading,

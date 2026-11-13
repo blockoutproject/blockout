@@ -3,7 +3,7 @@ import { skipToken, useQuery } from "@tanstack/react-query";
 import { useAuth0 } from "react-native-auth0";
 import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
-import { useAccountSession } from "../../accounts/session/account-session-provider";
+import { useAccountSession } from "@/features/accounts/session/account-session-provider";
 import { SupportVisitProvider } from "../forms/support-visit";
 import { supportContext, type SupportOrigin } from "../model/support-context";
 import { supportDeviceContext } from "../api/support-device-context";

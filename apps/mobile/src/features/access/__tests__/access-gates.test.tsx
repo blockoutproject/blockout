@@ -1,4 +1,4 @@
-import { accountResponse } from "../../accounts/test-support/account-response";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import { focusManager, onlineManager } from "@tanstack/react-query";
 import {
   cleanup,
@@ -14,25 +14,25 @@ import { AppState, Text, Pressable, type AppStateStatus } from "react-native";
 import type { ComponentType } from "react";
 import { CredentialsManagerErrorCodes } from "react-native-auth0";
 import { AccessGateScreen } from "../screens/access-gate-screen";
-import NotFoundRoute from "../../../app/+not-found";
-import OperationsLayout from "../../../app/(operations)/_layout";
-import AdministrationRoute from "../../../app/(operations)/administration";
-import RootLayout from "../../../app/_layout";
-import OrdinaryLayout from "../../../app/(ordinary)/_layout";
-import RecoveryLayout from "../../../app/(recovery)/_layout";
-import SignInRoute from "../../../app/(recovery)/sign-in";
-import OnboardingRoute from "../../../app/onboarding";
-import SupportLayout from "../../../app/(recovery)/support/_layout";
-import SupportRoute from "../../../app/(recovery)/support/index";
-import SupportChoiceRoute from "../../../app/(recovery)/support/choice";
-import { completeDiscovery } from "../../onboarding/discovery-state";
-import { useAccountSession } from "../../accounts/current-account";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+import NotFoundRoute from "@/app/+not-found";
+import OperationsLayout from "@/app/(operations)/_layout";
+import AdministrationRoute from "@/app/(operations)/administration";
+import RootLayout from "@/app/_layout";
+import OrdinaryLayout from "@/app/(ordinary)/_layout";
+import RecoveryLayout from "@/app/(recovery)/_layout";
+import SignInRoute from "@/app/(recovery)/sign-in";
+import OnboardingRoute from "@/app/onboarding";
+import SupportLayout from "@/app/(recovery)/support/_layout";
+import SupportRoute from "@/app/(recovery)/support/index";
+import SupportChoiceRoute from "@/app/(recovery)/support/choice";
+import { completeDiscovery } from "@/features/onboarding/discovery-state";
+import { useAccountSession } from "@/features/accounts/current-account";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
+} from "@/features/accounts/test-support/native-auth0";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
 
 // The real support form uses the shared keyboard owner; its native I/O uses the upstream Jest boundary.
 jest.mock("react-native-keyboard-controller", () =>
@@ -65,15 +65,15 @@ jest.mock("@sentry/react-native", () => ({
 }));
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

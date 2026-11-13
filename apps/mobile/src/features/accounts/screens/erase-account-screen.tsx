@@ -10,27 +10,20 @@ import {
   eraseAccount,
   getEraseAccountMutationKey,
 } from "../../../../.generated/mobile";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { Button } from "../../../shared/components/button";
-import {
-  Page,
-  PageContent,
-  PageScrollView,
-} from "../../../shared/components/page";
-import { PageHeader } from "../../../shared/components/page-header";
-import { LoadingGroup } from "../../../shared/components/loading-group";
-import { Skeleton } from "../../../shared/components/skeleton";
+import { ApiError } from "@/shared/api/api-fetch";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { Button } from "@/shared/components/button";
+import { Page, PageContent, PageScrollView } from "@/shared/components/page";
+import { PageHeader } from "@/shared/components/page-header";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { Skeleton } from "@/shared/components/skeleton";
 
-import { ErrorState } from "../../../shared/components/state-card";
-import { ScreenState } from "../../../shared/components/screen-state";
-import {
-  hasReadError,
-  ReadFeedback,
-} from "../../../shared/components/read-feedback";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
-import { useOrdinaryRequest } from "../../access/ordinary-request";
+import { ErrorState } from "@/shared/components/state-card";
+import { ScreenState } from "@/shared/components/screen-state";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import { useCurrentAccount } from "../api/use-current-account";
 import { isAccountMissing } from "../api/current-account-query";
 import { accountSessionRecovery } from "../session/account-session-recovery";

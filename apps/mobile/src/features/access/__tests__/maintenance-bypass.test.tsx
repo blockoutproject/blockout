@@ -1,4 +1,4 @@
-import { accountResponse } from "../../accounts/test-support/account-response";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -8,19 +8,19 @@ import {
 } from "@testing-library/react-native";
 import type { PropsWithChildren } from "react";
 import { getAccountPhoto, getMyAccount } from "../../../../.generated/mobile";
-import { apiFetch } from "../../../shared/api/api-fetch";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import { apiFetch } from "@/shared/api/api-fetch";
+import { createQueryClient } from "@/shared/query/query-client";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
 import {
   AccountSessionProvider,
   useAccountSession,
-} from "../../accounts/session/account-session-provider";
-import { useProfileEditing } from "../../accounts/api/use-profile-editing";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+} from "@/features/accounts/session/account-session-provider";
+import { useProfileEditing } from "@/features/accounts/api/use-profile-editing";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
+} from "@/features/accounts/test-support/native-auth0";
 import { ApplicationAccessProvider } from "../queries/use-application-access";
 import {
   AccessAdmissionProvider,
@@ -28,12 +28,12 @@ import {
 } from "../queries/use-access-admission";
 import { useOrdinaryRequest } from "../ordinary-request";
 
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

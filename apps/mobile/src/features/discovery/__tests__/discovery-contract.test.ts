@@ -3,7 +3,7 @@ import {
   listTeams,
   getListClubsQueryOptions,
 } from "../../../../.generated/mobile";
-import { createQueryClient } from "../../../shared/query/query-client";
+import { createQueryClient } from "@/shared/query/query-client";
 import { createDiscoveryContext } from "../api/discovery-context";
 
 const mockFetch = jest.fn();

@@ -15,8 +15,8 @@ import Animated, {
   useSharedValue,
   type SharedValue,
 } from "react-native-reanimated";
-import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 
 /** Measured pinned chrome clearance; scroll containers reserve it inside their content. */
 export const NavigationInsetContext = createContext(0);

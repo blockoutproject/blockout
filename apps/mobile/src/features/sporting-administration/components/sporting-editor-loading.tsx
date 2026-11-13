@@ -1,11 +1,11 @@
 import { StyleSheet, View } from "react-native";
-import { FieldSkeleton } from "../../../shared/components/form-loading";
-import { LoadingGroup } from "../../../shared/components/loading-group";
-import { Skeleton } from "../../../shared/components/skeleton";
-import { TextSkeleton } from "../../../shared/components/text-skeleton";
-import { SingleImageFieldSkeleton } from "../../../shared/components/single-image-field";
-import { Surface } from "../../../shared/components/surface";
-import { tokens } from "../../../shared/theme/tokens";
+import { FieldSkeleton } from "@/shared/components/form-loading";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { Skeleton } from "@/shared/components/skeleton";
+import { TextSkeleton } from "@/shared/components/text-skeleton";
+import { SingleImageFieldSkeleton } from "@/shared/components/single-image-field";
+import { Surface } from "@/shared/components/surface";
+import { tokens } from "@/shared/theme/tokens";
 import type { PresentationTarget } from "../api/presentation";
 
 /** Classification waits in its summary, mode, division and paired choice slots without installing a draft. */

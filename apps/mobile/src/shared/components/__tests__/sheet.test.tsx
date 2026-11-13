@@ -6,7 +6,7 @@ import {
 } from "@testing-library/react-native";
 import { useState } from "react";
 import { Switch, Text } from "react-native";
-import { ThemeProvider } from "../../theme/theme-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { Button } from "../button";
 import { Sheet, SheetContent } from "../sheet";
 

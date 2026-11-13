@@ -1,8 +1,8 @@
 import { useLayoutEffect } from "react";
 import { ClassificationVisitProvider } from "../forms/classification-visit";
-import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
-import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
-import { accountResponse } from "../../accounts/test-support/account-response";
+import { nativeAlertAction } from "@/shared/native/test-support/native-alert";
+import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import type {
   AccountPermissionsResponse,
   AcquisitionClassificationResponse,
@@ -30,31 +30,31 @@ import { AccessibilityInfo, Alert, Pressable, Text } from "react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { ComponentType, PropsWithChildren } from "react";
-import RootLayout from "../../../app/_layout";
-import OnboardingRoute from "../../../app/onboarding";
-import OperationsLayout from "../../../app/(operations)/_layout";
-import RecoveryLayout from "../../../app/(recovery)/_layout";
-import ClassificationRoute from "../../../app/(operations)/administration/classification/[kind]/[id]";
-import DivisionsRoute from "../../../app/(operations)/administration/divisions/index";
-import DivisionRoute from "../../../app/(operations)/administration/divisions/[id]";
-import ClassificationSelectionRoute from "../../../app/(operations)/administration/classification-selection";
+import RootLayout from "@/app/_layout";
+import OnboardingRoute from "@/app/onboarding";
+import OperationsLayout from "@/app/(operations)/_layout";
+import RecoveryLayout from "@/app/(recovery)/_layout";
+import ClassificationRoute from "@/app/(operations)/administration/classification/[kind]/[id]";
+import DivisionsRoute from "@/app/(operations)/administration/divisions/index";
+import DivisionRoute from "@/app/(operations)/administration/divisions/[id]";
+import ClassificationSelectionRoute from "@/app/(operations)/administration/classification-selection";
 import { ClassificationSelectionScreen } from "../screens/classification-selection-screen";
 import { PresentationScreen } from "../screens/presentation-screen";
-import CreateDivisionRoute from "../../../app/(operations)/administration/divisions/new";
-import { AdministrationScreen } from "../../access/screens/administration-screen";
-import { useCurrentAccount } from "../../accounts/current-account";
+import CreateDivisionRoute from "@/app/(operations)/administration/divisions/new";
+import { AdministrationScreen } from "@/features/access/screens/administration-screen";
+import { useCurrentAccount } from "@/features/accounts/current-account";
 import { ClassificationEntry } from "../entry";
-import { completeDiscovery } from "../../onboarding/discovery-state";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { applicationAccessResponse as mockAccess } from "../../../shared/api/test-support/application-access";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
-import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
+import { completeDiscovery } from "@/features/onboarding/discovery-state";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { applicationAccessResponse as mockAccess } from "@/shared/api/test-support/application-access";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { AccountSessionProvider } from "@/features/accounts/session/account-session-provider";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
+} from "@/features/accounts/test-support/native-auth0";
 import { ClassificationScreen } from "../screens/classification-screen";
 import { DivisionsScreen } from "../screens/divisions-screen";
 
@@ -65,10 +65,10 @@ jest.mock("@sentry/react-native", () => ({
 }));
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock(
@@ -80,7 +80,7 @@ jest.mock("react-native-keyboard-controller", () =>
 );
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

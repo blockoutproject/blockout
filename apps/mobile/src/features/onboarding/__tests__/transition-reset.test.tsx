@@ -1,4 +1,4 @@
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   act,
@@ -10,26 +10,26 @@ import {
 import { setBadgeCountAsync } from "expo-notifications";
 import type { PropsWithChildren } from "react";
 import type { TeamFollowsResponse } from "../../../../.generated/schemas/index.zod";
-import { accountResponse } from "../../accounts/test-support/account-response";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
-import { ProfileScreen } from "../../accounts/screens/profile-screen";
-import { SignInScreen } from "../../accounts/screens/sign-in-screen";
-import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
+} from "@/features/accounts/test-support/native-auth0";
+import { ProfileScreen } from "@/features/accounts/screens/profile-screen";
+import { SignInScreen } from "@/features/accounts/screens/sign-in-screen";
+import { AdvertisingProviders } from "@/features/advertising/test-support/advertising-providers";
 import {
   readAgeDeclaration,
   submitAgeDeclaration,
-} from "../../advertising/age-declaration";
-import { FollowButton } from "../../following/components/follow-button";
-import { PersonalSeasonProvider } from "../../following/components/personal-season-provider";
-import { PersonalScreen } from "../../following/screens/personal-screen";
-import { followingFixture } from "../../following/test-support/following-fixture";
-import { NotificationsScreen } from "../../notifications/screens/notifications-screen";
-import { NotificationState } from "../../notifications/state/notification-state";
-import { notificationResponse } from "../../notifications/test-support/notification-data";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
+} from "@/features/advertising/age-declaration";
+import { FollowButton } from "@/features/following/components/follow-button";
+import { PersonalSeasonProvider } from "@/features/following/components/personal-season-provider";
+import { PersonalScreen } from "@/features/following/screens/personal-screen";
+import { followingFixture } from "@/features/following/test-support/following-fixture";
+import { NotificationsScreen } from "@/features/notifications/screens/notifications-screen";
+import { NotificationState } from "@/features/notifications/state/notification-state";
+import { notificationResponse } from "@/features/notifications/test-support/notification-data";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("@react-native-async-storage/async-storage", () =>
@@ -39,13 +39,13 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 );
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
 jest.mock("expo-router", () => ({

@@ -1,9 +1,9 @@
 import { StyleSheet, View, useWindowDimensions } from "react-native";
-import { LoadingGroup } from "../../../shared/components/loading-group";
-import { Skeleton } from "../../../shared/components/skeleton";
-import { TextSkeleton } from "../../../shared/components/text-skeleton";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { Skeleton } from "@/shared/components/skeleton";
+import { TextSkeleton } from "@/shared/components/text-skeleton";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 import { useCalendarLayout } from "../hooks/use-calendar-layout";
 
 /** Two initial dated groups use the owning calendar's measured native geometry. */

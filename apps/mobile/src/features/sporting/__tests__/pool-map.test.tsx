@@ -4,8 +4,8 @@ import {
   type PropsWithChildren as QueryFixtureProps,
 } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
-import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
+import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
+import { AdvertisingProviders } from "@/features/advertising/test-support/advertising-providers";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
@@ -28,20 +28,20 @@ import type {
   PoolParticipantsResponse,
   PoolStandingsResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
-import { PagedTabs } from "../../../shared/components/paged-tabs";
-import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import { mockAuth0 } from "../../accounts/test-support/native-auth0";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
+import { PagedTabs } from "@/shared/components/paged-tabs";
+import { AccountSessionProvider } from "@/features/accounts/session/account-session-provider";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { mockAuth0 } from "@/features/accounts/test-support/native-auth0";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { matchDetail, sportingId } from "../test-support/consultation-data";
 import { PoolScreen } from "../screens/pool-screen";
 import { PoolMap } from "../components/pool-map";
 import { nativeMapCommands } from "../test-support/native-maps";
-import { TECHNICAL_ERROR_TITLE } from "../../../shared/components/error-copy";
+import { TECHNICAL_ERROR_TITLE } from "@/shared/components/error-copy";
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("@react-native-async-storage/async-storage", () =>
@@ -51,15 +51,15 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 );
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

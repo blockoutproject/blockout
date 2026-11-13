@@ -3,14 +3,14 @@ import { Controller, useFormState, useWatch } from "react-hook-form";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 import type { SubmitSupportRequest } from "../../../../.generated/schemas/index.zod";
-import { TextField } from "../../../shared/components/text-field";
-import { SelectField } from "../../../shared/components/select-field";
-import { FieldMessage } from "../../../shared/components/field-message";
-import { ImageField } from "../../../shared/components/image-field";
-import { Button } from "../../../shared/components/button";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
+import { TextField } from "@/shared/components/text-field";
+import { SelectField } from "@/shared/components/select-field";
+import { FieldMessage } from "@/shared/components/field-message";
+import { ImageField } from "@/shared/components/image-field";
+import { Button } from "@/shared/components/button";
+import { useActionFeedback } from "@/shared/components/action-feedback";
 import { useSupportImages } from "../model/support-images";
-import { tokens } from "../../../shared/theme/tokens";
+import { tokens } from "@/shared/theme/tokens";
 import { toSupportRequest } from "../api/support-request";
 import {
   supportKindLabels,

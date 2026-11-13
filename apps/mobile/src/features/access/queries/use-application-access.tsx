@@ -10,7 +10,7 @@ import {
   getApplicationAccess,
   getGetApplicationAccessQueryKey,
 } from "../../../../.generated/mobile";
-import type { SessionSnapshot } from "../../accounts/session/account-session-provider";
+import type { SessionSnapshot } from "@/features/accounts/session/account-session-provider";
 
 /** Explicit maintenance choice; the server checks the current principal's grant. */
 export type MaintenanceBypass = Pick<SessionSnapshot, "subject" | "accountId">;

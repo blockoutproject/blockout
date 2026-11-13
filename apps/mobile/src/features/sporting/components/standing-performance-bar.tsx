@@ -1,7 +1,7 @@
 import { StyleSheet, View } from "react-native";
 import type { StandingRowResponse } from "../../../../.generated/schemas/index.zod";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { standingColumnLabel } from "../model/standing-columns";
 
 /** An optional decorative bar uses published match-count aliases; it never supplies missing numbers. */
