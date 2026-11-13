@@ -264,6 +264,40 @@ it("restores ordinary personal access on later launches after explicit first-V2 
   expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
 });
 
+it("keeps skipped discovery complete across sign-in and sign-out when its optional flag could not be saved", async () => {
+  // Given
+  await AsyncStorage.setItem(initializationMarker, "true");
+  jest
+    .spyOn(AsyncStorage, "setItem")
+    .mockRejectedValueOnce(new Error("Discovery storage unavailable"));
+  mockAuth0.webAuth.mockImplementation(async () => {
+    mockAuth0.hasValidCredentials.mockResolvedValue(true);
+    return credentialsFor("auth0|a");
+  });
+  const user = userEvent.setup();
+  await openInstallation();
+  await user.press(await screen.findByRole("button", { name: "Passer" }));
+
+  // When
+  await user.press(await screen.findByRole("button", { name: "Se connecter" }));
+
+  // Then
+  expect(await screen.findByText("Original")).toBeOnTheScreen();
+  expect(owners.session.status).toBe("authenticated");
+  expect(screen.queryByRole("button", { name: "Passer" })).toBeNull();
+  expect(await readDiscoveryCompletion()).toBe(false);
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Se déconnecter" }));
+
+  // Then
+  expect(
+    await screen.findByRole("header", { name: "Quel est votre âge ?" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Passer" })).toBeNull();
+  expect(await readDiscoveryCompletion()).toBe(false);
+});
+
 it("treats SDK-expired rights as inactive while unknown verification has no free-account or offer evidence", async () => {
   // Given
   await AsyncStorage.setItem(initializationMarker, "true");

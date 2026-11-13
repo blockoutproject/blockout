@@ -16,7 +16,7 @@ interface Discovery {
 
 const DiscoveryContext = createContext<Discovery | null>(null);
 
-/** Optional discovery completes for this visit immediately; failed persistence may repeat it next launch. */
+/** Process-root discovery completes for this application session; failed persistence may repeat it next launch. */
 export function DiscoveryProvider({ children }: Readonly<PropsWithChildren>) {
   const [complete, setComplete] = useState<boolean>();
 

@@ -120,18 +120,13 @@ function ThemedNavigation({
   return (
     <ThemeProvider proAccent={state.status === "active"}>
       <ActionFeedbackProvider scopeKey={session.subject ?? "guest"}>
-        <DiscoveryProvider>
-          <InstallationNavigation
-            registration={registration}
-            privacy={privacy}
-          />
-        </DiscoveryProvider>
+        <InstallationNavigation registration={registration} privacy={privacy} />
       </ActionFeedbackProvider>
     </ThemeProvider>
   );
 }
 
-/** Starts public checking above F14/Auth0; all session restoration and returns preserve that process owner. */
+/** Keeps public checking and discovery above account-subject lifetimes; secure initialization still gates Auth0. */
 function RootLayout() {
   useEffect(cleanupMatchDocuments, []);
   const [queryClient] = useState(createQueryClient);
@@ -147,25 +142,27 @@ function RootLayout() {
     <GestureHandlerRootView style={styles.root}>
       <QueryClientProvider client={queryClient}>
         <ApplicationAccessProvider>
-          <AccountSessionProvider
-            preparePushRemoval={registration.prepareRemoval}
-            fallback={
-              <ThemeProvider>
-                <ActionFeedbackProvider scopeKey="startup">
-                  <StartupAccessGate />
-                </ActionFeedbackProvider>
-              </ThemeProvider>
-            }
-          >
-            <AccessAdmissionProvider>
-              <ProProvider>
-                <ThemedNavigation
-                  registration={registration}
-                  privacy={privacy}
-                />
-              </ProProvider>
-            </AccessAdmissionProvider>
-          </AccountSessionProvider>
+          <DiscoveryProvider>
+            <AccountSessionProvider
+              preparePushRemoval={registration.prepareRemoval}
+              fallback={
+                <ThemeProvider>
+                  <ActionFeedbackProvider scopeKey="startup">
+                    <StartupAccessGate />
+                  </ActionFeedbackProvider>
+                </ThemeProvider>
+              }
+            >
+              <AccessAdmissionProvider>
+                <ProProvider>
+                  <ThemedNavigation
+                    registration={registration}
+                    privacy={privacy}
+                  />
+                </ProProvider>
+              </AccessAdmissionProvider>
+            </AccountSessionProvider>
+          </DiscoveryProvider>
         </ApplicationAccessProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
