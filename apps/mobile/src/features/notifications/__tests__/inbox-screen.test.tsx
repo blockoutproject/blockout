@@ -680,7 +680,7 @@ it("loads only the focused inbox and retains rows while its local footer retries
     }
     return Promise.resolve(Response.json({ notifications: [second] }));
   });
-  await showInbox();
+  const view = await showInbox();
   const user = userEvent.setup();
   const first = await screen.findByRole("link", {
     name: /^Le résultat.*non lue$/,
@@ -719,6 +719,17 @@ it("loads only the focused inbox and retains rows while its local footer retries
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   expect(screen.getByText("Une erreur est survenue.")).toBeOnTheScreen();
 
+  // When: returning to the tab observes the same failed continuation without restarting page zero.
+  const readsBeforeReturn = mockFetch.mock.calls.length;
+  mockFocused = false;
+  await view.rerender(<NotificationsScreen />);
+  mockFocused = true;
+  await view.rerender(<NotificationsScreen />);
+
+  // Then
+  expect(mockFetch.mock.calls).toHaveLength(readsBeforeReturn);
+  expect(screen.getByText("Une erreur est survenue.")).toBeOnTheScreen();
+
   // When
   failNext = false;
   await user.press(screen.getByRole("button", { name: /Réessayer/ }));
@@ -742,6 +753,67 @@ it("loads only the focused inbox and retains rows while its local footer retries
       .filter(([url]) => new URL(url).searchParams.has("cursor"))
       .map(([url]) => new URL(url).searchParams.get("cursor")),
   ).toEqual(["same-boundary", "same-boundary"]);
+});
+
+it("keeps continuation recovery when accepted pages have no visible notifications", async () => {
+  // Given: the accepted server page retains a cursor after its rows are filtered at opening.
+  const expired = { ...row, createdAt: "2026-09-01T00:00:00Z" };
+  const pending = Promise.withResolvers<Response>();
+  let retry = false;
+  mockFetch.mockImplementation((url: string, init: RequestInit) => {
+    const target = new URL(url);
+    if (!target.pathname.endsWith("/notifications")) {
+      return response(url, init);
+    }
+    if (!target.searchParams.has("cursor")) {
+      return Promise.resolve(
+        Response.json({
+          notifications: [expired],
+          nextCursor: "filtered-page",
+        }),
+      );
+    }
+    return retry ? pending.promise : Promise.reject(new TypeError("offline"));
+  });
+  await showInbox();
+  const user = userEvent.setup();
+
+  // When
+  await fireEvent(
+    await screen.findByText("Aucune notification pour le moment"),
+    "endReached",
+  );
+
+  // Then: the retained page set is neither a first-read error nor confirmed exhaustion.
+  await screen.findByText("Une erreur est survenue.");
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.queryByText("Aucune notification pour le moment")).toBeNull();
+  expect(screen.queryByRole("link")).toBeNull();
+  mockFetch.mockClear();
+  retry = true;
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await fireEvent(screen.getByText("Chargement de la suite…"), "endReached");
+
+  // Then
+  expect(
+    screen.getByRole("progressbar", { name: "Chargement de la suite…" }),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.map(([url]) =>
+      new URL(url).searchParams.get("cursor"),
+    ),
+  ).toEqual(["filtered-page"]);
+
+  // When
+  await act(() => pending.resolve(Response.json({ notifications: [row] })));
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: /non lue$/ }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Chargement de la suite…")).toBeNull();
 });
 
 it("keeps the 29-day deadline armed beyond the platform timeout limit without premature network refresh", async () => {

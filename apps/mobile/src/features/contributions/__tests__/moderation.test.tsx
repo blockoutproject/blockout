@@ -908,7 +908,7 @@ it("keeps the mounted dirty publication editor across an uncached tab read", asy
 });
 
 it.each(["queue", "versions"] as const)(
-  "keeps loaded %s content and presents a failed continuation",
+  "keeps loaded %s content and retries only its failed continuation",
   async (kind) => {
     // Given
     queuePaged = kind === "queue";
@@ -924,7 +924,7 @@ it.each(["queue", "versions"] as const)(
         }),
       ];
     }
-    await mount(
+    const view = await mount(
       kind === "queue" ? (
         <ModerationScreen filters={{}} />
       ) : (
@@ -965,6 +965,92 @@ it.each(["queue", "versions"] as const)(
         screen.getByRole("button", { name: /Twitch, Masqué/ }),
       ).toBeOnTheScreen();
     }
+
+    // When: returning to a retained tab observes its failed Query without rereading page zero.
+    const queryKey =
+      kind === "queue"
+        ? getListStreamModerationQueryKey({ state: "to-review" })
+        : getListModeratedStreamContributionsQueryKey(sporting.id, {
+            state: "historical",
+          });
+    const target = String(queryKey[0]);
+    const state = kind === "queue" ? "to-review" : "historical";
+    const readsBeforeReturn = mockFetch.mock.calls.filter(([url]) => {
+      const address = new URL(String(url));
+      return (
+        address.pathname === target &&
+        address.searchParams.get("state") === state
+      );
+    }).length;
+    if (kind === "queue") {
+      await view.rerender(<ModerationScreen filters={{ state: "active" }} />);
+      await view.rerender(<ModerationScreen filters={{}} />);
+    } else {
+      await user.press(screen.getByRole("tab", { name: "Actif" }));
+      await user.press(screen.getByRole("tab", { name: "Historique" }));
+    }
+
+    // Then
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([url]) => {
+        const address = new URL(String(url));
+        return (
+          address.pathname === target &&
+          address.searchParams.get("state") === state
+        );
+      }),
+    ).toHaveLength(readsBeforeReturn);
+
+    // When: repeated native edges leave the failed page for explicit recovery.
+    const list = screen.getByLabelText(
+      kind === "queue"
+        ? "File de modération des liens"
+        : "Historique des liens",
+    );
+    await fireEvent(list, "endReached");
+    await fireEvent(list, "endReached");
+
+    // Then
+    expect(
+      mockFetch.mock.calls.filter(
+        ([url]) => new URL(String(url)).searchParams.get("page") === "1",
+      ),
+    ).toHaveLength(1);
+
+    // When: an unsuccessful explicit retry returns to the same footer.
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+    await screen.findByRole("button", { name: "Réessayer" });
+
+    // Then
+    expect(list).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(
+        ([url]) => new URL(String(url)).searchParams.get("page") === "1",
+      ),
+    ).toHaveLength(2);
+
+    // When
+    continuationFails = false;
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    if (kind === "queue") {
+      await screen.findByRole("link", { name: /^Second match/ });
+    } else {
+      await screen.findByRole("button", {
+        name: /YouTube, Proposition remplacée/,
+      });
+    }
+    expect(list).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Réessayer" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(
+        ([url]) => new URL(String(url)).searchParams.get("page") === "1",
+      ),
+    ).toHaveLength(3);
   },
 );
 

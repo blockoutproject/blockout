@@ -64,12 +64,22 @@ export function PersonalCalendar({
       };
     },
   });
+
+  async function refreshCalendar(nextZone: string) {
+    if (nextZone === timeZone && calendar.isFetchNextPageError) {
+      // An errored observer is disabled for automatic reads; the pull still rereads its complete traversal.
+      await calendar.refetch({ cancelRefetch: false, throwOnError: true });
+    } else {
+      await refresh(nextZone);
+    }
+  }
+
   return (
     <SportingCalendarView
       key={hashKey(options.queryKey)}
       calendar={calendar}
       active={active}
-      onRefresh={refresh}
+      onRefresh={refreshCalendar}
       emptyState={
         calendar.data?.hasAvailableFollows === false ? (
           <EmptyState

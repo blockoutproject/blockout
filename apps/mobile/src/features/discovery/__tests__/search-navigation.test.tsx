@@ -398,7 +398,7 @@ it("announces each namesake with its available public context", async () => {
 });
 
 it.each(["network", "schema", "http"])(
-  "masks namesakes after %s append failure and restores the same cursor before reaching a real end",
+  "retains namesakes after %s append failure and retries the same cursor before reaching a real end",
   async (failure) => {
     // Given
     const pending = Promise.withResolvers<Response>();
@@ -454,19 +454,18 @@ it.each(["network", "schema", "http"])(
         pending.resolve(Response.json({ status: 500 }, { status: 500 }));
       }
     });
-    // Then: failed content is masked while Query retains its accepted pages and cursor.
-    const card = await screen.findByRole("alert", {
-      name: "Une erreur est survenue",
-    });
+    // Then: the compact error preserves the accepted native list and controls.
+    await screen.findByText("Une erreur est survenue.");
+    expect(screen.queryByRole("alert")).toBeNull();
     const retry = screen.getByRole("button", { name: "Réessayer" });
-    expect(screen.getByText("Veuillez réessayer plus tard.")).toBeOnTheScreen();
-    expect(screen.queryByLabelText("Résultats de recherche")).toBeNull();
-    expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
-    expect(screen.queryByText("Lyon")).not.toBeOnTheScreen();
+    expect(screen.queryByText("Veuillez réessayer plus tard.")).toBeNull();
+    const list = screen.getByLabelText("Résultats de recherche");
+    expect(screen.getByText("Niort")).toBeOnTheScreen();
+    expect(screen.getByText("Lyon")).toBeOnTheScreen();
     expect(
-      screen.queryByRole("header", { name: "2 résultats chargés" }),
-    ).toBeNull();
-    expect(screen.queryByRole("button", { name: /^Effacer$/ })).toBeNull();
+      screen.getByRole("header", { name: "2 résultats chargés" }),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: /^Effacer$/ })).toBeOnTheScreen();
     expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
     expect(
       screen.getByRole("button", { name: "Effacer la recherche" }),
@@ -488,17 +487,14 @@ it.each(["network", "schema", "http"])(
     // When
     await user.press(retry);
 
-    // Then: explicit Retry retains the same card, not the failed-page footer or old rows.
-    expect(card).toBeOnTheScreen();
+    // Then: explicit Retry preserves the list and scopes progress to its continuation.
+    expect(screen.getByLabelText("Résultats de recherche")).toBe(list);
+    expect(screen.getByText("Niort")).toBeOnTheScreen();
     expect(
-      screen.getByRole("button", { name: "Réessayer", busy: true }),
-    ).toBeDisabled();
-    expect(screen.queryByText("Niort")).not.toBeOnTheScreen();
-    expect(
-      screen.queryByRole("progressbar", { name: "Chargement de la suite…" }),
-    ).toBeNull();
+      screen.getByRole("progressbar", { name: "Chargement de la suite…" }),
+    ).toBeOnTheScreen();
     expect(client.getQueryData(queryKey)).toEqual(accepted);
-    await user.press(retry);
+    await fireEvent(list, "endReached");
     expect(
       mockFetch.mock.calls
         .filter(([url]) => new URL(String(url)).searchParams.has("cursor"))

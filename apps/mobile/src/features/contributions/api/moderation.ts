@@ -142,13 +142,12 @@ async function refuse(
   throw error;
 }
 
-/** Reads the private queue at entry and on explicit refresh with native Query paging/default recovery. */
+/** Reads the private queue at entry and on explicit refresh; retained failures wait for explicit recovery across tab changes. */
 export function useModerationQueue(filters: ModerationFilters, enabled = true) {
   const authority = useModerationAuthority();
   const client = useQueryClient();
   const options = infiniteQueryOptions({
     queryKey: getListStreamModerationQueryKey(filters),
-    enabled: authority.allowed && enabled,
     gcTime: 0,
     refetchOnMount: "always" as const,
     refetchOnReconnect: false,
@@ -164,6 +163,8 @@ export function useModerationQueue(filters: ModerationFilters, enabled = true) {
       }
     },
     getNextPageParam: (page) => page.nextPage,
+    enabled: (query) =>
+      authority.allowed && enabled && query.state.status !== "error",
   });
   const query = useInfiniteQuery(options);
 
@@ -176,7 +177,7 @@ export function useModerationQueue(filters: ModerationFilters, enabled = true) {
   return { ...authority, query, refresh };
 }
 
-/** One native pager scene reads its own filtered traversal; inactive scenes retain pages without fetching. */
+/** One native pager scene reads its filtered traversal; inactive scenes retain pages and returning preserves failed reads until explicit recovery. */
 export function useModerationVersions(
   matchId: string,
   state?: StreamVersionFilterEnum,
@@ -189,7 +190,6 @@ export function useModerationVersions(
       matchId,
       state ? { state } : undefined,
     ),
-    enabled: authority.allowed && enabled,
     gcTime: 0,
     refetchOnMount: "always" as const,
     refetchOnReconnect: false,
@@ -206,6 +206,8 @@ export function useModerationVersions(
       }
     },
     getNextPageParam: (page) => page.nextPage,
+    enabled: (query) =>
+      authority.allowed && enabled && query.state.status !== "error",
   });
   const query = useInfiniteQuery(options);
 

@@ -100,6 +100,7 @@ function useFollowedList(
   type: FollowingTarget["type"],
   expanded: boolean,
 ) {
+  const [refreshing, setRefreshing] = useState(false);
   const options = createFollowListOptions(
     props.owner,
     props.request,
@@ -113,9 +114,8 @@ function useFollowedList(
     enabled: (state) => active && state.state.status !== "error",
   });
 
-  /** Native scroll continuation stops after failure; the tab's card resumes the failed page. */
   async function append() {
-    if (!active || query.isFetching || !query.hasNextPage || query.isError) {
+    if (!active || query.isFetching || !query.hasNextPage) {
       return;
     }
     await query.fetchNextPage({ cancelRefetch: false });
@@ -126,10 +126,21 @@ function useFollowedList(
     if (!active || !query.data || query.isFetching) {
       return;
     }
-    await query.refetch({ cancelRefetch: false });
+    setRefreshing(true);
+    try {
+      await query.refetch({ cancelRefetch: false });
+    } finally {
+      setRefreshing(false);
+    }
   }
 
-  return { query, items: followedItems(query.data?.pages), append, refresh };
+  return {
+    query,
+    items: followedItems(query.data?.pages),
+    append,
+    refresh,
+    refreshing,
+  };
 }
 
 /** Home sections share one native list and open exact F03 sheets through the existing F11 owner. */
@@ -141,7 +152,15 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
   const { colors } = useTheme();
   const sporting = useSportingNavigation(props.active);
   const failed = (["team", "pool"] as const)
-    .filter((type) => expanded[type] && hasReadError(lists[type].query))
+    .filter((type) => {
+      const { query, refreshing } = lists[type];
+      return (
+        expanded[type] &&
+        hasReadError(query) &&
+        // A pull retains the previous continuation error until this collection's new read settles.
+        (!query.data || (!query.isFetchNextPageError && !refreshing))
+      );
+    })
     .map((type) => lists[type].query);
 
   /** One pull refetches the open collections; their existing queries own both outcomes. */
@@ -149,17 +168,13 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
     await Promise.all([teams.refresh(), pools.refresh()]);
   }
 
-  /** Rereads only failed open collections, preserving the native failed continuation cursor. */
+  /** Rereads only open collections whose initial or complete read failed. */
   async function retry() {
     if (!props.active) {
       return;
     }
     await Promise.all(
-      failed.map((query) =>
-        query.isFetchNextPageError
-          ? query.fetchNextPage({ cancelRefetch: false })
-          : query.refetch({ cancelRefetch: false }),
-      ),
+      failed.map((query) => query.refetch({ cancelRefetch: false })),
     );
   }
 
@@ -243,8 +258,12 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
       refreshControl={refreshControl}
       contentContainerStyle={styles.content}
       onEndReached={() => {
-        void teams.append();
-        void pools.append();
+        if (!teams.query.isError) {
+          void teams.append();
+        }
+        if (!pools.query.isError) {
+          void pools.append();
+        }
       }}
       ListFooterComponent={<BottomContentSpacer />}
       renderItem={({ item: row }) => {
@@ -291,12 +310,11 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
           );
         }
 
-        /** Sections show only their first active skeleton, confirmed empty state and automatic continuation. */
-        function renderListFeedback() {
-          if (!list.query.data) {
-            return list.query.isEnabled &&
-              list.query.isPending &&
-              list.query.isFetching ? (
+        if (!list.query.data) {
+          return list.query.isEnabled &&
+            list.query.isPending &&
+            list.query.isFetching ? (
+            <View style={styles.feedback}>
               <View style={styles.card}>
                 <SportingEntityCardLoading
                   label={
@@ -306,21 +324,24 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
                   }
                 />
               </View>
-            ) : null;
-          }
-          if (!list.items.length && !list.query.hasNextPage) {
-            return <NoAvailableFollows />;
-          }
+            </View>
+          ) : null;
+        }
+        if (!list.items.length && !list.query.hasNextPage) {
           return (
-            <ListContinuation
-              loading={list.query.isFetchingNextPage}
-              failed={false}
-              onRetry={() => void list.append()}
-            />
+            <View style={styles.feedback}>
+              <NoAvailableFollows />
+            </View>
           );
         }
-
-        return <View style={styles.feedback}>{renderListFeedback()}</View>;
+        return (
+          <ListContinuation
+            loading={list.query.isFetchingNextPage}
+            failed={list.query.hasNextPage && list.query.isFetchNextPageError}
+            disabled={!props.active || list.query.isFetching}
+            onRetry={() => void list.append()}
+          />
+        );
       }}
     />
   );

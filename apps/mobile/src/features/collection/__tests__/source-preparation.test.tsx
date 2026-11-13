@@ -1151,6 +1151,37 @@ it("retains child rows and retries the failed page without a toast while retaini
   ).toEqual(["0", "1", "1"]);
 });
 
+it("keeps an accepted empty child page in continuation recovery instead of showing an initial error or Empty", async () => {
+  // Given
+  mockFetch.mockImplementation((url) => {
+    const address = new URL(String(url));
+    if (!address.pathname.endsWith("/children")) {
+      return reads(url);
+    }
+    return Promise.resolve(
+      address.searchParams.get("page") === "1"
+        ? refused(503)
+        : json({ items: [], page: 0, hasNext: true }),
+    );
+  });
+  await renderPreparation(
+    <SourceChildrenScreen seasonId={seasonId} sourceId={sourceId} />,
+  );
+  await screen.findByText("Aucun groupe découvert");
+
+  // When
+  await fireEvent(
+    screen.getByTestId("collection-source-children-list"),
+    "endReached",
+  );
+
+  // Then
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(screen.queryByText("Aucun groupe découvert")).not.toBeOnTheScreen();
+  expect(screen.queryByText("Une erreur est survenue")).not.toBeOnTheScreen();
+  expect(screen.getByText("Une erreur est survenue.")).toBeOnTheScreen();
+});
+
 it("retains authorized child rows after a failed native refresh with discreet feedback", async () => {
   // Given
   let unavailable = false;

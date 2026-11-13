@@ -34,7 +34,7 @@ export interface SearchSceneProps {
   emptyAction: ReactNode;
 }
 
-/** Masks a failed tab while Query retains its pages/cursor and the visit retains its criteria. */
+/** Keeps accepted pages visible when only their continuation fails. */
 export function SearchScene({
   resource,
   criteria,
@@ -57,10 +57,15 @@ export function SearchScene({
   const sporting = resource === "club" ? undefined : visit[resource];
   const filtersMissing = !!sporting && !sporting.filters;
   const read = filtersMissing ? sporting.query : query;
-  const failed = hasReadError(read);
+  const continuationFailed =
+    !filtersMissing &&
+    !examples &&
+    !!textQuery.data &&
+    textQuery.isFetchNextPageError;
+  const failed = hasReadError(read) && !continuationFailed;
   const resultsReady = (searchable || examples) && !filtersMissing;
 
-  /** Only the selected focused valid text context may request automatic continuation. */
+  /** Only the selected focused valid text context may continue its current cursor. */
   function loadMore() {
     if (
       !active ||
@@ -86,14 +91,7 @@ export function SearchScene({
             query={read}
             loadingContent={null}
             onRetry={
-              active
-                ? () =>
-                    !filtersMissing &&
-                    !examples &&
-                    textQuery.isFetchNextPageError
-                      ? textQuery.fetchNextPage({ cancelRefetch: false })
-                      : read.refetch({ cancelRefetch: false })
-                : undefined
+              active ? () => read.refetch({ cancelRefetch: false }) : undefined
             }
           />
         </ScreenState>
@@ -106,7 +104,7 @@ export function SearchScene({
           </PageContent>
         );
       }
-    } else {
+    } else if (!continuationFailed && !textQuery.isFetchingNextPage) {
       emptyContent = (
         <ScreenState>
           <EmptyState
@@ -133,11 +131,20 @@ export function SearchScene({
       }}
       examples={examples}
       items={resultsReady && !failed ? items : []}
-      onEndReached={loadMore}
+      onEndReached={() => {
+        if (!textQuery.isFetchNextPageError) {
+          loadMore();
+        }
+      }}
       emptyComponent={emptyContent}
       continuation={
-        resultsReady && !failed && !examples && textQuery.isFetchingNextPage ? (
-          <ListContinuation loading failed={false} onRetry={loadMore} />
+        resultsReady && !failed && !examples ? (
+          <ListContinuation
+            loading={textQuery.isFetchingNextPage}
+            failed={continuationFailed}
+            disabled={textQuery.isFetching}
+            onRetry={loadMore}
+          />
         ) : undefined
       }
     />

@@ -1019,13 +1019,14 @@ it.each([
     await fireEvent(await screen.findByText("Volley Lyon"), "endReached", {
       distanceFromEnd: 0,
     });
-    const card = await screen.findByRole("alert");
-    expect(card).toHaveTextContent("Une erreur est survenue");
-    expect(screen.queryByText("Volley Lyon")).not.toBeOnTheScreen();
+    const list = screen.getByLabelText("Résultats de recherche");
+    await screen.findByText("Une erreur est survenue.");
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByText("Volley Lyon")).toBeOnTheScreen();
     expect(
-      screen.queryByRole("header", { name: "1 résultat chargé" }),
-    ).toBeNull();
-    expect(screen.queryByRole("button", { name: /^Effacer$/ })).toBeNull();
+      screen.getByRole("header", { name: "1 résultat chargé" }),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: /^Effacer$/ })).toBeOnTheScreen();
     expect(screen.getByDisplayValue("Volley")).toBeOnTheScreen();
     expect(
       screen.getByRole("button", { name: "Effacer la recherche" }),
@@ -1051,15 +1052,13 @@ it.each([
       }),
     );
 
-    // Then: explicit Retry keeps its card, while the footer belongs only to automatic pagination.
-    expect(card).toBeOnTheScreen();
+    // Then: explicit Retry preserves the same native list and shows continuation progress.
+    expect(screen.getByLabelText("Résultats de recherche")).toBe(list);
+    expect(screen.getByText("Volley Lyon")).toBeOnTheScreen();
     expect(
-      screen.getByRole("button", { name: "Réessayer", busy: true }),
-    ).toBeDisabled();
-    expect(screen.queryByText("Volley Lyon")).not.toBeOnTheScreen();
-    expect(
-      screen.queryByRole("progressbar", { name: "Chargement de la suite…" }),
-    ).toBeNull();
+      screen.getByRole("progressbar", { name: "Chargement de la suite…" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).toBeNull();
 
     // When: an unrelated tab remains usable and returning joins the same read.
     await user.press(screen.getByRole("tab", { name: "Équipes" }));
@@ -1079,21 +1078,16 @@ it.each([
     await user.press(screen.getByRole("tab", { name: "Clubs" }));
 
     // Then: returning does not turn the failed cursor into a new traversal.
-    expect(card).toBeOnTheScreen();
-    expect(
-      screen.getByRole("button", {
-        name: "Réessayer",
-        busy: !failBeforeReturn,
-      }),
-    ).toBeOnTheScreen();
+    expect(screen.getByLabelText("Résultats de recherche")).toBe(list);
+    expect(screen.getByText("Volley Lyon")).toBeOnTheScreen();
     if (failBeforeReturn) {
       expect(mockFetch).not.toHaveBeenCalled();
 
       // When: another explicit attempt still requests only the continuation.
       await user.press(screen.getByRole("button", { name: "Réessayer" }));
       expect(
-        screen.getByRole("button", { name: "Réessayer", busy: true }),
-      ).toBeDisabled();
+        screen.getByRole("progressbar", { name: "Chargement de la suite…" }),
+      ).toBeOnTheScreen();
     }
 
     // When
@@ -1315,7 +1309,7 @@ it("keeps a suspended Clubs card retry without active progress and resumes the s
   expect(screen.queryByRole("alert")).toBeNull();
 });
 
-it("cancels a card retry when the shared text changes and ignores its old cursor response", async () => {
+it("cancels a continuation retry when the shared text changes and ignores its old cursor response", async () => {
   // Given
   const old = Promise.withResolvers<Response>();
   let retryAvailable = false;
@@ -1351,7 +1345,7 @@ it("cancels a card retry when the shared text changes and ignores its old cursor
   await user.paste(screen.getByLabelText("Rechercher"), "Volley");
   await user.press(screen.getByRole("tab", { name: "Clubs" }));
   await fireEvent(await screen.findByText("Volley Lyon"), "endReached");
-  await screen.findByRole("alert");
+  await screen.findByText("Une erreur est survenue.");
   retryAvailable = true;
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
   await waitFor(() => expect(oldSignal).toBeDefined());
@@ -1446,7 +1440,7 @@ it("ends an inactive Clubs retry with its bypass context before ordinary public 
   await user.paste(screen.getByLabelText("Rechercher"), "Volley");
   await user.press(screen.getByRole("tab", { name: "Clubs" }));
   await fireEvent(await screen.findByText("Club en bypass"), "endReached");
-  await screen.findByRole("alert");
+  await screen.findByText("Une erreur est survenue.");
   retryAvailable = true;
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
   await waitFor(() => expect(signal).toBeDefined());

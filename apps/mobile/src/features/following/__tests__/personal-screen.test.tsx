@@ -30,7 +30,10 @@ import {
 } from "react";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { createQueryClient } from "../../../shared/query/query-client";
-import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
+import {
+  TECHNICAL_ERROR,
+  TECHNICAL_ERROR_TITLE,
+} from "../../../shared/components/error-copy";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import {
@@ -1282,6 +1285,105 @@ it.each([false, true])(
   },
 );
 
+it("keeps a failed personal continuation and its season across tab return until footer Retry", async () => {
+  // Given: the personal envelope uses the real Query and shared native calendar; HTTP alone is controlled.
+  const next = Promise.withResolvers<Response>();
+  let failAppend = true;
+  mockFetch.mockImplementation(async (url, request) => {
+    const target = new URL(url);
+    if (
+      target.pathname !== `/accounts/${accountId}/matches` ||
+      target.searchParams.get("category") !== "upcoming"
+    ) {
+      return transport(url, request);
+    }
+    if (target.searchParams.has("nextDay")) {
+      if (failAppend) {
+        throw new TypeError("Synthetic personal continuation outage");
+      }
+      return next.promise;
+    }
+    const response = await transport(url, request);
+    const first = await response.json();
+    return Response.json({
+      ...first,
+      calendar: { ...first.calendar, nextDay: "2026-10-29" },
+    });
+  });
+  await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
+  await layoutNativeTabs();
+  const match = await screen.findByRole("link", {
+    name: /Ouvrir le match Home — Away/,
+  });
+
+  // When
+  await fireEvent(match, "endReached");
+  await screen.findByRole("button", { name: "Réessayer" });
+  await userEvent.press(screen.getByRole("tab", { name: "Terminés" }));
+  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await userEvent.press(screen.getByRole("tab", { name: "À venir" }));
+
+  // Then: returning observes the same failed continuation without a card or automatic replay.
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Saison des suivis" }),
+  ).toHaveAccessibilityValue({ text: older.label });
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+
+  // When: explicit recovery waits on the same next page.
+  failAppend = false;
+  await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByRole("progressbar", { name: "Chargement de la suite…" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+
+  // When
+  await act(async () => {
+    const response = await transport(
+      `https://api.example.invalid/accounts/${accountId}/matches?category=upcoming&timeZone=Europe%2FParis`,
+    );
+    next.resolve(response);
+  });
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("progressbar", { name: "Chargement de la suite…" }),
+    ).not.toBeOnTheScreen(),
+  );
+
+  // Then: the repeated response is deduplicated and the successful final page removes feedback.
+  expect(
+    screen.getAllByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).toHaveLength(1);
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls
+      .map(([url]) => new URL(url))
+      .filter(
+        (url) =>
+          url.pathname === `/accounts/${accountId}/matches` &&
+          url.searchParams.get("category") === "upcoming",
+      )
+      .map((url) => url.searchParams.get("nextDay")),
+  ).toEqual([null, "2026-10-29", "2026-10-29"]);
+});
+
 it("keeps a failed personal calendar on its shared card across tab return until explicit Retry", async () => {
   // Given: F06 owns its envelope; the shared F03 view must not make tab return replay a failed read.
   let failUpcoming = true;
@@ -1330,45 +1432,103 @@ it("keeps a failed personal calendar on its shared card across tab return until 
   expect(upcomingReads()).toHaveLength(2);
 });
 
-it("uses the shared calendar card after failed pull and preserves the confirmed-follow reset boundary", async () => {
-  // Given
-  await mount(<FollowButton target={team} season={older} />);
-  await screen.findByRole("button", {
-    name: "Saison des suivis",
-    disabled: false,
-  });
-  await layoutNativeTabs();
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
-  mockFetch.mockImplementation((url, request) =>
-    new URL(url).pathname === `/accounts/${accountId}/matches`
-      ? Promise.reject(new TypeError("Synthetic calendar outage"))
-      : transport(url, request),
-  );
+it.each([false, true])(
+  "uses the shared full-refresh card after continuation failure = %s and preserves the confirmed-follow reset boundary",
+  async (failedContinuation) => {
+    // Given
+    if (failedContinuation) {
+      mockFetch.mockImplementation(async (url, request) => {
+        const response = await transport(url, request);
+        if (new URL(url).pathname !== `/accounts/${accountId}/matches`) {
+          return response;
+        }
+        const first = await response.json();
+        return Response.json({
+          ...first,
+          calendar: { ...first.calendar, nextDay: "2026-10-29" },
+        });
+      });
+    }
+    await mount(<FollowButton target={team} season={older} />);
+    await screen.findByRole("button", {
+      name: "Saison des suivis",
+      disabled: false,
+    });
+    await layoutNativeTabs();
+    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+    mockFetch.mockImplementation((url, request) =>
+      new URL(url).pathname === `/accounts/${accountId}/matches`
+        ? Promise.reject(new TypeError("Synthetic calendar outage"))
+        : transport(url, request),
+    );
+    if (failedContinuation) {
+      await fireEvent(
+        screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+        "endReached",
+      );
+      await screen.findByRole("button", { name: "Réessayer" });
+      expect(
+        screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+      ).toBeOnTheScreen();
+    }
+    const refreshRead = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url, request) =>
+      new URL(url).pathname === `/accounts/${accountId}/matches`
+        ? refreshRead.promise
+        : transport(url, request),
+    );
+    mockFetch.mockClear();
 
-  // When
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-  await screen.findByRole("alert");
+    // When
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
-  // Then
-  expect(
-    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
-  ).not.toBeOnTheScreen();
+    // Then: a full read keeps the personal rows and selected season while the native pull is active.
+    await waitFor(() =>
+      expect(screen.getByLabelText("Actualiser les données")).toBeBusy(),
+    );
+    expect(
+      screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Saison des suivis" }),
+    ).toHaveAccessibilityValue({ text: older.label });
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Réessayer" }),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
 
-  // When
-  await userEvent.press(
-    screen.getByRole("button", { name: "Suivre", disabled: false }),
-  );
-  await screen.findByRole("button", { name: "Suivi", busy: false });
+    // When
+    await act(() => refreshRead.resolve(Response.json({}, { status: 503 })));
+    await screen.findByRole("alert");
 
-  // Then
-  await screen.findByRole("button", { name: "Réessayer" });
-  expect(
-    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
-  ).not.toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Saison des suivis" }),
-  ).toHaveAccessibilityValue({ text: older.label });
-});
+    // Then
+    expect(
+      screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    ).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls
+        .map(([url]) => new URL(url))
+        .filter((url) => url.pathname === `/accounts/${accountId}/matches`)
+        .map((url) => url.searchParams.get("nextDay")),
+    ).toEqual([null]);
+
+    // When
+    await userEvent.press(
+      screen.getByRole("button", { name: "Suivre", disabled: false }),
+    );
+    await screen.findByRole("button", { name: "Suivi", busy: false });
+
+    // Then
+    await screen.findByRole("button", { name: "Réessayer" });
+    expect(
+      screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Saison des suivis" }),
+    ).toHaveAccessibilityValue({ text: older.label });
+  },
+);
 
 it("ignores an obsolete refresh after the shared season changes without reporting a new-context failure", async () => {
   // Given
@@ -2203,7 +2363,15 @@ it("retains pages on append failure, deduplicates UUIDs and keeps homonyms disti
     season: newer,
     classification: { format: "4x4" },
   };
-  mockFetch.mockImplementation((url, request) => {
+  mockFetch.mockImplementation(async (url, request) => {
+    if (new URL(url).pathname === `/accounts/${accountId}/pool-follows`) {
+      const response = await transport(url, request);
+      const page = Number(new URL(url).searchParams.get("page"));
+      return Response.json({
+        ...(await response.json()),
+        ...(page < 2 ? { nextPage: page + 1 } : {}),
+      });
+    }
     if (new URL(url).pathname !== `/accounts/${accountId}/team-follows`) {
       return transport(url, request);
     }
@@ -2233,11 +2401,35 @@ it("retains pages on append failure, deduplicates UUIDs and keeps homonyms disti
   await screen.findByRole("button", { name: "Réessayer" });
 
   // Then
-  expect(screen.queryByRole("link", { name: /Étoile/ })).toBeNull();
+  expect(screen.getByRole("link", { name: /Étoile/ })).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: /Poule A/ })).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Équipes suivies" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Poules suivies" }),
+  ).toBeOnTheScreen();
   expect(screen.queryByText("Aucun suivi à afficher")).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("alert", { name: TECHNICAL_ERROR }),
   ).not.toBeOnTheScreen();
+
+  // When: another native edge may continue the unaffected section, but cannot repeat the failed team page.
+  await fireEvent(screen.getByRole("link", { name: /Étoile/ }), "endReached");
+
+  // Then
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls
+        .filter(([url]) => new URL(url).pathname.endsWith("/pool-follows"))
+        .map(([url]) => new URL(url).searchParams.get("page")),
+    ).toEqual(["0", "1", "2"]),
+  );
+  expect(
+    mockFetch.mock.calls
+      .filter(([url]) => new URL(url).pathname.endsWith("/team-follows"))
+      .map(([url]) => new URL(url).searchParams.get("page")),
+  ).toEqual(["0", "1"]);
 
   // When
   failAppend = false;
@@ -2368,6 +2560,97 @@ it("shares All seasons across both lists and offers Search only after successful
   expect(screen.queryByRole("button", { name: "Suivi" })).not.toBeOnTheScreen();
   expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
 });
+
+it.each(["team", "pool"] as const)(
+  "retains Following during a delayed pull after a failed %s continuation and keeps the final card through Retry",
+  async (type) => {
+    // Given: real Query keeps the accepted collection after its next page fails.
+    mockFetch.mockImplementation(async (url, request) => {
+      const parsed = new URL(url);
+      if (!parsed.pathname.endsWith(`/${type}-follows`)) {
+        return transport(url, request);
+      }
+      if (parsed.searchParams.get("page") === "1") {
+        throw new TypeError("Synthetic continuation outage");
+      }
+      const response = await transport(url, request);
+      return Response.json({ ...(await response.json()), nextPage: 1 });
+    });
+    await mount();
+    await screen.findByRole("button", {
+      name: "Saison des suivis",
+      disabled: false,
+    });
+    await layoutNativeTabs();
+    await userEvent.press(screen.getByRole("tab", { name: "Suivis" }));
+    await screen.findByRole("link", { name: /Étoile/ });
+    await screen.findByRole("link", { name: /Poule A/ });
+    await fireEvent(screen.getByRole("link", { name: /Étoile/ }), "endReached");
+    await screen.findByRole("button", { name: "Réessayer" });
+    const refreshRead = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url, request) =>
+      new URL(url).pathname.endsWith(`/${type}-follows`)
+        ? refreshRead.promise
+        : transport(url, request),
+    );
+
+    // When: a full native pull waits for its actual first-page response.
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+    // Then: the retained continuation error does not replace content while that pull is active.
+    await waitFor(() =>
+      expect(screen.getByLabelText("Actualiser les données")).toBeBusy(),
+    );
+    expect(screen.getByRole("link", { name: /Étoile/ })).toBeOnTheScreen();
+    expect(screen.getByRole("link", { name: /Poule A/ })).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Équipes suivies" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Poules suivies" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
+    ).toBeNull();
+
+    // When: that full read actually fails.
+    await act(() => refreshRead.resolve(Response.json({}, { status: 503 })));
+    await screen.findByRole("alert", { name: TECHNICAL_ERROR_TITLE });
+    const retryRead = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url, request) =>
+      new URL(url).pathname.endsWith(`/${type}-follows`)
+        ? retryRead.promise
+        : transport(url, request),
+    );
+    await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then: card Retry keeps its card rather than restoring the previous rows while pending.
+    expect(
+      screen.getByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
+    ).toBeOnTheScreen();
+    expect(
+      await screen.findByRole("button", { name: "Réessayer", busy: true }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("link", { name: /Étoile/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Poule A/ })).toBeNull();
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+
+    // When: explicit card recovery succeeds through the same collection's real transport schema.
+    const recovered = await transport(
+      `https://api.example.invalid/accounts/${accountId}/${type}-follows`,
+    );
+    await act(() => retryRead.resolve(recovered));
+
+    // Then
+    expect(
+      await screen.findByRole("link", { name: /Étoile/ }),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole("link", { name: /Poule A/ })).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
+    ).toBeNull();
+  },
+);
 
 it.each(["team", "pool"] as const)(
   "shows one Following card when the %s refresh fails before the other collection",

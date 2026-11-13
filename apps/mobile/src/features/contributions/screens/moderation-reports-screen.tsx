@@ -79,7 +79,8 @@ export function ModerationReportsScreen({
       !navigation.isFocused() ||
       denied ||
       !query.hasNextPage ||
-      query.isFetching
+      query.isFetching ||
+      (query.isError && !query.isFetchNextPageError)
     ) {
       return;
     }
@@ -193,21 +194,21 @@ export function ModerationReportsScreen({
           )}
           ListFooterComponent={
             <>
-              {reports.length > 0 &&
-                (query.isFetchingNextPage || query.isError) && (
-                  <View style={styles.footer}>
-                    <ListContinuation
-                      loading={query.isFetchingNextPage}
-                      failed={query.isError}
-                      disabled={!reading.allowed || query.isFetching}
-                      onRetry={() =>
-                        void (query.isFetchNextPageError
-                          ? loadMore()
-                          : query.refetch({ cancelRefetch: false }))
-                      }
-                    />
-                  </View>
-                )}
+              {query.isRefetchError ? (
+                <ListContinuation
+                  loading={false}
+                  failed
+                  disabled={!reading.allowed || query.isFetching}
+                  onRetry={() => void query.refetch({ cancelRefetch: false })}
+                />
+              ) : (
+                <ListContinuation
+                  loading={query.isFetchingNextPage}
+                  failed={query.isFetchNextPageError}
+                  disabled={!reading.allowed || query.isFetching}
+                  onRetry={() => void loadMore()}
+                />
+              )}
               <BottomContentSpacer />
             </>
           }
@@ -224,5 +225,4 @@ const styles = StyleSheet.create({
     ...tokens.typography.body,
     lineHeight: tokens.typography.body.fontSize * 1.55,
   },
-  footer: { paddingTop: tokens.spacing.lg },
 });

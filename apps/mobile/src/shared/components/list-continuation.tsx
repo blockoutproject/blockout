@@ -17,7 +17,7 @@ export interface ListContinuationProps {
   onRetry: () => void;
 }
 
-/** Presents one compact continuation line; the read owner retains its rows, cursor, event toast and explicit retry. */
+/** Presents continuation feedback without replacing the list or owning its request. */
 export function ListContinuation({
   loading,
   failed,
@@ -101,7 +101,8 @@ export function ListContinuation({
 
 const styles = StyleSheet.create({
   row: {
-    minHeight: tokens.touch.minimum,
+    marginTop: tokens.spacing.xs,
+    minHeight: tokens.size.control.compact,
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
@@ -109,7 +110,7 @@ const styles = StyleSheet.create({
   message: { flexShrink: 1, minWidth: 0 },
   retry: {
     flexShrink: 0,
-    minHeight: tokens.touch.minimum,
+    minHeight: tokens.size.control.compact,
     minWidth: tokens.touch.minimum,
     justifyContent: "center",
   },
