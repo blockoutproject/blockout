@@ -28,9 +28,7 @@ Bind adopted suffixes explicitly to Maven Surefire or Failsafe so every suite ru
 Failsafe for `*IntegrationTest`; a test that the build does not discover is not evidence. Use visible `// Given`, `// When` and `// Then` comments with blank lines between phases. Combine `// When / Then` when an assertion naturally executes the action; keep an intermediate value only when it clarifies the scenario.
 
 Mirror production packages under the test source root selected by the repository instructions. Use suffixes rather than
-`unit`, `slice`, or `integration` package directories. Name test methods as present-tense behavior. If a name needs
-`and`, split the test unless both assertions form one observable outcome. Add `@DisplayName` to touched classes, nested
-groups, and test methods.
+`unit`, `slice`, or `integration` package directories. Name test methods as present-tense behavior. One observable outcome may require several assertions; split unrelated scenarios, not names containing `and`. Add `@DisplayName` to changed test classes, nested groups and methods.
 
 Document non-obvious test contracts and shared helpers. Descriptive names and `@DisplayName` are sufficient for straightforward scenarios. Keep one-off test
 data and doubles inside the owning test. Add the configured shared data, doubles, framework, or container test-support
@@ -55,7 +53,7 @@ testing boundary.
 
 ## Selection
 
-- Construct pure services, mappers, parsers, validators, policies, factories, and small adapters directly.
+- Choose tests for changed behavior, not one suite per production class. Direct construction suits pure decisions, parsers and meaningful mapping branches. A trivial accessor, constructor, generated method or mock-return delegation needs no separate unit test when existing boundary evidence already covers the behavior.
 - Use `@MockitoBean` when a supported Spring version must replace a bean in a test context; do not introduce
   deprecated `@MockBean` in that setup. Do not upgrade an older module incidentally to adopt an annotation.
 - Use integration tests when transactions, schema migrations, database-specific behavior, repository queries,
@@ -77,7 +75,7 @@ testing boundary.
 - Unit-test pure decisions and orchestration with direct construction and narrow collaborators.
 - Integration-test transactional services when retry semantics, locks, repositories, or atomic writes are the
   behavior.
-- For application orchestration, replace the application-owned persistence port. An infrastructure test may replace its repository collaborator only when the tested decision is independent from persistence semantics.
+- Replace the existing collaborator at the tested decision boundary, whether a repository or a justified port. Do not create a production interface solely to mock it. A repository double cannot prove persistence or transaction semantics.
 - Assert emitted commands, writes, and events by meaningful fields rather than brittle whole-object equality when
   owner-managed fields are irrelevant.
 - Test failure propagation and no-write behavior where a rejection must remain atomic.
@@ -108,7 +106,7 @@ testing boundary.
 
 ### Messaging And HTTP Clients
 
-- Test consumer mapping, delegation, acknowledgement, retry, and rejection at the narrowest meaningful layer.
+- Test owned consumer mapping, acknowledgement, retry and rejection at the narrowest meaningful layer; omit tests that only restate delegation.
 - Test publisher payload mapping and routing metadata without asserting framework internals.
 - Use a controlled HTTP server or adapter fake for serialization, status mapping, timeout, and dependency errors.
 - Never call production or uncontrolled external services.
@@ -166,4 +164,4 @@ Keep scenario-defining values explicit and UUIDs stable when asserted or persist
 
 Use Datafaker when generated secondary values are useful, as a test dependency with a project-owned compatible version. Use a native fixed seed per test and explicit construction; never mutable random state shared across parallel tests. Control the clock for time-sensitive data. Assert scenario values, not a hard-coded string tied to a Faker version or call order. Small tests do not require a data library, and installing this skill does not add dependencies.
 
-Read [canonical examples](references/examples.md) when adding or substantially restructuring tests or factories. They show a unit test, an integration boundary and a rich typed factory, not a new test framework. No new E2E infrastructure is introduced by this policy.
+Read [canonical examples](references/examples.md) when adding or substantially restructuring tests or factories. They show meaningful decisions, cases requiring no extra unit test, a database boundary and optional reusable data. No new E2E infrastructure is introduced by this policy.

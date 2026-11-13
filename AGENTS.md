@@ -5,7 +5,7 @@
 - Use native Spec Kit artifacts for specifications, planning and tasks. Do not create a parallel documentation catalogue for these responsibilities. Ordinary repository maintenance does not need an invented feature specification.
 - Keep commit identifiers, issue/PR links, CI runs, captures and delivery chronology outside `specs/`; project traceability there uses native Spec Kit owner links, without a parallel catalogue or revision journal. Keep necessary official technical documentation, Figma sources, implementation paths and exact functional URL values; these sources do not replace native Spec Kit requirement ownership.
 - Load only relevant skills. Personal skills supply technical expertise and delivery mechanics; their presence selects no stack and authorizes no migration or service installation.
-- Apply `karpathy-guidelines` to changed handwritten code and `code-documentation` throughout touched handwritten code files, with the applicable language/testing skills. Keep official upstream imports intact.
+- Apply `karpathy-guidelines` to changed handwritten code and `code-documentation` to non-obvious contracts, reasons and effects, correcting comments affected by the change, with the applicable language/testing skills. Keep official upstream imports intact.
 - Follow the [code readability conventions](README.md#code-readability). Use standard formatter/linter rules; omit unsupported checks rather than add custom analyzers or mandatory manual formatting rules.
 - Use `github-delivery` for authorized issues and publication under the Git delivery policy below. Existing authorization remains valid; issue labels do not switch Codex modes.
 - Never inspect an archived or independent repository without an explicit human request. Links are references, not permission.
@@ -24,7 +24,7 @@
 
 ## Select by task
 
-- Requirements and implementation that add behavior, state, safeguards or custom mechanisms: `proportionate-design`; enforce the minimal default from the first addition. Keep routine choices autonomous within accepted constraints, without a separate design review.
+- Requirements and implementation that add behavior, state, safeguards or custom mechanisms: `proportionate-design`; assess necessity from the first addition and during ordinary review. Keep useful responsibilities and recognizable patterns for comparable needs. Routine choices stay autonomous within accepted constraints, without a separate design review.
 - Prototype construction/review: `design-prototyping`. Figma organization/evidence: `figma-design-governance` plus the applicable Figma tool skill. The constitution owns prerequisites.
 - Java/Spring/JPA: `java-spring`; JVM/database tests: `java-testing`.
 - HTTP contracts and generation: `openapi-codegen`; Liquibase changes only: `liquibase-schema`.

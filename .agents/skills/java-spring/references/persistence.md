@@ -2,11 +2,11 @@
 
 ## Ownership and schema
 
-Place entities, Spring Data repositories and persistence adapters under the owning feature's infrastructure. An application-owned port remains mandatory even for CRUD. Keep it use-case-shaped rather than mirroring repository methods. Return mapped values, never managed entities or Spring Data pages.
+Keep entities, Spring Data repositories and any persistence adapters with their owning feature. A service may use its repository directly in a small Controller → Service → Repository structure. Add a persistence port/adapter only for a concrete responsibility at that boundary, and preserve the project's common pattern for comparable consumers. Do not expose managed entities or Spring Data pages beyond their owning lifecycle; map only where the caller needs a different representation.
 
 An `infrastructure/persistence` package can distinguish persistence from other adapters. Inside the owning feature, keeping an adapter, repositories, entities, persistence values and mappers together preserves proximity and package-private access. Role-based subpackages such as `entity`, `repository` or `mapper` are also valid when navigation benefits justify the required visibility. Keep the same business ownership in either layout; moving files does not require splitting a coherent store or introducing another abstraction.
 
-Name application-owned persistence interfaces `XStore`, their JPA adapters `JpaXStore`, and Spring Data interfaces `XRepository`. Determine names from actual roles, preserve coherent business groupings, and do not add interfaces or layers solely to satisfy naming. Preserve framework-owned and generated names. This naming scheme is a personal convention, not a Spring requirement.
+When a persistence boundary is justified, name its application-owned interface `XStore` and JPA adapter `JpaXStore`; name Spring Data interfaces `XRepository`. Determine names from actual roles, preserve coherent business groupings, and do not add interfaces or layers solely to satisfy naming. Preserve framework-owned and generated names. This naming scheme is a personal convention, not a Spring requirement.
 
 Use Spring Data repositories, normally `JpaRepository`, and Spring Boot's managed JPA setup. Migrations own tables, constraints and indexes; entities describe their mapping. Hibernate must not create or update retained schemas. Use the existing `validate` or `none` posture. Do not replace an existing migration tool to follow a preference.
 
@@ -28,7 +28,7 @@ Write keywords in handwritten SQL and JPQL/HQL queries in uppercase. Preserve th
 
 Prefer lazy, unidirectional relationships. Set to-one `FetchType.LAZY` explicitly and make foreign-key ownership clear. Cascade and orphan removal require actual aggregate lifecycle ownership; do not blanket `CascadeType.ALL` or eager-load to simplify serialization.
 
-Use inherited operations, then clear derived queries, then JPQL for more complex shapes. Use specifications for genuinely composable dynamic predicates, not every lookup. Choose a bounded projection, `Slice` or `Page` according to the needed count and navigation semantics; map it to the port's application view.
+Use inherited operations, then clear derived queries, then JPQL for more complex shapes. Use specifications for genuinely composable dynamic predicates, not every lookup. Choose a bounded projection, `Slice` or `Page` according to the needed count and navigation semantics; adapt it only where the caller's semantics require another representation.
 
 Prevent N+1 with query-specific projections, entity graphs or fetch joins. Do not paginate a collection fetch join that expands root rows; page root IDs then fetch or use a suitable projection. Define stable ordering and bounds. Do not fetch all rows to filter/page in memory.
 
@@ -36,10 +36,10 @@ Native SQL or JDBC needs a concrete JPA/JPQL limitation or measured performance 
 
 ## Writes and transactions
 
-The application service owns the transaction and explicitly calls write-port methods. The adapter may update managed entities through dirty checking without a redundant `save`. A new entity still requires persistence. Do not add `saveAndFlush` mechanically. Verify batching when it matters; `saveAll` alone does not guarantee it.
+The application service owns the transaction. The service or its persistence adapter may update managed entities through dirty checking without a redundant `save`. A new entity still requires persistence. Do not add `saveAndFlush` mechanically. Verify batching when it matters; `saveAll` alone does not guarantee it.
 
 Complete lazy loading and entity-to-value mapping within the transaction. Avoid network calls inside it. For bulk updates account for pending changes, stale persistence context, callbacks and version checks bypassed by bulk SQL/JPQL.
 
 Keep writes out of getters, mappers and logs. Verify rollback, constraints, write ordering, concurrent conflict and idempotence against the actual migrated database when those guarantees matter. Ensure tests exercise the proxied transaction owner rather than assuming direct construction starts a transaction.
 
-Mechanics: [Spring Data JPA queries](https://docs.spring.io/spring-data/jpa/reference/jpa/query-methods.html) and [transactions](https://docs.spring.io/spring-data/jpa/reference/jpa/transactions.html). The mandatory port is a personal architectural choice.
+Mechanics: [Spring Data JPA queries](https://docs.spring.io/spring-data/jpa/reference/jpa/query-methods.html) and [transactions](https://docs.spring.io/spring-data/jpa/reference/jpa/transactions.html).

@@ -19,7 +19,7 @@ Repository instructions and the accepted issue identify the canonical design fil
 ## File Rules
 
 - Keep `Cover` limited to file identity, ownership, status, and links to the accepted specification.
-- Keep reusable foundations and components in the designated UI library with deterministic names, Auto Layout, published variables and styles, documented variants, and accessibility annotations.
+- Keep reusable foundations and components in the designated UI library with deterministic names, Auto Layout, published variables and styles, and meaningful variant contracts. Add annotations only for requirements not already clear from the component.
 - Keep approved reusable product compositions in the Product Design `Patterns` page and representative journey evidence in its design pages.
 - Keep unresolved visual directions and experiments in `Explorations`. They do not become authoritative until explicitly approved.
 - Use live published instances for reusable UI. Never detach an instance or redraw a foundation or component already owned by the designated UI library.
@@ -54,7 +54,7 @@ durable product boundary: audience, workspace, domain, or lifecycle area.
 - Use one durable product page per meaningful boundary when that boundary is
   expected to accumulate related journeys over time.
 - Use sections within that page for journeys.
-- Use frames within a journey for screens and scenario coverage.
+- Use frames within a journey for distinct representative screen compositions.
 - Do not create one page per screen by default.
 - Do not create a generic `Flows` page by default. A page name must communicate
   a durable product boundary, not merely an artifact type.
@@ -64,17 +64,16 @@ durable product boundary: audience, workspace, domain, or lifecycle area.
 - Keep status tracking outside the page taxonomy. Page names must describe
   product structure, not transient maturity such as draft or shipped.
 
-### Document journeys and screens consistently
+### Keep journeys readable
 
-Each journey section must use the private linked documentation presentation
-components available in the file and state:
+Reuse the existing journey section and its clear names. Keep the source at the
+existing file or journey entry; do not repeat it in screen notes. Add a short note
+only for an interaction or constraint that the composition cannot show. Coverage
+tables, approval history, qualification logs and delivery status belong in the
+project's existing review record. Do not create canvas documentation merely to
+satisfy this skill.
 
-- the user or system context;
-- the intended outcome;
-- the authoritative source, such as an issue or specification;
-- the relevant viewport, theme, state, and accessibility coverage.
-
-Use deterministic names:
+For new nodes, follow the file's naming convention. When none exists, use:
 
 - `Journey / <domain> / <outcome>`
 - `Screen / <domain> / <journey> / <scenario>`
@@ -94,10 +93,16 @@ journeys. Keep domain-specific copy, data, and navigation in the product screen.
 
 ### Cover scenarios proportionately
 
-For each journey, explicitly select the relevant viewport, theme, state,
-keyboard/focus, touch-target, loading, empty, validation, permission, failure,
-and recovery coverage. Do not multiply variants mechanically when they do not
-change behavior, layout, or a meaningful visual contract.
+Represent the requested success, loading, empty and error states where their
+composition differs. Each represented composition must be faithful in layout,
+typography, spacing, tokens and actions. Different actions must remain clear even
+when their messages share a layout.
+
+Do not create a frame for each error message, scroll position, theme combination
+or transient button state. Reuse the component's existing properties for states
+such as a busy action. Add a composition only when it conveys a distinct visual
+contract needed for the requested review; a short interaction note can explain a
+transition without drawing its intermediate positions. There is no frame quota.
 
 ### Maintain an idempotent file structure
 
@@ -114,7 +119,8 @@ Before creating a page, section, screen, or pattern:
 - Cite the exact accepted or clarified specification snapshot and relevant acceptance criteria.
 - Group specifications only when they form one coherent journey or shared pattern.
 - Record exact Figma node links and screenshots for downstream planning.
-- Cover the supported platforms, every supported theme, required widths, relevant interaction and failure states, keyboard behavior, focus, touch targets, text scaling, safe areas, and reduced motion.
+- Verify the changed compositions and applicable requested themes, widths and interactions. Shared tokens and components carry unchanged combinations; do not redraw a qualification matrix in the product file.
+- Keep native observations of keyboard/focus, touch, text scaling, safe areas, motion and SDK behavior at their actual qualification boundary. Figma frames do not prove runtime behavior.
 - Treat unpublished experiments, detached instances, stale library versions, and unresolved synchronization differences as invalid downstream evidence.
 
 ## Scope and review
@@ -123,4 +129,6 @@ Read the project's constitution and accepted request for prerequisites, design a
 
 Identify the target files, relevant specification, journeys/components and evidence before editing. Reuse the designated library before composing Product Design with its published instances. Preserve accepted prototype interactions and visual direction when translating them. Raise a conflict with accepted intent or a missing library capability instead of detaching instances or silently redesigning the product.
 
-Only certify the platforms, themes and states requested and actually reviewed. Record exact nodes, revision information where available, scope and remaining limitations. A file's existence, a passing test or approval of another scope does not approve the current result. Limited file maintenance does not require unrelated design exploration.
+Stop when the requested distinct compositions precisely express the accepted intent through shared tokens and live instances. Preserve the project's separate prototype, Figma and native approval requirements where applicable; this skill adds no new approval for unchanged scope.
+
+Only certify the platforms, themes and states requested and actually reviewed. Record exact nodes, revision information where available, scope and remaining limitations in the existing review record. A file's existence, a passing test or approval of another scope does not approve the current result. Limited file maintenance does not require unrelated design exploration.

@@ -6,13 +6,13 @@ Keep semantic model names in the authored contract and use supported generator n
 
 ## Java
 
-Generate server interfaces and DTOs into the configured build output. Implement interfaces in API adapters. Keep generated client models in infrastructure adapters and map object DTOs immediately to application/domain values. Contract-owned generated enums may be used directly in application APIs only when they carry exactly the intended concept; they never enter pure domain code.
+Generate server interfaces and DTOs into the configured build output. Implement interfaces in API adapters. Keep generated clients and their runtime lifecycle in infrastructure adapters. A generated DTO or enum may serve an application boundary when its contract owns that exact concept and this follows the project pattern. Map where semantics or lifetime differ; pure domain code remains independent of generated transport types.
 
 Keep shared generated model packages limited to genuinely shared enums and technical primitives. Compile through the owning build so annotation processing and generated imports are exercised. Prove unions, enum serialization and null handling with actual generated output where configuration changes their behavior.
 
 ## Python
 
-When the project selects OpenAPI Generator with asynchronous HTTPX, use its pinned version and a declarative configuration for each adopted contract. Respect the owning internal/public boundary; language does not change service ownership. Keep generated clients and object models inside the infrastructure API adapter. Reuse a generated enum in application code only for the exact contract-owned concept; pure domain values remain independent. Map objects to typed application/domain values using explicit functions. Validate imports and actual request/response behavior against controlled transport; never production data. Python language guidance owns typed application placement, explicit mapping and resource lifecycle. Keep generation/decoding guarantees here rather than copying that procedure into every adapter policy.
+When the project selects OpenAPI Generator with asynchronous HTTPX, use its pinned version and a declarative configuration for each adopted contract. Respect the owning internal/public boundary; language does not change service ownership. Keep generated clients inside the infrastructure API adapter. Reuse an exact contract-owned generated value only where the owning Python policy and project pattern permit it; otherwise map to the needed typed application value with an explicit function. Create no additional model family beyond that semantic boundary. Pure domain values remain independent. Validate imports and actual request/response behavior against controlled transport; never production data. Python language guidance owns typed application placement, explicit mapping and resource lifecycle. Keep generation/decoding guarantees here rather than copying that procedure into every adapter policy.
 
 ## Runtime validation boundaries
 
