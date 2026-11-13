@@ -7,7 +7,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.generated.mobile.model.NotificationFamilyEnum;
 import com.blockout.backend.generated.mobile.model.NotificationResponse;
-import com.blockout.backend.generated.mobile.model.NotificationSummaryResponse;
 import com.blockout.backend.generated.mobile.model.NotificationsResponse;
 import jakarta.validation.Validator;
 import java.util.ArrayList;
@@ -74,21 +73,6 @@ class NotificationContractJsonTest {
   }
 
   @Test
-  @DisplayName("Omits expiry for a zero-count summary")
-  void omitsZeroExpiry() {
-    // Given
-    NotificationSummaryResponse summary = new NotificationSummaryResponse(0L);
-
-    // When
-    JsonNode encoded = json.readTree(json.writeValueAsString(summary));
-
-    // Then
-    assertThat(encoded.path("unreadCount").isIntegralNumber()).isTrue();
-    assertThat(encoded.path("unreadCount").asLong()).isZero();
-    assertThat(encoded.path("nextExpiryAt").isMissingNode()).isTrue();
-  }
-
-  @Test
   @DisplayName("Rejects arrays beyond twenty entries through generated constraints")
   void validatesPageBound() {
     // Given
@@ -103,18 +87,5 @@ class NotificationContractJsonTest {
     // Then
     assertThat(twentyValid).isTrue();
     assertThat(twentyOneValid).isFalse();
-  }
-
-  @Test
-  @DisplayName("Rejects negative counts through generated constraints")
-  void validatesSummaryBound() {
-    // Given
-    NotificationSummaryResponse summary = new NotificationSummaryResponse(-1L);
-
-    // When
-    boolean valid = validator.validate(summary).isEmpty();
-
-    // Then
-    assertThat(valid).isFalse();
   }
 }

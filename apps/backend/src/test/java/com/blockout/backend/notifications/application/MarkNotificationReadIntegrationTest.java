@@ -83,7 +83,6 @@ class MarkNotificationReadIntegrationTest {
                     "SELECT created_at FROM notification WHERE id=?", OffsetDateTime.class, id)
                 .toInstant())
         .isEqualTo(NOW.minusSeconds(60));
-    assertThat(reads.summary(owner).unreadCount()).isZero();
   }
 
   @Test
@@ -177,10 +176,10 @@ class MarkNotificationReadIntegrationTest {
       if (removed.equals("account")) {
 
         // When / Then
-        assertThatThrownBy(() -> reads.summary(new NotificationContext(ACCOUNT)))
+        assertThatThrownBy(() -> reads.page(new NotificationContext(ACCOUNT), null))
             .isInstanceOf(NotificationNotFoundException.class);
       } else {
-        assertThat(reads.summary(new NotificationContext(ACCOUNT)).unreadCount()).isZero();
+        assertThat(reads.page(new NotificationContext(ACCOUNT), null).entries()).isEmpty();
       }
     }
   }
@@ -209,7 +208,6 @@ class MarkNotificationReadIntegrationTest {
 
       // Then
       assertThat(committed.read()).isTrue();
-      assertThat(reads.summary(owner).unreadCount()).isZero();
     }
   }
 

@@ -207,9 +207,6 @@ beforeEach(async () => {
     if (path === "/accounts/me") {
       return Response.json(mockAccount);
     }
-    if (path.endsWith("/notification-summary")) {
-      return Response.json({ unreadCount: 0 });
-    }
     if (path.endsWith("/follow-options")) {
       return Response.json({ seasons: [] });
     }

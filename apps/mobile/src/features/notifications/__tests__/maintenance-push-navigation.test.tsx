@@ -201,9 +201,6 @@ it.each(["owner", "operator", "guest"] as const)(
           }),
         );
       }
-      if (path.endsWith("notification-summary")) {
-        return Response.json({ unreadCount: 0 });
-      }
       if (
         path.endsWith(`/notifications/${row.id}`) &&
         init.method === "PATCH"
@@ -346,9 +343,6 @@ it.each([
       if (path.endsWith("accounts/me")) {
         return readAccount();
       }
-      if (path.endsWith("notification-summary")) {
-        return Response.json({ unreadCount: 0 });
-      }
       if (
         path.endsWith(`/notifications/${row.id}`) &&
         init.method === "PATCH"
@@ -467,9 +461,6 @@ it("keeps admitted operational history through a technical reread before opening
           permissions: { manageMaintenance: true },
         }),
       );
-    }
-    if (path.endsWith("notification-summary")) {
-      return Response.json({ unreadCount: 0 });
     }
     if (path.endsWith(`/notifications/${row.id}`) && init.method === "PATCH") {
       return Response.json({ ...row, read: true });

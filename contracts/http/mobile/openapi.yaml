@@ -46,8 +46,6 @@ paths:
     $ref: ./notifications/paths.yaml#/Collection
   /accounts/{accountId}/notifications/{notificationId}:
     $ref: ./notifications/paths.yaml#/Member
-  /accounts/{accountId}/notification-summary:
-    $ref: ./notifications/paths.yaml#/Summary
   /accounts/{accountId}/push-subscriptions/{subscriptionId}:
     $ref: ./notifications/paths.yaml#/Subscription
   /accounts/{accountId}/team-follows:

@@ -1,8 +1,4 @@
-import {
-  getListNotificationsQueryKey,
-  getGetNotificationQueryKey,
-  getGetNotificationSummaryQueryKey,
-} from "../../../../.generated/mobile";
+import { getListNotificationsQueryKey } from "../../../../.generated/mobile";
 import type { SessionSnapshot } from "@/features/accounts";
 
 /** Private generated keys for a captured F05 owner; continuation belongs to native pageParam. */
@@ -13,8 +9,5 @@ export function getNotificationKeys(session: SessionSnapshot) {
   }
   return Object.freeze({
     inbox: getListNotificationsQueryKey(accountId),
-    summary: getGetNotificationSummaryQueryKey(accountId),
-    /** Selects one original owner's retained entry within the captured session. */
-    detail: (id: string) => getGetNotificationQueryKey(accountId, id),
   });
 }

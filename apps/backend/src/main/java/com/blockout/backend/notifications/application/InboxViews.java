@@ -60,12 +60,4 @@ public final class InboxViews {
       entries = List.copyOf(entries);
     }
   }
-
-  /**
-   * Count across all pages with its next age-driven invalidation point.
-   *
-   * @param unreadCount all currently consultable unread entries
-   * @param nextExpiryAt earliest counted expiry, absent exactly at zero
-   */
-  public record Summary(long unreadCount, Instant nextExpiryAt) {}
 }

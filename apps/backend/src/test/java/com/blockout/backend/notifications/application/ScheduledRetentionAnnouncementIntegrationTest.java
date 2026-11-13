@@ -117,7 +117,6 @@ class ScheduledRetentionAnnouncementIntegrationTest extends ContributionScenario
 
     // Then
     assertThat(inbox.page(new NotificationContext(FOLLOWER), null).entries()).isEmpty();
-    assertThat(inbox.summary(new NotificationContext(FOLLOWER)).unreadCount()).isZero();
     assertThat(count("notification")).isZero();
     assertThat(
             sql.queryForObject(

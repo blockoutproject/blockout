@@ -9,12 +9,10 @@ import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
   getGetMyAccountQueryKey,
   getGetMatchQueryKey,
-  getGetNotificationSummaryQueryKey,
   getListNotificationsQueryKey,
 } from "../../../../.generated/mobile";
 import type {
   AccountResponse,
-  NotificationSummaryResponse,
   NotificationsResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { createQueryClient } from "@/shared/query/query-client";
@@ -191,11 +189,8 @@ it.each([
       expect(result.current.pro.state.status).toBe("inactive"),
     );
     const inboxKey = getListNotificationsQueryKey(account.accountId);
-    const summaryKey = getGetNotificationSummaryQueryKey(account.accountId);
     const inbox: NotificationsResponse = { notifications: [] };
-    const summary: NotificationSummaryResponse = { unreadCount: 0 };
     result.current.cache.setQueryData(inboxKey, inbox);
-    result.current.cache.setQueryData(summaryKey, summary);
     const requestsBeforeSupport = mockFetch.mock.calls.length;
     const credentialsBeforeSupport = mockAuth0.getCredentials.mock.calls.length;
     const associationsBeforeSupport = mockPurchases.logIn.mock.calls.length;
@@ -245,7 +240,6 @@ it.each([
     );
     expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
     expect(result.current.cache.getQueryData(inboxKey)).toEqual(inbox);
-    expect(result.current.cache.getQueryData(summaryKey)).toEqual(summary);
     expect(
       result.current.cache.getQueryData(getGetMatchQueryKey(targetId)),
     ).toBeUndefined();

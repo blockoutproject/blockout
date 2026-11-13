@@ -198,7 +198,6 @@ class PurgeNotificationsIntegrationTest {
     assertThat(reads.page(owner, null).entries())
         .extracting(InboxViews.Entry::id)
         .containsExactly(survivor);
-    assertThat(reads.summary(owner).unreadCount()).isEqualTo(1);
     UUID expired = UUID.fromString("10000000-0000-4000-8000-000000000105");
     assertThatThrownBy(() -> reads.member(owner, expired))
         .isInstanceOf(NotificationNotFoundException.class);

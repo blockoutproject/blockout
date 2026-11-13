@@ -10,7 +10,6 @@ import { PushSubscriptionResponse } from "../../../../.generated/schemas/index.z
 import type { AccountCredentialCleanup } from "@/features/accounts";
 import type { InboxOwner, InboxRequest } from "../api/inbox-queries";
 import { readPushInstallation } from "./installation-identity";
-import { clearNotificationBadge } from "./notification-badge";
 
 /** The sole installation registration owner; contains no inbox, session authority or persisted credentials. */
 export type PushRegistration = ReturnType<typeof createPushRegistration>;
@@ -45,7 +44,6 @@ export function createPushRegistration() {
     cancel,
     /** Discards in-memory association/work on external invalidation; explicit departures capture removal first. */
     reset(owner: Pick<InboxOwner, "subject" | "accountId">) {
-      clearNotificationBadge();
       if (
         connection &&
         (connection.owner.subject !== owner.subject ||
@@ -144,12 +142,11 @@ export function createPushRegistration() {
         // Best effort only: no replay, provider payload logging or new unavailable-account state.
       }
     },
-    /** Captures one exact old resource synchronously, clears memory/badge and bounds all cleanup I/O to three seconds. */
+    /** Captures one exact old resource synchronously, clears memory and bounds all cleanup I/O to three seconds. */
     prepareRemoval(): AccountCredentialCleanup | undefined {
       cancel();
       const original = connection;
       connection = undefined;
-      clearNotificationBadge();
       if (!original) {
         return;
       }

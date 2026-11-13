@@ -45,7 +45,7 @@ afterEach(async () => {
 });
 
 it.each([401, 403, 404])(
-  "lets a current F03 %s cancel a delayed inbox and summary without losing other matches",
+  "lets a current F03 %s cancel a delayed inbox without losing other matches",
   async (status) => {
     // Given: real F03/F07 Query functions and generated transport; only HTTP is controlled.
     const survivor = {
@@ -57,25 +57,13 @@ it.each([401, 403, 404])(
       pages: [{ notifications: [row, survivor] }],
       pageParams: [undefined],
     });
-    client.setQueryData(inbox.summary.queryKey, {
-      unreadCount: 7,
-      nextExpiryAt: "2026-11-01T00:00:00Z",
-    });
-    mockFetch.mockResolvedValueOnce(Response.json(row));
-    await client.fetchQuery(inbox.detail(row.id));
     const page = Promise.withResolvers<Response>();
-    const count = Promise.withResolvers<Response>();
     const readPage = jest.fn(() => page.promise);
-    const readCount = jest.fn(() => count.promise);
-    mockFetch
-      .mockImplementationOnce(readPage)
-      .mockImplementationOnce(readCount);
-    const delayed = Promise.allSettled([
-      client.fetchInfiniteQuery(inbox.inbox),
-      client.fetchQuery(inbox.summary),
-    ]);
+    mockFetch.mockImplementationOnce(readPage);
+    const delayed = client
+      .fetchInfiniteQuery(inbox.inbox)
+      .catch(() => undefined);
     await waitFor(() => expect(readPage).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(readCount).toHaveBeenCalledTimes(1));
     mockFetch.mockResolvedValueOnce(new Response(null, { status }));
 
     // When
@@ -83,20 +71,12 @@ it.each([401, 403, 404])(
       .fetchQuery(sporting.match(row.match.id))
       .catch(() => undefined);
     page.resolve(Response.json({ notifications: [row, survivor] }));
-    count.resolve(
-      Response.json({ unreadCount: 7, nextExpiryAt: "2026-11-01T00:00:00Z" }),
-    );
     await delayed;
 
     // Then
     expect(
       client.getQueryData(inbox.inbox.queryKey)?.pages[0].notifications,
     ).toEqual([survivor]);
-    expect(client.getQueryData(inbox.detail(row.id).queryKey)).toBeUndefined();
-    expect(client.getQueryData(inbox.summary.queryKey)).toBeUndefined();
-    expect(client.getQueryState(inbox.summary.queryKey)?.isInvalidated).toBe(
-      true,
-    );
 
     // When: an ordinary offline refresh cannot bring the known unavailable copy back.
     mockFetch.mockRejectedValue(new TypeError("offline"));
@@ -109,17 +89,13 @@ it.each([401, 403, 404])(
     expect(
       client.getQueryData(inbox.inbox.queryKey)?.pages[0].notifications,
     ).toEqual([survivor]);
-    expect(client.getQueryData(inbox.summary.queryKey)).toBeUndefined();
   },
 );
 
-it("preserves authorized notification data and count after an ordinary F03 outage", async () => {
+it("preserves authorized notification data after an ordinary F03 outage", async () => {
   // Given
-  const summary = { unreadCount: 7, nextExpiryAt: "2026-11-01T00:00:00Z" };
   mockFetch.mockResolvedValueOnce(Response.json({ notifications: [row] }));
   await client.fetchInfiniteQuery(inbox.inbox);
-  mockFetch.mockResolvedValueOnce(Response.json(summary));
-  await client.fetchQuery(inbox.summary);
   mockFetch.mockRejectedValue(new TypeError("offline"));
 
   // When
@@ -129,7 +105,6 @@ it("preserves authorized notification data and count after an ordinary F03 outag
   expect(
     client.getQueryData(inbox.inbox.queryKey)?.pages[0].notifications,
   ).toEqual([row]);
-  expect(client.getQueryData(inbox.summary.queryKey)).toEqual(summary);
 });
 
 it("applies the first F03 refusal even when native retries later fail offline", async () => {
@@ -137,10 +112,6 @@ it("applies the first F03 refusal even when native retries later fail offline", 
   client.setDefaultOptions({});
   mockFetch.mockResolvedValueOnce(Response.json({ notifications: [row] }));
   await client.fetchInfiniteQuery(inbox.inbox);
-  mockFetch.mockResolvedValueOnce(
-    Response.json({ unreadCount: 1, nextExpiryAt: "2026-11-01T00:00:00Z" }),
-  );
-  await client.fetchQuery(inbox.summary);
   const page = Promise.withResolvers<Response>();
   const readPage = jest.fn(() => page.promise);
   mockFetch.mockImplementationOnce(readPage);
@@ -160,7 +131,7 @@ it("applies the first F03 refusal even when native retries later fail offline", 
     );
 
     // Then: apply the known refusal before Query exhausts its ordinary retries.
-    expect(client.getQueryData(inbox.summary.queryKey)).toBeUndefined();
+
     expect(current.getCurrentResult().failureCount).toBe(1);
 
     // When
@@ -173,28 +144,9 @@ it("applies the first F03 refusal even when native retries later fail offline", 
     expect(
       client.getQueryData(inbox.inbox.queryKey)?.pages[0].notifications,
     ).toEqual([]);
-    expect(client.getQueryData(inbox.summary.queryKey)).toBeUndefined();
   } finally {
     unsubscribe();
   }
-});
-
-it("cancels an unloaded member read when its current match becomes unavailable", async () => {
-  // Given: a member response has not supplied its match yet; there is no loaded page to filter.
-  const member = Promise.withResolvers<Response>();
-  const readMember = jest.fn(() => member.promise);
-  mockFetch.mockImplementationOnce(readMember);
-  const old = client.fetchQuery(inbox.detail(row.id)).catch(() => undefined);
-  await waitFor(() => expect(readMember).toHaveBeenCalledTimes(1));
-  mockFetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
-
-  // When
-  await client.fetchQuery(sporting.match(row.match.id)).catch(() => undefined);
-  member.resolve(Response.json(row));
-  await old;
-
-  // Then
-  expect(client.getQueryData(inbox.detail(row.id).queryKey)).toBeUndefined();
 });
 
 it("admits a retained reappearance only through a fresh inbox response and excludes expired rows", async () => {
@@ -227,18 +179,15 @@ it("admits a retained reappearance only through a fresh inbox response and exclu
   expect(retained.family).toBe(row.family);
 });
 
-it("removes a known stale link claim while retaining an enriched result and its count offline", async () => {
+it("removes a known stale link claim while retaining an enriched result offline", async () => {
   // Given: the retained entry still mentions the previously public link.
   const linked = {
     ...row,
     family: "result-with-link" as const,
     title: "Un lien a été proposé pour ce match.",
   };
-  const summary = { unreadCount: 1, nextExpiryAt: "2026-11-01T00:00:00Z" };
   mockFetch.mockResolvedValueOnce(Response.json({ notifications: [linked] }));
   await client.fetchInfiniteQuery(inbox.inbox);
-  mockFetch.mockResolvedValueOnce(Response.json(summary));
-  await client.fetchQuery(inbox.summary);
   mockFetch.mockResolvedValueOnce(
     Response.json({
       match: row.match,
@@ -268,5 +217,4 @@ it("removes a known stale link claim while retaining an enriched result and its 
   expect(
     client.getQueryData(inbox.inbox.queryKey)?.pages[0].notifications,
   ).toEqual([{ ...linked, title: "Le lien n’est plus proposé." }]);
-  expect(client.getQueryData(inbox.summary.queryKey)).toEqual(summary);
 });

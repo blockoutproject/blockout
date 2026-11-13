@@ -14,6 +14,7 @@ import {
   Text,
   type AppStateStatus,
 } from "react-native";
+import type { InboxData } from "../api/inbox-queries";
 import { NotificationsScreen } from "../screens/notifications-screen";
 import { NotificationState } from "../state/notification-state";
 import { createQueryClient } from "@/shared/query/query-client";
@@ -36,7 +37,6 @@ import { applicationAccessResponse } from "@/shared/api/test-support/application
 import { notificationResponse } from "../test-support/notification-data";
 import { notificationMessageSamples } from "../test-support/notification-message-samples";
 import { useLayoutEffect, useState, type PropsWithChildren } from "react";
-import { setBadgeCountAsync } from "expo-notifications";
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("@react-native-async-storage/async-storage", () =>
@@ -61,9 +61,6 @@ jest.mock("react-native-auth0", () => {
 jest.mock("expo/fetch", () => ({
   fetch: (...args: unknown[]) => mockFetch(...args),
 }));
-jest.mock("expo-notifications", () => ({
-  setBadgeCountAsync: jest.fn().mockResolvedValue(true),
-}));
 jest.mock("expo-router", () => ({
   ...jest.requireActual("expo-router"),
   useRouter: () => ({ push: mockPush }),
@@ -84,8 +81,6 @@ let client = createQueryClient();
 let privateClient: ReturnType<typeof createQueryClient>;
 const row = notificationResponse();
 let rows = [row];
-let total = 7;
-let nextExpiry = "2026-11-10T00:00:00Z";
 let currentSession: ReturnType<typeof useAccountSession>;
 let readResponseLost = false;
 
@@ -117,20 +112,13 @@ async function response(url: string, init: RequestInit): Promise<Response> {
   if (path.endsWith("accounts/me")) {
     return Response.json(accountResponse({ accountId: row.id }));
   }
-  if (path.endsWith("notification-summary")) {
-    return Response.json(
-      total
-        ? { unreadCount: total, nextExpiryAt: nextExpiry }
-        : { unreadCount: 0 },
-    );
-  }
   if (path.endsWith("/notifications")) {
     return Response.json({ notifications: rows });
   }
   if (path.endsWith(`/notifications/${row.id}`)) {
     if (init.method === "PATCH") {
       rows = rows.map((value) => ({ ...value, read: true }));
-      total = 6;
+
       if (readResponseLost) {
         throw new TypeError("lost acknowledgement");
       }
@@ -155,14 +143,18 @@ beforeEach(() => {
   mockAuth0.clearCredentials.mockReset().mockResolvedValue(undefined);
   mockFetch.mockReset().mockImplementation(response);
   mockPush.mockReset();
-  jest.mocked(setBadgeCountAsync).mockClear();
+
   rows = [row];
-  total = 7;
-  nextExpiry = "2026-11-10T00:00:00Z";
+
   readResponseLost = false;
   mockFocused = true;
 });
 afterEach(async () => {
+  expect(
+    mockFetch.mock.calls.some(([url]) =>
+      String(url).endsWith("/notification-summary"),
+    ),
+  ).toBe(false);
   await cleanup();
   client.clear();
   privateClient?.clear();
@@ -191,7 +183,7 @@ async function showInbox() {
   });
 }
 
-it("shows the whole confirmed count while displaying one unread card and never marks on display", async () => {
+it("displays one unread card without summary requests or marking on display", async () => {
   // Given
   await showInbox();
 
@@ -200,7 +192,9 @@ it("shows the whole confirmed count while displaying one unread card and never m
 
   // Then
   expect(item).toBeOnTheScreen();
-  await waitFor(() => expect(setBadgeCountAsync).toHaveBeenLastCalledWith(7));
+  expect(
+    mockFetch.mock.calls.some(([url]) => url.endsWith("notification-summary")),
+  ).toBe(false);
   expect(mockFetch.mock.calls.some(([, init]) => init.method === "PATCH")).toBe(
     false,
   );
@@ -265,29 +259,31 @@ it("keeps the displayed order and accessible names through refresh and reopening
   ).toBeNull();
 });
 
-it("refreshes read state after a lost response even when navigation fails", async () => {
-  // Given
-  readResponseLost = true;
-  mockPush.mockImplementation(() => {
-    throw new Error("native navigation unavailable");
-  });
-  await showInbox();
-  const user = userEvent.setup();
+it.each([false, true])(
+  "keeps accepted read state when navigation fails (lost acknowledgement: %s)",
+  async (lost) => {
+    // Given
+    readResponseLost = lost;
+    mockPush.mockImplementation(() => {
+      throw new Error("native navigation unavailable");
+    });
+    await showInbox();
+    const user = userEvent.setup();
 
-  // When
-  await user.press(await screen.findByRole("link", { name: /non lue$/ }));
+    // When
+    await user.press(await screen.findByRole("link", { name: /non lue$/ }));
 
-  // Then
-  await screen.findByRole("link", { name: /— lue$/ });
-  expect(mockPush).toHaveBeenCalledWith({
-    pathname: "/matches/[matchId]",
-    params: { matchId: row.match.id },
-  });
-  expect(
-    mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
-  ).toHaveLength(1);
-  await waitFor(() => expect(setBadgeCountAsync).toHaveBeenLastCalledWith(6));
-});
+    // Then
+    await screen.findByRole("link", { name: /— lue$/ });
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/matches/[matchId]",
+      params: { matchId: row.match.id },
+    });
+    expect(
+      mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
+    ).toHaveLength(1);
+  },
+);
 
 it("reports a tap failure once when navigation and its independent read command fail at different times", async () => {
   // Given
@@ -380,11 +376,11 @@ it("revalidates cached cards on focus without pulling, and shows progress only f
   expect(screen.getByRole("link", { name: /non lue$/ })).toBeOnTheScreen();
 });
 
-it("uses the initial error card but retains authorized cards with a toast after failed pull-to-refresh", async () => {
-  // Given
+it("masks retained cards after a full refresh failure and keeps its card during explicit Retry", async () => {
+  // Given: real Query retains pages, while only the HTTP result is controlled.
   mockFetch.mockImplementation((url: string, init: RequestInit) =>
     new URL(url).pathname.endsWith("/notifications")
-      ? Promise.reject(new TypeError("offline"))
+      ? Promise.reject(new TypeError("offline first read"))
       : response(url, init),
   );
   await showInbox();
@@ -392,9 +388,6 @@ it("uses the initial error card but retains authorized cards with a toast after 
   expect(
     await screen.findByRole("alert", { name: "Une erreur est survenue" }),
   ).toBeOnTheScreen();
-  expect(screen.queryByText("Aucune notification pour le moment")).toBeNull();
-
-  // When
   mockFetch.mockImplementation(response);
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
   await screen.findByRole("link", { name: /non lue$/ });
@@ -403,24 +396,46 @@ it("uses the initial error card but retains authorized cards with a toast after 
       ? Promise.reject(new TypeError("offline"))
       : response(url, init),
   );
+
+  // When
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
-  await screen.findByRole("alert", { name: /Une erreur est survenue/ });
-  expect(screen.getByRole("link", { name: /non lue$/ })).toBeOnTheScreen();
   expect(
-    screen.queryByRole("button", { name: /Réessayer/ }),
-  ).not.toBeOnTheScreen();
-  expect(screen.queryByText("Aucune notification pour le moment")).toBeNull();
+    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("link", { name: /non lue$/ })).toBeNull();
+  expect(
+    privateClient.getQueryData<InboxData>([`/accounts/${row.id}/notifications`])
+      ?.pages[0].notifications,
+  ).toEqual([row]);
+  const retried = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url: string, init: RequestInit) =>
+    new URL(url).pathname.endsWith("/notifications")
+      ? retried.promise
+      : response(url, init),
+  );
 
   // When
-  mockFetch.mockImplementation(response);
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    screen.getByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeBusy();
+  expect(screen.queryByRole("link", { name: /non lue$/ })).toBeNull();
+
+  // When
+  await act(async () =>
+    retried.resolve(Response.json({ notifications: rows })),
+  );
 
   // Then
   expect(
     await screen.findByRole("link", { name: /non lue$/ }),
   ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).toBeNull();
 });
 
 it("removes known expired content while active offline without restoring it after a failed read", async () => {
@@ -516,9 +531,7 @@ it("reloads an accepted empty inbox only from its card and restores pull-to-refr
   ).toBeOnTheScreen();
   expect(screen.getAllByRole("progressbar")).toHaveLength(1);
   expect(screen.queryByRole("link")).not.toBeOnTheScreen();
-  expect(
-    screen.queryByLabelText("Actualiser les données"),
-  ).not.toBeOnTheScreen();
+  expect(await screen.findByLabelText("Actualiser les données")).toBeDisabled();
 
   // When
   await act(async () => pending.resolve(Response.json({ notifications: [] })));
@@ -531,7 +544,7 @@ it("reloads an accepted empty inbox only from its card and restores pull-to-refr
   expect(
     screen.queryByRole("button", { name: /supprimer|archiver|restaurer/i }),
   ).toBeNull();
-  expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+  expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
 
   // When
   mockFetch.mockImplementation(response);
@@ -543,6 +556,7 @@ it("reloads an accepted empty inbox only from its card and restores pull-to-refr
     await screen.findByRole("link", { name: /non lue$/ }),
   ).toBeOnTheScreen();
   expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+  expect(screen.getByLabelText("Actualiser les données")).not.toBeDisabled();
   expect(screen.queryByRole("button", { name: "Actualiser" })).toBeNull();
   expect(mockFetch.mock.calls.every(([, init]) => init.method === "GET")).toBe(
     true,
@@ -608,32 +622,8 @@ it("keeps accepted notification links while one appended page is pending and rev
   );
 });
 
-it("expires an unloaded summary row while active offline and clears the exact badge without counting loaded rows", async () => {
+it("excludes guest private reads immediately on session invalidation", async () => {
   // Given
-  nextExpiry = new Date(Date.now() + 1000).toISOString();
-  await showInbox();
-  await screen.findByRole("link", { name: /non lue$/ });
-  await waitFor(() => expect(setBadgeCountAsync).toHaveBeenLastCalledWith(7));
-  mockFetch.mockRejectedValue(new TypeError("offline"));
-
-  // When
-  await act(async () => {
-    await jest.advanceTimersByTimeAsync(1000);
-  });
-
-  // Then
-  expect(screen.getByRole("link", { name: /non lue$/ })).toBeOnTheScreen();
-  expect(setBadgeCountAsync).toHaveBeenLastCalledWith(0);
-  expect(
-    jest.mocked(setBadgeCountAsync).mock.calls.some(([count]) => count === 1),
-  ).toBe(false);
-});
-
-it("clears the app badge on session invalidation and excludes guest private reads even when the native badge is unsupported", async () => {
-  // Given
-  jest
-    .mocked(setBadgeCountAsync)
-    .mockRejectedValueOnce(new Error("unsupported"));
   await showInbox();
   await screen.findByRole("link", { name: /non lue$/ });
   const before = mockFetch.mock.calls.length;
@@ -644,7 +634,6 @@ it("clears the app badge on session invalidation and excludes guest private read
   });
 
   // Then
-  expect(setBadgeCountAsync).toHaveBeenLastCalledWith(0);
   expect(screen.queryByRole("link", { name: /non lue$/ })).toBeNull();
   expect(
     mockFetch.mock.calls
@@ -816,13 +805,12 @@ it("keeps continuation recovery when accepted pages have no visible notification
   expect(screen.queryByText("Chargement de la suite…")).toBeNull();
 });
 
-it("keeps the 29-day deadline armed beyond the platform timeout limit without premature network refresh", async () => {
+it("retains an unchanged page past 29 days without an expiry timer or network request", async () => {
   // Given
   rows = [{ ...row, createdAt: new Date(Date.now()).toISOString() }];
-  nextExpiry = new Date(Date.now() + 29 * 86_400_000).toISOString();
+
   await showInbox();
   await screen.findByRole("link", { name: /non lue$/ });
-  await waitFor(() => expect(setBadgeCountAsync).toHaveBeenLastCalledWith(7));
   mockFetch.mockClear().mockRejectedValue(new TypeError("offline"));
 
   // When
@@ -840,8 +828,8 @@ it("keeps the 29-day deadline armed beyond the platform timeout limit without pr
   });
 
   // Then
-  expect(screen.queryByRole("link", { name: /non lue$/ })).toBeNull();
-  expect(setBadgeCountAsync).toHaveBeenLastCalledWith(0);
+  expect(screen.getByRole("link", { name: /non lue$/ })).toBeOnTheScreen();
+  expect(mockFetch).not.toHaveBeenCalled();
 });
 
 it("waits for foreground before refreshing an expired background inbox", async () => {
@@ -852,7 +840,7 @@ it("waits for foreground before refreshing an expired background inbox", async (
       createdAt: new Date(Date.now() - 29 * 86_400_000 + 1000).toISOString(),
     },
   ];
-  nextExpiry = new Date(Date.now() + 1000).toISOString();
+
   const listeners: ((state: AppStateStatus) => void)[] = [];
   jest.spyOn(AppState, "addEventListener").mockImplementation((_, callback) => {
     listeners.push(callback);
@@ -881,7 +869,6 @@ it("waits for foreground before refreshing an expired background inbox", async (
 
   // Then
   expect(screen.queryByRole("link", { name: /non lue$/ })).toBeNull();
-  expect(setBadgeCountAsync).toHaveBeenLastCalledWith(0);
 });
 
 it("excludes a previously cached expired card on the first offline reopening render", async () => {
@@ -900,4 +887,85 @@ it("excludes a previously cached expired card on the first offline reopening ren
   expect(
     await screen.findByText("Aucune notification pour le moment"),
   ).toBeOnTheScreen();
+});
+
+it("keeps a full-read error when foreground filters expired rows until explicit Retry succeeds", async () => {
+  // Given: the retained row expires after a full read has already failed.
+  rows = [
+    {
+      ...row,
+      createdAt: new Date(Date.now() - 29 * 86_400_000 + 1000).toISOString(),
+    },
+  ];
+  const listeners: ((state: AppStateStatus) => void)[] = [];
+  jest.spyOn(AppState, "addEventListener").mockImplementation((_, callback) => {
+    listeners.push(callback);
+    return { remove: jest.fn() };
+  });
+  await showInbox();
+  await screen.findByRole("link", { name: /non lue$/ });
+  mockFetch.mockImplementation((url: string, init: RequestInit) =>
+    new URL(url).pathname.endsWith("/notifications")
+      ? Promise.reject(new TypeError("Failed full read"))
+      : response(url, init),
+  );
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  jest.setSystemTime(Date.now() + 2000);
+  const fresh = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url: string, init: RequestInit) =>
+    new URL(url).pathname.endsWith("/notifications")
+      ? fresh.promise
+      : response(url, init),
+  );
+
+  const beforeForeground = mockFetch.mock.calls.filter(([url]) =>
+    new URL(url).pathname.endsWith("/notifications"),
+  ).length;
+
+  // When
+  await act(async () => {
+    listeners.forEach((listener) => listener("active"));
+    await jest.advanceTimersByTimeAsync(0);
+  });
+
+  // Then: local cleanup is no successful server response or automatic retry.
+  expect(
+    screen.getByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Aucune notification pour le moment")).toBeNull();
+  expect(
+    privateClient.getQueryState([`/accounts/${row.id}/notifications`]),
+  ).toMatchObject({ status: "error", fetchStatus: "idle" });
+  expect(
+    privateClient.getQueryData<InboxData>([`/accounts/${row.id}/notifications`])
+      ?.pages[0].notifications,
+  ).toEqual([]);
+
+  expect(
+    mockFetch.mock.calls.filter(([url]) =>
+      new URL(url).pathname.endsWith("/notifications"),
+    ),
+  ).toHaveLength(beforeForeground);
+
+  // When: the failed native query is retried only by its explicit action.
+  await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    screen.getByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeBusy();
+  expect(
+    privateClient.getQueryState([`/accounts/${row.id}/notifications`]),
+  ).toMatchObject({ status: "error", fetchStatus: "fetching" });
+
+  // When
+  await act(async () => fresh.resolve(Response.json({ notifications: [] })));
+
+  // Then
+  expect(
+    await screen.findByText("Aucune notification pour le moment"),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).toBeNull();
 });

@@ -3,7 +3,6 @@ import { useIsFocused, useRouter, useSegments } from "expo-router";
 import {
   Pressable,
   StyleSheet,
-  Text,
   View,
   useWindowDimensions,
   type LayoutRectangle,
@@ -30,14 +29,11 @@ import {
   UserRound,
   type LucideIcon,
 } from "lucide-react-native";
-import { useQuery, skipToken } from "@tanstack/react-query";
 import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-import { getGetNotificationSummaryQueryKey } from "../../../../.generated/mobile";
-import { useInboxQueries } from "@/features/notifications/api/use-inbox-queries";
-import { confirmedUnreadCount } from "@/features/notifications/state/inbox-expiry";
+import { useAccountSession } from "@/features/accounts/current-account";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
@@ -51,16 +47,7 @@ export default function TabsLayout() {
   const segments = useSegments();
   const navigationVisible =
     focused && !segments.includes("(sheets)") && !segments.includes("(forms)");
-  const { session, queries } = useInboxQueries();
-  const summary = useQuery({
-    ...queries?.summary,
-    queryKey:
-      queries?.summary.queryKey ??
-      getGetNotificationSummaryQueryKey("unavailable"),
-    queryFn: queries?.summary.queryFn ?? skipToken,
-    enabled: false,
-  });
-  const count = queries ? confirmedUnreadCount(summary.data) : undefined;
+  const session = useAccountSession();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
@@ -122,7 +109,6 @@ export default function TabsLayout() {
               <TabButton
                 label="Notifications"
                 icon={Bell}
-                count={count}
                 hidden={guest}
                 style={columns}
                 reducedMotion={reducedMotion}
@@ -193,7 +179,6 @@ interface TabButtonProps extends Omit<TabTriggerSlotProps, "ref"> {
   ref?: ComponentPropsWithRef<typeof Pressable>["ref"];
   label: string;
   icon: LucideIcon;
-  count?: number;
   hidden?: boolean;
   reducedMotion: boolean;
   onFocusedLayout: (layout: LayoutRectangle | undefined) => void;
@@ -203,7 +188,6 @@ interface TabButtonProps extends Omit<TabTriggerSlotProps, "ref"> {
 function TabButton({
   label,
   icon: Icon,
-  count,
   hidden = false,
   isFocused,
   style,
@@ -242,7 +226,6 @@ function TabButton({
   }));
   const inactiveStyle = useAnimatedStyle(() => ({ opacity: 1 - focus.value }));
   const activeStyle = useAnimatedStyle(() => ({ opacity: focus.value }));
-  const unreadLabel = count === 1 ? "lue" : "lues";
   return (
     <Pressable
       {...props}
@@ -255,9 +238,7 @@ function TabButton({
       }}
       accessibilityRole="button"
       accessibilityState={{ selected: isFocused }}
-      accessibilityLabel={
-        count && count > 0 ? `${label}, ${count} non ${unreadLabel}` : label
-      }
+      accessibilityLabel={label}
       onLayout={(event) => {
         onLayout?.(event);
         const next = event.nativeEvent.layout;
@@ -280,39 +261,22 @@ function TabButton({
         hidden && styles.hidden,
       ]}
     >
-      <View>
-        <Animated.View style={[styles.icon, iconStyle]}>
-          <Animated.View style={inactiveStyle}>
-            <Icon
-              accessible={false}
-              color={colors.icon}
-              size={tokens.size.icon.lg}
-            />
-          </Animated.View>
-          <Animated.View style={[StyleSheet.absoluteFill, activeStyle]}>
-            <Icon
-              accessible={false}
-              color={membership.content}
-              size={tokens.size.icon.lg}
-            />
-          </Animated.View>
-        </Animated.View>
-        {count !== undefined && count > 0 && (
-          <View
+      <Animated.View style={[styles.icon, iconStyle]}>
+        <Animated.View style={inactiveStyle}>
+          <Icon
             accessible={false}
-            style={[styles.badge, { backgroundColor: colors.dangerAction }]}
-          >
-            <Text
-              style={[
-                tokens.typography.metadata,
-                { color: colors.onDangerAction },
-              ]}
-            >
-              {count}
-            </Text>
-          </View>
-        )}
-      </View>
+            color={colors.icon}
+            size={tokens.size.icon.lg}
+          />
+        </Animated.View>
+        <Animated.View style={[StyleSheet.absoluteFill, activeStyle]}>
+          <Icon
+            accessible={false}
+            color={membership.content}
+            size={tokens.size.icon.lg}
+          />
+        </Animated.View>
+      </Animated.View>
       <Animated.Text style={[styles.label, labelStyle]}>{label}</Animated.Text>
     </Pressable>
   );
@@ -356,15 +320,4 @@ const styles = StyleSheet.create({
   hidden: { display: "none" },
   icon: { width: tokens.size.icon.lg, height: tokens.size.icon.lg },
   label: { ...tokens.typography.navigationLabel, textAlign: "center" },
-  badge: {
-    position: "absolute",
-    left: tokens.spacing.md,
-    top: -tokens.spacing.sm,
-    minWidth: tokens.spacing["2xl"],
-    minHeight: tokens.spacing["2xl"],
-    paddingHorizontal: tokens.spacing.xs,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: tokens.radius.full,
-  },
 });

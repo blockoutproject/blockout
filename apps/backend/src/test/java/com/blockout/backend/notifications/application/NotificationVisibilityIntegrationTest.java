@@ -105,8 +105,6 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
 
     // Then
     assertThat(inbox.page(OWNER, null).entries()).isEmpty();
-    assertThat(inbox.summary(OWNER).unreadCount()).isZero();
-    assertThat(inbox.summary(OWNER).nextExpiryAt()).isNull();
     assertThatThrownBy(() -> inbox.member(OWNER, original.id()))
         .isInstanceOf(NotificationNotFoundException.class);
     assertThatThrownBy(() -> sporting.match(matchId))
@@ -139,7 +137,6 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
 
     // Then
     assertThat(inbox.page(OWNER, null).entries()).containsExactly(original);
-    assertThat(inbox.summary(OWNER).unreadCount()).isEqualTo(1);
     assertThat(sporting.match(matchId).match()).isEqualTo(original.match());
     verify(provider).send(any());
   }
@@ -178,7 +175,6 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
     assertThat(publicLinks.read(matchId)).isEmpty();
     assertThat(sporting.match(matchId).stream()).isNull();
     assertThat(hidden).usingRecursiveComparison().ignoringFields("publicLink").isEqualTo(original);
-    assertThat(inbox.summary(OWNER).unreadCount()).isZero();
     verify(provider)
         .send(
             org.mockito.ArgumentMatchers.argThat(
@@ -254,7 +250,6 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
     assertThat(corrected).usingRecursiveComparison().ignoringFields("match").isEqualTo(original);
     assertThat(transport.text(corrected)).contains("1–3").doesNotContain("3–1");
     assertThat(count("notification")).isEqualTo(1);
-    assertThat(inbox.summary(OWNER).unreadCount()).isZero();
     verify(provider)
         .send(
             org.mockito.ArgumentMatchers.argThat(
@@ -285,7 +280,6 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
 
     // Then
     assertThat(inbox.page(OWNER, null).entries()).isEmpty();
-    assertThat(inbox.summary(OWNER).unreadCount()).isZero();
     assertThat(count("notification")).isZero();
     assertThat(
             new TransactionTemplate(transactions)
@@ -320,7 +314,6 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
 
     // Then
     assertThat(inbox.page(OWNER, null).entries()).isEmpty();
-    assertThat(inbox.summary(OWNER).unreadCount()).isZero();
     assertThatThrownBy(() -> inbox.member(OWNER, original.id()))
         .isInstanceOf(NotificationNotFoundException.class);
     verifyNoInteractions(provider);

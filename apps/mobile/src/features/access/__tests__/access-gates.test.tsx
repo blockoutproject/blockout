@@ -508,9 +508,6 @@ it("withholds initial member entry and preserves a direct Match through help and
     if (String(url).endsWith("/accounts/me")) {
       return accountRead;
     }
-    if (String(url).endsWith("/notifications/summary")) {
-      return json({ unreadCount: 0 });
-    }
     return json(applicationAccessResponse());
   });
   const user = userEvent.setup();
@@ -640,9 +637,6 @@ it("retains an admitted Match after a technical account reread failure", async (
       }
       return json(operator);
     }
-    if (String(url).endsWith("/notifications/summary")) {
-      return json({ unreadCount: 0 });
-    }
     return json(applicationAccessResponse());
   });
   const matchId = "00000000-0000-4000-8000-000000000745";
@@ -681,9 +675,6 @@ it("retries an HTTP 401 account read without interpreting it as SDK reauthentica
         return new Response(null, { status: 401 });
       }
       return json(operator);
-    }
-    if (String(url).endsWith("/notifications/summary")) {
-      return json({ unreadCount: 0 });
     }
     return json(applicationAccessResponse());
   });
@@ -729,9 +720,7 @@ it("establishes a missing account only from its explicit creation action", async
             404,
           );
     }
-    return String(url).endsWith("/notifications/summary")
-      ? json({ unreadCount: 0 })
-      : json(applicationAccessResponse());
+    return json(applicationAccessResponse());
   });
   const user = userEvent.setup();
   await openRoute("/");

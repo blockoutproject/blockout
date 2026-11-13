@@ -45,4 +45,12 @@
     <addUniqueConstraint tableName="push_subscription" columnNames="expo_push_token" constraintName="uk_push_subscription_address"/>
     <createIndex tableName="push_subscription" indexName="ix_push_subscription_account"><column name="account_id"/></createIndex>
   </changeSet>
+  <changeSet id="notifications-remove-unread-index" author="blockout">
+    <dropIndex tableName="notification" indexName="ix_notification_owner_read"/>
+    <rollback>
+      <createIndex tableName="notification" indexName="ix_notification_owner_read">
+        <column name="account_id"/><column name="is_read"/>
+      </createIndex>
+    </rollback>
+  </changeSet>
 </databaseChangeLog>

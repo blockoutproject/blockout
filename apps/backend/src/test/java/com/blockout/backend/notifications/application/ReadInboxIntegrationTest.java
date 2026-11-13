@@ -14,10 +14,11 @@ import static org.mockito.Mockito.when;
 
 import com.blockout.backend.notifications.application.InboxViews.Entry;
 import com.blockout.backend.notifications.application.InboxViews.Page;
-import com.blockout.backend.notifications.application.InboxViews.Summary;
 import com.blockout.backend.sporting.application.ReadSportingResources;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import jakarta.persistence.EntityManagerFactory;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
@@ -27,6 +28,11 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import liquibase.Contexts;
+import liquibase.LabelExpression;
+import liquibase.Liquibase;
+import liquibase.database.jvm.JdbcConnection;
+import liquibase.resource.ClassLoaderResourceAccessor;
 import org.hibernate.SessionFactory;
 import org.hibernate.resource.jdbc.spi.StatementInspector;
 import org.junit.jupiter.api.AfterEach;
@@ -154,38 +160,68 @@ class ReadInboxIntegrationTest {
     // Then
     assertThat(page.entries()).extracting(Entry::id).containsExactlyElementsOf(expected);
     assertThat(page.next()).isNull();
-    assertThat(reads.summary(new NotificationContext(ACCOUNT)).unreadCount()).isEqualTo(20);
   }
 
   @Test
-  @DisplayName("Counts unloaded unread entries with the earliest exact 29-day expiry")
-  void summarizesAllPages() {
+  @DisplayName("A new read excludes an entry at 29 elapsed days before physical purge")
+  void excludesAgeBoundaryOnNextRead() {
     // Given
-    for (int i = 1; i <= 25; i++) {
-      entry(sql, i, ACCOUNT, NOW.minusSeconds(i));
-    }
-    entry(sql, 30, ACCOUNT, NOW.minus(Duration.ofDays(29)).plusNanos(1000));
-    entry(sql, 31, ACCOUNT, NOW.minus(Duration.ofDays(29)));
-    entry(sql, 32, OTHER, NOW);
-    sql.update(
-        "UPDATE notification SET is_read=TRUE WHERE id=?",
-        UUID.fromString("10000000-0000-4000-8000-000000000001"));
+    UUID id = entry(sql, 1, ACCOUNT, NOW.minus(Duration.ofDays(29)).plusSeconds(1));
+    NotificationContext owner = new NotificationContext(ACCOUNT);
+    assertThat(reads.member(owner, id).id()).isEqualTo(id);
 
     // When
-    Summary summary = reads.summary(new NotificationContext(ACCOUNT));
+    when(clock.instant()).thenReturn(NOW.plusSeconds(1));
+    Page page = reads.page(owner, null);
 
     // Then
-    assertThat(reads.page(new NotificationContext(ACCOUNT), null).entries()).hasSize(20);
-    assertThat(summary.unreadCount()).isEqualTo(25);
-    assertThat(summary.nextExpiryAt()).isEqualTo(NOW.plusNanos(1000));
-    when(clock.instant()).thenReturn(NOW.plusNanos(1000));
-    assertThat(reads.summary(new NotificationContext(ACCOUNT)).unreadCount()).isEqualTo(24);
+    assertThat(page.entries()).isEmpty();
+    assertThatThrownBy(() -> reads.member(owner, id))
+        .isInstanceOf(NotificationNotFoundException.class);
+    assertThat(sql.queryForObject("SELECT COUNT(*) FROM notification WHERE id=?", Long.class, id))
+        .isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("Removing the retired unread index preserves retained entries and read state")
+  void removesUnusedIndexWithoutChangingEntries() throws Exception {
+    // Given: restore the preceding schema in this suite's disposable database only.
+    try (Connection connection =
+            DriverManager.getConnection(
+                database.getJdbcUrl().replace("/postgres", "/blockout"),
+                "blockout_migration",
+                "harmless-migration");
+        Liquibase migration =
+            new Liquibase(
+                "db/changelog/notifications.xml",
+                new ClassLoaderResourceAccessor(),
+                new JdbcConnection(connection))) {
+      migration.rollback(1, new Contexts(), new LabelExpression());
+      UUID id = entry(sql, 1, ACCOUNT, NOW.minusSeconds(60));
+      sql.update("UPDATE notification SET is_read=TRUE WHERE id=?", id);
+      NotificationContext owner = new NotificationContext(ACCOUNT);
+      Entry original = reads.member(owner, id);
+      assertThat(
+              sql.queryForObject(
+                  "SELECT to_regclass('ix_notification_owner_read') IS NOT NULL", Boolean.class))
+          .isTrue();
+
+      // When
+      migration.update(new Contexts(), new LabelExpression());
+
+      // Then
+      assertThat(reads.member(owner, id)).isEqualTo(original);
+      assertThat(
+              sql.queryForObject(
+                  "SELECT to_regclass('ix_notification_owner_read') IS NULL", Boolean.class))
+          .isTrue();
+    }
   }
 
   @ParameterizedTest
   @ValueSource(
       strings = {"match", "date", "division", "pool", "calendar", "participation", "team-division"})
-  @DisplayName("Applies current sporting restrictions before paging and counting")
+  @DisplayName("Applies current sporting restrictions before paging and member reads")
   void excludesHidden(String restriction) {
     // Given
     UUID id = entry(sql, 1, ACCOUNT, NOW);
@@ -211,12 +247,9 @@ class ReadInboxIntegrationTest {
 
     // When
     Page page = reads.page(new NotificationContext(ACCOUNT), null);
-    Summary summary = reads.summary(new NotificationContext(ACCOUNT));
 
     // Then
     assertThat(page.entries()).isEmpty();
-    assertThat(summary.unreadCount()).isZero();
-    assertThat(summary.nextExpiryAt()).isNull();
     assertThatThrownBy(() -> reads.member(new NotificationContext(ACCOUNT), id))
         .isInstanceOf(NotificationNotFoundException.class);
   }
