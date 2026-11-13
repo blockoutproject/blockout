@@ -57,8 +57,6 @@ it.each([401, 403, 404])(
       pages: [{ notifications: [row, survivor] }],
       pageParams: [undefined],
     });
-    mockFetch.mockResolvedValueOnce(Response.json(row));
-    await client.fetchQuery(inbox.detail(row.id));
     const page = Promise.withResolvers<Response>();
     const readPage = jest.fn(() => page.promise);
     mockFetch.mockImplementationOnce(readPage);
@@ -79,7 +77,6 @@ it.each([401, 403, 404])(
     expect(
       client.getQueryData(inbox.inbox.queryKey)?.pages[0].notifications,
     ).toEqual([survivor]);
-    expect(client.getQueryData(inbox.detail(row.id).queryKey)).toBeUndefined();
 
     // When: an ordinary offline refresh cannot bring the known unavailable copy back.
     mockFetch.mockRejectedValue(new TypeError("offline"));
@@ -150,24 +147,6 @@ it("applies the first F03 refusal even when native retries later fail offline", 
   } finally {
     unsubscribe();
   }
-});
-
-it("cancels an unloaded member read when its current match becomes unavailable", async () => {
-  // Given: a member response has not supplied its match yet; there is no loaded page to filter.
-  const member = Promise.withResolvers<Response>();
-  const readMember = jest.fn(() => member.promise);
-  mockFetch.mockImplementationOnce(readMember);
-  const old = client.fetchQuery(inbox.detail(row.id)).catch(() => undefined);
-  await waitFor(() => expect(readMember).toHaveBeenCalledTimes(1));
-  mockFetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
-
-  // When
-  await client.fetchQuery(sporting.match(row.match.id)).catch(() => undefined);
-  member.resolve(Response.json(row));
-  await old;
-
-  // Then
-  expect(client.getQueryData(inbox.detail(row.id).queryKey)).toBeUndefined();
 });
 
 it("admits a retained reappearance only through a fresh inbox response and excludes expired rows", async () => {

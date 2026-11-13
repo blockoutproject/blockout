@@ -53,10 +53,6 @@ export function createReadNotificationOptions(
             },
           });
         }
-        client.removeQueries({
-          queryKey: queries.detail(id).queryKey,
-          exact: true,
-        });
         return;
       }
       refuseInboxAccess(client, owner, error);

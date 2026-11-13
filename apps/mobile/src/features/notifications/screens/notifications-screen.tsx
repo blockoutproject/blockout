@@ -77,7 +77,7 @@ export function NotificationsScreen() {
   return (
     <Inbox
       key={`${authority.owner.subject}:${authority.owner.accountId}`}
-      {...authority}
+      owner={authority.owner}
       queries={authority.queries}
     />
   );
@@ -110,14 +110,9 @@ function Inbox({
   const rows =
     hasReadError(query) && !continuationFailed
       ? []
-      : [
-          ...new Map(
-            (query.data?.pages ?? [])
-              .flatMap((page) => page.notifications)
-              .filter((row) => notificationExpiry(row) > openedAt)
-              .map((row) => [row.id, row]),
-          ).values(),
-        ];
+      : (query.data?.pages ?? [])
+          .flatMap((page) => page.notifications)
+          .filter((row) => notificationExpiry(row) > openedAt);
   /** Opening filters retained ages; the enabled infinite query owns current list reads. */
   const open = useEffectEvent(() => {
     expireInbox(client, queries);
@@ -209,11 +204,7 @@ function Inbox({
         </ScreenState>
       );
     }
-    return (
-      <ScreenState>
-        <ReadFeedback query={query} loadingContent={<NotificationLoading />} />
-      </ScreenState>
-    );
+    return null;
   }
 
   return (

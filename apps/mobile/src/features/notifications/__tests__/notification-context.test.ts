@@ -15,7 +15,6 @@ it("uses generated account resource keys inside the identity-owned private cache
     getNotificationKeys({ subject: null, accountId: null }),
   ).toThrow();
   expect(keys.inbox).toEqual([`/accounts/${a}/notifications`]);
-  expect(keys.detail(a)).toEqual([`/accounts/${a}/notifications/${a}`]);
   expect(getNotificationKeys({ ...owner, accountId: b }).inbox).not.toEqual(
     keys.inbox,
   );

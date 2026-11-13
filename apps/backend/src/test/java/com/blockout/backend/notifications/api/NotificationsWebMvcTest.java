@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -25,6 +26,7 @@ import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
 import com.blockout.backend.notifications.application.InboxViews;
 import com.blockout.backend.notifications.application.MarkNotificationRead;
+import com.blockout.backend.notifications.application.NotificationContext;
 import com.blockout.backend.notifications.application.NotificationNotFoundException;
 import com.blockout.backend.notifications.application.ReadInbox;
 import com.blockout.backend.notifications.domain.NotificationFamily;
@@ -89,6 +91,27 @@ class NotificationsWebMvcTest {
         .andExpect(jsonPath("$.notifications").isEmpty())
         .andExpect(jsonPath("$.nextCursor").doesNotExist())
         .andExpect(jsonPath("$.total").doesNotExist());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"?opened=true", "?accountId=foreign"})
+  @DisplayName("Ignores undeclared query parameters through ordinary MVC binding")
+  void ignoresUndeclaredQueries(String query) throws Exception {
+    // Given
+    UUID originalAccount = UUID.fromString("00000000-0000-4000-8000-000000000237");
+    NotificationContext owner = new NotificationContext(originalAccount);
+    when(account.id()).thenReturn(originalAccount);
+    when(reads.page(owner, null)).thenReturn(new InboxViews.Page(List.of(), null));
+    MockHttpServletRequestBuilder request =
+        get("/accounts/" + originalAccount + "/notifications" + query)
+            .with(jwt().jwt(token -> token.claim("azp", "mobile-test")));
+
+    // When
+    ResultActions response = mvc.perform(request);
+
+    // Then
+    response.andExpect(status().isOk());
+    verify(reads).page(owner, null);
   }
 
   @ParameterizedTest

@@ -38,7 +38,7 @@ Distribute light/dark/system appearance, narrow layout, enlarged text and read/u
 After contract generation, run the actual generated HTTP/SQL and mobile navigation boundaries:
 
 ```sh
-./mvnw -B -ntp -pl apps/backend verify -Dtest=NotificationsWebMvcTest,NotificationAccessWebMvcTest,NotificationContractWebMvcTest -Dit.test=InboxTraversalIntegrationTest,ReadInboxIntegrationTest,MarkNotificationReadIntegrationTest
+./mvnw -B -ntp -pl apps/backend verify -Dtest=NotificationsWebMvcTest,NotificationAccessWebMvcTest,NotificationContractJsonTest -Dit.test=InboxTraversalIntegrationTest,ReadInboxIntegrationTest,MarkNotificationReadIntegrationTest
 NX_LOAD_DOT_ENV_FILES=false EXPO_NO_DOTENV=1 npm run test --workspace=@blockout/mobile -- --runInBand --reporters=default
 ```
 

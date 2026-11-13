@@ -1,19 +1,12 @@
 import {
   infiniteQueryOptions,
   hashKey,
-  queryOptions,
   type InfiniteData,
   type QueryClient,
   type QueryKey,
 } from "@tanstack/react-query";
-import {
-  listNotifications,
-  getNotification,
-} from "../../../../.generated/mobile";
-import type {
-  NotificationResponse,
-  NotificationsResponse,
-} from "../../../../.generated/schemas/index.zod";
+import { listNotifications } from "../../../../.generated/mobile";
+import type { NotificationsResponse } from "../../../../.generated/schemas/index.zod";
 import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
 import { isAccessDenied } from "@/shared/api/access-denied";
 import type { SessionSnapshot } from "@/features/accounts";
@@ -30,7 +23,7 @@ export type InboxRequest = (signal?: AbortSignal) => Promise<ApiFetchOptions>;
 /** Native infinite-query data; there is no second inbox store or read journal. */
 export type InboxData = InfiniteData<NotificationsResponse, string | undefined>;
 
-/** Query owns the remaining list, detail and original-owner request contracts. */
+/** Query owns the inbox list and original-owner request contracts. */
 export type InboxQueries = ReturnType<typeof createInboxQueries>;
 
 /** Honors native Query cancellation around credential acquisition and response handling. */
@@ -93,26 +86,6 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
       },
       getNextPageParam: (page) => page.nextCursor,
     }),
-    /** Reads an original current entry for notification navigation; age and owner rules still apply. */
-    detail: (id: string) =>
-      queryOptions({
-        queryKey: keys.detail(id),
-        staleTime: 0,
-        gcTime: 0,
-        meta: { notificationResource: "detail" },
-        queryFn: async ({ signal }): Promise<NotificationResponse> => {
-          const row = await getNotification(
-            accountId,
-            id,
-            await currentRequest(signal),
-          );
-          assertNotAborted(signal);
-          if (notificationExpiry(row) <= Date.now()) {
-            throw new ApiError("http", 404);
-          }
-          return row;
-        },
-      }),
   };
 }
 
@@ -136,11 +109,6 @@ export function refreshInbox(client: QueryClient, queries: InboxQueries) {
  */
 export function subscribeInboxVisibility(client: QueryClient) {
   return subscribeMatchAccess(client, (matchId, outcome) => {
-    // A pending member response has no known match yet; discard these transient reads in this
-    // private client as well, including details outside the loaded inbox pages.
-    client.removeQueries({
-      predicate: (query) => query.meta?.notificationResource === "detail",
-    });
     for (const query of client.getQueryCache().findAll()) {
       const resource = query.meta?.notificationResource;
       if (resource !== "inbox") {
