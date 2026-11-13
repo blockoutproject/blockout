@@ -163,43 +163,13 @@ class NotificationsWebMvcTest {
   }
 
   @Test
-  @DisplayName("Zero summary omits expiry and all successful private responses forbid storage")
-  void summarizesOwner() throws Exception {
-    // Given
-    when(account.id()).thenReturn(ACCOUNT);
-    when(reads.summary(any())).thenReturn(new InboxViews.Summary(0, null));
-
-    // When
-    ResultActions response =
-        mvc.perform(
-            get("/accounts/" + ACCOUNT + "/notification-summary")
-                .with(jwt().jwt(token -> token.claim("azp", "mobile-test"))));
-
-    // Then
-    response
-        .andExpect(status().isOk())
-        .andExpect(header().string("Cache-Control", "no-store"))
-        .andExpect(jsonPath("$.unreadCount").value(0))
-        .andExpect(jsonPath("$.nextExpiryAt").doesNotExist());
-  }
-
-  @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "/notification-summary?cursor=opaque",
-        "/notifications/10000000-0000-4000-8000-000000000001?future=true"
-      })
   @DisplayName("Ignores undeclared member query parameters")
-  void ignoresMemberQueries(String path) throws Exception {
+  void ignoresMemberQueries() throws Exception {
     // Given
     when(account.id()).thenReturn(ACCOUNT);
-    if (path.startsWith("/notification-summary")) {
-      when(reads.summary(any())).thenReturn(new InboxViews.Summary(0, null));
-    } else {
-      when(reads.member(any(), eq(ID))).thenReturn(entry(false));
-    }
+    when(reads.member(any(), eq(ID))).thenReturn(entry(false));
     MockHttpServletRequestBuilder request =
-        get("/accounts/" + ACCOUNT + path)
+        get(COLLECTION + "/" + ID + "?future=true")
             .with(jwt().jwt(token -> token.claim("azp", "mobile-test")));
 
     // When
@@ -262,14 +232,12 @@ class NotificationsWebMvcTest {
   }
 
   @Test
-  @DisplayName("Refuses foreign owners on collection/member/summary/mark operations")
+  @DisplayName("Refuses foreign owners on collection/member/mark operations")
   void refusesForeignOwner() throws Exception {
     // Given
     when(account.id()).thenReturn(UUID.fromString("00000000-0000-4000-8000-000000000002"));
 
-    for (String path :
-        List.of(
-            COLLECTION, COLLECTION + "/" + ID, "/accounts/" + ACCOUNT + "/notification-summary")) {
+    for (String path : List.of(COLLECTION, COLLECTION + "/" + ID)) {
       // When
       ResultActions response =
           mvc.perform(get(path).with(jwt().jwt(token -> token.claim("azp", "mobile-test"))));

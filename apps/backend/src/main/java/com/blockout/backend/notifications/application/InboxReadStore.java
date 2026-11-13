@@ -1,7 +1,6 @@
 package com.blockout.backend.notifications.application;
 
 import com.blockout.backend.notifications.application.InboxViews.Continuation;
-import com.blockout.backend.notifications.application.InboxViews.Summary;
 import com.blockout.backend.notifications.domain.NotificationFamily;
 import com.blockout.backend.notifications.domain.NotificationVariant;
 import java.time.Instant;
@@ -33,15 +32,6 @@ public interface InboxReadStore {
    * @return current retained entry, empty for any unavailable target
    */
   Optional<Snapshot> member(NotificationContext owner, UUID id, Instant now);
-
-  /**
-   * Returns the current whole-inbox aggregate.
-   *
-   * @param owner original owner
-   * @param now evaluation instant
-   * @return whole-inbox count and earliest counted expiry from one selection
-   */
-  Summary summary(NotificationContext owner, Instant now);
 
   /**
    * Resolves only the exact allocation's sporting identity for ordered locking.

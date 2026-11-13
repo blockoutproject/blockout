@@ -1,7 +1,6 @@
 import {
   deletePushSubscription,
   getNotification,
-  getNotificationSummary,
   getListNotificationsQueryOptions,
   listNotifications,
   markNotificationRead,
@@ -136,46 +135,6 @@ it.each([
   } finally {
     client.clear();
   }
-});
-
-it.each([0, 2 ** 32, Number.MAX_SAFE_INTEGER])(
-  "consumes the authored int64 count %s",
-  async (unreadCount) => {
-    // Given: positive/zero consistency is a producer invariant, not a generated cross-field validator.
-    const body = {
-      unreadCount,
-      ...(unreadCount > 0
-        ? { nextExpiryAt: "2026-11-22T01:02:03.123456Z" }
-        : {}),
-    };
-    mockFetch.mockResolvedValue(Response.json(body));
-
-    // When
-    const result = await getNotificationSummary(id);
-
-    // Then
-    expect(result).toEqual(body);
-    expect(result.nextExpiryAt).toBe(body.nextExpiryAt);
-  },
-);
-
-it.each([
-  {},
-  { unreadCount: -1 },
-  { unreadCount: 0.5 },
-  { unreadCount: "1" },
-  { unreadCount: null },
-  { unreadCount: 0, nextExpiryAt: null },
-  { unreadCount: 1, nextExpiryAt: "tomorrow" },
-])("rejects malformed summary fields: %j", async (body) => {
-  // Given
-  mockFetch.mockResolvedValue(Response.json(body));
-
-  // When
-  const result = getNotificationSummary(id);
-
-  // Then
-  await expect(result).rejects.toMatchObject({ kind: "schema" });
 });
 
 it.each([

@@ -51,22 +51,6 @@ NotificationsResponse:
       minLength: 1
       description: Opaque continuation after this page; omitted when no continuation exists, never null.
   required: [notifications]
-NotificationSummaryResponse:
-  title: NotificationSummaryResponse
-  type: object
-  description: Current all-page count and its next age-driven invalidation point, calculated from the same selection.
-  additionalProperties: true
-  properties:
-    unreadCount:
-      type: integer
-      format: int64
-      minimum: 0
-      description: All currently consultable unread entries, including unloaded pages; zero removes the badge.
-    nextExpiryAt:
-      type: string
-      format: date-time
-      description: Earliest 29-day expiry among the counted entries; present exactly when unreadCount is positive. Omitted at zero.
-  required: [unreadCount]
 MarkNotificationReadRequest:
   title: MarkNotificationReadRequest
   type: object

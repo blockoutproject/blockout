@@ -46,9 +46,9 @@ Trigger age retry through the overview/editor using a bodyless POST. Reject malf
 
 ### Push and entitlement session consumers
 
-Capture the current F07 association synchronously on departure and wait at most three seconds for its single removal attempt before native logout/clearing. Fail removal/badge work: expect no retained retry credential/queue and no block on local departure. Failed browser logout stays authenticated; explicit local clearing remains available.
+Capture the current F07 association synchronously on departure and wait at most three seconds for its single removal attempt before native logout/clearing. Fail removal work: expect no retained retry credential/queue and no block on local departure. Failed browser logout stays authenticated; explicit local clearing remains available.
 
-Exercise delayed RevenueCat callbacks and identity ordering deterministically through its actual consumer, independently from push cleanup. Global native owners outlive the private QueryClient replacement. Use [F07 session cases](../011-notifications-delivery/quickstart.md#essential-scenarios) for generated DELETE, token/badge and old-push behavior; actual SDK identity ordering, storage and provider delivery retain their focused native/provider checks.
+Exercise delayed RevenueCat callbacks and identity ordering deterministically through its actual consumer, independently from push cleanup. Global native owners outlive the private QueryClient replacement. Use [F07 session cases](../011-notifications-delivery/quickstart.md#essential-scenarios) for generated DELETE, token and old-push behavior; F07 separately covers nonblocking clearing of a prior app-controlled badge without an account-count observer; actual SDK identity ordering, storage and provider delivery retain their focused native/provider checks.
 
 ### Deterministic session boundaries
 

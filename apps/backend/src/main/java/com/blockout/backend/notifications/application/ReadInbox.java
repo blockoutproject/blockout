@@ -7,7 +7,6 @@ import com.blockout.backend.notifications.application.InboxReadStore.Snapshot;
 import com.blockout.backend.notifications.application.InboxViews.Continuation;
 import com.blockout.backend.notifications.application.InboxViews.Entry;
 import com.blockout.backend.notifications.application.InboxViews.Page;
-import com.blockout.backend.notifications.application.InboxViews.Summary;
 import com.blockout.backend.sporting.application.ConsultationViews.MatchSummary;
 import com.blockout.backend.sporting.application.ReadSportingResources;
 import java.time.Clock;
@@ -102,18 +101,6 @@ public class ReadInbox {
       return Optional.empty();
     }
     return store.member(owner, id, now).map(row -> hydrate(List.of(row), now).getFirst());
-  }
-
-  /**
-   * Returns the current whole-inbox aggregate.
-   *
-   * @param owner captured original owner
-   * @return current whole-inbox summary
-   * @throws NotificationNotFoundException after original account removal
-   */
-  public Summary summary(NotificationContext owner) {
-    requireOwner(owner);
-    return store.summary(owner, clock.instant());
   }
 
   /**

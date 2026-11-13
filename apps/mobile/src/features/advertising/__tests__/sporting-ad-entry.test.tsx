@@ -383,9 +383,6 @@ beforeEach(async () => {
       if (path.endsWith("accounts/me")) {
         return Response.json(accountProfile);
       }
-      if (path.endsWith("notification-summary")) {
-        return Response.json({ unreadCount: 0 });
-      }
       if (path.endsWith("/notifications")) {
         return Response.json({ notifications: [inboxRow] });
       }

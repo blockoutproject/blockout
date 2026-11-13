@@ -2,15 +2,9 @@ package com.blockout.backend.notifications.infrastructure;
 
 import com.blockout.backend.notifications.application.InboxReadStore;
 import com.blockout.backend.notifications.application.InboxViews.Continuation;
-import com.blockout.backend.notifications.application.InboxViews.Summary;
 import com.blockout.backend.notifications.application.NotificationContext;
 import com.blockout.backend.notifications.domain.NotificationRetention;
 import com.blockout.backend.sporting.application.ConsultationMatchSelection;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.Tuple;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Root;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -31,7 +25,6 @@ import org.springframework.stereotype.Repository;
 public class JpaInboxReadStore implements InboxReadStore {
   private static final Sort ORDER = Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
   private final NotificationRepository notifications;
-  private final EntityManager entities;
   private final ConsultationMatchSelection sporting;
   private final NotificationPersistenceMapper mapper;
 
@@ -64,25 +57,6 @@ public class JpaInboxReadStore implements InboxReadStore {
 
   /** {@inheritDoc} */
   @Override
-  public Summary summary(NotificationContext owner, Instant now) {
-    // Criteria keeps the aggregate on the exact same composable selection as keyset/member reads.
-    CriteriaBuilder builder = entities.getCriteriaBuilder();
-    CriteriaQuery<Tuple> query = builder.createTupleQuery();
-    Root<NotificationEntity> root = query.from(NotificationEntity.class);
-    query.multiselect(
-        builder.count(root).alias("count"),
-        builder.least(root.<Instant>get("createdAt")).alias("oldest"));
-    query.where(
-        current(owner, now).toPredicate(root, query, builder), builder.isFalse(root.get("read")));
-    Tuple result = entities.createQuery(query).getSingleResult();
-    Instant oldest = result.get("oldest", Instant.class);
-    return new Summary(
-        result.get("count", Long.class),
-        oldest == null ? null : oldest.plus(NotificationRetention.RETENTION));
-  }
-
-  /** {@inheritDoc} */
-  @Override
   public Optional<UUID> matchId(NotificationContext owner, UUID id) {
     return notifications.findMatchId(owner.accountId(), id);
   }
@@ -92,7 +66,7 @@ public class JpaInboxReadStore implements InboxReadStore {
    *
    * @param owner captured original owner
    * @param now shared evaluation instant
-   * @return live row predicates applied before every page/member/count
+   * @return live row predicates applied before every page/member
    */
   private Specification<NotificationEntity> current(NotificationContext owner, Instant now) {
     return (root, query, builder) ->

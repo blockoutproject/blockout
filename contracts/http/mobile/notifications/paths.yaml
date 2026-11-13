@@ -96,35 +96,6 @@ Member:
         $ref: ../../common/problems.yaml#/responses/UnsupportedMediaType
       "503":
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
-Summary:
-  parameters:
-    - $ref: ./parameters.yaml#/NotificationAccount
-    - $ref: ../access/parameters.yaml#/MaintenanceBypass
-  get:
-    operationId: getNotificationSummary
-    tags: [Notifications]
-    summary: Read my unread notification total
-    description: Counts all consultable unread entries independently of loaded pages and excludes entries aged at least 29 elapsed days.
-    responses:
-      "200":
-        description: Current authorized representation.
-        headers:
-          Cache-Control:
-            $ref: ../../common/headers.yaml#/NoStore
-        content:
-          application/json:
-            schema:
-              $ref: ./schemas.yaml#/NotificationSummaryResponse
-      "400":
-        $ref: ../../common/problems.yaml#/responses/BadRequest
-      "401":
-        $ref: ../../common/problems.yaml#/responses/Unauthorized
-      "403":
-        $ref: ../../common/problems.yaml#/responses/Forbidden
-      "404":
-        $ref: ../../common/problems.yaml#/responses/NotFound
-      "503":
-        $ref: ../access/problems.yaml#/responses/AccessUnavailable
 Subscription:
   parameters:
     - $ref: ./parameters.yaml#/NotificationAccount

@@ -108,7 +108,7 @@ npm run test --workspace=@blockout/mobile -- --runInBand src/features/onboarding
 ./mvnw -B -ntp -pl apps/backend verify -Dtest=EstablishAccountAgeTest -Dit.test=TransitionResetIntegrationTest
 ```
 
-Exercise actual owner composition with fictional HTTP/storage/native SDK inputs and isolated SQL. Expect nonblocking optional discovery flag failures followed by ordinary entry or rediscovery on a later launch, required secure initialization before Auth0Provider, ordinary explicit first sign-in then restoration, honest empty profile/follows/inbox and zero badge for the new UUID, voluntary follows, retained installation age declaration and no old callback/private state reassignment across accounts. These checks do not perform a business reset, real support submission or external erasure. These controlled checks establish no signed upgrade, provider operation, real protected-source preservation or cutover.
+Exercise actual owner composition with fictional HTTP/storage/native SDK inputs and isolated SQL. Expect nonblocking optional discovery flag failures followed by ordinary entry or rediscovery on a later launch, required secure initialization before Auth0Provider, ordinary explicit first sign-in then restoration, honest empty profile/follows/inbox and no notification counter or summary state for the new UUID, voluntary follows, retained installation age declaration and no old callback/private state reassignment across accounts. A previous app-controlled native badge uses F07's standard nonblocking zero clear. These checks do not perform a business reset, real support submission or external erasure. These controlled checks establish no signed upgrade, provider operation, real protected-source preservation or cutover.
 
 ## Current repository checks
 

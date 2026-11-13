@@ -7,7 +7,6 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { setBadgeCountAsync } from "expo-notifications";
 import type { PropsWithChildren } from "react";
 import type { TeamFollowsResponse } from "../../../../.generated/schemas/index.zod";
 import { accountResponse } from "@/features/accounts/test-support/account-response";
@@ -121,16 +120,6 @@ async function transport(url: string, options?: RequestInit) {
   const personal = followingTransport(url, options);
   if (personal) {
     return personal;
-  }
-  if (path.endsWith("/notification-summary")) {
-    return Response.json(
-      inbox.length
-        ? {
-            unreadCount: 7,
-            nextExpiryAt: new Date(Date.now() + 86_400_000).toISOString(),
-          }
-        : { unreadCount: 0 },
-    );
   }
   if (path.endsWith("/notifications")) {
     return Response.json({ notifications: inbox });
@@ -276,7 +265,6 @@ it("establishes a fresh profile and honest empty follows/inbox without choosing 
   expect(
     await screen.findByText("Aucune notification pour le moment"),
   ).toBeOnTheScreen();
-  expect(setBadgeCountAsync).toHaveBeenLastCalledWith(0);
   expect(
     mockFetch.mock.calls.some(([, options]) =>
       ["PUT", "PATCH", "DELETE"].includes(options?.method ?? ""),
@@ -418,8 +406,8 @@ it("keeps A’s issued follow callback and private data outside guest, B and a l
   originalClient.clear();
 });
 
-it("withdraws A’s inbox and whole count before a late read-command failure reaches B", async () => {
-  // Given: the real inbox, generated PATCH and badge consume A’s current readers.
+it("withdraws A’s inbox before a late read-command failure reaches B", async () => {
+  // Given: the real inbox and generated PATCH consume A’s current readers.
   await AsyncStorage.setItem("blockout:v2-initialized", "true");
   established = true;
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
@@ -435,7 +423,6 @@ it("withdraws A’s inbox and whole count before a late read-command failure rea
     </Consumers>,
   );
   await user.press(await screen.findByRole("link", { name: /non lue$/ }));
-  await waitFor(() => expect(setBadgeCountAsync).toHaveBeenLastCalledWith(7));
   await waitFor(() =>
     expect(
       mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
@@ -451,7 +438,6 @@ it("withdraws A’s inbox and whole count before a late read-command failure rea
 
   // Then
   expect(screen.queryByRole("link", { name: /non lue$/ })).toBeNull();
-  expect(setBadgeCountAsync).toHaveBeenLastCalledWith(0);
 
   // When
   currentProfile = b;
@@ -469,11 +455,10 @@ it("withdraws A’s inbox and whole count before a late read-command failure rea
     ),
   );
 
-  // Then: the old command neither restores an A card/counter nor invalidates B’s readers.
+  // Then: the old command neither restores an A card nor invalidates B’s readers.
   expect(
     screen.getByText("Aucune notification pour le moment"),
   ).toBeOnTheScreen();
-  expect(setBadgeCountAsync).toHaveBeenLastCalledWith(0);
   expect(fixture.client).not.toBe(originalClient);
   expect(
     mockFetch.mock.calls

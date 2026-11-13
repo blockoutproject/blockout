@@ -6,7 +6,7 @@ import { useEffect, useEffectEvent, useLayoutEffect, useRef } from "react";
 import { AppState } from "react-native";
 import { z } from "zod";
 import { createReadNotificationOptions } from "../api/inbox-mutations";
-import { refreshInbox, refreshNotificationSummary } from "../api/inbox-queries";
+import { refreshInbox } from "../api/inbox-queries";
 import { useInboxQueries } from "../api/use-inbox-queries";
 import type { PushRegistration } from "./push-registration";
 import { useActionFeedback } from "@/shared/components/action-feedback";
@@ -39,6 +39,10 @@ export function NotificationLifecycle({
   enabled,
 }: Readonly<NotificationLifecycleProps>) {
   const { session, owner, queries, account } = useInboxQueries();
+  useEffect(() => {
+    // A prior app version may have left a count; unsupported native clearing never blocks startup.
+    void Notifications.setBadgeCountAsync(0).catch(() => undefined);
+  }, []);
   const { subject, accountId } = session;
   const client = useQueryClient();
   const transition = useSportingTransition();
@@ -85,17 +89,14 @@ export function NotificationLifecycle({
       );
     },
   );
-  /** Receipt rereads are silent and refresh only an already-observed inbox plus its whole summary. */
+  /** Receipt rereads are silent and refresh only an already-observed inbox. */
   const refresh = useEffectEvent(() => {
     if (!queries) {
       return;
     }
-    void Promise.allSettled([
-      client.getQueryData(queries.inbox.queryKey)
-        ? refreshInbox(client, queries)
-        : Promise.resolve(),
-      refreshNotificationSummary(client, queries),
-    ]);
+    if (client.getQueryData(queries.inbox.queryKey)) {
+      void refreshInbox(client, queries).catch(() => undefined);
+    }
   });
   /** Consumes each remembered response once; reading and navigation stay independent under one tap's feedback. */
   const open = useEffectEvent(

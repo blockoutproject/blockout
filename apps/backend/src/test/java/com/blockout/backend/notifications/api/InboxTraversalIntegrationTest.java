@@ -14,10 +14,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.blockout.backend.notifications.application.PurgeNotifications;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -54,12 +52,10 @@ import tools.jackson.databind.ObjectMapper;
 @DisplayName("Actual owner inbox traversal and match targets")
 class InboxTraversalIntegrationTest {
   private static final String COLLECTION = "/accounts/" + ACCOUNT + "/notifications";
-  private static final String SUMMARY = "/accounts/" + ACCOUNT + "/notification-summary";
   @Autowired private PostgreSQLContainer database;
   @Autowired private JdbcTemplate sql;
   @Autowired private MockMvc mvc;
   @Autowired private ObjectMapper json;
-  @Autowired private PurgeNotifications purge;
   @MockitoBean private Clock clock;
 
   /**
@@ -164,79 +160,6 @@ class InboxTraversalIntegrationTest {
         .isTrue();
   }
 
-  @Test
-  @DisplayName(
-      "Counts seven across pages with two loaded, then reflects real read, purge and hiding")
-  void summarizesUnloadedChanges() throws Exception {
-    // Given: only IDs 24/25 are unread in page one; unread IDs 1–5 lie beyond its twenty rows.
-    List<UUID> ids = new ArrayList<>();
-    for (int number = 1; number <= 25; number++) {
-      ids.add(
-          entry(
-              sql,
-              number,
-              ACCOUNT,
-              number == 1 ? NOW.minus(Duration.ofDays(29)).plusSeconds(1) : NOW.minusSeconds(60)));
-    }
-    for (int number = 6; number <= 23; number++) {
-      sql.update("UPDATE notification SET is_read=TRUE WHERE id=?", ids.get(number - 1));
-    }
-    JsonNode loaded = page(null);
-    assertThat(
-            loaded
-                .path("notifications")
-                .valueStream()
-                .filter(row -> !row.path("read").asBoolean())
-                .count())
-        .isEqualTo(2);
-    mvc.perform(get(SUMMARY).with(principal("one")))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.unreadCount").value(7));
-
-    // When
-    mvc.perform(
-            patch(COLLECTION + "/" + ids.get(24))
-                .with(principal("one"))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"read\":true}"))
-        .andExpect(status().isOk());
-    when(clock.instant()).thenReturn(NOW.plusSeconds(1));
-    purge.run();
-    sql.update("UPDATE sporting_match SET present=FALSE WHERE id=?", ids.get(1));
-
-    // Then
-    mvc.perform(get(SUMMARY).with(principal("one")))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.unreadCount").value(4));
-    assertThat(
-            sql.queryForObject(
-                "SELECT COUNT(*) FROM notification WHERE id=?", Long.class, ids.getFirst()))
-        .isZero();
-    assertThat(
-            sql.queryForObject(
-                "SELECT is_read FROM notification WHERE id=?", Boolean.class, ids.get(24)))
-        .isTrue();
-
-    // When
-    when(clock.instant()).thenReturn(NOW.plus(Duration.ofDays(29)));
-    purge.run();
-
-    // Then
-    mvc.perform(get(SUMMARY).with(principal("one")))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.unreadCount").value(0))
-        .andExpect(jsonPath("$.nextExpiryAt").doesNotExist());
-    assertThat(page(null).path("notifications")).isEmpty();
-    mvc.perform(
-            patch(COLLECTION + "/" + ids.getFirst())
-                .with(principal("one"))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"read\":true}"))
-        .andExpect(status().isNotFound());
-    mvc.perform(get("/matches/" + ids.getFirst())).andExpect(status().isOk());
-    assertThat(sql.queryForObject("SELECT COUNT(*) FROM notification", Long.class)).isZero();
-  }
-
   @ParameterizedTest
   @ValueSource(strings = {"guest", "missing", "foreign", "moderator", "pro"})
   @DisplayName("Refuses personal operations without the usable original owner")
@@ -263,7 +186,6 @@ class InboxTraversalIntegrationTest {
     List<MockHttpServletRequestBuilder> requests =
         List.of(
             get(COLLECTION),
-            get(SUMMARY),
             get(COLLECTION + "/" + id),
             patch(COLLECTION + "/" + id)
                 .contentType(MediaType.APPLICATION_JSON)

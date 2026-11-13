@@ -5,14 +5,14 @@ import {
   refuseInboxAccess,
   type InboxOwner,
   type InboxData,
-  type createInboxQueries,
+  type InboxQueries,
 } from "./inbox-queries";
 
 /** Sends true-only read intent; ordinary invalidation refreshes the representation without delaying the tap's outcome. */
 export function createReadNotificationOptions(
   client: QueryClient,
   owner: InboxOwner,
-  queries: ReturnType<typeof createInboxQueries>,
+  queries: InboxQueries,
 ) {
   const accountId = owner.accountId;
   if (!accountId) {
@@ -31,20 +31,18 @@ export function createReadNotificationOptions(
     onError: async (error, id) => {
       // A known removed personal entry must leave the local copy, independently of read-flag freshness.
       if (error instanceof ApiError && error.status === 404) {
-        await Promise.all([
-          client.cancelQueries({
-            queryKey: queries.inbox.queryKey,
-            exact: true,
-          }),
-          client.cancelQueries({
-            queryKey: queries.summary.queryKey,
-            exact: true,
-          }),
-        ]);
-        client.setQueryData<InboxData>(
-          queries.inbox.queryKey,
-          (current) =>
-            current && {
+        await client.cancelQueries({
+          queryKey: queries.inbox.queryKey,
+          exact: true,
+        });
+        const query = client.getQueryCache().find<InboxData>({
+          queryKey: queries.inbox.queryKey,
+          exact: true,
+        });
+        const current = query?.state.data;
+        if (current) {
+          query.setState({
+            data: {
               ...current,
               pages: current.pages.map((page) => ({
                 ...page,
@@ -53,16 +51,12 @@ export function createReadNotificationOptions(
                 ),
               })),
             },
-        );
+          });
+        }
         client.removeQueries({
           queryKey: queries.detail(id).queryKey,
           exact: true,
         });
-        // A missing entry makes the old whole total unprovable, even if ordinary refetch is offline.
-        client
-          .getQueryCache()
-          .find({ queryKey: queries.summary.queryKey, exact: true })
-          ?.setState({ data: undefined, dataUpdatedAt: 0 });
         return;
       }
       refuseInboxAccess(client, owner, error);
@@ -70,10 +64,6 @@ export function createReadNotificationOptions(
     onSettled: () => {
       void client.invalidateQueries({
         queryKey: queries.inbox.queryKey,
-        exact: true,
-      });
-      void client.invalidateQueries({
-        queryKey: queries.summary.queryKey,
         exact: true,
       });
     },

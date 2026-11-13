@@ -1,5 +1,5 @@
 import { RefreshCw } from "lucide-react-native";
-import { ReadFeedback } from "@/shared/components/read-feedback";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { PageFlatList } from "@/shared/components/page-list";
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import {
@@ -27,13 +27,12 @@ import { EmptyState, ErrorState } from "@/shared/components/state-card";
 import { ScreenState } from "@/shared/components/screen-state";
 import { ListSeparator } from "@/shared/components/list-separator";
 import { useActionFeedback } from "@/shared/components/action-feedback";
-import { isAccessDenied } from "@/shared/api/access-denied";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { useInboxQueries } from "../api/use-inbox-queries";
-import { refreshNotificationSummary } from "../api/inbox-queries";
+import type { InboxOwner, InboxQueries } from "../api/inbox-queries";
 import { createReadNotificationOptions } from "../api/inbox-mutations";
-import { notificationExpiry } from "../state/inbox-expiry";
+import { expireInbox, notificationExpiry } from "../state/inbox-expiry";
 import { NotificationItem } from "../components/notification-item";
 import { NotificationLoading } from "../components/notification-loading";
 import { AccountSessionFeedback } from "@/features/accounts/current-account";
@@ -89,8 +88,8 @@ function Inbox({
   owner,
   queries,
 }: Readonly<{
-  owner: ReturnType<typeof useInboxQueries>["owner"];
-  queries: NonNullable<ReturnType<typeof useInboxQueries>["queries"]>;
+  owner: InboxOwner;
+  queries: InboxQueries;
 }>) {
   const client = useQueryClient();
   const focused = useIsFocused();
@@ -106,19 +105,22 @@ function Inbox({
   const navigation = useNavigation();
   const feedback = useActionFeedback();
   const { colors } = useTheme();
-  // Cached rows also pass the opening cutoff before the first render; the ordinary layout owns active/resume cleanup.
+  // Cached rows pass the opening cutoff before effects; ordinary focus/resume events clean retained pages.
   const [openedAt] = useState(Date.now);
-  const rows = [
-    ...new Map(
-      (query.data?.pages ?? [])
-        .flatMap((page) => page.notifications)
-        .filter((row) => notificationExpiry(row) > openedAt)
-        .map((row) => [row.id, row]),
-    ).values(),
-  ];
-  /** Focus refreshes the whole summary; the enabled infinite query owns list reads and invalidation. */
+  const rows =
+    hasReadError(query) && !continuationFailed
+      ? []
+      : [
+          ...new Map(
+            (query.data?.pages ?? [])
+              .flatMap((page) => page.notifications)
+              .filter((row) => notificationExpiry(row) > openedAt)
+              .map((row) => [row.id, row]),
+          ).values(),
+        ];
+  /** Opening filters retained ages; the enabled infinite query owns current list reads. */
   const open = useEffectEvent(() => {
-    void refreshNotificationSummary(client, queries).catch(() => undefined);
+    expireInbox(client, queries);
   });
   useEffect(() => {
     if (navigation.isFocused()) {
@@ -127,22 +129,11 @@ function Inbox({
     return navigation.addListener("focus", () => open());
   }, [navigation]);
 
-  /** Explicit refresh retains authorized rows on ordinary failure and reports it through the existing toast. */
+  /** Full reads keep their scoped card after failure; Query retains the authorized pages. */
   async function refresh() {
     feedback.clear();
-    const outcomes = await Promise.allSettled([
-      query.refetch({ throwOnError: true }),
-      refreshNotificationSummary(client, queries),
-    ]);
-    if (
-      rows.length > 0 &&
-      outcomes.some(
-        (result) =>
-          result.status === "rejected" && !isAccessDenied(result.reason),
-      )
-    ) {
-      feedback.error();
-    }
+    expireInbox(client, queries);
+    await query.refetch();
   }
 
   /** The focused current owner may retry the failed cursor explicitly; native edge events never replay it. */
@@ -156,6 +147,7 @@ function Inbox({
       return;
     }
     feedback.clear();
+    expireInbox(client, queries);
     await query.fetchNextPage({ cancelRefetch: false });
   }
 
@@ -182,21 +174,22 @@ function Inbox({
     if (continuationFailed || query.isFetchingNextPage) {
       return null;
     }
+    if (hasReadError(query)) {
+      return (
+        <ScreenState>
+          <ReadFeedback
+            query={query}
+            onRetry={refresh}
+            loadingContent={<NotificationLoading />}
+          />
+        </ScreenState>
+      );
+    }
     if (query.isLoading) {
       return (
         <PageContent>
           <NotificationLoading />
         </PageContent>
-      );
-    }
-    if (query.isError) {
-      return (
-        <ScreenState>
-          <ErrorState
-            onRetry={() => void refresh()}
-            retrying={query.isFetching}
-          />
-        </ScreenState>
       );
     }
     if (query.data) {
@@ -257,9 +250,12 @@ function Inbox({
             : styles.empty
         }
         refreshControl={
-          rows.length > 0 ? (
-            <DataRefreshControl onRefresh={refresh} />
-          ) : undefined
+          // Android wraps the scroller here; keep its native ref stable through loading and errors.
+          <DataRefreshControl
+            onRefresh={refresh}
+            enabled={rows.length > 0}
+            fetching={query.isFetching}
+          />
         }
         ListEmptyComponent={emptyContent() ?? undefined}
         ListFooterComponent={

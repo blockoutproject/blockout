@@ -13,6 +13,7 @@ import { AccessibilityInfo } from "react-native";
 import { useAccessAdmission } from "@/features/access/queries/use-access-admission";
 import { NotificationLifecycle } from "../native/notification-lifecycle";
 import { createPushRegistration } from "../native/push-registration";
+import { createInboxQueries } from "../api/inbox-queries";
 import { NotificationState } from "../state/notification-state";
 import {
   AccountSessionProvider,
@@ -100,7 +101,7 @@ let privateClient: ReturnType<typeof createQueryClient>;
 let session: AccountSession;
 let push = createPushRegistration();
 
-/** Real session, Query transport, inbox and badge consumers; native events and navigation are boundary doubles. */
+/** Real session, Query transport, inbox consumers; native events and navigation are boundary doubles. */
 function Capture() {
   const current = useAccountSession();
   const access = useAccessAdmission();
@@ -161,6 +162,10 @@ beforeEach(() => {
     .mockClear();
   jest.mocked(Notifications.addNotificationReceivedListener).mockClear();
   mockOpen.mockReset();
+  jest
+    .mocked(Notifications.setBadgeCountAsync)
+    .mockReset()
+    .mockResolvedValue(true);
   jest.mocked(Notifications.getPermissionsAsync).mockReset().mockResolvedValue({
     granted: false,
     canAskAgain: false,
@@ -180,8 +185,8 @@ beforeEach(() => {
       if (url.endsWith("accounts/me")) {
         return Response.json(accountResponse({ accountId: ownerId }));
       }
-      if (url.endsWith("notification-summary")) {
-        return Response.json({ unreadCount: 0 });
+      if (url.endsWith("/notifications")) {
+        return Response.json({ notifications: [row] });
       }
       if (init.method === "PUT" && url.includes("push-subscriptions")) {
         return Response.json({
@@ -237,6 +242,11 @@ it("uses a native token change only to reacquire the Expo address for the same c
   );
 });
 afterEach(async () => {
+  expect(
+    mockFetch.mock.calls.some(([url]) =>
+      String(url).endsWith("/notification-summary"),
+    ),
+  ).toBe(false);
   await cleanup();
   await privateClient?.cancelQueries();
   client.clear();
@@ -247,8 +257,11 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-it("sets explicit foreground silence and refreshes summary without creating an alert", async () => {
+it("clears a previous badge nonblockingly and keeps an unopened inbox silent on receipt", async () => {
   // Given
+  jest
+    .mocked(Notifications.setBadgeCountAsync)
+    .mockRejectedValueOnce(new Error("Native badge unavailable"));
   await render(<Root />);
   await waitFor(() => expect(session.accountId).toBe(ownerId));
   const handler = foregroundHandler;
@@ -258,9 +271,7 @@ it("sets explicit foreground silence and refreshes summary without creating an a
   if (!handler || !receive) {
     throw new Error("SDK listeners must be registered");
   }
-  const before = mockFetch.mock.calls.filter(([url]) =>
-    url.endsWith("notification-summary"),
-  ).length;
+  const before = mockFetch.mock.calls.length;
 
   // When
   const behavior = await handler.handleNotification(
@@ -287,13 +298,13 @@ it("sets explicit foreground silence and refreshes summary without creating an a
     shouldPlaySound: false,
     shouldSetBadge: false,
   });
-  await waitFor(() =>
-    expect(
-      mockFetch.mock.calls.filter(([url]) =>
-        url.endsWith("notification-summary"),
-      ).length,
-    ).toBeGreaterThan(before),
-  );
+  expect(mockFetch.mock.calls).toHaveLength(before);
+  expect(Notifications.setBadgeCountAsync).toHaveBeenCalledWith(0);
+  expect(
+    jest
+      .mocked(Notifications.setBadgeCountAsync)
+      .mock.calls.every(([count]) => count === 0),
+  ).toBe(true);
   expect(mockOpen).not.toHaveBeenCalled();
   expect(Notifications.getPresentedNotificationsAsync).not.toHaveBeenCalled();
   expect(Notifications.dismissAllNotificationsAsync).not.toHaveBeenCalled();
@@ -475,11 +486,16 @@ it("keeps a failed passive receive refresh discreet", async () => {
   if (!ordinary) {
     throw new Error("Synthetic HTTP boundary is required");
   }
+  const queries = createInboxQueries(
+    { subject: session.subject, accountId: ownerId },
+    async () => ({}),
+  );
+  await privateClient.fetchInfiniteQuery(queries.inbox);
   const before = mockFetch.mock.calls.filter(([url]) =>
-    url.endsWith("notification-summary"),
+    url.endsWith("/notifications"),
   ).length;
   mockFetch.mockImplementation((url: string, init: RequestInit) =>
-    url.endsWith("notification-summary")
+    url.endsWith("/notifications")
       ? Promise.resolve(new Response(null, { status: 503 }))
       : ordinary(url, init),
   );
@@ -498,9 +514,8 @@ it("keeps a failed passive receive refresh discreet", async () => {
   // Then
   await waitFor(() =>
     expect(
-      mockFetch.mock.calls.filter(([url]) =>
-        url.endsWith("notification-summary"),
-      ).length,
+      mockFetch.mock.calls.filter(([url]) => url.endsWith("/notifications"))
+        .length,
     ).toBeGreaterThan(before),
   );
   expect(screen.queryByRole("alert")).toBeNull();
@@ -591,7 +606,7 @@ it.each(["guest", "other-account"])(
   },
 );
 
-it("removes native subscriptions and clears the badge after sign-out", async () => {
+it("removes native subscriptions after sign-out", async () => {
   // Given
   await render(<Root />);
   await waitFor(() => expect(session.accountId).toBe(ownerId));
@@ -606,7 +621,6 @@ it("removes native subscriptions and clears the badge after sign-out", async () 
   await waitFor(() => expect(session.status).toBe("guest"));
   // Then
   expect(subscription?.remove).toHaveBeenCalledTimes(1);
-  expect(Notifications.setBadgeCountAsync).toHaveBeenCalledWith(0);
 });
 
 it("leaves an old system tap blocked by current maintenance without reading or navigating", async () => {

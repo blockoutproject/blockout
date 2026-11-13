@@ -3,14 +3,12 @@ package com.blockout.backend.notifications.api;
 import com.blockout.backend.config.MappingConfiguration;
 import com.blockout.backend.generated.mobile.model.NotificationFamilyEnum;
 import com.blockout.backend.generated.mobile.model.NotificationResponse;
-import com.blockout.backend.generated.mobile.model.NotificationSummaryResponse;
 import com.blockout.backend.generated.mobile.model.NotificationsResponse;
 import com.blockout.backend.generated.mobile.model.PushSubscriptionResponse;
 import com.blockout.backend.generated.mobile.model.ReplacePushSubscriptionRequest;
 import com.blockout.backend.generated.mobile.model.ResultStateEnum;
 import com.blockout.backend.notifications.application.InboxViews.Entry;
 import com.blockout.backend.notifications.application.InboxViews.Page;
-import com.blockout.backend.notifications.application.InboxViews.Summary;
 import com.blockout.backend.notifications.application.PushSubscriptionStore.Association;
 import com.blockout.backend.notifications.application.PushSubscriptionStore.Registration;
 import com.blockout.backend.notifications.domain.NotificationFamily;
@@ -80,15 +78,6 @@ public interface NotificationApiMapper {
     return new NotificationsResponse(page.entries().stream().map(this::toDto).toList())
         .nextCursor(NotificationCursor.encode(page.next()));
   }
-
-  /**
-   * Returns the current whole-inbox aggregate.
-   *
-   * @param summary aggregate from one current selection
-   * @return count and optional next expiry
-   */
-  @Mapping(target = "additionalProperties", ignore = true)
-  NotificationSummaryResponse toDto(Summary summary);
 
   /**
    * Renders factual French card text using the persisted editorial choice.

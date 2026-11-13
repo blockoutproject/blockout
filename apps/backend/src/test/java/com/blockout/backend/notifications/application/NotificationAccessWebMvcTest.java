@@ -357,10 +357,10 @@ class NotificationAccessWebMvcTest {
    * Targets the representative private route without inventing a new public resource.
    *
    * @param account requested original owner
-   * @return canonical summary route
+   * @return canonical inbox collection route
    */
   private static String path(UUID account) {
-    return "/accounts/" + account + "/notification-summary";
+    return "/accounts/" + account + "/notifications";
   }
 
   /**
@@ -373,7 +373,7 @@ class NotificationAccessWebMvcTest {
     return jwt().jwt(token -> token.issuer(issuer).subject("auth0|a").claim("azp", client));
   }
 
-  /** Test-only stand-in for the future HTTP endpoint; no notification service is installed. */
+  /** Test-only admission adapter; the actual inbox controller has its own boundary suites. */
   @RestController
   static class Adapter {
     private final NotificationRequest requests;
@@ -391,10 +391,10 @@ class NotificationAccessWebMvcTest {
      * Captures admitted immutable context without reading an inbox.
      *
      * @param accountId original UUID from the requested resource
-     * @return captured owner for HTTP assertions, not the future production summary representation
+     * @return captured owner for HTTP assertions, without claiming an inbox representation
      */
-    @GetMapping("/accounts/{accountId}/notification-summary")
-    ResponseEntity<NotificationContext> summary(@PathVariable UUID accountId) {
+    @GetMapping("/accounts/{accountId}/notifications")
+    ResponseEntity<NotificationContext> inbox(@PathVariable UUID accountId) {
       return ResponseEntity.ok(requests.owner(accountId));
     }
   }

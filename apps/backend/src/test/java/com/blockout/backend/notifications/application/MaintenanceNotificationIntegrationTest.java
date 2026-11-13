@@ -206,7 +206,6 @@ class MaintenanceNotificationIntegrationTest extends ContributionScenario {
 
     // Then
     assertThat(count("notification")).isEqualTo(1);
-    assertThat(inbox.summary(new NotificationContext(FOLLOWER)).unreadCount()).isZero();
     assertThatThrownBy(() -> inbox.member(new NotificationContext(FOLLOWER), original.id()))
         .isInstanceOf(NotificationNotFoundException.class);
 

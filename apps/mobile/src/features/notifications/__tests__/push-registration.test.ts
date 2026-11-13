@@ -16,7 +16,6 @@ jest.mock("expo-notifications", () => ({
   requestPermissionsAsync: jest.fn(),
   getExpoPushTokenAsync: jest.fn(),
   setNotificationChannelAsync: jest.fn().mockResolvedValue(null),
-  setBadgeCountAsync: jest.fn().mockResolvedValue(true),
   AndroidImportance: { DEFAULT: 3 },
 }));
 jest.mock("expo/fetch", () => ({
@@ -38,10 +37,6 @@ function registrationContext() {
 beforeEach(async () => {
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   await AsyncStorage.clear();
-  jest
-    .mocked(Notifications.setBadgeCountAsync)
-    .mockReset()
-    .mockResolvedValue(true);
   jest.mocked(Notifications.getPermissionsAsync).mockReset().mockResolvedValue({
     granted: true,
     canAskAgain: true,
@@ -66,7 +61,7 @@ beforeEach(async () => {
     });
 });
 
-it("clears memory and attempts badge reset even when the exact HTTP removal fails", async () => {
+it("clears memory even when the exact HTTP removal fails", async () => {
   // Given
   const context = registrationContext();
   const push = createPushRegistration();
@@ -77,9 +72,6 @@ it("clears memory and attempts badge reset even when the exact HTTP removal fail
     context.credentials,
   );
   mockFetch.mockRejectedValueOnce(new Error("Removal unavailable"));
-  jest
-    .mocked(Notifications.setBadgeCountAsync)
-    .mockRejectedValueOnce(new Error("Badge unavailable"));
   const remove = push.prepareRemoval();
 
   // When
@@ -89,7 +81,6 @@ it("clears memory and attempts badge reset even when the exact HTTP removal fail
   expect(
     mockFetch.mock.calls.filter(([, init]) => init.method === "DELETE"),
   ).toHaveLength(1);
-  expect(Notifications.setBadgeCountAsync).toHaveBeenCalledWith(0);
   expect(push.prepareRemoval()).toBeUndefined();
 });
 afterEach(() => {
@@ -269,7 +260,6 @@ it("bounds the whole removal even when credential retrieval never completes", as
     mockFetch.mock.calls.filter(([, init]) => init.method === "DELETE"),
   ).toHaveLength(0);
   expect(push.prepareRemoval()).toBeUndefined();
-  expect(Notifications.setBadgeCountAsync).toHaveBeenCalledWith(0);
 });
 
 it("cancels controllable PUT but preserves the explicit already-transmitted limit", async () => {

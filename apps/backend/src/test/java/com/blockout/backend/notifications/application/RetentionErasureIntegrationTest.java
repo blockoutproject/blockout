@@ -70,7 +70,6 @@ import tools.jackson.databind.ObjectMapper;
 @DisplayName("Notification retention and original-account erasure")
 class RetentionErasureIntegrationTest {
   private static final String COLLECTION = "/accounts/" + ACCOUNT + "/notifications";
-  private static final String SUMMARY = "/accounts/" + ACCOUNT + "/notification-summary";
   @Autowired private PostgreSQLContainer database;
   @Autowired private JdbcTemplate sql;
   @Autowired private MockMvc mvc;
@@ -97,7 +96,7 @@ class RetentionErasureIntegrationTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"page", "summary", "member"})
+  @ValueSource(strings = {"page", "member"})
   @DisplayName(
       "An in-flight read can finish its old snapshot but fresh owner operations refuse erasure")
   void refusesOperationsAfterSnapshotErasure(String operation) throws Exception {
@@ -125,12 +124,6 @@ class RetentionErasureIntegrationTest {
             .when(target)
             .page(any(NotificationContext.class), isNull(), any(Instant.class));
         path = COLLECTION;
-      }
-      case "summary" -> {
-        doAnswer(holdSnapshot)
-            .when(target)
-            .summary(any(NotificationContext.class), any(Instant.class));
-        path = SUMMARY;
       }
       case "member" -> {
         doAnswer(holdSnapshot)
@@ -161,7 +154,6 @@ class RetentionErasureIntegrationTest {
         JsonNode snapshot = stale.get(10, TimeUnit.SECONDS);
         switch (operation) {
           case "page" -> assertThat(snapshot.path("notifications")).hasSize(20);
-          case "summary" -> assertThat(snapshot.path("unreadCount").asLong()).isEqualTo(25);
           case "member" -> assertThat(snapshot.path("id").asString()).isEqualTo(first.toString());
           default -> throw new IllegalArgumentException(operation);
         }
@@ -169,7 +161,6 @@ class RetentionErasureIntegrationTest {
             List.of(
                 get(COLLECTION),
                 get(COLLECTION).queryParam("cursor", original.path("nextCursor").asString()),
-                get(SUMMARY),
                 get(COLLECTION + "/" + first),
                 patch(COLLECTION + "/" + first)
                     .contentType(MediaType.APPLICATION_JSON)
@@ -234,7 +225,6 @@ class RetentionErasureIntegrationTest {
             .hasCauseInstanceOf(NotificationNotFoundException.class);
         assertThat(sql.queryForList("SELECT id FROM notification", UUID.class))
             .containsExactly(other);
-        assertThat(reads.summary(new NotificationContext(OTHER)).unreadCount()).isEqualTo(1);
         assertThat(reads.member(new NotificationContext(OTHER), other).createdAt())
             .isEqualTo(NOW.minusSeconds(30));
         assertFacts(id);
@@ -309,7 +299,6 @@ class RetentionErasureIntegrationTest {
         assertThat(sql.queryForList("SELECT id FROM notification", UUID.class))
             .containsExactly(other);
         assertThat(accounts.findById(ACCOUNT)).isEmpty();
-        assertThat(reads.summary(new NotificationContext(OTHER)).unreadCount()).isEqualTo(1);
         assertFacts(expired);
         assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Long.class))
             .isEqualTo(3);

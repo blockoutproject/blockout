@@ -127,7 +127,6 @@ class TransitionResetIntegrationTest {
     assertFreshPersonalReads(fresh.id());
     assertThat(lists.teams(ACCOUNT, null, 0).items()).hasSize(1);
     assertThat(lists.pools(ACCOUNT, null, 0).items()).hasSize(1);
-    assertThat(inbox.summary(new NotificationContext(ACCOUNT)).unreadCount()).isEqualTo(1);
     assertThat(inbox.member(new NotificationContext(ACCOUNT), foreignNotification).read())
         .isFalse();
     mvc.perform(get("/accounts/me").with(principal(SUBJECT_A)))
@@ -163,7 +162,7 @@ class TransitionResetIntegrationTest {
     assertThat(follows.read(new FollowContext(owner.id(), new Target(TargetType.TEAM, AWAY))))
         .isFalse();
     assertThat(lists.pools(owner.id(), null, 0).items()).isEmpty();
-    assertThat(inbox.summary(new NotificationContext(owner.id())).unreadCount()).isZero();
+    assertThat(inbox.page(new NotificationContext(owner.id()), null).entries()).isEmpty();
     assertThat(
             sql.queryForObject(
                 "SELECT COUNT(*) FROM team_follow WHERE account_id=? AND team_id=?",
@@ -192,7 +191,7 @@ class TransitionResetIntegrationTest {
         .extracting(item -> item.pool().id())
         .containsExactly(POOL);
     assertThat(lists.teams(owner.id(), null, 0).items()).isEmpty();
-    assertThat(inbox.summary(new NotificationContext(owner.id())).unreadCount()).isZero();
+    assertThat(inbox.page(new NotificationContext(owner.id()), null).entries()).isEmpty();
     assertThat(
             sql.queryForObject(
                 "SELECT COUNT(*) FROM pool_follow WHERE account_id=? AND pool_id=?",
@@ -282,8 +281,6 @@ class TransitionResetIntegrationTest {
         .containsExactly(secondNotification);
     assertThat(inbox.member(new NotificationContext(first.id()), firstNotification).read())
         .isFalse();
-    assertThat(inbox.summary(new NotificationContext(first.id())).unreadCount()).isEqualTo(1);
-    assertThat(inbox.summary(new NotificationContext(second.id())).unreadCount()).isEqualTo(1);
   }
 
   /**
@@ -295,15 +292,12 @@ class TransitionResetIntegrationTest {
     ReadFollowLists.Teams teams = lists.teams(owner, null, 0);
     ReadFollowLists.Pools pools = lists.pools(owner, null, 0);
     InboxViews.Page notifications = inbox.page(new NotificationContext(owner), null);
-    InboxViews.Summary summary = inbox.summary(new NotificationContext(owner));
     assertThat(teams.items()).isEmpty();
     assertThat(teams.nextPage()).isNull();
     assertThat(pools.items()).isEmpty();
     assertThat(pools.nextPage()).isNull();
     assertThat(notifications.entries()).isEmpty();
     assertThat(notifications.next()).isNull();
-    assertThat(summary.unreadCount()).isZero();
-    assertThat(summary.nextExpiryAt()).isNull();
     assertThat(
             sql.queryForObject(
                 "SELECT (SELECT COUNT(*) FROM team_follow WHERE account_id=?) + (SELECT COUNT(*)"

@@ -1,14 +1,10 @@
-import {
-  InfiniteQueryObserver,
-  MutationObserver,
-  QueryObserver,
-} from "@tanstack/react-query";
+import { InfiniteQueryObserver, MutationObserver } from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react-native";
 import { createQueryClient } from "@/shared/query/query-client";
 import { createInboxQueries, refreshInbox } from "../api/inbox-queries";
 import { createReadNotificationOptions } from "../api/inbox-mutations";
 import { notificationResponse } from "../test-support/notification-data";
-import { confirmedUnreadCount, expireInbox } from "../state/inbox-expiry";
+import { expireInbox } from "../state/inbox-expiry";
 
 const mockFetch = jest.fn();
 jest.mock("expo/fetch", () => ({
@@ -126,33 +122,6 @@ it("invalidates the inbox after a successful read without rewriting retained row
   ]);
 });
 
-it("discards a cancelled old summary when a newer confirmed summary succeeds", async () => {
-  // Given
-  const { queries } = context();
-  const delayed = Promise.withResolvers<Response>();
-  const delayedRead = jest.fn(() => delayed.promise);
-  mockFetch.mockImplementationOnce(delayedRead);
-  const old = client.fetchQuery(queries.summary).catch(() => undefined);
-  await waitFor(() => expect(delayedRead).toHaveBeenCalledTimes(1));
-
-  // When
-  await client.cancelQueries({
-    queryKey: queries.summary.queryKey,
-    exact: true,
-  });
-  mockFetch.mockResolvedValueOnce(Response.json({ unreadCount: 0 }));
-  await client.fetchQuery(queries.summary);
-  delayed.resolve(
-    Response.json({ unreadCount: 7, nextExpiryAt: "2026-11-01T00:00:00Z" }),
-  );
-  await old;
-
-  // Then
-  expect(client.getQueryData(queries.summary.queryKey)).toEqual({
-    unreadCount: 0,
-  });
-});
-
 it("reports a lost acknowledgement and permits a later explicit true-only attempt", async () => {
   // Given
   const { owner, queries } = context();
@@ -186,17 +155,11 @@ it("reports a failed read action without waiting for ordinary refreshes", async 
     pages: [{ notifications: [row] }],
     pageParams: [undefined],
   });
-  client.setQueryData(queries.summary.queryKey, { unreadCount: 1 });
   const inbox = new InfiniteQueryObserver(client, {
     ...queries.inbox,
     staleTime: Infinity,
   });
-  const summary = new QueryObserver(client, {
-    ...queries.summary,
-    staleTime: Infinity,
-  });
   const stopInbox = inbox.subscribe(() => undefined);
-  const stopSummary = summary.subscribe(() => undefined);
   const command = new MutationObserver(
     client,
     createReadNotificationOptions(client, owner, queries),
@@ -204,17 +167,14 @@ it("reports a failed read action without waiting for ordinary refreshes", async 
   const stopCommand = command.subscribe(() => undefined);
   const feedback = jest.fn();
   const refreshedInbox = Promise.withResolvers<Response>();
-  const refreshedSummary = Promise.withResolvers<Response>();
   mockFetch.mockImplementation(async (url: string, init: RequestInit) => {
     if (init.method === "PATCH") {
       throw new TypeError("lost read response");
     }
-    return url.endsWith("notification-summary")
-      ? refreshedSummary.promise
-      : refreshedInbox.promise;
+    return refreshedInbox.promise;
   });
 
-  // When: the explicit PATCH fails while both invalidated GETs remain in flight.
+  // When: the explicit PATCH fails while the invalidated GET remains in flight.
   const attempt = command
     .mutate(row.id, { onError: feedback })
     .catch(() => undefined);
@@ -224,7 +184,6 @@ it("reports a failed read action without waiting for ordinary refreshes", async 
     // Then: the tap reports failure without waiting for those reads or replaying the write.
     expect(command.getCurrentResult().isError).toBe(true);
     expect(inbox.getCurrentResult().isFetching).toBe(true);
-    expect(summary.getCurrentResult().isFetching).toBe(true);
     expect(
       mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
     ).toHaveLength(1);
@@ -233,10 +192,8 @@ it("reports a failed read action without waiting for ordinary refreshes", async 
     ]);
   } finally {
     refreshedInbox.resolve(Response.json({ notifications: [row] }));
-    refreshedSummary.resolve(Response.json({ unreadCount: 1 }));
     await attempt;
     stopCommand();
-    stopSummary();
     stopInbox();
   }
 });
@@ -270,39 +227,14 @@ it("does not restore a known missing row from an older page", async () => {
   ).toEqual([]);
 });
 
-it("does not restore a badge from a delayed summary after a current owner refusal", async () => {
-  // Given
-  const { queries } = context();
-  const delayed = Promise.withResolvers<Response>();
-  const delayedRead = jest.fn(() => delayed.promise);
-  mockFetch.mockImplementationOnce(delayedRead);
-  const old = client.fetchQuery(queries.summary).catch(() => undefined);
-  await waitFor(() => expect(delayedRead).toHaveBeenCalledTimes(1));
-  mockFetch.mockResolvedValueOnce(new Response(null, { status: 403 }));
-
-  // When
-  await client.fetchInfiniteQuery(queries.inbox).catch(() => undefined);
-  delayed.resolve(
-    Response.json({ unreadCount: 7, nextExpiryAt: "2026-11-01T00:00:00Z" }),
-  );
-  await old;
-
-  // Then
-  expect(client.getQueryData(queries.summary.queryKey)).toBeUndefined();
-});
-
 it.each([401, 403])(
-  "removes retained private content and count when the read command receives %s",
+  "removes retained private content when the read command receives %s",
   async (status) => {
     // Given
     const { owner, queries } = context();
     client.setQueryData(queries.inbox.queryKey, {
       pages: [{ notifications: [row] }],
       pageParams: [undefined],
-    });
-    client.setQueryData(queries.summary.queryKey, {
-      unreadCount: 7,
-      nextExpiryAt: "2026-11-01T00:00:00Z",
     });
     mockFetch.mockResolvedValueOnce(new Response(null, { status }));
     const command = new MutationObserver(
@@ -315,114 +247,27 @@ it.each([401, 403])(
 
     // Then
     expect(client.getQueryData(queries.inbox.queryKey)).toBeUndefined();
-    expect(client.getQueryData(queries.summary.queryKey)).toBeUndefined();
     expect(client.getQueryState(queries.inbox.queryKey)?.status).toBe("error");
   },
 );
 
-it("presents an initial list error when the summary refuses access during its pending first page", async () => {
+it("removes the original owner's retained data after an inbox 404", async () => {
   // Given
   const { queries } = context();
-  const delayed = Promise.withResolvers<Response>();
-  const delayedRead = jest.fn(() => delayed.promise);
-  mockFetch.mockImplementationOnce(delayedRead);
-  const observer = new InfiniteQueryObserver(client, queries.inbox);
-  const list = observer.refetch();
-  await waitFor(() => expect(delayedRead).toHaveBeenCalledTimes(1));
-  mockFetch.mockResolvedValueOnce(new Response(null, { status: 403 }));
-
-  // When
-  await client.fetchQuery(queries.summary).catch(() => undefined);
-  delayed.resolve(Response.json({ notifications: [row] }));
-  await list;
-
-  // Then
-  expect(observer.getCurrentResult()).toMatchObject({
-    status: "error",
-    isFetching: false,
-    data: undefined,
-  });
-});
-
-it.each(["inbox", "summary"] as const)(
-  "removes the original owner's retained data after a %s 404",
-  async (resource) => {
-    // Given
-    const { queries } = context();
-    client.setQueryData(queries.inbox.queryKey, {
-      pages: [{ notifications: [row] }],
-      pageParams: [undefined],
-    });
-    client.setQueryData(queries.summary.queryKey, {
-      unreadCount: 7,
-      nextExpiryAt: "2026-11-01T00:00:00Z",
-    });
-    mockFetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
-
-    // When
-    await (
-      resource === "inbox"
-        ? client.fetchInfiniteQuery(queries.inbox)
-        : client.fetchQuery(queries.summary)
-    ).catch(() => undefined);
-
-    // Then
-    expect(client.getQueryData(queries.inbox.queryKey)).toBeUndefined();
-    expect(client.getQueryData(queries.summary.queryKey)).toBeUndefined();
-  },
-);
-
-it("keeps an erased owner's inbox unavailable when an earlier refresh and read finish", async () => {
-  // Given: the real generated clients retain their original owner; only HTTP completion is controlled.
-  const { owner, queries } = context();
   client.setQueryData(queries.inbox.queryKey, {
     pages: [{ notifications: [row] }],
     pageParams: [undefined],
   });
-  client.setQueryData(queries.summary.queryKey, {
-    unreadCount: 7,
-    nextExpiryAt: "2026-11-01T00:00:00Z",
-  });
-  const delayedPage = Promise.withResolvers<Response>();
-  const delayedRead = Promise.withResolvers<Response>();
-  const readPage = jest.fn(() => delayedPage.promise);
-  const readNotification = jest.fn(() => delayedRead.promise);
-  mockFetch.mockImplementation((url: string, init: RequestInit) => {
-    if (init.method === "PATCH") {
-      return readNotification();
-    }
-    if (url.endsWith("/notifications")) {
-      return readPage();
-    }
-    return Promise.resolve(new Response(null, { status: 404 }));
-  });
-  const refresh = client
-    .fetchInfiniteQuery(queries.inbox)
-    .catch(() => undefined);
-  const command = new MutationObserver(
-    client,
-    createReadNotificationOptions(client, owner, queries),
-  );
-  const read = command.mutate(row.id);
-  await waitFor(() => expect(readPage).toHaveBeenCalledTimes(1));
-  await waitFor(() => expect(readNotification).toHaveBeenCalledTimes(1));
+  mockFetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
 
-  // When: a current owner read proves absence before the old successful responses arrive.
-  await client.fetchQuery(queries.summary).catch(() => undefined);
-  delayedPage.resolve(Response.json({ notifications: [row] }));
-  delayedRead.resolve(Response.json({ ...row, read: true }));
-  await Promise.all([refresh, read]);
+  // When
+  await client.fetchInfiniteQuery(queries.inbox).catch(() => undefined);
 
-  // Then: read success invalidates only; neither old response recreates private data or a badge.
+  // Then
   expect(client.getQueryData(queries.inbox.queryKey)).toBeUndefined();
-  expect(client.getQueryData(queries.summary.queryKey)).toBeUndefined();
-  expect(client.getQueryState(queries.inbox.queryKey)?.status).toBe("error");
-  expect(
-    mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
-  ).toHaveLength(1);
 });
 
-it("discards a pending page and total after their original 29-day deadline", async () => {
+it("does not restore expired content when a pending page is cancelled after ordinary filtering", async () => {
   // Given
   const { queries } = context();
   const deadline = Date.now() + 1000;
@@ -430,47 +275,34 @@ it("discards a pending page and total after their original 29-day deadline", asy
     ...row,
     createdAt: new Date(deadline - 29 * 86_400_000).toISOString(),
   };
-  const summary = {
-    unreadCount: 7,
-    nextExpiryAt: new Date(deadline).toISOString(),
-  };
   client.setQueryData(queries.inbox.queryKey, {
     pages: [{ notifications: [expiring] }],
     pageParams: [undefined],
   });
-  client.setQueryData(queries.summary.queryKey, summary);
   const delayedPage = Promise.withResolvers<Response>();
-  const delayedSummary = Promise.withResolvers<Response>();
   const readPage = jest.fn(() => delayedPage.promise);
-  const readSummary = jest.fn(() => delayedSummary.promise);
-  mockFetch.mockImplementation((url: string) =>
-    url.endsWith("/notifications") ? readPage() : readSummary(),
-  );
+  mockFetch.mockImplementation(readPage);
   const page = client.fetchInfiniteQuery(queries.inbox).catch(() => undefined);
-  const total = client.fetchQuery(queries.summary).catch(() => undefined);
   await waitFor(() => expect(readPage).toHaveBeenCalledTimes(1));
-  await waitFor(() => expect(readSummary).toHaveBeenCalledTimes(1));
   expect(Date.now()).toBeLessThan(deadline);
 
   // When
   jest.setSystemTime(deadline);
-  await expireInbox(client, queries);
+  expireInbox(client, queries);
+  await client.cancelQueries({ queryKey: queries.inbox.queryKey, exact: true });
   delayedPage.resolve(Response.json({ notifications: [expiring] }));
-  delayedSummary.resolve(Response.json(summary));
-  await Promise.all([page, total]);
+  await page;
 
   // Then
   expect(
     client.getQueryData(queries.inbox.queryKey)?.pages[0].notifications,
   ).toEqual([]);
-  expect(client.getQueryData(queries.summary.queryKey)).toBeUndefined();
 });
 
-it("keeps other notifications but invalidates the exact total when a member is missing and refresh fails", async () => {
+it("keeps other notifications when a member is missing and refresh fails", async () => {
   // Given
   const { owner, queries } = context();
   const survivor = { ...row, id: "00000000-0000-4000-8000-000000000239" };
-  const summary = { unreadCount: 2, nextExpiryAt: "2026-11-01T00:00:00Z" };
   let initial = true;
   mockFetch.mockImplementation(async (url, init) => {
     if (init.method === "PATCH") {
@@ -479,19 +311,14 @@ it("keeps other notifications but invalidates the exact total when a member is m
     if (!initial) {
       throw new TypeError("offline during refresh");
     }
-    return String(url).endsWith("/notification-summary")
-      ? Response.json(summary)
-      : Response.json({ notifications: [row, survivor] });
+    return Response.json({ notifications: [row, survivor] });
   });
   const list = new InfiniteQueryObserver(client, queries.inbox);
-  const count = new QueryObserver(client, queries.summary);
   const stopList = list.subscribe(() => undefined);
-  const stopCount = count.subscribe(() => undefined);
-  await Promise.all([list.refetch(), count.refetch()]);
+  await list.refetch();
   expect(
     client.getQueryData(queries.inbox.queryKey)?.pages[0].notifications,
   ).toHaveLength(2);
-  expect(client.getQueryData(queries.summary.queryKey)).toEqual(summary);
   const command = new MutationObserver(
     client,
     createReadNotificationOptions(client, owner, queries),
@@ -504,35 +331,77 @@ it("keeps other notifications but invalidates the exact total when a member is m
     expect(
       client.getQueryData(queries.inbox.queryKey)?.pages[0].notifications,
     ).toEqual([survivor]);
-    expect(client.getQueryData(queries.summary.queryKey)).toBeUndefined();
     await waitFor(() => {
       expect(list.getCurrentResult().error).toMatchObject({ kind: "network" });
-      expect(count.getCurrentResult().error).toMatchObject({ kind: "network" });
     });
     expect(
       mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
     ).toHaveLength(1);
     expect(
       mockFetch.mock.calls.filter(([, init]) => init.method === "GET"),
-    ).toHaveLength(4);
+    ).toHaveLength(2);
   } finally {
     stopList();
-    stopCount();
   }
 });
 
-it("discards a delayed whole summary after a missing-member refusal", async () => {
-  // Given
+it("reconciles read state on another client's ordinary refresh after a lost acknowledgement", async () => {
+  // Given: two native Query lifetimes share only the controlled server's read state.
   const { owner, queries } = context();
-  client.setQueryData(queries.summary.queryKey, {
-    unreadCount: 7,
-    nextExpiryAt: "2026-11-01T00:00:00Z",
+  const secondClient = createQueryClient();
+  secondClient.setDefaultOptions({ queries: { retry: false } });
+  let read = false;
+  mockFetch.mockImplementation(async (_url: string, init: RequestInit) => {
+    if (init.method === "PATCH") {
+      read = true;
+      throw new TypeError("Lost acknowledgement");
+    }
+    return Response.json({ notifications: [{ ...row, read }] });
   });
-  const delayed = Promise.withResolvers<Response>();
-  const delayedRead = jest.fn(() => delayed.promise);
-  mockFetch.mockImplementationOnce(delayedRead);
-  const oldSummary = client.fetchQuery(queries.summary).catch(() => undefined);
-  await waitFor(() => expect(delayedRead).toHaveBeenCalledTimes(1));
+  await secondClient.fetchInfiniteQuery(queries.inbox);
+  const command = new MutationObserver(
+    client,
+    createReadNotificationOptions(client, owner, queries),
+  );
+  try {
+    // When
+    await expect(command.mutate(row.id)).rejects.toMatchObject({
+      kind: "network",
+    });
+
+    // Then: another client has no immediate cross-client update guarantee.
+    expect(
+      secondClient.getQueryData(queries.inbox.queryKey)?.pages[0]
+        .notifications[0].read,
+    ).toBe(false);
+
+    // When
+    await refreshInbox(secondClient, queries);
+
+    // Then
+    expect(
+      secondClient.getQueryData(queries.inbox.queryKey)?.pages[0]
+        .notifications[0].read,
+    ).toBe(true);
+    expect(
+      mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
+    ).toHaveLength(1);
+  } finally {
+    secondClient.clear();
+  }
+});
+
+it("keeps a full-read failure when a missing member is removed locally", async () => {
+  // Given: Query retains an authorized page behind a failed full-read state.
+  const { owner, queries } = context();
+  const survivor = { ...row, id: "00000000-0000-4000-8000-000000000239" };
+  mockFetch.mockResolvedValueOnce(
+    Response.json({ notifications: [row, survivor] }),
+  );
+  await client.fetchInfiniteQuery(queries.inbox);
+  mockFetch.mockRejectedValueOnce(new TypeError("Full read unavailable"));
+  await client.fetchInfiniteQuery(queries.inbox).catch(() => undefined);
+  const error = client.getQueryState(queries.inbox.queryKey)?.error;
   mockFetch.mockResolvedValueOnce(new Response(null, { status: 404 }));
   const command = new MutationObserver(
     client,
@@ -541,141 +410,15 @@ it("discards a delayed whole summary after a missing-member refusal", async () =
 
   // When
   await command.mutate(row.id).catch(() => undefined);
-  delayed.resolve(
-    Response.json({ unreadCount: 7, nextExpiryAt: "2026-11-01T00:00:00Z" }),
-  );
-  await oldSummary;
 
-  // Then
-  expect(client.getQueryData(queries.summary.queryKey)).toBeUndefined();
-  expect(
-    mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
-  ).toHaveLength(1);
-});
-
-it("reconciles independent clients after a lost read response and offline unloaded expiry without replay", async () => {
-  // Given: two independent in-memory lifetimes, with the same account and controlled HTTP only.
-  const { owner, queries } = context();
-  const secondClient = createQueryClient();
-  secondClient.setDefaultOptions({ queries: { retry: false } });
-  const secondQueries = createInboxQueries(owner, async () => ({
-    headers: { "Fixture-Client": "two" },
-  }));
-  let secondOffline = false;
-  let read = false;
-  let total = 7;
-  let nextExpiryAt = new Date(Date.now() + 1000).toISOString();
-  const second = { ...row, id: "00000000-0000-4000-8000-000000000239" };
-  mockFetch.mockImplementation(async (url: string, init: RequestInit) => {
-    if (
-      secondOffline &&
-      new Headers(init.headers).get("Fixture-Client") === "two"
-    ) {
-      throw new TypeError("offline second client");
-    }
-    if (init.method === "PATCH") {
-      if (!read) {
-        read = true;
-        total--;
-      }
-      throw new TypeError("lost read acknowledgement");
-    }
-    if (url.endsWith("notification-summary")) {
-      return Response.json({ unreadCount: total, nextExpiryAt });
-    }
-    if (url.endsWith("/notifications")) {
-      return Response.json({ notifications: [{ ...row, read }, second] });
-    }
-    throw new Error("No member reconciliation endpoint is expected");
+  // Then: removing one known missing entry does not certify the remainder of the failed read.
+  expect(client.getQueryState(queries.inbox.queryKey)).toMatchObject({
+    status: "error",
+    error,
+    fetchStatus: "idle",
   });
-  const list = new InfiniteQueryObserver(client, queries.inbox);
-  const count = new QueryObserver(client, queries.summary);
-  const stopList = list.subscribe(() => undefined);
-  const stopCount = count.subscribe(() => undefined);
-  try {
-    await Promise.all([
-      list.refetch(),
-      count.refetch(),
-      secondClient.fetchInfiniteQuery(secondQueries.inbox),
-      secondClient.fetchQuery(secondQueries.summary),
-    ]);
-    expect(
-      secondClient.getQueryData(secondQueries.inbox.queryKey)?.pages[0]
-        .notifications,
-    ).toHaveLength(2);
-    secondOffline = true;
-    const command = new MutationObserver(
-      client,
-      createReadNotificationOptions(client, owner, queries),
-    );
-
-    // When
-    await expect(command.mutate(row.id)).rejects.toMatchObject({
-      kind: "network",
-    });
-    await expect(
-      refreshInbox(secondClient, secondQueries),
-    ).rejects.toMatchObject({ kind: "network" });
-
-    // Then: ordinary successful refetch sees server true; the offline client has no remote-freshness promise.
-    expect(
-      client.getQueryData(queries.inbox.queryKey)?.pages[0].notifications[0]
-        .read,
-    ).toBe(true);
-    expect(client.getQueryData(queries.summary.queryKey)?.unreadCount).toBe(6);
-    expect(
-      secondClient.getQueryData(secondQueries.inbox.queryKey)?.pages[0]
-        .notifications[0].read,
-    ).toBe(false);
-    expect(
-      secondClient.getQueryData(secondQueries.summary.queryKey)?.unreadCount,
-    ).toBe(7);
-
-    // When: an unloaded entry reaches its original 29-day deadline while client two is offline.
-    jest.setSystemTime(Date.now() + 1000);
-    await expireInbox(secondClient, secondQueries);
-
-    // Then
-    expect(
-      confirmedUnreadCount(
-        secondClient.getQueryData(secondQueries.summary.queryKey),
-      ),
-    ).toBeUndefined();
-    expect(
-      secondClient.getQueryData(secondQueries.inbox.queryKey)?.pages[0]
-        .notifications,
-    ).toHaveLength(2);
-
-    // When: only an ordinary explicit refresh supplies the later server truth.
-    secondOffline = false;
-    total = 5;
-    nextExpiryAt = "2026-11-01T00:00:00Z";
-    await Promise.all([
-      refreshInbox(secondClient, secondQueries),
-      secondClient.fetchQuery(secondQueries.summary),
-    ]);
-
-    // Then
-    expect(
-      secondClient.getQueryData(secondQueries.inbox.queryKey)?.pages[0]
-        .notifications[0].read,
-    ).toBe(true);
-    expect(
-      secondClient.getQueryData(secondQueries.summary.queryKey)?.unreadCount,
-    ).toBe(5);
-    expect(
-      mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
-    ).toHaveLength(1);
-    expect(
-      mockFetch.mock.calls.every(
-        ([url, init]) =>
-          init.method === "PATCH" ||
-          /notifications$|notification-summary$/.test(url),
-      ),
-    ).toBe(true);
-  } finally {
-    stopList();
-    stopCount();
-    secondClient.clear();
-  }
+  expect(
+    client.getQueryData(queries.inbox.queryKey)?.pages[0].notifications,
+  ).toEqual([survivor]);
+  expect(mockFetch).toHaveBeenCalledTimes(3);
 });

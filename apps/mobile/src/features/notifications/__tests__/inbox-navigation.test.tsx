@@ -28,10 +28,7 @@ import MatchRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,pr
 import { NotificationState } from "../state/notification-state";
 import { createQueryClient } from "@/shared/query/query-client";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
-import {
-  AccountSessionProvider,
-  useAccountSession,
-} from "@/features/accounts/session/account-session-provider";
+import { AccountSessionProvider } from "@/features/accounts/session/account-session-provider";
 import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
 import { accountResponse } from "@/features/accounts/test-support/account-response";
 import {
@@ -106,8 +103,6 @@ const env = { ...process.env };
 const row = notificationResponse();
 let client = createQueryClient();
 let privateClient: ReturnType<typeof createQueryClient>;
-let privateSession: ReturnType<typeof useAccountSession>;
-let total = 7;
 const streamUrl =
   "https://www.youtube.com/watch?v=synthetic&edition=exact%2Fone";
 let match: MatchDetailResponse;
@@ -119,12 +114,10 @@ function SessionRoutes({
   privacy: ReturnType<typeof createInstallationAdvertisingPrivacy>;
 }>) {
   const cache = useQueryClient();
-  const session = useAccountSession();
   const [registration] = useState(createPushRegistration);
   useLayoutEffect(() => {
     privateClient = cache;
-    privateSession = session;
-  }, [cache, session]);
+  }, [cache]);
 
   return (
     <AccountFeedbackProvider>
@@ -179,7 +172,7 @@ function Root() {
 beforeEach(async () => {
   jest.useFakeTimers({ now: new Date("2026-10-27T12:00:00Z") });
   client = createQueryClient();
-  total = 7;
+
   let read = false;
   jest
     .mocked(Notifications.addNotificationResponseReceivedListener)
@@ -221,13 +214,6 @@ beforeEach(async () => {
           genders: ["female", "male", "mixed"],
         });
       }
-      if (path.endsWith("notification-summary")) {
-        return Response.json(
-          total
-            ? { unreadCount: total, nextExpiryAt: "2026-11-01T00:00:00Z" }
-            : { unreadCount: 0 },
-        );
-      }
       if (path.endsWith("/notifications")) {
         return Response.json({ notifications: [{ ...row, read }] });
       }
@@ -241,7 +227,6 @@ beforeEach(async () => {
         path.endsWith(`/notifications/${row.id}`) &&
         init.method === "PATCH"
       ) {
-        total = 6;
         read = true;
         return Response.json({ ...row, read: true });
       }
@@ -249,6 +234,11 @@ beforeEach(async () => {
     });
 });
 afterEach(async () => {
+  expect(
+    mockFetch.mock.calls.some(([url]) =>
+      String(url).endsWith("/notification-summary"),
+    ),
+  ).toBe(false);
   await cleanup();
   client.clear();
   privateClient?.clear();
@@ -286,69 +276,6 @@ async function openInbox() {
     { initialUrl: "/notifications" },
   );
 }
-
-it("withdraws the badge without replacing a retiring summary read with a skipped query", async () => {
-  // Given: the real tab badge observes the same private Query as notification synchronization.
-  await openInbox();
-  await screen.findByRole("button", { name: "Notifications, 7 non lues" });
-  const queries = createInboxQueries(
-    { subject: "synthetic-owner", accountId: row.id },
-    async () => ({}),
-  );
-  const pending = Promise.withResolvers<Response>();
-  const ordinary = mockFetch.getMockImplementation();
-  if (!ordinary) {
-    throw new Error("Synthetic HTTP implementation is required");
-  }
-  mockFetch.mockImplementation((url: string, init: RequestInit) =>
-    url.endsWith("notification-summary")
-      ? pending.promise
-      : ordinary(url, init),
-  );
-  const diagnostics = jest.spyOn(console, "error");
-  const summaryRequests =
-    mockFetch.mock.calls.filter(([url]) => url.endsWith("notification-summary"))
-      .length + 1;
-  const read = privateClient
-    .fetchQuery({ ...queries.summary, retry: 1, retryDelay: 0 })
-    .catch(() => undefined);
-  await waitFor(() =>
-    expect(
-      mockFetch.mock.calls.filter(([url]) =>
-        url.endsWith("notification-summary"),
-      ),
-    ).toHaveLength(summaryRequests),
-  );
-
-  // When: SDK credential loss suspends private reads while the original summary is still pending.
-  mockAuth0.getCredentials.mockRejectedValueOnce({ code: "NO_CREDENTIALS" });
-  await act(async () => {
-    await privateSession.getCredentials().catch(() => undefined);
-  });
-  await waitFor(() =>
-    expect(privateSession.status).toBe("reauthentication-required"),
-  );
-  await act(async () => {
-    pending.reject(
-      new TypeError("Original summary failed after credential loss"),
-    );
-    await jest.advanceTimersByTimeAsync(0);
-    await read;
-  });
-
-  // Then: the old count disappears and no retired attempt reaches a skipped function or another HTTP read.
-  expect(screen.queryByRole("button", { name: /Notifications, 7/ })).toBeNull();
-  expect(diagnostics).not.toHaveBeenCalledWith(
-    expect.stringContaining(
-      "Attempted to invoke queryFn when set to skipToken",
-    ),
-  );
-  expect(
-    mockFetch.mock.calls.filter(([url]) =>
-      url.endsWith("notification-summary"),
-    ),
-  ).toHaveLength(summaryRequests);
-});
 
 it.each([false, true])(
   "retains server reading after a detail failure with lost acknowledgement=%s",
@@ -388,7 +315,7 @@ it.each([false, true])(
       await screen.findByRole("link", { name: /— lue$/ }),
     ).toBeOnTheScreen();
     expect(
-      await screen.findByRole("button", { name: "Notifications, 6 non lues" }),
+      await screen.findByRole("button", { name: "Notifications" }),
     ).toBeOnTheScreen();
     const commands = mockFetch.mock.calls.filter(
       ([, init]) => init.method === "PATCH",
@@ -423,9 +350,6 @@ it.each(["owner", "foreign", "guest"] as const)(
       }
       if (path.endsWith("/notifications")) {
         return Response.json({ notifications: [] });
-      }
-      if (path.endsWith("/notification-summary")) {
-        return Response.json({ unreadCount: 0 });
       }
       return ordinary(url, init);
     });
@@ -508,7 +432,7 @@ it.each(["professional", "contributed"] as const)(
     const user = userEvent.setup();
     await screen.findByRole("link", { name: /non lue$/ });
     expect(
-      await screen.findByRole("button", { name: "Notifications, 7 non lues" }),
+      await screen.findByRole("button", { name: "Notifications" }),
     ).toBeOnTheScreen();
 
     // When
@@ -608,9 +532,6 @@ it("removes a currently unavailable match from the real inbox despite a delayed 
     if (url.endsWith(`/matches/${row.match.id}`)) {
       return Promise.resolve(new Response(null, { status: 404 }));
     }
-    if (url.endsWith("notification-summary")) {
-      return Promise.reject(new TypeError("offline summary"));
-    }
     return ordinary(url, init);
   });
   const oldPage = privateClient
@@ -631,7 +552,6 @@ it("removes a currently unavailable match from the real inbox despite a delayed 
   expect(
     privateClient.getQueryData(queries.inbox.queryKey)?.pages[0].notifications,
   ).toEqual([]);
-  expect(privateClient.getQueryData(queries.summary.queryKey)).toBeUndefined();
 
   // When
   mockFetch.mockRejectedValue(new TypeError("offline"));
@@ -667,10 +587,7 @@ it("keeps current-match restriction handling mounted while this subject's privat
     if (url.endsWith(`/matches/${row.match.id}`)) {
       return Promise.resolve(new Response(null, { status: 404 }));
     }
-    if (
-      url.endsWith("/notifications") ||
-      url.endsWith("notification-summary")
-    ) {
+    if (url.endsWith("/notifications")) {
       return Promise.reject(new TypeError("offline private refresh"));
     }
     return ordinary(url, init);
@@ -693,7 +610,6 @@ it("keeps current-match restriction handling mounted while this subject's privat
   expect(
     privateClient.getQueryData(queries.inbox.queryKey)?.pages[0].notifications,
   ).toEqual([]);
-  expect(privateClient.getQueryData(queries.summary.queryKey)).toBeUndefined();
 
   // When: the same account returns, while the ordinary inbox refresh is offline.
   suspended = false;
@@ -770,13 +686,12 @@ it.each(["before", "after-without-result", "definitive-result"] as const)(
   },
 );
 
-it("refreshes the real inbox summary after returning from the match destination", async () => {
+it("keeps the notification tab without a counter after returning from the match destination", async () => {
   // Given
   await openInbox();
   const user = userEvent.setup();
   await user.press(await screen.findByRole("link", { name: /non lue$/ }));
   await screen.findByRole("header", { name: "Stream link" });
-  total = 0;
 
   // When
   await user.press(screen.getByRole("button", { name: "Retour" }));
@@ -842,22 +757,6 @@ it("retains the public search visit through its native sheets and a bottom-tab r
   );
 });
 
-it("removes the zero-count tab badge after a confirmed summary refresh", async () => {
-  // Given
-  await openInbox();
-  await screen.findByRole("button", { name: "Notifications, 7 non lues" });
-  total = 0;
-
-  // When
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-
-  // Then
-  expect(
-    await screen.findByRole("button", { name: "Notifications" }),
-  ).toBeOnTheScreen();
-  expect(screen.queryByText("7")).toBeNull();
-});
-
 it("retains native in-flight pagination on tab return and allows explicit refresh afterward", async () => {
   // Given
   const delayed = Promise.withResolvers<Response>();
@@ -897,9 +796,7 @@ it("retains native in-flight pagination on tab return and allows explicit refres
   // When
   await user.press(screen.getByRole("button", { name: "Profil" }));
   await waitFor(() => expect(screen).toHavePathname("/profile"));
-  await user.press(
-    screen.getByRole("button", { name: "Notifications, 7 non lues" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Notifications" }));
 
   // Then: returning to an existing observer does not replace its in-flight native page.
   expect(
@@ -973,15 +870,15 @@ it("distinguishes append retry from failed refresh in the real inbox route", asy
   failRefresh = true;
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
-  // Then
+  // Then: continuation failure preserves rows, whereas a required full read has its scoped card.
   expect(
     await screen.findByRole("alert", { name: /Une erreur est survenue/ }),
   ).toBeOnTheScreen();
-  expect(screen.getByRole("link", { name: /^Le résultat/ })).toBeOnTheScreen();
+  expect(screen.queryByRole("link", { name: /^Le résultat/ })).toBeNull();
   expect(
-    screen.getByRole("link", { name: /^Une autre information/ }),
-  ).toBeOnTheScreen();
-  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+    screen.queryByRole("link", { name: /^Une autre information/ }),
+  ).toBeNull();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls
       .filter(([url]) => new URL(url).searchParams.has("cursor"))
@@ -1004,14 +901,12 @@ it("retains every native tab action and its full accessible name with enlarged t
   await waitFor(() => expect(screen).toHavePathname("/profile"));
   await user.press(screen.getByRole("button", { name: "Rechercher" }));
   await waitFor(() => expect(screen).toHavePathname("/search"));
-  await user.press(
-    screen.getByRole("button", { name: "Notifications, 7 non lues" }),
-  );
+  await user.press(screen.getByRole("button", { name: "Notifications" }));
 
   // Then
   expect(
     await screen.findByRole("button", {
-      name: "Notifications, 7 non lues",
+      name: "Notifications",
       selected: true,
     }),
   ).toBeOnTheScreen();
