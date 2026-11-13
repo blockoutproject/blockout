@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const completionMarker = "blockout:v2-discovery-complete";
 
-/** Reads only this installation's common V2 discovery flag; storage failures remain retryable. */
+/** Reads only this installation's optional discovery flag; its owner treats failure as incomplete. */
 export async function readDiscoveryCompletion(): Promise<boolean> {
   return (await AsyncStorage.getItem(completionMarker)) === "true";
 }

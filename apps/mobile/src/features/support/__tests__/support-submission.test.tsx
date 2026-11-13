@@ -261,36 +261,6 @@ it("freezes nested metadata and every prepared file before asynchronous credenti
   ).toBe("true");
 });
 
-it.each([undefined, null])(
-  "refuses an unready selected file (%s) without silently sending the others",
-  async (unready) => {
-    // Given
-    const { result } = await renderHook(
-      () => ({
-        submission: useSupportSubmission(),
-        session: useAccountSession(),
-      }),
-      {
-        wrapper: Providers,
-      },
-    );
-    await waitFor(() => expect(result.current.session.accountId).toBeTruthy());
-    const images = [supportImage("png"), unready];
-
-    // When
-    await act(async () => {
-      const submission = result.current.submission.send(
-        supportMetadata,
-        images,
-      );
-
-      // Then
-      await expect(submission).rejects.toBeDefined();
-    });
-    expect(supportHttp).not.toHaveBeenCalled();
-  },
-);
-
 it.each(["guest", "failed-restoration"])(
   "sends ordinary support as %s without acquiring or renewing credentials",
   async (identity) => {

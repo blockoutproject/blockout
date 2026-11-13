@@ -51,6 +51,8 @@ npm run test --workspace=@blockout/mobile -- --runInBand --runTestsByPath src/fe
 
 Exercise the form and access rows through the actual application root, F05 session, F12 admission, F13 transport and support routes. Keep account data absent or its existing read failed and verify the same Support draft stays editable without an active account/context lookup; late passive contact must not replace an edited address. Expect no credential acquisition on ordinary preparation/sending, no direct-route bypass of global gates, reliable allowlisted context and no ownership authority from a declared contact or account. Controlled 201 responses establish client behavior, not real private receipt.
 
+Open an invalid choice route from a populated form. Expect contextual guidance and Close/Back to the retained draft, without a retry action for a nonexistent read.
+
 ## Native attachments and current-visit lifetime
 
 Use compatible native iOS and Android builds with representative fictional images; native simulators/emulators are suitable. Select portrait/landscape PNG/JPEG and an orientation-bearing library photo, return from and cancel the actual picker, verify passive thumbnails and replace/remove a preparation refusal. Expect PNG/JPEG output with preserved proportions/orientation/legibility, reachable replacement/removal and final-send actions, no silent omission and retained text/other valid images. Complete an actual native-to-local-server multipart round trip with provider effects controlled; that proves the native transport path, not private receipt.

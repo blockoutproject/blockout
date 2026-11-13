@@ -70,7 +70,7 @@
 
 **Rationale**: The native integrated browser is explicitly suitable for privacy-policy reading. HTML serves mobile and ordinary browsers directly without an API/client/rendering chain. Publication remains the existing reviewed backend release. F13 already accepts shared availability.
 
-**Alternatives considered**: A custom mobile reader, JSON document API, Markdown conversion, CMS, separate legal hosting and acceptance history are unnecessary. Missing-page and network handling use ordinary browser/server behavior.
+**Alternatives considered**: A custom mobile reader, JSON document API, Markdown conversion, CMS, separate legal hosting and acceptance history are unnecessary. Native opening rejection uses brief feedback and another explicit link press at its caller; subsequent missing-page and network handling use ordinary browser/server behavior, without a Blockout read/retry lifecycle.
 
 **Evidence limit**: The public privacy URL was readable during inspection; it does not certify its text. Actual controller identity, contact, processing, recipients, transfers and retention must be reviewed before publication. Fictional prototype copy is never deployable legal content.
 

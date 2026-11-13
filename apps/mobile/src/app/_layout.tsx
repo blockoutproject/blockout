@@ -91,23 +91,7 @@ function Navigation({
   );
 }
 
-/** Defers age I/O until discovery releases ordinary entry, preserving independent discovery read/retry. */
-function InstallationNavigation({
-  registration,
-  privacy,
-}: Readonly<{
-  registration: PushRegistration;
-  privacy: ReturnType<typeof createInstallationAdvertisingPrivacy>;
-}>) {
-  const discovery = useDiscovery();
-  return (
-    <AgeDeclarationProvider enabled={discovery.complete} privacy={privacy}>
-      <Navigation registration={registration} />
-    </AgeDeclarationProvider>
-  );
-}
-
-/** Projects SDK-active membership into the sole system theme owner without remounting routes. */
+/** Projects membership into the theme and defers age I/O until discovery releases entry. */
 function ThemedNavigation({
   registration,
   privacy,
@@ -117,21 +101,19 @@ function ThemedNavigation({
 }>) {
   const { state } = usePro();
   const session = useAccountSession();
+  const discovery = useDiscovery();
   return (
     <ThemeProvider proAccent={state.status === "active"}>
       <ActionFeedbackProvider scopeKey={session.subject ?? "guest"}>
-        <DiscoveryProvider>
-          <InstallationNavigation
-            registration={registration}
-            privacy={privacy}
-          />
-        </DiscoveryProvider>
+        <AgeDeclarationProvider enabled={discovery.complete} privacy={privacy}>
+          <Navigation registration={registration} />
+        </AgeDeclarationProvider>
       </ActionFeedbackProvider>
     </ThemeProvider>
   );
 }
 
-/** Starts public checking above F14/Auth0; all session restoration and returns preserve that process owner. */
+/** Keeps public checking and discovery above account-subject lifetimes; secure initialization still gates Auth0. */
 function RootLayout() {
   useEffect(cleanupMatchDocuments, []);
   const [queryClient] = useState(createQueryClient);
@@ -147,25 +129,27 @@ function RootLayout() {
     <GestureHandlerRootView style={styles.root}>
       <QueryClientProvider client={queryClient}>
         <ApplicationAccessProvider>
-          <AccountSessionProvider
-            preparePushRemoval={registration.prepareRemoval}
-            fallback={
-              <ThemeProvider>
-                <ActionFeedbackProvider scopeKey="startup">
-                  <StartupAccessGate />
-                </ActionFeedbackProvider>
-              </ThemeProvider>
-            }
-          >
-            <AccessAdmissionProvider>
-              <ProProvider>
-                <ThemedNavigation
-                  registration={registration}
-                  privacy={privacy}
-                />
-              </ProProvider>
-            </AccessAdmissionProvider>
-          </AccountSessionProvider>
+          <DiscoveryProvider>
+            <AccountSessionProvider
+              preparePushRemoval={registration.prepareRemoval}
+              fallback={
+                <ThemeProvider>
+                  <ActionFeedbackProvider scopeKey="startup">
+                    <StartupAccessGate />
+                  </ActionFeedbackProvider>
+                </ThemeProvider>
+              }
+            >
+              <AccessAdmissionProvider>
+                <ProProvider>
+                  <ThemedNavigation
+                    registration={registration}
+                    privacy={privacy}
+                  />
+                </ProProvider>
+              </AccessAdmissionProvider>
+            </AccountSessionProvider>
+          </DiscoveryProvider>
         </ApplicationAccessProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
