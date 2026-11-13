@@ -287,13 +287,16 @@ function ActiveScene({
           </Text>
         );
       }
+      const read =
+        editing.profile.isError || editing.profile.isPending
+          ? editing.profile
+          : editing.query;
       return (
         <ReadFeedback
           loadingContent={<ModerationMatchLoading />}
-          query={
-            editing.profile.isError || editing.profile.isPending
-              ? editing.profile
-              : editing.query
+          query={read}
+          onRetry={
+            active ? () => read.refetch({ cancelRefetch: false }) : undefined
           }
         />
       );
@@ -507,13 +510,16 @@ function VersionScene({
           </Text>
         );
       }
+      const read =
+        reading.profile.isError || reading.profile.isPending
+          ? reading.profile
+          : query;
       return (
         <ReadFeedback
           loadingContent={<ModerationMatchLoading />}
-          query={
-            reading.profile.isError || reading.profile.isPending
-              ? reading.profile
-              : query
+          query={read}
+          onRetry={
+            active ? () => read.refetch({ cancelRefetch: false }) : undefined
           }
         />
       );

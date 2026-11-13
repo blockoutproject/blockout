@@ -306,13 +306,16 @@ function QueueScene({
         );
       }
       if (!current || query.isError) {
+        const read =
+          editing.profile.isError || editing.profile.isPending
+            ? editing.profile
+            : query;
         return (
           <ReadFeedback
             loadingContent={<ModerationQueueLoading />}
-            query={
-              editing.profile.isError || editing.profile.isPending
-                ? editing.profile
-                : query
+            query={read}
+            onRetry={
+              active ? () => read.refetch({ cancelRefetch: false }) : undefined
             }
           />
         );
@@ -374,14 +377,21 @@ function QueueScene({
       renderItem={({ item }) => <ModerationQueueRow item={item} />}
       ListFooterComponent={
         <>
-          <ListContinuation
-            loading={query.isFetchingNextPage}
-            failed={query.isError}
-            disabled={!active || query.isFetching}
-            onRetry={() =>
-              void (query.isFetchNextPageError ? more() : refresh())
-            }
-          />
+          {query.isRefetchError ? (
+            <ListContinuation
+              loading={false}
+              failed
+              disabled={!active || query.isFetching}
+              onRetry={() => void refresh()}
+            />
+          ) : (
+            <ListContinuation
+              loading={query.isFetchingNextPage}
+              failed={query.isFetchNextPageError}
+              disabled={!active || query.isFetching}
+              onRetry={() => void more()}
+            />
+          )}
           <BottomContentSpacer />
         </>
       }

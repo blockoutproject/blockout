@@ -40,7 +40,12 @@ export function SearchResults({
   const list = useRef<LegendListRef>(null);
   const offset = useRef(0);
   if (items.length === 0) {
-    return <PageScrollView>{emptyComponent}</PageScrollView>;
+    return (
+      <PageScrollView>
+        {emptyComponent}
+        {continuation}
+      </PageScrollView>
+    );
   }
   return (
     <PageList
@@ -64,9 +69,7 @@ export function SearchResults({
       }}
       ListFooterComponent={
         <>
-          {continuation ? (
-            <View style={styles.continuation}>{continuation}</View>
-          ) : null}
+          {continuation}
           <BottomContentSpacer />
         </>
       }
@@ -139,7 +142,6 @@ export function SearchHeading({
 }
 
 const styles = StyleSheet.create({
-  continuation: { paddingTop: tokens.spacing.lg },
   toolbar: {
     flexDirection: "row",
     alignItems: "center",

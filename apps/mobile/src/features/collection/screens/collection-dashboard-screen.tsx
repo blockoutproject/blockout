@@ -407,6 +407,10 @@ function ControlDashboard({
     !isAccessDenied(query.error) &&
     current?.family === family &&
     current.seasonId === season?.id;
+  const continuationVisible =
+    !!results.data &&
+    !isAccessDenied(results.error) &&
+    (results.isFetchNextPageError || results.isFetchingNextPage);
   // Updated evidence may cross page boundaries; keep its latest value in the first observed position.
   const rows =
     isAccessDenied(query.error) || isAccessDenied(results.error)
@@ -458,6 +462,7 @@ function ControlDashboard({
       isAccessDenied(query.error) ||
       isAccessDenied(results.error) ||
       results.isFetching ||
+      (results.isError && !results.isFetchNextPageError) ||
       refreshing ||
       query.isFetching ||
       editing.activity.isPending ||
@@ -472,7 +477,12 @@ function ControlDashboard({
   /** Renders current control context and display actions independently of result-list feedback. */
   function renderHeader() {
     return (
-      <View style={[!rows.length && pageContentStyle, styles.section]}>
+      <View
+        style={[
+          !rows.length && !continuationVisible && pageContentStyle,
+          styles.section,
+        ]}
+      >
         {season && <SeasonIdentity season={season} />}
         {season?.state === "closed" && (
           <Text style={[tokens.typography.strong, { color: colors.text }]}>
@@ -560,6 +570,9 @@ function ControlDashboard({
 
   /** Distinguishes the initial result skeleton from failed or genuinely empty result reads. */
   function renderEmptyResults() {
+    if (continuationVisible) {
+      return null;
+    }
     return results.isLoading && !isAccessDenied(results.error) ? (
       <PageContent>
         <CollectionResultsLoading />
@@ -617,7 +630,9 @@ function ControlDashboard({
           data={rows}
           keyExtractor={(row) => `${row.scopeId}/${row.stage}/${row.phase}`}
           contentContainerStyle={
-            rows.length ? pageContentStyle : styles.emptyList
+            rows.length > 0 || continuationVisible
+              ? pageContentStyle
+              : styles.emptyList
           }
           ListHeaderComponent={renderHeader()}
           ItemSeparatorComponent={ListSeparator}
@@ -630,24 +645,22 @@ function ControlDashboard({
           renderItem={({ item }) => (
             <CollectionResult result={item} diagnostics={diagnostics} />
           )}
-          ListEmptyComponent={renderEmptyResults()}
+          ListEmptyComponent={renderEmptyResults() ?? undefined}
           ListFooterComponent={
             <>
               {!isAccessDenied(results.error) && results.hasNextPage ? (
-                <View style={styles.footer}>
-                  <ListContinuation
-                    loading={results.isFetchingNextPage}
-                    failed={results.isFetchNextPageError}
-                    disabled={
-                      results.isFetching ||
-                      refreshing ||
-                      query.isFetching ||
-                      editing.activity.isPending ||
-                      editing.request.isPending
-                    }
-                    onRetry={loadMore}
-                  />
-                </View>
+                <ListContinuation
+                  loading={results.isFetchingNextPage}
+                  failed={results.isFetchNextPageError}
+                  disabled={
+                    results.isFetching ||
+                    refreshing ||
+                    query.isFetching ||
+                    editing.activity.isPending ||
+                    editing.request.isPending
+                  }
+                  onRetry={loadMore}
+                />
               ) : undefined}
               <BottomContentSpacer />
             </>
@@ -661,5 +674,4 @@ function ControlDashboard({
 const styles = StyleSheet.create({
   emptyList: { flexGrow: 1 },
   section: { gap: tokens.spacing.lg, paddingBottom: tokens.spacing.lg },
-  footer: { gap: tokens.spacing.lg, paddingTop: tokens.spacing.lg },
 });

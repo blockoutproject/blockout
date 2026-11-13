@@ -50,8 +50,8 @@ const searchTabs = [
  * Public discovery with shared text and current examples cached per tab/filter context.
  * Filters retain one selection per sporting tab; empty/whitespace reads explicitly present examples.
  * The fixed heading follows that text intent while initial options and result cards are pending.
- * Native end events continue the selected focused context. Failed reads mask tab content and controls;
- * the shared card retries the same safe read/cursor. Query retains accepted pages; an old empty response
+ * Native end events continue the selected focused context. Initial/complete read failures use the scoped card;
+ * next-page failures retain rows and controls with footer Retry. Query retains accepted pages; an old empty response
  * cannot establish current absence. There is no refresh gesture or additional background read trigger.
  * Generated Unicode validation rejects over-limit text without truncating the user's draft.
  * The existing F10 route receives only Search provenance; RHF text and visit criteria stay local.
@@ -127,7 +127,10 @@ export function SearchScreen() {
   };
   const queries = { team: teamQuery, pool: poolQuery, club: clubQuery };
   const failed =
-    hasReadError(examples ? exampleQueries[resource] : queries[resource]) ||
+    (examples
+      ? hasReadError(exampleQueries[resource])
+      : hasReadError(queries[resource]) &&
+        !queries[resource].isFetchNextPageError) ||
     (!!sporting && !filters && hasReadError(sporting.query));
   let emptyDescription = "Essayez un autre nom.";
   if (examples) {

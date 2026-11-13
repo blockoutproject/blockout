@@ -21,7 +21,7 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { AppState, Dimensions, View } from "react-native";
+import { AppState, Dimensions, Text, View } from "react-native";
 import { PagedTabs } from "../../../shared/components/paged-tabs";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -677,54 +677,99 @@ it("retains the first attempted zone through departure, failure and explicit Ret
   }
 });
 
-it("retains calendar rows in Query while a failed refresh shows one card until explicit Retry succeeds", async () => {
-  // Given
-  await render(
-    <CalendarTab>
-      <SportingCalendar
-        selection={{ teamId: sportingId, category: "upcoming" }}
-      />
-    </CalendarTab>,
-    { wrapper: Providers },
-  );
-  await layoutNativeTabs();
-  await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
-  mockFetch.mockImplementation((url: string) =>
-    new URL(url).pathname.endsWith("/application-access")
-      ? Promise.resolve(Response.json(applicationAccessResponse()))
-      : Promise.resolve(Response.json({}, { status: 503 })),
-  );
+it.each([false, true])(
+  "keeps failed full refresh on its card after continuation failure = %s",
+  async (failedContinuation) => {
+    // Given
+    if (failedContinuation) {
+      calendar = { ...calendar, nextDay: "2026-09-21" };
+    }
+    await render(
+      <CalendarTab>
+        <SportingCalendar
+          selection={{ teamId: sportingId, category: "upcoming" }}
+        />
+      </CalendarTab>,
+      { wrapper: Providers },
+    );
+    await layoutNativeTabs();
+    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+    mockFetch.mockImplementation((url: string) =>
+      new URL(url).pathname.endsWith("/application-access")
+        ? Promise.resolve(Response.json(applicationAccessResponse()))
+        : Promise.resolve(Response.json({}, { status: 503 })),
+    );
+    if (failedContinuation) {
+      await fireEvent(
+        screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+        "endReached",
+      );
+      await screen.findByRole("button", { name: "Réessayer" });
+      expect(
+        screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+      ).toBeOnTheScreen();
+    }
+    const refreshRead = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url: string) =>
+      new URL(url).pathname.endsWith("/application-access")
+        ? Promise.resolve(Response.json(applicationAccessResponse()))
+        : refreshRead.promise,
+    );
+    mockFetch.mockClear();
 
-  // When
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-  await screen.findByRole("alert", { name: /Une erreur est survenue/ });
+    // When
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
-  // Then
-  expect(
-    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
-  ).not.toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Réessayer", busy: false }),
-  ).toBeOnTheScreen();
+    // Then: an outstanding full refresh keeps the accepted rows and native pull control.
+    await waitFor(() =>
+      expect(screen.getByLabelText("Actualiser les données")).toBeBusy(),
+    );
+    expect(
+      screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Réessayer" }),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
 
-  // When
-  mockFetch.mockImplementation((url: string) =>
-    Promise.resolve(
-      Response.json(
-        new URL(url).pathname.endsWith("/application-access")
-          ? applicationAccessResponse()
-          : { ...calendar, days: [] },
+    // When
+    await act(() => refreshRead.resolve(Response.json({}, { status: 503 })));
+    await screen.findByRole("alert", { name: /Une erreur est survenue/ });
+
+    // Then
+    expect(
+      screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls
+        .map(([url]) => new URL(url))
+        .filter((url) => url.pathname === "/matches")
+        .map((url) => url.searchParams.get("nextDay")),
+    ).toEqual([null]);
+
+    // When
+    mockFetch.mockImplementation((url: string) =>
+      Promise.resolve(
+        Response.json(
+          new URL(url).pathname.endsWith("/application-access")
+            ? applicationAccessResponse()
+            : { ...calendar, days: [], nextDay: undefined },
+        ),
       ),
-    ),
-  );
-  await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+    );
+    await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
 
-  // Then
-  await screen.findByText("Aucun match pour cette sélection");
-  expect(
-    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
-  ).not.toBeOnTheScreen();
-});
+    // Then
+    await screen.findByText("Aucun match pour cette sélection");
+    expect(
+      screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    ).not.toBeOnTheScreen();
+  },
+);
 
 it("keeps pagination unavailable while a successful first-page replacement is pending", async () => {
   // Given
@@ -838,7 +883,7 @@ it("selects normal new-zone loading and error before an explicit retry", async (
   ]);
 });
 
-it("replaces failed continuation content with one card and retries the same server cursor", async () => {
+it("keeps calendar rows and controls through failed continuation and retries the same server cursor", async () => {
   // Given: two complete days arrive through the real Query owner, with a controlled continuation failure.
   calendar = { ...calendar, nextDay: "2026-09-21" };
   const nextMatch = {
@@ -875,7 +920,9 @@ it("replaces failed continuation content with one card and retries the same serv
     <CalendarTab>
       <SportingCalendar
         selection={{ teamId: sportingId, category: "upcoming" }}
-      />
+      >
+        <Text>Calendar controls</Text>
+      </SportingCalendar>
     </CalendarTab>,
     { wrapper: Providers },
   );
@@ -891,25 +938,48 @@ it("replaces failed continuation content with one card and retries the same serv
   await screen.findByRole("button", {
     name: "Réessayer",
   });
-  // Then: the failed content is hidden while Query retains its pages and cursor.
+  // Then: the same calendar and its controls remain available at the failed boundary.
   expect(mockFetch).toHaveBeenCalledTimes(1);
   expect(
-    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
-  ).not.toBeOnTheScreen();
-  expect(screen.getAllByRole("alert")).toHaveLength(1);
+    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("Calendar controls")).toBeOnTheScreen();
+  expect(screen.getByText("Une erreur est survenue.")).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+
+  // When: native edge callbacks repeat and an explicit retry fails again.
+  await fireEvent(
+    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    "endReached",
+  );
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+  await screen.findByRole("button", { name: "Réessayer" });
+
+  // Then
+  expect(mockFetch).toHaveBeenCalledTimes(2);
+  expect(
+    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).toBeOnTheScreen();
 
   // When
   failNext = false;
   await userEvent.press(screen.getByRole("button", { name: /Réessayer/ }));
 
-  // Then: the failed continuation keeps its card and real button progress, with first-day rows still hidden.
+  // Then: the retained calendar shows only real continuation progress.
   expect(
-    await screen.findByRole("button", { name: "Réessayer", busy: true }),
+    await screen.findByRole("progressbar", { name: "Chargement de la suite…" }),
   ).toBeOnTheScreen();
-  expect(screen.getAllByRole("alert")).toHaveLength(1);
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   expect(
-    screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
-  ).not.toBeOnTheScreen();
+    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("Calendar controls")).toBeOnTheScreen();
+  await fireEvent(
+    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+    "endReached",
+  );
+  expect(mockFetch).toHaveBeenCalledTimes(3);
 
   // When
   await act(() => retryRead.resolve(Response.json(nextPage)));
@@ -919,7 +989,7 @@ it("replaces failed continuation content with one card and retries the same serv
     "endReached",
   );
 
-  // Then: retained first-day rows reappear; Retry uses the same cursor and exhaustion adds no request.
+  // Then: Retry uses the same cursor and actual exhaustion adds no request.
   expect(
     screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
   ).toBeOnTheScreen();
@@ -927,7 +997,7 @@ it("replaces failed continuation content with one card and retries the same serv
     mockFetch.mock.calls.map(([url]) =>
       new URL(url).searchParams.get("nextDay"),
     ),
-  ).toEqual(["2026-09-21", "2026-09-21"]);
+  ).toEqual(["2026-09-21", "2026-09-21", "2026-09-21"]);
   expect(
     screen.queryByRole("button", { name: /Réessayer/ }),
   ).not.toBeOnTheScreen();
@@ -1049,7 +1119,7 @@ it("keeps a delayed cursor failure in its original scene after departure", async
   // Then: the failed content stays scoped, with retained cursor and no request from the inactive scene.
   expect(
     screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
-  ).not.toBeOnTheScreen();
+  ).toBeOnTheScreen();
   await userEvent.press(
     await screen.findByRole("button", { name: "Réessayer" }),
   );
@@ -1059,7 +1129,7 @@ it("keeps a delayed cursor failure in its original scene after departure", async
       .filter((url) => url.pathname === "/matches")
       .map((url) => url.searchParams.get("nextDay")),
   ).toEqual(["2026-09-21"]);
-  expect(screen.getAllByRole("alert")).toHaveLength(1);
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 });
 
 it("keeps a pending former selection refresh outside the newly selected calendar", async () => {

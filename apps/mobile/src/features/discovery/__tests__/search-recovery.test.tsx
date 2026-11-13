@@ -1111,8 +1111,10 @@ it.each([
     );
 
     // Then
-    await screen.findByRole("alert");
-    expect(screen.queryByText(content)).not.toBeOnTheScreen();
+    await screen.findByText("Une erreur est survenue.");
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByText(content)).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Filtres" })).toBeOnTheScreen();
     expect(client.getQueryData(queryKey)).toEqual(accepted);
     expect(screen.queryByText(/Aucun résultat|Fin des résultats/)).toBeNull();
     const pending = Promise.withResolvers<Response>();
@@ -1129,8 +1131,9 @@ it.each([
 
     // Then
     expect(
-      screen.getByRole("button", { name: "Réessayer", busy: true }),
-    ).toBeDisabled();
+      screen.getByRole("progressbar", { name: "Chargement de la suite…" }),
+    ).toBeOnTheScreen();
+    expect(screen.getByText(content)).toBeOnTheScreen();
     expect(new URL(mockFetch.mock.calls[0][0]).searchParams.get("cursor")).toBe(
       "failed-next",
     );

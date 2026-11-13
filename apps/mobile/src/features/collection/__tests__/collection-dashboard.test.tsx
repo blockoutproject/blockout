@@ -944,6 +944,39 @@ it("retries failed result pages locally and keeps overlapping results current in
   ).toHaveLength(2);
 });
 
+it("keeps accepted empty result pages in continuation recovery without replacing the control", async () => {
+  // Given
+  mockFetch.mockImplementation((url, options) => {
+    const address = new URL(String(url));
+    if (!address.pathname.endsWith("/results")) {
+      return peer.reads(url, options);
+    }
+    return Promise.resolve(
+      address.searchParams.get("page") === "1"
+        ? refused(503)
+        : json({ items: [], page: 0, hasNext: true }),
+    );
+  });
+  await renderCollection(
+    <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
+  await screen.findByText("Aucun résultat observé");
+
+  // When
+  await fireEvent(screen.getByTestId("collection-results-list"), "endReached");
+
+  // Then
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(screen.getByText("Derniers résultats observés")).toBeOnTheScreen();
+  expect(screen.queryByText("Aucun résultat observé")).not.toBeOnTheScreen();
+  expect(screen.queryByText("Une erreur est survenue")).not.toBeOnTheScreen();
+  expect(screen.getByText("Une erreur est survenue.")).toBeOnTheScreen();
+});
+
 it.each([
   { projection: "results", status: 503 },
   { projection: "control", status: 500 },

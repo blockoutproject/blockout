@@ -31,7 +31,7 @@ import { isAccessDenied } from "../../../shared/api/access-denied";
 import { useTheme } from "../../../shared/theme/theme-provider";
 import { tokens } from "../../../shared/theme/tokens";
 import { useInboxQueries } from "../api/use-inbox-queries";
-import { refreshInbox, refreshNotificationSummary } from "../api/inbox-queries";
+import { refreshNotificationSummary } from "../api/inbox-queries";
 import { createReadNotificationOptions } from "../api/inbox-mutations";
 import { notificationExpiry } from "../state/inbox-expiry";
 import { NotificationItem } from "../components/notification-item";
@@ -94,7 +94,11 @@ function Inbox({
 }>) {
   const client = useQueryClient();
   const focused = useIsFocused();
-  const query = useInfiniteQuery({ ...queries.inbox, enabled: focused });
+  const query = useInfiniteQuery({
+    ...queries.inbox,
+    enabled: (state) => focused && state.state.status !== "error",
+  });
+  const continuationFailed = !!query.data && query.isFetchNextPageError;
   const command = useMutation(
     createReadNotificationOptions(client, owner, queries),
   );
@@ -127,7 +131,7 @@ function Inbox({
   async function refresh() {
     feedback.clear();
     const outcomes = await Promise.allSettled([
-      refreshInbox(client, queries),
+      query.refetch({ throwOnError: true }),
       refreshNotificationSummary(client, queries),
     ]);
     if (
@@ -175,6 +179,9 @@ function Inbox({
 
   /** Presents the list's empty state without changing Query ownership or starting reads. */
   function emptyContent() {
+    if (continuationFailed || query.isFetchingNextPage) {
+      return null;
+    }
     if (query.isLoading) {
       return (
         <PageContent>
@@ -244,26 +251,25 @@ function Inbox({
         }}
         keyExtractor={(item) => item.id}
         ItemSeparatorComponent={ListSeparator}
-        contentContainerStyle={rows.length ? pageContentStyle : styles.empty}
+        contentContainerStyle={
+          rows.length || continuationFailed || query.isFetchingNextPage
+            ? pageContentStyle
+            : styles.empty
+        }
         refreshControl={
           rows.length > 0 ? (
             <DataRefreshControl onRefresh={refresh} />
           ) : undefined
         }
-        ListEmptyComponent={emptyContent()}
+        ListEmptyComponent={emptyContent() ?? undefined}
         ListFooterComponent={
           <>
-            {(query.isFetchingNextPage ||
-              (!!query.data && query.isFetchNextPageError)) && (
-              <View style={rows.length ? styles.continuation : undefined}>
-                <ListContinuation
-                  loading={query.isFetchingNextPage}
-                  failed={!!query.data && query.isFetchNextPageError}
-                  disabled={query.isFetching}
-                  onRetry={() => void loadMore()}
-                />
-              </View>
-            )}
+            <ListContinuation
+              loading={query.isFetchingNextPage}
+              failed={continuationFailed}
+              disabled={query.isFetching}
+              onRetry={() => void loadMore()}
+            />
             <BottomContentSpacer />
           </>
         }
@@ -286,5 +292,4 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   empty: { flexGrow: 1 },
-  continuation: { paddingTop: tokens.layout.list.gap },
 });

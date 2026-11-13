@@ -18,7 +18,7 @@ import { PageHeader } from "../../../shared/components/page-header";
 import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
 import { useNavigation, useRouter } from "expo-router";
 import { Layers, RefreshCw } from "lucide-react-native";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text } from "react-native";
 
 import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
 import { Button } from "../../../shared/components/button";
@@ -49,6 +49,11 @@ export function SourceChildrenScreen({
     : !isAccessDenied(query.error) && query.isLoading;
   const FeedbackLayout = pending ? PageContent : ScreenState;
   const denied = isAccessDenied(query.error);
+  const continuationVisible =
+    authority.enabled &&
+    !!query.data &&
+    !denied &&
+    (query.isFetchNextPageError || query.isFetchingNextPage);
   // Catalog changes can repeat a child across pages; retain its first position with its latest representation.
   const items = denied
     ? []
@@ -78,7 +83,8 @@ export function SourceChildrenScreen({
       !navigation.isFocused() ||
       !query.hasNextPage ||
       denied ||
-      query.isFetching
+      query.isFetching ||
+      (query.isError && !query.isFetchNextPageError)
     ) {
       return;
     }
@@ -146,7 +152,9 @@ export function SourceChildrenScreen({
         data={authority.enabled ? items : []}
         keyExtractor={(item) => item.id}
         contentContainerStyle={
-          authority.enabled && items.length ? pageContentStyle : styles.list
+          authority.enabled && (items.length > 0 || continuationVisible)
+            ? pageContentStyle
+            : styles.list
         }
         ItemSeparatorComponent={ListSeparator}
         onEndReached={() => {
@@ -175,19 +183,19 @@ export function SourceChildrenScreen({
           )
         }
         ListEmptyComponent={
-          <FeedbackLayout>{renderEmptyState()}</FeedbackLayout>
+          continuationVisible ? undefined : (
+            <FeedbackLayout>{renderEmptyState()}</FeedbackLayout>
+          )
         }
         ListFooterComponent={
           <>
             {authority.enabled && !denied && query.hasNextPage ? (
-              <View style={styles.footer}>
-                <ListContinuation
-                  loading={query.isFetchingNextPage}
-                  failed={query.isFetchNextPageError}
-                  disabled={query.isFetching}
-                  onRetry={loadMore}
-                />
-              </View>
+              <ListContinuation
+                loading={query.isFetchingNextPage}
+                failed={query.isFetchNextPageError}
+                disabled={query.isFetching}
+                onRetry={loadMore}
+              />
             ) : undefined}
             <BottomContentSpacer />
           </>
@@ -199,5 +207,4 @@ export function SourceChildrenScreen({
 
 const styles = StyleSheet.create({
   list: { flexGrow: 1 },
-  footer: { paddingTop: tokens.spacing.lg },
 });

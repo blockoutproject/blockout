@@ -114,7 +114,7 @@ export interface SportingCalendarViewProps {
   children?: ReactNode;
 }
 
-/** Keeps complete days/cursors in Query while failed calendar content and controls yield to one scoped Retry card. */
+/** Keeps the native calendar mounted during continuation; other read failures retain their scoped card. */
 export function SportingCalendarView({
   calendar,
   active = true,
@@ -161,16 +161,25 @@ export function SportingCalendarView({
     }
   }
 
-  /** A card resumes its failed cursor or rereads the same traversal, without changing its loading zone. */
+  /** A card rereads the same traversal without changing its loading zone. */
   async function retry() {
     if (!active || !navigation.isFocused()) {
       return;
     }
-    if (calendar.isFetchNextPageError) {
-      await calendar.fetchNextPage({ cancelRefetch: false });
-    } else {
-      await calendar.refetch({ cancelRefetch: false });
+    await calendar.refetch({ cancelRefetch: false });
+  }
+
+  async function retryNextPage() {
+    if (
+      !active ||
+      !navigation.isFocused() ||
+      refreshing ||
+      calendar.isFetching ||
+      !calendar.hasNextPage
+    ) {
+      return;
     }
+    await calendar.fetchNextPage({ cancelRefetch: false });
   }
 
   /** Only an active idle successful traversal may request its server-owned continuation automatically. */
@@ -187,7 +196,11 @@ export function SportingCalendarView({
     }
   }
 
-  if (hasReadError(calendar)) {
+  // A full pull retains the continuation's previous Query error until its new read settles.
+  if (
+    hasReadError(calendar) &&
+    (!calendar.data || (!calendar.isFetchNextPageError && !refreshing))
+  ) {
     return (
       <PageScrollView>
         <ScreenState>
@@ -209,7 +222,7 @@ export function SportingCalendarView({
         fetching={calendar.isFetching}
       />
     ) : undefined;
-  if (rows.length === 0) {
+  if (rows.length === 0 && !calendar.hasNextPage) {
     return (
       <PageScrollView refreshControl={refreshControl}>
         {calendar.isPending &&
@@ -317,8 +330,9 @@ export function SportingCalendarView({
         <>
           <ListContinuation
             loading={calendar.isFetchingNextPage}
-            failed={false}
-            onRetry={loadMore}
+            failed={calendar.hasNextPage && calendar.isFetchNextPageError}
+            disabled={!active || refreshing || calendar.isFetching}
+            onRetry={() => void retryNextPage()}
           />
           <BottomContentSpacer />
         </>
