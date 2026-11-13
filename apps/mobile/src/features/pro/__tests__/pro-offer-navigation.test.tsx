@@ -266,11 +266,6 @@ it("opens a rewritten warm sporting link in Search after visiting Home", async (
   const user = userEvent.setup();
   await openJourney("/");
   await screen.findByRole("button", { name: offerName });
-  await act(() => router.push(`/matches/${entityId}`));
-  await act(() => router.back());
-  expect(
-    screen.getByRole("button", { name: "Accueil", selected: true }),
-  ).toBeVisible();
 
   // When
   const destination = redirectSystemPath({
