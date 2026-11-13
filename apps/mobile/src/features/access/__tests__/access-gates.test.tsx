@@ -10,13 +10,7 @@ import {
 } from "@testing-library/react-native";
 import { Stack, router, useLocalSearchParams } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
-import {
-  AppState,
-  Linking,
-  Text,
-  Pressable,
-  type AppStateStatus,
-} from "react-native";
+import { AppState, Text, Pressable, type AppStateStatus } from "react-native";
 import type { ComponentType } from "react";
 import { CredentialsManagerErrorCodes } from "react-native-auth0";
 import { AccessGateScreen } from "../screens/access-gate-screen";
@@ -293,9 +287,9 @@ it("keeps the current complete check on native focus and reconnect", async () =>
 });
 
 it.each(["maintenance", "update"] as const)(
-  "retains known %s and its actions through a failed complete recheck until successful Retry",
+  "shows only read failure while keeping the known %s restriction until a complete recovery",
   async (restriction) => {
-    // Given: real admission and transport validation; native store I/O is controlled.
+    // Given: real admission and transport validation with controlled HTTP I/O.
     const full = applicationAccessResponse();
     full.maintenance.active = restriction === "maintenance";
     full.maintenance.message = "Service maintenance";
@@ -321,7 +315,11 @@ it.each(["maintenance", "update"] as const)(
     expect(
       await screen.findByRole("alert", { name: "Une erreur est survenue" }),
     ).toBeOnTheScreen();
-    expect(screen.getByRole("header", { name: title })).toBeOnTheScreen();
+    expect(screen.queryByRole("header", { name: title })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Mettre à jour l’application" }),
+    ).toBeNull();
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
     expect(screen.queryByText("Ordinary home")).toBeNull();
     expect(screen.queryByLabelText("E-mail de réponse")).toBeNull();
     expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
@@ -335,34 +333,29 @@ it.each(["maintenance", "update"] as const)(
     // Then
     expect(screen.getByRole("alert")).toBeOnTheScreen();
     expect(screen.getByRole("button", { name: "Réessayer" })).toBeBusy();
-    expect(screen.getByRole("header", { name: title })).toBeOnTheScreen();
-    if (restriction === "update") {
-      // When: store opening is independent of the pending complete GET.
-      jest
-        .spyOn(Linking, "openURL")
-        .mockRejectedValue(new Error("Store unavailable"));
-      await user.press(
-        screen.getByRole("button", { name: "Mettre à jour l’application" }),
-      );
+    expect(screen.queryByRole("header", { name: title })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Mettre à jour l’application" }),
+    ).toBeNull();
 
-      // Then
-      expect(Linking.openURL).toHaveBeenCalledWith(
-        "https://apps.apple.com/app/id123",
-      );
-      expect(
-        await screen.findByText(
-          "Une erreur est survenue. Veuillez réessayer plus tard.",
-        ),
-      ).toBeOnTheScreen();
-      expect(screen.getByRole("button", { name: "Réessayer" })).toBeBusy();
+    // When
+    await act(async () => retry.resolve(json(full)));
+
+    // Then: a successful complete read restores the applicable gate and its actions.
+    expect(
+      await screen.findByRole("header", { name: title }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByText("Ordinary home")).toBeNull();
+    if (restriction === "update") {
       expect(
         screen.getByRole("button", { name: "Mettre à jour l’application" }),
       ).toBeEnabled();
-      expect(mockFetch).toHaveBeenCalledTimes(6);
     }
 
-    // When
-    await act(async () => retry.resolve(json(applicationAccessResponse())));
+    // When: a later explicit complete read confirms that every restriction is lifted.
+    mockFetch.mockImplementation(async () => json(applicationAccessResponse()));
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
     // Then
     expect(await screen.findByText("Ordinary home")).toBeOnTheScreen();

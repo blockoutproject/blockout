@@ -55,6 +55,7 @@ function useProcessAccess() {
       versions: query.data?.versions,
       complete: query.data,
       checking: query.isFetching,
+      error: query.error,
     },
     checking: query.isFetching,
     query,

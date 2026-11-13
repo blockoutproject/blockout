@@ -167,6 +167,41 @@ it("does not admit the public from a successful partial management read", async 
   await waitFor(() => expect(result.current.access.ordinary).toBe(true));
 });
 
+it("retains complete data but closes ordinary presentation after a failed complete recheck", async () => {
+  // Given
+  full = applicationAccessResponse();
+  const { result } = await renderAccessHooks();
+  await waitFor(() => expect(result.current.access.ordinary).toBe(true));
+  mockFetch.mockImplementation(async (url) => {
+    if (String(url).endsWith("/application-access")) {
+      throw new Error("Complete read unavailable");
+    }
+    return Response.json(account);
+  });
+
+  // When
+  await act(async () => {
+    void result.current.access.retry();
+    await jest.advanceTimersByTimeAsync(8_000);
+  });
+
+  // Then
+  expect(result.current.access.ordinary).toBe(false);
+  expect(result.current.access.gate).toBe("unavailable");
+  expect(result.current.access.snapshot.complete).toEqual(full);
+
+  // When
+  mockFetch.mockImplementation(async (url) =>
+    Response.json(String(url).endsWith("/accounts/me") ? account : full),
+  );
+  await act(async () => {
+    await result.current.access.retry();
+  });
+
+  // Then
+  await waitFor(() => expect(result.current.access.ordinary).toBe(true));
+});
+
 it("retains a known operator through technical failure but withdraws refused authority", async () => {
   // Given
   const { result } = await renderAccessHooks();

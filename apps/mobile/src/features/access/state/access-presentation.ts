@@ -12,9 +12,10 @@ export interface AccessSnapshot {
   versions?: ApplicationVersionsResponse;
   complete?: ApplicationAccessResponse;
   checking?: boolean;
+  error?: unknown;
 }
 
-/** Chooses the approved maintenance-first presentation without allowing any minimum-version exception. */
+/** A failed complete read stays closed; confirmed configuration presents maintenance before update. */
 export function accessPresentation(
   snapshot: AccessSnapshot,
   bypassing = false,
@@ -25,11 +26,17 @@ export function accessPresentation(
     ? installedVersionStatus(versions.minimumVersion)
     : "unavailable";
   const maintenance = snapshot.maintenance?.active === true && !bypassing;
+  const failed = snapshot.error != null;
   const ordinary =
-    snapshot.complete !== undefined && version === "satisfied" && !maintenance;
+    snapshot.complete !== undefined &&
+    !failed &&
+    version === "satisfied" &&
+    !maintenance;
   let gate: "maintenance" | "update" | "checking" | "unavailable" =
     "unavailable";
-  if (maintenance) {
+  if (failed) {
+    gate = "unavailable";
+  } else if (maintenance) {
     gate = "maintenance";
   } else if (version === "outdated") {
     gate = "update";

@@ -53,12 +53,14 @@ function GateView({
   onClose,
 }: Readonly<GateViewProps>) {
   const { colors } = useTheme();
+  const readFailed = query ? hasReadError(query) : false;
   const update = gate === "update";
   const inMaintenance = gate === "maintenance";
   const simple = gate === "checking" || gate === "unavailable";
   const image = inMaintenance ? maintenance?.imageUrl : null;
   let title = "";
-  let badge = gate === "checking" ? "VÉRIFICATION" : "INDISPONIBLE";
+  let badge =
+    gate === "checking" && !readFailed ? "VÉRIFICATION" : "INDISPONIBLE";
   let message: string | null | undefined;
   if (inMaintenance) {
     title = "Blockout est en maintenance";
@@ -85,7 +87,7 @@ function GateView({
 
   /** Keeps pending/unavailable recovery distinct from maintenance and update presentation. */
   function renderContent() {
-    if (gate === "checking" && (!query || !hasReadError(query))) {
+    if (gate === "checking" && !readFailed) {
       return (
         <PageContent>
           <LoadingGroup label="Vérification de l’accès" style={styles.pending}>
@@ -162,15 +164,6 @@ function GateView({
             </Pressable>
           )}
         </View>
-        {query && hasReadError(query) && (
-          <ScreenState>
-            <ReadFeedback
-              query={query}
-              loadingContent={null}
-              onRetry={onRefresh}
-            />
-          </ScreenState>
-        )}
       </>
     );
   }
@@ -207,7 +200,6 @@ function GateView({
             <DataRefreshControl
               onRefresh={onRefresh}
               fetching={query?.isFetching}
-              enabled={!query || !hasReadError(query)}
             />
           ) : undefined
         }
