@@ -159,7 +159,7 @@ export const membershipColors = {
   },
 };
 
-/** Core spacing values; semantic roles below retain their Figma aliases rather than parallel numbers. */
+/** Semantic spacing roles reuse these core values rather than introducing parallel numbers. */
 const spacing = {
   xs: 4,
   tight: 6,
