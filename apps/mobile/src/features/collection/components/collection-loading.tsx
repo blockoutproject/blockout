@@ -146,7 +146,7 @@ function DestinationLoading() {
 
 const styles = StyleSheet.create({
   rows: { gap: tokens.spacing.lg },
-  actions: { flexDirection: "row", gap: tokens.spacing.compact },
+  actions: { flexDirection: "row", gap: tokens.layout.actions.gap },
   card: {
     flexDirection: "row",
     alignItems: "center",

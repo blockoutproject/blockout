@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     minHeight: tokens.touch.minimum,
   },
   addressText: { flex: 1 },
-  actions: { flexDirection: "row", gap: tokens.spacing.sm },
+  actions: { flexDirection: "row", gap: tokens.layout.actions.gap },
   action: { flex: 1 },
   decisions: { gap: tokens.spacing.xs },
   reports: {

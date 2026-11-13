@@ -286,20 +286,22 @@ export function ProfileForm({
             </View>
           </Surface>
 
-          <Button
-            label="Enregistrer"
-            fullWidth
-            onPress={() => void handleSubmit(submit)()}
-            disabled={!isDirty || disabled || busy}
-            loading={save.isPending}
-          />
-          <Button
-            label="Annuler"
-            variant="secondary"
-            fullWidth
-            disabled={busy}
-            onPress={onCancel}
-          />
+          <View style={styles.actions}>
+            <Button
+              label="Enregistrer"
+              fullWidth
+              onPress={() => void handleSubmit(submit)()}
+              disabled={!isDirty || disabled || busy}
+              loading={save.isPending}
+            />
+            <Button
+              label="Annuler"
+              variant="secondary"
+              fullWidth
+              disabled={busy}
+              onPress={onCancel}
+            />
+          </View>
         </View>
       </PageContent>
     </FormScrollView>
@@ -307,6 +309,7 @@ export function ProfileForm({
 }
 
 const styles = StyleSheet.create({
+  actions: { gap: tokens.layout.actions.gap },
   form: { gap: tokens.layout.form.gap },
   hidden: { display: "none" },
 });

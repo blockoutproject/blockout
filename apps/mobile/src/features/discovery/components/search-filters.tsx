@@ -134,5 +134,5 @@ function SearchFiltersLoading() {
 
 const styles = StyleSheet.create({
   form: { gap: tokens.spacing.lg },
-  actions: { gap: tokens.spacing.sm },
+  actions: { gap: tokens.layout.actions.gap },
 });

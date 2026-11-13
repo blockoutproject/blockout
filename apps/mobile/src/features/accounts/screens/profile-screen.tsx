@@ -192,22 +192,22 @@ export function ProfileScreen({
         {privacyEntry}
       </View>
       {connected && (
-        <Button
-          label="Se déconnecter"
-          variant="secondary"
-          fullWidth
-          onPress={() => void signOut()}
-          loading={session.operation === "signing-out"}
-        />
-      )}
-      {connected && (
-        <Button
-          label="Supprimer mon compte"
-          variant="secondary"
-          fullWidth
-          disabled={!account.isSuccess}
-          onPress={() => router.push("/profile/erase")}
-        />
+        <View style={styles.actions}>
+          <Button
+            label="Se déconnecter"
+            variant="secondary"
+            fullWidth
+            onPress={() => void signOut()}
+            loading={session.operation === "signing-out"}
+          />
+          <Button
+            label="Supprimer mon compte"
+            variant="secondary"
+            fullWidth
+            disabled={!account.isSuccess}
+            onPress={() => router.push("/profile/erase")}
+          />
+        </View>
       )}
       <Text style={[styles.version, { color: colors.secondaryText }]}>
         Version {Constants.expoConfig?.version}
@@ -325,6 +325,7 @@ function AccountAgeRetry() {
 }
 
 const styles = StyleSheet.create({
+  actions: { gap: tokens.layout.actions.gap },
   group: { gap: tokens.spacing.md },
   version: { ...tokens.typography.metadata, textAlign: "center" },
 });

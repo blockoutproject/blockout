@@ -406,7 +406,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.lg,
     paddingBottom: tokens.spacing.lg,
   },
-  actions: { flexDirection: "row", flexWrap: "wrap", gap: tokens.spacing.sm },
+  actions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: tokens.layout.actions.gap,
+  },
   action: { flexBasis: 128, flexGrow: 1 },
   disclosure: {
     padding: tokens.spacing.lg,

@@ -234,7 +234,7 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: tokens.spacing.compact,
+    gap: tokens.layout.actions.gap,
   },
   action: {
     flexBasis: "auto",

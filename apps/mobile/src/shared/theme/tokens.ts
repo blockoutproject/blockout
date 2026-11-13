@@ -198,6 +198,7 @@ export const tokens = {
     width: { compact: 320 },
     content: { start: spacing.sm, end: spacing.lg },
     form: { gap: spacing.lg, labelGap: spacing.tight },
+    actions: { gap: spacing.sm },
     list: { gap: spacing.md },
     section: { gap: spacing["2xl"] },
     surface: { inset: spacing.lg },
