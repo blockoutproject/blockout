@@ -29,7 +29,7 @@ import { AccountFeedbackProvider } from "../test-support/account-feedback-provid
 import { accountResponse } from "../test-support/account-response";
 import { credentialsFor, mockAuth0 } from "../test-support/native-auth0";
 import { ProfileScreen } from "../screens/profile-screen";
-import EraseAccountRoute from "../../../app/(ordinary)/(tabs)/profile/erase";
+import EraseAccountRoute from "../../../app/(ordinary)/(tabs)/(profile)/profile/(forms)/erase";
 import {
   getGetApplicationAccessQueryKey,
   getGetMyAccountQueryKey,

@@ -18,7 +18,7 @@ import { followingFixture } from "../test-support/following-fixture";
 import { FollowerCount } from "../components/follower-count";
 import { TeamScreen } from "../../sporting/screens/team-screen";
 import { PoolScreen } from "../../sporting/screens/pool-screen";
-import TeamRoute from "../../../app/(ordinary)/teams/[teamId]";
+import TeamRoute from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/teams/[teamId]";
 import { FollowButton } from "../components/follow-button";
 import { SportingActions } from "../../sporting/components/sporting-actions";
 import type { InfiniteData } from "@tanstack/react-query";

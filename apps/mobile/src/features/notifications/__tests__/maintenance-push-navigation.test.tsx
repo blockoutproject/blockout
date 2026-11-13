@@ -15,7 +15,7 @@ import { useEffect, type ComponentType } from "react";
 import RootLayout from "../../../app/_layout";
 import OrdinaryLayout from "../../../app/(ordinary)/_layout";
 import RecoveryLayout from "../../../app/(recovery)/_layout";
-import MatchRoute from "../../../app/(ordinary)/matches/[matchId]";
+import MatchRoute from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/matches/[matchId]";
 import { AccessGateScreen } from "../../access/screens/access-gate-screen";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { accountResponse } from "../../accounts/test-support/account-response";

@@ -1,5 +1,5 @@
 import { useEffect, useState, type ComponentPropsWithRef } from "react";
-import { useSegments } from "expo-router";
+import { useIsFocused, useSegments } from "expo-router";
 import {
   Pressable,
   StyleSheet,
@@ -47,7 +47,10 @@ import { ProOffer } from "../../../features/pro";
 
 /** Expo owns focus/history; the measured offer/capsule group shares visibility and enlarged-text clearance. */
 export default function TabsLayout() {
-  const sheetVisible = useSegments().includes("(sheets)");
+  const focused = useIsFocused();
+  const segments = useSegments();
+  const navigationVisible =
+    focused && !segments.includes("(sheets)") && !segments.includes("(forms)");
   const { session, queries } = useInboxQueries();
   const summary = useQuery({
     ...queries?.summary,
@@ -70,7 +73,7 @@ export default function TabsLayout() {
   return (
     <BottomContentInsetContext
       value={
-        navigationHeight > 0
+        navigationVisible && navigationHeight > 0
           ? navigationHeight + insets.bottom + tokens.spacing.sm
           : 0
       }
@@ -93,7 +96,7 @@ export default function TabsLayout() {
               marginBottom: insets.bottom + tokens.spacing.sm,
               marginHorizontal:
                 fontScale >= 1.5 ? tokens.spacing.lg : tokens.spacing.sm,
-              display: sheetVisible ? "none" : "flex",
+              display: navigationVisible ? "flex" : "none",
             }}
           >
             <TabTrigger name="index" href="/" asChild>
