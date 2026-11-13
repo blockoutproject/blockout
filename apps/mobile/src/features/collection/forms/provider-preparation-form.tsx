@@ -1,5 +1,4 @@
 import { SeasonIdentity, SourceBadge } from "../components/source-summary";
-import { isCollectionReadRefused } from "../api/collection-queries";
 import { Surface } from "@/shared/components/surface";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
@@ -14,7 +13,7 @@ import type {
   CollectionSeasonResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { Button } from "@/shared/components/button";
-import { EmptyState, ErrorState } from "@/shared/components/state-card";
+import { EmptyState } from "@/shared/components/state-card";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import type { useSeasonPreparation } from "../api/use-source-preparation";
@@ -57,15 +56,19 @@ export function ProviderPreparationForm({
     editing.sources.data?.items.filter(
       (source) => source.provider === provider,
     ) ?? [];
-  const closed = season.state === "closed";
+  const current =
+    editing.season.data && editing.season.data.revision >= baseline.revision
+      ? editing.season.data
+      : baseline;
+  const closed = current.state === "closed";
   const busy =
-    isCollectionReadRefused(editing.sources.error) ||
+    !editing.sources.data ||
+    !editing.season.data ||
     !authority.enabled ||
     editing.create.isPending ||
     editing.launch.isPending;
-  const reconciliationRequired = season.revision > baseline.revision;
-  const rereadRequired =
-    reconciliationRequired || isCollectionReadRefused(editing.season.error);
+  const reconciliationRequired = current.revision > baseline.revision;
+  const rereadRequired = reconciliationRequired;
   const ready = sources
     .filter(
       (source) =>
@@ -176,46 +179,31 @@ export function ProviderPreparationForm({
     });
   }
 
-  let retrySources: (() => void) | undefined;
-  if (authority.enabled) {
-    retrySources = () => void editing.sources.refetch();
-  } else if (authority.sessionStatus === "authenticated") {
-    retrySources = () => void authority.account.refetch();
-  }
-
   return (
     <View style={styles.form}>
-      <SeasonIdentity season={season} />
+      <SeasonIdentity season={current} />
       {closed && (
         <Text style={[tokens.typography.strong, { color: colors.text }]}>
           Saison clôturée
         </Text>
       )}
-      {sources.length === 0 &&
-        (editing.sources.isError ? (
-          <ErrorState
-            onRetry={retrySources}
-            retrying={
-              editing.sources.isFetching || authority.account.isFetching
-            }
+      {sources.length === 0 && (
+        <EmptyState
+          title={
+            provider === "lnv"
+              ? "Aucun championnat découvert"
+              : "Aucune source découverte"
+          }
+        >
+          <Button
+            label="Actualiser"
+            leadingIcon={RefreshCw}
+            onPress={() => void editing.sources.refetch()}
+            loading={editing.sources.isFetching}
+            disabled={busy}
           />
-        ) : (
-          <EmptyState
-            title={
-              provider === "lnv"
-                ? "Aucun championnat découvert"
-                : "Aucune source découverte"
-            }
-          >
-            <Button
-              label="Actualiser"
-              leadingIcon={RefreshCw}
-              onPress={() => void editing.sources.refetch()}
-              loading={editing.sources.isFetching}
-              disabled={busy}
-            />
-          </EmptyState>
-        ))}
+        </EmptyState>
+      )}
       {sources.map((source) => (
         <Surface key={source.id}>
           <Pressable

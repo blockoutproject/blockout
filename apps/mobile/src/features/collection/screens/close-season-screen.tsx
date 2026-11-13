@@ -1,106 +1,83 @@
-import { useActionFeedback } from "@/shared/components/action-feedback";
+import { useState } from "react";
+import { StyleSheet, View } from "react-native";
+import type { CollectionSeasonResponse } from "../../../../.generated/schemas/index.zod";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { FormScrollView } from "@/shared/components/form-scroll-view";
 import { Page, PageContent } from "@/shared/components/page";
 import { PageHeader } from "@/shared/components/page-header";
-import { CloseSeasonLoading } from "../components/collection-loading";
 import { ScreenState } from "@/shared/components/screen-state";
-import { ReadFeedback } from "@/shared/components/read-feedback";
-
-import { ErrorState } from "@/shared/components/state-card";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { AccessFeedback } from "@/features/access/components/access-feedback";
+import { CloseSeasonLoading } from "../components/collection-loading";
 import { useCloseCollectionSeason } from "../api/use-collection-controls";
 import { CloseSeasonForm } from "../forms/close-season-form";
 
-/** An ordinary route retains the exact typed season label through refusals and temporary admission removal. */
+/** Retains the typed closure draft with its native form while current season/admission reads recover. */
 export function CloseSeasonScreen({
   seasonId,
 }: Readonly<{ seasonId: string }>) {
   const editing = useCloseCollectionSeason(seasonId);
   const { authority, season } = editing;
-  const feedback = useActionFeedback();
-  const pending =
-    !season.data &&
-    (!authority.enabled
-      ? authority.sessionStatus === "restoring" ||
-        (authority.sessionStatus === "authenticated" &&
-          authority.account.isLoading)
-      : season.isLoading);
+  const visitKey = `${authority.session.subject}:${seasonId}`;
+  const [snapshot, setSnapshot] = useState<
+    { key: string; season: CollectionSeasonResponse } | undefined
+  >();
+  const seed = snapshot?.key === visitKey ? snapshot : undefined;
+  if (!seed && season.data) {
+    // This initial snapshot only seeds the form visit; it never follows background projections.
+    setSnapshot({ key: visitKey, season: season.data });
+  }
+  const blocked = !authority.enabled || !season.data || hasReadError(season);
+  const pending = !authority.enabled
+    ? authority.sessionStatus === "restoring" ||
+      (authority.sessionStatus === "authenticated" &&
+        authority.account.isLoading)
+    : !hasReadError(season) && season.isLoading;
   const FeedbackLayout = pending ? PageContent : ScreenState;
 
-  /** Keeps closure drafts mounted while absent season data resolves admission and read feedback. */
-  function renderBlockingState() {
-    if (!season.data) {
-      if (!authority.enabled) {
-        return (
-          <AccessFeedback
-            {...authority}
-            loadingContent={<CloseSeasonLoading />}
-          />
-        );
-      }
-      if (season.isError) {
-        return (
-          <ErrorState
-            onRetry={() =>
-              void season.refetch().then((result) => {
-                if (result.isError && result.data) {
-                  feedback.error();
-                }
-              })
-            }
-            retrying={season.isFetching}
-          />
-        );
-      }
-      return (
-        <ReadFeedback query={season} loadingContent={<CloseSeasonLoading />} />
-      );
-    }
-    return undefined;
-  }
-
-  const blockingState = renderBlockingState();
-
-  /** Rereads the current authority or season without replaying closure or replacing the retained draft. */
-  async function refresh() {
-    if (editing.close.isPending) {
-      return;
-    }
-    const result = await (!authority.enabled
-      ? authority.account.refetch({ cancelRefetch: false })
-      : season.refetch({ cancelRefetch: false }));
-    if (result.isError && result.data) {
-      feedback.error();
-    }
-  }
-
+  // Removing RefreshControl changes React Native’s content ancestry and disposes the mounted draft.
   return (
-    <Page header={<PageHeader title={"Clôturer la saison"} />}>
+    <Page header={<PageHeader title="Clôturer la saison" />}>
       <FormScrollView
         refreshControl={
-          authority.sessionStatus === "authenticated" && !blockingState ? (
-            <DataRefreshControl
-              enabled={!editing.close.isPending}
-              onRefresh={refresh}
-            />
-          ) : undefined
+          <DataRefreshControl
+            fetching={season.isFetching}
+            enabled={!blocked && !editing.close.isPending}
+            onRefresh={async () => {
+              await season.refetch({ cancelRefetch: false });
+            }}
+          />
         }
       >
-        {blockingState ? (
-          <FeedbackLayout>{blockingState}</FeedbackLayout>
-        ) : (
-          <PageContent>
-            {season.data && (
+        {blocked && (
+          <FeedbackLayout>
+            {!authority.enabled ? (
+              <AccessFeedback
+                {...authority}
+                loadingContent={<CloseSeasonLoading />}
+              />
+            ) : (
+              <ReadFeedback
+                query={season}
+                loadingContent={<CloseSeasonLoading />}
+              />
+            )}
+          </FeedbackLayout>
+        )}
+        <PageContent>
+          <View style={blocked ? styles.hidden : undefined}>
+            {seed && (
               <CloseSeasonForm
-                key={`${authority.session.subject}/${seasonId}`}
-                season={season.data}
+                key={visitKey}
+                season={seed.season}
                 editing={editing}
               />
             )}
-          </PageContent>
-        )}
+          </View>
+        </PageContent>
       </FormScrollView>
     </Page>
   );
 }
+
+const styles = StyleSheet.create({ hidden: { display: "none" } });

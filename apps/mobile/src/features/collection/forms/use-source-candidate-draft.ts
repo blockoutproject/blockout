@@ -29,6 +29,6 @@ export function useSourceCandidateDraft(source: SourceBindingResponse) {
     form,
     state,
     update,
-    discard: () => form.reset(sourceCandidateValues(source)),
+    discard: () => form.reset(sourceCandidateValues(state.baseline)),
   };
 }

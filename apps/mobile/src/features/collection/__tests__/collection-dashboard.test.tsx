@@ -2,6 +2,7 @@ import { nativeAlertAction } from "@/shared/native/test-support/native-alert";
 import { createQueryClient } from "@/shared/query/query-client";
 import { onlineManager } from "@tanstack/react-query";
 import {
+  getGetCollectionControlQueryKey,
   getGetMyAccountQueryKey,
   getListCollectionSeasonsQueryKey,
 } from "../../../../.generated/mobile";
@@ -13,7 +14,7 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { AccessibilityInfo, Alert } from "react-native";
+import { Alert } from "react-native";
 import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import {
   credentialsFor,
@@ -252,6 +253,68 @@ it("reloads empty observed results without starting collection and retries a fai
   ).toBe(true);
 });
 
+it.each([
+  { scope: "season", path: `/administration/collection-seasons/${seasonId}` },
+  { scope: "control list", path: "/administration/collection-controls" },
+  {
+    scope: "control",
+    path: `/administration/collection-controls/${control().id}`,
+  },
+])(
+  "keeps the $scope Error Card busy during an explicit initial-read retry",
+  async ({ path }) => {
+    // Given
+    const user = userEvent.setup();
+    const retryRead = Promise.withResolvers<Response>();
+    let retrying = false;
+    mockFetch.mockImplementation((url, options) =>
+      new URL(String(url)).pathname === path
+        ? retrying
+          ? retryRead.promise
+          : Promise.resolve(refused(503))
+        : peer.reads(url, options),
+    );
+    await renderCollection(
+      <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
+      client,
+      (cache) => {
+        privateClient = cache;
+      },
+    );
+    await screen.findByRole("button", { name: "Réessayer" });
+
+    try {
+      // When
+      retrying = true;
+      await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+      // Then
+      expect(
+        screen.getByRole("alert", { name: "Une erreur est survenue" }),
+      ).toBeOnTheScreen();
+      expect(
+        screen.getByRole("button", { name: "Réessayer", busy: true }),
+      ).toBeOnTheScreen();
+      expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+
+      // When
+      await act(async () =>
+        retryRead.resolve(
+          await peer.reads(new URL(path, process.env.EXPO_PUBLIC_API_URL)),
+        ),
+      );
+
+      // Then
+      expect(
+        await screen.findByRole("button", { name: "Mettre en pause" }),
+      ).toBeEnabled();
+      expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+    } finally {
+      retryRead.resolve(refused(503));
+    }
+  },
+);
+
 it("separates competition seasons from the two seasonless controls", async () => {
   // Given
   const user = userEvent.setup();
@@ -329,9 +392,10 @@ it("announces the pending results section without inventing observed evidence", 
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
 });
 
-it("retains authorized seasons after a failed overview refresh with discreet feedback and no refresh button", async () => {
+it("recovers the season overview from its Error Card while independent club destinations stay available", async () => {
   // Given
   let unavailable = false;
+  const retryRead = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url, options) =>
     unavailable && new URL(String(url)).pathname.endsWith("/collection-seasons")
       ? Promise.resolve(refused(503))
@@ -347,30 +411,43 @@ it("retains authorized seasons after a failed overview refresh with discreet fee
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
+  await screen.findByRole("button", { name: "Réessayer" });
   expect(
-    await screen.findByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-    }),
-  ).toBeOnTheScreen();
-  expect(screen.getByRole("link", { name: /2026\/2027/ })).toBeOnTheScreen();
+    screen.queryByRole("link", { name: /2026\/2027/ }),
+  ).not.toBeOnTheScreen();
   expect(screen.getByRole("link", { name: "Fiches clubs" })).toBeOnTheScreen();
   expect(screen.getByRole("link", { name: "Géocodage" })).toBeOnTheScreen();
   expect(
-    screen.queryByRole("button", { name: "Réessayer" }),
-  ).not.toBeOnTheScreen();
+    privateClient.getQueryData(getListCollectionSeasonsQueryKey()),
+  ).toEqual({ items: [peer.season] });
 
   // When
-  unavailable = false;
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+  mockFetch.mockImplementation((url, options) =>
+    new URL(String(url)).pathname.endsWith("/collection-seasons")
+      ? retryRead.promise
+      : peer.reads(url, options),
+  );
+  await userEvent
+    .setup()
+    .press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    screen.getByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Réessayer", busy: true }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+
+  // When
+  await act(() => retryRead.resolve(json({ items: [peer.season] })));
 
   // Then
   expect(
     await screen.findByRole("link", { name: /2026\/2027/ }),
   ).toBeOnTheScreen();
-  expect(
-    screen.queryByRole("alert", { name: "Une erreur est survenue" }),
-  ).not.toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 });
 
 it("refreshes only reads and retains uncertain integration and absent measurements while paused", async () => {
@@ -470,14 +547,17 @@ it.each([202, 200])(
   },
 );
 
-it("pauses only the selected control and explicitly resumes before relaunch", async () => {
+it("pauses and resumes the selected control directly with its current revision", async () => {
   // Given
   const user = userEvent.setup();
   mockFetch.mockImplementation(async (url, options) => {
     if (options?.method === "PUT") {
-      const accepted = control({ revision: 4, enabled: false });
+      const accepted = control({
+        revision: peer.controls[0].revision + 1,
+        enabled: !peer.controls[0].enabled,
+      });
       peer.controls = [accepted];
-      return json(accepted, 200);
+      return json(accepted);
     }
     return peer.reads(url, options);
   });
@@ -493,24 +573,98 @@ it("pauses only the selected control and explicitly resumes before relaunch", as
   await user.press(
     await screen.findByRole("button", { name: "Mettre en pause" }),
   );
-  await act(async () => nativeAlertAction("Mettre en pause")());
 
   // Then
   expect(
     await screen.findByRole("button", { name: "Reprendre" }),
-  ).toBeOnTheScreen();
+  ).toBeEnabled();
   expect(screen.getByRole("button", { name: "Relancer" })).toBeDisabled();
+  expect(Alert.alert).not.toHaveBeenCalled();
+
+  // When
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+  await user.press(screen.getByRole("button", { name: "Reprendre" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Mettre en pause" }),
+  ).toBeEnabled();
+  expect(Alert.alert).not.toHaveBeenCalled();
   const writes = mockFetch.mock.calls.filter(
     ([, options]) => options?.method === "PUT",
   );
-  expect(writes).toHaveLength(1);
-  expect(String(writes[0][0])).toContain(
-    `/collection-controls/${control().id}/activity`,
-  );
-  expect(JSON.parse(String(writes[0][1]?.body))).toEqual({
-    revision: 3,
-    enabled: false,
+  expect(writes).toHaveLength(2);
+  expect(writes.map(([url]) => new URL(String(url)).pathname)).toEqual([
+    `/administration/collection-controls/${control().id}/activity`,
+    `/administration/collection-controls/${control().id}/activity`,
+  ]);
+  expect(
+    writes.map(([, options]) => JSON.parse(String(options?.body))),
+  ).toEqual([
+    { revision: 3, enabled: false },
+    { revision: 4, enabled: true },
+  ]);
+});
+
+it("keeps the activity target after response loss and waits for a later explicit action", async () => {
+  // Given
+  const user = userEvent.setup();
+  let failed = true;
+  mockFetch.mockImplementation(async (url, options) => {
+    if (options?.method === "PUT") {
+      if (failed) {
+        throw new TypeError("Lost command response");
+      }
+      peer.controls = [control({ revision: 4, enabled: false })];
+      return json(peer.controls[0]);
+    }
+    return peer.reads(url, options);
   });
+  await renderCollection(
+    <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
+  await screen.findByRole("button", { name: "Mettre en pause" });
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+  mockFetch.mockClear();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Mettre en pause" }));
+
+  // Then
+  await screen.findByRole("alert", {
+    name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+  });
+  expect(screen.getByRole("button", { name: "Mettre en pause" })).toBeEnabled();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(mockFetch.mock.calls[0][1]?.method).toBe("PUT");
+  expect(Alert.alert).not.toHaveBeenCalled();
+
+  // When
+  failed = false;
+  await user.press(screen.getByRole("button", { name: "Mettre en pause" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Reprendre" }),
+  ).toBeEnabled();
+  const writes = mockFetch.mock.calls.filter(
+    ([, options]) => options?.method === "PUT",
+  );
+  expect(writes).toHaveLength(2);
+  expect(writes.map(([url]) => new URL(String(url)).pathname)).toEqual([
+    `/administration/collection-controls/${control().id}/activity`,
+    `/administration/collection-controls/${control().id}/activity`,
+  ]);
+  expect(
+    writes.map(([, options]) => JSON.parse(String(options?.body))),
+  ).toEqual([
+    { revision: 3, enabled: false },
+    { revision: 3, enabled: false },
+  ]);
 });
 
 it.each([409, "lost"])(
@@ -677,7 +831,11 @@ it.each(["control", "season"] as const)(
     expect(
       mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
     ).toHaveLength(1);
-    expect(screen.queryByRole("button", { name: "Relancer" })).toBeNull();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Relancer" }),
+      ).not.toBeOnTheScreen(),
+    );
     await mounted.unmount();
   },
 );
@@ -775,7 +933,6 @@ it.each(["club-sheets", "geocoding"] as const)(
 
     // When
     await user.press(await screen.findByRole("button", { name: "Reprendre" }));
-    await act(async () => nativeAlertAction("Reprendre")());
 
     // Then
     await waitFor(() =>
@@ -830,7 +987,6 @@ it("retains running evidence while pause cancels an unstarted request", async ()
   await user.press(
     await screen.findByRole("button", { name: "Mettre en pause" }),
   );
-  await act(async () => nativeAlertAction("Mettre en pause")());
 
   // Then
   expect(await screen.findByText("Mise en pause en cours")).toBeOnTheScreen();
@@ -981,7 +1137,7 @@ it.each([
   { projection: "results", status: 503 },
   { projection: "control", status: 500 },
 ] as const)(
-  "retains authorized result rows after a failed $projection refresh with ordinary discreet feedback",
+  "uses scoped Error Card recovery after a failed $projection refresh",
   async ({ projection, status }) => {
     // Given
     peer.results = [result()];
@@ -1009,39 +1165,58 @@ it.each([
     await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
     // Then
+    await screen.findByRole("button", { name: "Réessayer" });
     expect(
-      await screen.findByRole("alert", {
-        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-      }),
-    ).toBeOnTheScreen();
-    expect(
-      screen.getByText("Nationale 2 · Poule A · Calendrier"),
-    ).toBeOnTheScreen();
-    expect(
-      screen.queryByRole("button", { name: "Réessayer" }),
+      screen.queryByText("Nationale 2 · Poule A · Calendrier"),
     ).not.toBeOnTheScreen();
+    if (projection === "results") {
+      expect(
+        screen.getByRole("button", { name: "Mettre en pause" }),
+      ).toBeEnabled();
+    } else {
+      expect(
+        screen.queryByRole("button", { name: "Mettre en pause" }),
+      ).not.toBeOnTheScreen();
+    }
+    await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+    mockFetch.mockClear();
 
     // When
     unavailable = false;
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-    await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+    await userEvent
+      .setup()
+      .press(screen.getByRole("button", { name: "Réessayer" }));
 
     // Then
     expect(
       await screen.findByText("Nationale 2 · Poule A · Calendrier"),
     ).toBeOnTheScreen();
-    expect(
-      screen.queryByRole("alert", { name: "Une erreur est survenue" }),
-    ).not.toBeOnTheScreen();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(new URL(String(mockFetch.mock.calls[0][0])).pathname).toMatch(
+      new RegExp(`${failedPath}$`),
+    );
+    expect(mockFetch.mock.calls[0][1]?.method ?? "GET").toBe("GET");
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   },
 );
 
-it("reports a grouped season and control refresh failure once after every displayed read settles", async () => {
+it("keeps Pause usable during result failure and never treats read Retry as a command", async () => {
   // Given
-  peer.results = [result()];
-  const seasonRead = Promise.withResolvers<Response>();
-  const controlRead = Promise.withResolvers<Response>();
-  const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility");
+  const user = userEvent.setup();
+  let resultsAvailable = false;
+  mockFetch.mockImplementation(async (url, options) => {
+    if (options?.method === "PUT") {
+      peer.controls = [control({ enabled: false, revision: 4 })];
+      return json(peer.controls[0]);
+    }
+    if (
+      new URL(String(url)).pathname.endsWith("/results") &&
+      !resultsAvailable
+    ) {
+      return refused(503);
+    }
+    return peer.reads(url, options);
+  });
   await renderCollection(
     <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
     client,
@@ -1049,46 +1224,95 @@ it("reports a grouped season and control refresh failure once after every displa
       privateClient = cache;
     },
   );
-  await screen.findByText("Nationale 2 · Poule A · Calendrier");
-  mockFetch.mockImplementation((url, options) => {
-    const path = new URL(String(url)).pathname;
-    if (path.endsWith(`/collection-seasons/${seasonId}`)) {
-      return seasonRead.promise;
+  await screen.findByRole("button", { name: "Réessayer" });
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Mettre en pause" }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Reprendre" }),
+  ).toBeEnabled();
+  expect(Alert.alert).not.toHaveBeenCalled();
+  expect(
+    mockFetch.mock.calls.filter(([, init]) => init?.method === "PUT"),
+  ).toHaveLength(1);
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+  mockFetch.mockClear();
+
+  // When
+  resultsAvailable = true;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  await screen.findByText("Aucun résultat observé");
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(String(mockFetch.mock.calls[0][0])).toMatch(/\/results(?:\?|$)/);
+  expect(mockFetch.mock.calls[0][1]?.method ?? "GET").toBe("GET");
+});
+
+it("retains an accepted activity ACK when its ordinary control reread fails", async () => {
+  // Given
+  const user = userEvent.setup();
+  let unavailable = false;
+  const accepted = control({ enabled: false, revision: 4 });
+  mockFetch.mockImplementation(async (url, options) => {
+    if (options?.method === "PUT") {
+      peer.controls = [accepted];
+      unavailable = true;
+      return json(accepted);
     }
-    if (path.endsWith(`/collection-controls/${control().id}`)) {
-      return controlRead.promise;
+    if (
+      unavailable &&
+      new URL(String(url)).pathname.endsWith(
+        `/collection-controls/${control().id}`,
+      )
+    ) {
+      return refused(503);
     }
     return peer.reads(url, options);
   });
+  await renderCollection(
+    <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
+    client,
+    (cache) => {
+      privateClient = cache;
+    },
+  );
 
   // When
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-  await act(async () => seasonRead.reject(new TypeError("Unavailable")));
+  await user.press(
+    await screen.findByRole("button", { name: "Mettre en pause" }),
+  );
 
   // Then
-  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  await screen.findByRole("button", { name: "Réessayer" });
   expect(
-    screen.getByText("Nationale 2 · Poule A · Calendrier"),
-  ).toBeOnTheScreen();
+    privateClient.getQueryData(getGetCollectionControlQueryKey(control().id)),
+  ).toEqual(accepted);
+  expect(
+    mockFetch.mock.calls.filter(([, init]) => init?.method === "PUT"),
+  ).toHaveLength(1);
+  expect(
+    screen.queryByRole("button", { name: "Mettre en pause" }),
+  ).not.toBeOnTheScreen();
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+  mockFetch.mockClear();
 
   // When
-  await act(async () => controlRead.reject(new TypeError("Unavailable")));
+  unavailable = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
   expect(
-    await screen.findByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-    }),
-  ).toBeOnTheScreen();
-  expect(announce).toHaveBeenCalledTimes(1);
-  expect(
-    screen.getByText("Nationale 2 · Poule A · Calendrier"),
-  ).toBeOnTheScreen();
-  expect(
-    mockFetch.mock.calls.every(
-      ([, options]) => !options?.method || options.method === "GET",
-    ),
-  ).toBe(true);
+    await screen.findByRole("button", { name: "Reprendre" }),
+  ).toBeEnabled();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(new URL(String(mockFetch.mock.calls[0][0])).pathname).toBe(
+    `/administration/collection-controls/${control().id}`,
+  );
+  expect(mockFetch.mock.calls[0][1]?.method ?? "GET").toBe("GET");
 });
 
 it("rejects a malformed acknowledgement without inventing success and shows a failed ordinary refresh", async () => {
@@ -1124,12 +1348,10 @@ it("rejects a malformed acknowledgement without inventing success and shows a fa
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
+  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
   expect(
-    await screen.findByText(
-      "Une erreur est survenue. Veuillez réessayer plus tard.",
-    ),
-  ).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Relancer" })).toBeEnabled();
+    screen.queryByRole("button", { name: "Relancer" }),
+  ).not.toBeOnTheScreen();
   expect(screen.queryByText("En attente de démarrage")).toBeNull();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
@@ -1293,7 +1515,6 @@ it("keeps completion freshness already read at the same editing revision as a de
   await user.press(
     await screen.findByRole("button", { name: "Mettre en pause" }),
   );
-  await act(async () => nativeAlertAction("Mettre en pause")());
   await view.rerender(<CollectionControlScreen family="geocoding" />);
   await screen.findByRole("header", { name: "Géocodage" });
   peer.controls = [

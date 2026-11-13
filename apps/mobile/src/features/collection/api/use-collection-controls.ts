@@ -49,11 +49,19 @@ export function useCollectionControl(controlId: string, seasonId?: string) {
   const query = useQuery(controlOptions);
   const results = useInfiniteQuery(queries.results(controlId));
 
-  /** Invalidates the control and its owning season projections after settlement. */
+  /** Invalidates the control and its owning season projections after acceptance. */
   function accept() {
     void client.invalidateQueries({ queryKey: key, exact: true });
     invalidateCollectionControls(client, seasonId);
     invalidateCollectionSeasons(client);
+  }
+
+  /** Admits the accepted revision without reviving a withdrawn control or overwriting a newer read. */
+  function acceptResponse(accepted: CollectionControlResponse) {
+    client.setQueryData<CollectionControlResponse>(key, (current) =>
+      current && accepted.revision > current.revision ? accepted : current,
+    );
+    accept();
   }
 
   const activity = useMutation({
@@ -62,7 +70,7 @@ export function useCollectionControl(controlId: string, seasonId?: string) {
     mutationKey: [...key, ...getSetCollectionActivityMutationKey()],
     mutationFn: async (body: SetCollectionActivityRequest) =>
       setCollectionActivity(controlId, body, await authority.request()),
-    onSettled: accept,
+    onSuccess: acceptResponse,
   });
   const request = useMutation({
     retry: false,
@@ -74,7 +82,7 @@ export function useCollectionControl(controlId: string, seasonId?: string) {
         ...(await authority.request()),
         schema: CollectionControlResponse,
       }),
-    onSettled: accept,
+    onSuccess: acceptResponse,
   });
   return {
     authority,
@@ -92,7 +100,7 @@ export function useCloseCollectionSeason(seasonId: string) {
   const { authority, season, seasonKey: key } = useCollectionSeason(seasonId);
   const client = useQueryClient();
 
-  /** Invalidates the closed season and its related controls after settlement. */
+  /** Invalidates the season and its related controls after accepted closure. */
   function accept() {
     void client.invalidateQueries({ queryKey: key, exact: true });
     invalidateCollectionControls(client, seasonId);
@@ -105,7 +113,7 @@ export function useCloseCollectionSeason(seasonId: string) {
     mutationKey: [...key, ...getCloseCollectionSeasonMutationKey()],
     mutationFn: async (body: CloseCollectionSeasonRequest) =>
       closeCollectionSeason(seasonId, body, await authority.request()),
-    onSettled: accept,
+    onSuccess: accept,
   });
   return { authority, season, close, seasonKey: key };
 }

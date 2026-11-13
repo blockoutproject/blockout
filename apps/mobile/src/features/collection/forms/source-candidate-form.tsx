@@ -1,5 +1,4 @@
 import { SeasonIdentity, SourceBadge } from "../components/source-summary";
-import { isCollectionReadRefused } from "../api/collection-queries";
 import { Surface } from "@/shared/components/surface";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { useNativeHandoff } from "@/shared/native/use-native-handoff";
@@ -57,7 +56,10 @@ export function SourceCandidateForm({
   const confirmDiscard = useDiscardChanges(isDirty, editor.discard);
   // Subscribe to RHF's dirty fields so keepDirtyValues retains the editable snapshot on reread.
   void dirtyFields;
-  const current = editing.source.data ?? source;
+  const current =
+    editing.source.data && editing.source.data.revision >= baseline.revision
+      ? editing.source.data
+      : baseline;
   const savedUrl = current.acceptedUrl ?? current.candidateUrl;
   const officialUrl =
     savedUrl && candidateUrlSchema.safeParse(savedUrl).success
@@ -69,14 +71,14 @@ export function SourceCandidateForm({
   const closed = (editing.season.data ?? season).state === "closed";
   const readOnly = closed || current.locked || current.launched;
   const busy =
-    isCollectionReadRefused(editing.source.error) ||
+    !editing.source.data ||
+    !editing.season.data ||
     !authority.enabled ||
     editing.candidate.isPending ||
     editing.validation.isPending ||
     editing.confirmation.isPending;
   const reconciliationRequired = current.revision > baseline.revision;
-  const rereadRequired =
-    reconciliationRequired || isCollectionReadRefused(editing.season.error);
+  const rereadRequired = reconciliationRequired;
   useEffect(() => {
     mounted.current = true;
     return () => {

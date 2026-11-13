@@ -12,7 +12,7 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { AccessibilityInfo, Alert, Pressable, Text } from "react-native";
+import { Alert, Pressable, Text } from "react-native";
 import type {
   CollectionSeasonResponse,
   SourceBindingResponse,
@@ -751,7 +751,7 @@ it.each(["active", "closed"] as const)(
   },
 );
 
-it("disables empty-source refresh after the collection grant is withdrawn", async () => {
+it("withdraws empty-source actions after the collection grant is withdrawn", async () => {
   // Given
   sources = [];
   const user = userEvent.setup();
@@ -770,16 +770,11 @@ it("disables empty-source refresh after the collection grant is withdrawn", asyn
   );
 
   // Then
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Actualiser" })).toBeDisabled(),
-  );
-  mockFetch.mockClear();
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Actualiser" }));
-
-  // Then
-  expect(mockFetch).not.toHaveBeenCalled();
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(screen.queryByRole("button", { name: "Actualiser" })).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "Ajouter une source" }),
+  ).toBeNull();
 });
 
 it("adds only an unqualified candidate for the explicit provider and current season revision", async () => {
@@ -1182,7 +1177,7 @@ it("keeps an accepted empty child page in continuation recovery instead of showi
   expect(screen.getByText("Une erreur est survenue.")).toBeOnTheScreen();
 });
 
-it("retains authorized child rows after a failed native refresh with discreet feedback", async () => {
+it("recovers a failed full child reread from its card without replaying a command", async () => {
   // Given
   let unavailable = false;
   mockFetch.mockImplementation((url) => {
@@ -1215,15 +1210,22 @@ it("retains authorized child rows after a failed native refresh with discreet fe
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(screen.queryByText("Groupe conservé")).toBeNull();
+
+  // When
+  unavailable = false;
+  await userEvent
+    .setup()
+    .press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByText("Groupe conservé")).toBeOnTheScreen();
   expect(
-    await screen.findByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-    }),
-  ).toBeOnTheScreen();
-  expect(screen.getByText("Groupe conservé")).toBeOnTheScreen();
-  expect(
-    screen.queryByRole("button", { name: "Réessayer" }),
-  ).not.toBeOnTheScreen();
+    mockFetch.mock.calls.every(
+      ([, options]) => !options?.method || options.method === "GET",
+    ),
+  ).toBe(true);
 });
 
 it("retains the manual supported-source draft after a duplicate conflict", async () => {
@@ -1288,12 +1290,10 @@ it("shows a server refusal after grant revocation while retaining a read-only dr
   await user.press(
     screen.getByRole("button", { name: "Relire les permissions" }),
   );
-  await waitFor(() =>
-    expect(
-      screen.getByRole("button", { name: "Confirmer la saison" }),
-    ).toBeDisabled(),
-  );
-  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(
+    screen.queryByRole("button", { name: "Confirmer la saison" }),
+  ).toBeNull();
   await act(async () => nativeAlertAction("Confirmer la saison")());
 
   // Then
@@ -1303,8 +1303,8 @@ it("shows a server refusal after grant revocation while retaining a read-only dr
     ).toBe(true),
   );
   expect(
-    screen.getByRole("button", { name: "Confirmer la saison" }),
-  ).toBeDisabled();
+    screen.queryByRole("button", { name: "Confirmer la saison" }),
+  ).toBeNull();
 });
 
 it("rejects a source mutation arriving after the original F05 session ended", async () => {
@@ -1415,7 +1415,7 @@ it("preserves a newer source read when an older accepted candidate response arri
   ).toHaveLength(1);
 });
 
-it("keeps another provider's known preparation usable when a post-creation season refresh fails", async () => {
+it("retains accepted creation and separate provider drafts through a failed subsequent season read", async () => {
   // Given
   const user = userEvent.setup();
   const view = await renderPreparation(
@@ -1443,7 +1443,10 @@ it("keeps another provider's known preparation usable when a post-creation seaso
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await screen.findByText("Source ajoutée.");
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(
+    screen.getByText("Source ajoutée.", { includeHiddenElements: true }),
+  ).toBeOnTheScreen();
   await waitFor(() =>
     expect(
       client
@@ -1459,7 +1462,9 @@ it("keeps another provider's known preparation usable when a post-creation seaso
     <ProviderSourcesScreen seasonId={seasonId} provider="ffvb" />,
   );
 
-  // When: the provider keeps its own empty draft and original season revision.
+  // When: Retry restores the read, then the provider opens its own empty draft.
+  mockFetch.mockImplementation(reads);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
   await user.press(
     await screen.findByRole("button", { name: "Ajouter une source" }),
   );
@@ -1472,12 +1477,9 @@ it("keeps another provider's known preparation usable when a post-creation seaso
 });
 
 it.each(["source", "provider"] as const)(
-  "reports one grouped %s preparation refresh failure after both reads settle and preserves its draft",
+  "recovers the %s required read from its card while keeping the draft and native input",
   async (kind) => {
     // Given
-    const seasonRead = Promise.withResolvers<Response>();
-    const sourceRead = Promise.withResolvers<Response>();
-    const announce = jest.spyOn(AccessibilityInfo, "announceForAccessibility");
     const user = userEvent.setup();
     await renderPreparation(
       kind === "source" ? (
@@ -1491,41 +1493,43 @@ it.each(["source", "provider"] as const)(
         name: kind === "source" ? "Modifier le lien" : "Ajouter une source",
       }),
     );
-    await user.clear(screen.getByLabelText("URL officielle"));
-    await user.type(screen.getByLabelText("URL officielle"), draftUrl);
-    mockFetch.mockClear().mockImplementation((url) => {
-      const path = new URL(String(url)).pathname;
-      if (path.endsWith(`/collection-seasons/${seasonId}`)) {
-        return seasonRead.promise;
-      }
-      if (path.includes("/source-bindings")) {
-        return sourceRead.promise;
-      }
-      return reads(url);
-    });
+    const input = screen.getByLabelText("URL officielle");
+    await user.clear(input);
+    await user.type(input, draftUrl);
+    let unavailable = true;
+    mockFetch
+      .mockClear()
+      .mockImplementation((url) =>
+        String(url).includes("/source-bindings") && unavailable
+          ? Promise.resolve(refused(503))
+          : reads(url),
+      );
 
     // When
     await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-    await act(async () => seasonRead.reject(new TypeError("Unavailable")));
 
     // Then
-    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
-    expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
+    await screen.findByRole("alert", { name: "Une erreur est survenue" });
+    expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
+    expect(screen.queryByLabelText("URL officielle")).toBeNull();
+    expect(
+      screen.getByLabelText("URL officielle", { includeHiddenElements: true }),
+    ).toBe(input);
+    mockFetch.mockClear();
 
     // When
-    await act(async () => sourceRead.reject(new TypeError("Unavailable")));
+    unavailable = false;
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
     // Then
-    expect(
-      await screen.findByRole("alert", {
-        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-      }),
-    ).toBeOnTheScreen();
-    expect(announce).toHaveBeenCalledTimes(1);
-    expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
+    expect(await screen.findByLabelText("URL officielle")).toBe(input);
+    expect(input).toHaveDisplayValue(draftUrl);
+    expect(screen.getByLabelText("Actualiser les données")).toBeEnabled();
     expect(
       mockFetch.mock.calls.every(
-        ([, options]) => !options?.method || options.method === "GET",
+        ([url, options]) =>
+          String(url).includes("/source-bindings") &&
+          (!options?.method || options.method === "GET"),
       ),
     ).toBe(true);
   },
@@ -1647,18 +1651,20 @@ it("explains missing collection permission without leaving a disabled catalog in
   ).toBe(false);
 });
 
-it("retains a refused source draft through technical failure until a successful current read", async () => {
+it("retains a refused source draft without restoring forbidden commands through a technical failure", async () => {
   // Given
   const user = userEvent.setup();
   await renderPreparation();
   await user.press(
     await screen.findByRole("button", { name: "Modifier le lien" }),
   );
-  await user.clear(screen.getByLabelText("URL officielle"));
-  await user.type(screen.getByLabelText("URL officielle"), draftUrl);
+  const input = screen.getByLabelText("URL officielle");
+  await user.clear(input);
+  await user.type(input, draftUrl);
+  let status = 403;
   mockFetch.mockImplementation((url) =>
-    String(url).endsWith(`/source-bindings/${sourceId}`)
-      ? Promise.resolve(refused(403))
+    String(url).endsWith(`/source-bindings/${sourceId}`) && status !== 200
+      ? Promise.resolve(refused(status))
       : reads(url),
   );
 
@@ -1666,37 +1672,39 @@ it("retains a refused source draft through technical failure until a successful 
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
   expect(
-    await screen.findByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-    }),
-  ).toBeOnTheScreen();
-  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
-  expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-  mockFetch.mockImplementation((url) =>
-    String(url).endsWith(`/source-bindings/${sourceId}`)
-      ? Promise.resolve(refused(503))
-      : reads(url),
-  );
+    client.getQueryData(getGetCollectionSourceQueryKey(sourceId)),
+  ).toBeNull();
+  expect(screen.queryByRole("button", { name: "Enregistrer" })).toBeNull();
+
   // When
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-  // Then
-  await waitFor(() =>
-    expect(screen.queryByText("Une erreur est survenue")).not.toBeOnTheScreen(),
-  );
-  expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-
-  // When: successful owner verification restores the normal command without replacing dirty input.
-  mockFetch.mockImplementation(reads);
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  status = 503;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
   await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled(),
   );
-  expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
+  expect(
+    client.getQueryData(getGetCollectionSourceQueryKey(sourceId)),
+  ).toBeNull();
+  expect(
+    client.getQueryState(getGetCollectionSourceQueryKey(sourceId))?.error,
+  ).toMatchObject({ status: 503 });
+  expect(screen.queryByRole("button", { name: "Enregistrer" })).toBeNull();
+  expect(
+    screen.getByLabelText("URL officielle", { includeHiddenElements: true }),
+  ).toBe(input);
+
+  // When
+  status = 200;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByLabelText("URL officielle")).toBe(input);
+  expect(input).toHaveDisplayValue(draftUrl);
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
 });
 
 it("keeps refused season navigation hidden through a failed reread until a successful owner retry", async () => {

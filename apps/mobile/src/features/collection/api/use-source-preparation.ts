@@ -98,7 +98,7 @@ export function useSeasonPreparation(seasonId: string) {
     mutationKey: [...seasonKey, ...getCreateCollectionSourceMutationKey()],
     mutationFn: async (body: CreateSourceBindingRequest) =>
       createCollectionSource(seasonId, body, await authority.request()),
-    onSettled: acceptCreatedSource,
+    onSuccess: acceptCreatedSource,
   });
   const launch = useMutation({
     retry: false,
@@ -106,7 +106,7 @@ export function useSeasonPreparation(seasonId: string) {
     mutationKey: [...seasonKey, ...getLaunchCollectionSourcesMutationKey()],
     mutationFn: async (body: LaunchCollectionSourcesRequest) =>
       launchCollectionSources(seasonId, body, await authority.request()),
-    onSettled: acceptLaunchedSources,
+    onSuccess: acceptLaunchedSources,
   });
   return {
     authority,
@@ -127,7 +127,7 @@ export function useSourcePreparation(seasonId: string, sourceId: string) {
   const queryKey = sourceOptions.queryKey;
   const source = useQuery(sourceOptions);
 
-  /** Refreshes the original source and owning season after any explicit attempt. */
+  /** Refreshes the original source and owning season after an accepted command. */
   function accept() {
     void client.invalidateQueries({ queryKey, exact: true });
     invalidateSeasonPreparation(client, seasonId);
@@ -139,7 +139,7 @@ export function useSourcePreparation(seasonId: string, sourceId: string) {
     mutationKey: [...queryKey, ...getSetCollectionSourceCandidateMutationKey()],
     mutationFn: async (body: SetSourceCandidateRequest) =>
       setCollectionSourceCandidate(sourceId, body, await authority.request()),
-    onSettled: accept,
+    onSuccess: accept,
   });
   const validation = useMutation({
     retry: false,
@@ -154,7 +154,7 @@ export function useSourcePreparation(seasonId: string, sourceId: string) {
         body,
         await authority.request(),
       ),
-    onSettled: accept,
+    onSuccess: accept,
   });
   const confirmation = useMutation({
     retry: false,
@@ -165,7 +165,7 @@ export function useSourcePreparation(seasonId: string, sourceId: string) {
     ],
     mutationFn: async (body: ConfirmSourceSeasonRequest) =>
       confirmCollectionSourceSeason(sourceId, body, await authority.request()),
-    onSettled: accept,
+    onSuccess: accept,
   });
   return {
     authority,

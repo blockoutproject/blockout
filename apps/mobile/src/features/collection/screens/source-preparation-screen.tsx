@@ -1,14 +1,17 @@
-import { useActionFeedback } from "@/shared/components/action-feedback";
+import { useState } from "react";
+import { StyleSheet, View } from "react-native";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { FormScrollView } from "@/shared/components/form-scroll-view";
 import { Page, PageContent } from "@/shared/components/page";
 import { PageHeader } from "@/shared/components/page-header";
-import { SourcePreparationLoading } from "../components/collection-loading";
 import { ScreenState } from "@/shared/components/screen-state";
-import { ReadFeedback } from "@/shared/components/read-feedback";
-
-import { ErrorState } from "@/shared/components/state-card";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { AccessFeedback } from "@/features/access/components/access-feedback";
+import type {
+  CollectionSeasonResponse,
+  SourceBindingResponse,
+} from "../../../../.generated/schemas/index.zod";
+import { SourcePreparationLoading } from "../components/collection-loading";
 import { useSourcePreparation } from "../api/use-source-preparation";
 import { SourceCandidateForm } from "../forms/source-candidate-form";
 
@@ -18,115 +21,101 @@ export interface SourcePreparationScreenProps {
   sourceId: string;
 }
 
-/** Retains an editable source draft through technical failures; current refusals suspend commands and identity changes discard the editor. */
+/** Keeps the route's editable snapshot mounted while current required reads own admission and feedback. */
 export function SourcePreparationScreen({
   seasonId,
   sourceId,
 }: Readonly<SourcePreparationScreenProps>) {
   const editing = useSourcePreparation(seasonId, sourceId);
   const { authority, source, season } = editing;
-  const current =
-    authority.sessionStatus === "authenticated" ? source.data : undefined;
-  const retained = Boolean(
-    current && season.data && current.seasonId === seasonId,
-  );
-  const feedback = useActionFeedback();
-
-  /** Refreshes the admitted source and season together; one event reports their retained-draft failure. */
-  async function refresh() {
-    if (editing.candidate.isPending) {
-      return;
-    }
-    feedback.clear();
-    const results = await Promise.all(
-      !authority.enabled
-        ? [authority.account.refetch({ cancelRefetch: false })]
-        : [
-            source.refetch({ cancelRefetch: false }),
-            season.refetch({ cancelRefetch: false }),
-          ],
-    );
-    if (retained && results.some((result) => result.isError)) {
-      feedback.error();
-    }
+  const visitKey = `${authority.session.subject}:${seasonId}:${sourceId}`;
+  const [snapshot, setSnapshot] = useState<
+    | {
+        key: string;
+        source: SourceBindingResponse;
+        season: CollectionSeasonResponse;
+      }
+    | undefined
+  >();
+  const seed = snapshot?.key === visitKey ? snapshot : undefined;
+  if (!seed && source.data?.seasonId === seasonId && season.data) {
+    // This initial snapshot only seeds the form visit; it never follows background projections.
+    setSnapshot({ key: visitKey, source: source.data, season: season.data });
   }
-
-  const pending =
-    !retained &&
-    (!authority.enabled
-      ? authority.sessionStatus === "restoring" ||
-        (authority.sessionStatus === "authenticated" &&
-          authority.account.isLoading)
-      : !source.isError &&
-        !season.isError &&
-        (source.isLoading || season.isLoading) &&
-        !(current && current.seasonId !== seasonId));
+  const mismatch = Boolean(source.data && source.data.seasonId !== seasonId);
+  const failed = hasReadError(season) ? season : source;
+  const blocked =
+    !authority.enabled ||
+    !source.data ||
+    !season.data ||
+    mismatch ||
+    hasReadError(source) ||
+    hasReadError(season);
+  const pending = !authority.enabled
+    ? authority.sessionStatus === "restoring" ||
+      (authority.sessionStatus === "authenticated" &&
+        authority.account.isLoading)
+    : !hasReadError(failed) &&
+      !mismatch &&
+      (source.isLoading || season.isLoading);
   const FeedbackLayout = pending ? PageContent : ScreenState;
 
-  /** Keeps the original source draft mounted while initial context resolves admission. */
-  function renderBlockingState() {
-    if (!retained) {
-      if (!authority.enabled) {
-        return (
-          <AccessFeedback
-            {...authority}
-            loadingContent={<SourcePreparationLoading />}
-          />
-        );
-      }
-      if (
-        source.isError ||
-        season.isError ||
-        (current && current.seasonId !== seasonId)
-      ) {
-        return (
-          <ErrorState
-            onRetry={() => {
-              void source.refetch();
-              void season.refetch();
-            }}
-            retrying={source.isFetching || season.isFetching}
-          />
-        );
-      }
-      return (
-        <ReadFeedback
-          query={!season.data ? season : source}
-          loadingContent={<SourcePreparationLoading />}
-        />
-      );
-    }
-    return undefined;
-  }
-
-  const blockingState = renderBlockingState();
+  // Removing RefreshControl changes React Native’s content ancestry and disposes the mounted draft.
   return (
-    <Page header={<PageHeader title={current?.label ?? "Source"} />}>
+    <Page header={<PageHeader title={source.data?.label ?? "Source"} />}>
       <FormScrollView
         refreshControl={
-          authority.sessionStatus === "authenticated" && !blockingState ? (
-            <DataRefreshControl
-              enabled={!editing.candidate.isPending}
-              onRefresh={refresh}
-            />
-          ) : undefined
+          <DataRefreshControl
+            fetching={source.isFetching || season.isFetching}
+            enabled={!blocked && !editing.candidate.isPending}
+            onRefresh={async () => {
+              await Promise.all([
+                source.refetch({ cancelRefetch: false }),
+                season.refetch({ cancelRefetch: false }),
+              ]);
+            }}
+          />
         }
       >
-        {blockingState ? (
-          <FeedbackLayout>{blockingState}</FeedbackLayout>
-        ) : (
-          <PageContent>
-            {current && season.data && current.seasonId === seasonId && (
+        {blocked && (
+          <FeedbackLayout>
+            {!authority.enabled ? (
+              <AccessFeedback
+                {...authority}
+                loadingContent={<SourcePreparationLoading />}
+              />
+            ) : (
+              <ReadFeedback
+                failed={mismatch}
+                query={
+                  mismatch
+                    ? source
+                    : hasReadError(failed)
+                      ? failed
+                      : !season.data
+                        ? season
+                        : source
+                }
+                loadingContent={<SourcePreparationLoading />}
+              />
+            )}
+          </FeedbackLayout>
+        )}
+        <PageContent>
+          <View style={blocked ? styles.hidden : undefined}>
+            {seed && (
               <SourceCandidateForm
-                key={`${authority.session.subject}:${sourceId}`}
-                source={current}
-                season={season.data}
+                key={visitKey}
+                source={seed.source}
+                season={seed.season}
                 editing={editing}
               />
             )}
-          </PageContent>
-        )}
+          </View>
+        </PageContent>
       </FormScrollView>
     </Page>
   );
 }
+
+const styles = StyleSheet.create({ hidden: { display: "none" } });
