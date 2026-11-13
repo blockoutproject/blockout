@@ -1,4 +1,4 @@
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
 import {
   onlineManager,
   QueryClientProvider,
@@ -28,40 +28,40 @@ import {
   type PropsWithChildren,
   type ComponentType,
 } from "react";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { createQueryClient } from "../../../shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { createQueryClient } from "@/shared/query/query-client";
 import {
   TECHNICAL_ERROR,
   TECHNICAL_ERROR_TITLE,
-} from "../../../shared/components/error-copy";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
+} from "@/shared/components/error-copy";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
 import {
   AccountSessionProvider,
   useAccountSession,
   type AccountSession,
-} from "../../accounts/session/account-session-provider";
-import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
-import { accountResponse } from "../../accounts/test-support/account-response";
+} from "@/features/accounts/session/account-session-provider";
+import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import {
   mockAuth0,
   credentialsFor,
-} from "../../accounts/test-support/native-auth0";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import { ClubScreen } from "../../sporting/screens/club-screen";
-import { SearchScreen } from "../../discovery/screens/search-screen";
-import { SearchVisitProvider } from "../../discovery/forms/search-visit";
-import { MatchScreen } from "../../sporting/screens/match-screen";
+} from "@/features/accounts/test-support/native-auth0";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { ClubScreen } from "@/features/sporting/screens/club-screen";
+import { SearchScreen } from "@/features/discovery/screens/search-screen";
+import { SearchVisitProvider } from "@/features/discovery/forms/search-visit";
+import { MatchScreen } from "@/features/sporting/screens/match-screen";
 import {
   clubDetail,
   matchDetail,
-} from "../../sporting/test-support/consultation-data";
+} from "@/features/sporting/test-support/consultation-data";
 import { PersonalScreen } from "../screens/personal-screen";
 import { FollowButton } from "../components/follow-button";
 import { followListKey, followOptionsKey } from "../api/following-keys";
-import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
-import * as proSessionModule from "../../pro/pro-session";
-import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
+import { AdvertisingProviders } from "@/features/advertising/test-support/advertising-providers";
+import * as proSessionModule from "@/features/pro/pro-session";
+import { prepareProNativeIO } from "@/features/pro/test-support/pro-harness";
 
 jest.mock("@sentry/react-native", () => ({
   init: jest.fn(),
@@ -75,16 +75,16 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 );
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
 
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

@@ -1,4 +1,4 @@
-import { PageFlatList } from "../../../shared/components/page-list";
+import { PageFlatList } from "@/shared/components/page-list";
 import type { QueryObserverResult } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
 import { CalendarDays, MapPin, RefreshCw, Users } from "lucide-react-native";
@@ -9,28 +9,28 @@ import type {
   CollectionFamilyEnum,
   CollectionSeasonResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
-import { Button } from "../../../shared/components/button";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { ListContinuation } from "../../../shared/components/list-continuation";
-import { ListSeparator } from "../../../shared/components/list-separator";
+import { isAccessDenied } from "@/shared/api/access-denied";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
+import { Button } from "@/shared/components/button";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { ListContinuation } from "@/shared/components/list-continuation";
+import { ListSeparator } from "@/shared/components/list-separator";
 import {
   Page,
   PageContent,
   PageScrollView,
   pageContentStyle,
-} from "../../../shared/components/page";
-import { PageHeader } from "../../../shared/components/page-header";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
+} from "@/shared/components/page";
+import { PageHeader } from "@/shared/components/page-header";
+import { ScreenState } from "@/shared/components/screen-state";
+import { ReadFeedback } from "@/shared/components/read-feedback";
 
-import { EmptyState, ErrorState } from "../../../shared/components/state-card";
-import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
-import { AccessFeedback } from "../../access/components/access-feedback";
+import { EmptyState, ErrorState } from "@/shared/components/state-card";
+import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { AccessFeedback } from "@/features/access/components/access-feedback";
 import {
   useCollectionControl,
   useCollectionControls,

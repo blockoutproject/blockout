@@ -1,6 +1,6 @@
 import { StyleSheet, View } from "react-native";
 import type { FollowOptionsResponse } from "../../../../.generated/schemas/index.zod";
-import { SeasonSelector } from "../../../shared/components/season-selector";
+import { SeasonSelector } from "@/shared/components/season-selector";
 
 /** Controlled season trigger; its caller owns navigation and the sole accepted personal-space choice. */
 export interface PersonalSeasonSelectorProps {

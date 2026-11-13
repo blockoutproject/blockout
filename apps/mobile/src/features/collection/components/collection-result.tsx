@@ -1,9 +1,9 @@
-import { Surface } from "../../../shared/components/surface";
+import { Surface } from "@/shared/components/surface";
 import { formatCollectionTimestamp } from "../model/collection-time";
 import { Text } from "react-native";
 import type { CollectionResultResponse } from "../../../../.generated/schemas/index.zod";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 
 /** Current evidence for one scope/stage/phase; diagnostics are already filtered by the backend contract. */
 export interface CollectionResultProps {

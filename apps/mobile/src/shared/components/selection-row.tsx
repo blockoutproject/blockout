@@ -1,7 +1,7 @@
 import { Check } from "lucide-react-native";
 import { EntryRow } from "./entry-row";
-import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 
 /** Native single choice; callers retain the selected value and any navigation or commit behavior. */
 export interface SelectionRowProps {

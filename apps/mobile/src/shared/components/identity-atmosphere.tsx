@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { StyleSheet } from "react-native";
-import { tokens } from "../theme/tokens";
+import { tokens } from "@/shared/theme/tokens";
 import { BlurredArtwork } from "./blurred-artwork";
 
 /** Decorative copy of one authorized identity source; callers key the component by URI. */

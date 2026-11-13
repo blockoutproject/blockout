@@ -1,5 +1,5 @@
 import { isCancelledError } from "@tanstack/react-query";
-import { createQueryClient } from "../../../../shared/query/query-client";
+import { createQueryClient } from "@/shared/query/query-client";
 import { mockPurchases } from "../../test-support/native-purchases";
 import { v2Offering } from "../../test-support/offering";
 import { createProOfferingQueryOptions } from "../pro-offering-queries";

@@ -8,13 +8,13 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { Text } from "react-native";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { Button } from "../../../shared/components/button";
-import { Tabs } from "../../../shared/components/tabs";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { Button } from "@/shared/components/button";
+import { Tabs } from "@/shared/components/tabs";
 import { PersonalSeasonSelector } from "../components/personal-season-selector";
 import { PersonalSeasonChoices } from "../components/personal-season-choices";
-import { Sheet, SheetContent } from "../../../shared/components/sheet";
+import { Sheet, SheetContent } from "@/shared/components/sheet";
 import { usePersonalSeason } from "../hooks/use-personal-season";
 import { followOptionsKey, type FollowingOwner } from "../api/following-keys";
 import {

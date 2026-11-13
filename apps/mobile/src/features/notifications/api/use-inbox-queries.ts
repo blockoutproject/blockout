@@ -1,10 +1,10 @@
-import { ApiError } from "../../../shared/api/api-fetch";
-import { isAccessDenied } from "../../../shared/api/access-denied";
+import { ApiError } from "@/shared/api/api-fetch";
+import { isAccessDenied } from "@/shared/api/access-denied";
 import {
   useCurrentAccount,
   useAccountSession,
-} from "../../accounts/current-account";
-import { useOrdinaryRequest } from "../../access/ordinary-request";
+} from "@/features/accounts/current-account";
+import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import { createInboxQueries } from "./inbox-queries";
 
 /** Reuses native credentials, the native F05 principal and current F12 request admission. */

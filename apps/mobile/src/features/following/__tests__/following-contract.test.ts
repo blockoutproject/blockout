@@ -17,7 +17,7 @@ import {
   ListPoolFollowsParams,
   ListPersonalMatchesParams,
 } from "../../../../.generated/schemas/index.zod";
-import { createQueryClient } from "../../../shared/query/query-client";
+import { createQueryClient } from "@/shared/query/query-client";
 
 const account = "00000000-0000-4000-8000-000000000001";
 const target = "00000000-0000-4000-8000-000000000002";

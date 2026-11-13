@@ -1,8 +1,8 @@
 import { controlOpacity } from "./control-styles";
 import { ChevronDown } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { tokens } from "../theme/tokens";
-import { useTheme } from "../theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 
 /** Controlled season trigger; callers own the displayed choice, available options and presentation. */
 export interface SeasonSelectorProps {

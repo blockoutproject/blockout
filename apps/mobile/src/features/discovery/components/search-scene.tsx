@@ -1,7 +1,7 @@
 import type { ReactElement, ReactNode } from "react";
 import { Keyboard } from "react-native";
 import { useNavigation } from "expo-router";
-import { useSportingNavigation } from "../../sporting/navigation";
+import { useSportingNavigation } from "@/features/sporting/navigation";
 import { useSearchVisit } from "../forms/search-visit";
 import type { DiscoveryResource } from "../api/discovery-context";
 import type {
@@ -10,15 +10,12 @@ import type {
 } from "../api/use-discovery-query";
 import { uniqueSearchResults, type SearchResult } from "../model/search-result";
 import { SearchResults } from "./search-results";
-import { PageContent } from "../../../shared/components/page";
+import { PageContent } from "@/shared/components/page";
 import { SearchLoading } from "./search-loading";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { ListContinuation } from "../../../shared/components/list-continuation";
-import { EmptyState } from "../../../shared/components/state-card";
-import {
-  hasReadError,
-  ReadFeedback,
-} from "../../../shared/components/read-feedback";
+import { ScreenState } from "@/shared/components/screen-state";
+import { ListContinuation } from "@/shared/components/list-continuation";
+import { EmptyState } from "@/shared/components/state-card";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 
 /** One tab's current queries and criteria; the parent retains the shared text, filters and empty-state actions. */
 export interface SearchSceneProps {

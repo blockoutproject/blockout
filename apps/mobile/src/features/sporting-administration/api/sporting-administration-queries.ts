@@ -1,4 +1,4 @@
-import { isAccessDenied } from "../../../shared/api/access-denied";
+import { isAccessDenied } from "@/shared/api/access-denied";
 import { queryOptions, type QueryFunctionContext } from "@tanstack/react-query";
 import {
   getClubPresentation,
@@ -16,7 +16,7 @@ import {
   getGetPackClassificationQueryKey,
   getGetPoolClassificationQueryKey,
 } from "../../../../.generated/mobile";
-import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
+import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
 
 /** Current permission or target refusals suspend commands; technical failures retain the admitted draft. */
 export function isSportingReadRefused(error: unknown): boolean {

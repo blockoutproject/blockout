@@ -11,31 +11,31 @@ import { renderRouter } from "expo-router/testing-library";
 import * as WebBrowser from "expo-web-browser";
 import type { ComponentType } from "react";
 import { Text } from "react-native";
-import RootLayout from "../../../app/_layout";
-import OrdinaryLayout from "../../../app/(ordinary)/_layout";
-import RecoveryLayout from "../../../app/(recovery)/_layout";
-import { AccessGateScreen } from "../../access/screens/access-gate-screen";
+import RootLayout from "@/app/_layout";
+import OrdinaryLayout from "@/app/(ordinary)/_layout";
+import RecoveryLayout from "@/app/(recovery)/_layout";
+import { AccessGateScreen } from "@/features/access/screens/access-gate-screen";
 import {
   ProfileLegalLinks,
   PublicAccountLinks,
-} from "../../accounts/components/public-account-links";
+} from "@/features/accounts/components/public-account-links";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
-import { accountResponse as mockAccountResponse } from "../../accounts/test-support/account-response";
-import { submitAgeDeclaration } from "../../advertising/age-declaration";
-import { completeDiscovery } from "../../onboarding/discovery-state";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import { usePro } from "../../pro";
+} from "@/features/accounts/test-support/native-auth0";
+import { accountResponse as mockAccountResponse } from "@/features/accounts/test-support/account-response";
+import { submitAgeDeclaration } from "@/features/advertising/age-declaration";
+import { completeDiscovery } from "@/features/onboarding/discovery-state";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { usePro } from "@/features/pro";
 import {
   customerInfo,
   entitlement,
-} from "../../pro/test-support/customer-info";
-import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
-import { mockPurchases } from "../../pro/test-support/native-purchases";
-import * as proSessionModule from "../../pro/pro-session";
-import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
+} from "@/features/pro/test-support/customer-info";
+import { prepareProNativeIO } from "@/features/pro/test-support/pro-harness";
+import { mockPurchases } from "@/features/pro/test-support/native-purchases";
+import * as proSessionModule from "@/features/pro/pro-session";
+import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
 
 jest.mock("expo-web-browser", () => ({
   openBrowserAsync: jest.fn(),
@@ -67,18 +67,18 @@ jest.mock("@react-native-async-storage/async-storage", () =>
     "@react-native-async-storage/async-storage/jest/async-storage-mock",
   ),
 );
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
 jest.mock("expo/fetch", () => ({

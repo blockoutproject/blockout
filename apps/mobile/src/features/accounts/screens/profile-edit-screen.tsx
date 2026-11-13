@@ -1,28 +1,25 @@
-import { Page, PageContent } from "../../../shared/components/page";
-import { ErrorState } from "../../../shared/components/state-card";
-import { ScreenState } from "../../../shared/components/screen-state";
+import { Page, PageContent } from "@/shared/components/page";
+import { ErrorState } from "@/shared/components/state-card";
+import { ScreenState } from "@/shared/components/screen-state";
 import { useNavigation, useRouter } from "expo-router";
 import { StackActions } from "expo-router/react-navigation";
 import { LogIn } from "lucide-react-native";
-import { FormScrollView } from "../../../shared/components/form-scroll-view";
+import { FormScrollView } from "@/shared/components/form-scroll-view";
 
 import { isAccountMissing } from "../api/current-account-query";
-import { Button } from "../../../shared/components/button";
+import { Button } from "@/shared/components/button";
 import { useCurrentAccount } from "../api/use-current-account";
 import { ProfileForm } from "../forms/profile-form";
 import { ProfileLoading } from "../components/profile-loading";
 import { accountSessionRecovery } from "../session/account-session-recovery";
 import { useAccountSession } from "../session/account-session-provider";
-import { PageHeader } from "../../../shared/components/page-header";
+import { PageHeader } from "@/shared/components/page-header";
 
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { useProfileRefresh } from "../api/use-profile-refresh";
 import { ProfileSupportAction } from "../components/profile-support-action";
 import { SignInInvitationCard } from "../components/sign-in-invitation";
-import {
-  hasReadError,
-  ReadFeedback,
-} from "../../../shared/components/read-feedback";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 
 /** Ordinary admission gates editing independently from identity-only account reads. */
 export interface ProfileEditScreenProps {

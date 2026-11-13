@@ -6,7 +6,7 @@ import {
 } from "react";
 import { useForm, useFormState, type UseFormReturn } from "react-hook-form";
 import { usePreventRemove } from "expo-router";
-import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
+import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { SupportContextRequest } from "../../../../.generated/schemas/index.zod";
 import { supportSchema, type SupportValues } from "../schemas/support-schema";

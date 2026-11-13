@@ -6,12 +6,12 @@ import {
 } from "@tanstack/react-query";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
-import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
-import { AdvertisingProviders } from "../../advertising/test-support/advertising-providers";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { AccountSessionProvider } from "@/features/accounts/session/account-session-provider";
+import { AdvertisingProviders } from "@/features/advertising/test-support/advertising-providers";
 
 /** Real consultation owners; suites supply external HTTP/native doubles and own both cache cleanups. */
 export function ConsultationProviders({

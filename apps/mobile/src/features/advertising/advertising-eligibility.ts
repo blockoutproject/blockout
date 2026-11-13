@@ -1,6 +1,6 @@
-import type { AccountSession, SessionSnapshot } from "../accounts";
-import type { useAccessAdmission } from "../access/queries/use-access-admission";
-import type { ProState } from "../pro";
+import type { AccountSession, SessionSnapshot } from "@/features/accounts";
+import type { useAccessAdmission } from "@/features/access/queries/use-access-admission";
+import type { ProState } from "@/features/pro";
 
 /**
  * Transient result of the native privacy owner for a captured F05 context.

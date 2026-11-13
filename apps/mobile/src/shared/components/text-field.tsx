@@ -8,8 +8,8 @@ import {
   type TextInputProps,
   type TextInputInstance,
 } from "react-native";
-import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { FieldMessage } from "./field-message";
 
 /** A native input contract; features retain values, validation, submission and secure-entry decisions. */

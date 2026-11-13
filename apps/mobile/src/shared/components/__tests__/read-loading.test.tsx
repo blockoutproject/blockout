@@ -12,7 +12,7 @@ import {
   QueryClientProvider,
   useQuery,
 } from "@tanstack/react-query";
-import { ThemeProvider } from "../../theme/theme-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { LoadingGroup } from "../loading-group";
 import { Skeleton } from "../skeleton";
 import { hasReadError, ReadFeedback } from "../read-feedback";

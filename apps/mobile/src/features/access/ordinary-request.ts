@@ -1,4 +1,4 @@
-import { ApiError, type ApiFetchOptions } from "../../shared/api/api-fetch";
+import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
 import { useApplicationAccess } from "./queries/use-application-access";
 import { accessPresentation } from "./state/access-presentation";
 

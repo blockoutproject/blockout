@@ -3,9 +3,9 @@ import type {
   SportingDivisionResponse,
   SportingIdentityResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { PageHeader } from "../../../shared/components/page-header";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { PageHeader } from "@/shared/components/page-header";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { SportingLogo } from "./sporting-identity";
 import type { ReactNode } from "react";
 import { SportingPresentationAction } from "./sporting-actions";

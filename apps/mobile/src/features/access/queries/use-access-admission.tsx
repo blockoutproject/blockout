@@ -4,7 +4,7 @@ import {
   useEffect,
   type PropsWithChildren,
 } from "react";
-import { useAccountSession } from "../../accounts/current-account";
+import { useAccountSession } from "@/features/accounts/current-account";
 import { useAdministrationCapabilities } from "../api/use-administration-capabilities";
 import { accessPresentation } from "../state/access-presentation";
 import { useApplicationAccess } from "./use-application-access";

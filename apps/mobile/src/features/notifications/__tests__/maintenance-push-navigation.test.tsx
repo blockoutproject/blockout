@@ -12,25 +12,25 @@ import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppState, Text } from "react-native";
 import { useEffect, type ComponentType } from "react";
-import RootLayout from "../../../app/_layout";
-import OrdinaryLayout from "../../../app/(ordinary)/_layout";
-import RecoveryLayout from "../../../app/(recovery)/_layout";
-import MatchRoute from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/matches/[matchId]";
-import { AccessGateScreen } from "../../access/screens/access-gate-screen";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { accountResponse } from "../../accounts/test-support/account-response";
+import RootLayout from "@/app/_layout";
+import OrdinaryLayout from "@/app/(ordinary)/_layout";
+import RecoveryLayout from "@/app/(recovery)/_layout";
+import MatchRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/matches/[matchId]";
+import { AccessGateScreen } from "@/features/access/screens/access-gate-screen";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import {
   useAccountSession,
   type AccountSession,
-} from "../../accounts/current-account";
+} from "@/features/accounts/current-account";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
-import { completeDiscovery } from "../../onboarding/discovery-state";
-import { submitAgeDeclaration } from "../../advertising/age-declaration";
-import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
-import * as proSessionModule from "../../pro/pro-session";
+} from "@/features/accounts/test-support/native-auth0";
+import { completeDiscovery } from "@/features/onboarding/discovery-state";
+import { submitAgeDeclaration } from "@/features/advertising/age-declaration";
+import { prepareProNativeIO } from "@/features/pro/test-support/pro-harness";
+import * as proSessionModule from "@/features/pro/pro-session";
 import { notificationResponse } from "../test-support/notification-data";
 import { nativeNotificationResponse } from "../test-support/native-notification-data";
 
@@ -47,15 +47,15 @@ jest.mock("@sentry/react-native", () => ({
 }));
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

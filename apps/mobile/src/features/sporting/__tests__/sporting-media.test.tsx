@@ -7,7 +7,7 @@ import {
 } from "@testing-library/react-native";
 import { useState } from "react";
 import { TextInput, View } from "react-native";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { SportingCover, SportingMedia } from "../components/sporting-media";
 
 it("uses the neutral missing-image fallback even when a short name is available", async () => {

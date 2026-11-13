@@ -1,6 +1,6 @@
 import Svg, { Defs, Image as SvgImage, Mask, Rect } from "react-native-svg";
-import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 
 /** The host selects the approved mark size; its original square asset and semantic ink stay unchanged. */
 export interface BrandMarkProps {

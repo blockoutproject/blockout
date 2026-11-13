@@ -1,20 +1,20 @@
-import { PageFlatList } from "../../../shared/components/page-list";
-import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
-import { ListSeparator } from "../../../shared/components/list-separator";
-import { AccessFeedback } from "../../access/components/access-feedback";
-import { PageHeader } from "../../../shared/components/page-header";
+import { PageFlatList } from "@/shared/components/page-list";
+import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
+import { ListSeparator } from "@/shared/components/list-separator";
+import { AccessFeedback } from "@/features/access/components/access-feedback";
+import { PageHeader } from "@/shared/components/page-header";
 
-import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
+import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import {
   Page,
   PageScrollView,
   PageContent,
   pageContentStyle,
-} from "../../../shared/components/page";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { ErrorState, EmptyState } from "../../../shared/components/state-card";
-import { ScreenState } from "../../../shared/components/screen-state";
+} from "@/shared/components/page";
+import { isAccessDenied } from "@/shared/api/access-denied";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { ErrorState, EmptyState } from "@/shared/components/state-card";
+import { ScreenState } from "@/shared/components/screen-state";
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -23,18 +23,18 @@ import { ChevronRight, Eraser, Plus, RefreshCw } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { DivisionResponse } from "../../../../.generated/schemas/index.zod";
-import { IconButton } from "../../../shared/components/icon-button";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { Button } from "../../../shared/components/button";
-import { SearchField } from "../../../shared/components/search-field";
+import { IconButton } from "@/shared/components/icon-button";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { Button } from "@/shared/components/button";
+import { SearchField } from "@/shared/components/search-field";
 
 import { DivisionsLoading } from "../components/divisions-loading";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { useDivisions } from "../api/classification";
 import { usePresentationLogo } from "../api/presentation";
-import { DivisionPaint } from "../../sporting/components/division-paint";
-import { SportingMedia } from "../../sporting/components/sporting-media";
+import { DivisionPaint } from "@/features/sporting/components/division-paint";
+import { SportingMedia } from "@/features/sporting/components/sporting-media";
 
 import {
   divisionSearchSchema,

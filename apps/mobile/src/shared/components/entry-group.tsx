@@ -5,8 +5,8 @@ import {
   type PropsWithChildren,
 } from "react";
 import { StyleSheet, View } from "react-native";
-import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { Surface } from "./surface";
 
 /** Reuses the basic-list divider in grouped content and virtualized lists without owning row behavior. */

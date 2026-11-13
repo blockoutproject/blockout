@@ -1,6 +1,6 @@
 import { render, screen, userEvent } from "@testing-library/react-native";
 import { useState } from "react";
-import { ThemeProvider } from "../../theme/theme-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { TextField } from "../text-field";
 
 /** Owns editable data exactly as a feature form does; the control owns no business value. */

@@ -1,27 +1,23 @@
-import {
-  Page,
-  PageScrollView,
-  PageContent,
-} from "../../../shared/components/page";
-import { ErrorState } from "../../../shared/components/state-card";
+import { Page, PageScrollView, PageContent } from "@/shared/components/page";
+import { ErrorState } from "@/shared/components/state-card";
 import { applicationUpdateMessage } from "../application-update-message";
-import { RoundedContainedImage } from "../../../shared/components/rounded-contained-image";
-import { ImageFallback } from "../../../shared/components/image-fallback";
+import { RoundedContainedImage } from "@/shared/components/rounded-contained-image";
+import { ImageFallback } from "@/shared/components/image-fallback";
 import { useRouter } from "expo-router";
 import { X } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { PublicMaintenanceResponse } from "../../../../.generated/schemas/index.zod";
-import { IconButton } from "../../../shared/components/icon-button";
-import { Button } from "../../../shared/components/button";
-import { BrandHeader } from "../../../shared/components/brand-header";
-import { LoadingGroup } from "../../../shared/components/loading-group";
-import { Skeleton } from "../../../shared/components/skeleton";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { IconButton } from "@/shared/components/icon-button";
+import { Button } from "@/shared/components/button";
+import { BrandHeader } from "@/shared/components/brand-header";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { Skeleton } from "@/shared/components/skeleton";
+import { ScreenState } from "@/shared/components/screen-state";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { GateBackdrop } from "../components/gate-backdrop";
 import { StoreAction } from "../components/store-action";
 import { useAccessAdmission } from "../queries/use-access-admission";

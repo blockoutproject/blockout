@@ -1,7 +1,7 @@
 import { Link, type Href } from "expo-router";
 import { Pressable, StyleSheet, Text, type PressableProps } from "react-native";
-import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 
 /** A caller-authorized route destination with its full accessible label. */
 export interface NavigationLinkProps {

@@ -1,8 +1,8 @@
 import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
-import { useCurrentAccount } from "../../accounts/api/use-current-account";
-import { accountResponse } from "../../accounts/test-support/account-response";
-import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
+import { useCurrentAccount } from "@/features/accounts/api/use-current-account";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
+import { nativeAlertAction } from "@/shared/native/test-support/native-alert";
 import {
   cleanup,
   act,
@@ -15,30 +15,30 @@ import { Stack, router, usePathname } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import { useState, useLayoutEffect, type ComponentType } from "react";
 import { Alert, Text } from "react-native";
-import RootLayout from "../../../app/_layout";
-import RecoveryLayout from "../../../app/(recovery)/_layout";
-import SignInRoute from "../../../app/(recovery)/sign-in";
-import OnboardingRoute from "../../../app/onboarding";
-import { completeDiscovery } from "../../onboarding/discovery-state";
-import OperationsLayout from "../../../app/(operations)/_layout";
-import AdministrationRoute from "../../../app/(operations)/administration";
-import CollectionLayout from "../../../app/(operations)/collection/_layout";
-import CollectionRoute from "../../../app/(operations)/collection";
-import SeasonRoute from "../../../app/(operations)/collection/[seasonId]";
-import ProviderRoute from "../../../app/(operations)/collection/[seasonId]/[provider]";
-import CompetitionRoute from "../../../app/(operations)/collection/[seasonId]/controls/[provider]";
-import ClubRoute from "../../../app/(operations)/collection/clubs/[family]";
-import CloseSeasonRoute from "../../../app/(operations)/collection/[seasonId]/closure";
+import RootLayout from "@/app/_layout";
+import RecoveryLayout from "@/app/(recovery)/_layout";
+import SignInRoute from "@/app/(recovery)/sign-in";
+import OnboardingRoute from "@/app/onboarding";
+import { completeDiscovery } from "@/features/onboarding/discovery-state";
+import OperationsLayout from "@/app/(operations)/_layout";
+import AdministrationRoute from "@/app/(operations)/administration";
+import CollectionLayout from "@/app/(operations)/collection/_layout";
+import CollectionRoute from "@/app/(operations)/collection";
+import SeasonRoute from "@/app/(operations)/collection/[seasonId]";
+import ProviderRoute from "@/app/(operations)/collection/[seasonId]/[provider]";
+import CompetitionRoute from "@/app/(operations)/collection/[seasonId]/controls/[provider]";
+import ClubRoute from "@/app/(operations)/collection/clubs/[family]";
+import CloseSeasonRoute from "@/app/(operations)/collection/[seasonId]/closure";
 import { control } from "../test-support/collection-peer";
-import SourceRoute from "../../../app/(operations)/collection/[seasonId]/sources/[sourceId]";
-import NotFoundRoute from "../../../app/+not-found";
-import { AccessGateScreen } from "../../access/screens/access-gate-screen";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+import SourceRoute from "@/app/(operations)/collection/[seasonId]/sources/[sourceId]";
+import NotFoundRoute from "@/app/+not-found";
+import { AccessGateScreen } from "@/features/access/screens/access-gate-screen";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
+} from "@/features/accounts/test-support/native-auth0";
 
 jest.mock("expo-constants", () => {
   const actual = jest.requireActual("expo-constants");
@@ -65,15 +65,15 @@ jest.mock("@sentry/react-native", () => ({
 }));
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

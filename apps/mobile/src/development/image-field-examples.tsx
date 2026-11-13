@@ -1,15 +1,15 @@
-import { useImageSelection } from "../shared/images/use-image-selection";
+import { useImageSelection } from "@/shared/images/use-image-selection";
 import { useState } from "react";
 import { File } from "expo-file-system";
 import { Image, StyleSheet, Switch, Text, View } from "react-native";
-import { Page, PageContent, PageScrollView } from "../shared/components/page";
+import { Page, PageContent, PageScrollView } from "@/shared/components/page";
 import {
   ImageField,
   type ImageFieldImage,
-} from "../shared/components/image-field";
-import { useTheme } from "../shared/theme/theme-provider";
-import { Button } from "../shared/components/button";
-import { tokens } from "../shared/theme/tokens";
+} from "@/shared/components/image-field";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { Button } from "@/shared/components/button";
+import { tokens } from "@/shared/theme/tokens";
 
 /** Isolated native qualification host; accepted images contain memory data URIs, never retained picker files or uploads. */
 export function ImageFieldExamplesScreen() {

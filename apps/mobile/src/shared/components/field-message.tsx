@@ -1,6 +1,6 @@
 import { Text } from "react-native";
-import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 
 /** Field-owned validation takes precedence over optional guidance; no request error belongs here. */
 export interface FieldMessageProps {

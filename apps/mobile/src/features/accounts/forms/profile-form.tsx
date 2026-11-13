@@ -1,31 +1,31 @@
-import { ImageValidationError } from "../../../shared/images/image-validation-error";
+import { ImageValidationError } from "@/shared/images/image-validation-error";
 import type { File } from "expo-file-system";
-import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
-import { useImageSelection } from "../../../shared/images/use-image-selection";
+import { deleteOwnedImage } from "@/shared/images/delete-owned-image";
+import { useImageSelection } from "@/shared/images/use-image-selection";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useRef, type ReactNode } from "react";
 import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
 import { StyleSheet, View } from "react-native";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { Button } from "../../../shared/components/button";
-import { SingleImageField } from "../../../shared/components/single-image-field";
-import { PageContent } from "../../../shared/components/page";
+import { ApiError } from "@/shared/api/api-fetch";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { Button } from "@/shared/components/button";
+import { SingleImageField } from "@/shared/components/single-image-field";
+import { PageContent } from "@/shared/components/page";
 import {
   FormScrollView,
   type FormScrollViewProps,
-} from "../../../shared/components/form-scroll-view";
+} from "@/shared/components/form-scroll-view";
 
-import { TextField } from "../../../shared/components/text-field";
-import { Surface } from "../../../shared/components/surface";
-import { tokens } from "../../../shared/theme/tokens";
+import { TextField } from "@/shared/components/text-field";
+import { Surface } from "@/shared/components/surface";
+import { tokens } from "@/shared/theme/tokens";
 import { useProfileEditing, useProfilePhoto } from "../api/use-profile-editing";
 import { prepareProfilePhoto } from "../profile/prepare-profile-photo";
 import { profileSchema, type ProfileValues } from "../schemas/profile-schema";
 import { profileValues } from "./profile-values";
 import { toProfileBody } from "../api/profile-request";
-import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
+import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
 
 /** An editable snapshot of this original account; parent native principal changes remount it. */
 export interface ProfileFormProps {

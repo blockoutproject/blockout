@@ -1,8 +1,8 @@
 import type { ImagePickerAsset } from "expo-image-picker";
 import { File, Paths } from "expo-file-system";
 import { randomUUID } from "expo-crypto";
-import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
-import { ImageValidationError } from "../../../shared/images/image-validation-error";
+import { deleteOwnedImage } from "@/shared/images/delete-owned-image";
+import { ImageValidationError } from "@/shared/images/image-validation-error";
 import {
   ImageManipulator,
   SaveFormat,

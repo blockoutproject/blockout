@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import Constants from "expo-constants";
-import { useAccountSession } from "../../accounts/current-account";
+import { useAccountSession } from "@/features/accounts/current-account";
 import { createProOfferingQueryOptions } from "./pro-offering-queries";
 
 /** A newly entered, purchase-eligible destination reads its session-scoped offer; retries remain explicit. */

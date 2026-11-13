@@ -1,7 +1,7 @@
 import { useEffect, useState, type PropsWithChildren } from "react";
 import { createInstallationAdvertisingPrivacy } from "../advertising-privacy";
-import { AccessAdmissionProvider } from "../../access/queries/use-access-admission";
-import { ProProvider } from "../../pro";
+import { AccessAdmissionProvider } from "@/features/access/queries/use-access-admission";
+import { ProProvider } from "@/features/pro";
 import { AgeDeclarationProvider } from "../age-declaration-provider";
 
 /**

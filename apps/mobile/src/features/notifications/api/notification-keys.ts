@@ -3,7 +3,7 @@ import {
   getGetNotificationQueryKey,
   getGetNotificationSummaryQueryKey,
 } from "../../../../.generated/mobile";
-import type { SessionSnapshot } from "../../accounts";
+import type { SessionSnapshot } from "@/features/accounts";
 
 /** Private generated keys for a captured F05 owner; continuation belongs to native pageParam. */
 export function getNotificationKeys(session: SessionSnapshot) {

@@ -8,8 +8,8 @@ import {
   SaveFormat,
   type ImageRef,
 } from "expo-image-manipulator";
-import { useImageSelection } from "../../../shared/images/use-image-selection";
-import { deleteOwnedImage } from "../../../shared/images/delete-owned-image";
+import { useImageSelection } from "@/shared/images/use-image-selection";
+import { deleteOwnedImage } from "@/shared/images/delete-owned-image";
 import type { SupportValues } from "../schemas/support-schema";
 
 /** A selected item stays in RHF until explicitly corrected/removed, including failed preparation. */

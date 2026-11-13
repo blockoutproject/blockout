@@ -1,9 +1,9 @@
 import { useRouter, usePreventRemove } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Sheet, SheetContent } from "../../../shared/components/sheet";
-import { AgeForm } from "../../advertising/forms/age-form";
-import { useAgeDeclaration } from "../../advertising/age-declaration-provider";
-import { useAccountSession } from "../../accounts/current-account";
+import { Sheet, SheetContent } from "@/shared/components/sheet";
+import { AgeForm } from "@/features/advertising/forms/age-form";
+import { useAgeDeclaration } from "@/features/advertising/age-declaration-provider";
+import { useAccountSession } from "@/features/accounts/current-account";
 
 /** Replaces the privacy menu with the same neutral form; dismissal never changes the declaration. */
 export function AgeCorrectionSheet() {

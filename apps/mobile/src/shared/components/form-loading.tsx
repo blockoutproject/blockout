@@ -7,7 +7,7 @@ import {
 import { LoadingGroup } from "./loading-group";
 import { Skeleton } from "./skeleton";
 import { TextSkeleton } from "./text-skeleton";
-import { tokens } from "../theme/tokens";
+import { tokens } from "@/shared/theme/tokens";
 
 /** Decorative label and native field slot; the surrounding read owns its single announcement. */
 export function FieldSkeleton({

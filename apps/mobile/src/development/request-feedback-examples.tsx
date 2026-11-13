@@ -1,11 +1,11 @@
-import { ErrorState } from "../shared/components/state-card";
+import { ErrorState } from "@/shared/components/state-card";
 import { useState } from "react";
 import { Switch, Text, View } from "react-native";
-import { Page, PageContent, PageScrollView } from "../shared/components/page";
-import { Button } from "../shared/components/button";
-import { RequestLoading } from "../shared/components/request-feedback";
-import { useTheme } from "../shared/theme/theme-provider";
-import { tokens } from "../shared/theme/tokens";
+import { Page, PageContent, PageScrollView } from "@/shared/components/page";
+import { Button } from "@/shared/components/button";
+import { RequestLoading } from "@/shared/components/request-feedback";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 
 /** Local controlled examples for native qualification; no network, business operation or production route. */
 export function RequestFeedbackExamplesScreen() {

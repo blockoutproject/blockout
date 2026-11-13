@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from "react";
-import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
 import {
   act,
   fireEvent,
@@ -7,7 +7,7 @@ import {
   screen,
   userEvent,
 } from "@testing-library/react-native";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { AgeForm } from "../forms/age-form";
 
 // The schema imports the age persistence owner; only its native storage dependency is doubled.

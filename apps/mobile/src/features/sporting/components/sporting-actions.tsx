@@ -4,18 +4,18 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { useRouter } from "expo-router";
 import { Flag } from "lucide-react-native";
-import { IconButton } from "../../../shared/components/icon-button";
-import { supportHref } from "../../support";
+import { IconButton } from "@/shared/components/icon-button";
+import { supportHref } from "@/features/support";
 import { StyleSheet, View } from "react-native";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import {
   FollowButton,
   FollowControl,
   FollowerCount,
   type FollowStateRead,
   type FollowingTarget,
-} from "../../following";
+} from "@/features/following";
 
 /** Current public target/season; F06 owns the private relationship and independent public count. */
 export interface SportingActionsProps {
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
 export {
   ContributionEntry as MatchContributionAction,
   useContributionEntry as useMatchContributionAction,
-} from "../../contributions/entry";
+} from "@/features/contributions/entry";
 
 /** F02 owns presentation editing and F12 owns its current capability; no match/result editor is exposed. */
-export { PresentationEntry as SportingPresentationAction } from "../../sporting-administration/entry";
+export { PresentationEntry as SportingPresentationAction } from "@/features/sporting-administration/entry";

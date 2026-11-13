@@ -1,11 +1,11 @@
 import { screen, userEvent } from "@testing-library/react-native";
 import { renderRouter } from "expo-router/testing-library";
 import { Text } from "react-native";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { PublicAccountLinks } from "../components/public-account-links";
 import { useLocalSearchParams } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
 import type { PropsWithChildren } from "react";
 
 jest.mock("expo-web-browser", () => ({

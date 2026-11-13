@@ -10,7 +10,7 @@ import {
 } from "@testing-library/react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useState, type PropsWithChildren } from "react";
-import { ThemeProvider } from "../../theme/theme-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import {
   ImageField as ImageFieldControl,
   type ImageFieldProps,
@@ -18,7 +18,7 @@ import {
 import {
   useImageSelection,
   type ImageSelectionOptions,
-} from "../../images/use-image-selection";
+} from "@/shared/images/use-image-selection";
 
 jest.mock("expo-image-picker", () => ({ launchImageLibraryAsync: jest.fn() }));
 jest.mock("expo-file-system", () => ({

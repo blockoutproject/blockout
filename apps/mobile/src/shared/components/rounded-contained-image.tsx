@@ -1,8 +1,8 @@
 import { Image, type ImageProps } from "expo-image";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { containedImageSize } from "../images/contained-image-size";
-import { mediaRadius } from "../theme/media-radius";
+import { containedImageSize } from "@/shared/images/contained-image-size";
+import { mediaRadius } from "@/shared/theme/media-radius";
 
 /** Centered contain artwork; the caller retains source keys, native callbacks, accessibility and loading/error ownership. */
 export interface RoundedContainedImageProps extends Omit<

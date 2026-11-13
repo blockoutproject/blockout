@@ -1,8 +1,8 @@
-import { useNativeHandoff } from "../../../shared/native/use-native-handoff";
+import { useNativeHandoff } from "@/shared/native/use-native-handoff";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { ChevronRight, type LucideIcon } from "lucide-react-native";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 
 /** Accepts only published HTTP(S) destinations without credentials; malformed values remain plain text. */
 export function safeWebsite(value?: string): string | undefined {

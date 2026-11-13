@@ -21,10 +21,10 @@ import Pdf from "react-native-pdf";
 import {
   mockAuth0,
   credentialsFor,
-} from "../../accounts/test-support/native-auth0";
-import { accountResponse } from "../../accounts/test-support/account-response";
-import { useAccountSession } from "../../accounts/current-account";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+} from "@/features/accounts/test-support/native-auth0";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
+import { useAccountSession } from "@/features/accounts/current-account";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import {
   ConsultationProviders,
   consultationPublicClient,
@@ -44,15 +44,15 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 );
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

@@ -15,7 +15,7 @@ import {
   ListTeamFollowsParams,
   ListPersonalMatchesParams,
 } from "../../../../.generated/schemas/index.zod";
-import type { SessionSnapshot } from "../../accounts";
+import type { SessionSnapshot } from "@/features/accounts";
 
 /** Original account identity captured from F05; profile availability remains with its current query. */
 export interface FollowingOwner {

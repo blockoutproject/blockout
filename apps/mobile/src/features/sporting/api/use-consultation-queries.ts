@@ -1,5 +1,5 @@
-import { useAccountSession } from "../../accounts/current-account";
-import { useOrdinaryRequest } from "../../access/ordinary-request";
+import { useAccountSession } from "@/features/accounts/current-account";
+import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import { createConsultationQueries } from "./consultation-queries";
 
 /** Uses the real private Query lifetime and captures credentials only for an explicit bypass request. */

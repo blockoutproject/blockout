@@ -1,14 +1,14 @@
-import { RoundedContainedImage } from "../../../shared/components/rounded-contained-image";
-import { BlurredArtwork } from "../../../shared/components/blurred-artwork";
-import { ImageFallback } from "../../../shared/components/image-fallback";
+import { RoundedContainedImage } from "@/shared/components/rounded-contained-image";
+import { BlurredArtwork } from "@/shared/components/blurred-artwork";
+import { ImageFallback } from "@/shared/components/image-fallback";
 import { useState, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import type { SportingIdentityResponse } from "../../../../.generated/schemas/index.zod";
-import { Skeleton } from "../../../shared/components/skeleton";
-import { useNativeImageLifecycle } from "../../../shared/images/use-native-image-lifecycle";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
-import { mediaRadius } from "../../../shared/theme/media-radius";
+import { Skeleton } from "@/shared/components/skeleton";
+import { useNativeImageLifecycle } from "@/shared/images/use-native-image-lifecycle";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { mediaRadius } from "@/shared/theme/media-radius";
 
 /** Optional sports artwork keeps its fixed slot and native lifecycle; absent or failed artwork uses the nominal fallback. */
 export interface SportingMediaProps {

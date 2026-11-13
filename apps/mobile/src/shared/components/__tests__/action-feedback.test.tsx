@@ -7,7 +7,7 @@ import {
 } from "@testing-library/react-native";
 import { Pressable, Text } from "react-native";
 import { ActionFeedbackProvider, useActionFeedback } from "../action-feedback";
-import { ThemeProvider } from "../../theme/theme-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { TECHNICAL_ERROR } from "../error-copy";
 
 beforeEach(() => jest.useFakeTimers());

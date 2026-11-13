@@ -1,10 +1,10 @@
 import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text } from "react-native";
 import { ContributionEntryLoading } from "./contribution-loading";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
-import { Button, type ButtonProps } from "../../../shared/components/button";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { ReadFeedback } from "@/shared/components/read-feedback";
+import { Button, type ButtonProps } from "@/shared/components/button";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { useOwnContributionsRead } from "../api/own-contributions";
 
 /** F08 supplies either the card's primary destination or its compact personal-proposals header entry. */

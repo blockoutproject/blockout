@@ -1,31 +1,28 @@
-import { PageList } from "../../../shared/components/page-list";
+import { PageList } from "@/shared/components/page-list";
 import { useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { Search } from "lucide-react-native";
-import { DisclosureChevron } from "../../../shared/components/disclosure-chevron";
+import { DisclosureChevron } from "@/shared/components/disclosure-chevron";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
-import { PageScrollView } from "../../../shared/components/page";
-import type { ApiFetchOptions } from "../../../shared/api/api-fetch";
-import { Button } from "../../../shared/components/button";
-import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { ListContinuation } from "../../../shared/components/list-continuation";
-import {
-  hasReadError,
-  ReadFeedback,
-} from "../../../shared/components/read-feedback";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { EmptyState } from "../../../shared/components/state-card";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
+import { PageScrollView } from "@/shared/components/page";
+import type { ApiFetchOptions } from "@/shared/api/api-fetch";
+import { Button } from "@/shared/components/button";
+import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { ListContinuation } from "@/shared/components/list-continuation";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
+import { ScreenState } from "@/shared/components/screen-state";
+import { EmptyState } from "@/shared/components/state-card";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 import {
   SportingEntityCard,
   SportingEntityCardLoading,
   type SportingEntityCardProps,
-} from "../../sporting/entity-card";
-import { useSportingNavigation } from "../../sporting/navigation";
+} from "@/features/sporting/entity-card";
+import { useSportingNavigation } from "@/features/sporting/navigation";
 import type { FollowingOwner, FollowingTarget } from "../api/following-keys";
 import {
   createFollowListOptions,

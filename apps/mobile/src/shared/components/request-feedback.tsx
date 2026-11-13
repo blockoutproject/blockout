@@ -1,5 +1,5 @@
 import { StyleSheet } from "react-native";
-import { tokens } from "../theme/tokens";
+import { tokens } from "@/shared/theme/tokens";
 import { TextSkeleton } from "./text-skeleton";
 import { Surface } from "./surface";
 import { LoadingGroup } from "./loading-group";

@@ -11,9 +11,9 @@ import { ActionSheetIOS, Alert, Platform } from "react-native";
 import {
   nativeImageChoiceAction,
   nativeImageChoiceLabels,
-} from "../../native/test-support/native-image-choices";
-import { ThemeProvider } from "../../theme/theme-provider";
-import { useImageSelection } from "../../images/use-image-selection";
+} from "@/shared/native/test-support/native-image-choices";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { useImageSelection } from "@/shared/images/use-image-selection";
 import { ActionFeedbackProvider } from "../action-feedback";
 import {
   SingleImageField,

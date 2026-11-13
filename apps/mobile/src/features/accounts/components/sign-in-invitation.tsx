@@ -2,12 +2,12 @@ import { Image } from "expo-image";
 import { ChevronRight } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { Button } from "../../../shared/components/button";
-import { LoadingGroup } from "../../../shared/components/loading-group";
-import { Skeleton } from "../../../shared/components/skeleton";
-import { Sheet, SheetContent } from "../../../shared/components/sheet";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { Button } from "@/shared/components/button";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { Skeleton } from "@/shared/components/skeleton";
+import { Sheet, SheetContent } from "@/shared/components/sheet";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 
 // Product Design 5263:6373 / 5263:6555; the lettering's visible bounds define the compact hero frame.
 const heroHeight = 184;

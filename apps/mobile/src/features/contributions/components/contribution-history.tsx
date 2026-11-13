@@ -6,11 +6,11 @@ import type {
   ModeratedStreamContributionResponse,
   StreamModerationActionEnum,
 } from "../../../../.generated/schemas/index.zod";
-import { Button } from "../../../shared/components/button";
-import { EntryRow } from "../../../shared/components/entry-row";
-import { useNativeHandoff } from "../../../shared/native/use-native-handoff";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { Button } from "@/shared/components/button";
+import { EntryRow } from "@/shared/components/entry-row";
+import { useNativeHandoff } from "@/shared/native/use-native-handoff";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import {
   contributionStateLabels,
   contributionDecisionLabels,

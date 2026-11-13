@@ -4,12 +4,12 @@ import type {
   CollectionControlResponse,
   CollectionSeasonResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { Button } from "../../../shared/components/button";
-import { Surface } from "../../../shared/components/surface";
-import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { Button } from "@/shared/components/button";
+import { Surface } from "@/shared/components/surface";
+import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import type { useCollectionControl } from "../api/use-collection-controls";
 import { formatCollectionTimestamp } from "../model/collection-time";
 import { isCollectionReadRefused } from "../api/collection-queries";

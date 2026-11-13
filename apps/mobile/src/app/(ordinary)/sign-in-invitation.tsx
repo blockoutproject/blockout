@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from "expo-router";
-import { useAccessAdmission } from "../../features/access/queries/use-access-admission";
-import { SignInInvitationScreen } from "../../features/accounts/screens/sign-in-invitation-screen";
+import { useAccessAdmission } from "@/features/access/queries/use-access-admission";
+import { SignInInvitationScreen } from "@/features/accounts/screens/sign-in-invitation-screen";
 
 /** Shared contextual F05 invitation; the reason selects copy and carries no deferred command. */
 export default function SignInInvitationRoute() {

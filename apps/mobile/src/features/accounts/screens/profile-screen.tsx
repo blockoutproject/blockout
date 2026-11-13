@@ -3,21 +3,21 @@ import {
   PageContent,
   PageScrollView,
   type PageScrollViewProps,
-} from "../../../shared/components/page";
-import { ErrorState } from "../../../shared/components/state-card";
-import { ScreenState } from "../../../shared/components/screen-state";
+} from "@/shared/components/page";
+import { ErrorState } from "@/shared/components/state-card";
+import { ScreenState } from "@/shared/components/screen-state";
 import { useRouter } from "expo-router";
 import Constants from "expo-constants";
 import { LogIn, SquarePen } from "lucide-react-native";
-import { IconButton } from "../../../shared/components/icon-button";
+import { IconButton } from "@/shared/components/icon-button";
 import type { ReactNode } from "react";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import { useProfilePhoto } from "../api/use-profile-editing";
 import { StyleSheet, Text, View } from "react-native";
 import { isAccountMissing } from "../api/current-account-query";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { Button } from "../../../shared/components/button";
-import { AdministrationEntry } from "../../access/entry";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { Button } from "@/shared/components/button";
+import { AdministrationEntry } from "@/features/access/entry";
 import {
   useCurrentAccount,
   useEstablishAccount,
@@ -30,15 +30,12 @@ import { ProfileSignIn } from "../components/profile-sign-in";
 import { ProfileSupportAction } from "../components/profile-support-action";
 import { accountSessionRecovery } from "../session/account-session-recovery";
 import { useAccountSession } from "../session/account-session-provider";
-import { PageHeader } from "../../../shared/components/page-header";
+import { PageHeader } from "@/shared/components/page-header";
 
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
-import {
-  hasReadError,
-  ReadFeedback,
-} from "../../../shared/components/read-feedback";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 
 /** Ordinary account overview; route-owned account controls and membership retain their independent authorities. */
 export interface ProfileScreenProps {

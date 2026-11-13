@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
-import { ApiError } from "../api/api-fetch";
+import { ApiError } from "@/shared/api/api-fetch";
 
 /**
  * Creates an independent public or private cache with bounded temporary-read retries.

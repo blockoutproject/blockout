@@ -6,9 +6,9 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
-import { usePro } from "../pro";
-import { useAccountSession } from "../accounts/current-account";
-import { useAccessAdmission } from "../access/queries/use-access-admission";
+import { usePro } from "@/features/pro";
+import { useAccountSession } from "@/features/accounts/current-account";
+import { useAccessAdmission } from "@/features/access/queries/use-access-admission";
 import { createAdvertisingPrivacy } from "./advertising-privacy";
 import { AgeContext } from "./age-declaration-context";
 import {

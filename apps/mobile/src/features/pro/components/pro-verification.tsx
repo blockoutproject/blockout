@@ -1,10 +1,10 @@
-import { ErrorState } from "../../../shared/components/state-card";
+import { ErrorState } from "@/shared/components/state-card";
 import { View, Text, StyleSheet } from "react-native";
-import { Button } from "../../../shared/components/button";
+import { Button } from "@/shared/components/button";
 import { ProReadLoading } from "./pro-read-loading";
-import { tokens } from "../../../shared/theme/tokens";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { useTheme } from "@/shared/theme/theme-provider";
 import { usePro } from "../pro-provider";
 import type { ProState } from "../pro-state";
 

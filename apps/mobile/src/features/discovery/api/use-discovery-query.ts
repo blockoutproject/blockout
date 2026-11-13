@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { ListTeamsParams } from "../../../../.generated/schemas/index.zod";
-import { useAccountSession } from "../../accounts/current-account";
-import { useOrdinaryRequest } from "../../access/ordinary-request";
+import { useAccountSession } from "@/features/accounts/current-account";
+import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import type { DiscoveryResource } from "./discovery-context";
 import {
   createSearchExamplesQueryOptions,

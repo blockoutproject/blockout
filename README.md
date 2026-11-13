@@ -84,6 +84,12 @@ Use two-space indentation, standard brace spacing (`{ id }`, `if (ready) {`, JSX
 instructions and separate logical steps when that helps a reader. Keep
 documentation attached to its declaration.
 
+Mobile imports stay relative within the same feature or cohesive shared module.
+Use `@/` to cross module boundaries, including routes importing feature screens;
+the single `@/*` alias maps to `./src/*` in `apps/mobile/tsconfig.json` through
+Expo/Metro and Jest Expo's native TypeScript path support. Keep package imports
+and existing paths to generated output or assets outside `src` unchanged.
+
 Prettier retains its 80-column target and standard JSX wrapping. The existing
 Expo ESLint preset is supplemented only by mandatory braces and two ESLint
 Stylistic spacing rules: separate imports from other statements, separate

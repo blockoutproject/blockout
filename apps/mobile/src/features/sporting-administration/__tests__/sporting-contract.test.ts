@@ -10,7 +10,7 @@ import type {
   PoolPresentationResponse,
   PoolStandingsResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { createQueryClient } from "../../../shared/query/query-client";
+import { createQueryClient } from "@/shared/query/query-client";
 
 const poolId = "00000000-0000-4000-8000-000000000001";
 const division: DivisionResponse = {

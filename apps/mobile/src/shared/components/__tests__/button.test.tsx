@@ -1,7 +1,7 @@
 import { render, screen, userEvent } from "@testing-library/react-native";
 import { useState } from "react";
 import { Check, ChevronRight } from "lucide-react-native";
-import { ThemeProvider } from "../../theme/theme-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { Button } from "../button";
 
 it.each([

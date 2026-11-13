@@ -26,7 +26,7 @@ import { Linking } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
 import * as Notifications from "expo-notifications";
 import {
   AdEventType,
@@ -48,48 +48,48 @@ import {
   AccountSessionProvider,
   useAccountSession,
   type AccountSession,
-} from "../../accounts/session/account-session-provider";
+} from "@/features/accounts/session/account-session-provider";
 import {
   mockAuth0,
   credentialsFor,
-} from "../../accounts/test-support/native-auth0";
-import { accountResponse } from "../../accounts/test-support/account-response";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
-import { AccessAdmissionProvider } from "../../access/queries/use-access-admission";
-import { ProProvider } from "../../pro";
-import * as proSessionModule from "../../pro/pro-session";
-import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { CalendarMatch } from "../../sporting/components/calendar-match";
-import { MatchLinks } from "../../sporting/components/match-links";
-import { ClubScreen } from "../../sporting/screens/club-screen";
-import { PoolScreen } from "../../sporting/screens/pool-screen";
-import { TeamScreen } from "../../sporting/screens/team-screen";
-import { SportingLink } from "../../sporting/components/sporting-identity";
+} from "@/features/accounts/test-support/native-auth0";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { AccessAdmissionProvider } from "@/features/access/queries/use-access-admission";
+import { ProProvider } from "@/features/pro";
+import * as proSessionModule from "@/features/pro/pro-session";
+import { prepareProNativeIO } from "@/features/pro/test-support/pro-harness";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
+import { createQueryClient } from "@/shared/query/query-client";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { CalendarMatch } from "@/features/sporting/components/calendar-match";
+import { MatchLinks } from "@/features/sporting/components/match-links";
+import { ClubScreen } from "@/features/sporting/screens/club-screen";
+import { PoolScreen } from "@/features/sporting/screens/pool-screen";
+import { TeamScreen } from "@/features/sporting/screens/team-screen";
+import { SportingLink } from "@/features/sporting/components/sporting-identity";
 import {
   clubDetail,
   matchDetail,
-} from "../../sporting/test-support/consultation-data";
+} from "@/features/sporting/test-support/consultation-data";
 import { AgeDeclarationProvider } from "../age-declaration-provider";
 import { submitAgeDeclaration } from "../age-declaration";
 import { controlledInterstitial } from "../test-support/interstitial";
 import { nativeUserChoices } from "../test-support/native-privacy";
-import { NotificationsScreen } from "../../notifications/screens/notifications-screen";
-import { NotificationLifecycle } from "../../notifications/native/notification-lifecycle";
-import { createPushRegistration } from "../../notifications/native/push-registration";
-import { notificationResponse } from "../../notifications/test-support/notification-data";
+import { NotificationsScreen } from "@/features/notifications/screens/notifications-screen";
+import { NotificationLifecycle } from "@/features/notifications/native/notification-lifecycle";
+import { createPushRegistration } from "@/features/notifications/native/push-registration";
+import { notificationResponse } from "@/features/notifications/test-support/notification-data";
 import { router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
-import ProfileRoute from "../../../app/(ordinary)/(tabs)/(profile)/profile";
-import PrivacyRoute from "../../../app/(ordinary)/privacy";
-import { SearchScreen } from "../../discovery/screens/search-screen";
-import { SearchVisitProvider } from "../../discovery/forms/search-visit";
-import { PersonalScreen } from "../../following/screens/personal-screen";
-import { PersonalSeasonProvider } from "../../following/components/personal-season-provider";
+import ProfileRoute from "@/app/(ordinary)/(tabs)/(profile)/profile";
+import PrivacyRoute from "@/app/(ordinary)/privacy";
+import { SearchScreen } from "@/features/discovery/screens/search-screen";
+import { SearchVisitProvider } from "@/features/discovery/forms/search-visit";
+import { PersonalScreen } from "@/features/following/screens/personal-screen";
+import { PersonalSeasonProvider } from "@/features/following/components/personal-season-provider";
 
 jest.mock("expo-web-browser", () => ({
   openBrowserAsync: jest.fn(async () => ({ type: "cancel" })),
@@ -101,18 +101,18 @@ jest.mock("@react-native-async-storage/async-storage", () =>
     "@react-native-async-storage/async-storage/jest/async-storage-mock",
   ),
 );
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
 jest.mock("react-native-google-mobile-ads", () => ({

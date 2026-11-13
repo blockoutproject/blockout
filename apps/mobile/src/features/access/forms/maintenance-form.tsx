@@ -1,11 +1,11 @@
-import { ImageFallback } from "../../../shared/components/image-fallback";
-import { LoadingGroup } from "../../../shared/components/loading-group";
-import { Skeleton } from "../../../shared/components/skeleton";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
-import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
+import { ImageFallback } from "@/shared/components/image-fallback";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { Skeleton } from "@/shared/components/skeleton";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
+import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { RoundedContainedImage } from "../../../shared/components/rounded-contained-image";
+import { RoundedContainedImage } from "@/shared/components/rounded-contained-image";
 import { FileText, Wrench } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
@@ -18,11 +18,11 @@ import {
 } from "../schemas/maintenance-schema";
 import { maintenanceValues } from "./maintenance-values";
 import { toMaintenanceRequest } from "../api/maintenance-request";
-import { Button } from "../../../shared/components/button";
-import { TextField } from "../../../shared/components/text-field";
-import { Surface } from "../../../shared/components/surface";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { Button } from "@/shared/components/button";
+import { TextField } from "@/shared/components/text-field";
+import { Surface } from "@/shared/components/surface";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { useMaintenanceSettings } from "../api/use-maintenance-settings";
 
 /** One editable snapshot; newer remote data cannot silently replace dirty input or its revision. */

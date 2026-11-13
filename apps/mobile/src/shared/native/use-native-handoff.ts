@@ -1,4 +1,4 @@
-import { useActionFeedback } from "../components/action-feedback";
+import { useActionFeedback } from "@/shared/components/action-feedback";
 import { useState } from "react";
 import { Linking } from "react-native";
 

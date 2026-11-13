@@ -5,13 +5,13 @@ import {
   useSegments,
 } from "expo-router";
 import { StyleSheet } from "react-native";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { BrandHeader } from "../../../shared/components/brand-header";
-import { Button } from "../../../shared/components/button";
-import { Page, PageScrollView } from "../../../shared/components/page";
-import { RequestLoading } from "../../../shared/components/request-feedback";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { ErrorState } from "../../../shared/components/state-card";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { BrandHeader } from "@/shared/components/brand-header";
+import { Button } from "@/shared/components/button";
+import { Page, PageScrollView } from "@/shared/components/page";
+import { RequestLoading } from "@/shared/components/request-feedback";
+import { ScreenState } from "@/shared/components/screen-state";
+import { ErrorState } from "@/shared/components/state-card";
 import {
   useAccountAvailability,
   useEstablishAccount,

@@ -3,15 +3,15 @@ import { Text } from "react-native";
 import {
   useAccountSession,
   AccountSessionProvider,
-} from "../../accounts/session/account-session-provider";
-import type { AccountSession } from "../../accounts";
+} from "@/features/accounts/session/account-session-provider";
+import type { AccountSession } from "@/features/accounts";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
+} from "@/features/accounts/test-support/native-auth0";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
 import { ProProvider, usePro, type ProContext } from "../pro-provider";
 import { ProVerification } from "../components/pro-verification";
 import { customerInfo } from "./customer-info";

@@ -1,4 +1,4 @@
-import { createQueryClient } from "../../../shared/query/query-client";
+import { createQueryClient } from "@/shared/query/query-client";
 import { createInboxQueries } from "../api/inbox-queries";
 import {
   expireInbox,

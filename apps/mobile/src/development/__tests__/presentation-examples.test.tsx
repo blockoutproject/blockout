@@ -1,4 +1,4 @@
-import { nativeAlertAction } from "../../shared/native/test-support/native-alert";
+import { nativeAlertAction } from "@/shared/native/test-support/native-alert";
 import {
   cleanup,
   act,
@@ -7,7 +7,7 @@ import {
   userEvent,
 } from "@testing-library/react-native";
 import { Alert, Appearance, Text } from "react-native";
-import { ThemeProvider, useTheme } from "../../shared/theme/theme-provider";
+import { ThemeProvider, useTheme } from "@/shared/theme/theme-provider";
 import { ExampleForm } from "../forms/example-form";
 
 // Keep form behavior real; the installed library supplies its native keyboard double.

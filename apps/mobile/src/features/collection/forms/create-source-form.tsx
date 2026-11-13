@@ -1,10 +1,10 @@
-import { tokens } from "../../../shared/theme/tokens";
+import { tokens } from "@/shared/theme/tokens";
 import { Controller } from "react-hook-form";
 import { StyleSheet, View } from "react-native";
 import type { CollectionProviderEnum } from "../../../../.generated/schemas/index.zod";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { Button } from "../../../shared/components/button";
-import { TextField } from "../../../shared/components/text-field";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { Button } from "@/shared/components/button";
+import { TextField } from "@/shared/components/text-field";
 import type { useSeasonPreparation } from "../api/use-source-preparation";
 import { type CreateSourceValues } from "../schemas/create-source-schema";
 import type { useProviderPreparationDraft } from "./use-provider-preparation-draft";

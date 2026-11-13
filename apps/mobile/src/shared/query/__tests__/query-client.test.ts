@@ -4,7 +4,7 @@ import {
   QueryObserver,
 } from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react-native";
-import { ApiError } from "../../api/api-fetch";
+import { ApiError } from "@/shared/api/api-fetch";
 import { createQueryClient } from "../query-client";
 
 afterEach(() => {

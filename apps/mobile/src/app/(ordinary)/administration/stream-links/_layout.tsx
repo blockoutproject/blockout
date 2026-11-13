@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
-import { sheetScreenOptions } from "../../../../shared/components/sheet";
-import { useTheme } from "../../../../shared/theme/theme-provider";
+import { sheetScreenOptions } from "@/shared/components/sheet";
+import { useTheme } from "@/shared/theme/theme-provider";
 
 /** Filters keep their short sheet; match and report readers use ordinary native stack pages. */
 export default function ModerationLayout() {

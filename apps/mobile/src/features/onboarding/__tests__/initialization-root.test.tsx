@@ -1,4 +1,4 @@
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { fetch } from "expo/fetch";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -12,17 +12,17 @@ import { Stack } from "expo-router";
 import type { ComponentType } from "react";
 import { Pressable, Text } from "react-native";
 import { useAuth0 } from "react-native-auth0";
-import RootLayout from "../../../app/_layout";
-import { useAccountSession } from "../../accounts/session/account-session-provider";
+import RootLayout from "@/app/_layout";
+import { useAccountSession } from "@/features/accounts/session/account-session-provider";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
+} from "@/features/accounts/test-support/native-auth0";
 
 jest.mock("expo/fetch", () => ({ fetch: jest.fn() }));
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
 
@@ -44,7 +44,7 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 // Keep the initializer and SDK React integration real; control only native I/O.
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

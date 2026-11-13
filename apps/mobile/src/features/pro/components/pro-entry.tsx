@@ -1,10 +1,10 @@
-import { RoundedContainedImage } from "../../../shared/components/rounded-contained-image";
+import { RoundedContainedImage } from "@/shared/components/rounded-contained-image";
 import { useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
-import { useAccountSession } from "../../accounts/current-account";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
-import { EntryRow } from "../../../shared/components/entry-row";
+import { useAccountSession } from "@/features/accounts/current-account";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { EntryRow } from "@/shared/components/entry-row";
 import { usePro } from "../pro-provider";
 
 /** Profile command supplied by the native host owner; guests always take the ordinary F05 invitation. */

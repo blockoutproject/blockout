@@ -1,16 +1,13 @@
-import { PageList } from "../../../shared/components/page-list";
-import {
-  PageScrollView,
-  pageContentStyle,
-} from "../../../shared/components/page";
-import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
-import { ListSeparator } from "../../../shared/components/list-separator";
-import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
+import { PageList } from "@/shared/components/page-list";
+import { PageScrollView, pageContentStyle } from "@/shared/components/page";
+import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
+import { ListSeparator } from "@/shared/components/list-separator";
+import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useRef, type ReactElement, type ReactNode } from "react";
 import type { LegendListRef } from "@legendapp/list/react-native";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { SearchResultCard } from "./search-result-card";
 import type { SearchResult } from "../model/search-result";
 

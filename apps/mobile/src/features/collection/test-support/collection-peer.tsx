@@ -1,5 +1,5 @@
-import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
-import { accountResponse } from "../../accounts/test-support/account-response";
+import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import {
   QueryClientProvider,
   useQueryClient,
@@ -18,14 +18,14 @@ import type {
   CollectionResultResponse,
   CollectionSeasonResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
 import {
   useAccountSession,
   useCurrentAccount,
-} from "../../accounts/current-account";
-import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
+} from "@/features/accounts/current-account";
+import { AccountSessionProvider } from "@/features/accounts/session/account-session-provider";
 
 /** Stable synthetic identifiers shared by dashboard and closure scenarios. */
 export const seasonId = "00000000-0000-4000-8000-000000000187";

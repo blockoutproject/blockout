@@ -1,4 +1,4 @@
-import type { SessionSnapshot, AccountSession } from "../../accounts";
+import type { SessionSnapshot, AccountSession } from "@/features/accounts";
 import Purchases, {
   type PurchasesEntitlementInfo,
 } from "react-native-purchases";

@@ -10,26 +10,26 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import TabsLayout from "../../../app/(ordinary)/(tabs)/_layout";
-import { redirectSystemPath } from "../../../app/+native-intent";
+import TabsLayout from "@/app/(ordinary)/(tabs)/_layout";
+import { redirectSystemPath } from "@/app/+native-intent";
 import SharedTabLayout, {
   unstable_settings as sharedTabSettings,
-} from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/_layout";
+} from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/_layout";
 import ProfileLayout, {
   unstable_settings as profileSettings,
-} from "../../../app/(ordinary)/(tabs)/(profile)/profile/_layout";
-import { sheetScreenOptions } from "../../../shared/components/sheet";
+} from "@/app/(ordinary)/(tabs)/(profile)/profile/_layout";
+import { sheetScreenOptions } from "@/shared/components/sheet";
 import {
   AccountSessionProvider,
   useAccountSession,
   type AccountSession,
-} from "../../accounts/session/account-session-provider";
-import { mockAuth0 } from "../../accounts/test-support/native-auth0";
-import { accountResponse as mockAccountResponse } from "../../accounts/test-support/account-response";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
-import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
+} from "@/features/accounts/session/account-session-provider";
+import { mockAuth0 } from "@/features/accounts/test-support/native-auth0";
+import { accountResponse as mockAccountResponse } from "@/features/accounts/test-support/account-response";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { ProProvider, usePro, type ProContext } from "../pro-provider";
 import * as proSessionModule from "../pro-session";
 import { customerInfo, entitlement } from "../test-support/customer-info";
@@ -58,12 +58,12 @@ jest.mock("react-native-purchases", () => ({
   default: jest.requireActual("../test-support/native-purchases").mockPurchases,
 }));
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

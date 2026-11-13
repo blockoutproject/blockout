@@ -1,5 +1,5 @@
-import { tokens } from "../theme/tokens";
-import type { Theme } from "../theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import type { Theme } from "@/shared/theme/theme-provider";
 
 /** Disabled paint takes precedence over press feedback for shared native controls. */
 export function controlOpacity(

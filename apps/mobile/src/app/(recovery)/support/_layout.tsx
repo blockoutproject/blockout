@@ -1,8 +1,8 @@
 import { Stack, useGlobalSearchParams } from "expo-router";
-import { useAccessAdmission } from "../../../features/access/queries/use-access-admission";
-import { SupportJourney } from "../../../features/support/screens/support-journey";
-import { sheetScreenOptions } from "../../../shared/components/sheet";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { useAccessAdmission } from "@/features/access/queries/use-access-admission";
+import { SupportJourney } from "@/features/support/screens/support-journey";
+import { sheetScreenOptions } from "@/shared/components/sheet";
+import { useTheme } from "@/shared/theme/theme-provider";
 
 /** A direct choice link retains the ordinary support form behind its native sheet. */
 export const unstable_settings = { anchor: "index" };

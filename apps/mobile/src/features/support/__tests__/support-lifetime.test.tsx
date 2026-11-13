@@ -2,9 +2,9 @@ import { act, cleanup, screen, userEvent } from "@testing-library/react-native";
 import { renderRouter } from "expo-router/testing-library";
 import { Stack, router } from "expo-router";
 import { Alert, Text } from "react-native";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
-import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
+import { nativeAlertAction } from "@/shared/native/test-support/native-alert";
 import { SupportVisitProvider } from "../forms/support-visit";
 import { SupportForm } from "../forms/support-form";
 import {

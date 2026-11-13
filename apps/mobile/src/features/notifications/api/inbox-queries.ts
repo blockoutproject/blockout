@@ -15,15 +15,15 @@ import type {
   NotificationResponse,
   NotificationsResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { ApiError, type ApiFetchOptions } from "../../../shared/api/api-fetch";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import type { SessionSnapshot } from "../../accounts";
+import { ApiError, type ApiFetchOptions } from "@/shared/api/api-fetch";
+import { isAccessDenied } from "@/shared/api/access-denied";
+import type { SessionSnapshot } from "@/features/accounts";
 import {
   confirmedUnreadCount,
   notificationExpiry,
 } from "../state/inbox-expiry";
 import { getNotificationKeys } from "./notification-keys";
-import { subscribeMatchAccess } from "../../sporting/match-access";
+import { subscribeMatchAccess } from "@/features/sporting/match-access";
 
 /** Captured F05 session; private requests retain their original account. */
 export type InboxOwner = SessionSnapshot;

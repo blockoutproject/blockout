@@ -4,7 +4,7 @@ import { LoadingGroup } from "./loading-group";
 import { Skeleton } from "./skeleton";
 import { TextSkeleton } from "./text-skeleton";
 import { EntryGroupSeparator } from "./entry-group";
-import { tokens } from "../theme/tokens";
+import { tokens } from "@/shared/theme/tokens";
 
 /** Three decorative native rows reserve the first read of an entry list. */
 export function ListLoading({ label }: Readonly<{ label: string }>) {

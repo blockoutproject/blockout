@@ -5,22 +5,22 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
-import { accountResponse } from "../../accounts/test-support/account-response";
+import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import {
   mockAuth0,
   credentialsFor,
-} from "../../accounts/test-support/native-auth0";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
+} from "@/features/accounts/test-support/native-auth0";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
 import { followingFixture } from "../test-support/following-fixture";
 import { FollowerCount } from "../components/follower-count";
-import { TeamScreen } from "../../sporting/screens/team-screen";
-import { PoolScreen } from "../../sporting/screens/pool-screen";
-import TeamRoute from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/teams/[teamId]";
+import { TeamScreen } from "@/features/sporting/screens/team-screen";
+import { PoolScreen } from "@/features/sporting/screens/pool-screen";
+import TeamRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/teams/[teamId]";
 import { FollowButton } from "../components/follow-button";
-import { SportingActions } from "../../sporting/components/sporting-actions";
+import { SportingActions } from "@/features/sporting/components/sporting-actions";
 import type { InfiniteData } from "@tanstack/react-query";
 import type { ListTeamFollows200 } from "../../../../.generated/schemas/index.zod";
 import {
@@ -29,12 +29,12 @@ import {
   followListKey,
 } from "../api/following-keys";
 
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

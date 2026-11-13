@@ -8,8 +8,8 @@ import {
   useWindowDimensions,
 } from "react-native";
 import type { MatchSummaryResponse } from "../../../../.generated/schemas/index.zod";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 import { divisionTextColor } from "../presentation";
 import { formatSportingSchedule } from "../model/sporting-time";
 import { SportingLogo } from "./sporting-identity";

@@ -29,14 +29,14 @@ import {
   StreamVersionFilterEnum,
   UpdateModeratedStreamContributionRequest,
 } from "../../../../.generated/schemas/index.zod";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { useOrdinaryRequest } from "../../access/ordinary-request";
+import { ApiError } from "@/shared/api/api-fetch";
+import { isAccessDenied } from "@/shared/api/access-denied";
+import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import {
   useAccountSession,
   useCurrentAccount,
-} from "../../accounts/current-account";
-import { useConsultationQueries } from "../../sporting/match-consultation";
+} from "@/features/accounts/current-account";
+import { useConsultationQueries } from "@/features/sporting/match-consultation";
 
 /** Queue selection; native infinite-query page parameters own continuation. */
 export type ModerationFilters = Omit<ListStreamModerationParams, "page">;

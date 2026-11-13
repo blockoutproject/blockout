@@ -1,6 +1,6 @@
 import { StyleSheet, View, type ViewProps } from "react-native";
-import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 
 /** Flat information and form grouping shared by resource, preparation, account and administration screens. */
 export function Surface({ children, style, ...props }: ViewProps) {

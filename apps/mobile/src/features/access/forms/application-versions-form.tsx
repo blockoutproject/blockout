@@ -1,17 +1,17 @@
-import { controlOpacity } from "../../../shared/components/control-styles";
+import { controlOpacity } from "@/shared/components/control-styles";
 import {
   ActionFeedbackProvider,
   useActionFeedback,
-} from "../../../shared/components/action-feedback";
-import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
-import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
+} from "@/shared/components/action-feedback";
+import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
+import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
 import { applicationVersionsValues } from "./application-versions-values";
 import { toApplicationVersionsRequest } from "../api/application-versions-request";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useApplicationVersionsDraft } from "./use-application-versions-draft";
 import { applicationUpdateMessage } from "../application-update-message";
 import { Check } from "lucide-react-native";
-import { DisclosureChevron } from "../../../shared/components/disclosure-chevron";
+import { DisclosureChevron } from "@/shared/components/disclosure-chevron";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useFormState, useWatch } from "react-hook-form";
 import {
@@ -24,12 +24,12 @@ import {
   useWindowDimensions,
 } from "react-native";
 import type { ApplicationVersionsResponse } from "../../../../.generated/schemas/index.zod";
-import { Button } from "../../../shared/components/button";
-import { TextField } from "../../../shared/components/text-field";
-import { Surface } from "../../../shared/components/surface";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
-import { useAccountSession } from "../../accounts/current-account";
+import { Button } from "@/shared/components/button";
+import { TextField } from "@/shared/components/text-field";
+import { Surface } from "@/shared/components/surface";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useAccountSession } from "@/features/accounts/current-account";
 import { useApplicationVersionsSettings } from "../api/use-application-versions-settings";
 import {
   applicationVersionsSchema,

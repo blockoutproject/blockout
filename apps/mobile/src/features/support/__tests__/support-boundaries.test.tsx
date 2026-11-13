@@ -17,31 +17,31 @@ import type {
   NotificationSummaryResponse,
   NotificationsResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
+import { createQueryClient } from "@/shared/query/query-client";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
 import {
   AccountSessionProvider,
   useAccountSession,
-} from "../../accounts/session/account-session-provider";
-import { accountResponse } from "../../accounts/test-support/account-response";
-import { mockAuth0 } from "../../accounts/test-support/native-auth0";
-import { ProProvider, usePro } from "../../pro/pro-provider";
-import * as proSessionModule from "../../pro/pro-session";
-import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
-import { mockPurchases } from "../../pro/test-support/native-purchases";
+} from "@/features/accounts/session/account-session-provider";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
+import { mockAuth0 } from "@/features/accounts/test-support/native-auth0";
+import { ProProvider, usePro } from "@/features/pro/pro-provider";
+import * as proSessionModule from "@/features/pro/pro-session";
+import { prepareProNativeIO } from "@/features/pro/test-support/pro-harness";
+import { mockPurchases } from "@/features/pro/test-support/native-purchases";
 import { useSupportSubmission } from "../api/use-support-submission";
 import { supportContext, supportHref } from "../model/support-context";
 import { supportMetadata } from "./fixtures";
 
 // F05/F09, Query and the generated support consumer are real; native/provider I/O is controlled.
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });
@@ -53,7 +53,7 @@ jest.mock("expo-constants", () => ({
 }));
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
 jest.mock("expo/fetch", () => ({

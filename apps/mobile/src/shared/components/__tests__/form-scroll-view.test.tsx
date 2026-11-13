@@ -1,4 +1,4 @@
-import { layoutNativeTabs } from "../../native/test-support/tab-view-native";
+import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
 import { createRef } from "react";
 import {
   Platform,

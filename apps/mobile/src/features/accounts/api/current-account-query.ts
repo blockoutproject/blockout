@@ -3,8 +3,8 @@ import {
   getGetMyAccountQueryKey,
   getMyAccount,
 } from "../../../../.generated/mobile";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { isAccessDenied } from "../../../shared/api/access-denied";
+import { ApiError } from "@/shared/api/api-fetch";
+import { isAccessDenied } from "@/shared/api/access-denied";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import type { AccountSession } from "../session/account-session-provider";
 import { requiresReauthentication } from "../session/native-session";

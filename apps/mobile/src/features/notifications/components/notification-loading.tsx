@@ -1,9 +1,9 @@
 import { StyleSheet, View, useWindowDimensions } from "react-native";
-import { LoadingGroup } from "../../../shared/components/loading-group";
-import { TextSkeleton } from "../../../shared/components/text-skeleton";
-import { Skeleton } from "../../../shared/components/skeleton";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { TextSkeleton } from "@/shared/components/text-skeleton";
+import { Skeleton } from "@/shared/components/skeleton";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 
 /** Three decorative cards reserve the inbox's first read within its ordinary page insets. */
 export function NotificationLoading() {

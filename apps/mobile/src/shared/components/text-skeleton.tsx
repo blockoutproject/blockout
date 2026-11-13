@@ -1,5 +1,5 @@
 import { View, useWindowDimensions, type DimensionValue } from "react-native";
-import { tokens } from "../theme/tokens";
+import { tokens } from "@/shared/theme/tokens";
 import { Skeleton } from "./skeleton";
 
 /** Published text silhouettes keep the loaded typography's line box and native text scale. */

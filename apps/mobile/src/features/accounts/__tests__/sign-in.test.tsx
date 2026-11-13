@@ -2,10 +2,10 @@ import { accountResponse } from "../test-support/account-response";
 import {
   TECHNICAL_ERROR,
   TECHNICAL_ERROR_TITLE,
-} from "../../../shared/components/error-copy";
+} from "@/shared/components/error-copy";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
-import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
+import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   cleanup,
@@ -14,9 +14,9 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import { AccountSessionProvider } from "../session/account-session-provider";
 import { SignInScreen } from "../screens/sign-in-screen";
 import { ProfileScreen } from "../screens/profile-screen";
@@ -26,7 +26,7 @@ import { credentialsFor, mockAuth0 } from "../test-support/native-auth0";
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),
 );
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {

@@ -2,7 +2,7 @@ import { useId } from "react";
 import { StyleSheet, View } from "react-native";
 import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import type { SportingDivisionResponse } from "../../../../.generated/schemas/index.zod";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { useTheme } from "@/shared/theme/theme-provider";
 
 /** Approved division paint shared by previews, search cards and sporting resources. */
 export function DivisionPaint({

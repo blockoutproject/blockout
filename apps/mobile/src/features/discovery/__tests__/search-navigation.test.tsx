@@ -9,7 +9,7 @@ import {
   QueryClientProvider,
   type InfiniteData,
 } from "@tanstack/react-query";
-import { layoutNativeTabs } from "../../../shared/native/test-support/tab-view-native";
+import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { router, Stack } from "expo-router";
@@ -25,48 +25,48 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import SearchLayout from "../../../app/(ordinary)/(tabs)/(discovery)/search/_layout";
+import SearchLayout from "@/app/(ordinary)/(tabs)/(discovery)/search/_layout";
 import { SearchScreen } from "../screens/search-screen";
-import ClubRoute from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/clubs/[clubId]";
+import ClubRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/clubs/[clubId]";
 import { SearchFilters } from "../components/search-filters";
 import { SearchFilterChoice } from "../components/search-filter-choice";
-import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
-import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
+import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
+import { AccountSessionProvider } from "@/features/accounts/session/account-session-provider";
 import {
   mockAuth0,
   credentialsFor,
-} from "../../accounts/test-support/native-auth0";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
+} from "@/features/accounts/test-support/native-auth0";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AdEventType } from "react-native-google-mobile-ads";
-import { createInstallationAdvertisingPrivacy } from "../../advertising/advertising-privacy";
-import { AgeDeclarationProvider } from "../../advertising/age-declaration-provider";
-import { submitAgeDeclaration } from "../../advertising/age-declaration";
-import { controlledInterstitial } from "../../advertising/test-support/interstitial";
-import { AccessAdmissionProvider } from "../../access/queries/use-access-admission";
-import { ProProvider, usePro } from "../../pro";
-import type { ProContext } from "../../pro/pro-provider";
-import { mockPurchases } from "../../pro/test-support/native-purchases";
+import { createInstallationAdvertisingPrivacy } from "@/features/advertising/advertising-privacy";
+import { AgeDeclarationProvider } from "@/features/advertising/age-declaration-provider";
+import { submitAgeDeclaration } from "@/features/advertising/age-declaration";
+import { controlledInterstitial } from "@/features/advertising/test-support/interstitial";
+import { AccessAdmissionProvider } from "@/features/access/queries/use-access-admission";
+import { ProProvider, usePro } from "@/features/pro";
+import type { ProContext } from "@/features/pro/pro-provider";
+import { mockPurchases } from "@/features/pro/test-support/native-purchases";
 import {
   customerInfo,
   entitlement,
-} from "../../pro/test-support/customer-info";
-import { accountResponse } from "../../accounts/test-support/account-response";
-import * as proSessionModule from "../../pro/pro-session";
-import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
+} from "@/features/pro/test-support/customer-info";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
+import * as proSessionModule from "@/features/pro/pro-session";
+import { prepareProNativeIO } from "@/features/pro/test-support/pro-harness";
 import {
   useAccountSession,
   type AccountSession,
-} from "../../accounts/session/account-session-provider";
-import TeamRoute from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/teams/[teamId]";
-import PoolRoute from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/pools/[poolId]";
+} from "@/features/accounts/session/account-session-provider";
+import TeamRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/teams/[teamId]";
+import PoolRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/pools/[poolId]";
 
 jest.mock("react-native-google-mobile-ads", () => ({
-  ...jest.requireActual("../../advertising/test-support/native-privacy")
+  ...jest.requireActual("@/features/advertising/test-support/native-privacy")
     .nativeAdvertising,
   AdEventType: {
     LOADED: "loaded",
@@ -98,15 +98,15 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 );
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

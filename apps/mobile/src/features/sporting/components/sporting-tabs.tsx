@@ -1,8 +1,5 @@
 import type { ReactNode } from "react";
-import {
-  PagedTabs,
-  type PagedTabsProps,
-} from "../../../shared/components/paged-tabs";
+import { PagedTabs, type PagedTabsProps } from "@/shared/components/paged-tabs";
 
 /** Sporting pages supply domain identity to the same shared paging composition as Home and Search. */
 export interface SportingTabsProps extends Omit<

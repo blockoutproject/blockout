@@ -7,10 +7,10 @@ import {
   Trophy,
 } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
-import { EntryGroup } from "../../../shared/components/entry-group";
-import { EntryRow } from "../../../shared/components/entry-row";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { EntryGroup } from "@/shared/components/entry-group";
+import { EntryRow } from "@/shared/components/entry-row";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { useAdministrationCapabilities } from "../api/use-administration-capabilities";
 import { canReadDivisions } from "../division-catalog-access";
 

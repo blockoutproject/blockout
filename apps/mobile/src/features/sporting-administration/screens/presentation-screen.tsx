@@ -6,24 +6,24 @@ import {
   getGetDivisionLogoQueryKey,
   getGetTeamLogoQueryKey,
 } from "../../../../.generated/mobile";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { FormScrollView } from "../../../shared/components/form-scroll-view";
-import { Page, PageContent } from "../../../shared/components/page";
-import { PageHeader } from "../../../shared/components/page-header";
-import { IconButton } from "../../../shared/components/icon-button";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { FormScrollView } from "@/shared/components/form-scroll-view";
+import { Page, PageContent } from "@/shared/components/page";
+import { PageHeader } from "@/shared/components/page-header";
+import { IconButton } from "@/shared/components/icon-button";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { PresentationLoading } from "../components/sporting-editor-loading";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { ScreenState } from "@/shared/components/screen-state";
+import { ReadFeedback } from "@/shared/components/read-feedback";
 
-import { ErrorState } from "../../../shared/components/state-card";
-import { useAdministrationCapabilities } from "../../access/api/use-administration-capabilities";
-import { useOrdinaryRequest } from "../../access/ordinary-request";
-import { useAccountSession } from "../../accounts/current-account";
-import { useConsultationQueries } from "../../sporting/api/use-consultation-queries";
-import { supportHref } from "../../support";
+import { ErrorState } from "@/shared/components/state-card";
+import { useAdministrationCapabilities } from "@/features/access/api/use-administration-capabilities";
+import { useOrdinaryRequest } from "@/features/access/ordinary-request";
+import { useAccountSession } from "@/features/accounts/current-account";
+import { useConsultationQueries } from "@/features/sporting/api/use-consultation-queries";
+import { supportHref } from "@/features/support";
 import { usePresentation, type PresentationTarget } from "../api/presentation";
 import { PresentationForm } from "../forms/presentation-form";
 import { isSportingReadRefused } from "../api/sporting-administration-queries";

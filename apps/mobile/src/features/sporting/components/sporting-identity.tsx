@@ -9,8 +9,8 @@ import type {
   SportingSeasonResponse,
   SportingDivisionResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 import { useSportingLogo } from "../api/use-sporting-logo";
 import {
   SportingMedia,
@@ -18,10 +18,10 @@ import {
   type SportingMediaProps,
 } from "./sporting-media";
 import { DivisionPaint } from "./division-paint";
-import { IdentityCard } from "../../../shared/components/identity-card";
-import { IdentityArtwork } from "../../../shared/components/identity-artwork";
-import { IdentityAtmosphere } from "../../../shared/components/identity-atmosphere";
-import { ImageFallback } from "../../../shared/components/image-fallback";
+import { IdentityCard } from "@/shared/components/identity-card";
+import { IdentityArtwork } from "@/shared/components/identity-artwork";
+import { IdentityAtmosphere } from "@/shared/components/identity-atmosphere";
+import { ImageFallback } from "@/shared/components/image-fallback";
 
 /** Addressed sporting identity; public native artwork and explicit bypass share the owning resource guard. */
 export interface SportingLogoProps {

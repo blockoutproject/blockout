@@ -2,7 +2,7 @@ import type {
   CustomerInfo,
   PurchasesEntitlementInfo,
 } from "react-native-purchases";
-import type { AccountSession, SessionSnapshot } from "../accounts";
+import type { AccountSession, SessionSnapshot } from "@/features/accounts";
 
 /** Transient operation presentation, independent of SDK entitlement and never persisted. */
 export type ProOperation =

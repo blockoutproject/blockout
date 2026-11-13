@@ -1,4 +1,4 @@
-import { accountResponse } from "../../accounts/test-support/account-response";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   act,
@@ -10,38 +10,38 @@ import {
 } from "@testing-library/react-native";
 import { Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
-import type { AccountSession } from "../../accounts";
-import { useAccountSession } from "../../accounts/current-account";
-import { usePro } from "../../pro";
-import * as proSessionModule from "../../pro/pro-session";
-import { mockPurchases } from "../../pro/test-support/native-purchases";
+import type { AccountSession } from "@/features/accounts";
+import { useAccountSession } from "@/features/accounts/current-account";
+import { usePro } from "@/features/pro";
+import * as proSessionModule from "@/features/pro/pro-session";
+import { mockPurchases } from "@/features/pro/test-support/native-purchases";
 import {
   customerInfo,
   entitlement,
-} from "../../pro/test-support/customer-info";
+} from "@/features/pro/test-support/customer-info";
 import { useAgeDeclaration } from "../age-declaration-provider";
 import { useEffect, type ComponentType } from "react";
 import { AccessibilityInfo, DeviceEventEmitter, Text } from "react-native";
 import { readAgeDeclaration, submitAgeDeclaration } from "../age-declaration";
-import RootLayout from "../../../app/_layout";
-import AgeRoute from "../../../app/age-declaration";
-import HomeRoute from "../../../app/(ordinary)/(tabs)/(home)/(personal)/index";
-import HomeLayout from "../../../app/(ordinary)/(tabs)/(home)/(personal)/_layout";
-import SeasonRoute from "../../../app/(ordinary)/(tabs)/(home)/(personal)/(sheets)/season";
-import OnboardingRoute from "../../../app/onboarding";
-import SignInRoute from "../../../app/(recovery)/sign-in";
-import RecoveryLayout from "../../../app/(recovery)/_layout";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import RootLayout from "@/app/_layout";
+import AgeRoute from "@/app/age-declaration";
+import HomeRoute from "@/app/(ordinary)/(tabs)/(home)/(personal)/index";
+import HomeLayout from "@/app/(ordinary)/(tabs)/(home)/(personal)/_layout";
+import SeasonRoute from "@/app/(ordinary)/(tabs)/(home)/(personal)/(sheets)/season";
+import OnboardingRoute from "@/app/onboarding";
+import SignInRoute from "@/app/(recovery)/sign-in";
+import RecoveryLayout from "@/app/(recovery)/_layout";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+} from "@/features/accounts/test-support/native-auth0";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import {
   completeDiscovery,
   readDiscoveryCompletion,
-} from "../../onboarding/discovery-state";
-import { AccessGateScreen } from "../../access/screens/access-gate-screen";
+} from "@/features/onboarding/discovery-state";
+import { AccessGateScreen } from "@/features/access/screens/access-gate-screen";
 
 jest.mock("expo-constants", () => {
   const actual = jest.requireActual("expo-constants");
@@ -71,20 +71,20 @@ jest.mock("@react-native-async-storage/async-storage", () =>
     "@react-native-async-storage/async-storage/jest/async-storage-mock",
   ),
 );
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
   default: {
-    ...jest.requireActual("../../pro/test-support/native-purchases")
+    ...jest.requireActual("@/features/pro/test-support/native-purchases")
       .mockPurchases,
     restorePurchases: jest.fn(),
   },
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

@@ -1,13 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { StyleSheet, Text } from "react-native";
-import { Page, PageContent } from "../../shared/components/page";
-import { Button } from "../../shared/components/button";
-import { FormScrollView } from "../../shared/components/form-scroll-view";
-import { TextField } from "../../shared/components/text-field";
-import { useActionConfirmation } from "../../shared/forms/use-action-confirmation";
-import { useTheme } from "../../shared/theme/theme-provider";
-import { tokens } from "../../shared/theme/tokens";
+import { Page, PageContent } from "@/shared/components/page";
+import { Button } from "@/shared/components/button";
+import { FormScrollView } from "@/shared/components/form-scroll-view";
+import { TextField } from "@/shared/components/text-field";
+import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { exampleSchema, type ExampleValues } from "../schemas/example-schema";
 import { exampleValues } from "./example-values";
 

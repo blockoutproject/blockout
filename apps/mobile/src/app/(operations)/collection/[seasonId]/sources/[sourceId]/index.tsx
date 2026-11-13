@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import { SourcePreparationScreen } from "../../../../../../features/collection/screens/source-preparation-screen";
+import { SourcePreparationScreen } from "@/features/collection/screens/source-preparation-screen";
 
 /** Source editing stays on an ordinary route; its draft is discarded only by native explicit confirmation. */
 export default function SourcePreparationRoute() {

@@ -1,9 +1,9 @@
 import { useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { BrandMark } from "../../../shared/components/brand-mark";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { membershipColors, tokens } from "../../../shared/theme/tokens";
+import { BrandMark } from "@/shared/components/brand-mark";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { membershipColors, tokens } from "@/shared/theme/tokens";
 import { canPurchasePro } from "../pro-offering";
 import { usePro } from "../pro-provider";
 

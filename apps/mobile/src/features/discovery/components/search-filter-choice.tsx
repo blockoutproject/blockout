@@ -4,19 +4,16 @@ import {
   SportFormatEnum,
   SportGenderEnum,
 } from "../../../../.generated/schemas/index.zod";
-import { Sheet, SheetContent } from "../../../shared/components/sheet";
-import { ListLoading } from "../../../shared/components/list-loading";
-import { ErrorState } from "../../../shared/components/state-card";
-import {
-  hasReadError,
-  ReadFeedback,
-} from "../../../shared/components/read-feedback";
-import { EntryGroup } from "../../../shared/components/entry-group";
-import { SelectionRow } from "../../../shared/components/selection-row";
+import { Sheet, SheetContent } from "@/shared/components/sheet";
+import { ListLoading } from "@/shared/components/list-loading";
+import { ErrorState } from "@/shared/components/state-card";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
+import { EntryGroup } from "@/shared/components/entry-group";
+import { SelectionRow } from "@/shared/components/selection-row";
 import {
   formatLabel,
   sportingGenderLabels,
-} from "../../sporting/classification-presentation";
+} from "@/features/sporting/classification-presentation";
 import { useSearchVisit } from "../forms/search-visit";
 
 /** Native optional single selection; choosing a value changes the RHF draft without applying it. */

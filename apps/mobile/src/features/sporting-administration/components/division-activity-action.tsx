@@ -1,8 +1,8 @@
 import { Pressable, StyleSheet, Text } from "react-native";
-import { LoadingIndicator } from "../../../shared/components/loading-indicator";
+import { LoadingIndicator } from "@/shared/components/loading-indicator";
 import type { DivisionResponse } from "../../../../.generated/schemas/index.zod";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 
 /** The editor owns revision and confirmation; Query owns recovery. This control presents and delegates the action. */
 export interface DivisionActivityActionProps {

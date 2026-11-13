@@ -5,8 +5,8 @@ import {
   getGetMyAccountQueryKey,
 } from "../../../../.generated/mobile";
 import { AccountResponse } from "../../../../.generated/schemas/index.zod";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { useOrdinaryRequest } from "../../access/ordinary-request";
+import { ApiError } from "@/shared/api/api-fetch";
+import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import {
   useAccountSession,
   type AccountCommandSession,

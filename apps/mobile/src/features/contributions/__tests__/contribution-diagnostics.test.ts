@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/react-native";
 import { createStreamContribution } from "../../../../.generated/mobile";
-import { initializeSentry } from "../../../shared/observability/sentry";
+import { initializeSentry } from "@/shared/observability/sentry";
 
 jest.mock("@sentry/react-native", () => ({
   init: jest.fn(),

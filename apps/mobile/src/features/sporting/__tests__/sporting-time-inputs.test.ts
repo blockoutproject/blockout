@@ -1,5 +1,5 @@
 import type { MatchCalendarResponse } from "../../../../.generated/schemas/index.zod";
-import { createQueryClient } from "../../../shared/query/query-client";
+import { createQueryClient } from "@/shared/query/query-client";
 import { createConsultationQueries } from "../api/consultation-queries";
 import {
   formatSportingDay,

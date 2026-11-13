@@ -1,4 +1,4 @@
-import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   act,
@@ -9,8 +9,8 @@ import {
 } from "@testing-library/react-native";
 import { useState } from "react";
 import { Pressable, Text } from "react-native";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { RequestLoading } from "../../../shared/components/request-feedback";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { RequestLoading } from "@/shared/components/request-feedback";
 import { DiscoveryProvider, useDiscovery } from "../discovery-provider";
 import { readDiscoveryCompletion } from "../discovery-state";
 import { DiscoveryScreen } from "../screens/discovery-screen";

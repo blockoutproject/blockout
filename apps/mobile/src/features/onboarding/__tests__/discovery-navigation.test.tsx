@@ -1,6 +1,6 @@
-import AgeDeclarationRoute from "../../../app/age-declaration";
-import { ProfileScreen } from "../../accounts/screens/profile-screen";
-import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
+import AgeDeclarationRoute from "@/app/age-declaration";
+import { ProfileScreen } from "@/features/accounts/screens/profile-screen";
+import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
 import * as Application from "expo-application";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { focusManager } from "@tanstack/react-query";
@@ -10,20 +10,20 @@ import { renderRouter } from "expo-router/testing-library";
 import type { ComponentType } from "react";
 import type { Credentials } from "react-native-auth0";
 import { Linking, Pressable, Text } from "react-native";
-import RootLayout from "../../../app/_layout";
-import OnboardingRoute from "../../../app/onboarding";
-import SignInRoute from "../../../app/(recovery)/sign-in";
-import RecoveryLayout from "../../../app/(recovery)/_layout";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { useAccountSession } from "../../accounts/current-account";
+import RootLayout from "@/app/_layout";
+import OnboardingRoute from "@/app/onboarding";
+import SignInRoute from "@/app/(recovery)/sign-in";
+import RecoveryLayout from "@/app/(recovery)/_layout";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { useAccountSession } from "@/features/accounts/current-account";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
+} from "@/features/accounts/test-support/native-auth0";
 import Purchases from "react-native-purchases";
 import { initializeV2Installation } from "../initialize-v2-installation";
 import { readDiscoveryCompletion } from "../discovery-state";
-import { AccessGateScreen } from "../../access/screens/access-gate-screen";
+import { AccessGateScreen } from "@/features/access/screens/access-gate-screen";
 
 jest.mock("@sentry/react-native", () => ({
   init: jest.fn(),
@@ -41,14 +41,14 @@ jest.mock("../initialize-v2-installation", () => ({
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
   default: {
-    ...jest.requireActual("../../pro/test-support/native-purchases")
+    ...jest.requireActual("@/features/pro/test-support/native-purchases")
       .mockPurchases,
     restorePurchases: jest.fn(),
   },
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from "expo-router";
-import { ModerationReportsScreen } from "../../../../features/contributions/screens/moderation-reports-screen";
+import { ModerationReportsScreen } from "@/features/contributions/screens/moderation-reports-screen";
 
 /** Keeps each exact-version traversal separate while native Back restores its existing caller. */
 export default function ModerationReportsRoute() {

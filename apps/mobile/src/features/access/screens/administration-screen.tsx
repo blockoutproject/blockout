@@ -1,17 +1,13 @@
-import {
-  Page,
-  PageContent,
-  PageScrollView,
-} from "../../../shared/components/page";
-import { ErrorState } from "../../../shared/components/state-card";
-import { ScreenState } from "../../../shared/components/screen-state";
+import { Page, PageContent, PageScrollView } from "@/shared/components/page";
+import { ErrorState } from "@/shared/components/state-card";
+import { ScreenState } from "@/shared/components/screen-state";
 
-import { ListLoading } from "../../../shared/components/list-loading";
+import { ListLoading } from "@/shared/components/list-loading";
 
-import { Button } from "../../../shared/components/button";
-import { PageHeader } from "../../../shared/components/page-header";
-import { NavigationLink } from "../../../shared/components/navigation-link";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
+import { Button } from "@/shared/components/button";
+import { PageHeader } from "@/shared/components/page-header";
+import { NavigationLink } from "@/shared/components/navigation-link";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { useAdministrationCapabilities } from "../api/use-administration-capabilities";
 import { canReadDivisions } from "../division-catalog-access";
 

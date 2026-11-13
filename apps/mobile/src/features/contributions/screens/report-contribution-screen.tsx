@@ -10,28 +10,28 @@ import type {
   CreateStreamReportRequest,
   MatchDetailResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { Button } from "../../../shared/components/button";
-import { FormScrollView } from "../../../shared/components/form-scroll-view";
-import { Page, PageContent } from "../../../shared/components/page";
-import { PageHeader } from "../../../shared/components/page-header";
+import { ApiError } from "@/shared/api/api-fetch";
+import { isAccessDenied } from "@/shared/api/access-denied";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { Button } from "@/shared/components/button";
+import { FormScrollView } from "@/shared/components/form-scroll-view";
+import { Page, PageContent } from "@/shared/components/page";
+import { PageHeader } from "@/shared/components/page-header";
 import { ContributionReportLoading } from "../components/contribution-loading";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { ErrorState } from "../../../shared/components/state-card";
+import { ReadFeedback } from "@/shared/components/read-feedback";
+import { ScreenState } from "@/shared/components/screen-state";
+import { ErrorState } from "@/shared/components/state-card";
 
-import { Surface } from "../../../shared/components/surface";
-import { TextField } from "../../../shared/components/text-field";
-import { useDiscardChanges } from "../../../shared/forms/use-discard-changes";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
-import { AccountSessionFeedback } from "../../accounts/current-account";
+import { Surface } from "@/shared/components/surface";
+import { TextField } from "@/shared/components/text-field";
+import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { AccountSessionFeedback } from "@/features/accounts/current-account";
 import {
   MatchSummary,
   useConsultationQueries,
-} from "../../sporting/match-consultation";
+} from "@/features/sporting/match-consultation";
 import { useContributionReport } from "../api/contribution-reports";
 import { isOwnContributionAccessDenied } from "../api/own-contributions";
 

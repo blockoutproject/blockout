@@ -1,12 +1,12 @@
 import { StyleSheet, View, useWindowDimensions } from "react-native";
-import { LoadingGroup } from "../../../shared/components/loading-group";
-import { Skeleton } from "../../../shared/components/skeleton";
-import { TextSkeleton } from "../../../shared/components/text-skeleton";
-import { EntryGroupSeparator } from "../../../shared/components/entry-group";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { Skeleton } from "@/shared/components/skeleton";
+import { TextSkeleton } from "@/shared/components/text-skeleton";
+import { EntryGroupSeparator } from "@/shared/components/entry-group";
 import { Fragment } from "react";
-import { MatchSurface } from "../../sporting/match-consultation";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { MatchSurface } from "@/features/sporting/match-consultation";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 
 /** Two decorative match cards reserve the first read of the moderation queue. */
 export function ModerationQueueLoading() {

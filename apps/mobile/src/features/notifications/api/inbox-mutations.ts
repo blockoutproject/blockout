@@ -1,6 +1,6 @@
 import { mutationOptions, type QueryClient } from "@tanstack/react-query";
 import { markNotificationRead } from "../../../../.generated/mobile";
-import { ApiError } from "../../../shared/api/api-fetch";
+import { ApiError } from "@/shared/api/api-fetch";
 import {
   refuseInboxAccess,
   type InboxOwner,

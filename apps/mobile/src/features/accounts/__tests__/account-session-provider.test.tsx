@@ -13,7 +13,7 @@ import {
   changeAccountProfile,
   getGetMyAccountQueryKey,
 } from "../../../../.generated/mobile";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import {
   AccountSessionProvider,
   useAccountSession,
@@ -24,7 +24,7 @@ import { useAccountAvailability } from "../current-account";
 import { accountResponse } from "../test-support/account-response";
 import { credentialsFor, mockAuth0 } from "../test-support/native-auth0";
 
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {

@@ -9,8 +9,8 @@ import {
   View,
   type PressableProps,
 } from "react-native";
-import { type Theme, useTheme } from "../theme/theme-provider";
-import { tokens, type ContextColors } from "../theme/tokens";
+import { type Theme, useTheme } from "@/shared/theme/theme-provider";
+import { tokens, type ContextColors } from "@/shared/theme/tokens";
 import { LoadingIndicator } from "./loading-indicator";
 
 // UI Library 156:5 and 156:79 SVG endpoints, with export shadow padding (10, 6) removed.

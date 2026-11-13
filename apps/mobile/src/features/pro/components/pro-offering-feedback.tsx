@@ -1,6 +1,6 @@
 import { RefreshCw } from "lucide-react-native";
-import { Button } from "../../../shared/components/button";
-import { EmptyState, ErrorState } from "../../../shared/components/state-card";
+import { Button } from "@/shared/components/button";
+import { EmptyState, ErrorState } from "@/shared/components/state-card";
 import { ProReadLoading } from "./pro-read-loading";
 
 /** Catalogue-read feedback only; retries never purchase or restore anything. */

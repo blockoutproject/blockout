@@ -1,9 +1,5 @@
-import {
-  Page,
-  PageContent,
-  PageScrollView,
-} from "../../../shared/components/page";
-import { ErrorState } from "../../../shared/components/state-card";
+import { Page, PageContent, PageScrollView } from "@/shared/components/page";
+import { ErrorState } from "@/shared/components/state-card";
 import { useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import {
@@ -16,15 +12,15 @@ import {
   withTiming,
 } from "react-native-reanimated";
 
-import { BrandHeader } from "../../../shared/components/brand-header";
-import { Surface } from "../../../shared/components/surface";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { LoadingGroup } from "../../../shared/components/loading-group";
-import { Skeleton } from "../../../shared/components/skeleton";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
-import { useReducedMotion } from "../../../shared/theme/use-reduced-motion";
-import { DiscoveryBackdrop } from "../../onboarding/components/discovery-artwork";
+import { BrandHeader } from "@/shared/components/brand-header";
+import { Surface } from "@/shared/components/surface";
+import { ScreenState } from "@/shared/components/screen-state";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { Skeleton } from "@/shared/components/skeleton";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
+import { DiscoveryBackdrop } from "@/features/onboarding/components/discovery-artwork";
 import { AgeForm } from "../forms/age-form";
 import { useAgeDeclaration } from "../age-declaration-provider";
 

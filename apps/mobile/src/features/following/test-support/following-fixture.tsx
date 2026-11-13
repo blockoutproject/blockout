@@ -2,18 +2,18 @@ import { useEffect, type ReactNode, type ReactElement } from "react";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { render } from "@testing-library/react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import {
   ApplicationAccessProvider,
   useApplicationAccess,
-} from "../../access/queries/use-application-access";
+} from "@/features/access/queries/use-application-access";
 import {
   AccountSessionProvider,
   useAccountSession,
-} from "../../accounts/session/account-session-provider";
-import type { AccountSession } from "../../accounts";
-import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
+} from "@/features/accounts/session/account-session-provider";
+import type { AccountSession } from "@/features/accounts";
+import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
 
 /** Shared provider fixture for count/recovery tests; scenarios retain ownership of all HTTP and native doubles. */
 export function followingFixture() {

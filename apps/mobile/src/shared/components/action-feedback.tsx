@@ -24,9 +24,9 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { FullWindowOverlay } from "react-native-screens";
-import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
-import { useReducedMotion } from "../theme/use-reduced-motion";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 import { TECHNICAL_ERROR } from "./error-copy";
 
 /** One safe error presentation; its lifetime never owns or releases command recovery. */

@@ -1,4 +1,4 @@
-import { PageScrollView, PageContent } from "../../../shared/components/page";
+import { PageScrollView, PageContent } from "@/shared/components/page";
 import { useQuery } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { ChevronRight, Minus, Plus, RefreshCw, X } from "lucide-react-native";
@@ -29,21 +29,18 @@ import type {
   PoolStandingsResponse,
   PoolSummaryResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { Button } from "../../../shared/components/button";
-import { IconButton } from "../../../shared/components/icon-button";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { Button } from "@/shared/components/button";
+import { IconButton } from "@/shared/components/icon-button";
 
-import {
-  hasReadError,
-  ReadFeedback,
-} from "../../../shared/components/read-feedback";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { EmptyState } from "../../../shared/components/state-card";
-import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
-import { useReducedMotion } from "../../../shared/theme/use-reduced-motion";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
+import { ScreenState } from "@/shared/components/screen-state";
+import { EmptyState } from "@/shared/components/state-card";
+import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 import { consultationOpeningPolicy } from "../api/consultation-queries";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 import { useSportingNavigation } from "../navigation";
@@ -53,8 +50,8 @@ import {
 } from "../model/published-map-record";
 import { SportingLogo } from "./sporting-identity";
 import { WinLossBar } from "./standing-performance-bar";
-import { LoadingGroup } from "../../../shared/components/loading-group";
-import { Skeleton } from "../../../shared/components/skeleton";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { Skeleton } from "@/shared/components/skeleton";
 
 /** The bounded native map and its pending participant read reserve the same content height. */
 const mapHeight = 440;

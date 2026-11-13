@@ -1,7 +1,7 @@
 import { Image as ImageIcon } from "lucide-react-native";
 import { View } from "react-native";
-import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 
 /** Neutral image symbol; the owning media slot retains sizing, background and read/loading/error behavior. */
 export interface ImageFallbackProps {

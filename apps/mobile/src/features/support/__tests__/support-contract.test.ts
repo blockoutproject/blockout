@@ -1,5 +1,5 @@
 import { createSupportRequest } from "../../../../.generated/mobile";
-import { ApiError } from "../../../shared/api/api-fetch";
+import { ApiError } from "@/shared/api/api-fetch";
 import { supportMetadata, supportImage } from "./fixtures";
 
 const originalApiUrl = process.env.EXPO_PUBLIC_API_URL;

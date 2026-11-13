@@ -13,7 +13,7 @@ import {
 import { AppState } from "react-native";
 import Purchases from "react-native-purchases";
 import type { CustomerInfo } from "react-native-purchases";
-import { useAccountSession } from "../accounts/current-account";
+import { useAccountSession } from "@/features/accounts/current-account";
 import { getProState, type ProOperation, type ProState } from "./pro-state";
 import { proSession } from "./pro-session";
 

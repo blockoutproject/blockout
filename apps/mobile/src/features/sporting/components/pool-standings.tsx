@@ -1,4 +1,4 @@
-import { PageScrollView, PageContent } from "../../../shared/components/page";
+import { PageScrollView, PageContent } from "@/shared/components/page";
 import {
   standingColumnLabel,
   standingPointsColumn,
@@ -13,17 +13,14 @@ import type {
   PoolSummaryResponse,
   StandingRowResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { Button } from "../../../shared/components/button";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { Button } from "@/shared/components/button";
 
-import {
-  hasReadError,
-  ReadFeedback,
-} from "../../../shared/components/read-feedback";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { EmptyState } from "../../../shared/components/state-card";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
+import { ScreenState } from "@/shared/components/screen-state";
+import { EmptyState } from "@/shared/components/state-card";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 import { SportingLogo } from "./sporting-identity";
 import { SportingMedia } from "./sporting-media";

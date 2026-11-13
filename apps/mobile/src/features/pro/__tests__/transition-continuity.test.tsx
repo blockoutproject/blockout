@@ -11,20 +11,20 @@ import { router } from "expo-router";
 import { getMockContext, renderRouter } from "expo-router/testing-library";
 import { useEffect, type ComponentProps, type ComponentType } from "react";
 import RevenueCatUI from "react-native-purchases-ui";
-import OrdinaryLayout from "../../../app/(ordinary)/_layout";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { useAccountSession } from "../../accounts/current-account";
-import { useCurrentAccount } from "../../accounts/api/use-current-account";
+import OrdinaryLayout from "@/app/(ordinary)/_layout";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { useAccountSession } from "@/features/accounts/current-account";
+import { useCurrentAccount } from "@/features/accounts/api/use-current-account";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import type { CustomerInfo } from "react-native-purchases";
-import { accountResponse } from "../../accounts/test-support/account-response";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
-import { submitAgeDeclaration } from "../../advertising/age-declaration";
-import { nativeAdvertising } from "../../advertising/test-support/native-privacy";
-import { controlledInterstitial } from "../../advertising/test-support/interstitial";
+} from "@/features/accounts/test-support/native-auth0";
+import { submitAgeDeclaration } from "@/features/advertising/age-declaration";
+import { nativeAdvertising } from "@/features/advertising/test-support/native-privacy";
+import { controlledInterstitial } from "@/features/advertising/test-support/interstitial";
 import { usePro } from "../../pro";
 import * as proSessionModule from "../../pro/pro-session";
 import {
@@ -33,7 +33,7 @@ import {
 } from "../../pro/test-support/customer-info";
 import { mockPurchases } from "../../pro/test-support/native-purchases";
 import { v2Offering } from "../../pro/test-support/offering";
-import { completeDiscovery } from "../../onboarding/discovery-state";
+import { completeDiscovery } from "@/features/onboarding/discovery-state";
 
 jest.mock("@sentry/react-native", () => ({
   init: jest.fn(),
@@ -72,7 +72,7 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 );
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });
@@ -95,7 +95,7 @@ jest.mock("react-native-purchases-ui", () => {
   };
 });
 jest.mock("react-native-google-mobile-ads", () => ({
-  ...jest.requireActual("../../advertising/test-support/native-privacy")
+  ...jest.requireActual("@/features/advertising/test-support/native-privacy")
     .nativeAdvertising,
   default: () => mockMobileAds,
   AdEventType: {

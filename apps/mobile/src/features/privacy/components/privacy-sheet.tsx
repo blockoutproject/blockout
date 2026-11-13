@@ -1,13 +1,13 @@
 import { Link, useRouter } from "expo-router";
 import { ShieldCheck, SquarePen } from "lucide-react-native";
 import { useEffect } from "react";
-import { Sheet, SheetContent } from "../../../shared/components/sheet";
-import { EntryRow } from "../../../shared/components/entry-row";
-import { EntryGroup } from "../../../shared/components/entry-group";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { useAgeDeclaration } from "../../advertising/age-declaration-provider";
+import { Sheet, SheetContent } from "@/shared/components/sheet";
+import { EntryRow } from "@/shared/components/entry-row";
+import { EntryGroup } from "@/shared/components/entry-group";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { useAgeDeclaration } from "@/features/advertising/age-declaration-provider";
 
 /** Profile entry is available to guests and Pro under the caller's ordinary F12 admission. */
 export function PrivacyEntry() {

@@ -1,15 +1,15 @@
 import type { CollectionProviderEnum } from "../../../../.generated/schemas/index.zod";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { FormScrollView } from "../../../shared/components/form-scroll-view";
-import { Page, PageContent } from "../../../shared/components/page";
-import { PageHeader } from "../../../shared/components/page-header";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { FormScrollView } from "@/shared/components/form-scroll-view";
+import { Page, PageContent } from "@/shared/components/page";
+import { PageHeader } from "@/shared/components/page-header";
 import { ProviderPreparationLoading } from "../components/collection-loading";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
+import { ScreenState } from "@/shared/components/screen-state";
+import { ReadFeedback } from "@/shared/components/read-feedback";
 
-import { ErrorState } from "../../../shared/components/state-card";
-import { AccessFeedback } from "../../access/components/access-feedback";
+import { ErrorState } from "@/shared/components/state-card";
+import { AccessFeedback } from "@/features/access/components/access-feedback";
 import { useSeasonPreparation } from "../api/use-source-preparation";
 import { ProviderPreparationForm } from "../forms/provider-preparation-form";
 

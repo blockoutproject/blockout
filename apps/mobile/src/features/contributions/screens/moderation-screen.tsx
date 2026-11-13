@@ -1,5 +1,5 @@
 import { RefreshCw } from "lucide-react-native";
-import { PageList } from "../../../shared/components/page-list";
+import { PageList } from "@/shared/components/page-list";
 import { Controller, useForm } from "react-hook-form";
 import { hashKey } from "@tanstack/react-query";
 import { Link, useNavigation, useRouter } from "expo-router";
@@ -15,28 +15,28 @@ import {
   useWindowDimensions,
 } from "react-native";
 import type { StreamModerationItemResponse } from "../../../../.generated/schemas/index.zod";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { ListContinuation } from "../../../shared/components/list-continuation";
-import { ListSeparator } from "../../../shared/components/list-separator";
+import { isAccessDenied } from "@/shared/api/access-denied";
+import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { ListContinuation } from "@/shared/components/list-continuation";
+import { ListSeparator } from "@/shared/components/list-separator";
 import {
   Page,
   PageScrollView,
   pageContentStyle,
-} from "../../../shared/components/page";
-import { PagedTabs } from "../../../shared/components/paged-tabs";
-import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
-import { PageHeader } from "../../../shared/components/page-header";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { SearchField } from "../../../shared/components/search-field";
-import { EmptyState } from "../../../shared/components/state-card";
-import { Button } from "../../../shared/components/button";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
-import { AccountSessionFeedback } from "../../accounts/current-account";
+} from "@/shared/components/page";
+import { PagedTabs } from "@/shared/components/paged-tabs";
+import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
+import { PageHeader } from "@/shared/components/page-header";
+import { ReadFeedback } from "@/shared/components/read-feedback";
+import { ScreenState } from "@/shared/components/screen-state";
+import { SearchField } from "@/shared/components/search-field";
+import { EmptyState } from "@/shared/components/state-card";
+import { Button } from "@/shared/components/button";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { AccountSessionFeedback } from "@/features/accounts/current-account";
 import { ModerationMatchContext } from "../components/moderation-match-context";
 import { useModerationQueue, type ModerationFilters } from "../api/moderation";
 import { ModerationQueueLoading } from "../components/moderation-loading";

@@ -4,9 +4,9 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
-import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
+import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
 import { SupportVisitProvider } from "../forms/support-visit";
 import { SupportForm } from "../forms/support-form";
 import { SupportChoice } from "../components/support-choice";

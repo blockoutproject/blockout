@@ -15,7 +15,7 @@ import {
   SportingDivisionResponse,
   PushSubscriptionResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { createQueryClient } from "../../../shared/query/query-client";
+import { createQueryClient } from "@/shared/query/query-client";
 import { notificationResponse } from "../test-support/notification-data";
 
 const id = "00000000-0000-4000-8000-000000000237";

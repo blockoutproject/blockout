@@ -1,4 +1,4 @@
-import { ApiError } from "../../../shared/api/api-fetch";
+import { ApiError } from "@/shared/api/api-fetch";
 
 /** Ordinary support never consults credentials; F12's existing request owner still validates explicit bypass intent. */
 export async function supportCredentials(

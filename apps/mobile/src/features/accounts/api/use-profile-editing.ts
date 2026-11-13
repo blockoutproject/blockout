@@ -15,10 +15,10 @@ import type {
   AccountResponse,
   ChangeAccountProfileBody,
 } from "../../../../.generated/schemas/index.zod";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { binaryImagePreview } from "../../../shared/api/binary-image-preview";
-import { useOrdinaryRequest } from "../../access/ordinary-request";
+import { isAccessDenied } from "@/shared/api/access-denied";
+import { ApiError } from "@/shared/api/api-fetch";
+import { binaryImagePreview } from "@/shared/api/binary-image-preview";
+import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import { useAccountSession } from "../session/account-session-provider";
 
 /** Publishes confirmed profile fields to the original private account before ordinary read invalidation. */

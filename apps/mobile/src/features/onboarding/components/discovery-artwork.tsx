@@ -3,9 +3,9 @@ import { ChevronRight, Flag } from "lucide-react-native";
 import type { ComponentProps } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
-import { ImageFallback } from "../../../shared/components/image-fallback";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { ImageFallback } from "@/shared/components/image-fallback";
 
 /** Original Figma illustration; optional artwork motion stays inside the fixed source crop. */
 export function DiscoveryBackdrop({

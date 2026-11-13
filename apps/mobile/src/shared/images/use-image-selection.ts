@@ -2,7 +2,7 @@ import { Paths } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { deleteOwnedImage } from "./delete-owned-image";
-import { useActionFeedback } from "../components/action-feedback";
+import { useActionFeedback } from "@/shared/components/action-feedback";
 
 /**
  * Native selection and the caller's preparation share one operation. Delivered app-cache copies

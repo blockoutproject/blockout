@@ -1,4 +1,4 @@
-import { PageList } from "../../../shared/components/page-list";
+import { PageList } from "@/shared/components/page-list";
 import { useNavigation } from "expo-router";
 import { hashKey } from "@tanstack/react-query";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -8,28 +8,28 @@ import type {
   ModeratedStreamContributionResponse,
   StreamModerationActionEnum,
 } from "../../../../.generated/schemas/index.zod";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
-import { Button } from "../../../shared/components/button";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { ListSeparator } from "../../../shared/components/list-separator";
-import { ListContinuation } from "../../../shared/components/list-continuation";
+import { isAccessDenied } from "@/shared/api/access-denied";
+import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
+import { Button } from "@/shared/components/button";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { ListSeparator } from "@/shared/components/list-separator";
+import { ListContinuation } from "@/shared/components/list-continuation";
 import {
   Page,
   PageScrollView,
   pageContentStyle,
-} from "../../../shared/components/page";
-import { FormScrollView } from "../../../shared/components/form-scroll-view";
-import { PagedTabs } from "../../../shared/components/paged-tabs";
-import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
-import { PageHeader } from "../../../shared/components/page-header";
-import { ReadFeedback } from "../../../shared/components/read-feedback";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { useActionConfirmation } from "../../../shared/forms/use-action-confirmation";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
-import { AccountSessionFeedback } from "../../accounts/current-account";
+} from "@/shared/components/page";
+import { FormScrollView } from "@/shared/components/form-scroll-view";
+import { PagedTabs } from "@/shared/components/paged-tabs";
+import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
+import { PageHeader } from "@/shared/components/page-header";
+import { ReadFeedback } from "@/shared/components/read-feedback";
+import { ScreenState } from "@/shared/components/screen-state";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { AccountSessionFeedback } from "@/features/accounts/current-account";
 import { useModerationMatch, useModerationVersions } from "../api/moderation";
 import { ContributionHistory } from "../components/contribution-history";
 import { ModerationMatchContext } from "../components/moderation-match-context";

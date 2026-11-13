@@ -7,7 +7,7 @@ import {
   replacePushSubscription,
 } from "../../../../.generated/mobile";
 import { PushSubscriptionResponse } from "../../../../.generated/schemas/index.zod";
-import type { AccountCredentialCleanup } from "../../accounts";
+import type { AccountCredentialCleanup } from "@/features/accounts";
 import type { InboxOwner, InboxRequest } from "../api/inbox-queries";
 import { readPushInstallation } from "./installation-identity";
 import { clearNotificationBadge } from "./notification-badge";

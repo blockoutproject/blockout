@@ -2,7 +2,7 @@ import {
   createDiscoveryQueryOptions,
   createSearchExamplesQueryOptions,
 } from "../api/discovery-queries";
-import { createQueryClient } from "../../../shared/query/query-client";
+import { createQueryClient } from "@/shared/query/query-client";
 
 const mockFetch = jest.fn();
 jest.mock("expo/fetch", () => ({
@@ -69,8 +69,7 @@ it("isolates type, normalized text, exact filters and deliberate bypass intent",
   const session = generation;
   const admission = {
     bypass: undefined,
-    request: (value: import("../../../shared/api/api-fetch").ApiFetchOptions) =>
-      value,
+    request: (value: import("@/shared/api/api-fetch").ApiFetchOptions) => value,
   };
   const credentials = jest.fn();
 
@@ -166,8 +165,7 @@ it("separates current example contexts, textual pages and each deliberate bypass
   const session = { subject: "reader-a", accountId: id };
   const admission = {
     bypass: undefined,
-    request: (value: import("../../../shared/api/api-fetch").ApiFetchOptions) =>
-      value,
+    request: (value: import("@/shared/api/api-fetch").ApiFetchOptions) => value,
   };
   const credentials = jest.fn();
   const current = createSearchExamplesQueryOptions(

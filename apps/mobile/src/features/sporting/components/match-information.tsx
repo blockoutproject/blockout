@@ -5,8 +5,8 @@ import type {
   MatchDetailResponse,
   MatchDocumentKindEnum,
 } from "../../../../.generated/schemas/index.zod";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 import { formatSportingSchedule } from "../model/sporting-time";
 import {
   ContactLink,

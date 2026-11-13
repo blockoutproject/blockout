@@ -1,9 +1,9 @@
-import { PageList } from "../../../shared/components/page-list";
+import { PageList } from "@/shared/components/page-list";
 import {
   PageScrollView,
   PageContent,
   pageContentStyle,
-} from "../../../shared/components/page";
+} from "@/shared/components/page";
 import { type LegendListRef } from "@legendapp/list/react-native";
 import {
   hashKey,
@@ -26,21 +26,18 @@ import type {
   MatchPoolGroupResponse,
   MatchSummaryResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { DataRefreshControl } from "../../../shared/components/data-refresh-control";
-import { Button } from "../../../shared/components/button";
-import { EmptyState } from "../../../shared/components/state-card";
-import {
-  hasReadError,
-  ReadFeedback,
-} from "../../../shared/components/read-feedback";
+import { DataRefreshControl } from "@/shared/components/data-refresh-control";
+import { Button } from "@/shared/components/button";
+import { EmptyState } from "@/shared/components/state-card";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { CalendarLoading } from "./calendar-loading";
 import { useCalendarLayout } from "../hooks/use-calendar-layout";
-import { ScreenState } from "../../../shared/components/screen-state";
-import { BottomContentSpacer } from "../../../shared/components/bottom-content-inset";
-import { ListContinuation } from "../../../shared/components/list-continuation";
-import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { ScreenState } from "@/shared/components/screen-state";
+import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
+import { ListContinuation } from "@/shared/components/list-continuation";
+import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 import { calendarDays, type CalendarSelection } from "../api/sporting-calendar";
 import { useSportingCalendar } from "../api/use-sporting-calendar";
 import { calendarRows, type CalendarRow } from "../model/calendar-rows";

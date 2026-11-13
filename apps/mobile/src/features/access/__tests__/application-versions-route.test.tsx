@@ -1,6 +1,6 @@
 import { useLayoutEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
+import { nativeAlertAction } from "@/shared/native/test-support/native-alert";
 import {
   cleanup,
   act,
@@ -14,21 +14,21 @@ import { renderRouter } from "expo-router/testing-library";
 import { Alert, Text, Pressable } from "react-native";
 import type { ComponentType } from "react";
 import { AccessGateScreen } from "../screens/access-gate-screen";
-import NotFoundRoute from "../../../app/+not-found";
-import OperationsLayout from "../../../app/(operations)/_layout";
-import AdministrationRoute from "../../../app/(operations)/administration";
-import RootLayout from "../../../app/_layout";
-import RecoveryLayout from "../../../app/(recovery)/_layout";
-import OnboardingRoute from "../../../app/onboarding";
-import { completeDiscovery } from "../../onboarding/discovery-state";
-import ApplicationVersionsRoute from "../../../app/(operations)/administration/application-versions";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+import NotFoundRoute from "@/app/+not-found";
+import OperationsLayout from "@/app/(operations)/_layout";
+import AdministrationRoute from "@/app/(operations)/administration";
+import RootLayout from "@/app/_layout";
+import RecoveryLayout from "@/app/(recovery)/_layout";
+import OnboardingRoute from "@/app/onboarding";
+import { completeDiscovery } from "@/features/onboarding/discovery-state";
+import ApplicationVersionsRoute from "@/app/(operations)/administration/application-versions";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
-import { useCurrentAccount } from "../../accounts/current-account";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
+} from "@/features/accounts/test-support/native-auth0";
+import { useCurrentAccount } from "@/features/accounts/current-account";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
 
 // Native manifest projection of the documented expo-router plugin option in app.config.ts.
 jest.mock("expo-constants", () => {
@@ -59,15 +59,15 @@ jest.mock("@sentry/react-native", () => ({
 }));
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

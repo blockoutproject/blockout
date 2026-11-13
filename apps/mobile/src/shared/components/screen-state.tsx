@@ -1,5 +1,5 @@
 import { StyleSheet, View, type ViewProps } from "react-native";
-import { tokens } from "../theme/tokens";
+import { tokens } from "@/shared/theme/tokens";
 
 /**
  * Places full-content Error/Empty feedback at the normal content start below chrome and controls.

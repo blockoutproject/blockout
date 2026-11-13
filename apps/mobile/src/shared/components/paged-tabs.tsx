@@ -30,7 +30,7 @@ import {
 } from "./navigation-backdrop";
 import { NavigationTabBar } from "./navigation-tab-bar";
 import { PagedTabContext } from "./paged-tab-context";
-import { useReducedMotion } from "../theme/use-reduced-motion";
+import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 
 /** Stable feature identities and their explicitly composed scenes; data remains feature-owned. */
 export interface PagedTab {

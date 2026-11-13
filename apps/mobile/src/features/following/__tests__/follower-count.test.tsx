@@ -1,24 +1,24 @@
 import { cleanup, act, screen, waitFor } from "@testing-library/react-native";
-import { useCurrentAccount } from "../../accounts/current-account";
+import { useCurrentAccount } from "@/features/accounts/current-account";
 import { onlineManager, QueryObserver } from "@tanstack/react-query";
 import { getGetTeamQueryOptions } from "../../../../.generated/mobile";
-import { accountResponse } from "../../accounts/test-support/account-response";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import {
   mockAuth0,
   credentialsFor,
-} from "../../accounts/test-support/native-auth0";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
+} from "@/features/accounts/test-support/native-auth0";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { followingFixture } from "../test-support/following-fixture";
 import { FollowerCount } from "../components/follower-count";
 import { followerCountKey } from "../api/following-keys";
 
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

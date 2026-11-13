@@ -7,9 +7,9 @@ import {
   getGetTeamLogoQueryKey,
   getGetDivisionLogoQueryKey,
 } from "../../../../.generated/mobile";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { isAccessDenied } from "../../../shared/api/access-denied";
-import { binaryImagePreview } from "../../../shared/api/binary-image-preview";
+import { ApiError } from "@/shared/api/api-fetch";
+import { isAccessDenied } from "@/shared/api/access-denied";
+import { binaryImagePreview } from "@/shared/api/binary-image-preview";
 import type { PresentationTarget } from "./presentation";
 import type { SportingQueryAuthority } from "./sporting-administration-queries";
 

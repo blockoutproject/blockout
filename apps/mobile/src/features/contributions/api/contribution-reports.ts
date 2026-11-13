@@ -7,12 +7,12 @@ import {
   StreamReportStateResponse,
   type CreateStreamReportRequest,
 } from "../../../../.generated/schemas/index.zod";
-import { useOrdinaryRequest } from "../../access/ordinary-request";
+import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import {
   useAccountSession,
   useCurrentAccount,
-} from "../../accounts/current-account";
-import { useConsultationQueries } from "../../sporting/match-consultation";
+} from "@/features/accounts/current-account";
+import { useConsultationQueries } from "@/features/sporting/match-consultation";
 import { contributionKeys } from "./contribution-keys";
 
 /** Original-account report state and explicit reason-only writes; exact-version deduplication makes a later manual retry safe without a recovery state. */

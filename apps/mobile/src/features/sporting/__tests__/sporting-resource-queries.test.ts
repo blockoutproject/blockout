@@ -1,10 +1,10 @@
 import { createConsultationQueries } from "../api/consultation-queries";
-import { createQueryClient } from "../../../shared/query/query-client";
+import { createQueryClient } from "@/shared/query/query-client";
 import { sportingId, matchDetail } from "../test-support/consultation-data";
 
 const mockFetch = jest.fn();
 // Native decoding is controlled; generated HTTP requests, cancellation and Query caching remain real.
-jest.mock("../../../shared/api/binary-image-preview", () => ({
+jest.mock("@/shared/api/binary-image-preview", () => ({
   binaryImagePreview: jest.fn(async () => "data:image/png;base64,c3ludGhldGlj"),
 }));
 jest.mock("expo/fetch", () => ({

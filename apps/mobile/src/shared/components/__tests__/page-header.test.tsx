@@ -2,7 +2,7 @@ import { act, screen, userEvent } from "@testing-library/react-native";
 import { Stack, router } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import { Text } from "react-native";
-import { ThemeProvider } from "../../theme/theme-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { PageHeader } from "../page-header";
 
 /** Uses the real Router stack to distinguish ordinary history from direct resource entry. */

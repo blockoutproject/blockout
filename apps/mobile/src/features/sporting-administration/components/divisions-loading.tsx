@@ -1,9 +1,9 @@
 import { StyleSheet, View } from "react-native";
-import { LoadingGroup } from "../../../shared/components/loading-group";
-import { TextSkeleton } from "../../../shared/components/text-skeleton";
-import { Skeleton } from "../../../shared/components/skeleton";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { LoadingGroup } from "@/shared/components/loading-group";
+import { TextSkeleton } from "@/shared/components/text-skeleton";
+import { Skeleton } from "@/shared/components/skeleton";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 
 /** Division catalogue rows retain their media, name and palette slots without inventing names or colors. */
 export function DivisionsLoading() {

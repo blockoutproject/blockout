@@ -8,10 +8,10 @@ import Animated, {
   useDerivedValue,
   type SharedValue,
 } from "react-native-reanimated";
-import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { IconButton } from "./icon-button";
-import { useReducedMotion } from "../theme/use-reduced-motion";
+import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 
 /** Ordinary page chrome; the default Back uses global history or Home, while nested owners can supply their departure. */
 export interface PageHeaderProps {

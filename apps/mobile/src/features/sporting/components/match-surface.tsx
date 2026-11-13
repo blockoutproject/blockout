@@ -1,8 +1,8 @@
 import type { PropsWithChildren } from "react";
 import { StyleSheet, View } from "react-native";
 import type { SportingDivisionResponse } from "../../../../.generated/schemas/index.zod";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 
 /** Figma's match surfaces share the current division border; content owns its internal insets. */
 export interface MatchSurfaceProps extends PropsWithChildren {

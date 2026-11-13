@@ -1,4 +1,4 @@
-import { accountResponse } from "../../accounts/test-support/account-response";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import {
   render,
   screen,
@@ -9,35 +9,35 @@ import {
 import { QueryClientProvider } from "@tanstack/react-query";
 import { renderRouter } from "expo-router/testing-library";
 import { Pressable, Text } from "react-native";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
-import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
 import {
   AccountSessionProvider,
   useAccountSession,
-} from "../../accounts/session/account-session-provider";
-import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+} from "@/features/accounts/session/account-session-provider";
+import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
+} from "@/features/accounts/test-support/native-auth0";
 import { SupportJourney } from "../screens/support-journey";
 import { SupportForm } from "../forms/support-form";
-import { SignInScreen } from "../../accounts/screens/sign-in-screen";
-import { AccessAdmissionProvider } from "../../access/queries/use-access-admission";
-import SupportLayout from "../../../app/(recovery)/support/_layout";
-import SupportChoiceRoute from "../../../app/(recovery)/support/choice";
-import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
+import { SignInScreen } from "@/features/accounts/screens/sign-in-screen";
+import { AccessAdmissionProvider } from "@/features/access/queries/use-access-admission";
+import SupportLayout from "@/app/(recovery)/support/_layout";
+import SupportChoiceRoute from "@/app/(recovery)/support/choice";
+import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

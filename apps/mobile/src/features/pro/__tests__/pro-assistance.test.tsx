@@ -1,8 +1,8 @@
-import { accountResponse as mockAccountResponse } from "../../accounts/test-support/account-response";
+import { accountResponse as mockAccountResponse } from "@/features/accounts/test-support/account-response";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
+} from "@/features/accounts/test-support/native-auth0";
 import {
   act,
   cleanup,
@@ -11,30 +11,30 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { Stack } from "expo-router";
-import ProRoute from "../../../app/(ordinary)/pro";
-import SupportLayout from "../../../app/(recovery)/support/_layout";
-import SupportChoiceRoute from "../../../app/(recovery)/support/choice";
-import SupportRoute from "../../../app/(recovery)/support/index";
-import { ProfileSupportAction } from "../../accounts/components/profile-support-action";
+import ProRoute from "@/app/(ordinary)/pro";
+import SupportLayout from "@/app/(recovery)/support/_layout";
+import SupportChoiceRoute from "@/app/(recovery)/support/choice";
+import SupportRoute from "@/app/(recovery)/support/index";
+import { ProfileSupportAction } from "@/features/accounts/components/profile-support-action";
 import { ProProfileEntry } from "../components/pro-profile-entry";
-import { AccessAdmissionProvider } from "../../access/queries/use-access-admission";
-import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { useSupportVisit } from "../../support/forms/support-visit";
+import { AccessAdmissionProvider } from "@/features/access/queries/use-access-admission";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { useSupportVisit } from "@/features/support/forms/support-visit";
 import { renderRouter } from "expo-router/testing-library";
 import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Text } from "react-native";
 import { useEffect } from "react";
 import { getGetApplicationAccessQueryKey } from "../../../../.generated/mobile";
 import { type CustomerCenterViewProps } from "react-native-purchases-ui";
-import type { AccountSession } from "../../accounts";
+import type { AccountSession } from "@/features/accounts";
 import {
   AccountSessionProvider,
   useAccountSession,
-} from "../../accounts/session/account-session-provider";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
-import { createQueryClient } from "../../../shared/query/query-client";
+} from "@/features/accounts/session/account-session-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
+import { createQueryClient } from "@/shared/query/query-client";
 import { ProProvider } from "../pro-provider";
 import * as proSessionModule from "../pro-session";
 import { prepareProNativeIO } from "../test-support/pro-harness";
@@ -78,12 +78,12 @@ jest.mock("react-native-purchases-ui", () => {
   };
 });
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

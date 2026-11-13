@@ -1,6 +1,6 @@
 import { View, type DimensionValue } from "react-native";
-import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 
 /** Decorative UI Library Skeleton; the owning composition announces the pending read once. */
 export function Skeleton({

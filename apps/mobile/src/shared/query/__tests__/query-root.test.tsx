@@ -8,14 +8,13 @@ import {
 import { Stack } from "expo-router";
 import { type ComponentType } from "react";
 import { Pressable, Text } from "react-native";
-import RootLayout from "../../../app/_layout";
-import { mockAuth0 } from "../../../features/accounts/test-support/native-auth0";
+import RootLayout from "@/app/_layout";
+import { mockAuth0 } from "@/features/accounts/test-support/native-auth0";
 
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual(
-    "../../../features/pro/test-support/native-purchases",
-  ).mockPurchases,
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
+    .mockPurchases,
 }));
 
 jest.mock("expo-router", () => ({
@@ -30,7 +29,7 @@ jest.mock("@sentry/react-native", () => ({
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../../features/accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });
@@ -45,7 +44,7 @@ jest.mock("expo/fetch", () => ({
   fetch: async () =>
     Response.json(
       jest
-        .requireActual("../../api/test-support/application-access")
+        .requireActual("@/shared/api/test-support/application-access")
         .applicationAccessResponse(),
     ),
 }));

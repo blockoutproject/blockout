@@ -2,10 +2,10 @@ import { useContext, type ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { useDerivedValue } from "react-native-reanimated";
 import type { MatchSummaryResponse } from "../../../../.generated/schemas/index.zod";
-import { NavigationScrollOffsetContext } from "../../../shared/components/navigation-backdrop";
-import { PageHeader } from "../../../shared/components/page-header";
-import { tokens } from "../../../shared/theme/tokens";
-import { useTheme } from "../../../shared/theme/theme-provider";
+import { NavigationScrollOffsetContext } from "@/shared/components/navigation-backdrop";
+import { PageHeader } from "@/shared/components/page-header";
+import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 import { matchHeaderLabel } from "../model/match-presentation";
 import { SportingLogo } from "./sporting-identity";
 

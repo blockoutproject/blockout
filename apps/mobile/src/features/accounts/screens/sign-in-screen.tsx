@@ -1,25 +1,25 @@
-import { hiddenScrollIndicators } from "../../../shared/native/scroll-indicators";
-import { Page, PageScrollView } from "../../../shared/components/page";
-import { ErrorState } from "../../../shared/components/state-card";
+import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
+import { Page, PageScrollView } from "@/shared/components/page";
+import { ErrorState } from "@/shared/components/state-card";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebAuthError, WebAuthErrorCodes } from "react-native-auth0";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { useActionFeedback } from "../../../shared/components/action-feedback";
-import { Button } from "../../../shared/components/button";
-import { LoadingIndicator } from "../../../shared/components/loading-indicator";
+import { ApiError } from "@/shared/api/api-fetch";
+import { useActionFeedback } from "@/shared/components/action-feedback";
+import { Button } from "@/shared/components/button";
+import { LoadingIndicator } from "@/shared/components/loading-indicator";
 
-import { ScreenState } from "../../../shared/components/screen-state";
-import { useTheme } from "../../../shared/theme/theme-provider";
-import { tokens } from "../../../shared/theme/tokens";
+import { ScreenState } from "@/shared/components/screen-state";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import { useEstablishAccount } from "../api/use-current-account";
 import { PublicAccountLinks } from "../components/public-account-links";
 import { SignInArtwork } from "../components/sign-in-artwork";
 import { useGuestNavigation } from "../hooks/use-guest-navigation";
 import { useAccountSession } from "../session/account-session-provider";
-import type { SupportOrigin } from "../../support";
+import type { SupportOrigin } from "@/features/support";
 
 /** Complete public admission supplied by F12; the route validates any requested return destination. */
 export interface SignInScreenProps {

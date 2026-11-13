@@ -1,9 +1,9 @@
 import { useLayoutEffect } from "react";
 import type { PropsWithChildren } from "react";
-import { nativeAlertAction } from "../../../shared/native/test-support/native-alert";
-import { accountResponse } from "../../accounts/test-support/account-response";
-import { AccountFeedbackProvider } from "../../accounts/test-support/account-feedback-provider";
-import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
+import { nativeAlertAction } from "@/shared/native/test-support/native-alert";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
+import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
+import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../queries/use-application-access";
 import { Alert } from "react-native";
 import {
@@ -20,28 +20,28 @@ import {
   waitFor,
   fireEvent,
 } from "@testing-library/react-native";
-import { createQueryClient } from "../../../shared/query/query-client";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
-import { AccountSessionProvider } from "../../accounts/session/account-session-provider";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
+import { AccountSessionProvider } from "@/features/accounts/session/account-session-provider";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
+} from "@/features/accounts/test-support/native-auth0";
 import { getGetMaintenanceSettingsQueryKey } from "../../../../.generated/mobile";
 import type { MaintenanceSettingsResponse } from "../../../../.generated/schemas/index.zod";
 import { MaintenanceSettingsScreen } from "../screens/maintenance-settings-screen";
-import MaintenanceRoute from "../../../app/(operations)/administration/maintenance";
+import MaintenanceRoute from "@/app/(operations)/administration/maintenance";
 
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),
 );
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });

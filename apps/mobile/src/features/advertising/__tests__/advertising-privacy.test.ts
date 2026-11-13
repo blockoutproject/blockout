@@ -1,4 +1,4 @@
-import type { SessionSnapshot } from "../../accounts";
+import type { SessionSnapshot } from "@/features/accounts";
 import { PermissionStatus } from "expo";
 import { nativeUserChoices } from "../test-support/native-privacy";
 import { Platform } from "react-native";
@@ -21,7 +21,7 @@ import {
   type AdvertisingPrivacyContext,
 } from "../advertising-privacy";
 import { controlledInterstitial } from "../test-support/interstitial";
-import { entitlement } from "../../pro/test-support/customer-info";
+import { entitlement } from "@/features/pro/test-support/customer-info";
 
 jest.mock("react-native-google-mobile-ads", () => ({
   __esModule: true,

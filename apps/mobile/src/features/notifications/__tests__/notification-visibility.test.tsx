@@ -1,7 +1,7 @@
-import { createQueryClient } from "../../../shared/query/query-client";
+import { createQueryClient } from "@/shared/query/query-client";
 import { QueryObserver } from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react-native";
-import { createConsultationQueries } from "../../sporting/api/consultation-queries";
+import { createConsultationQueries } from "@/features/sporting/api/consultation-queries";
 import {
   createInboxQueries,
   subscribeInboxVisibility,

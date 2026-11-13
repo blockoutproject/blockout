@@ -9,9 +9,9 @@ import {
   SubmitSupportRequest,
   type CreateSupportRequestBody,
 } from "../../../../.generated/schemas/index.zod";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { useAccountSession } from "../../accounts/session/account-session-provider";
-import { useOrdinaryRequest } from "../../access/ordinary-request";
+import { ApiError } from "@/shared/api/api-fetch";
+import { useAccountSession } from "@/features/accounts/session/account-session-provider";
+import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import { supportCredentials } from "./support-credentials";
 
 /**

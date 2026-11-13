@@ -1,5 +1,5 @@
-import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
-import { accountResponse } from "../../accounts/test-support/account-response";
+import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { accountResponse } from "@/features/accounts/test-support/account-response";
 import {
   changeApplicationVersionSettings,
   getAccountPhoto,
@@ -7,7 +7,7 @@ import {
   getGetApplicationAccessQueryOptions,
   getMyAccount,
 } from "../../../../.generated/mobile";
-import { createQueryClient } from "../../../shared/query/query-client";
+import { createQueryClient } from "@/shared/query/query-client";
 
 const accountId = "00000000-0000-4000-8000-000000000001";
 const originalApiUrl = process.env.EXPO_PUBLIC_API_URL;

@@ -23,10 +23,10 @@ import type {
   RequestSourceValidationRequest,
   SetSourceCandidateRequest,
 } from "../../../../.generated/schemas/index.zod";
-import { ApiError } from "../../../shared/api/api-fetch";
-import { useAdministrationCapabilities } from "../../access/api/use-administration-capabilities";
-import { useOperationalVersionAdmission } from "../../access/operational-version-admission";
-import { useAccountSession } from "../../accounts/current-account";
+import { ApiError } from "@/shared/api/api-fetch";
+import { useAdministrationCapabilities } from "@/features/access/api/use-administration-capabilities";
+import { useOperationalVersionAdmission } from "@/features/access/operational-version-admission";
+import { useAccountSession } from "@/features/accounts/current-account";
 import { createCollectionQueries } from "./collection-queries";
 import {
   invalidateCollectionControls,

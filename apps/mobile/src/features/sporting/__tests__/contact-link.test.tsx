@@ -1,4 +1,4 @@
-import { ActionFeedbackProvider } from "../../../shared/components/action-feedback";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
 import {
   cleanup,
   act,
@@ -7,7 +7,7 @@ import {
   userEvent,
 } from "@testing-library/react-native";
 import { Linking } from "react-native";
-import { ThemeProvider } from "../../../shared/theme/theme-provider";
+import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { ContactLink } from "../components/contact-link";
 
 afterEach(async () => {

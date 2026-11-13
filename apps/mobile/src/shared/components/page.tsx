@@ -4,7 +4,7 @@ import {
   NavigationSafeAreaContext,
   NavigationScrollOffsetContext,
 } from "./navigation-backdrop";
-import { hiddenScrollIndicators } from "../native/scroll-indicators";
+import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import {
   cloneElement,
   useContext,
@@ -32,8 +32,8 @@ import {
   type EdgeRecord,
   type SafeAreaViewProps,
 } from "react-native-safe-area-context";
-import { useTheme } from "../theme/theme-provider";
-import { tokens } from "../theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
+import { tokens } from "@/shared/theme/tokens";
 import {
   BottomContentInsetContext,
   BottomContentSpacer,

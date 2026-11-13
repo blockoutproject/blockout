@@ -17,36 +17,36 @@ import {
   AdsConsentPrivacyOptionsRequirementStatus,
   type AdsConsentInfo,
 } from "react-native-google-mobile-ads";
-import RootLayout from "../../../app/_layout";
-import OrdinaryLayout from "../../../app/(ordinary)/_layout";
-import PrivacyRoute from "../../../app/(ordinary)/privacy";
-import CorrectionRoute from "../../../app/(ordinary)/privacy-age";
+import RootLayout from "@/app/_layout";
+import OrdinaryLayout from "@/app/(ordinary)/_layout";
+import PrivacyRoute from "@/app/(ordinary)/privacy";
+import CorrectionRoute from "@/app/(ordinary)/privacy-age";
 import { PrivacyEntry } from "../components/privacy-sheet";
 import {
   readAgeDeclaration,
   submitAgeDeclaration,
-} from "../../advertising/age-declaration";
-import { completeDiscovery } from "../../onboarding/discovery-state";
-import { initializeV2Installation } from "../../onboarding/initialize-v2-installation";
+} from "@/features/advertising/age-declaration";
+import { completeDiscovery } from "@/features/onboarding/discovery-state";
+import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import {
   credentialsFor,
   mockAuth0,
-} from "../../accounts/test-support/native-auth0";
-import { accountResponse as mockAccountResponse } from "../../accounts/test-support/account-response";
-import { mockPurchases } from "../../pro/test-support/native-purchases";
+} from "@/features/accounts/test-support/native-auth0";
+import { accountResponse as mockAccountResponse } from "@/features/accounts/test-support/account-response";
+import { mockPurchases } from "@/features/pro/test-support/native-purchases";
 import {
   customerInfo,
   entitlement,
-} from "../../pro/test-support/customer-info";
-import { prepareProNativeIO } from "../../pro/test-support/pro-harness";
-import * as proSessionModule from "../../pro/pro-session";
-import { usePro } from "../../pro";
-import { applicationAccessResponse as mockApplicationAccessResponse } from "../../../shared/api/test-support/application-access";
+} from "@/features/pro/test-support/customer-info";
+import { prepareProNativeIO } from "@/features/pro/test-support/pro-harness";
+import * as proSessionModule from "@/features/pro/pro-session";
+import { usePro } from "@/features/pro";
+import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
 
 jest.mock(
   "react-native-google-mobile-ads",
   () =>
-    jest.requireActual("../../advertising/test-support/native-privacy")
+    jest.requireActual("@/features/advertising/test-support/native-privacy")
       .nativeAdvertising,
 );
 jest.mock("@react-native-google-mobile-ads/facebook", () => ({
@@ -80,18 +80,18 @@ jest.mock("@react-native-async-storage/async-storage", () =>
     "@react-native-async-storage/async-storage/jest/async-storage-mock",
   ),
 );
-jest.mock("../../onboarding/initialize-v2-installation", () => ({
+jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
-    "../../accounts/test-support/native-auth0",
+    "@/features/accounts/test-support/native-auth0",
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
-  default: jest.requireActual("../../pro/test-support/native-purchases")
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
 jest.mock("expo/fetch", () => ({
