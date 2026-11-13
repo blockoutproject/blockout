@@ -114,15 +114,7 @@ function useFollowedList(
     enabled: (state) => active && state.state.status !== "error",
   });
 
-  /** Native scroll continuation stops after failure; only the section's explicit Retry resumes it. */
   async function append() {
-    if (!active || query.isFetching || !query.hasNextPage || query.isError) {
-      return;
-    }
-    await query.fetchNextPage({ cancelRefetch: false });
-  }
-
-  async function retryNextPage() {
     if (!active || query.isFetching || !query.hasNextPage) {
       return;
     }
@@ -146,7 +138,6 @@ function useFollowedList(
     query,
     items: followedItems(query.data?.pages),
     append,
-    retryNextPage,
     refresh,
     refreshing,
   };
@@ -267,8 +258,12 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
       refreshControl={refreshControl}
       contentContainerStyle={styles.content}
       onEndReached={() => {
-        void teams.append();
-        void pools.append();
+        if (!teams.query.isError) {
+          void teams.append();
+        }
+        if (!pools.query.isError) {
+          void pools.append();
+        }
       }}
       ListFooterComponent={<BottomContentSpacer />}
       renderItem={({ item: row }) => {
@@ -344,7 +339,7 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
             loading={list.query.isFetchingNextPage}
             failed={list.query.hasNextPage && list.query.isFetchNextPageError}
             disabled={!props.active || list.query.isFetching}
-            onRetry={() => void list.retryNextPage()}
+            onRetry={() => void list.append()}
           />
         );
       }}

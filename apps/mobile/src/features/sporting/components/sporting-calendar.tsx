@@ -169,7 +169,7 @@ export function SportingCalendarView({
     await calendar.refetch({ cancelRefetch: false });
   }
 
-  async function retryNextPage() {
+  async function loadMore() {
     if (
       !active ||
       !navigation.isFocused() ||
@@ -180,20 +180,6 @@ export function SportingCalendarView({
       return;
     }
     await calendar.fetchNextPage({ cancelRefetch: false });
-  }
-
-  /** Only an active idle successful traversal may request its server-owned continuation automatically. */
-  async function loadMore() {
-    if (
-      active &&
-      navigation.isFocused() &&
-      calendar.hasNextPage &&
-      !refreshing &&
-      !calendar.isFetching &&
-      !calendar.isError
-    ) {
-      await calendar.fetchNextPage({ cancelRefetch: false });
-    }
   }
 
   // A full pull retains the continuation's previous Query error until its new read settles.
@@ -325,14 +311,18 @@ export function SportingCalendarView({
           </CalendarGroupPart>
         );
       }}
-      onEndReached={() => void loadMore()}
+      onEndReached={() => {
+        if (!calendar.isError) {
+          void loadMore();
+        }
+      }}
       ListFooterComponent={
         <>
           <ListContinuation
             loading={calendar.isFetchingNextPage}
             failed={calendar.hasNextPage && calendar.isFetchNextPageError}
             disabled={!active || refreshing || calendar.isFetching}
-            onRetry={() => void retryNextPage()}
+            onRetry={() => void loadMore()}
           />
           <BottomContentSpacer />
         </>
