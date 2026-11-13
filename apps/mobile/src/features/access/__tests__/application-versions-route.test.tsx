@@ -389,7 +389,6 @@ it("keeps a fresh protected-route draft usable when an abandoned save fails late
     "First draft",
   );
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAlertAction("Appliquer")());
   await screen.findByRole("button", { name: "Enregistrer", busy: true });
 
   // When
@@ -424,36 +423,4 @@ it("keeps a fresh protected-route draft usable when an abandoned save fails late
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
   ).toHaveLength(1);
-});
-it("invalidates a native confirmation when its protected route is removed", async () => {
-  // Given
-  const permissions = { manageApplicationVersions: true };
-  mockFetch.mockImplementation(accessResponses(permissions));
-  await openRoute("/access");
-  const user = userEvent.setup();
-  await user.press(
-    await screen.findByRole("link", { name: "Accès administrateur" }),
-  );
-  await user.press(
-    await screen.findByRole("link", { name: "Versions minimales" }),
-  );
-  await user.type(
-    await screen.findByLabelText("Message commun"),
-    "Unconfirmed draft",
-  );
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  const confirm = nativeAlertAction("Appliquer");
-
-  // When
-  permissions.manageApplicationVersions = false;
-  await user.press(
-    screen.getByRole("button", { name: "Relire les permissions" }),
-  );
-  await screen.findByRole("header", { name: "Blockout est en maintenance" });
-  await act(async () => confirm());
-
-  // Then
-  expect(
-    mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
-  ).toBe(false);
 });

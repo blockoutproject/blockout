@@ -714,49 +714,69 @@ it.each(["NO_CREDENTIALS", "NO_REFRESH_TOKEN"])(
   },
 );
 
-it.each(["grant-withdrawal", "mandatory-update"])(
-  "removes an already bypassed support form after %s",
-  async (restriction) => {
-    // Given
-    const listeners = new Set<(state: AppStateStatus) => void>();
-    jest
-      .spyOn(AppState, "addEventListener")
-      .mockImplementation((_, listener) => {
-        listeners.add(listener);
-        return { remove: () => listeners.delete(listener) };
-      });
-    mockAuth0.hasValidCredentials.mockResolvedValue(true);
-    account.permissions = { bypassMaintenance: true };
-    access.maintenance = {
-      revision: 1,
-      active: true,
-      message: "Maintenance",
-      imageUrl: null,
-    };
-    await openRoute("/support");
-    await chooseBypass();
-    await fillForm();
-    if (restriction === "grant-withdrawal") {
-      account = accountResponse();
-    } else {
-      access.versions.ios = {
-        minimumVersion: "2.10.0",
-        storeUrl: "https://apps.apple.com/app/id123",
-      };
-    }
+it("removes an already bypassed support form after foreground grant withdrawal", async () => {
+  // Given
+  const listeners = new Set<(state: AppStateStatus) => void>();
+  jest.spyOn(AppState, "addEventListener").mockImplementation((_, listener) => {
+    listeners.add(listener);
+    return { remove: () => listeners.delete(listener) };
+  });
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  account.permissions = { bypassMaintenance: true };
+  access.maintenance = {
+    revision: 1,
+    active: true,
+    message: "Maintenance",
+    imageUrl: null,
+  };
+  await openRoute("/support");
+  await chooseBypass();
+  await fillForm();
+  account = accountResponse();
 
-    // When: foreground rereads the account owner; Query focus rereads public access.
-    await act(() => {
-      listeners.forEach((listener) => listener("active"));
-      focusManager.setFocused(false);
-      focusManager.setFocused(true);
-    });
+  // When: foreground rereads the account owner, independently of the public configuration.
+  await act(() => listeners.forEach((listener) => listener("active")));
 
-    // Then: maintenance still presents first, and the form/direct route cannot retain admission.
-    await screen.findByRole("header", { name: "Blockout est en maintenance" });
-    await act(() => router.push("/support"));
-    expect(screen).toHavePathname("/access");
-    expect(screen.queryByLabelText("Titre")).toBeNull();
-    expect(supportHttp).not.toHaveBeenCalled();
-  },
-);
+  // Then
+  await screen.findByRole("header", { name: "Blockout est en maintenance" });
+  await act(() => router.push("/support"));
+  expect(screen).toHavePathname("/access");
+  expect(screen.queryByLabelText("Titre")).toBeNull();
+  expect(supportHttp).not.toHaveBeenCalled();
+});
+
+it("enforces the current minimum after a refusal-triggered complete recheck", async () => {
+  // Given
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  account.permissions = { bypassMaintenance: true };
+  access.maintenance = {
+    revision: 1,
+    active: true,
+    message: "Maintenance",
+    imageUrl: null,
+  };
+  await openRoute("/support");
+  const user = await chooseBypass();
+  await fillForm();
+  access.versions.ios = {
+    minimumVersion: "2.10.0",
+    storeUrl: "https://apps.apple.com/app/id123",
+  };
+  supportHttp.mockResolvedValue(new Response(null, { status: 503 }));
+
+  // When: an explicit ordinary request refusal invalidates the complete public check.
+  await user.press(screen.getByRole("button", { name: "Envoyer la demande" }));
+
+  // Then: maintenance still presents first and an outdated operator cannot bypass it.
+  await screen.findByRole("header", { name: "Blockout est en maintenance" });
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("link", { name: "Accès administrateur" }),
+    ).toBeNull(),
+  );
+  expect(accessHttp).toHaveBeenCalledTimes(2);
+  await act(() => router.push("/support"));
+  expect(screen).toHavePathname("/access");
+  expect(screen.queryByLabelText("Titre")).toBeNull();
+  expect(supportHttp).toHaveBeenCalledTimes(1);
+});

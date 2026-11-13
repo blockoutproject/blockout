@@ -327,7 +327,6 @@ it("keeps a failed save editable during its normal settings refresh", async () =
   // When
   try {
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAlertAction("Enregistrer")());
 
     // Then: a pending refresh neither locks the draft nor repeats the command.
     expect(
@@ -346,7 +345,6 @@ it("keeps a failed save editable during its normal settings refresh", async () =
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAlertAction("Enregistrer")());
 
     // Then
     expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(
@@ -407,7 +405,6 @@ it("separates content preparation from explicit activation", async () => {
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAlertAction("Enregistrer")());
 
   try {
     // Then
@@ -466,7 +463,6 @@ it("keeps an accepted save through a failed ordinary reread without replaying th
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAlertAction("Enregistrer")());
 
   // Then
   expect(
@@ -534,97 +530,116 @@ it("sends the desired active state independently of dirty content", async () => 
     active: true,
   });
 });
-it("locks content editing during activation and retains the draft after an ordinary failure", async () => {
-  // Given
-  const user = userEvent.setup();
-  await renderSettings();
-  await screen.findByDisplayValue(initial.message);
-  await user.clear(screen.getByLabelText("Message de maintenance"));
-  await user.type(
-    screen.getByLabelText("Message de maintenance"),
-    "Mon brouillon",
-  );
-  const imageUrl = "https://assets.example.invalid/draft.png";
-  await user.type(screen.getByLabelText("URL de l’image"), imageUrl);
-  const response = Promise.withResolvers<Response>();
-  mockFetch.mockImplementation(async (url, options) => {
-    if (options?.method === "PUT") {
-      return response.promise;
-    }
-    if (String(url).endsWith("/accounts/me")) {
-      return json(account);
-    }
-    return json(stored);
-  });
-
-  // When
-  await user.press(
-    screen.getByRole("button", { name: "Activer la maintenance" }),
-  );
-  await act(async () => nativeAlertAction("Activer")());
-
-  try {
-    // Then
-    expect(
-      await screen.findByRole("button", {
-        name: "Activer la maintenance",
-        busy: true,
-      }),
-    ).toBeDisabled();
-    expect(screen.getByLabelText("Message de maintenance")).toBeDisabled();
-    expect(screen.getByLabelText("URL de l’image")).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-
-    // When
-    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-
-    // Then
-    expect(Alert.alert).toHaveBeenCalledTimes(1);
-    expect(
-      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
-    ).toHaveLength(0);
-    expect(
-      mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
-    ).toHaveLength(1);
-  } finally {
-    // When
-    await act(async () =>
-      response.resolve(
-        json(
-          {
-            type: "urn:blockout:problem:unprocessable-content",
-            title: "Refused",
-            status: 422,
-          },
-          422,
-        ),
-      ),
+it.each([500, 409])(
+  "locks content during activation and retains its draft after %s",
+  async (status) => {
+    // Given
+    const user = userEvent.setup();
+    await renderSettings();
+    await screen.findByDisplayValue(initial.message);
+    await user.clear(screen.getByLabelText("Message de maintenance"));
+    await user.type(
+      screen.getByLabelText("Message de maintenance"),
+      "Mon brouillon",
     );
-  }
+    const imageUrl = "https://assets.example.invalid/draft.png";
+    await user.type(screen.getByLabelText("URL de l’image"), imageUrl);
+    const response = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation(async (url, options) => {
+      if (options?.method === "PUT") {
+        return response.promise;
+      }
+      if (String(url).endsWith("/accounts/me")) {
+        return json(account);
+      }
+      return json(stored);
+    });
 
-  // Then
-  expect(
-    await screen.findByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-    }),
-  ).toBeOnTheScreen();
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
-  );
-  expect(
-    screen.getByRole("button", {
-      name: "Activer la maintenance",
-      busy: false,
-    }),
-  ).toBeEnabled();
-  expect(screen.getByLabelText("Message de maintenance")).toBeEnabled();
-  expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(
-    "Mon brouillon",
-  );
-  expect(screen.getByLabelText("URL de l’image")).toBeEnabled();
-  expect(screen.getByLabelText("URL de l’image")).toHaveDisplayValue(imageUrl);
-  expect(screen.getByLabelText("Maintenance inactive")).toBeOnTheScreen();
-});
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Activer la maintenance" }),
+    );
+    await act(async () => nativeAlertAction("Activer")());
+
+    try {
+      // Then
+      expect(
+        await screen.findByRole("button", {
+          name: "Activer la maintenance",
+          busy: true,
+        }),
+      ).toBeDisabled();
+      expect(screen.getByLabelText("Message de maintenance")).toBeDisabled();
+      expect(screen.getByLabelText("URL de l’image")).toBeDisabled();
+      expect(
+        screen.getByRole("button", { name: "Enregistrer" }),
+      ).toBeDisabled();
+
+      // When
+      await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+      // Then
+      expect(Alert.alert).toHaveBeenCalledTimes(1);
+      expect(
+        mockFetch.mock.calls.filter(
+          ([, options]) => options?.method === "PATCH",
+        ),
+      ).toHaveLength(0);
+      expect(
+        mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+      ).toHaveLength(1);
+    } finally {
+      // When
+      await act(async () =>
+        response.resolve(
+          json(
+            {
+              type:
+                status === 409
+                  ? "urn:blockout:problem:stale-revision"
+                  : "about:blank",
+              title: "Refused",
+              status,
+            },
+            status,
+          ),
+        ),
+      );
+    }
+
+    // Then
+    expect(
+      await screen.findByRole("alert", {
+        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      }),
+    ).toBeOnTheScreen();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+    );
+    expect(
+      screen.getByRole("button", {
+        name: "Activer la maintenance",
+        busy: false,
+      }),
+    ).toBeEnabled();
+    expect(screen.getByLabelText("Message de maintenance")).toBeEnabled();
+    expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(
+      "Mon brouillon",
+    );
+    expect(screen.getByLabelText("URL de l’image")).toBeEnabled();
+    expect(screen.getByLabelText("URL de l’image")).toHaveDisplayValue(
+      imageUrl,
+    );
+    expect(screen.getByLabelText("Maintenance inactive")).toBeOnTheScreen();
+    const activation = mockFetch.mock.calls.find(
+      ([, options]) => options?.method === "PUT",
+    );
+    expect(JSON.parse(String(activation?.[1]?.body))).toEqual({
+      revision: initial.revision,
+      active: true,
+    });
+  },
+);
 it("preserves a dirty draft after a newer background response", async () => {
   // Given
   const user = userEvent.setup();
@@ -730,7 +745,6 @@ it("clears the optional image using explicit null", async () => {
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAlertAction("Enregistrer")());
 
   // Then
   await waitFor(() =>
@@ -794,11 +808,10 @@ it.each(["loading", "failed"])(
       revision: 3,
       message: "Texte enregistré sans attendre l’image",
     };
-    mockFetch.mockClear().mockResolvedValue(json(accepted));
+    mockFetch.mockClear().mockImplementation(async () => json(accepted));
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAlertAction("Enregistrer")());
     await waitFor(() =>
       expect(
         screen.queryByText("Modifications non enregistrées"),
@@ -901,8 +914,8 @@ it("starts a fresh draft image preview when a previously failed URL returns", as
   expect(screen.getByDisplayValue(initial.message)).toBeOnTheScreen();
 });
 
-it.each([400, 403, 409, 422, "stale-revision"] as const)(
-  "retains the draft and revision after a confirmed %s refusal",
+it.each([400, 403, 409, 422, 500, "stale-revision"] as const)(
+  "retains the draft and revision after a %s refusal",
   async (refusal) => {
     // Given
     const user = userEvent.setup();
@@ -936,7 +949,6 @@ it.each([400, 403, 409, 422, "stale-revision"] as const)(
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAlertAction("Enregistrer")());
 
     // Then
     expect(
@@ -955,7 +967,6 @@ it.each([400, 403, 409, 422, "stale-revision"] as const)(
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAlertAction("Enregistrer")());
 
     // Then
     const writes = mockFetch.mock.calls.filter(
@@ -1011,7 +1022,6 @@ it.each(["conflict", "lost"])(
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAlertAction("Enregistrer")());
 
     // Then
     expect(
@@ -1038,7 +1048,6 @@ it.each(["conflict", "lost"])(
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAlertAction("Enregistrer")());
 
     // Then
     await waitFor(() =>
@@ -1067,7 +1076,7 @@ it("keeps the production route closed until native admission is composed", async
   ).not.toBeOnTheScreen();
 });
 
-it("cancels content confirmation without sending a mutation", async () => {
+it("saves content directly without an additional confirmation", async () => {
   // Given
   const user = userEvent.setup();
   await renderSettings();
@@ -1077,23 +1086,23 @@ it("cancels content confirmation without sending a mutation", async () => {
     screen.getByLabelText("Message de maintenance"),
     "Mon brouillon",
   );
+  mockFetch.mockImplementation(async (url, options) => {
+    if (options?.method === "PATCH") {
+      stored = { ...initial, revision: 3, message: "Mon brouillon" };
+    }
+    return json(String(url).endsWith("/accounts/me") ? account : stored);
+  });
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAlertAction("Annuler")());
 
   // Then
   await waitFor(() =>
-    expect(Alert.alert).toHaveBeenCalledWith(
-      "Enregistrer le contenu ?",
-      expect.any(String),
-      expect.any(Array),
-      expect.objectContaining({ cancelable: true }),
-    ),
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+    ).toHaveLength(1),
   );
-  expect(
-    mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
-  ).toBe(false);
+  expect(Alert.alert).not.toHaveBeenCalled();
   expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
 });
 
@@ -1118,7 +1127,6 @@ it("starts a fresh local draft after unmounting a failed pending save", async ()
     return json(stored);
   });
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAlertAction("Enregistrer")());
 
   // When
   await view.rerender(<></>);
@@ -1231,7 +1239,7 @@ it("hides the draft during a consumed account outage without revoking matching c
   ).toBe(false);
 });
 
-it("retains its draft when the server refuses a held confirmation after a settings read refusal", async () => {
+it("retains its draft when the server refuses a held activation confirmation after a settings read refusal", async () => {
   // Given
   const user = userEvent.setup();
   await renderSettings();
@@ -1241,8 +1249,10 @@ it("retains its draft when the server refuses a held confirmation after a settin
     screen.getByLabelText("Message de maintenance"),
     "Mon brouillon",
   );
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  const confirm = nativeAlertAction("Enregistrer");
+  await user.press(
+    screen.getByRole("button", { name: "Activer la maintenance" }),
+  );
+  const confirm = nativeAlertAction("Activer");
   mockFetch.mockImplementation(async (url) =>
     String(url).endsWith("/accounts/me")
       ? json(account)
@@ -1266,7 +1276,7 @@ it("retains its draft when the server refuses a held confirmation after a settin
   // Then
   await waitFor(() =>
     expect(
-      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
     ).toHaveLength(1),
   );
   expect(
@@ -1290,7 +1300,7 @@ it("retains its draft when the server refuses a held confirmation after a settin
     "Mon brouillon",
   );
   expect(
-    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
   ).toHaveLength(1);
 });
 
@@ -1323,7 +1333,7 @@ it("presents an initial settings refusal with an opaque retryable card and no ed
 });
 
 it.each([
-  ["Enregistrer", "Enregistrer", "PATCH"],
+  ["Enregistrer", undefined, "PATCH"],
   ["Activer la maintenance", "Activer", "PUT"],
 ])(
   "preserves dirty input after the server refuses %s prepared with delayed credentials",
@@ -1357,7 +1367,9 @@ it.each([
       return json(stored);
     });
     await user.press(screen.getByRole("button", { name: action }));
-    await act(async () => nativeAlertAction(confirmation)());
+    if (confirmation) {
+      await act(async () => nativeAlertAction(confirmation)());
+    }
 
     // When
     await act(async () =>

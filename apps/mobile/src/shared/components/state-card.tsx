@@ -140,7 +140,11 @@ const styles = StyleSheet.create({
   },
   title: { ...tokens.typography.heading, textAlign: "center" },
   description: { ...tokens.typography.body, textAlign: "center" },
-  actions: { maxWidth: "100%", alignSelf: "center" },
+  actions: {
+    maxWidth: "100%",
+    alignSelf: "center",
+    gap: tokens.layout.actions.gap,
+  },
   emptyArtwork: { width: 120, height: 120 },
   errorArtwork: { width: 86, height: 78 },
   artwork: {

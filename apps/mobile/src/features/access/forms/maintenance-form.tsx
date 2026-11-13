@@ -75,15 +75,6 @@ export function MaintenanceForm({
     if (rereadRequired || busy) {
       return;
     }
-    if (
-      !(await confirmAction({
-        title: "Enregistrer le contenu ?",
-        message: "L’activation reste inchangée.",
-        confirmLabel: "Enregistrer",
-      }))
-    ) {
-      return;
-    }
     actionFeedback.clear();
     try {
       const command = editing.content.mutateAsync(

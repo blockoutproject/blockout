@@ -20,6 +20,7 @@ import { createQueryClient } from "@/shared/query/query-client";
 import { initializeSentry } from "@/shared/observability/sentry";
 import { ThemeProvider, useTheme } from "@/shared/theme/theme-provider";
 import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
+import { hasReadError } from "@/shared/components/read-feedback";
 import { ProProvider, usePro } from "@/features/pro";
 import {
   DiscoveryProvider,
@@ -56,7 +57,10 @@ function Navigation({
         enabled={access.ordinary && discovery.complete && account.canEnter}
       />
       <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
-      {discovery.loading || (!access.snapshot.complete && access.checking) ? (
+      {discovery.loading ||
+      (!access.snapshot.complete &&
+        access.checking &&
+        !hasReadError(access.query)) ? (
         <StartupAccessGate />
       ) : (
         <Stack screenOptions={{ headerShown: false }}>

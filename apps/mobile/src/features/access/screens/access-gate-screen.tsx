@@ -1,5 +1,9 @@
 import { Page, PageScrollView, PageContent } from "@/shared/components/page";
-import { ErrorState } from "@/shared/components/state-card";
+import {
+  hasReadError,
+  ReadFeedback,
+  type ReadFeedbackQuery,
+} from "@/shared/components/read-feedback";
 import { applicationUpdateMessage } from "../application-update-message";
 import { RoundedContainedImage } from "@/shared/components/rounded-contained-image";
 import { ImageFallback } from "@/shared/components/image-fallback";
@@ -30,7 +34,7 @@ interface GateViewProps {
   maintenance?: Pick<PublicMaintenanceResponse, "message" | "imageUrl">;
   updateMessage?: string | null;
   storeUrl?: string | null;
-  checking?: boolean;
+  query?: ReadFeedbackQuery;
   onRefresh?: () => Promise<unknown>;
   onAdministration?: () => void;
   /** Local presentation only; closing a preview never changes admission. */
@@ -43,18 +47,20 @@ function GateView({
   maintenance,
   updateMessage,
   storeUrl,
-  checking = false,
+  query,
   onRefresh,
   onAdministration,
   onClose,
 }: Readonly<GateViewProps>) {
   const { colors } = useTheme();
+  const readFailed = query ? hasReadError(query) : false;
   const update = gate === "update";
   const inMaintenance = gate === "maintenance";
   const simple = gate === "checking" || gate === "unavailable";
   const image = inMaintenance ? maintenance?.imageUrl : null;
   let title = "";
-  let badge = gate === "checking" ? "VÉRIFICATION" : "INDISPONIBLE";
+  let badge =
+    gate === "checking" && !readFailed ? "VÉRIFICATION" : "INDISPONIBLE";
   let message: string | null | undefined;
   if (inMaintenance) {
     title = "Blockout est en maintenance";
@@ -81,7 +87,7 @@ function GateView({
 
   /** Keeps pending/unavailable recovery distinct from maintenance and update presentation. */
   function renderContent() {
-    if (gate === "checking") {
+    if (gate === "checking" && !readFailed) {
       return (
         <PageContent>
           <LoadingGroup label="Vérification de l’accès" style={styles.pending}>
@@ -95,7 +101,14 @@ function GateView({
     if (simple) {
       return (
         <ScreenState>
-          <ErrorState onRetry={onRefresh} retrying={checking} />
+          {query && (
+            <ReadFeedback
+              query={query}
+              loadingContent={null}
+              failed={gate === "unavailable"}
+              onRetry={onRefresh}
+            />
+          )}
         </ScreenState>
       );
     }
@@ -184,7 +197,10 @@ function GateView({
       <PageScrollView
         refreshControl={
           !onClose && onRefresh && !simple ? (
-            <DataRefreshControl onRefresh={onRefresh} />
+            <DataRefreshControl
+              onRefresh={onRefresh}
+              fetching={query?.isFetching}
+            />
           ) : undefined
         }
       >
@@ -250,7 +266,7 @@ export function StartupAccessGate() {
       maintenance={access.snapshot.maintenance}
       updateMessage={access.snapshot.versions?.message}
       storeUrl={presentation.versions?.storeUrl}
-      checking={access.checking}
+      query={access.query}
       onRefresh={access.retry}
     />
   );
@@ -266,7 +282,7 @@ export function AccessGateScreen() {
       maintenance={access.snapshot.maintenance}
       updateMessage={access.snapshot.versions?.message}
       storeUrl={access.versions?.storeUrl}
-      checking={access.checking}
+      query={access.query}
       onRefresh={access.retry}
       onAdministration={
         access.administration ? () => router.push("/administration") : undefined

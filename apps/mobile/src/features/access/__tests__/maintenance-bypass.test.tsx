@@ -27,6 +27,8 @@ import {
   useAccessAdmission,
 } from "../queries/use-access-admission";
 import { useOrdinaryRequest } from "../ordinary-request";
+import { useCurrentAccount } from "@/features/accounts/current-account";
+import { useMaintenanceSettings } from "../api/use-maintenance-settings";
 
 jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
@@ -116,11 +118,146 @@ async function renderAccessHooks() {
       access: useAccessAdmission(),
       session: useAccountSession(),
       profile: useProfileEditing(account.accountId),
+      account: useCurrentAccount(),
     }),
     { wrapper: Providers },
   );
   return hook;
 }
+
+it("does not admit the public from a successful partial management read", async () => {
+  // Given
+  const complete = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation(async (url) => {
+    if (String(url).endsWith("/application-access")) {
+      return complete.promise;
+    }
+    if (String(url).endsWith("/accounts/me")) {
+      return Response.json({
+        ...account,
+        permissions: { manageMaintenance: true },
+      });
+    }
+    return Response.json(full.maintenance);
+  });
+
+  // When
+  const { result } = await renderHook(
+    () => ({
+      access: useAccessAdmission(),
+      settings: useMaintenanceSettings(true),
+    }),
+    { wrapper: Providers },
+  );
+  await waitFor(() =>
+    expect(result.current.settings.query.isSuccess).toBe(true),
+  );
+
+  // Then
+  expect(result.current.access.snapshot.complete).toBeUndefined();
+  expect(result.current.access.ordinary).toBe(false);
+  expect(result.current.access.operations).toBe(false);
+
+  // When
+  await act(async () =>
+    complete.resolve(Response.json(applicationAccessResponse())),
+  );
+
+  // Then
+  await waitFor(() => expect(result.current.access.ordinary).toBe(true));
+});
+
+it("retains complete data but closes ordinary presentation after a failed complete recheck", async () => {
+  // Given
+  full = applicationAccessResponse();
+  const { result } = await renderAccessHooks();
+  await waitFor(() => expect(result.current.access.ordinary).toBe(true));
+  mockFetch.mockImplementation(async (url) => {
+    if (String(url).endsWith("/application-access")) {
+      throw new Error("Complete read unavailable");
+    }
+    return Response.json(account);
+  });
+
+  // When
+  await act(async () => {
+    void result.current.access.retry();
+    await jest.advanceTimersByTimeAsync(8_000);
+  });
+
+  // Then
+  expect(result.current.access.ordinary).toBe(false);
+  expect(result.current.access.gate).toBe("unavailable");
+  expect(result.current.access.snapshot.complete).toEqual(full);
+
+  // When
+  mockFetch.mockImplementation(async (url) =>
+    Response.json(String(url).endsWith("/accounts/me") ? account : full),
+  );
+  await act(async () => {
+    await result.current.access.retry();
+  });
+
+  // Then
+  await waitFor(() => expect(result.current.access.ordinary).toBe(true));
+});
+
+it("retains a known operator through technical failure but withdraws refused authority", async () => {
+  // Given
+  const { result } = await renderAccessHooks();
+  await waitFor(() => expect(result.current.access.canBypass).toBe(true));
+  mockFetch.mockImplementation(async (url) => {
+    if (String(url).endsWith("/accounts/me")) {
+      return new Response(null, { status: 500 });
+    }
+    return Response.json(full);
+  });
+
+  // When
+  await act(async () => {
+    void result.current.access.retry();
+    await jest.advanceTimersByTimeAsync(8_000);
+  });
+
+  // Then
+  expect(result.current.access.operations).toBe(true);
+  expect(result.current.access.canBypass).toBe(true);
+  expect(result.current.account.error).toMatchObject({
+    kind: "http",
+    status: 500,
+  });
+
+  // When
+  mockFetch.mockImplementation(async (url) =>
+    String(url).endsWith("/accounts/me")
+      ? new Response(null, { status: 403 })
+      : Response.json(full),
+  );
+  await act(async () => {
+    await result.current.access.retry();
+  });
+
+  // Then
+  await waitFor(() => expect(result.current.access.operations).toBe(false));
+  expect(result.current.access.canBypass).toBe(false);
+
+  // When
+  mockFetch.mockImplementation(async (url) => {
+    if (String(url).endsWith("/accounts/me")) {
+      throw new Error("Current account network failure");
+    }
+    return Response.json(full);
+  });
+  await act(async () => {
+    void result.current.access.retry();
+    await jest.advanceTimersByTimeAsync(8_000);
+  });
+
+  // Then
+  expect(result.current.account.error).toMatchObject({ kind: "network" });
+  expect(result.current.access.operations).toBe(false);
+  expect(result.current.access.canBypass).toBe(false);
+});
 
 it("requires explicit choice for binary requests while independent identification remains unchanged", async () => {
   // Given

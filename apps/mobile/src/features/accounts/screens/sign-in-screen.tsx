@@ -214,50 +214,52 @@ function SignInJourney({
             </View>
           ))}
         </View>
-        <View style={[styles.inset, styles.actions]}>
-          <Button
-            label={
-              session.status === "initialization-error" ||
-              retryRestoration ||
-              (session.status === "authenticated" && !session.accountId) ||
-              (establishment.status === "error" &&
-                !(
-                  establishment.error instanceof ApiError &&
-                  establishment.error.kind === "cancelled"
-                ))
-                ? "Réessayer"
-                : "Se connecter"
-            }
-            onPress={() => void signIn()}
-            loading={busy}
-            fullWidth
-          />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Continuer en tant qu’invité"
-            onPress={() => void guest.continueAsGuest()}
-            disabled={guest.pending}
-            accessibilityState={{
-              busy: guest.pending,
-              disabled: guest.pending,
-            }}
-            style={({ pressed }) => [
-              styles.guest,
-              {
-                backgroundColor: colors.subtle,
-                borderColor: colors.border,
-                opacity: pressed ? tokens.opacity.pressed : 1,
-              },
-            ]}
-          >
-            {guest.pending && <LoadingIndicator color={colors.icon} />}
-            <Text
-              numberOfLines={2}
-              style={[styles.guestLabel, { color: colors.text }]}
+        <View style={[styles.inset, styles.footer]}>
+          <View style={styles.actions}>
+            <Button
+              label={
+                session.status === "initialization-error" ||
+                retryRestoration ||
+                (session.status === "authenticated" && !session.accountId) ||
+                (establishment.status === "error" &&
+                  !(
+                    establishment.error instanceof ApiError &&
+                    establishment.error.kind === "cancelled"
+                  ))
+                  ? "Réessayer"
+                  : "Se connecter"
+              }
+              onPress={() => void signIn()}
+              loading={busy}
+              fullWidth
+            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Continuer en tant qu’invité"
+              onPress={() => void guest.continueAsGuest()}
+              disabled={guest.pending}
+              accessibilityState={{
+                busy: guest.pending,
+                disabled: guest.pending,
+              }}
+              style={({ pressed }) => [
+                styles.guest,
+                {
+                  backgroundColor: colors.subtle,
+                  borderColor: colors.border,
+                  opacity: pressed ? tokens.opacity.pressed : 1,
+                },
+              ]}
             >
-              Continuer en tant qu’invité
-            </Text>
-          </Pressable>
+              {guest.pending && <LoadingIndicator color={colors.icon} />}
+              <Text
+                numberOfLines={2}
+                style={[styles.guestLabel, { color: colors.text }]}
+              >
+                Continuer en tant qu’invité
+              </Text>
+            </Pressable>
+          </View>
           <PublicAccountLinks supportOrigin={supportOrigin} />
         </View>
       </SafeAreaView>
@@ -272,7 +274,8 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.lg,
   },
   inset: { paddingHorizontal: tokens.spacing.lg },
-  actions: { gap: tokens.spacing.lg },
+  footer: { gap: tokens.spacing.lg },
+  actions: { gap: tokens.layout.actions.gap },
   summary: tokens.typography.title,
   parade: {
     flexDirection: "row",

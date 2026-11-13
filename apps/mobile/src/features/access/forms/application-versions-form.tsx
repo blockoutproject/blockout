@@ -4,7 +4,6 @@ import {
   useActionFeedback,
 } from "@/shared/components/action-feedback";
 import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
-import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
 import { applicationVersionsValues } from "./application-versions-values";
 import { toApplicationVersionsRequest } from "../api/application-versions-request";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -53,7 +52,6 @@ export function ApplicationVersionsForm({
 }: Readonly<ApplicationVersionsFormProps>) {
   const session = useAccountSession();
   const { colors } = useTheme();
-  const confirmAction = useActionConfirmation();
   const actionFeedback = useActionFeedback();
   const { fontScale } = useWindowDimensions();
   const largeText = fontScale > 1;
@@ -106,15 +104,6 @@ export function ApplicationVersionsForm({
   /** Maps only dirty fields, with null removals, into the generated atomic PATCH. */
   async function submit(draft: ApplicationVersionsValues) {
     if (busy || rereadRequired || (raised && !checked)) {
-      return;
-    }
-    if (
-      !(await confirmAction({
-        title: "Appliquer les modifications ?",
-        message: "Les réglages de maintenance restent inchangés.",
-        confirmLabel: "Appliquer",
-      }))
-    ) {
       return;
     }
     actionFeedback.clear();
@@ -417,7 +406,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.lg,
     paddingBottom: tokens.spacing.lg,
   },
-  actions: { flexDirection: "row", flexWrap: "wrap", gap: tokens.spacing.sm },
+  actions: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: tokens.layout.actions.gap,
+  },
   action: { flexBasis: 128, flexGrow: 1 },
   disclosure: {
     padding: tokens.spacing.lg,

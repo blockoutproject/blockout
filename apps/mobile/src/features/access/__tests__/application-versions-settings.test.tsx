@@ -1,6 +1,5 @@
 import { useLayoutEffect } from "react";
 import type { PropsWithChildren } from "react";
-import { nativeAlertAction } from "@/shared/native/test-support/native-alert";
 import { accountResponse } from "@/features/accounts/test-support/account-response";
 import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
 import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
@@ -265,7 +264,6 @@ it("saves independent iOS and Android edits atomically under one revision", asyn
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAlertAction("Appliquer")());
 
   // Then
   expect(
@@ -325,7 +323,6 @@ it("removes a platform minimum and optional message with null while omitting the
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAlertAction("Appliquer")());
 
   // Then
   await waitFor(() =>
@@ -419,13 +416,11 @@ it.each([
     }
   },
 );
-it("requires store acknowledgement before raising a minimum, and cancellation preserves the draft", async () => {
+it("saves directly after the acknowledgement for the current raised minimum", async () => {
   // Given
   const user = userEvent.setup();
   await renderSettings();
   await user.press(await screen.findByRole("button", { name: "iOS" }));
-
-  // When
   await user.clear(screen.getByLabelText("Version minimale iOS"));
   await user.type(screen.getByLabelText("Version minimale iOS"), "2.10.0");
 
@@ -433,32 +428,41 @@ it("requires store acknowledgement before raising a minimum, and cancellation pr
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
 
   // When
-  await user.press(
-    screen.getByRole("checkbox", {
-      name: "J’ai vérifié que la version requise est disponible sur chaque store concerné.",
-    }),
-  );
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAlertAction("Annuler")());
-
-  // Then
-  expect(screen.getByLabelText("Version minimale iOS")).toHaveDisplayValue(
-    "2.10.0",
-  );
-  expect(mockFetch.mock.calls.some(([, o]) => o?.method === "PATCH")).toBe(
-    false,
-  );
-
-  // When
+  await user.press(screen.getByRole("checkbox"));
   await user.clear(screen.getByLabelText("Version minimale iOS"));
   await user.type(screen.getByLabelText("Version minimale iOS"), "2.11.0");
 
   // Then
   expect(screen.getByRole("checkbox")).not.toBeChecked();
   expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+
+  // When
+  mockFetch.mockImplementation(async (url, options) => {
+    if (options?.method === "PATCH") {
+      stored = {
+        ...initial,
+        revision: 3,
+        ios: { ...initial.ios, minimumVersion: "2.11.0" },
+      };
+    }
+    return json(String(url).endsWith("/accounts/me") ? account : stored);
+  });
+  await user.press(screen.getByRole("checkbox"));
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+    ).toHaveLength(1),
+  );
+  expect(Alert.alert).not.toHaveBeenCalled();
+  expect(screen.getByLabelText("Version minimale iOS")).toHaveDisplayValue(
+    "2.11.0",
+  );
 });
-it.each([403, 409, 422, "stale-revision"] as const)(
-  "preserves input after a confirmed %s refusal",
+it.each([403, 409, 422, 500, "stale-revision"] as const)(
+  "preserves input after a %s refusal",
   async (refusal) => {
     // Given
     const user = userEvent.setup();
@@ -489,7 +493,6 @@ it.each([403, 409, 422, "stale-revision"] as const)(
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAlertAction("Appliquer")());
 
     // Then
     expect(
@@ -503,6 +506,25 @@ it.each([403, 409, 422, "stale-revision"] as const)(
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
     );
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+    // Then
+    await waitFor(() =>
+      expect(
+        mockFetch.mock.calls.filter(
+          ([, options]) => options?.method === "PATCH",
+        ),
+      ).toHaveLength(2),
+    );
+    const writes = mockFetch.mock.calls.filter(
+      ([, options]) => options?.method === "PATCH",
+    );
+    expect(JSON.parse(String(writes[1][1]?.body))).toEqual({
+      revision: initial.revision,
+      message: "Mon brouillon",
+    });
   },
 );
 it("keeps a failed save editable during its normal settings refresh", async () => {
@@ -532,7 +554,6 @@ it("keeps a failed save editable during its normal settings refresh", async () =
   // When
   try {
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAlertAction("Appliquer")());
 
     // Then: a pending refresh neither locks the draft nor repeats the command.
     expect(await screen.findByText(TECHNICAL_ERROR)).toBeOnTheScreen();
@@ -548,7 +569,6 @@ it("keeps a failed save editable during its normal settings refresh", async () =
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAlertAction("Appliquer")());
 
     // Then
     expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
@@ -564,6 +584,55 @@ it("keeps a failed save editable during its normal settings refresh", async () =
       expect(publicClient.isFetching()).toBe(0);
     });
   }
+});
+
+it("keeps an accepted save after a failed ordinary read and retries only that read", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  await user.clear(screen.getByLabelText("Message commun"));
+  await user.type(screen.getByLabelText("Message commun"), "Accepted copy");
+  const accepted = { ...initial, revision: 3, message: "Accepted copy" };
+  mockFetch.mockImplementation(async (url, options) => {
+    if (String(url).endsWith("/accounts/me")) {
+      return json(account);
+    }
+    if (options?.method === "PATCH") {
+      return json(accepted);
+    }
+    throw new Error("Read unavailable after acknowledgement");
+  });
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  expect(
+    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("alert", { name: TECHNICAL_ERROR }),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByLabelText("Message commun")).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(1);
+
+  // When
+  mockFetch.mockImplementation(async (url) =>
+    json(String(url).endsWith("/accounts/me") ? account : accepted),
+  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByDisplayValue("Accepted copy")).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Modifications non enregistrées"),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(1);
 });
 
 it.each(["conflict", "lost", "invalid-response"])(
@@ -614,7 +683,6 @@ it.each(["conflict", "lost", "invalid-response"])(
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAlertAction("Appliquer")());
 
     // Then
     await screen.findByRole("button", { name: "Relire les réglages" });
@@ -649,7 +717,6 @@ it.each(["conflict", "lost", "invalid-response"])(
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAlertAction("Appliquer")());
 
     // Then
     await waitFor(() =>
@@ -722,7 +789,7 @@ it("keeps dirty values and blocks writes after a newer refetch and a failed rere
   ).toBeEnabled();
 });
 it.each(["revoked", "unavailable"])(
-  "hides the mounted draft after %s account data while a held command remains server-authorized",
+  "hides the mounted draft after %s account data",
   async (outcome) => {
     // Given
     const user = userEvent.setup();
@@ -730,8 +797,6 @@ it.each(["revoked", "unavailable"])(
     await screen.findByDisplayValue(initial.message);
     await user.clear(screen.getByLabelText("Message commun"));
     await user.type(screen.getByLabelText("Message commun"), "Mon brouillon");
-    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    const confirm = nativeAlertAction("Appliquer");
     const accountQuery = client
       .getQueryCache()
       .findAll()
@@ -739,17 +804,7 @@ it.each(["revoked", "unavailable"])(
     if (!accountQuery) {
       throw new Error("The real current-account query is missing");
     }
-    mockFetch.mockImplementation(async (url, options) => {
-      if (options?.method === "PATCH") {
-        return json(
-          {
-            type: "urn:blockout:problem:forbidden",
-            title: "Forbidden",
-            status: 403,
-          },
-          403,
-        );
-      }
+    mockFetch.mockImplementation(async (url) => {
       if (String(url).endsWith("/accounts/me")) {
         if (outcome === "revoked") {
           return json({
@@ -793,23 +848,9 @@ it.each(["revoked", "unavailable"])(
       screen.queryByRole("button", { name: "Enregistrer" }),
     ).not.toBeOnTheScreen();
 
-    // When: the already-held confirmation still lets the server authorize its exact original command.
-    await act(async () => confirm());
-
-    // Then: refusal preserves the draft and confirmed settings without replaying the command.
     expect(
-      await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
-    ).toBeOnTheScreen();
-    expect(screen.queryByLabelText("Message commun")).not.toBeOnTheScreen();
-    const writes = mockFetch.mock.calls.filter(
-      ([, options]) => options?.method === "PATCH",
-    );
-    expect(writes).toHaveLength(1);
-    expect(JSON.parse(String(writes[0][1]?.body))).toEqual({
-      revision: 2,
-      message: "Mon brouillon",
-    });
-    expect(client.getQueryData(settingsKey())).toEqual(initial);
+      mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
+    ).toBe(false);
 
     // When
     mockFetch.mockImplementation(async (url) =>
@@ -823,64 +864,6 @@ it.each(["revoked", "unavailable"])(
     expect(await screen.findByDisplayValue("Mon brouillon")).toBeOnTheScreen();
   },
 );
-
-it("retains its draft when the server refuses a held confirmation after a settings read refusal", async () => {
-  // Given
-  const user = userEvent.setup();
-  await renderSettings();
-  await screen.findByDisplayValue(initial.message);
-  await user.clear(screen.getByLabelText("Message commun"));
-  await user.type(screen.getByLabelText("Message commun"), "Mon brouillon");
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  const confirm = nativeAlertAction("Appliquer");
-  mockFetch.mockImplementation(async (url) =>
-    String(url).endsWith("/accounts/me")
-      ? json(account)
-      : json(
-          {
-            type: "urn:blockout:problem:forbidden",
-            title: "Forbidden",
-            status: 403,
-          },
-          403,
-        ),
-  );
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-  await screen.findByRole("alert", {
-    name: "Une erreur est survenue",
-  });
-
-  // When
-  await act(async () => confirm());
-
-  // Then
-  await waitFor(() =>
-    expect(
-      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
-    ).toHaveLength(1),
-  );
-  expect(screen.queryByLabelText("Message commun")).not.toBeOnTheScreen();
-  expect(
-    screen.getByRole("alert", { name: "Une erreur est survenue" }),
-  ).toBeOnTheScreen();
-
-  // When
-  mockFetch.mockImplementation(async (url) =>
-    json(String(url).endsWith("/accounts/me") ? account : stored),
-  );
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
-
-  // Then
-  await waitFor(() =>
-    expect(screen.getByLabelText("Message commun")).toBeEnabled(),
-  );
-  expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
-    "Mon brouillon",
-  );
-  expect(
-    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
-  ).toHaveLength(1);
-});
 
 it("presents an initial settings refusal with an opaque retryable card and no editable defaults", async () => {
   // Given

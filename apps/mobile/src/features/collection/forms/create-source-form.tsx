@@ -97,22 +97,27 @@ export function CreateSourceForm({
           />
         )}
       />
-      <Button
-        label="Enregistrer"
-        fullWidth
-        onPress={() => void handleSubmit(submit)()}
-        disabled={disabled}
-        loading={editing.create.isPending}
-      />
-      <Button
-        label="Annuler"
-        variant="secondary"
-        fullWidth
-        onPress={onCancel}
-        disabled={editing.create.isPending}
-      />
+      <View style={styles.actions}>
+        <Button
+          label="Enregistrer"
+          fullWidth
+          onPress={() => void handleSubmit(submit)()}
+          disabled={disabled}
+          loading={editing.create.isPending}
+        />
+        <Button
+          label="Annuler"
+          variant="secondary"
+          fullWidth
+          onPress={onCancel}
+          disabled={editing.create.isPending}
+        />
+      </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({ form: { gap: tokens.layout.form.gap } });
+const styles = StyleSheet.create({
+  actions: { gap: tokens.layout.actions.gap },
+  form: { gap: tokens.layout.form.gap },
+});

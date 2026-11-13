@@ -361,20 +361,22 @@ export function SourceCandidateForm({
                     />
                   )}
                 />
-                <Button
-                  label="Enregistrer"
-                  fullWidth
-                  onPress={() => void handleSubmit(save)()}
-                  disabled={busy || readOnly || reconciliationRequired}
-                  loading={editing.candidate.isPending}
-                />
-                <Button
-                  label="Annuler"
-                  variant="secondary"
-                  fullWidth
-                  onPress={() => void cancelEditing()}
-                  disabled={editing.candidate.isPending}
-                />
+                <View style={styles.actions}>
+                  <Button
+                    label="Enregistrer"
+                    fullWidth
+                    onPress={() => void handleSubmit(save)()}
+                    disabled={busy || readOnly || reconciliationRequired}
+                    loading={editing.candidate.isPending}
+                  />
+                  <Button
+                    label="Annuler"
+                    variant="secondary"
+                    fullWidth
+                    onPress={() => void cancelEditing()}
+                    disabled={editing.candidate.isPending}
+                  />
+                </View>
               </>
             ) : (
               <Button
@@ -487,6 +489,7 @@ function linkOpacity(disabled: boolean, pressed: boolean) {
 }
 
 const styles = StyleSheet.create({
+  actions: { gap: tokens.layout.actions.gap },
   form: { gap: tokens.layout.form.gap },
   row: {
     flexDirection: "row",
