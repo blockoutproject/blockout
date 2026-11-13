@@ -187,10 +187,25 @@ export function useOwnContributions(matchId: string) {
   const client = useQueryClient();
   const matchKey = useConsultationQueries().match(matchId).queryKey;
 
-  /** Invalidates the owner context and public match after settlement. */
-  function accept() {
-    void client.invalidateQueries({ queryKey, exact: true });
-    void client.invalidateQueries({ queryKey: matchKey, exact: true });
+  /** Temporary write failures mark reads stale without making a successful GET a prerequisite for another send. */
+  function settled(_data: unknown, error: unknown) {
+    const refetchType =
+      error &&
+      !(
+        error instanceof ApiError &&
+        error.kind === "http" &&
+        error.status !== 408 &&
+        error.status !== 429 &&
+        (error.status ?? 0) < 500
+      )
+        ? "none"
+        : "active";
+    void client.invalidateQueries({ queryKey, exact: true, refetchType });
+    void client.invalidateQueries({
+      queryKey: matchKey,
+      exact: true,
+      refetchType,
+    });
   }
 
   const submit = useMutation({
@@ -202,7 +217,7 @@ export function useOwnContributions(matchId: string) {
         ...(await request()),
         schema: OwnStreamContributionDetailResponse,
       }),
-    onSettled: accept,
+    onSettled: settled,
     onError: (error) => refuseAccess(error),
   });
   const change = useMutation({
@@ -214,7 +229,7 @@ export function useOwnContributions(matchId: string) {
         ...(await request()),
         schema: OwnStreamContributionDetailResponse,
       }),
-    onSettled: accept,
+    onSettled: settled,
     onError: (error) => refuseAccess(error),
   });
   return {

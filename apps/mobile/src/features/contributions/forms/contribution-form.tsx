@@ -35,7 +35,7 @@ export interface ContributionFormProps {
   replacement?: OwnStreamContributionResponse;
 }
 
-/** Retains the ordinary address editor through page-owned refresh failures and confirms native intent before each write. */
+/** Retains the ordinary address editor through scoped read failures; sensitive withdrawal alone requires native confirmation. */
 export function ContributionForm({
   matchId,
   current,
@@ -81,23 +81,12 @@ export function ContributionForm({
     }
   }
 
-  /** Confirms the validated literal and viewed revision once; failures preserve the draft. */
+  /** Sends the validated literal and viewed revision directly; failures preserve the draft. */
   async function send(values: ContributionValues) {
     if (busy || disabled) {
       return;
     }
     const body = { revision: current.revision, url: values.url };
-    const confirmed = await confirmAction({
-      title: replacement ? "Remplacer ce lien ?" : "Soumettre ce lien ?",
-      message: replacement
-        ? `${replacement.url}\n\nNouveau lien : ${body.url}`
-        : body.url,
-      confirmLabel: replacement ? "Remplacer le lien" : "Soumettre le lien",
-      cancelLabel: "Continuer la saisie",
-    });
-    if (!confirmed || !mounted.current) {
-      return;
-    }
     feedback.clear();
     const attempt = submit.mutateAsync(body);
     try {

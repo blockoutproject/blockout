@@ -495,22 +495,12 @@ it("leaves an acknowledged clean form without asking to discard the saved addres
 
   // When
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.calls.at(-1)?.[2]
-      ?.find((button) => button.text === "Soumettre le lien")
-      ?.onPress?.(),
-  );
 
   // Then
   await waitFor(() =>
     expect(screen.getByText("Match origin")).toBeOnTheScreen(),
   );
-  expect(Alert.alert).toHaveBeenCalledTimes(1);
-  expect(jest.mocked(Alert.alert).mock.calls[0]?.[0]).toBe(
-    "Soumettre ce lien ?",
-  );
+  expect(Alert.alert).not.toHaveBeenCalled();
 });
 
 it("discards an unsent contribution draft when its route is removed", async () => {
@@ -593,13 +583,7 @@ it("keeps a new visit's draft when an older detached submission completes", asyn
     "https://youtu.be/original",
   );
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.calls.at(-1)?.[2]
-      ?.find((button) => button.text === "Soumettre le lien")
-      ?.onPress?.(),
-  );
+
   // When
   await act(() => router.replace("/"));
   const discard = jest
@@ -654,7 +638,7 @@ it("keeps a new visit's draft when an older detached submission completes", asyn
   ).toHaveLength(1);
 });
 
-it("keeps a confirmed replacement distinct from retained proposals after returning to the match", async () => {
+it("keeps an acknowledged replacement distinct from retained proposals after returning to the match", async () => {
   // Given
   jest.replaceProperty(
     proSessionModule,
@@ -667,6 +651,7 @@ it("keeps a confirmed replacement distinct from retained proposals after returni
     throw new Error("Missing test HTTP boundary");
   }
   let acknowledged = false;
+  let failOwnerRead = true;
   let submissions = 0;
   const previous = {
     id: "00000000-0000-4000-8000-000000000004",
@@ -691,7 +676,7 @@ it("keeps a confirmed replacement distinct from retained proposals after returni
         acknowledged = true;
         return boundary(url, init);
       }
-      if (acknowledged) {
+      if (acknowledged && failOwnerRead) {
         throw new TypeError("Controlled owner read failure");
       }
       return Response.json(
@@ -730,13 +715,6 @@ it("keeps a confirmed replacement distinct from retained proposals after returni
 
   // When
   await user.press(screen.getByRole("button", { name: "Remplacer le lien" }));
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.calls.at(-1)?.[2]
-      ?.find((button) => button.text === "Remplacer le lien")
-      ?.onPress?.(),
-  );
   await waitFor(() =>
     expect(screen).toHavePathname(`/matches/${match.match.id}`),
   );
@@ -752,7 +730,13 @@ it("keeps a confirmed replacement distinct from retained proposals after returni
   );
 
   // Then
-  expect(await screen.findByText("Votre lien public")).toBeOnTheScreen();
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Votre lien public")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Retirer" }),
+  ).not.toBeOnTheScreen();
   expect(
     screen.queryByText(
       /Les modifications déjà confirmées restent enregistrées/,
@@ -761,9 +745,17 @@ it("keeps a confirmed replacement distinct from retained proposals after returni
   expect(
     screen.queryByRole("button", { name: "Réessayer la lecture" }),
   ).not.toBeOnTheScreen();
+  expect(submissions).toBe(1);
+  expect(Alert.alert).not.toHaveBeenCalled();
+
+  // When: a safe owner read restores the editor without replaying the accepted replacement.
+  failOwnerRead = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByText("Votre lien public")).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Retirer" })).toBeEnabled();
   expect(submissions).toBe(1);
-  expect(Alert.alert).toHaveBeenCalledTimes(1);
 });
 
 it("returns from the owned editor to the exact match after withdrawing its active projection", async () => {

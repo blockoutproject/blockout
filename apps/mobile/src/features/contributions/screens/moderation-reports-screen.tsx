@@ -2,7 +2,6 @@ import { useNavigation } from "expo-router";
 import { RefreshCw } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import { isAccessDenied } from "@/shared/api/access-denied";
-import { useActionFeedback } from "@/shared/components/action-feedback";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { Button } from "@/shared/components/button";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
@@ -16,7 +15,7 @@ import {
 } from "@/shared/components/page";
 import { PageHeader } from "@/shared/components/page-header";
 import { PageList } from "@/shared/components/page-list";
-import { ReadFeedback } from "@/shared/components/read-feedback";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
 import { EmptyState, ErrorState } from "@/shared/components/state-card";
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
@@ -41,7 +40,6 @@ export function ModerationReportsScreen({
   const reading = useModerationReports(matchId, versionId, true);
   const { query } = reading;
   const navigation = useNavigation();
-  const feedback = useActionFeedback();
   const { colors } = useTheme();
   const denied = isAccessDenied(query.error);
   const pages = reading.canRetain && !denied ? query.data?.pages : undefined;
@@ -53,23 +51,22 @@ export function ModerationReportsScreen({
         .map((report) => [report.id, report]),
     ).values(),
   ];
+  const requiredRead =
+    hasReadError(reading.profile) || reading.profile.isPending
+      ? reading.profile
+      : query;
   const pending =
     reading.session.status === "restoring" ||
-    reading.profile.isLoading ||
-    (reading.allowed && query.isLoading);
+    (!hasReadError(requiredRead) && requiredRead.isLoading);
   const FeedbackLayout = pending ? PageContent : ScreenState;
   const refreshable = reading.allowed && reports.length > 0;
 
-  /** A native pull rereads this traversal; usable rows survive a technical failure with one gesture-owned notice. */
+  /** A native pull rereads this traversal; Query retains rows behind required-read feedback on failure. */
   async function refresh() {
     if (!reading.allowed || query.isFetching) {
       return;
     }
-    feedback.clear();
-    const result = await query.refetch({ cancelRefetch: false });
-    if (result.isError && reports.length > 0 && !isAccessDenied(result.error)) {
-      feedback.error();
-    }
+    await query.refetch({ cancelRefetch: false });
   }
 
   /** Automatic edges and explicit append Retry share Query's current next page; failed edges never retry themselves. */
@@ -84,7 +81,6 @@ export function ModerationReportsScreen({
     ) {
       return;
     }
-    feedback.clear();
     await query.fetchNextPage({ cancelRefetch: false });
   }
 
@@ -95,22 +91,18 @@ export function ModerationReportsScreen({
         <AccountSessionFeedback loadingContent={<ModerationReportsLoading />} />
       );
     }
-    if ((!reading.canRetain && reading.profile.isSuccess) || denied) {
+    if (!reading.canRetain && reading.profile.isSuccess) {
       return <ErrorState />;
     }
     if (
       !pages ||
-      query.isError ||
-      reading.profile.isError ||
+      hasReadError(query) ||
+      hasReadError(reading.profile) ||
       reading.profile.isPending
     ) {
       return (
         <ReadFeedback
-          query={
-            reading.profile.isError || reading.profile.isPending
-              ? reading.profile
-              : query
-          }
+          query={requiredRead}
           loadingContent={<ModerationReportsLoading />}
         />
       );
@@ -130,7 +122,9 @@ export function ModerationReportsScreen({
 
   return (
     <Page header={<PageHeader title="Signalements" />}>
-      {reports.length === 0 ? (
+      {reports.length === 0 ||
+      hasReadError(reading.profile) ||
+      (hasReadError(query) && !query.isFetchNextPageError) ? (
         <PageScrollView>
           <FeedbackLayout>{renderEmptyState()}</FeedbackLayout>
         </PageScrollView>
@@ -166,13 +160,6 @@ export function ModerationReportsScreen({
                 >
                   Signalements ({pages?.at(-1)?.count})
                 </Text>
-                {reading.profile.isError && (
-                  <Button
-                    label="Réessayer le profil"
-                    loading={reading.profile.isFetching}
-                    onPress={() => void reading.profile.refetch()}
-                  />
-                )}
               </View>
             ) : undefined
           }
@@ -194,21 +181,12 @@ export function ModerationReportsScreen({
           )}
           ListFooterComponent={
             <>
-              {query.isRefetchError ? (
-                <ListContinuation
-                  loading={false}
-                  failed
-                  disabled={!reading.allowed || query.isFetching}
-                  onRetry={() => void query.refetch({ cancelRefetch: false })}
-                />
-              ) : (
-                <ListContinuation
-                  loading={query.isFetchingNextPage}
-                  failed={query.isFetchNextPageError}
-                  disabled={!reading.allowed || query.isFetching}
-                  onRetry={() => void loadMore()}
-                />
-              )}
+              <ListContinuation
+                loading={query.isFetchingNextPage}
+                failed={query.isFetchNextPageError}
+                disabled={!reading.allowed || query.isFetching}
+                onRetry={() => void loadMore()}
+              />
               <BottomContentSpacer />
             </>
           }

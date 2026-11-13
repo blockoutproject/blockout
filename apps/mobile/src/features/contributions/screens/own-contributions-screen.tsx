@@ -1,7 +1,6 @@
 import { PageFlatList } from "@/shared/components/page-list";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigation, useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
 import {
   AppState,
   Platform,
@@ -18,7 +17,6 @@ import type {
   OwnStreamContributionResponse,
   StreamContributionStateEnum,
 } from "../../../../.generated/schemas/index.zod";
-import { useActionFeedback } from "@/shared/components/action-feedback";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { Button } from "@/shared/components/button";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
@@ -26,14 +24,14 @@ import { EntryGroupSeparator } from "@/shared/components/entry-group";
 import { ListContinuation } from "@/shared/components/list-continuation";
 import { Page, pageContentStyle } from "@/shared/components/page";
 import { PageHeader } from "@/shared/components/page-header";
-import { ReadFeedback } from "@/shared/components/read-feedback";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ContributionProposalsLoading } from "../components/contribution-loading";
 import { ScreenState } from "@/shared/components/screen-state";
 
-import { ErrorState } from "@/shared/components/state-card";
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
+import { AccountSessionFeedback } from "@/features/accounts/current-account";
 import {
   MatchSummary,
   useConsultationQueries,
@@ -107,48 +105,20 @@ export function OwnContributionsScreen({
   const match = useQuery(useConsultationQueries().match(matchId));
   const router = useRouter();
   const navigation = useNavigation();
-  const feedback = useActionFeedback();
   const { colors } = useTheme();
-  const mounted = useRef(true);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
   const { query, change, submit, session } = editing;
   const current = query.data?.pages[0];
   const authorized =
     editing.canRetain &&
     !isOwnContributionAccessDenied(query.error) &&
     !isOwnContributionAccessDenied(match.error);
-  const rows = authorized
-    ? [
-        ...new Map(
-          (query.data?.pages ?? [])
-            .flatMap((page) => page.items)
-            .map((item) => [item.id, item]),
-        ).values(),
-      ]
-    : [];
   const active = authorized ? current?.activeContribution : undefined;
 
-  /** Rereads displayed context and personal history together; an ordinary failure preserves their authorized data. */
-  async function refresh() {
-    if (change.isPending || submit.isPending) {
-      return;
-    }
-    feedback.clear();
-    const results = await Promise.allSettled([
+  function refresh() {
+    return Promise.allSettled([
       editing.refresh(),
-      match.refetch({ throwOnError: true }),
+      match.refetch({ cancelRefetch: false }),
     ]);
-    if (
-      mounted.current &&
-      results.some((result) => result.status === "rejected")
-    ) {
-      feedback.error();
-    }
   }
 
   /** Continues the same native page traversal; failed continuations wait for the explicit footer retry. */
@@ -165,126 +135,40 @@ export function OwnContributionsScreen({
     ) {
       return;
     }
-    feedback.clear();
     await query.fetchNextPage({ cancelRefetch: false });
   }
 
-  /** Distinguishes session recovery and profile admission from initial proposal loading. */
-  function isInitialReadPending() {
-    if (session.status !== "authenticated") {
-      return session.status === "restoring" || !!session.operation;
-    }
-    if (!editing.profile.data) {
-      return editing.profile.isLoading;
-    }
-    return (
-      editing.canRetain &&
-      (!current || !authorized) &&
-      !isOwnContributionAccessDenied(match.error) &&
-      query.isLoading
-    );
-  }
-
-  const pending = session.status !== "guest" && isInitialReadPending();
+  const requiredRead = !editing.usable
+    ? editing.profile
+    : ([editing.profile, match, query].find(
+        (read) =>
+          hasReadError(read) && (read !== query || !query.isFetchNextPageError),
+      ) ??
+      (!editing.profile.data ? editing.profile : !match.data ? match : query));
+  const readFailed =
+    hasReadError(requiredRead) &&
+    (requiredRead !== query || !query.isFetchNextPageError);
+  const blocked =
+    session.status !== "authenticated" ||
+    !editing.canRetain ||
+    !current ||
+    !authorized ||
+    !match.data ||
+    readFailed;
+  const rows = blocked
+    ? []
+    : [
+        ...new Map(
+          (query.data?.pages ?? [])
+            .flatMap((page) => page.items)
+            .map((item) => [item.id, item]),
+        ).values(),
+      ];
+  const pending =
+    session.status !== "authenticated"
+      ? session.status === "restoring" || !!session.operation
+      : !readFailed && requiredRead.isLoading;
   const FeedbackLayout = pending ? View : ScreenState;
-
-  /** Keeps current-account admission and retained editor feedback in one ordered decision. */
-  function renderEditorContent() {
-    if (session.status === "guest") {
-      return (
-        <FeedbackLayout style={[styles.feedback, styles.centered]}>
-          <Button
-            label="Se connecter"
-            onPress={() =>
-              router.push({
-                pathname: "/sign-in-invitation",
-                params: { reason: "contribution" },
-              })
-            }
-          />
-        </FeedbackLayout>
-      );
-    }
-    if (session.status !== "authenticated") {
-      return (
-        <FeedbackLayout
-          style={pending ? undefined : [styles.feedback, styles.centered]}
-        >
-          {session.status === "restoring" || session.operation ? (
-            <ContributionProposalsLoading />
-          ) : (
-            <Button
-              label="Se connecter"
-              onPress={() => router.push("/sign-in")}
-            />
-          )}
-        </FeedbackLayout>
-      );
-    }
-    if (!editing.profile.data || (editing.profile.isError && !current)) {
-      return (
-        <FeedbackLayout style={pending ? undefined : styles.feedback}>
-          <ReadFeedback
-            query={editing.profile}
-            loadingContent={<ContributionProposalsLoading />}
-          />
-        </FeedbackLayout>
-      );
-    }
-    if (!editing.canRetain) {
-      return (
-        <FeedbackLayout style={styles.feedback}>
-          <ErrorState
-            onRetry={() => void editing.profile.refetch()}
-            retrying={editing.profile.isFetching}
-          />
-        </FeedbackLayout>
-      );
-    }
-    if (!current || !authorized) {
-      return (
-        <FeedbackLayout style={pending ? undefined : styles.feedback}>
-          {query.isError || isOwnContributionAccessDenied(match.error) ? (
-            <ErrorState
-              onRetry={() => void refresh()}
-              retrying={query.isFetching || match.isFetching}
-            />
-          ) : (
-            <ReadFeedback
-              query={query}
-              loadingContent={<ContributionProposalsLoading />}
-            />
-          )}
-        </FeedbackLayout>
-      );
-    }
-    return (
-      <>
-        {editing.profile.isError && (
-          <Button
-            label="Réessayer le profil"
-            loading={editing.profile.isFetching}
-            onPress={() => void editing.profile.refetch()}
-          />
-        )}
-        {active && (
-          <ContributionForm
-            matchId={matchId}
-            current={current}
-            editing={editing}
-            replacement={active}
-          />
-        )}
-        {!current.eligibility.canSubmit && current.eligibility.reason && (
-          <Text
-            style={[tokens.typography.body, { color: colors.secondaryText }]}
-          >
-            {current.eligibility.reason}
-          </Text>
-        )}
-      </>
-    );
-  }
 
   const content = (
     <Page
@@ -299,7 +183,7 @@ export function OwnContributionsScreen({
         renderScrollComponent={
           Platform.OS === "android" ? renderAndroidScroll : undefined
         }
-        alwaysBounceVertical={authorized && !!current}
+        alwaysBounceVertical={!blocked}
         contentContainerStyle={pageContentStyle}
         data={rows}
         keyExtractor={(item) => item.id}
@@ -310,24 +194,80 @@ export function OwnContributionsScreen({
         }}
         ItemSeparatorComponent={EntryGroupSeparator}
         refreshControl={
-          authorized && current ? (
-            <DataRefreshControl
-              enabled={!change.isPending && !submit.isPending}
-              onRefresh={refresh}
-            />
-          ) : undefined
+          <DataRefreshControl
+            enabled={!blocked && !change.isPending && !submit.isPending}
+            fetching={query.isFetching || match.isFetching}
+            onRefresh={refresh}
+          />
         }
         ListHeaderComponent={
           <View style={styles.header}>
-            {authorized && current && match.data && (
-              <MatchSummary match={match.data.match} presentation="context" />
+            {blocked && (
+              <FeedbackLayout style={pending ? undefined : styles.feedback}>
+                {session.status === "guest" ? (
+                  <Button
+                    label="Se connecter"
+                    onPress={() =>
+                      router.push({
+                        pathname: "/sign-in-invitation",
+                        params: { reason: "contribution" },
+                      })
+                    }
+                  />
+                ) : session.status !== "authenticated" ? (
+                  <AccountSessionFeedback
+                    loadingContent={<ContributionProposalsLoading />}
+                  />
+                ) : (
+                  <ReadFeedback
+                    failed={
+                      !editing.usable &&
+                      editing.session.status === "authenticated" &&
+                      !editing.profile.isPending
+                    }
+                    query={requiredRead}
+                    loadingContent={<ContributionProposalsLoading />}
+                    onRetry={
+                      requiredRead === editing.profile ? undefined : refresh
+                    }
+                  />
+                )}
+              </FeedbackLayout>
             )}
-            {renderEditorContent()}
+            <View style={blocked ? styles.hidden : styles.editor}>
+              {match.data && !hasReadError(match) && (
+                <MatchSummary match={match.data.match} presentation="context" />
+              )}
+              {current && active && (
+                <ContributionForm
+                  key={`${session.subject}:${session.accountId}:${matchId}`}
+                  matchId={matchId}
+                  current={current}
+                  editing={editing}
+                  replacement={active}
+                />
+              )}
+              {!current?.eligibility.canSubmit &&
+                current?.eligibility.reason && (
+                  <Text
+                    style={[
+                      tokens.typography.body,
+                      { color: colors.secondaryText },
+                    ]}
+                  >
+                    {current.eligibility.reason}
+                  </Text>
+                )}
+            </View>
             <Text
               accessibilityRole="header"
-              style={[tokens.typography.heading, { color: colors.text }]}
+              style={[
+                tokens.typography.heading,
+                { color: colors.text },
+                blocked && styles.hidden,
+              ]}
             >
-              {authorized && current
+              {!blocked && current
                 ? `Mes propositions (${current.proposalCount})`
                 : "Mes propositions"}
             </Text>
@@ -336,7 +276,7 @@ export function OwnContributionsScreen({
         renderItem={({ item }) => <ProposalRow item={item} />}
         ListFooterComponent={
           <>
-            {authorized && (
+            {!blocked && (
               <ListContinuation
                 loading={query.isFetchingNextPage}
                 failed={query.isFetchNextPageError}
@@ -395,7 +335,8 @@ function ProposalRow({ item }: Readonly<ProposalRowProps>) {
 const styles = StyleSheet.create({
   // The virtualized header already owns the shared horizontal inset and first eight points above feedback.
   feedback: { padding: 0, paddingTop: tokens.spacing.sm },
-  centered: { justifyContent: "center" },
+  hidden: { display: "none" },
+  editor: { gap: tokens.layout.list.gap },
   header: {
     gap: tokens.layout.list.gap,
     paddingBottom: tokens.layout.list.gap,

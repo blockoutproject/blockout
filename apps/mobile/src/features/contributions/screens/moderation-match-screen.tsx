@@ -1,7 +1,7 @@
 import { PageList } from "@/shared/components/page-list";
 import { useNavigation } from "expo-router";
 import { hashKey } from "@tanstack/react-query";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppState, StyleSheet, Text, View } from "react-native";
 import type {
   ModeratedStreamContributionsResponse,
@@ -10,7 +10,6 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { isAccessDenied } from "@/shared/api/access-denied";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
-import { Button } from "@/shared/components/button";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { ListSeparator } from "@/shared/components/list-separator";
 import { ListContinuation } from "@/shared/components/list-continuation";
@@ -23,7 +22,7 @@ import { FormScrollView } from "@/shared/components/form-scroll-view";
 import { PagedTabs } from "@/shared/components/paged-tabs";
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import { PageHeader } from "@/shared/components/page-header";
-import { ReadFeedback } from "@/shared/components/read-feedback";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
@@ -247,120 +246,80 @@ function ActiveScene({
     try {
       await (form.current ? form.current.refresh() : editing.refresh());
     } catch {
-      feedback.error();
+      // The exhausted required read owns its shared Error/Retry presentation.
     }
   }
 
-  if (
-    !current &&
-    (editing.session.status === "restoring" ||
-      !!editing.session.operation ||
-      (editing.session.status === "authenticated" &&
-        (editing.profile.isLoading ||
-          (editing.allowed && editing.query.isLoading))))
-  ) {
-    return (
-      <PageScrollView
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-      >
-        <View style={pageContentStyle}>
-          <ModerationMatchLoading editor />
-        </View>
-      </PageScrollView>
-    );
-  }
-  if (!current) {
-    /** Recovers admission before mounting the current exact-match editor. */
-    function renderEditorContent() {
-      if (editing.session.status !== "authenticated") {
-        return (
-          <AccountSessionFeedback
-            loadingContent={<ModerationMatchLoading editor />}
-          />
-        );
-      }
-      if (!editing.canRetain && editing.profile.isSuccess) {
-        return (
-          <Text style={[tokens.typography.body, { color: colors.text }]}>
-            La modération des liens vidéo n’est pas autorisée.
-          </Text>
-        );
-      }
-      const read =
-        editing.profile.isError || editing.profile.isPending
-          ? editing.profile
-          : editing.query;
+  const published = current?.activeContribution;
+  const read =
+    editing.profile.isError || editing.profile.isPending
+      ? editing.profile
+      : editing.query;
+  const blocked = !current || hasReadError(read);
+
+  /** Session recovery stays with F05; this destination presents its own required private read. */
+  function renderReadState() {
+    if (editing.session.status !== "authenticated") {
       return (
-        <ReadFeedback
-          loadingContent={<ModerationMatchLoading />}
-          query={read}
-          onRetry={
-            active ? () => read.refetch({ cancelRefetch: false }) : undefined
-          }
+        <AccountSessionFeedback
+          loadingContent={<ModerationMatchLoading editor />}
         />
       );
     }
-
+    if (!editing.canRetain && editing.profile.isSuccess) {
+      return (
+        <Text style={[tokens.typography.body, { color: colors.text }]}>
+          La modération des liens vidéo n’est pas autorisée.
+        </Text>
+      );
+    }
     return (
-      <PageScrollView
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-      >
-        <ScreenState
-          style={
-            editing.session.status === "authenticated" &&
-            !editing.canRetain &&
-            editing.profile.isSuccess
-              ? styles.centered
-              : undefined
-          }
-        >
-          {renderEditorContent()}
-        </ScreenState>
-      </PageScrollView>
+      <ReadFeedback
+        loadingContent={<ModerationMatchLoading editor />}
+        query={read}
+        onRetry={
+          active ? () => read.refetch({ cancelRefetch: false }) : undefined
+        }
+      />
     );
   }
-  const published = current.activeContribution;
+
   return (
     <FormScrollView
       contentContainerStyle={pageContentStyle}
       refreshControl={
-        <DataRefreshControl enabled={active && !busy} onRefresh={refresh} />
+        <DataRefreshControl
+          enabled={active && !busy && !blocked}
+          onRefresh={refresh}
+          fetching={editing.query.isFetching}
+        />
       }
     >
       <View style={styles.header}>
-        {confirmed && (
-          <Text
-            accessibilityLiveRegion="polite"
-            style={[tokens.typography.strong, { color: colors.text }]}
-          >
-            Décision confirmée
-          </Text>
-        )}
-        {editing.profile.isError && (
-          <Button
-            label="Réessayer le profil"
-            loading={editing.profile.isFetching}
-            onPress={() => void editing.profile.refetch()}
-          />
-        )}
-        <ModerationMatchContext match={current.match} />
-
-        {!published && (
-          <Text
-            style={[tokens.typography.body, { color: colors.secondaryText }]}
-          >
-            Aucun lien actif
-          </Text>
-        )}
-        {(published || current.canPublish) && (
+        {renderReadState()}
+        <View style={[styles.content, blocked && styles.hidden]}>
+          {confirmed && (
+            <Text
+              accessibilityLiveRegion="polite"
+              style={[tokens.typography.strong, { color: colors.text }]}
+            >
+              Décision confirmée
+            </Text>
+          )}
+          {current && <ModerationMatchContext match={current.match} />}
+          {current && !published && (
+            <Text
+              style={[tokens.typography.body, { color: colors.secondaryText }]}
+            >
+              Aucun lien actif
+            </Text>
+          )}
           <ModerationPublicationForm
             ref={form}
             current={current}
             editing={editing}
             onWithdraw={() => {
-              if (published) {
+              if (published && current) {
                 onAction(published, "withdraw", current.revision);
               }
             }}
@@ -376,7 +335,7 @@ function ActiveScene({
               />
             )}
           </ModerationPublicationForm>
-        )}
+        </View>
       </View>
     </FormScrollView>
   );
@@ -424,13 +383,6 @@ function VersionScene({
     matchId,
     state,
   ]);
-  const currentScene = useRef<string | undefined>(undefined);
-  useLayoutEffect(() => {
-    currentScene.current = active && reading.allowed ? identity : undefined;
-    return () => {
-      currentScene.current = undefined;
-    };
-  }, [active, reading.allowed, identity]);
   const feedback = useActionFeedback();
   const { colors } = useTheme();
 
@@ -442,17 +394,7 @@ function VersionScene({
     feedback.clear();
     setRefreshing(true);
     try {
-      const results = await Promise.allSettled([
-        reading.refresh(),
-        refreshContext(),
-      ]);
-      if (
-        currentScene.current === identity &&
-        navigation.isFocused() &&
-        results.some((result) => result.status === "rejected")
-      ) {
-        feedback.error();
-      }
+      await Promise.allSettled([reading.refresh(), refreshContext()]);
     } finally {
       setRefreshing(false);
     }
@@ -477,8 +419,12 @@ function VersionScene({
     await query.fetchNextPage({ cancelRefetch: false });
   }
 
+  const failed =
+    hasReadError(reading.profile) ||
+    (hasReadError(query) && !query.isFetchNextPageError);
   if (
     !current &&
+    !failed &&
     (reading.session.status === "restoring" ||
       !!reading.session.operation ||
       (reading.session.status === "authenticated" &&
@@ -495,8 +441,8 @@ function VersionScene({
       </PageScrollView>
     );
   }
-  if (!current) {
-    /** Renders exact-tab admission and read feedback without replacing retained versions. */
+  if (!current || failed) {
+    /** Renders exact-tab admission and read feedback while Query retains authorized versions. */
     function renderVersionsState() {
       if (reading.session.status !== "authenticated") {
         return (
@@ -574,13 +520,6 @@ function VersionScene({
               Décision confirmée
             </Text>
           )}
-          {reading.profile.isError && (
-            <Button
-              label="Réessayer le profil"
-              loading={reading.profile.isFetching}
-              onPress={() => void reading.profile.refetch()}
-            />
-          )}
           <ModerationMatchContext match={current.match} />
         </View>
       }
@@ -626,6 +565,8 @@ function VersionScene({
 }
 
 const styles = StyleSheet.create({
+  hidden: { display: "none" },
+  content: { gap: tokens.layout.list.gap },
   empty: { alignItems: "center" },
   centered: { justifyContent: "center" },
   header: {

@@ -10,7 +10,10 @@ import {
 } from "@testing-library/react-native";
 import { Pressable, Text } from "react-native";
 import { createQueryClient } from "@/shared/query/query-client";
-import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
+import {
+  getGetMyAccountQueryKey,
+  getGetOwnStreamReportQueryKey,
+} from "../../../../.generated/mobile";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
 import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
@@ -75,6 +78,7 @@ publicClient.setQueryDefaults([], { retry: false });
 let posts: { url: string; body: unknown }[] = [];
 let ownState = false;
 let responseStatus = 201;
+let reportReadStatus = 200;
 
 beforeEach(() => {
   publicClient = createQueryClient();
@@ -85,6 +89,7 @@ beforeEach(() => {
   posts = [];
   ownState = false;
   responseStatus = 201;
+  reportReadStatus = 200;
   mockPush.mockReset();
   mockBack.mockReset();
   mockDismissTo.mockReset();
@@ -108,6 +113,12 @@ beforeEach(() => {
       return Response.json(accountResponse());
     }
     if (path.endsWith("/report")) {
+      if (init?.method === "GET" && reportReadStatus >= 400) {
+        return Response.json(
+          { status: reportReadStatus, title: "Unavailable" },
+          { status: reportReadStatus },
+        );
+      }
       if (init?.method === "POST") {
         posts.push({ url: String(url), body: JSON.parse(String(init.body)) });
         if (responseStatus >= 400) {
@@ -198,7 +209,7 @@ it("validates a nonempty reason before any report", async () => {
   expect(posts).toHaveLength(0);
 });
 
-it("sends only a trimmed reason to the exact version and acknowledges independently of refresh failure", async () => {
+it("retains the exact-version acknowledgement behind a failed read until safe Retry recovers", async () => {
   // Given
   const user = userEvent.setup();
   await mount();
@@ -207,12 +218,12 @@ it("sends only a trimmed reason to the exact version and acknowledges independen
     "  Motif privé  ",
   );
   const peer = mockFetch.getMockImplementation();
+  if (!peer) {
+    throw new Error("Missing HTTP boundary");
+  }
   mockFetch.mockImplementation(async (url, init) => {
     if (String(url).includes("/matches/")) {
       throw new TypeError("Controlled read failure");
-    }
-    if (!peer) {
-      throw new Error("Missing HTTP boundary");
     }
     return peer(url, init);
   });
@@ -224,8 +235,11 @@ it("sends only a trimmed reason to the exact version and acknowledges independen
 
   // Then
   expect(
-    await screen.findByText("Votre signalement a été envoyé."),
+    await screen.findByRole("button", { name: "Réessayer" }),
   ).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Votre signalement a été envoyé."),
+  ).not.toBeOnTheScreen();
   expect(posts).toEqual([
     {
       url: expect.stringContaining(`/stream-contributions/${versionId}/report`),
@@ -233,6 +247,26 @@ it("sends only a trimmed reason to the exact version and acknowledges independen
     },
   ]);
   expect(screen.queryByLabelText("Motif du signalement")).not.toBeOnTheScreen();
+
+  // When: recovering the required read never sends the accepted report again.
+  const beforeRetry = mockFetch.mock.calls.length;
+  mockFetch.mockImplementation(peer);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByText("Votre signalement a été envoyé."),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Vous avez déjà signalé ce lien."),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByLabelText("Motif du signalement")).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls
+      .slice(beforeRetry)
+      .every(([, init]) => init?.method === "GET"),
+  ).toBe(true);
+  expect(posts).toHaveLength(1);
 });
 
 it("retains the reason after a confirmed refusal", async () => {
@@ -425,10 +459,11 @@ it.each(["initialization", "restoration"] as const)(
   },
 );
 
-it("keeps the initial report read pending after a technical failure of the retained account", async () => {
+it("presents the current account read failure while the first report read is still pending", async () => {
   // Given
   const reportRead = Promise.withResolvers<Response>();
   const peer = mockFetch.getMockImplementation();
+  const user = userEvent.setup();
   let profileUnavailable = false;
   mockFetch.mockImplementation(async (url, init) => {
     if (String(url).endsWith("/report")) {
@@ -461,23 +496,27 @@ it("keeps the initial report read pending after a technical failure of the retai
 
     // Then
     expect(
-      await screen.findByRole("progressbar", {
-        name: "Chargement du signalement",
-      }),
+      await screen.findByRole("button", { name: "Réessayer" }),
     ).toBeOnTheScreen();
-    expect(
-      screen.queryByRole("button", { name: "Réessayer" }),
-    ).not.toBeOnTheScreen();
     expect(
       screen.queryByLabelText("Motif du signalement"),
     ).not.toBeOnTheScreen();
     expect(posts).toHaveLength(0);
   } finally {
-    // When: only the original prerequisite read settles; no account reread is required.
+    // When: the report settles but the account prerequisite remains unavailable.
     await act(async () =>
       reportRead.resolve(Response.json({ reported: false })),
     );
   }
+
+  // Then
+  expect(screen.queryByLabelText("Motif du signalement")).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
+  expect(posts).toHaveLength(0);
+
+  // When
+  profileUnavailable = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
   expect(
@@ -487,6 +526,145 @@ it("keeps the initial report read pending after a technical failure of the retai
     screen.getByRole("button", { name: "Envoyer le signalement" }),
   ).toBeEnabled();
   expect(posts).toHaveLength(0);
+});
+
+it("keeps revoked report authority withdrawn through a technical retry and restores the same reason only on success", async () => {
+  // Given: real Query and RHF owners; the private report read alone is controlled.
+  const reportKey = [
+    ...getGetOwnStreamReportQueryKey(accountResponse().accountId, versionId),
+    "ordinary",
+  ];
+  const user = userEvent.setup();
+  await mount();
+  await user.type(
+    await screen.findByLabelText("Motif du signalement"),
+    "Retained private reason",
+  );
+  reportReadStatus = 403;
+
+  // When
+  await act(() => client.refetchQueries({ queryKey: reportKey, exact: true }));
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Envoyer le signalement" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByLabelText("Motif du signalement")).not.toBeOnTheScreen();
+  expect(client.getQueryData(reportKey)).toBeNull();
+
+  // When: the current failure changes without returning the refused private data.
+  reportReadStatus = 503;
+  const beforeRetry = mockFetch.mock.calls.length;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await waitFor(() =>
+    expect(client.getQueryState(reportKey)?.error).toMatchObject({
+      status: 503,
+    }),
+  );
+
+  // Then
+  expect(client.getQueryData(reportKey)).toBeNull();
+  expect(
+    screen.queryByRole("button", { name: "Envoyer le signalement" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByDisplayValue("Retained private reason"),
+  ).not.toBeOnTheScreen();
+  const retryRequests = mockFetch.mock.calls
+    .slice(beforeRetry)
+    .map(([url, init]) => ({ url: String(url), method: init?.method }));
+  expect(retryRequests.filter(({ url }) => url.endsWith("/report"))).toEqual([
+    {
+      url: expect.stringContaining(
+        `/accounts/${accountResponse().accountId}/stream-contributions/${versionId}/report`,
+      ),
+      method: "GET",
+    },
+  ]);
+  expect(retryRequests.every(({ method }) => method === "GET")).toBe(true);
+  expect(posts).toHaveLength(0);
+
+  // When
+  reportReadStatus = 200;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then: the mounted RHF owner still holds this account/version's exact draft.
+  expect(
+    await screen.findByDisplayValue("Retained private reason"),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Envoyer le signalement" }),
+  ).toBeEnabled();
+  expect(posts).toHaveLength(0);
+});
+
+it("keeps an acknowledged report accepted when a refused derivative read withdraws its cache", async () => {
+  // Given
+  const reportKey = [
+    ...getGetOwnStreamReportQueryKey(accountResponse().accountId, versionId),
+    "ordinary",
+  ];
+  const user = userEvent.setup();
+  await mount();
+  await user.type(
+    await screen.findByLabelText("Motif du signalement"),
+    "Accepted private reason",
+  );
+  reportReadStatus = 403;
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Envoyer le signalement" }),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Votre signalement a été envoyé."),
+  ).not.toBeOnTheScreen();
+  await waitFor(() => expect(client.getQueryData(reportKey)).toBeNull());
+  expect(
+    screen.queryByRole("button", { name: "Envoyer le signalement" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByLabelText("Motif du signalement")).not.toBeOnTheScreen();
+
+  // When
+  reportReadStatus = 503;
+  await user.press(await screen.findByRole("button", { name: "Réessayer" }));
+  await waitFor(() =>
+    expect(client.getQueryState(reportKey)?.error).toMatchObject({
+      status: 503,
+    }),
+  );
+
+  // Then
+  expect(
+    screen.queryByText("Votre signalement a été envoyé."),
+  ).not.toBeOnTheScreen();
+  expect(client.getQueryData(reportKey)).toBeNull();
+  expect(posts).toHaveLength(1);
+
+  // When: a successful authorized read restores the acknowledged terminal state.
+  reportReadStatus = 200;
+  const beforeRecovery = mockFetch.mock.calls.length;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByText("Votre signalement a été envoyé."),
+  ).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Motif du signalement")).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls
+      .slice(beforeRecovery)
+      .every(([, init]) => init?.method === "GET"),
+  ).toBe(true);
+  expect(posts).toHaveLength(1);
 });
 
 it("cancels without sending a report", async () => {

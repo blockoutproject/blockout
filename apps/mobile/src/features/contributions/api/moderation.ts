@@ -4,7 +4,6 @@ import {
   useMutation,
   useQueryClient,
   type QueryFunctionContext,
-  type InfiniteData,
 } from "@tanstack/react-query";
 import { useEffect } from "react";
 import {
@@ -100,34 +99,29 @@ function isModerationResource(key: unknown) {
   );
 }
 
-/** Withdraws permission-refused content and retains a known missing target through technical failures until a successful read. */
+/** Withdraws refused private data while the reader reports the current attempt's error. */
 async function refuse(
   error: unknown,
   context: QueryFunctionContext,
 ): Promise<never> {
-  const previousError = context.client.getQueryState(context.queryKey)?.error;
-  if (
-    !context.signal.aborted &&
-    !isAccessDenied(error) &&
-    previousError instanceof ApiError &&
-    previousError.status === 404
-  ) {
-    throw previousError;
-  }
   if (
     !context.signal.aborted &&
     error instanceof ApiError &&
-    isAccessDenied(error)
+    (isAccessDenied(error) || error.status === 404)
   ) {
     const refused = context.client
       .getQueryCache()
       .find({ queryKey: context.queryKey, exact: true });
     await context.client.cancelQueries({
       predicate: (query) =>
-        query !== refused && isModerationResource(query.queryKey[0]),
+        query !== refused &&
+        isAccessDenied(error) &&
+        isModerationResource(query.queryKey[0]),
     });
     for (const query of context.client.getQueryCache().findAll({
-      predicate: (query) => isModerationResource(query.queryKey[0]),
+      predicate: (query) =>
+        query === refused ||
+        (isAccessDenied(error) && isModerationResource(query.queryKey[0])),
     })) {
       query.setState({
         data: undefined,
@@ -232,36 +226,41 @@ export function useModerationMatch(
   const matchKey = useConsultationQueries().match(matchId).queryKey;
 
   /** Invalidates original private traversals and public F03 composition without rejecting an acknowledged mutation. */
-  function settled(data: unknown, error: unknown) {
+  function settled(_data: unknown, error: unknown) {
     if (isAccessDenied(error)) {
       client.removeQueries({
         predicate: (query) => isModerationResource(query.queryKey[0]),
       });
     }
+    const refetchType =
+      error &&
+      !(
+        error instanceof ApiError &&
+        error.kind === "http" &&
+        error.status !== 408 &&
+        error.status !== 429 &&
+        (error.status ?? 0) < 500
+      )
+        ? "none"
+        : "active";
     for (const queryKey of [
       getListStreamModerationQueryKey(),
       getListModeratedStreamContributionsQueryKey(matchId),
     ]) {
-      if (data !== undefined) {
-        client.setQueriesData<InfiniteData<unknown>>({ queryKey }, (current) =>
-          current
-            ? {
-                ...current,
-                pages: current.pages.slice(0, 1),
-                pageParams: current.pageParams.slice(0, 1),
-              }
-            : current,
-        );
-      }
-      void client.invalidateQueries({ queryKey });
+      void client.invalidateQueries({ queryKey, refetchType });
     }
     const resource = getListModeratedStreamContributionsQueryKey(matchId)[0];
     void client.invalidateQueries({
+      refetchType,
       predicate: (query) =>
         typeof query.queryKey[0] === "string" &&
         query.queryKey[0].startsWith(`${resource}/`),
     });
-    void client.invalidateQueries({ queryKey: matchKey, exact: true });
+    void client.invalidateQueries({
+      queryKey: matchKey,
+      exact: true,
+      refetchType,
+    });
   }
 
   const publish = useMutation({

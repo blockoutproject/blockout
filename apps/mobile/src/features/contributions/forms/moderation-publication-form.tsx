@@ -18,7 +18,6 @@ import { IconButton } from "@/shared/components/icon-button";
 import { useNativeHandoff } from "@/shared/native/use-native-handoff";
 import { Surface } from "@/shared/components/surface";
 import { useActionFeedback } from "@/shared/components/action-feedback";
-import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
 import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
@@ -36,7 +35,7 @@ import {
 
 /** The active pager scene retains one ordinary RHF address editor and its original dirty baseline. */
 export interface ModerationPublicationFormProps {
-  current: ModeratedStreamContributionsResponse;
+  current: ModeratedStreamContributionsResponse | undefined;
   editing: ReturnType<typeof useModerationMatch>;
   onWithdraw: () => void;
   onSuccess: () => void;
@@ -59,13 +58,9 @@ export function ModerationPublicationForm({
   ref,
 }: Readonly<ModerationPublicationFormProps>) {
   const { colors } = useTheme();
-  const active = current.activeContribution;
+  const active = current?.activeContribution;
   const handoff = useNativeHandoff(active?.url);
-  const baseline = useRef({
-    revision: current.revision,
-    activeUrl: active?.url,
-  });
-  const confirm = useActionConfirmation();
+  const revision = useRef(current?.revision);
   const feedback = useActionFeedback();
   const mounted = useRef(true);
   useEffect(() => {
@@ -74,7 +69,7 @@ export function ModerationPublicationForm({
       mounted.current = false;
     };
   }, []);
-  const { control, handleSubmit, reset, getFieldState } =
+  const { control, handleSubmit, reset, setError, getFieldState } =
     useForm<ContributionValues>({
       resolver: zodResolver(contributionSchema),
       defaultValues: contributionValues(active?.url),
@@ -82,11 +77,11 @@ export function ModerationPublicationForm({
   const { isDirty } = useFormState({ control });
   useEffect(() => {
     // As in the personal editor, accepted changes update only pristine fields; a dirty draft keeps its baseline.
-    if (!getFieldState("url").isDirty) {
-      baseline.current = { revision: current.revision, activeUrl: active?.url };
+    if (current && !getFieldState("url").isDirty) {
+      revision.current = current.revision;
       reset(contributionValues(active?.url));
     }
-  }, [current.revision, active?.url, getFieldState, reset]);
+  }, [current, active?.url, getFieldState, reset]);
   useDiscardChanges(isDirty, () => reset(contributionValues()));
   useImperativeHandle(ref, () => ({
     /** A successful user-requested read starts a new intentional revision; background reads keep the dirty baseline. */
@@ -94,10 +89,7 @@ export function ModerationPublicationForm({
       const [read] = await editing.refresh();
       if (mounted.current) {
         const latest = read.pages[0];
-        baseline.current = {
-          revision: latest.revision,
-          activeUrl: latest.activeContribution?.url,
-        };
+        revision.current = latest.revision;
       }
     },
   }));
@@ -109,45 +101,36 @@ export function ModerationPublicationForm({
     isAccessDenied(editing.query.error) ||
     (editing.query.error instanceof ApiError &&
       editing.query.error.status === 404);
-  const disabled = !editing.allowed || !current.canPublish || refused;
+  const disabled = !editing.allowed || !current?.canPublish || refused;
 
-  /** Captures the coherent draft baseline and original actor before one native confirmation, without retrying writes. */
+  /** Sends the ordinary publication directly with its original actor and dirty draft's viewed revision. */
   async function send(values: ContributionValues) {
     const actorAccountId = editing.session.accountId;
-    if (!actorAccountId || busy || disabled) {
+    if (!actorAccountId || !revision.current || busy || disabled) {
       return;
     }
     const body = {
       actorAccountId,
-      revision: baseline.current.revision,
+      revision: revision.current,
       url: values.url,
     };
-    const label = active ? "Remplacer le lien" : "Publier le lien";
-    const accepted = await confirm({
-      title: active ? "Remplacer ce lien ?" : "Publier ce lien ?",
-      message: baseline.current.activeUrl
-        ? `${baseline.current.activeUrl}\n\nNouveau lien : ${values.url}`
-        : values.url,
-      confirmLabel: label,
-      cancelLabel: "Continuer la saisie",
-    });
-    if (!accepted || !mounted.current) {
-      return;
-    }
     feedback.clear();
     try {
       const result = await editing.publish.mutateAsync(body);
       if (mounted.current) {
-        baseline.current = {
-          revision: result.revision,
-          activeUrl: result.contribution.url,
-        };
+        revision.current = result.revision;
         reset(contributionValues(result.contribution.url));
         onSuccess();
       }
-    } catch {
+    } catch (error) {
       if (mounted.current) {
-        feedback.error();
+        if (error instanceof ApiError && error.status === 422) {
+          setError("url", {
+            message: "Le lien a été refusé. Votre saisie est conservée.",
+          });
+        } else {
+          feedback.error();
+        }
       }
     }
   }
@@ -213,12 +196,12 @@ export function ModerationPublicationForm({
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="url"
-              editable={!busy && current.canPublish}
+              editable={!busy && !!current?.canPublish}
               helper="YouTube, Twitch ou Facebook"
             />
           )}
         />
-        {!current.canPublish && (
+        {current && !current.canPublish && (
           <Text
             style={[tokens.typography.body, { color: colors.secondaryText }]}
           >

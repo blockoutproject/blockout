@@ -1,21 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { StyleSheet } from "react-native";
-import { useActionFeedback } from "@/shared/components/action-feedback";
 import { Button } from "@/shared/components/button";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { FormScrollView } from "@/shared/components/form-scroll-view";
 import { Page, PageContent } from "@/shared/components/page";
 import { PageHeader } from "@/shared/components/page-header";
-import { ReadFeedback } from "@/shared/components/read-feedback";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ContributionFormLoading } from "../components/contribution-loading";
 import { ScreenState } from "@/shared/components/screen-state";
 
-import { ErrorState } from "@/shared/components/state-card";
 import {
   MatchSummary,
   useConsultationQueries,
 } from "@/features/sporting/match-consultation";
+import { AccountSessionFeedback } from "@/features/accounts/current-account";
 import { useOwnContributions } from "../api/own-contributions";
 import { ContributionForm } from "../forms/contribution-form";
 
@@ -24,149 +23,92 @@ export interface ContributionScreenProps {
   matchId: string;
 }
 
-/** Composes native scrolling and retained RHF content without a second session, cache or form shell. */
+/** Keeps native refresh ancestry and the original RHF owner stable while required reads recover. */
 export function ContributionScreen({
   matchId,
 }: Readonly<ContributionScreenProps>) {
   const editing = useOwnContributions(matchId);
   const match = useQuery(useConsultationQueries().match(matchId));
   const router = useRouter();
-  const feedback = useActionFeedback();
   const current = editing.query.data?.pages[0];
   const guest = editing.session.status === "guest";
   const authenticated = editing.session.status === "authenticated";
 
-  /** Rereads displayed context and proposals while a pending submission disables the gesture. */
-  async function refresh() {
-    if (editing.submit.isPending) {
-      return;
-    }
-    feedback.clear();
-    const results = await Promise.allSettled([
-      editing.refresh(),
-      match.refetch({ throwOnError: true }),
-    ]);
-    if (results.some((result) => result.status === "rejected")) {
-      feedback.error();
-    }
-  }
-
-  /** Distinguishes session recovery, profile loading and the first admitted contribution read. */
-  function isInitialReadPending() {
-    if (!authenticated) {
-      return (
-        editing.session.status === "restoring" || !!editing.session.operation
-      );
-    }
-    if (!editing.profile.data) {
-      return editing.profile.isLoading;
-    }
-    return editing.usable && !current && editing.query.isLoading;
-  }
-
-  const pending = !guest && isInitialReadPending();
+  const requiredRead = !editing.usable
+    ? editing.profile
+    : ([editing.profile, match, editing.query].find(hasReadError) ??
+      (!match.data ? match : editing.query));
+  const readFailed = hasReadError(requiredRead);
+  const blocked =
+    !authenticated || !editing.usable || !current || !match.data || readFailed;
+  const pending = !authenticated
+    ? editing.session.status === "restoring" || !!editing.session.operation
+    : !hasReadError(requiredRead) && requiredRead.isLoading;
   const FeedbackLayout = pending ? PageContent : ScreenState;
 
-  /** Prioritizes session and read recovery while preserving the admitted form. */
-  function renderContributionContent() {
-    if (guest) {
-      return (
-        <FeedbackLayout style={styles.centered}>
-          <Button
-            label="Se connecter"
-            onPress={() =>
-              router.push({
-                pathname: "/sign-in-invitation",
-                params: { reason: "contribution" },
-              })
-            }
-          />
-        </FeedbackLayout>
-      );
-    }
-    if (!authenticated) {
-      return (
-        <FeedbackLayout style={pending ? undefined : styles.centered}>
-          {editing.session.status === "restoring" ||
-          editing.session.operation ? (
-            <ContributionFormLoading />
-          ) : (
-            <Button
-              label="Se connecter"
-              onPress={() => router.push("/sign-in")}
-            />
-          )}
-        </FeedbackLayout>
-      );
-    }
-    if (!editing.profile.data) {
-      return (
-        <FeedbackLayout>
-          <ReadFeedback
-            query={editing.profile}
-            loadingContent={<ContributionFormLoading />}
-          />
-        </FeedbackLayout>
-      );
-    }
-    if (!editing.usable && !current) {
-      return (
-        <FeedbackLayout>
-          <ErrorState
-            onRetry={() => void editing.profile.refetch()}
-            retrying={editing.profile.isFetching}
-          />
-        </FeedbackLayout>
-      );
-    }
-    if (!current) {
-      return (
-        <FeedbackLayout>
-          <ReadFeedback
-            query={editing.query}
-            loadingContent={<ContributionFormLoading />}
-          />
-        </FeedbackLayout>
-      );
-    }
-    return (
-      <PageContent>
-        {match.data && (
-          <MatchSummary match={match.data.match} presentation="context" />
-        )}
-        {editing.profile.isError && (
-          <Button
-            label="Réessayer le profil"
-            loading={editing.profile.isFetching}
-            onPress={() => void editing.profile.refetch()}
-          />
-        )}
-        <ContributionForm
-          key={`${editing.session.subject}:${editing.session.accountId}:${matchId}`}
-          matchId={matchId}
-          current={current}
-          editing={editing}
-        />
-      </PageContent>
-    );
+  function refresh() {
+    return Promise.allSettled([
+      editing.refresh(),
+      match.refetch({ cancelRefetch: false }),
+    ]);
   }
 
   return (
     <Page header={<PageHeader title="Lien de diffusion" />}>
       <FormScrollView
         refreshControl={
-          authenticated && editing.usable && current ? (
-            <DataRefreshControl
-              enabled={!editing.submit.isPending}
-              onRefresh={refresh}
-            />
-          ) : undefined
+          <DataRefreshControl
+            fetching={editing.query.isFetching || match.isFetching}
+            enabled={!blocked && !editing.submit.isPending}
+            onRefresh={refresh}
+          />
         }
       >
-        {renderContributionContent()}
+        {blocked && (
+          <FeedbackLayout style={guest ? styles.centered : undefined}>
+            {guest ? (
+              <Button
+                label="Se connecter"
+                onPress={() =>
+                  router.push({
+                    pathname: "/sign-in-invitation",
+                    params: { reason: "contribution" },
+                  })
+                }
+              />
+            ) : !authenticated ? (
+              <AccountSessionFeedback
+                loadingContent={<ContributionFormLoading />}
+              />
+            ) : (
+              <ReadFeedback
+                failed={!editing.usable && !editing.profile.isPending}
+                query={requiredRead}
+                loadingContent={<ContributionFormLoading />}
+                onRetry={requiredRead === editing.profile ? undefined : refresh}
+              />
+            )}
+          </FeedbackLayout>
+        )}
+        <PageContent style={blocked ? styles.hidden : undefined}>
+          {match.data && !hasReadError(match) && (
+            <MatchSummary match={match.data.match} presentation="context" />
+          )}
+          {current && (
+            <ContributionForm
+              key={`${editing.session.subject}:${editing.session.accountId}:${matchId}`}
+              matchId={matchId}
+              current={current}
+              editing={editing}
+            />
+          )}
+        </PageContent>
       </FormScrollView>
     </Page>
   );
 }
 
-const styles = StyleSheet.create({ centered: { justifyContent: "center" } });
+const styles = StyleSheet.create({
+  centered: { justifyContent: "center" },
+  hidden: { display: "none" },
+});

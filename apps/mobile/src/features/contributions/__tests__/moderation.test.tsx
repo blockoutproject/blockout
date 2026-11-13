@@ -564,16 +564,75 @@ it("keeps an unsuccessful queue read distinct from an empty successful selection
   expect(screen.queryByText("Aucun lien à traiter")).toBeNull();
 });
 
-it("reads reports from retained moderator authority after a technical account failure", async () => {
+it.each(["queue", "pending"] as const)(
+  "replaces loaded %s content when its required account read fails",
+  async (surface) => {
+    // Given
+    const user = userEvent.setup();
+    await mount(
+      surface === "queue" ? (
+        <ModerationScreen filters={{}} />
+      ) : (
+        <ModerationMatchScreen matchId={sporting.id} />
+      ),
+    );
+    if (surface === "pending") {
+      await user.press(
+        await screen.findByRole("tab", { name: "Propositions (1)" }),
+      );
+    }
+    await screen.findByText(detail.match.home.name);
+
+    // When
+    profileFails = true;
+    await act(() =>
+      client.refetchQueries({
+        queryKey: getGetMyAccountQueryKey(),
+        exact: true,
+      }),
+    );
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: "Réessayer" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText(detail.match.home.name)).not.toBeOnTheScreen();
+    expect(writes).toHaveLength(0);
+
+    // When
+    profileFails = false;
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(await screen.findByText(detail.match.home.name)).toBeOnTheScreen();
+    expect(writes).toHaveLength(0);
+  },
+);
+
+it("recovers the required account before presenting privately retained reports", async () => {
   // Given: the original account is established before its current profile reread fails.
   reportReason = "Controlled report reason";
+  const user = userEvent.setup();
   const view = await mount(<ModerationMatchScreen matchId={sporting.id} />);
   await screen.findByDisplayValue("https://youtu.be/retained");
   profileFails = true;
   await act(() =>
     client.refetchQueries({ queryKey: getGetMyAccountQueryKey(), exact: true }),
   );
-  await screen.findByRole("button", { name: "Réessayer le profil" });
+  await screen.findByRole("button", { name: "Réessayer" });
+
+  const boundary = mockFetch.getMockImplementation();
+  if (!boundary) {
+    throw new Error("Missing controlled HTTP boundary");
+  }
+  const reportRead = Promise.withResolvers<void>();
+  mockFetch.mockImplementation(async (url, init) => {
+    const response = await boundary(url, init);
+    if (String(url).includes("/reports?")) {
+      await reportRead.promise;
+    }
+    return response;
+  });
 
   // When
   await view.rerender(
@@ -581,14 +640,150 @@ it("reads reports from retained moderator authority after a technical account fa
   );
 
   // Then
-  expect(await screen.findByText("Controlled report reason")).toBeOnTheScreen();
+  const retry = await screen.findByRole("button", { name: "Réessayer" });
+  expect(retry).toBeOnTheScreen();
+  expect(screen.queryByText("Controlled report reason")).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("progressbar", { name: "Chargement des signalements" }),
   ).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("/reports?")),
   ).toHaveLength(1);
+
+  // When: the independently admitted report read completes behind the account error.
+  await act(async () => reportRead.resolve());
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+
+  // Then: the existing error action remains mounted and private rows stay hidden.
+  expect(retry).toBeOnTheScreen();
+  expect(screen.queryByText("Controlled report reason")).not.toBeOnTheScreen();
+
+  // When
+  profileFails = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByText("Controlled report reason")).toBeOnTheScreen();
 });
+
+it.each(["pending", "filters"] as const)(
+  "keeps account recovery visible while the first %s read completes",
+  async (surface) => {
+    // Given: the account is known, then fails before this private destination's first read.
+    const user = userEvent.setup();
+    const view = await mount(<ModerationMatchScreen matchId={sporting.id} />);
+    await screen.findByDisplayValue("https://youtu.be/retained");
+    profileFails = true;
+    await act(() =>
+      client.refetchQueries({
+        queryKey: getGetMyAccountQueryKey(),
+        exact: true,
+      }),
+    );
+    await screen.findByRole("button", { name: "Réessayer" });
+    const boundary = mockFetch.getMockImplementation();
+    if (!boundary) {
+      throw new Error("Missing controlled HTTP boundary");
+    }
+    const secondaryRead = Promise.withResolvers<void>();
+    const secondaryPath =
+      surface === "pending"
+        ? getListModeratedStreamContributionsQueryKey(sporting.id)[0]
+        : getListStreamModerationQueryKey()[0];
+    const secondaryState = surface === "pending" ? "pending" : "all";
+    mockFetch.mockImplementation(async (url, init) => {
+      const response = await boundary(url, init);
+      const address = new URL(String(url));
+      if (
+        address.pathname === secondaryPath &&
+        address.searchParams.get("state") === secondaryState
+      ) {
+        await secondaryRead.promise;
+      }
+      return response;
+    });
+
+    try {
+      // When
+      if (surface === "pending") {
+        await user.press(screen.getByRole("tab", { name: /^Propositions/ }));
+      } else {
+        await view.rerender(
+          <ModerationFilters
+            initial={{
+              query: "Club %_",
+              seasonId: sporting.pool.season.id,
+              platform: "twitch",
+              state: "all",
+            }}
+          />,
+        );
+      }
+
+      // Then
+      await waitFor(() =>
+        expect(
+          mockFetch.mock.calls.filter(([url]) => {
+            const address = new URL(String(url));
+            return (
+              address.pathname === secondaryPath &&
+              address.searchParams.get("state") === secondaryState
+            );
+          }),
+        ).toHaveLength(1),
+      );
+      const retry = await screen.findByRole("button", { name: "Réessayer" });
+      expect(retry).toBeOnTheScreen();
+      expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+      expect(screen.queryByText(detail.match.home.name)).not.toBeOnTheScreen();
+      expect(
+        screen.queryByRole("button", { name: "Appliquer les filtres" }),
+      ).not.toBeOnTheScreen();
+
+      // When: the secondary GET cannot replace the existing account error action.
+      await act(async () => secondaryRead.resolve());
+      await waitFor(() => expect(client.isFetching()).toBe(0));
+
+      // Then
+      expect(retry).toBeOnTheScreen();
+      expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+
+      // When
+      profileFails = false;
+      const beforeRetry = mockFetch.mock.calls.length;
+      await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+      // Then
+      if (surface === "pending") {
+        expect(
+          await screen.findByText(detail.match.home.name),
+        ).toBeOnTheScreen();
+      } else {
+        await user.press(
+          await screen.findByRole("button", { name: "Appliquer les filtres" }),
+        );
+        expect(mockDismissTo).toHaveBeenCalledWith({
+          pathname: "/administration/stream-links",
+          params: {
+            query: "Club %_",
+            seasonId: sporting.pool.season.id,
+            platform: "twitch",
+            state: "all",
+          },
+        });
+      }
+      expect(
+        mockFetch.mock.calls.slice(beforeRetry).map(([url, init]) => ({
+          target: new URL(String(url)).pathname,
+          method: init?.method,
+        })),
+      ).toEqual([{ target: "/accounts/me", method: "GET" }]);
+      expect(writes).toHaveLength(0);
+    } finally {
+      await act(async () => secondaryRead.resolve());
+    }
+  },
+);
 
 it("shows a read error instead of a stale empty queue after a failed explicit refresh", async () => {
   // Given
@@ -615,10 +810,11 @@ it("shows a read error instead of a stale empty queue after a failed explicit re
   ).not.toBeOnTheScreen();
 });
 
-it("continues authorized report paging after a technical account failure", async () => {
+it("restores retained report paging after account recovery", async () => {
   // Given
   reportsPaged = true;
   reportReason = "First authorized page";
+  const user = userEvent.setup();
   await mount(
     <ModerationReportsScreen matchId={sporting.id} versionId={versionId} />,
   );
@@ -630,9 +826,17 @@ it("continues authorized report paging after a technical account failure", async
   await act(() =>
     client.refetchQueries({ queryKey: getGetMyAccountQueryKey(), exact: true }),
   );
-  await screen.findByRole("button", { name: "Réessayer le profil" });
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(screen.queryByText("First authorized page")).not.toBeOnTheScreen();
+  expect(screen.queryByTestId("moderation-reports-list")).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([url]) => String(url).includes("/reports?")),
+  ).toHaveLength(requests);
 
   // When
+  profileFails = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await screen.findByText("First authorized page");
   await fireEvent(screen.getByTestId("moderation-reports-list"), "endReached");
 
   // Then
@@ -716,57 +920,60 @@ it("retains literal filters on continuation and restarts native refresh at page 
   }
 });
 
-it("preserves a dirty moderator draft and its original revision across refetch and refused publication", async () => {
-  // Given
-  detail = {
-    ...detail,
-    canPublish: true,
-    match: { ...detail.match, publiclyViewable: true },
-  };
-  const alert = jest.spyOn(Alert, "alert");
-  await mount(<ModerationMatchScreen matchId={sporting.id} />);
-  const user = userEvent.setup();
-  await screen.findByLabelText("Adresse du lien");
-  await user.clear(screen.getByLabelText("Adresse du lien"));
-  await user.type(
-    screen.getByLabelText("Adresse du lien"),
-    "https://youtu.be/dirty",
-  );
-  detail = { ...detail, revision: "newer:2" };
-  await act(async () => {
-    await client.invalidateQueries({
-      queryKey: getListModeratedStreamContributionsQueryKey(sporting.id, {
-        state: "active",
-      }),
-      exact: true,
+it.each([409, 422])(
+  "preserves a dirty moderator draft and its original revision after a %s publication refusal",
+  async (status) => {
+    // Given
+    detail = {
+      ...detail,
+      canPublish: true,
+      match: { ...detail.match, publiclyViewable: true },
+    };
+    await mount(<ModerationMatchScreen matchId={sporting.id} />);
+    const user = userEvent.setup();
+    await screen.findByLabelText("Adresse du lien");
+    await user.clear(screen.getByLabelText("Adresse du lien"));
+    await user.type(
+      screen.getByLabelText("Adresse du lien"),
+      "https://youtu.be/dirty",
+    );
+    detail = { ...detail, revision: "newer:2" };
+    await act(async () => {
+      await client.invalidateQueries({
+        queryKey: getListModeratedStreamContributionsQueryKey(sporting.id, {
+          state: "active",
+        }),
+        exact: true,
+      });
     });
-  });
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  writeStatus = 409;
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+    writeStatus = status;
 
-  // When
-  await user.press(screen.getByRole("button", { name: "Remplacer le lien" }));
-  await act(async () => {
-    alert.mock.calls
-      .at(-1)?.[2]
-      ?.find((button) => button.text === "Remplacer le lien")
-      ?.onPress?.();
-  });
+    // When
+    await user.press(screen.getByRole("button", { name: "Remplacer le lien" }));
 
-  // Then
-  await waitFor(() =>
-    expect(writes).toEqual([
-      {
-        actorAccountId: accountResponse().accountId,
-        revision: "viewed:1",
-        url: "https://youtu.be/dirty",
-      },
-    ]),
-  );
-  expect(screen.getByDisplayValue("https://youtu.be/dirty")).toBeOnTheScreen();
-  await waitFor(() => expect(client.isMutating()).toBe(0));
-  expect(writes).toHaveLength(1);
-});
+    // Then
+    await waitFor(() =>
+      expect(writes).toEqual([
+        {
+          actorAccountId: accountResponse().accountId,
+          revision: "viewed:1",
+          url: "https://youtu.be/dirty",
+        },
+      ]),
+    );
+    expect(
+      screen.getByDisplayValue("https://youtu.be/dirty"),
+    ).toBeOnTheScreen();
+    await waitFor(() => expect(client.isMutating()).toBe(0));
+    expect(writes).toHaveLength(1);
+    if (status === 422) {
+      expect(
+        screen.getByText("Le lien a été refusé. Votre saisie est conservée."),
+      ).toBeOnTheScreen();
+    }
+  },
+);
 
 it("keeps acknowledged success when the dependent history read fails", async () => {
   // Given
@@ -786,9 +993,20 @@ it("keeps acknowledged success when the dependent history read fails", async () 
   });
 
   // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByText("Décision confirmée", { includeHiddenElements: true }),
+  ).not.toBeVisible();
+  expect(writes).toHaveLength(1);
+
+  // When: safe read recovery reveals the still-acknowledged decision.
+  failRead = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
   expect(await screen.findByText("Décision confirmée")).toBeOnTheScreen();
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  expect(screen.getByText("Décision confirmée")).toBeOnTheScreen();
   expect(writes).toHaveLength(1);
 });
 
@@ -817,7 +1035,10 @@ it("does not dispatch a cancelled exact-version confirmation", async () => {
 
 it("does not restore private content from a late concurrent response after refusal", async () => {
   // Given: two real moderation observers have independent in-flight HTTP reads.
-  const ordinary = mockFetch.getMockImplementation()!;
+  const ordinary = mockFetch.getMockImplementation();
+  if (!ordinary) {
+    throw new Error("Missing controlled HTTP boundary");
+  }
   let finishQueue!: (response: Response) => void;
   let finishDetail!: (response: Response) => void;
   const queue = new Promise<Response>((resolve) => {
@@ -1064,7 +1285,10 @@ it("does not announce a failed continuation after leaving its retained scene", a
   const user = userEvent.setup();
   await user.press(await screen.findByRole("tab", { name: "Historique" }));
   await screen.findByRole("button", { name: /Twitch, Masqué/ });
-  const ordinary = mockFetch.getMockImplementation()!;
+  const ordinary = mockFetch.getMockImplementation();
+  if (!ordinary) {
+    throw new Error("Missing controlled HTTP boundary");
+  }
   let finish!: (response: Response) => void;
   const held = new Promise<Response>((resolve) => {
     finish = resolve;
@@ -1134,6 +1358,52 @@ it("applies the native filter draft only explicitly and retains literal search",
       state: "all",
     },
   });
+});
+
+it("recovers required filter metadata and retains the chosen criteria through a later failed read", async () => {
+  // Given: the real RHF draft outlives both initial and retained Query failures.
+  failRead = true;
+  const user = userEvent.setup();
+  await mount(
+    <ModerationFilters initial={{ query: "Club %_", state: "all" }} />,
+  );
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(
+    screen.queryByRole("button", { name: "Appliquer les filtres" }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  failRead = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(await screen.findByRole("button", { name: "Saison" }));
+  await user.press(
+    await screen.findByRole("radio", { name: sporting.pool.season.label }),
+  );
+  failRead = true;
+  await act(() =>
+    client.refetchQueries({
+      queryKey: getListStreamModerationQueryKey({ state: "all" }),
+      exact: true,
+    }),
+  );
+  await screen.findByRole("button", { name: "Réessayer" });
+  failRead = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(
+    await screen.findByRole("button", { name: "Appliquer les filtres" }),
+  );
+
+  // Then
+  expect(mockDismissTo).toHaveBeenCalledWith({
+    pathname: "/administration/stream-links",
+    params: {
+      query: "Club %_",
+      seasonId: sporting.pool.season.id,
+      platform: "",
+      state: "all",
+    },
+  });
+  expect(writes).toHaveLength(0);
 });
 
 it.each([
@@ -1280,7 +1550,10 @@ it("retains reports through failed continuation and retries only the exact next 
   reportsPaged = true;
   reportReason = "First retained reason";
   const user = userEvent.setup();
-  const ordinary = mockFetch.getMockImplementation()!;
+  const ordinary = mockFetch.getMockImplementation();
+  if (!ordinary) {
+    throw new Error("Missing controlled HTTP boundary");
+  }
   const append = Promise.withResolvers<Response>();
   let appendAvailable = false;
   const reportPath = `/administration/matches/${sporting.id}/stream-contributions/${versionId}/reports`;
@@ -1389,7 +1662,10 @@ it("retries a failed retained report refresh from page zero without appending th
   reportsPaged = true;
   reportReason = "Retained reason before refresh";
   const user = userEvent.setup();
-  const ordinary = mockFetch.getMockImplementation()!;
+  const ordinary = mockFetch.getMockImplementation();
+  if (!ordinary) {
+    throw new Error("Missing controlled HTTP boundary");
+  }
   const reportPath = `/administration/matches/${sporting.id}/stream-contributions/${versionId}/reports`;
   let refreshFails = false;
   mockFetch.mockImplementation((url, init) => {
@@ -1411,10 +1687,17 @@ it("retries a failed retained report refresh from page zero without appending th
   refreshFails = true;
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await screen.findByRole("button", { name: "Réessayer" });
-  await fireEvent(screen.getByTestId("moderation-reports-list"), "endReached");
 
-  // Then
-  expect(screen.getByText("Retained reason before refresh")).toBeOnTheScreen();
+  // Then: a complete read uses the F13 card, independently of continuation.
+  expect(screen.queryByTestId("moderation-reports-list")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByText("Retained reason before refresh"),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).not.toBeOnTheScreen();
   expect(
     mockFetch.mock.calls
       .filter(([url]) => new URL(String(url)).pathname === reportPath)
@@ -1445,7 +1728,10 @@ it("keeps a new exact-version report context separate from a late older continua
   reportsPaged = true;
   reportReason = "Old exact-version reason";
   const replacementId = "00000000-0000-4000-8000-000000000602";
-  const ordinary = mockFetch.getMockImplementation()!;
+  const ordinary = mockFetch.getMockImplementation();
+  if (!ordinary) {
+    throw new Error("Missing controlled HTTP boundary");
+  }
   const append = Promise.withResolvers<Response>();
   let appendSignal: AbortSignal | undefined;
   mockFetch.mockImplementation((url, init) => {
@@ -1535,7 +1821,10 @@ it("withdraws retained report reasons when the current continuation is forbidden
   // Given
   reportsPaged = true;
   reportReason = "Private retained reason";
-  const ordinary = mockFetch.getMockImplementation()!;
+  const ordinary = mockFetch.getMockImplementation();
+  if (!ordinary) {
+    throw new Error("Missing controlled HTTP boundary");
+  }
   mockFetch.mockImplementation((url, init) => {
     const address = new URL(String(url));
     return address.pathname.endsWith(`${versionId}/reports`) &&
@@ -1557,9 +1846,7 @@ it("withdraws retained report reasons when the current continuation is forbidden
   expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
   expect(screen.queryByText("Private retained reason")).not.toBeOnTheScreen();
   expect(screen.queryByText("Aucun signalement")).not.toBeOnTheScreen();
-  expect(
-    screen.queryByRole("button", { name: "Réessayer" }),
-  ).not.toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
   expect(
     screen.queryByRole("alert", {
       name: "Une erreur est survenue. Veuillez réessayer plus tard.",
@@ -1571,7 +1858,10 @@ it("refreshes empty reports only from their card and restores Empty after a fail
   // Given
   const user = userEvent.setup();
   let unavailable = false;
-  const ordinary = mockFetch.getMockImplementation()!;
+  const ordinary = mockFetch.getMockImplementation();
+  if (!ordinary) {
+    throw new Error("Missing controlled HTTP boundary");
+  }
   mockFetch.mockImplementation((url, init) => {
     if (new URL(String(url)).pathname.endsWith(`${versionId}/reports`)) {
       return Promise.resolve(
@@ -1622,7 +1912,10 @@ it("refreshes empty reports only from their card and restores Empty after a fail
 it("prioritizes profile recovery over a retained empty report collection", async () => {
   // Given
   const user = userEvent.setup();
-  const ordinary = mockFetch.getMockImplementation()!;
+  const ordinary = mockFetch.getMockImplementation();
+  if (!ordinary) {
+    throw new Error("Missing controlled HTTP boundary");
+  }
   mockFetch.mockImplementation((url, init) =>
     new URL(String(url)).pathname.endsWith(`${versionId}/reports`)
       ? Promise.resolve(Response.json({ count: 0, items: [] }))
@@ -1698,10 +1991,9 @@ it("does not poll the mounted private queue", async () => {
   }
 });
 
-it("allows an explicit replacement from the retained draft after a technical account read failure", async () => {
+it("hides the mounted moderator draft until its required account recovers", async () => {
   // Given: the actual account, Query, form and mutation owners retain an authorized moderator.
   detail = { ...detail, canPublish: true };
-  const alert = jest.spyOn(Alert, "alert");
   await mount(<ModerationMatchScreen matchId={sporting.id} />);
   const user = userEvent.setup();
   await user.clear(await screen.findByLabelText("Adresse du lien"));
@@ -1715,25 +2007,29 @@ it("allows an explicit replacement from the retained draft after a technical acc
   await act(async () => {
     await client.invalidateQueries({ queryKey: getGetMyAccountQueryKey() });
   });
-  await screen.findByRole("button", { name: "Réessayer le profil" });
+  await screen.findByRole("button", { name: "Réessayer" });
 
   // Then
   expect(
-    screen.getByDisplayValue("https://youtu.be/profile-outage"),
-  ).toBeOnTheScreen();
+    screen.queryByDisplayValue("https://youtu.be/profile-outage"),
+  ).not.toBeOnTheScreen();
   expect(
-    screen.getByRole("button", { name: "Remplacer le lien" }),
-  ).toBeEnabled();
+    screen.queryByRole("button", { name: "Remplacer le lien" }),
+  ).not.toBeOnTheScreen();
   expect(writes).toHaveLength(0);
 
-  // When: only a new explicit confirmation sends the retained address and viewed revision.
+  // When: account Retry restores the original draft without publishing it.
+  profileFails = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByDisplayValue("https://youtu.be/profile-outage"),
+  ).toBeOnTheScreen();
+  expect(writes).toHaveLength(0);
+
+  // When
   await user.press(screen.getByRole("button", { name: "Remplacer le lien" }));
-  await act(async () => {
-    alert.mock.calls
-      .at(-1)?.[2]
-      ?.find((button) => button.text === "Remplacer le lien")
-      ?.onPress?.();
-  });
 
   // Then
   await waitFor(() =>
@@ -1748,9 +2044,211 @@ it("allows an explicit replacement from the retained draft after a technical acc
   await waitFor(() => expect(client.isFetching()).toBe(0));
 });
 
+it("retains the moderator draft through a required read card and retries only that GET", async () => {
+  // Given: the native form and Query are real; only HTTP completion is controlled.
+  detail = { ...detail, canPublish: true };
+  const user = userEvent.setup();
+  await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  await user.clear(await screen.findByLabelText("Adresse du lien"));
+  await user.type(
+    screen.getByLabelText("Adresse du lien"),
+    "https://youtu.be/read-outage",
+  );
+  const key = getListModeratedStreamContributionsQueryKey(sporting.id, {
+    state: "active",
+  });
+
+  // When
+  failRead = true;
+  await act(() => client.invalidateQueries({ queryKey: key, exact: true }));
+
+  // Then: required content is replaced while the mounted form retains its draft.
+  expect(
+    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByDisplayValue("https://youtu.be/read-outage"),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Remplacer le lien" }),
+  ).not.toBeOnTheScreen();
+  const beforeRetry = mockFetch.mock.calls.length;
+
+  // When
+  failRead = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("button", { name: "Réessayer" }),
+    ).not.toBeOnTheScreen(),
+  );
+  expect(
+    screen.getByDisplayValue("https://youtu.be/read-outage"),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.slice(beforeRetry).map(([url, init]) => ({
+      target: new URL(String(url)).pathname,
+      method: init?.method,
+    })),
+  ).toEqual([{ target: key[0], method: "GET" }]);
+  expect(writes).toHaveLength(0);
+});
+
+it("allows a later explicit publication after a lost response without a successful read and keeps its ACK", async () => {
+  // Given: the first POST loses its response; subsequent reads remain unavailable.
+  detail = { ...detail, canPublish: true };
+  const user = userEvent.setup();
+  const alert = jest.spyOn(Alert, "alert");
+  const ordinary = mockFetch.getMockImplementation();
+  if (!ordinary) {
+    throw new Error("Missing controlled HTTP boundary");
+  }
+  let lost = true;
+  const target = `/administration/matches/${sporting.id}/stream-contributions`;
+  mockFetch.mockImplementation(async (url, init) => {
+    if (
+      new URL(String(url)).pathname === target &&
+      init?.method === "POST" &&
+      lost
+    ) {
+      lost = false;
+      writes.push(JSON.parse(String(init.body)));
+      failRead = true;
+      throw new TypeError("Response lost");
+    }
+    return ordinary(url, init);
+  });
+  await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  await user.clear(await screen.findByLabelText("Adresse du lien"));
+  await user.type(
+    screen.getByLabelText("Adresse du lien"),
+    "https://youtu.be/manual-send",
+  );
+  const readsBeforeSend = mockFetch.mock.calls.filter(
+    ([url, init]) =>
+      new URL(String(url)).pathname === target && init?.method === "GET",
+  ).length;
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Remplacer le lien" }));
+
+  // Then
+  await waitFor(() =>
+    expect(client.isFetching() + client.isMutating()).toBe(0),
+  );
+  expect(writes).toHaveLength(1);
+  expect(
+    screen.getByDisplayValue("https://youtu.be/manual-send"),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Remplacer le lien" }),
+  ).toBeEnabled();
+  expect(alert).not.toHaveBeenCalled();
+  expect(
+    mockFetch.mock.calls.filter(
+      ([url, init]) =>
+        new URL(String(url)).pathname === target && init?.method === "GET",
+    ),
+  ).toHaveLength(readsBeforeSend);
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+
+  // When: an explicit later send is allowed without a successful GET.
+  await user.press(screen.getByRole("button", { name: "Remplacer le lien" }));
+
+  // Then: failed dependent reads do not revoke the accepted command.
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  await waitFor(() =>
+    expect(client.isFetching() + client.isMutating()).toBe(0),
+  );
+  expect(
+    screen.getByText("Décision confirmée", { includeHiddenElements: true }),
+  ).not.toBeVisible();
+  expect(writes).toEqual(
+    Array(2).fill({
+      actorAccountId: accountResponse().accountId,
+      revision: "viewed:1",
+      url: "https://youtu.be/manual-send",
+    }),
+  );
+  expect(
+    mockFetch.mock.calls
+      .filter(([, init]) => init?.method === "POST")
+      .map(([url]) => new URL(String(url)).pathname),
+  ).toEqual([target, target]);
+  expect(
+    screen.queryByDisplayValue("https://youtu.be/manual-send"),
+  ).not.toBeOnTheScreen();
+  const beforeRetry = mockFetch.mock.calls.length;
+
+  // When: the independent read Retry cannot replay the accepted publication.
+  failRead = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(writes).toHaveLength(2);
+  expect(await screen.findByText("Décision confirmée")).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls
+      .slice(beforeRetry)
+      .every(([, init]) => init?.method === "GET"),
+  ).toBe(true);
+});
+
+it("reports the current 503 after a missing private target without restoring its data", async () => {
+  // Given: a current 404 withdraws private context; the next explicit GET fails technically.
+  detail = { ...detail, canPublish: true };
+  const user = userEvent.setup();
+  const key = getListModeratedStreamContributionsQueryKey(sporting.id, {
+    state: "active",
+  });
+  const ordinary = mockFetch.getMockImplementation();
+  if (!ordinary) {
+    throw new Error("Missing controlled HTTP boundary");
+  }
+  let status = 200;
+  mockFetch.mockImplementation((url, init) =>
+    new URL(String(url)).pathname === key[0] && status !== 200
+      ? Promise.resolve(
+          Response.json({ title: "Unavailable", status }, { status }),
+        )
+      : ordinary(url, init),
+  );
+  await mount(<ModerationMatchScreen matchId={sporting.id} />);
+  await screen.findByDisplayValue("https://youtu.be/retained");
+
+  // When
+  status = 404;
+  await act(() => client.invalidateQueries({ queryKey: key, exact: true }));
+  await screen.findByRole("button", { name: "Réessayer" });
+  status = 503;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  await waitFor(() =>
+    expect(client.getQueryState(key)?.error).toMatchObject({ status: 503 }),
+  );
+  expect(client.getQueryData(key)).toBeUndefined();
+  expect(
+    screen.queryByDisplayValue("https://youtu.be/retained"),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Publier le lien" }),
+  ).not.toBeOnTheScreen();
+  expect(writes).toHaveLength(0);
+});
+
 it("presents an explicit refusal on another already loaded moderation screen", async () => {
   // Given: the report reader and visible queue share only the existing native private cache.
-  const ordinary = mockFetch.getMockImplementation()!;
+  const ordinary = mockFetch.getMockImplementation();
+  if (!ordinary) {
+    throw new Error("Missing controlled HTTP boundary");
+  }
   let finish!: (response: Response) => void;
   const held = new Promise<Response>((resolve) => {
     finish = resolve;
@@ -1927,7 +2425,10 @@ it.each(["queue", "active", "pending"] as const)(
         : getListModeratedStreamContributionsQueryKey(sporting.id, {
             state: kind,
           });
-    const ordinary = mockFetch.getMockImplementation()!;
+    const ordinary = mockFetch.getMockImplementation();
+    if (!ordinary) {
+      throw new Error("Missing controlled HTTP boundary");
+    }
     const response = await ordinary(
       `https://api.example.invalid${key[0]}`,
       undefined,
@@ -1976,7 +2477,10 @@ it("animates native pull-to-refresh only for the explicit gesture and releases i
   // Given
   await mount(<ModerationMatchScreen matchId={sporting.id} />);
   await screen.findByLabelText("Actualiser les données");
-  const ordinary = mockFetch.getMockImplementation()!;
+  const ordinary = mockFetch.getMockImplementation();
+  if (!ordinary) {
+    throw new Error("Missing controlled HTTP boundary");
+  }
   let finish!: (response: Response) => void;
   const held = new Promise<Response>((resolve) => {
     finish = resolve;
@@ -2003,9 +2507,11 @@ it("animates native pull-to-refresh only for the explicit gesture and releases i
 it("keeps a conflicted draft but adopts the current viewed address/revision after explicit refresh", async () => {
   // Given: background reads must not silently rebase a dirty command.
   detail = { ...detail, canPublish: true };
-  const alert = jest.spyOn(Alert, "alert");
   const draft = "https://youtu.be/intentional-new-decision";
-  const ordinary = mockFetch.getMockImplementation()!;
+  const ordinary = mockFetch.getMockImplementation();
+  if (!ordinary) {
+    throw new Error("Missing controlled HTTP boundary");
+  }
   mockFetch.mockImplementation(async (url, init) => {
     const response = await ordinary(url, init);
     return init?.method === "POST" && response.ok
@@ -2039,18 +2545,12 @@ it("keeps a conflicted draft but adopts the current viewed address/revision afte
   };
   writeStatus = 409;
   await user.press(screen.getByRole("button", { name: "Remplacer le lien" }));
-  await act(async () => {
-    alert.mock.calls
-      .at(-1)?.[2]
-      ?.find((button) => button.text === "Remplacer le lien")
-      ?.onPress?.();
-  });
   await waitFor(() => expect(writes).toHaveLength(1));
   await waitFor(() =>
     expect(client.isFetching() + client.isMutating()).toBe(0),
   );
 
-  // When: the user explicitly reads the current context before a new intentional confirmation.
+  // When: the user explicitly reads the current context before another intentional send.
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await waitFor(() =>
     expect(
@@ -2060,15 +2560,6 @@ it("keeps a conflicted draft but adopts the current viewed address/revision afte
   expect(screen.getByDisplayValue(draft)).toBeOnTheScreen();
   writeStatus = 200;
   await user.press(screen.getByRole("button", { name: "Remplacer le lien" }));
-  expect(alert.mock.calls.at(-1)?.[1]).toBe(
-    `https://twitch.tv/newly-viewed\n\nNouveau lien : ${draft}`,
-  );
-  await act(async () => {
-    alert.mock.calls
-      .at(-1)?.[2]
-      ?.find((button) => button.text === "Remplacer le lien")
-      ?.onPress?.();
-  });
 
   // Then: the old attempt stays old, while the deliberate new action uses its newly viewed baseline.
   expect(await screen.findByText("Décision confirmée")).toBeOnTheScreen();
@@ -2138,7 +2629,10 @@ it.each(["queue", "active", "pending", "filters", "reports"] as const)(
   "shows a content skeleton rather than loading text for the initial %s read",
   async (kind) => {
     // Given: only HTTP completion is held; the real providers, Query and screen rendering stay in place.
-    const ordinary = mockFetch.getMockImplementation()!;
+    const ordinary = mockFetch.getMockImplementation();
+    if (!ordinary) {
+      throw new Error("Missing controlled HTTP boundary");
+    }
     let finish!: (response: Response) => void;
     let response: Response | undefined;
     const held = new Promise<Response>((resolve) => {
