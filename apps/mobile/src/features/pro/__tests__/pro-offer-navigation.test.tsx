@@ -263,6 +263,7 @@ it.each(["clubs", "pools", "teams", "matches"])(
 
 it("opens a rewritten warm sporting link in Search after visiting Home", async () => {
   // Given: the public system-path adapter and Router remain real; native URL delivery is observed on devices.
+  const user = userEvent.setup();
   await openJourney("/");
   await screen.findByRole("button", { name: offerName });
   await act(() => router.push(`/matches/${entityId}`));
@@ -289,6 +290,31 @@ it("opens a rewritten warm sporting link in Search after visiting Home", async (
   expect(
     screen.getByRole("button", { name: "Rechercher", selected: true }),
   ).toBeVisible();
+
+  // When
+  await act(() => router.back());
+
+  // Then
+  expect(screen).toHavePathname("/");
+  expect(
+    screen.getByRole("button", { name: "Accueil", selected: true }),
+  ).toBeVisible();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Rechercher" }));
+
+  // Then
+  expect(screen).toHavePathname(`/teams/${entityId}`);
+  expect(
+    screen.getByRole("button", { name: "Rechercher", selected: true }),
+  ).toBeVisible();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Rechercher" }));
+
+  // Then
+  expect(screen).toHavePathname("/search");
+  expect(screen.getByText("Search destination")).toBeVisible();
 });
 
 it("restores the same sporting detail and tab after dismissing an outer native sheet", async () => {

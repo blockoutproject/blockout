@@ -1,5 +1,5 @@
 import { useEffect, useState, type ComponentPropsWithRef } from "react";
-import { useIsFocused, useSegments } from "expo-router";
+import { useIsFocused, useRouter, useSegments } from "expo-router";
 import {
   Pressable,
   StyleSheet,
@@ -187,7 +187,7 @@ function NavigationCapsule({
   );
 }
 
-/** Router-supplied press/focus/ref props remain intact; hidden personal entries retain their route definitions. */
+/** Router supplies the exact root and current focus; hidden personal entries retain their route definitions. */
 interface TabButtonProps extends Omit<TabTriggerSlotProps, "ref"> {
   /** React Native 0.88 supplies the host-element ref type for Router's asChild forwarding. */
   ref?: ComponentPropsWithRef<typeof Pressable>["ref"];
@@ -199,7 +199,7 @@ interface TabButtonProps extends Omit<TabTriggerSlotProps, "ref"> {
   onFocusedLayout: (layout: LayoutRectangle | undefined) => void;
 }
 
-/** Router alone selects the trigger; native geometry and one focus animation drive its decoration. */
+/** Reselecting reaches the exact root even after an unanchored warm link; other presses keep Router's tab switching. */
 function TabButton({
   label,
   icon: Icon,
@@ -212,6 +212,7 @@ function TabButton({
   onFocusedLayout,
   ...props
 }: Readonly<TabButtonProps>) {
+  const router = useRouter();
   const { colors, membership } = useTheme();
   const [layout, setLayout] = useState<LayoutRectangle>();
   useEffect(() => {
@@ -245,6 +246,13 @@ function TabButton({
   return (
     <Pressable
       {...props}
+      onPress={(event) => {
+        if (isFocused && props.href) {
+          router.dismissTo(props.href);
+        } else {
+          props.onPress?.(event);
+        }
+      }}
       accessibilityRole="button"
       accessibilityState={{ selected: isFocused }}
       accessibilityLabel={
