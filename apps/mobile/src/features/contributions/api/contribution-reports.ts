@@ -7,6 +7,7 @@ import {
   StreamReportStateResponse,
   type CreateStreamReportRequest,
 } from "../../../../.generated/schemas/index.zod";
+import { isAccessDenied } from "@/shared/api/access-denied";
 import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import {
   useAccountSession,
@@ -41,18 +42,35 @@ export function useContributionReport(matchId: string, contributionId: string) {
     });
   }
 
-  const query = useQuery({
+  /** A refusal withdraws private report authority; later technical failures retain null rather than the former grant. */
+  function withdrawRefusedState(error: unknown) {
+    if (isAccessDenied(error)) {
+      client.setQueryData<StreamReportStateResponse | null>(queryKey, null, {
+        updatedAt: client.getQueryState(queryKey)?.dataUpdatedAt ?? 0,
+      });
+    }
+  }
+
+  const query = useQuery<StreamReportStateResponse | null>({
     queryKey,
     enabled: usable,
     gcTime: 0,
     refetchOnMount: "always",
     refetchOnReconnect: false,
-    queryFn: async ({ signal }) =>
-      getOwnStreamReport(
-        actor.accountId,
-        contributionId,
-        await request(signal),
-      ),
+    queryFn: async ({ signal }) => {
+      try {
+        return await getOwnStreamReport(
+          actor.accountId,
+          contributionId,
+          await request(signal),
+        );
+      } catch (error) {
+        if (!signal.aborted) {
+          withdrawRefusedState(error);
+        }
+        throw error;
+      }
+    },
   });
   const mutationKey = contributionKeys.report(actor, contributionId);
   const command = useMutation({
@@ -64,6 +82,7 @@ export function useContributionReport(matchId: string, contributionId: string) {
         ...(await request()),
         schema: StreamReportStateResponse,
       }),
+    onError: withdrawRefusedState,
     onSettled: () => {
       void client.invalidateQueries({ queryKey, exact: true });
       void client.invalidateQueries({

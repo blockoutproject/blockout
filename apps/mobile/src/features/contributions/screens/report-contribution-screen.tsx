@@ -11,16 +11,14 @@ import type {
   MatchDetailResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "@/shared/api/api-fetch";
-import { isAccessDenied } from "@/shared/api/access-denied";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { Button } from "@/shared/components/button";
 import { FormScrollView } from "@/shared/components/form-scroll-view";
 import { Page, PageContent } from "@/shared/components/page";
 import { PageHeader } from "@/shared/components/page-header";
 import { ContributionReportLoading } from "../components/contribution-loading";
-import { ReadFeedback } from "@/shared/components/read-feedback";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
-import { ErrorState } from "@/shared/components/state-card";
 
 import { Surface } from "@/shared/components/surface";
 import { TextField } from "@/shared/components/text-field";
@@ -60,99 +58,62 @@ export function ReportContributionScreen({
   const sessionPending =
     reporting.session.status === "restoring" || !!reporting.session.operation;
 
-  /** Resolves session and profile recovery before exact-version report loading. */
-  function isInitialReadPending() {
-    if (!authenticated) {
-      return sessionPending;
-    }
-    if (!reporting.profile.data) {
-      return reporting.profile.isLoading;
-    }
-    return (
-      reporting.usable && !reporting.query.data && reporting.query.isLoading
-    );
-  }
-
-  const pending =
-    reporting.session.status !== "guest" && isInitialReadPending();
-  const FeedbackLayout = pending ? PageContent : ScreenState;
-
-  /** Admits the retained exact-version report form only after session and private reads. */
-  function renderReportContent() {
-    if (reporting.session.status === "guest") {
-      return (
-        <FeedbackLayout style={styles.centered}>
-          <Button
-            label="Se connecter"
-            onPress={() =>
-              router.push({
-                pathname: "/sign-in-invitation",
-                params: { reason: "stream-report" },
-              })
-            }
-          />
-        </FeedbackLayout>
-      );
-    }
-    if (!authenticated) {
-      return (
-        <FeedbackLayout>
-          <AccountSessionFeedback
-            loadingContent={<ContributionReportLoading />}
-          />
-        </FeedbackLayout>
-      );
-    }
-    if (!reporting.profile.data) {
-      return (
-        <FeedbackLayout>
-          <ReadFeedback
-            query={reporting.profile}
-            loadingContent={<ContributionReportLoading />}
-          />
-        </FeedbackLayout>
-      );
-    }
-    if (!reporting.usable && !reporting.query.data) {
-      return (
-        <FeedbackLayout>
-          <ErrorState
-            onRetry={() => void reporting.profile.refetch()}
-            retrying={reporting.profile.isFetching}
-          />
-        </FeedbackLayout>
-      );
-    }
-    if (!reporting.query.data) {
-      return (
-        <FeedbackLayout>
-          <ReadFeedback
-            query={reporting.query}
-            loadingContent={<ContributionReportLoading />}
-          />
-        </FeedbackLayout>
-      );
-    }
-    return (
-      <PageContent>
-        {match.data && (
-          <MatchSummary match={match.data.match} presentation="context" />
-        )}
-        <ReportForm
-          key={`${reporting.session.subject}:${contributionId}`}
-          matchId={matchId}
-          contributionId={contributionId}
-          contributionUrl={contributionUrl}
-          reporting={reporting}
-          match={match}
-        />
-      </PageContent>
-    );
-  }
+  const requiredRead = !reporting.usable
+    ? reporting.profile
+    : ([reporting.profile, match, reporting.query].find(hasReadError) ??
+      (!match.data ? match : reporting.query));
+  const blocked =
+    !authenticated ||
+    !reporting.usable ||
+    (!reporting.query.data && !reporting.command.data?.reported);
+  const pending = !authenticated
+    ? sessionPending
+    : !hasReadError(requiredRead) && requiredRead.isLoading;
+  const readFailed = hasReadError(requiredRead);
+  const FeedbackLayout = pending || !blocked ? PageContent : ScreenState;
 
   return (
     <Page header={<PageHeader title="Lien de diffusion" />}>
-      <FormScrollView>{renderReportContent()}</FormScrollView>
+      <FormScrollView>
+        {(blocked || readFailed || !match.data) && (
+          <FeedbackLayout>
+            {reporting.session.status === "guest" ? (
+              <Button
+                label="Se connecter"
+                onPress={() =>
+                  router.push({
+                    pathname: "/sign-in-invitation",
+                    params: { reason: "stream-report" },
+                  })
+                }
+              />
+            ) : !authenticated ? (
+              <AccountSessionFeedback
+                loadingContent={<ContributionReportLoading />}
+              />
+            ) : (
+              <ReadFeedback
+                failed={!reporting.usable && !reporting.profile.isPending}
+                query={requiredRead}
+                loadingContent={<ContributionReportLoading />}
+              />
+            )}
+          </FeedbackLayout>
+        )}
+        <PageContent style={blocked ? styles.hidden : undefined}>
+          {match.data && !hasReadError(match) && (
+            <MatchSummary match={match.data.match} presentation="context" />
+          )}
+          <ReportForm
+            key={`${reporting.session.subject}:${reporting.session.accountId}:${contributionId}`}
+            matchId={matchId}
+            contributionId={contributionId}
+            contributionUrl={contributionUrl}
+            reporting={reporting}
+            match={match}
+          />
+        </PageContent>
+      </FormScrollView>
     </Page>
   );
 }
@@ -206,8 +167,7 @@ function ReportForm({
     reset({ reason: "" });
   });
   const busy = command.isPending;
-  const disabled =
-    !reporting.usable || !matchAvailable || isAccessDenied(query.error) || busy;
+  const disabled = !reporting.usable || !matchAvailable || !query.data || busy;
 
   /** Explicit cancellation abandons this draft and returns without invoking a write. */
   function cancel() {
@@ -318,7 +278,7 @@ function ReportForm({
 }
 
 const styles = StyleSheet.create({
-  centered: { justifyContent: "center" },
+  hidden: { display: "none" },
   form: { gap: tokens.layout.form.gap },
   reported: {
     flexDirection: "row",

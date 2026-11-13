@@ -14,7 +14,7 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { Alert, Text } from "react-native";
+import { Text } from "react-native";
 import {
   getGetMatchQueryKey,
   getGetMyAccountQueryKey,
@@ -142,7 +142,6 @@ beforeEach(() => {
     Response.json({ revision: "accepted", contribution: moderatedVersion });
   mockDismissTo.mockReset();
   mockBack.mockReset();
-  jest.spyOn(Alert, "alert").mockImplementation(() => {});
   Object.assign(process.env, {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
@@ -259,17 +258,6 @@ function selectedMutation(
     return current.reactivate;
   }
   return current.change;
-}
-
-/** Accepts the existing native dialog exactly once without replacing its confirmation owner. */
-async function confirm(label: string) {
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.calls.at(-1)?.[2]
-      ?.find((button) => button.text === label)
-      ?.onPress?.(),
-  );
 }
 
 it.each([
@@ -411,6 +399,15 @@ it.each(
       ]),
     );
     expect(writes).toHaveLength(1);
+    expect(mockFetch).toHaveBeenCalledWith(
+      writes[0].url,
+      expect.objectContaining({
+        method: action === "submit" ? "POST" : "PATCH",
+      }),
+    );
+    expect(writes[0].url).toContain(
+      `/accounts/${account.accountId}/matches/${match.match.id}/stream-contributions`,
+    );
     expect(writes[0].body).toEqual(
       action === "submit"
         ? { revision: "initial", url: version.url }
@@ -655,6 +652,33 @@ it("retains a lost report's draft for a later explicit retry on the same version
     screen.queryByRole("button", { name: /Actualiser/ }),
   ).not.toBeOnTheScreen();
   expect(writes).toHaveLength(1);
+  expect(mockFetch).toHaveBeenCalledWith(
+    writes[0].url,
+    expect.objectContaining({ method: "POST" }),
+  );
+  expect(writes[0].url).toContain(
+    `/accounts/${account.accountId}/stream-contributions/${version.id}/report`,
+  );
+
+  // When: the read card retries only its GET while the ordinary draft remains usable.
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  const beforeRetry = mockFetch.mock.calls.length;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await waitFor(() =>
+    expect(mockFetch.mock.calls.length).toBeGreaterThan(beforeRetry),
+  );
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+
+  // Then
+  expect(
+    mockFetch.mock.calls
+      .slice(beforeRetry)
+      .every(([, init]) => init?.method === "GET"),
+  ).toBe(true);
+  expect(writes).toHaveLength(1);
+  expect(
+    screen.getByDisplayValue("Fictional private reason"),
+  ).toBeOnTheScreen();
 
   // When
   write = async () => Response.json({ reported: true });
@@ -691,7 +715,6 @@ it("retains a dirty contribution after conflict and failed explicit refresh with
 
   // When
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
-  await confirm("Soumettre le lien");
   await waitFor(() => expect(client.isFetching()).toBe(0));
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
@@ -716,7 +739,6 @@ it("keeps an ordinary failed contribution editable for another explicit submissi
 
   // When
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
-  await confirm("Soumettre le lien");
   await waitFor(() => expect(client.isFetching()).toBe(0));
 
   // Then
@@ -727,9 +749,8 @@ it("keeps an ordinary failed contribution editable for another explicit submissi
   expect(screen.getByDisplayValue(version.url)).toBeOnTheScreen();
   expect(writes).toHaveLength(1);
 
-  // When: only another manual confirmation sends the retained URL again.
+  // When: only another manual action sends the retained URL again.
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
-  await confirm("Soumettre le lien");
 
   // Then
   await waitFor(() => expect(writes).toHaveLength(2));
@@ -986,7 +1007,6 @@ it.each(["success", "failure"] as const)(
     );
     write = () => pending.promise;
     await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
-    await confirm("Soumettre le lien");
     await waitFor(() => expect(writes).toHaveLength(1));
 
     // When

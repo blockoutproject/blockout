@@ -290,7 +290,7 @@ function QueueScene({
       </PageScrollView>
     );
   }
-  if (rows.length === 0) {
+  if (rows.length === 0 || query.isRefetchError) {
     /** Recovers private queue admission before showing its empty state. */
     function renderEmptyState() {
       if (editing.session.status !== "authenticated") {
@@ -374,24 +374,23 @@ function QueueScene({
           void more();
         }
       }}
+      ListHeaderComponent={
+        editing.profile.isError ? (
+          <ReadFeedback
+            query={editing.profile}
+            loadingContent={<ModerationQueueLoading />}
+          />
+        ) : undefined
+      }
       renderItem={({ item }) => <ModerationQueueRow item={item} />}
       ListFooterComponent={
         <>
-          {query.isRefetchError ? (
-            <ListContinuation
-              loading={false}
-              failed
-              disabled={!active || query.isFetching}
-              onRetry={() => void refresh()}
-            />
-          ) : (
-            <ListContinuation
-              loading={query.isFetchingNextPage}
-              failed={query.isFetchNextPageError}
-              disabled={!active || query.isFetching}
-              onRetry={() => void more()}
-            />
-          )}
+          <ListContinuation
+            loading={query.isFetchingNextPage}
+            failed={query.isFetchNextPageError}
+            disabled={!active || query.isFetching}
+            onRetry={() => void more()}
+          />
           <BottomContentSpacer />
         </>
       }

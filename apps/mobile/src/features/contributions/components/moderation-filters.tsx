@@ -131,17 +131,27 @@ export function ModerationFilters({
         </Text>
       );
     }
-    if (!reading.allowed || !reading.query.data) {
+    if (
+      !reading.allowed ||
+      !reading.query.data ||
+      reading.query.isError ||
+      reading.profile.isError
+    ) {
       if (
         reading.profile.isLoading ||
         (reading.allowed && reading.query.isLoading)
       ) {
         return <ModerationFiltersLoading />;
       }
+      const read =
+        reading.profile.isError || reading.profile.isPending
+          ? reading.profile
+          : reading.query;
       return (
         <ReadFeedback
           loadingContent={<ModerationFiltersLoading />}
-          query={!reading.allowed ? reading.profile : reading.query}
+          query={read}
+          onRetry={() => read.refetch({ cancelRefetch: false })}
         />
       );
     }

@@ -709,7 +709,7 @@ it("refreshes after conflict without transferring the old confirmation to a new 
       body: { action: "withdraw", revision: "initial" },
     },
   ]);
-  expect(screen.getByText("Ancien lien remplacé")).toBeOnTheScreen();
+  expect(await screen.findByText("Ancien lien remplacé")).toBeOnTheScreen();
   expect(screen.getByText("En attente de validation")).toBeOnTheScreen();
 });
 
@@ -887,12 +887,12 @@ it("refreshes recovered match context together with the private history", async 
   });
   const user = userEvent.setup();
   await mount();
-  await screen.findByText("Votre lien public");
+  await screen.findByRole("button", { name: "Réessayer" });
   expect(screen.queryByText("Home")).not.toBeOnTheScreen();
 
   // When
   unavailable = false;
-  await user.pullToRefresh(screen.getByLabelText("Liste de mes propositions"));
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
   expect(await screen.findByText("Home")).toBeOnTheScreen();
@@ -928,7 +928,7 @@ it("opens only one native confirmation and settles its saved callback once", asy
 });
 
 it.each(["refresh", "reconcile", "acknowledgement"])(
-  "retains all authorized history pages when %s cannot read the first page",
+  "keeps failed full-read history with Query while presenting scoped recovery after %s",
   async (operation) => {
     // Given: extra historical versions were moderator-created and ordinary usage stays unchanged.
     rows = Array.from({ length: 21 }, (_, index) =>
@@ -977,14 +977,25 @@ it.each(["refresh", "reconcile", "acknowledgement"])(
 
     // Then
     expect(
-      await screen.findByText("https://youtu.be/history-21"),
+      await screen.findByRole("button", { name: "Réessayer" }),
     ).toBeOnTheScreen();
+    expect(
+      screen.queryByText("https://youtu.be/history-21"),
+    ).not.toBeOnTheScreen();
+    expect(
+      privateClient
+        .getQueryCache()
+        .getAll()
+        .some((query) =>
+          JSON.stringify(query.state.data)?.includes(
+            "https://youtu.be/history-21",
+          ),
+        ),
+    ).toBe(true);
 
     // When: a later authorized read replaces traversal only after success.
     failRead = false;
-    await user.pullToRefresh(
-      screen.getByLabelText("Liste de mes propositions"),
-    );
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
     // Then
     await waitFor(() =>
@@ -1126,17 +1137,25 @@ it.each([
       message: "Synthetic expired credentials",
     },
   },
-])("delegates $condition to sign-in", async ({ failure }) => {
+])("delegates $condition to F05 recovery", async ({ failure }) => {
   // Given
   mockAuth0.getCredentials.mockRejectedValue(failure);
   const user = userEvent.setup();
   await mount();
 
   // When
-  await user.press(await screen.findByRole("button", { name: "Se connecter" }));
+  if (failure instanceof Error) {
+    expect(
+      await screen.findByRole("button", { name: "Réessayer" }),
+    ).toBeOnTheScreen();
+  } else {
+    await user.press(
+      await screen.findByRole("button", { name: "Se connecter" }),
+    );
+    expect(mockPush).toHaveBeenCalledWith("/sign-in");
+  }
 
   // Then
-  expect(mockPush).toHaveBeenCalledWith("/sign-in");
   expect(
     screen.queryByRole("progressbar", { name: "Chargement des propositions" }),
   ).not.toBeOnTheScreen();
@@ -1187,7 +1206,7 @@ it("recovers a refused match when its successful retry settles after the persona
   expect(screen.getByRole("button", { name: "Retirer" })).toBeEnabled();
 });
 
-it("retains the draft and every authorized page with toast-only refresh failure feedback", async () => {
+it("retains the editable draft with scoped full-read Retry and no write replay", async () => {
   // Given
   rows = Array.from({ length: 21 }, (_, index) =>
     version(index + 1, index === 0 ? "active" : "replaced"),
@@ -1228,11 +1247,7 @@ it("retains the draft and every authorized page with toast-only refresh failure 
 
   // Then
   expect(screen.getByText("Votre lien public")).toBeOnTheScreen();
-  expect(
-    screen.getByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-    }),
-  ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
   expect(
     screen.getByDisplayValue("https://youtu.be/retained-draft"),
   ).toBeOnTheScreen();
@@ -1241,8 +1256,8 @@ it("retains the draft and every authorized page with toast-only refresh failure 
   ).not.toBeOnTheScreen();
   expect(screen.queryByText(/L’actualisation a échoué/)).not.toBeOnTheScreen();
   expect(
-    await screen.findByText("https://youtu.be/history-21"),
-  ).toBeOnTheScreen();
+    screen.queryByText("https://youtu.be/history-21"),
+  ).not.toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Retirer" })).toBeEnabled();
   expect(
     screen.getByRole("button", { name: "Remplacer le lien" }),
@@ -1250,7 +1265,7 @@ it("retains the draft and every authorized page with toast-only refresh failure 
 
   // When: a new explicit refresh succeeds without submitting the retained draft.
   failRead = false;
-  await user.pullToRefresh(screen.getByLabelText("Liste de mes propositions"));
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
   await waitFor(() =>
@@ -1267,7 +1282,7 @@ it("retains the draft and every authorized page with toast-only refresh failure 
   expect(alert).not.toHaveBeenCalled();
 });
 
-it("keeps pending-only history after a failed refresh without an inline retry action", async () => {
+it("shows a scoped full-read card for pending-only history", async () => {
   // Given
   rows = [version(1, "pending")];
   const user = userEvent.setup();
@@ -1280,11 +1295,11 @@ it("keeps pending-only history after a failed refresh without an inline retry ac
 
   // Then
   expect(
-    await screen.findByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-    }),
+    await screen.findByRole("button", { name: "Réessayer" }),
   ).toBeOnTheScreen();
-  expect(screen.getByText("https://youtu.be/history-1")).toBeOnTheScreen();
+  expect(
+    screen.queryByText("https://youtu.be/history-1"),
+  ).not.toBeOnTheScreen();
   expect(screen.getByText("Mes propositions (1)")).toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "Réessayer la lecture" }),
@@ -1373,15 +1388,21 @@ it.each([401, 403, 404])(
         ?.find((button: { style?: string }) => button.style === "destructive")
         ?.onPress?.();
     });
-    await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+    await waitFor(() => {
+      expect(attempts).toBe(1);
+      expect(observations).toBe(1);
+      expect(privateClient.isFetching() + privateClient.isMutating()).toBe(0);
+    });
 
     // Then
-    expect(
-      screen.queryByText("https://youtu.be/history-2"),
-    ).not.toBeOnTheScreen();
-    expect(
-      screen.queryByRole("button", { name: "Retirer" }),
-    ).not.toBeOnTheScreen();
+    await waitFor(() => {
+      expect(
+        screen.queryByText("https://youtu.be/history-2"),
+      ).not.toBeOnTheScreen();
+      expect(
+        screen.queryByRole("button", { name: "Retirer" }),
+      ).not.toBeOnTheScreen();
+    });
     expect(attempts).toBe(1);
     expect(observations).toBe(1);
   },

@@ -95,7 +95,7 @@ export function ModerationReportsScreen({
         <AccountSessionFeedback loadingContent={<ModerationReportsLoading />} />
       );
     }
-    if ((!reading.canRetain && reading.profile.isSuccess) || denied) {
+    if (!reading.canRetain && reading.profile.isSuccess) {
       return <ErrorState />;
     }
     if (
@@ -130,7 +130,7 @@ export function ModerationReportsScreen({
 
   return (
     <Page header={<PageHeader title="Signalements" />}>
-      {reports.length === 0 ? (
+      {reports.length === 0 || query.isRefetchError ? (
         <PageScrollView>
           <FeedbackLayout>{renderEmptyState()}</FeedbackLayout>
         </PageScrollView>
@@ -167,10 +167,9 @@ export function ModerationReportsScreen({
                   Signalements ({pages?.at(-1)?.count})
                 </Text>
                 {reading.profile.isError && (
-                  <Button
-                    label="Réessayer le profil"
-                    loading={reading.profile.isFetching}
-                    onPress={() => void reading.profile.refetch()}
+                  <ReadFeedback
+                    query={reading.profile}
+                    loadingContent={<ModerationReportsLoading />}
                   />
                 )}
               </View>
@@ -194,21 +193,12 @@ export function ModerationReportsScreen({
           )}
           ListFooterComponent={
             <>
-              {query.isRefetchError ? (
-                <ListContinuation
-                  loading={false}
-                  failed
-                  disabled={!reading.allowed || query.isFetching}
-                  onRetry={() => void query.refetch({ cancelRefetch: false })}
-                />
-              ) : (
-                <ListContinuation
-                  loading={query.isFetchingNextPage}
-                  failed={query.isFetchNextPageError}
-                  disabled={!reading.allowed || query.isFetching}
-                  onRetry={() => void loadMore()}
-                />
-              )}
+              <ListContinuation
+                loading={query.isFetchingNextPage}
+                failed={query.isFetchNextPageError}
+                disabled={!reading.allowed || query.isFetching}
+                onRetry={() => void loadMore()}
+              />
               <BottomContentSpacer />
             </>
           }

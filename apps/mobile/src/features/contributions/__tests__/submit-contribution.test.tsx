@@ -33,6 +33,7 @@ import { useOwnContributions } from "../api/own-contributions";
 import { ContributionScreen } from "../screens/contribution-screen";
 import { ownContributions } from "../test-support/contribution-data";
 import { matchDetail } from "@/features/sporting/test-support/consultation-data";
+import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
 import type { OwnStreamContributionDetailResponse } from "../../../../.generated/schemas/index.zod";
 
 jest.mock("react-native-keyboard-controller", () =>
@@ -320,13 +321,6 @@ it("retains dirty input through refresh and a refused submission", async () => {
 
   // When
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.calls.at(-1)?.[2]
-      ?.find((button) => button.text === "Soumettre le lien")
-      ?.onPress?.(),
-  );
 
   // Then
   await screen.findByText("Le lien a été refusé. Votre saisie est conservée.");
@@ -352,21 +346,7 @@ it("keeps confirmed success when dependent refresh fails and disables its pendin
 
   // When
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.calls.at(-1)?.[2]
-      ?.find((button) => button.text === "Soumettre le lien")
-      ?.onPress?.(),
-  );
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.calls.at(-1)?.[2]
-      ?.find((button) => button.text === "Soumettre le lien")
-      ?.onPress?.(),
-  );
   failRefresh = true;
   await act(async () =>
     pending.resolve(Response.json(accepted, { status: 201 })),
@@ -392,13 +372,6 @@ it("ignores a late accepted response after session departure", async () => {
   );
   mockFetch.mockImplementationOnce(() => pending.promise);
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.calls.at(-1)?.[2]
-      ?.find((button) => button.text === "Soumettre le lien")
-      ?.onPress?.(),
-  );
 
   // When
   await user.press(screen.getByRole("button", { name: "Quitter la session" }));
@@ -445,6 +418,65 @@ it("suspends submission when the current profile is unavailable and permits a re
   expect(posts).toHaveLength(0);
 });
 
+it("retains the typed address through account read failure and a GET-only retry", async () => {
+  // Given: the session and RHF form are real; only the account HTTP read is controlled.
+  const user = userEvent.setup();
+  await mount();
+  await user.type(
+    await screen.findByLabelText("Adresse du lien"),
+    "https://youtu.be/retained",
+  );
+  const boundary = mockFetch.getMockImplementation();
+  let unavailable = true;
+  mockFetch.mockImplementation(async (url, init) => {
+    if (String(url).endsWith("/me") && unavailable) {
+      return Response.json({ status: 503 }, { status: 503 });
+    }
+    if (!boundary) {
+      throw new Error("Missing test HTTP boundary");
+    }
+    return boundary(url, init);
+  });
+
+  // When
+  await act(() =>
+    client.refetchQueries({ queryKey: getGetMyAccountQueryKey(), exact: true }),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByDisplayValue("https://youtu.be/retained"),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Soumettre le lien" }),
+  ).toBeEnabled();
+
+  // When
+  unavailable = false;
+  const beforeRetry = mockFetch.mock.calls.length;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  await waitFor(() =>
+    expect(
+      screen.queryByRole("button", { name: "Réessayer" }),
+    ).not.toBeOnTheScreen(),
+  );
+  expect(mockFetch.mock.calls.slice(beforeRetry)).toEqual([
+    [
+      expect.stringContaining("/me"),
+      expect.objectContaining({ method: "GET" }),
+    ],
+  ]);
+  expect(
+    screen.getByDisplayValue("https://youtu.be/retained"),
+  ).toBeOnTheScreen();
+  expect(posts).toHaveLength(0);
+});
+
 it("uses moderator eligibility without local age, clock, quota or Pro gates", async () => {
   // Given
   context = ownContributions({
@@ -469,13 +501,6 @@ it("uses moderator eligibility without local age, clock, quota or Pro gates", as
 
   // When
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.calls.at(-1)?.[2]
-      ?.find((button) => button.text === "Soumettre le lien")
-      ?.onPress?.(),
-  );
 
   // Then
   await waitFor(() => expect(mockDismissTo).toHaveBeenCalledTimes(1));
@@ -540,13 +565,6 @@ it("keeps a draft after conflict and requires a fresh explicit submission", asyn
 
   // When
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.calls.at(-1)?.[2]
-      ?.find((button) => button.text === "Soumettre le lien")
-      ?.onPress?.(),
-  );
   await waitFor(() =>
     expect(
       screen.getByRole("button", { name: "Soumettre le lien" }),
@@ -560,13 +578,6 @@ it("keeps a draft after conflict and requires a fresh explicit submission", asyn
 
   // When: a new explicit action uses the newly observed revision.
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.calls.at(-1)?.[2]
-      ?.find((button) => button.text === "Soumettre le lien")
-      ?.onPress?.(),
-  );
 
   // Then
   await waitFor(() => expect(mockDismissTo).toHaveBeenCalledTimes(1));
@@ -624,13 +635,6 @@ it("retains the address after a new time restriction without adding availability
 
   // When
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.calls.at(-1)?.[2]
-      ?.find((button) => button.text === "Soumettre le lien")
-      ?.onPress?.(),
-  );
 
   // Then
   expect(
@@ -707,13 +711,6 @@ it("refreshes the actual F03 match key after a publication under explicit mainte
 
   // When
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.calls.at(-1)?.[2]
-      ?.find((button) => button.text === "Soumettre le lien")
-      ?.onPress?.(),
-  );
 
   // Then
   await waitFor(() => expect(matchReads).toBeGreaterThan(before));
@@ -751,48 +748,42 @@ it("delegates failed native session restoration to F05 instead of showing an end
   await mount();
 
   // When
-  await user.press(await screen.findByRole("button", { name: "Se connecter" }));
+  mockAuth0.getCredentials.mockResolvedValue(credentialsFor("auth0|synthetic"));
+  await user.press(await screen.findByRole("button", { name: "Réessayer" }));
 
   // Then
-  expect(mockPush).toHaveBeenCalledWith("/sign-in");
+  expect(await screen.findByLabelText("Adresse du lien")).toBeOnTheScreen();
+  expect(mockPush).not.toHaveBeenCalled();
   expect(posts).toHaveLength(0);
 });
 
-it("waits for exact-address confirmation and cancels without dispatch or navigation", async () => {
+it("submits the entered address directly without an extra confirmation", async () => {
   // Given
   const user = userEvent.setup();
   await mount();
   await user.type(
     await screen.findByLabelText("Adresse du lien"),
-    "https://youtu.be/confirmed",
+    "https://youtu.be/direct",
   );
 
   // When
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
 
   // Then
-  expect(Alert.alert).toHaveBeenCalledWith(
-    "Soumettre ce lien ?",
-    expect.stringContaining("https://youtu.be/confirmed"),
-    expect.any(Array),
-    expect.anything(),
+  await waitFor(() => expect(mockDismissTo).toHaveBeenCalledTimes(1));
+  expect(Alert.alert).not.toHaveBeenCalled();
+  expect(mockFetch).toHaveBeenCalledWith(
+    expect.stringContaining(
+      `/accounts/${account.accountId}/matches/${match.match.id}/stream-contributions`,
+    ),
+    expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify({
+        revision: "initial",
+        url: "https://youtu.be/direct",
+      }),
+    }),
   );
-  expect(posts).toHaveLength(0);
-
-  // When
-  await act(async () =>
-    jest
-      .mocked(Alert.alert)
-      .mock.calls[0]?.[2]?.find((button) => button.style === "cancel")
-      ?.onPress?.(),
-  );
-
-  // Then
-  expect(posts).toHaveLength(0);
-  expect(mockDismissTo).not.toHaveBeenCalled();
-  expect(
-    screen.getByDisplayValue("https://youtu.be/confirmed"),
-  ).toBeOnTheScreen();
 });
 
 /** Exercises the actual retained editor and generated command owner without the surrounding personal list. */
@@ -904,7 +895,7 @@ it("prefills the published URL once and preserves a changed replacement through 
   expect(posts).toHaveLength(0);
 });
 
-it("confirms a replacement with its viewed revision once and returns to the exact match after acknowledgement", async () => {
+it("replaces directly using the viewed revision and returns after acknowledgement", async () => {
   // Given
   context = ownContributions({ activeContribution: accepted.contribution });
   const user = userEvent.setup();
@@ -917,41 +908,6 @@ it("confirms a replacement with its viewed revision once and returns to the exac
 
   // When
   await user.press(screen.getByRole("button", { name: "Remplacer le lien" }));
-  await user.press(screen.getByRole("button", { name: "Remplacer le lien" }));
-
-  // Then
-  expect(Alert.alert).toHaveBeenCalledTimes(1);
-  expect(jest.mocked(Alert.alert).mock.calls[0]?.[1]).toContain(
-    accepted.contribution.url,
-  );
-  expect(jest.mocked(Alert.alert).mock.calls[0]?.[1]).toContain(
-    "https://youtu.be/replacement",
-  );
-  expect(posts).toHaveLength(0);
-
-  // When: a read changes the revision while the original native confirmation remains open.
-  context = ownContributions({
-    revision: "later",
-    activeContribution: accepted.contribution,
-  });
-  await act(async () =>
-    client.refetchQueries({
-      predicate: (query) =>
-        query.queryKey.some(
-          (part) =>
-            typeof part === "string" && part.includes("stream-contributions"),
-        ),
-    }),
-  );
-  const confirm = jest
-    .mocked(Alert.alert)
-    .mock.calls[0]?.[2]?.find(
-      (button) => button.text === "Remplacer le lien",
-    )?.onPress;
-  await act(async () => {
-    confirm?.();
-    confirm?.();
-  });
 
   // Then
   await waitFor(() =>
@@ -960,7 +916,9 @@ it("confirms a replacement with its viewed revision once and returns to the exac
       params: { matchId: match.match.id },
     }),
   );
+  expect(Alert.alert).not.toHaveBeenCalled();
   expect(posts).toHaveLength(1);
+  expect(posts[0].method).toBe("POST");
   expect(JSON.parse(String(posts[0].body))).toEqual({
     revision: "initial",
     url: "https://youtu.be/replacement",
