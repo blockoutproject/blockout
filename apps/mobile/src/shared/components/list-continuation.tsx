@@ -101,8 +101,8 @@ export function ListContinuation({
 
 const styles = StyleSheet.create({
   row: {
-    marginTop: tokens.layout.list.gap,
-    minHeight: tokens.touch.minimum,
+    marginTop: tokens.spacing.xs,
+    minHeight: tokens.size.control.compact,
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   message: { flexShrink: 1, minWidth: 0 },
   retry: {
     flexShrink: 0,
-    minHeight: tokens.touch.minimum,
+    minHeight: tokens.size.control.compact,
     minWidth: tokens.touch.minimum,
     justifyContent: "center",
   },
