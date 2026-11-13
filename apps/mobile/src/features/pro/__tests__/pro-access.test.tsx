@@ -10,7 +10,7 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { router } from "expo-router";
-import { renderRouter } from "expo-router/testing-library";
+import { getMockContext, renderRouter } from "expo-router/testing-library";
 import { useEffect, type ComponentProps, type ComponentType } from "react";
 import { AdEventType, InterstitialAd } from "react-native-google-mobile-ads";
 import type {
@@ -308,11 +308,13 @@ function ObservedOrdinaryLayout() {
 
 /** Loads the actual root, routes, generated queries and state owners with native/network I/O doubles. */
 async function openInstallation(initialUrl = poolPath) {
+  const context = getMockContext({
+    appDir: "src/app",
+    overrides: { "(ordinary)/_layout": ObservedOrdinaryLayout },
+  });
   await renderRouter(
-    {
-      appDir: "src/app",
-      overrides: { "(ordinary)/_layout": ObservedOrdinaryLayout },
-    },
+    // Memory contexts restore special-file extensions stripped by filesystem overrides.
+    Object.fromEntries(context.keys().map((key) => [key, context(key)])),
     { initialUrl },
   );
   await layoutPoolPage();

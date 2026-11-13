@@ -8,7 +8,7 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { router } from "expo-router";
-import { renderRouter } from "expo-router/testing-library";
+import { getMockContext, renderRouter } from "expo-router/testing-library";
 import { useEffect, type ComponentProps, type ComponentType } from "react";
 import RevenueCatUI from "react-native-purchases-ui";
 import OrdinaryLayout from "../../../app/(ordinary)/_layout";
@@ -262,11 +262,13 @@ function ObservedOrdinaryLayout() {
 
 /** Mounts production routes, root providers, hooks and clients; only HTTP, storage and native SDK I/O are controlled. */
 async function openInstallation(initialUrl = "/") {
+  const context = getMockContext({
+    appDir: "src/app",
+    overrides: { "(ordinary)/_layout": ObservedOrdinaryLayout },
+  });
   return renderRouter(
-    {
-      appDir: "src/app",
-      overrides: { "(ordinary)/_layout": ObservedOrdinaryLayout },
-    },
+    // Memory contexts restore special-file extensions stripped by filesystem overrides.
+    Object.fromEntries(context.keys().map((key) => [key, context(key)])),
     { initialUrl },
   );
 }
