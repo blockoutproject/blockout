@@ -11,6 +11,7 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import TabsLayout from "../../../app/(ordinary)/(tabs)/_layout";
+import { redirectSystemPath } from "../../../app/+native-intent";
 import SharedTabLayout, {
   unstable_settings as sharedTabSettings,
 } from "../../../app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/_layout";
@@ -132,51 +133,55 @@ function JourneyLayout() {
 async function openJourney(initialUrl = "/search") {
   await renderRouter(
     {
-      _layout: JourneyLayout,
-      "(tabs)/_layout": TabsLayout,
-      "(tabs)/(discovery,home,notifications,profile)/_layout": {
+      _layout: () => <Stack screenOptions={{ headerShown: false }} />,
+      "(ordinary)/_layout": JourneyLayout,
+      "+native-intent": { redirectSystemPath },
+      "(ordinary)/(tabs)/_layout": TabsLayout,
+      "(ordinary)/(tabs)/(discovery,home,notifications,profile)/_layout": {
         default: SharedTabLayout,
         unstable_settings: sharedTabSettings,
       },
-      "(tabs)/(home)/(personal)/_layout": () => <Stack />,
-      "(tabs)/(home)/(personal)/index": () => <Text>Home destination</Text>,
-      "(tabs)/(discovery)/search/_layout": () => (
+      "(ordinary)/(tabs)/(home)/(personal)/_layout": () => <Stack />,
+      "(ordinary)/(tabs)/(home)/(personal)/index": () => (
+        <Text>Home destination</Text>
+      ),
+      "(ordinary)/(tabs)/(discovery)/search/_layout": () => (
         <Stack>
           <Stack.Screen name="(sheets)/filters" options={sheetScreenOptions} />
         </Stack>
       ),
-      "(tabs)/(discovery)/search/index": () => <Text>Search destination</Text>,
-      "(tabs)/(discovery)/search/(sheets)/filters": () => (
+      "(ordinary)/(tabs)/(discovery)/search/index": () => (
+        <Text>Search destination</Text>
+      ),
+      "(ordinary)/(tabs)/(discovery)/search/(sheets)/filters": () => (
         <Text>Filter destination</Text>
       ),
-      "(tabs)/(notifications)/notifications": () => (
+      "(ordinary)/(tabs)/(notifications)/notifications": () => (
         <Text>Notifications destination</Text>
       ),
-      "(tabs)/(profile)/profile/_layout": {
+      "(ordinary)/(tabs)/(profile)/profile/_layout": {
         default: ProfileLayout,
         unstable_settings: profileSettings,
       },
-      "(tabs)/(profile)/profile/index": () => <Text>Profile destination</Text>,
-      "(tabs)/(profile)/profile/(forms)/edit": () => (
+      "(ordinary)/(tabs)/(profile)/profile/index": () => (
+        <Text>Profile destination</Text>
+      ),
+      "(ordinary)/(tabs)/(profile)/profile/(forms)/edit": () => (
         <Text>Edit destination</Text>
       ),
-      "(tabs)/(profile)/profile/(forms)/erase": () => (
+      "(ordinary)/(tabs)/(profile)/profile/(forms)/erase": () => (
         <Text>Erase destination</Text>
       ),
-      "(tabs)/(discovery,home,notifications,profile)/clubs/[clubId]": () => (
-        <Text>Club destination</Text>
-      ),
-      "(tabs)/(discovery,home,notifications,profile)/pools/[poolId]": () => (
-        <Text>Pool destination</Text>
-      ),
-      "(tabs)/(discovery,home,notifications,profile)/teams/[teamId]": () => (
-        <Text>Team destination</Text>
-      ),
-      "(tabs)/(discovery,home,notifications,profile)/matches/[matchId]": () => (
-        <Text>Match destination</Text>
-      ),
-      invitation: () => <Text>Invitation destination</Text>,
-      pro: () => <Text>Pro destination</Text>,
+      "(ordinary)/(tabs)/(discovery,home,notifications,profile)/clubs/[clubId]":
+        () => <Text>Club destination</Text>,
+      "(ordinary)/(tabs)/(discovery,home,notifications,profile)/pools/[poolId]":
+        () => <Text>Pool destination</Text>,
+      "(ordinary)/(tabs)/(discovery,home,notifications,profile)/teams/[teamId]":
+        () => <Text>Team destination</Text>,
+      "(ordinary)/(tabs)/(discovery,home,notifications,profile)/matches/[matchId]":
+        () => <Text>Match destination</Text>,
+      "(ordinary)/invitation": () => <Text>Invitation destination</Text>,
+      "(ordinary)/pro": () => <Text>Pro destination</Text>,
     },
     { initialUrl, wrapper: JourneyProviders },
   );
@@ -255,6 +260,36 @@ it.each(["clubs", "pools", "teams", "matches"])(
     expect(screen).toHavePathname("/search");
   },
 );
+
+it("opens a rewritten warm sporting link in Search after visiting Home", async () => {
+  // Given: the public system-path adapter and Router remain real; native URL delivery is observed on devices.
+  await openJourney("/");
+  await screen.findByRole("button", { name: offerName });
+  await act(() => router.push(`/matches/${entityId}`));
+  await act(() => router.back());
+  expect(
+    screen.getByRole("button", { name: "Accueil", selected: true }),
+  ).toBeVisible();
+
+  // When
+  const destination = redirectSystemPath({
+    path: `blockout-local://teams/${entityId}?tab=matches&label=Rives%20Est#standings`,
+    initial: false,
+  });
+  await act(() => router.navigate(destination));
+
+  // Then
+  expect(screen).toHavePathname(`/teams/${entityId}`);
+  expect(screen).toHaveSearchParams({
+    teamId: entityId,
+    tab: "matches",
+    label: "Rives Est",
+    "#": "standings",
+  });
+  expect(
+    screen.getByRole("button", { name: "Rechercher", selected: true }),
+  ).toBeVisible();
+});
 
 it("restores the same sporting detail and tab after dismissing an outer native sheet", async () => {
   // Given
