@@ -137,12 +137,6 @@ export function ModerationFilters({
       reading.query.isError ||
       reading.profile.isError
     ) {
-      if (
-        reading.profile.isLoading ||
-        (reading.allowed && reading.query.isLoading)
-      ) {
-        return <ModerationFiltersLoading />;
-      }
       const read =
         reading.profile.isError || reading.profile.isPending
           ? reading.profile

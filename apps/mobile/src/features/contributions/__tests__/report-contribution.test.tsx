@@ -209,7 +209,7 @@ it("validates a nonempty reason before any report", async () => {
   expect(posts).toHaveLength(0);
 });
 
-it("sends only a trimmed reason to the exact version and acknowledges independently of refresh failure", async () => {
+it("retains the exact-version acknowledgement behind a failed read until safe Retry recovers", async () => {
   // Given
   const user = userEvent.setup();
   await mount();
@@ -218,12 +218,12 @@ it("sends only a trimmed reason to the exact version and acknowledges independen
     "  Motif privé  ",
   );
   const peer = mockFetch.getMockImplementation();
+  if (!peer) {
+    throw new Error("Missing HTTP boundary");
+  }
   mockFetch.mockImplementation(async (url, init) => {
     if (String(url).includes("/matches/")) {
       throw new TypeError("Controlled read failure");
-    }
-    if (!peer) {
-      throw new Error("Missing HTTP boundary");
     }
     return peer(url, init);
   });
@@ -235,8 +235,11 @@ it("sends only a trimmed reason to the exact version and acknowledges independen
 
   // Then
   expect(
-    await screen.findByText("Votre signalement a été envoyé."),
+    await screen.findByRole("button", { name: "Réessayer" }),
   ).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Votre signalement a été envoyé."),
+  ).not.toBeOnTheScreen();
   expect(posts).toEqual([
     {
       url: expect.stringContaining(`/stream-contributions/${versionId}/report`),
@@ -244,6 +247,26 @@ it("sends only a trimmed reason to the exact version and acknowledges independen
     },
   ]);
   expect(screen.queryByLabelText("Motif du signalement")).not.toBeOnTheScreen();
+
+  // When: recovering the required read never sends the accepted report again.
+  const beforeRetry = mockFetch.mock.calls.length;
+  mockFetch.mockImplementation(peer);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByText("Votre signalement a été envoyé."),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Vous avez déjà signalé ce lien."),
+  ).not.toBeOnTheScreen();
+  expect(screen.queryByLabelText("Motif du signalement")).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls
+      .slice(beforeRetry)
+      .every(([, init]) => init?.method === "GET"),
+  ).toBe(true);
+  expect(posts).toHaveLength(1);
 });
 
 it("retains the reason after a confirmed refusal", async () => {
@@ -440,6 +463,7 @@ it("presents the current account read failure while the first report read is sti
   // Given
   const reportRead = Promise.withResolvers<Response>();
   const peer = mockFetch.getMockImplementation();
+  const user = userEvent.setup();
   let profileUnavailable = false;
   mockFetch.mockImplementation(async (url, init) => {
     if (String(url).endsWith("/report")) {
@@ -479,11 +503,20 @@ it("presents the current account read failure while the first report read is sti
     ).not.toBeOnTheScreen();
     expect(posts).toHaveLength(0);
   } finally {
-    // When: only the original prerequisite read settles; no account reread is required.
+    // When: the report settles but the account prerequisite remains unavailable.
     await act(async () =>
       reportRead.resolve(Response.json({ reported: false })),
     );
   }
+
+  // Then
+  expect(screen.queryByLabelText("Motif du signalement")).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
+  expect(posts).toHaveLength(0);
+
+  // When
+  profileUnavailable = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
   expect(
@@ -589,8 +622,11 @@ it("keeps an acknowledged report accepted when a refused derivative read withdra
 
   // Then
   expect(
-    await screen.findByText("Votre signalement a été envoyé."),
+    await screen.findByRole("button", { name: "Réessayer" }),
   ).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Votre signalement a été envoyé."),
+  ).not.toBeOnTheScreen();
   await waitFor(() => expect(client.getQueryData(reportKey)).toBeNull());
   expect(
     screen.queryByRole("button", { name: "Envoyer le signalement" }),
@@ -607,8 +643,27 @@ it("keeps an acknowledged report accepted when a refused derivative read withdra
   );
 
   // Then
-  expect(screen.getByText("Votre signalement a été envoyé.")).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Votre signalement a été envoyé."),
+  ).not.toBeOnTheScreen();
   expect(client.getQueryData(reportKey)).toBeNull();
+  expect(posts).toHaveLength(1);
+
+  // When: a successful authorized read restores the acknowledged terminal state.
+  reportReadStatus = 200;
+  const beforeRecovery = mockFetch.mock.calls.length;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
+    await screen.findByText("Votre signalement a été envoyé."),
+  ).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Motif du signalement")).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls
+      .slice(beforeRecovery)
+      .every(([, init]) => init?.method === "GET"),
+  ).toBe(true);
   expect(posts).toHaveLength(1);
 });
 

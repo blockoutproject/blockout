@@ -17,6 +17,10 @@ import {
   type AppStateStatus,
 } from "react-native";
 import {
+  getGetMatchQueryKey,
+  getGetMyAccountQueryKey,
+} from "../../../../.generated/mobile";
+import {
   type OwnStreamContributionResponse,
   UpdateOwnStreamContributionRequest,
 } from "../../../../.generated/schemas/index.zod";
@@ -398,7 +402,7 @@ it.each([false, true])(
   },
 );
 
-it("keeps the proposals heading without inventing zero during initial loading or failure", async () => {
+it("replaces proposals with loading or read recovery until the first successful read", async () => {
   // Given
   const response = Promise.withResolvers<Response>();
   const boundary = mockFetch.getMockImplementation();
@@ -419,8 +423,8 @@ it("keeps the proposals heading without inventing zero during initial loading or
 
   // Then
   expect(
-    screen.getByRole("header", { name: "Mes propositions" }),
-  ).toBeOnTheScreen();
+    screen.queryByRole("header", { name: /Mes propositions/ }),
+  ).not.toBeOnTheScreen();
   expect(screen.queryByText("Mes propositions (0)")).not.toBeOnTheScreen();
 
   // When
@@ -433,9 +437,18 @@ it("keeps the proposals heading without inventing zero during initial loading or
     await screen.findByRole("button", { name: "Réessayer" }),
   ).toBeOnTheScreen();
   expect(
-    screen.getByRole("header", { name: "Mes propositions" }),
-  ).toBeOnTheScreen();
+    screen.queryByRole("header", { name: /Mes propositions/ }),
+  ).not.toBeOnTheScreen();
   expect(screen.queryByText("Mes propositions (0)")).not.toBeOnTheScreen();
+
+  // When
+  mockFetch.mockImplementation(boundary);
+  const user = userEvent.setup();
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByText("Mes propositions (2)")).toBeOnTheScreen();
+  expect(patches).toEqual([]);
 });
 
 it("withdraws only the active version when publication is unavailable and leaves the proposal pending", async () => {
@@ -1007,65 +1020,104 @@ it.each(["refresh", "reconcile", "acknowledgement"])(
   },
 );
 
-it("allows an explicit original-version withdrawal after a technical account read failure", async () => {
-  // Given: the real owner, Query and RHF form retain the viewed version and edited address.
-  const boundary = mockFetch.getMockImplementation();
-  if (!boundary) {
-    throw new Error("Missing test HTTP boundary");
-  }
-  let unavailable = false;
-  mockFetch.mockImplementation((url, init) => {
-    if (String(url).endsWith("/me") && unavailable) {
-      return Promise.resolve(
-        Response.json({ title: "Unavailable", status: 503 }, { status: 503 }),
-      );
+it.each(["account", "Match"] as const)(
+  "replaces all own content after a required %s read fails and restores the same draft on Retry",
+  async (prerequisite) => {
+    // Given: an existing continuation error is secondary to the common account/Match dependency.
+    rows = Array.from({ length: 21 }, (_, index) =>
+      version(index + 1, index === 0 ? "active" : "replaced"),
+    );
+    const boundary = mockFetch.getMockImplementation();
+    if (!boundary) {
+      throw new Error("Missing test HTTP boundary");
     }
-    return boundary(url, init);
-  });
-  const user = userEvent.setup();
-  await mount();
-  await screen.findByText("Votre lien public");
-  await user.clear(screen.getByLabelText("Adresse du lien"));
-  await user.type(
-    screen.getByLabelText("Adresse du lien"),
-    "https://youtu.be/profile-outage-draft",
-  );
+    let unavailable = false;
+    mockFetch.mockImplementation((url, init) => {
+      const parsed = new URL(String(url));
+      if (parsed.searchParams.get("page") === "1") {
+        throw new TypeError("Controlled continuation failure");
+      }
+      const requiredPath =
+        prerequisite === "account" ? "/me" : `/matches/${match.match.id}`;
+      if (parsed.pathname.endsWith(requiredPath) && unavailable) {
+        return Promise.resolve(
+          Response.json({ title: "Unavailable", status: 503 }, { status: 503 }),
+        );
+      }
+      return boundary(url, init);
+    });
+    const user = userEvent.setup();
+    await mount();
+    await screen.findByText("Votre lien public");
+    await user.clear(screen.getByLabelText("Adresse du lien"));
+    await user.type(
+      screen.getByLabelText("Adresse du lien"),
+      "https://youtu.be/profile-outage-draft",
+    );
+    await fireEvent(
+      screen.getByLabelText("Liste de mes propositions"),
+      "endReached",
+    );
+    await screen.findByText("Une erreur est survenue.");
+    expect(screen.getByText("Mes propositions (21)")).toBeOnTheScreen();
 
-  // When
-  unavailable = true;
-  await user.press(
-    screen.getByRole("button", { name: "Actualiser le profil" }),
-  );
-  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+    // When
+    unavailable = true;
+    await act(() =>
+      privateClient.refetchQueries({
+        queryKey:
+          prerequisite === "account"
+            ? getGetMyAccountQueryKey()
+            : getGetMatchQueryKey(match.match.id),
+        exact: true,
+      }),
+    );
+    await waitFor(() => expect(privateClient.isFetching()).toBe(0));
 
-  // Then
-  expect(screen.getByText("Votre lien public")).toBeOnTheScreen();
-  expect(screen.getByText("En attente de validation")).toBeOnTheScreen();
-  expect(
-    screen.getByDisplayValue("https://youtu.be/profile-outage-draft"),
-  ).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Retirer" })).toBeEnabled();
-  expect(patches).toHaveLength(0);
+    // Then
+    expect(
+      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText("Votre lien public")).not.toBeOnTheScreen();
+    expect(screen.queryByText("Mes propositions (21)")).not.toBeOnTheScreen();
+    expect(
+      screen.queryByText("https://youtu.be/history-2"),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByText("Une erreur est survenue."),
+    ).not.toBeOnTheScreen();
+    expect(screen.getAllByRole("button", { name: "Réessayer" })).toHaveLength(
+      1,
+    );
+    expect(
+      screen.queryByDisplayValue("https://youtu.be/profile-outage-draft"),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Retirer" }),
+    ).not.toBeOnTheScreen();
+    expect(patches).toHaveLength(0);
 
-  // When: withdrawing remains a separately confirmed command on the viewed active version.
-  await user.press(screen.getByRole("button", { name: "Retirer" }));
-  await act(async () => {
-    alert.mock.calls
-      .at(-1)?.[2]
-      ?.find((button: { style?: string }) => button.style === "destructive")
-      ?.onPress?.();
-  });
+    // When: the card recovers its prerequisite without sending the retained draft.
+    unavailable = false;
+    const beforeRetry = mockFetch.mock.calls.length;
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
-  // Then
-  await waitFor(() =>
-    expect(patches).toEqual([
-      {
-        id: version(2, "active").id,
-        body: { action: "withdraw", revision: "initial" },
-      },
-    ]),
-  );
-});
+    // Then
+    expect(
+      await screen.findByDisplayValue("https://youtu.be/profile-outage-draft"),
+    ).toBeOnTheScreen();
+    expect(screen.getByText("Mes propositions (21)")).toBeOnTheScreen();
+    expect(screen.getByText("https://youtu.be/history-2")).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Retirer" })).toBeEnabled();
+    expect(
+      mockFetch.mock.calls
+        .slice(beforeRetry)
+        .every(([, init]) => init?.method === "GET"),
+    ).toBe(true);
+    expect(patches).toEqual([]);
+    expect(alert).not.toHaveBeenCalled();
+  },
+);
 
 it.each([401, 403, 404])(
   "revokes private history after match GET %i and does not restore it on technical retry failure",
@@ -1246,11 +1298,11 @@ it("retains the editable draft with scoped full-read Retry and no write replay",
   });
 
   // Then
-  expect(screen.getByText("Votre lien public")).toBeOnTheScreen();
+  expect(screen.queryByText("Votre lien public")).not.toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
   expect(
-    screen.getByDisplayValue("https://youtu.be/retained-draft"),
-  ).toBeOnTheScreen();
+    screen.queryByDisplayValue("https://youtu.be/retained-draft"),
+  ).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "Réessayer la lecture" }),
   ).not.toBeOnTheScreen();
@@ -1258,10 +1310,12 @@ it("retains the editable draft with scoped full-read Retry and no write replay",
   expect(
     screen.queryByText("https://youtu.be/history-21"),
   ).not.toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Retirer" })).toBeEnabled();
   expect(
-    screen.getByRole("button", { name: "Remplacer le lien" }),
-  ).toBeEnabled();
+    screen.queryByRole("button", { name: "Retirer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Remplacer le lien" }),
+  ).not.toBeOnTheScreen();
 
   // When: a new explicit refresh succeeds without submitting the retained draft.
   failRead = false;
@@ -1300,7 +1354,7 @@ it("shows a scoped full-read card for pending-only history", async () => {
   expect(
     screen.queryByText("https://youtu.be/history-1"),
   ).not.toBeOnTheScreen();
-  expect(screen.getByText("Mes propositions (1)")).toBeOnTheScreen();
+  expect(screen.queryByText("Mes propositions (1)")).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "Réessayer la lecture" }),
   ).not.toBeOnTheScreen();

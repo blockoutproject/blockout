@@ -232,19 +232,35 @@ export function useModerationMatch(
         predicate: (query) => isModerationResource(query.queryKey[0]),
       });
     }
+    const refetchType =
+      error &&
+      !(
+        error instanceof ApiError &&
+        error.kind === "http" &&
+        error.status !== 408 &&
+        error.status !== 429 &&
+        (error.status ?? 0) < 500
+      )
+        ? "none"
+        : "active";
     for (const queryKey of [
       getListStreamModerationQueryKey(),
       getListModeratedStreamContributionsQueryKey(matchId),
     ]) {
-      void client.invalidateQueries({ queryKey });
+      void client.invalidateQueries({ queryKey, refetchType });
     }
     const resource = getListModeratedStreamContributionsQueryKey(matchId)[0];
     void client.invalidateQueries({
+      refetchType,
       predicate: (query) =>
         typeof query.queryKey[0] === "string" &&
         query.queryKey[0].startsWith(`${resource}/`),
     });
-    void client.invalidateQueries({ queryKey: matchKey, exact: true });
+    void client.invalidateQueries({
+      queryKey: matchKey,
+      exact: true,
+      refetchType,
+    });
   }
 
   const publish = useMutation({

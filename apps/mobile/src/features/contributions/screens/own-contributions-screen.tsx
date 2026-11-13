@@ -112,16 +112,6 @@ export function OwnContributionsScreen({
     editing.canRetain &&
     !isOwnContributionAccessDenied(query.error) &&
     !isOwnContributionAccessDenied(match.error);
-  const rows =
-    authorized && (!hasReadError(query) || query.isFetchNextPageError)
-      ? [
-          ...new Map(
-            (query.data?.pages ?? [])
-              .flatMap((page) => page.items)
-              .map((item) => [item.id, item]),
-          ).values(),
-        ]
-      : [];
   const active = authorized ? current?.activeContribution : undefined;
 
   function refresh() {
@@ -155,20 +145,30 @@ export function OwnContributionsScreen({
           hasReadError(read) && (read !== query || !query.isFetchNextPageError),
       ) ??
       (!editing.profile.data ? editing.profile : !match.data ? match : query));
+  const readFailed =
+    hasReadError(requiredRead) &&
+    (requiredRead !== query || !query.isFetchNextPageError);
   const blocked =
     session.status !== "authenticated" ||
     !editing.canRetain ||
     !current ||
     !authorized ||
-    !match.data;
-  const readFailed =
-    hasReadError(requiredRead) &&
-    (requiredRead !== query || !query.isFetchNextPageError);
+    !match.data ||
+    readFailed;
+  const rows = blocked
+    ? []
+    : [
+        ...new Map(
+          (query.data?.pages ?? [])
+            .flatMap((page) => page.items)
+            .map((item) => [item.id, item]),
+        ).values(),
+      ];
   const pending =
     session.status !== "authenticated"
       ? session.status === "restoring" || !!session.operation
       : !readFailed && requiredRead.isLoading;
-  const FeedbackLayout = pending || !blocked ? View : ScreenState;
+  const FeedbackLayout = pending ? View : ScreenState;
 
   const content = (
     <Page
@@ -183,7 +183,7 @@ export function OwnContributionsScreen({
         renderScrollComponent={
           Platform.OS === "android" ? renderAndroidScroll : undefined
         }
-        alwaysBounceVertical={!blocked && !readFailed}
+        alwaysBounceVertical={!blocked}
         contentContainerStyle={pageContentStyle}
         data={rows}
         keyExtractor={(item) => item.id}
@@ -195,16 +195,14 @@ export function OwnContributionsScreen({
         ItemSeparatorComponent={EntryGroupSeparator}
         refreshControl={
           <DataRefreshControl
-            enabled={
-              !blocked && !readFailed && !change.isPending && !submit.isPending
-            }
+            enabled={!blocked && !change.isPending && !submit.isPending}
             fetching={query.isFetching || match.isFetching}
             onRefresh={refresh}
           />
         }
         ListHeaderComponent={
           <View style={styles.header}>
-            {(blocked || readFailed) && (
+            {blocked && (
               <FeedbackLayout style={pending ? undefined : styles.feedback}>
                 {session.status === "guest" ? (
                   <Button
@@ -263,7 +261,11 @@ export function OwnContributionsScreen({
             </View>
             <Text
               accessibilityRole="header"
-              style={[tokens.typography.heading, { color: colors.text }]}
+              style={[
+                tokens.typography.heading,
+                { color: colors.text },
+                blocked && styles.hidden,
+              ]}
             >
               {!blocked && current
                 ? `Mes propositions (${current.proposalCount})`

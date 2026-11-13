@@ -38,12 +38,13 @@ export function ContributionScreen({
     ? editing.profile
     : ([editing.profile, match, editing.query].find(hasReadError) ??
       (!match.data ? match : editing.query));
-  const blocked = !authenticated || !editing.usable || !current || !match.data;
+  const readFailed = hasReadError(requiredRead);
+  const blocked =
+    !authenticated || !editing.usable || !current || !match.data || readFailed;
   const pending = !authenticated
     ? editing.session.status === "restoring" || !!editing.session.operation
     : !hasReadError(requiredRead) && requiredRead.isLoading;
-  const readFailed = hasReadError(requiredRead);
-  const FeedbackLayout = pending || !blocked ? PageContent : ScreenState;
+  const FeedbackLayout = pending ? PageContent : ScreenState;
 
   function refresh() {
     return Promise.allSettled([
@@ -58,12 +59,12 @@ export function ContributionScreen({
         refreshControl={
           <DataRefreshControl
             fetching={editing.query.isFetching || match.isFetching}
-            enabled={!blocked && !readFailed && !editing.submit.isPending}
+            enabled={!blocked && !editing.submit.isPending}
             onRefresh={refresh}
           />
         }
       >
-        {(blocked || readFailed) && (
+        {blocked && (
           <FeedbackLayout style={guest ? styles.centered : undefined}>
             {guest ? (
               <Button

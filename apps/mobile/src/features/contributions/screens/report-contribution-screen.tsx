@@ -62,20 +62,29 @@ export function ReportContributionScreen({
     ? reporting.profile
     : ([reporting.profile, match, reporting.query].find(hasReadError) ??
       (!match.data ? match : reporting.query));
+  const readFailed = hasReadError(requiredRead);
   const blocked =
     !authenticated ||
     !reporting.usable ||
+    !match.data ||
+    readFailed ||
     (!reporting.query.data && !reporting.command.data?.reported);
   const pending = !authenticated
     ? sessionPending
     : !hasReadError(requiredRead) && requiredRead.isLoading;
-  const readFailed = hasReadError(requiredRead);
-  const FeedbackLayout = pending || !blocked ? PageContent : ScreenState;
+  const FeedbackLayout = pending ? PageContent : ScreenState;
+
+  function refresh() {
+    return Promise.allSettled([
+      reporting.query.refetch({ cancelRefetch: false }),
+      match.refetch({ cancelRefetch: false }),
+    ]);
+  }
 
   return (
     <Page header={<PageHeader title="Lien de diffusion" />}>
       <FormScrollView>
-        {(blocked || readFailed || !match.data) && (
+        {blocked && (
           <FeedbackLayout>
             {reporting.session.status === "guest" ? (
               <Button
@@ -96,6 +105,9 @@ export function ReportContributionScreen({
                 failed={!reporting.usable && !reporting.profile.isPending}
                 query={requiredRead}
                 loadingContent={<ContributionReportLoading />}
+                onRetry={
+                  requiredRead === reporting.profile ? undefined : refresh
+                }
               />
             )}
           </FeedbackLayout>

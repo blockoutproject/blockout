@@ -448,11 +448,13 @@ it("retains the typed address through account read failure and a GET-only retry"
     await screen.findByRole("button", { name: "Réessayer" }),
   ).toBeOnTheScreen();
   expect(
-    screen.getByDisplayValue("https://youtu.be/retained"),
-  ).toBeOnTheScreen();
+    screen.getByDisplayValue("https://youtu.be/retained", {
+      includeHiddenElements: true,
+    }),
+  ).not.toBeVisible();
   expect(
-    screen.getByRole("button", { name: "Soumettre le lien" }),
-  ).toBeEnabled();
+    screen.queryByRole("button", { name: "Soumettre le lien" }),
+  ).not.toBeOnTheScreen();
 
   // When
   unavailable = false;

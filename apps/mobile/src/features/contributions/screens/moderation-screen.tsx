@@ -4,7 +4,7 @@ import { Controller, useForm } from "react-hook-form";
 import { hashKey } from "@tanstack/react-query";
 import { Link, useNavigation, useRouter } from "expo-router";
 import { Image } from "expo-image";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
   AppState,
   Keyboard,
@@ -28,12 +28,11 @@ import {
 import { PagedTabs } from "@/shared/components/paged-tabs";
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import { PageHeader } from "@/shared/components/page-header";
-import { ReadFeedback } from "@/shared/components/read-feedback";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
 import { SearchField } from "@/shared/components/search-field";
 import { EmptyState } from "@/shared/components/state-card";
 import { Button } from "@/shared/components/button";
-import { useActionFeedback } from "@/shared/components/action-feedback";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { AccountSessionFeedback } from "@/features/accounts/current-account";
@@ -198,21 +197,8 @@ function QueueScene({
   const editing = useModerationQueue(filters, active);
   const { query } = editing;
   const { colors } = useTheme();
-  const feedback = useActionFeedback();
   const navigation = useNavigation();
   const criteria = hashKey([filters]);
-  const identity = hashKey([
-    editing.session.subject,
-    editing.session.accountId,
-    filters,
-  ]);
-  const currentScene = useRef<string | undefined>(undefined);
-  useLayoutEffect(() => {
-    currentScene.current = active && editing.allowed ? identity : undefined;
-    return () => {
-      currentScene.current = undefined;
-    };
-  }, [active, editing.allowed, identity]);
   const current =
     editing.canRetain && !isAccessDenied(query.error)
       ? query.data?.pages[0]
@@ -227,23 +213,16 @@ function QueueScene({
       ]
     : [];
 
-  /** Refreshes this selected traversal from page zero, retaining accepted rows and route criteria on failure. */
+  /** Refreshes this selected traversal from page zero; Query retains rows behind required-read feedback on failure. */
   async function refresh() {
     if (refreshing || !active) {
       return;
     }
-    feedback.clear();
     setRefreshing(true);
     try {
       await editing.refresh();
     } catch {
-      if (
-        rows.length > 0 &&
-        currentScene.current === identity &&
-        navigation.isFocused()
-      ) {
-        feedback.error();
-      }
+      // The exhausted required read owns its shared Error/Retry presentation.
     } finally {
       setRefreshing(false);
     }
@@ -263,16 +242,19 @@ function QueueScene({
     ) {
       return;
     }
-    feedback.clear();
     await query.fetchNextPage({ cancelRefetch: false });
   }
 
+  const failed =
+    hasReadError(editing.profile) ||
+    (hasReadError(query) && !query.isFetchNextPageError);
   const refreshControl =
     current && rows.length > 0 ? (
-      <DataRefreshControl enabled={active} onRefresh={refresh} />
+      <DataRefreshControl enabled={active && !failed} onRefresh={refresh} />
     ) : undefined;
   if (
     !current &&
+    !failed &&
     (editing.session.status === "restoring" ||
       !!editing.session.operation ||
       (editing.session.status === "authenticated" &&
@@ -290,7 +272,7 @@ function QueueScene({
       </PageScrollView>
     );
   }
-  if (rows.length === 0 || query.isRefetchError) {
+  if (rows.length === 0 || failed) {
     /** Recovers private queue admission before showing its empty state. */
     function renderEmptyState() {
       if (editing.session.status !== "authenticated") {
@@ -305,7 +287,7 @@ function QueueScene({
           </Text>
         );
       }
-      if (!current || query.isError) {
+      if (!current || failed) {
         const read =
           editing.profile.isError || editing.profile.isPending
             ? editing.profile
@@ -374,14 +356,6 @@ function QueueScene({
           void more();
         }
       }}
-      ListHeaderComponent={
-        editing.profile.isError ? (
-          <ReadFeedback
-            query={editing.profile}
-            loadingContent={<ModerationQueueLoading />}
-          />
-        ) : undefined
-      }
       renderItem={({ item }) => <ModerationQueueRow item={item} />}
       ListFooterComponent={
         <>

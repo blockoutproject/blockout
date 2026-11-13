@@ -651,6 +651,7 @@ it("keeps an acknowledged replacement distinct from retained proposals after ret
     throw new Error("Missing test HTTP boundary");
   }
   let acknowledged = false;
+  let failOwnerRead = true;
   let submissions = 0;
   const previous = {
     id: "00000000-0000-4000-8000-000000000004",
@@ -675,7 +676,7 @@ it("keeps an acknowledged replacement distinct from retained proposals after ret
         acknowledged = true;
         return boundary(url, init);
       }
-      if (acknowledged) {
+      if (acknowledged && failOwnerRead) {
         throw new TypeError("Controlled owner read failure");
       }
       return Response.json(
@@ -729,7 +730,13 @@ it("keeps an acknowledged replacement distinct from retained proposals after ret
   );
 
   // Then
-  expect(await screen.findByText("Votre lien public")).toBeOnTheScreen();
+  expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByText("Votre lien public")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Retirer" }),
+  ).not.toBeOnTheScreen();
   expect(
     screen.queryByText(
       /Les modifications déjà confirmées restent enregistrées/,
@@ -738,9 +745,17 @@ it("keeps an acknowledged replacement distinct from retained proposals after ret
   expect(
     screen.queryByRole("button", { name: "Réessayer la lecture" }),
   ).not.toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Retirer" })).toBeEnabled();
   expect(submissions).toBe(1);
   expect(Alert.alert).not.toHaveBeenCalled();
+
+  // When: a safe owner read restores the editor without replaying the accepted replacement.
+  failOwnerRead = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByText("Votre lien public")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Retirer" })).toBeEnabled();
+  expect(submissions).toBe(1);
 });
 
 it("returns from the owned editor to the exact match after withdrawing its active projection", async () => {

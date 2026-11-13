@@ -7,6 +7,7 @@ import {
   StreamReportStateResponse,
   type CreateStreamReportRequest,
 } from "../../../../.generated/schemas/index.zod";
+import { ApiError } from "@/shared/api/api-fetch";
 import { isAccessDenied } from "@/shared/api/access-denied";
 import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import {
@@ -83,12 +84,30 @@ export function useContributionReport(matchId: string, contributionId: string) {
         schema: StreamReportStateResponse,
       }),
     onError: withdrawRefusedState,
-    onSettled: () => {
-      void client.invalidateQueries({ queryKey, exact: true });
+    onSettled: (_data, error) => {
+      // Refusals still recover authority; temporary failure needs no GET before another explicit send.
+      const refetchType =
+        error &&
+        !(
+          error instanceof ApiError &&
+          error.kind === "http" &&
+          error.status !== 408 &&
+          error.status !== 429 &&
+          error.status !== 404 &&
+          (error.status ?? 0) < 500
+        )
+          ? "none"
+          : "active";
+      void client.invalidateQueries({ queryKey, exact: true, refetchType });
       void client.invalidateQueries({
         queryKey: contributionKeys.own(actor, matchId),
+        refetchType,
       });
-      void client.invalidateQueries({ queryKey: match.queryKey, exact: true });
+      void client.invalidateQueries({
+        queryKey: match.queryKey,
+        exact: true,
+        refetchType,
+      });
     },
   });
   return { session, profile, usable, query, command };

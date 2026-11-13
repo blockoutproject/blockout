@@ -301,7 +301,7 @@ it.each([
   },
 );
 
-it("loads proposals from retained owner authority after a technical account read failure", async () => {
+it("replaces proposals with account recovery after a technical account read failure", async () => {
   // Given: the account was accepted on a different screen, then its reread failed.
   const view = await render(<Text>Another route</Text>, { wrapper: Wrapper });
   await waitFor(() =>
@@ -332,10 +332,13 @@ it("loads proposals from retained owner authority after a technical account read
   // When
   await view.rerender(<OwnContributionsScreen matchId={match.match.id} />);
 
-  // Then: retained authorized data admits this first dependent read without a mandatory account retry.
+  // Then: authorized data remains in Query, but the failed required read replaces the body.
   expect(
-    await screen.findByRole("header", { name: "Mes propositions (0)" }),
+    await screen.findByRole("button", { name: "Réessayer" }),
   ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("header", { name: "Mes propositions (0)" }),
+  ).not.toBeOnTheScreen();
   expect(reads.some((path) => path.includes("/stream-contributions"))).toBe(
     true,
   );
@@ -344,7 +347,10 @@ it("loads proposals from retained owner authority after a technical account read
 
 it.each(
   (["submit", "withdraw"] as const).flatMap((action) =>
-    (["lost", "conflict"] as const).map((outcome) => ({ action, outcome })),
+    (action === "submit"
+      ? (["lost", "conflict", 408, 429] as const)
+      : (["lost", "conflict"] as const)
+    ).map((outcome) => ({ action, outcome })),
   ),
 )(
   "invalidates owner and public reads after $action $outcome without replay",
@@ -361,6 +367,12 @@ it.each(
       owner = ownContributions({ revision: "newer" });
       if (outcome === "lost") {
         throw new TypeError("Lost acknowledgement");
+      }
+      if (typeof outcome === "number") {
+        return Response.json(
+          { status: outcome, title: "Unavailable" },
+          { status: outcome },
+        );
       }
       return Response.json(
         {
@@ -388,16 +400,25 @@ it.each(
     });
 
     // Then
-    await waitFor(() =>
-      expect(result.current.query.data?.pages[0].revision).toBe("newer"),
-    );
     await waitFor(() => expect(client.isFetching()).toBe(0));
-    expect(reads.slice(baselineReads)).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining("stream-contributions"),
-        `/matches/${match.match.id}`,
-      ]),
-    );
+    if (outcome === "conflict") {
+      await waitFor(() =>
+        expect(result.current.query.data?.pages[0].revision).toBe("newer"),
+      );
+      expect(reads.slice(baselineReads)).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining("stream-contributions"),
+          `/matches/${match.match.id}`,
+        ]),
+      );
+    } else {
+      expect(result.current.query.data?.pages[0].revision).toBe("initial");
+      expect(reads.slice(baselineReads)).toEqual([]);
+      expect(
+        client.getQueryState(getGetMatchQueryKey(match.match.id))
+          ?.isInvalidated,
+      ).toBe(true);
+    }
     expect(writes).toHaveLength(1);
     expect(mockFetch).toHaveBeenCalledWith(
       writes[0].url,
@@ -418,17 +439,22 @@ it.each(
         ? `/matches/${match.match.id}/stream-contributions`
         : `/stream-contributions/${version.id}`,
     );
-    expect(
-      (action === "submit" ? result.current.submit : result.current.change)
-        .isError,
-    ).toBe(true);
+    await waitFor(() =>
+      expect(
+        (action === "submit" ? result.current.submit : result.current.change)
+          .isError,
+      ).toBe(true),
+    );
   },
 );
 
 it.each(
   (["publish", "approve", "reject", "withdraw", "reactivate"] as const).flatMap(
     (action) =>
-      (["lost", "conflict"] as const).map((outcome) => ({ action, outcome })),
+      (action === "publish"
+        ? (["lost", "conflict", 408, 429] as const)
+        : (["lost", "conflict"] as const)
+      ).map((outcome) => ({ action, outcome })),
   ),
 )(
   "invalidates moderation resources after $action $outcome without inferring historical execution",
@@ -455,6 +481,12 @@ it.each(
       detail = { ...detail, revision: "someone-else-later" };
       if (outcome === "lost") {
         throw new TypeError("Lost acknowledgement");
+      }
+      if (typeof outcome === "number") {
+        return Response.json(
+          { status: outcome, title: "Unavailable" },
+          { status: outcome },
+        );
       }
       return Response.json(
         {
@@ -490,19 +522,24 @@ it.each(
     });
 
     // Then
-    await waitFor(() =>
-      expect(result.current.query.data?.pages[0].revision).toBe(
-        "someone-else-later",
-      ),
-    );
     await waitFor(() => expect(client.isFetching()).toBe(0));
-    expect(reads.slice(baselineReads)).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining("/stream-moderation"),
-        expect.stringContaining("/administration/matches/"),
-        `/matches/${match.match.id}`,
-      ]),
-    );
+    if (outcome === "conflict") {
+      await waitFor(() =>
+        expect(result.current.query.data?.pages[0].revision).toBe(
+          "someone-else-later",
+        ),
+      );
+      expect(reads.slice(baselineReads)).toEqual(
+        expect.arrayContaining([
+          expect.stringContaining("/stream-moderation"),
+          expect.stringContaining("/administration/matches/"),
+          `/matches/${match.match.id}`,
+        ]),
+      );
+    } else {
+      expect(result.current.query.data?.pages[0].revision).toBe("viewed");
+      expect(reads.slice(baselineReads)).toEqual([]);
+    }
     expect(client.getQueryState(memberKey)?.isInvalidated).toBe(true);
     expect(writes).toHaveLength(1);
     let expectedCommand = {};
@@ -516,9 +553,10 @@ it.each(
       actorAccountId: account.accountId,
       ...expectedCommand,
     });
-    const mutation = selectedMutation(result.current, action);
-    expect(mutation.isError).toBe(true);
-    expect(mutation.data).toBeUndefined();
+    await waitFor(() =>
+      expect(selectedMutation(result.current, action).isError).toBe(true),
+    );
+    expect(selectedMutation(result.current, action).data).toBeUndefined();
   },
 );
 
@@ -549,13 +587,27 @@ it("keeps confirmed report success when both dependent reads fail", async () => 
 
   // Then
   expect(
+    await screen.findByRole("button", { name: "Réessayer" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByText("Votre signalement a été envoyé.", {
+      includeHiddenElements: true,
+    }),
+  ).not.toBeVisible();
+
+  // When: safe read recovery restores the already accepted result without another write.
+  failRead = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(
     await screen.findByText("Votre signalement a été envoyé."),
   ).toBeOnTheScreen();
   expect(screen.queryByLabelText("Motif du signalement")).not.toBeOnTheScreen();
   expect(writes).toHaveLength(1);
 });
 
-it("allows an explicit report from the retained reason after a technical account read failure", async () => {
+it("restores the retained reason after required account recovery before an explicit report", async () => {
   // Given: generated HTTP, account, Query and RHF owners retain the exact report target.
   const user = userEvent.setup();
   await render(
@@ -570,7 +622,10 @@ it("allows an explicit report from the retained reason after a technical account
     await screen.findByLabelText("Motif du signalement"),
     "Fictional retained reason",
   );
-  const boundary = mockFetch.getMockImplementation()!;
+  const boundary = mockFetch.getMockImplementation();
+  if (!boundary) {
+    throw new Error("Missing test HTTP boundary");
+  }
   mockFetch.mockImplementation((url, init) =>
     String(url).endsWith("/me")
       ? Promise.resolve(
@@ -585,12 +640,23 @@ it("allows an explicit report from the retained reason after a technical account
   );
 
   // Then
+  await screen.findByRole("button", { name: "Réessayer" });
   expect(
-    screen.getByDisplayValue("Fictional retained reason"),
+    screen.getByDisplayValue("Fictional retained reason", {
+      includeHiddenElements: true,
+    }),
+  ).not.toBeVisible();
+  expect(
+    screen.queryByRole("button", { name: "Envoyer le signalement" }),
+  ).not.toBeOnTheScreen();
+  expect(writes).toHaveLength(0);
+
+  // When: GET-only account recovery restores the same draft.
+  mockFetch.mockImplementation(boundary);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  expect(
+    await screen.findByDisplayValue("Fictional retained reason"),
   ).toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Envoyer le signalement" }),
-  ).toBeEnabled();
   expect(writes).toHaveLength(0);
 
   // When: only a new explicit action sends this reason to its original version.
@@ -614,85 +680,80 @@ it("allows an explicit report from the retained reason after a technical account
   ]);
 });
 
-it("retains a lost report's draft for a later explicit retry on the same version", async () => {
-  // Given
-  const user = userEvent.setup();
-  await render(
-    <ReportContributionScreen
-      matchId={match.match.id}
-      contributionId={version.id}
-      contributionUrl={version.url}
-    />,
-    { wrapper: Wrapper },
-  );
-  await user.type(
-    await screen.findByLabelText("Motif du signalement"),
-    "Fictional private reason",
-  );
-  write = async () => {
-    failRead = true;
-    throw new TypeError("Lost report acknowledgement");
-  };
+it.each(["lost", 408, 429] as const)(
+  "retains the report draft after %s for a later explicit retry on the same version",
+  async (outcome) => {
+    // Given
+    const user = userEvent.setup();
+    await render(
+      <ReportContributionScreen
+        matchId={match.match.id}
+        contributionId={version.id}
+        contributionUrl={version.url}
+      />,
+      { wrapper: Wrapper },
+    );
+    await user.type(
+      await screen.findByLabelText("Motif du signalement"),
+      "Fictional private reason",
+    );
+    write = async () => {
+      failRead = true;
+      if (outcome === "lost") {
+        throw new TypeError("Lost report acknowledgement");
+      }
+      return Response.json(
+        { status: outcome, title: "Unavailable" },
+        { status: outcome },
+      );
+    };
 
-  // When
-  await user.press(
-    screen.getByRole("button", { name: "Envoyer le signalement" }),
-  );
+    // When
+    await user.press(
+      screen.getByRole("button", { name: "Envoyer le signalement" }),
+    );
 
-  // Then
-  expect(
-    await screen.findByText(
-      "Une erreur est survenue. Veuillez réessayer plus tard.",
-    ),
-  ).toBeOnTheScreen();
-  expect(
-    screen.getByDisplayValue("Fictional private reason"),
-  ).toBeOnTheScreen();
-  expect(
-    screen.queryByRole("button", { name: /Actualiser/ }),
-  ).not.toBeOnTheScreen();
-  expect(writes).toHaveLength(1);
-  expect(mockFetch).toHaveBeenCalledWith(
-    writes[0].url,
-    expect.objectContaining({ method: "POST" }),
-  );
-  expect(writes[0].url).toContain(
-    `/accounts/${account.accountId}/stream-contributions/${version.id}/report`,
-  );
+    // Then
+    expect(
+      await screen.findByText(
+        "Une erreur est survenue. Veuillez réessayer plus tard.",
+      ),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByDisplayValue("Fictional private reason"),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: /Actualiser/ }),
+    ).not.toBeOnTheScreen();
+    expect(writes).toHaveLength(1);
+    expect(mockFetch).toHaveBeenCalledWith(
+      writes[0].url,
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(writes[0].url).toContain(
+      `/accounts/${account.accountId}/stream-contributions/${version.id}/report`,
+    );
 
-  // When: the read card retries only its GET while the ordinary draft remains usable.
-  await waitFor(() => expect(client.isFetching()).toBe(0));
-  const beforeRetry = mockFetch.mock.calls.length;
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
-  await waitFor(() =>
-    expect(mockFetch.mock.calls.length).toBeGreaterThan(beforeRetry),
-  );
-  await waitFor(() => expect(client.isFetching()).toBe(0));
+    // Then: settlement does not require another read or offer a read-recovery mode.
+    expect(
+      screen.queryByRole("button", { name: "Réessayer" }),
+    ).not.toBeOnTheScreen();
 
-  // Then
-  expect(
-    mockFetch.mock.calls
-      .slice(beforeRetry)
-      .every(([, init]) => init?.method === "GET"),
-  ).toBe(true);
-  expect(writes).toHaveLength(1);
-  expect(
-    screen.getByDisplayValue("Fictional private reason"),
-  ).toBeOnTheScreen();
+    // When
+    failRead = false;
+    write = async () => Response.json({ reported: true });
+    await user.press(
+      screen.getByRole("button", { name: "Envoyer le signalement" }),
+    );
 
-  // When
-  write = async () => Response.json({ reported: true });
-  await user.press(
-    screen.getByRole("button", { name: "Envoyer le signalement" }),
-  );
-
-  // Then
-  expect(
-    await screen.findByText("Votre signalement a été envoyé."),
-  ).toBeOnTheScreen();
-  expect(writes).toHaveLength(2);
-  expect(writes[1]).toEqual(writes[0]);
-});
+    // Then
+    expect(
+      await screen.findByText("Votre signalement a été envoyé."),
+    ).toBeOnTheScreen();
+    expect(writes).toHaveLength(2);
+    expect(writes[1]).toEqual(writes[0]);
+  },
+);
 
 it("retains a dirty contribution after conflict and failed explicit refresh without claiming a successful read", async () => {
   // Given
@@ -716,16 +777,26 @@ it("retains a dirty contribution after conflict and failed explicit refresh with
   // When
   await user.press(screen.getByRole("button", { name: "Soumettre le lien" }));
   await waitFor(() => expect(client.isFetching()).toBe(0));
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await user.press(await screen.findByRole("button", { name: "Réessayer" }));
 
   // Then
-  expect(screen.getByDisplayValue(version.url)).toBeOnTheScreen();
+  expect(
+    screen.getByDisplayValue(version.url, { includeHiddenElements: true }),
+  ).not.toBeVisible();
   expect(screen.queryByText(/L’état courant a été relu/)).not.toBeOnTheScreen();
   expect(mockDismissTo).not.toHaveBeenCalled();
   expect(writes).toHaveLength(1);
+
+  // When
+  failRead = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByDisplayValue(version.url)).toBeOnTheScreen();
+  expect(writes).toHaveLength(1);
 });
 
-it("keeps an ordinary failed contribution editable for another explicit submission after failed reads", async () => {
+it("keeps an ordinary failed contribution editable without a compulsory read before resubmission", async () => {
   // Given: only HTTP is controlled; the real form and mutation retain their original account and match.
   const user = userEvent.setup();
   await render(<ContributionScreen matchId={match.match.id} />, {
@@ -1087,6 +1158,11 @@ it("uses current positive report state after lost acknowledgement without anothe
     screen.getByRole("button", { name: "Envoyer le signalement" }),
   );
 
+  // When: an ordinary later read can observe acceptance; it is not a compulsory write prerequisite.
+  await act(async () => {
+    await client.invalidateQueries();
+  });
+
   // Then
   expect(
     await screen.findByText("Vous avez déjà signalé ce lien."),
@@ -1212,11 +1288,17 @@ it.each([401, 403, 404])(
       screen.getByRole("button", { name: "Envoyer le signalement" }),
     );
 
+    await act(async () => {
+      await client.invalidateQueries({
+        queryKey: getGetMatchQueryKey(match.match.id),
+      });
+    });
+
     // Then
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: "Envoyer le signalement" }),
-      ).toBeDisabled(),
+        screen.queryByRole("button", { name: "Envoyer le signalement" }),
+      ).not.toBeOnTheScreen(),
     );
     expect(
       screen.queryByText("Vous avez déjà signalé ce lien."),
@@ -1224,8 +1306,10 @@ it.each([401, 403, 404])(
     expect(screen.queryByText(version.url)).not.toBeOnTheScreen();
     expect(screen.queryByText("Home")).not.toBeOnTheScreen();
     expect(
-      screen.getByDisplayValue("Fictional private reason"),
-    ).toBeOnTheScreen();
+      screen.getByDisplayValue("Fictional private reason", {
+        includeHiddenElements: true,
+      }),
+    ).not.toBeVisible();
 
     // When
     denied = false;
@@ -1239,8 +1323,8 @@ it.each([401, 403, 404])(
     // Then
     expect(screen.queryByText(version.url)).not.toBeOnTheScreen();
     expect(
-      screen.getByRole("button", { name: "Envoyer le signalement" }),
-    ).toBeDisabled();
+      screen.queryByRole("button", { name: "Envoyer le signalement" }),
+    ).not.toBeOnTheScreen();
     expect(writes).toHaveLength(1);
   },
 );

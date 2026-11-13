@@ -1,7 +1,7 @@
 import { PageList } from "@/shared/components/page-list";
 import { useNavigation } from "expo-router";
 import { hashKey } from "@tanstack/react-query";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppState, StyleSheet, Text, View } from "react-native";
 import type {
   ModeratedStreamContributionsResponse,
@@ -246,7 +246,7 @@ function ActiveScene({
     try {
       await (form.current ? form.current.refresh() : editing.refresh());
     } catch {
-      feedback.error();
+      // The exhausted required read owns its shared Error/Retry presentation.
     }
   }
 
@@ -255,6 +255,7 @@ function ActiveScene({
     editing.profile.isError || editing.profile.isPending
       ? editing.profile
       : editing.query;
+  const blocked = !current || hasReadError(read);
 
   /** Session recovery stays with F05; this destination presents its own required private read. */
   function renderReadState() {
@@ -288,33 +289,31 @@ function ActiveScene({
       contentContainerStyle={pageContentStyle}
       refreshControl={
         <DataRefreshControl
-          enabled={active && !busy && !!current && !hasReadError(read)}
+          enabled={active && !busy && !blocked}
           onRefresh={refresh}
           fetching={editing.query.isFetching}
         />
       }
     >
       <View style={styles.header}>
-        {confirmed && (
-          <Text
-            accessibilityLiveRegion="polite"
-            style={[tokens.typography.strong, { color: colors.text }]}
-          >
-            Décision confirmée
-          </Text>
-        )}
         {renderReadState()}
-        {current && !editing.query.isRefetchError && (
-          <ModerationMatchContext match={current.match} />
-        )}
-        {current && !published && (
-          <Text
-            style={[tokens.typography.body, { color: colors.secondaryText }]}
-          >
-            Aucun lien actif
-          </Text>
-        )}
-        <View style={!current ? styles.hidden : undefined}>
+        <View style={[styles.content, blocked && styles.hidden]}>
+          {confirmed && (
+            <Text
+              accessibilityLiveRegion="polite"
+              style={[tokens.typography.strong, { color: colors.text }]}
+            >
+              Décision confirmée
+            </Text>
+          )}
+          {current && <ModerationMatchContext match={current.match} />}
+          {current && !published && (
+            <Text
+              style={[tokens.typography.body, { color: colors.secondaryText }]}
+            >
+              Aucun lien actif
+            </Text>
+          )}
           <ModerationPublicationForm
             ref={form}
             current={current}
@@ -384,13 +383,6 @@ function VersionScene({
     matchId,
     state,
   ]);
-  const currentScene = useRef<string | undefined>(undefined);
-  useLayoutEffect(() => {
-    currentScene.current = active && reading.allowed ? identity : undefined;
-    return () => {
-      currentScene.current = undefined;
-    };
-  }, [active, reading.allowed, identity]);
   const feedback = useActionFeedback();
   const { colors } = useTheme();
 
@@ -402,17 +394,7 @@ function VersionScene({
     feedback.clear();
     setRefreshing(true);
     try {
-      const results = await Promise.allSettled([
-        reading.refresh(),
-        refreshContext(),
-      ]);
-      if (
-        currentScene.current === identity &&
-        navigation.isFocused() &&
-        results.some((result) => result.status === "rejected")
-      ) {
-        feedback.error();
-      }
+      await Promise.allSettled([reading.refresh(), refreshContext()]);
     } finally {
       setRefreshing(false);
     }
@@ -437,8 +419,12 @@ function VersionScene({
     await query.fetchNextPage({ cancelRefetch: false });
   }
 
+  const failed =
+    hasReadError(reading.profile) ||
+    (hasReadError(query) && !query.isFetchNextPageError);
   if (
     !current &&
+    !failed &&
     (reading.session.status === "restoring" ||
       !!reading.session.operation ||
       (reading.session.status === "authenticated" &&
@@ -455,8 +441,8 @@ function VersionScene({
       </PageScrollView>
     );
   }
-  if (!current || query.isRefetchError) {
-    /** Renders exact-tab admission and read feedback without replacing retained versions. */
+  if (!current || failed) {
+    /** Renders exact-tab admission and read feedback while Query retains authorized versions. */
     function renderVersionsState() {
       if (reading.session.status !== "authenticated") {
         return (
@@ -534,12 +520,6 @@ function VersionScene({
               Décision confirmée
             </Text>
           )}
-          {reading.profile.isError && (
-            <ReadFeedback
-              query={reading.profile}
-              loadingContent={<ModerationMatchLoading />}
-            />
-          )}
           <ModerationMatchContext match={current.match} />
         </View>
       }
@@ -586,6 +566,7 @@ function VersionScene({
 
 const styles = StyleSheet.create({
   hidden: { display: "none" },
+  content: { gap: tokens.layout.list.gap },
   empty: { alignItems: "center" },
   centered: { justifyContent: "center" },
   header: {
