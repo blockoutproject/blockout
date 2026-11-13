@@ -5,7 +5,6 @@ import {
   getCreateSupportRequestMutationKey,
 } from "../../../../.generated/mobile";
 import {
-  createSupportRequestBodyImagesMax,
   SubmitSupportRequest,
   type CreateSupportRequestBody,
 } from "../../../../.generated/schemas/index.zod";
@@ -71,27 +70,17 @@ export function useSupportSubmission() {
 
   /**
    * Captures metadata and the complete selection before credentials or network I/O.
-   * A missing prepared file rejects the whole selection; callers retain prepared bytes through settlement.
+   * The form admits prepared files and retains their bytes through settlement.
    * RHF's caller serializes taps and retains its editable values on rejection.
    */
   async function send(
     metadata: SubmitSupportRequest,
-    images: readonly (Blob | null | undefined)[] = [],
+    images: readonly Blob[] = [],
   ): Promise<void> {
-    if (images.length > createSupportRequestBodyImagesMax) {
-      throw new ApiError("http", 422);
-    }
-    const files: Blob[] = [];
-    for (const image of images) {
-      if (!image) {
-        throw new ApiError("http", 422);
-      }
-      files.push(image);
-    }
     // Expo File implements Blob without inheriting from it; the native transport owns those file references.
     const body = {
       metadata: SubmitSupportRequest.parse(metadata),
-      images: files,
+      images: [...images],
     };
     await mutation.mutateAsync(body);
   }

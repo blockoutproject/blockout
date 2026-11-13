@@ -91,23 +91,7 @@ function Navigation({
   );
 }
 
-/** Defers age I/O until discovery releases ordinary entry for this session. */
-function InstallationNavigation({
-  registration,
-  privacy,
-}: Readonly<{
-  registration: PushRegistration;
-  privacy: ReturnType<typeof createInstallationAdvertisingPrivacy>;
-}>) {
-  const discovery = useDiscovery();
-  return (
-    <AgeDeclarationProvider enabled={discovery.complete} privacy={privacy}>
-      <Navigation registration={registration} />
-    </AgeDeclarationProvider>
-  );
-}
-
-/** Projects SDK-active membership into the sole system theme owner without remounting routes. */
+/** Projects membership into the theme and defers age I/O until discovery releases entry. */
 function ThemedNavigation({
   registration,
   privacy,
@@ -117,10 +101,13 @@ function ThemedNavigation({
 }>) {
   const { state } = usePro();
   const session = useAccountSession();
+  const discovery = useDiscovery();
   return (
     <ThemeProvider proAccent={state.status === "active"}>
       <ActionFeedbackProvider scopeKey={session.subject ?? "guest"}>
-        <InstallationNavigation registration={registration} privacy={privacy} />
+        <AgeDeclarationProvider enabled={discovery.complete} privacy={privacy}>
+          <Navigation registration={registration} />
+        </AgeDeclarationProvider>
       </ActionFeedbackProvider>
     </ThemeProvider>
   );
