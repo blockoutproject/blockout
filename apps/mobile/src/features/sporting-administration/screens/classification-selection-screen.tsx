@@ -63,7 +63,7 @@ function Selection({
 }>) {
   const feedback = useActionFeedback();
   const router = useRouter();
-  const divisions = useDivisions();
+  const divisions = useDivisions(field === "divisionId");
   const classification = useClassification(target);
   const value = useWatch({ control: editor.form.control, name: field });
   // Refused remote choices disappear; static choices and the parent's RHF draft remain available read-only.

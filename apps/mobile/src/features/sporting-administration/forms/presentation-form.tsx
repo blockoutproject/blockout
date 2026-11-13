@@ -28,14 +28,14 @@ import {
 import { prepareSportingLogo } from "../images/prepare-sporting-logo";
 import { type PresentationValues } from "../schemas/presentation-schema";
 import { presentationValues } from "./presentation-values";
-import { usePresentationDraft } from "./use-presentation-draft";
-import { isSportingReadRefused } from "../api/sporting-administration-queries";
+import type { usePresentationDraft } from "./use-presentation-draft";
 
 /** One original resource and session; background reads never replace this form's editable snapshot. */
 export interface PresentationFormProps {
   presentation: Presentation;
   target: PresentationTarget;
   editing: ReturnType<typeof usePresentation>;
+  editor: ReturnType<typeof usePresentationDraft>;
   disabled: boolean;
   /** Current F03 team/pool context when publicly readable; absence never blocks editing. */
   seasonLabel?: string;
@@ -48,6 +48,7 @@ export function PresentationForm({
   presentation,
   target,
   editing,
+  editor,
   disabled,
   seasonLabel,
   professionalTeam,
@@ -60,9 +61,8 @@ export function PresentationForm({
   const { colors } = useTheme();
   const actionFeedback = useActionFeedback();
   const mounted = useRef(false);
-  const editor = usePresentationDraft(presentation);
   const state = editor.state;
-  const { baseline } = state;
+  const baseline = state.baseline ?? presentation;
   const feedback = state.feedback ?? undefined;
   const { control, handleSubmit, setError, setValue } = editor.form;
   const imageSelection = useImageSelection({
@@ -130,11 +130,14 @@ export function PresentationForm({
   } = presentationContext(baseline);
   const selection = draft.action === "automatic" ? "automatic" : "effective";
   const hasLogo =
-    draft.action === "automatic"
+    editing.query.data !== null &&
+    (draft.action === "automatic"
       ? currentLogo?.automaticUrl != null
-      : currentLogo?.effectiveUrl != null;
+      : currentLogo?.effectiveUrl != null);
   const artwork = usePresentationLogo(
-    target,
+    created && baseline.kind === "division"
+      ? { kind: "division", id: baseline.data.id }
+      : target,
     selection,
     hasLogo && draft.action !== "replace",
     revision,
@@ -164,34 +167,6 @@ export function PresentationForm({
     ) {
       return;
     }
-    if (
-      baseline.kind === "division-creation" &&
-      baseline.data.items.some(
-        (item) =>
-          item.name.toLocaleLowerCase() ===
-          values.name.trim().toLocaleLowerCase(),
-      )
-    ) {
-      setError("name", {
-        message:
-          "Ce nom de division est déjà utilisé. Vérifiez la liste des divisions.",
-      });
-      return;
-    }
-    if (
-      creating &&
-      !(await confirmAction({
-        title: "Créer la division ?",
-        message:
-          "La nouvelle division sera active. Sa présentation ne changera jamais implicitement son activité.",
-        confirmLabel: "Créer la division",
-      }))
-    ) {
-      return;
-    }
-    if (!mounted.current || imageSelection.isPending()) {
-      return;
-    }
     editor.update({ ...state, feedback: undefined });
     const file =
       values.logo.action === "replace" ? values.logo.prepared : undefined;
@@ -208,9 +183,6 @@ export function PresentationForm({
         feedback: undefined,
       });
       editor.reset(presentationValues(accepted));
-      if (creating) {
-        editor.discard();
-      }
     } catch (error) {
       handleSaveError(error);
     } finally {
@@ -269,7 +241,7 @@ export function PresentationForm({
       imageSelection.isPending() ||
       editing.save.isPending ||
       activity.save.isPending ||
-      isSportingReadRefused(editing.query.error) ||
+      editing.query.data === null ||
       !activity.authority.enabled ||
       rereadRequired
     ) {
@@ -387,7 +359,7 @@ export function PresentationForm({
               disabled={
                 imageSelection.pending ||
                 editing.save.isPending ||
-                isSportingReadRefused(editing.query.error) ||
+                editing.query.data === null ||
                 rereadRequired
               }
               onPress={() => void changeActivity()}

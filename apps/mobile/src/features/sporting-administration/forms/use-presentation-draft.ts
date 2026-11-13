@@ -12,26 +12,35 @@ import { presentationValues } from "./presentation-values";
 
 /** The baseline is coherent with the mounted RHF draft; background reads never rebase it. */
 interface DraftState {
-  baseline: Presentation;
+  baseline?: Presentation;
   feedback?: string;
 }
 
 /** Owns a mounted draft and loans a submitted file until the native upload settles. */
-export function usePresentationDraft(presentation: Presentation) {
-  const [state, update] = useState<DraftState>({ baseline: presentation });
+export function usePresentationDraft(
+  presentation: Presentation | null | undefined,
+) {
+  const [state, update] = useState<DraftState>({
+    baseline: presentation ?? undefined,
+  });
   const form = useForm<PresentationValues>({
     resolver: zodResolver(presentationSchema),
-    defaultValues: presentationValues(presentation),
+    defaultValues: presentation ? presentationValues(presentation) : undefined,
   });
   const uploading = useRef<File | undefined>(undefined);
   const released = useRef(false);
+
+  if (!state.baseline && presentation) {
+    update({ baseline: presentation });
+    form.reset(presentationValues(presentation));
+  }
 
   /** Deletes only an app-owned copy no longer used by this draft or its submitted upload. */
   function releaseUnused(file: File | undefined) {
     const logo = form.getValues("logo");
     if (
       file !== uploading.current &&
-      (released.current || logo.action !== "replace" || logo.prepared !== file)
+      (released.current || logo?.action !== "replace" || logo.prepared !== file)
     ) {
       deleteOwnedImage(file);
     }
@@ -42,7 +51,7 @@ export function usePresentationDraft(presentation: Presentation) {
     return () => {
       released.current = true;
       const logo = form.getValues("logo");
-      const file = logo.action === "replace" ? logo.prepared : undefined;
+      const file = logo?.action === "replace" ? logo.prepared : undefined;
       if (file !== uploading.current) {
         deleteOwnedImage(file);
       }
@@ -85,6 +94,10 @@ export function usePresentationDraft(presentation: Presentation) {
       releaseUnused(file);
     },
     /** Explicit abandonment resets the visible draft and releases its unused file. */
-    discard: () => reset(presentationValues(state.baseline)),
+    discard: () => {
+      if (state.baseline) {
+        reset(presentationValues(state.baseline));
+      }
+    },
   };
 }

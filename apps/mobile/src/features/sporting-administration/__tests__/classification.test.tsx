@@ -298,7 +298,7 @@ it("announces the pending division catalogue without inventing editable rows", a
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
 });
 
-it("submits a complete pool override after confirmation and excludes inactive choices", async () => {
+it("submits a complete pool override directly and excludes inactive choices", async () => {
   // Given
   jest.spyOn(Alert, "alert");
   mockFetch.mockImplementation((url, options) => {
@@ -329,12 +329,7 @@ it("submits a complete pool override after confirmation and excludes inactive ch
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   // Then
   expect(screen.queryByRole("radio", { name: "Inactive" })).toBeNull();
-  expect(
-    mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
-  ).toHaveLength(0);
-  // When
-  await act(async () => nativeAlertAction("Enregistrer")());
-  // Then
+  expect(Alert.alert).not.toHaveBeenCalled();
   await waitFor(() =>
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining(`/pools/${id}/classification`),
@@ -428,7 +423,6 @@ it("removes the complete pack default with explicit null", async () => {
   // When
   await user.press(screen.getByRole("radio", { name: "Sans classification" }));
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAlertAction("Enregistrer")());
   // Then
   await waitFor(() =>
     expect(mockFetch).toHaveBeenCalledWith(
@@ -480,7 +474,6 @@ it("retains dirty choices and displays conflicting scopes without applying a sub
   await user.press(await screen.findByRole("radio", { name: "Masculin" }));
   await screen.findByRole("button", { name: "Genre" });
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAlertAction("Enregistrer")());
   // Then
   expect(await screen.findByText(new RegExp(inactiveId))).toBeOnTheScreen();
   expect(
@@ -528,7 +521,6 @@ it.each(["lost-response", "unknown-conflict"])(
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAlertAction("Enregistrer")());
 
     // Then
     await screen.findByText(
@@ -546,6 +538,32 @@ it.each(["lost-response", "unknown-conflict"])(
     expect(
       mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
     ).toHaveLength(1);
+
+    // When: a later save is explicit and uses the exact retained draft.
+    mockFetch.mockImplementation((url, options) => {
+      if (options?.method === "PUT") {
+        stored = {
+          ...stored,
+          revision: "r2",
+          setting: { ...classification, format: "4x4" },
+        };
+        return Promise.resolve(json(stored));
+      }
+      return respond(url, options);
+    });
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+    // Then
+    await waitFor(() =>
+      expect(
+        screen.queryByText("Modifications non enregistrées"),
+      ).not.toBeOnTheScreen(),
+    );
+    const writes = mockFetch.mock.calls.filter(
+      ([, options]) => options?.method === "PUT",
+    );
+    expect(writes).toHaveLength(2);
+    expect(writes[1][1]?.body).toBe(writes[0][1]?.body);
   },
 );
 it("uses an independent explicit activity command with the division revision", async () => {
@@ -635,7 +653,6 @@ it("keeps dirty choices through a failed ordinary refresh without retrying the w
   await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
   await screen.findByRole("button", { name: "Format" });
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAlertAction("Enregistrer")());
   await screen.findByText(
     "Une erreur est survenue. Veuillez réessayer plus tard.",
   );
@@ -938,11 +955,9 @@ it.each(["classification", "activity"])(
         await screen.findByRole("button", { name: "Enregistrer" }),
       );
     }
-    await act(async () =>
-      nativeAlertAction(
-        operation === "activity" ? "Désactiver" : "Enregistrer",
-      )(),
-    );
+    if (operation === "activity") {
+      await act(async () => nativeAlertAction("Désactiver")());
+    }
 
     // Then
     if (operation === "activity") {
@@ -996,7 +1011,6 @@ it("reports a refused save and uses a newer revision only on explicit resubmissi
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAlertAction("Enregistrer")());
   await screen.findByText(
     "Une erreur est survenue. Veuillez réessayer plus tard.",
   );
@@ -1006,7 +1020,6 @@ it("reports a refused save and uses a newer revision only on explicit resubmissi
   );
   refuse = false;
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAlertAction("Enregistrer")());
 
   // Then
   await waitFor(() =>
@@ -1024,39 +1037,22 @@ it("reports a refused save and uses a newer revision only on explicit resubmissi
   });
 });
 
-it("retains dirty choices when the server refuses a confirmation after the grant was revoked", async () => {
+it("retains dirty choices when the server refuses a direct save", async () => {
   // Given
-  jest.spyOn(Alert, "alert");
   stored.setting = classification;
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PUT"
+      ? Promise.resolve(json({ title: "Forbidden", status: 403 }, 403))
+      : respond(url, options),
+  );
   const user = userEvent.setup();
   await renderEditor();
   await user.press(await screen.findByRole("button", { name: "Format" }));
   await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
   await screen.findByRole("button", { name: "Format" });
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  permissions = { manageDivisionLifecycle: true };
-  mockFetch.mockImplementation((url, options) =>
-    options?.method === "PUT"
-      ? Promise.resolve(
-          json(
-            {
-              type: "urn:blockout:problem:forbidden",
-              title: "Forbidden",
-              status: 403,
-            },
-            403,
-          ),
-        )
-      : respond(url, options),
-  );
-  await act(async () =>
-    client.refetchQueries({
-      predicate: ({ queryKey }) => queryKey.includes("/accounts/me"),
-    }),
-  );
 
   // When
-  await act(async () => nativeAlertAction("Enregistrer")());
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
   await screen.findByText(
@@ -1065,10 +1061,12 @@ it("retains dirty choices when the server refuses a confirmation after the grant
   expect(
     screen.getByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });
+  expect(screen.getByText("Modifications non enregistrées")).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
   ).toHaveLength(1);
 });
+
 it("shows current activity on reentry for an operator with classification permission only", async () => {
   // Given
   permissions = { manageSportingClassification: true };
@@ -1192,44 +1190,6 @@ it("opens division creation from the catalogue for a lifecycle-only operator", a
     await screen.findByRole("header", { name: "Créer une division" }),
   ).toBeOnTheScreen();
   expect(await screen.findByLabelText("Nom de la division")).toBeOnTheScreen();
-});
-
-it("discards a held classification confirmation when its protected route is removed", async () => {
-  // Given
-  permissions = { manageSportingClassification: true };
-  stored.setting = classification;
-  const user = userEvent.setup();
-  await openRoutes();
-  await user.press(
-    await screen.findByRole("link", { name: "Modifier la classification" }),
-  );
-  jest.spyOn(Alert, "alert");
-  await user.press(await screen.findByRole("button", { name: "Enregistrer" }));
-  const confirmation = jest
-    .mocked(Alert.alert)
-    .mock.lastCall?.[2]?.find(
-      (action) => action.text === "Enregistrer",
-    )?.onPress;
-  if (!confirmation) {
-    throw new Error("Missing native classification confirmation");
-  }
-
-  // When
-  permissions = {};
-  await user.press(
-    await screen.findByRole("button", { name: "Relire les permissions" }),
-  );
-  await waitFor(() =>
-    expect(
-      screen.queryByRole("button", { name: "Enregistrer" }),
-    ).not.toBeOnTheScreen(),
-  );
-  await act(async () => confirmation());
-
-  // Then
-  expect(
-    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
-  ).toBe(false);
 });
 
 it("keeps classification choices but disables editing after a current resource refusal", async () => {
@@ -1562,42 +1522,7 @@ it("keeps an open format selector unavailable through a refused then failed clas
   expect(screen.queryByText("Une erreur est survenue")).toBeNull();
 });
 
-it("retains the draft when the server refuses a held save after its current read was refused", async () => {
-  // Given
-  jest.spyOn(Alert, "alert");
-  stored.setting = classification;
-  const user = userEvent.setup();
-  await renderEditor();
-  await user.press(await screen.findByRole("button", { name: "Format" }));
-  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
-  await screen.findByRole("button", { name: "Format" });
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  mockFetch.mockImplementation((url, options) =>
-    String(url).includes("/classification")
-      ? Promise.resolve(json({ title: "Forbidden", status: 403 }, 403))
-      : respond(url, options),
-  );
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-  await screen.findByRole("alert", {
-    name: "Une erreur est survenue",
-  });
-
-  // When
-  await act(async () => nativeAlertAction("Enregistrer")());
-
-  // Then
-  expect(
-    mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
-  ).toHaveLength(1);
-  expect(
-    screen.getByRole("button", { name: "Format" }),
-  ).toHaveAccessibilityValue({ text: "4 × 4" });
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
-  );
-});
-
-it("waits for classification and indispensable initial custom choices before admitting the form", async () => {
+it("admits classification while loading only its custom choices", async () => {
   // Given
   stored.setting = classification;
   const catalogue = Promise.withResolvers<Response>();
@@ -1616,17 +1541,20 @@ it("waits for classification and indispensable initial custom choices before adm
 
   // Then
   expect(
-    screen.queryByRole("button", { name: "Enregistrer" }),
-  ).not.toBeOnTheScreen();
+    await screen.findByRole("button", { name: "Enregistrer" }),
+  ).toBeDisabled();
+  expect(screen.getByRole("radio", { name: "Du pack" })).toBeEnabled();
   expect(screen.getAllByRole("progressbar")).toHaveLength(1);
 
   // When
   await act(() => catalogue.resolve(json({ items: [division] })));
 
   // Then
-  expect(
-    await screen.findByRole("button", { name: "Division" }),
-  ).toHaveAccessibilityValue({ text: "National 2" });
+  await waitFor(() =>
+    expect(
+      screen.getByRole("button", { name: "Division" }),
+    ).toHaveAccessibilityValue({ text: "National 2" }),
+  );
 });
 
 it("recovers a failed initial custom catalogue as one read without exposing a UUID or field error", async () => {
@@ -1647,9 +1575,7 @@ it("recovers a failed initial custom catalogue as one read without exposing a UU
   expect(
     screen.queryByText(/Choisissez une division active disponible/),
   ).not.toBeOnTheScreen();
-  expect(
-    screen.queryByLabelText("Actualiser les données"),
-  ).not.toBeOnTheScreen();
+  expect(screen.queryByLabelText("Actualiser les données")).toBeOnTheScreen();
 
   // When
   unavailable = false;
@@ -1664,41 +1590,12 @@ it("recovers a failed initial custom catalogue as one read without exposing a UU
   ).toBe(false);
 });
 
-it("keeps removal available while an unrelated catalogue read is pending", async () => {
-  // Given
-  const catalogue = Promise.withResolvers<Response>();
-  jest.spyOn(Alert, "alert");
-  mockFetch.mockImplementation((url, options) =>
-    String(url).includes("/divisions?")
-      ? catalogue.promise
-      : respond(url, options),
-  );
-  const user = userEvent.setup();
-  await renderEditor("pack");
-
-  // When
-  await user.press(await screen.findByRole("button", { name: "Enregistrer" }));
-
-  // Then
-  expect(Alert.alert).toHaveBeenCalled();
-  expect(screen.queryByText(new RegExp(divisionId))).not.toBeOnTheScreen();
-
-  // When: cancelling confirmation never writes, including with pending unrelated data.
-  await act(async () => nativeAlertAction("Annuler")());
-  await act(() => catalogue.resolve(json({ items: [division] })));
-
-  // Then
-  expect(
-    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
-  ).toBe(false);
-});
-
-it("does not turn a failed catalogue into invalid input after selecting custom classification", async () => {
+it("requires the catalogue for custom choices and saves Du pack during catalogue 503", async () => {
   // Given
   jest.spyOn(Alert, "alert");
   mockFetch.mockImplementation((url, options) =>
     String(url).includes("/divisions?")
-      ? Promise.reject(new TypeError("Catalogue unavailable"))
+      ? Promise.resolve(json({ title: "Unavailable", status: 503 }, 503))
       : respond(url, options),
   );
   const user = userEvent.setup();
@@ -1720,6 +1617,23 @@ it("does not turn a failed catalogue into invalid input after selecting custom c
     screen.queryByText(/La division sélectionnée est inactive/),
   ).not.toBeOnTheScreen();
   expect(screen.getByText("Modifications non enregistrées")).toBeOnTheScreen();
+  expect(Alert.alert).not.toHaveBeenCalled();
+
+  // When
+  await user.press(screen.getByRole("radio", { name: "Du pack" }));
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  await waitFor(() =>
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining(`/pools/${id}/classification`),
+      expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify({ revision: "r1", classification: null }),
+      }),
+    ),
+  );
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   expect(Alert.alert).not.toHaveBeenCalled();
 });
 
@@ -1761,7 +1675,7 @@ it("keeps the known draft and revision when indispensable catalogue rereading fa
 });
 
 it.each(["pack", "pool"] as const)(
-  "rereads and confirms %s removal without waiting for the catalogue",
+  "rereads and saves %s removal without waiting for the catalogue",
   async (kind) => {
     // Given
     stored.setting = classification;
@@ -1806,7 +1720,6 @@ it.each(["pack", "pool"] as const)(
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(async () => nativeAlertAction("Enregistrer")());
     await act(() => catalogue.resolve(json({ items: [division] })));
 
     // Then
@@ -1894,4 +1807,142 @@ it("serializes explicit custom rereading until its catalogue settles, then permi
   expect(
     screen.queryByRole("button", { name: "Relire la classification" }),
   ).not.toBeOnTheScreen();
+});
+
+it("saves the pack choice directly without reading the custom catalogue", async () => {
+  // Given
+  const alert = jest.spyOn(Alert, "alert");
+  mockFetch.mockImplementation((url, options) => {
+    if (String(url).includes("/divisions?")) {
+      return Promise.resolve(json({ title: "Unavailable", status: 503 }, 503));
+    }
+    if (options?.method === "PUT") {
+      stored = { ...stored, revision: "r2" };
+      return Promise.resolve(json(stored));
+    }
+    return respond(url, options);
+  });
+  const user = userEvent.setup();
+  await renderEditor();
+
+  // When
+  await user.press(await screen.findByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  await waitFor(() =>
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining(`/pools/${id}/classification`),
+      expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify({ revision: "r1", classification: null }),
+      }),
+    ),
+  );
+  expect(alert).not.toHaveBeenCalled();
+  expect(
+    mockFetch.mock.calls.some(([url]) => String(url).includes("/divisions?")),
+  ).toBe(false);
+});
+
+it("keeps explicit revision rereading available after its classification read fails", async () => {
+  // Given
+  stored.setting = classification;
+  const user = userEvent.setup();
+  await renderEditor();
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+  stored = { ...stored, revision: "r2" };
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await screen.findByRole("button", { name: "Relire la classification" });
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/classification")
+      ? Promise.resolve(json({ title: "Unavailable", status: 503 }, 503))
+      : respond(url, options),
+  );
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Relire la classification" }),
+  );
+
+  // Then
+  await screen.findByText(/La relecture a échoué/);
+  expect(
+    screen.getByRole("button", { name: "Relire la classification" }),
+  ).toBeEnabled();
+  expect(
+    screen.getByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+
+  // When
+  mockFetch.mockImplementation(respond);
+  await user.press(
+    screen.getByRole("button", { name: "Relire la classification" }),
+  );
+
+  // Then
+  await screen.findByText(/État relu/);
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+  expect(
+    screen.getByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
+  ).toBe(false);
+});
+
+it("retains the accepted classification revision when the following read fails", async () => {
+  // Given
+  stored.setting = classification;
+  let writes = 0;
+  mockFetch.mockImplementation((url, options) => {
+    if (options?.method === "PUT") {
+      writes += 1;
+      stored = {
+        ...stored,
+        revision: `r${writes + 1}`,
+        setting: { ...classification, format: "4x4" },
+      };
+      return Promise.resolve(json(stored));
+    }
+    if (writes > 0 && String(url).includes("/classification")) {
+      return Promise.resolve(json({ title: "Unavailable", status: 503 }, 503));
+    }
+    return respond(url, options);
+  });
+  const user = userEvent.setup();
+  await renderEditor();
+  await user.press(await screen.findByRole("button", { name: "Format" }));
+  await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
+  await screen.findByRole("button", { name: "Format" });
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(
+    screen.getByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
+  expect(
+    screen.queryByRole("button", { name: "Relire la classification" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+  expect(
+    screen.queryByText("Modifications non enregistrées"),
+  ).not.toBeOnTheScreen();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  await waitFor(() => expect(writes).toBe(2));
+  const requests = mockFetch.mock.calls.filter(
+    ([, options]) => options?.method === "PUT",
+  );
+  expect(JSON.parse(String(requests[1][1]?.body))).toEqual({
+    revision: "r2",
+    classification: { ...classification, format: "4x4" },
+  });
 });

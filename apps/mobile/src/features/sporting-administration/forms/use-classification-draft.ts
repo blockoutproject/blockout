@@ -12,19 +12,19 @@ import { useClassificationVisit } from "./classification-visit";
 
 /** Original revision and local feedback belong to this mounted editing visit. */
 interface DraftState {
-  baseline: ClassificationDetailResponse;
+  baseline: ClassificationDetailResponse | null;
   feedback?: string;
 }
 
 /** Owns RHF fields and their coherent baseline for the mounted route only. */
 export function useClassificationDraft(
   target: ClassificationTarget,
-  current: ClassificationDetailResponse,
+  current: ClassificationDetailResponse | null,
 ) {
   const [state, update] = useState<DraftState>({ baseline: current });
   const form = useForm<ClassificationValues>({
     resolver: zodResolver(classificationSchema),
-    defaultValues: classificationValues(current),
+    defaultValues: current ? classificationValues(current) : undefined,
   });
   const context = useClassificationVisit();
   const setVisit = context?.setVisit;
@@ -37,6 +37,6 @@ export function useClassificationDraft(
     form,
     state,
     update,
-    discard: () => form.reset(classificationValues(current)),
+    discard: () => form.reset(),
   };
 }
