@@ -28,7 +28,7 @@ export function SupportChoice({ field }: Readonly<SupportChoiceProps>) {
     return (
       <Sheet title="Assistance" onClose={() => router.back()}>
         <SheetContent>
-          <ErrorState />
+          <ErrorState description="Ce choix n’est pas disponible. Fermez cette fenêtre pour revenir au formulaire." />
         </SheetContent>
       </Sheet>
     );

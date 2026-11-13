@@ -118,7 +118,7 @@ Reset the count on `OPENED`. Release the pending destination at most once on `CL
 
 Publish static UTF-8 HTML for `imprint`, `privacy` and `terms`, containing a nonempty title, free-form version, complete body and truthful modification date. Review the actual text before publication. Reuse the public `/legals/privacy` URL and its external account-deletion directions; define the other public document paths consistently. Ordinary backend routes serve the same pages to the mobile browser and external/store readers, without authentication or advertising scripts/cookies.
 
-Use Expo `WebBrowser.openBrowserAsync`: iOS integrated browser and Android Custom Tabs own reading, return and network controls. Provide an explicit missing-page response. A backend outage affects reading; failed delivery preserves valid content without guaranteeing uninterrupted access.
+Use Expo `WebBrowser.openBrowserAsync`: iOS integrated browser and Android Custom Tabs own reading, return and network controls. `useLegalDocuments` keeps native opening failure feedback at the original action; another explicit link press retries opening. Add no document-read query or recovery screen. Provide an explicit missing-page response. A backend outage affects reading; failed delivery preserves valid content without guaranteeing uninterrupted access.
 
 F11 requires restricted club contacts to stay absent through collection, editing and restoration. Apply the [F02 field-restriction transaction](../002-sporting-data/data-model.md#presentation-and-privacy) through authorized manual operations; the existing contracts retain null representations and conflict semantics. No dedicated screen or privacy endpoint is added.
 

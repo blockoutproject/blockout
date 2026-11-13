@@ -91,7 +91,7 @@ function Navigation({
   );
 }
 
-/** Defers age I/O until discovery releases ordinary entry, preserving independent discovery read/retry. */
+/** Defers age I/O until discovery releases ordinary entry for this session. */
 function InstallationNavigation({
   registration,
   privacy,

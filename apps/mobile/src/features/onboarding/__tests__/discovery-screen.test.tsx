@@ -1,4 +1,3 @@
-import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   act,
@@ -7,8 +6,7 @@ import {
   screen,
   userEvent,
 } from "@testing-library/react-native";
-import { useState } from "react";
-import { Pressable, Text } from "react-native";
+import { Text } from "react-native";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { RequestLoading } from "@/shared/components/request-feedback";
 import { DiscoveryProvider, useDiscovery } from "../discovery-provider";
@@ -46,11 +44,9 @@ function Journey() {
 async function openDiscovery() {
   return render(
     <ThemeProvider>
-      <ActionFeedbackProvider scopeKey="test">
-        <DiscoveryProvider>
-          <Journey />
-        </DiscoveryProvider>
-      </ActionFeedbackProvider>
+      <DiscoveryProvider>
+        <Journey />
+      </DiscoveryProvider>
     </ThemeProvider>,
   );
 }
@@ -131,54 +127,59 @@ it("keeps interruption and back navigation incomplete", async () => {
   expect(await readDiscoveryCompletion()).toBe(false);
 });
 
-it("waits for persistence and retains the journey on write failure before an explicit retry", async () => {
+it("enters immediately while persistence is pending and repeats discovery after a failed write", async () => {
   // Given
   const user = userEvent.setup();
   const write = Promise.withResolvers<void>();
   jest.spyOn(AsyncStorage, "setItem").mockReturnValueOnce(write.promise);
-  await openDiscovery();
+  const view = await openDiscovery();
 
   // When
   await user.press(await screen.findByRole("button", { name: "Passer" }));
 
   // Then
-  expect(screen.queryByText("Ordinary routes")).toBeNull();
-  expect(screen.getByRole("button", { name: "Passer" })).toBeDisabled();
+  expect(await screen.findByText("Ordinary routes")).toBeOnTheScreen();
 
   // When
   await act(async () => write.reject(new Error("Storage")));
 
   // Then
-  expect(
-    await screen.findByText(
-      "Une erreur est survenue. Veuillez réessayer plus tard.",
-    ),
-  ).toBeOnTheScreen();
+  expect(screen.getByText("Ordinary routes")).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).toBeNull();
   expect(await readDiscoveryCompletion()).toBe(false);
+
+  // When
+  await view.unmount();
+  await openDiscovery();
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Passer" }),
+  ).toBeOnTheScreen();
+});
+
+it("shows normal discovery when its optional completion flag cannot be read", async () => {
+  // Given
+  jest
+    .spyOn(AsyncStorage, "getItem")
+    .mockRejectedValueOnce(new Error("Storage"));
+  const user = userEvent.setup();
+
+  // When
+  await openDiscovery();
+
+  // Then
+  expect(
+    await screen.findByText("Tout le volley.\nDans ta poche."),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
 
   // When
   await user.press(screen.getByRole("button", { name: "Passer" }));
 
   // Then
   expect(await screen.findByText("Ordinary routes")).toBeOnTheScreen();
-});
-
-it("offers explicit recovery when the installation flag cannot be read", async () => {
-  // Given
-  jest
-    .spyOn(AsyncStorage, "getItem")
-    .mockRejectedValueOnce(new Error("Storage"));
-  const user = userEvent.setup();
-  await openDiscovery();
-
-  // When
-  await user.press(await screen.findByRole("button", { name: "Réessayer" }));
-
-  // Then
-  expect(
-    await screen.findByRole("button", { name: "Passer" }),
-  ).toBeOnTheScreen();
-  expect(await readDiscoveryCompletion()).toBe(false);
+  expect(await readDiscoveryCompletion()).toBe(true);
 });
 
 it("ignores a previous mount's unfinished read after the installation is completed", async () => {
@@ -222,59 +223,5 @@ it("preserves an acknowledged installation write when the submitting tree is rem
 
   // Then
   expect(await screen.findByText("Ordinary routes")).toBeOnTheScreen();
-  expect(await readDiscoveryCompletion()).toBe(true);
-});
-
-/** Removes the provider in the same user event that commits explicit discovery completion. */
-function FinishAndLeave() {
-  const [open, setOpen] = useState(true);
-  return open ? (
-    <ThemeProvider>
-      <ActionFeedbackProvider scopeKey="test">
-        <DiscoveryProvider>
-          <FinishAction onLeave={() => setOpen(false)} />
-        </DiscoveryProvider>
-      </ActionFeedbackProvider>
-    </ThemeProvider>
-  ) : (
-    <Text>Journey closed</Text>
-  );
-}
-
-/** Exercises the public installation command without waiting for an intermediate render. */
-function FinishAction({ onLeave }: Readonly<{ onLeave: () => void }>) {
-  const discovery = useDiscovery();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Finish and leave"
-      disabled={discovery.loading}
-      onPress={() => {
-        discovery.finish();
-        discovery.finish();
-        onLeave();
-      }}
-    >
-      <Text>Finish and leave</Text>
-    </Pressable>
-  );
-}
-
-it("dispatches explicit completion once even when its tree leaves in the same event", async () => {
-  // Given
-  const write = jest.spyOn(AsyncStorage, "setItem");
-  const user = userEvent.setup();
-  await render(<FinishAndLeave />);
-  expect(
-    await screen.findByRole("button", { name: "Finish and leave" }),
-  ).toBeEnabled();
-  write.mockClear();
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Finish and leave" }));
-
-  // Then
-  expect(screen.getByText("Journey closed")).toBeOnTheScreen();
-  expect(write).toHaveBeenCalledTimes(1);
   expect(await readDiscoveryCompletion()).toBe(true);
 });

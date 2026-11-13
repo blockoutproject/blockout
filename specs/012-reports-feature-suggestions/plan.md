@@ -93,7 +93,7 @@ React Hook Form owns the current editable draft; TanStack Query owns the single 
 
 Use the shared image control, preserving support's multiple-image semantics. ImagePicker does not impose square editing; ImageManipulator performs a bounded preparation preserving proportions. A failed or oversized result remains an explicit selection error until replacement/removal, never an omitted file. Native file references are submitted through ordinary FormData rather than base64 JSON. Temporary picker UI does not discard the current form. Account/session change discards private input, invalidates callbacks and prevents a late response from changing the new form.
 
-The shared full-image preview measures safe-area insets inside its native Modal so its close action remains reachable below the system bar.
+Selected images use the shared passive thumbnails and their field-owned replacement/removal actions, without an enlarged viewer. An invalid choice route keeps the existing card and Close/Back exit to the retained form, with contextual guidance and no fictional read retry.
 
 The [canonical contract](contracts/README.md) owns the exact operation, enum values, fields and responses. The backend supplies one operation to the mobile; GitHub is not exposed as a client API. Existing generated Java/TypeScript clients and validators remain authoritative. No `Location` is invented for a resource with no mobile read route, and no private GitHub URL is returned. The shared unavailable response now delegates retry behavior to each operation rather than imposing a read-before-retry on F10.
 

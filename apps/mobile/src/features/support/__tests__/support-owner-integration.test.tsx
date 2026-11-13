@@ -209,6 +209,34 @@ async function sentMetadata(): Promise<SubmitSupportRequest> {
   return JSON.parse(await (body.get("metadata") as Blob).text());
 }
 
+it("closes an invalid choice route back to the retained draft without a fictional retry", async () => {
+  // Given
+  await openRoute("/support");
+  const user = await fillForm();
+
+  // When
+  await act(() => router.push("/support/choice?field=unknown"));
+
+  // Then
+  expect(
+    await screen.findByText(
+      "Ce choix n’est pas disponible. Fermez cette fenêtre pour revenir au formulaire.",
+    ),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+  expect(supportHttp).not.toHaveBeenCalled();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+
+  // Then
+  expect(screen).toHavePathname("/support");
+  expect(screen.getByDisplayValue("Demande fictive")).toBeOnTheScreen();
+  expect(
+    screen.getByDisplayValue("declared@example.invalid"),
+  ).toBeOnTheScreen();
+});
+
 it.each(["guest", "signed-in", "profile-unavailable"])(
   "keeps the Profile help entry and ordinary sending available to %s without acquiring action credentials",
   async (identity) => {

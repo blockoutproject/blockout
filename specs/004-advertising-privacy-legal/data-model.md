@@ -22,7 +22,7 @@ Unavailable/loading ads do not delay navigation. Incompatible/expired ads and ol
 
 ## Legal document
 
-Three stable types: `imprint`, `privacy`, `terms`. Each complete static HTML document contains its title, free-form version, current body and truthful modification date. The files live with backend resources and have no database identity or mobile editing state. Reviewed release is publication; reading creates neither acceptance nor history. The privacy page contains the externally accessible account-deletion direction and operational rights contact.
+Three stable types: `imprint`, `privacy`, `terms`. Each complete static HTML document contains its title, free-form version, current body and truthful modification date. The files live with backend resources and have no database identity or mobile editing state. The native browser owns the opened document's lifecycle; opening failure has only local action feedback, without a mobile document cache or read state. Reviewed release is publication; reading creates neither acceptance nor history. The privacy page contains the externally accessible account-deletion direction and operational rights contact.
 
 ## Club contact restriction
 

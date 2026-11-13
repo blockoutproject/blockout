@@ -267,28 +267,28 @@ it("preserves a completed installation’s deep link while its local flag is bei
   expect(screen.queryByRole("button", { name: "Passer" })).toBeNull();
 });
 
-it("keeps the root loading gate during an explicit installation-read retry", async () => {
+it("opens ordinary entry after a failed discovery read and write, with discovery again on relaunch", async () => {
   // Given
-  const read = Promise.withResolvers<string | null>();
   jest
     .spyOn(AsyncStorage, "getItem")
-    .mockRejectedValueOnce(new Error("Storage"))
-    .mockReturnValueOnce(read.promise);
+    .mockRejectedValueOnce(new Error("Storage"));
+  jest
+    .spyOn(AsyncStorage, "setItem")
+    .mockRejectedValueOnce(new Error("Storage"));
   const user = userEvent.setup();
-  await openInstallation();
-  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
+  const view = await openInstallation();
 
   // When
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(await screen.findByRole("button", { name: "Passer" }));
 
   // Then
-  expect(
-    screen.getByRole("progressbar", { name: "Vérification de l’accès" }),
-  ).toBeOnTheScreen();
+  expect(await screen.findByText("Ordinary sign-in: guest")).toBeOnTheScreen();
   expect(screen.queryByRole("button", { name: "Passer" })).toBeNull();
+  expect(await readDiscoveryCompletion()).toBe(false);
 
   // When
-  await act(async () => read.resolve(null));
+  await view.unmount();
+  await openInstallation();
 
   // Then
   expect(

@@ -1,5 +1,4 @@
 import { Page, PageScrollView } from "@/shared/components/page";
-import { ErrorState } from "@/shared/components/state-card";
 import { ArrowRight, ChevronLeft } from "lucide-react-native";
 import { useEffect, useRef, useState, type ComponentRef } from "react";
 import {
@@ -15,7 +14,6 @@ import { BrandHeader } from "@/shared/components/brand-header";
 import { Button } from "@/shared/components/button";
 import { IconButton } from "@/shared/components/icon-button";
 
-import { ScreenState } from "@/shared/components/screen-state";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import {
@@ -64,7 +62,7 @@ const steps = [
   },
 ];
 
-/** Common discovery with blocking read feedback; only explicit finish/skip persists completion. */
+/** Common discovery releases this session on explicit finish/skip, independently of flag persistence. */
 export function DiscoveryScreen() {
   const { colors } = useTheme();
   const discovery = useDiscovery();
@@ -83,7 +81,7 @@ export function DiscoveryScreen() {
     const subscription = BackHandler.addEventListener(
       "hardwareBackPress",
       () => {
-        if (step > 0 && !discovery.saving) {
+        if (step > 0) {
           setStep((value) => value - 1);
           return true;
         }
@@ -91,120 +89,108 @@ export function DiscoveryScreen() {
       },
     );
     return () => subscription.remove();
-  }, [step, discovery.saving]);
+  }, [step]);
 
   return (
     <Page
       header={
         <BrandHeader>
-          {discovery.error !== "read" && step < 4 && (
+          {step < 4 && (
             <Button
               label="Passer"
               variant="secondary"
-              onPress={() => void discovery.finish()}
-              loading={discovery.saving}
+              onPress={discovery.finish}
             />
           )}
         </BrandHeader>
       }
     >
       <PageScrollView ref={scroll}>
-        {discovery.error === "read" ? (
-          <ScreenState>
-            <ErrorState onRetry={discovery.retryRead} />
-          </ScreenState>
-        ) : (
-          <View style={styles.stage}>
-            <DiscoveryBackdrop />
-            <View style={styles.stack}>
-              <DiscoveryExample step={step} />
-              <View
-                style={[
-                  styles.card,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                  },
-                ]}
+        <View style={styles.stage}>
+          <DiscoveryBackdrop />
+          <View style={styles.stack}>
+            <DiscoveryExample step={step} />
+            <View
+              style={[
+                styles.card,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <Text
+                style={[tokens.typography.metadata, { color: colors.text }]}
               >
+                {content.label}
+              </Text>
+              <Text
+                ref={heading}
+                accessible
+                accessibilityRole="header"
+                style={[styles.title, { color: colors.text }]}
+              >
+                {content.title}
+              </Text>
+              {content.paragraphs.map((paragraph) => (
                 <Text
-                  style={[tokens.typography.metadata, { color: colors.text }]}
+                  key={paragraph}
+                  style={[
+                    tokens.typography.body,
+                    { color: colors.secondaryText },
+                  ]}
                 >
-                  {content.label}
+                  {paragraph}
                 </Text>
-                <Text
-                  ref={heading}
-                  accessible
-                  accessibilityRole="header"
-                  style={[styles.title, { color: colors.text }]}
-                >
-                  {content.title}
-                </Text>
-                {content.paragraphs.map((paragraph) => (
-                  <Text
-                    key={paragraph}
-                    style={[
-                      tokens.typography.body,
-                      { color: colors.secondaryText },
-                    ]}
-                  >
-                    {paragraph}
-                  </Text>
-                ))}
-              </View>
+              ))}
             </View>
           </View>
-        )}
-      </PageScrollView>
-      {discovery.error !== "read" && (
-        <View style={styles.footer}>
-          <View
-            style={[
-              styles.previous,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-          >
-            <IconButton
-              label="Étape précédente"
-              onPress={() => setStep((value) => value - 1)}
-              disabled={step === 0 || discovery.saving}
-            >
-              <ChevronLeft size={tokens.size.icon.lg} color={colors.icon} />
-            </IconButton>
-          </View>
-          <View
-            accessible
-            accessibilityLabel={`Étape ${step + 1} sur 5`}
-            style={styles.progress}
-          >
-            {steps.map((item, index) => (
-              <View
-                key={item.label}
-                style={[
-                  styles.dot,
-                  {
-                    width: index === step ? 19 : 5,
-                    backgroundColor:
-                      index === step ? colors.text : colors.secondaryText,
-                  },
-                ]}
-              />
-            ))}
-          </View>
-          <View style={styles.trailingAction}>
-            <Button
-              label={step === 4 ? "Commencer" : "Suivant"}
-              trailingIcon={ArrowRight}
-              onPress={() =>
-                step === 4
-                  ? void discovery.finish()
-                  : setStep((value) => value + 1)
-              }
-              loading={discovery.saving}
-            />
-          </View>
         </View>
-      )}
+      </PageScrollView>
+      <View style={styles.footer}>
+        <View
+          style={[
+            styles.previous,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <IconButton
+            label="Étape précédente"
+            onPress={() => setStep((value) => value - 1)}
+            disabled={step === 0}
+          >
+            <ChevronLeft size={tokens.size.icon.lg} color={colors.icon} />
+          </IconButton>
+        </View>
+        <View
+          accessible
+          accessibilityLabel={`Étape ${step + 1} sur 5`}
+          style={styles.progress}
+        >
+          {steps.map((item, index) => (
+            <View
+              key={item.label}
+              style={[
+                styles.dot,
+                {
+                  width: index === step ? 19 : 5,
+                  backgroundColor:
+                    index === step ? colors.text : colors.secondaryText,
+                },
+              ]}
+            />
+          ))}
+        </View>
+        <View style={styles.trailingAction}>
+          <Button
+            label={step === 4 ? "Commencer" : "Suivant"}
+            trailingIcon={ArrowRight}
+            onPress={() =>
+              step === 4 ? discovery.finish() : setStep((value) => value + 1)
+            }
+          />
+        </View>
+      </View>
     </Page>
   );
 }
