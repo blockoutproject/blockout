@@ -409,7 +409,6 @@ it("reloads an empty division catalogue without a search from its card while kee
 it("removes the complete pack default with explicit null", async () => {
   // Given
   stored.setting = classification;
-  jest.spyOn(Alert, "alert");
   mockFetch.mockImplementation((url, options) => {
     if (options?.method === "PUT") {
       stored = { ...stored, revision: "r2", setting: null };
@@ -442,7 +441,6 @@ it("removes the complete pack default with explicit null", async () => {
 
 it("retains dirty choices and displays conflicting scopes without applying a subset", async () => {
   // Given
-  jest.spyOn(Alert, "alert");
   const initialFetch = respond;
   mockFetch.mockImplementation((url, options) =>
     options?.method === "PUT"
@@ -496,7 +494,6 @@ it.each(["lost-response", "unknown-conflict"])(
   async (failure) => {
     // Given
     stored.setting = classification;
-    jest.spyOn(Alert, "alert");
     mockFetch.mockImplementation((url, options) =>
       options?.method === "PUT"
         ? failure === "lost-response"
@@ -635,7 +632,6 @@ it("refuses an incomplete override without opening confirmation or writing", asy
 it("keeps dirty choices through a failed ordinary refresh without retrying the write", async () => {
   // Given
   stored.setting = classification;
-  jest.spyOn(Alert, "alert");
   const initialFetch = respond;
   let failedRead = false;
   mockFetch.mockImplementation((url, options) =>
@@ -977,7 +973,6 @@ it.each(["classification", "activity"])(
 it("reports a refused save and uses a newer revision only on explicit resubmission", async () => {
   // Given
   stored.setting = classification;
-  jest.spyOn(Alert, "alert");
   let refuse = true;
   mockFetch.mockImplementation((url, options) => {
     if (options?.method !== "PUT") {
@@ -1640,7 +1635,6 @@ it("requires the catalogue for custom choices and saves Du pack during catalogue
 it("keeps the known draft and revision when indispensable catalogue rereading fails", async () => {
   // Given
   stored.setting = classification;
-  jest.spyOn(Alert, "alert");
   const user = userEvent.setup();
   await renderEditor();
   await user.press(await screen.findByRole("button", { name: "Format" }));
@@ -1675,11 +1669,10 @@ it("keeps the known draft and revision when indispensable catalogue rereading fa
 });
 
 it.each(["pack", "pool"] as const)(
-  "rereads and saves %s removal without waiting for the catalogue",
+  "rereads and saves %s removal against the current revision",
   async (kind) => {
     // Given
     stored.setting = classification;
-    jest.spyOn(Alert, "alert");
     const user = userEvent.setup();
     await renderEditor(kind);
     await user.press(
@@ -1689,11 +1682,7 @@ it.each(["pack", "pool"] as const)(
     );
     stored = { ...stored, revision: "r2" };
     await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-    const catalogue = Promise.withResolvers<Response>();
     mockFetch.mockImplementation((url, options) => {
-      if (String(url).includes("/divisions?")) {
-        return catalogue.promise;
-      }
       if (options?.method === "PUT") {
         stored = { ...stored, revision: "r3", setting: null };
         return Promise.resolve(json(stored));
@@ -1720,7 +1709,6 @@ it.each(["pack", "pool"] as const)(
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-    await act(() => catalogue.resolve(json({ items: [division] })));
 
     // Then
     await waitFor(() =>

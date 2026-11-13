@@ -68,7 +68,7 @@ export function usePresentationDraft(
   }
 
   /** Resets intentionally while preserving the lifetime of any submitted upload. */
-  function reset(values: PresentationValues, keepDirty = false) {
+  function reset(values?: PresentationValues, keepDirty = false) {
     const previous = form.getValues("logo");
     form.reset(values, { keepDirtyValues: keepDirty, keepDirty });
     releaseUnused(
@@ -94,10 +94,6 @@ export function usePresentationDraft(
       releaseUnused(file);
     },
     /** Explicit abandonment resets the visible draft and releases its unused file. */
-    discard: () => {
-      if (state.baseline) {
-        reset(presentationValues(state.baseline));
-      }
-    },
+    discard: () => reset(),
   };
 }

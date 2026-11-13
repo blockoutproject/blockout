@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import { Controller, useFormState, useWatch } from "react-hook-form";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ClassificationDetailResponse } from "../../../../.generated/schemas/index.zod";
-import { isAccessDenied } from "@/shared/api/access-denied";
 import { ApiError } from "@/shared/api/api-fetch";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { Button } from "@/shared/components/button";
@@ -48,8 +47,8 @@ export function ClassificationForm({
   const [rereading, setRereading] = useState(false);
   const editor = useClassificationDraft(target, current);
   const state = editor.state;
-  const { baseline } = state;
-  const feedback = state.feedback ?? undefined;
+  const { revision } = state;
+  const feedback = state.feedback;
   const { control, handleSubmit, reset, setError } = editor.form;
   const { isDirty, dirtyFields } = useFormState({
     control,
@@ -68,8 +67,7 @@ export function ClassificationForm({
     editing.save.isPending;
   const choicesUnavailable = !divisions.query.isSuccess;
   const choicesBusy = busy || divisions.query.isFetching || choicesUnavailable;
-  const rereadRequired =
-    current !== null && current.revision !== baseline?.revision;
+  const rereadRequired = current !== null && current.revision !== revision;
   const choices =
     divisions.query.data?.items.filter((item) => item.active) ?? [];
   useEffect(() => {
@@ -90,7 +88,7 @@ export function ClassificationForm({
 
   /** Validates active custom choices and sends the complete state against its editing revision. */
   async function submit(values: ClassificationValues) {
-    if (busy || !baseline || rereadRequired) {
+    if (busy || !revision || rereadRequired) {
       return;
     }
     if (values.custom && (choicesUnavailable || divisions.query.isFetching)) {
@@ -107,13 +105,13 @@ export function ClassificationForm({
     }
     try {
       const attempt = editing.save.mutateAsync(
-        toClassificationRequest(baseline.revision, values),
+        toClassificationRequest(revision, values),
       );
       editor.update({ ...editor.state, feedback: undefined });
       actionFeedback.clear();
       const accepted = await attempt;
       editor.update({
-        baseline: accepted,
+        revision: accepted.revision,
         feedback: undefined,
       });
       reset(classificationValues(accepted));
@@ -123,7 +121,6 @@ export function ClassificationForm({
         error.status !== 409 ||
         error.problem?.type !== "urn:blockout:problem:classification-conflict"
       ) {
-        editor.update({ ...editor.state, feedback: undefined });
         actionFeedback.error();
         return;
       }
@@ -172,7 +169,7 @@ export function ClassificationForm({
         keepDirty: true,
       });
       editor.update({
-        baseline: result.data,
+        revision: result.data.revision,
         feedback: "État relu. Vérifiez le brouillon puis enregistrez-le.",
       });
     } finally {
@@ -259,7 +256,7 @@ export function ClassificationForm({
                     (choice) => choice.id === field.value,
                   )?.name
                 }
-                disabled={choicesBusy || isAccessDenied(divisions.query.error)}
+                disabled={choicesBusy}
                 error={
                   divisions.query.isSuccess
                     ? fieldState.error?.message

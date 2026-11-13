@@ -12,16 +12,16 @@ import { useClassificationVisit } from "./classification-visit";
 
 /** Original revision and local feedback belong to this mounted editing visit. */
 interface DraftState {
-  baseline: ClassificationDetailResponse | null;
+  revision: string | undefined;
   feedback?: string;
 }
 
-/** Owns RHF fields and their coherent baseline for the mounted route only. */
+/** Owns RHF defaults and fields with the editing revision for this mounted route. */
 export function useClassificationDraft(
   target: ClassificationTarget,
   current: ClassificationDetailResponse | null,
 ) {
-  const [state, update] = useState<DraftState>({ baseline: current });
+  const [state, update] = useState<DraftState>({ revision: current?.revision });
   const form = useForm<ClassificationValues>({
     resolver: zodResolver(classificationSchema),
     defaultValues: current ? classificationValues(current) : undefined,

@@ -1953,7 +1953,6 @@ it.each([
     // Given
     permissions = { manageDivisionLifecycle: true };
     stored = { items: [] };
-    jest.spyOn(Alert, "alert");
     mockFetch.mockImplementation((url, options) =>
       options?.method === "POST"
         ? Promise.resolve(
@@ -2470,7 +2469,7 @@ it("releases only the replaced logo copy while the new draft remains usable", as
   ).toBeOnTheScreen();
 });
 
-/** A second real consumer makes the shared list and its creation invalidation visible. */
+/** A mounted list makes creation invalidation observable without admitting creation through the catalogue. */
 function DivisionListObserver() {
   const { query, authority } = useDivisions();
   return (
@@ -2522,7 +2521,6 @@ it.each([200, 503])(
         ? Promise.resolve(json({ status: 503 }, 503))
         : respond(url, options);
     });
-    jest.spyOn(Alert, "alert");
     const user = userEvent.setup();
     await renderEditor("division-creation", <DivisionListObserver />);
     await screen.findByLabelText("Nom de la division");
@@ -2533,12 +2531,8 @@ it.each([200, 503])(
         ),
       ).toHaveLength(1),
     );
-    const listPath = getListDivisionsQueryKey({ includeInactive: true })[0];
-    const entries = client
-      .getQueryCache()
-      .findAll({ predicate: ({ queryKey }) => queryKey.includes(listPath) });
-    expect(entries).toHaveLength(1);
-    expect(entries[0]?.state.data).toEqual({ items: [] });
+    const catalogueKey = getListDivisionsQueryKey({ includeInactive: true });
+    expect(client.getQueryData(catalogueKey)).toEqual({ items: [] });
     await user.clear(screen.getByLabelText("Nom de la division"));
     await user.type(screen.getByLabelText("Nom de la division"), "National 2");
     await user.clear(screen.getByLabelText("Couleur HEX"));
@@ -2550,10 +2544,10 @@ it.each([200, 503])(
     // Then
     await screen.findByRole("button", { name: "Voir les divisions" });
     await waitFor(() => expect(client.isFetching()).toBe(0));
-    expect(entries[0]?.state.data).toEqual({
+    expect(client.getQueryData(catalogueKey)).toEqual({
       items: refreshStatus === 200 ? [created] : [],
     });
-    expect(entries[0]?.state.error).toEqual(
+    expect(client.getQueryState(catalogueKey)?.error).toEqual(
       refreshStatus === 200 ? null : expect.objectContaining({ status: 503 }),
     );
     expect(screen.getByLabelText("Nom de la division")).toHaveDisplayValue(

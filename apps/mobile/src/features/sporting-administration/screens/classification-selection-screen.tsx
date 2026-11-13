@@ -1,7 +1,6 @@
 import { RefreshCw } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import { type UseFormReturn, useWatch } from "react-hook-form";
-import { isAccessDenied } from "@/shared/api/access-denied";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { Button } from "@/shared/components/button";
@@ -67,9 +66,7 @@ function Selection({
   const classification = useClassification(target);
   const value = useWatch({ control: editor.form.control, name: field });
   // Refused remote choices disappear; static choices and the parent's RHF draft remain available read-only.
-  const catalog = isAccessDenied(divisions.query.error)
-    ? undefined
-    : divisions.query.data;
+  const catalog = divisions.query.data;
   let label;
   if (field === "divisionId") {
     label = "Division";
@@ -97,12 +94,8 @@ function Selection({
       { value: "2x2", label: formatLabel("2x2") },
     ];
   }
-  const denied =
-    (field === "divisionId" && isAccessDenied(divisions.query.error)) ||
-    isAccessDenied(classification.query.error);
   const disabled =
     divisions.authority.permissions?.manageSportingClassification !== true ||
-    denied ||
     !classification.query.isSuccess;
 
   /** Rereads the current remote choice owner while preserving static choices and the parent draft. */

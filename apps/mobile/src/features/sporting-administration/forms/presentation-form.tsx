@@ -63,7 +63,7 @@ export function PresentationForm({
   const mounted = useRef(false);
   const state = editor.state;
   const baseline = state.baseline ?? presentation;
-  const feedback = state.feedback ?? undefined;
+  const feedback = state.feedback;
   const { control, handleSubmit, setError, setValue } = editor.form;
   const imageSelection = useImageSelection({
     canSelect: () =>
@@ -110,11 +110,10 @@ export function PresentationForm({
   // This subscription also lets RHF retain all dirty fields during the explicit reread reset.
   const selectedLogo =
     dirtyFields.logo !== undefined && draft.action === "replace";
-  const changed =
+  const rereadRequired =
     presentation.kind !== "division-creation" &&
     baseline.kind !== "division-creation" &&
     presentation.data.revision !== baseline.data.revision;
-  const rereadRequired = changed;
   const created = creating && baseline.kind === "division";
   const busy =
     disabled ||
@@ -171,7 +170,7 @@ export function PresentationForm({
     const file =
       values.logo.action === "replace" ? values.logo.prepared : undefined;
     const attempt = editing.save.mutateAsync({
-      revision: revision,
+      revision,
       values,
     });
     actionFeedback.clear();
@@ -192,10 +191,6 @@ export function PresentationForm({
 
   /** Preserves the draft and reports image or name corrections at their field; other failures use ordinary feedback. */
   function handleSaveError(error: unknown) {
-    editor.update({
-      ...editor.state,
-      feedback: undefined,
-    });
     if (
       error instanceof ApiError &&
       (error.problem?.type === "urn:blockout:problem:invalid-image" ||
@@ -218,7 +213,7 @@ export function PresentationForm({
 
   /** Refreshes non-dirty fields and the revision only after a successful explicit read; no write is replayed. */
   async function reread() {
-    const result = await (() => editing.query.refetch())();
+    const result = await editing.query.refetch();
     if (!mounted.current || imageSelection.isPending()) {
       return;
     }
@@ -279,7 +274,6 @@ export function PresentationForm({
       });
       editor.reset(presentationValues(accepted), true);
     } catch {
-      editor.update({ ...editor.state, feedback: undefined });
       actionFeedback.error();
     }
   }
