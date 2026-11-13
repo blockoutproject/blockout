@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet } from "react-native";
 import type {
   CollectionProviderEnum,
   CollectionSeasonResponse,
@@ -37,7 +37,8 @@ export function ProviderSourcesScreen({
     // This initial snapshot only seeds the form visit; it never follows background projections.
     setSnapshot({ key: visitKey, season: season.data });
   }
-  const failed = hasReadError(season) ? season : sources;
+  const requiredRead =
+    [season, sources].find(hasReadError) ?? (!season.data ? season : sources);
   const blocked =
     !authority.enabled ||
     !season.data ||
@@ -48,7 +49,7 @@ export function ProviderSourcesScreen({
     ? authority.sessionStatus === "restoring" ||
       (authority.sessionStatus === "authenticated" &&
         authority.account.isLoading)
-    : !hasReadError(failed) && (season.isLoading || sources.isLoading);
+    : !hasReadError(requiredRead) && (season.isLoading || sources.isLoading);
   const FeedbackLayout = pending ? PageContent : ScreenState;
 
   // Removing RefreshControl changes React Native’s content ancestry and disposes the mounted draft.
@@ -59,12 +60,12 @@ export function ProviderSourcesScreen({
           <DataRefreshControl
             fetching={sources.isFetching || season.isFetching}
             enabled={!blocked && !editing.create.isPending}
-            onRefresh={async () => {
-              await Promise.all([
+            onRefresh={() =>
+              Promise.all([
                 season.refetch({ cancelRefetch: false }),
                 sources.refetch({ cancelRefetch: false }),
-              ]);
-            }}
+              ])
+            }
           />
         }
       >
@@ -77,29 +78,21 @@ export function ProviderSourcesScreen({
               />
             ) : (
               <ReadFeedback
-                query={
-                  hasReadError(failed)
-                    ? failed
-                    : !season.data
-                      ? season
-                      : sources
-                }
+                query={requiredRead}
                 loadingContent={<ProviderPreparationLoading />}
               />
             )}
           </FeedbackLayout>
         )}
-        <PageContent>
-          <View style={blocked ? styles.hidden : undefined}>
-            {seed && (
-              <ProviderPreparationForm
-                key={visitKey}
-                season={seed.season}
-                provider={provider}
-                editing={editing}
-              />
-            )}
-          </View>
+        <PageContent style={blocked ? styles.hidden : undefined}>
+          {seed && (
+            <ProviderPreparationForm
+              key={visitKey}
+              season={seed.season}
+              provider={provider}
+              editing={editing}
+            />
+          )}
         </PageContent>
       </FormScrollView>
     </Page>

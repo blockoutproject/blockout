@@ -69,9 +69,6 @@ export function CollectionDashboardScreen() {
     (authority.sessionStatus === "authenticated" && authority.account.isLoading)
       ? PageContent
       : ScreenState;
-  const blockingState = !authority.enabled ? (
-    <AccessFeedback {...authority} loadingContent={<CollectionLoading />} />
-  ) : undefined;
   return (
     <Page header={<PageHeader title="Collectes" />}>
       <PageScrollView
@@ -84,76 +81,76 @@ export function CollectionDashboardScreen() {
           ) : undefined
         }
       >
-        {blockingState ? (
-          <FeedbackLayout>{blockingState}</FeedbackLayout>
+        {!authority.enabled ? (
+          <FeedbackLayout>
+            <AccessFeedback
+              {...authority}
+              loadingContent={<CollectionLoading />}
+            />
+          </FeedbackLayout>
         ) : (
           <PageContent>
-            {authority.enabled && (
-              <>
-                <Text
-                  accessibilityRole="header"
-                  style={[tokens.typography.heading, { color: colors.text }]}
-                >
-                  Compétitions
-                </Text>
-                {(!failed ? query.data?.items : undefined)?.map((season) => (
-                  <PreparationLink
-                    key={season.id}
-                    label={season.label}
-                    detail={seasonStatus(season)}
-                    icon={CalendarDays}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/collection/[seasonId]",
-                        params: { seasonId: season.id },
-                      })
-                    }
-                  />
-                ))}
-                {!failed && query.data?.items.length === 0 && (
-                  <EmptyState title="Aucune saison découverte">
-                    <Button
-                      label="Actualiser"
-                      leadingIcon={RefreshCw}
-                      onPress={() =>
-                        void query.refetch({ cancelRefetch: false })
-                      }
-                      loading={query.isFetching}
-                    />
-                  </EmptyState>
-                )}
-                <ReadFeedback
-                  query={query}
-                  loadingContent={<CollectionLoading />}
-                />
-                <Text
-                  accessibilityRole="header"
-                  style={[tokens.typography.heading, { color: colors.text }]}
-                >
-                  Clubs · indépendants des saisons
-                </Text>
+            <Text
+              accessibilityRole="header"
+              style={[tokens.typography.heading, { color: colors.text }]}
+            >
+              Compétitions
+            </Text>
+            {!failed &&
+              query.data?.items.map((season) => (
                 <PreparationLink
-                  label="Fiches clubs"
-                  icon={Users}
+                  key={season.id}
+                  label={season.label}
+                  detail={seasonStatus(season)}
+                  icon={CalendarDays}
                   onPress={() =>
                     router.push({
-                      pathname: "/collection/clubs/[family]",
-                      params: { family: "club-sheets" },
+                      pathname: "/collection/[seasonId]",
+                      params: { seasonId: season.id },
                     })
                   }
                 />
-                <PreparationLink
-                  label="Géocodage"
-                  icon={MapPin}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/collection/clubs/[family]",
-                      params: { family: "geocoding" },
-                    })
-                  }
+              ))}
+            {!failed && query.data?.items.length === 0 && (
+              <EmptyState title="Aucune saison découverte">
+                <Button
+                  label="Actualiser"
+                  leadingIcon={RefreshCw}
+                  onPress={() => void query.refetch({ cancelRefetch: false })}
+                  loading={query.isFetching}
                 />
-              </>
+              </EmptyState>
             )}
+            <ReadFeedback
+              query={query}
+              loadingContent={<CollectionLoading />}
+            />
+            <Text
+              accessibilityRole="header"
+              style={[tokens.typography.heading, { color: colors.text }]}
+            >
+              Clubs · indépendants des saisons
+            </Text>
+            <PreparationLink
+              label="Fiches clubs"
+              icon={Users}
+              onPress={() =>
+                router.push({
+                  pathname: "/collection/clubs/[family]",
+                  params: { family: "club-sheets" },
+                })
+              }
+            />
+            <PreparationLink
+              label="Géocodage"
+              icon={MapPin}
+              onPress={() =>
+                router.push({
+                  pathname: "/collection/clubs/[family]",
+                  params: { family: "geocoding" },
+                })
+              }
+            />
           </PageContent>
         )}
       </PageScrollView>
@@ -194,28 +191,22 @@ function SeasonControlScope({
     : !hasReadError(season) && season.isLoading;
   const FeedbackLayout = pending ? PageContent : ScreenState;
   if (!authority.enabled || !season.data || hasReadError(season)) {
-    /** Renders season admission and read feedback before current controls. */
-    function renderSeasonState() {
-      if (!authority.enabled) {
-        return (
-          <AccessFeedback
-            {...authority}
-            loadingContent={<CollectionControlLoading />}
-          />
-        );
-      }
-      return (
-        <ReadFeedback
-          query={season}
-          loadingContent={<CollectionControlLoading />}
-        />
-      );
-    }
-
     return (
       <Page header={<PageHeader title={familyLabels[family]} />}>
         <PageScrollView>
-          <FeedbackLayout>{renderSeasonState()}</FeedbackLayout>
+          <FeedbackLayout>
+            {!authority.enabled ? (
+              <AccessFeedback
+                {...authority}
+                loadingContent={<CollectionControlLoading />}
+              />
+            ) : (
+              <ReadFeedback
+                query={season}
+                loadingContent={<CollectionControlLoading />}
+              />
+            )}
+          </FeedbackLayout>
         </PageScrollView>
       </Page>
     );
@@ -270,29 +261,23 @@ function ControlScope({
     : !hasReadError(query) && query.isLoading;
   const FeedbackLayout = pending ? PageContent : ScreenState;
   if (!authority.enabled || !selected || hasReadError(query)) {
-    /** Renders control admission and read feedback before selecting its dashboard. */
-    function renderControlState() {
-      if (!authority.enabled) {
-        return (
-          <AccessFeedback
-            {...authority}
-            loadingContent={<CollectionControlLoading />}
-          />
-        );
-      }
-      return (
-        <ReadFeedback
-          query={query}
-          loadingContent={<CollectionControlLoading />}
-          failed={!!query.data && !selected}
-        />
-      );
-    }
-
     return (
       <Page header={<PageHeader title={familyLabels[family]} />}>
         <PageScrollView>
-          <FeedbackLayout>{renderControlState()}</FeedbackLayout>
+          <FeedbackLayout>
+            {!authority.enabled ? (
+              <AccessFeedback
+                {...authority}
+                loadingContent={<CollectionControlLoading />}
+              />
+            ) : (
+              <ReadFeedback
+                query={query}
+                loadingContent={<CollectionControlLoading />}
+                failed={!!query.data && !selected}
+              />
+            )}
+          </FeedbackLayout>
         </PageScrollView>
       </Page>
     );
@@ -461,25 +446,6 @@ function ControlDashboard({
     : !hasReadError(query) && query.isLoading;
   const FeedbackLayout = pending ? PageContent : ScreenState;
 
-  /** Renders the current result-list admission, error or empty state. */
-  function renderResultsState() {
-    if (!authority.enabled) {
-      return (
-        <AccessFeedback
-          {...authority}
-          loadingContent={<CollectionControlLoading />}
-        />
-      );
-    }
-    return (
-      <ReadFeedback
-        query={query}
-        loadingContent={<CollectionControlLoading />}
-        failed={!!current && !matches}
-      />
-    );
-  }
-
   /** Distinguishes the initial result skeleton from failed or genuinely empty result reads. */
   function renderEmptyResults() {
     if (continuationVisible) {
@@ -520,7 +486,20 @@ function ControlDashboard({
     <Page header={<PageHeader title={familyLabels[family]} />}>
       {!authority.enabled || !matches ? (
         <PageScrollView>
-          <FeedbackLayout>{renderResultsState()}</FeedbackLayout>
+          <FeedbackLayout>
+            {!authority.enabled ? (
+              <AccessFeedback
+                {...authority}
+                loadingContent={<CollectionControlLoading />}
+              />
+            ) : (
+              <ReadFeedback
+                query={query}
+                loadingContent={<CollectionControlLoading />}
+                failed={!!current && !matches}
+              />
+            )}
+          </FeedbackLayout>
         </PageScrollView>
       ) : (
         <PageFlatList

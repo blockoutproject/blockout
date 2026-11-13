@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet } from "react-native";
 import type { CollectionSeasonResponse } from "../../../../.generated/schemas/index.zod";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { FormScrollView } from "@/shared/components/form-scroll-view";
@@ -43,9 +43,7 @@ export function CloseSeasonScreen({
           <DataRefreshControl
             fetching={season.isFetching}
             enabled={!blocked && !editing.close.isPending}
-            onRefresh={async () => {
-              await season.refetch({ cancelRefetch: false });
-            }}
+            onRefresh={() => season.refetch({ cancelRefetch: false })}
           />
         }
       >
@@ -64,16 +62,14 @@ export function CloseSeasonScreen({
             )}
           </FeedbackLayout>
         )}
-        <PageContent>
-          <View style={blocked ? styles.hidden : undefined}>
-            {seed && (
-              <CloseSeasonForm
-                key={visitKey}
-                season={seed.season}
-                editing={editing}
-              />
-            )}
-          </View>
+        <PageContent style={blocked ? styles.hidden : undefined}>
+          {seed && (
+            <CloseSeasonForm
+              key={visitKey}
+              season={seed.season}
+              editing={editing}
+            />
+          )}
         </PageContent>
       </FormScrollView>
     </Page>

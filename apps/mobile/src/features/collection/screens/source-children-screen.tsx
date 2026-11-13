@@ -64,8 +64,8 @@ export function SourceChildrenScreen({
         ];
 
   /** Full rereads own the scope's card; next-page errors keep their separate continuation footer. */
-  async function refresh() {
-    await query.refetch({ cancelRefetch: false });
+  function refresh() {
+    return query.refetch({ cancelRefetch: false });
   }
 
   /** Shared continuation command keeps traversal and scope; automatic edges separately exclude failed reads. */

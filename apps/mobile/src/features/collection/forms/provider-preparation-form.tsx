@@ -42,8 +42,7 @@ export function ProviderPreparationForm({
   const mounted = useRef(false);
   const editor = useProviderPreparationDraft(season);
   const state = editor.state;
-  const { baseline, selected, adding } = state;
-  const feedback = state.feedback ?? undefined;
+  const { baseline, selected, adding, feedback } = state;
   const { isDirty } = useFormState({ control: editor.form.control });
   const confirmDiscard = useDiscardChanges(isDirty, editor.discard);
   useEffect(() => {
@@ -68,7 +67,6 @@ export function ProviderPreparationForm({
     editing.create.isPending ||
     editing.launch.isPending;
   const reconciliationRequired = current.revision > baseline.revision;
-  const rereadRequired = reconciliationRequired;
   const ready = sources
     .filter(
       (source) =>
@@ -108,7 +106,7 @@ export function ProviderPreparationForm({
 
   /** Presents the actual selected labels; a native confirmation never broadens the atomic launch scope. */
   async function confirmLaunch() {
-    if (busy || rereadRequired || !canLaunch) {
+    if (busy || reconciliationRequired || !canLaunch) {
       return;
     }
     editor.update({ ...state, selected: selection });
@@ -131,7 +129,7 @@ export function ProviderPreparationForm({
 
   /** Sends exactly the selection against its read revision and clears it only after confirmed acceptance. */
   async function launch(confirmed: string[]) {
-    if (busy || rereadRequired || !canLaunch) {
+    if (busy || reconciliationRequired || !canLaunch) {
       return;
     }
     try {
@@ -245,7 +243,7 @@ export function ProviderPreparationForm({
             label="Lancer les sources prêtes"
             fullWidth
             onPress={confirmLaunch}
-            disabled={busy || rereadRequired || !canLaunch}
+            disabled={busy || reconciliationRequired || !canLaunch}
             loading={editing.launch.isPending}
           />
           {selected !== null && !canLaunch && (
@@ -272,7 +270,7 @@ export function ProviderPreparationForm({
             editor={editor}
             provider={provider}
             editing={editing}
-            disabled={busy || closed || rereadRequired}
+            disabled={busy || closed || reconciliationRequired}
             onCancel={() => void cancelAddition()}
           />
         </Surface>

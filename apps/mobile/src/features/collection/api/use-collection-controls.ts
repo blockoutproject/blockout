@@ -7,7 +7,6 @@ import {
 import {
   closeCollectionSeason,
   getCloseCollectionSeasonMutationKey,
-  getGetCollectionSeasonQueryKey,
   getRequestCollectionMutationKey,
   getSetCollectionActivityMutationKey,
   requestCollection,
@@ -43,38 +42,26 @@ export function useCollectionControl(controlId: string, seasonId?: string) {
   const queries = createCollectionQueries(authority);
   const controlOptions = queries.control(controlId);
   const key = controlOptions.queryKey;
-  const seasonKey = seasonId
-    ? getGetCollectionSeasonQueryKey(seasonId)
-    : undefined;
   const query = useQuery(controlOptions);
   const results = useInfiniteQuery(queries.results(controlId));
 
-  /** Invalidates the control and its owning season projections after acceptance. */
-  function accept() {
+  /** Same-revision reads may carry fresher execution facts; an ACK cannot revive withdrawn data. */
+  function acceptResponse(accepted: CollectionControlResponse) {
+    client.setQueryData<CollectionControlResponse>(key, (current) =>
+      current && accepted.revision > current.revision ? accepted : current,
+    );
     void client.invalidateQueries({ queryKey: key, exact: true });
     invalidateCollectionControls(client, seasonId);
     invalidateCollectionSeasons(client);
   }
 
-  /** Admits the accepted revision without reviving a withdrawn control or overwriting a newer read. */
-  function acceptResponse(accepted: CollectionControlResponse) {
-    client.setQueryData<CollectionControlResponse>(key, (current) =>
-      current && accepted.revision > current.revision ? accepted : current,
-    );
-    accept();
-  }
-
   const activity = useMutation({
-    retry: false,
-    networkMode: "always",
     mutationKey: [...key, ...getSetCollectionActivityMutationKey()],
     mutationFn: async (body: SetCollectionActivityRequest) =>
       setCollectionActivity(controlId, body, await authority.request()),
     onSuccess: acceptResponse,
   });
   const request = useMutation({
-    retry: false,
-    networkMode: "always",
     mutationKey: [...key, ...getRequestCollectionMutationKey()],
     // Orval's multi-success-status function supplies no decoder. Validate once at this consuming boundary.
     mutationFn: async (body: RequestCollectionRequest) =>
@@ -90,8 +77,6 @@ export function useCollectionControl(controlId: string, seasonId?: string) {
     results,
     activity,
     request,
-    queryKey: key,
-    seasonKey,
   };
 }
 
@@ -108,12 +93,10 @@ export function useCloseCollectionSeason(seasonId: string) {
   }
 
   const close = useMutation({
-    retry: false,
-    networkMode: "always",
     mutationKey: [...key, ...getCloseCollectionSeasonMutationKey()],
     mutationFn: async (body: CloseCollectionSeasonRequest) =>
       closeCollectionSeason(seasonId, body, await authority.request()),
     onSuccess: accept,
   });
-  return { authority, season, close, seasonKey: key };
+  return { authority, season, close };
 }

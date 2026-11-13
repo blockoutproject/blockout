@@ -52,10 +52,7 @@ export function createCollectionQueries(authority: CollectionQueryAuthority) {
       });
     } catch (error) {
       if (!context.signal.aborted && isCollectionReadRefused(error)) {
-        context.client.setQueryData<T | null>(context.queryKey, null, {
-          updatedAt:
-            context.client.getQueryState(context.queryKey)?.dataUpdatedAt ?? 0,
-        });
+        context.client.setQueryData<T | null>(context.queryKey, null);
       }
       throw error;
     }

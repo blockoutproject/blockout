@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet } from "react-native";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { FormScrollView } from "@/shared/components/form-scroll-view";
 import { Page, PageContent } from "@/shared/components/page";
@@ -43,7 +43,9 @@ export function SourcePreparationScreen({
     setSnapshot({ key: visitKey, source: source.data, season: season.data });
   }
   const mismatch = Boolean(source.data && source.data.seasonId !== seasonId);
-  const failed = hasReadError(season) ? season : source;
+  const requiredRead = mismatch
+    ? source
+    : ([season, source].find(hasReadError) ?? (!season.data ? season : source));
   const blocked =
     !authority.enabled ||
     !source.data ||
@@ -55,7 +57,7 @@ export function SourcePreparationScreen({
     ? authority.sessionStatus === "restoring" ||
       (authority.sessionStatus === "authenticated" &&
         authority.account.isLoading)
-    : !hasReadError(failed) &&
+    : !hasReadError(requiredRead) &&
       !mismatch &&
       (source.isLoading || season.isLoading);
   const FeedbackLayout = pending ? PageContent : ScreenState;
@@ -68,12 +70,12 @@ export function SourcePreparationScreen({
           <DataRefreshControl
             fetching={source.isFetching || season.isFetching}
             enabled={!blocked && !editing.candidate.isPending}
-            onRefresh={async () => {
-              await Promise.all([
+            onRefresh={() =>
+              Promise.all([
                 source.refetch({ cancelRefetch: false }),
                 season.refetch({ cancelRefetch: false }),
-              ]);
-            }}
+              ])
+            }
           />
         }
       >
@@ -87,31 +89,21 @@ export function SourcePreparationScreen({
             ) : (
               <ReadFeedback
                 failed={mismatch}
-                query={
-                  mismatch
-                    ? source
-                    : hasReadError(failed)
-                      ? failed
-                      : !season.data
-                        ? season
-                        : source
-                }
+                query={requiredRead}
                 loadingContent={<SourcePreparationLoading />}
               />
             )}
           </FeedbackLayout>
         )}
-        <PageContent>
-          <View style={blocked ? styles.hidden : undefined}>
-            {seed && (
-              <SourceCandidateForm
-                key={visitKey}
-                source={seed.source}
-                season={seed.season}
-                editing={editing}
-              />
-            )}
-          </View>
+        <PageContent style={blocked ? styles.hidden : undefined}>
+          {seed && (
+            <SourceCandidateForm
+              key={visitKey}
+              source={seed.source}
+              season={seed.season}
+              editing={editing}
+            />
+          )}
         </PageContent>
       </FormScrollView>
     </Page>

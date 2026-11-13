@@ -52,9 +52,7 @@ export function SeasonPreparationScreen({
           authority.sessionStatus === "authenticated" && !blockingState ? (
             <DataRefreshControl
               fetching={season.isFetching}
-              onRefresh={async () => {
-                await season.refetch({ cancelRefetch: false });
-              }}
+              onRefresh={() => season.refetch({ cancelRefetch: false })}
             />
           ) : undefined
         }

@@ -47,8 +47,7 @@ export function SourceCandidateForm({
   const mounted = useRef(false);
   const editor = useSourceCandidateDraft(source);
   const state = editor.state;
-  const { baseline, editingUrl } = state;
-  const feedback = state.feedback ?? undefined;
+  const { baseline, editingUrl, feedback } = state;
   const { control, handleSubmit, reset } = editor.form;
   const { isDirty, dirtyFields } = useFormState({
     control,
@@ -78,7 +77,6 @@ export function SourceCandidateForm({
     editing.validation.isPending ||
     editing.confirmation.isPending;
   const reconciliationRequired = current.revision > baseline.revision;
-  const rereadRequired = reconciliationRequired;
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -110,7 +108,7 @@ export function SourceCandidateForm({
 
   /** Replaces only the candidate against its editing revision; a successful response invalidates old evidence. */
   async function save(values: SourceCandidateValues) {
-    if (busy || readOnly || rereadRequired) {
+    if (busy || readOnly || reconciliationRequired) {
       return;
     }
     try {
@@ -137,7 +135,7 @@ export function SourceCandidateForm({
 
   /** Requests validation once; 202 stays pending until an operator rereads the binding. */
   async function validate() {
-    if (busy || readOnly || rereadRequired || isDirty) {
+    if (busy || readOnly || reconciliationRequired || isDirty) {
       return;
     }
     try {
@@ -162,7 +160,7 @@ export function SourceCandidateForm({
     if (
       busy ||
       readOnly ||
-      rereadRequired ||
+      reconciliationRequired ||
       isDirty ||
       current.validation !== "confirmation-required"
     ) {
@@ -183,7 +181,7 @@ export function SourceCandidateForm({
 
   /** The request boundary rechecks live grants/session even when a native alert callback was held. */
   async function acceptSeason() {
-    if (busy || readOnly || rereadRequired || isDirty) {
+    if (busy || readOnly || reconciliationRequired || isDirty) {
       return;
     }
     try {
@@ -350,7 +348,7 @@ export function SourceCandidateForm({
                   label="Enregistrer"
                   fullWidth
                   onPress={() => void handleSubmit(save)()}
-                  disabled={busy || readOnly || rereadRequired}
+                  disabled={busy || readOnly || reconciliationRequired}
                   loading={editing.candidate.isPending}
                 />
                 <Button
@@ -378,7 +376,7 @@ export function SourceCandidateForm({
                   label="Valider la source"
                   fullWidth
                   onPress={() => void validate()}
-                  disabled={busy || rereadRequired || isDirty}
+                  disabled={busy || reconciliationRequired || isDirty}
                   loading={editing.validation.isPending}
                 />
               )}
@@ -387,7 +385,7 @@ export function SourceCandidateForm({
                 label="Confirmer la saison"
                 fullWidth
                 onPress={confirmSeason}
-                disabled={busy || rereadRequired || isDirty}
+                disabled={busy || reconciliationRequired || isDirty}
                 loading={editing.confirmation.isPending}
               />
             )}

@@ -33,8 +33,7 @@ export function CloseSeasonForm({
   const mounted = useRef(false);
   const editor = useCloseSeasonDraft(season);
   const state = editor.state;
-  const { baseline } = state;
-  const feedback = state.feedback ?? undefined;
+  const { baseline, feedback } = state;
   const { control, handleSubmit } = editor.form;
   const { isDirty } = useFormState({ control });
   const confirmation = useWatch({ control, name: "confirmation" });
