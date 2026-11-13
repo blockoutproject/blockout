@@ -10,12 +10,14 @@ import type {
   DivisionResponse,
 } from "../../../../.generated/schemas/index.zod";
 import {
+  onlineManager,
   QueryClientProvider,
   useQueryClient,
   type QueryClient,
 } from "@tanstack/react-query";
 import {
   getGetPoolClassificationQueryKey,
+  getListDivisionsQueryKey,
   getListClubTeamsQueryKey,
 } from "../../../../.generated/mobile";
 import {
@@ -673,7 +675,7 @@ it("keeps dirty choices through a failed ordinary refresh without retrying the w
   ).toHaveLength(1);
 });
 
-it("keeps one catalogue recovery owner after grouped refresh failure and preserves dirty choices", async () => {
+it("retries each failed dependency from the same card while preserving dirty choices", async () => {
   // Given
   stored.setting = classification;
   const classificationRead = Promise.withResolvers<Response>();
@@ -726,8 +728,23 @@ it("keeps one catalogue recovery owner after grouped refresh failure and preserv
     mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
   ).toBe(false);
 
-  // When: Retry recovers both failed dependencies without advancing the draft revision.
-  mockFetch.mockImplementation(respond);
+  // When: the shared card retries its failed read without replaying the other dependency.
+  mockFetch.mockClear().mockImplementation(respond);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled(),
+  );
+  expect(screen.getAllByRole("alert")).toHaveLength(1);
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.map(([url]) => new URL(String(url)).pathname),
+  ).toEqual([`/administration/pools/${id}/classification`]);
+
+  // When: the other failed dependency now owns the same card's safe Retry.
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
@@ -1303,22 +1320,84 @@ it("replaces an empty division selector with its read error after a failed reloa
   await screen.findByRole("button", { name: "Format" });
   await user.press(screen.getByRole("button", { name: "Division" }));
   await screen.findByRole("header", { name: "Aucune division active" });
+  await user.press(screen.getByRole("button", { name: "Fermer" }));
+  const backgroundRead = Promise.withResolvers<Response>();
+  const reloadRead = Promise.withResolvers<Response>();
+  let background: Promise<void> | undefined;
   mockFetch.mockImplementation((url, options) =>
     String(url).includes("/divisions?")
-      ? Promise.resolve(json({ title: "Unavailable", status: 503 }, 503))
+      ? backgroundRead.promise
       : respond(url, options),
   );
 
-  // When
-  expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
-  await user.press(screen.getByRole("button", { name: "Actualiser" }));
+  try {
+    // When: an automatic catalogue read never impersonates the card's explicit action.
+    await act(() => {
+      background = client.refetchQueries({
+        queryKey: getListDivisionsQueryKey({ includeInactive: true }),
+        exact: true,
+      });
+    });
+    await act(() =>
+      router.push({
+        pathname: "/administration/classification-selection",
+        params: { kind: "pool", id, field: "divisionId" },
+      }),
+    );
+    await screen.findByRole("header", { name: "Aucune division active" });
+
+    // Then
+    expect(screen.getByRole("button", { name: "Actualiser" })).not.toBeBusy();
+    expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
+    await act(async () => {
+      backgroundRead.resolve(json({ items: [] }));
+      await background;
+    });
+    mockFetch
+      .mockClear()
+      .mockImplementation((url, options) =>
+        String(url).includes("/divisions?")
+          ? reloadRead.promise
+          : respond(url, options),
+      );
+
+    // When: a suspended explicit reload has not reached HTTP and shows no false loader.
+    await act(() => onlineManager.setOnline(false));
+    await user.press(screen.getByRole("button", { name: "Actualiser" }));
+
+    // Then
+    expect(screen.getByRole("button", { name: "Actualiser" })).not.toBeBusy();
+    expect(mockFetch).not.toHaveBeenCalled();
+
+    // When
+    await act(() => onlineManager.setOnline(true));
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: "Actualiser", busy: true }),
+    ).toBeOnTheScreen();
+
+    // When
+    await act(() =>
+      reloadRead.resolve(json({ title: "Unavailable", status: 503 }, 503)),
+    );
+
+    // Then
+    expect(
+      await screen.findByRole("alert", {
+        name: "Une erreur est survenue",
+      }),
+    ).toBeOnTheScreen();
+  } finally {
+    await act(async () => {
+      onlineManager.setOnline(true);
+      backgroundRead.resolve(json({ items: [] }));
+      reloadRead.resolve(json({ title: "Unavailable", status: 503 }, 503));
+      await background;
+    });
+  }
 
   // Then
-  expect(
-    await screen.findByRole("alert", {
-      name: "Une erreur est survenue",
-    }),
-  ).toBeOnTheScreen();
   expect(
     screen.queryByRole("header", { name: "Aucune division active" }),
   ).not.toBeOnTheScreen();

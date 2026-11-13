@@ -251,13 +251,13 @@ function ActiveScene({
   }
 
   const published = current?.activeContribution;
-  const read =
+  const requiredRead =
     editing.profile.isError || editing.profile.isPending
       ? editing.profile
       : editing.query;
-  const blocked = !current || hasReadError(read);
-  const initialPending = !hasReadError(read) && read.isLoading;
-  const FeedbackLayout = initialPending ? View : ScreenState;
+  const blocked = !current || hasReadError(requiredRead);
+  const initialLoading = !hasReadError(requiredRead) && requiredRead.isLoading;
+  const FeedbackLayout = initialLoading ? View : ScreenState;
 
   /** Session recovery stays with F05; this destination presents its own required private read. */
   function renderReadState() {
@@ -278,9 +278,11 @@ function ActiveScene({
     return (
       <ReadFeedback
         loadingContent={<ModerationMatchLoading editor />}
-        query={read}
+        query={requiredRead}
         onRetry={
-          active ? () => read.refetch({ cancelRefetch: false }) : undefined
+          active
+            ? () => requiredRead.refetch({ cancelRefetch: false })
+            : undefined
         }
       />
     );
@@ -299,7 +301,7 @@ function ActiveScene({
     >
       <View style={styles.header}>
         {blocked && (
-          <FeedbackLayout style={initialPending ? undefined : styles.feedback}>
+          <FeedbackLayout style={initialLoading ? undefined : styles.feedback}>
             {renderReadState()}
           </FeedbackLayout>
         )}

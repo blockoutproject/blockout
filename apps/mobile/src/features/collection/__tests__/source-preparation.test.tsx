@@ -1561,6 +1561,63 @@ it.each(["source", "provider"] as const)(
   },
 );
 
+it("keeps the first account failure card busy through explicit Retry before opening the source editor", async () => {
+  // Given: the real account Query has failed before providing any form authority.
+  mockFetch.mockImplementation((url) =>
+    String(url).endsWith("/accounts/me")
+      ? Promise.resolve(refused(503))
+      : reads(url),
+  );
+  const user = userEvent.setup();
+  await renderPreparation();
+  const card = await screen.findByRole("alert", {
+    name: "Une erreur est survenue",
+  });
+  const response = Promise.withResolvers<Response>();
+  mockFetch
+    .mockClear()
+    .mockImplementation((url) =>
+      String(url).endsWith("/accounts/me") ? response.promise : reads(url),
+    );
+
+  try {
+    // When
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then: changing the outer loading layout must not replace the card's gesture owner.
+    expect(card).toBeOnTheScreen();
+    expect(
+      await screen.findByRole("button", { name: "Réessayer", busy: true }),
+    ).toBeDisabled();
+    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+    expect(screen.queryByLabelText("URL officielle")).not.toBeOnTheScreen();
+
+    // When
+    await act(() => response.resolve(refused(503)));
+
+    // Then
+    expect(card).toBeOnTheScreen();
+    expect(
+      await screen.findByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeEnabled();
+
+    // When
+    mockFetch.mockImplementation(reads);
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: "Modifier le lien" }),
+    ).toBeEnabled();
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.every(([, options]) => options?.method === "GET"),
+    ).toBe(true);
+  } finally {
+    await act(() => response.resolve(refused(503)));
+  }
+});
+
 it("hides the whole source editor when its current account reread fails", async () => {
   // Given
   const user = userEvent.setup();
@@ -1635,6 +1692,52 @@ it("preserves an edited source URL when pull-to-refresh reads a newer source rev
     mockFetch.mock.calls.every(
       ([, options]) => !options?.method || options.method === "GET",
     ),
+  ).toBe(true);
+});
+
+it("starts a clean source visit when the business account changes under the same principal", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderPreparation(
+    <>
+      <SourcePreparationScreen seasonId={seasonId} sourceId={sourceId} />
+      <AccountActions />
+    </>,
+  );
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
+  const previousInput = screen.getByLabelText("URL officielle");
+  await user.clear(previousInput);
+  await user.type(previousInput, draftUrl);
+  mockFetch.mockClear().mockImplementation((url) =>
+    String(url).endsWith("/accounts/me")
+      ? Promise.resolve(
+          json({
+            ...account,
+            accountId: "00000000-0000-4000-8000-000000000999",
+            permissions,
+          }),
+        )
+      : reads(url),
+  );
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Relire les permissions" }),
+  );
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
+
+  // Then
+  expect(previousInput).not.toBeOnTheScreen();
+  expect(screen.getByLabelText("URL officielle")).toHaveDisplayValue(
+    candidateUrl,
+  );
+  expect(screen.queryByDisplayValue(draftUrl)).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.every(([, options]) => options?.method === "GET"),
   ).toBe(true);
 });
 

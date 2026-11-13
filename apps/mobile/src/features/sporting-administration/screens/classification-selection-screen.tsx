@@ -1,5 +1,6 @@
 import { RefreshCw } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { type UseFormReturn, useWatch } from "react-hook-form";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { Button } from "@/shared/components/button";
@@ -62,6 +63,7 @@ function Selection({
 }>) {
   const router = useRouter();
   const custom = useWatch({ control: editor.form.control, name: "custom" });
+  const [reloadRequested, setReloadRequested] = useState(false);
   const divisions = useDivisions(custom === true);
   const classification = useClassification(target);
   const value = useWatch({ control: editor.form.control, name: field });
@@ -101,35 +103,33 @@ function Selection({
     classification.query,
     ...(custom ? [divisions.query] : []),
   ];
-  const read =
+  const requiredRead =
     reads.find(hasReadError) ??
-    reads.find((query) => query.isPending && query.isFetching);
+    reads.find((query) => query.isPending) ??
+    classification.query;
+  const blocked =
+    !authority.enabled || requiredRead.isPending || hasReadError(requiredRead);
 
-  /** Reuses this form visit's existing reads and never changes its editing revision or draft. */
+  /** Pull refresh reuses this visit's existing reads without changing its revision or draft. */
   async function refresh() {
-    if (!authority.enabled) {
-      await authority.account.refetch();
-      return;
-    }
     await Promise.all([
-      ...(hasReadError(authority.account) ? [authority.account.refetch()] : []),
       classification.query.refetch(),
       ...(custom ? [divisions.query.refetch()] : []),
     ]);
   }
 
-  const blockingState = !authority.enabled ? (
-    <AccessFeedback
-      {...authority}
-      loadingContent={<ListLoading label="Chargement des divisions" />}
-    />
-  ) : read ? (
-    <ReadFeedback
-      query={{ ...read, isFetching: reads.some((query) => query.isFetching) }}
-      onRetry={refresh}
-      loadingContent={<ListLoading label="Chargement des divisions" />}
-    />
-  ) : undefined;
+  /** Only this explicit empty-card action owns its progress; Query owns the read result. */
+  async function reload() {
+    if (reloadRequested) {
+      return;
+    }
+    setReloadRequested(true);
+    try {
+      await divisions.query.refetch();
+    } finally {
+      setReloadRequested(false);
+    }
+  }
 
   return (
     <Sheet
@@ -138,20 +138,35 @@ function Selection({
       refreshControl={
         field === "divisionId" ? (
           <DataRefreshControl
-            enabled={!blockingState && !!catalog && choices.length > 0}
-            fetching={reads.some((query) => query.isFetching)}
+            enabled={!blocked && !!catalog && choices.length > 0}
+            fetching={
+              classification.query.isFetching ||
+              (custom === true && divisions.query.isFetching)
+            }
             onRefresh={refresh}
           />
         ) : undefined
       }
     >
-      {blockingState && <SheetContent>{blockingState}</SheetContent>}
+      {blocked && (
+        <SheetContent>
+          {!authority.enabled ? (
+            <AccessFeedback
+              {...authority}
+              loadingContent={<ListLoading label="Chargement des divisions" />}
+            />
+          ) : (
+            <ReadFeedback
+              query={requiredRead}
+              loadingContent={<ListLoading label="Chargement des divisions" />}
+            />
+          )}
+        </SheetContent>
+      )}
       <View
-        style={blockingState ? styles.hidden : undefined}
-        accessibilityElementsHidden={!!blockingState}
-        importantForAccessibility={
-          blockingState ? "no-hide-descendants" : "auto"
-        }
+        style={blocked ? styles.hidden : undefined}
+        accessibilityElementsHidden={blocked}
+        importantForAccessibility={blocked ? "no-hide-descendants" : "auto"}
       >
         {field === "divisionId" && catalog && choices.length === 0 && (
           <SheetContent>
@@ -159,8 +174,8 @@ function Selection({
               <Button
                 label="Actualiser"
                 leadingIcon={RefreshCw}
-                onPress={() => void refresh()}
-                loading={divisions.query.isFetching}
+                onPress={() => void reload()}
+                loading={reloadRequested && divisions.query.isFetching}
               />
             </EmptyState>
           </SheetContent>

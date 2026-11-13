@@ -18,7 +18,7 @@ import { ScreenState } from "@/shared/components/screen-state";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { StyleSheet } from "react-native";
 
-import { ErrorState } from "@/shared/components/state-card";
+import { AccessFeedback } from "@/features/access/components/access-feedback";
 import { useAdministrationCapabilities } from "@/features/access/api/use-administration-capabilities";
 import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import { useAccountSession } from "@/features/accounts/current-account";
@@ -44,7 +44,7 @@ export function PresentationScreen({
   const session = useAccountSession();
   return (
     <PresentationScreenContent
-      key={`${session.subject}:${target.kind}:${target.id}`}
+      key={`${session.subject}:${session.accountId}:${target.kind}:${target.id}`}
       target={target}
     />
   );
@@ -135,11 +135,6 @@ function PresentationScreenContent({
     target.kind === "team" || target.kind === "club" || target.kind === "pool"
       ? target.kind
       : undefined;
-  const pending =
-    sessionStatus === "restoring" ||
-    (sessionStatus === "authenticated" &&
-      account.isLoading &&
-      !hasReadError(account));
 
   /** Names creation separately from editing the addressed sporting resource. */
   function getTitle() {
@@ -180,46 +175,21 @@ function PresentationScreenContent({
     );
   }
 
-  /** Keeps session restoration, account read failure and unavailable grants in their existing feedback states. */
-  function getAccessState() {
-    if (pending) {
-      return <PresentationLoading kind={target.kind} />;
-    } else if (
-      sessionStatus === "authenticated" &&
-      (hasReadError(account) || account.isPending)
-    ) {
-      return (
-        <ReadFeedback
-          query={account}
-          loadingContent={<PresentationLoading kind={target.kind} />}
-        />
-      );
-    } else if (!canRead) {
-      return <ErrorState />;
-    } else {
-      return undefined;
-    }
-  }
-
-  const accessState = getAccessState();
-  const reading =
-    target.kind !== "division-creation" &&
-    (hasReadError(editing.query) || editing.query.isPending);
-  const blockingState =
-    accessState ??
-    (reading ? (
-      <ReadFeedback
-        query={editing.query}
-        loadingContent={<PresentationLoading kind={target.kind} />}
-      />
-    ) : undefined);
-  const loading =
-    pending ||
-    (!accessState &&
-      reading &&
-      !hasReadError(editing.query) &&
-      editing.query.isFetching);
-  const FeedbackLayout = loading ? PageContent : ScreenState;
+  const requiredRead =
+    account.isPending ||
+    hasReadError(account) ||
+    target.kind === "division-creation"
+      ? account
+      : editing.query;
+  const blocked =
+    sessionStatus !== "authenticated" ||
+    !canRead ||
+    requiredRead.isPending ||
+    hasReadError(requiredRead);
+  const initialLoading =
+    sessionStatus === "restoring" ||
+    (!hasReadError(requiredRead) && requiredRead.isLoading);
+  const FeedbackLayout = initialLoading ? PageContent : ScreenState;
 
   return (
     <Page
@@ -256,23 +226,37 @@ function PresentationScreenContent({
           target.kind !== "division-creation" ? (
             <DataRefreshControl
               enabled={
-                !blockingState &&
+                !blocked &&
                 sessionStatus === "authenticated" &&
                 !editing.save.isPending
               }
-              fetching={account.isFetching || editing.query.isFetching}
+              fetching={editing.query.isFetching}
               onRefresh={refresh}
             />
           ) : undefined
         }
       >
-        {blockingState && <FeedbackLayout>{blockingState}</FeedbackLayout>}
+        {blocked && (
+          <FeedbackLayout>
+            {!canRead || sessionStatus !== "authenticated" ? (
+              <AccessFeedback
+                sessionStatus={sessionStatus}
+                account={account}
+                enabled={canRead}
+                loadingContent={<PresentationLoading kind={target.kind} />}
+              />
+            ) : (
+              <ReadFeedback
+                query={requiredRead}
+                loadingContent={<PresentationLoading kind={target.kind} />}
+              />
+            )}
+          </FeedbackLayout>
+        )}
         <PageContent
-          style={blockingState ? styles.hidden : undefined}
-          accessibilityElementsHidden={!!blockingState}
-          importantForAccessibility={
-            blockingState ? "no-hide-descendants" : "auto"
-          }
+          style={blocked ? styles.hidden : undefined}
+          accessibilityElementsHidden={blocked}
+          importantForAccessibility={blocked ? "no-hide-descendants" : "auto"}
         >
           {baseline && (
             <PresentationForm
@@ -280,9 +264,7 @@ function PresentationScreenContent({
               target={target}
               editing={editing}
               editor={editor}
-              disabled={
-                !!blockingState || !canManage || editing.query.data === null
-              }
+              disabled={blocked || !canManage || editing.query.data === null}
               seasonLabel={seasonLabel}
               professionalTeam={
                 publicContextEnabled &&

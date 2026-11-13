@@ -16,16 +16,17 @@ export function CloseSeasonScreen({
 }: Readonly<{ seasonId: string }>) {
   const editing = useCloseCollectionSeason(seasonId);
   const { authority, season } = editing;
-  const visitKey = `${authority.session.subject}:${seasonId}`;
+  const visitKey = `${authority.session.subject}:${authority.session.accountId}:${seasonId}`;
   const requiredRead = [authority.account, season].find(hasReadError) ?? season;
   const blocked =
     !authority.enabled || !season.data || hasReadError(requiredRead);
-  const pending = !authority.enabled
+  const initialLoading = !authority.enabled
     ? authority.sessionStatus === "restoring" ||
       (authority.sessionStatus === "authenticated" &&
-        authority.account.isLoading)
+        authority.account.isLoading &&
+        !hasReadError(authority.account))
     : !hasReadError(requiredRead) && season.isLoading;
-  const FeedbackLayout = pending ? PageContent : ScreenState;
+  const FeedbackLayout = initialLoading ? PageContent : ScreenState;
 
   // Removing RefreshControl changes React Native’s content ancestry and disposes the mounted draft.
   return (

@@ -164,11 +164,11 @@ export function OwnContributionsScreen({
             .map((item) => [item.id, item]),
         ).values(),
       ];
-  const pending =
+  const initialLoading =
     session.status !== "authenticated"
       ? session.status === "restoring" || !!session.operation
       : !readFailed && requiredRead.isLoading;
-  const FeedbackLayout = pending ? View : ScreenState;
+  const FeedbackLayout = initialLoading ? View : ScreenState;
 
   const content = (
     <Page
@@ -203,7 +203,9 @@ export function OwnContributionsScreen({
         ListHeaderComponent={
           <View style={styles.header}>
             {blocked && (
-              <FeedbackLayout style={pending ? undefined : styles.feedback}>
+              <FeedbackLayout
+                style={initialLoading ? undefined : styles.feedback}
+              >
                 {session.status === "guest" ? (
                   <Button
                     label="Se connecter"
@@ -228,7 +230,7 @@ export function OwnContributionsScreen({
                     query={requiredRead}
                     loadingContent={<ContributionProposalsLoading />}
                     onRetry={
-                      requiredRead === editing.profile ? undefined : refresh
+                      requiredRead === query ? editing.refresh : undefined
                     }
                   />
                 )}

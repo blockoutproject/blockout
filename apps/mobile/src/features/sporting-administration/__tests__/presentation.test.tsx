@@ -37,6 +37,7 @@ import { useDivisions } from "../api/classification";
 import {
   getGetTeamPresentationQueryKey,
   getGetTeamLogoQueryKey,
+  getGetMyAccountQueryKey,
   getGetDivisionQueryKey,
   getGetDivisionLogoQueryKey,
   getListDivisionsQueryKey,
@@ -326,6 +327,48 @@ function json(value: unknown, status = 200) {
     },
   });
 }
+
+it("starts a fresh draft and releases its logo when the business account changes under the same principal", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderEditor();
+  await screen.findByDisplayValue("Current name");
+  await user.clear(screen.getByLabelText("Nom complet personnalisé"));
+  await user.type(
+    screen.getByLabelText("Nom complet personnalisé"),
+    "Old draft",
+  );
+  jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+    canceled: false,
+    assets: [
+      { uri: "file:///cache/ImagePicker/selected.png", width: 120, height: 60 },
+    ],
+  });
+  await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
+  await act(nativeImageChoiceAction("Choisir un logo"));
+  await screen.findByRole("image", { name: "Miniature : Logo" });
+  mockFetch.mockImplementation(async (url) =>
+    String(url).endsWith("/accounts/me")
+      ? json({ ...account, accountId: "00000000-0000-4000-8000-000000000002" })
+      : respond(url),
+  );
+
+  // When
+  await act(() =>
+    client.refetchQueries({ queryKey: getGetMyAccountQueryKey(), exact: true }),
+  );
+
+  // Then
+  expect(await screen.findByDisplayValue("Current name")).toBeOnTheScreen();
+  expect(screen.queryByDisplayValue("Old draft")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("image", { name: "Miniature : Logo" }),
+  ).not.toBeOnTheScreen();
+  expect(mockFile.delete).toHaveBeenCalledTimes(1);
+  expect(
+    mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),
+  ).toBe(true);
+});
 
 it("saves independent names and a nonsquare logo in one generated multipart PATCH", async () => {
   // Given

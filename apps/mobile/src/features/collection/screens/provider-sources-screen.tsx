@@ -24,23 +24,22 @@ export function ProviderSourcesScreen({
 }: Readonly<ProviderSourcesScreenProps>) {
   const editing = useSeasonPreparation(seasonId);
   const { authority, season, sources } = editing;
-  const visitKey = `${authority.session.subject}:${seasonId}:${provider}`;
+  const visitKey = `${authority.session.subject}:${authority.session.accountId}:${seasonId}:${provider}`;
   const requiredRead =
     [authority.account, season, sources].find(hasReadError) ??
     (!season.data ? season : sources);
   const blocked =
     !authority.enabled ||
-    hasReadError(authority.account) ||
     !season.data ||
     !sources.data ||
-    hasReadError(season) ||
-    hasReadError(sources);
-  const pending = !authority.enabled
+    hasReadError(requiredRead);
+  const initialLoading = !authority.enabled
     ? authority.sessionStatus === "restoring" ||
       (authority.sessionStatus === "authenticated" &&
-        authority.account.isLoading)
+        authority.account.isLoading &&
+        !hasReadError(authority.account))
     : !hasReadError(requiredRead) && (season.isLoading || sources.isLoading);
-  const FeedbackLayout = pending ? PageContent : ScreenState;
+  const FeedbackLayout = initialLoading ? PageContent : ScreenState;
 
   // Removing RefreshControl changes React Native’s content ancestry and disposes the mounted draft.
   return (

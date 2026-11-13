@@ -55,6 +55,8 @@ export function ReadFeedback({
     setRetryRequested(true);
     try {
       await (onRetry ? onRetry() : query.refetch());
+    } catch {
+      // Safe read callbacks may reject; their owner retains the failure and this card.
     } finally {
       setRetryRequested(false);
     }

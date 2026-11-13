@@ -23,7 +23,7 @@ export function SourcePreparationScreen({
 }: Readonly<SourcePreparationScreenProps>) {
   const editing = useSourcePreparation(seasonId, sourceId);
   const { authority, source, season } = editing;
-  const visitKey = `${authority.session.subject}:${seasonId}:${sourceId}`;
+  const visitKey = `${authority.session.subject}:${authority.session.accountId}:${seasonId}:${sourceId}`;
   const mismatch = Boolean(source.data && source.data.seasonId !== seasonId);
   const requiredRead = mismatch
     ? source
@@ -31,20 +31,19 @@ export function SourcePreparationScreen({
       (!season.data ? season : source));
   const blocked =
     !authority.enabled ||
-    hasReadError(authority.account) ||
     !source.data ||
     !season.data ||
     mismatch ||
-    hasReadError(source) ||
-    hasReadError(season);
-  const pending = !authority.enabled
+    hasReadError(requiredRead);
+  const initialLoading = !authority.enabled
     ? authority.sessionStatus === "restoring" ||
       (authority.sessionStatus === "authenticated" &&
-        authority.account.isLoading)
+        authority.account.isLoading &&
+        !hasReadError(authority.account))
     : !hasReadError(requiredRead) &&
       !mismatch &&
       (source.isLoading || season.isLoading);
-  const FeedbackLayout = pending ? PageContent : ScreenState;
+  const FeedbackLayout = initialLoading ? PageContent : ScreenState;
 
   // Removing RefreshControl changes React Native’s content ancestry and disposes the mounted draft.
   return (

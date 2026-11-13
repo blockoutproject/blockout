@@ -21,25 +21,22 @@ export function MaintenanceSettingsScreen() {
   const editing = useMaintenanceSettings(canManage);
   const settings =
     sessionStatus === "authenticated" ? editing.query.data : undefined;
-  const pendingAccess =
-    sessionStatus === "restoring" ||
-    (sessionStatus === "authenticated" &&
-      account.isPending &&
-      account.isFetching &&
-      !hasReadError(account));
-  const query =
+  const requiredRead =
     account.isPending || hasReadError(account) ? account : editing.query;
   const blocked =
-    pendingAccess || !canManage || query.isPending || hasReadError(query);
-  const loading =
-    pendingAccess ||
-    (query.isPending && query.isFetching && !hasReadError(query));
-  const FeedbackLayout = loading ? PageContent : ScreenState;
+    sessionStatus !== "authenticated" ||
+    !canManage ||
+    requiredRead.isPending ||
+    hasReadError(requiredRead);
+  const initialLoading =
+    sessionStatus === "restoring" ||
+    (!hasReadError(requiredRead) && requiredRead.isLoading);
+  const FeedbackLayout = initialLoading ? PageContent : ScreenState;
 
   /** Refreshes only the current read dependency; Query owns failures and retry policy. */
   async function refresh() {
     if (!editing.content.isPending && !editing.activation.isPending) {
-      await (canManage ? editing.query.refetch() : account.refetch());
+      await editing.query.refetch();
     }
   }
 
@@ -53,14 +50,14 @@ export function MaintenanceSettingsScreen() {
               !editing.content.isPending &&
               !editing.activation.isPending
             }
-            fetching={canManage ? editing.query.isFetching : account.isFetching}
+            fetching={editing.query.isFetching}
             onRefresh={refresh}
           />
         }
       >
         {blocked && (
           <FeedbackLayout>
-            {pendingAccess || !canManage ? (
+            {sessionStatus !== "authenticated" || !canManage ? (
               <AccessFeedback
                 sessionStatus={sessionStatus}
                 account={account}
@@ -69,7 +66,7 @@ export function MaintenanceSettingsScreen() {
               />
             ) : (
               <ReadFeedback
-                query={query}
+                query={requiredRead}
                 loadingContent={<MaintenanceLoading />}
               />
             )}

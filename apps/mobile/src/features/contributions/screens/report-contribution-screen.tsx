@@ -69,17 +69,10 @@ export function ReportContributionScreen({
     !match.data ||
     readFailed ||
     (!reporting.query.data && !reporting.command.data?.reported);
-  const pending = !authenticated
+  const initialLoading = !authenticated
     ? sessionPending
     : !hasReadError(requiredRead) && requiredRead.isLoading;
-  const FeedbackLayout = pending ? PageContent : ScreenState;
-
-  function refresh() {
-    return Promise.allSettled([
-      reporting.query.refetch({ cancelRefetch: false }),
-      match.refetch({ cancelRefetch: false }),
-    ]);
-  }
+  const FeedbackLayout = initialLoading ? PageContent : ScreenState;
 
   return (
     <Page header={<PageHeader title="Lien de diffusion" />}>
@@ -105,9 +98,6 @@ export function ReportContributionScreen({
                 failed={!reporting.usable && !reporting.profile.isPending}
                 query={requiredRead}
                 loadingContent={<ContributionReportLoading />}
-                onRetry={
-                  requiredRead === reporting.profile ? undefined : refresh
-                }
               />
             )}
           </FeedbackLayout>

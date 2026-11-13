@@ -21,14 +21,15 @@ export interface ClassificationScreenProps {
   target: ClassificationTarget;
 }
 
-/** Keys the RHF visit only to its original principal and target. */
+/** Keys the RHF visit to its original principal, business account and target. */
 export function ClassificationScreen({
   target,
 }: Readonly<ClassificationScreenProps>) {
   const editing = useClassification(target);
-  const identity = `${editing.authority.session.subject}:${target.kind}:${target.id}`;
+  const { session } = editing.authority;
+  const visitKey = `${session.subject}:${session.accountId}:${target.kind}:${target.id}`;
   return (
-    <ClassificationVisit key={identity} target={target} editing={editing} />
+    <ClassificationVisit key={visitKey} target={target} editing={editing} />
   );
 }
 
@@ -52,39 +53,28 @@ function ClassificationVisit({
     editing.query,
     ...(custom ? [divisions.query] : []),
   ];
-  const read =
+  const requiredRead =
     reads.find(hasReadError) ??
-    reads.find((query) => query.isPending && query.isFetching);
+    reads.find((query) => query.isPending) ??
+    editing.query;
+  const blocked =
+    !authority.enabled || requiredRead.isPending || hasReadError(requiredRead);
 
-  /** Explicit recovery rereads only this visit's existing data dependencies, never its mutation. */
+  /** Pull refresh rereads this visit's existing data dependencies, never its mutation. */
   async function refresh() {
     if (editing.save.isPending) {
       return;
     }
-    if (!authority.enabled) {
-      await authority.account.refetch();
-      return;
-    }
     await Promise.all([
-      ...(hasReadError(authority.account) ? [authority.account.refetch()] : []),
       editing.query.refetch(),
       ...(custom ? [divisions.query.refetch()] : []),
     ]);
   }
 
-  const loading =
+  const initialLoading =
     authority.sessionStatus === "restoring" ||
-    (!!read && !hasReadError(read) && read.isPending && read.isFetching);
-  const FeedbackLayout = loading ? PageContent : ScreenState;
-  const blockingState = !authority.enabled ? (
-    <AccessFeedback {...authority} loadingContent={<ClassificationLoading />} />
-  ) : read ? (
-    <ReadFeedback
-      query={{ ...read, isFetching: reads.some((query) => query.isFetching) }}
-      onRetry={refresh}
-      loadingContent={<ClassificationLoading />}
-    />
-  ) : undefined;
+    (!hasReadError(requiredRead) && requiredRead.isLoading);
+  const FeedbackLayout = initialLoading ? PageContent : ScreenState;
 
   return (
     <Page
@@ -102,22 +92,37 @@ function ClassificationVisit({
         refreshControl={
           <DataRefreshControl
             enabled={
-              !blockingState &&
+              !blocked &&
               authority.sessionStatus === "authenticated" &&
               !editing.save.isPending
             }
-            fetching={reads.some((query) => query.isFetching)}
+            fetching={
+              editing.query.isFetching ||
+              (custom === true && divisions.query.isFetching)
+            }
             onRefresh={refresh}
           />
         }
       >
-        {blockingState && <FeedbackLayout>{blockingState}</FeedbackLayout>}
+        {blocked && (
+          <FeedbackLayout>
+            {!authority.enabled ? (
+              <AccessFeedback
+                {...authority}
+                loadingContent={<ClassificationLoading />}
+              />
+            ) : (
+              <ReadFeedback
+                query={requiredRead}
+                loadingContent={<ClassificationLoading />}
+              />
+            )}
+          </FeedbackLayout>
+        )}
         <PageContent
-          style={blockingState ? styles.hidden : undefined}
-          accessibilityElementsHidden={!!blockingState}
-          importantForAccessibility={
-            blockingState ? "no-hide-descendants" : "auto"
-          }
+          style={blocked ? styles.hidden : undefined}
+          accessibilityElementsHidden={blocked}
+          importantForAccessibility={blocked ? "no-hide-descendants" : "auto"}
         >
           {editor.state.revision && (
             <ClassificationForm
