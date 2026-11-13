@@ -100,6 +100,7 @@ function useFollowedList(
   type: FollowingTarget["type"],
   expanded: boolean,
 ) {
+  const [refreshing, setRefreshing] = useState(false);
   const options = createFollowListOptions(
     props.owner,
     props.request,
@@ -133,7 +134,12 @@ function useFollowedList(
     if (!active || !query.data || query.isFetching) {
       return;
     }
-    await query.refetch({ cancelRefetch: false });
+    setRefreshing(true);
+    try {
+      await query.refetch({ cancelRefetch: false });
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   return {
@@ -142,6 +148,7 @@ function useFollowedList(
     append,
     retryNextPage,
     refresh,
+    refreshing,
   };
 }
 
@@ -155,11 +162,12 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
   const sporting = useSportingNavigation(props.active);
   const failed = (["team", "pool"] as const)
     .filter((type) => {
-      const query = lists[type].query;
+      const { query, refreshing } = lists[type];
       return (
         expanded[type] &&
         hasReadError(query) &&
-        (!query.data || !query.isFetchNextPageError)
+        // A pull retains the previous continuation error until this collection's new read settles.
+        (!query.data || (!query.isFetchNextPageError && !refreshing))
       );
     })
     .map((type) => lists[type].query);

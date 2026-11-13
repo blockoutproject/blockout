@@ -30,7 +30,10 @@ import {
 } from "react";
 import { ThemeProvider } from "../../../shared/theme/theme-provider";
 import { createQueryClient } from "../../../shared/query/query-client";
-import { TECHNICAL_ERROR } from "../../../shared/components/error-copy";
+import {
+  TECHNICAL_ERROR,
+  TECHNICAL_ERROR_TITLE,
+} from "../../../shared/components/error-copy";
 import { applicationAccessResponse } from "../../../shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../../access/queries/use-application-access";
 import {
@@ -2557,6 +2560,97 @@ it("shares All seasons across both lists and offers Search only after successful
   expect(screen.queryByRole("button", { name: "Suivi" })).not.toBeOnTheScreen();
   expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
 });
+
+it.each(["team", "pool"] as const)(
+  "retains Following during a delayed pull after a failed %s continuation and keeps the final card through Retry",
+  async (type) => {
+    // Given: real Query keeps the accepted collection after its next page fails.
+    mockFetch.mockImplementation(async (url, request) => {
+      const parsed = new URL(url);
+      if (!parsed.pathname.endsWith(`/${type}-follows`)) {
+        return transport(url, request);
+      }
+      if (parsed.searchParams.get("page") === "1") {
+        throw new TypeError("Synthetic continuation outage");
+      }
+      const response = await transport(url, request);
+      return Response.json({ ...(await response.json()), nextPage: 1 });
+    });
+    await mount();
+    await screen.findByRole("button", {
+      name: "Saison des suivis",
+      disabled: false,
+    });
+    await layoutNativeTabs();
+    await userEvent.press(screen.getByRole("tab", { name: "Suivis" }));
+    await screen.findByRole("link", { name: /Étoile/ });
+    await screen.findByRole("link", { name: /Poule A/ });
+    await fireEvent(screen.getByRole("link", { name: /Étoile/ }), "endReached");
+    await screen.findByRole("button", { name: "Réessayer" });
+    const refreshRead = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url, request) =>
+      new URL(url).pathname.endsWith(`/${type}-follows`)
+        ? refreshRead.promise
+        : transport(url, request),
+    );
+
+    // When: a full native pull waits for its actual first-page response.
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+    // Then: the retained continuation error does not replace content while that pull is active.
+    await waitFor(() =>
+      expect(screen.getByLabelText("Actualiser les données")).toBeBusy(),
+    );
+    expect(screen.getByRole("link", { name: /Étoile/ })).toBeOnTheScreen();
+    expect(screen.getByRole("link", { name: /Poule A/ })).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Équipes suivies" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Poules suivies" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
+    ).toBeNull();
+
+    // When: that full read actually fails.
+    await act(() => refreshRead.resolve(Response.json({}, { status: 503 })));
+    await screen.findByRole("alert", { name: TECHNICAL_ERROR_TITLE });
+    const retryRead = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url, request) =>
+      new URL(url).pathname.endsWith(`/${type}-follows`)
+        ? retryRead.promise
+        : transport(url, request),
+    );
+    await userEvent.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then: card Retry keeps its card rather than restoring the previous rows while pending.
+    expect(
+      screen.getByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
+    ).toBeOnTheScreen();
+    expect(
+      await screen.findByRole("button", { name: "Réessayer", busy: true }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("link", { name: /Étoile/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Poule A/ })).toBeNull();
+    expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
+
+    // When: explicit card recovery succeeds through the same collection's real transport schema.
+    const recovered = await transport(
+      `https://api.example.invalid/accounts/${accountId}/${type}-follows`,
+    );
+    await act(() => retryRead.resolve(recovered));
+
+    // Then
+    expect(
+      await screen.findByRole("link", { name: /Étoile/ }),
+    ).toBeOnTheScreen();
+    expect(screen.getByRole("link", { name: /Poule A/ })).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
+    ).toBeNull();
+  },
+);
 
 it.each(["team", "pool"] as const)(
   "shows one Following card when the %s refresh fails before the other collection",
