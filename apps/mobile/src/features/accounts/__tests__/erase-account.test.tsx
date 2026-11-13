@@ -36,6 +36,9 @@ import {
 } from "../../../../.generated/mobile";
 
 // Router, Auth0 reducer, Query and generated transport are real; only native/network I/O is controlled.
+jest.mock("react-native-keyboard-controller", () =>
+  jest.requireActual("react-native-keyboard-controller/jest"),
+);
 jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));

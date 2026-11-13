@@ -1,8 +1,7 @@
+import { StyleSheet } from "react-native";
 import { Page, PageContent } from "@/shared/components/page";
-import { ErrorState } from "@/shared/components/state-card";
+import { AccessFeedback } from "../components/access-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
-import { useActionFeedback } from "@/shared/components/action-feedback";
-import { isAccessDenied } from "@/shared/api/access-denied";
 import { FormScrollView } from "@/shared/components/form-scroll-view";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { PageHeader } from "@/shared/components/page-header";
@@ -11,105 +10,81 @@ import { useAdministrationCapabilities } from "../api/use-administration-capabil
 import { useApplicationVersionsSettings } from "../api/use-application-versions-settings";
 import { ApplicationVersionsForm } from "../forms/application-versions-form";
 import { ApplicationVersionsLoading } from "../components/settings-loading";
-import { ReadFeedback } from "@/shared/components/read-feedback";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 
-/** Loads only with current grants and retains an existing draft read-only when they become unavailable. */
+/** Keeps the authorized visit mounted while required reads replace its editable content. */
 export function ApplicationVersionsSettingsScreen() {
   const { permissions, account, sessionStatus } =
     useAdministrationCapabilities();
   const session = useAccountSession();
   const canManage = permissions?.manageApplicationVersions === true;
   const editing = useApplicationVersionsSettings(canManage);
-  const feedback = useActionFeedback();
-  const denied =
-    isAccessDenied(account.error) || isAccessDenied(editing.query.error);
   const settings =
     sessionStatus === "authenticated" ? editing.query.data : undefined;
-
-  /** Explicit refresh reports retained-data failure once and never resets the mounted draft. */
-  async function refresh() {
-    if (editing.content.isPending) {
-      return;
-    }
-    feedback.clear();
-    if (!canManage) {
-      const result = await account.refetch();
-      if (result.isError && settings) {
-        feedback.error();
-      }
-      return;
-    }
-    const result = await editing.query.refetch();
-    if (result.isError && result.data) {
-      feedback.error();
-    }
-  }
-
-  let accessError = null;
-  if (
-    sessionStatus === "authenticated" &&
-    (account.isError || (account.isPending && !account.isFetching))
-  ) {
-    accessError = (
-      <ErrorState
-        onRetry={() => void account.refetch()}
-        retrying={account.isFetching}
-      />
-    );
-  } else if (!canManage) {
-    accessError = <ErrorState />;
-  }
-  let settingsContent = null;
-  if (settings) {
-    settingsContent = (
-      <ApplicationVersionsForm
-        key={`${session.subject}:${session.accountId}`}
-        settings={settings}
-        editing={editing}
-        disabled={!canManage || denied}
-      />
-    );
-  } else if (!accessError) {
-    settingsContent = (
-      <ReadFeedback
-        query={editing.query}
-        loadingContent={<ApplicationVersionsLoading />}
-      />
-    );
-  }
-  const pendingAccess =
+  const requiredRead =
+    account.isPending || hasReadError(account) ? account : editing.query;
+  const blocked =
+    sessionStatus !== "authenticated" ||
+    !canManage ||
+    requiredRead.isPending ||
+    hasReadError(requiredRead);
+  const initialLoading =
     sessionStatus === "restoring" ||
-    (sessionStatus === "authenticated" && account.isLoading);
-  const loadingSettings =
-    sessionStatus === "authenticated" &&
-    !account.isLoading &&
-    !accessError &&
-    !settings &&
-    editing.query.isLoading;
+    (!hasReadError(requiredRead) && requiredRead.isLoading);
+  const FeedbackLayout = initialLoading ? PageContent : ScreenState;
+
+  /** Refreshes only the current read dependency; Query owns failures and retry policy. */
+  async function refresh() {
+    if (!editing.content.isPending) {
+      await editing.query.refetch();
+    }
+  }
+
   return (
     <Page header={<PageHeader title="Administration technique" />}>
       <FormScrollView
         refreshControl={
-          settings && sessionStatus === "authenticated" ? (
-            <DataRefreshControl
-              enabled={!editing.content.isPending}
-              onRefresh={refresh}
-            />
-          ) : undefined
+          <DataRefreshControl
+            enabled={!blocked && !editing.content.isPending}
+            fetching={editing.query.isFetching}
+            onRefresh={refresh}
+          />
         }
       >
-        {settings || loadingSettings || pendingAccess ? (
-          <PageContent>
-            {!settings && pendingAccess ? (
-              <ApplicationVersionsLoading />
+        {blocked && (
+          <FeedbackLayout>
+            {sessionStatus !== "authenticated" || !canManage ? (
+              <AccessFeedback
+                sessionStatus={sessionStatus}
+                account={account}
+                enabled={canManage}
+                loadingContent={<ApplicationVersionsLoading />}
+              />
             ) : (
-              settingsContent
+              <ReadFeedback
+                query={requiredRead}
+                loadingContent={<ApplicationVersionsLoading />}
+              />
             )}
-          </PageContent>
-        ) : (
-          <ScreenState>{accessError ?? settingsContent}</ScreenState>
+          </FeedbackLayout>
         )}
+        <PageContent
+          style={blocked ? styles.hidden : undefined}
+          accessibilityElementsHidden={blocked}
+          importantForAccessibility={blocked ? "no-hide-descendants" : "auto"}
+        >
+          {settings && (
+            <ApplicationVersionsForm
+              key={`${session.subject}:${session.accountId}`}
+              settings={settings}
+              editing={editing}
+              disabled={blocked}
+            />
+          )}
+        </PageContent>
       </FormScrollView>
     </Page>
   );
 }
+
+const styles = StyleSheet.create({ hidden: { display: "none" } });

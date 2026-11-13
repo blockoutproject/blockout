@@ -11,6 +11,7 @@ export interface InstallationAge {
   category: AgeDeclaration["category"];
   required: boolean;
   renewal: boolean;
+  /** The local read is active, including explicit Retry while readFailed remains true. */
   loading: boolean;
   readFailed: boolean;
   pending: boolean;
@@ -18,7 +19,7 @@ export interface InstallationAge {
   privacy: ReturnType<typeof createAdvertisingPrivacy>;
   nativePrivacy: AdvertisingPrivacySnapshot;
   /** Retries only the installation read after an explicit failure. */
-  retryRead(): void;
+  retryRead(): Promise<void>;
   /** Acknowledges the persisted category; independent consent failure keeps advertising disabled. */
   confirm(age: number): Promise<boolean> | undefined;
 }

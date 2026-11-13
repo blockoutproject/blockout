@@ -232,6 +232,44 @@ Editing schemas live in feature `schemas/`; pure initial/clear/accepted value fa
 - Failed commands retain mounted input. The initiating mutation owner publishes one shared toast for an ordinary operational failure only when useful inline field or persistent domain feedback does not already own that outcome. Server revision/target checks remain feature-owned. Failed or lost ordinary writes allow explicit manual resubmission without a verification read, recovery mode or receipt; confirmed write success is independent of dependent reread failure. Server erasure retains original-target, transaction and private-cleanup constraints; actual provider/payment safeguards retain their own scope. Accepted data, navigation or cleared dirty state communicates success without a generic banner.
 - Public search and local division filtering use live RHF values at their screen; only public search has the contract's Unicode length constraint. Tabs remain local presentation state. Fixture toggles and provider-owned controls are not business forms.
 
+The whole-form read-error composition has one owner here. Keep existing reads at their feature owner, one RHF visit and a stable `FormScrollView`; select `requiredRead` from the data this visit consumes, preferring a final failed dependency before a pending one. This includes a previously needed classification catalogue, never only queries whose `isFetching` is true. Derive `blocked` and `initialLoading` directly, then choose `FeedbackLayout`: normal `PageContent` for an active initial skeleton, `ScreenState` for the common card. Keep that order recognizable: stable scroller, read feedback, one hidden editable region containing every field and save control. `hasReadError` preserves a failed idle Query and its error through Retry; `ReadFeedback` owns only the explicit gesture and derives real progress from that selected Query. Card Retry rereads only `requiredRead`, using its normal `refetch` or its existing native owner callback when recovery needs the first page. The pull gesture keeps its existing displayed-scope read, which may group several dependencies; its indicator uses only the actual activity of those reads. Neither gesture writes or rebases the draft.
+
+```tsx
+// The existing visit owns RHF before any read-state branch.
+const requiredRead = editing.query;
+const blocked = requiredRead.isPending || hasReadError(requiredRead);
+const initialLoading = !hasReadError(requiredRead) && requiredRead.isLoading;
+const FeedbackLayout = initialLoading ? PageContent : ScreenState;
+return (
+  <FormScrollView
+    refreshControl={
+      <DataRefreshControl
+        enabled={!blocked && !saving}
+        fetching={requiredRead.isFetching}
+        onRefresh={refresh}
+      />
+    }
+  >
+    {blocked && (
+      <FeedbackLayout>
+        <ReadFeedback query={requiredRead} loadingContent={<EditorLoading />} />
+      </FeedbackLayout>
+    )}
+    <PageContent
+      style={blocked ? styles.hidden : undefined}
+      accessibilityElementsHidden={blocked}
+      importantForAccessibility={blocked ? "no-hide-descendants" : "auto"}
+    >
+      {/* Existing fields and save controls use the same mounted RHF visit. */}
+    </PageContent>
+  </FormScrollView>
+);
+```
+
+The example shows one consumed Query; an owner with several selects its existing `requiredRead` inline without a registry or read-result facade. Authority/session refusal keeps its existing owner. A successful retry reveals the same RHF visit, dirty values and applicable prepared files; another failure retains the card. Keep `display: "none"` and the hidden-region accessibility props, without changing the form/scroller type or identity key with read status/timestamps. Keep an existing `RefreshControl` mounted and disable it while blocked: on Android its presence changes the native ScrollView wrapper, so removing it can remount descendants and release prepared files. Initial defaults and the one meaningful editing baseline/revision stay with the existing draft owner; real authority withdrawal still removes prohibited data. Do not add copied response snapshots, first-success admission, read-error toasts, recovery stores or a form framework.
+
+Query owns HTTP retries and safe reads. Age keeps its local-storage owner with the same card and explicit active Retry; loaded correction invents no read. Support observes known contact passively and creates no account prerequisite. Photo/logo decoding stays passive; preparation/upload failures retain field/action feedback. Division creation starts without a catalogue pre-read. Collection monitoring and independent consultation tabs keep their own scopes. Mutation, validation and conflict errors use ordinary form feedback; an accepted write remains accepted after a failed reread, and card Retry never sends a write.
+
 [Form rationale](research.md#forms-and-submitted-intent) and [qualification](quickstart.md#commands-and-forms) retain the native/file-lifetime exceptions and structural/behavioral evidence.
 
 ### Frontend server-read conventions

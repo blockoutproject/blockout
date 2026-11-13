@@ -536,6 +536,32 @@ it("preserves dirty input through a background refetch and requires an explicit 
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
   );
+
+  // When
+  mockFetch.mockImplementation((url) =>
+    String(url).endsWith(`/source-bindings/${sourceId}`)
+      ? Promise.resolve(refused(503))
+      : reads(url),
+  );
+  await user.press(screen.getByRole("button", { name: "Relire l’état" }));
+
+  // Then
+  await screen.findByRole("button", { name: "Réessayer", busy: false });
+  expect(screen.queryByLabelText("URL officielle")).toBeNull();
+  expect(
+    screen.queryByText(
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
+    ),
+  ).toBeNull();
+
+  // When
+  mockFetch.mockImplementation(reads);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByLabelText("URL officielle")).toHaveDisplayValue(
+    draftUrl,
+  );
 });
 
 it.each([400, 403, 422])(
@@ -1535,6 +1561,112 @@ it.each(["source", "provider"] as const)(
   },
 );
 
+it("keeps the first account failure card busy through explicit Retry before opening the source editor", async () => {
+  // Given: the real account Query has failed before providing any form authority.
+  mockFetch.mockImplementation((url) =>
+    String(url).endsWith("/accounts/me")
+      ? Promise.resolve(refused(503))
+      : reads(url),
+  );
+  const user = userEvent.setup();
+  await renderPreparation();
+  const card = await screen.findByRole("alert", {
+    name: "Une erreur est survenue",
+  });
+  const response = Promise.withResolvers<Response>();
+  mockFetch
+    .mockClear()
+    .mockImplementation((url) =>
+      String(url).endsWith("/accounts/me") ? response.promise : reads(url),
+    );
+
+  try {
+    // When
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then: changing the outer loading layout must not replace the card's gesture owner.
+    expect(card).toBeOnTheScreen();
+    expect(
+      await screen.findByRole("button", { name: "Réessayer", busy: true }),
+    ).toBeDisabled();
+    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+    expect(screen.queryByLabelText("URL officielle")).not.toBeOnTheScreen();
+
+    // When
+    await act(() => response.resolve(refused(503)));
+
+    // Then
+    expect(card).toBeOnTheScreen();
+    expect(
+      await screen.findByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeEnabled();
+
+    // When
+    mockFetch.mockImplementation(reads);
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: "Modifier le lien" }),
+    ).toBeEnabled();
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.every(([, options]) => options?.method === "GET"),
+    ).toBe(true);
+  } finally {
+    await act(() => response.resolve(refused(503)));
+  }
+});
+
+it("hides the whole source editor when its current account reread fails", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderPreparation(
+    <>
+      <SourcePreparationScreen seasonId={seasonId} sourceId={sourceId} />
+      <AccountActions />
+    </>,
+  );
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
+  const input = screen.getByLabelText("URL officielle");
+  await user.clear(input);
+  await user.type(input, draftUrl);
+  mockFetch.mockImplementation((url) =>
+    String(url).endsWith("/accounts/me")
+      ? Promise.resolve(refused(503))
+      : reads(url),
+  );
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Relire les permissions" }),
+  );
+
+  // Then
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(screen.queryByLabelText("URL officielle")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Enregistrer" })).toBeNull();
+  expect(
+    screen.getByLabelText("URL officielle", { includeHiddenElements: true }),
+  ).toBe(input);
+
+  // When
+  mockFetch.mockClear().mockImplementation(reads);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByLabelText("URL officielle")).toBe(input);
+  expect(input).toHaveDisplayValue(draftUrl);
+  expect(
+    mockFetch.mock.calls.map(([url, options]) => ({
+      path: new URL(String(url)).pathname,
+      method: options?.method,
+    })),
+  ).toEqual([{ path: "/accounts/me", method: "GET" }]);
+});
+
 it("preserves an edited source URL when pull-to-refresh reads a newer source revision", async () => {
   // Given
   const user = userEvent.setup();
@@ -1560,6 +1692,52 @@ it("preserves an edited source URL when pull-to-refresh reads a newer source rev
     mockFetch.mock.calls.every(
       ([, options]) => !options?.method || options.method === "GET",
     ),
+  ).toBe(true);
+});
+
+it("starts a clean source visit when the business account changes under the same principal", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderPreparation(
+    <>
+      <SourcePreparationScreen seasonId={seasonId} sourceId={sourceId} />
+      <AccountActions />
+    </>,
+  );
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
+  const previousInput = screen.getByLabelText("URL officielle");
+  await user.clear(previousInput);
+  await user.type(previousInput, draftUrl);
+  mockFetch.mockClear().mockImplementation((url) =>
+    String(url).endsWith("/accounts/me")
+      ? Promise.resolve(
+          json({
+            ...account,
+            accountId: "00000000-0000-4000-8000-000000000999",
+            permissions,
+          }),
+        )
+      : reads(url),
+  );
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Relire les permissions" }),
+  );
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
+
+  // Then
+  expect(previousInput).not.toBeOnTheScreen();
+  expect(screen.getByLabelText("URL officielle")).toHaveDisplayValue(
+    candidateUrl,
+  );
+  expect(screen.queryByDisplayValue(draftUrl)).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.every(([, options]) => options?.method === "GET"),
   ).toBe(true);
 });
 

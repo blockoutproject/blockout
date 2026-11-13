@@ -44,7 +44,7 @@ The backend does not infer an immediate crash from missing work. After replaceme
 
 When needed, acquire runtime, season, collection control/current cycle, then F02 sporting roots in their existing order, then account locks in sorted UUID order. Never acquire an earlier kind after a later one. Club-only integration needs the runtime and club roots, not an invented season. Grant assignment locks the account only; runtime replacement locks the runtime only. Provider calls never occur inside these transactions.
 
-Manual mutation revisions use the existing backend/JPA version convention. Changed desired state advances its aggregate revision; a matching no-op does not. Stale mutation state returns the existing 409 conflict without effects. Safe integer wire bounds follow F12. Source validation and collector admission recheck the relevant current revisions in their write transaction.
+Mobile preparation/closure keeps one route-local editable baseline beside RHF under [F13’s form composition](../003-shared-quality/plan.md#frontend-form-conventions); it is neither a persisted entity nor a second screen-level copy of Query responses. Manual mutation revisions use the existing backend/JPA version convention. Changed desired state advances its aggregate revision; a matching no-op does not. Stale mutation state returns the existing 409 conflict without effects. Safe integer wire bounds follow F12. Source validation and collector admission recheck the relevant current revisions in their write transaction.
 
 ## Observations and current results
 

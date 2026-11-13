@@ -405,29 +405,71 @@ it("persists confirmation across a later launch without annual adult prompts or 
   expect((await readAgeDeclaration())?.category).toBe("adult");
   expect(await readDiscoveryCompletion()).toBe(true);
 });
-it("offers an explicit storage-read retry without declaring a default age", async () => {
+it("keeps the storage error card through active and failed Retry without declaring a default age", async () => {
   // Given
   await completeDiscovery();
-  jest
-    .spyOn(AsyncStorage, "getItem")
-    .mockResolvedValueOnce("true")
-    .mockRejectedValueOnce(new Error("Storage"));
-  const user = userEvent.setup();
-  await openEntry("/");
-  await screen.findByRole("alert", {
-    name: "Une erreur est survenue",
+  const retry = Promise.withResolvers<string | null>();
+  let attempts = 0;
+  const readItem = jest.mocked(AsyncStorage.getItem).getMockImplementation();
+  jest.spyOn(AsyncStorage, "getItem").mockImplementation((key) => {
+    if (key === "blockout:advertising-age") {
+      attempts += 1;
+      if (attempts === 1) {
+        return Promise.reject(new Error("Storage unavailable"));
+      }
+      return attempts === 2 ? retry.promise : Promise.resolve(null);
+    }
+    return Promise.resolve(
+      key === "blockout:v2-discovery-complete" ? "true" : null,
+    );
   });
-  expect(screen.queryByRole("adjustable")).toBeNull();
-  expect(
-    screen.queryByRole("header", { name: "Quel est votre âge ?" }),
-  ).toBeNull();
-  // When
-  await user.press(await screen.findByRole("button", { name: "Réessayer" }));
-  // Then
-  expect(
-    await screen.findByRole("button", { name: "Continuer" }),
-  ).toBeDisabled();
-  expect(await readAgeDeclaration()).toBeNull();
+  const user = userEvent.setup();
+  try {
+    await openEntry("/");
+    await screen.findByRole("alert", { name: "Une erreur est survenue" });
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: "Réessayer", busy: true }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("progressbar", {
+        name: "Chargement de la déclaration d’âge",
+      }),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByRole("adjustable")).not.toBeOnTheScreen();
+
+    // When
+    await act(async () => retry.reject(new Error("Storage still unavailable")));
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+    expect(attempts).toBe(2);
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: "Continuer" }),
+    ).toBeDisabled();
+    expect(attempts).toBe(3);
+    expect(await readAgeDeclaration()).toBeNull();
+  } finally {
+    await act(async () => retry.resolve(null));
+    jest.mocked(AsyncStorage.getItem).mockImplementation(readItem);
+  }
 });
 it("avoids prompting known active Pro without transferring that exemption to a guest", async () => {
   // Given

@@ -120,6 +120,7 @@ function RecoveringRead({
     <ReadFeedback
       key={resource}
       query={query}
+      onRetry={() => query.refetch({ throwOnError: true })}
       loadingContent={
         <LoadingGroup label="Chargement des matchs">
           <Skeleton />
@@ -242,7 +243,7 @@ it("keeps authorized cached data hidden after background failure and never anima
   }
 });
 
-it("leaves Retry available after another failed explicit read and starts a new resource with its own skeleton", async () => {
+it("leaves Retry available when the owner's explicit read rejects and starts a new resource with its own skeleton", async () => {
   // Given
   const client = new QueryClient({
     defaultOptions: { queries: { gcTime: Infinity, retry: false } },

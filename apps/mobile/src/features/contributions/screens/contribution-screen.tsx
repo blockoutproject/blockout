@@ -41,10 +41,10 @@ export function ContributionScreen({
   const readFailed = hasReadError(requiredRead);
   const blocked =
     !authenticated || !editing.usable || !current || !match.data || readFailed;
-  const pending = !authenticated
+  const initialLoading = !authenticated
     ? editing.session.status === "restoring" || !!editing.session.operation
     : !hasReadError(requiredRead) && requiredRead.isLoading;
-  const FeedbackLayout = pending ? PageContent : ScreenState;
+  const FeedbackLayout = initialLoading ? PageContent : ScreenState;
 
   function refresh() {
     return Promise.allSettled([
@@ -85,7 +85,9 @@ export function ContributionScreen({
                 failed={!editing.usable && !editing.profile.isPending}
                 query={requiredRead}
                 loadingContent={<ContributionFormLoading />}
-                onRetry={requiredRead === editing.profile ? undefined : refresh}
+                onRetry={
+                  requiredRead === editing.query ? editing.refresh : undefined
+                }
               />
             )}
           </FeedbackLayout>

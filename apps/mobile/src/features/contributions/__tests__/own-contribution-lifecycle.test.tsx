@@ -1215,7 +1215,7 @@ it.each([
   expect(patches).toEqual([]);
 });
 
-it("recovers a refused match when its successful retry settles after the personal read", async () => {
+it("recovers a refused match before retrying the withdrawn personal read", async () => {
   // Given
   const boundary = mockFetch.getMockImplementation();
   if (!boundary) {
@@ -1243,15 +1243,18 @@ it("recovers a refused match when its successful retry settles after the persona
   // When
   denied = false;
   failRead = false;
-  let finishMatch: (() => void) | undefined;
-  pendingMatch = new Promise<void>((resolve) => {
-    finishMatch = resolve;
-  });
+  const matchRead = Promise.withResolvers<void>();
+  pendingMatch = matchRead.promise;
   await user.press(retry);
-  await waitFor(() => expect(pages).toEqual([0, 0]));
-  await act(async () => {
-    finishMatch?.();
-  });
+
+  // Then: the failed match is the only read retried by this gesture.
+  await screen.findByRole("button", { name: "Réessayer", busy: true });
+  expect(pages).toEqual([0]);
+
+  // When
+  await act(() => matchRead.resolve());
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
   expect(await screen.findByText("Votre lien public")).toBeOnTheScreen();
@@ -1317,8 +1320,16 @@ it("retains the editable draft with scoped full-read Retry and no write replay",
     screen.queryByRole("button", { name: "Remplacer le lien" }),
   ).not.toBeOnTheScreen();
 
-  // When: a new explicit refresh succeeds without submitting the retained draft.
+  // When: the selected match read succeeds without submitting the retained draft.
   failRead = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then: the personal read still owns its failure and retained pages.
+  await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+  expect(patches).toEqual([]);
+
+  // When
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then

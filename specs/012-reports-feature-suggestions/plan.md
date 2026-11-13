@@ -87,6 +87,8 @@ After complete receipt, attempt the private Discord webhook with `wait=true`, co
 
 ## Mobile and HTTP behavior
 
+The [single F13 form composition](../003-shared-quality/plan.md#frontend-form-conventions) applies only to actual consumed reads. `SupportJourney` observes the existing account cache with `skipToken` for passive contact prefill; no account/context request or blocking read is added. The mounted `SupportVisitProvider` retains RHF text and prepared files across temporary choice routes.
+
 React Hook Form owns the current editable draft; TanStack Query owns the single submission mutation under F13's disabled automatic retry/reconnection policy. Freeze the send snapshot and disable duplicate submission while sending. On ordinary error, retain the form and permit correction/retry. On complete confirmation, offer the existing return action and explain that replies use email. Leaving or restarting proves neither cancellation nor failure; do not restore a receipt or prior submission.
 
 Use the shared image control, preserving support's multiple-image semantics. ImagePicker does not impose square editing; ImageManipulator performs a bounded preparation preserving proportions. A failed or oversized result remains an explicit selection error until replacement/removal, never an omitted file. Native file references are submitted through ordinary FormData rather than base64 JSON. Temporary picker UI does not discard the current form. Account/session change discards private input, invalidates callbacks and prevents a late response from changing the new form.

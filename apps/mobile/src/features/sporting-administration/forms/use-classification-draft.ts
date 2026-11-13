@@ -26,6 +26,19 @@ export function useClassificationDraft(
     resolver: zodResolver(classificationSchema),
     defaultValues: current ? classificationValues(current) : undefined,
   });
+  if (!state.revision && current) {
+    update({ revision: current.revision });
+  }
+  const {
+    reset,
+    formState: { defaultValues },
+  } = form;
+  // Only the first response initializes RHF; later reads require the explicit revision reread.
+  useEffect(() => {
+    if (!defaultValues && current) {
+      reset(classificationValues(current));
+    }
+  }, [current, defaultValues, reset]);
   const context = useClassificationVisit();
   const setVisit = context?.setVisit;
   const { kind, id } = target;

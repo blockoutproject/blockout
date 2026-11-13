@@ -251,11 +251,13 @@ function ActiveScene({
   }
 
   const published = current?.activeContribution;
-  const read =
+  const requiredRead =
     editing.profile.isError || editing.profile.isPending
       ? editing.profile
       : editing.query;
-  const blocked = !current || hasReadError(read);
+  const blocked = !current || hasReadError(requiredRead);
+  const initialLoading = !hasReadError(requiredRead) && requiredRead.isLoading;
+  const FeedbackLayout = initialLoading ? View : ScreenState;
 
   /** Session recovery stays with F05; this destination presents its own required private read. */
   function renderReadState() {
@@ -276,9 +278,11 @@ function ActiveScene({
     return (
       <ReadFeedback
         loadingContent={<ModerationMatchLoading editor />}
-        query={read}
+        query={requiredRead}
         onRetry={
-          active ? () => read.refetch({ cancelRefetch: false }) : undefined
+          active
+            ? () => requiredRead.refetch({ cancelRefetch: false })
+            : undefined
         }
       />
     );
@@ -296,7 +300,11 @@ function ActiveScene({
       }
     >
       <View style={styles.header}>
-        {renderReadState()}
+        {blocked && (
+          <FeedbackLayout style={initialLoading ? undefined : styles.feedback}>
+            {renderReadState()}
+          </FeedbackLayout>
+        )}
         <View style={[styles.content, blocked && styles.hidden]}>
           {confirmed && (
             <Text
@@ -315,6 +323,7 @@ function ActiveScene({
             </Text>
           )}
           <ModerationPublicationForm
+            key={`${editing.session.subject}:${editing.session.accountId}:${matchId}`}
             ref={form}
             current={current}
             editing={editing}
@@ -565,6 +574,7 @@ function VersionScene({
 }
 
 const styles = StyleSheet.create({
+  feedback: { padding: 0 },
   hidden: { display: "none" },
   content: { gap: tokens.layout.list.gap },
   empty: { alignItems: "center" },

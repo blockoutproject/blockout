@@ -5,9 +5,10 @@ import { accountResponse } from "@/features/accounts/test-support/account-respon
 import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "../queries/use-application-access";
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
 import {
   QueryClientProvider,
+  onlineManager,
   useQueryClient,
   type QueryClient,
 } from "@tanstack/react-query";
@@ -32,6 +33,9 @@ import { getGetMaintenanceSettingsQueryKey } from "../../../../.generated/mobile
 import type { MaintenanceSettingsResponse } from "../../../../.generated/schemas/index.zod";
 import { MaintenanceSettingsScreen } from "../screens/maintenance-settings-screen";
 import MaintenanceRoute from "@/app/(operations)/administration/maintenance";
+
+// Exercise RN’s actual scroll/refresh composition; the preset still owns native host views.
+jest.unmock("react-native/Libraries/Components/ScrollView/ScrollView");
 
 jest.mock("react-native-keyboard-controller", () =>
   jest.requireActual("react-native-keyboard-controller/jest"),
@@ -195,8 +199,9 @@ it("shows loading before any known state can be saved", async () => {
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
 });
 
-it("reports one failed refresh while retaining the editable maintenance draft", async () => {
-  // Given
+it("keeps the Android draft mounted through failed rereads and same-card retry", async () => {
+  // Given: real RN Android scroll composition and RHF, with native keyboard and HTTP doubles.
+  jest.replaceProperty(Platform, "OS", "android");
   const user = userEvent.setup();
   await renderSettings();
   await screen.findByDisplayValue(initial.message);
@@ -205,20 +210,98 @@ it("reports one failed refresh while retaining the editable maintenance draft", 
     screen.getByLabelText("Message de maintenance"),
     "Mon brouillon",
   );
-  mockFetch.mockClear().mockRejectedValue(new Error("Network unavailable"));
+  const reread = Promise.withResolvers<Response>();
+  mockFetch
+    .mockClear()
+    .mockReturnValueOnce(reread.promise)
+    .mockRejectedValue(new Error("Network unavailable"));
 
-  // When
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  try {
+    // When: Query pauses the explicit pull instead of starting an HTTP request.
+    await act(() => onlineManager.setOnline(false));
+    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
-  // Then
-  expect(
-    await screen.findByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-    }),
-  ).toBeOnTheScreen();
-  expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
-  expect(screen.queryByText("Une erreur est survenue")).not.toBeOnTheScreen();
-  expect(mockFetch).toHaveBeenCalledTimes(1);
+    // Then
+    expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy();
+    expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+    expect(mockFetch).not.toHaveBeenCalled();
+
+    // When: the same read resumes and then fails.
+    await act(() => onlineManager.setOnline(true));
+    await waitFor(() =>
+      expect(screen.getByLabelText("Actualiser les données")).toBeBusy(),
+    );
+    await act(() => reread.reject(new Error("Network unavailable")));
+
+    // Then
+    expect(
+      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByLabelText("Message de maintenance"),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Enregistrer" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("alert", {
+        name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+      }),
+    ).not.toBeOnTheScreen();
+    expect(screen.getByLabelText("Actualiser les données")).toBeDisabled();
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    const retry = Promise.withResolvers<Response>();
+    mockFetch.mockReturnValueOnce(retry.promise);
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: "Réessayer", busy: true }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("progressbar", {
+        name: "Chargement des réglages de maintenance",
+      }),
+    ).not.toBeOnTheScreen();
+
+    // When
+    await act(async () => retry.reject(new Error("Still unavailable")));
+
+    // Then
+    expect(
+      await screen.findByRole("button", {
+        name: "Réessayer",
+        busy: false,
+        disabled: false,
+      }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByLabelText("Message de maintenance"),
+    ).not.toBeOnTheScreen();
+
+    // When
+    mockFetch.mockImplementation(async (url) =>
+      json(String(url).endsWith("/accounts/me") ? account : stored),
+    );
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(await screen.findByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+    expect(
+      mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
+    ).toBe(false);
+  } finally {
+    await act(() => {
+      onlineManager.setOnline(true);
+      reread.resolve(json(stored));
+    });
+  }
 });
 it("keeps a failed save editable during its normal settings refresh", async () => {
   // Given: the form and private Query owner are real; only HTTP is controlled.
@@ -359,6 +442,62 @@ it("separates content preparation from explicit activation", async () => {
   });
   expect(screen.getByLabelText("Maintenance inactive")).toBeOnTheScreen();
   expect(mockFetch.mock.calls.some(([, o]) => o?.method === "PUT")).toBe(false);
+});
+it("keeps an accepted save through a failed ordinary reread without replaying the write", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderSettings();
+  await screen.findByDisplayValue(initial.message);
+  await user.clear(screen.getByLabelText("Message de maintenance"));
+  await user.type(
+    screen.getByLabelText("Message de maintenance"),
+    "Accepted content",
+  );
+  const accepted = { ...initial, revision: 3, message: "Accepted content" };
+  mockFetch.mockImplementation(async (url, options) => {
+    if (String(url).endsWith("/accounts/me")) {
+      return json(account);
+    }
+    if (options?.method === "PATCH") {
+      return json(accepted);
+    }
+    throw new Error("Read unavailable after acknowledgement");
+  });
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  await act(async () => nativeAlertAction("Enregistrer")());
+
+  // Then
+  expect(
+    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("alert", {
+      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Message de maintenance"),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(1);
+
+  // When
+  mockFetch.mockImplementation(async (url) =>
+    json(String(url).endsWith("/accounts/me") ? account : accepted),
+  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(await screen.findByDisplayValue("Accepted content")).toBeOnTheScreen();
+  expect(
+    screen.queryByText("Modifications non enregistrées"),
+  ).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+  ).toHaveLength(1);
 });
 it("sends the desired active state independently of dirty content", async () => {
   // Given
@@ -780,10 +919,7 @@ it.each([400, 403, 409, 422, "stale-revision"] as const)(
         return json(account);
       }
       if (options?.method !== "PATCH") {
-        return json(
-          { type: "about:blank", title: "Unavailable", status: 503 },
-          503,
-        );
+        return json(stored);
       }
       return json(
         {
@@ -1034,7 +1170,7 @@ it("cancels activation confirmation without changing the saved state", async () 
   ).toBe(false);
   expect(screen.getByLabelText("Maintenance inactive")).toBeOnTheScreen();
 });
-it("retains confirmed grants through an account outage while the server still refuses a save", async () => {
+it("hides the draft during a consumed account outage without revoking matching cached grants", async () => {
   // Given
   const user = userEvent.setup();
   await renderSettings();
@@ -1051,78 +1187,48 @@ it("retains confirmed grants through an account outage while the server still re
   if (!accountQuery) {
     throw new Error("The real current-account query is missing");
   }
-  mockFetch.mockImplementation(async (url, options) => {
-    if (options?.method === "PATCH") {
-      return json(
-        {
-          type: "urn:blockout:problem:forbidden",
-          title: "Forbidden",
-          status: 403,
-        },
-        403,
-      );
-    }
-    if (String(url).endsWith("/accounts/me")) {
-      return json(
-        {
-          type: "urn:blockout:problem:unavailable",
-          title: "Unavailable",
-          status: 503,
-        },
-        503,
-      );
-    }
-    return json(stored);
-  });
+  mockFetch.mockImplementation(async (url) =>
+    String(url).endsWith("/accounts/me")
+      ? json(
+          {
+            type: "urn:blockout:problem:unavailable",
+            title: "Unavailable",
+            status: 503,
+          },
+          503,
+        )
+      : json(stored),
+  );
 
   // When
-  await act(async () => {
-    await client.refetchQueries({
-      queryKey: accountQuery.queryKey,
-      exact: true,
-    });
-  });
+  await act(async () =>
+    client.refetchQueries({ queryKey: accountQuery.queryKey, exact: true }),
+  );
 
-  // Then: a technical account failure retains the matching profile and its confirmed grant.
-  expect(accountQuery.state.error).toMatchObject({ status: 503 });
+  // Then
+  expect(
+    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
   expect(client.getQueryData(accountQuery.queryKey)).toEqual(account);
   expect(
-    screen.queryByRole("alert", { name: "Une erreur est survenue" }),
+    screen.queryByLabelText("Message de maintenance"),
   ).not.toBeOnTheScreen();
-  expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
-  expect(screen.getByLabelText("Message de maintenance")).toBeEnabled();
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
-  );
   expect(
-    screen.getByRole("button", { name: "Activer la maintenance" }),
-  ).toBeEnabled();
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
 
-  // When: the retained grant presents the command, but its server result remains authoritative.
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await act(async () => nativeAlertAction("Enregistrer")());
+  // When
+  mockFetch.mockImplementation(async (url) =>
+    json(String(url).endsWith("/accounts/me") ? account : stored),
+  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
-  // Then: a refused write neither updates the confirmed maintenance state nor loses the draft.
+  // Then
+  expect(await screen.findByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
   expect(
-    await screen.findByRole("alert", {
-      name: "Une erreur est survenue. Veuillez réessayer plus tard.",
-    }),
-  ).toBeOnTheScreen();
-  const writes = mockFetch.mock.calls.filter(
-    ([, options]) => options?.method === "PATCH",
-  );
-  expect(writes).toHaveLength(1);
-  expect(JSON.parse(String(writes[0][1]?.body))).toEqual({
-    revision: 2,
-    message: "Mon brouillon",
-  });
-  expect(screen.getByLabelText("Maintenance inactive")).toBeOnTheScreen();
-  expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(
-    "Mon brouillon",
-  );
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
-  );
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
+  ).toBe(false);
 });
 
 it("retains its draft when the server refuses a held confirmation after a settings read refusal", async () => {
@@ -1151,7 +1257,7 @@ it("retains its draft when the server refuses a held confirmation after a settin
   );
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
   await screen.findByRole("alert", {
-    name: "Une erreur est survenue. Veuillez réessayer plus tard.",
+    name: "Une erreur est survenue",
   });
 
   // When
@@ -1163,16 +1269,18 @@ it("retains its draft when the server refuses a held confirmation after a settin
       mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
     ).toHaveLength(1),
   );
-  expect(screen.getByLabelText("Message de maintenance")).toHaveDisplayValue(
-    "Mon brouillon",
-  );
-  expect(screen.getByLabelText("Message de maintenance")).toBeDisabled();
+  expect(
+    screen.queryByLabelText("Message de maintenance"),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("alert", { name: "Une erreur est survenue" }),
+  ).toBeOnTheScreen();
 
   // When
   mockFetch.mockImplementation(async (url) =>
     json(String(url).endsWith("/accounts/me") ? account : stored),
   );
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
   await waitFor(() =>

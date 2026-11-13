@@ -7,7 +7,6 @@ import {
 import {
   act,
   cleanup,
-  fireEvent,
   render,
   renderHook,
   screen,
@@ -595,8 +594,18 @@ it("keeps confirmed report success when both dependent reads fail", async () => 
     }),
   ).not.toBeVisible();
 
-  // When: safe read recovery restores the already accepted result without another write.
+  // When: Retry rereads the failed dependency, leaving the other failure behind the same card.
   failRead = false;
+  const readsBeforeRetry = reads.length;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(reads.slice(readsBeforeRetry)).toEqual([`/matches/${match.match.id}`]);
+  expect(screen.getByRole("alert")).toBeOnTheScreen();
+  expect(writes).toHaveLength(1);
+
+  // When: the remaining read recovers without replaying the accepted report.
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
@@ -789,6 +798,14 @@ it("retains a dirty contribution after conflict and failed explicit refresh with
 
   // When
   failRead = false;
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then: the other failed dependency still masks the retained draft.
+  await waitFor(() => expect(client.isFetching()).toBe(0));
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
+  expect(writes).toHaveLength(1);
+
+  // When
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then

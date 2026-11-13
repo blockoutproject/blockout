@@ -37,6 +37,7 @@ import { useDivisions } from "../api/classification";
 import {
   getGetTeamPresentationQueryKey,
   getGetTeamLogoQueryKey,
+  getGetMyAccountQueryKey,
   getGetDivisionQueryKey,
   getGetDivisionLogoQueryKey,
   getListDivisionsQueryKey,
@@ -327,6 +328,48 @@ function json(value: unknown, status = 200) {
   });
 }
 
+it("starts a fresh draft and releases its logo when the business account changes under the same principal", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderEditor();
+  await screen.findByDisplayValue("Current name");
+  await user.clear(screen.getByLabelText("Nom complet personnalisé"));
+  await user.type(
+    screen.getByLabelText("Nom complet personnalisé"),
+    "Old draft",
+  );
+  jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+    canceled: false,
+    assets: [
+      { uri: "file:///cache/ImagePicker/selected.png", width: 120, height: 60 },
+    ],
+  });
+  await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
+  await act(nativeImageChoiceAction("Choisir un logo"));
+  await screen.findByRole("image", { name: "Miniature : Logo" });
+  mockFetch.mockImplementation(async (url) =>
+    String(url).endsWith("/accounts/me")
+      ? json({ ...account, accountId: "00000000-0000-4000-8000-000000000002" })
+      : respond(url),
+  );
+
+  // When
+  await act(() =>
+    client.refetchQueries({ queryKey: getGetMyAccountQueryKey(), exact: true }),
+  );
+
+  // Then
+  expect(await screen.findByDisplayValue("Current name")).toBeOnTheScreen();
+  expect(screen.queryByDisplayValue("Old draft")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("image", { name: "Miniature : Logo" }),
+  ).not.toBeOnTheScreen();
+  expect(mockFile.delete).toHaveBeenCalledTimes(1);
+  expect(
+    mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),
+  ).toBe(true);
+});
+
 it("saves independent names and a nonsquare logo in one generated multipart PATCH", async () => {
   // Given
   const user = userEvent.setup();
@@ -442,7 +485,7 @@ it("restores known customized artwork without decoded bytes and clears only the 
   });
 });
 
-it("keeps the accepted revision editable when the following presentation read fails", async () => {
+it("keeps the accepted revision behind the form read-error card when the following presentation read fails", async () => {
   // Given
   const user = userEvent.setup();
   await renderEditor();
@@ -484,16 +527,40 @@ it("keeps the accepted revision editable when the following presentation read fa
     }),
   );
   expect(client.getQueryData(queryKey)).toMatchObject({ revision: "r2" });
-  expect(screen.getByDisplayValue("Accepted name")).toBeOnTheScreen();
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(screen.queryByDisplayValue("Accepted name")).not.toBeOnTheScreen();
+  expect(
+    screen.getByDisplayValue("Accepted name", { includeHiddenElements: true }),
+  ).toBeOnTheScreen();
   expect(
     screen.queryByText("Modifications non enregistrées"),
   ).not.toBeOnTheScreen();
   expect(
     screen.queryByRole("button", { name: "Relire la présentation" }),
   ).not.toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
 
-  // When
+  // When: Retry is a read and restores the already accepted form defaults.
+  stored = {
+    ...initial,
+    revision: "r2",
+    names: {
+      ...names,
+      manualName: "Accepted name",
+      effectiveName: "Accepted name",
+    },
+  };
+  const saveAndFailRead = mockFetch.getMockImplementation()!;
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PATCH"
+      ? saveAndFailRead(url, options)
+      : respond(url, options),
+  );
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await screen.findByRole("button", { name: "Enregistrer" });
+  expect(writes).toBe(1);
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
@@ -866,7 +933,7 @@ it("keeps an unknown conflict as an ordinary failure with an editable draft", as
 });
 
 it.each(["pending", "failed"] as const)(
-  "keeps an editable draft and permits an explicit save while dependent reads are %s",
+  "retains its draft through a %s settlement read and only resends after a visible explicit save",
   async (phase) => {
     // Given
     const user = userEvent.setup();
@@ -904,6 +971,24 @@ it.each(["pending", "failed"] as const)(
       }
 
       // Then
+      if (phase === "failed") {
+        await screen.findByRole("button", { name: "Réessayer" });
+        expect(
+          screen.queryByRole("button", { name: "Enregistrer" }),
+        ).not.toBeOnTheScreen();
+        expect(
+          screen.getByDisplayValue("My draft", { includeHiddenElements: true }),
+        ).toBeOnTheScreen();
+        const failedSave = mockFetch.getMockImplementation()!;
+        mockFetch.mockImplementation((url, options) =>
+          options?.method === "PATCH"
+            ? failedSave(url, options)
+            : respond(url, options),
+        );
+        await user.press(screen.getByRole("button", { name: "Réessayer" }));
+        await screen.findByRole("button", { name: "Enregistrer" });
+        expect(writes).toBe(1);
+      }
       expect(screen.getByDisplayValue("My draft")).toBeOnTheScreen();
       expect(screen.getByLabelText("Nom complet personnalisé")).toHaveProp(
         "editable",
@@ -957,9 +1042,10 @@ it("shows the current presentation error without restoring refused data or losin
 
   // When
   await act(async () => client.refetchQueries({ queryKey, exact: true }));
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
-  );
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
   status = 503;
   await act(async () => client.refetchQueries({ queryKey, exact: true }));
 
@@ -972,10 +1058,13 @@ it("shows the current presentation error without restoring refused data or losin
   expect(
     await screen.findByRole("button", { name: "Réessayer" }),
   ).toBeEnabled();
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
-  );
-  expect(screen.getByDisplayValue("My draft")).toBeOnTheScreen();
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByDisplayValue("My draft", { includeHiddenElements: true }),
+  ).toBeOnTheScreen();
 
   // When: cancellation of a delayed read keeps Query's current error and the same draft.
   const delayed = Promise.withResolvers<Response>();
@@ -1003,7 +1092,9 @@ it("shows the current presentation error without restoring refused data or losin
     status: 503,
   });
   expect(client.getQueryData(queryKey)).toBeNull();
-  expect(screen.getByDisplayValue("My draft")).toBeOnTheScreen();
+  expect(
+    screen.getByDisplayValue("My draft", { includeHiddenElements: true }),
+  ).toBeOnTheScreen();
 
   // When: a successful current read restores authority without replacing dirty input.
   mockFetch.mockImplementation(respond);
@@ -1071,7 +1162,9 @@ it("keeps withdrawn data and its current error while an earlier accepted save in
   expect(client.getQueryData(queryKey)).toBeNull();
   expect(client.getQueryState(queryKey)?.error).toMatchObject({ status: 503 });
   expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
 
   await act(async () => {
     await client.cancelQueries({ queryKey, exact: true });
@@ -1118,10 +1211,13 @@ it("keeps a dirty draft and the editing revision during background refetch", asy
   );
 
   // Then
-  await screen.findByText(
-    "Une erreur est survenue. Veuillez réessayer plus tard.",
-  );
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByDisplayValue("My draft", { includeHiddenElements: true }),
+  ).toBeOnTheScreen();
 });
 
 it("keeps optional logo failure at its fallback after explicit refresh while preserving the editable draft", async () => {
@@ -1482,7 +1578,7 @@ it.each([
   ).toBe(false);
 });
 
-it("retains a read-only draft and drops a held native selection when the current action grant is withdrawn", async () => {
+it("hides the retained draft and drops a held native selection when the current action grant is withdrawn", async () => {
   // Given
   const user = userEvent.setup();
   await renderEditor();
@@ -1519,14 +1615,15 @@ it("retains a read-only draft and drops a held native selection when the current
   );
 
   // Then
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
-  );
-  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
-  expect(screen.getByLabelText("Nom complet personnalisé")).toHaveDisplayValue(
-    "My draft",
-  );
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(
+    screen.queryByRole("button", { name: "Enregistrer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByLabelText("Nom complet personnalisé", {
+      includeHiddenElements: true,
+    }),
+  ).toHaveDisplayValue("My draft");
   expect(
     screen.queryByRole("image", { name: "Miniature : Logo" }),
   ).not.toBeOnTheScreen();
@@ -2071,16 +2168,15 @@ it("suspends lifecycle-only commands after a missing division read until the res
 
   // When: target absence is established, then only a technical failure is received.
   await act(async () => client.refetchQueries({ queryKey, exact: true }));
-  await waitFor(() =>
-    expect(
-      screen.getByRole("button", { name: "Désactiver la division" }),
-    ).toBeDisabled(),
-  );
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(
+    screen.queryByRole("button", { name: "Désactiver la division" }),
+  ).not.toBeOnTheScreen();
   status = 503;
   await act(async () => client.refetchQueries({ queryKey, exact: true }));
-  await user.press(
-    screen.getByRole("button", { name: "Désactiver la division" }),
-  );
+  expect(
+    screen.queryByRole("button", { name: "Désactiver la division" }),
+  ).not.toBeOnTheScreen();
 
   // Then: the retained lifecycle grant cannot authorize this refused target.
   expect(client.getQueryState(queryKey)?.error).toMatchObject({ status: 503 });
@@ -2581,10 +2677,8 @@ it("keeps the shared division read authorized when creation loses its separate l
 
   // When
   await user.press(screen.getByRole("button", { name: "Refresh permissions" }));
-  await waitFor(() =>
-    expect(screen.getByLabelText("Nom de la division")).toBeDisabled(),
-  );
-  expect(screen.queryByText("Une erreur est survenue")).toBeNull();
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(screen.queryByLabelText("Nom de la division")).not.toBeOnTheScreen();
   stored = {
     items: [
       {

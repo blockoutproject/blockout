@@ -23,7 +23,7 @@ import { createSourceValues } from "./create-source-values";
 
 /** Shares a coherent season revision and selection with the mounted manual-source form. */
 export interface ProviderPreparationFormProps {
-  season: CollectionSeasonResponse;
+  season: CollectionSeasonResponse | null | undefined;
   provider: CollectionProviderEnum;
   editing: ReturnType<typeof useSeasonPreparation>;
 }
@@ -42,7 +42,7 @@ export function ProviderPreparationForm({
   const mounted = useRef(false);
   const editor = useProviderPreparationDraft(season);
   const state = editor.state;
-  const { baseline, selected, adding, feedback } = state;
+  const { selected, adding, feedback } = state;
   const { isDirty } = useFormState({ control: editor.form.control });
   const confirmDiscard = useDiscardChanges(isDirty, editor.discard);
   useEffect(() => {
@@ -51,6 +51,11 @@ export function ProviderPreparationForm({
       mounted.current = false;
     };
   }, []);
+  if (!state.baseline) {
+    return null;
+  }
+  const baseline = state.baseline;
+
   const sources =
     editing.sources.data?.items.filter(
       (source) => source.provider === provider,
@@ -167,7 +172,6 @@ export function ProviderPreparationForm({
       !sourcesResult.data ||
       seasonResult.data.revision < baseline.revision
     ) {
-      actionFeedback.error();
       return;
     }
     editor.update({
@@ -210,7 +214,7 @@ export function ProviderPreparationForm({
             onPress={() =>
               router.push({
                 pathname: "/collection/[seasonId]/sources/[sourceId]",
-                params: { seasonId: season.id, sourceId: source.id },
+                params: { seasonId: baseline.id, sourceId: source.id },
               })
             }
             style={({ pressed }) => [

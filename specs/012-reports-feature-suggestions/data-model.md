@@ -1,6 +1,6 @@
 # Data model: Private support
 
-F10 adds no PostgreSQL table or migration. GitHub owns durable cases and native image attachments; mobile/backend state below lasts only for the current form or send.
+F10 adds no PostgreSQL table or migration. Known contact is optional passive cache data, not an active form-read dependency; the existing mounted RHF visit retains text and applicable prepared files. GitHub owns durable cases and native image attachments; mobile/backend state below lasts only for the current form or send.
 
 | Concept         | Values and owner                                                                                                                       | Lifecycle and invariant                                                                                                                                                                                                        |
 | --------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

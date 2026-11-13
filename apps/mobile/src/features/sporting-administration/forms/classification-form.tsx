@@ -7,9 +7,6 @@ import { ApiError } from "@/shared/api/api-fetch";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { Button } from "@/shared/components/button";
 import { SelectField } from "@/shared/components/select-field";
-import { ReadFeedback } from "@/shared/components/read-feedback";
-import { FieldSkeleton } from "@/shared/components/form-loading";
-import { LoadingGroup } from "@/shared/components/loading-group";
 import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
@@ -18,20 +15,22 @@ import {
   genderLabel,
 } from "@/features/sporting/classification-presentation";
 import {
-  useDivisions,
+  type useDivisions,
   type ClassificationTarget,
   type useClassification,
 } from "../api/classification";
 import { toClassificationRequest } from "../api/classification-request";
 import { type ClassificationValues } from "../schemas/classification-schema";
 import { classificationValues } from "./classification-values";
-import { useClassificationDraft } from "./use-classification-draft";
+import type { useClassificationDraft } from "./use-classification-draft";
 
 /** One current resource, its generated operations and original-session draft. */
 export interface ClassificationFormProps {
   target: ClassificationTarget;
   current: ClassificationDetailResponse | null;
   editing: ReturnType<typeof useClassification>;
+  editor: ReturnType<typeof useClassificationDraft>;
+  divisions: ReturnType<typeof useDivisions>;
 }
 
 /** Complete override/inheritance correction with explicit revision recovery. */
@@ -39,13 +38,14 @@ export function ClassificationForm({
   target,
   current,
   editing,
+  editor,
+  divisions,
 }: Readonly<ClassificationFormProps>) {
   const router = useRouter();
   const { colors } = useTheme();
   const actionFeedback = useActionFeedback();
   const mounted = useRef(false);
   const [rereading, setRereading] = useState(false);
-  const editor = useClassificationDraft(target, current);
   const state = editor.state;
   const { revision } = state;
   const feedback = state.feedback;
@@ -59,7 +59,6 @@ export function ClassificationForm({
   void dirtyFields;
   const custom = useWatch({ control, name: "custom" });
   const divisionId = useWatch({ control, name: "divisionId" });
-  const divisions = useDivisions(custom);
   const busy =
     rereading ||
     !current ||
@@ -76,15 +75,6 @@ export function ClassificationForm({
       mounted.current = false;
     };
   }, []);
-
-  /** Retries the custom composition without accepting a new editing baseline or replaying a write. */
-  async function retryReads() {
-    const [available] = await Promise.all([
-      divisions.query.refetch(),
-      ...(editing.query.isError ? [editing.query.refetch()] : []),
-    ]);
-    return available;
-  }
 
   /** Validates active custom choices and sends the complete state against its editing revision. */
   async function submit(values: ClassificationValues) {
@@ -157,11 +147,6 @@ export function ClassificationForm({
         return;
       }
       if (result.isError || !result.data || available?.isError) {
-        editor.update({
-          ...editor.state,
-          feedback:
-            "La relecture a échoué. Votre brouillon est conservé. Réessayez la relecture.",
-        });
         return;
       }
       reset(classificationValues(result.data), {
@@ -192,9 +177,6 @@ export function ClassificationForm({
             : "Aucune classification de collecte. La dernière classification publiée et les identités sont conservées."}
         </Text>
       )}
-      {!custom && editing.query.isError && (
-        <ReadFeedback query={editing.query} loadingContent={null} />
-      )}
       <Controller
         control={control}
         name="custom"
@@ -221,24 +203,6 @@ export function ClassificationForm({
       />
       {custom && (
         <>
-          {(!divisions.query.data ||
-            divisions.query.isError ||
-            editing.query.isError) && (
-            <ReadFeedback
-              query={{
-                ...divisions.query,
-                isError: divisions.query.isError || editing.query.isError,
-                isFetching:
-                  divisions.query.isFetching || editing.query.isFetching,
-                refetch: retryReads,
-              }}
-              loadingContent={
-                <LoadingGroup label="Chargement des divisions">
-                  <FieldSkeleton labelWidth="30%" />
-                </LoadingGroup>
-              }
-            />
-          )}
           <Controller
             control={control}
             name="divisionId"

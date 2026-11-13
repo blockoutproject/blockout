@@ -149,7 +149,6 @@ export function MaintenanceForm({
       result.isError ||
       result.data.revision < baseline.revision
     ) {
-      actionFeedback.error();
       return;
     }
     setState({
