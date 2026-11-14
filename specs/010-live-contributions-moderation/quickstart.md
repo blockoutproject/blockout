@@ -98,7 +98,7 @@ versions retain their real consumption. Check the following construction boundar
   match while preserving independent pending versions and consumed quota.
 - The personal history is exhaustive and read-only across pending, active and terminal states.
   Traverse beyond twenty versions, refresh from page zero and retain authorized information
-  in Query behind the required-read error card until recovery. An ownerless or other-owner link grants no ownership.
+  in Query behind the required-read error card until recovery. An ownerless or other-owner link grants no ownership. Distinguish an old public sporting card/title from private history: its destination applies current server authority, and a current Match or private-owner refusal removes forbidden personal addresses/history. Disable and reopen that entry, then fail its next read technically; no forbidden data or command may reappear. Do not rewrite unrelated public cards or titles for this privacy check.
 - Inspect real keyboard, native back/discard behavior and safe areas on representative
   platform journeys; distribute both themes and enlarged text across these compositions. Preserve ordinary form focus and the existing accessibility semantics.
 

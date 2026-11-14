@@ -111,31 +111,17 @@ merges or inserts. Cursor validation uses the JDK Base64/Instant/UUID parsers wi
 
 ### Ordinary mobile read state
 
-**Decision**: Retain targeted withdrawal and local absence wording in the existing private Query owner. No collection-wide reset, historical-only wording or additional restriction store is selected.
+**Decision**: Use the existing native Query inbox reads and invalidation. Already-loaded public sporting cards/titles may remain old until their next ordinary inbox read, opening or foreground refresh. Opening Match always reads current server authority. Keep actual private refusal and account departure separate from public sporting freshness.
 
-| Current observation                                             | Owner and retained action                                                                                                                                                                            |
-| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Inbox 401/403/404                                               | `notifications/api/inbox-queries.ts` withdraws the private inbox in the original F05 client, cancels pending reads as needed and retains ordinary error/retry.                                       |
-| F03 match 401/403/404, including an intermediate failed attempt | `sporting/match-access.ts` notifies `subscribeInboxVisibility`; cancel older inbox reads and remove the matching rows across retained pages. The subscription lives through private-read suspension. |
-| Notification PATCH 404                                          | `notifications/api/inbox-mutations.ts` removes the addressed entry after cancelling the inbox read. Account refusal uses the global inbox withdrawal.                                                |
-| Home season omission/closure                                    | No F07 action: F06's season filter is not a notification preference and seasonal closure alone does not hide authorized history.                                                                     |
-| Successful F03 detail without a stream                          | The same observation boundary cancels older inbox reads and replaces link-family titles with the existing absence copy. Plain results and original family/read/time facts remain.                    |
-| Ordinary network/503 failure                                    | No restriction observation. Retain still-authorized pages and ordinary stale/error/retry behavior.                                                                                                   |
+| Current observation                                            | Owner and retained action                                                                                                                                                                              |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Inbox 401/403/404                                              | `notifications/api/inbox-queries.ts` withdraws the forbidden private inbox in the original F05 client, cancels pending reads as needed and retains ordinary error/retry.                               |
+| F03 public match refusal or successful detail without a stream | Only that destination updates. Do not subscribe to the event, cancel inbox reads, remove other cached cards or reconstruct their titles. The next ordinary inbox read supplies its current projection. |
+| Notification PATCH 404                                         | `notifications/api/inbox-mutations.ts` removes the addressed entry after cancelling the inbox read. Account refusal uses the existing inbox withdrawal.                                                |
+| Home season omission/closure                                   | No F07 action: F06's season filter is not a notification preference and seasonal closure alone does not hide authorized history.                                                                       |
+| Ordinary network/503 failure                                   | No authorization revocation. Retain still-authorized pages and ordinary stale/error/retry behavior.                                                                                                    |
 
-**Rationale and alternatives**: Invalidation alone can retain forbidden rows after a failed reread. Coarse clearing would also discard unrelated authorized notifications and change the return/loading/error journey for little benefit over one page filter. FR-032/A35 require retained content to reflect known link absence. The backend already uses historical link wording while a link exists, but keeping only that wording after known withdrawal would remove this explicit information. Retain the local sanitization and let the next F07 response supply complete current text. Persisted editorial variants, ordinary-event original-createdAt filtering, server purge, old-push current-account navigation and mandatory transactional inbox creation retain their existing owners. Sporting title/season/visibility propagation is reconciled separately at its shared owner; removing counters adds no replacement cache mechanism.
-
-F03 annotates its native match query with the addressed match identity. F07 subscribes to actual
-401/403/404 query outcomes, including intermediate failed attempts before native retries finish,
-throughout the original F05 private client's lifetime, even while private reads are suspended.
-Native query metadata identifies existing F07 resources; the subscription cancels pending
-inbox reads and removes the refused match's loaded entries.
-There is no restriction registry or dependency graph. A network/503 failure alone retains authorized
-data; a later fresh authorized inbox response may restore a retained entry. F03's successful
-absence of a stream cancels older inbox reads and replaces stale link wording with the
-existing F07 absence copy in controlled cache. It preserves the result, family, read state and
-original age; the next ordinary F07 read supplies complete current editorial
-text. This is local sanitization of known-stale presentation, not a stored-text synchronization
-or a second editorial engine.
+**Rationale and alternatives**: Immediate public title/visibility propagation required a Query-cache subscription, query metadata, cancellation and cross-page rewrites. That precision adds no required user benefit: a stale public title grants no access, while the destination reads current server authority. Removing the propagation requires no observer, event bus, mirror or replacement synchronization. Actual privacy refusal differs: invalidation alone can leave forbidden data after a failed reread, so the existing exact/account withdrawal stays. Persisted editorial variants, ordinary-event original-createdAt filtering, server purge, old-push current-account navigation and mandatory transactional inbox creation retain their existing owners.
 
 A native true-only mutation invalidates the current inbox query from mutation options, so completion survives removal of its initiating screen. Active observers consume invalidation; inactive screens recover on focus. No local monotone true overlay or uncertain-write GET acknowledgement is retained. Current server reads may briefly show an older read flag; a lost response permits later explicit safe true repetition. The private QueryClient follows F05's actual native identity lifetime, while ordinary-event original-createdAt filtering and known owner/access refusal retain their distinct responsibilities. Cache staleTime/gcTime does not enforce retention. Persisted true-only intent remains authoritative.
 

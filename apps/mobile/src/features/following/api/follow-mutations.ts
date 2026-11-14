@@ -1,8 +1,4 @@
-import {
-  useMutation,
-  useQueryClient,
-  type QueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   replacePoolFollowState,
   replaceTeamFollowState,
@@ -17,7 +13,6 @@ import {
   followMutationKey,
   followStateKey,
   followerCountKey,
-  type FollowingOwner,
   type FollowingTarget,
 } from "./following-keys";
 import type { useFollowStateQuery } from "./use-follow-state-query";
@@ -26,20 +21,6 @@ import { withdrawRefusedFollowingQuery } from "./follow-queries";
 /** A current permission/visibility refusal suspends the personal control until a successful member read. */
 export function isFollowRestriction(error: unknown): error is ApiError {
   return error instanceof ApiError && [403, 404].includes(error.status ?? 0);
-}
-
-/**
- * Applies a known current restriction to the shared member Query after cancelling older reads.
- * Refused member data is withdrawn; a later technical failure cannot restore it. The persisted relation is unchanged.
- */
-export async function restrictFollowTarget(
-  client: QueryClient,
-  owner: FollowingOwner,
-  target: FollowingTarget,
-  error: ApiError,
-) {
-  const queryKey = followStateKey(owner, target);
-  await withdrawRefusedFollowingQuery(client, queryKey, error);
 }
 
 /**
@@ -92,7 +73,7 @@ export function useFollowMutation(
         error instanceof ApiError &&
         (isAccessDenied(error) || isFollowRestriction(error))
       ) {
-        await restrictFollowTarget(client, owner, target, error);
+        await withdrawRefusedFollowingQuery(client, stateKey, error);
       }
     },
     onSettled: (_data, error) => {

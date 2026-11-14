@@ -1,15 +1,12 @@
-import { removeUnavailableFollowTarget } from "../lists";
 import { useQuery } from "@tanstack/react-query";
 import {
   getTeamFollowerCount,
   getPoolFollowerCount,
-  getGetMyAccountQueryKey,
 } from "../../../../.generated/mobile";
-import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import { ApiError } from "@/shared/api/api-fetch";
 import { isAccessDenied } from "@/shared/api/access-denied";
 import { useSportingTargetAvailability } from "@/features/sporting/availability";
-import { restrictFollowTarget, isFollowRestriction } from "./follow-mutations";
+import { isFollowRestriction } from "./follow-mutations";
 import { useAccountSession } from "@/features/accounts/current-account";
 import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import {
@@ -40,7 +37,7 @@ export function useFollowerCountQuery(target: FollowingTarget) {
         throw new ApiError("cancelled");
       }
 
-      /** Withdraws the refused count and current-owner dependencies while the source signal is still attributable. */
+      /** Withdraws this refused count; the addressed detail rereads its own current authority. */
       async function cleanUpRefusedCount(error: ApiError) {
         // Start detail invalidation while its source signal is valid, then withdraw the count
         // before dependent reads can unmount it. No count write follows the awaited cleanup.
@@ -53,24 +50,6 @@ export function useFollowerCountQuery(target: FollowingTarget) {
           queryKey,
           error,
         );
-        if (error.status === 404) {
-          const account = client.getQueryData<AccountResponse>(
-            getGetMyAccountQueryKey(),
-          );
-          const original = captureFollowingOwner({
-            ...session,
-            accountId: account?.accountId ?? session.accountId,
-          });
-          if (original) {
-            await restrictFollowTarget(client, original, target, error);
-            await removeUnavailableFollowTarget(
-              client,
-              original,
-              Boolean(admission.bypass),
-              target,
-            );
-          }
-        }
         await Promise.all([countWithdrawal, targetRejection]);
       }
 

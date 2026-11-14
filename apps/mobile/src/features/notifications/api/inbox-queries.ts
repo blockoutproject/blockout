@@ -12,7 +12,6 @@ import { isAccessDenied } from "@/shared/api/access-denied";
 import type { SessionSnapshot } from "@/features/accounts";
 import { expireInbox, notificationExpiry } from "../state/inbox-expiry";
 import { getNotificationKeys } from "./notification-keys";
-import { subscribeMatchAccess } from "@/features/sporting/match-access";
 
 /** Captured F05 session; private requests retain their original account. */
 export type InboxOwner = SessionSnapshot;
@@ -56,7 +55,6 @@ export function createInboxQueries(owner: InboxOwner, request: InboxRequest) {
     request: currentRequest,
     inbox: infiniteQueryOptions({
       queryKey: keys.inbox,
-      meta: { notificationResource: "inbox" },
       staleTime: 0,
       initialPageParam: undefined as string | undefined,
       queryFn: async ({
@@ -96,53 +94,6 @@ export function refreshInbox(client: QueryClient, queries: InboxQueries) {
     { queryKey: queries.inbox.queryKey, exact: true },
     { throwOnError: true },
   );
-}
-
-/**
- * Connects current F03 refusals for the original F05 client's entire lifetime, including periods
- * with suspended private reads. Query metadata identifies existing resources, without retaining
- * restrictions or account state. Native cancellation discards older responses; only a fresh
- * authorized inbox read may restore a row.
- * Known link absence removes stale link wording locally while preserving results;
- * a fresh F07 read supplies the next complete editorial text.
- * @returns cleanup when this original private client is detached
- */
-export function subscribeInboxVisibility(client: QueryClient) {
-  return subscribeMatchAccess(client, (matchId, outcome) => {
-    for (const query of client.getQueryCache().findAll()) {
-      const resource = query.meta?.notificationResource;
-      if (resource !== "inbox") {
-        continue;
-      }
-      const filter = { queryKey: query.queryKey, exact: true };
-      void client.cancelQueries(filter);
-      const data = client.getQueryData<InboxData>(query.queryKey);
-      if (data) {
-        query.setState({
-          data: {
-            ...data,
-            pages: data.pages.map((page) => ({
-              ...page,
-              notifications: page.notifications.flatMap((row) => {
-                if (row.match.id !== matchId) {
-                  return [row];
-                }
-                if (outcome === "unavailable") {
-                  return [];
-                }
-                if (row.family === "result") {
-                  return [row];
-                }
-                // Use only F07's existing absence copy until its next current response.
-                return [{ ...row, title: "Le lien n’est plus proposé." }];
-              }),
-            })),
-          },
-        });
-      }
-      void client.invalidateQueries({ ...filter, refetchType: "none" });
-    }
-  });
 }
 
 /**

@@ -428,7 +428,7 @@ it("rereads only the affected public counter after confirmation without provisio
 });
 
 it.each(["team", "pool"] as const)(
-  "retains public %s presentation while a missing count suspends private follow controls",
+  "keeps current %s follow controls independent from a missing public count",
   async (type) => {
     // Given
     const target = { type, id: team.id };
@@ -490,10 +490,14 @@ it.each(["team", "pool"] as const)(
         screen.getAllByRole("button", { name: "Suivi", disabled: false }),
       ).toHaveLength(2),
     );
+    const ordinary = mockFetch.getMockImplementation();
+    if (!ordinary) {
+      throw new Error("Synthetic HTTP implementation is required");
+    }
     mockFetch.mockImplementation((url, request) =>
       url.endsWith("/follower-count")
         ? Promise.resolve(new Response(null, { status: 404 }))
-        : transport(url, request),
+        : ordinary(url, request),
     );
 
     // When
@@ -509,7 +513,7 @@ it.each(["team", "pool"] as const)(
     await waitFor(() =>
       expect(
         screen.queryAllByRole("button", { name: "Suivi", disabled: false }),
-      ).toHaveLength(0),
+      ).toHaveLength(2),
     );
   },
 );
@@ -644,7 +648,7 @@ it("keeps a refused count withdrawn when its detail removes the control and the 
   expect(fixture.client.getQueryData(followerCountKey(team))).toBeUndefined();
 });
 
-it("applies public absence to an account established while the first counter is pending", async () => {
+it("keeps personal follow projections independent from an unavailable public counter", async () => {
   // Given
   const profile = Promise.withResolvers<Response>();
   const count = Promise.withResolvers<Response>();
@@ -731,11 +735,18 @@ it("applies public absence to an account established while the first counter is 
   await waitFor(() =>
     expect(
       screen.queryAllByRole("button", { name: "Suivi", disabled: false }),
-    ).toHaveLength(0),
+    ).toHaveLength(2),
   );
   expect(
     fixture.client
       .getQueryData<InfiniteData<ListTeamFollows200>>(listKey)
       ?.pages.flatMap((page) => page.items),
-  ).toEqual([]);
+  ).toEqual([
+    {
+      team: { id: team.id, name: "Retained identity" },
+      season,
+      classification: {},
+      professional: true,
+    },
+  ]);
 });
