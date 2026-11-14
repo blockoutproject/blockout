@@ -310,15 +310,71 @@ it("clears a previous badge nonblockingly and keeps an unopened inbox silent on 
   expect(Notifications.dismissAllNotificationsAsync).not.toHaveBeenCalled();
 });
 
-it("handles cold response and duplicate tap once, clears it, and reads even if navigation fails", async () => {
-  // Given
+it("opens a cold Match tap before account resolution without a premature or deferred acknowledgment", async () => {
+  // Given: identity and public admission resolve while the first account response remains outstanding.
+  const accountRead = Promise.withResolvers<Response>();
+  const ordinary = mockFetch.getMockImplementation();
+  if (!ordinary) {
+    throw new Error("Synthetic HTTP boundary is required");
+  }
+  mockFetch.mockImplementation((url: string, init: RequestInit) =>
+    url.endsWith("accounts/me") ? accountRead.promise : ordinary(url, init),
+  );
   jest.mocked(Notifications.getLastNotificationResponse).mockReturnValue(
-    nativeNotificationResponse("system-response", Date.now(), {
+    nativeNotificationResponse("before-account", Date.now(), {
       ownerAccountId: ownerId,
       notificationId: row.id,
       matchId: row.match.id,
     }),
   );
+
+  try {
+    // When
+    await render(<Root />);
+
+    // Then: navigation consumes the response independently from private account availability.
+    await waitFor(() =>
+      expect(mockOpen).toHaveBeenCalledWith({
+        pathname: "/matches/[matchId]",
+        params: { matchId: row.match.id },
+      }),
+    );
+    expect(session.subject).toBe("synthetic-owner");
+    expect(session.accountId).toBeNull();
+    expect(Notifications.clearLastNotificationResponse).toHaveBeenCalledTimes(
+      1,
+    );
+    expect(
+      mockFetch.mock.calls.some(([, init]) => init.method === "PATCH"),
+    ).toBe(false);
+
+    // When
+    await act(() =>
+      accountRead.resolve(
+        Response.json(accountResponse({ accountId: ownerId })),
+      ),
+    );
+    await waitFor(() => expect(session.accountId).toBe(ownerId));
+
+    // Then: later matching data does not replay the already consumed tap.
+    expect(mockOpen).toHaveBeenCalledTimes(1);
+    expect(
+      mockFetch.mock.calls.some(([, init]) => init.method === "PATCH"),
+    ).toBe(false);
+    expect(Notifications.clearLastNotificationResponse).toHaveBeenCalledTimes(
+      1,
+    );
+  } finally {
+    await act(() =>
+      accountRead.resolve(
+        Response.json(accountResponse({ accountId: ownerId })),
+      ),
+    );
+  }
+});
+
+it("handles a matching-owner tap and its duplicate once, clears it, and reads even if navigation fails", async () => {
+  // Given
   mockOpen.mockImplementation(() => {
     throw new Error("Navigation unavailable");
   });
@@ -332,15 +388,15 @@ it("handles cold response and duplicate tap once, clears it, and reads even if n
   }
 
   // When
-  await act(async () =>
-    tap(
-      nativeNotificationResponse("system-response", Date.now(), {
-        ownerAccountId: ownerId,
-        notificationId: row.id,
-        matchId: row.match.id,
-      }),
-    ),
-  );
+  const response = nativeNotificationResponse("system-response", Date.now(), {
+    ownerAccountId: ownerId,
+    notificationId: row.id,
+    matchId: row.match.id,
+  });
+  await act(async () => {
+    tap(response);
+    tap(response);
+  });
 
   // Then
   await waitFor(() =>
@@ -453,16 +509,25 @@ it("reports a failed read action without cancelling its successful match navigat
       ? Promise.resolve(new Response(null, { status: 503 }))
       : ordinary(url, init),
   );
-  jest.mocked(Notifications.getLastNotificationResponse).mockReturnValue(
-    nativeNotificationResponse("system-response", Date.now(), {
-      ownerAccountId: ownerId,
-      notificationId: row.id,
-      matchId: row.match.id,
-    }),
-  );
+  await render(<Root />);
+  await waitFor(() => expect(session.accountId).toBe(ownerId));
+  const tap = jest
+    .mocked(Notifications.addNotificationResponseReceivedListener)
+    .mock.calls.at(-1)?.[0];
+  if (!tap) {
+    throw new Error("Tap listener must be registered");
+  }
 
   // When
-  await render(<Root />);
+  await act(() =>
+    tap(
+      nativeNotificationResponse("system-response", Date.now(), {
+        ownerAccountId: ownerId,
+        notificationId: row.id,
+        matchId: row.match.id,
+      }),
+    ),
+  );
 
   // Then
   expect(await screen.findByRole("alert")).toBeOnTheScreen();

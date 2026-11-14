@@ -48,6 +48,18 @@ const config: ExpoConfig = {
   platforms: ["ios", "android"],
   plugins: [
     ["expo-router", { sitemap: false }],
+    [
+      "expo-splash-screen",
+      {
+        image: "./assets/splash-brand-light.png",
+        imageWidth: 100,
+        backgroundColor: "#FCFCFD",
+        dark: {
+          image: "./assets/splash-brand-dark.png",
+          backgroundColor: "#0D0D0E",
+        },
+      },
+    ],
     "expo-image",
     "@config-plugins/react-native-blob-util",
     "@config-plugins/react-native-pdf",

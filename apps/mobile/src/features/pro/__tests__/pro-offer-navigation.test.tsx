@@ -114,13 +114,13 @@ function JourneyProviders({ children }: Readonly<PropsWithChildren>) {
   return (
     <QueryClientProvider client={client}>
       <ThemeProvider>
-        <AccountSessionProvider>
-          <ApplicationAccessProvider>
+        <ApplicationAccessProvider>
+          <AccountSessionProvider>
             <ActionFeedbackProvider scopeKey="test">
               <ProProvider>{children}</ProProvider>
             </ActionFeedbackProvider>
-          </ApplicationAccessProvider>
-        </AccountSessionProvider>
+          </AccountSessionProvider>
+        </ApplicationAccessProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

@@ -70,16 +70,10 @@ export function AgeDeclarationProvider({
     privacy.subscribe,
     privacy.getSnapshot,
   );
+  // Synchronization rechecks live rights; only identity/admission changes unconditionally retire the ad.
   useLayoutEffect(() => {
     privacy.invalidateAd();
-  }, [
-    privacy,
-    account.subject,
-    account.accountId,
-    account.status,
-    pro.status,
-    ready,
-  ]);
+  }, [privacy, account.subject, account.accountId, account.status, ready]);
   useEffect(() => {
     if (ready) {
       void privacy.synchronize()?.catch(() => undefined);

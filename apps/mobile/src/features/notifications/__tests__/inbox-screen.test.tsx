@@ -18,6 +18,7 @@ import type { InboxData } from "../api/inbox-queries";
 import { NotificationsScreen } from "../screens/notifications-screen";
 import { NotificationState } from "../state/notification-state";
 import { createQueryClient } from "@/shared/query/query-client";
+import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
 import {
   AccountSessionProvider,
@@ -374,6 +375,81 @@ it("revalidates cached cards on focus without pulling, and shows progress only f
     expect(screen.getByLabelText("Actualiser les données")).not.toBeBusy(),
   );
   expect(screen.getByRole("link", { name: /non lue$/ })).toBeOnTheScreen();
+});
+
+it("keeps first-account failure on its card without background Retry progress and recovers explicitly", async () => {
+  // Given: only account transport is unavailable; the real native session remains restored.
+  mockFetch.mockImplementation((url: string, init: RequestInit) =>
+    url.endsWith("/accounts/me")
+      ? Promise.resolve(new Response(null, { status: 503 }))
+      : response(url, init),
+  );
+  const user = userEvent.setup();
+  await showInbox();
+  const card = await screen.findByRole("alert", {
+    name: "Une erreur est survenue",
+  });
+  const background = Promise.withResolvers<Response>();
+  const retry = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url: string, init: RequestInit) =>
+    url.endsWith("/accounts/me") ? background.promise : response(url, init),
+  );
+
+  try {
+    // When: an ordinary background refresh is not a Retry gesture.
+    await act(() => {
+      void privateClient.refetchQueries({
+        queryKey: getGetMyAccountQueryKey(),
+        exact: true,
+      });
+    });
+
+    // Then
+    expect(card).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("progressbar", {
+        name: "Chargement des notifications",
+      }),
+    ).toBeNull();
+    expect(
+      mockFetch.mock.calls.some(([url]) =>
+        new URL(url).pathname.endsWith("/notifications"),
+      ),
+    ).toBe(false);
+
+    // When
+    await act(() => background.resolve(new Response(null, { status: 503 })));
+    await waitFor(() => expect(privateClient.isFetching()).toBe(0));
+    mockFetch.mockImplementation((url: string, init: RequestInit) =>
+      url.endsWith("/accounts/me") ? retry.promise : response(url, init),
+    );
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(card).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: true }),
+    ).toBeOnTheScreen();
+
+    // When
+    await act(() =>
+      retry.resolve(Response.json(accountResponse({ accountId: row.id }))),
+    );
+
+    // Then
+    expect(
+      await screen.findByRole("link", { name: /non lue$/ }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).toBeNull();
+  } finally {
+    await act(() => {
+      background.resolve(new Response(null, { status: 503 }));
+      retry.resolve(Response.json(accountResponse({ accountId: row.id })));
+    });
+  }
 });
 
 it("masks retained cards after a full refresh failure and keeps its card during explicit Retry", async () => {

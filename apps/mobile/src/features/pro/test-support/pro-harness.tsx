@@ -1,4 +1,7 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { createQueryClient } from "@/shared/query/query-client";
 import { Text } from "react-native";
 import {
   useAccountSession,
@@ -36,14 +39,23 @@ export interface ProHarnessProps {
 
 /** Real F05, F09 and F13 providers; suites explicitly install native I/O mocks. */
 export function ProHarness(props: Readonly<ProHarnessProps>) {
+  const [client] = useState(createQueryClient);
+  useEffect(
+    () => () => void Promise.resolve().then(() => client.clear()),
+    [client],
+  );
   return (
-    <ThemeProvider>
-      <AccountSessionProvider>
-        <ProProvider>
-          <Probe {...props} />
-        </ProProvider>
-      </AccountSessionProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={client}>
+      <ThemeProvider>
+        <ApplicationAccessProvider>
+          <AccountSessionProvider>
+            <ProProvider>
+              <Probe {...props} />
+            </ProProvider>
+          </AccountSessionProvider>
+        </ApplicationAccessProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 

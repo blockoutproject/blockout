@@ -27,14 +27,16 @@ export function PublicAccountLinks({
   const open = useLegalDocuments();
   return (
     <View style={styles.links}>
-      <PublicLinkAction
-        label="Conditions d’utilisation"
-        onPress={() => open("terms")}
-      />
-      <PublicLinkAction
-        label="Politique de confidentialité"
-        onPress={() => open("privacy")}
-      />
+      <View style={styles.legalLinks}>
+        <PublicLinkAction
+          label="Conditions d’utilisation"
+          onPress={() => open("terms")}
+        />
+        <PublicLinkAction
+          label="Confidentialité"
+          onPress={() => open("privacy")}
+        />
+      </View>
       <Link href={supportHref(supportOrigin)} asChild>
         <PublicLinkAction label="Besoin d’aide ?" />
       </Link>
@@ -102,17 +104,19 @@ function PublicLinkAction({
 
 const styles = StyleSheet.create({
   links: {
+    alignItems: "center",
+  },
+  legalLinks: {
     flexDirection: "row",
-    flexWrap: "wrap",
     justifyContent: "center",
-    gap: tokens.spacing.xs,
   },
   link: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: tokens.spacing.xs,
-    padding: tokens.spacing.sm,
+    paddingHorizontal: tokens.spacing.sm,
+    flexShrink: 1,
     minHeight: tokens.touch.minimum,
     minWidth: tokens.touch.minimum,
     maxWidth: "100%",

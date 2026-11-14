@@ -1,3 +1,4 @@
+import { homeHref } from "@/shared/native/home-href";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigation, usePreventRemove, useRouter } from "expo-router";
@@ -26,7 +27,7 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { useOrdinaryRequest } from "@/features/access/ordinary-request";
 import { useCurrentAccount } from "../api/use-current-account";
-import { isAccountMissing } from "../api/current-account-query";
+import { AccountRecovery } from "../components/account-recovery";
 import { accountSessionRecovery } from "../session/account-session-recovery";
 import { useAccountSession } from "../session/account-session-provider";
 
@@ -48,7 +49,7 @@ export function EraseAccountScreen({
   const needsSignIn =
     session.status !== "initialization-error" &&
     session.status !== "authentication-error" &&
-    (session.status !== "authenticated" || isAccountMissing(account.error));
+    session.status !== "authenticated";
   // This route's target survives an ordinary current-account refresh, including absence or replacement.
   if (!originalAccountId && account.isSuccess && account.data) {
     setOriginalAccountId(account.data.accountId);
@@ -73,14 +74,16 @@ export function EraseAccountScreen({
     }
     if (!recovery.failed && !needsSignIn) {
       const feedback = (
-        <ReadFeedback
-          query={account}
-          loadingContent={
-            <PageContent>
-              <ErasureLoading />
-            </PageContent>
-          }
-        />
+        <AccountRecovery error={account.error}>
+          <ReadFeedback
+            query={account}
+            loadingContent={
+              <PageContent>
+                <ErasureLoading />
+              </PageContent>
+            }
+          />
+        </AccountRecovery>
       );
       return hasReadError(account) ? (
         <ScreenState>{feedback}</ScreenState>
@@ -200,7 +203,7 @@ function ErasureConfirmation({
       if (active.current) {
         disablePrevention();
       }
-      router.replace("/");
+      router.replace(homeHref);
     },
     onError: () => {
       if (active.current) {

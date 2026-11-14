@@ -12,6 +12,7 @@ import { getMockContext, renderRouter } from "expo-router/testing-library";
 import { useEffect, type ComponentProps, type ComponentType } from "react";
 import RevenueCatUI from "react-native-purchases-ui";
 import OrdinaryLayout from "@/app/(ordinary)/_layout";
+import SignInRoute from "@/app/(recovery)/sign-in";
 import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { useAccountSession } from "@/features/accounts/current-account";
 import { useCurrentAccount } from "@/features/accounts/api/use-current-account";
@@ -261,11 +262,24 @@ function ObservedOrdinaryLayout() {
   );
 }
 
+/** Keeps the real Login while observing the SDK identity retained after connection-process failure. */
+function ObservedSignInRoute() {
+  return (
+    <>
+      <OwnerObservation />
+      <SignInRoute />
+    </>
+  );
+}
+
 /** Mounts production routes, root providers, hooks and clients; only HTTP, storage and native SDK I/O are controlled. */
 async function openInstallation(initialUrl = "/") {
   const context = getMockContext({
     appDir: "src/app",
-    overrides: { "(ordinary)/_layout": ObservedOrdinaryLayout },
+    overrides: {
+      "(ordinary)/_layout": ObservedOrdinaryLayout,
+      "(recovery)/sign-in": ObservedSignInRoute,
+    },
   });
   return renderRouter(
     // Memory contexts restore special-file extensions stripped by filesystem overrides.
@@ -308,7 +322,7 @@ it.each(["APP_STORE", "PLAY_STORE", "PROMOTIONAL"] as const)(
     };
     mockPurchases.getCustomerInfo.mockResolvedValue(current);
     const user = userEvent.setup();
-    await openInstallation("/sign-in");
+    await openInstallation("/sign-in?returnTo=%2Fprofile");
     expect(mockPurchases.configure).not.toHaveBeenCalled();
 
     // When
@@ -337,7 +351,7 @@ it("keeps two unlinked principals with equal emails in distinct account and enti
   prepareLogin("google-oauth2|a");
   mockPurchases.getCustomerInfo.mockResolvedValue(rights("PROMOTIONAL"));
   const user = userEvent.setup();
-  await openInstallation("/sign-in");
+  await openInstallation("/sign-in?returnTo=%2Fprofile");
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
   await waitFor(() => expect(owners.pro.state.status).toBe("active"));
   const originalClient = owners.client;
@@ -362,7 +376,7 @@ it("keeps two unlinked principals with equal emails in distinct account and enti
   });
   mockPurchases.getCustomerInfo.mockResolvedValue(inactive);
   prepareLogin("apple|b");
-  await act(() => router.push("/sign-in"));
+  await act(() => router.push("/sign-in?returnTo=%2Fprofile"));
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
 
   // Then
@@ -378,7 +392,7 @@ it("keeps two unlinked principals with equal emails in distinct account and enti
   );
 });
 
-it("keeps missing-email establishment unusable until an explicit account retry without another hosted login", async () => {
+it("keeps missing-email establishment on ordinary Login until another explicit connection succeeds", async () => {
   // Given
   prepareLogin("apple|no-email");
   mockFetch.mockImplementation(async (url) => {
@@ -404,13 +418,12 @@ it("keeps missing-email establishment unusable until an explicit account retry w
     );
   });
   const user = userEvent.setup();
-  await openInstallation("/sign-in");
+  await openInstallation("/sign-in?returnTo=%2Fprofile");
 
   // When
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
-  await act(async () => jest.advanceTimersByTimeAsync(7500));
   await screen.findByRole("alert", {
-    name: "Impossible de charger votre compte",
+    name: "Une erreur est survenue.",
   });
 
   // Then
@@ -419,10 +432,14 @@ it("keeps missing-email establishment unusable until an explicit account retry w
   expect(mockPurchases.configure).not.toHaveBeenCalled();
   expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
 
-  expect(screen).toHavePathname("/profile");
+  expect(screen).toHavePathname("/sign-in");
   expect(
-    screen.getByRole("button", { name: "Créer mon compte" }),
-  ).toBeEnabled();
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Créer mon compte" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled();
   expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
@@ -450,11 +467,11 @@ it("keeps missing-email establishment unusable until an explicit account retry w
           },
         );
   });
-  await user.press(screen.getByRole("button", { name: "Créer mon compte" }));
+  await user.press(screen.getByRole("button", { name: "Se connecter" }));
 
   // Then
   expect(await screen.findByText("Fresh_profile")).toBeOnTheScreen();
-  expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
+  expect(mockAuth0.webAuth).toHaveBeenCalledTimes(2);
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
   ).toHaveLength(2);
@@ -470,7 +487,7 @@ it("keeps an outage unknown while the explicit paywall and independent private a
     new Error("Native state unavailable"),
   );
   const user = userEvent.setup();
-  await openInstallation("/sign-in");
+  await openInstallation("/sign-in?returnTo=%2Fprofile");
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
   await screen.findByText("Fresh_profile");
   await waitFor(() =>
@@ -510,7 +527,7 @@ it.each(["APP_STORE", "PLAY_STORE"] as const)(
     mockPurchases.getCustomerInfo.mockResolvedValue(rights("PROMOTIONAL"));
     mockAccount.permissions.manageMaintenance = true;
     const user = userEvent.setup();
-    await openInstallation("/sign-in");
+    await openInstallation("/sign-in?returnTo=%2Fprofile");
     await user.press(
       await screen.findByRole("button", { name: "Se connecter" }),
     );
@@ -542,7 +559,7 @@ it.each(["APP_STORE", "PLAY_STORE"] as const)(
       created: false,
     });
     mockPurchases.getCustomerInfo.mockResolvedValue(inactive);
-    await act(() => router.push("/sign-in"));
+    await act(() => router.push("/sign-in?returnTo=%2Fprofile"));
     await user.press(
       await screen.findByRole("button", { name: "Se connecter" }),
     );
@@ -583,7 +600,7 @@ it("consumes a native restoration failure without replay or a verification prere
   // Given
   prepareLogin("apple|retained");
   const user = userEvent.setup();
-  await openInstallation("/sign-in");
+  await openInstallation("/sign-in?returnTo=%2Fprofile");
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
   await screen.findByText("Fresh_profile");
   await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
@@ -620,7 +637,7 @@ it("keeps native pending payment separate from inactive rights after transition 
   // Given
   prepareLogin("apple|retained");
   const user = userEvent.setup();
-  await openInstallation("/sign-in");
+  await openInstallation("/sign-in?returnTo=%2Fprofile");
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
   await screen.findByText("Fresh_profile");
   await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
@@ -656,7 +673,7 @@ it("consumes an empty native restore without activating Pro or announcing expiry
   // Given
   prepareLogin("apple|retained");
   const user = userEvent.setup();
-  await openInstallation("/sign-in");
+  await openInstallation("/sign-in?returnTo=%2Fprofile");
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
   await screen.findByText("Fresh_profile");
   await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
@@ -687,7 +704,7 @@ it("reads current revoked rights after an old active listener signal without rep
   const previouslyActive = rights("APP_STORE");
   mockPurchases.getCustomerInfo.mockResolvedValue(previouslyActive);
   const user = userEvent.setup();
-  await openInstallation("/sign-in");
+  await openInstallation("/sign-in?returnTo=%2Fprofile");
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
   await waitFor(() => expect(owners.pro.state.status).toBe("active"));
   const inactive = customerInfo({

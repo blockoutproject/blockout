@@ -1,3 +1,4 @@
+import { homeHref } from "@/shared/native/home-href";
 import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
 import { useActionFeedback } from "@/shared/components/action-feedback";
@@ -28,7 +29,7 @@ export function useGuestNavigation() {
     const clearing = session.clearCredentials();
     try {
       await clearing;
-      router.replace("/");
+      router.replace(homeHref);
     } catch {
       if (mounted.current) {
         feedback.error();

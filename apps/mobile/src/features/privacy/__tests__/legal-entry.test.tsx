@@ -12,6 +12,7 @@ import * as WebBrowser from "expo-web-browser";
 import type { ComponentType } from "react";
 import { Text } from "react-native";
 import RootLayout from "@/app/_layout";
+import EntryRoute from "@/app/index";
 import OrdinaryLayout from "@/app/(ordinary)/_layout";
 import RecoveryLayout from "@/app/(recovery)/_layout";
 import { AccessGateScreen } from "@/features/access/screens/access-gate-screen";
@@ -154,13 +155,14 @@ async function mountJourney(initialUrl = "/profile") {
   await renderRouter(
     {
       _layout: () => <RootLayout />,
+      index: EntryRoute,
       onboarding: () => null,
       "age-declaration": () => null,
       "(operations)/_layout": () => <Stack />,
       "(ordinary)/_layout": OrdinaryLayout,
       "(recovery)/_layout": RecoveryLayout,
       "(ordinary)/(tabs)/_layout": () => <Stack />,
-      "(ordinary)/(tabs)/index": () => null,
+      "(ordinary)/(tabs)/(home)/(personal)/index": () => null,
       "(ordinary)/(tabs)/profile": ProfileEntries,
       "(recovery)/sign-in": PublicAccountLinks,
       "(ordinary)/privacy": () => null,
@@ -242,7 +244,7 @@ describe.each([
 
 it.each([
   ["Conditions d’utilisation", "terms"],
-  ["Politique de confidentialité", "privacy"],
+  ["Confidentialité", "privacy"],
 ])(
   "opens the existing public %s footer before sign-in",
   async (label, kind) => {
@@ -333,6 +335,9 @@ describe.each(["maintenance", "update", "unavailable"] as const)(
         ).toBeNull();
         expect(
           screen.queryByRole("link", { name: "Politique de confidentialité" }),
+        ).toBeNull();
+        expect(
+          screen.queryByRole("link", { name: "Confidentialité" }),
         ).toBeNull();
         expect(WebBrowser.openBrowserAsync).not.toHaveBeenCalled();
         expect(mockAuth0.webAuth).not.toHaveBeenCalled();

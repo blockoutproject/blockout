@@ -11,7 +11,13 @@ import {
   type ReactNode,
 } from "react";
 import { AppState } from "react-native";
-import { QueryClientProvider, useQuery } from "@tanstack/react-query";
+import {
+  QueryClientProvider,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseMutationResult,
+} from "@tanstack/react-query";
 import Auth0, {
   Auth0Provider,
   parseIdToken,
@@ -23,6 +29,9 @@ import { createQueryClient } from "@/shared/query/query-client";
 import { currentAccountQuery } from "../api/current-account-query";
 import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import { requiresReauthentication } from "./native-session";
+import { useOrdinaryRequest } from "@/features/access/ordinary-request";
+import { establishAccountForSession } from "../api/establish-account";
+import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
 
 /** Native identity and the currently observed business account; neither carries a client epoch. */
 export interface SessionSnapshot {
@@ -53,6 +62,8 @@ export interface AccountSession extends SessionSnapshot {
   status: AuthenticationStatus;
   operation?: "authenticating" | "signing-out";
   error: unknown;
+  /** The explicit connection command survives the SDK's subject change; Query owns its outcome. */
+  connection: UseMutationResult<void, Error, AccountConnectionInput>;
   /** Captures the original principal before asynchronous credential preparation. */
   getCredentials(): Promise<Credentials>;
   /** Starts hosted login only from an explicit action and returns its native principal. */
@@ -65,6 +76,12 @@ export interface AccountSession extends SessionSnapshot {
   retryInitialization(): void;
   /** Retries SDK credential restoration only in authentication-error; otherwise does nothing. */
   retryAuthentication(): void;
+}
+
+/** Keeps the initiating private owner's native login and credential-error cleanup together. */
+export interface AccountConnectionInput {
+  audience: string;
+  signIn: AccountSession["signIn"];
 }
 
 /** F07 captures the exact original association and owns the bounded attempt before native logout. */
@@ -186,6 +203,7 @@ function SessionScope({
     currentSubject.current = subject;
   }, [subject]);
   const [operation, setOperation] = useState<AccountSession["operation"]>();
+  const { request } = useOrdinaryRequest();
   /** Prepares credentials for the captured principal without allowing another subject to dispatch. */
   const credentialsFor = useCallback(
     async (original: string | null) => {
@@ -207,11 +225,36 @@ function SessionScope({
     () => credentialsFor(subject),
     [credentialsFor, subject],
   );
+
+  const connection = useMutation({
+    mutationKey: ["account-connection"],
+    retry: false,
+    networkMode: "always",
+    gcTime: 0,
+    mutationFn: async ({ audience, signIn }: AccountConnectionInput) => {
+      const principal = await signIn(audience);
+      if (!principal) {
+        throw new ApiError("cancelled");
+      }
+      try {
+        await establishAccountForSession(principal, request);
+      } catch (error) {
+        if (currentSubject.current !== principal.subject) {
+          throw new ApiError("cancelled");
+        }
+        throw error;
+      }
+      if (currentSubject.current !== principal.subject) {
+        throw new ApiError("cancelled");
+      }
+    },
+  });
+  const activeOperation = connection.isPending ? "authenticating" : operation;
   let status: AuthenticationStatus = "guest";
   if (initialization.status === "initialization-error") {
     status = "initialization-error";
-  } else if (operation) {
-    status = operation;
+  } else if (activeOperation) {
+    status = activeOperation;
   } else if (auth.isLoading) {
     status = "restoring";
   } else if (requiresReauthentication(auth.error)) {
@@ -225,7 +268,8 @@ function SessionScope({
   const session: Omit<AccountSession, "accountId"> = {
     subject,
     status,
-    operation,
+    operation: activeOperation,
+    connection,
     error:
       initialization.status === "initialization-error"
         ? initialization.error
@@ -242,11 +286,11 @@ function SessionScope({
       }
     },
     async signIn(audience) {
+      if (activeOperation) {
+        return;
+      }
       if (initialization.status !== "ready") {
         throw new Error("Native authentication is unavailable");
-      }
-      if (operation) {
-        return;
       }
       const remove = preparePushRemoval?.();
       setOperation("authenticating");
@@ -257,6 +301,8 @@ function SessionScope({
           scope: "openid profile email offline_access",
         });
         const principal = parseIdToken(credentials.idToken).sub;
+        // Auth0 has completed login before React necessarily commits its user update.
+        currentSubject.current = principal;
         return {
           subject: principal,
           getCredentials: () => credentialsFor(principal),
@@ -266,9 +312,10 @@ function SessionScope({
       }
     },
     async signOut() {
-      if (operation) {
+      if (activeOperation) {
         return;
       }
+      connection.reset();
       const remove = preparePushRemoval?.();
       setOperation("signing-out");
       try {
@@ -284,9 +331,10 @@ function SessionScope({
       if (currentSubject.current !== subject) {
         throw new ApiError("cancelled");
       }
-      if (operation) {
+      if (activeOperation) {
         return;
       }
+      connection.reset();
       const remove = preparePushRemoval?.();
       setOperation("signing-out");
       try {
@@ -330,7 +378,7 @@ function PrivateAccountLifetime({
       throw error;
     }
   }, [nativeCredentials]);
-  const current = {
+  const current: Omit<AccountSession, "accountId"> = {
     ...session,
     getCredentials,
     /** Clears the previous credential failure only after an explicit native login succeeds. */
@@ -369,7 +417,17 @@ function CurrentAccountIdentity({
 }: Readonly<
   PropsWithChildren<{ session: Omit<AccountSession, "accountId"> }>
 >) {
+  const client = useQueryClient();
   const account = useQuery(currentAccountQuery(session));
+  const connected = session.connection.isSuccess;
+  useEffect(() => {
+    if (connected) {
+      void client.invalidateQueries(
+        { queryKey: getGetMyAccountQueryKey(), exact: true },
+        { cancelRefetch: false },
+      );
+    }
+  }, [client, connected]);
   /** Reads current enablement at the native event without renewing the subscription on Query changes. */
   const refreshAccount = useEffectEvent(() => {
     if (account.isEnabled) {

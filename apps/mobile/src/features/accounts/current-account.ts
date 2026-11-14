@@ -9,3 +9,5 @@ export {
 } from "./api/use-current-account";
 
 export { AccountSessionFeedback } from "./components/account-session-feedback";
+
+export { AccountRecovery } from "./components/account-recovery";

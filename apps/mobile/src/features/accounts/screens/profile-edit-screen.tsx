@@ -3,13 +3,11 @@ import { ErrorState } from "@/shared/components/state-card";
 import { ScreenState } from "@/shared/components/screen-state";
 import { useNavigation, useRouter } from "expo-router";
 import { StackActions } from "expo-router/react-navigation";
-import { LogIn } from "lucide-react-native";
 import { FormScrollView } from "@/shared/components/form-scroll-view";
 
-import { isAccountMissing } from "../api/current-account-query";
-import { Button } from "@/shared/components/button";
 import { useCurrentAccount } from "../api/use-current-account";
 import { ProfileForm } from "../forms/profile-form";
+import { AccountRecovery } from "../components/account-recovery";
 import { ProfileLoading } from "../components/profile-loading";
 import { accountSessionRecovery } from "../session/account-session-recovery";
 import { useAccountSession } from "../session/account-session-provider";
@@ -35,7 +33,6 @@ export function ProfileEditScreen({
   const router = useRouter();
   const navigation = useNavigation();
   const { saving, refresh } = useProfileRefresh(account);
-  const missing = isAccountMissing(account.error);
 
   /** Returns this stack to its overview, including an unanchored warm link or a save acknowledged on another tab. */
   function close() {
@@ -69,27 +66,17 @@ export function ProfileEditScreen({
     if (recovery.failed) {
       return (
         <ScreenState>
-          <ErrorState onRetry={recovery.onRetry}>
-            {session.status === "reauthentication-required" && (
-              <Button
-                label="Se connecter"
-                leadingIcon={LogIn}
-                onPress={() => router.replace("/sign-in")}
-              />
-            )}
-          </ErrorState>
+          <AccountRecovery error={account.error}>
+            <ErrorState onRetry={recovery.onRetry} />
+          </AccountRecovery>
         </ScreenState>
       );
     }
-    if (session.status === "guest" || missing) {
+    if (session.status === "guest") {
       return (
         <ScreenState>
           <SignInInvitationCard
-            message={
-              missing
-                ? "Votre compte n’est plus disponible."
-                : "Connectez-vous pour modifier votre profil."
-            }
+            message="Connectez-vous pour modifier votre profil."
             onSignIn={() => router.replace("/sign-in")}
           />
         </ScreenState>
@@ -101,7 +88,9 @@ export function ProfileEditScreen({
     ) {
       return (
         <ScreenState>
-          <ReadFeedback query={account} loadingContent={null} />
+          <AccountRecovery error={account.error}>
+            <ReadFeedback query={account} loadingContent={null} />
+          </AccountRecovery>
         </ScreenState>
       );
     }

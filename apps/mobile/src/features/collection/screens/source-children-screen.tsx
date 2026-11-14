@@ -40,6 +40,7 @@ export function SourceChildrenScreen({
   const pending = !authority.enabled
     ? authority.sessionStatus === "restoring" ||
       (authority.sessionStatus === "authenticated" &&
+        !hasReadError(authority.account) &&
         authority.account.isLoading)
     : !hasReadError(query) && query.isLoading;
   const FeedbackLayout = pending ? PageContent : ScreenState;

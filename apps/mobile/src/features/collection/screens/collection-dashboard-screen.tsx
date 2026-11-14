@@ -66,7 +66,9 @@ export function CollectionDashboardScreen() {
 
   const FeedbackLayout =
     authority.sessionStatus === "restoring" ||
-    (authority.sessionStatus === "authenticated" && authority.account.isLoading)
+    (authority.sessionStatus === "authenticated" &&
+      !hasReadError(authority.account) &&
+      authority.account.isLoading)
       ? PageContent
       : ScreenState;
   return (
@@ -185,6 +187,7 @@ function SeasonControlScope({
   const sessionPending =
     authority.sessionStatus === "restoring" ||
     (authority.sessionStatus === "authenticated" &&
+      !hasReadError(authority.account) &&
       authority.account.isLoading);
   const pending = !authority.enabled
     ? sessionPending
@@ -255,6 +258,7 @@ function ControlScope({
   const sessionPending =
     authority.sessionStatus === "restoring" ||
     (authority.sessionStatus === "authenticated" &&
+      !hasReadError(authority.account) &&
       authority.account.isLoading);
   const pending = !authority.enabled
     ? sessionPending
@@ -440,6 +444,7 @@ function ControlDashboard({
   const sessionPending =
     authority.sessionStatus === "restoring" ||
     (authority.sessionStatus === "authenticated" &&
+      !hasReadError(authority.account) &&
       authority.account.isLoading);
   const pending = !authority.enabled
     ? sessionPending

@@ -1,3 +1,4 @@
+import { homeHref } from "@/shared/native/home-href";
 import { accountResponse as mockAccountResponse } from "@/features/accounts/test-support/account-response";
 import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
@@ -367,7 +368,7 @@ it("keeps the signed-in profile after cancelled browser logout, then returns hom
   });
   expect(account.status).toBe("authenticated");
   expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
-  expect(mockRouter.replace).not.toHaveBeenCalledWith("/");
+  expect(mockRouter.replace).not.toHaveBeenCalledWith(homeHref);
 
   // When
   await user.press(screen.getByRole("button", { name: "Se déconnecter" }));
@@ -376,5 +377,5 @@ it("keeps the signed-in profile after cancelled browser logout, then returns hom
   await waitFor(() => expect(account.status).toBe("guest"));
   expect(mockAuth0.webAuthLogout).toHaveBeenCalledTimes(2);
   expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1);
-  expect(mockRouter.replace).toHaveBeenCalledWith("/");
+  expect(mockRouter.replace).toHaveBeenCalledWith(homeHref);
 });

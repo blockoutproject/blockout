@@ -13,8 +13,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { AppState, Text } from "react-native";
 import { useEffect, type ComponentType } from "react";
 import RootLayout from "@/app/_layout";
+import EntryRoute from "@/app/index";
 import OrdinaryLayout from "@/app/(ordinary)/_layout";
 import RecoveryLayout from "@/app/(recovery)/_layout";
+import SignInRoute from "@/app/(recovery)/sign-in";
 import MatchRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/matches/[matchId]";
 import { AccessGateScreen } from "@/features/access/screens/access-gate-screen";
 import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
@@ -93,23 +95,26 @@ function MatchDestination() {
   return <MatchRoute />;
 }
 
-/** Keeps the real root/member admission and F03 destination; unrelated route bodies are probes. */
+/** Keeps the real root/ordinary admission and F03 destination; unrelated route bodies are probes. */
 async function openApplication() {
   return renderRouter({
     _layout: () => <RootLayout />,
+    index: EntryRoute,
     access: AccessGateScreen,
     onboarding: () => <Text>Discovery</Text>,
     "age-declaration": () => <Text>Age declaration</Text>,
     "(ordinary)/_layout": OrdinaryLayout,
     "(ordinary)/(tabs)/_layout": () => <Stack />,
-    "(ordinary)/(tabs)/index": () => <Text>Ordinary home</Text>,
+    "(ordinary)/(tabs)/(home)/(personal)/index": () => (
+      <Text>Ordinary home</Text>
+    ),
     "(ordinary)/privacy": () => <Text>Privacy</Text>,
     "(ordinary)/privacy-age": () => <Text>Privacy age</Text>,
     "(ordinary)/pro": () => <Text>Pro</Text>,
     "(ordinary)/sign-in-invitation": () => <Text>Sign-in invitation</Text>,
     "(ordinary)/matches/[matchId]": MatchDestination,
     "(recovery)/_layout": RecoveryLayout,
-    "(recovery)/sign-in": () => <Text>Sign-in</Text>,
+    "(recovery)/sign-in": SignInRoute,
     "(recovery)/support/index": () => <Text>Support</Text>,
     "(operations)/_layout": () => <Stack />,
     "(operations)/administration": () => <Text>Administration</Text>,
@@ -265,6 +270,15 @@ it.each(["owner", "operator", "guest"] as const)(
     access.versions.android = { minimumVersion: null, storeUrl: null };
     await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
+    if (actor === "guest") {
+      // No restored SDK identity means ordinary Login; only explicit guest continuation enters public navigation.
+      await userEvent.press(
+        await screen.findByRole("button", {
+          name: "Continuer en tant qu’invité",
+        }),
+      );
+    }
+
     // Then: the real destination fetches its current representation and the owner read is independent.
     expect(
       await screen.findByRole("header", { name: "Informations" }),
@@ -320,21 +334,13 @@ it.each(["owner", "operator", "guest"] as const)(
   },
 );
 
-it.each([
-  { recovery: "retry", accountId: ownerId, acknowledgements: 1 },
-  {
-    recovery: "retry",
-    accountId: "00000000-0000-4000-8000-000000000273",
-    acknowledgements: 0,
-  },
-  { recovery: "guest", accountId: ownerId, acknowledgements: 0 },
-] as const)(
-  "holds the remembered tap until $recovery releases initial account failure for $accountId",
-  async ({ recovery, accountId, acknowledgements }) => {
-    // Given: the native tap is remembered while the first account read has no usable result.
+it.each(["pending", "failed"] as const)(
+  "opens the remembered public Match while the first account read is %s without deferring a private action",
+  async (outcome) => {
+    // Given: the actual root and public Match route remain real while account HTTP completion is controlled.
     const firstAccountRead = Promise.withResolvers<Response>();
     let readAccount = () => firstAccountRead.promise;
-    const user = userEvent.setup();
+    const foreground = jest.spyOn(AppState, "addEventListener");
     mockFetch.mockImplementation(async (url: string, init: RequestInit) => {
       const path = new URL(url).pathname;
       if (path.endsWith("application-access")) {
@@ -355,89 +361,81 @@ it.each([
       throw new Error(`Unexpected synthetic boundary ${path}`);
     });
 
-    // When
-    await openApplication();
-    await waitFor(() =>
+    try {
+      // When
+      await openApplication();
+
+      // Then: resolved native identity admits the exact public destination before the account UUID.
       expect(
-        mockFetch.mock.calls.some(([url]) => url.endsWith("accounts/me")),
-      ).toBe(true),
-    );
-
-    // Then: pending membership cannot consume the SDK response or enter the public destination.
-    expect(
-      await screen.findByRole("progressbar", {
-        name: "Chargement en cours",
-      }),
-    ).toBeOnTheScreen();
-    expect(Notifications.clearLastNotificationResponse).not.toHaveBeenCalled();
-    expect(screen.queryByText("Ordinary home")).toBeNull();
-    expect(
-      mockFetch.mock.calls.some(([url]) =>
-        /\/matches\/|\/notifications\//.test(url),
-      ),
-    ).toBe(false);
-
-    // When: native Query retries all encounter the same technical failure.
-    readAccount = async () => new Response(null, { status: 503 });
-    await act(() =>
-      firstAccountRead.resolve(new Response(null, { status: 503 })),
-    );
-
-    // Then: the common member failure still leaves the tap available for an explicit release.
-    expect(
-      await screen.findByRole(
-        "alert",
-        { name: "Impossible de charger votre compte" },
-        { timeout: 10000 },
-      ),
-    ).toBeOnTheScreen();
-    expect(Notifications.clearLastNotificationResponse).not.toHaveBeenCalled();
-    expect(screen).toHavePathname("/");
-    expect(
-      mockFetch.mock.calls.some(([url]) =>
-        /\/matches\/|\/notifications\//.test(url),
-      ),
-    ).toBe(false);
-    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
-
-    // When: a successful explicit reread or explicit local guest exit releases ordinary navigation.
-    if (recovery === "retry") {
-      readAccount = async () => Response.json(accountResponse({ accountId }));
-    } else {
-      mockAuth0.clearCredentials.mockImplementationOnce(async () => {
-        mockAuth0.hasValidCredentials.mockResolvedValue(false);
+        await screen.findByRole("header", { name: "Informations" }),
+      ).toBeOnTheScreen();
+      expect(screen).toHavePathname(`/matches/${row.match.id}`);
+      expect(destinationSession).toMatchObject({
+        status: "authenticated",
+        subject: "synthetic-owner",
+        accountId: null,
       });
-    }
-    await user.press(
-      screen.getByRole("button", {
-        name:
-          recovery === "retry" ? "Réessayer" : "Continuer en tant qu’invité",
-      }),
-    );
+      expect(Notifications.clearLastNotificationResponse).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(
+        mockFetch.mock.calls.some(([, init]) => init.method === "PATCH"),
+      ).toBe(false);
 
-    // Then: everyone may open the public match, but only its current personal owner acknowledges it.
-    expect(
-      await screen.findByRole("header", { name: "Informations" }),
-    ).toBeOnTheScreen();
-    expect(screen).toHavePathname(`/matches/${row.match.id}`);
-    expect(Notifications.clearLastNotificationResponse).toHaveBeenCalledTimes(
-      1,
-    );
-    expect(
-      mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
-    ).toHaveLength(acknowledgements);
-    expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(
-      recovery === "guest" ? 1 : 0,
-    );
-    expect(destinationSession).toMatchObject({
-      status: recovery === "guest" ? "guest" : "authenticated",
-      subject: recovery === "guest" ? null : "synthetic-owner",
-      accountId: recovery === "guest" ? null : accountId,
-    });
-    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
-    expect(
-      mockFetch.mock.calls.some(([, init]) => init.method === "POST"),
-    ).toBe(false);
+      // When: a technical failure changes only the independent account read.
+      if (outcome === "failed") {
+        readAccount = async () => new Response(null, { status: 503 });
+        await act(() =>
+          firstAccountRead.resolve(new Response(null, { status: 503 })),
+        );
+        await act(() => jest.advanceTimersByTimeAsync(8000));
+      }
+
+      // Then
+      expect(screen).toHavePathname(`/matches/${row.match.id}`);
+      expect(
+        screen.getByRole("header", { name: "Informations" }),
+      ).toBeOnTheScreen();
+      expect(
+        mockFetch.mock.calls.some(([, init]) => init.method === "PATCH"),
+      ).toBe(false);
+
+      // When: later account success supplies the current matching owner, through ordinary foreground refresh after failure.
+      readAccount = async () =>
+        Response.json(accountResponse({ accountId: ownerId }));
+      await act(async () => {
+        firstAccountRead.resolve(
+          Response.json(accountResponse({ accountId: ownerId })),
+        );
+        if (outcome === "failed") {
+          for (const [event, listener] of foreground.mock.calls) {
+            if (event === "change") {
+              listener("active");
+            }
+          }
+        }
+      });
+      await waitFor(() => expect(destinationSession?.accountId).toBe(ownerId));
+
+      // Then: the consumed tap remains public navigation, without delayed ACK or login/creation.
+      expect(screen).toHavePathname(`/matches/${row.match.id}`);
+      expect(Notifications.clearLastNotificationResponse).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(
+        mockFetch.mock.calls.some(([, init]) =>
+          ["PATCH", "POST"].includes(init.method),
+        ),
+      ).toBe(false);
+      expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+      expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+    } finally {
+      await act(() =>
+        firstAccountRead.resolve(
+          Response.json(accountResponse({ accountId: ownerId })),
+        ),
+      );
+    }
   },
 );
 

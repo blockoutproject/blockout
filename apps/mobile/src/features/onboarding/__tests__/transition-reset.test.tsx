@@ -218,7 +218,11 @@ it("establishes a fresh profile and honest empty follows/inbox without choosing 
 
   // When
   await user.press(screen.getByRole("button", { name: "Se connecter" }));
-  await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/profile"));
+  await waitFor(() =>
+    expect(mockReplace).toHaveBeenCalledWith(
+      "/(ordinary)/(tabs)/(home)/(personal)",
+    ),
+  );
   await view.rerender(
     <Consumers>
       <ProfileScreen admitted proEntry={null} privacyEntry={null} />

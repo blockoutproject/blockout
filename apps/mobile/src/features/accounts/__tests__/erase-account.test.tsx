@@ -155,7 +155,7 @@ async function openErasure() {
           </PrivateQueries>
         </AccountSessionProvider>
       ),
-      index: Home,
+      "(ordinary)/(tabs)/(home)/(personal)/index": Home,
       "profile/index": () => (
         <ProfileScreen admitted proEntry={null} privacyEntry={null} />
       ),
@@ -614,7 +614,7 @@ it.each(["absent", "replacement"])(
     // Then
     if (state === "absent") {
       expect(
-        await screen.findByRole("button", { name: "Se connecter" }),
+        await screen.findByRole("button", { name: "Créer mon compte" }),
       ).toBeEnabled();
       expect(screen.queryByRole("checkbox")).not.toBeOnTheScreen();
       expect(

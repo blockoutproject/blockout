@@ -30,7 +30,7 @@ import {
   credentialsFor,
   mockAuth0,
 } from "@/features/accounts/test-support/native-auth0";
-import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
+import EntryRoute from "@/app/index";
 import type { SubmitSupportRequest } from "../../../../.generated/schemas/index.zod";
 
 // Root, F14 initialization, Auth0 JS, F05/Query, F12 guards, RHF and generated transport are real.
@@ -155,13 +155,16 @@ async function openRoute(path: string) {
   const view = await renderRouter(
     {
       _layout: () => <RootLayout />,
+      index: EntryRoute,
       access: AccessRoute,
       "+not-found": NotFoundRoute,
       onboarding: OnboardingRoute,
       "age-declaration": () => null,
       "(ordinary)/_layout": () => <Stack />,
       "(recovery)/_layout": RecoveryLayout,
-      "(ordinary)/index": () => <Text>Ordinary home</Text>,
+      "(ordinary)/(tabs)/(home)/(personal)/index": () => (
+        <Text>Ordinary home</Text>
+      ),
       "(ordinary)/profile": ProfileRoute,
       "(recovery)/sign-in": SignInRoute,
       "(ordinary)/matches/[matchId]": MatchRoute,
@@ -304,7 +307,7 @@ it("sends a suggestion after actual hosted sign-in failure with only safe failur
   await openRoute("/sign-in");
   const user = userEvent.setup();
   await user.press(screen.getByRole("button", { name: "Se connecter" }));
-  await screen.findByText(TECHNICAL_ERROR);
+  await screen.findByRole("alert", { name: "Une erreur est survenue." });
   const credentialsBeforeSupport = mockAuth0.getCredentials.mock.calls.length;
 
   // When

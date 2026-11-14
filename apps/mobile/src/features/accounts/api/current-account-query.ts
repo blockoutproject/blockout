@@ -45,9 +45,7 @@ export function currentAccountQuery(
             error.kind === "http" &&
             error.status === 404)
         ) {
-          client.setQueryData<AccountResponse | null>(queryKey, null, {
-            updatedAt: client.getQueryState(queryKey)?.dataUpdatedAt ?? 0,
-          });
+          client.setQueryData<AccountResponse | null>(queryKey, null);
         }
         throw error;
       }

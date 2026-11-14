@@ -5,6 +5,7 @@ import {
   useAccountSession,
   useCurrentAccount,
   AccountSessionFeedback,
+  AccountRecovery,
 } from "@/features/accounts/current-account";
 import { Page, PageContent, PageScrollView } from "@/shared/components/page";
 import { BrandMark } from "@/shared/components/brand-mark";
@@ -37,8 +38,7 @@ export function PersonalScreen() {
   const pending =
     session.status === "restoring" ||
     session.status === "authenticating" ||
-    session.status === "signing-out" ||
-    (authenticated && profile.isLoading);
+    session.status === "signing-out";
   const FeedbackLayout = pending ? PageContent : ScreenState;
   if (session.status === "guest") {
     return (
@@ -59,27 +59,18 @@ export function PersonalScreen() {
       </Page>
     );
   }
-  if (authenticated && scope) {
-    return <PersonalSpace key={scope.owner.subject} scope={scope} />;
+  if (authenticated) {
+    return (
+      <PersonalSpace key={session.subject} scope={scope} profile={profile} />
+    );
   }
   return (
     <Page header={<PersonalHeader />}>
       <PageScrollView>
         <FeedbackLayout>
-          {authenticated ? (
-            <ReadFeedback
-              query={profile}
-              loadingContent={
-                <CalendarLoading label="Chargement de l'accueil" />
-              }
-            />
-          ) : (
-            <AccountSessionFeedback
-              loadingContent={
-                <CalendarLoading label="Chargement de l'accueil" />
-              }
-            />
-          )}
+          <AccountSessionFeedback
+            loadingContent={<CalendarLoading label="Chargement de l'accueil" />}
+          />
         </FeedbackLayout>
       </PageScrollView>
     </Page>
@@ -106,21 +97,28 @@ function PersonalHeader() {
   );
 }
 
-/** Keeps the common read owner and native pager mounted across failures and ordinary sporting visits. */
-function PersonalSpace({ scope }: Readonly<{ scope: PersonalSeasonScope }>) {
-  const { owner, profile, season, request, admitted, usable, blocked, bypass } =
-    scope;
+/** Keeps the native pager before a business UUID exists; private reads retain their matching personal scope. */
+function PersonalSpace({
+  scope,
+  profile,
+}: Readonly<{
+  scope: PersonalSeasonScope | null;
+  profile: ReturnType<typeof useCurrentAccount>;
+}>) {
+  const season = scope?.season;
   const router = useRouter();
   const [tab, setTab] = useState("upcoming");
   const focused = useIsFocused();
   const profileFailed = hasReadError(profile);
   const ready =
-    usable &&
-    !!season.options.data &&
-    !blocked &&
+    scope !== null &&
+    scope.usable &&
+    !!season?.options.data &&
+    !scope.blocked &&
     !profileFailed &&
     !hasReadError(season.options);
-  const blockingQuery = !usable || profileFailed ? profile : season.options;
+  const blockingQuery =
+    !scope?.usable || profileFailed ? profile : scope.season.options;
   const FeedbackLayout =
     blockingQuery.isPending && !hasReadError(blockingQuery)
       ? PageContent
@@ -132,8 +130,8 @@ function PersonalSpace({ scope }: Readonly<{ scope: PersonalSeasonScope }>) {
       <View style={styles.controls}>
         <View style={styles.tabs}>{tabBar}</View>
         <PersonalSeasonSelector
-          options={blocked ? undefined : season.options.data}
-          seasonId={season.seasonId}
+          options={scope?.blocked ? undefined : season?.options.data}
+          seasonId={season?.seasonId}
           onPress={() => router.push("/season")}
           disabled={!ready}
         />
@@ -144,7 +142,7 @@ function PersonalSpace({ scope }: Readonly<{ scope: PersonalSeasonScope }>) {
   return (
     <Page fullBleed>
       <PagedTabs
-        resetKey={season.seasonId ?? "all-seasons"}
+        resetKey={season?.seasonId ?? "all-seasons"}
         selected={tab}
         onSelect={setTab}
         collapsibleHeader={<PersonalHeader />}
@@ -153,44 +151,52 @@ function PersonalSpace({ scope }: Readonly<{ scope: PersonalSeasonScope }>) {
         tabs={tabs.map(({ id, label }) => ({
           id,
           label,
-          content: !ready ? (
-            <PageScrollView>
-              <FeedbackLayout>
-                <ReadFeedback
-                  query={{
-                    ...blockingQuery,
-                    isEnabled: admitted && blockingQuery.isEnabled,
-                  }}
-                  loadingContent={
-                    id === "following" ? (
-                      <SportingEntityCardLoading label="Chargement des suivis" />
-                    ) : (
-                      <CalendarLoading />
-                    )
-                  }
-                />
-              </FeedbackLayout>
-            </PageScrollView>
-          ) : id === "upcoming" || id === "completed" ? (
-            <PersonalCalendar
-              key={season.seasonId ?? "all-seasons"}
-              owner={owner}
-              request={request}
-              seasonId={season.seasonId}
-              category={id}
-              active={focused && tab === id}
-              bypass={bypass}
-            />
-          ) : (
-            <FollowedLists
-              key={season.seasonId ?? "all-seasons"}
-              owner={owner}
-              request={request}
-              seasonId={season.seasonId}
-              active={focused && tab === id}
-              bypass={bypass}
-            />
-          ),
+          content:
+            !ready || !scope ? (
+              <PageScrollView>
+                <FeedbackLayout>
+                  <AccountRecovery error={profile.error}>
+                    <ReadFeedback
+                      query={{
+                        ...blockingQuery,
+                        isEnabled:
+                          (!scope || scope.admitted) && blockingQuery.isEnabled,
+                      }}
+                      loadingContent={
+                        id === "following" ? (
+                          <SportingEntityCardLoading label="Chargement des suivis" />
+                        ) : (
+                          <CalendarLoading
+                            label={
+                              scope ? undefined : "Chargement de l'accueil"
+                            }
+                          />
+                        )
+                      }
+                    />
+                  </AccountRecovery>
+                </FeedbackLayout>
+              </PageScrollView>
+            ) : id === "upcoming" || id === "completed" ? (
+              <PersonalCalendar
+                key={season?.seasonId ?? "all-seasons"}
+                owner={scope.owner}
+                request={scope.request}
+                seasonId={season?.seasonId}
+                category={id}
+                active={focused && tab === id}
+                bypass={scope.bypass}
+              />
+            ) : (
+              <FollowedLists
+                key={season?.seasonId ?? "all-seasons"}
+                owner={scope.owner}
+                request={scope.request}
+                seasonId={season?.seasonId}
+                active={focused && tab === id}
+                bypass={scope.bypass}
+              />
+            ),
         }))}
       />
     </Page>

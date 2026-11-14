@@ -1,3 +1,5 @@
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { accountResponse as mockAccountResponse } from "@/features/accounts/test-support/account-response";
 import {
   credentialsFor,
@@ -37,9 +39,11 @@ import { defaultOffering } from "../test-support/offering";
 jest.mock("expo/fetch", () => ({
   fetch: jest.fn((url: RequestInfo | URL) =>
     Promise.resolve(
-      String(url).endsWith("/accounts/me") && mockAccountId !== undefined
-        ? Response.json(mockAccountResponse({ accountId: mockAccountId }))
-        : new Response(null, { status: 404 }),
+      String(url).endsWith("/application-access")
+        ? Response.json(mockApplicationAccessResponse())
+        : String(url).endsWith("/accounts/me") && mockAccountId !== undefined
+          ? Response.json(mockAccountResponse({ accountId: mockAccountId }))
+          : new Response(null, { status: 404 }),
     ),
   ),
 }));
@@ -139,9 +143,11 @@ function Owners({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <QueryClientProvider client={client}>
       <ThemeProvider>
-        <AccountSessionProvider>
-          <ProProvider presentationEnabled={enabled}>{children}</ProProvider>
-        </AccountSessionProvider>
+        <ApplicationAccessProvider>
+          <AccountSessionProvider>
+            <ProProvider presentationEnabled={enabled}>{children}</ProProvider>
+          </AccountSessionProvider>
+        </ApplicationAccessProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
