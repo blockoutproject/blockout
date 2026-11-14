@@ -8,10 +8,9 @@ import {
   type SportingInitialRead,
 } from "../components/sporting-initial-composition";
 import { SportingPageHeader } from "../components/sporting-page-header";
-import { SportingTabs } from "../components/sporting-tabs";
-import { ResourceText } from "../components/resource-text";
+import { PagedTabs } from "@/shared/components/paged-tabs";
 import { PageHeader } from "@/shared/components/page-header";
-import { PageScrollView, PageContent } from "@/shared/components/page";
+import { PageContent } from "@/shared/components/page";
 import { hashKey, useQuery } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import type {
@@ -21,9 +20,9 @@ import type {
 import { useConsultationQueries } from "../api/use-consultation-queries";
 
 import { SportingIdentity } from "../components/sporting-identity";
-import { poolLabel, type RenderStandings } from "../model/resource-sections";
+import { poolLabel } from "../model/resource-sections";
 
-/** Route-owned F06 and optional standings compositions receive stable public identities. */
+/** Route-owned F06 composition receives the current public identity and season. */
 export interface TeamScreenProps {
   teamId: string;
   /** F06 supplies its same usable-holder read to this first composition and the single control. */
@@ -33,7 +32,6 @@ export interface TeamScreenProps {
     season: SportingSeasonResponse,
     contextColor?: string,
   ) => ReactNode;
-  renderStandings?: RenderStandings;
 }
 
 /** Public team page retains clubless professional teams and exact participation identities. */
@@ -49,7 +47,6 @@ function TeamPage({
   teamId,
   initialFollow,
   renderFollow,
-  renderStandings,
 }: Readonly<TeamScreenProps>) {
   const queries = useConsultationQueries();
   const team = useQuery(queries.team(teamId));
@@ -97,7 +94,7 @@ function TeamPage({
       loading={<SportingTeamLoading calendar={!!data && tab === "upcoming"} />}
     >
       {data && (
-        <SportingTabs
+        <PagedTabs
           selected={tab ?? "upcoming"}
           onSelect={setSelected}
           header={
@@ -113,64 +110,36 @@ function TeamPage({
               />
             )
           }
-          identity={<PageContent>{identity}</PageContent>}
+          collapsibleHeader={<PageContent>{identity}</PageContent>}
           tabs={tabs.map((item) => {
-            /** Selects the existing team calendar, standings or information panel without changing native tab lifetimes. */
-            function renderTeamTab() {
-              if (category) {
-                return (
-                  <SportingCalendar
-                    selection={{ teamId, category }}
-                    active={tab === item.id}
-                  />
-                );
-              }
-              if (participation && !renderStandings) {
-                return (
-                  <PoolStandings
-                    pool={participation}
-                    highlightTeamId={teamId}
-                    active={tab === item.id}
-                  >
-                    <PoolParticipationLink
-                      pool={participation}
-                      active={tab === item.id}
-                    />
-                  </PoolStandings>
-                );
-              }
-              return (
-                <PageScrollView alwaysBounceVertical>
-                  <PageContent>
-                    {participation && (
-                      <>
-                        <PoolParticipationLink
-                          pool={participation}
-                          active={tab === item.id}
-                        />
-                        {renderStandings?.(participation) ?? (
-                          <ResourceText>
-                            Classement indisponible pour le moment
-                          </ResourceText>
-                        )}
-                      </>
-                    )}
-                  </PageContent>
-                </PageScrollView>
-              );
-            }
-
-            const participation = data?.participations.find(
+            const participation = data.participations.find(
               (pool) => pool.pool.id === item.id,
             );
             const category =
               item.id === "upcoming" || item.id === "completed"
                 ? item.id
                 : undefined;
+            const content = category ? (
+              <SportingCalendar
+                selection={{ teamId, category }}
+                active={tab === item.id}
+              />
+            ) : participation ? (
+              <PoolStandings
+                pool={participation}
+                highlightTeamId={teamId}
+                active={tab === item.id}
+              >
+                <PoolParticipationLink
+                  pool={participation}
+                  active={tab === item.id}
+                />
+              </PoolStandings>
+            ) : null;
             return {
               id: item.id,
               label: item.label,
-              content: renderTeamTab(),
+              content,
             };
           })}
         />

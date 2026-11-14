@@ -11,8 +11,7 @@ export default function ApplicationVersionsRoute() {
   return useOperationalAdmission() ? (
     <ApplicationVersionsSettingsScreen />
   ) : (
-    <Page>
-      <PageHeader title="Administration technique" />
+    <Page header={<PageHeader title="Administration technique" />}>
       <PageScrollView>
         <ScreenState>
           <ErrorState />

@@ -11,10 +11,9 @@ import {
   PageContent,
   pageContentStyle,
 } from "@/shared/components/page";
-import { isAccessDenied } from "@/shared/api/access-denied";
-import { useActionFeedback } from "@/shared/components/action-feedback";
-import { ErrorState, EmptyState } from "@/shared/components/state-card";
+import { EmptyState } from "@/shared/components/state-card";
 import { ScreenState } from "@/shared/components/screen-state";
+import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, useWatch } from "react-hook-form";
@@ -44,7 +43,47 @@ import { divisionSearchValues } from "../forms/division-search-values";
 
 /** Product Design 1340:9338: searchable active/inactive catalogue; commands belong to its editor. */
 export function DivisionsScreen() {
-  /** Retains separate denied, failed-read and successful empty-catalogue states. */
+  const { authority, query } = useDivisions();
+  const { colors, membership } = useTheme();
+  const router = useRouter();
+  const { control, reset } = useForm<DivisionSearchValues>({
+    resolver: zodResolver(divisionSearchSchema),
+    defaultValues: divisionSearchValues(),
+    mode: "onChange",
+  });
+  const search = useWatch({ control, name: "search" });
+  const [active, setActive] = useState(true);
+  const canEdit =
+    authority.permissions?.manageSportingPresentation === true ||
+    authority.permissions?.manageDivisionLifecycle === true;
+  const failed = hasReadError(query);
+  const items =
+    authority.enabled && !failed
+      ? (query.data?.items.filter(
+          (division) =>
+            division.active === active &&
+            division.name
+              .toLocaleLowerCase()
+              .includes(search.trim().toLocaleLowerCase()),
+        ) ?? [])
+      : [];
+  const FeedbackLayout =
+    authority.sessionStatus === "restoring" ||
+    (authority.sessionStatus === "authenticated" &&
+      !hasReadError(authority.account) &&
+      authority.account.isLoading)
+      ? PageContent
+      : ScreenState;
+  const blockingState = !authority.enabled ? (
+    <AccessFeedback {...authority} loadingContent={<DivisionsLoading />} />
+  ) : undefined;
+
+  /** Rereads the current catalogue without changing criteria or replaying commands. */
+  function refresh() {
+    return query.refetch({ cancelRefetch: false });
+  }
+
+  /** Explains a successfully read empty catalogue without changing its criteria. */
   function renderEmptyDivisions() {
     /** Explains whether the successful empty result came from search or the selected activity filter. */
     function emptyDivisionTitle() {
@@ -57,22 +96,6 @@ export function DivisionsScreen() {
       return "Aucune division inactive";
     }
 
-    if (denied) {
-      return (
-        <ErrorState
-          onRetry={() => void query.refetch()}
-          retrying={query.isFetching}
-        />
-      );
-    }
-    if (query.isError || query.isPending) {
-      return (
-        <ErrorState
-          onRetry={() => void refresh()}
-          retrying={query.isFetching}
-        />
-      );
-    }
     return (
       <EmptyState title={emptyDivisionTitle()}>
         {search.trim() ? (
@@ -93,48 +116,6 @@ export function DivisionsScreen() {
     );
   }
 
-  const { authority, query } = useDivisions();
-  const { colors, membership } = useTheme();
-  const router = useRouter();
-  const { control, reset } = useForm<DivisionSearchValues>({
-    resolver: zodResolver(divisionSearchSchema),
-    defaultValues: divisionSearchValues(),
-    mode: "onChange",
-  });
-  const search = useWatch({ control, name: "search" });
-  const [active, setActive] = useState(true);
-  const canEdit =
-    authority.permissions?.manageSportingPresentation === true ||
-    authority.permissions?.manageDivisionLifecycle === true;
-  const denied = isAccessDenied(query.error);
-  const items =
-    authority.enabled && !denied
-      ? (query.data?.items.filter(
-          (division) =>
-            division.active === active &&
-            division.name
-              .toLocaleLowerCase()
-              .includes(search.trim().toLocaleLowerCase()),
-        ) ?? [])
-      : [];
-  const feedback = useActionFeedback();
-  const FeedbackLayout =
-    authority.sessionStatus === "restoring" ||
-    (authority.sessionStatus === "authenticated" && authority.account.isLoading)
-      ? PageContent
-      : ScreenState;
-  const blockingState = !authority.enabled ? (
-    <AccessFeedback {...authority} loadingContent={<DivisionsLoading />} />
-  ) : undefined;
-
-  /** Rereads the current catalogue without changing its activity/search context or replaying commands. */
-  async function refresh() {
-    const result = await query.refetch();
-    if (result.isError && items.length > 0 && !isAccessDenied(result.error)) {
-      feedback.error();
-    }
-  }
-
   return (
     <Page header={<PageHeader title="Divisions" />}>
       {blockingState ? (
@@ -142,153 +123,156 @@ export function DivisionsScreen() {
           <FeedbackLayout>{blockingState}</FeedbackLayout>
         </PageScrollView>
       ) : (
-        <>
-          <PageFlatList
-            {...hiddenScrollIndicators}
-            alwaysBounceVertical={items.length > 0 && !denied}
-            refreshControl={
-              query.data &&
-              items.length > 0 &&
-              !denied &&
-              authority.sessionStatus === "authenticated" ? (
-                <DataRefreshControl onRefresh={refresh} />
-              ) : undefined
-            }
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            data={items}
-            keyExtractor={(division) => division.id}
-            contentContainerStyle={
-              items.length ? pageContentStyle : styles.list
-            }
-            ItemSeparatorComponent={ListSeparator}
-            ListFooterComponent={BottomContentSpacer}
-            ListHeaderComponent={
-              <View
-                style={[styles.controls, !items.length && styles.emptyControls]}
-              >
-                <View style={styles.toolbar}>
-                  <View style={styles.search}>
-                    <Controller
-                      control={control}
-                      name="search"
-                      render={({ field, fieldState }) => (
-                        <SearchField
-                          ref={field.ref}
-                          label="Rechercher une division"
-                          placeholder="Rechercher une division…"
-                          value={field.value}
-                          onChangeText={field.onChange}
-                          onBlur={field.onBlur}
-                          onClear={() => reset(divisionSearchValues())}
-                          error={fieldState.error?.message}
-                        />
-                      )}
+        <PageFlatList
+          {...hiddenScrollIndicators}
+          alwaysBounceVertical={items.length > 0 && !failed}
+          refreshControl={
+            query.data &&
+            items.length > 0 &&
+            !failed &&
+            authority.sessionStatus === "authenticated" ? (
+              <DataRefreshControl onRefresh={refresh} />
+            ) : undefined
+          }
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          data={items}
+          keyExtractor={(division) => division.id}
+          contentContainerStyle={items.length ? pageContentStyle : styles.list}
+          ItemSeparatorComponent={ListSeparator}
+          ListFooterComponent={BottomContentSpacer}
+          ListHeaderComponent={
+            <View
+              style={[styles.controls, !items.length && styles.emptyControls]}
+            >
+              <View style={styles.toolbar}>
+                <View style={styles.search}>
+                  <Controller
+                    control={control}
+                    name="search"
+                    render={({ field, fieldState }) => (
+                      <SearchField
+                        ref={field.ref}
+                        label="Rechercher une division"
+                        placeholder="Rechercher une division…"
+                        value={field.value}
+                        onChangeText={field.onChange}
+                        onBlur={field.onBlur}
+                        onClear={() => reset(divisionSearchValues())}
+                        error={fieldState.error?.message}
+                      />
+                    )}
+                  />
+                </View>
+                {authority.permissions?.manageDivisionLifecycle === true && (
+                  <View
+                    style={[
+                      styles.add,
+                      {
+                        backgroundColor: colors.raised,
+                      },
+                    ]}
+                  >
+                    <IconButton
+                      label="Créer une division"
+                      size="control"
+                      onPress={() =>
+                        router.push("/administration/divisions/new")
+                      }
+                    >
+                      <Plus
+                        accessible={false}
+                        size={tokens.size.icon.lg}
+                        color={colors.icon}
+                      />
+                    </IconButton>
+                    <View
+                      pointerEvents="none"
+                      accessible={false}
+                      style={[styles.addBorder, { borderColor: colors.border }]}
                     />
                   </View>
-                  {authority.permissions?.manageDivisionLifecycle === true && (
-                    <View
-                      style={[
-                        styles.add,
-                        {
-                          backgroundColor: colors.raised,
-                        },
-                      ]}
-                    >
-                      <IconButton
-                        label="Créer une division"
-                        size="control"
-                        onPress={() =>
-                          router.push("/administration/divisions/new")
-                        }
-                      >
-                        <Plus
-                          accessible={false}
-                          size={tokens.size.icon.lg}
-                          color={colors.icon}
-                        />
-                      </IconButton>
+                )}
+              </View>
+              <View style={styles.filters}>
+                {[true, false].map((value) => (
+                  <Pressable
+                    key={String(value)}
+                    accessibilityRole="tab"
+                    accessibilityLabel={value ? "Actives" : "Inactives"}
+                    accessibilityState={{ selected: active === value }}
+                    onPress={() => setActive(value)}
+                    style={styles.filterTarget}
+                  >
+                    {({ pressed }) => (
                       <View
-                        pointerEvents="none"
-                        accessible={false}
                         style={[
-                          styles.addBorder,
-                          { borderColor: colors.border },
+                          styles.filter,
+                          {
+                            backgroundColor:
+                              active === value
+                                ? membership.fill
+                                : colors.subtle,
+                            borderColor:
+                              active === value
+                                ? membership.border
+                                : colors.border,
+                            opacity: pressed ? tokens.opacity.pressed : 1,
+                          },
                         ]}
-                      />
-                    </View>
-                  )}
-                </View>
-                <View style={styles.filters}>
-                  {[true, false].map((value) => (
-                    <Pressable
-                      key={String(value)}
-                      accessibilityRole="tab"
-                      accessibilityLabel={value ? "Actives" : "Inactives"}
-                      accessibilityState={{ selected: active === value }}
-                      onPress={() => setActive(value)}
-                      style={styles.filterTarget}
-                    >
-                      {({ pressed }) => (
-                        <View
+                      >
+                        <Text
                           style={[
-                            styles.filter,
+                            tokens.typography.metadata,
                             {
-                              backgroundColor:
+                              color:
                                 active === value
-                                  ? membership.fill
-                                  : colors.subtle,
-                              borderColor:
-                                active === value
-                                  ? membership.border
-                                  : colors.border,
-                              opacity: pressed ? tokens.opacity.pressed : 1,
+                                  ? membership.content
+                                  : colors.secondaryText,
                             },
                           ]}
                         >
-                          <Text
-                            style={[
-                              tokens.typography.metadata,
-                              {
-                                color:
-                                  active === value
-                                    ? membership.content
-                                    : colors.secondaryText,
-                              },
-                            ]}
-                          >
-                            {value ? "Actives" : "Inactives"}
-                          </Text>
-                        </View>
-                      )}
-                    </Pressable>
-                  ))}
-                </View>
+                          {value ? "Actives" : "Inactives"}
+                        </Text>
+                      </View>
+                    )}
+                  </Pressable>
+                ))}
               </View>
-            }
-            ListEmptyComponent={
-              query.isLoading && !denied ? (
-                <View style={pageContentStyle}>
-                  <DivisionsLoading />
-                </View>
-              ) : (
-                <ScreenState>{renderEmptyDivisions()}</ScreenState>
-              )
-            }
-            renderItem={({ item }) => (
-              <DivisionCard
-                division={item}
-                canEdit={canEdit}
-                onPress={() =>
-                  router.push({
-                    pathname: "/administration/divisions/[id]",
-                    params: { id: item.id },
-                  })
-                }
-              />
-            )}
-          />
-        </>
+            </View>
+          }
+          ListEmptyComponent={
+            failed ? (
+              <ScreenState>
+                <ReadFeedback
+                  query={query}
+                  loadingContent={<DivisionsLoading />}
+                />
+              </ScreenState>
+            ) : query.isPending ? (
+              <PageContent>
+                <ReadFeedback
+                  query={query}
+                  loadingContent={<DivisionsLoading />}
+                />
+              </PageContent>
+            ) : (
+              <ScreenState>{renderEmptyDivisions()}</ScreenState>
+            )
+          }
+          renderItem={({ item }) => (
+            <DivisionCard
+              division={item}
+              canEdit={canEdit}
+              onPress={() =>
+                router.push({
+                  pathname: "/administration/divisions/[id]",
+                  params: { id: item.id },
+                })
+              }
+            />
+          )}
+        />
       )}
     </Page>
   );

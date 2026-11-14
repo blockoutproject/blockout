@@ -12,8 +12,7 @@ export default function ClubCollectionRoute() {
   return family === "club-sheets" || family === "geocoding" ? (
     <CollectionControlScreen family={family} />
   ) : (
-    <Page>
-      <PageHeader title="Collectes" />
+    <Page header={<PageHeader title="Collectes" />}>
       <PageScrollView>
         <ScreenState>
           <ErrorState />

@@ -386,7 +386,9 @@ it("shows an honest empty season list and recovers an initial read failure expli
       ? json({ items: [] })
       : reads(url),
   );
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await userEvent
+    .setup()
+    .press(screen.getByRole("button", { name: "Réessayer" }));
 
   // Then
   expect(await screen.findByText("Aucune saison découverte")).toBeOnTheScreen();

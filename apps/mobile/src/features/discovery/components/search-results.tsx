@@ -8,7 +8,7 @@ import { useRef, type ReactElement, type ReactNode } from "react";
 import type { LegendListRef } from "@legendapp/list/react-native";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
-import { SearchResultCard } from "./search-result-card";
+import { SportingEntityCard } from "@/features/sporting/entity-card";
 import type { SearchResult } from "../model/search-result";
 
 /** The parent derives accepted cards and the fixed heading from the same Query pages. */
@@ -79,7 +79,7 @@ export function SearchResults({
       contentContainerStyle={pageContentStyle}
       ItemSeparatorComponent={ListSeparator}
       renderItem={({ item }) => (
-        <SearchResultCard {...item} onPress={() => onOpen(item)} />
+        <SportingEntityCard {...item} onPress={() => onOpen(item)} />
       )}
     />
   );

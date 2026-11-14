@@ -57,7 +57,7 @@ import {
   matchDetail,
 } from "@/features/sporting/test-support/consultation-data";
 import { PersonalScreen } from "../screens/personal-screen";
-import { FollowButton } from "../components/follow-button";
+import { FollowTarget } from "../test-support/follow-target";
 import { followListKey, followOptionsKey } from "../api/following-keys";
 import { AdvertisingProviders } from "@/features/advertising/test-support/advertising-providers";
 import * as proSessionModule from "@/features/pro/pro-session";
@@ -386,7 +386,7 @@ afterEach(async () => {
 it("keeps the selected season after an actual other-season follow invalidates current options", async () => {
   // Given
   const user = userEvent.setup();
-  await mount(<FollowButton target={team} season={newer} />);
+  await mount(<FollowTarget target={team} season={newer} />);
   await waitFor(() =>
     expect(
       screen.getByRole("button", { name: "Saison des suivis" }),
@@ -1651,7 +1651,7 @@ it.each([false, true])(
         });
       });
     }
-    await mount(<FollowButton target={team} season={older} />);
+    await mount(<FollowTarget target={team} season={older} />);
     await screen.findByRole("button", {
       name: "Saison des suivis",
       disabled: false,
@@ -1846,7 +1846,7 @@ it("restarts the selected completed traversal after a confirmed follow change an
           ),
     );
   });
-  await mount(<FollowButton target={team} season={older} />);
+  await mount(<FollowTarget target={team} season={older} />);
   await screen.findByRole("button", {
     name: "Saison des suivis",
     disabled: false,
@@ -1922,7 +1922,7 @@ it("restarts the selected completed traversal after a confirmed follow change an
 
 it("defers a confirmed-change reload while Home is covered and fetches its first page on return", async () => {
   // Given: native focus is controlled; all private query and mutation owners stay real.
-  await mount(<FollowButton target={team} season={older} />);
+  await mount(<FollowTarget target={team} season={older} />);
   await screen.findByRole("button", {
     name: "Saison des suivis",
     disabled: false,
@@ -2670,7 +2670,7 @@ it("retains pages on append failure, deduplicates UUIDs and keeps homonyms disti
 
 it("retains populated Following on return and defers mutation resets while Home is covered", async () => {
   // Given
-  await mount(<FollowButton target={team} season={older} />);
+  await mount(<FollowTarget target={team} season={older} />);
   await screen.findByRole("button", {
     name: "Saison des suivis",
     disabled: false,

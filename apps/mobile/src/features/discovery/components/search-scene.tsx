@@ -11,7 +11,7 @@ import type {
 import { uniqueSearchResults, type SearchResult } from "../model/search-result";
 import { SearchResults } from "./search-results";
 import { PageContent } from "@/shared/components/page";
-import { SearchLoading } from "./search-loading";
+import { SportingEntityCardLoading } from "@/features/sporting/entity-card";
 import { ScreenState } from "@/shared/components/screen-state";
 import { ListContinuation } from "@/shared/components/list-continuation";
 import { EmptyState } from "@/shared/components/state-card";
@@ -97,7 +97,7 @@ export function SearchScene({
       if (read.isFetching) {
         emptyContent = (
           <PageContent>
-            <SearchLoading />
+            <SportingEntityCardLoading label="Chargement des résultats" />
           </PageContent>
         );
       }

@@ -1,9 +1,9 @@
+import { FilterButton } from "@/shared/components/filter-button";
 import { hashKey } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { Eraser, Flag, Search } from "lucide-react-native";
 import { IconButton } from "@/shared/components/icon-button";
 import { supportHref } from "@/features/support";
-import { Image } from "expo-image";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { useSearchVisit } from "../forms/search-visit";
 import { reconcileSearchFilters } from "../model/search-filters";
@@ -15,13 +15,7 @@ import { hasReadError } from "@/shared/components/read-feedback";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
-import {
-  Keyboard,
-  Pressable,
-  StyleSheet,
-  View,
-  useWindowDimensions,
-} from "react-native";
+import { Keyboard, StyleSheet, View } from "react-native";
 
 import { searchSchema, type SearchValues } from "../schemas/search-schema";
 import { searchValues } from "../forms/search-values";
@@ -61,11 +55,6 @@ export function SearchScreen() {
   const visit = useSearchVisit();
   const router = useRouter();
   const { colors } = useTheme();
-  const { fontScale } = useWindowDimensions();
-  const filterSize = Math.max(
-    tokens.size.control.default,
-    tokens.typography.body.lineHeight * fontScale + tokens.spacing.md * 2,
-  );
   const [resource, setResource] = useState<DiscoveryResource>("team");
   const { control, reset, setFocus } = useForm<SearchValues>({
     defaultValues: searchValues(),
@@ -260,9 +249,8 @@ export function SearchScreen() {
                   />
                 </View>
                 {resource !== "club" && !failed && (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={changed ? "Filtres actifs" : "Filtres"}
+                  <FilterButton
+                    active={changed}
                     onPress={() => {
                       Keyboard.dismiss();
                       visit.setEditing(resource);
@@ -270,37 +258,7 @@ export function SearchScreen() {
                       void visit[resource].query.refetch();
                       router.push("/search/filters");
                     }}
-                    style={({ pressed }) => [
-                      styles.filter,
-                      {
-                        backgroundColor: colors.surface,
-                        borderColor: colors.border,
-                        width: filterSize,
-                        minHeight: filterSize,
-                        opacity: pressed ? tokens.opacity.pressed : 1,
-                      },
-                    ]}
-                  >
-                    <Image
-                      accessible={false}
-                      source={require("../../../../assets/discovery/filter.svg")}
-                      tintColor={colors.icon}
-                      contentFit="contain"
-                      style={styles.filterIcon}
-                    />
-                    {changed && (
-                      <View
-                        pointerEvents="none"
-                        style={[
-                          styles.indicator,
-                          {
-                            backgroundColor: colors.accentPrimary,
-                            borderColor: colors.surface,
-                          },
-                        ]}
-                      />
-                    )}
-                  </Pressable>
+                  />
                 )}
               </View>
               {!failed && (
@@ -342,25 +300,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   search: { flex: 1, minWidth: 0 },
-  filterIcon: { width: tokens.size.icon.lg, height: tokens.size.icon.lg },
-  // Product Design 4346:7264 and prototype discovery.css:103: 7-point dot with a 2-point surface ring.
-  indicator: {
-    position: "absolute",
-    top: 3,
-    right: 3,
-    width: 11,
-    height: 11,
-    borderRadius: tokens.radius.full,
-    borderWidth: tokens.spacing.optical,
-  },
-  filter: {
-    width: tokens.size.control.default,
-    minHeight: tokens.size.control.default,
-    borderWidth: tokens.border.thin,
-    borderRadius: tokens.radius.control,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   // SearchHeading owns the same compact row and touch clearance in every state.
   controls: {
     paddingHorizontal: tokens.spacing.screen,

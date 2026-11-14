@@ -42,7 +42,7 @@ import {
   credentialsFor,
 } from "@/features/accounts/test-support/native-auth0";
 import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
-import { FollowButton } from "../components/follow-button";
+import { FollowTarget } from "../test-support/follow-target";
 import { FollowerCount } from "../components/follower-count";
 import TeamRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/teams/[teamId]";
 import PoolRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/pools/[poolId]";
@@ -239,9 +239,9 @@ it("keeps the confirmed state visible while each control owns its pending action
   const user = userEvent.setup();
   await renderFollowing(
     <>
-      <FollowButton target={team} season={season} />
-      <FollowButton target={team} season={season} />
-      <FollowButton target={pool} season={season} />
+      <FollowTarget target={team} season={season} />
+      <FollowTarget target={team} season={season} />
+      <FollowTarget target={pool} season={season} />
     </>,
   );
   await waitFor(() =>
@@ -294,7 +294,7 @@ it("invites a guest without retaining a command to replay after authentication",
   // Given
   mockAuth0.hasValidCredentials.mockResolvedValue(false);
   const user = userEvent.setup();
-  await renderFollowing(<FollowButton target={team} season={season} />);
+  await renderFollowing(<FollowTarget target={team} season={season} />);
   await waitFor(() => expect(session.status).toBe("guest"));
 
   // When
@@ -335,7 +335,7 @@ it("suspends personal following after initial account failure without duplicatin
   await renderFollowing(
     <>
       <Text>Public sport</Text>
-      <FollowButton target={team} season={season} />
+      <FollowTarget target={team} season={season} />
     </>,
   );
   await waitFor(() => expect(session.status).toBe("authenticated"));
@@ -453,7 +453,7 @@ it("rereads a temporarily hidden target when its public page is reopened after r
       : transport(url, request),
   );
   const rendered = await renderFollowing(
-    <FollowButton target={team} season={season} />,
+    <FollowTarget target={team} season={season} />,
   );
   await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() =>
@@ -469,7 +469,7 @@ it("rereads a temporarily hidden target when its public page is reopened after r
   // When
   await rendered.rerender(<Text>Another page</Text>);
   hidden = false;
-  await rendered.rerender(<FollowButton target={team} season={season} />);
+  await rendered.rerender(<FollowTarget target={team} season={season} />);
 
   // Then
   await waitFor(() =>
@@ -516,7 +516,7 @@ it("keeps the confirmed member state when returning from an explicit maintenance
     return transport(url, request);
   });
   const user = userEvent.setup();
-  await renderFollowing(<FollowButton target={team} season={season} />);
+  await renderFollowing(<FollowTarget target={team} season={season} />);
   await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
@@ -570,7 +570,7 @@ it("invalidates after the initiating control unmounts and reads current truth on
   );
   const user = userEvent.setup();
   const rendered = await renderFollowing(
-    <FollowButton target={team} season={season} />,
+    <FollowTarget target={team} season={season} />,
   );
   await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() =>
@@ -596,7 +596,7 @@ it("invalidates after the initiating control unmounts and reads current truth on
       client.getQueryState(followStateKey(owner, team))?.isInvalidated,
     ).toBe(true),
   );
-  await rendered.rerender(<FollowButton target={team} season={season} />);
+  await rendered.rerender(<FollowTarget target={team} season={season} />);
   expect(
     await screen.findByRole("button", {
       name: "Suivi",
@@ -609,7 +609,7 @@ it("invalidates after the initiating control unmounts and reads current truth on
 it("resets owned selections and invalidates options/count without touching another owner", async () => {
   // Given
   const user = userEvent.setup();
-  await renderFollowing(<FollowButton target={team} season={season} />);
+  await renderFollowing(<FollowTarget target={team} season={season} />);
   await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
@@ -674,7 +674,7 @@ it.each([true, false])(
       return transport(url, request);
     });
     const user = userEvent.setup();
-    await renderFollowing(<FollowButton target={team} season={season} />);
+    await renderFollowing(<FollowTarget target={team} season={season} />);
     const initialLabel = following ? "Suivre" : "Suivi";
     await waitFor(() =>
       expect(screen.getByRole("button", { name: initialLabel })).toBeEnabled(),
@@ -749,7 +749,7 @@ it.each([401, 403, 404])(
     await renderFollowing(
       <>
         <Text>Independent public sport</Text>
-        <FollowButton target={team} season={season} />
+        <FollowTarget target={team} season={season} />
       </>,
     );
     await waitFor(() =>
@@ -810,7 +810,7 @@ it.each([401, 403, 404])(
     await renderFollowing(
       <>
         <TeamRoute />
-        <FollowButton target={pool} season={season} />
+        <FollowTarget target={pool} season={season} />
       </>,
     );
     await screen.findAllByRole("tab", { includeHiddenElements: true });
@@ -1065,7 +1065,7 @@ it("keeps a late write on its original UUID when the same principal receives a r
     return transport(url, request);
   });
   const user = userEvent.setup();
-  await renderFollowing(<FollowButton target={team} season={season} />);
+  await renderFollowing(<FollowTarget target={team} season={season} />);
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
   );
@@ -1143,7 +1143,7 @@ it("retains the independent public audience when the same principal receives a r
       : transport(url, request),
   );
   await renderFollowing(
-    <FollowButton
+    <FollowTarget
       target={team}
       season={season}
       audience={<FollowerCount target={team} />}
@@ -1198,7 +1198,7 @@ it.each([true, false])(
         : transport(url, request);
     });
     const user = userEvent.setup();
-    await renderFollowing(<FollowButton target={team} season={season} />);
+    await renderFollowing(<FollowTarget target={team} season={season} />);
     await waitFor(() => expect(session.status).toBe("authenticated"));
     const label = following ? "Suivre" : "Suivi";
     await waitFor(() =>
@@ -1265,7 +1265,7 @@ it("uses ordinary failure feedback and the displayed state for a new action afte
       : transport(url, request);
   });
   const user = userEvent.setup();
-  await renderFollowing(<FollowButton target={team} season={season} />);
+  await renderFollowing(<FollowTarget target={team} season={season} />);
   await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
@@ -1337,7 +1337,7 @@ it.each([403, 404])(
       return transport(url, request);
     });
     const user = userEvent.setup();
-    await renderFollowing(<FollowButton target={team} season={season} />);
+    await renderFollowing(<FollowTarget target={team} season={season} />);
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
     );
@@ -1529,7 +1529,7 @@ it("retains ordinary failure feedback when the refreshed member read is cancelle
     return transport(url, request);
   });
   const user = userEvent.setup();
-  await renderFollowing(<FollowButton target={team} season={season} />);
+  await renderFollowing(<FollowTarget target={team} season={season} />);
   await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
@@ -1586,7 +1586,7 @@ it.each(["guest", "other", "same"] as const)(
       return transport(url, request);
     });
     const user = userEvent.setup();
-    await renderFollowing(<FollowButton target={team} season={season} />);
+    await renderFollowing(<FollowTarget target={team} season={season} />);
     await waitFor(() => expect(session.status).toBe("authenticated"));
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
@@ -1667,7 +1667,7 @@ it("suspends the canonical confirmed relation when its maintenance bypass is cle
     return transport(url, request);
   });
   const user = userEvent.setup();
-  await renderFollowing(<FollowButton target={team} season={season} />);
+  await renderFollowing(<FollowTarget target={team} season={season} />);
   await waitFor(() => expect(session.status).toBe("authenticated"));
   await waitFor(() => expect(session.accountId).toBe(accountId));
   await act(async () => {

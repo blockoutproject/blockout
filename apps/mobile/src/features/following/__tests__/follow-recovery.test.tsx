@@ -19,8 +19,12 @@ import { FollowerCount } from "../components/follower-count";
 import { TeamScreen } from "@/features/sporting/screens/team-screen";
 import { PoolScreen } from "@/features/sporting/screens/pool-screen";
 import TeamRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/teams/[teamId]";
-import { FollowButton } from "../components/follow-button";
-import { SportingActions } from "@/features/sporting/components/sporting-actions";
+import { FollowTarget } from "../test-support/follow-target";
+import {
+  SportingActions,
+  type SportingActionsProps,
+} from "@/features/sporting/components/sporting-actions";
+import { useFollowStateQuery } from "../api/use-follow-state-query";
 import type { InfiniteData } from "@tanstack/react-query";
 import type { ListTeamFollows200 } from "../../../../.generated/schemas/index.zod";
 import {
@@ -108,6 +112,14 @@ async function transport(url: string, request?: RequestInit) {
   return Response.json({ following });
 }
 
+/** Supplies the same real F06 reader that production sporting routes pass to their action row. */
+function SportingFollowTarget(
+  props: Readonly<Omit<SportingActionsProps, "read">>,
+) {
+  const read = useFollowStateQuery(props.target);
+  return <SportingActions {...props} read={read} />;
+}
+
 beforeEach(() => {
   jest.useFakeTimers();
   fixture = followingFixture();
@@ -149,7 +161,7 @@ it("reports a failed write through shared feedback while preserving the ordinary
     return transport(url, request);
   });
   const user = userEvent.setup();
-  await fixture.render(<SportingActions target={team} season={season} />);
+  await fixture.render(<SportingFollowTarget target={team} season={season} />);
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
   );
@@ -298,7 +310,9 @@ it.each(["guest", "other"])(
       return transport(url, request);
     });
     const user = userEvent.setup();
-    await fixture.render(<SportingActions target={team} season={season} />);
+    await fixture.render(
+      <SportingFollowTarget target={team} season={season} />,
+    );
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
     );
@@ -383,7 +397,7 @@ it("rereads only the affected public counter after confirmation without provisio
   const user = userEvent.setup();
   await fixture.render(
     <>
-      <SportingActions target={team} season={season} />
+      <SportingFollowTarget target={team} season={season} />
       <FollowerCount target={pool} />
     </>,
   );
@@ -469,7 +483,7 @@ it.each(["team", "pool"] as const)(
       return transport(url, request);
     });
     const renderFollow = () => (
-      <SportingActions target={target} season={season} />
+      <SportingFollowTarget target={target} season={season} />
     );
     await fixture.render(
       <>
@@ -478,7 +492,7 @@ it.each(["team", "pool"] as const)(
         ) : (
           <PoolScreen poolId={target.id} renderFollow={renderFollow} />
         )}
-        <FollowButton target={target} season={season} />
+        <FollowTarget target={target} season={season} />
       </>,
     );
     await screen.findAllByRole("tab", { includeHiddenElements: true });
@@ -684,9 +698,11 @@ it("keeps personal follow projections independent from an unavailable public cou
     <>
       <TeamScreen
         teamId={team.id}
-        renderFollow={() => <SportingActions target={team} season={season} />}
+        renderFollow={() => (
+          <SportingFollowTarget target={team} season={season} />
+        )}
       />
-      <FollowButton target={team} season={season} />
+      <FollowTarget target={team} season={season} />
     </>,
   );
   await screen.findByText("Profile resolves after public read starts");

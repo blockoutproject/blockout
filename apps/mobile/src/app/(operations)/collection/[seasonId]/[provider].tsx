@@ -15,8 +15,7 @@ export default function ProviderSourcesRoute() {
   return provider === "ffvb" || provider === "lnv" ? (
     <ProviderSourcesScreen seasonId={seasonId} provider={provider} />
   ) : (
-    <Page>
-      <PageHeader title="Collectes" />
+    <Page header={<PageHeader title="Collectes" />}>
       <PageScrollView>
         <ScreenState>
           <ErrorState />

@@ -1149,6 +1149,88 @@ it("filters division names within the selected activity catalogue without exposi
   ).toBe(false);
 });
 
+it("hides failed catalogue rows through Retry while retaining criteria and independent creation", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderEditor("divisions");
+  await screen.findByRole("link", { name: "National 2" });
+  await user.press(screen.getByRole("tab", { name: "Inactives" }));
+  await user.type(screen.getByLabelText("Rechercher une division"), "inact");
+  await screen.findByRole("link", { name: "Inactive" });
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/divisions?")
+      ? Promise.resolve(json({ title: "Unavailable", status: 503 }, 503))
+      : respond(url, options),
+  );
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  await screen.findByRole("alert", { name: "Une erreur est survenue" });
+  expect(
+    screen.queryByRole("link", { name: "Inactive" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Créer une division" }),
+  ).toBeEnabled();
+  expect(screen.getByLabelText("Rechercher une division")).toHaveDisplayValue(
+    "inact",
+  );
+  expect(
+    screen.getByRole("tab", { name: "Inactives", selected: true }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Actualiser les données"),
+  ).not.toBeOnTheScreen();
+  const catalogue = Promise.withResolvers<Response>();
+  mockFetch.mockClear();
+  mockFetch.mockImplementation((url, options) =>
+    String(url).includes("/divisions?")
+      ? catalogue.promise
+      : respond(url, options),
+  );
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+  // Then
+  expect(screen.getByRole("button", { name: "Réessayer" })).toBeBusy();
+  expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: "Inactive" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Créer une division" }),
+  ).toBeEnabled();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(mockFetch.mock.calls[0][1]?.method).toBe("GET");
+
+  // When
+  await act(() =>
+    catalogue.resolve(
+      json({
+        items: [
+          division,
+          { ...division, id: inactiveId, name: "Inactive", active: false },
+        ],
+      }),
+    ),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("link", { name: "Inactive" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Rechercher une division")).toHaveDisplayValue(
+    "inact",
+  );
+  expect(
+    screen.getByRole("tab", { name: "Inactives", selected: true }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+});
+
 it("clears the division search from its empty card without resetting the selected activity catalogue or reading the catalogue again", async () => {
   // Given
   const user = userEvent.setup();

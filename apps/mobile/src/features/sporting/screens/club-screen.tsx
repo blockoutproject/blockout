@@ -6,7 +6,7 @@ import { SportingSupportAction } from "../components/sporting-actions";
 import { SportingCalendar } from "../components/sporting-calendar";
 import { SportingPageHeader } from "../components/sporting-page-header";
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
-import { SportingTabs } from "../components/sporting-tabs";
+import { PagedTabs } from "@/shared/components/paged-tabs";
 import { ListSeparator } from "@/shared/components/list-separator";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { ResourceText } from "../components/resource-text";
@@ -125,8 +125,7 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
     </View>
   ) : undefined;
   const information = data ? (
-    <PageList
-      {...hiddenScrollIndicators}
+    <PageScrollView
       alwaysBounceVertical
       refreshControl={
         <DataRefreshControl
@@ -135,65 +134,60 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
           fetching={club.isFetching}
         />
       }
-      contentContainerStyle={pageContentStyle}
-      ListFooterComponent={BottomContentSpacer}
-      data={[]}
-      renderItem={() => null}
-      ListHeaderComponent={
-        <View style={styles.header}>
-          <Surface>
-            <ResourceText>Coordonnées</ResourceText>
+    >
+      <PageContent>
+        <Surface>
+          <ResourceText>Coordonnées</ResourceText>
+          <ContactLink
+            label="Site web"
+            value={data.contacts.website}
+            destination={safeWebsite(data.contacts.website)}
+            icon={Globe}
+          />
+          <ContactLink
+            label="E-mail du club"
+            value={data.contacts.email}
+            destination={
+              data.contacts.email
+                ? `mailto:${encodeURIComponent(data.contacts.email)}`
+                : undefined
+            }
+            icon={Mail}
+          />
+          <ContactLink
+            label="Téléphone"
+            value={data.contacts.phone}
+            destination={phoneDestination(data.contacts.phone)}
+            icon={Phone}
+          />
+        </Surface>
+        <Surface>
+          <ResourceText>Localisation</ResourceText>
+          <ResourceText>Commune du club</ResourceText>
+          {data.location ? (
             <ContactLink
-              label="Site web"
-              value={data.contacts.website}
-              destination={safeWebsite(data.contacts.website)}
-              icon={Globe}
+              label="Ouvrir la commune sur la carte"
+              value={data.location.label}
+              destination={mapDestination(
+                `${data.location.latitude},${data.location.longitude}`,
+              )}
+              icon={MapPin}
             />
-            <ContactLink
-              label="E-mail du club"
-              value={data.contacts.email}
-              destination={
-                data.contacts.email
-                  ? `mailto:${encodeURIComponent(data.contacts.email)}`
-                  : undefined
-              }
-              icon={Mail}
-            />
-            <ContactLink
-              label="Téléphone"
-              value={data.contacts.phone}
-              destination={phoneDestination(data.contacts.phone)}
-              icon={Phone}
-            />
-          </Surface>
-          <Surface>
-            <ResourceText>Localisation</ResourceText>
-            <ResourceText>Commune du club</ResourceText>
-            {data.location ? (
-              <ContactLink
-                label="Ouvrir la commune sur la carte"
-                value={data.location.label}
-                destination={mapDestination(
-                  `${data.location.latitude},${data.location.longitude}`,
-                )}
-                icon={MapPin}
-              />
-            ) : (
-              <ResourceText>Commune non renseignée</ResourceText>
-            )}
-            <ResourceText>
-              {[
-                data.contacts.address,
-                data.contacts.postalCode,
-                data.contacts.city,
-              ]
-                .filter(Boolean)
-                .join(", ") || "Adresse non renseignée"}
-            </ResourceText>
-          </Surface>
-        </View>
-      }
-    />
+          ) : (
+            <ResourceText>Commune non renseignée</ResourceText>
+          )}
+          <ResourceText>
+            {[
+              data.contacts.address,
+              data.contacts.postalCode,
+              data.contacts.city,
+            ]
+              .filter(Boolean)
+              .join(", ") || "Adresse non renseignée"}
+          </ResourceText>
+        </Surface>
+      </PageContent>
+    </PageScrollView>
   ) : undefined;
 
   return (
@@ -210,7 +204,7 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
       loading={<SportingClubLoading />}
     >
       {data && (
-        <SportingTabs
+        <PagedTabs
           key={season?.id}
           selected={tab}
           onSelect={setTab}
@@ -227,7 +221,7 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
               />
             )
           }
-          identity={<PageContent>{identity}</PageContent>}
+          collapsibleHeader={<PageContent>{identity}</PageContent>}
           tabs={tabs.map(({ id: value, label }) => {
             /** Chooses the retained Info, season-owned Teams or calendar scene without joining their read lifetimes. */
             function renderTabContent() {

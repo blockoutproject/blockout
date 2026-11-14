@@ -21,7 +21,7 @@ import {
   readAgeDeclaration,
   submitAgeDeclaration,
 } from "@/features/advertising/age-declaration";
-import { FollowButton } from "@/features/following/components/follow-button";
+import { FollowTarget } from "@/features/following/test-support/follow-target";
 import { PersonalSeasonProvider } from "@/features/following/components/personal-season-provider";
 import { PersonalScreen } from "@/features/following/screens/personal-screen";
 import { followingFixture } from "@/features/following/test-support/following-fixture";
@@ -277,7 +277,7 @@ it("establishes a fresh profile and honest empty follows/inbox without choosing 
   // When: renewal remains an explicit action on the exact current target, even for a familiar name.
   await view.rerender(
     <Consumers>
-      <FollowButton target={target} season={season} />
+      <FollowTarget target={target} season={season} />
     </Consumers>,
   );
   await user.press(
@@ -314,7 +314,7 @@ it("keeps A’s issued follow callback and private data outside guest, B and a l
   const user = userEvent.setup();
   const view = await fixture.render(
     <Consumers>
-      <FollowButton target={target} season={season} />
+      <FollowTarget target={target} season={season} />
     </Consumers>,
   );
   await user.press(
@@ -364,7 +364,7 @@ it("keeps A’s issued follow callback and private data outside guest, B and a l
   const bClient = fixture.client;
   await view.rerender(
     <Consumers>
-      <FollowButton target={target} season={season} />
+      <FollowTarget target={target} season={season} />
     </Consumers>,
   );
   await screen.findByRole("button", { name: "Suivre", disabled: false });

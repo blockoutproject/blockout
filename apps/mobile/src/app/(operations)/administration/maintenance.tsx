@@ -11,8 +11,7 @@ export default function MaintenanceRoute() {
   return useOperationalAdmission() ? (
     <MaintenanceSettingsScreen />
   ) : (
-    <Page>
-      <PageHeader title="Administration technique" />
+    <Page header={<PageHeader title="Administration technique" />}>
       <PageScrollView>
         <ScreenState>
           <ErrorState />

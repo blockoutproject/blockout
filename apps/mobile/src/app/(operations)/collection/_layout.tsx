@@ -11,8 +11,7 @@ export default function CollectionLayout() {
   return useOperationalAdmission() ? (
     <Stack screenOptions={{ headerShown: false }} />
   ) : (
-    <Page>
-      <PageHeader title="Collectes" />
+    <Page header={<PageHeader title="Collectes" />}>
       <PageScrollView>
         <ScreenState>
           <ErrorState />
