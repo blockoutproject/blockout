@@ -51,15 +51,15 @@ function Navigation({
   const discovery = useDiscovery();
   const age = useAgeDeclaration();
   const session = useAccountSession();
-  const segments = useSegments();
+  const [rootSegment] = useSegments();
   const waiting =
     (!access.snapshot.complete && !hasReadError(access.query)) ||
     (access.ordinary && (discovery.loading || session.status === "restoring"));
   useEffect(() => {
-    if (!waiting && segments.length > 0) {
+    if (!waiting && rootSegment && rootSegment !== "index") {
       SplashScreen.hide();
     }
-  }, [waiting, segments.length]);
+  }, [waiting, rootSegment]);
   if (waiting) {
     return null;
   }
@@ -82,8 +82,8 @@ function Navigation({
         </Stack.Protected>
         <Stack.Protected guard={access.ordinary && discovery.complete}>
           <Stack.Screen name="index" />
-          <Stack.Screen name="(ordinary)" />
-          <Stack.Screen name="(recovery)" />
+          <Stack.Screen name="(ordinary)" options={{ animation: "none" }} />
+          <Stack.Screen name="(recovery)" options={{ animation: "none" }} />
         </Stack.Protected>
         <Stack.Protected
           guard={access.ordinary && discovery.complete && age.required}
