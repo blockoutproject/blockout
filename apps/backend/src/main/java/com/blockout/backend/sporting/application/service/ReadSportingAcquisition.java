@@ -154,16 +154,4 @@ public class ReadSportingAcquisition {
       int size) {
     return store.collectionChildren(seasonId, provider, organizerReference, parentId, page, size);
   }
-
-  /**
-   * Counts current catalog pools still lacking an effective acquisition setting. Published
-   * classifications, inactive divisions and deliberate pauses do not redefine this need.
-   *
-   * @param seasonId canonical accepted catalog season
-   * @param provider designated catalog provider
-   * @return number of unclassified current pools, without materializing their identities
-   */
-  public long countUnclassifiedPools(UUID seasonId, CollectionProviderEnum provider) {
-    return store.countUnclassifiedPools(seasonId, provider);
-  }
 }

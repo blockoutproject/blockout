@@ -4,14 +4,17 @@ import com.blockout.backend.collection.application.exception.CollectionConflictE
 import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.CollectionStageMapper;
 import com.blockout.backend.collection.application.model.CollectionState;
+import com.blockout.backend.collection.application.model.CollectionState.Control;
 import com.blockout.backend.collection.application.model.CollectionState.Target;
 import com.blockout.backend.collection.application.model.InitialCoverage;
 import com.blockout.backend.collection.application.model.RecordCollectionResult;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
@@ -50,7 +53,7 @@ public class RecordCollectionResults {
       throw CollectionConflictException.invalidContext();
     }
     Target target = requireTarget(cycleId, command.scopeId(), command.stage());
-    store.lockControl(cycle.controlId());
+    Control control = store.lockControl(cycle.controlId());
     CollectionResult previous =
         store
             .result(cycle.controlId(), command.scopeId(), command.stage(), command.phase())
@@ -87,13 +90,37 @@ public class RecordCollectionResults {
         || (previous != null && previous.outcome() != CollectionOutcomeEnum.SUCCESS)) {
       events.publishEvent(
           new CollectionOperationalDiagnostics.EvidenceChanged(
-              cycle.controlId(), command.scopeId(), command.stage(), command.phase()));
+              cycle.controlId(),
+              control.seasonId(),
+              control.family(),
+              command.scopeId(),
+              command.stage(),
+              command.phase(),
+              cycle.cycleOrder(),
+              command.readOrdinal(),
+              command.observedAt(),
+              command.outcome(),
+              lastSuccessAt,
+              isStructuralReason(command.reasonType()),
+              command.obtainedCount(),
+              command.rejectedCount()));
     }
     if (command.stage() == CollectionStageEnum.DISCOVERY
         && command.phase() == CollectionPhaseEnum.INTEGRATION
         && (command.outcome() == CollectionOutcomeEnum.SUCCESS
-            || command.outcome() == CollectionOutcomeEnum.PARTIAL)) {
-      events.publishEvent(new CollectionOperationalDiagnostics.CatalogObserved(cycle.controlId()));
+            || command.outcome() == CollectionOutcomeEnum.PARTIAL)
+        && control.seasonId() != null) {
+      CollectionProviderEnum provider =
+          control.family() == CollectionFamilyEnum.LNV
+              ? CollectionProviderEnum.LNV
+              : CollectionProviderEnum.FFVB;
+      events.publishEvent(
+          new CollectionOperationalDiagnostics.CatalogObserved(
+              control.seasonId(),
+              provider,
+              command.observedAt(),
+              command.obtainedCount(),
+              command.rejectedCount()));
     }
     return cycle;
   }

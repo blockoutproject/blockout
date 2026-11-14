@@ -1,195 +1,156 @@
 package com.blockout.backend.collection.application.service;
 
-import com.blockout.backend.collection.application.model.CollectionResult;
-import com.blockout.backend.collection.application.model.CollectionState.Control;
-import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
-import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
-import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.event.Level;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.event.TransactionalEventListener;
-import org.springframework.transaction.support.TransactionTemplate;
 
-/**
- * F01 committed current evidence in F13's native ECS stream. No alert state, notification history
- * or automatic recovery is retained. Bounded informational reports share the same stream.
- */
+/** Committed observations in F13's native ECS stream; application projections own current state. */
 @Component
 @Slf4j
 public class CollectionOperationalDiagnostics {
   private static final long REPORT_LIMIT = 10_000;
-  private final CollectionStore store;
-  private final ChangeCollectionSeasons seasons;
-  private final ReadSportingAcquisition acquisitionReads;
-  private final TransactionTemplate reads;
-
-  /** Stable result key whose committed state needs diagnosis, without copying provider data. */
-  public record EvidenceChanged(
-      UUID controlId, UUID scopeId, CollectionStageEnum stage, CollectionPhaseEnum phase) {}
-
-  /** Accepted catalog evidence requiring a current aggregate classification report. */
-  public record CatalogObserved(UUID controlId) {}
-
-  /** Accepted seasonal entry requiring a current aggregate preparation report. */
-  public record SourceObserved(UUID seasonId, CollectionProviderEnum provider) {}
 
   /**
-   * Uses native new transactions after commit; locks serialize log snapshots with result writes.
-   *
-   * @param store current F01 state owner
-   * @param seasons canonical season lock owner
-   * @param acquisitionReads current effective acquisition-classification reads
-   * @param transactions existing application transaction manager
+   * Safe facts captured by the accepting operation; no raw reason or provider data crosses here.
    */
-  public CollectionOperationalDiagnostics(
-      CollectionStore store,
-      ChangeCollectionSeasons seasons,
-      ReadSportingAcquisition acquisitionReads,
-      PlatformTransactionManager transactions) {
-    this.store = store;
-    this.seasons = seasons;
-    this.acquisitionReads = acquisitionReads;
-    this.reads = new TransactionTemplate(transactions);
-    this.reads.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-  }
+  public record EvidenceChanged(
+      UUID controlId,
+      UUID seasonId,
+      CollectionFamilyEnum family,
+      UUID scopeId,
+      CollectionStageEnum stage,
+      CollectionPhaseEnum phase,
+      long cycleOrder,
+      long readOrdinal,
+      Instant observedAt,
+      CollectionOutcomeEnum outcome,
+      Instant lastSuccessAt,
+      boolean structuralReason,
+      Long obtainedCount,
+      Long rejectedCount) {}
+
+  /** Catalog integration counts already measured by the accepted observation. */
+  public record CatalogObserved(
+      UUID seasonId,
+      CollectionProviderEnum provider,
+      Instant observedAt,
+      Long obtainedCount,
+      Long rejectedCount) {}
+
+  /** A newly created seasonal entry requiring operator preparation. */
+  public record SourceObserved(
+      UUID seasonId, CollectionProviderEnum provider, Instant observedAt) {}
 
   /**
-   * Rereads under the season/control locks so a delayed callback cannot log superseded evidence.
-   * Routine successful scopes produce no event; failure and actual recovery remain diagnosable.
-   *
-   * @param event committed stable result key
+   * Logs failure or exact-key recovery only after commit. A late callback retains the original
+   * observation rather than reading or synchronizing with a newer result.
    */
   @TransactionalEventListener
   public void evidence(EvidenceChanged event) {
     diagnose(
         () -> {
-          Control control = lockControl(event.controlId());
-          CollectionResult result =
-              store
-                  .result(control.id(), event.scopeId(), event.stage(), event.phase())
-                  .orElseThrow();
-          boolean success = result.outcome() == CollectionOutcomeEnum.SUCCESS;
+          boolean success = event.outcome() == CollectionOutcomeEnum.SUCCESS;
           log.atLevel(success ? Level.INFO : Level.WARN)
               .addKeyValue("operation", "collection_evidence")
-              .addKeyValue("collection_control", control.id())
-              .addKeyValue("scope", result.scopeId())
-              .addKeyValue("stage", result.stage().getValue())
-              .addKeyValue("phase", result.phase().getValue())
-              .addKeyValue("provider", provider(control.family()))
-              .addKeyValue("collection_season", control.seasonId())
-              .addKeyValue("outcome", result.outcome().getValue())
+              .addKeyValue("collection_control", event.controlId())
+              .addKeyValue("scope", event.scopeId())
+              .addKeyValue("stage", event.stage().getValue())
+              .addKeyValue("phase", event.phase().getValue())
+              .addKeyValue("provider", provider(event.family()))
+              .addKeyValue("collection_season", event.seasonId())
+              .addKeyValue("outcome", event.outcome().getValue())
               .addKeyValue(
                   "reason",
                   success
                       ? "usable-observation"
-                      : RecordCollectionResults.isStructuralReason(result.reasonType())
-                          ? "structure-or-context"
-                          : "failed-observation")
-              .addKeyValue("collection_cycle_order", result.cycleOrder())
-              .addKeyValue("collection_read_ordinal", result.readOrdinal())
-              .addKeyValue("collection_observed_at", result.observedAt())
+                      : event.structuralReason() ? "structure-or-context" : "failed-observation")
+              .addKeyValue("collection_cycle_order", event.cycleOrder())
+              .addKeyValue("collection_read_ordinal", event.readOrdinal())
+              .addKeyValue("collection_observed_at", event.observedAt())
               .addKeyValue("collection_actionable", success ? 0 : 1)
-              .addKeyValue("last_success_at", result.lastSuccessAt())
-              .addKeyValue("affected_count", bounded(result.obtainedCount()))
-              .addKeyValue("partial_count", bounded(result.rejectedCount()))
-              .log("Current scoped collection evidence");
+              .addKeyValue("last_success_at", event.lastSuccessAt())
+              .addKeyValue("affected_count", bounded(event.obtainedCount()))
+              .addKeyValue("partial_count", bounded(event.rejectedCount()))
+              .log("Committed scoped collection observation");
         });
   }
 
-  /**
-   * Reports outstanding settings after accepted catalog integration, including partial outcomes. No
-   * provider outage is inferred from waiting for operator classification.
-   *
-   * @param event committed catalog owner
-   */
   @TransactionalEventListener
   public void catalog(CatalogObserved event) {
     diagnose(
-        () -> {
-          Control control = lockControl(event.controlId());
-          if (control.seasonId() == null) {
-            return;
-          }
-          CollectionProviderEnum provider =
-              control.family() == CollectionFamilyEnum.LNV
-                  ? CollectionProviderEnum.LNV
-                  : CollectionProviderEnum.FFVB;
-          report(
-              control.seasonId(),
-              provider,
-              "classification",
-              acquisitionReads.countUnclassifiedPools(control.seasonId(), provider));
-        });
+        () ->
+            report(
+                event.seasonId(),
+                event.provider(),
+                "classification",
+                event.observedAt(),
+                event.obtainedCount(),
+                event.rejectedCount()));
   }
 
-  /**
-   * Groups accepted seasonal proposals by current provider/season preparation need, including zero
-   * after launch. Repeated discovery uses Grafana grouping instead of a sent-report ledger.
-   *
-   * @param event accepted discovery scope
-   */
   @TransactionalEventListener
   public void source(SourceObserved event) {
     diagnose(
-        () -> {
-          seasons.lockCollectionState(event.seasonId());
-          long pending = store.countUnlaunchedSources(event.seasonId(), event.provider());
-          report(event.seasonId(), event.provider(), "season-preparation", pending);
-        });
+        () ->
+            report(
+                event.seasonId(),
+                event.provider(),
+                "season-preparation",
+                event.observedAt(),
+                1L,
+                null));
   }
 
   /**
-   * Acquires only the existing season/control lock order; it writes no domain state.
-   *
-   * @param controlId current evidence owner
-   * @return locked current control, even when paused or closed
-   */
-  private Control lockControl(UUID controlId) {
-    Control control = store.control(controlId).orElseThrow();
-    if (control.seasonId() != null) {
-      seasons.lockCollectionState(control.seasonId());
-    }
-    return store.lockControl(controlId);
-  }
-
-  /**
-   * Emits one aggregate snapshot without per-item identities or personal values.
+   * Summarizes committed catalog activity or a new preparation need without per-item identities.
    *
    * @param seasonId canonical nonpersonal season
    * @param provider catalog authority
    * @param subject fixed preparation or classification subject
-   * @param count measured current need, capped for reporting
+   * @param observedAt original observation time
+   * @param obtainedCount measured accepted count, or null when unavailable
+   * @param rejectedCount measured rejected count, or null when unavailable
    */
-  private void report(UUID seasonId, CollectionProviderEnum provider, String subject, long count) {
+  private void report(
+      UUID seasonId,
+      CollectionProviderEnum provider,
+      String subject,
+      Instant observedAt,
+      Long obtainedCount,
+      Long rejectedCount) {
     log.atInfo()
         .addKeyValue("operation", "collection_operator_report")
         .addKeyValue("provider", provider.getValue())
         .addKeyValue("collection_season", seasonId)
         .addKeyValue("collection_subject", subject)
+        .addKeyValue("collection_observed_at", observedAt)
         .addKeyValue("collection_destination", "/administration")
-        .addKeyValue("affected_count", Math.min(count, REPORT_LIMIT))
-        .addKeyValue("collection_count_capped", count > REPORT_LIMIT)
-        .log("Current grouped collection administration needs");
+        .addKeyValue("affected_count", bounded(obtainedCount))
+        .addKeyValue("partial_count", bounded(rejectedCount))
+        .addKeyValue(
+            "collection_count_capped",
+            (obtainedCount != null && obtainedCount > REPORT_LIMIT)
+                || (rejectedCount != null && rejectedCount > REPORT_LIMIT))
+        .log("Committed collection administration observation");
   }
 
   /**
    * Keeps diagnostic failures outside the committed business outcome; ordinary future observations
    * may supply later evidence. No retry, outbox or delivery guarantee is introduced.
    *
-   * @param read owner-specific current evidence read and safe log emission
+   * @param emission safe log emission for an accepted observation
    */
-  private void diagnose(Runnable read) {
+  private void diagnose(Runnable emission) {
     try {
-      reads.executeWithoutResult(status -> read.run());
+      emission.run();
     } catch (RuntimeException failure) {
       log.atError()
           .addKeyValue("operation", "collection_diagnostics")
@@ -202,7 +163,7 @@ public class CollectionOperationalDiagnostics {
   /**
    * Maps only the finite control families to their actual source authority.
    *
-   * @param family current control family
+   * @param family accepted observation control family
    * @return fixed provider, never a caller-supplied URL or identifier
    */
   private String provider(CollectionFamilyEnum family) {

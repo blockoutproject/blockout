@@ -38,8 +38,8 @@ public class ObserveCollectionSource {
   public record Resolved(UUID seasonId, UUID sourceBindingId) {}
 
   /**
-   * Creates only a missing unvalidated candidate, preserving every existing operator choice.
-   * Accepted observations request an aggregate preparation report after commit.
+   * Creates only a missing unvalidated candidate, preserving every existing operator choice. A
+   * newly created entry requests a preparation report after commit.
    *
    * @param proposal attributable entry evidence from the current authenticated collector
    * @return canonical season and root binding; repeated proposals preserve stored choices
@@ -67,9 +67,10 @@ public class ObserveCollectionSource {
               proposal.organizerReference(),
               proposal.candidateUrl().toString());
       seasons.updatePreparation(season.id(), false);
+      events.publishEvent(
+          new CollectionOperationalDiagnostics.SourceObserved(
+              season.id(), proposal.provider(), proposal.observedAt()));
     }
-    events.publishEvent(
-        new CollectionOperationalDiagnostics.SourceObserved(season.id(), proposal.provider()));
     return new Resolved(season.id(), source.id());
   }
 }

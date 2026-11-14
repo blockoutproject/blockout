@@ -1,7 +1,14 @@
 package com.blockout.backend.collection.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.groups.Tuple.tuple;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.Appender;
 import com.blockout.backend.collection.application.model.CollectionResult;
 import com.blockout.backend.collection.application.model.RecordCollectionResult;
 import com.blockout.backend.collection.application.port.CollectionStore;
@@ -16,7 +23,6 @@ import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
-import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.net.URI;
@@ -30,11 +36,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
@@ -43,9 +49,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/**
- * Real committed F01 projections, native ECS events and F02 aggregate queries on disposable SQL.
- */
+/** Real committed F01 projections and native ECS events on disposable SQL. */
 @SpringBootTest
 @ExtendWith(OutputCaptureExtension.class)
 @DisplayName("Committed collection operational evidence")
@@ -66,8 +70,6 @@ class CollectionOperationalEvidenceIntegrationTest {
   @Autowired private CollectionStore store;
   @Autowired private ChangeCollectionSeasons seasons;
   @Autowired private ReadSportingData sporting;
-  @Autowired private ReadSportingAcquisition acquisitionReads;
-  @Autowired private ApplicationEventPublisher events;
   @Autowired private PlatformTransactionManager transactions;
   @Autowired private JdbcTemplate sql;
   private UUID season;
@@ -422,53 +424,77 @@ class CollectionOperationalEvidenceIntegrationTest {
   }
 
   @Test
-  @DisplayName("Delayed after-commit callbacks reread the latest accepted logical evidence")
-  void rereadsDelayedEvidence(CapturedOutput output) {
+  @DisplayName("Committed logs retain each observation while the projection advances")
+  void retainsCommittedObservations(CapturedOutput output) {
     // Given
     UUID cycle = running(COMPETITIONS, SCOPE, CollectionStageEnum.CALENDAR);
-    results.record(
-        cycle,
-        attempt(
-            SCOPE,
-            CollectionStageEnum.CALENDAR,
-            CollectionPhaseEnum.ACQUISITION,
-            1,
-            FIRST,
-            CollectionOutcomeEnum.FAILED,
-            TECHNICAL));
-    results.record(
-        cycle,
-        attempt(
-            SCOPE,
-            CollectionStageEnum.CALENDAR,
-            CollectionPhaseEnum.ACQUISITION,
-            2,
-            FIRST.plusSeconds(1),
-            CollectionOutcomeEnum.SUCCESS,
-            null));
 
     // When
     new TransactionTemplate(transactions)
         .executeWithoutResult(
-            status ->
-                events.publishEvent(
-                    new CollectionOperationalDiagnostics.EvidenceChanged(
-                        COMPETITIONS,
-                        SCOPE,
-                        CollectionStageEnum.CALENDAR,
-                        CollectionPhaseEnum.ACQUISITION)));
+            status -> {
+              results.record(
+                  cycle,
+                  attempt(
+                      SCOPE,
+                      CollectionStageEnum.CALENDAR,
+                      CollectionPhaseEnum.ACQUISITION,
+                      1,
+                      FIRST,
+                      CollectionOutcomeEnum.FAILED,
+                      TECHNICAL));
+              results.record(
+                  cycle,
+                  attempt(
+                      SCOPE,
+                      CollectionStageEnum.CALENDAR,
+                      CollectionPhaseEnum.ACQUISITION,
+                      2,
+                      FIRST.plusSeconds(1),
+                      CollectionOutcomeEnum.SUCCESS,
+                      null));
+              assertThat(evidence(output)).isEmpty();
+            });
 
     // Then
-    assertThat(evidence(output).getLast().path("collection_read_ordinal").asLong()).isEqualTo(2);
-    assertThat(evidence(output).getLast().path("collection_actionable").asInt()).isZero();
+    assertThat(evidence(output))
+        .extracting(
+            log -> log.path("collection_control").asText(),
+            log -> log.path("scope").asText(),
+            log -> log.path("stage").asText(),
+            log -> log.path("phase").asText(),
+            log -> log.path("outcome").asText(),
+            log -> log.path("collection_observed_at").asText(),
+            log -> log.path("collection_read_ordinal").asLong())
+        .containsExactlyInAnyOrder(
+            tuple(
+                COMPETITIONS.toString(),
+                SCOPE.toString(),
+                "calendar",
+                "acquisition",
+                "failed",
+                FIRST.toString(),
+                1L),
+            tuple(
+                COMPETITIONS.toString(),
+                SCOPE.toString(),
+                "calendar",
+                "acquisition",
+                "success",
+                FIRST.plusSeconds(1).toString(),
+                2L));
+    CollectionResult current =
+        current(COMPETITIONS, SCOPE, CollectionStageEnum.CALENDAR, CollectionPhaseEnum.ACQUISITION);
+    assertThat(current.outcome()).isEqualTo(CollectionOutcomeEnum.SUCCESS);
+    assertThat(current.observedAt()).isEqualTo(FIRST.plusSeconds(1));
   }
 
   @Test
-  @DisplayName("Source observations report one current provider-season preparation aggregate")
+  @DisplayName("New source reports retain observed provider-season facts without repeat reports")
   void reportsGroupedPreparation(CapturedOutput output) {
     // Given
-    ObserveCollectionSource.Proposal first = proposal("SYNTHETIC-A");
-    ObserveCollectionSource.Proposal second = proposal("SYNTHETIC-B");
+    ObserveCollectionSource.Proposal first = proposal("SYNTHETIC-A", FIRST);
+    ObserveCollectionSource.Proposal second = proposal("SYNTHETIC-B", FIRST.plusSeconds(60));
     sources.observe(first);
 
     // When
@@ -479,7 +505,10 @@ class CollectionOperationalEvidenceIntegrationTest {
     List<JsonNode> reports = logs(output, "collection_operator_report");
     assertThat(reports)
         .extracting(log -> log.path("affected_count").asLong())
-        .containsExactly(1L, 2L, 2L);
+        .containsExactly(1L, 1L);
+    assertThat(reports)
+        .extracting(log -> log.path("collection_observed_at").asText())
+        .containsExactly(FIRST.toString(), FIRST.plusSeconds(60).toString());
     assertThat(reports)
         .allSatisfy(
             log -> {
@@ -491,76 +520,36 @@ class CollectionOperationalEvidenceIntegrationTest {
   }
 
   @Test
-  @DisplayName(
-      "Classification aggregates distinguish effective settings from retained published facts")
-  void reportsActualClassificationNeeds(CapturedOutput output) {
+  @DisplayName("Accepted catalog reports retain measured counts and their observation time")
+  void reportsAcceptedCatalogFacts(CapturedOutput output) {
     // Given
-    UUID pack = UUID.fromString("00000000-0000-4000-8000-000000000210");
-    UUID division = UUID.fromString("00000000-0000-4000-8000-000000000211");
-    sql.update(
-        "INSERT INTO sporting_division(id,name,active,color) VALUES (?,'Synthetic',FALSE,'#112233')",
-        division);
-    sql.update(
-        "INSERT INTO sporting_pack(id,season_id,provider,organizer_reference,reference) VALUES (?,?,'FFVB','SYNTHETIC','PACK')",
-        pack,
-        season);
-    sql.update(
-        "INSERT INTO sporting_pool(id,season_id,pack_id,provider,organizer_reference,competition_reference,reference,source_name,division_id,format,gender) VALUES (?,?,?,'FFVB','SYNTHETIC','C','P','Synthetic',?,'_6X6','MALE')",
-        SCOPE,
-        season,
-        pack,
-        division);
     UUID cycle = running(COMPETITIONS, SCOPE, CollectionStageEnum.DISCOVERY);
-    sql.update(
-        "INSERT INTO sporting_pool(id,season_id,pack_id,provider,organizer_reference,competition_reference,reference,source_name,setting_division_id,setting_format,setting_gender) VALUES (?,?,?,'FFVB','SYNTHETIC','C','OVERRIDE','Synthetic',?,'_6X6','MALE')",
-        OTHER,
-        season,
-        pack,
-        division);
-    sql.update(
-        "INSERT INTO sporting_pool(id,season_id,pack_id,provider,organizer_reference,competition_reference,reference,source_name,catalog_eligible) VALUES (?,?,?,'FFVB','SYNTHETIC','C','ABSENT','Synthetic',FALSE)",
-        UUID.fromString("00000000-0000-4000-8000-000000000212"),
-        season,
-        pack);
-    assertThat(acquisitionReads.countUnclassifiedPools(season, CollectionProviderEnum.FFVB))
-        .isEqualTo(1);
-
-    // When
-    results.record(
-        cycle,
-        attempt(
+    RecordCollectionResult partial =
+        new RecordCollectionResult(
             SCOPE,
             CollectionStageEnum.DISCOVERY,
             CollectionPhaseEnum.INTEGRATION,
             1,
             FIRST,
-            CollectionOutcomeEnum.SUCCESS,
-            null));
-    sql.update(
-        "UPDATE sporting_pack SET setting_division_id = ?, setting_format = '_6X6', setting_gender = 'MALE' WHERE id = ?",
-        division,
-        pack);
-    results.record(
-        cycle,
-        attempt(
-            SCOPE,
-            CollectionStageEnum.DISCOVERY,
-            CollectionPhaseEnum.INTEGRATION,
-            2,
-            FIRST.plusSeconds(1),
-            CollectionOutcomeEnum.SUCCESS,
-            null));
+            CollectionOutcomeEnum.PARTIAL,
+            TECHNICAL,
+            null,
+            3L,
+            2L);
+
+    // When
+    results.record(cycle, partial);
 
     // Then
     List<JsonNode> reports = logs(output, "collection_operator_report");
-    assertThat(reports)
-        .extracting(log -> log.path("affected_count").asLong())
-        .containsExactly(1L, 0L);
-    assertThat(reports)
-        .allSatisfy(
-            log -> assertThat(log.path("collection_subject").asText()).isEqualTo("classification"));
-    assertThat(acquisitionReads.countUnclassifiedPools(season, CollectionProviderEnum.FFVB))
-        .isZero();
+    assertThat(reports).hasSize(1);
+    JsonNode report = reports.getFirst();
+    assertThat(report.path("collection_subject").asText()).isEqualTo("classification");
+    assertThat(report.path("collection_season").asText()).isEqualTo(season.toString());
+    assertThat(report.path("provider").asText()).isEqualTo("ffvb");
+    assertThat(report.path("collection_observed_at").asText()).isEqualTo(FIRST.toString());
+    assertThat(report.path("affected_count").asLong()).isEqualTo(3);
+    assertThat(report.path("partial_count").asLong()).isEqualTo(2);
   }
 
   @Test
@@ -635,30 +624,56 @@ class CollectionOperationalEvidenceIntegrationTest {
   }
 
   @Test
-  @DisplayName(
-      "Unavailable committed diagnostics retain a safe exception type without failing the caller")
-  void reportsUnavailableDiagnostics(CapturedOutput output) {
+  @DisplayName("Logging failure leaves committed results intact without exposing its payload")
+  void retainsCommittedResultWhenLoggingFails(CapturedOutput output) {
     // Given
-    UUID missing = UUID.fromString("00000000-0000-4000-8000-000000000299");
+    UUID cycle = running(COMPETITIONS, SCOPE, CollectionStageEnum.CALENDAR);
+    Logger logger = (Logger) LoggerFactory.getLogger(CollectionOperationalDiagnostics.class);
+    @SuppressWarnings("unchecked")
+    Appender<ILoggingEvent> unavailable = mock(Appender.class);
+    doAnswer(
+            invocation -> {
+              ILoggingEvent event = invocation.getArgument(0);
+              if (event.getLevel() == ch.qos.logback.classic.Level.WARN) {
+                throw new IllegalStateException(
+                    "contact@example.invalid token=secret private-body");
+              }
+              return null;
+            })
+        .when(unavailable)
+        .doAppend(any(ILoggingEvent.class));
+    logger.addAppender(unavailable);
 
-    // When
-    new TransactionTemplate(transactions)
-        .executeWithoutResult(
-            status ->
-                events.publishEvent(
-                    new CollectionOperationalDiagnostics.EvidenceChanged(
-                        COMPETITIONS,
-                        missing,
-                        CollectionStageEnum.CALENDAR,
-                        CollectionPhaseEnum.ACQUISITION)));
+    try {
+      // When
+      results.record(
+          cycle,
+          attempt(
+              SCOPE,
+              CollectionStageEnum.CALENDAR,
+              CollectionPhaseEnum.ACQUISITION,
+              1,
+              FIRST,
+              CollectionOutcomeEnum.FAILED,
+              TECHNICAL));
 
-    // Then
-    JsonNode log = logs(output, "collection_diagnostics").getLast();
-    assertThat(log.path("outcome").asText()).isEqualTo("unavailable");
-    assertThat(log.path("error").path("type").asText())
-        .isEqualTo(java.util.NoSuchElementException.class.getName());
-    assertThat(log.has("message")).isFalse();
-    assertThat(log.path("error").has("stack_trace")).isFalse();
+      // Then
+      CollectionResult committed =
+          current(
+              COMPETITIONS, SCOPE, CollectionStageEnum.CALENDAR, CollectionPhaseEnum.ACQUISITION);
+      assertThat(committed.outcome()).isEqualTo(CollectionOutcomeEnum.FAILED);
+      assertThat(committed.observedAt()).isEqualTo(FIRST);
+      JsonNode log = logs(output, "collection_diagnostics").getLast();
+      assertThat(log.path("outcome").asText()).isEqualTo("unavailable");
+      assertThat(log.path("error").path("type").asText())
+          .isEqualTo(IllegalStateException.class.getName());
+      assertThat(log.has("message")).isFalse();
+      assertThat(log.path("error").has("stack_trace")).isFalse();
+      assertThat(output.getAll())
+          .doesNotContain("contact@example.invalid", "token=secret", "private-body");
+    } finally {
+      logger.detachAppender(unavailable);
+    }
   }
 
   /**
@@ -740,9 +755,10 @@ class CollectionOperationalEvidenceIntegrationTest {
    * Supplies a synthetic accepted source proposal without a live provider read.
    *
    * @param organizer explicit distinct source root
+   * @param observedAt actual source observation time
    * @return credential-free evidence in the existing 2026 canonical season
    */
-  private ObserveCollectionSource.Proposal proposal(String organizer) {
+  private ObserveCollectionSource.Proposal proposal(String organizer, Instant observedAt) {
     return new ObserveCollectionSource.Proposal(
         incarnation,
         2026,
@@ -750,14 +766,14 @@ class CollectionOperationalEvidenceIntegrationTest {
         organizer,
         URI.create("https://example.invalid/source"),
         URI.create("https://example.invalid/entry"),
-        FIRST);
+        observedAt);
   }
 
   /**
    * Selects only evidence events from actual native ECS console output.
    *
    * @param output this scenario's captured output
-   * @return parsed accepted-evidence snapshots in emitted order
+   * @return parsed committed observations in emitted order
    */
   private List<JsonNode> evidence(CapturedOutput output) {
     return logs(output, "collection_evidence");
