@@ -12,8 +12,8 @@ import { getMockContext, renderRouter } from "expo-router/testing-library";
 import { useEffect, type ComponentProps, type ComponentType } from "react";
 import RevenueCatUI from "react-native-purchases-ui";
 import OrdinaryLayout from "@/app/(ordinary)/_layout";
+import RecoveryLayout from "@/app/(recovery)/_layout";
 import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
-import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
 import { useAccountSession } from "@/features/accounts/current-account";
 import { useCurrentAccount } from "@/features/accounts/api/use-current-account";
 import { accountResponse } from "@/features/accounts/test-support/account-response";
@@ -219,7 +219,15 @@ function ObservedOrdinaryLayout() {
 async function openInstallation(initialUrl = "/") {
   const context = getMockContext({
     appDir: "src/app",
-    overrides: { "(ordinary)/_layout": ObservedOrdinaryLayout },
+    overrides: {
+      "(ordinary)/_layout": ObservedOrdinaryLayout,
+      "(recovery)/_layout": () => (
+        <>
+          <OwnerObservation />
+          <RecoveryLayout />
+        </>
+      ),
+    },
   });
   return renderRouter(
     // Memory contexts restore special-file extensions stripped by filesystem overrides.
@@ -240,6 +248,8 @@ it("restores ordinary personal access on later launches after explicit first-V2 
 
   // When
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
+  await screen.findByRole("header", { name: "Quel est votre âge ?" });
+  await act(() => router.push("/profile"));
   await screen.findByText("Original");
   expect(
     mockFetch.mock.calls.filter(
@@ -283,6 +293,8 @@ it("keeps skipped discovery complete across sign-in and sign-out when its option
 
   // When
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
+  await screen.findByRole("header", { name: "Quel est votre âge ?" });
+  await act(() => router.push("/profile"));
 
   // Then
   expect(await screen.findByText("Original")).toBeOnTheScreen();
@@ -397,11 +409,11 @@ it("keeps unknown Pro rights out of free/expired presentation and ads while expl
 });
 
 it.each([
-  ["cancelled", "a0.session.user_cancelled", "Connexion annulée."],
-  ["failed", "a0.network_error", TECHNICAL_ERROR],
+  ["cancelled", "a0.session.user_cancelled"],
+  ["failed", "a0.network_error"],
 ] as const)(
   "opens real assistance after skipped discovery and %s sign-in without declaring an age",
-  async (_outcome, code, message) => {
+  async (_outcome, code) => {
     // Given
     mockAuth0.webAuth.mockRejectedValue({
       code,
@@ -413,7 +425,7 @@ it.each([
     await user.press(
       await screen.findByRole("button", { name: "Se connecter" }),
     );
-    await screen.findByText(message);
+    await screen.findByRole("alert", { name: "Une erreur est survenue." });
 
     // When
     await user.press(screen.getByRole("link", { name: "Besoin d’aide ?" }));
@@ -439,7 +451,7 @@ it.each([
   },
 );
 
-it("retains real assistance in initial member recovery when explicit sign-in succeeds but the business profile is unavailable", async () => {
+it("retains real assistance on Login when establishment fails after native sign-in", async () => {
   // Given
   jest.useFakeTimers();
   mockAuth0.webAuth.mockImplementation(async () => {
@@ -464,14 +476,15 @@ it("retains real assistance in initial member recovery when explicit sign-in suc
 
   // When
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
-  await act(async () => jest.advanceTimersByTimeAsync(7500));
 
   // Then
   expect(
     await screen.findByRole("alert", {
-      name: "Impossible de charger votre compte",
+      name: "Une erreur est survenue.",
     }),
   ).toBeOnTheScreen();
+  expect(screen).toHavePathname("/sign-in");
+  expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled();
   expect(screen.queryByRole("header", { name: "Mon profil" })).toBeNull();
   expect(owners.session.status).toBe("authenticated");
   expect(owners.session.accountId).toBeNull();

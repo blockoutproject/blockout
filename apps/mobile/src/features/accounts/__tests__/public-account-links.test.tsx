@@ -39,7 +39,7 @@ afterEach(() => {
 
 it.each([
   ["Conditions d’utilisation", "terms"],
-  ["Politique de confidentialité", "privacy"],
+  ["Confidentialité", "privacy"],
 ])(
   "opens the public native browser from the existing footer: %s",
   async (label, kind) => {

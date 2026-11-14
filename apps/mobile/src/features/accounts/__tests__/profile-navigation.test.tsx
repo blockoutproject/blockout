@@ -338,18 +338,42 @@ it("returns from an acknowledged save to overview read recovery without replayin
   ).toHaveLength(1);
 });
 
-it.each([
-  { context: "guest", message: "Connectez-vous pour modifier votre profil." },
-  { context: "missing", message: "Votre compte n’est plus disponible." },
-] as const)(
-  "uses the contextual shared sign-in invitation for a $context editor",
-  async ({ context, message }) => {
-    // Given: only SDK presence and the typed account response differ.
-    if (context === "guest") {
-      mockAuth0.hasValidCredentials.mockResolvedValue(false);
-    } else {
-      mockFetch.mockResolvedValue(
-        Response.json(
+it("uses the contextual shared sign-in invitation for a guest editor", async () => {
+  // Given
+  mockAuth0.hasValidCredentials.mockResolvedValue(false);
+  const user = userEvent.setup();
+
+  // When
+  await openProfile("/profile/edit");
+
+  // Then
+  expect(
+    await screen.findByText("Connectez-vous pour modifier votre profil."),
+  ).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Se connecter" }));
+
+  // Then
+  expect(screen).toHavePathname("/sign-in");
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+});
+
+it("creates a canonically absent account only from the editor's explicit illustrated action", async () => {
+  // Given
+  let created = false;
+  mockFetch.mockImplementation(async (_url, request) => {
+    if (request?.method === "POST") {
+      created = true;
+      return Response.json(account);
+    }
+    return created
+      ? Response.json(account)
+      : Response.json(
           {
             type: "urn:blockout:problem:not-found",
             title: "Not found",
@@ -359,30 +383,32 @@ it.each([
             status: 404,
             headers: { "Content-Type": "application/problem+json" },
           },
-        ),
-      );
-    }
-    const user = userEvent.setup();
-    await openProfile("/profile/edit");
+        );
+  });
+  const user = userEvent.setup();
+  await openProfile("/profile/edit");
+  const create = await screen.findByRole("button", {
+    name: "Créer mon compte",
+  });
+  expect(
+    screen.getByText("Votre compte n’est pas disponible."),
+  ).toBeOnTheScreen();
+  expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.every(([, request]) => request?.method !== "POST"),
+  ).toBe(true);
 
-    // Then: context is explicit, with no technical-error card or editable account fields.
-    expect(await screen.findByText(message)).toBeOnTheScreen();
-    expect(screen.queryByLabelText("Pseudo")).not.toBeOnTheScreen();
-    expect(
-      screen.queryByRole("alert", { name: "Une erreur est survenue" }),
-    ).not.toBeOnTheScreen();
-    expect(
-      screen.queryByRole("button", { name: "Réessayer" }),
-    ).not.toBeOnTheScreen();
+  // When
+  await user.press(create);
 
-    // When
-    await user.press(screen.getByRole("button", { name: "Se connecter" }));
-
-    // Then
-    expect(screen).toHavePathname("/sign-in");
-    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
-  },
-);
+  // Then
+  expect(await screen.findByDisplayValue(account.username)).toBeOnTheScreen();
+  expect(screen).toHavePathname("/profile/edit");
+  expect(
+    mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
+  ).toHaveLength(1);
+  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+});
 
 it("keeps a refused draft in the editor and returns only after an explicitly retried save succeeds", async () => {
   // Given
@@ -852,9 +878,6 @@ it("treats a failed authentication restoration as a whole-page recovery rather t
 });
 
 it.each([
-  ["/profile", "missing account"],
-  ["/profile/edit", "missing account"],
-  ["/profile/erase", "missing account"],
   ["/profile", "expired native session"],
   ["/profile/edit", "expired native session"],
   ["/profile/erase", "expired native session"],
@@ -862,26 +885,10 @@ it.each([
   "%s names sign-in navigation explicitly after a %s",
   async (initialUrl, reason) => {
     // Given: account reads and session state remain real; only HTTP/native I/O fails.
-    if (reason === "missing account") {
-      mockFetch.mockResolvedValue(
-        Response.json(
-          {
-            type: "urn:blockout:problem:not-found",
-            title: "Not found",
-            status: 404,
-          },
-          {
-            status: 404,
-            headers: { "Content-Type": "application/problem+json" },
-          },
-        ),
-      );
-    } else {
-      mockAuth0.getCredentials.mockRejectedValue({
-        code: "invalid_grant",
-        message: "Credentials expired",
-      });
-    }
+    mockAuth0.getCredentials.mockRejectedValue({
+      code: "invalid_grant",
+      message: "Credentials expired",
+    });
     const user = userEvent.setup();
     await openProfile(initialUrl);
     const signIn = await screen.findByRole("button", { name: "Se connecter" });

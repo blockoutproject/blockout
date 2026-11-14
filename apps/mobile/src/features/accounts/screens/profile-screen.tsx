@@ -1,3 +1,4 @@
+import { homeHref } from "@/shared/native/home-href";
 import {
   Page,
   PageContent,
@@ -8,19 +9,19 @@ import { ErrorState } from "@/shared/components/state-card";
 import { ScreenState } from "@/shared/components/screen-state";
 import { useRouter } from "expo-router";
 import Constants from "expo-constants";
-import { LogIn, SquarePen } from "lucide-react-native";
+import { SquarePen } from "lucide-react-native";
 import { IconButton } from "@/shared/components/icon-button";
 import type { ReactNode } from "react";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import { useProfilePhoto } from "../api/use-profile-editing";
 import { StyleSheet, Text, View } from "react-native";
-import { isAccountMissing } from "../api/current-account-query";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { Button } from "@/shared/components/button";
 import { AdministrationEntry } from "@/features/access/entry";
 import { useCurrentAccount } from "../api/use-current-account";
 import { useProfileRefresh } from "../api/use-profile-refresh";
 import { ProfileLegalLinks } from "../components/public-account-links";
+import { AccountRecovery } from "../components/account-recovery";
 import { ProfileLoading } from "../components/profile-loading";
 import { ProfileIdentity } from "../components/profile-identity";
 import { ProfileSignIn } from "../components/profile-sign-in";
@@ -59,7 +60,7 @@ export function ProfileScreen({
     feedback.clear();
     try {
       await session.signOut();
-      router.replace("/");
+      router.replace(homeHref);
     } catch {
       feedback.error();
     }
@@ -68,7 +69,6 @@ export function ProfileScreen({
   const { colors } = useTheme();
   const { saving, refresh } = useProfileRefresh(account);
   const connected = session.status === "authenticated";
-  const missing = isAccountMissing(account.error);
   const recovery = accountSessionRecovery(session);
 
   /** Keeps whole-page account/session recovery separate from an already admitted profile. */
@@ -96,32 +96,18 @@ export function ProfileScreen({
     if (recovery.failed) {
       return (
         <ScreenState>
-          <ErrorState onRetry={recovery.onRetry}>
-            {session.status === "reauthentication-required" && (
-              <Button
-                label="Se connecter"
-                leadingIcon={LogIn}
-                onPress={() => router.push("/sign-in")}
-              />
-            )}
-          </ErrorState>
+          <AccountRecovery error={account.error}>
+            <ErrorState onRetry={recovery.onRetry} />
+          </AccountRecovery>
         </ScreenState>
       );
     }
     if (connected && (account.isPending || hasReadError(account))) {
       return (
         <ScreenState>
-          {missing ? (
-            <ErrorState>
-              <Button
-                label="Se connecter"
-                leadingIcon={LogIn}
-                onPress={() => router.push("/sign-in")}
-              />
-            </ErrorState>
-          ) : (
+          <AccountRecovery error={account.error}>
             <ReadFeedback query={account} loadingContent={null} />
-          )}
+          </AccountRecovery>
         </ScreenState>
       );
     }

@@ -1,4 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
   act,
   cleanup,
@@ -14,9 +14,13 @@ import {
   getGetMyAccountQueryKey,
 } from "../../../../.generated/mobile";
 import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { createQueryClient } from "@/shared/query/query-client";
 import {
   AccountSessionProvider,
   useAccountSession,
+  type AccountSessionProviderProps,
 } from "../session/account-session-provider";
 import { useCurrentAccount } from "../api/use-current-account";
 import { isAccountMissing } from "../api/current-account-query";
@@ -35,7 +39,9 @@ jest.mock("react-native-auth0", () => {
 });
 jest.mock("expo/fetch", () => ({
   fetch: (url: RequestInfo | URL, options?: RequestInit) =>
-    mockFetch(url, options),
+    String(url).endsWith("/application-access")
+      ? Promise.resolve(Response.json(mockApplicationAccessResponse()))
+      : mockFetch(url, options),
 }));
 const mockFetch = jest.fn<
   Promise<Response>,
@@ -43,9 +49,25 @@ const mockFetch = jest.fn<
 >();
 const env = { ...process.env };
 const account = accountResponse();
+let publicClient = createQueryClient();
+
+/** Actual public Query/F12 and private SDK providers; public access HTTP stays separate from account-request assertions. */
+function SessionProviders({
+  children,
+  ...props
+}: Readonly<AccountSessionProviderProps>) {
+  return (
+    <QueryClientProvider client={publicClient}>
+      <ApplicationAccessProvider>
+        <AccountSessionProvider {...props}>{children}</AccountSessionProvider>
+      </ApplicationAccessProvider>
+    </QueryClientProvider>
+  );
+}
 
 beforeEach(() => {
   jest.useFakeTimers();
+  publicClient = createQueryClient();
   Object.assign(process.env, {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
@@ -64,6 +86,7 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await cleanup();
+  publicClient.clear();
   // Await pending Query batches before restoring the test's real timer environment.
   await act(async () => jest.runOnlyPendingTimersAsync());
   jest.useRealTimers();
@@ -93,9 +116,9 @@ it("keeps consumers behind F14 initialization before restoring native identity",
 
   // When
   await render(
-    <AccountSessionProvider fallback={<Text>Preparing installation</Text>}>
+    <SessionProviders fallback={<Text>Preparing installation</Text>}>
       <Text>Application</Text>
-    </AccountSessionProvider>,
+    </SessionProviders>,
   );
 
   // Then
@@ -116,7 +139,7 @@ it("restores through Auth0 and derives the business UUID from the native account
 
   // When
   const hook = await renderHook(useIdentity, {
-    wrapper: AccountSessionProvider,
+    wrapper: SessionProviders,
   });
 
   // Then
@@ -127,7 +150,6 @@ it("restores through Auth0 and derives the business UUID from the native account
   expect(hook.result.current.session.accountId).toBe(account.accountId);
   expect(hook.result.current.session.status).toBe("authenticated");
   expect(hook.result.current.usable).toBe(true);
-  expect(hook.result.current.hasLoadedAccount).toBe(true);
   expect(hook.result.current.refusal).toBeUndefined();
   expect(
     mockFetch.mock.calls.every(([, options]) => options?.method !== "POST"),
@@ -142,9 +164,9 @@ it.each(["success", "error", "pending"] as const)(
     const response = Promise.withResolvers<Response>();
     mockFetch.mockReturnValue(response.promise);
     const view = await render(
-      <AccountSessionProvider>
+      <SessionProviders>
         <AccountObserver label="First" />
-      </AccountSessionProvider>,
+      </SessionProviders>,
     );
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
     if (outcome !== "pending") {
@@ -162,10 +184,10 @@ it.each(["success", "error", "pending"] as const)(
     try {
       // When
       await view.rerender(
-        <AccountSessionProvider>
+        <SessionProviders>
           <AccountObserver label="First" />
           <AccountObserver label="Second" />
-        </AccountSessionProvider>,
+        </SessionProviders>,
       );
 
       // Then
@@ -179,7 +201,7 @@ it.each(["success", "error", "pending"] as const)(
 );
 
 it.each(["typed", "ambiguous"] as const)(
-  "does not admit a never-loaded account after an initial %s 404",
+  "keeps an initially absent account unusable and distinguishes %s 404 recovery",
   async (absence) => {
     // Given
     mockFetch.mockResolvedValue(
@@ -200,7 +222,7 @@ it.each(["typed", "ambiguous"] as const)(
 
     // When
     const hook = await renderHook(useIdentity, {
-      wrapper: AccountSessionProvider,
+      wrapper: SessionProviders,
     });
 
     // Then
@@ -208,8 +230,6 @@ it.each(["typed", "ambiguous"] as const)(
       expect(hook.result.current.account.error).toMatchObject({ status: 404 }),
     );
     expect(hook.result.current.account.data).toBeNull();
-    expect(hook.result.current.hasLoadedAccount).toBe(false);
-    expect(hook.result.current.canEnter).toBe(false);
     expect(hook.result.current.usable).toBe(false);
     expect(hook.result.current.session.status).toBe("authenticated");
     expect(isAccountMissing(hook.result.current.account.error)).toBe(
@@ -223,7 +243,7 @@ it.each(["typed", "ambiguous"] as const)(
 it("withdraws a known account after native nonrenewable credentials without treating it as an HTTP refusal", async () => {
   // Given
   const hook = await renderHook(useIdentity, {
-    wrapper: AccountSessionProvider,
+    wrapper: SessionProviders,
   });
   await waitFor(() =>
     expect(hook.result.current.account.data).toEqual(account),
@@ -247,7 +267,6 @@ it("withdraws a known account after native nonrenewable credentials without trea
   expect(hook.result.current.account.data).toBeNull();
   expect(hook.result.current.session.accountId).toBeNull();
   expect(hook.result.current.usable).toBe(false);
-  expect(hook.result.current.hasLoadedAccount).toBe(true);
   expect(hook.result.current.refusal).toBeUndefined();
   expect(mockFetch).toHaveBeenCalledTimes(1);
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
@@ -257,7 +276,7 @@ it("keeps accepted account data when a cancelled read later returns another UUID
   // Given
   const hook = await renderHook(
     () => ({ ...useIdentity(), client: useQueryClient() }),
-    { wrapper: AccountSessionProvider },
+    { wrapper: SessionProviders },
   );
   await waitFor(() =>
     expect(hook.result.current.account.data).toEqual(account),
@@ -301,7 +320,7 @@ it.each([401, 403, 404])(
         useQueryClient().setQueryDefaults([], { retry: false });
         return useIdentity();
       },
-      { wrapper: AccountSessionProvider },
+      { wrapper: SessionProviders },
     );
     await waitFor(() =>
       expect(hook.result.current.account.data).toEqual(account),
@@ -315,7 +334,6 @@ it.each([401, 403, 404])(
     );
     expect(hook.result.current.account.data).toBeNull();
     expect(hook.result.current.usable).toBe(false);
-    expect(hook.result.current.hasLoadedAccount).toBe(true);
     expect(hook.result.current.refusal).toMatchObject({ status });
 
     // When
@@ -334,7 +352,6 @@ it.each([401, 403, 404])(
     expect(hook.result.current.session.accountId).toBeNull();
     expect(hook.result.current.session.status).toBe("authenticated");
     expect(hook.result.current.usable).toBe(false);
-    expect(hook.result.current.hasLoadedAccount).toBe(true);
     expect(hook.result.current.refusal).toBeUndefined();
     expect(
       mockFetch.mock.calls.every(([, options]) => options?.method !== "POST"),
@@ -374,7 +391,7 @@ it("retains a known matching account after a technical reread failure", async ()
       useQueryClient().setQueryDefaults([], { retry: false });
       return useIdentity();
     },
-    { wrapper: AccountSessionProvider },
+    { wrapper: SessionProviders },
   );
   await waitFor(() =>
     expect(hook.result.current.account.data).toEqual(account),
@@ -406,11 +423,10 @@ it("distinguishes a never-loaded account from known data during initial failure"
       useQueryClient().setQueryDefaults([], { retry: false });
       return useIdentity();
     },
-    { wrapper: AccountSessionProvider },
+    { wrapper: SessionProviders },
   );
   await waitFor(() => expect(hook.result.current.account.isLoading).toBe(true));
   expect(hook.result.current.usable).toBe(false);
-  expect(hook.result.current.hasLoadedAccount).toBe(false);
 
   // When
   await act(async () => response.resolve(new Response(null, { status: 503 })));
@@ -422,7 +438,6 @@ it("distinguishes a never-loaded account from known data during initial failure"
   expect(hook.result.current.session.status).toBe("authenticated");
   expect(hook.result.current.session.accountId).toBeNull();
   expect(hook.result.current.usable).toBe(false);
-  expect(hook.result.current.hasLoadedAccount).toBe(false);
   expect(hook.result.current.refusal).toBeUndefined();
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
 });
@@ -435,7 +450,7 @@ it("keeps a cancelled credential handoff distinct from the preceding account abs
       useQueryClient().setQueryDefaults([], { retry: false });
       return useIdentity();
     },
-    { wrapper: AccountSessionProvider },
+    { wrapper: SessionProviders },
   );
   await waitFor(() =>
     expect(hook.result.current.account.error).toMatchObject({ status: 404 }),
@@ -458,7 +473,6 @@ it("keeps a cancelled credential handoff distinct from the preceding account abs
   expect(hook.result.current.refusal).toBeUndefined();
   expect(hook.result.current.session.status).toBe("authenticated");
   expect(mockFetch).toHaveBeenCalledTimes(previousRequests);
-  expect(hook.result.current.hasLoadedAccount).toBe(false);
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
 });
 
@@ -475,7 +489,7 @@ it("reads once on restoration, foreground, explicit refresh and invalidation, th
       secondAccount: useCurrentAccount(),
       client: useQueryClient(),
     }),
-    { wrapper: AccountSessionProvider },
+    { wrapper: SessionProviders },
   );
   await waitFor(() =>
     expect(hook.result.current.account.data).toEqual(account),
@@ -549,7 +563,7 @@ it("does not read a guest account on foreground return", async () => {
     return { remove: () => listeners.delete(listener) };
   });
   const hook = await renderHook(useIdentity, {
-    wrapper: AccountSessionProvider,
+    wrapper: SessionProviders,
   });
   await waitFor(() => expect(hook.result.current.session.status).toBe("guest"));
 
@@ -558,7 +572,6 @@ it("does not read a guest account on foreground return", async () => {
 
   // Then
   expect(hook.result.current.usable).toBe(false);
-  expect(hook.result.current.hasLoadedAccount).toBe(false);
   expect(mockFetch).not.toHaveBeenCalled();
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
 });
@@ -569,7 +582,7 @@ it("retains guest navigation after initialization failure and retries explicitly
     .mocked(initializeV2Installation)
     .mockRejectedValueOnce(new Error("Storage unavailable"));
   const hook = await renderHook(useAccountSession, {
-    wrapper: AccountSessionProvider,
+    wrapper: SessionProviders,
   });
   await waitFor(() =>
     expect(hook.result.current.status).toBe("initialization-error"),
@@ -587,7 +600,7 @@ it("retains guest navigation after initialization failure and retries explicitly
 it("does not dispatch an original account command with a different principal's credentials", async () => {
   // Given
   const hook = await renderHook(useIdentity, {
-    wrapper: AccountSessionProvider,
+    wrapper: SessionProviders,
   });
   await waitFor(() =>
     expect(hook.result.current.session.accountId).toBe(account.accountId),
@@ -619,7 +632,7 @@ it("returns the SDK's explicit login principal without establishing on restorati
   // Given
   mockAuth0.hasValidCredentials.mockResolvedValue(false);
   const hook = await renderHook(useAccountSession, {
-    wrapper: AccountSessionProvider,
+    wrapper: SessionProviders,
   });
   expect(hook.result.current.status).toBe("guest");
   mockAuth0.getCredentials.mockResolvedValue(credentialsFor("auth0|b"));
@@ -660,7 +673,7 @@ it("does not restore A's native identity after B has signed in while A credentia
   );
   const hook = await renderHook(
     () => ({ ...useIdentity(), client: useQueryClient() }),
-    { wrapper: AccountSessionProvider },
+    { wrapper: SessionProviders },
   );
   await waitFor(() =>
     expect(hook.result.current.session.accountId).toBe(account.accountId),

@@ -1,3 +1,4 @@
+import { homeHref } from "@/shared/native/home-href";
 import { ErrorState } from "@/shared/components/state-card";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
@@ -28,7 +29,7 @@ export function SignInInvitationScreen({
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace("/");
+      router.replace(homeHref);
     }
   }
 
@@ -40,7 +41,7 @@ export function SignInInvitationScreen({
       if (router.canGoBack()) {
         router.back();
       } else {
-        router.replace("/");
+        router.replace(homeHref);
       }
     }
   }, [admitted, account.status, currentGuest, router]);

@@ -1,3 +1,4 @@
+import { homeHref } from "@/shared/native/home-href";
 import { useRouter } from "expo-router";
 import { useState, type ReactNode } from "react";
 import { ChevronLeft } from "lucide-react-native";
@@ -90,7 +91,8 @@ export function PageHeader({
           label="Retour"
           onPress={
             onBack ??
-            (() => (router.canGoBack() ? router.back() : router.replace("/")))
+            (() =>
+              router.canGoBack() ? router.back() : router.replace(homeHref))
           }
         >
           <ChevronLeft

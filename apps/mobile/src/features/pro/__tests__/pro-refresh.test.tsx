@@ -1,3 +1,4 @@
+import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { accountResponse as mockAccountResponse } from "@/features/accounts/test-support/account-response";
 import {
   credentialsFor,
@@ -21,6 +22,9 @@ import { prepareProNativeIO, ProHarness } from "../test-support/pro-harness";
 
 jest.mock("expo/fetch", () => ({
   fetch: jest.fn((url: RequestInfo | URL) => {
+    if (String(url).endsWith("/application-access")) {
+      return Promise.resolve(Response.json(mockApplicationAccessResponse()));
+    }
     // Preserve the unconfigured transport until the scenario supplies its account response.
     if (mockAccountId === undefined) {
       return undefined;

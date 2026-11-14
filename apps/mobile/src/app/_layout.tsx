@@ -1,7 +1,8 @@
 import { createInstallationAdvertisingPrivacy } from "@/features/advertising/advertising-privacy";
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as Sentry from "@sentry/react-native";
-import { Stack } from "expo-router";
+import { SplashScreen, Stack, useSegments } from "expo-router";
+import { homeHref } from "@/shared/native/home-href";
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -37,9 +38,9 @@ import {
 } from "@/features/notifications/native/push-registration";
 
 import { cleanupMatchDocuments } from "@/features/sporting/api/match-document";
-import { useAccountAvailability } from "@/features/accounts/current-account";
 
 initializeSentry();
+SplashScreen.preventAutoHideAsync();
 
 /** Binds private cache/push lifecycle and separates protected ordinary/operational navigation. */
 function Navigation({
@@ -49,48 +50,54 @@ function Navigation({
   const access = useAccessAdmission();
   const discovery = useDiscovery();
   const age = useAgeDeclaration();
-  const account = useAccountAvailability();
+  const session = useAccountSession();
+  const segments = useSegments();
+  const waiting =
+    (!access.snapshot.complete && !hasReadError(access.query)) ||
+    (access.ordinary && (discovery.loading || session.status === "restoring"));
+  useEffect(() => {
+    if (!waiting && segments.length > 0) {
+      SplashScreen.hide();
+    }
+  }, [waiting, segments.length]);
+  if (waiting) {
+    return null;
+  }
   return (
     <>
       <NotificationLifecycle
         registration={registration}
-        enabled={access.ordinary && discovery.complete && account.canEnter}
+        enabled={access.ordinary && discovery.complete}
       />
       <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
-      {discovery.loading ||
-      (!access.snapshot.complete &&
-        access.checking &&
-        !hasReadError(access.query)) ? (
-        <StartupAccessGate />
-      ) : (
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Protected guard={!access.ordinary}>
-            <Stack.Screen name="access" />
-          </Stack.Protected>
-          <Stack.Protected
-            guard={access.ordinary && !discovery.complete}
-            redirectTo={access.ordinary ? "/sign-in" : "/access"}
-          >
-            <Stack.Screen name="onboarding" />
-          </Stack.Protected>
-          <Stack.Protected guard={access.ordinary && discovery.complete}>
-            <Stack.Screen name="(ordinary)" />
-            <Stack.Screen name="(recovery)" />
-          </Stack.Protected>
-          <Stack.Protected
-            guard={access.ordinary && discovery.complete && age.required}
-            redirectTo={access.ordinary ? "/" : "/access"}
-          >
-            <Stack.Screen
-              name="age-declaration"
-              options={{ gestureEnabled: false }}
-            />
-          </Stack.Protected>
-          <Stack.Protected guard={access.operations}>
-            <Stack.Screen name="(operations)" />
-          </Stack.Protected>
-        </Stack>
-      )}
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Protected guard={!access.ordinary}>
+          <Stack.Screen name="access" />
+        </Stack.Protected>
+        <Stack.Protected
+          guard={access.ordinary && !discovery.complete}
+          redirectTo={access.ordinary ? "/sign-in" : "/access"}
+        >
+          <Stack.Screen name="onboarding" />
+        </Stack.Protected>
+        <Stack.Protected guard={access.ordinary && discovery.complete}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(ordinary)" />
+          <Stack.Screen name="(recovery)" />
+        </Stack.Protected>
+        <Stack.Protected
+          guard={access.ordinary && discovery.complete && age.required}
+          redirectTo={access.ordinary ? homeHref : "/access"}
+        >
+          <Stack.Screen
+            name="age-declaration"
+            options={{ gestureEnabled: false }}
+          />
+        </Stack.Protected>
+        <Stack.Protected guard={access.operations}>
+          <Stack.Screen name="(operations)" />
+        </Stack.Protected>
+      </Stack>
     </>
   );
 }

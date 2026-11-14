@@ -23,7 +23,7 @@ import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { ListContinuation } from "@/shared/components/list-continuation";
 import { Button } from "@/shared/components/button";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
-import { EmptyState, ErrorState } from "@/shared/components/state-card";
+import { EmptyState } from "@/shared/components/state-card";
 import { ScreenState } from "@/shared/components/screen-state";
 import { ListSeparator } from "@/shared/components/list-separator";
 import { useActionFeedback } from "@/shared/components/action-feedback";
@@ -35,10 +35,13 @@ import { createReadNotificationOptions } from "../api/inbox-mutations";
 import { expireInbox, notificationExpiry } from "../state/inbox-expiry";
 import { NotificationItem } from "../components/notification-item";
 import { NotificationLoading } from "../components/notification-loading";
-import { AccountSessionFeedback } from "@/features/accounts/current-account";
+import {
+  AccountRecovery,
+  AccountSessionFeedback,
+} from "@/features/accounts/current-account";
 import { useSportingNavigation } from "@/features/sporting/navigation";
 
-/** Current F05/F12 admission precedes private inbox observers, including direct guest entry. */
+/** Matching-account readiness scopes private inbox data without delaying permitted public navigation. */
 export function NotificationsScreen() {
   const authority = useInboxQueries();
   const { account, session } = authority;
@@ -47,13 +50,12 @@ export function NotificationsScreen() {
     session.status === "restoring" ||
     session.status === "authenticating" ||
     session.status === "signing-out" ||
-    (authenticated && account.isLoading);
+    (authenticated && account.isLoading && !hasReadError(account));
   const FeedbackLayout = pending ? PageContent : ScreenState;
   let feedback = (
-    <ErrorState
-      onRetry={() => void account.refetch()}
-      retrying={account.isFetching}
-    />
+    <AccountRecovery error={account.error}>
+      <ReadFeedback query={account} loadingContent={<NotificationLoading />} />
+    </AccountRecovery>
   );
   if (!authenticated) {
     feedback = (

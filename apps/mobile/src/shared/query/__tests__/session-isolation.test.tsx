@@ -1,3 +1,4 @@
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
 import {
   MutationObserver,
   QueryClientProvider,
@@ -32,11 +33,15 @@ jest.mock("react-native-auth0", () => {
   return jest.requireActual("react-native-auth0");
 });
 jest.mock("expo/fetch", () => ({
-  fetch: async () =>
+  fetch: async (url: RequestInfo | URL) =>
     Response.json(
-      jest
-        .requireActual("@/features/accounts/test-support/account-response")
-        .accountResponse(),
+      String(url).endsWith("/application-access")
+        ? jest
+            .requireActual("@/shared/api/test-support/application-access")
+            .applicationAccessResponse()
+        : jest
+            .requireActual("@/features/accounts/test-support/account-response")
+            .accountResponse(),
     ),
 }));
 const env = { ...process.env };
@@ -70,7 +75,9 @@ afterEach(async () => {
 function Providers({ children }: Readonly<PropsWithChildren>) {
   return (
     <QueryClientProvider client={publicClient}>
-      <AccountSessionProvider>{children}</AccountSessionProvider>
+      <ApplicationAccessProvider>
+        <AccountSessionProvider>{children}</AccountSessionProvider>
+      </ApplicationAccessProvider>
     </QueryClientProvider>
   );
 }

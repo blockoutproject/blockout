@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
-import type { AccountSession } from "@/features/accounts/current-account";
+import {
+  AccountRecovery,
+  type AccountSession,
+} from "@/features/accounts/current-account";
 import { ErrorState } from "@/shared/components/state-card";
 import {
   ReadFeedback,
@@ -11,7 +14,7 @@ export interface AccessFeedbackProps {
   /** Inherits the destination's shape without admitting its data or commands. */
   loadingContent: ReactNode;
   sessionStatus: AccountSession["status"];
-  account: ReadFeedbackQuery;
+  account: ReadFeedbackQuery & { readonly error?: unknown };
   enabled: boolean;
 }
 
@@ -25,11 +28,12 @@ export function AccessFeedback({
   if (sessionStatus === "restoring") {
     return loadingContent;
   }
+  let content = enabled ? null : <ErrorState />;
   if (
     sessionStatus === "authenticated" &&
     (account.isError || account.isPending)
   ) {
-    return <ReadFeedback query={account} loadingContent={loadingContent} />;
+    content = <ReadFeedback query={account} loadingContent={loadingContent} />;
   }
-  return enabled ? null : <ErrorState />;
+  return <AccountRecovery error={account.error}>{content}</AccountRecovery>;
 }

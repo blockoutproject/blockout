@@ -1,4 +1,4 @@
-import { Page, PageScrollView, PageContent } from "@/shared/components/page";
+import { Page, PageScrollView } from "@/shared/components/page";
 import {
   hasReadError,
   ReadFeedback,
@@ -7,17 +7,15 @@ import {
 import { applicationUpdateMessage } from "../application-update-message";
 import { RoundedContainedImage } from "@/shared/components/rounded-contained-image";
 import { ImageFallback } from "@/shared/components/image-fallback";
-import { useRouter } from "expo-router";
+import { SplashScreen, useRouter } from "expo-router";
 import { X } from "lucide-react-native";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import type { PublicMaintenanceResponse } from "../../../../.generated/schemas/index.zod";
 import { IconButton } from "@/shared/components/icon-button";
 import { Button } from "@/shared/components/button";
 import { BrandHeader } from "@/shared/components/brand-header";
-import { LoadingGroup } from "@/shared/components/loading-group";
-import { Skeleton } from "@/shared/components/skeleton";
 import { ScreenState } from "@/shared/components/screen-state";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { useTheme } from "@/shared/theme/theme-provider";
@@ -53,14 +51,23 @@ function GateView({
   onClose,
 }: Readonly<GateViewProps>) {
   const { colors } = useTheme();
-  const readFailed = query ? hasReadError(query) : false;
+  const readFailed = Boolean(query && hasReadError(query));
+  const visible = gate !== "checking" || readFailed;
+  useEffect(() => {
+    // Public restrictions and read failure remain visible even before Auth0 can mount.
+    if (visible) {
+      SplashScreen.hide();
+    }
+  }, [visible]);
+  if (!visible) {
+    return null;
+  }
   const update = gate === "update";
   const inMaintenance = gate === "maintenance";
-  const simple = gate === "checking" || gate === "unavailable";
+  const simple = gate === "unavailable" || readFailed;
   const image = inMaintenance ? maintenance?.imageUrl : null;
   let title = "";
-  let badge =
-    gate === "checking" && !readFailed ? "VÉRIFICATION" : "INDISPONIBLE";
+  let badge = "INDISPONIBLE";
   let message: string | null | undefined;
   if (inMaintenance) {
     title = "Blockout est en maintenance";
@@ -87,17 +94,6 @@ function GateView({
 
   /** Keeps pending/unavailable recovery distinct from maintenance and update presentation. */
   function renderContent() {
-    if (gate === "checking" && !readFailed) {
-      return (
-        <PageContent>
-          <LoadingGroup label="Vérification de l’accès" style={styles.pending}>
-            <Skeleton width="62%" height={tokens.typography.title.lineHeight} />
-            <Skeleton width="90%" />
-            <Skeleton width="72%" />
-          </LoadingGroup>
-        </PageContent>
-      );
-    }
     if (simple) {
       return (
         <ScreenState>
@@ -105,7 +101,7 @@ function GateView({
             <ReadFeedback
               query={query}
               loadingContent={null}
-              failed={gate === "unavailable"}
+              failed={gate === "unavailable" || readFailed}
               onRetry={onRefresh}
             />
           )}
@@ -292,7 +288,6 @@ export function AccessGateScreen() {
 }
 
 const styles = StyleSheet.create({
-  pending: { gap: tokens.spacing.md },
   headerActions: {
     flexDirection: "row",
     flexWrap: "wrap",

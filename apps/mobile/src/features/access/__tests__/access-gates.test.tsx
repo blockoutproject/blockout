@@ -18,6 +18,7 @@ import NotFoundRoute from "@/app/+not-found";
 import OperationsLayout from "@/app/(operations)/_layout";
 import AdministrationRoute from "@/app/(operations)/administration";
 import RootLayout from "@/app/_layout";
+import EntryRoute from "@/app/index";
 import OrdinaryLayout from "@/app/(ordinary)/_layout";
 import RecoveryLayout from "@/app/(recovery)/_layout";
 import SignInRoute from "@/app/(recovery)/sign-in";
@@ -131,6 +132,7 @@ async function openRoute(
   const view = await renderRouter(
     {
       _layout: () => <RootLayout />,
+      index: EntryRoute,
       onboarding: OnboardingRoute,
       "age-declaration": () => <Text>Age declaration</Text>,
       "(ordinary)/_layout": OrdinaryLayout,
@@ -139,7 +141,9 @@ async function openRoute(
       "(operations)/_layout": OperationsLayout,
       access: AccessGateScreen,
       "+not-found": NotFoundRoute,
-      "(ordinary)/(tabs)/index": () => <Text>Ordinary home</Text>,
+      "(ordinary)/(tabs)/(home)/(personal)/index": () => (
+        <Text>Ordinary home</Text>
+      ),
       "(ordinary)/matches/[matchId]": MatchProbe,
       "(ordinary)/privacy": () => null,
       "(ordinary)/privacy-age": () => null,
@@ -214,9 +218,8 @@ it("starts the public request while F14 initialization has not completed", async
       ),
     );
     expect(mockAuth0.getCredentials).not.toHaveBeenCalled();
-    expect(
-      screen.getByRole("progressbar", { name: "Vérification de l’accès" }),
-    ).toBeOnTheScreen();
+    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
     expect(screen.queryByLabelText("Actualiser les données")).toBeNull();
     expect(screen.queryByText("Illustration à définir")).toBeNull();
   } finally {
@@ -250,11 +253,6 @@ it.each(["/support", "/legal", "/sign-in", "/administration"])(
     ).toBeNull();
     expect(screen.queryByLabelText("E-mail de réponse")).toBeNull();
     expect(
-      screen.queryByRole("alert", {
-        name: "Impossible de charger votre compte",
-      }),
-    ).toBeNull();
-    expect(
       screen.queryByRole("button", { name: "Continuer en tant qu’invité" }),
     ).toBeNull();
   },
@@ -265,7 +263,7 @@ it("keeps the current complete check on native focus and reconnect", async () =>
   const full = applicationAccessResponse();
   mockFetch.mockImplementation(async () => Response.json(full));
   await openRoute("/");
-  await screen.findByText("Ordinary home");
+  await screen.findByText("Sign-in route");
   full.maintenance = {
     revision: 1,
     active: true,
@@ -282,7 +280,7 @@ it("keeps the current complete check on native focus and reconnect", async () =>
   });
 
   // Then
-  expect(screen.getByText("Ordinary home")).toBeOnTheScreen();
+  expect(screen.getByText("Sign-in route")).toBeOnTheScreen();
   expect(mockFetch).toHaveBeenCalledTimes(1);
 });
 
@@ -358,7 +356,7 @@ it.each(["maintenance", "update"] as const)(
     await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
     // Then
-    expect(await screen.findByText("Ordinary home")).toBeOnTheScreen();
+    expect(await screen.findByText("Sign-in route")).toBeOnTheScreen();
     expect(screen.queryByRole("alert")).toBeNull();
     expect(
       mockFetch.mock.calls.every(
@@ -436,7 +434,7 @@ const operator = accountResponse({
 });
 
 it.each(["maintenance", "update"] as const)(
-  "keeps member recovery and legal/support/sign-in routes behind the %s gate",
+  "keeps ordinary entry and legal/support/sign-in routes behind the %s gate",
   async (restriction) => {
     // Given
     const full = applicationAccessResponse();
@@ -485,11 +483,6 @@ it.each(["maintenance", "update"] as const)(
       screen.queryByRole("link", { name: "Accès administrateur" }),
     ).toBeNull();
     expect(screen.queryByText(/Aide|Assistance|Se connecter/)).toBeNull();
-    expect(
-      screen.queryByRole("alert", {
-        name: "Impossible de charger votre compte",
-      }),
-    ).toBeNull();
     expect(
       screen.queryByRole("button", { name: "Continuer en tant qu’invité" }),
     ).toBeNull();
@@ -626,115 +619,65 @@ it("refreshes maintenance and retries existing-account identification without in
   expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
 });
 
-it("withholds initial member entry and preserves a direct Match through help and read recovery", async () => {
-  // Given: real admission and support routes; the unrelated Match body only exposes its UUID.
+it("opens the exact direct Match before the first account response and retains it after failure", async () => {
+  // Given: the real Router/session owners remain mounted while HTTP alone is delayed.
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   const firstRead = Promise.withResolvers<Response>();
-  let accountRead = firstRead.promise;
-  mockFetch.mockImplementation(async (url) => {
-    if (String(url).endsWith("/accounts/me")) {
-      return accountRead;
-    }
-    return json(applicationAccessResponse());
-  });
-  const user = userEvent.setup();
-  const matchId = "00000000-0000-4000-8000-000000000745";
-
-  // When
-  await openRoute(`/matches/${matchId}`);
-
-  // Then: loading never presents a ready ordinary page or an active guest-departure command.
-  expect(screen.queryByText(`Match destination ${matchId}`)).toBeNull();
-  expect(screen.queryByText("Ordinary home")).toBeNull();
-  expect(
-    screen.queryByRole("button", { name: "Continuer en tant qu’invité" }),
-  ).toBeNull();
-
-  // When
-  await act(async () => firstRead.resolve(new Response(null, { status: 503 })));
-  await act(async () => jest.advanceTimersByTimeAsync(8_000));
-
-  // Then
-  expect(
-    await screen.findByRole("alert", {
-      name: "Impossible de charger votre compte",
-    }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.getByText("Réessayez ou continuez en invité."),
-  ).toBeOnTheScreen();
-  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
-  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
-
-  // When
-  await user.press(screen.getByRole("link", { name: "Besoin d’aide ?" }));
-
-  // Then
-  expect(
-    await screen.findByRole("header", { name: "Assistance et suggestions" }),
-  ).toBeOnTheScreen();
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Fermer" }));
-  await screen.findByRole("alert", {
-    name: "Impossible de charger votre compte",
-  });
-  accountRead = Promise.resolve(json(operator));
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
-
-  // Then
-  expect(
-    await screen.findByText(`Match destination ${matchId}`),
-  ).toBeOnTheScreen();
-  expect(screen).toHavePathname(`/matches/${matchId}`);
-  expect(
-    mockFetch.mock.calls.filter(([url]) =>
-      String(url).endsWith("/application-access"),
-    ),
-  ).toHaveLength(1);
-  expect(
-    mockFetch.mock.calls.every(([, options]) => options?.method !== "POST"),
-  ).toBe(true);
-  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
-});
-
-it("continues as guest only after explicit successful local credential clearing", async () => {
-  // Given
-  mockAuth0.hasValidCredentials.mockResolvedValue(true);
-  mockAuth0.clearCredentials
-    .mockRejectedValueOnce(new Error("Native clear failed"))
-    .mockImplementation(async () => {
-      mockAuth0.hasValidCredentials.mockResolvedValue(false);
-    });
   mockFetch.mockImplementation(async (url) =>
     String(url).endsWith("/accounts/me")
-      ? new Response(null, { status: 503 })
+      ? firstRead.promise
       : json(applicationAccessResponse()),
   );
-  const user = userEvent.setup();
-  await openRoute("/");
-  await screen.findByRole("alert", {
-    name: "Impossible de charger votre compte",
-  });
+  const matchId = "00000000-0000-4000-8000-000000000745";
+  const destination = `/matches/${matchId}?source=notification&view=one&view=two#links`;
 
-  // When
-  await user.press(
-    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
-  );
+  try {
+    // When
+    await openRoute(destination);
+
+    // Then
+    expect(
+      await screen.findByText(`Match destination ${matchId}`),
+    ).toBeOnTheScreen();
+    expect(screen).toHavePathnameWithParams(destination);
+    expect(
+      screen.queryByRole("button", { name: "Se connecter" }),
+    ).not.toBeOnTheScreen();
+
+    // When
+    await act(() => firstRead.resolve(new Response(null, { status: 503 })));
+    await act(async () => jest.advanceTimersByTimeAsync(8_000));
+
+    // Then
+    expect(screen.getByText(`Match destination ${matchId}`)).toBeOnTheScreen();
+    expect(screen).toHavePathnameWithParams(destination);
+    expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+    expect(
+      mockFetch.mock.calls.filter(([url]) =>
+        String(url).endsWith("/application-access"),
+      ),
+    ).toHaveLength(1);
+    expect(
+      mockFetch.mock.calls.every(([, options]) => options?.method !== "POST"),
+    ).toBe(true);
+  } finally {
+    await act(() => firstRead.resolve(new Response(null, { status: 503 })));
+  }
+});
+
+it("opens ordinary Login without a session and reaches Home only after explicit guest continuation", async () => {
+  // Given
+  mockFetch.mockResolvedValue(json(applicationAccessResponse()));
+  const user = userEvent.setup();
+  await openRoute("/", SignInRoute);
 
   // Then
   expect(
-    await screen.findByRole("alert", {
-      name: "Impossible de charger votre compte",
-    }),
+    await screen.findByRole("button", { name: "Se connecter" }),
   ).toBeOnTheScreen();
-  expect(screen.queryByText("Ordinary home")).toBeNull();
-  expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1);
-  await waitFor(() =>
-    expect(
-      screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
-    ).toBeEnabled(),
-  );
+  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(screen.queryByText("Ordinary home")).not.toBeOnTheScreen();
 
   // When
   await user.press(
@@ -743,9 +686,113 @@ it("continues as guest only after explicit successful local credential clearing"
 
   // Then
   expect(await screen.findByText("Ordinary home")).toBeOnTheScreen();
-  expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(2);
-  expect(mockAuth0.webAuthLogout).not.toHaveBeenCalled();
+  expect(screen).toHavePathname("/");
+  expect(
+    screen.queryByRole("button", { name: "Se connecter" }),
+  ).not.toBeOnTheScreen();
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+  expect(
+    mockFetch.mock.calls.some(([url]) => String(url).endsWith("/accounts/me")),
+  ).toBe(false);
+});
+
+it("opens Home before the first restored-account response", async () => {
+  // Given
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  const accountRead = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation(async (url) =>
+    String(url).endsWith("/accounts/me")
+      ? accountRead.promise
+      : json(applicationAccessResponse()),
+  );
+
+  try {
+    // When
+    await openRoute("/", SignInRoute);
+
+    // Then: the route probe establishes native entry; Home owns its skeleton in its own suite.
+    expect(await screen.findByText("Ordinary home")).toBeOnTheScreen();
+    expect(screen).toHavePathname("/");
+    expect(
+      screen.queryByRole("button", { name: "Se connecter" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.some(([url]) =>
+        String(url).endsWith("/accounts/me"),
+      ),
+    ).toBe(true);
+  } finally {
+    await act(() => accountRead.resolve(json(operator)));
+  }
+});
+
+it("keeps initial SDK resolution beneath the native splash before ordinary entry", async () => {
+  // Given
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  const credentials =
+    Promise.withResolvers<ReturnType<typeof credentialsFor>>();
+  mockAuth0.getCredentials.mockReturnValue(credentials.promise);
+  mockFetch.mockImplementation(async (url) =>
+    json(
+      String(url).endsWith("/accounts/me")
+        ? operator
+        : applicationAccessResponse(),
+    ),
+  );
+
+  try {
+    // When
+    await openRoute("/", SignInRoute);
+
+    // Then
+    expect(screen.queryByText("Ordinary home")).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Se connecter" }),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+
+    // When
+    await act(() => credentials.resolve(credentialsFor("auth0|operator180")));
+
+    // Then
+    expect(await screen.findByText("Ordinary home")).toBeOnTheScreen();
+  } finally {
+    await act(() => credentials.resolve(credentialsFor("auth0|operator180")));
+  }
+});
+
+it("opens the ordinary Login with only the standard toast after technical SDK restoration failure", async () => {
+  // Given: hold the SDK until the independent public startup check is complete.
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  const restoration =
+    Promise.withResolvers<ReturnType<typeof credentialsFor>>();
+  mockAuth0.getCredentials.mockReturnValue(restoration.promise);
+  mockFetch.mockResolvedValue(json(applicationAccessResponse()));
+  await openRoute("/", SignInRoute);
+
+  try {
+    // When
+    await act(() =>
+      restoration.reject(new Error("Temporary SDK restoration failure")),
+    );
+
+    // Then
+    expect(
+      await screen.findByRole("button", { name: "Se connecter" }),
+    ).toBeOnTheScreen();
+    expect(
+      await screen.findByRole("alert", { name: "Une erreur est survenue." }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("button", { name: "Réessayer" }),
+    ).not.toBeOnTheScreen();
+    expect(screen.queryByText("Ordinary home")).not.toBeOnTheScreen();
+    expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+  } finally {
+    await act(() => restoration.resolve(credentialsFor("auth0|operator180")));
+  }
 });
 
 it("retains an admitted Match after a technical account reread failure", async () => {
@@ -785,94 +832,69 @@ it("retains an admitted Match after a technical account reread failure", async (
     mockFetch.mock.calls.filter(([url]) => String(url).endsWith("/accounts/me"))
       .length,
   ).toBeGreaterThan(accountReadsBefore);
-  expect(
-    screen.queryByRole("alert", { name: "Impossible de charger votre compte" }),
-  ).toBeNull();
   expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
 });
 
-it("retries an HTTP 401 account read without interpreting it as SDK reauthentication", async () => {
+it("keeps public Match navigation open after an HTTP 401 account refusal without SDK reauthentication", async () => {
   // Given
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
-  let accountUnauthorized = true;
-  mockFetch.mockImplementation(async (url) => {
-    if (String(url).endsWith("/accounts/me")) {
-      if (accountUnauthorized) {
-        return new Response(null, { status: 401 });
-      }
-      return json(operator);
-    }
-    return json(applicationAccessResponse());
-  });
-  const user = userEvent.setup();
-  await openRoute("/");
+  mockFetch.mockImplementation(async (url) =>
+    String(url).endsWith("/accounts/me")
+      ? new Response(null, { status: 401 })
+      : json(applicationAccessResponse()),
+  );
+  const matchId = "00000000-0000-4000-8000-000000000745";
+
+  // When
+  await openRoute(`/matches/${matchId}`, SignInRoute);
 
   // Then
   expect(
-    await screen.findByText("Réessayez ou continuez en invité."),
+    await screen.findByText(`Match destination ${matchId}`),
   ).toBeOnTheScreen();
-  expect(screen.queryByRole("button", { name: "Se connecter" })).toBeNull();
-
-  // When
-  accountUnauthorized = false;
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
-
-  // Then
-  expect(await screen.findByText("Ordinary home")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Se connecter" }),
+  ).not.toBeOnTheScreen();
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
   expect(
     mockFetch.mock.calls.every(([, options]) => options?.method !== "POST"),
   ).toBe(true);
 });
 
-it("establishes a missing account only from its explicit creation action", async () => {
+it("keeps a public Match open after canonical account absence without implicit establishment", async () => {
   // Given
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
-  let established = false;
-  mockFetch.mockImplementation(async (url, options) => {
-    if (String(url).endsWith("/accounts") && options?.method === "POST") {
-      established = true;
-      return json(operator, 201);
-    }
-    if (String(url).endsWith("/accounts/me")) {
-      return established
-        ? json(operator)
-        : json(
-            {
-              type: "urn:blockout:problem:not-found",
-              title: "Not found",
-              status: 404,
-            },
-            404,
-          );
-    }
-    return json(applicationAccessResponse());
-  });
-  const user = userEvent.setup();
-  await openRoute("/");
+  mockFetch.mockImplementation(async (url) =>
+    String(url).endsWith("/accounts/me")
+      ? json(
+          {
+            type: "urn:blockout:problem:not-found",
+            title: "Not found",
+            status: 404,
+          },
+          404,
+        )
+      : json(applicationAccessResponse()),
+  );
+  const matchId = "00000000-0000-4000-8000-000000000745";
+
+  // When
+  await openRoute(`/matches/${matchId}`, SignInRoute);
 
   // Then
   expect(
-    await screen.findByText("Créez votre compte ou continuez en invité."),
+    await screen.findByText(`Match destination ${matchId}`),
   ).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.every(([, options]) => options?.method !== "POST"),
   ).toBe(true);
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Créer mon compte" }));
-
-  // Then
-  expect(await screen.findByText("Ordinary home")).toBeOnTheScreen();
-  expect(
-    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
-  ).toHaveLength(1);
-  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
 });
 
-it("offers sign-in only after native SDK evidence requires reauthentication", async () => {
+it("keeps public consultation available when native SDK evidence requires explicit reconnection", async () => {
   // Given
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   mockAuth0.getCredentials.mockRejectedValue({
@@ -880,18 +902,15 @@ it("offers sign-in only after native SDK evidence requires reauthentication", as
     message: "Credentials unavailable",
   });
   mockFetch.mockResolvedValue(json(applicationAccessResponse()));
+  const matchId = "00000000-0000-4000-8000-000000000745";
 
   // When
-  await openRoute("/");
+  await openRoute(`/matches/${matchId}`, SignInRoute);
 
   // Then
   expect(
-    await screen.findByText("Connectez-vous ou continuez en invité."),
+    await screen.findByText(`Match destination ${matchId}`),
   ).toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Se connecter" }),
-  ).toBeOnTheScreen();
-  expect(screen.queryByText("Ordinary home")).toBeNull();
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
   expect(
     mockFetch.mock.calls.some(([url]) => String(url).endsWith("/accounts/me")),
@@ -899,14 +918,12 @@ it("offers sign-in only after native SDK evidence requires reauthentication", as
 });
 
 it.each([200, 503])(
-  "resumes the exact direct destination after explicit SDK recovery and establishment HTTP %s",
+  "returns to the exact destination only after successful establishment HTTP %s",
   async (establishmentStatus) => {
-    // Given: the real sign-in route crosses the native subject lifetime; only SDK I/O and HTTP are controlled.
-    mockAuth0.hasValidCredentials.mockResolvedValue(true);
-    mockAuth0.getCredentials.mockRejectedValue({
-      code: CredentialsManagerErrorCodes.NO_REFRESH_TOKEN,
-      message: "Credentials unavailable",
-    });
+    // Given: real Login, stable session mutation and Router cross the native subject remount.
+    const credentials = credentialsFor("auth0|operator180");
+    mockAuth0.webAuth.mockResolvedValue(credentials);
+    mockAuth0.getCredentials.mockResolvedValue(credentials);
     mockFetch.mockImplementation(async (url, request) => {
       if (request?.method === "POST") {
         return establishmentStatus === 200
@@ -922,24 +939,10 @@ it.each([200, 503])(
     const matchId = "00000000-0000-4000-8000-000000000745";
     const destination = `/matches/${matchId}?source=notification&view=one&view=two#links`;
     const user = userEvent.setup();
-    await openRoute(destination, SignInRoute);
-
-    // When
-    await user.press(
-      await screen.findByRole("button", { name: "Se connecter" }),
+    await openRoute(
+      `/sign-in?returnTo=${encodeURIComponent(destination)}`,
+      SignInRoute,
     );
-
-    // Then
-    await screen.findByText(/Les calendriers, les résultats disponibles/);
-    expect(screen).toHavePathname("/sign-in");
-    expect(screen).toHaveSearchParams({ returnTo: destination });
-    expect(mockAuth0.webAuth).not.toHaveBeenCalled();
-
-    // Given: explicit native recovery returns the original account principal.
-    const credentials = credentialsFor("auth0|operator180");
-    mockAuth0.webAuth.mockResolvedValue(credentials);
-    mockAuth0.saveCredentials.mockResolvedValue();
-    mockAuth0.getCredentials.mockResolvedValue(credentials);
 
     // When
     await user.press(
@@ -954,13 +957,27 @@ it.each([200, 503])(
         ),
       ).toHaveLength(1),
     );
-    expect(
-      await screen.findByText(`Match destination ${matchId}`),
-    ).toBeOnTheScreen();
-    expect(screen).toHavePathnameWithParams(destination);
-    expect(
-      mockFetch.mock.calls.filter(([, request]) => request?.method === "POST"),
-    ).toHaveLength(1);
+    if (establishmentStatus === 200) {
+      expect(
+        await screen.findByText(`Match destination ${matchId}`),
+      ).toBeOnTheScreen();
+      expect(screen).toHavePathnameWithParams(destination);
+    } else {
+      expect(
+        await screen.findByRole("alert", { name: "Une erreur est survenue." }),
+      ).toBeOnTheScreen();
+      expect(
+        screen.getByRole("button", { name: "Se connecter", busy: false }),
+      ).toBeEnabled();
+      expect(
+        screen.queryByRole("button", { name: "Réessayer" }),
+      ).not.toBeOnTheScreen();
+      expect(
+        screen.queryByText(`Match destination ${matchId}`),
+      ).not.toBeOnTheScreen();
+      expect(screen).toHavePathname("/sign-in");
+      expect(screen).toHaveSearchParams({ returnTo: destination });
+    }
     expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
   },
 );
@@ -969,7 +986,7 @@ it("allows explicit retry after native cold-check recovery is exhausted", async 
   // Given
   mockFetch.mockRejectedValue(new Error("Offline"));
   const user = userEvent.setup();
-  await openRoute("/support");
+  await openRoute("/support", SignInRoute);
   await screen.findByRole("alert", {
     name: "Une erreur est survenue",
   });
@@ -988,7 +1005,9 @@ it("allows explicit retry after native cold-check recovery is exhausted", async 
   await act(async () => retry.resolve(json(applicationAccessResponse())));
 
   // Then
-  expect(await screen.findByText("Ordinary home")).toBeOnTheScreen();
+  expect(
+    await screen.findByRole("button", { name: "Se connecter" }),
+  ).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) =>
       String(url).endsWith("/application-access"),
@@ -1077,7 +1096,12 @@ function SignInProbe() {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Connect existing account"
-        onPress={() => void session.signIn("test-audience")}
+        onPress={() =>
+          session.connection.mutate({
+            audience: "test-audience",
+            signIn: session.signIn,
+          })
+        }
       >
         <Text>Connect existing account</Text>
       </Pressable>
@@ -1085,15 +1109,15 @@ function SignInProbe() {
   );
 }
 
-it("refreshes only the existing account on authentication return", async () => {
+it("keeps the public access check independent of explicit connection", async () => {
   // Given
   mockAuth0.webAuth
     .mockReset()
     .mockResolvedValue(credentialsFor("auth0|operator180"));
   mockAuth0.saveCredentials.mockReset().mockResolvedValue();
-  mockFetch.mockImplementation(async (url) =>
+  mockFetch.mockImplementation(async (url, request) =>
     json(
-      String(url).endsWith("/accounts/me")
+      String(url).endsWith("/accounts/me") || request?.method === "POST"
         ? operator
         : applicationAccessResponse(),
     ),
@@ -1120,8 +1144,8 @@ it("refreshes only the existing account on authentication return", async () => {
     ),
   ).toHaveLength(1);
   expect(
-    mockFetch.mock.calls.every(([, options]) => options?.method === "GET"),
-  ).toBe(true);
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+  ).toHaveLength(1);
 });
 
 it("retries failed Auth0 restoration without clearing credentials or starting interactive sign-in", async () => {

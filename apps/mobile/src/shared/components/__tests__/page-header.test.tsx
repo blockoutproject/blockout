@@ -12,7 +12,7 @@ const routes = {
       <Stack screenOptions={{ headerShown: false }} />
     </ThemeProvider>
   ),
-  index: () => <Text>Accueil</Text>,
+  "(ordinary)/(tabs)/(home)/(personal)/index": () => <Text>Accueil</Text>,
   previous: () => <Text>Liste précédente</Text>,
   detail: () => <PageHeader title="Détail" />,
 };

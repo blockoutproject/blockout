@@ -146,6 +146,91 @@ it("does not invent an Error, Empty or active loading before a suspended first c
   ).toHaveLength(1);
 });
 
+it("keeps the initial account card mounted for background reading and explicit Retry", async () => {
+  // Given
+  const user = userEvent.setup();
+  mockFetch.mockImplementation((url, options) =>
+    String(url).endsWith("/accounts/me")
+      ? Promise.resolve(refused(503))
+      : peer.reads(url, options),
+  );
+  await renderCollection(<CollectionDashboardScreen />, client, (cache) => {
+    privateClient = cache;
+  });
+  const card = await screen.findByRole("alert", {
+    name: "Une erreur est survenue",
+  });
+  const background = Promise.withResolvers<Response>();
+  const retry = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, options) =>
+    String(url).endsWith("/accounts/me")
+      ? background.promise
+      : peer.reads(url, options),
+  );
+
+  try {
+    // When
+    await act(async () => {
+      void privateClient.refetchQueries({
+        queryKey: getGetMyAccountQueryKey(),
+      });
+      await jest.runOnlyPendingTimersAsync();
+    });
+
+    // Then
+    expect(card).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeEnabled();
+    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+
+    // When
+    await act(() => background.resolve(refused(503)));
+    mockFetch.mockImplementation((url, options) =>
+      String(url).endsWith("/accounts/me")
+        ? retry.promise
+        : peer.reads(url, options),
+    );
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(card).toBeOnTheScreen();
+    expect(
+      await screen.findByRole("button", { name: "Réessayer", busy: true }),
+    ).toBeDisabled();
+    expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+
+    // When
+    await act(() => retry.resolve(refused(503)));
+
+    // Then
+    expect(card).toBeOnTheScreen();
+    expect(
+      await screen.findByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeEnabled();
+
+    // When
+    mockFetch.mockImplementation(peer.reads);
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then
+    expect(
+      await screen.findByRole("header", { name: "Compétitions" }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.every(
+        ([, options]) => !options?.method || options.method === "GET",
+      ),
+    ).toBe(true);
+  } finally {
+    await act(() => {
+      background.resolve(refused(503));
+      retry.resolve(refused(503));
+    });
+  }
+});
+
 it("reloads empty seasons from their card and recovers a failed read without losing the cached envelope", async () => {
   // Given
   let failed = false;

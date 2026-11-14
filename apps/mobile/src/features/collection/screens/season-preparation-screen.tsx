@@ -25,6 +25,7 @@ export function SeasonPreparationScreen({
   const pending = !authority.enabled
     ? authority.sessionStatus === "restoring" ||
       (authority.sessionStatus === "authenticated" &&
+        !hasReadError(authority.account) &&
         authority.account.isLoading)
     : !hasReadError(season) && season.isLoading;
   const FeedbackLayout = pending ? PageContent : ScreenState;

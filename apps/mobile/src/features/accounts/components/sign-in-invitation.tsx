@@ -14,17 +14,19 @@ const heroHeight = 184;
 const letteringAspectRatio = 343 / 176.42;
 const gradient = `<svg xmlns="http://www.w3.org/2000/svg" width="343" height="210.373" viewBox="0 0 343 210.373"><defs><linearGradient id="g" x1="27.5944" y1="0" x2="173.459" y2="283.426" gradientUnits="userSpaceOnUse"><stop stop-color="#404040"/><stop offset=".7" stop-color="#171717"/><stop offset="1" stop-color="#737373"/></linearGradient></defs><rect width="343" height="210.373" fill="url(#g)"/></svg>`;
 
-/** Shared invitation artwork and action; optional content adds benefits between the message and sign-in. */
+/** Shared invitation artwork and explicit account action; optional content sits between the message and action. */
 export interface SignInInvitationCardProps {
   message: string;
   onSignIn(): void;
+  label?: string;
+  loading?: boolean;
   children?: ReactNode;
 }
 
 /** Contextual sheet only; callers dismiss or navigate to F05 sign-in without replaying an action. */
 export interface SignInInvitationProps extends Omit<
   SignInInvitationCardProps,
-  "children"
+  "children" | "label" | "loading"
 > {
   onClose(): void;
 }
@@ -65,10 +67,12 @@ export function SignInInvitationLoading() {
   );
 }
 
-/** Renders the approved guest card without imposing a modal, navigation or session owner. */
+/** Renders the approved invitation without imposing a modal, navigation or session owner. */
 export function SignInInvitationCard({
   message,
   onSignIn,
+  label = "Se connecter",
+  loading = false,
   children,
 }: Readonly<SignInInvitationCardProps>) {
   const { colors } = useTheme();
@@ -115,7 +119,8 @@ export function SignInInvitationCard({
         </Text>
         {children}
         <Button
-          label="Se connecter"
+          label={label}
+          loading={loading}
           fullWidth
           trailingIcon={ChevronRight}
           onPress={onSignIn}

@@ -29,7 +29,6 @@ import { SignInScreen } from "@/features/accounts/screens/sign-in-screen";
 import { AccessAdmissionProvider } from "@/features/access/queries/use-access-admission";
 import SupportLayout from "@/app/(recovery)/support/_layout";
 import SupportChoiceRoute from "@/app/(recovery)/support/choice";
-import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
@@ -255,7 +254,7 @@ it.each(["authentication"] as const)(
     await user.press(
       await screen.findByRole("button", { name: "Se connecter" }),
     );
-    await screen.findByText(TECHNICAL_ERROR);
+    await screen.findByRole("alert", { name: "Une erreur est survenue." });
     expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
     const calls = mockAuth0.getCredentials.mock.calls.length;
 

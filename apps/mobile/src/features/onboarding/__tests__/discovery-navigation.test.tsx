@@ -5,12 +5,13 @@ import * as Application from "expo-application";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { focusManager } from "@tanstack/react-query";
 import { act, cleanup, screen, userEvent } from "@testing-library/react-native";
-import { Stack, router } from "expo-router";
+import { Stack } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { ComponentType } from "react";
 import type { Credentials } from "react-native-auth0";
 import { Linking, Pressable, Text } from "react-native";
 import RootLayout from "@/app/_layout";
+import EntryRoute from "@/app/index";
 import OnboardingRoute from "@/app/onboarding";
 import SignInRoute from "@/app/(recovery)/sign-in";
 import RecoveryLayout from "@/app/(recovery)/_layout";
@@ -90,18 +91,20 @@ afterEach(async () => {
   jest.useRealTimers();
 });
 
-/** Real root/public admission/session/discovery; ordinary destination probes exclude the separately qualified member guard. */
+/** Real root/public admission/session/discovery; unrelated business destinations remain route probes. */
 async function openInstallation(initialUrl = "/", SignIn = OrdinarySession) {
   return renderRouter(
     {
       _layout: () => <RootLayout />,
+      index: EntryRoute,
       onboarding: OnboardingRoute,
       access: AccessGateScreen,
       "age-declaration": AgeDeclarationRoute,
       "(ordinary)/_layout": () => <Stack />,
       "(recovery)/_layout": RecoveryLayout,
-      "(ordinary)/index": () => <Text>Ordinary home</Text>,
-      "(ordinary)/(tabs)/(home)/index": () => <Text>Ordinary home</Text>,
+      "(ordinary)/(tabs)/(home)/(personal)/index": () => (
+        <Text>Ordinary home</Text>
+      ),
       "(ordinary)/profile": () => (
         <ProfileScreen admitted proEntry={null} privacyEntry={null} />
       ),
@@ -155,17 +158,12 @@ it("presents common discovery before ordinary access, then keeps sign-out and fo
   expect(await readDiscoveryCompletion()).toBe(true);
 });
 
-it.each([
-  ["cancelled", "Connexion annulée."],
-  ["failed", TECHNICAL_ERROR],
-  ["profile unavailable", TECHNICAL_ERROR],
-])(
+it.each(["cancelled", "failed", "establishment unavailable"])(
   "keeps completed discovery and ordinary guest/support access after %s sign-in",
-  async (outcome, message) => {
+  async (outcome) => {
     // Given
     const user = userEvent.setup();
-    if (outcome === "profile unavailable") {
-      jest.useFakeTimers();
+    if (outcome === "establishment unavailable") {
       mockAuth0.webAuth.mockResolvedValue(credentialsFor("auth0|discovery"));
       mockAuth0.saveCredentials.mockImplementation(
         async (credentials: Credentials) => {
@@ -203,21 +201,13 @@ it.each([
     );
 
     // Then
-    if (outcome === "profile unavailable") {
-      await act(async () => jest.advanceTimersByTimeAsync(7500));
-      expect(screen).toHavePathname("/profile");
-      await screen.findByRole("header", { name: "Mon profil" });
-      expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
-      await act(async () => jest.advanceTimersByTimeAsync(7500));
-      await screen.findByRole("alert", { name: "Une erreur est survenue" });
-      expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
-      expect(await readDiscoveryCompletion()).toBe(true);
-      expect(Purchases.restorePurchases).not.toHaveBeenCalled();
-      await act(() => router.replace("/support"));
-      await screen.findByText("Support route");
-      return;
-    }
-    expect(await screen.findByText(message)).toBeOnTheScreen();
+    expect(
+      await screen.findByRole("alert", { name: "Une erreur est survenue." }),
+    ).toBeOnTheScreen();
+    expect(screen).toHavePathname("/sign-in");
+    expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+    expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
     expect(
       screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
     ).toBeEnabled();
@@ -226,6 +216,12 @@ it.each([
     ).toBeOnTheScreen();
     expect(Purchases.restorePurchases).not.toHaveBeenCalled();
     expect(await readDiscoveryCompletion()).toBe(true);
+
+    // When
+    await user.press(screen.getByRole("link", { name: "Besoin d’aide ?" }));
+
+    // Then
+    expect(await screen.findByText("Support route")).toBeOnTheScreen();
   },
 );
 

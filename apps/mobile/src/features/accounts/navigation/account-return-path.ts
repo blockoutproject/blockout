@@ -2,7 +2,7 @@
  * Accepts one internal return URL while rejecting external origins and a loop back into sign-in.
  * URL normalization handles dot segments; decoded Router groups are ignored only for the loop check.
  * The accepted path retains its groups, query and fragment.
- * Unknown, repeated or malformed route parameters leave the ordinary Profile fallback to the caller.
+ * Unknown, repeated or malformed route parameters leave the ordinary entry fallback to the caller.
  */
 export function accountReturnPath(value: unknown): string | undefined {
   if (

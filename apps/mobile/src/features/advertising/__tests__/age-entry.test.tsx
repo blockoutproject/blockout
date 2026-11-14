@@ -25,6 +25,8 @@ import { useEffect, type ComponentType } from "react";
 import { AccessibilityInfo, DeviceEventEmitter, Text } from "react-native";
 import { readAgeDeclaration, submitAgeDeclaration } from "../age-declaration";
 import RootLayout from "@/app/_layout";
+import EntryRoute from "@/app/index";
+import { homeHref } from "@/shared/native/home-href";
 import AgeRoute from "@/app/age-declaration";
 import HomeRoute from "@/app/(ordinary)/(tabs)/(home)/(personal)/index";
 import HomeLayout from "@/app/(ordinary)/(tabs)/(home)/(personal)/_layout";
@@ -153,11 +155,12 @@ afterEach(async () => {
   jest.useRealTimers();
 });
 
-/** Real root/public admission, session and installation owners; ordinary destination probes exclude the separately qualified member guard. */
+/** Real root/public admission, session and installation owners; Home retains its production age boundary. */
 async function openEntry(initialUrl = "/sign-in") {
   return renderRouter(
     {
       _layout: () => <RootLayout />,
+      index: EntryRoute,
       onboarding: OnboardingRoute,
       access: AccessGateScreen,
       "age-declaration": AgeRoute,
@@ -165,12 +168,12 @@ async function openEntry(initialUrl = "/sign-in") {
       "(operations)/administration/index": () => <Text>Operations</Text>,
       "(ordinary)/_layout": () => <Stack />,
       "(recovery)/_layout": RecoveryLayout,
-      "(ordinary)/(home)/_layout": {
+      "(ordinary)/(tabs)/(home)/(personal)/_layout": {
         default: HomeLayout,
         unstable_settings: { anchor: "index" },
       },
-      "(ordinary)/(home)/index": HomeRoute,
-      "(ordinary)/(home)/(sheets)/season": SeasonRoute,
+      "(ordinary)/(tabs)/(home)/(personal)/index": HomeRoute,
+      "(ordinary)/(tabs)/(home)/(personal)/(sheets)/season": SeasonRoute,
       "(ordinary)/search": () => <Text>Public search</Text>,
       "(recovery)/sign-in": SignInRoute,
       "(ordinary)/session": SessionProbe,
@@ -269,7 +272,7 @@ it("prepares a same-category age correction after immediately acknowledged stora
 it("keeps the mounted guest age form busy through guest departure and its pending installation write", async () => {
   // Given
   await completeDiscovery();
-  await openEntry("/");
+  await openEntry(homeHref);
   const user = userEvent.setup();
   await fireEvent(await screen.findByRole("adjustable"), "change", {
     nativeEvent: { value: 16 },
@@ -285,7 +288,7 @@ it("keeps the mounted guest age form busy through guest departure and its pendin
   await act(async () => router.replace("/session"));
   await screen.findByText("Session: guest");
   await act(async () => account.clearCredentials());
-  await act(async () => router.replace("/"));
+  await act(async () => router.replace(homeHref));
   // Then — a fresh neutral draft cannot accept a second age during the first write.
   expect(await screen.findByText("—")).toBeOnTheScreen();
   expect(
@@ -331,14 +334,14 @@ it("guards ordinary home after guest selection even when discovery was skipped",
 it("keeps back/restart unconfirmed and preserves completed discovery", async () => {
   // Given
   await completeDiscovery();
-  const view = await openEntry("/");
+  const view = await openEntry(homeHref);
   expect(
     await screen.findByRole("header", { name: "Quel est votre âge ?" }),
   ).toBeOnTheScreen();
   // When
-  await act(async () => router.replace("/"));
+  await act(async () => router.replace(homeHref));
   await view.unmount();
-  await openEntry("/");
+  await openEntry(homeHref);
   // Then
   expect(
     await screen.findByRole("button", { name: "Continuer" }),
@@ -396,7 +399,7 @@ it("reuses the form for annual minor renewal and preserves storage when interrup
   // Given
   await completeDiscovery();
   const previous = await submitAgeDeclaration(17, new Date(2024, 0, 1));
-  const view = await openEntry("/");
+  const view = await openEntry(homeHref);
   expect(
     await screen.findByRole("header", {
       name: "Quel âge avez-vous aujourd’hui ?",
@@ -407,7 +410,7 @@ it("reuses the form for annual minor renewal and preserves storage when interrup
     nativeEvent: { value: 18 },
   });
   await view.unmount();
-  await openEntry("/");
+  await openEntry(homeHref);
   // Then
   expect(
     await screen.findByRole("button", { name: "Continuer" }),
@@ -418,7 +421,7 @@ it("persists confirmation across a later launch without annual adult prompts or 
   // Given
   await completeDiscovery();
   const user = userEvent.setup();
-  const view = await openEntry("/");
+  const view = await openEntry(homeHref);
   await fireEvent(await screen.findByRole("adjustable"), "change", {
     nativeEvent: { value: 18 },
   });
@@ -426,7 +429,7 @@ it("persists confirmation across a later launch without annual adult prompts or 
   await user.press(screen.getByRole("button", { name: "Continuer" }));
   await waitFor(() => expect(screen).toHavePathname("/search"));
   await view.unmount();
-  await openEntry("/");
+  await openEntry(homeHref);
   // Then
   await waitFor(() => expect(screen.queryByRole("progressbar")).toBeNull());
   expect(screen.queryByRole("adjustable")).toBeNull();
@@ -453,7 +456,7 @@ it("keeps the storage error card through active and failed Retry without declari
   });
   const user = userEvent.setup();
   try {
-    await openEntry("/");
+    await openEntry(homeHref);
     await screen.findByRole("alert", { name: "Une erreur est survenue" });
 
     // When
@@ -533,7 +536,7 @@ it("avoids prompting known active Pro without transferring that exemption to a g
   await screen.findByText("Session: authenticated");
   await screen.findByText("Pro: active");
   // When
-  await act(async () => router.replace("/"));
+  await act(async () => router.replace(homeHref));
   // Then
   await waitFor(() => expect(screen).toHavePathname("/"));
   expect(screen.queryByRole("adjustable")).toBeNull();
@@ -541,7 +544,7 @@ it("avoids prompting known active Pro without transferring that exemption to a g
   // When
   await act(async () => router.replace("/session"));
   await act(async () => account.clearCredentials());
-  await act(async () => router.replace("/"));
+  await act(async () => router.replace(homeHref));
   // Then
   expect(
     await screen.findByRole("button", { name: "Continuer" }),
@@ -620,7 +623,7 @@ it("retains the unconfirmed choice across a live reduced-motion change", async (
   jest
     .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
     .mockResolvedValue(false);
-  await openEntry("/");
+  await openEntry(homeHref);
   await fireEvent(await screen.findByRole("adjustable"), "change", {
     nativeEvent: { value: 17 },
   });
@@ -659,7 +662,7 @@ it("guards a signed-in free account’s home independently of its account identi
   await screen.findByText("Session: authenticated");
   await screen.findByText("Pro: inactive");
   // When
-  await act(async () => router.replace("/"));
+  await act(async () => router.replace(homeHref));
   // Then
   expect(
     await screen.findByRole("button", { name: "Continuer" }),

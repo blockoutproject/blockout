@@ -1,3 +1,4 @@
+import { homeHref } from "@/shared/native/home-href";
 import { useEffect, useState, type ComponentPropsWithRef } from "react";
 import { useIsFocused, useRouter, useSegments } from "expo-router";
 import {
@@ -86,7 +87,7 @@ export default function TabsLayout() {
               display: navigationVisible ? "flex" : "none",
             }}
           >
-            <TabTrigger name="index" href="/" asChild>
+            <TabTrigger name="index" href={homeHref} asChild>
               <TabButton
                 label="Accueil"
                 icon={House}

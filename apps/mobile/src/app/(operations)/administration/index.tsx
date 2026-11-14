@@ -1,3 +1,4 @@
+import { homeHref } from "@/shared/native/home-href";
 import { useRouter } from "expo-router";
 import {
   useAccessAdmission,
@@ -25,7 +26,7 @@ function AdmittedAdministration() {
         access.canBypass
           ? () => {
               if (access.bypassMaintenance()) {
-                router.replace("/");
+                router.replace(homeHref);
               }
             }
           : undefined

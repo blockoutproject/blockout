@@ -757,8 +757,8 @@ it.each([401, 403, 404])(
       screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
     ).not.toBeOnTheScreen();
     expect(
-      screen.queryByRole("button", { name: "Saison des suivis" }),
-    ).not.toBeOnTheScreen();
+      screen.getByRole("button", { name: "Saison des suivis", disabled: true }),
+    ).toHaveAccessibilityValue({ text: "Saison" });
     expect(
       screen.queryByRole("radio", { name: older.label }),
     ).not.toBeOnTheScreen();
@@ -872,6 +872,207 @@ it("leaves the actual club-season and search-input owners unchanged", async () =
   ).toHaveAccessibilityValue({ text: newer.label });
 });
 
+it.each([true, false])(
+  "offers explicit account creation only for canonical absence (%s)",
+  async (canonical) => {
+    // Given: the restored principal has either canonical account absence or an ambiguous HTTP 404.
+    const establishment = Promise.withResolvers<Response>();
+    mockFetch.mockImplementation((url, request) => {
+      if (url.endsWith("/accounts") && request?.method === "POST") {
+        return establishment.promise;
+      }
+      if (url.endsWith("/accounts/me")) {
+        return Promise.resolve(
+          canonical
+            ? Response.json(
+                {
+                  type: "urn:blockout:problem:not-found",
+                  title: "Not found",
+                  status: 404,
+                },
+                {
+                  status: 404,
+                  headers: { "Content-Type": "application/problem+json" },
+                },
+              )
+            : new Response(null, { status: 404 }),
+        );
+      }
+      return transport(url, request);
+    });
+    const user = userEvent.setup();
+    await mount();
+
+    try {
+      await screen.findByRole("button", {
+        name: "Saison des suivis",
+        disabled: true,
+      });
+      await layoutNativeTabs();
+      // Then: a read alone never creates an account, and only canonical absence exposes creation.
+      const action = await screen.findByRole("button", {
+        name: canonical ? "Créer mon compte" : "Réessayer",
+      });
+      expect(
+        mockFetch.mock.calls.some(([, request]) => request?.method === "POST"),
+      ).toBe(false);
+      expect(
+        mockFetch.mock.calls.some(([url]) => url.includes("follow-options")),
+      ).toBe(false);
+      if (!canonical) {
+        expect(
+          screen.queryByRole("button", { name: "Créer mon compte" }),
+        ).toBeNull();
+        return;
+      }
+      const invitation = screen.getByText("Votre compte n’est pas disponible.");
+
+      // When
+      await user.press(action);
+
+      // Then
+      expect(
+        screen.getByRole("button", { name: "Créer mon compte", busy: true }),
+      ).toBeOnTheScreen();
+      expect(invitation).toBeOnTheScreen();
+      expect(
+        mockFetch.mock.calls.filter(
+          ([, request]) => request?.method === "POST",
+        ),
+      ).toHaveLength(1);
+
+      // When
+      await act(() =>
+        establishment.resolve(new Response(null, { status: 503 })),
+      );
+
+      // Then: failed creation keeps the invitation for a later explicit command with ordinary action feedback.
+      expect(
+        await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
+      ).toBeOnTheScreen();
+      expect(
+        screen.getByRole("button", { name: "Créer mon compte", busy: false }),
+      ).toBeOnTheScreen();
+      expect(invitation).toBeOnTheScreen();
+
+      // When: a later explicit command succeeds, and its ordinary invalidation reads the real account.
+      mockFetch.mockImplementation((url, request) =>
+        url.endsWith("/accounts") || url.endsWith("/accounts/me")
+          ? Promise.resolve(
+              Response.json(profile, {
+                status: request?.method === "POST" ? 201 : 200,
+              }),
+            )
+          : transport(url, request),
+      );
+      await user.press(
+        screen.getByRole("button", { name: "Créer mon compte" }),
+      );
+
+      // Then
+      expect(
+        await screen.findByRole("button", {
+          name: "Saison des suivis",
+          disabled: false,
+        }),
+      ).toBeOnTheScreen();
+      expect(
+        mockFetch.mock.calls.filter(
+          ([, request]) => request?.method === "POST",
+        ),
+      ).toHaveLength(2);
+      expect(session.subject).toBe("auth0|synthetic");
+      expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+    } finally {
+      await act(() =>
+        establishment.resolve(new Response(null, { status: 503 })),
+      );
+    }
+  },
+);
+
+it("keeps initial account recovery local and active only for its explicit Retry before a business UUID exists", async () => {
+  // Given: native identity is restored; only the first account HTTP response is delayed.
+  const initial = Promise.withResolvers<Response>();
+  const retry = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, request) =>
+    url.endsWith("/accounts/me") ? initial.promise : transport(url, request),
+  );
+  const user = userEvent.setup();
+  await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: true,
+  });
+  await layoutNativeTabs();
+  await screen.findByRole("progressbar", { name: "Chargement de l'accueil" });
+  expect(screen.getAllByRole("tab")).toHaveLength(3);
+  expect(
+    screen.getByRole("button", { name: "Saison des suivis", disabled: true }),
+  ).toBeOnTheScreen();
+  expect(session.subject).toBe("auth0|synthetic");
+  expect(session.accountId).toBeNull();
+  expect(
+    mockFetch.mock.calls.some(([url]) => url.includes("follow-options")),
+  ).toBe(false);
+
+  try {
+    // When
+    await act(() => initial.resolve(new Response(null, { status: 503 })));
+    const card = await screen.findByRole("alert", {
+      name: TECHNICAL_ERROR_TITLE,
+    });
+    mockFetch.mockImplementation((url, request) =>
+      url.endsWith("/accounts/me") ? retry.promise : transport(url, request),
+    );
+    await user.press(screen.getByRole("button", { name: "Réessayer" }));
+
+    // Then: pending-with-prior-error keeps this mounted card and its initiating action.
+    expect(card).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: true }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByRole("progressbar", { name: "Chargement de l'accueil" }),
+    ).toBeNull();
+    expect(
+      mockFetch.mock.calls.some(([url]) => url.includes("follow-options")),
+    ).toBe(false);
+
+    // When: the retained pager shows another dependent scene and then returns to the initiating one.
+    await swipeHomePage(1);
+
+    // Then
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: false }),
+    ).toBeOnTheScreen();
+    await swipeHomePage(0);
+    expect(
+      screen.getByRole("button", { name: "Réessayer", busy: true }),
+    ).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([url]) => url.endsWith("/accounts/me")),
+    ).toHaveLength(2);
+
+    // When
+    await act(() => retry.resolve(Response.json(profile)));
+
+    // Then: matching account success permits the ordinary personal prerequisites.
+    expect(
+      await screen.findByRole("button", {
+        name: "Saison des suivis",
+        disabled: false,
+      }),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole("alert")).toBeNull();
+  } finally {
+    await act(() => {
+      initial.resolve(Response.json(profile));
+      retry.resolve(Response.json(profile));
+    });
+  }
+});
+
 it("keeps all Home pages during the first common read, failure and active Retry without premature collection reads", async () => {
   // Given: Query, generated validation and PagedTabs are real; HTTP completion and native pager I/O are controlled.
   const initial = Promise.withResolvers<Response>();
@@ -880,6 +1081,7 @@ it("keeps all Home pages during the first common read, failure and active Retry 
     url.endsWith("/follow-options") ? initial.promise : transport(url, request),
   );
   await mount();
+  await waitFor(() => expect(session.accountId).toBe(accountId));
   await screen.findByRole("button", {
     name: "Saison des suivis",
     disabled: true,

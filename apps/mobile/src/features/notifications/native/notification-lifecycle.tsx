@@ -38,7 +38,7 @@ export function NotificationLifecycle({
   registration,
   enabled,
 }: Readonly<NotificationLifecycleProps>) {
-  const { session, owner, queries, account } = useInboxQueries();
+  const { session, owner, queries } = useInboxQueries();
   useEffect(() => {
     // A prior app version may have left a count; unsupported native clearing never blocks startup.
     void Notifications.setBadgeCountAsync(0).catch(() => undefined);
@@ -60,11 +60,7 @@ export function NotificationLifecycle({
     !!navigation?.key &&
     // Protected-route redirects settle before a remembered tap is consumed; operations retain ordinary tap access.
     (rootGroup === "(ordinary)" || rootGroup === "(operations)") &&
-    !["restoring", "authenticating", "signing-out"].includes(session.status) &&
-    !(
-      session.status === "authenticated" &&
-      (account.isPending || (accountId === null && !account.isError))
-    );
+    !["restoring", "authenticating", "signing-out"].includes(session.status);
   useLayoutEffect(() => {
     registration.reset({ subject, accountId });
     return () => registration.reset({ subject: null, accountId: null });

@@ -1,3 +1,4 @@
+import { homeHref } from "@/shared/native/home-href";
 import { useRouter } from "expo-router";
 import { X } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
@@ -74,7 +75,7 @@ function SupportHeader() {
       <IconButton
         label="Fermer"
         onPress={() =>
-          router.canGoBack() ? router.back() : router.replace("/")
+          router.canGoBack() ? router.back() : router.replace(homeHref)
         }
       >
         <X accessible={false} size={tokens.size.icon.lg} color={colors.icon} />

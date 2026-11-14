@@ -1,3 +1,4 @@
+import { homeHref } from "@/shared/native/home-href";
 import { useRouter } from "expo-router";
 import { Text } from "react-native";
 import { Button } from "@/shared/components/button";
@@ -25,7 +26,7 @@ export function SupportConfirmation() {
         label="Terminer"
         fullWidth
         onPress={() =>
-          router.canGoBack() ? router.back() : router.replace("/")
+          router.canGoBack() ? router.back() : router.replace(homeHref)
         }
       />
     </Surface>

@@ -1,3 +1,7 @@
+import { QueryClientProvider } from "@tanstack/react-query";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import type { AccountSessionProviderProps } from "../session/account-session-provider";
 import {
   act,
   cleanup,
@@ -23,13 +27,39 @@ jest.mock("react-native-auth0", () => {
   return jest.requireActual("react-native-auth0");
 });
 jest.mock("expo/fetch", () => ({
-  fetch: async () =>
-    Response.json(
-      jest.requireActual("../test-support/account-response").accountResponse(),
-    ),
+  fetch: (url: RequestInfo | URL, request?: RequestInit) =>
+    mockFetch(url, request),
 }));
+const mockFetch = jest.fn<
+  Promise<Response>,
+  [RequestInfo | URL, RequestInit?]
+>();
 const env = { ...process.env };
+let publicClient = createQueryClient();
+
+function SessionProviders(props: Readonly<AccountSessionProviderProps>) {
+  return (
+    <QueryClientProvider client={publicClient}>
+      <ApplicationAccessProvider>
+        <AccountSessionProvider {...props} />
+      </ApplicationAccessProvider>
+    </QueryClientProvider>
+  );
+}
+
 beforeEach(() => {
+  publicClient = createQueryClient();
+  mockFetch
+    .mockReset()
+    .mockImplementation(async (url) =>
+      Response.json(
+        String(url).endsWith("/application-access")
+          ? jest
+              .requireActual("@/shared/api/test-support/application-access")
+              .applicationAccessResponse()
+          : accountResponse(),
+      ),
+    );
   Object.assign(process.env, {
     EXPO_PUBLIC_API_URL: "https://api.example.invalid",
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
@@ -47,6 +77,7 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await cleanup();
+  publicClient.clear();
   jest.restoreAllMocks();
   process.env = { ...env };
 });
@@ -54,7 +85,7 @@ afterEach(async () => {
 /** Waits for the real native account observer so the next controlled SDK call belongs to the action. */
 async function restoredSession() {
   const hook = await renderHook(useAccountSession, {
-    wrapper: AccountSessionProvider,
+    wrapper: SessionProviders,
   });
   await waitFor(() =>
     expect(hook.result.current.accountId).toBe(accountResponse().accountId),
@@ -190,26 +221,43 @@ it("does not retry a native storage failure after browser logout", async () => {
   expect(mockAuth0.clearCredentials).toHaveBeenCalledTimes(1);
 });
 
-it("recovers the same principal after explicit sign-in replaces unusable credentials", async () => {
-  // Given
-  const hook = await restoredSession();
-  mockAuth0.getCredentials.mockRejectedValueOnce({
-    code: CredentialsManagerErrorCodes.NO_REFRESH_TOKEN,
-    message: "Credentials unavailable",
-  });
-  await act(async () => {
-    await expect(hook.result.current.getCredentials()).rejects.toMatchObject({
+it.each(["success", "failure"] as const)(
+  "recovers the same native principal before an establishment %s",
+  async (outcome) => {
+    // Given
+    const hook = await restoredSession();
+    mockAuth0.getCredentials.mockRejectedValueOnce({
       code: CredentialsManagerErrorCodes.NO_REFRESH_TOKEN,
+      message: "Credentials unavailable",
     });
-  });
-  expect(hook.result.current.status).toBe("reauthentication-required");
+    await act(async () => {
+      await expect(hook.result.current.getCredentials()).rejects.toMatchObject({
+        code: CredentialsManagerErrorCodes.NO_REFRESH_TOKEN,
+      });
+    });
+    expect(hook.result.current.status).toBe("reauthentication-required");
 
-  // When
-  await act(async () => {
-    await hook.result.current.signIn("https://api.example.invalid");
-  });
+    if (outcome === "failure") {
+      mockFetch.mockResolvedValueOnce(new Response(null, { status: 503 }));
+    }
 
-  // Then
-  expect(hook.result.current.subject).toBe("auth0|a");
-  expect(hook.result.current.status).toBe("authenticated");
-});
+    // When
+    await act(async () => {
+      const connection = hook.result.current.connection.mutateAsync({
+        audience: "https://api.example.invalid",
+        signIn: hook.result.current.signIn,
+      });
+      if (outcome === "failure") {
+        await expect(connection).rejects.toMatchObject({ status: 503 });
+      } else {
+        await connection;
+      }
+    });
+
+    // Then
+    expect(hook.result.current.subject).toBe("auth0|a");
+    await waitFor(() =>
+      expect(hook.result.current.status).toBe("authenticated"),
+    );
+  },
+);

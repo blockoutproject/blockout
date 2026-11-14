@@ -1,3 +1,7 @@
+import { QueryClientProvider } from "@tanstack/react-query";
+import { createQueryClient } from "@/shared/query/query-client";
+import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import type { AccountSessionProviderProps } from "../session/account-session-provider";
 import { fetch as expoFetch } from "expo/fetch";
 import { accountResponse } from "../test-support/account-response";
 import {
@@ -46,8 +50,31 @@ jest.mock("react-native-auth0", () => {
   return jest.requireActual("react-native-auth0");
 });
 const env = { ...process.env };
+let publicClient = createQueryClient();
+
+function SessionProviders(props: Readonly<AccountSessionProviderProps>) {
+  return (
+    <QueryClientProvider client={publicClient}>
+      <ApplicationAccessProvider>
+        <AccountSessionProvider {...props} />
+      </ApplicationAccessProvider>
+    </QueryClientProvider>
+  );
+}
+
 beforeEach(() => {
-  jest.mocked(expoFetch).mockReset();
+  publicClient = createQueryClient();
+  jest
+    .mocked(expoFetch)
+    .mockReset()
+    .mockImplementation(
+      async () =>
+        Response.json(
+          jest
+            .requireActual("@/shared/api/test-support/application-access")
+            .applicationAccessResponse(),
+        ) as Awaited<ReturnType<typeof expoFetch>>,
+    );
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "synthetic-mobile";
@@ -81,9 +108,9 @@ it.each(["signOut", "clearCredentials"] as const)(
     const prepare = jest.fn(() => detach);
     const hook = await renderHook(useAccountSession, {
       wrapper: ({ children }) => (
-        <AccountSessionProvider preparePushRemoval={prepare}>
+        <SessionProviders preparePushRemoval={prepare}>
           {children}
-        </AccountSessionProvider>
+        </SessionProviders>
       ),
     });
     // When
@@ -109,6 +136,7 @@ it.each(["signOut", "clearCredentials"] as const)(
 );
 afterEach(async () => {
   await cleanup();
+  publicClient.clear();
   jest.restoreAllMocks();
   process.env = { ...env };
 });
@@ -117,13 +145,19 @@ it("clears actual RevenueCat presentation before push cleanup finishes and rejec
   mockAuth0.webAuthLogout.mockResolvedValue();
   jest.mocked(expoFetch).mockImplementation(
     async (url) =>
-      (String(url).endsWith("/accounts/me")
+      (String(url).endsWith("/application-access")
         ? Response.json(
-            accountResponse({
-              accountId: "00000000-0000-4000-8000-000000000001",
-            }),
+            jest
+              .requireActual("@/shared/api/test-support/application-access")
+              .applicationAccessResponse(),
           )
-        : new Response(null, { status: 404 })) as Awaited<
+        : String(url).endsWith("/accounts/me")
+          ? Response.json(
+              accountResponse({
+                accountId: "00000000-0000-4000-8000-000000000001",
+              }),
+            )
+          : new Response(null, { status: 404 })) as Awaited<
         ReturnType<typeof expoFetch>
       >,
   );
@@ -137,11 +171,9 @@ it("clears actual RevenueCat presentation before push cleanup finishes and rejec
     }),
     {
       wrapper: ({ children }) => (
-        <AccountSessionProvider
-          preparePushRemoval={() => () => removal.promise}
-        >
+        <SessionProviders preparePushRemoval={() => () => removal.promise}>
           <ProProvider>{children}</ProProvider>
-        </AccountSessionProvider>
+        </SessionProviders>
       ),
     },
   );
@@ -185,9 +217,9 @@ it("continues local credential clearing when exact removal fails", async () => {
   const detach = jest.fn().mockRejectedValue(new Error("Removal unavailable"));
   const hook = await renderHook(useAccountSession, {
     wrapper: ({ children }) => (
-      <AccountSessionProvider preparePushRemoval={() => detach}>
+      <SessionProviders preparePushRemoval={() => detach}>
         {children}
-      </AccountSessionProvider>
+      </SessionProviders>
     ),
   });
   // When

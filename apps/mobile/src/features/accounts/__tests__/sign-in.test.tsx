@@ -1,14 +1,12 @@
 import { accountResponse } from "../test-support/account-response";
-import {
-  TECHNICAL_ERROR,
-  TECHNICAL_ERROR_TITLE,
-} from "@/shared/components/error-copy";
+import { TECHNICAL_ERROR_TITLE } from "@/shared/components/error-copy";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
   cleanup,
+  act,
   render,
   screen,
   userEvent,
@@ -53,6 +51,8 @@ jest.mock("expo/fetch", () => ({
 }));
 
 const mockNavigate = jest.fn();
+const home = "/(ordinary)/(tabs)/(home)/(personal)";
+const connectionError = "Une erreur est survenue.";
 const mockFetch = jest.fn<
   Promise<Response>,
   [RequestInfo | URL, RequestInit?]
@@ -128,6 +128,8 @@ it("continues as guest without opening hosted login or establishing an account",
   // Given
   const user = userEvent.setup();
   await renderJourney();
+  expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled();
+  expect(screen.queryByRole("alert")).toBeNull();
 
   // When
   await user.press(
@@ -135,90 +137,108 @@ it("continues as guest without opening hosted login or establishing an account",
   );
 
   // Then
-  expect(mockNavigate).toHaveBeenCalledWith("/");
+  expect(mockNavigate).toHaveBeenCalledWith(home);
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
   expect(mockFetch).not.toHaveBeenCalled();
 });
 
-it("dispatches explicit establishment through the subject remount and then opens Profile", async () => {
+it("opens Home after explicit establishment without waiting for the independent account read", async () => {
   // Given
+  const establishment = Promise.withResolvers<Response>();
+  const accountRead = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((_url, request) =>
+    request?.method === "POST" ? establishment.promise : accountRead.promise,
+  );
   const user = userEvent.setup();
-  await renderJourney();
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Se connecter" }));
-
-  // Then
-  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/profile"));
-  expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
-  expect(mockAuth0.webAuth.mock.calls[0].slice(4, 6)).toEqual([
-    "mobile-test",
-    "openid profile email offline_access",
-  ]);
-  expect(
-    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
-  ).toHaveLength(1);
-  expect(mockNavigate).not.toHaveBeenCalledWith("/protected-action");
-});
-
-it.each(["accepted", "lost"] as const)(
-  "returns to the requested internal destination after the %s establishment outcome",
-  async (outcome) => {
-    // Given: native login and Query are real; navigation and the HTTP response are controlled.
-    const returnTo = "/matches/745?source=notification";
-    mockFetch.mockImplementation(async (_url, options) => {
-      if (options?.method === "POST" && outcome === "lost") {
-        throw new TypeError("Response lost");
-      }
-      return json(account, options?.method === "POST" ? 201 : 200);
-    });
-    const user = userEvent.setup();
-    await renderJourney(<SignInScreen admitted returnTo={returnTo} />);
+  try {
+    await renderJourney();
 
     // When
     await user.press(screen.getByRole("button", { name: "Se connecter" }));
 
     // Then
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(returnTo));
-    expect(mockNavigate).not.toHaveBeenCalledWith("/profile");
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Se connecter" })).toBeBusy();
+
+    // When: only establishment completes; the account GET remains pending.
+    await act(async () => establishment.resolve(json(account, 201)));
+
+    // Then
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(home));
     expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
+    expect(mockAuth0.webAuth.mock.calls[0].slice(4, 6)).toEqual([
+      "mobile-test",
+      "openid profile email offline_access",
+    ]);
     expect(
       mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
     ).toHaveLength(1);
-  },
-);
+    expect(mockNavigate).not.toHaveBeenCalledWith("/protected-action");
+  } finally {
+    await act(async () => {
+      establishment.resolve(json(account, 201));
+      accountRead.resolve(json(account));
+    });
+  }
+});
 
-it.each([
-  ["a0.session.user_cancelled", "Connexion annulée."],
-  ["a0.network_error", TECHNICAL_ERROR],
-])("retains guest recovery after hosted login %s", async (code, message) => {
-  // Given
-  mockAuth0.webAuth.mockRejectedValue({
-    code,
-    message: "Private provider detail",
-  });
+it("returns to the requested internal destination only after establishment succeeds", async () => {
+  // Given: native login and Query are real; navigation and the HTTP response are controlled.
+  const returnTo = "/matches/745?source=notification";
   const user = userEvent.setup();
-  await renderJourney();
+  await renderJourney(<SignInScreen admitted returnTo={returnTo} />);
 
   // When
   await user.press(screen.getByRole("button", { name: "Se connecter" }));
 
   // Then
-  expect(await screen.findByText(message)).toBeOnTheScreen();
+  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(returnTo));
+  expect(mockNavigate).not.toHaveBeenCalledWith(home);
+  expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
   expect(
-    screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
-  ).toBeEnabled();
-  expect(
-    screen.getByRole("link", { name: "Besoin d’aide ?" }),
-  ).toBeOnTheScreen();
-  expect(mockFetch).not.toHaveBeenCalled();
-
-  // When: a new explicit interactive attempt must reopen hosted login, not restore credentials.
-  await user.press(screen.getByRole("button", { name: "Se connecter" }));
-
-  // Then
-  await waitFor(() => expect(mockAuth0.webAuth).toHaveBeenCalledTimes(2));
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+  ).toHaveLength(1);
 });
+
+it.each(["a0.session.user_cancelled", "a0.network_error"])(
+  "keeps ordinary Login and its label after hosted login %s",
+  async (code) => {
+    // Given
+    mockAuth0.webAuth.mockRejectedValue({
+      code,
+      message: "Private provider detail",
+    });
+    const user = userEvent.setup();
+    await renderJourney();
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Se connecter" }));
+
+    // Then
+    expect(
+      await screen.findByRole("alert", { name: connectionError }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getAllByRole("alert", { name: connectionError }),
+    ).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("link", { name: "Besoin d’aide ?" }),
+    ).toBeOnTheScreen();
+    expect(mockFetch).not.toHaveBeenCalled();
+
+    // When: a new explicit interactive attempt must reopen hosted login, not restore credentials.
+    await user.press(screen.getByRole("button", { name: "Se connecter" }));
+
+    // Then
+    await waitFor(() => expect(mockAuth0.webAuth).toHaveBeenCalledTimes(2));
+  },
+);
 
 it("reports native persistence failure without submitting establishment", async () => {
   // Given
@@ -233,41 +253,67 @@ it("reports native persistence failure without submitting establishment", async 
 
   // Then
   expect(
-    await screen.findByRole("alert", { name: TECHNICAL_ERROR }),
+    await screen.findByRole("alert", { name: connectionError }),
   ).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled();
+  expect(mockNavigate).not.toHaveBeenCalled();
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "POST"),
   ).toBe(false);
 });
 
 it.each(["rejected", "lost"] as const)(
-  "returns to the ordinary Profile owner after a %s establishment outcome",
+  "stays on Login after %s establishment and starts Auth0 again on the next explicit action",
   async (outcome) => {
     // Given
+    const returnTo = "/matches/745?source=notification";
+    let establishmentAttempts = 0;
     mockFetch.mockImplementation(async (_url, options) => {
       if (options?.method === "POST") {
-        if (outcome === "lost") {
-          throw new TypeError("Response lost");
+        establishmentAttempts += 1;
+        if (establishmentAttempts === 1) {
+          if (outcome === "lost") {
+            throw new TypeError("Response lost");
+          }
+          return problem(422, "provider-email-unavailable");
         }
-        return problem(422, "provider-email-unavailable");
+        return json(account, 201);
       }
       return json(account);
     });
     const user = userEvent.setup();
-    await renderJourney();
+    await renderJourney(<SignInScreen admitted returnTo={returnTo} />);
 
     // When
     await user.press(screen.getByRole("button", { name: "Se connecter" }));
 
     // Then
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/profile"));
+    expect(
+      await screen.findByRole("alert", { name: connectionError }),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getAllByRole("alert", { name: connectionError }),
+    ).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled();
+    expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
+    expect(mockNavigate).not.toHaveBeenCalled();
     expect(
       mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
     ).toHaveLength(1);
+
+    // When: the user starts a fresh connection after the failed establishment.
+    await user.press(screen.getByRole("button", { name: "Se connecter" }));
+
+    // Then
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(returnTo));
+    expect(mockAuth0.webAuth).toHaveBeenCalledTimes(2);
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+    ).toHaveLength(2);
   },
 );
 
-it("retries establishment explicitly for an already authenticated principal without hosted login", async () => {
+it("starts hosted login for an explicit connection even when a native identity already exists", async () => {
   // Given
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   const user = userEvent.setup();
@@ -277,8 +323,8 @@ it("retries establishment explicitly for an already authenticated principal with
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
 
   // Then
-  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/profile"));
-  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(home));
+  expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
   ).toHaveLength(1);
@@ -315,12 +361,12 @@ it("keeps explicit guest recovery when F14 initialization fails", async () => {
   );
 
   // Then
-  expect(mockNavigate).toHaveBeenCalledWith("/");
+  expect(mockNavigate).toHaveBeenCalledWith(home);
   expect(mockAuth0.hasValidCredentials).not.toHaveBeenCalled();
   expect(mockFetch).not.toHaveBeenCalled();
 });
 
-it("retries credential restoration from the primary action without a state card or hosted login", async () => {
+it("shows normal Login with one short toast after failed restoration and lets the user connect explicitly", async () => {
   // Given
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   mockAuth0.getCredentials.mockRejectedValueOnce(
@@ -328,40 +374,46 @@ it("retries credential restoration from the primary action without a state card 
   );
   const user = userEvent.setup();
   await renderJourney();
-  const retry = await screen.findByRole("button", { name: "Réessayer" });
+  expect(
+    await screen.findByRole("alert", { name: connectionError }),
+  ).toBeOnTheScreen();
+  expect(screen.getAllByRole("alert", { name: connectionError })).toHaveLength(
+    1,
+  );
+  const connect = screen.getByRole("button", { name: "Se connecter" });
+  expect(connect).toBeEnabled();
+  expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
   expect(
     screen.queryByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
   ).toBeNull();
 
   // When
-  await user.press(retry);
+  await user.press(connect);
 
-  // Then: restoring usable credentials never establishes an account or opens hosted login.
-  await screen.findByRole("button", { name: "Se connecter", busy: false });
-  expect(
-    screen.getByRole("link", { name: "Politique de confidentialité" }),
-  ).toBeEnabled();
-  expect(mockAuth0.webAuth).not.toHaveBeenCalled();
+  // Then: the ordinary explicit process opens hosted login and completes establishment.
+  await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(home));
+  expect(screen.getByRole("link", { name: "Confidentialité" })).toBeEnabled();
+  expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
   expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
   expect(
-    mockFetch.mock.calls.some(([, options]) => options?.method === "POST"),
-  ).toBe(false);
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
+  ).toHaveLength(1);
 });
 
-it("retries initialization from the single primary action without a state card", async () => {
+it("keeps the normal primary label while safely retrying failed initialization", async () => {
   // Given
   jest
     .mocked(initializeV2Installation)
     .mockRejectedValueOnce(new Error("Private initialization failure"));
   const user = userEvent.setup();
   await renderJourney();
-  const retry = await screen.findByRole("button", { name: "Réessayer" });
+  const connect = await screen.findByRole("button", { name: "Se connecter" });
   expect(
     screen.queryByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
   ).toBeNull();
 
   // When
-  await user.press(retry);
+  await user.press(connect);
 
   // Then
   expect(
