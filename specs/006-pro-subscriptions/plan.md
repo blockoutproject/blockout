@@ -63,8 +63,8 @@ specs/006-pro-subscriptions/
 Feature locations:
 
 ```text
-apps/mobile/src/features/pro/      # SDK state, provider presentation and account-safe callbacks
-apps/mobile/src/features/account/  # existing F05 identity/session and shared guest invitation
+apps/mobile/src/features/pro/       # SDK state, provider presentation and account-safe callbacks
+apps/mobile/src/features/accounts/  # existing F05 identity/session and shared guest invitation
 ```
 
 **Structure Decision**: Keep Pro responsibilities in one feature with a narrow state interface to advertising and app chrome. Reuse account/session and navigation owners. No generic billing abstraction, alternate provider implementation or new backend module is justified.

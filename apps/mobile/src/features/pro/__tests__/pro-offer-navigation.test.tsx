@@ -394,7 +394,7 @@ it("opens the native paywall from the banner without changing the originating ta
 });
 
 it.each(["active", "guest", "unavailable"])(
-  "does not encourage purchase for %s rights",
+  "does not show the Pro banner for %s rights",
   async (state) => {
     // Given: native identity/SDK I/O supplies this actual provider state.
     if (state === "guest") {

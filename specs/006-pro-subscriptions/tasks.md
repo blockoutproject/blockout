@@ -21,7 +21,7 @@ description: "Implementation tasks for F09 Pro entitlements and subscription con
 ## Path Conventions
 
 - Pro behavior and focused `__tests__/` live in `apps/mobile/src/features/pro/`; use upstream SDK types at that native boundary and small feature presentation types only where their meaning differs.
-- Account/session and the shared invitation remain in F05's `apps/mobile/src/features/accounts/`, as resolved by its [native tasks](../005-accounts-identity/tasks.md). Reuse that owner rather than creating the second `account/` directory used illustratively in the F09 plan.
+- Account/session and the shared invitation remain in F05's `apps/mobile/src/features/accounts/`, as defined by its [native tasks](../005-accounts-identity/tasks.md).
 - Composition stays in `apps/mobile/src/app/_layout.tsx` and the existing profile. The existing `pro-provider.tsx` owns a standard React Native Modal containing only official Paywall; no Pro route or app-owned commercial page remains. Shared tokens/theme/controls stay F13-owned in `apps/mobile/src/shared/`.
 - Actual provider/intervention instructions belong in `infra/operations/README.md`, with private evidence in the F10/F11 process. No public receipts, customer references, provider payloads or intervention records belong here.
 
@@ -144,7 +144,7 @@ Existing Account/guest/banner design references remain scoped to unchanged Block
 
 ### Tests and qualification cases for User Story 4
 
-- [x] T028 [P] [US4] Test native Paywall restore callbacks in `__tests__/pro-presentation.test.tsx`: current supplied inactive and active results, ordinary failed restore with another explicit action, independent payment facts and stale-owner rejection. No second restore, confirmation read, application fallback, Verify state or automatic replay. Explicit native restore remains independent of purchase inside the configured journey; its actual action/content requires T026/T034.
+- [x] T028 [P] [US4] Test native Paywall restore callbacks in `__tests__/pro-presentation.test.tsx` and `__tests__/transition-continuity.test.tsx`: current supplied inactive and active results, ordinary failed restore with another explicit action, independent payment facts and stale-owner rejection. No second restore, confirmation read, application fallback, Verify state or automatic replay. Explicit native restore remains independent of purchase inside the configured journey; its actual action/content requires T026/T034.
 - [x] T030 [US4] Prepare assisted-recovery and two-store lifecycle cases in `specs/006-pro-subscriptions/quickstart.md#scenarios-and-expected-outcomes`: corroborated purchase/recipient/validity, contradictory or insufficient evidence, unsafe independent-entitlement effects, unknown provider outcome and unsupported cross-store operations. Identify the actual F05 erasure, F10 private process, F11 rights safeguards and F14 historical-reference prerequisites; synthetic cases can prepare the process but prove no real transfer.
 
 ### Implementation and qualification for User Story 4
@@ -168,7 +168,7 @@ Existing Account/guest/banner design references remain scoped to unchanged Block
 
 ### Tests and qualification cases for User Story 5
 
-- [x] T035 [P] [US5] Test supported gift-state consumption in `apps/mobile/src/features/pro/__tests__/pro-state.test.ts` and `pro-presentation.test.tsx`: temporary/open-ended gift, expired/inactive and unknown state map from SDK evidence, and gift-active entries use the same Paywall host. Preserve paid rights when independent gift evidence ends and keep SDK-supplied origin/validity truthful without inventing billed renewal, a grant union, duration arithmetic or propagation. Actual independent paid/gift coexistence and billing effects remain native/provider T038 evidence.
+- [x] T035 [P] [US5] Test supported gift-state consumption in `apps/mobile/src/features/pro/__tests__/pro-state.test.ts`, `pro-gifts.test.ts` and `pro-presentation.test.tsx`: temporary/open-ended gift, expired/inactive and unknown state map from SDK evidence, and gift-active entries use the same Paywall host. Preserve paid rights when independent gift evidence ends and keep SDK-supplied origin/validity truthful without inventing billed renewal, a grant union, duration arithmetic or propagation. Actual independent paid/gift coexistence and billing effects remain native/provider T038 evidence.
 - [x] T036 [P] [US5] Prepare the supported owner-console procedure and focused native SDK reflection in `specs/006-pro-subscriptions/quickstart.md#owner-console-gifts`: verified recipient/authority, temporary/no-expiry validity, actual grant/change/revoke/expiry, paid/gift coexistence and uncertainty reread. Reuse deterministic application unknown/error/expired/gift states and US4 transfer/erasure evidence; do not inject an exhaustive provider-console failure matrix or repeat every operation on each platform. Actual operations require authorized dedicated accounts and a private record destination.
 
 ### Implementation and qualification for User Story 5

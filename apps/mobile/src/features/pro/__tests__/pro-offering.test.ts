@@ -94,7 +94,7 @@ it.each([
     state: { status: "inactive" as const, operation },
   })),
 ] satisfies { label: string; state: ProState }[])(
-  "does not encourage purchase for $label",
+  "does not show the Pro banner for $label",
   ({ state }) => {
     // Given: the table supplies the rights and operation state.
 

@@ -65,7 +65,7 @@ it.each([
   },
 );
 
-it("allows an explicit new purchase after a documented SDK network failure", async () => {
+it("keeps the existing Pro banner eligible after a documented SDK network failure", async () => {
   // Given
   const owner = createProSession();
   owner.setTarget(session);
@@ -185,7 +185,7 @@ it("rejects old starts and completions across A → guest → A and restarts fro
 });
 
 it.each(["purchased", "already-owned", "pending"] as const)(
-  "allows a new explicit acquisition after %s was recognized as paid active and then expired",
+  "shows the existing Pro banner after %s was recognized as paid active and then expired",
   async (operation) => {
     // Given
     const owner = createProSession();
