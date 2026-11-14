@@ -23,7 +23,6 @@ import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
-import com.blockout.backend.sporting.application.service.ReadSportingData;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.net.URI;
 import java.sql.Timestamp;
@@ -69,7 +68,6 @@ class CollectionOperationalEvidenceIntegrationTest {
   @Autowired private ObserveCollectionSource sources;
   @Autowired private CollectionStore store;
   @Autowired private ChangeCollectionSeasons seasons;
-  @Autowired private ReadSportingData sporting;
   @Autowired private PlatformTransactionManager transactions;
   @Autowired private JdbcTemplate sql;
   private UUID season;
@@ -83,9 +81,6 @@ class CollectionOperationalEvidenceIntegrationTest {
     sql.update("DELETE FROM collection_result");
     sql.update("DELETE FROM collection_cycle");
     sql.update("DELETE FROM collection_source_binding");
-    sql.update("DELETE FROM sporting_pool");
-    sql.update("DELETE FROM sporting_pack");
-    sql.update("DELETE FROM sporting_division");
     sql.update("UPDATE collection_control SET current_cycle_id = NULL, enabled = TRUE");
     season = seasons.getOrCreate(2026).id();
     sql.update("UPDATE sporting_season SET collection_state = 'ACTIVE' WHERE id = ?", season);
