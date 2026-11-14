@@ -93,6 +93,7 @@ export function AgeDeclarationProvider({
     pro.status,
     category,
     nativePrivacy.pending,
+    // Reconfirmation must prepare even when batching leaves category and ready unchanged.
     state,
   ]);
   useEffect(() => () => privacy.invalidateAd(), [privacy]);
