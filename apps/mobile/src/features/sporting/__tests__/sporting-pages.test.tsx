@@ -1635,7 +1635,9 @@ it.each(["Équipes", "À venir", "Terminés"])(
 
     // Then
     expect(await screen.findByText("Coordonnées")).toBeOnTheScreen();
-    expect(screen.getByText("Commune du club")).toBeOnTheScreen();
+    expect(
+      screen.getByRole("header", { name: "Localisation" }),
+    ).toBeOnTheScreen();
     expect(
       screen.queryByText("Aucune saison disponible"),
     ).not.toBeOnTheScreen();
@@ -1732,13 +1734,24 @@ it("opens only effective safe contacts and labels the club municipality separate
     }),
   );
 
+  await user.press(
+    screen.getByRole("link", { name: "Ouvrir la commune sur la carte" }),
+  );
+
   // Then
   expect(open.mock.calls.map(([url]) => url)).toEqual([
     "tel:+33123456789",
     "mailto:club%40example.invalid",
     "https://club.example.invalid/path",
+    expect.stringContaining(encodeURIComponent("46.32,-0.46")),
   ]);
-  expect(screen.getByText("Commune du club")).toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "Localisation" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByText("Niort")).toBeOnTheScreen();
+  expect(
+    screen.getByLabelText("Localisation du club : Niort"),
+  ).toBeOnTheScreen();
 });
 
 it.each(["provisional", "unconfirmed", "final"] as const)(
@@ -1900,6 +1913,12 @@ it("keeps missing or unusable contacts inert", async () => {
 
   // Then
   expect(links).toHaveLength(0);
+  expect(
+    screen.queryByRole("link", { name: "Ouvrir la commune sur la carte" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText(/^Localisation du club :/),
+  ).not.toBeOnTheScreen();
   expect(screen.getByText("Commune non renseignée")).toBeOnTheScreen();
   expect(screen.getByText("Non renseigné")).toBeOnTheScreen();
 });
@@ -2352,11 +2371,18 @@ it.each(["network", "503"])(
   "does not resurrect a forbidden club after a later %s failure",
   async (failure) => {
     // Given
+    club = {
+      ...club,
+      location: { latitude: 46.32, longitude: -0.46, label: "Niort" },
+    };
     const user = userEvent.setup();
     await renderPage(<ClubScreen clubId={sportingId} />);
     await layoutSportingPage();
     await screen.findByRole("tab", { name: "À venir" });
     await screen.findByText(club.club.name);
+    expect(
+      screen.getByLabelText("Localisation du club : Niort"),
+    ).toBeOnTheScreen();
     mockFetch.mockImplementation((url: string) =>
       url.endsWith(`/clubs/${sportingId}`)
         ? Promise.resolve(Response.json({ status: 404 }, { status: 404 }))
@@ -2390,6 +2416,12 @@ it.each(["network", "503"])(
     // Then
     expect(screen.queryByText(club.club.name)).not.toBeOnTheScreen();
     expect(
+      screen.queryByLabelText("Localisation du club : Niort"),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: "Ouvrir la commune sur la carte" }),
+    ).not.toBeOnTheScreen();
+    expect(
       screen.queryByRole("link", { name: /Téléphone/ }),
     ).not.toBeOnTheScreen();
     mockFetch.mockImplementation(reads);
@@ -2397,6 +2429,10 @@ it.each(["network", "503"])(
     await user.press(screen.getByRole("button", { name: "Réessayer" }));
     // Then
     expect(await screen.findByText(club.club.name)).toBeOnTheScreen();
+    await layoutSportingPage();
+    expect(
+      await screen.findByLabelText("Localisation du club : Niort"),
+    ).toBeOnTheScreen();
   },
 );
 

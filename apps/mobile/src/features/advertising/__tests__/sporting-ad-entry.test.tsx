@@ -652,17 +652,22 @@ it.each([
     // Current server restrictions remove all contact fields and the obsolete point on actual refresh.
     club = { club: club.club, contacts: {}, seasons: club.seasons };
     await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-    await screen.findByText("Adresse non renseignée");
+    await screen.findByText("Commune non renseignée");
 
     // Then: the successful generated read replaces sensitive cache data; sporting identity remains usable.
-    expect(screen.getByText("Commune non renseignée")).toBeOnTheScreen();
     for (const value of Object.values(contacts)) {
       expect(screen.queryByText(value, { exact: false })).not.toBeOnTheScreen();
     }
     expect(
       screen.queryByRole("link", {
-        name: /^(Téléphone|E-mail du club|Site web|Ouvrir la commune sur la carte) :/,
+        name: /^(Téléphone|E-mail du club|Site web) :/,
       }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByRole("link", { name: "Ouvrir la commune sur la carte" }),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.queryByLabelText(`Localisation du club : ${contacts.city}`),
     ).not.toBeOnTheScreen();
     expect(
       privateClient.getQueryData(getGetClubQueryKey(club.club.id)),

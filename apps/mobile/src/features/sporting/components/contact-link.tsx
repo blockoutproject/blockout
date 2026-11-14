@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.md,
-    paddingVertical: tokens.spacing.sm,
+    padding: tokens.spacing.lg,
   },
   icon: {
     width: 40,

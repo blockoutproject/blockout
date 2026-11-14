@@ -1,5 +1,6 @@
 import { SportingEntityCardLoading } from "../entity-card";
 import { SportingClubLoading } from "../components/sporting-loading";
+import { ClubLocation } from "../components/club-location";
 import { PageList } from "@/shared/components/page-list";
 import { SportingInitialComposition } from "../components/sporting-initial-composition";
 import { SportingSupportAction } from "../components/sporting-actions";
@@ -24,12 +25,16 @@ import { Surface } from "@/shared/components/surface";
 import { hashKey, useQuery } from "@tanstack/react-query";
 import { useRef, useState, type ReactNode } from "react";
 import type { LegendListRef } from "@legendapp/list/react-native";
-import { Globe, Mail, MapPin, Phone, RefreshCw } from "lucide-react-native";
-import { StyleSheet, View } from "react-native";
+import { Globe, Mail, Phone, RefreshCw } from "lucide-react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { tokens } from "@/shared/theme/tokens";
+import { useTheme } from "@/shared/theme/theme-provider";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { Button } from "@/shared/components/button";
-import { EntryGroup } from "@/shared/components/entry-group";
+import {
+  EntryGroup,
+  EntryGroupSeparator,
+} from "@/shared/components/entry-group";
 import { SeasonSelector } from "@/shared/components/season-selector";
 import { SelectionRow } from "@/shared/components/selection-row";
 import { useConsultationQueries } from "../api/use-consultation-queries";
@@ -40,7 +45,6 @@ import {
 } from "../components/sporting-identity";
 import {
   ContactLink,
-  mapDestination,
   phoneDestination,
   safeWebsite,
 } from "../components/contact-link";
@@ -64,6 +68,7 @@ export function ClubScreen(props: Readonly<ClubScreenProps>) {
  */
 function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
   const queries = useConsultationQueries();
+  const { colors } = useTheme();
   const club = useQuery(queries.club(clubId));
   const [tab, setTab] = useState("info");
   const [selectedSeason, setSelectedSeason] = useState<string>();
@@ -135,57 +140,54 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
         />
       }
     >
-      <PageContent style={styles.header}>
-        <Surface>
-          <ResourceText>Coordonnées</ResourceText>
-          <ContactLink
-            label="Site web"
-            value={data.contacts.website}
-            destination={safeWebsite(data.contacts.website)}
-            icon={Globe}
-          />
-          <ContactLink
-            label="E-mail du club"
-            value={data.contacts.email}
-            destination={
-              data.contacts.email
-                ? `mailto:${encodeURIComponent(data.contacts.email)}`
-                : undefined
-            }
-            icon={Mail}
-          />
-          <ContactLink
-            label="Téléphone"
-            value={data.contacts.phone}
-            destination={phoneDestination(data.contacts.phone)}
-            icon={Phone}
-          />
-        </Surface>
-        <Surface>
-          <ResourceText>Localisation</ResourceText>
-          <ResourceText>Commune du club</ResourceText>
-          {data.location ? (
+      <PageContent style={styles.information}>
+        <View style={styles.informationSection}>
+          <Text
+            accessibilityRole="header"
+            style={[tokens.typography.headingSm, { color: colors.text }]}
+          >
+            Coordonnées
+          </Text>
+          <Surface style={styles.contactGroup}>
             <ContactLink
-              label="Ouvrir la commune sur la carte"
-              value={data.location.label}
-              destination={mapDestination(
-                `${data.location.latitude},${data.location.longitude}`,
-              )}
-              icon={MapPin}
+              label="Site web"
+              value={data.contacts.website}
+              destination={safeWebsite(data.contacts.website)}
+              icon={Globe}
             />
-          ) : (
-            <ResourceText>Commune non renseignée</ResourceText>
-          )}
-          <ResourceText>
-            {[
-              data.contacts.address,
-              data.contacts.postalCode,
-              data.contacts.city,
-            ]
-              .filter(Boolean)
-              .join(", ") || "Adresse non renseignée"}
-          </ResourceText>
-        </Surface>
+            <View style={styles.contactDivider}>
+              <EntryGroupSeparator />
+            </View>
+            <ContactLink
+              label="E-mail du club"
+              value={data.contacts.email}
+              destination={
+                data.contacts.email
+                  ? `mailto:${encodeURIComponent(data.contacts.email)}`
+                  : undefined
+              }
+              icon={Mail}
+            />
+            <View style={styles.contactDivider}>
+              <EntryGroupSeparator />
+            </View>
+            <ContactLink
+              label="Téléphone"
+              value={data.contacts.phone}
+              destination={phoneDestination(data.contacts.phone)}
+              icon={Phone}
+            />
+          </Surface>
+        </View>
+        <View style={styles.informationSection}>
+          <Text
+            accessibilityRole="header"
+            style={[tokens.typography.headingSm, { color: colors.text }]}
+          >
+            Localisation
+          </Text>
+          <ClubLocation detail={data} />
+        </View>
       </PageContent>
     </PageScrollView>
   ) : undefined;
@@ -434,6 +436,13 @@ function ClubEmptyState({
 }
 
 const styles = StyleSheet.create({
+  information: {
+    paddingTop: tokens.layout.content.start + tokens.spacing.md,
+    gap: tokens.layout.section.gap,
+  },
+  informationSection: { gap: tokens.spacing.md },
+  contactGroup: { padding: 0, gap: 0 },
+  contactDivider: { marginHorizontal: tokens.spacing.md },
   stateControls: { paddingBottom: 0 },
   header: { gap: tokens.spacing.lg, marginBottom: tokens.layout.list.gap },
   seasonHeader: { marginBottom: tokens.spacing.lg },
