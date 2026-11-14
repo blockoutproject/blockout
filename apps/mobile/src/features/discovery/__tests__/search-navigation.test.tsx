@@ -980,7 +980,7 @@ it.each(["tab", "route", "principal", "admission"])(
           : publicReads(url),
       );
       await act(async () => publicClient.refetchQueries());
-      await waitFor(() => expect(privacy.getSnapshot().choices).toBeNull());
+      await waitFor(() => expect(ad.destroy).toHaveBeenCalledTimes(1));
     }
     await act(async () => {
       ad.emit(AdEventType.OPENED);

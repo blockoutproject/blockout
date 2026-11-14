@@ -1,5 +1,4 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { useAccountSession } from "@/features/accounts/current-account";
 import { useAccessAdmission } from "@/features/access/queries/use-access-admission";
 import { useAgeDeclaration } from "./age-declaration-context";
 import type { SportingAdTransitionResult } from "./sporting-ad-transition";
@@ -24,12 +23,12 @@ interface PendingOpening {
 
 /**
  * Connects a mounted sporting interaction to the installation's single F11 owner. Repeated taps
- * reuse its pending key; session changes, lost admission and unmount retire destination validity.
+ * reuse its pending key; lost admission and unmount retire destination validity. The native
+ * transition owner rejects destinations captured under a different session.
  * Destination failures remain separate from SDK failures and use the caller's safe feedback.
  */
 export function useSportingTransition() {
   const { privacy } = useAgeDeclaration();
-  const account = useAccountSession();
   const admission = useAccessAdmission();
   const currentAdmission = useRef(admission.ordinary);
   const mounted = useRef(false);
@@ -45,7 +44,7 @@ export function useSportingTransition() {
     };
   }, []);
 
-  /** Captures original-session validity and deduplicates only the same still-pending destination. */
+  /** Deduplicates only the same still-current pending destination. */
   function open(action: SportingOpening): Promise<SportingAdTransitionResult> {
     if (active.current && !active.current.isCurrent()) {
       active.current = undefined;
@@ -56,11 +55,9 @@ export function useSportingTransition() {
         ? active.current.result
         : Promise.resolve({ status: "busy" });
     }
-    const original = account;
     const isCurrent = () =>
       mounted.current &&
       currentAdmission.current &&
-      account.accountId === original.accountId &&
       (action.isCurrent?.() ?? true);
     if (!isCurrent()) {
       return Promise.resolve({ status: "abandoned" });

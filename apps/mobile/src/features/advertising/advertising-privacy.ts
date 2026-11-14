@@ -12,7 +12,6 @@ import {
   requestTrackingPermissionsAsync,
 } from "expo-tracking-transparency";
 import { setAdvertiserTrackingEnabled } from "@react-native-google-mobile-ads/facebook";
-import type { SessionSnapshot } from "@/features/accounts";
 import type { AgeDeclaration } from "./age-declaration";
 import {
   getAdvertisingEligibility,
@@ -30,7 +29,8 @@ export interface AdvertisingPrivacyContext extends Omit<
   AdvertisingEligibilityInput,
   "choices"
 > {
-  category: AgeDeclaration["category"];
+  /** Null while a remounted installation reader has not acknowledged local storage. */
+  category: AgeDeclaration["category"] | null;
 }
 
 /** Transient readiness only; native UMP retains all consent decisions and persistence. */
@@ -66,16 +66,10 @@ function ageRestrictedTreatment(category: AgeDeclaration["category"]) {
     : AgeRestrictedTreatment.UNSPECIFIED;
 }
 
-/** Identifies one applicable attempt, including business-account establishment. */
-function contextKey(context: AdvertisingPrivacyContext) {
-  const session = context.account;
-  return `${session.subject}:${session.accountId}:${context.account.status}:${context.pro.status}:${context.admission.ordinary}:${context.category}`;
-}
-
 /**
  * Orders native configuration, UMP and conditional ATT, with one interstitial lifecycle.
- * No consent is mirrored or reset. Context changes retire preparation synchronously; an active
- * native call settles before the next context can start. Unchanged contexts never retry automatically.
+ * UMP owns installation consent. Account/Pro changes retire ads without repeating consent; age
+ * changes reject obsolete results. One native sequence runs at a time, without automatic retries.
  */
 export function createAdvertisingPrivacy({
   getContext: initialContext,
@@ -87,8 +81,10 @@ export function createAdvertisingPrivacy({
     privacyOptionsRequired: false,
     pending: false,
   };
-  let attempted: string | null = null;
-  let revision = 0;
+  let attempted: {
+    category: AgeDeclaration["category"];
+    formDeferred: boolean;
+  } | null = null;
   let disposed = false;
   let initialized = false;
   // Applied native request context only; consent decisions remain entirely SDK-owned.
@@ -110,7 +106,6 @@ export function createAdvertisingPrivacy({
 
   /** Suspends loads before retiring even same-mode preparation; the sporting count survives. */
   function retirePreparation() {
-    revision++;
     attempted = null;
     publish({
       ...snapshot,
@@ -120,14 +115,17 @@ export function createAdvertisingPrivacy({
     interstitial?.invalidate();
   }
 
-  /** Owner changes require a fresh native information/gathering acknowledgement before options can resume ads. */
+  /** Age changes and unavailable installation preparation retire native readiness. */
   function suspend() {
     consentCategory = null;
     retirePreparation();
   }
 
   /** Requests ATT at most once, accepting no permission result after the context is retired. */
-  async function readTrackingPermission(current: () => boolean) {
+  async function readTrackingPermission(
+    current: () => boolean,
+    choices: AdvertisingChoices,
+  ) {
     let permission = await getTrackingPermissionsAsync();
     if (!current()) {
       return null;
@@ -135,7 +133,8 @@ export function createAdvertisingPrivacy({
     if (
       permission.status === "undetermined" &&
       permission.canAskAgain &&
-      !trackingRequested
+      !trackingRequested &&
+      getAdvertisingEligibility({ ...getContext(), choices }).canServeAds
     ) {
       trackingRequested = true;
       permission = await requestTrackingPermissionsAsync();
@@ -150,7 +149,6 @@ export function createAdvertisingPrivacy({
   async function readChoices(
     info: AdsConsentInfo,
     context: AdvertisingPrivacyContext,
-    session: SessionSnapshot,
     current: () => boolean,
   ) {
     if (!info.canRequestAds) {
@@ -174,7 +172,6 @@ export function createAdvertisingPrivacy({
     }
     let tracking = Platform.OS !== "ios";
     const candidate: AdvertisingChoices = {
-      session,
       canRequestAds: true,
       authorizedMode,
     };
@@ -184,7 +181,7 @@ export function createAdvertisingPrivacy({
       getAdvertisingEligibility({ ...getContext(), choices: candidate })
         .canServeAds
     ) {
-      const permission = await readTrackingPermission(current);
+      const permission = await readTrackingPermission(current, candidate);
       if (permission === null) {
         return null;
       }
@@ -204,13 +201,11 @@ export function createAdvertisingPrivacy({
   ) {
     let info: AdsConsentInfo;
     if (consentCategory !== context.category) {
-      info = await AdsConsent.gatherConsent({
-        tagForUnderAgeOfConsent: context.category === "under16",
-      });
-      if (!current()) {
+      const consent = await readConsent(context, current);
+      if (!consent || !current()) {
         return null;
       }
-      consentCategory = context.category;
+      info = consent.info;
     } else {
       info = await AdsConsent.getConsentInfo();
     }
@@ -222,86 +217,117 @@ export function createAdvertisingPrivacy({
       AdsConsentPrivacyOptionsRequirementStatus.REQUIRED
     ) {
       publish({ ...snapshot, privacyOptionsRequired: false });
-      return { info, optionsShown: false };
+      return { info, formCompleted: false };
+    }
+    if (!getContext().admission.ordinary) {
+      return null;
     }
     await AdsConsent.showPrivacyOptionsForm();
     if (!current()) {
       return null;
     }
     info = await AdsConsent.getConsentInfo();
-    return { info, optionsShown: true };
+    return { info, formCompleted: true };
   }
 
-  /** Rechecks UMP applicability before opening options; each awaited result remains context-scoped. */
+  /** Completes the SDK's installation flow, deferring its form while current Pro/admission excludes it. */
   async function readConsent(
-    action: "gather" | "refresh" | "options",
     context: AdvertisingPrivacyContext,
     current: () => boolean,
   ) {
-    if (action === "options") {
-      return readOptionsConsent(context, current);
-    }
-    const options = { tagForUnderAgeOfConsent: context.category === "under16" };
     const info =
-      action === "gather"
-        ? await AdsConsent.gatherConsent(options)
-        : await AdsConsent.requestInfoUpdate(options);
-    return { info, optionsShown: true };
+      consentCategory === context.category
+        ? await AdsConsent.getConsentInfo()
+        : await AdsConsent.requestInfoUpdate({
+            tagForUnderAgeOfConsent: context.category === "under16",
+          });
+    if (!current()) {
+      return null;
+    }
+    consentCategory = context.category;
+    if (
+      !getContext().admission.ordinary ||
+      getContext().pro.status === "active"
+    ) {
+      return { info, formCompleted: false };
+    }
+    return {
+      info: await AdsConsent.loadAndShowConsentFormIfRequired(),
+      formCompleted: true,
+    };
   }
 
   /** One native interaction at a time; stale completions never initialize, request or publish ads. */
   function start(
-    action: "gather" | "refresh" | "options",
+    action: "consent" | "options" | "advertising",
   ): Promise<boolean> | undefined {
     if (disposed || snapshot.pending || !getContext().admission.ordinary) {
       return;
     }
     const context = getContext();
-    const key = contextKey(context);
-    const session = context.account;
+    if (context.category === null) {
+      return;
+    }
+    const category = context.category;
     const privacyOptionsRequired =
       (action === "options" || consentCategory === context.category) &&
       snapshot.privacyOptionsRequired;
-    retirePreparation();
-    const attempt = revision;
-    attempted = key;
+    if (action !== "advertising") {
+      retirePreparation();
+    }
+    attempted = { category, formDeferred: false };
     publish({
       ...snapshot,
       privacyOptionsRequired,
       pending: true,
     });
     const current = () =>
-      !disposed && revision === attempt && contextKey(getContext()) === key;
+      !disposed &&
+      (getContext().category === null || getContext().category === category);
 
     /** Applies the native APIs in their documented sequence, with no retry/reset or consent parser. */
     async function run() {
       try {
-        await mobileAds().setRequestConfiguration({
-          ageRestrictedTreatment: ageRestrictedTreatment(context.category),
-          maxAdContentRating:
-            context.category === "under16"
-              ? MaxAdContentRating.G
-              : MaxAdContentRating.T,
-        });
+        let info: AdsConsentInfo;
+        let formCompleted = false;
+        if (action !== "advertising") {
+          if (consentCategory !== category) {
+            await mobileAds().setRequestConfiguration({
+              ageRestrictedTreatment: ageRestrictedTreatment(category),
+              maxAdContentRating:
+                category === "under16"
+                  ? MaxAdContentRating.G
+                  : MaxAdContentRating.T,
+            });
+          }
+          if (!current()) {
+            return false;
+          }
+          const consent =
+            action === "options"
+              ? await readOptionsConsent(context, current)
+              : await readConsent(context, current);
+          if (!consent) {
+            return false;
+          }
+          info = consent.info;
+          formCompleted = consent.formCompleted;
+          if (!current()) {
+            return false;
+          }
+          publish({
+            ...snapshot,
+            privacyOptionsRequired:
+              info.privacyOptionsRequirementStatus ===
+              AdsConsentPrivacyOptionsRequirementStatus.REQUIRED,
+          });
+        } else {
+          info = await AdsConsent.getConsentInfo();
+        }
         if (!current()) {
           return false;
         }
-        const consent = await readConsent(action, context, current);
-        if (!consent) {
-          return false;
-        }
-        const { info, optionsShown } = consent;
-        if (!current()) {
-          return false;
-        }
-        consentCategory = context.category;
-        publish({
-          ...snapshot,
-          privacyOptionsRequired:
-            info.privacyOptionsRequirementStatus ===
-            AdsConsentPrivacyOptionsRequirementStatus.REQUIRED,
-        });
-        const choices = await readChoices(info, context, session, current);
+        const choices = await readChoices(info, context, current);
         if (!current()) {
           return false;
         }
@@ -315,11 +341,15 @@ export function createAdvertisingPrivacy({
         if (!current()) {
           return false;
         }
+        if (action === "consent") {
+          attempted = { category, formDeferred: !formCompleted };
+        }
         publish({ ...snapshot, choices });
         interstitial?.preload();
-        return optionsShown;
+        return formCompleted;
       } catch {
         if (current()) {
+          attempted = { category, formDeferred: false };
           publish({ ...snapshot, choices: null });
         }
         throw new Error("Advertising choices could not be established");
@@ -338,10 +368,10 @@ export function createAdvertisingPrivacy({
     if (disposed || snapshot.pending || !getContext().admission.ordinary) {
       return;
     }
-    const key = contextKey(getContext());
-    const attempt = revision;
+    const category = getContext().category;
     const current = () =>
-      !disposed && revision === attempt && contextKey(getContext()) === key;
+      !disposed &&
+      (getContext().category === null || getContext().category === category);
     publish({ ...snapshot, pending: true });
     return AdsConsent.getConsentInfo()
       .then(
@@ -385,15 +415,38 @@ export function createAdvertisingPrivacy({
       };
     },
     suspend,
+    /** Account and rights changes retire the SDK resource, retaining installation consent and frequency. */
+    invalidateAd() {
+      interstitial?.invalidate();
+    },
     refreshOptions,
     /** Native applicability is rechecked at activation; an unavailable form is never invoked. */
     showOptions: () => start("options"),
-    /** Synchronizes changed owner inputs once; errors for unchanged inputs never cause an automatic retry. */
+    /** Prepares each installation category once; current rights independently permit initialization and load. */
     synchronize() {
-      if (contextKey(getContext()) === attempted || snapshot.pending) {
+      if (snapshot.pending) {
         return;
       }
-      return start(getContext().pro.status === "active" ? "refresh" : "gather");
+      const context = getContext();
+      if (context.category === null) {
+        return;
+      }
+      if (context.category !== attempted?.category) {
+        return start("consent");
+      }
+      if (attempted.formDeferred && context.pro.status !== "active") {
+        return start("consent");
+      }
+      if (initialized) {
+        interstitial?.preload();
+        return;
+      }
+      if (
+        getAdvertisingEligibility({ ...context, choices: snapshot.choices })
+          .canServeAds
+      ) {
+        return start("advertising");
+      }
     },
     /** Existing sporting consumers retain intent/failure ownership and the one shared threshold. */
     openSportingTransition(action: SportingAdTransition) {

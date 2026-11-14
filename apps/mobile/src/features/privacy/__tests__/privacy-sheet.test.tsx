@@ -106,6 +106,13 @@ jest.mock("expo/fetch", () => ({
     });
   },
 }));
+const consentInfo: AdsConsentInfo = {
+  status: AdsConsentStatus.OBTAINED,
+  canRequestAds: true,
+  isConsentFormAvailable: true,
+  privacyOptionsRequirementStatus:
+    AdsConsentPrivacyOptionsRequirementStatus.REQUIRED,
+};
 const environment = { ...process.env };
 let mockBlocked = false;
 
@@ -129,22 +136,22 @@ beforeEach(async () => {
   jest.mocked(initializeV2Installation).mockResolvedValue();
   mockAuth0.hasValidCredentials.mockReset().mockResolvedValue(false);
   mockPurchases.isConfigured.mockResolvedValue(false);
-  jest.mocked(AdsConsent.requestInfoUpdate).mockResolvedValue({
-    status: AdsConsentStatus.OBTAINED,
-    canRequestAds: true,
-    isConsentFormAvailable: true,
-    privacyOptionsRequirementStatus:
-      AdsConsentPrivacyOptionsRequirementStatus.REQUIRED,
-  });
+  jest
+    .mocked(AdsConsent.requestInfoUpdate)
+    .mockReset()
+    .mockResolvedValue(consentInfo);
+  jest
+    .mocked(AdsConsent.loadAndShowConsentFormIfRequired)
+    .mockReset()
+    .mockResolvedValue(consentInfo);
   jest
     .mocked(AdsConsent.getConsentInfo)
-    .mockImplementation(() => AdsConsent.requestInfoUpdate());
-  jest
-    .mocked(AdsConsent.gatherConsent)
-    .mockImplementation(() => AdsConsent.requestInfoUpdate());
+    .mockReset()
+    .mockResolvedValue(consentInfo);
   jest
     .mocked(AdsConsent.showPrivacyOptionsForm)
-    .mockImplementation(() => AdsConsent.requestInfoUpdate());
+    .mockReset()
+    .mockResolvedValue(consentInfo);
 });
 afterEach(async () => {
   await cleanup();
@@ -266,7 +273,9 @@ it("returns to privacy after persisted age correction while native consent remai
     await screen.findByRole("button", { name: "Augmenter l’âge" }),
   );
   const consent = Promise.withResolvers<AdsConsentInfo>();
-  jest.mocked(AdsConsent.gatherConsent).mockReturnValueOnce(consent.promise);
+  jest
+    .mocked(AdsConsent.requestInfoUpdate)
+    .mockReturnValueOnce(consent.promise);
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   // Then
@@ -313,9 +322,10 @@ it("reconfigures a confirmed same-category correction and preserves it when nati
     "change",
     { nativeEvent: { value: 20 } },
   );
-  const priorCalls = jest.mocked(AdsConsent.gatherConsent).mock.calls.length;
+  const priorCalls = jest.mocked(AdsConsent.requestInfoUpdate).mock.calls
+    .length;
   jest
-    .mocked(AdsConsent.gatherConsent)
+    .mocked(AdsConsent.requestInfoUpdate)
     .mockRejectedValueOnce(new Error("private SDK failure"));
 
   // When
@@ -323,7 +333,7 @@ it("reconfigures a confirmed same-category correction and preserves it when nati
 
   // Then: changing an acknowledged declaration invalidates preparation even when its category is unchanged.
   await waitFor(() =>
-    expect(AdsConsent.gatherConsent).toHaveBeenCalledTimes(priorCalls + 1),
+    expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(priorCalls + 1),
   );
   expect(
     await screen.findByRole("header", { name: "Confidentialité" }),
@@ -342,13 +352,18 @@ it("reconfigures a confirmed same-category correction and preserves it when nati
 
 it("hides unavailable native advertising options and allows dismissal back to the caller", async () => {
   // Given
-  jest.mocked(AdsConsent.requestInfoUpdate).mockResolvedValue({
+  const unavailableInfo: AdsConsentInfo = {
     status: AdsConsentStatus.NOT_REQUIRED,
     canRequestAds: true,
     isConsentFormAvailable: false,
     privacyOptionsRequirementStatus:
       AdsConsentPrivacyOptionsRequirementStatus.NOT_REQUIRED,
-  });
+  };
+  jest.mocked(AdsConsent.requestInfoUpdate).mockResolvedValue(unavailableInfo);
+  jest
+    .mocked(AdsConsent.loadAndShowConsentFormIfRequired)
+    .mockResolvedValue(unavailableInfo);
+  jest.mocked(AdsConsent.getConsentInfo).mockResolvedValue(unavailableInfo);
   await openPrivacy();
   const user = userEvent.setup();
 
@@ -516,7 +531,8 @@ it("keeps privacy controls accessible to known active Pro without a new consent 
   });
   await mountJourney("/", ProCaller);
   await screen.findByText("Pro: active");
-  jest.mocked(AdsConsent.gatherConsent).mockClear();
+  const updates = jest.mocked(AdsConsent.requestInfoUpdate).mock.calls.length;
+  jest.mocked(AdsConsent.loadAndShowConsentFormIfRequired).mockClear();
   const user = userEvent.setup();
 
   // When
@@ -529,10 +545,11 @@ it("keeps privacy controls accessible to known active Pro without a new consent 
   expect(
     screen.getByRole("button", { name: "Corriger mon âge" }),
   ).toBeOnTheScreen();
-  expect(AdsConsent.gatherConsent).not.toHaveBeenCalled();
+  expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(updates);
+  expect(AdsConsent.loadAndShowConsentFormIfRequired).not.toHaveBeenCalled();
 });
 
-it("reveals required Pro options when the sheet opens before obsolete consent preparation settles", async () => {
+it("reveals required Pro options when the sheet opens before installation consent preparation settles", async () => {
   // Given: real F09 association and native UMP complete in the opposite order from privacy entry.
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   mockAuth0.getCredentials.mockResolvedValue(
@@ -543,10 +560,12 @@ it("reveals required Pro options when the sheet opens before obsolete consent pr
     Promise.withResolvers<Awaited<ReturnType<typeof mockPurchases.logIn>>>();
   mockPurchases.logIn.mockReturnValueOnce(rights.promise);
   const consent = Promise.withResolvers<AdsConsentInfo>();
-  jest.mocked(AdsConsent.gatherConsent).mockReturnValueOnce(consent.promise);
+  jest
+    .mocked(AdsConsent.requestInfoUpdate)
+    .mockReturnValueOnce(consent.promise);
   await mountJourney("/", ProCaller);
   await waitFor(() =>
-    expect(AdsConsent.gatherConsent).toHaveBeenCalledTimes(1),
+    expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(1),
   );
   const right = entitlement();
   const native = customerInfo({
@@ -572,12 +591,13 @@ it("reveals required Pro options when the sheet opens before obsolete consent pr
     }),
   );
 
-  // Then: the existing root owner refreshes information after settlement, without a second consent prompt.
+  // Then: the installation update remains usable without repeating preparation or presenting a form for Pro.
   expect(
     await screen.findByRole("button", { name: "Choix publicitaires" }),
   ).toBeOnTheScreen();
   expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledWith({
     tagForUnderAgeOfConsent: false,
   });
-  expect(AdsConsent.gatherConsent).toHaveBeenCalledTimes(1);
+  expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(1);
+  expect(AdsConsent.loadAndShowConsentFormIfRequired).not.toHaveBeenCalled();
 });

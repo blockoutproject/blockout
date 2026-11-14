@@ -120,7 +120,7 @@ As an account holder, I want to delete my account, return directly to guest acce
 
 ### Functional Requirements
 
-Advertising age declaration and correction belong to [F11](../004-advertising-privacy-legal/spec.md#entitlements-and-advertising-choices). They do not add a profile field, account age gate or identity check. Guest and signed-in users use the same installation-local advertising controls outside F12 blocking gates.
+Advertising age declaration and correction belong to [F11](../004-advertising-privacy-legal/spec.md#entitlements-and-advertising-choices). They do not add a profile field, account age gate or identity check. Guest and signed-in users use the same installation-local advertising controls outside F12 blocking gates. Account UUID arrival or session replacement updates current advertising eligibility and discards prepared ads under F11; it does not restart unchanged installation age/consent preparation or persist consent with the account.
 
 #### Access and identity resolution
 

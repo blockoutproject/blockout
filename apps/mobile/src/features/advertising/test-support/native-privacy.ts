@@ -26,8 +26,8 @@ export const nativeAdvertising = {
     NOT_REQUIRED: "NOT_REQUIRED",
   },
   AdsConsent: {
-    gatherConsent: jest.fn(async () => info),
     requestInfoUpdate: jest.fn(async () => info),
+    loadAndShowConsentFormIfRequired: jest.fn(async () => info),
     getConsentInfo: jest.fn(async () => info),
     showPrivacyOptionsForm: jest.fn(async () => info),
     getUserChoices: jest.fn(async () => nativeUserChoices()),

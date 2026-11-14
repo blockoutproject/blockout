@@ -206,7 +206,8 @@ beforeEach(async () => {
   mockCreateAd.mockReset().mockImplementation(controlledInterstitial);
   mockMobileAds.initialize.mockClear();
   mockMobileAds.setRequestConfiguration.mockClear();
-  nativeAdvertising.AdsConsent.gatherConsent.mockClear();
+  nativeAdvertising.AdsConsent.requestInfoUpdate.mockClear();
+  nativeAdvertising.AdsConsent.loadAndShowConsentFormIfRequired.mockClear();
   mockFetch.mockReset().mockImplementation(async (url, options) => {
     if (String(url).endsWith("/application-access")) {
       return Response.json(applicationAccessResponse());
@@ -372,6 +373,9 @@ it("keeps two unlinked principals with equal emails in distinct account and enti
   expect(owners.account.data?.email).toBe("shared@example.invalid");
   expect(mockPurchases.logIn).toHaveBeenLastCalledWith(replacementUuid);
   expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
+  expect(nativeAdvertising.AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(
+    1,
+  );
 });
 
 it("keeps missing-email establishment unusable until an explicit account retry without another hosted login", async () => {

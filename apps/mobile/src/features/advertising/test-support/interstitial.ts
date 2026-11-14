@@ -10,7 +10,6 @@ export function advertisingContext() {
     pro: { status: "guest" },
     admission: { ordinary: true },
     choices: {
-      session: { ...session },
       canRequestAds: true,
       authorizedMode: "limited",
     },
