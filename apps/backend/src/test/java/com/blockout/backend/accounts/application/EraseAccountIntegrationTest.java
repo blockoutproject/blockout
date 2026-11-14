@@ -482,7 +482,7 @@ class EraseAccountIntegrationTest extends ContributionScenario {
     when(auth0.remove(any(), any())).thenReturn(AccountCleanup.Outcome.REMOVED);
     when(revenueCat.remove(any())).thenReturn(AccountCleanup.Outcome.QUEUED);
     when(principal.read(ISSUER, FOLLOWER.toString()))
-        .thenReturn(new PrincipalReader.Evidence("returned@example.invalid", NOW));
+        .thenReturn(new PrincipalReader.Evidence("returned@example.invalid"));
     ProfilePhoto newPhoto = photos.prepare(png(16), "image/png");
     MockMultipartHttpServletRequestBuilder request =
         profilePatch(FOLLOWER, "{\"username\":\"TooLatePhoto\",\"photoAction\":\"replace\"}");
@@ -568,8 +568,7 @@ class EraseAccountIntegrationTest extends ContributionScenario {
     when(auth0.remove(any(), any())).thenReturn(AccountCleanup.Outcome.UNAVAILABLE_OR_UNCERTAIN);
     when(revenueCat.remove(any())).thenReturn(AccountCleanup.Outcome.QUEUED);
     when(principal.read(ISSUER, FOLLOWER.toString()))
-        .thenReturn(
-            new PrincipalReader.Evidence("returned@example.invalid", NOW.minusSeconds(1000000)));
+        .thenReturn(new PrincipalReader.Evidence("returned@example.invalid"));
 
     // When
     erasure.erase(ISSUER, FOLLOWER.toString(), FOLLOWER);
@@ -580,7 +579,6 @@ class EraseAccountIntegrationTest extends ContributionScenario {
     assertThat(returned.created()).isTrue();
     assertThat(replacement).isNotEqualTo(FOLLOWER);
     assertThat(returned.view().account().username()).isNotEqualTo("FormerProfile");
-    assertThat(returned.view().account().principalCreatedAt()).isEqualTo(NOW.minusSeconds(1000000));
     assertThat(returned.view().hasPhoto()).isFalse();
     assertThat(returned.view().permissions()).isEmpty();
     for (String table :
@@ -697,7 +695,7 @@ class EraseAccountIntegrationTest extends ContributionScenario {
               requested.complete(null);
               return response.get(10, TimeUnit.SECONDS);
             })
-        .thenReturn(new PrincipalReader.Evidence("replacement@example.invalid", NOW));
+        .thenReturn(new PrincipalReader.Evidence("replacement@example.invalid"));
     try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
       Future<EstablishAccount.Outcome> old =
           worker.submit(() -> establishment.establish(ISSUER, FOLLOWER.toString()));
@@ -707,7 +705,7 @@ class EraseAccountIntegrationTest extends ContributionScenario {
       assertThat(replacement.account().id()).isNotEqualTo(FOLLOWER);
 
       // When
-      response.complete(new PrincipalReader.Evidence("old@example.invalid", NOW));
+      response.complete(new PrincipalReader.Evidence("old@example.invalid"));
 
       // Then
       assertThatThrownBy(() -> old.get(10, TimeUnit.SECONDS))
@@ -717,7 +715,7 @@ class EraseAccountIntegrationTest extends ContributionScenario {
           .isInstanceOf(AccountNotFoundException.class);
       org.mockito.Mockito.verify(auth0).remove(ISSUER, FOLLOWER.toString());
     } finally {
-      response.complete(new PrincipalReader.Evidence(null, null));
+      response.complete(new PrincipalReader.Evidence(null));
     }
   }
 

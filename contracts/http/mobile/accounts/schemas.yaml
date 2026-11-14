@@ -7,7 +7,6 @@ AccountResponse:
     - accountId
     - username
     - email
-    - principalCreatedAt
     - hasPhoto
     - permissions
   properties:
@@ -27,13 +26,6 @@ AccountResponse:
       type: string
       description: Last usable provider email; not an account identifier or editable profile field.
       format: email
-    principalCreatedAt:
-      type: string
-      format: date-time
-      nullable: true
-      description:
-        Reliable principal creation instant for account-age rules; null means unknown,
-        never a local creation-date fallback.
     hasPhoto:
       type: boolean
       description: Whether this account currently has an accepted private photo.

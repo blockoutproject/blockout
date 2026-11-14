@@ -4,7 +4,7 @@ Run the [README verification commands](../../README.md#verification) for the exi
 
 ## Prerequisites
 
-Use the [F13 environment](../003-shared-quality/plan.md) and [canonical contracts](contracts/README.md). Prepare disposable accounts with known Auth0 ages, ordinary rights and a separate stream-only moderator; nonprofessional/professional matches, hidden parents, known/unknown times and provisional/definitive results. Use controlled clocks and network doubles, never provider configuration or private production data.
+Use the [F13 environment](../003-shared-quality/plan.md) and [canonical contracts](contracts/README.md). Prepare disposable newly established and existing usable accounts with ordinary rights and a separate stream-only moderator; nonprofessional/professional matches, hidden parents, known/unknown times and provisional/definitive results. Use controlled clocks and network doubles, never provider configuration or private production data.
 
 ## Contracts and access
 
@@ -20,7 +20,7 @@ Generate Java interfaces/DTOs and Orval consumers from the same canonical source
 
 With JUnit/Spring MVC/Testcontainers PostgreSQL and the real mappings/schema:
 
-- Exercise exact seven-day age, unknown evidence, H−1 and unknown time; post-definitive proposals and professional/hidden refusal. Preserve the active link while a replacement is pending.
+- Exercise newly established usable-account eligibility under the same grants and remaining rules, exact H−1 and unknown time; post-definitive proposals and professional/hidden refusal. Preserve the active link while a replacement is pending.
 - Submit/withdraw/approve/reject, supersede multiple proposals and reactivate a historical source. Check ownership, no inherited reports, historical decisions and no quota refund. Retired pending-cancel input is refused and canCancel is absent; historical cancelled versions/decisions remain readable and cannot be reactivated.
 - Accept third/refuse fourth ordinary version per account/match and third/refuse fourth distinct match per Paris day. Test 23/25-hour days, same-match continuation, reached-quota unchanged submission and later grant changes.
 - Race submissions across the same and different matches, two decisions, result acceptance/publication and account erasure/reactivation. Assert one active version, bounded quotas, no stale overwrite, no restored attribution and full rollback of required internal effects on failure.
@@ -29,7 +29,7 @@ With JUnit/Spring MVC/Testcontainers PostgreSQL and the real mappings/schema:
 
 ### Local policies and persistence
 
-Use controlled current owner facts for exact seven elapsed days, confirmed H−1, definitive-result/report-hold approval and moderator exceptions. Apply the complete master changelog to isolated PostgreSQL with the restricted application role. Verify one active version, one pending version per non-null owner, same-match lineage/hold, nullable attribution and preserved publication/later decisions. Derive quota usage from participating versions between successive Paris midnights, including both DST changes; no lifecycle/grant change refunds usage.
+Use controlled current owner facts for usable-account eligibility, confirmed H−1, definitive-result/report-hold approval and moderator exceptions. Apply the complete master changelog to isolated PostgreSQL with the restricted application role. Verify one active version, one pending version per non-null owner, same-match lineage/hold, nullable attribution and preserved publication/later decisions. Derive quota usage from participating versions between successive Paris midnights, including both DST changes; no lifecycle/grant change refunds usage.
 
 ### Submission and atomic announcements
 
@@ -106,7 +106,7 @@ Compare the [broadcast-link journey](https://www.figma.com/design/rKu4xc8eJsx0f0
 
 ### Exact-version reporting
 
-Report one viewed version with a required trimmed reason. Verify self-report refusal, ownerless links, reporting independent of publication age/quota, thresholds three/ten, correction without a new report and unchanged repetition after hiding. Concurrent report/replacement must never retarget the report; first reason and anonymous counted rows remain intact. Current ordinary admission, reason-only binding, exact Location and no-store apply.
+Report one viewed version with a required trimmed reason. Verify self-report refusal, ownerless links, reporting independent of publication quotas, thresholds three/ten, correction without a new report and unchanged repetition after hiding. Concurrent report/replacement must never retarget the report; first reason and anonymous counted rows remain intact. Current ordinary admission, reason-only binding, exact Location and no-store apply.
 
 On native iOS/Android, open the [report form](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5534-59410), cancel without a write, then lose acknowledgement and expose an authorized current reported:true for that exact account/version. Expect already-reported feedback without attributing success to a particular request. Check both acknowledged and already-reported terminal cards: a decorative success cue beside the same message, the viewed address as secondary context and ordinary header Back, without a duplicate “Retour au match” button. Header Back must leave either terminal outcome directly without an abandon-draft prompt, including after a positive read following response loss; false/failed reads retain ordinary dirty-draft protection. Before a terminal outcome, the reason form keeps its submit/cancel actions. Separately prove false/failed-read input retention and deliberate exact-version retry deterministically. Retain ordinary error feedback without a mutation-specific match-refresh action, stale-target explanation or recovery screen. Confirmed success survives dependent-read failure; departure/session change publishes no obsolete success.
 

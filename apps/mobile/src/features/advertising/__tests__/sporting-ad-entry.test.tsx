@@ -927,7 +927,6 @@ it("abandons the pending calendar destination when the native principal changes"
   await act(async () => {
     accountProfile = accountResponse({
       accountId: "00000000-0000-4000-8000-000000000001",
-      principalCreatedAt: "2020-01-01T00:00:00Z",
     });
     mockAuth0.webAuth.mockResolvedValue(
       credentialsFor("auth0|00000000-0000-4000-8000-000000000001"),

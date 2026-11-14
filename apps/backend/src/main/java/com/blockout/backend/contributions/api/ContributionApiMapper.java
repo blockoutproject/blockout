@@ -233,8 +233,6 @@ public interface ContributionApiMapper {
    */
   default String reason(Status status) {
     return switch (status) {
-      case ACCOUNT_AGE_UNKNOWN -> "L’ancienneté du compte est indisponible. Réessayez.";
-      case ACCOUNT_TOO_YOUNG -> "Le compte doit avoir au moins sept jours.";
       case START_UNCONFIRMED -> "L’heure du match doit être confirmée.";
       case WINDOW_NOT_OPEN -> "La publication ouvre une heure avant le match.";
       case VERSION_LIMIT -> "La limite de trois versions pour ce match est atteinte.";

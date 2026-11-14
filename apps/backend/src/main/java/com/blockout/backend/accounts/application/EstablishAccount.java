@@ -78,7 +78,7 @@ public class EstablishAccount {
     try {
       evidence = provider.read(issuer, subject);
     } catch (AccountUnavailableException failure) {
-      evidence = new PrincipalReader.Evidence(null, null);
+      evidence = new PrincipalReader.Evidence(null);
       unavailable = true;
     }
     PrincipalReader.Evidence available = evidence;
@@ -124,7 +124,7 @@ public class EstablishAccount {
     if (current.isPresent()) {
       Account account =
           accounts
-              .synchronize(current.orElseThrow(), evidence.email(), evidence.createdAt())
+              .synchronize(current.orElseThrow(), evidence.email())
               .orElseThrow(() -> new AccountUnavailableException());
       return new Committed(account.id(), false);
     }
@@ -134,9 +134,7 @@ public class EstablishAccount {
     if (evidence.email() == null || evidence.email().isBlank()) {
       throw new ProviderEmailUnavailableException();
     }
-    Account account =
-        accounts.create(
-            issuer, subject, AccountUsername.neutral(), evidence.email(), evidence.createdAt());
+    Account account = accounts.create(issuer, subject, AccountUsername.neutral(), evidence.email());
     return new Committed(account.id(), true);
   }
 

@@ -137,7 +137,7 @@ class ReportContributionIntegrationTest extends ContributionScenario {
   }
 
   @Test
-  @DisplayName("Reporting ignores publication age window and quota on an ownerless link")
+  @DisplayName("Reporting ignores the publication window and quota on an ownerless link")
   void reportsOwnerlessWithoutPublicationEligibility() throws Exception {
     // Given
     submit(FOLLOWER, "0", "https://youtu.be/first", false);
@@ -146,7 +146,6 @@ class ReportContributionIntegrationTest extends ContributionScenario {
     moderator(AUTHOR);
     UUID version = submit(AUTHOR, "3", "https://youtu.be/viewed", true).version().id();
     sql.update("UPDATE contribution_version SET owner_id=NULL WHERE id=?", version);
-    sql.update("UPDATE account SET principal_created_at=NULL WHERE id=?", FOLLOWER);
     sql.update("UPDATE sporting_match SET reliable_start=NULL WHERE id=?", matchId);
 
     // When
@@ -461,7 +460,7 @@ class ReportContributionIntegrationTest extends ContributionScenario {
   }
 
   /**
-   * Creates an explicit synthetic current account without age evidence.
+   * Creates an explicit synthetic current account.
    *
    * @param n stable scenario-owned distinguishing suffix
    * @return newly inserted original account

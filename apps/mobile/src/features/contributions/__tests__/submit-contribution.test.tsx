@@ -243,8 +243,6 @@ it("invites a guest without retaining a deferred publication", async () => {
 
 it.each([
   "La contribution n’est pas autorisée dans la situation actuelle.",
-  "Le compte doit avoir au moins sept jours.",
-  "L’ancienneté du compte est indisponible. Réessayez.",
   "L’heure du match doit être confirmée.",
   "La publication ouvre une heure avant le match.",
   "Les contributions ne sont pas disponibles pour ce match professionnel.",
@@ -479,7 +477,7 @@ it("retains the typed address through account read failure and a GET-only retry"
   expect(posts).toHaveLength(0);
 });
 
-it("uses moderator eligibility without local age, clock, quota or Pro gates", async () => {
+it("uses moderator eligibility without local clock, quota or Pro gates", async () => {
   // Given
   context = ownContributions({
     quota: {
@@ -491,7 +489,6 @@ it("uses moderator eligibility without local age, clock, quota or Pro gates", as
   });
   const moderator = accountResponse({
     permissions: { ...account.permissions, moderateStreamLinks: true },
-    principalCreatedAt: null,
   });
   mockFetch.mockImplementationOnce(async () => Response.json(moderator));
   const user = userEvent.setup();

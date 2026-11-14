@@ -77,7 +77,7 @@ class AccountMaintenanceAdmissionIntegrationTest {
   void establishesWhileInactive(String intent) throws Exception {
     // Given
     when(provider.read(ISSUER, "auth0|signup"))
-        .thenReturn(new PrincipalReader.Evidence("signup@example.invalid", null));
+        .thenReturn(new PrincipalReader.Evidence("signup@example.invalid"));
 
     MockHttpServletRequestBuilder request = post("/accounts").with(principal("auth0|signup"));
     if (intent != null) {
@@ -216,7 +216,7 @@ class AccountMaintenanceAdmissionIntegrationTest {
         ACCOUNT);
     UUID replacement = UUID.fromString("00000000-0000-4000-8000-000000000999");
     when(provider.read(ISSUER, "auth0|existing"))
-        .thenReturn(new PrincipalReader.Evidence("provider@example.invalid", null));
+        .thenReturn(new PrincipalReader.Evidence("provider@example.invalid"));
     doAnswer(
             call -> {
               Object admitted = call.callRealMethod();
@@ -271,7 +271,7 @@ class AccountMaintenanceAdmissionIntegrationTest {
         "INSERT INTO account_permission (account_id, permission) VALUES (?, 'maintenance.bypass')",
         ACCOUNT);
     when(provider.read(ISSUER, "auth0|existing"))
-        .thenReturn(new PrincipalReader.Evidence("current@example.invalid", null));
+        .thenReturn(new PrincipalReader.Evidence("current@example.invalid"));
 
     // When
     mvc.perform(
@@ -366,7 +366,7 @@ class AccountMaintenanceAdmissionIntegrationTest {
               assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
               providerStarted.countDown();
               assertThat(releaseProvider.await(10, TimeUnit.SECONDS)).isTrue();
-              return new PrincipalReader.Evidence("signup@example.invalid", null);
+              return new PrincipalReader.Evidence("signup@example.invalid");
             });
 
     // When

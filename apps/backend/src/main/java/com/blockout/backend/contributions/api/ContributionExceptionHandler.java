@@ -52,8 +52,6 @@ public class ContributionExceptionHandler {
           HttpProblems.response(HttpStatus.CONFLICT, "urn:blockout:problem:stale-revision");
       case MATCH_UNAVAILABLE ->
           HttpProblems.response(HttpStatus.NOT_FOUND, "urn:blockout:problem:not-found");
-      case ACCOUNT_AGE_UNKNOWN ->
-          HttpProblems.response(HttpStatus.SERVICE_UNAVAILABLE, "urn:blockout:problem:unavailable");
       case FORBIDDEN, NOT_OWNER ->
           HttpProblems.response(HttpStatus.FORBIDDEN, "urn:blockout:problem:forbidden");
       default ->

@@ -82,7 +82,7 @@ The common discovery includes brief former-user information, then uses ordinary 
 
 ## Identity and purchase continuity
 
-Preserve the Auth0 tenant, principals, existing linked identities and actual principal creation date. F05 establishes a fresh V2 business UUID after explicit authentication; never match by email or carry V1 roles into business grants. During preparation, restrict the existing default-role post-login Action to the exact V1 client. V2 uses its own current PostgreSQL permissions. Remove the old dependency when retiring V1, after qualifying sign-in with and without an old role.
+Preserve the Auth0 tenant, principals and existing linked identities. F05 establishes a fresh V2 business UUID after explicit authentication; never match by email or carry V1 roles into business grants. During preparation, restrict the existing default-role post-login Action to the exact V1 client. V2 uses its own current PostgreSQL permissions. Remove the old dependency when retiring V1, after qualifying sign-in with and without an old role.
 
 RevenueCat uses that new business UUID. Read rights already applicable to it through the SDK; historical purchases use explicit restoration with the paying store account. Apply F09's accepted transfer scope and manual assistance for cross-store or unresolved cases. Do not delete RevenueCat customers, relink Auth0 principals or run automatic alias/restore/sync operations merely for migration.
 

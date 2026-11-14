@@ -30,7 +30,7 @@ public class Auth0PrincipalClient implements PrincipalReader {
               .get(
                   subject,
                   GetUserRequestParameters.builder()
-                      .fields("user_id,email,created_at")
+                      .fields("user_id,email")
                       .includeFields(true)
                       .build());
       if (principal.getUserId().filter(subject::equals).isEmpty()) {
@@ -38,8 +38,7 @@ public class Auth0PrincipalClient implements PrincipalReader {
       }
       String candidate = principal.getEmail().orElse(null);
       String email = validator.validate(new ProviderEmail(candidate)).isEmpty() ? candidate : null;
-      return new Evidence(
-          email, principal.getCreatedAt().map(java.time.OffsetDateTime::toInstant).orElse(null));
+      return new Evidence(email);
     } catch (ManagementException
         | OAuth2AuthorizationException
         | AccountUnavailableException failure) {

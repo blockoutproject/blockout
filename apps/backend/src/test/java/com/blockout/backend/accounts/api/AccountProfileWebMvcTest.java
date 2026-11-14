@@ -120,8 +120,7 @@ class AccountProfileWebMvcTest {
   @DisplayName("Trims an unchanged valid username before saving")
   void acceptsTrimmedCurrentUsername(String username) throws Exception {
     // Given
-    Account original =
-        new Account(ID, ISSUER, "auth0|one", "Original", "shared@example.invalid", null);
+    Account original = new Account(ID, ISSUER, "auth0|one", "Original", "shared@example.invalid");
     when(store.lockById(ID)).thenReturn(Optional.of(original));
     when(store.findById(ID)).thenReturn(Optional.of(original));
     when(permissions.forAccount(ID)).thenReturn(Set.of());
@@ -210,8 +209,7 @@ class AccountProfileWebMvcTest {
   @DisplayName("Exposes only the canonical username collision after whole-save refusal")
   void translatesCollision() throws Exception {
     // Given
-    Account original =
-        new Account(ID, ISSUER, "auth0|one", "Original", "shared@example.invalid", null);
+    Account original = new Account(ID, ISSUER, "auth0|one", "Original", "shared@example.invalid");
     when(store.lockById(ID)).thenReturn(Optional.of(original));
     doThrow(new UsernameUnavailableException()).when(store).changeProfile(ID, "Taken", null, null);
 
@@ -264,8 +262,7 @@ class AccountProfileWebMvcTest {
   @DisplayName("Reads private binary photos without JSON serialization")
   void readsBinary() throws Exception {
     // Given
-    Account original =
-        new Account(ID, ISSUER, "auth0|one", "Original", "shared@example.invalid", null);
+    Account original = new Account(ID, ISSUER, "auth0|one", "Original", "shared@example.invalid");
     byte[] bytes = new byte[] {1, 2, 3};
     when(store.findById(ID)).thenReturn(Optional.of(original));
     when(store.photo(ID)).thenReturn(Optional.of(new ProfilePhoto(bytes, "image/png", 1)));
@@ -285,7 +282,7 @@ class AccountProfileWebMvcTest {
   @DisplayName("Hides another owner's photo and mutations")
   void hidesAnotherOwner() throws Exception {
     // Given
-    Account other = new Account(ID, ISSUER, "auth0|other", "Other", "shared@example.invalid", null);
+    Account other = new Account(ID, ISSUER, "auth0|other", "Other", "shared@example.invalid");
     when(store.lockById(ID)).thenReturn(Optional.of(other));
     when(store.findById(ID)).thenReturn(Optional.of(other));
 
@@ -306,7 +303,7 @@ class AccountProfileWebMvcTest {
     when(store.findById(ID))
         .thenReturn(
             Optional.of(
-                new Account(ID, ISSUER, "auth0|one", "Original", "shared@example.invalid", null)));
+                new Account(ID, ISSUER, "auth0|one", "Original", "shared@example.invalid")));
 
     // When
     ResultActions response = mvc.perform(get("/accounts/" + ID + "/photo").with(principal()));

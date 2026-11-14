@@ -32,8 +32,8 @@ public class ReportContribution {
 
   /**
    * Reports under sporting roots then sorted account locks. Ordinary admitted usable accounts have
-   * the current F12 reporting right; publication age and quotas confer no reporting authority. A
-   * duplicate returns unchanged even after hiding, before lifecycle and threshold evaluation.
+   * the current F12 reporting right; publication quotas confer no reporting authority. A duplicate
+   * returns unchanged even after hiding, before lifecycle and threshold evaluation.
    *
    * @param reporter original usable account, rechecked under its erasure lock
    * @param versionId exact viewed version; never replaced by the current active identity

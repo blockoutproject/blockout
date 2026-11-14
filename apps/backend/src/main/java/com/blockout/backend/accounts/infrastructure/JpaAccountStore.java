@@ -7,7 +7,6 @@ import com.blockout.backend.accounts.application.exception.AccountUnavailableExc
 import com.blockout.backend.accounts.application.exception.UsernameUnavailableException;
 import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.generated.mobile.model.ProfilePhotoActionEnum;
-import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -108,14 +107,12 @@ public class JpaAccountStore implements AccountStore {
   /** {@inheritDoc} */
   @Override
   @Transactional(propagation = Propagation.MANDATORY)
-  public Account create(
-      String issuer, String subject, String username, String email, Instant principalCreatedAt) {
+  public Account create(String issuer, String subject, String username, String email) {
     try {
       // The principal winner is read after rollback; a generated-name collision is an ordinary
       // failure.
       return mapper.toDomain(
-          accounts.saveAndFlush(
-              new AccountEntity(issuer, subject, username, email, principalCreatedAt)));
+          accounts.saveAndFlush(new AccountEntity(issuer, subject, username, email)));
     } catch (DataIntegrityViolationException failure) {
       String constraint = constraintName(failure);
       if ("uk_account_principal".equals(constraint)) {
@@ -131,16 +128,15 @@ public class JpaAccountStore implements AccountStore {
   /** {@inheritDoc} */
   @Override
   @Transactional(propagation = Propagation.MANDATORY)
-  public Optional<Account> synchronize(UUID id, String email, Instant principalCreatedAt) {
+  public Optional<Account> synchronize(UUID id, String email) {
     return accounts
         .findByIdForUpdate(id)
         .map(
             entity -> {
-              Account updated =
-                  mapper.toDomain(entity).withPrincipalEvidence(email, principalCreatedAt);
-              entity.setEmail(updated.email());
-              entity.setPrincipalCreatedAt(updated.principalCreatedAt());
-              return updated;
+              if (email != null && !email.isBlank()) {
+                entity.setEmail(email);
+              }
+              return mapper.toDomain(entity);
             });
   }
 

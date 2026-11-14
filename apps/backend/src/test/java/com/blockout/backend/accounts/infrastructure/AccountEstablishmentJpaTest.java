@@ -11,7 +11,6 @@ import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import jakarta.validation.ConstraintViolationException;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -60,7 +59,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class AccountEstablishmentJpaTest {
   private static final String ISSUER = "https://identity.example.invalid/";
-  private static final Instant PRINCIPAL_CREATED = Instant.parse("2020-01-02T03:04:05Z");
   @Autowired private JdbcTemplate sql;
   @Autowired private AccountStore accounts;
   @Autowired private AccountAccess access;
@@ -94,7 +92,7 @@ class AccountEstablishmentJpaTest {
                 return transaction.execute(
                     state ->
                         accounts.create(
-                            ISSUER, "auth0|one", "Player_144", "shared@example.invalid", null));
+                            ISSUER, "auth0|one", "Player_144", "shared@example.invalid"));
               });
       Future<Account> second =
           workers.submit(
@@ -103,7 +101,7 @@ class AccountEstablishmentJpaTest {
                 return transaction.execute(
                     state ->
                         accounts.create(
-                            ISSUER, otherSubject, otherUsername, "shared@example.invalid", null));
+                            ISSUER, otherSubject, otherUsername, "shared@example.invalid"));
               });
       List<Object> outcomes = List.of(outcome(first), outcome(second));
 
@@ -126,17 +124,10 @@ class AccountEstablishmentJpaTest {
     // Given
     Account first =
         transaction.execute(
-            state ->
-                accounts.create(
-                    ISSUER,
-                    "auth0|one",
-                    "Player_144",
-                    "shared@example.invalid",
-                    PRINCIPAL_CREATED));
+            state -> accounts.create(ISSUER, "auth0|one", "Player_144", "shared@example.invalid"));
     Account second =
         transaction.execute(
-            state ->
-                accounts.create(ISSUER, "auth0|One", "Player_145", "shared@example.invalid", null));
+            state -> accounts.create(ISSUER, "auth0|One", "Player_145", "shared@example.invalid"));
     Account otherIssuer =
         transaction.execute(
             state ->
@@ -144,8 +135,7 @@ class AccountEstablishmentJpaTest {
                     "https://other.example.invalid/",
                     "auth0|one",
                     "Player_146",
-                    "SHARED@example.invalid",
-                    null));
+                    "SHARED@example.invalid"));
 
     // When
     Optional<UUID> current = access.currentId(ISSUER, "auth0|one");
@@ -157,7 +147,6 @@ class AccountEstablishmentJpaTest {
         .contains(otherIssuer.id());
     assertThat(List.of(first.id(), second.id(), otherIssuer.id())).doesNotHaveDuplicates();
     assertThat(accounts.findById(first.id())).contains(first);
-    assertThat(accounts.findById(second.id()).orElseThrow().principalCreatedAt()).isNull();
   }
 
   @Test
@@ -185,8 +174,7 @@ class AccountEstablishmentJpaTest {
     // When / Then
     assertThatThrownBy(
             () ->
-                transaction.execute(
-                    state -> accounts.create(ISSUER, subject, "Player_144", email, null)))
+                transaction.execute(state -> accounts.create(ISSUER, subject, "Player_144", email)))
         .isInstanceOf(ConstraintViolationException.class);
     assertThat(accounts.findByPrincipal(ISSUER, subject)).isEmpty();
   }
@@ -202,8 +190,7 @@ class AccountEstablishmentJpaTest {
     assertThatThrownBy(
             () ->
                 transaction.execute(
-                    state ->
-                        accounts.create(ISSUER, subject, username, "player@example.invalid", null)))
+                    state -> accounts.create(ISSUER, subject, username, "player@example.invalid")))
         .isInstanceOf(ConstraintViolationException.class);
     assertThat(accounts.findByPrincipal(ISSUER, subject)).isEmpty();
   }
@@ -217,8 +204,7 @@ class AccountEstablishmentJpaTest {
     // When
     Account created =
         transaction.execute(
-            state ->
-                accounts.create(ISSUER, "auth0|one", username, "player@example.invalid", null));
+            state -> accounts.create(ISSUER, "auth0|one", username, "player@example.invalid"));
 
     // Then
     assertThat(created.username()).isEqualTo("Player_144.-");
@@ -226,22 +212,16 @@ class AccountEstablishmentJpaTest {
   }
 
   @Test
-  @DisplayName("Preserves known email and principal age when provider evidence is unavailable")
+  @DisplayName("Preserves known email when the provider is unavailable")
   void preservesKnownEvidence() {
     // Given
     Account original =
         transaction.execute(
-            state ->
-                accounts.create(
-                    ISSUER,
-                    "auth0|one",
-                    "Chosen_name",
-                    "known@example.invalid",
-                    PRINCIPAL_CREATED));
+            state -> accounts.create(ISSUER, "auth0|one", "Chosen_name", "known@example.invalid"));
 
     // When
     Optional<Account> result =
-        transaction.execute(state -> accounts.synchronize(original.id(), null, null));
+        transaction.execute(state -> accounts.synchronize(original.id(), null));
 
     // Then
     assertThat(result).contains(original);
@@ -254,17 +234,15 @@ class AccountEstablishmentJpaTest {
     // Given
     Account original =
         transaction.execute(
-            state ->
-                accounts.create(ISSUER, "auth0|one", "Chosen_name", "old@example.invalid", null));
+            state -> accounts.create(ISSUER, "auth0|one", "Chosen_name", "old@example.invalid"));
 
     // When
     transaction.executeWithoutResult(
-        state -> accounts.synchronize(original.id(), "current@example.invalid", PRINCIPAL_CREATED));
+        state -> accounts.synchronize(original.id(), "current@example.invalid"));
 
     // Then
     Account updated = accounts.findById(original.id()).orElseThrow();
     assertThat(updated.email()).isEqualTo("current@example.invalid");
-    assertThat(updated.principalCreatedAt()).isEqualTo(PRINCIPAL_CREATED);
     assertThat(updated.username()).isEqualTo("Chosen_name");
     assertThat(updated.id()).isEqualTo(original.id());
   }
@@ -275,18 +253,12 @@ class AccountEstablishmentJpaTest {
     // Given
     Account original =
         transaction.execute(
-            state ->
-                accounts.create(
-                    ISSUER,
-                    "auth0|one",
-                    "Chosen_name",
-                    "known@example.invalid",
-                    PRINCIPAL_CREATED));
+            state -> accounts.create(ISSUER, "auth0|one", "Chosen_name", "known@example.invalid"));
 
     // When
     transaction.executeWithoutResult(
         state -> {
-          accounts.synchronize(original.id(), "new@example.invalid", null);
+          accounts.synchronize(original.id(), "new@example.invalid");
           state.setRollbackOnly();
         });
 
@@ -302,12 +274,7 @@ class AccountEstablishmentJpaTest {
     Account original =
         transaction.execute(
             state ->
-                accounts.create(
-                    ISSUER,
-                    "auth0|one",
-                    "Player_144",
-                    "original@example.invalid",
-                    PRINCIPAL_CREATED));
+                accounts.create(ISSUER, "auth0|one", "Player_144", "original@example.invalid"));
     CompletableFuture<Integer> synchronizingPid = new CompletableFuture<>();
 
     try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
@@ -324,17 +291,13 @@ class AccountEstablishmentJpaTest {
                                   synchronizingPid.complete(
                                       sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
                                   return accounts.synchronize(
-                                      original.id(), "late@example.invalid", null);
+                                      original.id(), "late@example.invalid");
                                 }));
                 PostgresTestDatabase.awaitBlocked(sql, synchronizingPid);
                 sql.update("DELETE FROM account WHERE id = ?", original.id());
                 if (recreate) {
                   accounts.create(
-                      ISSUER,
-                      "auth0|one",
-                      "Replacement",
-                      "replacement@example.invalid",
-                      PRINCIPAL_CREATED);
+                      ISSUER, "auth0|one", "Replacement", "replacement@example.invalid");
                 }
                 return synchronization;
               });
@@ -349,7 +312,6 @@ class AccountEstablishmentJpaTest {
         assertThat(replacement.id()).isNotEqualTo(original.id());
         assertThat(replacement.email()).isEqualTo("replacement@example.invalid");
         assertThat(replacement.username()).isEqualTo("Replacement");
-        assertThat(replacement.principalCreatedAt()).isEqualTo(PRINCIPAL_CREATED);
       } else {
         assertThat(current).isEmpty();
       }
@@ -386,8 +348,7 @@ class AccountEstablishmentJpaTest {
     // Given
     Account original =
         transaction.execute(
-            state ->
-                accounts.create(ISSUER, "auth0|one", "Player_144", "player@example.invalid", null));
+            state -> accounts.create(ISSUER, "auth0|one", "Player_144", "player@example.invalid"));
     // Synthetic bytes qualify storage only; actual image decoding belongs to profile validation.
     byte[] originalBytes = {1, 2, 3};
     sql.update(
@@ -430,8 +391,7 @@ class AccountEstablishmentJpaTest {
     // Given
     Account original =
         transaction.execute(
-            state ->
-                accounts.create(ISSUER, "auth0|one", "Player_144", "player@example.invalid", null));
+            state -> accounts.create(ISSUER, "auth0|one", "Player_144", "player@example.invalid"));
 
     // When / Then
     assertThatThrownBy(

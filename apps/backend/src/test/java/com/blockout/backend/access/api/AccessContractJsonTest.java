@@ -81,7 +81,7 @@ class AccessContractJsonTest {
   private static String accountWithPermissions(String permissions) {
     return """
         {"accountId":"00000000-0000-4000-8000-000000000001","username":"Synthetic",
-         "email":"fixture@example.invalid","principalCreatedAt":null,"hasPhoto":false,
+         "email":"fixture@example.invalid","hasPhoto":false,
          "permissions":%s}
         """
         .formatted(permissions);

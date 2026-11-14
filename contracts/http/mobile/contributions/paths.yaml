@@ -42,7 +42,7 @@ OwnCollection:
     description:
       Requires the original usable owner account and a currently viewable match. A stale revision
       returns 409 before duplicate detection; no effects. A failed or lost response permits explicit
-      manual retry without a verification read. Rechecks seven-day account age, H−1, ownership and
+      manual retry without a verification read. Rechecks H−1, ownership and
       quotas. Post-result submissions and unresolved hiding waits require approval. An identical
       current active or pending address for this owner returns 200 without quota use; a new version
       returns 201.
@@ -217,7 +217,7 @@ OwnReport:
       - StreamReports
     summary: Report a stream version
     description:
-      Requires the original usable account and current reporting permission. Reports another owner’s currently public version, including an ownerless link. No age or publication
+      Requires the original usable account and current reporting permission. Reports another owner’s currently public version, including an ownerless link. No publication
       quota condition. An existing report returns 200 without replacing its reason or evaluating the threshold
       again, even if that version is now hidden; its match must remain viewable. A new report requires the
       targeted version still to be active or returns 409. Counts 3 before a definitive result or 10 afterward
@@ -350,7 +350,7 @@ AdministrationCollection:
       Requires current stream-link moderation permission. Publication never bypasses sporting
       visibility or professional restrictions. A stale revision returns 409 before duplicate
       detection; no effects. A failed or lost response permits explicit manual retry without a verification read. Verifies the original actor
-      account. Bypasses ordinary age, time and quota rules. Replaces the active version, supersedes
+      account. Bypasses ordinary time and quota rules. Replaces the active version, supersedes
       pending alternatives and clears the report hold atomically. An unchanged current address for
       this actor returns 200 without a new version; otherwise 201.
     requestBody:

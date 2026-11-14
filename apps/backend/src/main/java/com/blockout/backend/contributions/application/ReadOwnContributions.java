@@ -56,8 +56,6 @@ public class ReadOwnContributions {
     ContributionEligibility.Decision decision = assessment.decision();
     Instant eligibleAt =
         switch (decision.status()) {
-          case ACCOUNT_TOO_YOUNG ->
-              ContributionEligibility.accountEligibleAt(assessment.principalCreatedAt());
           case WINDOW_NOT_OPEN ->
               ContributionEligibility.windowOpensAt(facts.schedule().reliableStart());
           case DAILY_MATCH_LIMIT -> assessment.day().endsAt();

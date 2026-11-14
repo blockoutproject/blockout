@@ -97,7 +97,7 @@ class ContributionErasureConsumersIntegrationTest extends ContributionScenario {
     sql.update("UPDATE account SET issuer=?", issuer);
     for (UUID account : List.of(OBSERVER, SECOND_REPORTER, THIRD_REPORTER)) {
       sql.update(
-          "INSERT INTO account(id,issuer,subject,username,email,principal_created_at) VALUES (?,?,?,?,'synthetic@example.invalid','2020-01-01T00:00:00Z')",
+          "INSERT INTO account(id,issuer,subject,username,email) VALUES (?,?,?,?,'synthetic@example.invalid')",
           account,
           issuer,
           account.toString(),

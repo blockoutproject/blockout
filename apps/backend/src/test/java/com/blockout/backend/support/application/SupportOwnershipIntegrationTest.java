@@ -78,7 +78,7 @@ class SupportOwnershipIntegrationTest extends ContributionScenario {
     reports.report(OTHER, version, "Second moderation report");
     UUID thirdReporter = UUID.fromString("00000000-0000-4000-8000-000000000319");
     sql.update(
-        "INSERT INTO account(id,issuer,subject,username,email,principal_created_at) VALUES (?, ?, ?, 'support_reporter', 'third@example.invalid', '2020-01-01T00:00:00Z')",
+        "INSERT INTO account(id,issuer,subject,username,email) VALUES (?, ?, ?, 'support_reporter', 'third@example.invalid')",
         thirdReporter,
         ISSUER,
         thirdReporter.toString());

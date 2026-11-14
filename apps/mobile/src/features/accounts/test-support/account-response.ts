@@ -8,7 +8,6 @@ export function accountResponse(
     accountId: "00000000-0000-4000-8000-000000000001",
     username: "Original",
     email: "owner@example.invalid",
-    principalCreatedAt: null,
     hasPhoto: false,
     permissions: {
       manageMaintenance: false,

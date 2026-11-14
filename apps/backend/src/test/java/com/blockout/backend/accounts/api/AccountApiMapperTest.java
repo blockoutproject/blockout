@@ -6,8 +6,6 @@ import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.generated.mobile.model.AccountPermissionsResponse;
 import com.blockout.backend.generated.mobile.model.AccountResponse;
-import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -72,7 +70,7 @@ class AccountApiMapperTest {
   }
 
   @Test
-  @DisplayName("Preserves profile identity, known principal age and accepted photo presence")
+  @DisplayName("Preserves profile identity and accepted photo presence")
   void mapsCurrentProfile() {
     // Given
     Account account =
@@ -81,8 +79,7 @@ class AccountApiMapperTest {
             "https://identity.example.invalid/",
             "auth0|mapper",
             "Player_152",
-            "player@example.invalid",
-            Instant.parse("2020-01-02T03:04:05Z"));
+            "player@example.invalid");
 
     // When
     AccountResponse result =
@@ -93,8 +90,6 @@ class AccountApiMapperTest {
     assertThat(result.getAccountId()).isEqualTo(account.id());
     assertThat(result.getUsername()).isEqualTo(account.username());
     assertThat(result.getEmail()).isEqualTo(account.email());
-    assertThat(result.getPrincipalCreatedAt().get())
-        .isEqualTo(OffsetDateTime.parse("2020-01-02T03:04:05Z"));
     assertThat(result.getHasPhoto()).isTrue();
     assertThat(result.getPermissions().getManageMaintenance()).isTrue();
     assertThat(result.getPermissions().getBypassMaintenance()).isTrue();
@@ -102,9 +97,8 @@ class AccountApiMapperTest {
   }
 
   @Test
-  @DisplayName(
-      "Keeps an unknown principal date explicitly null without granting ordinary accounts privileges")
-  void preservesUnknownAge() {
+  @DisplayName("Keeps ordinary accounts without privileged grants")
+  void mapsOrdinaryAccount() {
     // Given
     Account account =
         new Account(
@@ -112,15 +106,12 @@ class AccountApiMapperTest {
             "https://identity.example.invalid/",
             "auth0|mapper",
             "Player_152",
-            "player@example.invalid",
-            null);
+            "player@example.invalid");
 
     // When
     AccountResponse result = mapper.toDto(account, false, Set.of());
 
     // Then
-    assertThat(result.getPrincipalCreatedAt().isPresent()).isTrue();
-    assertThat(result.getPrincipalCreatedAt().get()).isNull();
     assertThat(result.getHasPhoto()).isFalse();
     assertThat(result.getPermissions())
         .extracting(

@@ -7,9 +7,9 @@ Collection:
       - Accounts
     summary: Establish my account
     description:
-      Subject to current maintenance admission, creates the authenticated principal’s account or refreshes its necessary provider
-      information after explicit sign-in. Never links by email. Repetition resolves the same current account. A deleted account is never restored;
-      explicit establishment creates a new account. Known information survives temporary provider absence.
+      Subject to current maintenance admission, creates the authenticated principal’s account or refreshes its provider
+      email after explicit sign-in. Never links by email. Repetition resolves the same current account. A deleted account is never restored;
+      explicit establishment creates a new account. Known email survives temporary provider absence.
     responses:
       "400":
         $ref: ../../common/problems.yaml#/responses/BadRequest

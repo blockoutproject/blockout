@@ -131,7 +131,6 @@ const environment = { ...process.env };
 const initializationMarker = "blockout:v2-initialized";
 const newUuid = "00000000-0000-4000-8000-000000000338";
 const replacementUuid = "00000000-0000-4000-8000-000000000339";
-const principalCreated = "2020-01-02T03:04:05Z";
 let mockAccount: AccountResponse;
 let mockAccountExists: boolean;
 
@@ -150,7 +149,6 @@ beforeEach(async () => {
     accountId: newUuid,
     username: "Fresh_profile",
     email: "shared@example.invalid",
-    principalCreatedAt: principalCreated,
   });
   mockAccountExists = false;
   // Each case starts a real process owner; remounts inside a case retain its SDK lifecycle.
@@ -320,7 +318,6 @@ it.each(["APP_STORE", "PLAY_STORE", "PROMOTIONAL"] as const)(
     await waitFor(() => expect(owners.pro.state.status).toBe("active"));
     expect(owners.session.subject).toBe("google-oauth2|retained");
     expect(owners.session.accountId).toBe(newUuid);
-    expect(owners.account.data?.principalCreatedAt).toBe(principalCreated);
     expect(mockPurchases.configure).toHaveBeenCalledWith(
       expect.objectContaining({ appUserID: newUuid }),
     );
@@ -350,7 +347,6 @@ it("keeps two unlinked principals with equal emails in distinct account and enti
     accountId: replacementUuid,
     username: "Separate_profile",
     email: "shared@example.invalid",
-    principalCreatedAt: principalCreated,
   });
   const inactive = customerInfo({
     active: {},
@@ -560,7 +556,6 @@ it.each(["APP_STORE", "PLAY_STORE"] as const)(
       accountId: replacementUuid,
       username: "Recreated_profile",
       email: "shared@example.invalid",
-      principalCreatedAt: principalCreated,
     });
     const inactive = customerInfo({
       active: {},
@@ -582,7 +577,6 @@ it.each(["APP_STORE", "PLAY_STORE"] as const)(
 
     // Then
     expect(owners.client).not.toBe(oldClient);
-    expect(owners.account.data?.principalCreatedAt).toBe(principalCreated);
     expect(owners.account.data?.permissions.manageMaintenance).toBe(false);
     expect(mockPurchases.logIn).toHaveBeenLastCalledWith(replacementUuid);
     expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();

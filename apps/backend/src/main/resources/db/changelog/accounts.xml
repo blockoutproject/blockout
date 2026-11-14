@@ -31,4 +31,7 @@
       );
     </sql>
   </changeSet>
+  <changeSet id="accounts-remove-principal-created-at" author="blockout">
+    <dropColumn tableName="account" columnName="principal_created_at"/>
+  </changeSet>
 </databaseChangeLog>

@@ -107,11 +107,7 @@ class ContributionErasureIntegrationTest extends ContributionScenario {
                 status ->
                     accounts
                         .create(
-                            ISSUER,
-                            AUTHOR.toString(),
-                            "NewLifecycle",
-                            "synthetic@example.invalid",
-                            null)
+                            ISSUER, AUTHOR.toString(), "NewLifecycle", "synthetic@example.invalid")
                         .id());
 
     // Then

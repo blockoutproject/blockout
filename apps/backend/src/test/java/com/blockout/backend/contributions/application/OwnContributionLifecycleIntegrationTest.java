@@ -92,13 +92,12 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
   }
 
   @Test
-  @DisplayName("Withdrawal ignores publication age window and exhausted version quota")
+  @DisplayName("Withdrawal ignores the publication window and exhausted version quota")
   void withdrawsWithoutSubmissionConditions() throws Exception {
     // Given
     submit(AUTHOR, "0", "https://youtu.be/first", false);
     submit(AUTHOR, "1", "https://youtu.be/second", false);
     SubmitContribution.Outcome active = submit(AUTHOR, "2", "https://youtu.be/third", false);
-    sql.update("UPDATE account SET principal_created_at=NULL WHERE id=?", AUTHOR);
     sql.update(
         "UPDATE sporting_match SET reliable_start=? WHERE id=?",
         Timestamp.from(NOW.plusSeconds(86400)),

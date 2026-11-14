@@ -94,7 +94,7 @@ public abstract class ContributionScenario {
         matchId);
     for (UUID account : List.of(AUTHOR, FOLLOWER, OTHER)) {
       sql.update(
-          "INSERT INTO account(id,issuer,subject,username,email,principal_created_at) VALUES (?, 'https://identity.example.invalid/', ?, ?, 'synthetic@example.invalid', '2020-01-01T00:00:00Z')",
+          "INSERT INTO account(id,issuer,subject,username,email) VALUES (?, 'https://identity.example.invalid/', ?, ?, 'synthetic@example.invalid')",
           account,
           account.toString(),
           account.toString().replace("-", ""));

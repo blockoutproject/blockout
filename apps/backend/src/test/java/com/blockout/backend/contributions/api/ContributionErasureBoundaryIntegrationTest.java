@@ -284,12 +284,7 @@ class ContributionErasureBoundaryIntegrationTest extends ContributionScenario {
               .execute(
                   transaction ->
                       accounts
-                          .create(
-                              ISSUER,
-                              OTHER.toString(),
-                              "Replacement289",
-                              "new@example.invalid",
-                              null)
+                          .create(ISSUER, OTHER.toString(), "Replacement289", "new@example.invalid")
                           .id());
       moderator(recreated);
       proceed.complete(null);

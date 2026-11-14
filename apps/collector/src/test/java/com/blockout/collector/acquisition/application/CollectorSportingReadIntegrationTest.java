@@ -833,7 +833,7 @@ class CollectorSportingReadIntegrationTest {
     UUID operator = UUID.fromString("00000000-0000-4000-8000-000000000212");
     runtime.sql.update("DELETE FROM account WHERE id=?", operator);
     runtime.sql.update(
-        "INSERT INTO account(id,issuer,subject,username,email,principal_created_at) VALUES (?, ?, 'issue212', 'issue212', 'synthetic@example.invalid', '2020-01-01T00:00:00Z')",
+        "INSERT INTO account(id,issuer,subject,username,email) VALUES (?, ?, 'issue212', 'issue212', 'synthetic@example.invalid')",
         operator,
         runtime.issuer());
     runtime.sql.update(

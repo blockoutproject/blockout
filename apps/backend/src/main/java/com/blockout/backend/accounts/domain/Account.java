@@ -1,6 +1,5 @@
 package com.blockout.backend.accounts.domain;
 
-import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -11,15 +10,8 @@ import java.util.UUID;
  * @param subject exact validated subject
  * @param username current user-controlled presentation
  * @param email last usable provider email, never an identity key
- * @param principalCreatedAt trustworthy provider creation instant, or null when unknown
  */
-public record Account(
-    UUID id,
-    String issuer,
-    String subject,
-    String username,
-    String email,
-    Instant principalCreatedAt) {
+public record Account(UUID id, String issuer, String subject, String username, String email) {
 
   /**
    * Matches the validated principal exactly, without email matching or replacement resolution.
@@ -30,22 +22,5 @@ public record Account(
    */
   public boolean belongsTo(String callerIssuer, String callerSubject) {
     return issuer.equals(callerIssuer) && subject.equals(callerSubject);
-  }
-
-  /**
-   * Incorporates available principal evidence without clearing known data or changing the profile.
-   *
-   * @param availableEmail usable provider email, or null/blank when unavailable
-   * @param availableCreatedAt trustworthy principal creation instant, or null when unavailable
-   * @return the same lifecycle with only available provider evidence replaced
-   */
-  public Account withPrincipalEvidence(String availableEmail, Instant availableCreatedAt) {
-    return new Account(
-        id,
-        issuer,
-        subject,
-        username,
-        availableEmail == null || availableEmail.isBlank() ? email : availableEmail,
-        availableCreatedAt == null ? principalCreatedAt : availableCreatedAt);
   }
 }

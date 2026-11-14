@@ -18,10 +18,7 @@ import { isAccountMissing } from "../api/current-account-query";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { Button } from "@/shared/components/button";
 import { AdministrationEntry } from "@/features/access/entry";
-import {
-  useCurrentAccount,
-  useEstablishAccount,
-} from "../api/use-current-account";
+import { useCurrentAccount } from "../api/use-current-account";
 import { useProfileRefresh } from "../api/use-profile-refresh";
 import { ProfileLegalLinks } from "../components/public-account-links";
 import { ProfileLoading } from "../components/profile-loading";
@@ -167,10 +164,6 @@ export function ProfileScreen({
       onEdit={() => router.push("/profile/edit")}
       onSignIn={() => router.push("/sign-in")}
     >
-      {connected &&
-        account.isSuccess &&
-        account.data &&
-        account.data.principalCreatedAt === null && <AccountAgeRetry />}
       <AdministrationEntry />
       <View style={styles.group}>
         <Text
@@ -295,31 +288,6 @@ function ProfileHeader({
           <ProfileSupportAction />
         </>
       }
-    />
-  );
-}
-
-/** Explicit establishment retry for missing provider age evidence; ordinary account refresh cannot issue this command. */
-function AccountAgeRetry() {
-  const session = useAccountSession();
-  const establishment = useEstablishAccount();
-  const feedback = useActionFeedback();
-  return (
-    <Button
-      label="Réessayer"
-      loading={establishment.isPending}
-      onPress={() => {
-        feedback.clear();
-        if (!session.subject) {
-          return;
-        }
-        void establishment
-          .mutateAsync({
-            subject: session.subject,
-            getCredentials: session.getCredentials,
-          })
-          ?.catch(() => feedback.error());
-      }}
     />
   );
 }

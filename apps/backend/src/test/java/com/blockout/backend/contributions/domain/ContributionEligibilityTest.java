@@ -6,7 +6,6 @@ import com.blockout.backend.contributions.domain.ContributionEligibility.Actor;
 import com.blockout.backend.contributions.domain.ContributionEligibility.Current;
 import com.blockout.backend.contributions.domain.ContributionEligibility.Match;
 import com.blockout.backend.contributions.domain.ContributionEligibility.Status;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -29,45 +28,24 @@ class ContributionEligibilityTest {
   private static final StreamAddress ADDRESS = new StreamAddress("https://youtube.com/watch?v=one");
   private static final ContributionQuota.Usage EMPTY = new ContributionQuota.Usage(0, 0, false);
   private static final ContributionQuota.Usage FULL = new ContributionQuota.Usage(3, 3, true);
-  private static final Actor ORDINARY =
-      new Actor(OWNER, true, false, NOW.minus(Duration.ofDays(7)));
-  private static final Actor MODERATOR = new Actor(OWNER, false, true, null);
+  private static final Actor ORDINARY = new Actor(OWNER, true, false);
+  private static final Actor MODERATOR = new Actor(OWNER, false, true);
   private static final Match ELIGIBLE =
       new Match(true, false, LocalDate.of(2026, 10, 24), NOW.plusSeconds(3600), false);
   private static final Current INITIAL = new Current(ContributionState.initial(MATCH), null, null);
 
-  @ParameterizedTest
-  @CsvSource({
-    "604799, ACCOUNT_TOO_YOUNG",
-    "604800, ACTIVE",
-    "604801, ACTIVE",
-    "-1, ACCOUNT_TOO_YOUNG"
-  })
-  @DisplayName("Requires seven elapsed days from reliable principal creation, inclusively")
-  void checksElapsedAge(long seconds, Status expected) {
-    // Given
-    Actor actor = new Actor(OWNER, true, false, NOW.minusSeconds(seconds));
-
-    // When
-    ContributionEligibility.Decision result =
-        ContributionEligibility.evaluate(actor, ELIGIBLE, INITIAL, 0, ADDRESS, EMPTY, NOW);
-
-    // Then
-    assertThat(result.status()).isEqualTo(expected);
-  }
-
   @Test
-  @DisplayName("Suspends only the age-dependent action when evidence is unknown")
-  void rejectsUnknownAge() {
+  @DisplayName("Accepts a usable ordinary account under the current publication conditions")
+  void acceptsUsableAccount() {
     // Given
-    Actor actor = new Actor(OWNER, true, false, null);
+    Actor actor = new Actor(OWNER, true, false);
 
     // When
     ContributionEligibility.Decision result =
         ContributionEligibility.evaluate(actor, ELIGIBLE, INITIAL, 0, ADDRESS, EMPTY, NOW);
 
     // Then
-    assertThat(result.status()).isEqualTo(Status.ACCOUNT_AGE_UNKNOWN);
+    assertThat(result.status()).isEqualTo(Status.ACTIVE);
   }
 
   @ParameterizedTest
@@ -162,7 +140,7 @@ class ContributionEligibilityTest {
   }
 
   @Test
-  @DisplayName("Lets a stream-only moderator bypass age, window, hold, result and quotas")
+  @DisplayName("Lets a stream-only moderator bypass window, hold, result and quotas")
   void appliesOnlyEstablishedModeratorExceptions() {
     // Given
     Current held = new Current(new ContributionState(MATCH, 0, VERSION), null, null);
@@ -206,7 +184,7 @@ class ContributionEligibilityTest {
   @DisplayName("Does not derive publication rights or moderator exemption from an unrelated grant")
   void requiresCurrentCapability() {
     // Given
-    Actor unrelated = new Actor(OWNER, false, false, ORDINARY.principalCreatedAt());
+    Actor unrelated = new Actor(OWNER, false, false);
 
     // When
     ContributionEligibility.Decision result =
@@ -270,7 +248,7 @@ class ContributionEligibilityTest {
             new ContributionState(MATCH, 4, null),
             version(OWNER, ContributionVersion.State.ACTIVE, ADDRESS),
             null);
-    Actor revoked = new Actor(OWNER, false, false, ORDINARY.principalCreatedAt());
+    Actor revoked = new Actor(OWNER, false, false);
 
     // When
     ContributionEligibility.Decision result =

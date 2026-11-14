@@ -139,7 +139,6 @@ beforeEach(async () => {
       return Response.json(
         accountResponse({
           accountId: mockAccountId,
-          principalCreatedAt: "2020-01-01T00:00:00Z",
         }),
       );
     }

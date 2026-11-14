@@ -210,9 +210,7 @@ class ContributionSubmissionWebMvcTest {
     "STALE_REVISION,409",
     "NOT_OWNER,403",
     "FORBIDDEN,403",
-    "ACCOUNT_TOO_YOUNG,422",
     "INVALID_ADDRESS,422",
-    "ACCOUNT_AGE_UNKNOWN,503",
     "MATCH_UNAVAILABLE,404"
   })
   @DisplayName("Translates safe current policy refusals into canonical private errors")

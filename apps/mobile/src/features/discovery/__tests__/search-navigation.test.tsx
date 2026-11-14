@@ -959,7 +959,6 @@ it.each(["tab", "route", "principal", "admission"])(
       await act(async () => {
         accountProfile = accountResponse({
           accountId: firstId,
-          principalCreatedAt: "2020-01-01T00:00:00Z",
         });
         mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${firstId}`));
         mockAuth0.getCredentials.mockResolvedValue(

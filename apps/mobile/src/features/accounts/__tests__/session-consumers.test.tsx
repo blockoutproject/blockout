@@ -121,7 +121,6 @@ it("clears actual RevenueCat presentation before push cleanup finishes and rejec
         ? Response.json(
             accountResponse({
               accountId: "00000000-0000-4000-8000-000000000001",
-              principalCreatedAt: "2020-01-01T00:00:00Z",
             }),
           )
         : new Response(null, { status: 404 })) as Awaited<

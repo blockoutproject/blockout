@@ -19,7 +19,7 @@ public class ActionAuthorization {
   /**
    * Locks the original account before reading its grant and holds the lock through caller commit.
    * Acquire domain roots first, then accounts in UUID order; acquire no domain root afterward. The
-   * caller still checks current resource ownership, visibility, age and quota rules before effects.
+   * caller still checks current resource ownership, visibility and quota rules before effects.
    *
    * @param accountId original business UUID resolved from the validated principal
    * @param permission exact action being requested

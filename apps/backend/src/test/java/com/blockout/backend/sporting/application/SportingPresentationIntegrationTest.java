@@ -156,8 +156,7 @@ class SportingPresentationIntegrationTest {
                             "https://identity.example.invalid/",
                             "auth0|presentation",
                             "Operator_193",
-                            "operator@example.invalid",
-                            null)
+                            "operator@example.invalid")
                         .id());
     sql.update(
         "INSERT INTO account_permission(account_id,permission) VALUES (?, 'sporting-presentation.manage')",
