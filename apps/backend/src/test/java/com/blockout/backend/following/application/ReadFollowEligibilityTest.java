@@ -9,8 +9,6 @@ import com.blockout.backend.following.application.FollowContext.Relation;
 import com.blockout.backend.following.application.FollowContext.Target;
 import com.blockout.backend.following.application.FollowContext.TargetType;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -30,8 +28,7 @@ class ReadFollowEligibilityTest {
       new Target(TargetType.POOL, UUID.fromString("00000000-0000-4000-8000-000000000004"));
 
   @Test
-  @DisplayName(
-      "Unions overlapping team and pool origins once per account with all relation identities")
+  @DisplayName("Unions overlapping team and pool origins once per account")
   void unionsRecipients() {
     // Given
     Relation homeFollow =
@@ -49,43 +46,11 @@ class ReadFollowEligibilityTest {
     when(store.relations(targets)).thenReturn(List.of(homeFollow, awayFollow, poolFollow, other));
 
     // When
-    Map<UUID, Set<Relation>> recipients = eligibility.recipients(targets);
+    Set<UUID> recipients = eligibility.recipients(targets);
 
     // Then
-    assertThat(recipients).hasSize(2);
-    assertThat(recipients.get(account))
-        .containsExactlyInAnyOrder(homeFollow, awayFollow, poolFollow);
-    assertThat(recipients.get(other.accountId())).containsExactly(other);
+    assertThat(recipients).containsExactlyInAnyOrder(account, other.accountId());
     assertThatThrownBy(() -> recipients.clear()).isInstanceOf(UnsupportedOperationException.class);
-    assertThatThrownBy(() -> recipients.get(account).clear())
-        .isInstanceOf(UnsupportedOperationException.class);
-  }
-
-  @Test
-  @DisplayName(
-      "Keeps the same relation eligible while excluding its removed or recreated incarnation")
-  void distinguishesRelationLifecycles() {
-    // Given
-    Relation original =
-        new Relation(UUID.fromString("00000000-0000-4000-8000-000000000010"), account, home);
-    FollowContext context = new FollowContext(account, home);
-    when(store.find(context))
-        .thenReturn(
-            Optional.of(original),
-            Optional.empty(),
-            Optional.of(
-                new Relation(
-                    UUID.fromString("00000000-0000-4000-8000-000000000011"), account, home)));
-
-    // When
-    boolean retained = eligibility.stillPresent(original);
-    boolean removed = eligibility.stillPresent(original);
-    boolean recreated = eligibility.stillPresent(original);
-
-    // Then
-    assertThat(retained).isTrue();
-    assertThat(removed).isFalse();
-    assertThat(recreated).isFalse();
   }
 
   @Test
@@ -99,11 +64,11 @@ class ReadFollowEligibilityTest {
     when(store.relations(targets)).thenReturn(List.of(historical), List.of());
 
     // When
-    Map<UUID, Set<Relation>> beforeRemoval = eligibility.recipients(targets);
-    Map<UUID, Set<Relation>> afterRemoval = eligibility.recipients(targets);
+    Set<UUID> beforeRemoval = eligibility.recipients(targets);
+    Set<UUID> afterRemoval = eligibility.recipients(targets);
 
     // Then
-    assertThat(beforeRemoval).containsEntry(account, Set.of(historical));
+    assertThat(beforeRemoval).containsExactly(account);
     assertThat(afterRemoval).isEmpty();
   }
 }

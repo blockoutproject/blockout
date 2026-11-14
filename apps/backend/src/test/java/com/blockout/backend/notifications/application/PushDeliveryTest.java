@@ -11,7 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.blockout.backend.notifications.application.AllocateAnnouncements.Created;
+import com.blockout.backend.notifications.application.AllocateAnnouncements.Entry;
 import com.blockout.backend.notifications.application.PushProvider.Message;
 import com.blockout.backend.notifications.application.PushProvider.Outcome;
 import com.blockout.backend.notifications.application.PushProvider.Status;
@@ -56,22 +56,20 @@ class PushDeliveryTest {
           Clock.fixed(NOW, ZoneOffset.UTC),
           true);
   private final Target target = new Target(SUBSCRIPTION_ID, 7, "ExponentPushToken[synthetic]");
-  private final Created created =
-      new Created(
-          new AllocateAnnouncements.Entry(
-              NOTIFICATION_ID,
-              OWNER,
-              MATCH_ID,
-              com.blockout.backend.notifications.domain.NotificationFamily.PLAIN_RESULT,
-              com.blockout.backend.notifications.domain.NotificationVariant.FIRST,
-              NOW),
-          java.util.Set.of());
+  private final Entry created =
+      new Entry(
+          NOTIFICATION_ID,
+          OWNER,
+          MATCH_ID,
+          com.blockout.backend.notifications.domain.NotificationFamily.PLAIN_RESULT,
+          com.blockout.backend.notifications.domain.NotificationVariant.FIRST,
+          NOW);
   private final Message message =
       new Message(
           target,
           OWNER,
-          created.entry().id(),
-          created.entry().matchId(),
+          created.id(),
+          created.matchId(),
           new NotificationMessage("Sport", "Safe current facts"));
 
   @Test

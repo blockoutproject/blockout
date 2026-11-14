@@ -1,11 +1,9 @@
 package com.blockout.backend.contributions.application;
 
 import com.blockout.backend.notifications.application.AfterCommitAnnouncements;
-import com.blockout.backend.notifications.application.AnnouncementRecipients.Recipient;
 import com.blockout.backend.notifications.application.ProcessLinkAnnouncement;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess.Facts;
 import java.time.Instant;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -25,11 +23,10 @@ public class AnnounceContribution {
    * Composes actual current availability under retained match/account locks.
    *
    * @param facts current F02 context
-   * @param audience current F06 audience under complete account locks
    * @param now actual publication-processing instant
    */
   @Transactional(propagation = Propagation.MANDATORY)
-  public void published(Facts facts, List<Recipient> audience, Instant now) {
+  public void published(Facts facts, Instant now) {
     handoff.submit(
         announcements.process(
             new ProcessLinkAnnouncement.Context(
@@ -38,7 +35,6 @@ public class AnnounceContribution {
                 facts.definitiveResult(),
                 facts.schedule().reliableStart(),
                 true,
-                now),
-            audience));
+                now)));
   }
 }

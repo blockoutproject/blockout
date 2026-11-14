@@ -608,35 +608,6 @@ class SportingIngestionWebMvcTest {
     verifyNoInteractions(images);
   }
 
-  @Test
-  @DisplayName("An audience turnover refuses detail acceptance with a safe conflict")
-  void reportsAnnouncementAudienceConflict() throws Exception {
-    // Given
-    when(matches.detail(any()))
-        .thenThrow(
-            new com.blockout.backend.notifications.application
-                .AnnouncementAudienceChangedException());
-    String body =
-        """
-        {"context":{"cycleId":"00000000-0000-4000-8000-000000000001","readOrdinal":2,
-        "observedAt":"2026-10-24T12:00:00Z"},"facts":{}}
-        """;
-
-    // When
-    ResultActions response =
-        mvc.perform(
-            post("/ingestion/matches/00000000-0000-4000-8000-000000000002/detail-observations")
-                .with(collector())
-                .contentType("application/json")
-                .content(body));
-
-    // Then
-    response
-        .andExpect(status().isConflict())
-        .andExpect(header().string("Cache-Control", "no-store"))
-        .andExpect(jsonPath("$.type").value("urn:blockout:problem:conflict"));
-  }
-
   /**
    * Supplies the dedicated validated client identity; signature validation has its owning suite.
    *

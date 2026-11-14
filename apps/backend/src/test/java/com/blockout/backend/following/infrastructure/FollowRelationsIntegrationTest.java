@@ -27,7 +27,6 @@ import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -330,7 +329,7 @@ class FollowRelationsIntegrationTest {
     assertThat(store.find(new FollowContext(ACCOUNT, new Target(TargetType.TEAM, nextTeam))))
         .isEmpty();
     assertThat(eligibility.recipients(Set.of(context(TargetType.TEAM).target())))
-        .containsEntry(ACCOUNT, Set.of(relation(TargetType.TEAM)));
+        .containsExactly(ACCOUNT);
   }
 
   @ParameterizedTest
@@ -519,13 +518,13 @@ class FollowRelationsIntegrationTest {
   }
 
   @Test
-  @DisplayName("Reads current typed relations for eligibility and excludes a recreated UUID")
+  @DisplayName("Current typed follow remains eligible after relation recreation")
   void readsEligibility() {
     // Given
     state.replace(context(TargetType.TEAM), true);
     state.replace(context(TargetType.POOL), true);
     Relation original = relation(TargetType.TEAM);
-    Map<UUID, Set<Relation>> recipients =
+    Set<UUID> recipients =
         eligibility.recipients(
             Set.of(context(TargetType.TEAM).target(), context(TargetType.POOL).target()));
 
@@ -534,9 +533,9 @@ class FollowRelationsIntegrationTest {
     state.replace(context(TargetType.TEAM), true);
 
     // Then
-    assertThat(recipients).containsEntry(ACCOUNT, Set.of(original, relation(TargetType.POOL)));
-    assertThat(eligibility.stillPresent(original)).isFalse();
-    assertThat(eligibility.stillPresent(relation(TargetType.TEAM))).isTrue();
+    assertThat(recipients).containsExactly(ACCOUNT);
+    assertThat(relation(TargetType.TEAM).id()).isNotEqualTo(original.id());
+    assertThat(eligibility.following(context(TargetType.TEAM))).isTrue();
   }
 
   /**

@@ -3,7 +3,6 @@ package com.blockout.backend.contributions.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -11,7 +10,6 @@ import static org.mockito.Mockito.when;
 
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.notifications.application.AfterCommitAnnouncements;
-import com.blockout.backend.notifications.application.AllocateAnnouncements.Created;
 import com.blockout.backend.notifications.application.AllocateAnnouncements.Entry;
 import com.blockout.backend.notifications.application.ProcessLinkAnnouncement;
 import com.blockout.backend.notifications.domain.NotificationFamily;
@@ -23,7 +21,6 @@ import com.blockout.backend.sporting.application.service.MatchContributionAccess
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -63,12 +60,12 @@ class AnnounceContributionTest {
             false);
 
     // When
-    transitions.published(facts, List.of(), NOW);
+    transitions.published(facts, NOW);
 
     // Then
     ArgumentCaptor<ProcessLinkAnnouncement.Context> context =
         ArgumentCaptor.forClass(ProcessLinkAnnouncement.Context.class);
-    verify(announcements).process(context.capture(), eq(List.of()));
+    verify(announcements).process(context.capture());
     assertThat(context.getValue().publicLink()).isEqualTo(available);
     assertThat(context.getValue().finalResult()).isTrue();
     assertThat(context.getValue().acceptedPublication()).isTrue();
@@ -86,7 +83,7 @@ class AnnounceContributionTest {
     AfterCommitAnnouncements handoff = mock(AfterCommitAnnouncements.class);
     when(links.read(MATCH)).thenReturn(Optional.empty());
     IllegalStateException failure = new IllegalStateException("Controlled internal failure");
-    when(announcements.process(any(), any())).thenThrow(failure);
+    when(announcements.process(any())).thenThrow(failure);
     AnnounceContribution transitions = new AnnounceContribution(links, announcements, handoff);
     Facts facts =
         new Facts(
@@ -97,7 +94,7 @@ class AnnounceContributionTest {
             false);
 
     // When / Then
-    assertThatThrownBy(() -> transitions.published(facts, List.of(), NOW)).isSameAs(failure);
+    assertThatThrownBy(() -> transitions.published(facts, NOW)).isSameAs(failure);
     verifyNoInteractions(handoff);
   }
 
@@ -119,8 +116,8 @@ class AnnounceContributionTest {
             NotificationFamily.POST_RESULT_LINK,
             NotificationVariant.FIRST,
             NOW);
-    List<Created> created = List.of(new Created(entry, Set.of()));
-    when(announcements.process(any(), any())).thenReturn(created);
+    List<Entry> created = List.of(entry);
+    when(announcements.process(any())).thenReturn(created);
     AnnounceContribution transitions = new AnnounceContribution(links, announcements, handoff);
     Facts facts =
         new Facts(
@@ -131,7 +128,7 @@ class AnnounceContributionTest {
             false);
 
     // When
-    transitions.published(facts, List.of(), NOW);
+    transitions.published(facts, NOW);
 
     // Then
     verify(handoff).submit(created);

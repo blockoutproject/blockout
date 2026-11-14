@@ -435,30 +435,6 @@ class ContributionSubmissionWebMvcTest {
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:unavailable"));
   }
 
-  @Test
-  @DisplayName("An audience change is a safe conflict without a mutation replay")
-  void reportsAudienceConflict() throws Exception {
-    // Given
-    when(submissions.submit(any(), any(), any(), any(), anyBoolean()))
-        .thenThrow(
-            new com.blockout.backend.notifications.application
-                .AnnouncementAudienceChangedException());
-
-    // When
-    ResultActions response =
-        mvc.perform(
-            post(PATH)
-                .with(mobile())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":\"0\",\"url\":\"https://youtube.com/a\"}"));
-
-    // Then
-    response
-        .andExpect(status().isConflict())
-        .andExpect(header().string("Cache-Control", "no-store"))
-        .andExpect(jsonPath("$.type").value("urn:blockout:problem:conflict"));
-  }
-
   /**
    * Supplies a validated mobile authentication; signature/environment qualification is in
    * ContributionAccessWebMvcTest.

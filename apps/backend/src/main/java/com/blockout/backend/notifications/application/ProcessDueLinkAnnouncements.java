@@ -33,12 +33,6 @@ public class ProcessDueLinkAnnouncements {
       for (UUID id : candidates) {
         try {
           transaction.process(id);
-        } catch (AnnouncementAudienceChangedException conflict) {
-          log.atWarn()
-              .addKeyValue("operation", "link_announcement_pass")
-              .addKeyValue("scope", id)
-              .addKeyValue("outcome", "conflict")
-              .log("Changed audience leaves the candidate for a later ordinary pass");
         } catch (RuntimeException failure) {
           log.atError()
               .addKeyValue("operation", "link_announcement_pass")
@@ -59,14 +53,13 @@ public class ProcessDueLinkAnnouncements {
   public static class ProcessDueMatch {
     private final MatchContributionAccess sporting;
     private final ReadPublicContribution links;
-    private final AnnouncementRecipients recipients;
     private final ProcessLinkAnnouncement announcements;
     private final NotificationStore notifications;
     private final AfterCommitAnnouncements handoff;
     private final Clock clock;
 
     /**
-     * Rereads actual eligibility under sporting roots before complete audience locking.
+     * Checks actual eligibility under sporting roots before announcement processing.
      *
      * @param matchId candidate from current active links, possibly changed since selection
      */
@@ -91,8 +84,7 @@ public class ProcessDueLinkAnnouncements {
                   false,
                   facts.schedule().reliableStart(),
                   false,
-                  clock.instant()),
-              recipients.select(facts.match())));
+                  clock.instant())));
     }
   }
 }

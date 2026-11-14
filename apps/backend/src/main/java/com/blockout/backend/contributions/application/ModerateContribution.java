@@ -11,14 +11,11 @@ import com.blockout.backend.contributions.domain.ContributionVersion.Decision;
 import com.blockout.backend.contributions.domain.ContributionVersion.DecisionKind;
 import com.blockout.backend.contributions.domain.ContributionVersion.State;
 import com.blockout.backend.generated.mobile.model.StreamModerationActionEnum;
-import com.blockout.backend.notifications.application.AnnouncementRecipients;
-import com.blockout.backend.notifications.application.AnnouncementRecipients.Selection;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess.Facts;
 import java.time.Clock;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -31,7 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ModerateContribution {
   private final MatchContributionAccess sporting;
-  private final AnnouncementRecipients recipients;
   private final AccountAccess accounts;
   private final CurrentPermissions permissions;
   private final ContributionStore store;
@@ -39,8 +35,8 @@ public class ModerateContribution {
   private final Clock clock;
 
   /**
-   * Approves the existing proposal, rejects only it, or withdraws only the active target. Only
-   * approval selects and locks subscribers; every action retains actor and attribution protection.
+   * Approves the existing proposal, rejects only it, or withdraws only the active target. Every
+   * action retains actor and attribution protection; F07 selects only an allocated audience.
    *
    * @param actor original admitted moderator, rechecked after account locks
    * @param matchId retained private sporting root
@@ -63,7 +59,7 @@ public class ModerateContribution {
       StreamModerationActionEnum action) {
     Facts facts = sporting.lock(matchId);
     boolean publishes = action == StreamModerationActionEnum.APPROVE;
-    Selection audience = lock(actor, facts, versionId, publishes);
+    lock(actor, facts, versionId);
     ContributionVersion target = target(matchId, versionId, revision);
     State terminal =
         switch (action) {
@@ -96,7 +92,7 @@ public class ModerateContribution {
     }
     String next = Long.toString(store.advance(matchId, publishes).revision());
     if (publishes) {
-      transitions.published(facts, audience.recipients(), clock.instant());
+      transitions.published(facts, clock.instant());
     }
     return new SubmitContribution.Outcome(changed, next, false);
   }
@@ -119,7 +115,7 @@ public class ModerateContribution {
   public SubmitContribution.Outcome reactivate(
       UUID actor, UUID matchId, UUID versionId, String revision) {
     Facts facts = sporting.lock(matchId);
-    Selection audience = lock(actor, facts, versionId, true);
+    lock(actor, facts, versionId);
     ContributionVersion source = target(matchId, versionId, revision);
     if (!ContributionDecision.canReactivate(source.state())) {
       throw new ContributionConflictException();
@@ -127,45 +123,35 @@ public class ModerateContribution {
     requirePublication(facts);
     ContributionVersion created = store.select(versionId, actor, clock.instant(), true);
     String next = Long.toString(store.advance(matchId, true).revision());
-    transitions.published(facts, audience.recipients(), clock.instant());
+    transitions.published(facts, clock.instant());
     return new SubmitContribution.Outcome(created, next, true);
   }
 
   /**
-   * Locks sorted actor and scalar attributions before loading a mutable version. A publishing
-   * branch includes the current subscriber union; other decisions do not consult followers.
+   * Locks sorted actor and scalar attributions before loading a mutable version.
    *
    * @param actor original actor to retain
    * @param facts sporting facts under already locked roots
    * @param versionId historical source whose attribution also needs erasure coordination
-   * @param publishes whether this branch may publish a link and require an announcement audience
-   * @return surviving locked accounts and current recipients, empty for nonpublishing branches
    * @throws AccountNotFoundException when the original actor was erased before locking
    * @throws AccessDeniedException when the current moderation grant is absent
    */
-  private Selection lock(UUID actor, Facts facts, UUID versionId, boolean publishes) {
+  private void lock(UUID actor, Facts facts, UUID versionId) {
     Set<UUID> affected = new HashSet<>(store.attributionAccounts(facts.match().id()));
     affected.addAll(store.versionAttributionAccounts(versionId));
     affected.add(actor);
-    Selection selection;
-    if (publishes) {
-      selection = recipients.select(facts.match(), affected);
-    } else {
-      Set<UUID> surviving = new HashSet<>();
-      for (UUID account : affected.stream().sorted().toList()) {
-        if (accounts.lock(account)) {
-          surviving.add(account);
-        }
+    Set<UUID> surviving = new HashSet<>();
+    for (UUID account : affected.stream().sorted().toList()) {
+      if (accounts.lock(account)) {
+        surviving.add(account);
       }
-      selection = new Selection(List.of(), surviving);
     }
-    if (!selection.accounts().contains(actor)) {
+    if (!surviving.contains(actor)) {
       throw new AccountNotFoundException();
     }
     if (!permissions.forAccount(actor).contains(Permission.MODERATE_STREAM_LINKS)) {
       throw new AccessDeniedException("Action is not permitted");
     }
-    return selection;
   }
 
   /**

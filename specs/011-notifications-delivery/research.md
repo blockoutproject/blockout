@@ -23,8 +23,9 @@ transaction, preventing a later registration from receiving historical work. It 
 event; the actual `DeliverPush` consumer uses Spring’s `@TransactionalEventListener(AFTER_COMMIT)`
 with highest precedence and its safe handoff failure boundary. No wrapper event or republication
 stage is needed. Java 25 `Gatherers.windowFixed` owns ordered send/projection batching. `ReadPushEligibility`
-uses the existing current inbox/F03/F08 projection and F06 identity API in a short read-only
-transaction. A normal unavailable member uses `ReadInbox.availableMember` instead of catching a
+uses the existing current inbox/F03/F08 projection and F06 current-follow API in a short read-only
+transaction. It requires a current qualifying follow for the selected account, without captured
+relation UUID continuity; destination row identity/revision still protects the exact association. A normal unavailable member uses `ReadInbox.availableMember` instead of catching a
 transactional exception that has already marked its enclosing read transaction rollback-only.
 No owner repository/entity is imported across feature boundaries.
 
@@ -62,9 +63,9 @@ safe operational handling remain in the [operations guide](../../infra/operation
 
 ## Transactional inbox and approximate start-time announcements
 
-**Decision.** Invoke required F07 writes in the producer's local database transaction, under existing match/account locking. After commit, submit only best-effort external work. Use one ordinary scheduled eligibility pass every minute for links published before H; process later publications and results through accepted transitions.
+**Decision.** Once an announcement category is actually allocated, select its audience once and invoke required F07 writes in the producer's local database transaction. Keep the match lock and required actor/quota/attribution locks; add no audience account locks. Do no audience work for private, unchanged or nonallocating submissions. After commit, submit only best-effort external work. Use one ordinary scheduled eligibility pass every minute for links published before H; process later publications and results through accepted transitions.
 
-**Rationale.** Match facts prevent duplicates even with no recipient and after inbox purge. Current follows at actual processing avoid an exact-H subscription history. Short per-match transactions preserve independently accepted matches. A correction affects derived content and never creates another notification. The match lock fixes result/link composition once.
+**Rationale.** Match facts prevent duplicates even with no recipient and after inbox purge. Current follows at actual processing avoid an exact-H subscription history. Short per-match transactions preserve independently accepted matches. A correction affects derived content and never creates another notification. The match lock fixes result/link composition once. Existing account/inbox foreign keys and deletion cascades preserve selected-account integrity without audience locks. An insertion that fails against concurrent account erasure still rolls back the producer; no orphan or erased personal data may survive. A follow arriving after selection is neither added nor a reason to fail acceptance/publication. There is no second audience read, audience-equality conflict or replacement synchronization.
 
 Construction uses JPA `EntityManager.persist` for application-assigned UUIDs and dirty checking for existing match facts. Spring Data's [default new-state detection](https://docs.spring.io/spring-data/jpa/reference/jpa/entity-persistence.html) treats these non-null, unversioned IDs as existing and calls `merge`; re-creating a retained entry through merge can reset its read state. Direct JPA insertion preserves the focused application port without an artificial version, new-state flag or empty CRUD repositories. The inbox repository owns scalar reads, keyset selection and bounded bulk updates; assigned-ID lifecycle operations remain in the same feature adapter without a forwarding repository fragment.
 
@@ -74,7 +75,7 @@ provides a snapshot per statement, so two separate origin reads could invent an 
 committed turnover. A single `UNION ALL` fixes that boundary in the F06 Spring Data repository without a separate
 transaction, later account lock or replay. Qualify this boundary with the selected Hibernate/PostgreSQL versions through the [quickstart](quickstart.md#atomic-producer-and-link-qualification).
 
-**Alternatives considered.** Timers persisted per match, a broker and recipient-history snapshots add state without an accepted precision/recovery requirement. Using after-commit listeners for inbox creation would break the accepted atomicity; after-commit is only the push boundary.
+**Alternatives considered.** Rereading the audience and rejecting new concurrent followers creates an unrelated producer failure without a required benefit. Captured follow UUID continuity rejects an already selected person who currently follows again; the current qualifying follow is sufficient. Timers persisted per match, a broker and recipient-history snapshots add state without an accepted precision/recovery requirement. Using after-commit listeners for inbox creation would break the accepted atomicity; after-commit is only the push boundary.
 
 **Evidence.** [Spring scheduling](https://docs.spring.io/spring-framework/reference/integration/scheduling.html), [transaction-bound events](https://docs.spring.io/spring-framework/reference/data-access/transaction/event.html), [Spring Data locking](https://docs.spring.io/spring-data/jpa/reference/jpa/locking.html), and the accepted [F02 concurrency contract](../002-sporting-data/plan.md#acceptance-and-concurrency). Native mechanisms are documented; rollback, lock ordering and process-loss boundaries still require actual PostgreSQL/Spring tests.
 

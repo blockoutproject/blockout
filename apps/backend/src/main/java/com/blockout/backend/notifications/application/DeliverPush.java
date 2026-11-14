@@ -1,6 +1,6 @@
 package com.blockout.backend.notifications.application;
 
-import com.blockout.backend.notifications.application.AllocateAnnouncements.Created;
+import com.blockout.backend.notifications.application.AllocateAnnouncements.Entry;
 import com.blockout.backend.notifications.application.PushProvider.Message;
 import com.blockout.backend.notifications.application.PushProvider.Outcome;
 import com.blockout.backend.notifications.application.PushProvider.Status;
@@ -53,7 +53,7 @@ public class DeliverPush {
       ready.entries().stream()
           .flatMap(
               created ->
-                  ready.targets().getOrDefault(created.entry().accountId(), List.of()).stream()
+                  ready.targets().getOrDefault(created.accountId(), List.of()).stream()
                       .map(target -> new Attempt(created, target)))
           .gather(Gatherers.windowFixed(100))
           .forEach(this::submit);
@@ -74,7 +74,7 @@ public class DeliverPush {
       Thread.sleep(Duration.ofMillis(200));
       List<Message> messages = new ArrayList<>();
       for (Attempt attempt : attempts) {
-        eligibility.current(attempt.created(), attempt.target()).ifPresent(messages::add);
+        eligibility.current(attempt.entry(), attempt.target()).ifPresent(messages::add);
       }
       if (messages.isEmpty() || !admission.allowsHandoff()) {
         return;
@@ -179,5 +179,5 @@ public class DeliverPush {
   }
 
   /** One original allocation and selected association; never a durable job. */
-  public record Attempt(Created created, Target target) {}
+  public record Attempt(Entry entry, Target target) {}
 }
