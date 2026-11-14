@@ -68,7 +68,6 @@ class PoolConsultationWebMvcTest {
                 ID,
                 StandingsAvailabilityEnum.AVAILABLE,
                 OffsetDateTime.parse("2026-10-20T12:00:00Z"),
-                true,
                 List.of("Ratio", "Pts"),
                 List.of(
                     new ConsultationViews.StandingRow(
@@ -82,7 +81,8 @@ class PoolConsultationWebMvcTest {
         .andExpect(status().isOk())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.observedAt").value("2026-10-20T12:00:00Z"))
-        .andExpect(jsonPath("$.lastAttemptFailed").value(true))
+        .andExpect(jsonPath("$.lastAttemptFailed").doesNotExist())
+        .andExpect(jsonPath("$.availability").value("available"))
         .andExpect(jsonPath("$.columns[0]").value("Ratio"))
         .andExpect(jsonPath("$.rows[0].sourceName").value("Unmatched"))
         .andExpect(jsonPath("$.rows[0].position").doesNotExist())
@@ -138,7 +138,7 @@ class PoolConsultationWebMvcTest {
     when(resources.standings(ID))
         .thenReturn(
             new ConsultationViews.Standings(
-                ID, StandingsAvailabilityEnum.UNAVAILABLE, null, false, List.of(), List.of()));
+                ID, StandingsAvailabilityEnum.UNAVAILABLE, null, List.of(), List.of()));
     when(resources.participants(ID)).thenReturn(new ConsultationViews.Participants(ID, List.of()));
 
     // When

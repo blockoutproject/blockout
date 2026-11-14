@@ -14,7 +14,6 @@ const table: PoolStandingsResponse = {
   poolId: sportingId,
   availability: "available",
   observedAt: "2026-10-20T12:00:00Z",
-  lastAttemptFailed: false,
   columns: ["Ratio", "Pts"],
   rows: [
     {

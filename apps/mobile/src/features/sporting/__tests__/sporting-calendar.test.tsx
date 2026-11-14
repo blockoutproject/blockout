@@ -1424,7 +1424,6 @@ it("admits team identity and independent tabs while its first standings remain p
     poolId: pool.pool.id,
     availability: "available",
     observedAt: "2026-10-28T12:00:00Z",
-    lastAttemptFailed: false,
     columns: ["Points"],
     rows: [
       {

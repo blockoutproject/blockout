@@ -272,7 +272,6 @@ it.each(["available", "not-published", "unavailable"] as const)(
       Response.json({
         poolId: sportingId,
         availability,
-        lastAttemptFailed: false,
         columns: [],
         rows:
           availability === "available"
@@ -303,7 +302,6 @@ it.each(["future", null])(
       Response.json({
         poolId: sportingId,
         availability,
-        lastAttemptFailed: false,
         columns: [],
         rows: [],
       }),

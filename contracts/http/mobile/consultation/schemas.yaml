@@ -303,9 +303,6 @@ PoolStandingsResponse:
       type: string
       description: Observation time of the usable table, required when available; not the response/cache-read time.
       format: date-time
-    lastAttemptFailed:
-      type: boolean
-      description: Latest attempted table acquisition failed; a usable older table may remain available.
     columns:
       type: array
       description: Published statistic column labels in display order; empty when no usable table.
@@ -321,7 +318,6 @@ PoolStandingsResponse:
   required:
     - poolId
     - availability
-    - lastAttemptFailed
     - columns
     - rows
 PoolParticipantResponse:

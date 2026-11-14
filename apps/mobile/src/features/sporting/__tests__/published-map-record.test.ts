@@ -11,7 +11,6 @@ function table(
     poolId: "00000000-0000-4000-8000-000000002101",
     availability: "available",
     observedAt: "2026-11-01T12:00:00Z",
-    lastAttemptFailed: false,
     columns,
     rows: [
       {
@@ -49,27 +48,6 @@ it.each([
     });
   },
 );
-
-it("retains an available exact record when the latest collection attempt failed", () => {
-  // Given: a failed acquisition does not invalidate the retained published sporting facts.
-  const published = table(["Jou.", "Gag.", "Per."], {
-    "Jou.": "8",
-    "Gag.": "7",
-    "Per.": "1",
-  });
-  published.lastAttemptFailed = true;
-
-  // When
-  const record = publishedMapRecord(published, sportingId);
-
-  // Then
-  expect(record).toEqual({
-    played: "8",
-    won: "7",
-    lost: "1",
-    proportion: { won: 7, lost: 1 },
-  });
-});
 
 it("keeps raw partial and special values without deriving the unpublished loss count", () => {
   // Given: Per. is absent from the published columns even though a statistics key exists.

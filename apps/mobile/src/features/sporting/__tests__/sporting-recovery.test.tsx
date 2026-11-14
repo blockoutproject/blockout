@@ -343,7 +343,6 @@ it("keeps an admitted pool's calendar and map independent of failed standings wi
             : Response.json({
                 poolId: sportingId,
                 availability: "not-published",
-                lastAttemptFailed: false,
                 columns: [],
                 rows: [],
               }),

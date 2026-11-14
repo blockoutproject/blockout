@@ -27,6 +27,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -79,16 +80,16 @@ class PoolConsultationIntegrationTest {
     // Then
     assertThat(standings.availability()).isEqualTo(StandingsAvailabilityEnum.UNAVAILABLE);
     assertThat(standings.observedAt()).isNull();
-    assertThat(standings.lastAttemptFailed()).isFalse();
     assertThat(participants.items())
         .extracting(item -> item.team().team().id())
         .containsExactly(match.awayTeamId(), match.homeTeamId());
     assertThat(participants.items()).allSatisfy(item -> assertThat(item.location()).isNull());
   }
 
-  @Test
-  @DisplayName("Preserves official order labels positions columns and special statistics")
-  void preservesOfficialTable() {
+  @ParameterizedTest(name = "Retains official table after failed acquisition: {0}")
+  @ValueSource(booleans = {false, true})
+  @DisplayName("Preserves official values and freshness independently of acquisition failure")
+  void preservesOfficialTable(boolean failedAcquisition) {
     // Given
     table("PUBLISHED", true);
     UUID first = UUID.fromString("00000000-0000-4000-8000-000000002091");
@@ -109,6 +110,13 @@ class PoolConsultationIntegrationTest {
         first,
         first,
         second);
+    if (failedAcquisition) {
+      sql.update(
+          "INSERT INTO collection_result(control_id,scope_id,stage,phase,cycle_order,read_ordinal,outcome,last_attempt_at) VALUES (?,?,'STANDINGS','ACQUISITION',?,2,'FAILED','2026-10-24T12:00:00Z')",
+          SportingIngestionFixture.CONTROL,
+          scope.pool(),
+          scope.cycle().cycleOrder());
+    }
 
     // When
     ConsultationViews.Standings result = resources.standings(scope.pool());
@@ -121,6 +129,7 @@ class PoolConsultationIntegrationTest {
         .containsExactly("Official Z", "Unmatched");
     assertThat(result.rows().getFirst().position()).isEqualTo(7);
     assertThat(result.rows().getFirst().team().id()).isEqualTo(match.homeTeamId());
+    assertThat(result.rows().getFirst().statistics()).isEqualTo(Map.of("Ratio", "∞", "Pts", "18"));
     assertThat(result.rows().getLast().position()).isNull();
     assertThat(result.rows().getLast().team()).isNull();
     assertThat(result.rows().getLast().statistics()).isEqualTo(Map.of("Ratio", "—"));
@@ -148,38 +157,6 @@ class PoolConsultationIntegrationTest {
     assertThat(result.observedAt()).isEqualTo(retained ? OBSERVED : null);
   }
 
-  @ParameterizedTest
-  @CsvSource({"true,true", "false,false"})
-  @DisplayName("Only newer failed acquisition evidence changes the retained table failure flag")
-  void comparesAcquisitionOrder(boolean newer, boolean expected) {
-    // Given
-    table("NOT_PUBLISHED", true);
-    long accepted = scope.cycle().cycleOrder();
-    sql.update(
-        "UPDATE sporting_standings SET cycle_order=?,read_ordinal=3 WHERE pool_id=?",
-        accepted,
-        scope.pool());
-    sql.update(
-        "INSERT INTO collection_result(control_id,scope_id,stage,phase,cycle_order,read_ordinal,outcome,last_attempt_at) VALUES (?,?,'STANDINGS','ACQUISITION',?,?,'FAILED','2026-10-24T12:00:00Z')",
-        SportingIngestionFixture.CONTROL,
-        scope.pool(),
-        accepted,
-        newer ? 4 : 2);
-    sql.update(
-        "INSERT INTO collection_result(control_id,scope_id,stage,phase,cycle_order,read_ordinal,outcome) VALUES (?,?,'CALENDAR','ACQUISITION',?,9,'FAILED')",
-        SportingIngestionFixture.CONTROL,
-        scope.pool(),
-        accepted);
-
-    // When
-    ConsultationViews.Standings result = resources.standings(scope.pool());
-
-    // Then
-    assertThat(result.availability()).isEqualTo(StandingsAvailabilityEnum.AVAILABLE);
-    assertThat(result.observedAt()).isEqualTo(OBSERVED);
-    assertThat(result.lastAttemptFailed()).isEqualTo(expected);
-  }
-
   @Test
   @DisplayName("A failed first acquisition is unavailable and does not invent a publication")
   void reportsFailedFirstAttempt() {
@@ -195,7 +172,6 @@ class PoolConsultationIntegrationTest {
 
     // Then
     assertThat(result.availability()).isEqualTo(StandingsAvailabilityEnum.UNAVAILABLE);
-    assertThat(result.lastAttemptFailed()).isTrue();
     assertThat(result.observedAt()).isNull();
     assertThat(resources.participants(scope.pool()).items()).hasSize(2);
   }

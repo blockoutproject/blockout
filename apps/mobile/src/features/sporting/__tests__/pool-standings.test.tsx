@@ -111,7 +111,6 @@ beforeEach(() => {
     poolId: pool.pool.id,
     availability: "available",
     observedAt: "2026-10-20T12:00:00Z",
-    lastAttemptFailed: false,
     columns: ["Jou.", "Pts"],
     rows: [
       {
@@ -277,7 +276,6 @@ it.each([
     table = {
       poolId: pool.pool.id,
       availability,
-      lastAttemptFailed: false,
       columns: [],
       rows: [],
       ...(availability === "available"
@@ -292,9 +290,7 @@ it.each([
 
     // Then
     expect(await screen.findByRole(role, { name: message })).toBeOnTheScreen();
-    expect(
-      screen.queryByText(/Observé le|Date d’observation|Dernière acquisition/),
-    ).toBeNull();
+    expect(screen.queryByText(/Observé le|Date d’observation/)).toBeNull();
     expect(screen.queryByRole("button", { name: "Réessayer" }) !== null).toBe(
       availability === "unavailable",
     );
@@ -388,23 +384,6 @@ it.each(["available", "not-published"] as const)(
     expect(screen.queryByRole("alert")).toBeNull();
   },
 );
-
-it("keeps acquisition diagnostics out of the usable table presentation", async () => {
-  // Given
-  table.lastAttemptFailed = true;
-
-  // When
-  await open(panel());
-  await screen.findByRole("tab", { name: "Classement" });
-  await layoutNativeTabs();
-
-  // Then
-  expect(await screen.findByText("Official Z")).toBeOnTheScreen();
-  expect(
-    screen.queryByText(/Observé le|Dernière acquisition|conservées/),
-  ).toBeNull();
-  expect(screen.queryByRole("alert")).toBeNull();
-});
 
 it("loads team participation standings lazily and preserves them through calendar refresh", async () => {
   // Given
@@ -725,30 +704,6 @@ it("keeps a paused table Retry non-busy and resumes the same safe read", async (
   ).toHaveLength(1);
 });
 
-it("does not claim retained table information after a first failed acquisition", async () => {
-  // Given
-  table = {
-    poolId: pool.pool.id,
-    availability: "unavailable",
-    lastAttemptFailed: true,
-    columns: [],
-    rows: [],
-  };
-
-  // When
-  await open(panel());
-  await screen.findByRole("tab", { name: "Classement" });
-  await layoutNativeTabs();
-
-  // Then
-  expect(
-    await screen.findByRole("alert", { name: TECHNICAL_ERROR_TITLE }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.queryByText(/Dernière acquisition|conservées restent affichées/),
-  ).toBeNull();
-});
-
 it.each([
   { availability: "available", title: "Aucune équipe dans ce classement" },
   {
@@ -822,7 +777,6 @@ it.each(["unavailable", "not-published"] as const)(
     table = {
       poolId: pool.pool.id,
       availability,
-      lastAttemptFailed: false,
       columns: [],
       rows: [],
     };
