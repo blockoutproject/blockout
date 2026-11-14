@@ -15,7 +15,6 @@ import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.accounts.application.PrincipalReader;
 import com.blockout.backend.accounts.application.exception.AccountNotFoundException;
 import com.blockout.backend.following.application.FollowContext;
-import com.blockout.backend.following.application.FollowContext.Relation;
 import com.blockout.backend.following.application.FollowContext.Target;
 import com.blockout.backend.following.application.FollowContext.TargetType;
 import com.blockout.backend.following.application.FollowState;
@@ -27,7 +26,6 @@ import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -148,20 +146,20 @@ class FollowRelationsIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.following").value(false));
     replaceMember(type, true);
-    UUID original = relation(type).id();
+    UUID original = relationId(type);
 
     // When
     replaceMember(type, true);
-    UUID retained = relation(type).id();
+    UUID retained = relationId(type);
     replaceMember(type, false);
     replaceMember(type, false);
-    Optional<Relation> removed = store.find(context);
+    boolean presentAfterRemoval = store.exists(context);
     replaceMember(type, true);
-    UUID recreated = relation(type).id();
+    UUID recreated = relationId(type);
 
     // Then
     assertThat(retained).isEqualTo(original);
-    assertThat(removed).isEmpty();
+    assertThat(presentAfterRemoval).isFalse();
     assertThat(state.read(context)).isTrue();
     assertThat(recreated).isNotEqualTo(original);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_team", Long.class)).isEqualTo(1L);
@@ -267,7 +265,7 @@ class FollowRelationsIntegrationTest {
   void retainsHiddenRelations(TargetType type) {
     // Given
     state.replace(context(type), true);
-    UUID original = relation(type).id();
+    UUID original = relationId(type);
     sql.update(
         "UPDATE sporting_pool SET catalog_eligible=FALSE, calendar_empty=TRUE WHERE id=?", TARGET);
 
@@ -278,7 +276,7 @@ class FollowRelationsIntegrationTest {
     // When / Then
     assertThatThrownBy(() -> state.replace(context(type), false))
         .isInstanceOf(FollowUnavailableTargetException.class);
-    assertThat(relation(type).id()).isEqualTo(original);
+    assertThat(relationId(type)).isEqualTo(original);
 
     // Given
     sql.update(
@@ -297,7 +295,7 @@ class FollowRelationsIntegrationTest {
 
     // Then
     assertThat(restored).isTrue();
-    assertThat(relation(type).id()).isEqualTo(original);
+    assertThat(relationId(type)).isEqualTo(original);
   }
 
   @Test
@@ -306,7 +304,7 @@ class FollowRelationsIntegrationTest {
   void preservesIdentityAcrossCorrections() {
     // Given
     state.replace(context(TargetType.TEAM), true);
-    UUID original = relation(TargetType.TEAM).id();
+    UUID original = relationId(TargetType.TEAM);
     UUID nextSeason = UUID.fromString("00000000-0000-4000-8000-000000000102");
     UUID nextTeam = UUID.fromString("00000000-0000-4000-8000-000000000103");
     sql.update(
@@ -325,9 +323,9 @@ class FollowRelationsIntegrationTest {
 
     // Then
     assertThat(state.read(context(TargetType.TEAM))).isTrue();
-    assertThat(relation(TargetType.TEAM).id()).isEqualTo(original);
-    assertThat(store.find(new FollowContext(ACCOUNT, new Target(TargetType.TEAM, nextTeam))))
-        .isEmpty();
+    assertThat(relationId(TargetType.TEAM)).isEqualTo(original);
+    assertThat(store.exists(new FollowContext(ACCOUNT, new Target(TargetType.TEAM, nextTeam))))
+        .isFalse();
     assertThat(eligibility.recipients(Set.of(context(TargetType.TEAM).target())))
         .containsExactly(ACCOUNT);
   }
@@ -343,7 +341,7 @@ class FollowRelationsIntegrationTest {
     // When / Then
     assertThatThrownBy(() -> state.replace(missing, true))
         .isInstanceOf(FollowUnavailableTargetException.class);
-    assertThat(store.find(missing)).isEmpty();
+    assertThat(store.exists(missing)).isFalse();
   }
 
   @Test
@@ -351,7 +349,7 @@ class FollowRelationsIntegrationTest {
   void rollsBack() {
     // Given
     state.replace(context(TargetType.POOL), true);
-    UUID original = relation(TargetType.POOL).id();
+    UUID original = relationId(TargetType.POOL);
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
     // When / Then
@@ -364,8 +362,8 @@ class FollowRelationsIntegrationTest {
                       throw new IllegalStateException("Controlled rollback");
                     }))
         .isInstanceOf(IllegalStateException.class);
-    assertThat(store.find(context(TargetType.TEAM))).isEmpty();
-    assertThat(relation(TargetType.POOL).id()).isEqualTo(original);
+    assertThat(store.exists(context(TargetType.TEAM))).isFalse();
+    assertThat(relationId(TargetType.POOL)).isEqualTo(original);
   }
 
   @ParameterizedTest
@@ -427,7 +425,7 @@ class FollowRelationsIntegrationTest {
 
       // Then
       assertThat(following).isTrue();
-      assertThat(relation(TargetType.TEAM).accountId()).isEqualTo(ACCOUNT);
+      assertThat(store.exists(context(TargetType.TEAM))).isTrue();
       verifyNoInteractions(provider);
     }
   }
@@ -508,7 +506,7 @@ class FollowRelationsIntegrationTest {
       deletion.get(15, TimeUnit.SECONDS);
 
       // Then
-      assertThat(store.find(context(TargetType.POOL))).isEmpty();
+      assertThat(store.exists(context(TargetType.POOL))).isFalse();
 
       // When / Then
       assertThatThrownBy(() -> state.replace(context(TargetType.POOL), true))
@@ -523,7 +521,7 @@ class FollowRelationsIntegrationTest {
     // Given
     state.replace(context(TargetType.TEAM), true);
     state.replace(context(TargetType.POOL), true);
-    Relation original = relation(TargetType.TEAM);
+    UUID original = relationId(TargetType.TEAM);
     Set<UUID> recipients =
         eligibility.recipients(
             Set.of(context(TargetType.TEAM).target(), context(TargetType.POOL).target()));
@@ -534,7 +532,7 @@ class FollowRelationsIntegrationTest {
 
     // Then
     assertThat(recipients).containsExactly(ACCOUNT);
-    assertThat(relation(TargetType.TEAM).id()).isNotEqualTo(original.id());
+    assertThat(relationId(TargetType.TEAM)).isNotEqualTo(original);
     assertThat(eligibility.following(context(TargetType.TEAM))).isTrue();
   }
 
@@ -549,12 +547,18 @@ class FollowRelationsIntegrationTest {
   }
 
   /**
-   * Reads the persisted immutable relation, including its current lifecycle identity.
+   * Reads the stored lifecycle UUID for this original owner and exact typed target.
    *
    * @param type exact association kind
-   * @return currently persisted relation
+   * @return UUID of the fixture's currently present relation
    */
-  private Relation relation(TargetType type) {
-    return store.find(context(type)).orElseThrow();
+  private UUID relationId(TargetType type) {
+    String table = type == TargetType.TEAM ? "team_follow" : "pool_follow";
+    String column = type == TargetType.TEAM ? "team_id" : "pool_id";
+    return sql.queryForObject(
+        "SELECT id FROM " + table + " WHERE account_id=? AND " + column + "=?",
+        UUID.class,
+        ACCOUNT,
+        TARGET);
   }
 }

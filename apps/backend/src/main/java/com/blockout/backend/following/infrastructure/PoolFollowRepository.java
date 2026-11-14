@@ -1,6 +1,5 @@
 package com.blockout.backend.following.infrastructure;
 
-import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -26,13 +25,13 @@ interface PoolFollowRepository extends JpaRepository<PoolFollowEntity, UUID> {
   void erase(UUID accountId);
 
   /**
-   * Reads one exact owner/target pair without resolving replacements.
+   * Checks one exact owner/target pair without resolving replacements.
    *
    * @param accountId original account
    * @param poolId exact target
-   * @return currently persisted relation
+   * @return whether the relation currently exists
    */
-  Optional<PoolFollowEntity> findByAccountIdAndPoolId(UUID accountId, UUID poolId);
+  boolean existsByAccountIdAndPoolId(UUID accountId, UUID poolId);
 
   /**
    * Deletes only this pair; the caller holds the original account lock.

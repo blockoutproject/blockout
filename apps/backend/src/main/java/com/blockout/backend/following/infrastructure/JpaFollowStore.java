@@ -1,11 +1,9 @@
 package com.blockout.backend.following.infrastructure;
 
 import com.blockout.backend.following.application.FollowContext;
-import com.blockout.backend.following.application.FollowContext.Relation;
 import com.blockout.backend.following.application.FollowContext.Target;
 import com.blockout.backend.following.application.FollowStore;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -28,20 +26,13 @@ public class JpaFollowStore implements FollowStore {
 
   private final TeamFollowRepository teams;
   private final PoolFollowRepository pools;
-  private final FollowPersistenceMapper mapper;
 
   /** {@inheritDoc} */
   @Override
-  public Optional<Relation> find(FollowContext context) {
+  public boolean exists(FollowContext context) {
     return switch (context.target().type()) {
-      case TEAM ->
-          teams
-              .findByAccountIdAndTeamId(context.accountId(), context.target().id())
-              .map(mapper::toView);
-      case POOL ->
-          pools
-              .findByAccountIdAndPoolId(context.accountId(), context.target().id())
-              .map(mapper::toView);
+      case TEAM -> teams.existsByAccountIdAndTeamId(context.accountId(), context.target().id());
+      case POOL -> pools.existsByAccountIdAndPoolId(context.accountId(), context.target().id());
     };
   }
 

@@ -1,7 +1,5 @@
 package com.blockout.backend.following.application;
 
-import com.blockout.backend.following.application.FollowContext.Relation;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -16,12 +14,12 @@ public interface FollowStore {
   void erase(UUID accountId);
 
   /**
-   * Reads the exact original owner's typed relation, including retained hidden targets.
+   * Checks the exact original owner's typed relation, including retained hidden targets.
    *
    * @param context original account and target
-   * @return the current relation, or absence without a negative-state row
+   * @return whether the relation currently exists; absence requires no negative-state row
    */
-  Optional<Relation> find(FollowContext context);
+  boolean exists(FollowContext context);
 
   /**
    * Creates one relation after the caller verified absence under the original account lock.

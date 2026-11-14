@@ -1,6 +1,5 @@
 package com.blockout.backend.following.infrastructure;
 
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -27,13 +26,13 @@ interface TeamFollowRepository extends JpaRepository<TeamFollowEntity, UUID> {
   void erase(UUID accountId);
 
   /**
-   * Reads one exact owner/target pair without resolving replacements.
+   * Checks one exact owner/target pair without resolving replacements.
    *
    * @param accountId original account
    * @param teamId exact target
-   * @return currently persisted relation
+   * @return whether the relation currently exists
    */
-  Optional<TeamFollowEntity> findByAccountIdAndTeamId(UUID accountId, UUID teamId);
+  boolean existsByAccountIdAndTeamId(UUID accountId, UUID teamId);
 
   /**
    * Deletes only this pair; the caller holds the original account lock.

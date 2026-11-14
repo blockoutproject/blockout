@@ -30,6 +30,6 @@ public class ReadFollowEligibility {
    * @return whether the account currently follows that target
    */
   public boolean following(FollowContext context) {
-    return store.find(context).isPresent();
+    return store.exists(context);
   }
 }
