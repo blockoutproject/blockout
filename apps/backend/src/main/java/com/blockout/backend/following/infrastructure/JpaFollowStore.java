@@ -5,7 +5,6 @@ import com.blockout.backend.following.application.FollowContext.Relation;
 import com.blockout.backend.following.application.FollowContext.Target;
 import com.blockout.backend.following.application.FollowStore;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -68,7 +67,7 @@ public class JpaFollowStore implements FollowStore {
 
   /** {@inheritDoc} */
   @Override
-  public List<Relation> relations(Set<Target> targets) {
+  public Set<UUID> recipients(Set<Target> targets) {
     Set<UUID> teamIds = new HashSet<>();
     Set<UUID> poolIds = new HashSet<>();
     for (Target target : targets) {
@@ -78,8 +77,8 @@ public class JpaFollowStore implements FollowStore {
       }
     }
     if (targets.isEmpty()) {
-      return List.of();
+      return Set.of();
     }
-    return List.copyOf(teams.findRelations(teamIds, poolIds));
+    return Set.copyOf(teams.findRecipientAccounts(teamIds, poolIds));
   }
 }

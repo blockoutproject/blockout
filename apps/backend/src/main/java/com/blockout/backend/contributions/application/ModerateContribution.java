@@ -140,14 +140,11 @@ public class ModerateContribution {
     Set<UUID> affected = new HashSet<>(store.attributionAccounts(facts.match().id()));
     affected.addAll(store.versionAttributionAccounts(versionId));
     affected.add(actor);
-    Set<UUID> surviving = new HashSet<>();
     for (UUID account : affected.stream().sorted().toList()) {
-      if (accounts.lock(account)) {
-        surviving.add(account);
+      boolean exists = accounts.lock(account);
+      if (account.equals(actor) && !exists) {
+        throw new AccountNotFoundException();
       }
-    }
-    if (!surviving.contains(actor)) {
-      throw new AccountNotFoundException();
     }
     if (!permissions.forAccount(actor).contains(Permission.MODERATE_STREAM_LINKS)) {
       throw new AccessDeniedException("Action is not permitted");

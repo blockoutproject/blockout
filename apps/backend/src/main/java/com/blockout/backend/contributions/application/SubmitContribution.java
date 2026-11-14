@@ -60,14 +60,11 @@ public class SubmitContribution {
     Facts facts = sporting.lock(matchId);
     Set<UUID> affectedAccounts = new HashSet<>(store.attributionAccounts(matchId));
     affectedAccounts.add(accountId);
-    Set<UUID> surviving = new HashSet<>();
     for (UUID affected : affectedAccounts.stream().sorted().toList()) {
-      if (accounts.lock(affected)) {
-        surviving.add(affected);
+      boolean exists = accounts.lock(affected);
+      if (affected.equals(accountId) && !exists) {
+        throw new AccountNotFoundException();
       }
-    }
-    if (!surviving.contains(accountId)) {
-      throw new AccountNotFoundException();
     }
     boolean moderator =
         permissions.forAccount(accountId).contains(Permission.MODERATE_STREAM_LINKS);

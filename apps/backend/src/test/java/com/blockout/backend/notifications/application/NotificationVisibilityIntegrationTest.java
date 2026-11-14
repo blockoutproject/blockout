@@ -60,20 +60,13 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
 
   @ParameterizedTest
   @ValueSource(strings = {"withdrawn", "division", "dateless", "empty-calendar"})
-  @DisplayName("Current owner restrictions exclude inbox, count and remaining sends")
+  @DisplayName("Current owner restrictions exclude inbox entries and remaining sends")
   void excludesRestrictedMatch(String restriction) {
     // Given
     follow(FOLLOWER);
     result(2, ResultStateEnum.FINAL);
     Entry original = inbox.page(OWNER, null).entries().getFirst();
-    AllocateAnnouncements.Entry captured =
-        new AllocateAnnouncements.Entry(
-            original.id(),
-            FOLLOWER,
-            matchId,
-            original.family(),
-            original.variant(),
-            original.createdAt());
+    AllocateAnnouncements.Entry captured = allocation(original);
     Target target = subscription();
 
     // When
@@ -130,14 +123,7 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
     follow(FOLLOWER);
     result(2, ResultStateEnum.FINAL);
     Entry original = inbox.page(OWNER, null).entries().getFirst();
-    AllocateAnnouncements.Entry captured =
-        new AllocateAnnouncements.Entry(
-            original.id(),
-            FOLLOWER,
-            matchId,
-            original.family(),
-            original.variant(),
-            original.createdAt());
+    AllocateAnnouncements.Entry captured = allocation(original);
     Target target = subscription();
     when(provider.send(any())).thenReturn(List.of(new Outcome(Status.UNKNOWN, null)));
 
@@ -163,14 +149,7 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
     Entry initial = inbox.page(OWNER, null).entries().getFirst();
     marks.mark(OWNER, initial.id());
     Entry original = inbox.member(OWNER, initial.id());
-    AllocateAnnouncements.Entry captured =
-        new AllocateAnnouncements.Entry(
-            original.id(),
-            FOLLOWER,
-            matchId,
-            original.family(),
-            original.variant(),
-            original.createdAt());
+    AllocateAnnouncements.Entry captured = allocation(original);
     Target target = subscription();
     MatchAnnouncementFacts consumed =
         new TransactionTemplate(transactions)
@@ -235,14 +214,7 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
     Entry initial = inbox.page(OWNER, null).entries().getFirst();
     marks.mark(OWNER, initial.id());
     Entry original = inbox.member(OWNER, initial.id());
-    AllocateAnnouncements.Entry captured =
-        new AllocateAnnouncements.Entry(
-            original.id(),
-            FOLLOWER,
-            matchId,
-            original.family(),
-            original.variant(),
-            original.createdAt());
+    AllocateAnnouncements.Entry captured = allocation(original);
     Target target = subscription();
     when(provider.send(any())).thenReturn(List.of(new Outcome(Status.UNKNOWN, null)));
     calendars.accept(
@@ -291,14 +263,7 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
     follow(FOLLOWER);
     result(2, ResultStateEnum.FINAL);
     Entry original = inbox.page(OWNER, null).entries().getFirst();
-    AllocateAnnouncements.Entry captured =
-        new AllocateAnnouncements.Entry(
-            original.id(),
-            FOLLOWER,
-            matchId,
-            original.family(),
-            original.variant(),
-            original.createdAt());
+    AllocateAnnouncements.Entry captured = allocation(original);
     Target target = subscription();
     MatchAnnouncementFacts consumed =
         new TransactionTemplate(transactions)
@@ -327,14 +292,7 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
     follow(FOLLOWER);
     result(2, ResultStateEnum.FINAL);
     Entry original = inbox.page(OWNER, null).entries().getFirst();
-    AllocateAnnouncements.Entry captured =
-        new AllocateAnnouncements.Entry(
-            original.id(),
-            FOLLOWER,
-            matchId,
-            original.family(),
-            original.variant(),
-            original.createdAt());
+    AllocateAnnouncements.Entry captured = allocation(original);
     Target target = subscription();
     calendars.accept(
         scope.pool(), new CalendarObservation(context(3), true, List.of(), List.of(), List.of()));
@@ -364,6 +322,11 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
                     original.id())
                 .toInstant())
         .isEqualTo(original.createdAt());
+  }
+
+  private AllocateAnnouncements.Entry allocation(Entry entry) {
+    return new AllocateAnnouncements.Entry(
+        entry.id(), FOLLOWER, matchId, entry.family(), entry.variant(), entry.createdAt());
   }
 
   /**

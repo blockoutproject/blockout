@@ -2,7 +2,6 @@ package com.blockout.backend.following.application;
 
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,9 +20,7 @@ public class ReadFollowEligibility {
    * @return immutable account union
    */
   public Set<UUID> recipients(Set<FollowContext.Target> targets) {
-    return store.relations(targets).stream()
-        .map(FollowContext.Relation::accountId)
-        .collect(Collectors.toUnmodifiableSet());
+    return store.recipients(targets);
   }
 
   /**

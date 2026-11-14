@@ -17,7 +17,7 @@ Verify unauthenticated requests, another account, erased original account, hidde
 Exercise repeated desired-state true/false, remove/re-follow, independent typed targets, current F02 hiding/restoration, identity corrections, rollback and competing original-account writes on migrated PostgreSQL. Repeated true retains the relation UUID; false removes it; re-follow creates a new UUID. Check uniqueness and foreign keys with the restricted application role. Original-account erasure serializes with writes and leaves no orphan relation.
 
 ```sh
-./mvnw -B -ntp -pl apps/backend verify -Dtest=FollowStateWebMvcTest,ReadFollowEligibilityTest,FollowingContractWebMvcTest,FollowAccessWebMvcTest -Dit.test=FollowRelationsIntegrationTest
+./mvnw -B -ntp -pl apps/backend verify -Dtest=FollowStateWebMvcTest,FollowingContractWebMvcTest,FollowAccessWebMvcTest -Dit.test=FollowRelationsIntegrationTest
 ```
 
 ## Relationships and calendar
@@ -27,7 +27,7 @@ With Testcontainers PostgreSQL and the real schema, qualify repeated true/false,
 Follow both teams and their pool, then trigger result/link notifications through the actual F07 owners: one eligible person receives one inbox entry. Personal display-season selection is not a delivery preference. Hold after-commit work and change follows: a selected recipient with no current qualifying follow is excluded, while a selected recipient who unfollows and re-follows can receive the prepared push. A current follow of either current match team or its pool suffices, regardless of its relation UUID. A new follower added after selection is not added retroactively and does not fail the producer. Current account removal, destination reassociation, expiry and sporting hiding still prevent handoff; match corrections require a follow qualifying against the current origins. Inbox age and consumed allowances remain unchanged. Keep notification permission, provider delivery and physical receipt under [F07](../011-notifications-delivery/plan.md#expo-handoff-and-association-lifecycle).
 
 ```sh
-./mvnw -B -ntp -pl apps/backend verify -Dtest=ReadFollowEligibilityTest,PushDeliveryTest -Dit.test=FollowRecipientDeliveryIntegrationTest,RecipientSnapshotIntegrationTest,AnnouncementAudienceIntegrationTest,PushDeliveryIntegrationTest
+./mvnw -B -ntp -pl apps/backend verify -Dtest=PushDeliveryTest -Dit.test=FollowRelationsIntegrationTest,FollowRecipientDeliveryIntegrationTest,RecipientSnapshotIntegrationTest,AnnouncementAudienceIntegrationTest,PushDeliveryIntegrationTest
 ```
 
 Follow both teams and their pool: each match appears once. Remove origins in turn: a match remains until its last selecting follow is removed. Verify historical seasons, All seasons, default selection and no automatic interseason transfer. Exercise F03's dates, result categories, complete-day boundaries and pagination using current visibility.
