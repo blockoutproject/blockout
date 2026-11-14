@@ -2,10 +2,11 @@ package com.blockout.backend.notifications.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.Mockito.doAnswer;
 
 import com.blockout.backend.accounts.application.AccountAccess;
-import com.blockout.backend.following.application.FollowContext.Relation;
+import com.blockout.backend.following.application.ReadFollowEligibility;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.notifications.application.ProcessResultAnnouncement.Transition;
 import com.blockout.backend.notifications.domain.NotificationFamily;
@@ -39,9 +40,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.jdbc.UncategorizedSQLException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -76,6 +77,7 @@ class AnnouncementTransactionIntegrationTest {
   @Autowired private EntityManager entities;
   @Autowired private AccountAccess accounts;
   @Autowired private PlatformTransactionManager transactions;
+  @MockitoSpyBean private ReadFollowEligibility follows;
 
   /**
    * Creates synthetic accepted identities and confirmed follows, with no provider input.
@@ -145,13 +147,13 @@ class AnnouncementTransactionIntegrationTest {
   }
 
   @Test
-  @DisplayName("Creates one unread entry for the three-origin union with original relation IDs")
+  @DisplayName("Creates one unread entry for the three-origin union")
   void deduplicatesRecipients() {
     // Given: OTHER has no confirmed follow; no request state establishes one.
     TransactionTemplate transaction = new TransactionTemplate(transactions);
 
     // When
-    List<AllocateAnnouncements.Created> created =
+    List<AllocateAnnouncements.Entry> created =
         transaction.execute(
             status -> {
               roots(MATCH);
@@ -163,14 +165,8 @@ class AnnouncementTransactionIntegrationTest {
         .singleElement()
         .satisfies(
             entry -> {
-              assertThat(entry.entry().accountId()).isEqualTo(ACCOUNT);
-              assertThat(entry.relations())
-                  .extracting(Relation::id)
-                  .containsExactlyInAnyOrderElementsOf(
-                      sql.queryForList(
-                          "SELECT id FROM team_follow UNION ALL SELECT id FROM pool_follow",
-                          UUID.class));
-              assertThat(entry.entry().createdAt()).isEqualTo(ORIGIN);
+              assertThat(entry.accountId()).isEqualTo(ACCOUNT);
+              assertThat(entry.createdAt()).isEqualTo(ORIGIN);
             });
     assertThat(count("notification")).isEqualTo(1);
     assertThat(sql.queryForObject("SELECT is_read FROM notification", Boolean.class)).isFalse();
@@ -308,77 +304,45 @@ class AnnouncementTransactionIntegrationTest {
   }
 
   @Test
-  @DisplayName("Rechecks a relation removed while the result waits for its account lock")
-  void excludesRemovedFollows() throws Exception {
+  @DisplayName("Deletion after selection makes the required inbox failure roll back the producer")
+  void rollsBackWhenSelectedAccountDisappears() {
     // Given
-    CompletableFuture<Integer> waitingPid = new CompletableFuture<>();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
-    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
-      Future<?> waiting =
-          transaction.execute(
-              status -> {
-                accounts.lock(ACCOUNT);
-                Future<?> writer =
-                    worker.submit(
-                        () ->
-                            transaction.executeWithoutResult(
-                                inner -> {
-                                  roots(MATCH);
-                                  waitingPid.complete(
-                                      sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
-                                  processor.process(transition(MATCH, false));
-                                }));
-                PostgresTestDatabase.awaitBlocked(sql, waitingPid);
-                sql.update("DELETE FROM team_follow WHERE account_id=?", ACCOUNT);
-                sql.update("DELETE FROM pool_follow WHERE account_id=?", ACCOUNT);
-                return writer;
-              });
+    TransactionTemplate independent = new TransactionTemplate(transactions);
+    independent.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    doAnswer(
+            invocation -> {
+              Object selected = invocation.callRealMethod();
+              independent.executeWithoutResult(
+                  status -> {
+                    sql.update("DELETE FROM team_follow WHERE account_id=?", ACCOUNT);
+                    sql.update("DELETE FROM pool_follow WHERE account_id=?", ACCOUNT);
+                    sql.update("DELETE FROM account WHERE id=?", ACCOUNT);
+                  });
+              return selected;
+            })
+        .when(follows)
+        .recipients(anySet());
 
-      // When
-      waiting.get(15, TimeUnit.SECONDS);
-
-      // Then
-      assertThat(count("notification")).isZero();
-      assertThat(count("match_announcement")).isEqualTo(1);
-    }
-  }
-
-  @Test
-  @DisplayName(
-      "Account-row deletion before the waiting recipient lock cannot resurrect personal data")
-  void excludesDeletedAccount() throws Exception {
-    // Given
-    CompletableFuture<Integer> waitingPid = new CompletableFuture<>();
-    TransactionTemplate transaction = new TransactionTemplate(transactions);
-    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
-      Future<?> waiting =
-          transaction.execute(
-              status -> {
-                accounts.lock(ACCOUNT);
-                Future<?> writer =
-                    worker.submit(
-                        () ->
-                            transaction.executeWithoutResult(
-                                inner -> {
-                                  roots(MATCH);
-                                  waitingPid.complete(
-                                      sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
-                                  processor.process(transition(MATCH, false));
-                                }));
-                PostgresTestDatabase.awaitBlocked(sql, waitingPid);
-                sql.update("DELETE FROM team_follow WHERE account_id=?", ACCOUNT);
-                sql.update("DELETE FROM pool_follow WHERE account_id=?", ACCOUNT);
-                sql.update("DELETE FROM account WHERE id=?", ACCOUNT);
-                return writer;
-              });
-
-      // When
-      waiting.get(15, TimeUnit.SECONDS);
-
-      // Then
-      assertThat(count("notification")).isZero();
-      assertThat(count("match_announcement")).isEqualTo(1);
-    }
+    // When / Then
+    assertThatThrownBy(
+            () ->
+                transaction.executeWithoutResult(
+                    status -> {
+                      roots(MATCH);
+                      sql.update(
+                          "UPDATE sporting_match SET home_sets=3, away_sets=1, result_state='FINAL' WHERE id=?",
+                          MATCH);
+                      processor.process(transition(MATCH, false));
+                    }))
+        .isInstanceOf(DataIntegrityViolationException.class);
+    assertThat(count("account")).isEqualTo(1);
+    assertThat(count("notification")).isZero();
+    assertThat(count("match_announcement")).isZero();
+    assertThat(
+            sql.queryForObject(
+                "SELECT result_state FROM sporting_match WHERE id=?", String.class, MATCH))
+        .isNull();
   }
 
   @Test
@@ -434,7 +398,7 @@ class AnnouncementTransactionIntegrationTest {
         transaction.execute(
             status -> {
               roots(MATCH);
-              return processor.process(transition(MATCH, false)).getFirst().entry();
+              return processor.process(transition(MATCH, false)).getFirst();
             });
     transaction.executeWithoutResult(
         status -> {
@@ -537,63 +501,6 @@ class AnnouncementTransactionIntegrationTest {
   }
 
   @Test
-  @DisplayName("Locks the complete candidate set in sorted account UUID order")
-  void sortsAccountLocks() throws Exception {
-    // Given
-    UUID otherFollow = UUID.fromString("00000000-0000-4000-8000-000000002856");
-    sql.update(
-        "INSERT INTO pool_follow(id,account_id,pool_id) VALUES (?,?,?)", otherFollow, OTHER, POOL);
-    CompletableFuture<Integer> waitingPid = new CompletableFuture<>();
-    TransactionTemplate transaction = new TransactionTemplate(transactions);
-    TransactionTemplate independent = new TransactionTemplate(transactions);
-    independent.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
-      Future<?> waiting =
-          transaction.execute(
-              status -> {
-                accounts.lock(OTHER);
-                Future<?> writer =
-                    worker.submit(
-                        () ->
-                            transaction.executeWithoutResult(
-                                inner -> {
-                                  roots(MATCH);
-                                  waitingPid.complete(
-                                      sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
-                                  processor.process(transition(MATCH, false));
-                                }));
-                PostgresTestDatabase.awaitBlocked(sql, waitingPid);
-                // The writer must already hold ACCOUNT when it waits for the later OTHER UUID.
-
-                // When
-                Throwable observedFailure =
-                    catchThrowable(
-                        () ->
-                            independent.execute(
-                                inner ->
-                                    sql.queryForObject(
-                                        "SELECT id FROM account WHERE id=? FOR UPDATE NOWAIT",
-                                        UUID.class,
-                                        ACCOUNT)));
-
-                // Then
-                assertThat(observedFailure)
-                    .isInstanceOfSatisfying(
-                        UncategorizedSQLException.class,
-                        failure ->
-                            assertThat(failure.getSQLException().getSQLState()).isEqualTo("55P03"));
-                return writer;
-              });
-
-      // When
-      waiting.get(15, TimeUnit.SECONDS);
-
-      // Then
-      assertThat(count("notification")).isEqualTo(2);
-    }
-  }
-
-  @Test
   @DisplayName(
       "Controlled deletion waits for creation and removes entries while retaining match facts")
   void deletionAfterCreation() throws Exception {
@@ -606,6 +513,7 @@ class AnnouncementTransactionIntegrationTest {
               status -> {
                 roots(MATCH);
                 processor.process(transition(MATCH, false));
+                entities.flush();
                 Future<?> deletion =
                     worker.submit(
                         () ->

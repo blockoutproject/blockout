@@ -33,7 +33,7 @@ public class FollowState {
       throw new AccountNotFoundException();
     }
     requireVisibleTarget(context);
-    return store.find(context).isPresent();
+    return store.exists(context);
   }
 
   /**
@@ -53,7 +53,7 @@ public class FollowState {
     }
     requireVisibleTarget(context);
     if (following) {
-      if (store.find(context).isEmpty()) {
+      if (!store.exists(context)) {
         store.add(context);
       }
     } else {

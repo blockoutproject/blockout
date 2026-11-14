@@ -2,14 +2,13 @@ package com.blockout.backend.contributions.application;
 
 import com.blockout.backend.access.application.CurrentPermissions;
 import com.blockout.backend.access.domain.Permission;
+import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.accounts.application.exception.AccountNotFoundException;
 import com.blockout.backend.contributions.domain.ContributionEligibility;
 import com.blockout.backend.contributions.domain.ContributionEligibility.Status;
 import com.blockout.backend.contributions.domain.ContributionState;
 import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.contributions.domain.StreamAddress;
-import com.blockout.backend.notifications.application.AnnouncementRecipients;
-import com.blockout.backend.notifications.application.AnnouncementRecipients.Selection;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess.Facts;
 import java.net.URI;
@@ -28,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class SubmitContribution {
   private final MatchContributionAccess sporting;
-  private final AnnouncementRecipients recipients;
+  private final AccountAccess accounts;
   private final CurrentPermissions permissions;
   private final ContributionStore store;
   private final AnnounceContribution transitions;
@@ -36,7 +35,7 @@ public class SubmitContribution {
   private final AssessContribution eligibility;
 
   /**
-   * Locks sporting roots, then the complete actor/audience union before any contribution effect.
+   * Locks sporting roots, then sorted actor/attribution accounts before contribution effects.
    *
    * @param accountId original admitted actor
    * @param matchId existing match
@@ -61,9 +60,11 @@ public class SubmitContribution {
     Facts facts = sporting.lock(matchId);
     Set<UUID> affectedAccounts = new HashSet<>(store.attributionAccounts(matchId));
     affectedAccounts.add(accountId);
-    Selection selection = recipients.select(facts.match(), affectedAccounts);
-    if (!selection.accounts().contains(accountId)) {
-      throw new AccountNotFoundException();
+    for (UUID affected : affectedAccounts.stream().sorted().toList()) {
+      boolean exists = accounts.lock(affected);
+      if (affected.equals(accountId) && !exists) {
+        throw new AccountNotFoundException();
+      }
     }
     boolean moderator =
         permissions.forAccount(accountId).contains(Permission.MODERATE_STREAM_LINKS);
@@ -89,7 +90,7 @@ public class SubmitContribution {
             matchId, accountId, proposed, decision.status() == Status.ACTIVE, moderator, now);
     ContributionState next = store.advance(matchId, moderator);
     if (decision.status() == Status.ACTIVE) {
-      transitions.published(facts, selection.recipients(), now);
+      transitions.published(facts, now);
     }
     return new Outcome(version, Long.toString(next.revision()), true);
   }

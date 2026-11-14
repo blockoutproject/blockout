@@ -28,4 +28,4 @@ The additions preserve existing wire behavior. Extracting identical F03 calendar
 
 Use F13's OpenAPI 3.0.4 / Redocly / OpenAPI Generator / Orval pipeline unchanged. Generated Java interfaces/DTOs and mobile types/functions/Zod remain derived build outputs. The [qualification guide](../quickstart.md) covers compilation, validation and authorization.
 
-F07 consumes confirmed relation identities through an in-process application boundary, not a new HTTP API. It owns the consequences for recipients and cancelled deliveries; the displayed season never becomes a notification preference. The collector is not a consumer of these private operations.
+F07 consumes the confirmed account union and current qualifying follow through an in-process application boundary, not a new HTTP API. It selects an allocating event's audience once and checks current follow eligibility before a prepared push, without captured relation UUID continuity or retroactive audience expansion. F07 owns announcement and delivery consequences; the displayed season never becomes a notification preference. The collector is not a consumer of these private operations.

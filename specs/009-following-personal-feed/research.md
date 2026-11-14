@@ -28,7 +28,7 @@ Ordinary calendar refresh keeps [F03's current native Query/grouping policy](../
 
 **Decision**: Persist ordinary unique account–target associations, lock the account during writes and erasure, and accept last server-recorded state between devices. A recreated follow has a new identity.
 
-**Rationale and evidence**: [Spring Data JPA locking](https://docs.spring.io/spring-data/jpa/reference/jpa/locking.html) and [PostgreSQL row locks](https://www.postgresql.org/docs/18/explicit-locking.html) support the existing F05 serialization mechanism. This protects transaction ordering and erasure, not global gesture chronology. Relation identity also supports F07's existing prohibition on reviving cancelled sends after re-follow.
+**Rationale and evidence**: [Spring Data JPA locking](https://docs.spring.io/spring-data/jpa/reference/jpa/locking.html) and [PostgreSQL row locks](https://www.postgresql.org/docs/18/explicit-locking.html) support the existing F05 serialization mechanism. This protects transaction ordering and erasure, not global gesture chronology. Relation identity distinguishes follow lifecycles. F07 selects accounts once and checks their current qualifying follow before a prepared push, so re-following can qualify a selected account without reviving a skipped send or renewing an announcement allowance.
 
 **Alternatives**: Client gesture ordering, stale-write conflicts, durable request ledgers and tombstones were rejected in favour of the owner-selected last-recorded rule. Existing invalidation and ordinary reads may observe current state after an ordinary failure; they are not a special verification protocol or a prerequisite to a later explicit desired-state command.
 

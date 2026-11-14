@@ -56,9 +56,6 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
   @Autowired
   private com.blockout.backend.sporting.application.service.MatchContributionAccess sportingContext;
 
-  @Autowired
-  private com.blockout.backend.notifications.application.AnnouncementRecipients recipientSelection;
-
   @Autowired private AnnounceContribution transitions;
 
   /** Clears only this test's ephemeral handoff observations. */
@@ -66,7 +63,6 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
   void clearProbe() {
     probe.ids.clear();
     probe.handoffs.clear();
-    probe.relationCounts.clear();
     probe.fail = false;
   }
 
@@ -120,7 +116,6 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
     // Then
     assertThat(families()).containsExactlyInAnyOrder("LIVE_LINK", "ENRICHED_RESULT");
     assertThat(probe.ids).hasSize(2);
-    assertThat(probe.relationCounts).containsExactly(3, 3);
     assertThat(
             sql.queryForObject(
                 "SELECT post_result_processed FROM match_announcement WHERE match_id=?",
@@ -293,8 +288,6 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
             status -> {
               com.blockout.backend.sporting.application.service.MatchContributionAccess.Facts
                   facts = sportingContext.lock(matchId);
-              com.blockout.backend.notifications.application.AnnouncementRecipients.Selection
-                  selection = recipientSelection.select(facts.match(), java.util.Set.of(AUTHOR));
               sql.update(
                   "INSERT INTO contribution_version(id,match_id,address,platform,owner_id,state,created_at,quota_participating,source_version_id,publication_kind,publication_at,publication_actor_id) VALUES (?,?,?,'YOUTUBE',?,'ACTIVE',?,FALSE,?,'REACTIVATION',?,?)",
                   reactivated,
@@ -308,7 +301,7 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
               sql.update(
                   "UPDATE contribution_state SET revision=revision+1,report_hold_version_id=NULL WHERE match_id=?",
                   matchId);
-              transitions.published(facts, selection.recipients(), NOW);
+              transitions.published(facts, NOW);
             });
 
     // Then
@@ -349,69 +342,6 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
 
       // Then
       assertThat(families()).containsExactlyInAnyOrder("LIVE_LINK", "ENRICHED_RESULT");
-    }
-  }
-
-  @Test
-  @DisplayName(
-      "Complete audience locks precede the author lock even when the author is not a follower")
-  void locksCompleteAccountUnion() throws Exception {
-    // Given
-    follow(FOLLOWER);
-    follow(OTHER);
-    CompletableFuture<Integer> pid = new CompletableFuture<>();
-    TransactionTemplate tx = new TransactionTemplate(transactions);
-    TransactionTemplate independent = new TransactionTemplate(transactions);
-    independent.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
-      Future<?> waiting =
-          tx.execute(
-              status -> {
-                sql.queryForObject(
-                    "SELECT id FROM account WHERE id=? FOR UPDATE", UUID.class, OTHER);
-                Future<?> future =
-                    worker.submit(
-                        () ->
-                            tx.executeWithoutResult(
-                                inner -> {
-                                  pid.complete(
-                                      sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
-                                  submit(AUTHOR, "0", "https://youtube.com/live", false);
-                                }));
-                PostgresTestDatabase.awaitBlocked(sql, pid);
-
-                // When
-                Throwable observedFailure =
-                    catchThrowable(
-                        () ->
-                            independent.execute(
-                                inner ->
-                                    sql.queryForObject(
-                                        "SELECT id FROM account WHERE id=? FOR UPDATE NOWAIT",
-                                        UUID.class,
-                                        FOLLOWER)));
-
-                // Then
-                assertThat(observedFailure)
-                    .isInstanceOf(org.springframework.dao.DataAccessException.class);
-                // The later author must not have been locked before the smaller audience
-                // identities.
-                assertThat(
-                        independent.<UUID>execute(
-                            inner ->
-                                sql.queryForObject(
-                                    "SELECT id FROM account WHERE id=? FOR UPDATE NOWAIT",
-                                    UUID.class,
-                                    AUTHOR)))
-                    .isEqualTo(AUTHOR);
-                return future;
-              });
-
-      // When
-      waiting.get(15, TimeUnit.SECONDS);
-
-      // Then
-      assertThat(count("notification")).isEqualTo(2);
     }
   }
 
@@ -800,8 +730,6 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
   static class Probe {
     final List<Class<?>> handoffs = new java.util.concurrent.CopyOnWriteArrayList<>();
     final List<UUID> ids = new java.util.concurrent.CopyOnWriteArrayList<>();
-    final java.util.List<Integer> relationCounts =
-        new java.util.concurrent.CopyOnWriteArrayList<>();
     final JdbcTemplate sql;
     final PlatformTransactionManager transactions;
     boolean fail;
@@ -838,17 +766,16 @@ class ContributionAnnouncementsIntegrationTest extends ContributionScenario {
       handoffs.add(AfterCommitAnnouncements.Ready.class);
       TransactionTemplate independent = new TransactionTemplate(transactions);
       independent.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-      for (AllocateAnnouncements.Created created : ready.entries()) {
+      for (AllocateAnnouncements.Entry created : ready.entries()) {
         assertThat(
                 independent.<Long>execute(
                     status ->
                         sql.queryForObject(
                             "SELECT COUNT(*) FROM notification WHERE id=?",
                             Long.class,
-                            created.entry().id())))
+                            created.id())))
             .isEqualTo(1);
-        ids.add(created.entry().id());
-        relationCounts.add(created.relations().size());
+        ids.add(created.id());
       }
       if (fail) {
         throw new IllegalStateException("Controlled external sender failure");

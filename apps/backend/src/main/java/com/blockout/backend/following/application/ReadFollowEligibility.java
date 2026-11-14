@@ -1,14 +1,12 @@
 package com.blockout.backend.following.application;
 
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Current relation identities for F07; the consumer owns sporting/account locks and delivery. */
+/** Current confirmed follows for F07; the consumer owns sporting visibility and delivery. */
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -16,29 +14,22 @@ public class ReadFollowEligibility {
   private final FollowStore store;
 
   /**
-   * Groups current origins once per account without a personal display-season preference.
+   * Selects each current follower once, independently of personal display-season preferences.
    *
    * @param targets actual sporting origins selected by the consumer
-   * @return deeply immutable account-to-relation union
+   * @return immutable account union
    */
-  public Map<UUID, Set<FollowContext.Relation>> recipients(Set<FollowContext.Target> targets) {
-    return Map.copyOf(
-        store.relations(targets).stream()
-            .collect(
-                Collectors.groupingBy(
-                    FollowContext.Relation::accountId, Collectors.toUnmodifiableSet())));
+  public Set<UUID> recipients(Set<FollowContext.Target> targets) {
+    return store.recipients(targets);
   }
 
   /**
-   * Checks that the exact relation incarnation remains present at this read.
+   * Checks the original account's current follow, independently of relation recreation.
    *
-   * @param relation previously observed original identities
-   * @return false after deletion or recreation; never a guarantee about a later send
+   * @param context original account and current qualifying sporting target
+   * @return whether the account currently follows that target
    */
-  public boolean stillPresent(FollowContext.Relation relation) {
-    return store
-        .find(new FollowContext(relation.accountId(), relation.target()))
-        .filter(current -> current.id().equals(relation.id()))
-        .isPresent();
+  public boolean following(FollowContext context) {
+    return store.exists(context);
   }
 }

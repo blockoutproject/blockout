@@ -12,10 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.blockout.backend.following.application.FollowContext;
-import com.blockout.backend.following.application.FollowContext.Relation;
-import com.blockout.backend.following.application.FollowContext.TargetType;
-import com.blockout.backend.notifications.application.AllocateAnnouncements.Created;
+import com.blockout.backend.notifications.application.AllocateAnnouncements.Entry;
 import com.blockout.backend.notifications.application.PushProvider.Message;
 import com.blockout.backend.notifications.application.PushProvider.Outcome;
 import com.blockout.backend.notifications.application.PushProvider.Status;
@@ -26,7 +23,6 @@ import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -74,7 +70,7 @@ class PushDeliveryIntegrationTest {
   private ThreadPoolTaskExecutor executor;
 
   private UUID notification;
-  private Created created;
+  private Entry created;
   private Target target;
   private static final UUID RELATION = UUID.fromString("00000000-0000-4000-8000-000000000090");
 
@@ -94,23 +90,20 @@ class PushDeliveryIntegrationTest {
     UUID installationId = UUID.fromString("00000000-0000-4000-8000-000000002832");
     sql.update(
         "INSERT INTO push_subscription(id,subscription_id,installation_id,account_id,expo_push_token,revision) VALUES (?,?,?,?,?,4)",
-        RELATION,
+        subscriptionId,
         subscriptionId,
         installationId,
         ACCOUNT,
         "ExponentPushToken[synthetic]");
-    target = new Target(RELATION, 4, "ExponentPushToken[synthetic]");
+    target = new Target(subscriptionId, 4, "ExponentPushToken[synthetic]");
     created =
-        new Created(
-            new AllocateAnnouncements.Entry(
-                notification,
-                ACCOUNT,
-                notification,
-                NotificationFamily.ENRICHED_RESULT,
-                NotificationVariant.FIRST,
-                NOW.minusSeconds(60)),
-            Set.of(
-                new Relation(RELATION, ACCOUNT, new FollowContext.Target(TargetType.TEAM, HOME))));
+        new Entry(
+            notification,
+            ACCOUNT,
+            notification,
+            NotificationFamily.ENRICHED_RESULT,
+            NotificationVariant.FIRST,
+            NOW.minusSeconds(60));
   }
 
   @Test
@@ -161,8 +154,8 @@ class PushDeliveryIntegrationTest {
   }
 
   @Test
-  @DisplayName("Recreated follows cannot preserve an original relation incarnation")
-  void refusesRecreatedFollow() {
+  @DisplayName("A selected account can receive a prepared push after re-following")
+  void permitsRecreatedFollow() {
     // Given
     UUID recreatedRelation = UUID.fromString("00000000-0000-4000-8000-000000002833");
     sql.update("DELETE FROM team_follow WHERE id=?", RELATION);
@@ -176,7 +169,7 @@ class PushDeliveryIntegrationTest {
     java.util.Optional<Message> result = eligibility.current(created, target);
 
     // Then
-    assertThat(result).isEmpty();
+    assertThat(result).isPresent();
   }
 
   @ParameterizedTest
@@ -269,7 +262,7 @@ class PushDeliveryIntegrationTest {
   }
 
   @Test
-  @DisplayName("One surviving original overlapping origin still permits a send")
+  @DisplayName("A current pool follow still permits a send after the team follow is removed")
   void retainsSurvivingOrigin() {
     // Given
     UUID poolRelation = UUID.fromString("00000000-0000-4000-8000-000000000091");
@@ -278,22 +271,10 @@ class PushDeliveryIntegrationTest {
         poolRelation,
         ACCOUNT,
         com.blockout.backend.notifications.testsupport.InboxDatabaseFixture.POOL);
-    Created overlapping =
-        new Created(
-            created.entry(),
-            Set.of(
-                created.relations().iterator().next(),
-                new Relation(
-                    poolRelation,
-                    ACCOUNT,
-                    new FollowContext.Target(
-                        TargetType.POOL,
-                        com.blockout.backend.notifications.testsupport.InboxDatabaseFixture
-                            .POOL))));
     sql.update("DELETE FROM team_follow WHERE id=?", RELATION);
 
     // When
-    java.util.Optional<Message> result = eligibility.current(overlapping, target);
+    java.util.Optional<Message> result = eligibility.current(created, target);
 
     // Then
     assertThat(result).isPresent();
@@ -377,14 +358,12 @@ class PushDeliveryIntegrationTest {
         state.equals("withdrawn") ? "HIDDEN" : "ACTIVE",
         java.sql.Timestamp.from(NOW));
     created =
-        new Created(
-            new AllocateAnnouncements.Entry(
-                notification,
-                ACCOUNT,
-                notification,
-                NotificationFamily.LIVE_LINK,
-                NotificationVariant.FIRST,
-                NOW.minusSeconds(60)),
-            created.relations());
+        new Entry(
+            notification,
+            ACCOUNT,
+            notification,
+            NotificationFamily.LIVE_LINK,
+            NotificationVariant.FIRST,
+            NOW.minusSeconds(60));
   }
 }

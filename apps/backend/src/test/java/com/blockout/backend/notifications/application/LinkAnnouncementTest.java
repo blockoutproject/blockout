@@ -7,7 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.blockout.backend.notifications.application.AllocateAnnouncements.Created;
+import com.blockout.backend.notifications.application.AllocateAnnouncements.Entry;
 import com.blockout.backend.notifications.domain.MatchAnnouncementFacts;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import java.time.Instant;
@@ -26,8 +26,9 @@ class LinkAnnouncementTest {
   private static final UUID MATCH = UUID.fromString("00000000-0000-4000-8000-000000000252");
   private static final Instant START = Instant.parse("2026-10-24T12:00:00Z");
   private final NotificationStore store = mock(NotificationStore.class);
+  private final AnnouncementRecipients recipients = mock(AnnouncementRecipients.class);
   private final ProcessLinkAnnouncement processor =
-      new ProcessLinkAnnouncement(store, new AllocateAnnouncements(store));
+      new ProcessLinkAnnouncement(store, new AllocateAnnouncements(store), recipients);
 
   @ParameterizedTest
   @CsvSource({"0,false", "1,false", "0,true"})
@@ -47,7 +48,7 @@ class LinkAnnouncementTest {
             START.plusSeconds(elapsedSeconds));
 
     // When
-    List<Created> created = processor.process(context, List.of());
+    List<Entry> created = processor.process(context);
 
     // Then
     assertThat(created).isEmpty();
@@ -71,11 +72,12 @@ class LinkAnnouncementTest {
             START.minusSeconds(1));
 
     // When
-    List<Created> created = processor.process(context, List.of());
+    List<Entry> created = processor.process(context);
 
     // Then
     assertThat(created).isEmpty();
     verify(store, never()).saveFacts(any());
+    org.mockito.Mockito.verifyNoInteractions(recipients);
     verify(store, never()).create(any());
   }
 
@@ -90,7 +92,7 @@ class LinkAnnouncementTest {
             new MatchView(MATCH, MATCH, "synthetic", MATCH, MATCH), true, true, null, true, START);
 
     // When
-    List<Created> created = processor.process(context, List.of());
+    List<Entry> created = processor.process(context);
 
     // Then
     assertThat(created).isEmpty();
@@ -114,11 +116,12 @@ class LinkAnnouncementTest {
             START);
 
     // When
-    List<Created> created = processor.process(context, List.of());
+    List<Entry> created = processor.process(context);
 
     // Then
     assertThat(created).isEmpty();
     verify(store, never()).saveFacts(any());
+    org.mockito.Mockito.verifyNoInteractions(recipients);
     verify(store, never()).create(any());
   }
 
@@ -140,11 +143,12 @@ class LinkAnnouncementTest {
             START);
 
     // When
-    List<Created> created = processor.process(context, List.of());
+    List<Entry> created = processor.process(context);
 
     // Then
     assertThat(created).isEmpty();
     verify(store, never()).saveFacts(any());
+    org.mockito.Mockito.verifyNoInteractions(recipients);
     verify(store, never()).create(any());
   }
 }

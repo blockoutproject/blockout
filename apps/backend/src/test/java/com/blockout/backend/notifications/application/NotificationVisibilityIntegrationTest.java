@@ -12,13 +12,11 @@ import com.blockout.backend.contributions.application.ModerateContribution;
 import com.blockout.backend.contributions.application.ReadPublicContribution;
 import com.blockout.backend.contributions.application.SubmitContribution;
 import com.blockout.backend.contributions.support.ContributionScenario;
-import com.blockout.backend.following.application.FollowContext;
 import com.blockout.backend.generated.ingestion.model.MatchFactsInternalRequest;
 import com.blockout.backend.generated.ingestion.model.MatchResultInternalRequest;
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.generated.mobile.model.StreamModerationActionEnum;
 import com.blockout.backend.notifications.api.NotificationApiMapper;
-import com.blockout.backend.notifications.application.AllocateAnnouncements.Created;
 import com.blockout.backend.notifications.application.InboxViews.Entry;
 import com.blockout.backend.notifications.application.PushProvider.Outcome;
 import com.blockout.backend.notifications.application.PushProvider.Status;
@@ -33,7 +31,6 @@ import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -63,13 +60,13 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
 
   @ParameterizedTest
   @ValueSource(strings = {"withdrawn", "division", "dateless", "empty-calendar"})
-  @DisplayName("Current owner restrictions exclude inbox, count and remaining sends")
+  @DisplayName("Current owner restrictions exclude inbox entries and remaining sends")
   void excludesRestrictedMatch(String restriction) {
     // Given
     follow(FOLLOWER);
     result(2, ResultStateEnum.FINAL);
     Entry original = inbox.page(OWNER, null).entries().getFirst();
-    Created captured = capture(original);
+    AllocateAnnouncements.Entry captured = allocation(original);
     Target target = subscription();
 
     // When
@@ -126,7 +123,7 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
     follow(FOLLOWER);
     result(2, ResultStateEnum.FINAL);
     Entry original = inbox.page(OWNER, null).entries().getFirst();
-    Created captured = capture(original);
+    AllocateAnnouncements.Entry captured = allocation(original);
     Target target = subscription();
     when(provider.send(any())).thenReturn(List.of(new Outcome(Status.UNKNOWN, null)));
 
@@ -152,7 +149,7 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
     Entry initial = inbox.page(OWNER, null).entries().getFirst();
     marks.mark(OWNER, initial.id());
     Entry original = inbox.member(OWNER, initial.id());
-    Created captured = capture(original);
+    AllocateAnnouncements.Entry captured = allocation(original);
     Target target = subscription();
     MatchAnnouncementFacts consumed =
         new TransactionTemplate(transactions)
@@ -217,7 +214,7 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
     Entry initial = inbox.page(OWNER, null).entries().getFirst();
     marks.mark(OWNER, initial.id());
     Entry original = inbox.member(OWNER, initial.id());
-    Created captured = capture(original);
+    AllocateAnnouncements.Entry captured = allocation(original);
     Target target = subscription();
     when(provider.send(any())).thenReturn(List.of(new Outcome(Status.UNKNOWN, null)));
     calendars.accept(
@@ -266,7 +263,7 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
     follow(FOLLOWER);
     result(2, ResultStateEnum.FINAL);
     Entry original = inbox.page(OWNER, null).entries().getFirst();
-    Created captured = capture(original);
+    AllocateAnnouncements.Entry captured = allocation(original);
     Target target = subscription();
     MatchAnnouncementFacts consumed =
         new TransactionTemplate(transactions)
@@ -295,7 +292,7 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
     follow(FOLLOWER);
     result(2, ResultStateEnum.FINAL);
     Entry original = inbox.page(OWNER, null).entries().getFirst();
-    Created captured = capture(original);
+    AllocateAnnouncements.Entry captured = allocation(original);
     Target target = subscription();
     calendars.accept(
         scope.pool(), new CalendarObservation(context(3), true, List.of(), List.of(), List.of()));
@@ -327,27 +324,9 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
         .isEqualTo(original.createdAt());
   }
 
-  /**
-   * Captures the real original F06 relation and persisted entry for a delayed send.
-   *
-   * @param entry original allocation with its stable family, variant and creation instant
-   * @return original immutable handoff context, without current sporting text
-   */
-  private Created capture(Entry entry) {
-    UUID relation =
-        sql.queryForObject(
-            "SELECT id FROM pool_follow WHERE account_id=? AND pool_id=?",
-            UUID.class,
-            FOLLOWER,
-            scope.pool());
-    return new Created(
-        new AllocateAnnouncements.Entry(
-            entry.id(), FOLLOWER, matchId, entry.family(), entry.variant(), entry.createdAt()),
-        Set.of(
-            new FollowContext.Relation(
-                relation,
-                FOLLOWER,
-                new FollowContext.Target(FollowContext.TargetType.POOL, scope.pool()))));
+  private AllocateAnnouncements.Entry allocation(Entry entry) {
+    return new AllocateAnnouncements.Entry(
+        entry.id(), FOLLOWER, matchId, entry.family(), entry.variant(), entry.createdAt());
   }
 
   /**

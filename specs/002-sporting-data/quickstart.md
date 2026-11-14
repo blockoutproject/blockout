@@ -24,7 +24,7 @@ Race classification correction with match integration and test a shared-particip
 
 Exercise numeric and recognized special results with provisional, final and unconfirmed finality through ingestion and consultation. Preserve notation independently; only a final result establishes a definitive-result transition.
 
-Race first final result with F08 publication. Expect the F07 composition matching the accepted order. Fail internal inbox persistence: only that match rolls back. Fail push after commit: score and inbox remain. Verify initial imports, unchanged results, corrections and withdrawal/restoration do not duplicate consumed announcements or resurrect purged inbox entries.
+Race first final result with F08 publication. Expect the F07 composition matching the accepted order. Add a follow after the single audience selection: acceptance succeeds without adding that follower retroactively. Fail internal inbox persistence: only that match rolls back. Fail push after commit: score and inbox remain. Verify initial imports, unchanged results, corrections and withdrawal/restoration do not duplicate consumed announcements or resurrect purged inbox entries.
 
 Carry supplied and omitted `providerPublishedAt` through the actual generated collector/backend boundary, including image metadata. Verify retained fact groups keep their own timestamps, newly accepted facts without a publication time remain unknown, and source publication time cannot overturn the logical token.
 
@@ -38,7 +38,7 @@ Use [F01 partial-success/absence cases](../001-source-acquisition/quickstart.md#
 
 ### Result announcement transaction
 
-Race real F08 publication with first final-result acceptance in both orders. Expect the F07 allowance/inbox participant to share the match transaction: inbox failure rolls it back; post-commit push failure does not. Include zero recipients, initial finished discovery/reconstruction, corrections and withdrawal/restoration. Use [F07's producer cases](../011-notifications-delivery/quickstart.md#atomic-producer-and-link-qualification) for allowance and delivery boundaries.
+Race real F08 publication with first final-result acceptance in both orders. Expect the F07 allowance/inbox participant to share the match transaction: inbox failure rolls it back; post-commit push failure does not. Include zero recipients, stable single selection when a new follow arrives after it, selected-account erasure/FK integrity, initial finished discovery/reconstruction, corrections and withdrawal/restoration. No audience equality conflict or audience account locking is required. Use [F07's producer cases](../011-notifications-delivery/quickstart.md#atomic-producer-and-link-qualification) for allowance and delivery boundaries.
 
 ## Contracts and fields
 

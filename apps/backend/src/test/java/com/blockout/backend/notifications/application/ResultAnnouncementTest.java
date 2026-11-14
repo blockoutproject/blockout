@@ -9,7 +9,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
-import com.blockout.backend.notifications.application.AllocateAnnouncements.Created;
+import com.blockout.backend.notifications.application.AllocateAnnouncements.Entry;
 import com.blockout.backend.notifications.application.ProcessResultAnnouncement.Transition;
 import com.blockout.backend.notifications.domain.MatchAnnouncementFacts;
 import com.blockout.backend.notifications.domain.NotificationFamily;
@@ -17,6 +17,7 @@ import com.blockout.backend.sporting.application.model.MatchObservation.Result;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,10 +43,10 @@ class ResultAnnouncementTest {
     // Given
     when(store.facts(MATCH))
         .thenReturn(new MatchAnnouncementFacts(MATCH, true, false, false, null));
-    when(recipients.select(any())).thenReturn(List.of());
+    when(recipients.select(any())).thenReturn(Set.of());
 
     // When
-    List<Created> created =
+    List<Entry> created =
         processor.process(
             transition(null, result(ResultStateEnum.FINAL), false, false, true, link));
 
@@ -63,7 +64,7 @@ class ResultAnnouncementTest {
         .thenReturn(new MatchAnnouncementFacts(MATCH, false, false, false, null));
 
     // When
-    List<Created> created =
+    List<Entry> created =
         processor.process(
             transition(
                 null, result(ResultStateEnum.FINAL), discovery, reconstruction, visible, true));
@@ -88,7 +89,7 @@ class ResultAnnouncementTest {
         .thenReturn(new MatchAnnouncementFacts(MATCH, false, false, false, null));
 
     // When
-    List<Created> created =
+    List<Entry> created =
         processor.process(transition(null, result(state), false, false, true, false));
 
     // Then
@@ -140,7 +141,7 @@ class ResultAnnouncementTest {
     // Given
     when(store.facts(MATCH))
         .thenReturn(new MatchAnnouncementFacts(MATCH, false, false, false, null));
-    when(recipients.select(any())).thenReturn(List.of());
+    when(recipients.select(any())).thenReturn(Set.of());
 
     // When
     processor.process(
@@ -169,7 +170,7 @@ class ResultAnnouncementTest {
             new MatchAnnouncementFacts(MATCH, false, true, false, NotificationFamily.PLAIN_RESULT));
 
     // When
-    List<Created> created =
+    List<Entry> created =
         processor.process(
             transition(
                 previousFinal ? result(ResultStateEnum.FINAL) : null,

@@ -1,8 +1,5 @@
 package com.blockout.backend.following.application;
 
-import com.blockout.backend.following.application.FollowContext.Relation;
-import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -17,12 +14,12 @@ public interface FollowStore {
   void erase(UUID accountId);
 
   /**
-   * Reads the exact original owner's typed relation, including retained hidden targets.
+   * Checks the exact original owner's typed relation, including retained hidden targets.
    *
    * @param context original account and target
-   * @return the current relation, or absence without a negative-state row
+   * @return whether the relation currently exists; absence requires no negative-state row
    */
-  Optional<Relation> find(FollowContext context);
+  boolean exists(FollowContext context);
 
   /**
    * Creates one relation after the caller verified absence under the original account lock.
@@ -39,12 +36,12 @@ public interface FollowStore {
   void remove(FollowContext context);
 
   /**
-   * Reads confirmed relations for the supplied sporting origins from one statement snapshot,
+   * Reads the confirmed account union for supplied sporting origins from one statement snapshot,
    * without display-season filtering. Split origin reads must not invent an empty audience during a
    * committed team/pool turnover.
    *
    * @param targets the actual consumer's team/pool origins, possibly empty
-   * @return detached identities of currently present relations
+   * @return immutable selected account identities, without captured follow identities
    */
-  List<Relation> relations(Set<FollowContext.Target> targets);
+  Set<UUID> recipients(Set<FollowContext.Target> targets);
 }

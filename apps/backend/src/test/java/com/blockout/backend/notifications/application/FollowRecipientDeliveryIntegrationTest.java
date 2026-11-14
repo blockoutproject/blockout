@@ -17,16 +17,10 @@ import com.blockout.backend.notifications.application.PushProvider.Message;
 import com.blockout.backend.notifications.application.PushProvider.Outcome;
 import com.blockout.backend.notifications.application.PushProvider.Status;
 import com.blockout.backend.sporting.application.ConsultationRequest.CalendarWindow;
-import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.sql.Timestamp;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,7 +32,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.transaction.support.TransactionTemplate;
 
 /** Real F02/F08 producers through F06 selection and F07 sending, with controlled worker and I/O. */
 @SpringBootTest(
@@ -49,7 +42,7 @@ import org.springframework.transaction.support.TransactionTemplate;
       "blockout.notifications.retention-cron=-",
       "blockout.notifications.link-announcements-cron=-"
     })
-@DisplayName("Actual producer-to-send consumption of original follows")
+@DisplayName("Actual producer-to-send consumption of current follows")
 class FollowRecipientDeliveryIntegrationTest extends ContributionScenario {
   @Autowired private ReadPersonalCalendar calendar;
   @Autowired private ReadInbox inbox;
@@ -130,36 +123,12 @@ class FollowRecipientDeliveryIntegrationTest extends ContributionScenario {
             });
   }
 
-  @Test
-  @DisplayName("A retained original pool still sends after both team follows are recreated")
-  void sendsWithSurvivingOriginalPool() {
+  @ParameterizedTest
+  @EnumSource(Producer.class)
+  @DisplayName("A selected recipient who re-follows receives prepared work without renewing facts")
+  void sendsAfterRefollow(Producer producer) {
     // Given
-    announce(Producer.RESULT);
-    UUID originalPool =
-        sql.queryForObject("SELECT id FROM pool_follow WHERE account_id=?", UUID.class, FOLLOWER);
-    for (FollowContext origin : origins.subList(1, 3)) {
-      follows.replace(origin, false);
-      follows.replace(origin, true);
-    }
-    when(provider.send(any())).thenReturn(List.of(new Outcome(Status.UNKNOWN, null)));
-
-    // When
-    pending().run();
-
-    // Then
-    verify(provider).send(any());
-    assertThat(
-            sql.queryForObject(
-                "SELECT id FROM pool_follow WHERE account_id=?", UUID.class, FOLLOWER))
-        .isEqualTo(originalPool);
-    assertThat(count("notification")).isEqualTo(1);
-  }
-
-  @Test
-  @DisplayName("Recreating every origin cancels pending work without renewing consumed facts")
-  void refusesRecreatedOrigins() {
-    // Given
-    announce(Producer.RESULT);
+    announce(producer);
     List<UUID> original =
         sql.queryForList(
             "SELECT id FROM team_follow UNION ALL SELECT id FROM pool_follow", UUID.class);
@@ -168,12 +137,18 @@ class FollowRecipientDeliveryIntegrationTest extends ContributionScenario {
       follows.replace(origin, true);
     }
 
+    when(provider.send(any())).thenReturn(List.of(new Outcome(Status.UNKNOWN, null)));
+
     // When
     pending().run();
-    result(3, ResultStateEnum.FINAL);
+    if (producer == Producer.RESULT) {
+      result(3, ResultStateEnum.FINAL);
+    } else {
+      due.run();
+    }
 
     // Then
-    verifyNoInteractions(provider);
+    verify(provider).send(any());
     assertThat(
             sql.queryForList(
                 "SELECT id FROM team_follow UNION ALL SELECT id FROM pool_follow", UUID.class))
@@ -182,15 +157,35 @@ class FollowRecipientDeliveryIntegrationTest extends ContributionScenario {
     assertThat(count("notification")).isEqualTo(1);
     assertThat(
             sql.queryForObject(
-                "SELECT result_processed FROM match_announcement WHERE match_id=?",
+                "SELECT "
+                    + (producer == Producer.RESULT ? "result_processed" : "live_processed")
+                    + " FROM match_announcement WHERE match_id=?",
                 Boolean.class,
                 matchId))
         .isTrue();
   }
 
   @ParameterizedTest
+  @EnumSource(Producer.class)
+  @DisplayName("A selected recipient without a current qualifying follow gets no prepared push")
+  void excludesUnfollowedRecipient(Producer producer) {
+    // Given
+    announce(producer);
+    for (FollowContext origin : origins) {
+      follows.replace(origin, false);
+    }
+
+    // When
+    pending().run();
+
+    // Then
+    verifyNoInteractions(provider);
+    assertThat(count("notification")).isEqualTo(1);
+  }
+
+  @ParameterizedTest
   @ValueSource(booleans = {true, false})
-  @DisplayName("Current original-account or target disappearance cancels pending handoff")
+  @DisplayName("Current account or target disappearance cancels pending handoff")
   void refusesUnavailableOwnerOrTarget(boolean eraseAccount) {
     // Given
     announce(Producer.RESULT);
@@ -243,51 +238,6 @@ class FollowRecipientDeliveryIntegrationTest extends ContributionScenario {
         .isEqualTo(replacement);
     assertThat(sql.queryForList("SELECT team_id FROM team_follow", UUID.class))
         .containsExactly(origins.get(1).target().id());
-  }
-
-  @Test
-  @DisplayName("Trigger rereads relation incarnations after waiting on the original account lock")
-  void capturesRelationsAfterAccountLock() throws Exception {
-    // Given
-    CompletableFuture<Integer> pid = new CompletableFuture<>();
-    TransactionTemplate transaction = new TransactionTemplate(transactions);
-    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
-      Future<?> producer =
-          transaction.execute(
-              status -> {
-                sql.queryForObject(
-                    "SELECT id FROM account WHERE id=? FOR UPDATE", UUID.class, FOLLOWER);
-                Future<?> waiting =
-                    worker.submit(
-                        () ->
-                            transaction.executeWithoutResult(
-                                inner -> {
-                                  pid.complete(
-                                      sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
-                                  result(2, ResultStateEnum.FINAL);
-                                }));
-                PostgresTestDatabase.awaitBlocked(sql, pid);
-                // The producer holds sporting roots; mutate only this account's relations, in lock
-                // order.
-                sql.update("DELETE FROM team_follow WHERE account_id=?", FOLLOWER);
-                sql.update("DELETE FROM pool_follow WHERE account_id=?", FOLLOWER);
-                sql.update(
-                    "INSERT INTO pool_follow(id,account_id,pool_id) VALUES (?,?,?)",
-                    UUID.fromString("00000000-0000-4000-8000-000000000093"),
-                    FOLLOWER,
-                    scope.pool());
-                return waiting;
-              });
-      producer.get(15, TimeUnit.SECONDS);
-    }
-    when(provider.send(any())).thenReturn(List.of(new Outcome(Status.UNKNOWN, null)));
-
-    // When
-    pending().run();
-
-    // Then
-    verify(provider).send(any());
-    assertThat(count("notification")).isEqualTo(1);
   }
 
   /** Real producer entry points qualified by this suite. */

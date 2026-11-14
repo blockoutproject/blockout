@@ -1,6 +1,6 @@
 package com.blockout.backend.notifications.application;
 
-import com.blockout.backend.notifications.application.AllocateAnnouncements.Created;
+import com.blockout.backend.notifications.application.AllocateAnnouncements.Entry;
 import com.blockout.backend.notifications.application.PushSubscriptionStore.Target;
 import java.util.List;
 import java.util.Map;
@@ -23,16 +23,16 @@ public class AfterCommitAnnouncements {
    * Captures immutable allocations inside the producer transaction for the native after-commit
    * consumer.
    *
-   * @param created newly allocated entries and original follow relation identities
+   * @param created newly allocated entries
    */
   @Transactional(propagation = Propagation.MANDATORY)
-  public void submit(List<Created> created) {
+  public void submit(List<Entry> created) {
     if (created.isEmpty()) {
       return;
     }
     Map<UUID, List<Target>> targets =
         created.stream()
-            .map(allocation -> allocation.entry().accountId())
+            .map(Entry::accountId)
             .distinct()
             .collect(Collectors.toUnmodifiableMap(account -> account, subscriptions::targets));
     events.publishEvent(new Ready(created, targets));
@@ -41,11 +41,11 @@ public class AfterCommitAnnouncements {
   /**
    * After-commit integration event for the later best-effort sender; no durable delivery promise.
    *
-   * @param entries newly committed allocations and original relation identities
+   * @param entries newly committed allocations
    * @param targets trigger-time associations per original account; later registration gets no
    *     catch-up
    */
-  public record Ready(List<Created> entries, Map<UUID, List<Target>> targets) {
+  public record Ready(List<Entry> entries, Map<UUID, List<Target>> targets) {
     /**
      * Captures immutable transaction outcomes.
      *

@@ -47,7 +47,7 @@ public class NotificationEntity {
   private boolean read;
 
   /**
-   * Creates an unread entry after current owner/follow rechecks under the account lock.
+   * Creates an unread entry for the selected original account; the foreign key owns integrity.
    *
    * @param entry complete immutable personal allocation
    */

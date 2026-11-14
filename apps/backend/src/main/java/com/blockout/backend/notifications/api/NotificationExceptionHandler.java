@@ -21,15 +21,4 @@ public class NotificationExceptionHandler {
   ResponseEntity<Object> missing() {
     return HttpProblems.response(HttpStatus.NOT_FOUND, "urn:blockout:problem:not-found");
   }
-
-  /**
-   * Refuses a changed publication audience without replaying the owning command.
-   *
-   * @return conflict requiring a fresh read and explicit intent
-   */
-  @ExceptionHandler(
-      com.blockout.backend.notifications.application.AnnouncementAudienceChangedException.class)
-  ResponseEntity<Object> audienceChanged() {
-    return HttpProblems.response(HttpStatus.CONFLICT, "urn:blockout:problem:conflict");
-  }
 }

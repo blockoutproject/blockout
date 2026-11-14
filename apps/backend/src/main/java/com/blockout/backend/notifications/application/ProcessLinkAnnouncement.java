@@ -1,7 +1,6 @@
 package com.blockout.backend.notifications.application;
 
-import com.blockout.backend.notifications.application.AllocateAnnouncements.Created;
-import com.blockout.backend.notifications.application.AnnouncementRecipients.Recipient;
+import com.blockout.backend.notifications.application.AllocateAnnouncements.Entry;
 import com.blockout.backend.notifications.domain.MatchAnnouncementFacts;
 import com.blockout.backend.notifications.domain.NotificationFamily;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
@@ -12,22 +11,22 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Required link allowance/inbox writes under the producer's match and complete account locks. */
+/** Required link allowance/inbox writes inside the producer transaction. */
 @Service
 @RequiredArgsConstructor
 public class ProcessLinkAnnouncement {
   private final NotificationStore store;
   private final AllocateAnnouncements allocations;
+  private final AnnouncementRecipients recipients;
 
   /**
    * Processes current availability; a due pass never invents a later publication.
    *
    * @param context current accepted owner facts, with public visibility already applied
-   * @param recipients current audience selected under the complete account lock set
    * @return new allocations for after-commit handoff
    */
   @Transactional(propagation = Propagation.MANDATORY)
-  public List<Created> process(Context context, List<Recipient> recipients) {
+  public List<Entry> process(Context context) {
     MatchAnnouncementFacts facts = store.facts(context.match().id());
     if (!context.publicLink()) {
       return List.of();
@@ -48,7 +47,8 @@ public class ProcessLinkAnnouncement {
       family = NotificationFamily.LIVE_LINK;
       store.saveFacts(facts.consumeLive());
     }
-    return allocations.create(context.match().id(), family, recipients, context.now());
+    return allocations.create(
+        context.match().id(), family, recipients.select(context.match()), context.now());
   }
 
   /**

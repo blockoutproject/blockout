@@ -1,7 +1,7 @@
 package com.blockout.backend.notifications.application;
 
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
-import com.blockout.backend.notifications.application.AllocateAnnouncements.Created;
+import com.blockout.backend.notifications.application.AllocateAnnouncements.Entry;
 import com.blockout.backend.notifications.domain.MatchAnnouncementFacts;
 import com.blockout.backend.notifications.domain.NotificationFamily;
 import com.blockout.backend.sporting.application.model.MatchObservation.Result;
@@ -27,15 +27,14 @@ public class ProcessResultAnnouncement {
   /**
    * Records the accepted transition and inbox atomically in the producer's existing transaction.
    * The producer must hold all necessary F02 roots and read the current public F08 link before
-   * calling, with no account locks yet. Internal failures propagate; this method performs no I/O to
-   * a transport/provider and creates no after-commit work.
+   * calling. Internal failures propagate; this method performs no I/O to a transport/provider and
+   * creates no after-commit work.
    *
    * @param transition trusted accepted owner facts, never raw client proposals
-   * @return newly allocated entries and original relation identities for later transient handoff
-   * @throws AnnouncementAudienceChangedException when the complete audience cannot be safely locked
+   * @return newly allocated entries for later transient handoff
    */
   @Transactional(propagation = Propagation.MANDATORY)
-  public List<Created> process(Transition transition) {
+  public List<Entry> process(Transition transition) {
     MatchAnnouncementFacts previous = store.facts(transition.match().id());
     if (previous.resultProcessed()) {
       return List.of();

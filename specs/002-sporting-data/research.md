@@ -32,7 +32,7 @@ Projection handoff uses Spring's native transaction-bound event listener after c
 
 ## Score, sets and notifications
 
-**Decision**: Latest valid logical observation wins across calendar/detail pages. Retain older already-accepted sets only while compatible, with their original freshness. Score and required F07 internal effects commit together; F08 publication uses the same match exclusion. Push follows commit.
+**Decision**: Latest valid logical observation wins across calendar/detail pages. Retain older already-accepted sets only while compatible, with their original freshness. Score and required F07 internal effects commit together; F08 publication uses the same match exclusion. F07 selects its audience once for a newly allocated announcement, without audience locks or equality conflicts from later follows. Existing foreign keys/cascades preserve selected-account integrity; required inbox insertion failure can still roll back acceptance. Push follows commit.
 
 **Rationale**: The [played-match detail](https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=9796&ID=135&CID=316&PID=193&type=LegList) supplied aggregate and set scores, while the inspected calendar supplied aggregate scores. No dependable result-publication timestamp or documented page precedence was found. A later read may therefore carry older supplier content; this limitation was accepted. Generic live-menu flags are not proof of finality.
 

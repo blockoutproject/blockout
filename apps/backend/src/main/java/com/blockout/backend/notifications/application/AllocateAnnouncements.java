@@ -1,7 +1,5 @@
 package com.blockout.backend.notifications.application;
 
-import com.blockout.backend.following.application.FollowContext.Relation;
-import com.blockout.backend.notifications.application.AnnouncementRecipients.Recipient;
 import com.blockout.backend.notifications.domain.NotificationFamily;
 import com.blockout.backend.notifications.domain.NotificationVariant;
 import java.time.Instant;
@@ -22,26 +20,24 @@ public class AllocateAnnouncements {
 
   /**
    * Creates one immutable unread entry per selected original account with a stable editorial
-   * variant. The producer has already consumed its allowance and holds sporting and complete
-   * account locks.
+   * variant. The producer has already consumed its allowance and holds the necessary sporting and
+   * producer account locks. Selected-account integrity uses the existing Inbox foreign keys.
    *
    * @param matchId locked original match
    * @param family accepted announcement family
-   * @param recipients current audience under retained account locks
+   * @param recipients accounts selected once for this announcement
    * @param now original processing instant
-   * @return new allocations and relation incarnations for transient after-commit handoff
+   * @return new allocations for transient after-commit handoff
    */
   @Transactional(propagation = Propagation.MANDATORY)
-  public List<Created> create(
-      UUID matchId, NotificationFamily family, List<Recipient> recipients, Instant now) {
-    List<Created> created = new ArrayList<>();
-    for (Recipient recipient : recipients) {
+  public List<Entry> create(
+      UUID matchId, NotificationFamily family, Set<UUID> recipients, Instant now) {
+    List<Entry> created = new ArrayList<>();
+    for (UUID recipient : recipients) {
       UUID id = UUID.randomUUID();
-      Entry entry =
-          new Entry(
-              id, recipient.accountId(), matchId, family, NotificationVariant.choose(id), now);
+      Entry entry = new Entry(id, recipient, matchId, family, NotificationVariant.choose(id), now);
       store.create(entry);
-      created.add(new Created(entry, recipient.relations()));
+      created.add(entry);
     }
     return List.copyOf(created);
   }
@@ -51,7 +47,7 @@ public class AllocateAnnouncements {
    * mutation.
    *
    * @param id personal UUID
-   * @param accountId locked original owner
+   * @param accountId selected original owner
    * @param matchId locked original match
    * @param family fixed family
    * @param variant fixed editorial choice
@@ -64,22 +60,4 @@ public class AllocateAnnouncements {
       NotificationFamily family,
       NotificationVariant variant,
       Instant createdAt) {}
-
-  /**
-   * Newly allocated personal entry and original follow incarnations; never a durable send job.
-   *
-   * @param entry persisted unread personal entry
-   * @param relations trigger-time origins for later continuity checks
-   */
-  public record Created(Entry entry, Set<Relation> relations) {
-    /**
-     * Detaches the captured audience from mutable selection collections.
-     *
-     * @param entry newly allocated immutable entry
-     * @param relations original current follows
-     */
-    public Created {
-      relations = Set.copyOf(relations);
-    }
-  }
 }
