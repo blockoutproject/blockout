@@ -36,10 +36,6 @@ export default function OrdinaryLayout() {
           }}
         />
         <Stack.Screen
-          name="pro"
-          options={{ presentation: "fullScreenModal" }}
-        />
-        <Stack.Screen
           name="sign-in-invitation"
           options={{
             ...sheetScreenOptions,

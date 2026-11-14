@@ -33,7 +33,7 @@ import {
   entitlement,
 } from "@/features/pro/test-support/customer-info";
 import { mockPurchases } from "@/features/pro/test-support/native-purchases";
-import { v2Offering } from "@/features/pro/test-support/offering";
+import { defaultOffering } from "@/features/pro/test-support/offering";
 import { completeDiscovery, readDiscoveryCompletion } from "../discovery-state";
 
 jest.mock("@sentry/react-native", () => ({
@@ -56,7 +56,10 @@ jest.mock("expo-constants", () => {
         ...actual.default.expoConfig,
         extra: {
           ...actual.default.expoConfig?.extra,
-          revenueCat: { iosApiKey: "test_public", offeringIdentifier: "v2" },
+          revenueCat: {
+            iosApiKey: "test_public",
+            offeringIdentifier: "default",
+          },
         },
       },
     },
@@ -87,7 +90,6 @@ jest.mock("react-native-purchases-ui", () => {
         mockPaywall = props;
         return <Text>Native store offer</Text>;
       },
-      CustomerCenterView: () => <Text>Native purchase management</Text>,
     },
   };
 });
@@ -165,7 +167,7 @@ beforeEach(async () => {
   mockPurchases.restorePurchases.mockReset().mockResolvedValue(inactive);
   mockPurchases.getOfferings
     .mockReset()
-    .mockResolvedValue({ current: null, all: { v2: v2Offering } });
+    .mockResolvedValue({ current: null, all: { default: defaultOffering } });
   mockMobileAds.initialize.mockClear();
   mockMobileAds.setRequestConfiguration.mockClear();
   nativeAdvertising.AdsConsent.gatherConsent.mockClear();
@@ -335,14 +337,14 @@ it("treats SDK-expired rights as inactive while unknown verification has no free
   expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(1);
 });
 
-it("keeps unknown Pro rights out of free/expired presentation, ads and offers while retaining explicit restoration and real assistance", async () => {
+it("keeps unknown Pro rights out of free/expired presentation and ads while explicit native Pro and private assistance remain available", async () => {
   // Given
   await AsyncStorage.setItem(initializationMarker, "true");
   await completeDiscovery();
   await submitAgeDeclaration(18);
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   mockPurchases.getCustomerInfo.mockRejectedValue(
-    new Error("Native verification unavailable"),
+    new Error("Native state unavailable"),
   );
   const user = userEvent.setup();
   await openInstallation("/profile");
@@ -358,35 +360,30 @@ it("keeps unknown Pro rights out of free/expired presentation, ads and offers wh
   await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
 
   // Then
-  expect(
-    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.queryByText(/Compte gratuit|expiré|Native store offer/),
-  ).toBeNull();
-  expect(
-    screen.getByRole("button", { name: "Restaurer mes achats" }),
-  ).toBeEnabled();
-  expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
+  expect(await screen.findByText("Native store offer")).toBeOnTheScreen();
+  expect(screen.queryByText(/Compte gratuit|expiré/)).toBeNull();
+  expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(1);
   expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
   expect(mockMobileAds.initialize).not.toHaveBeenCalled();
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Restaurer mes achats" }),
-  );
+  const inactive = customerInfo({
+    active: {},
+    all: {},
+    verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+  });
+  await act(() => mockPaywall.onRestoreCompleted?.({ customerInfo: inactive }));
 
   // Then
-  expect(
-    await screen.findByText(/Restauration terminée\. Aucun droit Pro actif/),
-  ).toBeOnTheScreen();
-  expect(mockPurchases.restorePurchases).toHaveBeenCalledTimes(1);
-  expect(screen.queryByText("Native store offer")).toBeNull();
+  expect(owners.pro.state).toMatchObject({
+    status: "inactive",
+    operation: "restored",
+  });
+  expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Contacter l’assistance" }),
-  );
+  await act(() => mockPaywall.onDismiss?.());
+  await user.press(screen.getByRole("button", { name: "Besoin d’aide ?" }));
 
   // Then
   expect(

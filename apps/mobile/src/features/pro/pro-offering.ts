@@ -2,8 +2,8 @@ import * as Sentry from "@sentry/react-native";
 import Purchases, { type PurchasesOffering } from "react-native-purchases";
 import type { ProState } from "./pro-state";
 
-/** Only established inactive rights and a settled safe operation permit purchase encouragement. */
-export function canPurchasePro(state: ProState): boolean {
+/** Keeps the existing banner visible only for established free rights and a settled operation. */
+export function canShowProOffer(state: ProState): boolean {
   return (
     state.status === "inactive" &&
     ["idle", "cancelled", "failed", "completed", "restored"].includes(

@@ -10,8 +10,7 @@ beforeEach(() => {
     "REVENUECAT_TEST_STORE_API_KEY",
     "REVENUECAT_IOS_API_KEY",
     "REVENUECAT_ANDROID_API_KEY",
-    "REVENUECAT_V2_OFFERING_ID",
-    "REVENUECAT_SUPPORT_ACTION_ID",
+    "REVENUECAT_OFFERING_ID",
     "ADMOB_IOS_APP_ID",
     "ADMOB_ANDROID_APP_ID",
     "ADMOB_V2_IOS_INTERSTITIAL_UNIT_ID",
@@ -107,7 +106,6 @@ it("keeps ordinary local builds unconfigured without inventing provider identifi
     iosApiKey: undefined,
     androidApiKey: undefined,
     offeringIdentifier: undefined,
-    supportActionIdentifier: undefined,
   });
 });
 
@@ -141,8 +139,7 @@ it.each(["preview", "production"])(
     process.env.EXPO_PROJECT_SLUG = "synthetic-project";
     process.env.REVENUECAT_IOS_API_KEY = "appl_synthetic";
     process.env.REVENUECAT_ANDROID_API_KEY = "goog_synthetic";
-    process.env.REVENUECAT_V2_OFFERING_ID = "synthetic-v2";
-    process.env.REVENUECAT_SUPPORT_ACTION_ID = "synthetic-f10";
+    process.env.REVENUECAT_OFFERING_ID = "default";
 
     // When
     const { default: config } =
@@ -152,8 +149,7 @@ it.each(["preview", "production"])(
     expect(config.extra?.revenueCat).toEqual({
       iosApiKey: "appl_synthetic",
       androidApiKey: "goog_synthetic",
-      offeringIdentifier: "synthetic-v2",
-      supportActionIdentifier: "synthetic-f10",
+      offeringIdentifier: "default",
     });
     expect(config.extra?.eas?.projectId).toBe(
       "10cdf86a-a81e-496a-bcaa-07c132678f6d",

@@ -117,6 +117,21 @@ function ThemedNavigation({
   );
 }
 
+function ProNavigation({
+  registration,
+  privacy,
+}: Readonly<{
+  registration: PushRegistration;
+  privacy: ReturnType<typeof createInstallationAdvertisingPrivacy>;
+}>) {
+  const access = useAccessAdmission();
+  return (
+    <ProProvider presentationEnabled={access.ordinary}>
+      <ThemedNavigation registration={registration} privacy={privacy} />
+    </ProProvider>
+  );
+}
+
 /** Keeps public checking and discovery above account-subject lifetimes; secure initialization still gates Auth0. */
 function RootLayout() {
   useEffect(cleanupMatchDocuments, []);
@@ -145,12 +160,7 @@ function RootLayout() {
               }
             >
               <AccessAdmissionProvider>
-                <ProProvider>
-                  <ThemedNavigation
-                    registration={registration}
-                    privacy={privacy}
-                  />
-                </ProProvider>
+                <ProNavigation registration={registration} privacy={privacy} />
               </AccessAdmissionProvider>
             </AccountSessionProvider>
           </DiscoveryProvider>

@@ -5,9 +5,9 @@ const { PACKAGE_TYPE, PRODUCT_CATEGORY, PRODUCT_TYPE } = jest.requireActual<
 >("react-native-purchases");
 
 /** Fictional store terms, deliberately different from launch pricing; native fields pass through unchanged. */
-export const v2Offering: PurchasesOffering = {
-  identifier: "v2",
-  serverDescription: "V2",
+export const defaultOffering: PurchasesOffering = {
+  identifier: "default",
+  serverDescription: "Blockout Pro",
   metadata: {},
   lifetime: null,
   annual: null,
@@ -21,10 +21,10 @@ export const v2Offering: PurchasesOffering = {
     {
       identifier: "$rc_monthly",
       packageType: PACKAGE_TYPE.MONTHLY,
-      offeringIdentifier: "v2",
+      offeringIdentifier: "default",
       webCheckoutUrl: null,
       presentedOfferingContext: {
-        offeringIdentifier: "v2",
+        offeringIdentifier: "default",
         placementIdentifier: null,
         targetingContext: null,
       },

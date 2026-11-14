@@ -95,7 +95,6 @@ it("accepts current login-supplied rights without another information read", asy
     expect(owner.getSnapshot().evidence?.customerInfo).toBe(loginInfo),
   );
   expect(owner.getSnapshot().read).toBeNull();
-  expect(owner.getSnapshot().verificationFailed).toBe(false);
   expect(Purchases.getCustomerInfo).not.toHaveBeenCalled();
 });
 
@@ -112,7 +111,6 @@ it.each(["completed", "failed"])(
       .mocked(Purchases.getCustomerInfo)
       .mockRejectedValueOnce(new Error("Synthetic verification failure"));
     await owner.refresh(session);
-    expect(owner.getSnapshot().verificationFailed).toBe(true);
     const earlier = Promise.withResolvers<typeof info>();
     jest.mocked(Purchases.getCustomerInfo).mockReturnValueOnce(earlier.promise);
     const reading = owner.refresh(session);
@@ -128,7 +126,6 @@ it.each(["completed", "failed"])(
     // Then
     expect(owner.getSnapshot().evidence?.customerInfo).toBe(supplied);
     expect(owner.getSnapshot().read).toBeNull();
-    expect(owner.getSnapshot().verificationFailed).toBe(false);
     expect(Purchases.getCustomerInfo).toHaveBeenCalledTimes(reads);
 
     // When
@@ -141,7 +138,6 @@ it.each(["completed", "failed"])(
 
     // Then
     expect(owner.getSnapshot().evidence?.customerInfo).toBe(supplied);
-    expect(owner.getSnapshot().verificationFailed).toBe(false);
   },
 );
 
@@ -291,7 +287,7 @@ it("leaves a failed current association unavailable until explicit retry", async
   owner.setTarget({ ...session });
   await owner.refresh({ ...session });
   expect(Purchases.logIn).toHaveBeenCalledTimes(1);
-  owner.retry({ ...session });
+  owner.prepare({ ...session });
 
   // Then
   await waitFor(() =>
@@ -327,7 +323,7 @@ it.each([
     read.resolve({ ...info, originalAppUserId: "obsolete-synthetic-customer" });
     await read.promise;
     await owner.refresh(old);
-    owner.retry(old);
+    owner.prepare(old);
 
     // Then
     expect(owner.getSnapshot().evidence?.session).toEqual({ ...session });

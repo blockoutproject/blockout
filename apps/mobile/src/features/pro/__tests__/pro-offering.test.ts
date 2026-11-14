@@ -1,9 +1,9 @@
 import Purchases from "react-native-purchases";
-import { canPurchasePro, loadProOffering } from "../pro-offering";
+import { canShowProOffer, loadProOffering } from "../pro-offering";
 import { entitlement } from "../test-support/customer-info";
 import { mockPurchases } from "../test-support/native-purchases";
 import type { ProState } from "../pro-state";
-import { v2Offering } from "../test-support/offering";
+import { defaultOffering } from "../test-support/offering";
 
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
@@ -11,36 +11,35 @@ jest.mock("react-native-purchases", () => ({
 }));
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 
-it("selects only the configured V2 offering and preserves its native localized products", async () => {
+it("selects only the explicitly configured offering and preserves its native localized products", async () => {
   // Given
-  const v1 = {
-    ...v2Offering,
-    identifier: "default",
-    serverDescription: "V1",
+  const otherOffering = {
+    ...defaultOffering,
+    identifier: "other",
+    serverDescription: "Other offering",
     metadata: {},
     availablePackages: [],
   };
-  const v2 = v2Offering;
   mockPurchases.getOfferings.mockResolvedValue({
-    current: v1,
-    all: { default: v1, v2 },
+    current: otherOffering,
+    all: { other: otherOffering, default: defaultOffering },
   });
 
   // When
-  const offering = await loadProOffering("v2");
+  const offering = await loadProOffering("default");
 
   // Then
-  expect(offering).toBe(v2);
+  expect(offering).toBe(defaultOffering);
   expect(Purchases.getOfferings).toHaveBeenCalledTimes(1);
 });
 
-it("allows a new explicit purchase after cancellation or definite failure only for inactive rights", () => {
+it("shows the existing banner after cancellation or ordinary failure only for free rights", () => {
   for (const operation of ["idle", "cancelled", "failed"] as const) {
     // Given
     const state = { status: "inactive", operation } as const;
 
     // When
-    const allowed = canPurchasePro(state);
+    const allowed = canShowProOffer(state);
 
     // Then
     expect(allowed).toBe(true);
@@ -59,7 +58,7 @@ it("distinguishes missing configuration or offer from failed retrieval without a
   expect(Purchases.getOfferings).not.toHaveBeenCalled();
 
   // When
-  const missingOffering = await loadProOffering("v2");
+  const missingOffering = await loadProOffering("default");
 
   // Then
   expect(missingOffering).toBeNull();
@@ -70,7 +69,7 @@ it("distinguishes missing configuration or offer from failed retrieval without a
   );
 
   // When
-  const failedOffering = loadProOffering("v2");
+  const failedOffering = loadProOffering("default");
 
   // Then
   await expect(failedOffering).rejects.toThrow("Pro offering unavailable");
@@ -100,9 +99,24 @@ it.each([
     // Given: the table supplies the rights and operation state.
 
     // When
-    const allowed = canPurchasePro(state);
+    const allowed = canShowProOffer(state);
 
     // Then
     expect(allowed).toBe(false);
   },
 );
+
+it("rejects an explicit offering without purchasable packages rather than using current", async () => {
+  // Given
+  const empty = { ...defaultOffering, availablePackages: [] };
+  mockPurchases.getOfferings.mockResolvedValue({
+    current: defaultOffering,
+    all: { default: empty },
+  });
+
+  // When
+  const offering = await loadProOffering("default");
+
+  // Then
+  expect(offering).toBeNull();
+});

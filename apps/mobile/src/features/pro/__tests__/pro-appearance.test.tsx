@@ -217,7 +217,7 @@ it.each(["light", "dark"] as const)(
     // When
     for (const store of ["APP_STORE", "PROMOTIONAL"] as const) {
       mockPurchases.getCustomerInfo.mockResolvedValueOnce(activeInfo(store));
-      await act(() => pro.refresh());
+      await act(() => proSessionModule.proSession.refresh(account));
       // Then
       expect(screen.getByText("Pro: active")).toBeOnTheScreen();
       expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
@@ -256,7 +256,6 @@ it("keeps unknown account and unavailable SDK state neutral", async () => {
   await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() => expect(account.accountId).toBe(a));
   // Then
-  await waitFor(() => expect(pro.verificationFailed).toBe(true));
   expect(screen.getByText("Pro: unavailable")).toBeOnTheScreen();
   expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
     membershipColors.light.fill,
@@ -280,7 +279,7 @@ it.each(["signOut", "clearCredentials"] as const)(
     await waitFor(() => expect(account.accountId).toBe(a));
     await screen.findByText("Pro: inactive");
     mockPurchases.getCustomerInfo.mockResolvedValueOnce(activeInfo());
-    await act(() => pro.refresh());
+    await act(() => proSessionModule.proSession.refresh(account));
     expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
       membershipColors.pro.light.fill,
     );
@@ -318,7 +317,7 @@ it("clears gold during reassociation and keeps a failed current association neut
   await waitFor(() => expect(account.accountId).toBe(a));
   await screen.findByText("Pro: inactive");
   mockPurchases.getCustomerInfo.mockResolvedValueOnce(activeInfo());
-  await act(() => pro.refresh());
+  await act(() => proSessionModule.proSession.refresh(account));
   expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
     membershipColors.pro.light.fill,
   );
@@ -364,15 +363,15 @@ it("rejects previous-session gold through A → guest → A, including a late ac
   await screen.findByText("Pro: inactive");
   const previous = activeInfo();
   mockPurchases.getCustomerInfo.mockResolvedValueOnce(previous);
-  await act(() => pro.refresh());
+  await act(() => proSessionModule.proSession.refresh(account));
   expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
     membershipColors.pro.light.fill,
   );
   const oldRead = Promise.withResolvers<CustomerInfo>();
   mockPurchases.getCustomerInfo.mockReturnValueOnce(oldRead.promise);
-  let refreshing: ReturnType<ProContext["refresh"]> | undefined;
+  let refreshing: Promise<boolean | undefined> | undefined;
   await act(() => {
-    refreshing = pro.refresh();
+    refreshing = proSessionModule.proSession.refresh(account);
   });
   // When
   await act(() => account.clearCredentials());
@@ -416,7 +415,7 @@ it("retains SDK-supplied cached active gold during failure, then removes it on r
   await screen.findByText("Pro: inactive");
   const cached = activeInfo();
   mockPurchases.getCustomerInfo.mockResolvedValueOnce(cached);
-  await act(() => pro.refresh());
+  await act(() => proSessionModule.proSession.refresh(account));
   expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
     membershipColors.pro.light.fill,
   );
@@ -424,9 +423,8 @@ it("retains SDK-supplied cached active gold during failure, then removes it on r
     new Error("synthetic outage"),
   );
   // When
-  await act(() => pro.refresh());
+  await act(() => proSessionModule.proSession.refresh(account));
   // Then
-  expect(pro.verificationFailed).toBe(true);
   expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
     membershipColors.pro.light.fill,
   );
@@ -462,7 +460,7 @@ it("follows live system appearance without resetting the mounted route or draft 
   await waitFor(() => expect(account.accountId).toBe(a));
   await screen.findByText("Pro: inactive");
   mockPurchases.getCustomerInfo.mockResolvedValueOnce(activeInfo());
-  await act(() => pro.refresh());
+  await act(() => proSessionModule.proSession.refresh(account));
   const user = userEvent.setup();
   await user.press(screen.getByRole("button", { name: "Consulter le sport" }));
   await user.type(screen.getByLabelText("Brouillon"), "Saisie conservée");
@@ -488,7 +486,7 @@ it("follows live system appearance without resetting the mounted route or draft 
     ).toBeEnabled();
   }
   // When
-  await act(() => pro.refresh());
+  await act(() => proSessionModule.proSession.refresh(account));
   jest.mocked(Appearance.getColorScheme).mockReturnValue("dark");
   await act(() => {
     for (const [listener] of subscribe.mock.calls) {

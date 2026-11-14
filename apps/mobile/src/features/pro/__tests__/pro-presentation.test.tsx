@@ -3,22 +3,21 @@ import {
   credentialsFor,
   mockAuth0,
 } from "@/features/accounts/test-support/native-auth0";
-import { useQueryClient, QueryClientProvider } from "@tanstack/react-query";
-import * as proSessionModule from "../pro-session";
-import type { PurchasesOfferings } from "react-native-purchases";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
   act,
   cleanup,
+  fireEvent,
   screen,
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
 import { Text } from "react-native";
+import { router } from "expo-router";
+import { SignInInvitationScreen } from "@/features/accounts/screens/sign-in-invitation-screen";
 import { renderRouter } from "expo-router/testing-library";
 import { useEffect, useState, type ComponentProps } from "react";
-import RevenueCatUI, {
-  type CustomerCenterViewProps,
-} from "react-native-purchases-ui";
+import type RevenueCatUI from "react-native-purchases-ui";
 import type { AccountSession } from "@/features/accounts";
 import {
   AccountSessionProvider,
@@ -27,54 +26,32 @@ import {
 import { createQueryClient } from "@/shared/query/query-client";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
-import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
 import { ProProvider, usePro, type ProContext } from "../pro-provider";
 import { ProProfileEntry } from "../components/pro-profile-entry";
-import {
-  ProPresentationScreen,
-  type ProPresentationScreenProps,
-} from "../screens/pro-presentation-screen";
+import * as proSessionModule from "../pro-session";
 import { prepareProNativeIO } from "../test-support/pro-harness";
 import { mockPurchases } from "../test-support/native-purchases";
 import { customerInfo, entitlement } from "../test-support/customer-info";
-import { v2Offering } from "../test-support/offering";
+import { defaultOffering } from "../test-support/offering";
 
 jest.mock("expo/fetch", () => ({
-  fetch: jest.fn((url: RequestInfo | URL) => {
-    // Preserve the unconfigured transport until the scenario supplies its account response.
-    if (mockAccountId === undefined) {
-      return undefined;
-    }
-    return Promise.resolve(
-      String(url).endsWith("/accounts/me")
-        ? Response.json(
-            mockAccountResponse({
-              accountId: mockAccountId,
-            }),
-          )
+  fetch: jest.fn((url: RequestInfo | URL) =>
+    Promise.resolve(
+      String(url).endsWith("/accounts/me") && mockAccountId !== undefined
+        ? Response.json(mockAccountResponse({ accountId: mockAccountId }))
         : new Response(null, { status: 404 }),
-    );
-  }),
+    ),
+  ),
 }));
-
-const { PURCHASES_ERROR_CODE } = mockPurchases;
 jest.mock("expo-constants", () => ({
   __esModule: true,
   default: {
     expoConfig: {
       extra: {
-        revenueCat: {
-          iosApiKey: "test_public",
-          offeringIdentifier: "v2",
-          supportActionIdentifier: "f10-help",
-        },
+        revenueCat: { iosApiKey: "test_public", offeringIdentifier: "default" },
       },
     },
   },
-}));
-jest.mock("expo-router", () => ({
-  ...jest.requireActual("expo-router"),
-  useRouter: () => mockRouter,
 }));
 jest.mock("react-native-purchases", () => ({
   __esModule: true,
@@ -89,10 +66,6 @@ jest.mock("react-native-purchases-ui", () => {
         mockPaywall = props;
         return <Text>Native paywall double</Text>;
       },
-      CustomerCenterView: (props: CustomerCenterViewProps) => {
-        mockCenter = props;
-        return <Text>Native management double</Text>;
-      },
     },
   };
 });
@@ -106,48 +79,42 @@ jest.mock("react-native-auth0", () => {
   ).mockAuth0;
   return jest.requireActual("react-native-auth0");
 });
+
 let mockPaywall: ComponentProps<typeof RevenueCatUI.Paywall>;
-let mockCenter: CustomerCenterViewProps;
-const mockRouter = {
-  back: jest.fn(),
-  replace: jest.fn(),
-  push: jest.fn(),
-  navigate: jest.fn(),
-  canGoBack: jest.fn(() => true),
-};
 let mockAccountId: string | undefined;
 let account: AccountSession;
 let pro: ProContext;
 let client = createQueryClient();
-const previousEnvironment = { ...process.env };
+let setPresentationEnabled: (enabled: boolean) => void;
+const environment = { ...process.env };
+const accountA = "00000000-0000-4000-8000-000000000251";
 beforeEach(() => {
   mockAccountId = undefined;
-  process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
-  process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
-  process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "mobile-test";
-  // A fresh real owner isolates tests; remounts within one scenario retain it.
+  Object.assign(process.env, {
+    EXPO_PUBLIC_API_URL: "https://api.example.invalid",
+    EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
+    EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
+  });
   jest.replaceProperty(
     proSessionModule,
     "proSession",
     proSessionModule.createProSession(),
   );
   prepareProNativeIO();
-  client = createQueryClient();
-  mockRouter.navigate.mockImplementation(() => openPresentation());
-  mockRouter.back.mockImplementation(() => closePresentation());
   mockPurchases.getOfferings
     .mockReset()
-    .mockResolvedValue({ current: null, all: { v2: v2Offering } });
+    .mockResolvedValue({ current: null, all: { default: defaultOffering } });
+  client = createQueryClient();
 });
 afterEach(async () => {
   await cleanup();
   client.clear();
   jest.restoreAllMocks();
-  process.env = { ...previousEnvironment };
+  process.env = { ...environment };
 });
 
-/** Real session/rights observers; only native SDK and navigation commands are controlled. */
-function Probe() {
+/** Real account and SDK state owners; native I/O and the provider view alone are controlled. */
+function Journey() {
   useQueryClient().setQueryDefaults([], { retry: false, gcTime: Infinity });
   const a = useAccountSession();
   const p = usePro();
@@ -155,157 +122,69 @@ function Probe() {
     account = a;
     pro = p;
   }, [a, p]);
-  return <Text>Pro: {p.state.status}</Text>;
-}
-
-let openPresentation: () => void;
-let closePresentation: () => void;
-
-/** Separates explicit route mounting from account establishment without replacing either owner. */
-function Journey(props: Readonly<ProPresentationScreenProps>) {
-  const session = useAccountSession();
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    openPresentation = () => setVisible(true);
-    closePresentation = () => setVisible(false);
-  }, []);
   return (
-    <ActionFeedbackProvider scopeKey={session.subject ?? "guest"}>
-      <Probe />
+    <ActionFeedbackProvider scopeKey={a.subject ?? "guest"}>
+      <Text>Originating screen</Text>
+      <Text>Pro: {p.state.status}</Text>
       <ProProfileEntry />
-      {visible && <ProPresentationScreen {...props} />}
     </ActionFeedbackProvider>
   );
 }
 
-/** Mounts actual providers; each scenario explicitly establishes its account and chooses its entry. */
-async function mount(props: ProPresentationScreenProps = { admitted: true }) {
-  await renderRouter(
-    { index: () => <Journey {...props} /> },
-    {
-      initialUrl: "/",
-      wrapper: ({ children }) => (
-        <QueryClientProvider client={client}>
-          <ThemeProvider>
-            <AccountSessionProvider>
-              <ProProvider>{children}</ProProvider>
-            </AccountSessionProvider>
-          </ThemeProvider>
-        </QueryClientProvider>
-      ),
-    },
+function Owners({ children }: Readonly<{ children: React.ReactNode }>) {
+  const [enabled, setEnabled] = useState(true);
+  useEffect(() => {
+    setPresentationEnabled = setEnabled;
+  }, []);
+  return (
+    <QueryClientProvider client={client}>
+      <ThemeProvider>
+        <AccountSessionProvider>
+          <ProProvider presentationEnabled={enabled}>{children}</ProProvider>
+        </AccountSessionProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 
-it("passes the explicit V2 offering to the native host and requests dismissal once", async () => {
-  // Given
-  const user = userEvent.setup();
-  await mount();
-  await waitFor(() => expect(account.status).toBe("authenticated"));
-  mockAccountId = "00000000-0000-4000-8000-000000000251";
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
+async function mount() {
+  return renderRouter(
+    {
+      index: Journey,
+      "sign-in-invitation": () => (
+        <SignInInvitationScreen
+          admitted
+          message="Connectez-vous pour utiliser Blockout Pro"
+        />
+      ),
+    },
+    { initialUrl: "/", wrapper: Owners },
+  );
+}
+
+/** Establishes the scenario's actual business account through the public F05 sign-in command. */
+async function signIn(accountId = accountA) {
+  mockAccountId = accountId;
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${accountId}`));
   mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
+    credentialsFor(`auth0|${accountId}`),
   );
   mockAuth0.saveCredentials.mockResolvedValue();
   await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() =>
-    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
-  );
-  await screen.findByRole("button", { name: "Blockout Pro" });
-  await user.press(
-    screen.getByRole("button", {
-      name: "Blockout Pro",
-    }),
-  );
-  await screen.findByText("Native paywall double");
-  // When
-  await act(() => {
-    mockPaywall.onDismiss!();
-    mockPaywall.onDismiss!();
-  });
-  const resume = jest.fn();
-  await act(() =>
-    mockPaywall.onPurchasePackageInitiated!({
-      packageBeingPurchased: v2Offering.availablePackages[0],
-      resume,
-    }),
-  );
-  // Then
-  expect(mockPaywall.options?.offering).toBe(v2Offering);
-  expect(
-    mockPaywall.options?.offering?.availablePackages[0].product.priceString,
-  ).toBe("4,29 €");
-  expect(mockRouter.back).toHaveBeenCalledTimes(1);
-  expect(resume).toHaveBeenCalledWith(false);
-});
-it("admits native initiation and shows confirmed payment without claiming inactive rights are active", async () => {
-  // Given
-  const user = userEvent.setup();
-  await mount();
-  await waitFor(() => expect(account.status).toBe("authenticated"));
-  mockAccountId = "00000000-0000-4000-8000-000000000251";
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
-  );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() =>
-    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
-  );
-  await screen.findByRole("button", { name: "Blockout Pro" });
-  await user.press(
-    screen.getByRole("button", {
-      name: "Blockout Pro",
-    }),
-  );
-  await screen.findByText("Native paywall double");
-  const resume = jest.fn();
-  const callbacks = mockPaywall;
-  // When
-  await act(() => {
-    callbacks.onPurchasePackageInitiated!({
-      packageBeingPurchased: v2Offering.availablePackages[0],
-      resume,
-    });
-  });
-  mockPurchases.getCustomerInfo.mockRejectedValue(
-    new Error("provider unavailable"),
-  );
-  await act(() =>
-    callbacks.onPurchaseCompleted!({
-      customerInfo: customerInfo({
-        active: {},
-        all: {},
-        verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
-      }),
-      storeTransaction: {
-        transactionIdentifier: "synthetic",
-        productIdentifier: "monthly",
-        purchaseDate: "2026-10-23",
-        purchaseToken: null,
-        originalJson: null,
-        signature: null,
-      },
-    }),
-  );
-  // Then
-  expect(resume).toHaveBeenCalledWith(true);
-  expect(await screen.findByText(/Paiement confirmé/)).toBeOnTheScreen();
-  expect(screen.queryByText(/Pro est actif/)).not.toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Gérer ou restaurer mes achats" }),
-  ).toBeOnTheScreen();
-});
-it.each(["gift", "unknown"])(
-  "routes %s rights to native management without looking up an offer",
-  async (scenario) => {
+  await waitFor(() => expect(account.accountId).toBe(accountId));
+}
+
+it.each(["free", "paid", "gifted", "unknown"])(
+  "opens the same explicit native offering for %s rights and dismisses to its origin",
+  async (kind) => {
     // Given
-    const user = userEvent.setup();
-    if (scenario === "gift") {
+    if (kind === "unknown") {
+      mockPurchases.getCustomerInfo.mockRejectedValue(new Error("unavailable"));
+    } else if (kind !== "free") {
       const active = {
-        "Blockout Pro": entitlement({ store: "PROMOTIONAL", willRenew: false }),
+        "Blockout Pro": entitlement({
+          store: kind === "gifted" ? "PROMOTIONAL" : "APP_STORE",
+        }),
       };
       mockPurchases.getCustomerInfo.mockResolvedValue(
         customerInfo({
@@ -314,723 +193,410 @@ it.each(["gift", "unknown"])(
           verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
         }),
       );
-    } else {
-      mockPurchases.getCustomerInfo.mockRejectedValue(new Error("unavailable"));
     }
     await mount();
     await waitFor(() => expect(account.status).toBe("authenticated"));
-    mockAccountId = "00000000-0000-4000-8000-000000000251";
-    mockAuth0.webAuth.mockResolvedValue(
-      credentialsFor(`auth0|${mockAccountId}`),
-    );
-    mockAuth0.getCredentials.mockResolvedValue(
-      credentialsFor(`auth0|${mockAccountId}`),
-    );
-    mockAuth0.saveCredentials.mockResolvedValue();
-    await act(() => account.signIn("https://api.example.invalid"));
-    await waitFor(() =>
-      expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
-    );
-    await screen.findByRole("button", { name: "Blockout Pro" });
-    await user.press(
-      screen.getByRole("button", {
-        name: "Blockout Pro",
-      }),
-    );
-    if (scenario === "unknown") {
-      await screen.findByText("Une erreur est survenue");
-      await user.press(
-        screen.getByRole("button", { name: "Gérer ou restaurer mes achats" }),
-      );
-    }
-    await screen.findByText("Native management double");
+    await signIn();
+    const user = userEvent.setup();
+
     // When
-    await act(() => pro.refresh());
+    await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
+
     // Then
-    expect(screen.getByText("Native management double")).toBeOnTheScreen();
-    expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
+    await screen.findByText("Native paywall double");
+    expect(mockPaywall.options?.offering).toBe(defaultOffering);
+    expect(mockPaywall.options?.displayCloseButton).toBe(true);
+    expect(screen).toHavePathname("/");
+    expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(1);
+
+    // When
+    await act(() => mockPaywall.onDismiss?.());
+
+    // Then
+    expect(screen.queryByText("Native paywall double")).toBeNull();
+    expect(screen.getByText("Originating screen")).toBeOnTheScreen();
+    expect(screen).toHavePathname("/");
   },
 );
-it("removes old-session native content and rejects old purchase and dismissal callbacks", async () => {
-  // Given
-  const user = userEvent.setup();
-  await mount();
-  await waitFor(() => expect(account.status).toBe("authenticated"));
-  mockAccountId = "00000000-0000-4000-8000-000000000251";
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
-  );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() =>
-    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
-  );
-  await screen.findByRole("button", { name: "Blockout Pro" });
-  await user.press(
-    screen.getByRole("button", {
-      name: "Blockout Pro",
-    }),
-  );
-  await screen.findByText("Native paywall double");
-  const callbacks = mockPaywall;
-  expect(callbacks.onPurchaseCancelled).toEqual(expect.any(Function));
-  expect(callbacks.onDismiss).toEqual(expect.any(Function));
-  // When
-  await act(() => account.clearCredentials());
-  const dismissals = mockRouter.back.mock.calls.length;
-  await act(() => {
-    callbacks.onPurchaseCancelled!();
-    callbacks.onDismiss!();
-  });
-  // Then
-  expect(screen.queryByText("Native paywall double")).not.toBeOnTheScreen();
-  expect(mockRouter.back).toHaveBeenCalledTimes(dismissals);
-  expect(pro.state.status).toBe("guest");
-});
-it("prepares only the identified F10 Custom Action with close-before-navigation and no attached payload", async () => {
-  // Given: the destination is a controlled navigation boundary until #239/T032 implements it.
-  const user = userEvent.setup();
-  const support = jest.fn(() => expect(mockRouter.back).toHaveBeenCalled());
-  await mount({ admitted: true, management: true, onSupport: support });
-  await waitFor(() => expect(account.status).toBe("authenticated"));
-  mockAccountId = "00000000-0000-4000-8000-000000000251";
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
-  );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() =>
-    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
-  );
-  await screen.findByRole("button", { name: "Blockout Pro" });
-  await user.press(
-    screen.getByRole("button", {
-      name: "Blockout Pro",
-    }),
-  );
-  await screen.findByText("Native management double");
-  mockRouter.back.mockClear();
-  // When
-  await act(() => {
-    mockCenter.onCustomActionSelected!({
-      actionId: "other",
-      purchaseIdentifier: "private",
-    });
-    mockCenter.onCustomActionSelected!({
-      actionId: "f10-help",
-      purchaseIdentifier: "private",
-    });
-  });
-  // Then
-  expect(support.mock.calls).toEqual([[]]);
-  expect(mockRouter.back).toHaveBeenCalledTimes(1);
-  // When
-  const stale = mockCenter.onCustomActionSelected;
-  await act(() => account.clearCredentials());
-  await act(() => stale!({ actionId: "f10-help", purchaseIdentifier: null }));
-  // Then
-  expect(support.mock.calls).toEqual([[]]);
-});
-it.each(["absent", "failed"])(
-  "keeps an %s offer on the Pro destination with honest feedback and no fallback",
-  async (scenario) => {
+
+it.each(["missing", "failed"])(
+  "keeps the origin with ordinary feedback after a %s offering, then permits another explicit opening",
+  async (kind) => {
     // Given
-    const user = userEvent.setup();
-    if (scenario === "absent") {
-      mockPurchases.getOfferings.mockResolvedValue({
-        current: v2Offering,
+    await mount();
+    await waitFor(() => expect(account.status).toBe("authenticated"));
+    await signIn();
+    if (kind === "missing") {
+      mockPurchases.getOfferings.mockResolvedValueOnce({
+        current: defaultOffering,
         all: {},
       });
     } else {
-      mockPurchases.getOfferings.mockRejectedValue(
+      mockPurchases.getOfferings.mockRejectedValueOnce(
         new Error("private provider data"),
       );
     }
-    await mount();
-    await waitFor(() => expect(account.status).toBe("authenticated"));
-    mockAccountId = "00000000-0000-4000-8000-000000000251";
-    mockAuth0.webAuth.mockResolvedValue(
-      credentialsFor(`auth0|${mockAccountId}`),
-    );
-    mockAuth0.getCredentials.mockResolvedValue(
-      credentialsFor(`auth0|${mockAccountId}`),
-    );
-    mockAuth0.saveCredentials.mockResolvedValue();
-    await act(() => account.signIn("https://api.example.invalid"));
-    await waitFor(() =>
-      expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
-    );
-    await screen.findByRole("button", { name: "Blockout Pro" });
+    const user = userEvent.setup();
+
     // When
-    await user.press(
-      screen.getByRole("button", {
-        name: "Blockout Pro",
-      }),
-    );
+    await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
+
     // Then
-    expect(
-      await screen.findByText(
-        scenario === "absent" ? /Aucune offre Pro/ : /Une erreur est survenue/,
-      ),
-    ).toBeOnTheScreen();
-    expect(mockRouter.back).not.toHaveBeenCalled();
-    expect(screen.queryByText("Native paywall double")).not.toBeOnTheScreen();
+    await screen.findByRole("alert");
+    expect(screen.queryByText("Native paywall double")).toBeNull();
+    expect(screen.getByText("Originating screen")).toBeOnTheScreen();
+
+    // When
+    await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
+
+    // Then
+    await screen.findByText("Native paywall double");
+    expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(2);
   },
 );
-it("keeps management independently reachable and leaves absent F10 integration unbound", async () => {
+
+it("awaits current association but opens while the ordinary rights read is unresolved", async () => {
   // Given
-  const user = userEvent.setup();
-  await mount({ admitted: true, management: true });
-  await waitFor(() => expect(account.status).toBe("authenticated"));
-  mockAccountId = "00000000-0000-4000-8000-000000000251";
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
-  );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() =>
-    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
-  );
-  await screen.findByRole("button", { name: "Blockout Pro" });
-  await user.press(
-    screen.getByRole("button", {
-      name: "Blockout Pro",
-    }),
-  );
-  await screen.findByText("Native management double");
-  // When
-  await act(() => mockCenter.onDismiss!());
-  // Then
-  expect(mockRouter.navigate).toHaveBeenCalledWith("/pro");
-  expect(mockRouter.back).toHaveBeenCalledTimes(1);
-  expect(mockCenter.onCustomActionSelected).toBeUndefined();
-});
-it("rejects a late offering response after the opening session changes", async () => {
-  // Given
-  const user = userEvent.setup();
-  const read = Promise.withResolvers<PurchasesOfferings>();
-  mockPurchases.getOfferings.mockReturnValueOnce(read.promise);
   await mount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  mockAccountId = "00000000-0000-4000-8000-000000000251";
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
-  );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() =>
-    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
-  );
-  await screen.findByRole("button", { name: "Blockout Pro" });
-  await user.press(
-    screen.getByRole("button", {
-      name: "Blockout Pro",
-    }),
-  );
-  await waitFor(() =>
-    expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(1),
-  );
+  const configuration = Promise.withResolvers<boolean>();
+  mockPurchases.isConfigured.mockReturnValueOnce(configuration.promise);
+  const read =
+    Promise.withResolvers<
+      Awaited<ReturnType<typeof mockPurchases.getCustomerInfo>>
+    >();
+  mockPurchases.getCustomerInfo.mockReturnValueOnce(read.promise);
+  await signIn();
+  const user = userEvent.setup();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
+
+  // Then
+  expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
+
+  // When
+  await act(() => configuration.resolve(false));
+
+  // Then
+  await screen.findByText("Native paywall double");
+  expect(pro.state).toMatchObject({
+    status: "unavailable",
+    reason: "customer-info",
+  });
+});
+
+it.each(["logout", "replacement"])(
+  "unmounts the Modal on %s and rejects the retired view's outcomes",
+  async (departure) => {
+    // Given
+    await mount();
+    await waitFor(() => expect(account.status).toBe("authenticated"));
+    await signIn();
+    const user = userEvent.setup();
+    await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
+    await screen.findByText("Native paywall double");
+    const retired = mockPaywall;
+    expect(
+      screen.getByTestId("pro-paywall-modal", { includeHiddenElements: true }),
+    ).toBeOnTheScreen();
+
+    // When
+    if (departure === "replacement") {
+      await signIn("00000000-0000-4000-8000-000000000252");
+    } else {
+      // F05 uses the same local credential-cleanup boundary after accepted erasure.
+      await act(() => account.clearCredentials());
+    }
+    const active = { "Blockout Pro": entitlement() };
+    await act(() =>
+      retired.onRestoreCompleted?.({
+        customerInfo: customerInfo({
+          active,
+          all: active,
+          verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+        }),
+      }),
+    );
+
+    // Then
+    expect(screen.queryByText("Native paywall double")).toBeNull();
+    expect(
+      screen.queryByTestId("pro-paywall-modal", {
+        includeHiddenElements: true,
+      }),
+    ).toBeNull();
+    expect(pro.state.status).not.toBe("active");
+    expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
+  },
+);
+
+it("discards an offering returned after its account departs", async () => {
+  // Given
+  await mount();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  await signIn();
+  const offering =
+    Promise.withResolvers<
+      Awaited<ReturnType<typeof mockPurchases.getOfferings>>
+    >();
+  mockPurchases.getOfferings.mockReturnValueOnce(offering.promise);
+  const user = userEvent.setup();
+  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
+
   // When
   await act(() => account.clearCredentials());
-  await act(() => read.resolve({ current: null, all: { v2: v2Offering } }));
+  await act(() =>
+    offering.resolve({ current: null, all: { default: defaultOffering } }),
+  );
+
   // Then
-  expect(screen.queryByText("Native paywall double")).not.toBeOnTheScreen();
-  expect(pro.state.status).toBe("guest");
+  expect(screen.queryByText("Native paywall double")).toBeNull();
+  expect(screen.queryByRole("alert")).toBeNull();
 });
-it.each([
-  [PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR, /Le paiement est en attente/],
-  [PURCHASES_ERROR_CODE.NETWORK_ERROR, TECHNICAL_ERROR],
-  [PURCHASES_ERROR_CODE.OFFLINE_CONNECTION_ERROR, TECHNICAL_ERROR],
-  [PURCHASES_ERROR_CODE.STORE_PROBLEM_ERROR, TECHNICAL_ERROR],
-  [PURCHASES_ERROR_CODE.UNKNOWN_ERROR, TECHNICAL_ERROR],
-  [PURCHASES_ERROR_CODE.OPERATION_ALREADY_IN_PROGRESS_ERROR, TECHNICAL_ERROR],
-  [
-    PURCHASES_ERROR_CODE.PRODUCT_ALREADY_PURCHASED_ERROR,
-    /Cet achat est déjà détenu/,
-  ],
-  [PURCHASES_ERROR_CODE.PURCHASE_NOT_ALLOWED_ERROR, TECHNICAL_ERROR],
-] as const)(
-  "presents native outcome %s without retrying payment",
-  async (code, message) => {
-    // Given
-    const user = userEvent.setup();
-    await mount();
-    await waitFor(() => expect(account.status).toBe("authenticated"));
-    mockAccountId = "00000000-0000-4000-8000-000000000251";
-    mockAuth0.webAuth.mockResolvedValue(
-      credentialsFor(`auth0|${mockAccountId}`),
-    );
-    mockAuth0.getCredentials.mockResolvedValue(
-      credentialsFor(`auth0|${mockAccountId}`),
-    );
-    mockAuth0.saveCredentials.mockResolvedValue();
-    await act(() => account.signIn("https://api.example.invalid"));
-    await waitFor(() =>
-      expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
-    );
-    await screen.findByRole("button", { name: "Blockout Pro" });
-    await user.press(
-      screen.getByRole("button", {
-        name: "Blockout Pro",
-      }),
-    );
-    await screen.findByText("Native paywall double");
-    // When
-    await act(() =>
-      mockPaywall.onPurchaseError!({
-        error: {
-          code,
-          message: "private",
-          readableErrorCode: "private",
-          underlyingErrorMessage: "private",
-          userInfo: { readableErrorCode: "private" },
-          userCancelled: false,
-        },
-      }),
-    );
-    // Then
-    expect(await screen.findByText(message)).toBeOnTheScreen();
-    expect(screen.queryByText(/Pro est actif/)).not.toBeOnTheScreen();
-    expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(1);
-    if (message === TECHNICAL_ERROR) {
-      expect(pro.state).toMatchObject({
-        status: "inactive",
-        operation: "failed",
-      });
 
-      // When
-      await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-
-      // Then
-      expect(
-        await screen.findByText("Native paywall double"),
-      ).toBeOnTheScreen();
-      expect(
-        screen.queryByRole("button", { name: "Vérifier mes droits" }),
-      ).toBeNull();
-    }
-  },
-);
-it("returns to Profile only after the callback establishes current SDK-active rights", async () => {
+it("reopens after dismissal without waiting for disposed-view callbacks and leaves subsequent rights to the SDK listener", async () => {
   // Given
-  const user = userEvent.setup();
   await mount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  mockAccountId = "00000000-0000-4000-8000-000000000251";
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
-  );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() =>
-    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
-  );
-  await screen.findByRole("button", { name: "Blockout Pro" });
-  await user.press(
-    screen.getByRole("button", {
-      name: "Blockout Pro",
-    }),
-  );
+  await signIn();
+  const user = userEvent.setup();
+  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
   await screen.findByText("Native paywall double");
-  const active = { "Blockout Pro": entitlement() };
-  mockPurchases.getCustomerInfo.mockRejectedValue(new Error("unavailable"));
+  const retired = mockPaywall;
+  await act(() => retired.onDismiss?.());
+
   // When
+  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
+
+  // Then
+  await screen.findByText("Native paywall double");
+  expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(2);
+
+  // When
+  await act(() => retired.onDismiss?.());
+  const active = { "Blockout Pro": entitlement({ store: "APP_STORE" }) };
+  const paid = customerInfo({
+    active,
+    all: active,
+    verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+  });
+  mockPurchases.getCustomerInfo.mockResolvedValue(paid);
+  const listener =
+    mockPurchases.addCustomerInfoUpdateListener.mock.calls.at(-1)?.[0];
+  if (!listener) {
+    throw new Error("Expected current SDK listener");
+  }
+  await act(() => listener(paid));
+
+  // Then
+  expect(screen.getByText("Native paywall double")).toBeOnTheScreen();
+  expect(pro.state.status).toBe("active");
+});
+
+it("uses ordinary native purchase/restore failures and supplied restore rights without an app restore or verification gate", async () => {
+  // Given
+  await mount();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  await signIn();
+  const user = userEvent.setup();
+  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
+  await screen.findByText("Native paywall double");
+  const error = {
+    code: mockPurchases.PURCHASES_ERROR_CODE.NETWORK_ERROR,
+    message: "private provider data",
+    readableErrorCode: "NETWORK_ERROR",
+    underlyingErrorMessage: "",
+    userInfo: { readableErrorCode: "NETWORK_ERROR" },
+    userCancelled: false,
+  };
+
+  // When
+  await act(() => mockPaywall.onPurchaseError?.({ error }));
+  await act(() => mockPaywall.onRestoreError?.({ error }));
+
+  // Then
+  expect(pro.state).toMatchObject({ status: "inactive", operation: "failed" });
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.getByText("Native paywall double")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Vérifier mes droits" }),
+  ).toBeNull();
+  expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
+
+  // When
+  const active = { "Blockout Pro": entitlement({ store: "APP_STORE" }) };
+  const reads = mockPurchases.getCustomerInfo.mock.calls.length;
   await act(() =>
-    mockPaywall.onPurchaseCompleted!({
+    mockPaywall.onRestoreCompleted?.({
       customerInfo: customerInfo({
         active,
         all: active,
         verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
       }),
-      storeTransaction: {
-        transactionIdentifier: "synthetic",
-        productIdentifier: "monthly",
-        purchaseDate: "2026-10-23",
-        purchaseToken: null,
-        originalJson: null,
-        signature: null,
-      },
     }),
   );
+
   // Then
-  expect(await screen.findByText("Pro: active")).toBeOnTheScreen();
-  expect(mockRouter.back).toHaveBeenCalledTimes(1);
-  expect(screen.queryByText("Native paywall double")).not.toBeOnTheScreen();
+  expect(pro.state.status).toBe("active");
+  expect(mockPurchases.getCustomerInfo).toHaveBeenCalledTimes(reads);
 });
-it("explicitly retries a failed offer on Pro and then opens the official component", async () => {
+
+it("removes the native Modal when ordinary access is withdrawn, including an in-flight opening", async () => {
   // Given
-  const user = userEvent.setup();
-  mockPurchases.getOfferings.mockRejectedValueOnce(new Error("unavailable"));
   await mount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  mockAccountId = "00000000-0000-4000-8000-000000000251";
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
-  );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() =>
-    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
-  );
-  await screen.findByRole("button", { name: "Blockout Pro" });
-  await user.press(
-    screen.getByRole("button", {
-      name: "Blockout Pro",
-    }),
-  );
-  await screen.findByText(/Une erreur est survenue/);
-  expect(mockRouter.navigate).toHaveBeenCalledWith("/pro");
-  const retry = Promise.withResolvers<PurchasesOfferings>();
-  mockPurchases.getOfferings.mockReturnValueOnce(retry.promise);
-  try {
-    // When
-    await user.press(screen.getByRole("button", { name: "Réessayer" }));
-
-    // Then
-    await screen.findByRole("progressbar", {
-      name: "Chargement des offres Pro",
-      busy: true,
-    });
-    expect(screen.getAllByRole("progressbar")).toHaveLength(1);
-    expect(screen.queryByText("Native paywall double")).not.toBeOnTheScreen();
-
-    // When
-    await act(() =>
-      retry.resolve({ current: v2Offering, all: { v2: v2Offering } }),
-    );
-
-    // Then
-    expect(await screen.findByText("Native paywall double")).toBeOnTheScreen();
-    expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(2);
-    expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
-  } finally {
-    await act(() =>
-      retry.resolve({ current: v2Offering, all: { v2: v2Offering } }),
-    );
-  }
-});
-it("does not reopen a cached paywall when a new destination offering read fails", async () => {
-  // Given
+  await signIn();
   const user = userEvent.setup();
-  await mount();
-  await waitFor(() => expect(account.status).toBe("authenticated"));
-  mockAccountId = "00000000-0000-4000-8000-000000000251";
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
-  );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() =>
-    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
-  );
   await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
   await screen.findByText("Native paywall double");
-  await act(() => mockPaywall.onDismiss!());
-  mockPurchases.getOfferings.mockRejectedValueOnce(new Error("unavailable"));
-  // When
-  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-  // Then
-  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
-  expect(screen.queryByText("Native paywall double")).not.toBeOnTheScreen();
-  expect(mockRouter.navigate).toHaveBeenCalledTimes(2);
-});
-it("allows B's explicit entry while A's abandoned offering read is still pending", async () => {
-  // Given
-  const user = userEvent.setup();
-  const oldRead = Promise.withResolvers<PurchasesOfferings>();
-  mockPurchases.getOfferings.mockReturnValueOnce(oldRead.promise);
-  await mount();
-  await waitFor(() => expect(account.status).toBe("authenticated"));
-  mockAccountId = "00000000-0000-4000-8000-000000000251";
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
-  );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() =>
-    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
-  );
-  await screen.findByRole("button", { name: "Blockout Pro" });
-  await user.press(
-    screen.getByRole("button", {
-      name: "Blockout Pro",
-    }),
-  );
-  // When
-  await act(() => account.clearCredentials());
-  mockAccountId = "00000000-0000-4000-8000-000000000252";
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
-  );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() =>
-    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000252"),
-  );
-  await screen.findByText("Pro: inactive");
-  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-  await screen.findByText("Native paywall double");
-  await act(() => oldRead.resolve({ current: null, all: { v2: v2Offering } }));
-  // Then
-  expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(2);
-  expect(mockRouter.navigate).toHaveBeenCalledTimes(2);
-  expect(screen.getByText("Pro: inactive")).toBeOnTheScreen();
-});
-it("replaces a stale empty catalogue with the local error card and recovers without a toast", async () => {
-  // Given
-  const user = userEvent.setup();
-  mockPurchases.getOfferings.mockResolvedValueOnce({ current: null, all: {} });
-  await mount();
-  await waitFor(() => expect(account.status).toBe("authenticated"));
-  mockAccountId = "00000000-0000-4000-8000-000000000251";
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
-  );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() =>
-    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
-  );
-  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-  await screen.findByRole("header", { name: "Aucune offre Pro disponible" });
-  mockPurchases.getOfferings.mockRejectedValueOnce(new Error("unavailable"));
-  // When
-  await user.press(screen.getByRole("button", { name: "Actualiser" }));
-  // Then
-  expect(
-    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.queryByRole("header", { name: "Aucune offre Pro disponible" }),
-  ).not.toBeOnTheScreen();
-  expect(
-    screen.queryByRole("alert", {
-      name: TECHNICAL_ERROR,
-      includeHiddenElements: true,
-    }),
-  ).not.toBeOnTheScreen();
-  expect(
-    screen.getByRole("button", { name: "Gérer ou restaurer mes achats" }),
-  ).toBeOnTheScreen();
-  expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(2);
+  const retired = mockPaywall;
 
   // When
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await act(() => setPresentationEnabled(false));
+  await act(() => retired.onDismiss?.());
+
+  // Then
+  expect(
+    screen.queryByTestId("pro-paywall-modal", { includeHiddenElements: true }),
+  ).toBeNull();
+
+  // When
+  await act(() => setPresentationEnabled(true));
+  const offering =
+    Promise.withResolvers<
+      Awaited<ReturnType<typeof mockPurchases.getOfferings>>
+    >();
+  mockPurchases.getOfferings.mockReturnValueOnce(offering.promise);
+  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
+  await act(() => setPresentationEnabled(false));
+  await act(() => setPresentationEnabled(true));
+  await act(() =>
+    offering.resolve({ current: null, all: { default: defaultOffering } }),
+  );
+
+  // Then
+  expect(
+    screen.queryByTestId("pro-paywall-modal", { includeHiddenElements: true }),
+  ).toBeNull();
+});
+
+it("keeps the guest invitation without retaining an automatic paywall opening after sign-in", async () => {
+  // Given
+  mockAuth0.hasValidCredentials.mockResolvedValue(false);
+  await mount();
+  await waitFor(() => expect(account.status).toBe("guest"));
+  const user = userEvent.setup();
+  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
+  await screen.findByText("Connectez-vous pour utiliser Blockout Pro");
+
+  // When
+  await signIn();
+
+  // Then
+  expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
+  expect(
+    screen.queryByTestId("pro-paywall-modal", { includeHiddenElements: true }),
+  ).toBeNull();
+
+  // When
+  await act(() => router.back());
+  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
 
   // Then
   expect(await screen.findByText("Native paywall double")).toBeOnTheScreen();
-  expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(3);
+  expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(1);
 });
-it("keeps unknown rights on Pro with retry and support rather than hiding the profile entry", async () => {
+
+it("reports failed association at the origin and permits another explicit opening after association succeeds", async () => {
   // Given
-  const user = userEvent.setup();
-  const support = jest.fn(() =>
-    expect(mockRouter.back).toHaveBeenCalledTimes(1),
-  );
-  mockPurchases.getCustomerInfo.mockRejectedValue(new Error("unavailable"));
-  await mount({ admitted: true, onSupport: support });
+  await mount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  mockAccountId = "00000000-0000-4000-8000-000000000251";
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
+  mockPurchases.isConfigured.mockRejectedValue(
+    new Error("Private SDK setup failure"),
   );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
+  await signIn();
   await waitFor(() =>
-    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
+    expect(pro.state).toMatchObject({
+      status: "unavailable",
+      reason: "association-failed",
+    }),
   );
-  expect(screen.queryByText("Une erreur est survenue")).not.toBeOnTheScreen();
+  const user = userEvent.setup();
+
   // When
   await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
+
   // Then
-  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Réessayer" })).toBeOnTheScreen();
+  await screen.findByRole("alert");
   expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
-  expect(screen.queryByText("Native paywall double")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByTestId("pro-paywall-modal", { includeHiddenElements: true }),
+  ).toBeNull();
+
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Contacter l’assistance" }),
-  );
+  mockPurchases.isConfigured.mockResolvedValue(true);
+  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
+
   // Then
-  expect(support.mock.calls).toEqual([[]]);
+  expect(await screen.findByText("Native paywall double")).toBeOnTheScreen();
 });
-it.each([
-  ["pending", /Le paiement est en attente/],
-  ["purchased", /Les droits liés à cet achat restent à vérifier/],
-] as const)(
-  "keeps %s visible despite an independent active gift",
-  async (operation, message) => {
-    // Given
-    const user = userEvent.setup();
-    const gift = {
-      "Blockout Pro": entitlement({
-        store: "PROMOTIONAL",
-        ownershipType: "UNKNOWN",
-        willRenew: false,
-      }),
-    };
-    mockPurchases.getCustomerInfo.mockResolvedValue(
-      customerInfo({
-        active: gift,
-        all: gift,
-        verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
-      }),
-    );
-    await mount();
-    await waitFor(() => expect(account.status).toBe("authenticated"));
-    mockAccountId = "00000000-0000-4000-8000-000000000251";
-    mockAuth0.webAuth.mockResolvedValue(
-      credentialsFor(`auth0|${mockAccountId}`),
-    );
-    mockAuth0.getCredentials.mockResolvedValue(
-      credentialsFor(`auth0|${mockAccountId}`),
-    );
-    mockAuth0.saveCredentials.mockResolvedValue();
-    await act(() => account.signIn("https://api.example.invalid"));
-    await waitFor(() =>
-      expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
-    );
-    await act(() => pro.completeOperation(operation));
-    // When
-    await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-    // Then
-    expect(await screen.findByText(message)).toBeOnTheScreen();
-    expect(
-      screen.getByRole("button", { name: "Vérifier mes droits" }),
-    ).toBeOnTheScreen();
-    expect(
-      screen.queryByText("Native management double"),
-    ).not.toBeOnTheScreen();
-    expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
-    // When
-    await user.press(
-      screen.getByRole("button", { name: "Gérer ou restaurer mes achats" }),
-    );
-    // Then
-    expect(
-      await screen.findByText("Native management double"),
-    ).toBeOnTheScreen();
-    expect(pro.state).toEqual(
-      expect.objectContaining({ status: "active", operation }),
-    );
-  },
-);
-it("ignores dismissal and purchase initiation from a provider whose route was removed", async () => {
+
+it("discards a slower prior opening after the latest explicit paywall was dismissed", async () => {
   // Given
-  const user = userEvent.setup();
   await mount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
-  mockAccountId = "00000000-0000-4000-8000-000000000251";
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
+  await signIn();
+  const first =
+    Promise.withResolvers<
+      Awaited<ReturnType<typeof mockPurchases.getOfferings>>
+    >();
+  const latest =
+    Promise.withResolvers<
+      Awaited<ReturnType<typeof mockPurchases.getOfferings>>
+    >();
+  mockPurchases.getOfferings
+    .mockReturnValueOnce(first.promise)
+    .mockReturnValueOnce(latest.promise);
+  const user = userEvent.setup();
+  const entry = screen.getByRole("button", { name: "Blockout Pro" });
+  await user.press(entry);
+  await user.press(entry);
+
+  // When
+  await act(() =>
+    latest.resolve({ current: null, all: { default: defaultOffering } }),
   );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() =>
-    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
+  await screen.findByText("Native paywall double");
+  await act(() => mockPaywall.onDismiss?.());
+  await act(() =>
+    first.resolve({ current: null, all: { default: defaultOffering } }),
   );
+
+  // Then
+  expect(
+    screen.queryByTestId("pro-paywall-modal", { includeHiddenElements: true }),
+  ).toBeNull();
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.getByText("Originating screen")).toBeOnTheScreen();
+});
+
+it("dismisses the actual Modal through its native request-close event", async () => {
+  // Given
+  await mount();
+  await waitFor(() => expect(account.status).toBe("authenticated"));
+  await signIn();
+  const user = userEvent.setup();
   await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
   await screen.findByText("Native paywall double");
-  const callbacks = mockPaywall;
-  await act(() => closePresentation());
-  const resume = jest.fn();
+
   // When
-  await act(() => {
-    callbacks.onDismiss!();
-    callbacks.onPurchasePackageInitiated!({
-      packageBeingPurchased: v2Offering.availablePackages[0],
-      resume,
-    });
-  });
+  await fireEvent(screen.getByTestId("pro-paywall-modal"), "requestClose");
+
   // Then
-  expect(mockRouter.back).not.toHaveBeenCalled();
-  expect(resume).toHaveBeenCalledWith(false);
-  expect(screen.queryByText("Native paywall double")).not.toBeOnTheScreen();
-});
-it("returns quietly to Profile after cancellation and ignores the provider's later dismissal", async () => {
-  // Given
-  const user = userEvent.setup();
-  await mount();
-  await waitFor(() => expect(account.status).toBe("authenticated"));
-  mockAccountId = "00000000-0000-4000-8000-000000000251";
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
-  );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() =>
-    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
-  );
-  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-  await screen.findByText("Native paywall double");
-  const callbacks = mockPaywall;
-  // When
-  await act(() => {
-    callbacks.onPurchaseCancelled!();
-    callbacks.onDismiss!();
-  });
-  // Then
-  expect(mockRouter.back).toHaveBeenCalledTimes(1);
-  expect(screen.queryByText("Achat annulé.")).not.toBeOnTheScreen();
-  expect(screen.queryByText("Native paywall double")).not.toBeOnTheScreen();
-  expect(pro.state).toEqual({ status: "inactive", operation: "cancelled" });
-});
-it("ignores a retired offering retry after opening native management", async () => {
-  // Given
-  const user = userEvent.setup();
-  mockPurchases.getOfferings.mockResolvedValueOnce({ current: null, all: {} });
-  await mount();
-  await waitFor(() => expect(account.status).toBe("authenticated"));
-  mockAccountId = "00000000-0000-4000-8000-000000000251";
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
-  );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() =>
-    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000251"),
-  );
-  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-  await screen.findByRole("header", { name: "Aucune offre Pro disponible" });
-  const retry = Promise.withResolvers<PurchasesOfferings>();
-  mockPurchases.getOfferings.mockReturnValueOnce(retry.promise);
-  try {
-    await user.press(screen.getByRole("button", { name: "Actualiser" }));
-    await waitFor(() =>
-      expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(2),
-    );
-    // When
-    await user.press(
-      screen.getByRole("button", { name: "Gérer ou restaurer mes achats" }),
-    );
-    await screen.findByText("Native management double");
-    await act(() => retry.reject(new Error("Offering unavailable")));
-    await waitFor(() => expect(client.isFetching()).toBe(0));
-    // Then
-    expect(screen.getByText("Native management double")).toBeOnTheScreen();
-    expect(
-      screen.queryByRole("alert", {
-        name: TECHNICAL_ERROR,
-        includeHiddenElements: true,
-      }),
-    ).not.toBeOnTheScreen();
-    expect(mockRouter.back).not.toHaveBeenCalled();
-  } finally {
-    await act(() => retry.resolve({ current: null, all: {} }));
-  }
+  expect(
+    screen.queryByTestId("pro-paywall-modal", { includeHiddenElements: true }),
+  ).toBeNull();
+  expect(screen.getByText("Originating screen")).toBeOnTheScreen();
+  expect(screen).toHavePathname("/");
 });

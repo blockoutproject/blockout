@@ -29,12 +29,12 @@ import { createQueryClient } from "@/shared/query/query-client";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import { mockPurchases } from "../test-support/native-purchases";
-import { ProEntry, ProProfileBadge } from "../components/pro-entry";
+import { ProProfileBadge } from "../components/pro-entry";
 import * as proSessionModule from "../pro-session";
 import { customerInfo, entitlement } from "../test-support/customer-info";
 import { prepareProNativeIO } from "../test-support/pro-harness";
 import { ProProfileEntry } from "../components/pro-profile-entry";
-import { ProProvider, usePro, type ProContext } from "../pro-provider";
+import { ProProvider } from "../pro-provider";
 import { PrivacyEntry } from "@/features/privacy/components/privacy-sheet";
 
 jest.mock("expo-constants", () => ({
@@ -98,7 +98,6 @@ const mockRouter = {
 const previousEnvironment = { ...process.env };
 let mockAccountId: string | undefined;
 let account: AccountSession;
-let pro: ProContext;
 let client = createQueryClient();
 const message = "Connectez-vous pour utiliser Blockout Pro";
 beforeEach(() => {
@@ -257,46 +256,6 @@ it("replaces the invitation with ordinary sign-in, without any continuation para
   expect(mockPurchases.getCustomerInfo).not.toHaveBeenCalled();
 });
 
-it("requires a new explicit press after ordinary sign-in before requesting presentation", async () => {
-  // Given: only the host navigation command is controlled; F05 sign-in and native account observation are real.
-  const present = jest.fn();
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor("auth0|entry-test"));
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await mount(<ProEntry onOpenPresentation={present} />);
-  await screen.findByText("Session: guest");
-  const user = userEvent.setup();
-  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-  // When
-  await act(() => account.signIn("urn:synthetic:mobile"));
-  await waitFor(() => expect(account.status).toBe("authenticated"));
-  mockAccountId = "00000000-0000-4000-8000-000000000246";
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
-  );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() =>
-    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000246"),
-  );
-  // Then
-  expect(present).not.toHaveBeenCalled();
-  expect(mockRouter.push).toHaveBeenCalledTimes(1);
-  // When
-  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-  // Then
-  expect(present.mock.calls).toEqual([[]]);
-});
-
-/** Observes the real Pro context beside the badge so explicit verification keeps its provider-owned lifecycle. */
-function MembershipProbe() {
-  const current = usePro();
-  useEffect(() => {
-    pro = current;
-  }, [current]);
-  return <ProProfileBadge />;
-}
-
 it("shows membership only from verified current-session rights and clears it when the native principal changes", async () => {
   // Given
   jest.replaceProperty(
@@ -313,7 +272,7 @@ it("shows membership only from verified current-session rights and clears it whe
   try {
     await mount(
       <ProProvider>
-        <MembershipProbe />
+        <ProProfileBadge />
       </ProProvider>,
     );
     await screen.findByText("Session: authenticated");
@@ -351,7 +310,7 @@ it("shows membership only from verified current-session rights and clears it whe
     );
     // When
     await act(async () => {
-      await pro.refresh();
+      await proSessionModule.proSession.refresh(account);
     });
     // Then
     expect(await screen.findByText("Compte Pro")).toBeOnTheScreen();
