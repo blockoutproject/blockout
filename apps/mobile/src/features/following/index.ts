@@ -1,10 +1,7 @@
 /** Narrow sporting-page composition; private state and actions remain feature-owned. */
-export { FollowButton, FollowControl } from "./components/follow-button";
+export { FollowControl } from "./components/follow-button";
 
-export type {
-  FollowButtonProps,
-  FollowControlProps,
-} from "./components/follow-button";
+export type { FollowControlProps } from "./components/follow-button";
 
 export { useFollowStateQuery } from "./api/use-follow-state-query";
 

@@ -1,3 +1,4 @@
+import { controlOpacity } from "@/shared/components/control-styles";
 import { SeasonIdentity, SourceBadge } from "../components/source-summary";
 import { Surface } from "@/shared/components/surface";
 import { useActionFeedback } from "@/shared/components/action-feedback";
@@ -277,7 +278,7 @@ export function SourceCandidateForm({
             style={({ pressed }) => [
               styles.sourceLink,
               {
-                opacity: linkOpacity(handoff.pending, pressed),
+                opacity: controlOpacity(handoff.pending, pressed),
               },
             ]}
           >
@@ -422,7 +423,7 @@ export function SourceCandidateForm({
         style={({ pressed }) => [
           styles.sourceLink,
           {
-            opacity: linkOpacity(!authority.enabled, pressed),
+            opacity: controlOpacity(!authority.enabled, pressed),
           },
         ]}
         disabled={!authority.enabled}
@@ -478,14 +479,6 @@ export function SourceCandidateForm({
       )}
     </View>
   );
-}
-
-/** Disabled source navigation takes precedence over native press feedback. */
-function linkOpacity(disabled: boolean, pressed: boolean) {
-  if (disabled) {
-    return tokens.opacity.disabled;
-  }
-  return pressed ? tokens.opacity.pressed : 1;
 }
 
 const styles = StyleSheet.create({

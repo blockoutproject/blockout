@@ -72,12 +72,9 @@ export function NavigationBackdrop({
 export function PageViewport({
   header,
   children,
-  backdrop = true,
 }: Readonly<{
   header: ReactNode;
   children: ReactNode;
-  /** Pagers supply one continuous material for status, navigation, identity and tabs. */
-  backdrop?: boolean;
 }>) {
   const target = useRef<ViewInstance>(null);
   const top = useContext(NavigationSafeAreaContext);
@@ -86,7 +83,7 @@ export function PageViewport({
   return (
     <View style={styles.fill}>
       <NavigationInsetContext value={height}>
-        <NavigationScrollOffsetContext value={backdrop ? scrollOffset : null}>
+        <NavigationScrollOffsetContext value={scrollOffset}>
           <BlurTargetView ref={target} style={styles.fill}>
             {children}
           </BlurTargetView>
@@ -94,9 +91,7 @@ export function PageViewport({
             style={[styles.header, { paddingTop: top }]}
             onLayout={({ nativeEvent }) => setHeight(nativeEvent.layout.height)}
           >
-            {backdrop && (
-              <NavigationBackdrop target={target} scrollOffset={scrollOffset} />
-            )}
+            <NavigationBackdrop target={target} scrollOffset={scrollOffset} />
             {header}
           </View>
         </NavigationScrollOffsetContext>

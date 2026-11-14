@@ -477,7 +477,7 @@ it("announces the pending results section without inventing observed evidence", 
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
 });
 
-it("recovers the season overview from its Error Card while independent club destinations stay available", async () => {
+it("replaces the landing menu with its read card until an explicit seasons Retry succeeds", async () => {
   // Given
   let unavailable = false;
   const retryRead = Promise.withResolvers<Response>();
@@ -500,13 +500,25 @@ it("recovers the season overview from its Error Card while independent club dest
   expect(
     screen.queryByRole("link", { name: /2026\/2027/ }),
   ).not.toBeOnTheScreen();
-  expect(screen.getByRole("link", { name: "Fiches clubs" })).toBeOnTheScreen();
-  expect(screen.getByRole("link", { name: "Géocodage" })).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("header", { name: "Compétitions" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: "Fiches clubs" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: "Géocodage" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Actualiser les données"),
+  ).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Retour" })).toBeOnTheScreen();
   expect(
     privateClient.getQueryData(getListCollectionSeasonsQueryKey()),
   ).toEqual({ items: [peer.season] });
 
   // When
+  mockFetch.mockClear();
   mockFetch.mockImplementation((url, options) =>
     new URL(String(url)).pathname.endsWith("/collection-seasons")
       ? retryRead.promise
@@ -524,6 +536,17 @@ it("recovers the season overview from its Error Card while independent club dest
     screen.getByRole("button", { name: "Réessayer", busy: true }),
   ).toBeOnTheScreen();
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("link", { name: "Fiches clubs" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByLabelText("Actualiser les données"),
+  ).not.toBeOnTheScreen();
+  expect(mockFetch).toHaveBeenCalledTimes(1);
+  expect(new URL(String(mockFetch.mock.calls[0][0])).pathname).toBe(
+    "/administration/collection-seasons",
+  );
+  expect(mockFetch.mock.calls[0][1]?.method).toBe("GET");
 
   // When
   await act(() => retryRead.resolve(json({ items: [peer.season] })));
@@ -533,6 +556,11 @@ it("recovers the season overview from its Error Card while independent club dest
     await screen.findByRole("link", { name: /2026\/2027/ }),
   ).toBeOnTheScreen();
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: "Compétitions" }),
+  ).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: "Fiches clubs" })).toBeOnTheScreen();
+  expect(screen.getByRole("link", { name: "Géocodage" })).toBeOnTheScreen();
 });
 
 it("refreshes only reads and retains uncertain integration and absent measurements while paused", async () => {

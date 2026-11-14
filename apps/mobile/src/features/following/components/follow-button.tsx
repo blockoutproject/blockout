@@ -7,30 +7,17 @@ import type { SportingSeasonResponse } from "../../../../.generated/schemas/inde
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { Button } from "@/shared/components/button";
 import { tokens } from "@/shared/theme/tokens";
-import {
-  useFollowStateQuery,
-  type FollowStateRead,
-} from "../api/use-follow-state-query";
+import type { FollowStateRead } from "../api/use-follow-state-query";
 import { useFollowMutation } from "../api/follow-mutations";
 import type { FollowingTarget } from "../api/following-keys";
 
-/** Exact public target/season and optional independent audience content; a deliberate press changes only its follow state. */
-export interface FollowButtonProps {
+/** The supplied read belongs to this exact target; the route retains its one relationship observer. */
+export interface FollowControlProps {
   target: FollowingTarget;
   season: SportingSeasonResponse;
+  read: FollowStateRead;
   /** Appears beside the compact action and never becomes a private-read prerequisite. */
   audience?: ReactNode;
-}
-
-/** The supplied read must belong to this target; the owning route retains its one relationship observer. */
-export interface FollowControlProps extends FollowButtonProps {
-  read: FollowStateRead;
-}
-
-/** Connects standalone consumers to F06's read while the independent audience retains its own lifetime. */
-export function FollowButton(props: Readonly<FollowButtonProps>) {
-  const read = useFollowStateQuery(props.target);
-  return <FollowControl {...props} read={read} />;
 }
 
 /** Keeps the independent audience mounted; the sporting page owns required relationship-read feedback. */

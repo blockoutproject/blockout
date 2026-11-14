@@ -1,9 +1,9 @@
+import { FilterButton } from "@/shared/components/filter-button";
 import { RefreshCw } from "lucide-react-native";
 import { PageList } from "@/shared/components/page-list";
 import { Controller, useForm } from "react-hook-form";
 import { hashKey } from "@tanstack/react-query";
 import { Link, useNavigation, useRouter } from "expo-router";
-import { Image } from "expo-image";
 import { useState } from "react";
 import {
   AppState,
@@ -12,7 +12,6 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from "react-native";
 import type { StreamModerationItemResponse } from "../../../../.generated/schemas/index.zod";
 import { isAccessDenied } from "@/shared/api/access-denied";
@@ -54,12 +53,6 @@ export interface ModerationScreenProps {
 /** Keeps queue navigation and search above independently retained native list scenes. */
 export function ModerationScreen({ filters }: Readonly<ModerationScreenProps>) {
   const router = useRouter();
-  const { colors } = useTheme();
-  const { fontScale } = useWindowDimensions();
-  const filterSize = Math.max(
-    tokens.size.control.default,
-    tokens.typography.body.lineHeight * fontScale + tokens.spacing.md * 2,
-  );
 
   /** Maps a committed queue filter to its supported moderation state criterion. */
   function initialStateFilter() {
@@ -136,9 +129,8 @@ export function ModerationScreen({ filters }: Readonly<ModerationScreenProps>) {
                   )}
                 />
               </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={changed ? "Filtres actifs" : "Filtres"}
+              <FilterButton
+                active={changed}
                 onPress={() => {
                   Keyboard.dismiss();
                   router.push({
@@ -146,37 +138,7 @@ export function ModerationScreen({ filters }: Readonly<ModerationScreenProps>) {
                     params: { ...filters },
                   });
                 }}
-                style={({ pressed }) => [
-                  styles.filter,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                    width: filterSize,
-                    minHeight: filterSize,
-                    opacity: pressed ? tokens.opacity.pressed : 1,
-                  },
-                ]}
-              >
-                <Image
-                  accessible={false}
-                  source={require("../../../../assets/discovery/filter.svg")}
-                  tintColor={colors.icon}
-                  contentFit="contain"
-                  style={styles.filterIcon}
-                />
-                {changed && (
-                  <View
-                    pointerEvents="none"
-                    style={[
-                      styles.indicator,
-                      {
-                        backgroundColor: colors.accentPrimary,
-                        borderColor: colors.surface,
-                      },
-                    ]}
-                  />
-                )}
-              </Pressable>
+              />
             </View>
           </>
         )}
@@ -431,22 +393,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: tokens.spacing.screen,
     paddingTop: tokens.spacing.sm,
     paddingBottom: tokens.layout.content.start,
-  },
-  filter: {
-    borderWidth: tokens.border.thin,
-    borderRadius: tokens.radius.control,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  filterIcon: { width: tokens.size.icon.lg, height: tokens.size.icon.lg },
-  indicator: {
-    position: "absolute",
-    top: 3,
-    right: 3,
-    width: 11,
-    height: 11,
-    borderRadius: tokens.radius.full,
-    borderWidth: tokens.spacing.optical,
   },
   searchInput: { flex: 1 },
   badges: {

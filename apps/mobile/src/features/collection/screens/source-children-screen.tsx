@@ -23,7 +23,7 @@ import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { useSourceChildren } from "../api/use-source-preparation";
 
-/** Read-only discovery traversal; pack navigation never exposes sporting classification actions. Authorized rows survive technical failures and continuation retries stay local. */
+/** Read-only discovery traversal; pack navigation never exposes sporting classification actions. Authorized data stays cached after technical failures; full-read errors hide rows and continuation retries stay local. */
 export function SourceChildrenScreen({
   seasonId,
   sourceId,

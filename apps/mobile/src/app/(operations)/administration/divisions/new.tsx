@@ -12,8 +12,7 @@ export default function CreateDivisionRoute() {
   return admitted ? (
     <PresentationScreen target={{ kind: "division-creation" }} />
   ) : (
-    <Page>
-      <PageHeader title="Administration technique" />
+    <Page header={<PageHeader title="Administration technique" />}>
       <PageScrollView>
         <ScreenState>
           <ErrorState />

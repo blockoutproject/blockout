@@ -16,8 +16,7 @@ export default function DivisionRoute() {
     .safeParse(useLocalSearchParams());
   if (!admitted || !params.success) {
     return (
-      <Page>
-        <PageHeader title="Administration technique" />
+      <Page header={<PageHeader title="Administration technique" />}>
         <PageScrollView>
           <ScreenState>
             <ErrorState />

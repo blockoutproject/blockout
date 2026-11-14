@@ -1331,6 +1331,34 @@ it("does not announce a failed continuation after leaving its retained scene", a
   ).toBeOnTheScreen();
 });
 
+it.each([
+  { label: "Filtres", filters: { query: "Club %_", state: "all" } },
+  {
+    label: "Filtres actifs",
+    filters: { query: "Club %_", state: "all", platform: "twitch" },
+  },
+] as const)(
+  "opens $label with the committed moderation criteria",
+  async ({ label, filters }) => {
+    // Given
+    const user = userEvent.setup();
+    await mount(<ModerationScreen filters={filters} />);
+    await screen.findByRole("link", {
+      name: `${detail.match.home.name} – ${detail.match.away.name}`,
+    });
+
+    // When
+    await user.press(screen.getByRole("button", { name: label }));
+
+    // Then
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/administration/stream-links/filters",
+      params: filters,
+    });
+    expect(writes).toHaveLength(0);
+  },
+);
+
 it("applies the native filter draft only explicitly and retains literal search", async () => {
   // Given
   await mount(

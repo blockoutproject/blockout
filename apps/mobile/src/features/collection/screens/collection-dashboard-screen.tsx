@@ -57,7 +57,7 @@ const familyLabels: Record<CollectionFamilyEnum, string> = {
   geocoding: "Géocodage",
 };
 
-/** Reads bounded seasons separately from the independent club destinations. */
+/** The landing menu requires its bounded seasons read; control commands own separate destinations. */
 export function CollectionDashboardScreen() {
   const { authority, query } = useCollectionSeasons();
   const { colors } = useTheme();
@@ -75,7 +75,7 @@ export function CollectionDashboardScreen() {
     <Page header={<PageHeader title="Collectes" />}>
       <PageScrollView
         refreshControl={
-          authority.enabled ? (
+          authority.enabled && !failed ? (
             <DataRefreshControl
               onRefresh={() => query.refetch({ cancelRefetch: false })}
               fetching={query.isFetching}
@@ -90,6 +90,13 @@ export function CollectionDashboardScreen() {
               loadingContent={<CollectionLoading />}
             />
           </FeedbackLayout>
+        ) : failed ? (
+          <ScreenState>
+            <ReadFeedback
+              query={query}
+              loadingContent={<CollectionLoading />}
+            />
+          </ScreenState>
         ) : (
           <PageContent>
             <Text
@@ -98,22 +105,21 @@ export function CollectionDashboardScreen() {
             >
               Compétitions
             </Text>
-            {!failed &&
-              query.data?.items.map((season) => (
-                <PreparationLink
-                  key={season.id}
-                  label={season.label}
-                  detail={seasonStatus(season)}
-                  icon={CalendarDays}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/collection/[seasonId]",
-                      params: { seasonId: season.id },
-                    })
-                  }
-                />
-              ))}
-            {!failed && query.data?.items.length === 0 && (
+            {query.data?.items.map((season) => (
+              <PreparationLink
+                key={season.id}
+                label={season.label}
+                detail={seasonStatus(season)}
+                icon={CalendarDays}
+                onPress={() =>
+                  router.push({
+                    pathname: "/collection/[seasonId]",
+                    params: { seasonId: season.id },
+                  })
+                }
+              />
+            ))}
+            {query.data?.items.length === 0 && (
               <EmptyState title="Aucune saison découverte">
                 <Button
                   label="Actualiser"

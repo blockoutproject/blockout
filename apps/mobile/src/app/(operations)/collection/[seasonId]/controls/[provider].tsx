@@ -15,8 +15,7 @@ export default function CompetitionCollectionRoute() {
   return provider === "ffvb" || provider === "lnv" ? (
     <CollectionControlScreen family={provider} seasonId={seasonId} />
   ) : (
-    <Page>
-      <PageHeader title="Collectes" />
+    <Page header={<PageHeader title="Collectes" />}>
       <PageScrollView>
         <ScreenState>
           <ErrorState />

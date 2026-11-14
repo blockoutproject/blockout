@@ -1,20 +1,17 @@
+import { NoAvailableFollows } from "./no-available-follows";
 import { PageList } from "@/shared/components/page-list";
 import { useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useRouter } from "expo-router";
-import { Search } from "lucide-react-native";
 import { DisclosureChevron } from "@/shared/components/disclosure-chevron";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import { PageScrollView } from "@/shared/components/page";
 import type { ApiFetchOptions } from "@/shared/api/api-fetch";
-import { Button } from "@/shared/components/button";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { ListContinuation } from "@/shared/components/list-continuation";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
-import { EmptyState } from "@/shared/components/state-card";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import {
@@ -341,24 +338,6 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
         );
       }}
     />
-  );
-}
-
-/** Empty current visibility offers manual discovery without claiming that retained relations were erased. */
-function NoAvailableFollows() {
-  const router = useRouter();
-  return (
-    <EmptyState
-      title="Aucun suivi à afficher"
-      description="Recherchez une équipe ou une poule pour suivre ses matchs."
-    >
-      <Button
-        label="Rechercher une équipe ou une poule"
-        leadingIcon={Search}
-        fullWidth
-        onPress={() => router.push("/search")}
-      />
-    </EmptyState>
   );
 }
 

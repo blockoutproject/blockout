@@ -1,3 +1,4 @@
+import { divisionTextColor } from "@/features/sporting/presentation";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ArrowUpRight } from "lucide-react-native";
 import { Link } from "expo-router";
@@ -29,6 +30,9 @@ export function ModerationMatchContext({
 }: Readonly<ModerationMatchContextProps>) {
   const { colors, context } = useTheme();
   const division = match.pool.classification.division;
+  const ribbonTextColor = division
+    ? divisionTextColor(division.color)
+    : context.onAction;
   const schedule = match.schedule
     ? formatSportingSchedule(match.schedule)
     : undefined;
@@ -55,7 +59,7 @@ export function ModerationMatchContext({
           ellipsizeMode="tail"
           style={[
             tokens.typography.strong,
-            { color: colors.onDarkAccent, flex: 1 },
+            { color: ribbonTextColor, flex: 1 },
           ]}
         >
           {match.pool.pool.name}
@@ -75,7 +79,7 @@ export function ModerationMatchContext({
             >
               <ArrowUpRight
                 size={tokens.size.icon.md}
-                color={colors.onDarkAccent}
+                color={ribbonTextColor}
               />
             </Pressable>
           </Link>

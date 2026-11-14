@@ -4,7 +4,6 @@ import {
   useWindowDimensions,
   type DimensionValue,
 } from "react-native";
-import { LoadingGroup } from "./loading-group";
 import { Skeleton } from "./skeleton";
 import { TextSkeleton } from "./text-skeleton";
 import { tokens } from "@/shared/theme/tokens";
@@ -33,19 +32,6 @@ export function FieldSkeleton({
   );
 }
 
-/** Three ordinary fields and one action; different forms compose FieldSkeleton for their actual anatomy. */
-export function FormLoading({ label }: Readonly<{ label: string }>) {
-  return (
-    <LoadingGroup label={label} style={styles.form}>
-      <FieldSkeleton />
-      <FieldSkeleton />
-      <FieldSkeleton />
-      <Skeleton height={tokens.size.control.default} shape="rectangle" />
-    </LoadingGroup>
-  );
-}
-
 const styles = StyleSheet.create({
   field: { gap: tokens.layout.form.labelGap },
-  form: { gap: tokens.layout.form.gap },
 });

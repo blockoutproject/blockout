@@ -246,6 +246,8 @@ export const tokens = {
     statusDot: 4,
     separatorOpacity: 0.2,
     informationLabelWidth: 76,
+    // Product Design Club Information 4538:32500; the basemap remains native and dynamic.
+    clubMapHeight: 210,
     setLogo: 44,
     setTeamBottom: 18,
     coverSize: 574,

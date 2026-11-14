@@ -1,3 +1,4 @@
+import { controlOpacity } from "@/shared/components/control-styles";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useFormState, useWatch } from "react-hook-form";
@@ -336,22 +337,14 @@ function Choice({
       accessibilityState={{ checked: selected, disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={({ pressed }) => {
-        let opacity = 1;
-        if (disabled) {
-          opacity = tokens.opacity.disabled;
-        } else if (pressed) {
-          opacity = tokens.opacity.pressed;
-        }
-        return [
-          styles.choice,
-          {
-            backgroundColor: selected ? colors.canvas : colors.subtle,
-            borderColor: "transparent",
-            opacity,
-          },
-        ];
-      }}
+      style={({ pressed }) => [
+        styles.choice,
+        {
+          backgroundColor: selected ? colors.canvas : colors.subtle,
+          borderColor: "transparent",
+          opacity: controlOpacity(disabled, pressed),
+        },
+      ]}
     >
       <Text style={[tokens.typography.strong, { color: colors.text }]}>
         {label}

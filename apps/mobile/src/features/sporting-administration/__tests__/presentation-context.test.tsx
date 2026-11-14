@@ -220,19 +220,10 @@ async function openRoute(path: string) {
       "(recovery)/_layout": RecoveryLayout,
       "(ordinary)/index": () => <Text>Home</Text>,
       "(ordinary)/teams/[teamId]": () => (
-        <TeamScreen
-          teamId={resourceId}
-          renderFollow={() => null}
-          renderStandings={() => <Text>Current standings</Text>}
-        />
+        <TeamScreen teamId={resourceId} renderFollow={() => null} />
       ),
       "(ordinary)/pools/[poolId]": () => (
-        <PoolScreen
-          poolId={resourceId}
-          renderFollow={() => null}
-          renderStandings={() => <Text>Current standings</Text>}
-          renderMap={() => null}
-        />
+        <PoolScreen poolId={resourceId} renderFollow={() => null} />
       ),
       "(recovery)/support/_layout": SupportLayout,
       "(recovery)/support/index": SupportRoute,
