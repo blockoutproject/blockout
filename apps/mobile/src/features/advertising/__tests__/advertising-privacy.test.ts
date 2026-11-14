@@ -38,7 +38,6 @@ jest.mock("react-native-google-mobile-ads", () => ({
   },
   AdsConsentStatus: { OBTAINED: "OBTAINED", NOT_REQUIRED: "NOT_REQUIRED" },
   AdsConsent: {
-    gatherConsent: jest.fn(),
     requestInfoUpdate: jest.fn(),
     loadAndShowConsentFormIfRequired: jest.fn(),
     getConsentInfo: jest.fn(),
@@ -88,7 +87,6 @@ beforeEach(() => {
   };
   mockAds.setRequestConfiguration.mockReset().mockResolvedValue(undefined);
   mockAds.initialize.mockReset().mockResolvedValue([]);
-  jest.mocked(AdsConsent.gatherConsent).mockReset();
   jest
     .mocked(AdsConsent.requestInfoUpdate)
     .mockReset()
@@ -561,7 +559,6 @@ it("rejects an obsolete category result before preparing the corrected native ag
 
   // When
   context = { ...context, category: "under16" };
-  privacy.suspend();
   const overlapping = privacy.synchronize();
   consent.resolve(consentInfo);
   await preparing;
@@ -646,7 +643,6 @@ it.each(["first-account", "account-switch", "Pro-activation"] as const)(
     expect(open).toHaveBeenCalledTimes(1);
     expect(privacy.getSnapshot().choices).toBe(choices);
     expect(mockAds.setRequestConfiguration).toHaveBeenCalledTimes(1);
-    expect(AdsConsent.gatherConsent).not.toHaveBeenCalled();
     expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(1);
     expect(AdsConsent.loadAndShowConsentFormIfRequired).toHaveBeenCalledTimes(
       1,
@@ -711,7 +707,6 @@ it.each(["unknown", "active"] as const)(
     // Then
     expect(privacy.getSnapshot().choices).toEqual(choices);
     expect(mockAds.setRequestConfiguration).toHaveBeenCalledTimes(1);
-    expect(AdsConsent.gatherConsent).not.toHaveBeenCalled();
     expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(1);
     expect(AdsConsent.loadAndShowConsentFormIfRequired).toHaveBeenCalledTimes(
       1,
@@ -774,7 +769,6 @@ it("completes a Pro-deferred native form when advertising becomes applicable wit
   // Then
   expect(mockAds.setRequestConfiguration).toHaveBeenCalledTimes(1);
   expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(1);
-  expect(AdsConsent.gatherConsent).not.toHaveBeenCalled();
   expect(privacy.getSnapshot().choices?.authorizedMode).toBe("contextual");
   expect(mockAds.initialize).toHaveBeenCalledTimes(1);
   expect(InterstitialAd.createForAdRequest).toHaveBeenCalledWith("test-unit", {
@@ -877,7 +871,6 @@ it("retains in-flight installation consent when Pro becomes known without a new 
   // Then: Pro keeps its required native controls without another preparation or ATT prompt.
   expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(1);
   expect(privacy.getSnapshot().privacyOptionsRequired).toBe(true);
-  expect(AdsConsent.gatherConsent).not.toHaveBeenCalled();
   expect(AdsConsent.loadAndShowConsentFormIfRequired).not.toHaveBeenCalled();
   expect(requestTrackingPermissionsAsync).not.toHaveBeenCalled();
   expect(mockAds.initialize).not.toHaveBeenCalled();
@@ -912,7 +905,6 @@ it("does not retry a failed Pro launch refresh when current rights become inacti
   expect(mockAds.setRequestConfiguration).toHaveBeenCalledTimes(1);
   expect(AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(1);
   expect(AdsConsent.loadAndShowConsentFormIfRequired).not.toHaveBeenCalled();
-  expect(AdsConsent.gatherConsent).not.toHaveBeenCalled();
   expect(mockAds.initialize).not.toHaveBeenCalled();
   expect(InterstitialAd.createForAdRequest).not.toHaveBeenCalled();
   privacy.dispose();

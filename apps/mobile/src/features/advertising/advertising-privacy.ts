@@ -83,9 +83,8 @@ export function createAdvertisingPrivacy({
   };
   let attempted: {
     category: AgeDeclaration["category"];
-    action: "gather" | "refresh" | "options" | "advertising";
+    formDeferred: boolean;
   } | null = null;
-  let revision = 0;
   let disposed = false;
   let initialized = false;
   // Applied native request context only; consent decisions remain entirely SDK-owned.
@@ -107,7 +106,6 @@ export function createAdvertisingPrivacy({
 
   /** Suspends loads before retiring even same-mode preparation; the sporting count survives. */
   function retirePreparation() {
-    revision++;
     attempted = null;
     publish({
       ...snapshot,
@@ -203,7 +201,7 @@ export function createAdvertisingPrivacy({
   ) {
     let info: AdsConsentInfo;
     if (consentCategory !== context.category) {
-      const consent = await readConsent("gather", context, current);
+      const consent = await readConsent(context, current);
       if (!consent || !current()) {
         return null;
       }
@@ -219,7 +217,7 @@ export function createAdvertisingPrivacy({
       AdsConsentPrivacyOptionsRequirementStatus.REQUIRED
     ) {
       publish({ ...snapshot, privacyOptionsRequired: false });
-      return { info, optionsShown: false };
+      return { info, formCompleted: false };
     }
     if (!getContext().admission.ordinary) {
       return null;
@@ -229,18 +227,14 @@ export function createAdvertisingPrivacy({
       return null;
     }
     info = await AdsConsent.getConsentInfo();
-    return { info, optionsShown: true };
+    return { info, formCompleted: true };
   }
 
-  /** Rechecks UMP applicability before opening options; each awaited result remains context-scoped. */
+  /** Completes the SDK's installation flow, deferring its form while current Pro/admission excludes it. */
   async function readConsent(
-    action: "gather" | "refresh" | "options",
     context: AdvertisingPrivacyContext,
     current: () => boolean,
   ) {
-    if (action === "options") {
-      return readOptionsConsent(context, current);
-    }
     const info =
       consentCategory === context.category
         ? await AdsConsent.getConsentInfo()
@@ -255,17 +249,17 @@ export function createAdvertisingPrivacy({
       !getContext().admission.ordinary ||
       getContext().pro.status === "active"
     ) {
-      return { info, optionsShown: false };
+      return { info, formCompleted: false };
     }
     return {
       info: await AdsConsent.loadAndShowConsentFormIfRequired(),
-      optionsShown: true,
+      formCompleted: true,
     };
   }
 
   /** One native interaction at a time; stale completions never initialize, request or publish ads. */
   function start(
-    action: "gather" | "refresh" | "options" | "advertising",
+    action: "consent" | "options" | "advertising",
   ): Promise<boolean> | undefined {
     if (disposed || snapshot.pending || !getContext().admission.ordinary) {
       return;
@@ -281,8 +275,7 @@ export function createAdvertisingPrivacy({
     if (action !== "advertising") {
       retirePreparation();
     }
-    const attempt = revision;
-    attempted = { category, action };
+    attempted = { category, formDeferred: false };
     publish({
       ...snapshot,
       privacyOptionsRequired,
@@ -290,14 +283,13 @@ export function createAdvertisingPrivacy({
     });
     const current = () =>
       !disposed &&
-      revision === attempt &&
       (getContext().category === null || getContext().category === category);
 
     /** Applies the native APIs in their documented sequence, with no retry/reset or consent parser. */
     async function run() {
       try {
         let info: AdsConsentInfo;
-        let optionsShown = false;
+        let formCompleted = false;
         if (action !== "advertising") {
           if (consentCategory !== category) {
             await mobileAds().setRequestConfiguration({
@@ -311,16 +303,18 @@ export function createAdvertisingPrivacy({
           if (!current()) {
             return false;
           }
-          const consent = await readConsent(action, context, current);
+          const consent =
+            action === "options"
+              ? await readOptionsConsent(context, current)
+              : await readConsent(context, current);
           if (!consent) {
             return false;
           }
           info = consent.info;
-          optionsShown = consent.optionsShown;
+          formCompleted = consent.formCompleted;
           if (!current()) {
             return false;
           }
-          consentCategory = context.category;
           publish({
             ...snapshot,
             privacyOptionsRequired:
@@ -347,15 +341,15 @@ export function createAdvertisingPrivacy({
         if (!current()) {
           return false;
         }
-        if (action !== "options" && action !== "advertising") {
-          attempted = { category, action: optionsShown ? "gather" : "refresh" };
+        if (action === "consent") {
+          attempted = { category, formDeferred: !formCompleted };
         }
         publish({ ...snapshot, choices });
         interstitial?.preload();
-        return optionsShown;
+        return formCompleted;
       } catch {
         if (current()) {
-          attempted = { category, action: "gather" };
+          attempted = { category, formDeferred: false };
           publish({ ...snapshot, choices: null });
         }
         throw new Error("Advertising choices could not be established");
@@ -375,10 +369,8 @@ export function createAdvertisingPrivacy({
       return;
     }
     const category = getContext().category;
-    const attempt = revision;
     const current = () =>
       !disposed &&
-      revision === attempt &&
       (getContext().category === null || getContext().category === category);
     publish({ ...snapshot, pending: true });
     return AdsConsent.getConsentInfo()
@@ -440,14 +432,10 @@ export function createAdvertisingPrivacy({
         return;
       }
       if (context.category !== attempted?.category) {
-        return start(context.pro.status === "active" ? "refresh" : "gather");
+        return start("consent");
       }
-      if (
-        attempted.action === "refresh" &&
-        consentCategory === context.category &&
-        context.pro.status !== "active"
-      ) {
-        return start("gather");
+      if (attempted.formDeferred && context.pro.status !== "active") {
+        return start("consent");
       }
       if (initialized) {
         interstitial?.preload();

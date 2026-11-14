@@ -93,8 +93,6 @@ export function AgeDeclarationProvider({
     pro.status,
     category,
     nativePrivacy.pending,
-    pending,
-    state,
   ]);
   useEffect(() => () => privacy.invalidateAd(), [privacy]);
 
