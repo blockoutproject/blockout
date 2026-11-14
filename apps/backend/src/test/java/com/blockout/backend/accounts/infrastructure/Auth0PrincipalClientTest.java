@@ -4,11 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.auth0.client.mgmt.ManagementApi;
-import com.blockout.backend.accounts.application.PrincipalReader;
 import com.blockout.backend.accounts.application.exception.AccountUnavailableException;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
-import java.time.Instant;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Protocol;
@@ -48,7 +46,7 @@ class Auth0PrincipalClientTest {
     // Given
     String body =
         """
-        {"user_id":"auth0|one","email":"shared@example.invalid","created_at":"2020-01-02T03:04:05Z",
+        {"user_id":"auth0|one","email":"shared@example.invalid",
          "name":"Private name","picture":"https://private.example.invalid/photo",
          "identities":[{"provider":"google-oauth2","connection":"google-oauth2","profileData":{"email":"other@example.invalid"}},
                        {"provider":"apple","connection":"apple"}]}
@@ -56,14 +54,13 @@ class Auth0PrincipalClientTest {
     Auth0PrincipalClient client = client(body, 200);
 
     // When
-    PrincipalReader.Evidence result = client.read("https://identity.example.invalid/", "auth0|one");
+    String result = client.readEmail("https://identity.example.invalid/", "auth0|one");
 
     // Then
     assertThat(request.url().encodedPath()).isEqualTo("/api/v2/users/auth0%7Cone");
-    assertThat(request.url().queryParameter("fields")).isEqualTo("user_id,email,created_at");
+    assertThat(request.url().queryParameter("fields")).isEqualTo("user_id,email");
     assertThat(request.url().queryParameter("include_fields")).isEqualTo("true");
-    assertThat(result.email()).isEqualTo("shared@example.invalid");
-    assertThat(result.createdAt()).isEqualTo(Instant.parse("2020-01-02T03:04:05Z"));
+    assertThat(result).isEqualTo("shared@example.invalid");
     assertThat(output)
         .doesNotContain(
             "Private name",
@@ -77,19 +74,18 @@ class Auth0PrincipalClientTest {
       strings = {
         "{\"user_id\":\"auth0|one\"}",
         "{\"user_id\":\"auth0|one\",\"email\":\"not-an-email\"}",
-        "{\"user_id\":\"auth0|one\",\"email\":\" \",\"created_at\":null}"
+        "{\"user_id\":\"auth0|one\",\"email\":\" \"}"
       })
-  @DisplayName("Keeps missing or unusable email and missing age unknown")
-  void keepsMissingEvidenceUnknown(String body) {
+  @DisplayName("Keeps missing or unusable email unknown")
+  void keepsMissingEmailUnknown(String body) {
     // Given
     Auth0PrincipalClient client = client(body, 200);
 
     // When
-    PrincipalReader.Evidence result = client.read("https://identity.example.invalid/", "auth0|one");
+    String result = client.readEmail("https://identity.example.invalid/", "auth0|one");
 
     // Then
-    assertThat(result.email()).isNull();
-    assertThat(result.createdAt()).isNull();
+    assertThat(result).isNull();
   }
 
   @ParameterizedTest
@@ -97,8 +93,7 @@ class Auth0PrincipalClientTest {
       strings = {
         "{\"user_id\":\"auth0|other\",\"email\":\"shared@example.invalid\"}",
         "{}",
-        "not-json",
-        "{\"user_id\":\"auth0|one\",\"created_at\":\"yesterday\"}"
+        "not-json"
       })
   @DisplayName("Refuses an unproven principal or malformed provider representation")
   void refusesUnprovenPrincipal(String response) {
@@ -106,7 +101,7 @@ class Auth0PrincipalClientTest {
     Auth0PrincipalClient client = client(response, 200);
 
     // When / Then
-    assertThatThrownBy(() -> client.read("https://identity.example.invalid/", "auth0|one"))
+    assertThatThrownBy(() -> client.readEmail("https://identity.example.invalid/", "auth0|one"))
         .isInstanceOf(AccountUnavailableException.class);
   }
 
@@ -117,7 +112,7 @@ class Auth0PrincipalClientTest {
     Auth0PrincipalClient client = client("{\"message\":\"private provider payload\"}", 429);
 
     // When / Then
-    assertThatThrownBy(() -> client.read("https://identity.example.invalid/", "auth0|one"))
+    assertThatThrownBy(() -> client.readEmail("https://identity.example.invalid/", "auth0|one"))
         .isInstanceOf(AccountUnavailableException.class)
         .hasMessageNotContaining("private provider payload");
     assertThat(output).doesNotContain("private provider payload", "synthetic-server-token");

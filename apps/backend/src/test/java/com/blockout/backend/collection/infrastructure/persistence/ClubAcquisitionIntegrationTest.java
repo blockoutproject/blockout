@@ -115,8 +115,7 @@ class ClubAcquisitionIntegrationTest {
                             "https://identity.example.invalid/",
                             "auth0|issue197",
                             "Operator_197",
-                            "operator@example.invalid",
-                            null)
+                            "operator@example.invalid")
                         .id());
     sql.update(
         "INSERT INTO account_permission(account_id,permission) VALUES (?,'sporting-presentation.manage')",

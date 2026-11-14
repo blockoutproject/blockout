@@ -95,8 +95,7 @@ class DivisionIntegrationTest {
                             "https://identity.example.invalid/",
                             "auth0|division",
                             "Operator_157",
-                            "operator@example.invalid",
-                            null)
+                            "operator@example.invalid")
                         .id());
     sql.update(
         "INSERT INTO account_permission(account_id, permission) VALUES (?, 'division-lifecycle.manage'), (?, 'sporting-classification.manage')",

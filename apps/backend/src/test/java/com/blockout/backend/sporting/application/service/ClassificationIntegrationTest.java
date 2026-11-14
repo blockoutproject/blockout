@@ -92,8 +92,7 @@ class ClassificationIntegrationTest {
                             "https://identity.example.invalid/",
                             "auth0|classification",
                             "Operator_157",
-                            "operator@example.invalid",
-                            null)
+                            "operator@example.invalid")
                         .id());
     sql.update(
         "INSERT INTO account_permission(account_id, permission) VALUES (?, 'sporting-classification.manage')",

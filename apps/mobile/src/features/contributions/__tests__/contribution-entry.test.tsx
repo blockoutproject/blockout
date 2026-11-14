@@ -131,7 +131,7 @@ it.each(["refused", "owner outage", "profile outage"])(
       eligibility: {
         canSubmit: false,
         requiresApproval: false,
-        reason: "Le compte doit avoir au moins sept jours.",
+        reason: "La publication ouvre une heure avant le match.",
       },
     });
     let recovering = false;
@@ -314,12 +314,9 @@ it.each([true, false])(
   },
 );
 
-it.each([
-  "Le compte doit avoir au moins sept jours.",
-  "L’ancienneté du compte est indisponible. Réessayez.",
-  "La publication ouvre une heure avant le match.",
-])("omits an unavailable contribution action: %s", async (reason) => {
-  // Given: the generated owner response supplies current eligibility, including the account-age rule.
+it("omits an unavailable contribution action", async () => {
+  // Given: the generated owner response supplies current eligibility.
+  const reason = "La publication ouvre une heure avant le match.";
   context = ownContributions({
     eligibility: { canSubmit: false, requiresApproval: false, reason },
   });

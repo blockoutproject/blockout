@@ -82,8 +82,7 @@ class AccessSettingsIntegrationTest {
                         "https://identity.example.invalid/",
                         "auth0|first",
                         "First_175",
-                        "first@example.invalid",
-                        null)
+                        "first@example.invalid")
                     .id());
     second =
         transaction.execute(
@@ -93,8 +92,7 @@ class AccessSettingsIntegrationTest {
                         "https://identity.example.invalid/",
                         "auth0|second",
                         "Second_175",
-                        "second@example.invalid",
-                        null)
+                        "second@example.invalid")
                     .id());
     sql.update(
         "INSERT INTO account_permission(account_id,permission) VALUES (?, 'maintenance.manage'), (?, 'application-versions.manage'), (?, 'maintenance.manage'), (?, 'application-versions.manage')",

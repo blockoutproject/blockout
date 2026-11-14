@@ -110,7 +110,6 @@ beforeEach(() => {
         return Response.json(
           mockAccountResponse({
             accountId: mockAccountId,
-            principalCreatedAt: "2020-01-01T00:00:00Z",
           }),
         ) as Awaited<ReturnType<typeof transport.fetch>>;
       }

@@ -55,6 +55,59 @@ class DatabaseConfigurationIntegrationTest {
   }
 
   @Test
+  @DisplayName("Removes retired principal dates while preserving existing account profiles")
+  void removesPrincipalDatesFromRetainedAccounts() throws Exception {
+    // Given
+    createSchema("account_upgrade");
+    try (Connection connection =
+            DriverManager.getConnection(
+                url("account_upgrade"), "blockout_migration", "harmless-migration");
+        Liquibase liquibase =
+            new Liquibase(
+                "db/changelog/accounts.xml",
+                new ClassLoaderResourceAccessor(),
+                new JdbcConnection(connection));
+        Statement sql = connection.createStatement()) {
+      liquibase.update(1, new Contexts(), new LabelExpression());
+      sql.executeUpdate(
+          """
+          INSERT INTO account(id, issuer, subject, username, email, principal_created_at) VALUES
+          ('00000000-0000-4000-8000-000000000001', 'https://identity.example.invalid/',
+           'auth0|known', 'Known', 'known@example.invalid', '2026-11-14T08:00:00Z'),
+          ('00000000-0000-4000-8000-000000000002', 'https://identity.example.invalid/',
+           'auth0|unknown', 'Unknown', 'unknown@example.invalid', NULL)
+          """);
+
+      // When
+      liquibase.update(new Contexts(), new LabelExpression());
+
+      // Then
+      try (ResultSet accounts =
+          sql.executeQuery("SELECT subject, username, email FROM account ORDER BY subject")) {
+        assertThat(accounts.next()).isTrue();
+        assertThat(accounts.getString("subject")).isEqualTo("auth0|known");
+        assertThat(accounts.getString("username")).isEqualTo("Known");
+        assertThat(accounts.getString("email")).isEqualTo("known@example.invalid");
+        assertThat(accounts.next()).isTrue();
+        assertThat(accounts.getString("subject")).isEqualTo("auth0|unknown");
+        assertThat(accounts.getString("username")).isEqualTo("Unknown");
+        assertThat(accounts.getString("email")).isEqualTo("unknown@example.invalid");
+        assertThat(accounts.next()).isFalse();
+      }
+      try (ResultSet columns =
+          sql.executeQuery(
+              """
+              SELECT COUNT(*) FROM information_schema.columns
+              WHERE table_schema = 'account_upgrade' AND table_name = 'account'
+                AND column_name = 'principal_created_at'
+              """)) {
+        assertThat(columns.next()).isTrue();
+        assertThat(columns.getInt(1)).isZero();
+      }
+    }
+  }
+
+  @Test
   @DisplayName("Allows application credentials to insert, update and delete migrated data")
   void allowsApplicationDataWrites() throws Exception {
     // Given

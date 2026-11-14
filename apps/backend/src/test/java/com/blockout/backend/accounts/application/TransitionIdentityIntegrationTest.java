@@ -15,10 +15,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.accounts.application.exception.AccountNotFoundException;
-import com.blockout.backend.accounts.application.exception.AccountUnavailableException;
 import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,7 +49,6 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 class TransitionIdentityIntegrationTest {
   private static final String ISSUER = "https://identity.example.invalid/";
   private static final String SUBJECT = "google-oauth2|retained";
-  private static final Instant CREATED = Instant.parse("2020-01-02T03:04:05Z");
   private static final UUID OLD = UUID.fromString("00000000-0000-4000-8000-000000000338");
   @Autowired private EstablishAccount establishment;
   @Autowired private ReadAccount accounts;
@@ -69,23 +66,20 @@ class TransitionIdentityIntegrationTest {
   }
 
   @Test
-  @DisplayName("Recreates linked methods under their retained principal and actual age")
+  @DisplayName("Recreates linked methods under their retained principal")
   void recreatesRetainedLinkedPrincipal() throws Exception {
     // Given
     sql.update(
-        "INSERT INTO account(id,issuer,subject,username,email,principal_created_at)"
-            + " VALUES (?,?,?,'Former_profile','old@example.invalid',?)",
+        "INSERT INTO account(id,issuer,subject,username,email)"
+            + " VALUES (?,?,?,'Former_profile','old@example.invalid')",
         OLD,
         ISSUER,
-        SUBJECT,
-        java.sql.Timestamp.from(CREATED));
+        SUBJECT);
     sql.update("INSERT INTO account_permission VALUES (?,'maintenance.manage')", OLD);
     // Synthetic reset of the business fixture only; F14 does not call voluntary erasure.
     sql.update("DELETE FROM account WHERE id=?", OLD);
-    when(provider.read(ISSUER, SUBJECT))
-        .thenReturn(
-            new PrincipalReader.Evidence("google@example.invalid", CREATED),
-            new PrincipalReader.Evidence("apple@privaterelay.example.invalid", CREATED));
+    when(provider.readEmail(ISSUER, SUBJECT))
+        .thenReturn("google@example.invalid", "apple@privaterelay.example.invalid");
 
     // When
     mvc.perform(post("/accounts").with(principal(SUBJECT))).andExpect(status().isCreated());
@@ -98,7 +92,6 @@ class TransitionIdentityIntegrationTest {
     ReadAccount.View current = accounts.current(ISSUER, SUBJECT);
     assertThat(recreated.id()).isNotEqualTo(OLD);
     assertThat(current.account().subject()).isEqualTo(SUBJECT);
-    assertThat(current.account().principalCreatedAt()).isEqualTo(CREATED);
     assertThat(current.account().email()).isEqualTo("apple@privaterelay.example.invalid");
     assertThat(current.account().username()).isNotEqualTo("Former_profile");
     assertThat(current.hasPhoto()).isFalse();
@@ -113,10 +106,8 @@ class TransitionIdentityIntegrationTest {
   void keepsUnlinkedSharedEmailSeparate(String secondEmail) throws Exception {
     // Given
     String other = "apple|unlinked";
-    when(provider.read(ISSUER, SUBJECT))
-        .thenReturn(new PrincipalReader.Evidence("shared@example.invalid", CREATED));
-    when(provider.read(ISSUER, other))
-        .thenReturn(new PrincipalReader.Evidence(secondEmail, CREATED));
+    when(provider.readEmail(ISSUER, SUBJECT)).thenReturn("shared@example.invalid");
+    when(provider.readEmail(ISSUER, other)).thenReturn(secondEmail);
     Account first = establishment.establish(ISSUER, SUBJECT).view().account();
     // Stored synthetic bytes make private-read refusal distinguishable from a missing photo.
     byte[] photo = new byte[] {1, 2, 3};
@@ -147,7 +138,7 @@ class TransitionIdentityIntegrationTest {
   @DisplayName("Suspends email-less first creation until an explicit usable-evidence retry")
   void retriesMissingEmailExplicitly(String email) throws Exception {
     // Given
-    when(provider.read(ISSUER, SUBJECT)).thenReturn(new PrincipalReader.Evidence(email, CREATED));
+    when(provider.readEmail(ISSUER, SUBJECT)).thenReturn(email);
 
     // When
     mvc.perform(post("/accounts").with(principal(SUBJECT)))
@@ -157,46 +148,15 @@ class TransitionIdentityIntegrationTest {
     // Then
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM account", Long.class)).isZero();
     mvc.perform(get("/accounts/me").with(principal(SUBJECT))).andExpect(status().isNotFound());
-    verify(provider).read(ISSUER, SUBJECT);
+    verify(provider).readEmail(ISSUER, SUBJECT);
 
     // When
-    when(provider.read(ISSUER, SUBJECT))
-        .thenReturn(new PrincipalReader.Evidence("recovered@example.invalid", CREATED));
+    when(provider.readEmail(ISSUER, SUBJECT)).thenReturn("recovered@example.invalid");
     mvc.perform(post("/accounts").with(principal(SUBJECT))).andExpect(status().isCreated());
 
     // Then
-    assertThat(accounts.current(ISSUER, SUBJECT).account().principalCreatedAt()).isEqualTo(CREATED);
-    verifyNoInteractions(auth0Cleanup, revenueCatCleanup);
-  }
-
-  @Test
-  @DisplayName("Retains known evidence during an outage and recovers unknown age only explicitly")
-  void retainsTrustworthyAge() {
-    // Given
-    when(provider.read(ISSUER, SUBJECT))
-        .thenReturn(new PrincipalReader.Evidence("known@example.invalid", null))
-        .thenThrow(new AccountUnavailableException())
-        .thenReturn(new PrincipalReader.Evidence(null, CREATED))
-        .thenThrow(new AccountUnavailableException());
-    Account initial = establishment.establish(ISSUER, SUBJECT).view().account();
-    assertThat(initial.principalCreatedAt()).isNull();
-
-    // When
-    Account unknown = establishment.establish(ISSUER, SUBJECT).view().account();
-
-    // Then
-    assertThat(unknown.id()).isEqualTo(initial.id());
-    assertThat(unknown.principalCreatedAt()).isNull();
-    assertThat(unknown.email()).isEqualTo("known@example.invalid");
-
-    // When
-    Account recovered = establishment.establish(ISSUER, SUBJECT).view().account();
-    Account retained = establishment.establish(ISSUER, SUBJECT).view().account();
-
-    // Then
-    assertThat(recovered.id()).isEqualTo(initial.id());
-    assertThat(retained).isEqualTo(recovered);
-    assertThat(retained.principalCreatedAt()).isEqualTo(CREATED);
+    assertThat(accounts.current(ISSUER, SUBJECT).account().email())
+        .isEqualTo("recovered@example.invalid");
     verifyNoInteractions(auth0Cleanup, revenueCatCleanup);
   }
 
@@ -204,8 +164,7 @@ class TransitionIdentityIntegrationTest {
   @DisplayName("Uses current SQL grants for both projection and protected commands")
   void appliesCurrentGrants() throws Exception {
     // Given
-    when(provider.read(ISSUER, SUBJECT))
-        .thenReturn(new PrincipalReader.Evidence("owner@example.invalid", CREATED));
+    when(provider.readEmail(ISSUER, SUBJECT)).thenReturn("owner@example.invalid");
     Account current = establishment.establish(ISSUER, SUBJECT).view().account();
     sql.update("INSERT INTO account_permission VALUES (?,'maintenance.manage')", current.id());
 
@@ -240,16 +199,13 @@ class TransitionIdentityIntegrationTest {
   @DisplayName("Uses the actual surviving or new principal after business erasure")
   void recreatesAfterBusinessErasure(boolean principalSurvives) {
     // Given
-    when(provider.read(ISSUER, SUBJECT))
-        .thenReturn(new PrincipalReader.Evidence("owner@example.invalid", CREATED));
+    when(provider.readEmail(ISSUER, SUBJECT)).thenReturn("owner@example.invalid");
     Account original = establishment.establish(ISSUER, SUBJECT).view().account();
     sql.update("UPDATE account SET username='Former_profile' WHERE id=?", original.id());
     sql.update("INSERT INTO account_permission VALUES (?,'maintenance.manage')", original.id());
     String currentSubject = principalSurvives ? SUBJECT : "apple|new-principal";
-    Instant currentCreated = principalSurvives ? CREATED : Instant.parse("2026-10-31T12:00:00Z");
     if (!principalSurvives) {
-      when(provider.read(ISSUER, currentSubject))
-          .thenReturn(new PrincipalReader.Evidence("owner@example.invalid", currentCreated));
+      when(provider.readEmail(ISSUER, currentSubject)).thenReturn("owner@example.invalid");
     }
     when(auth0Cleanup.remove(ISSUER, SUBJECT))
         .thenReturn(
@@ -266,7 +222,6 @@ class TransitionIdentityIntegrationTest {
     // Then
     assertThat(replacement.created()).isTrue();
     assertThat(replacement.view().account().id()).isNotEqualTo(original.id());
-    assertThat(replacement.view().account().principalCreatedAt()).isEqualTo(currentCreated);
     assertThat(replacement.view().account().username()).isNotEqualTo("Former_profile");
     assertThat(replacement.view().permissions()).isEmpty();
     assertThatThrownBy(() -> accounts.original(ISSUER, SUBJECT, original.id()))

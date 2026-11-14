@@ -100,7 +100,7 @@ class AccessSettingsConsumersIntegrationTest {
         transaction.execute(
             s ->
                 accounts
-                    .create(issuer, "auth0|editor", "editor_175", "editor@example.invalid", null)
+                    .create(issuer, "auth0|editor", "editor_175", "editor@example.invalid")
                     .id());
     sql.update(
         "INSERT INTO account_permission(account_id,permission) VALUES (?, 'maintenance.manage'), (?, 'application-versions.manage')",

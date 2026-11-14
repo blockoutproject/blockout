@@ -115,8 +115,7 @@ class TransitionLogoIntegrationTest {
                             "https://identity.example.invalid/",
                             "auth0|transition-logo",
                             "Operator_339",
-                            "operator@example.invalid",
-                            null)
+                            "operator@example.invalid")
                         .id());
     sql.update(
         "INSERT INTO account_permission(account_id,permission) VALUES (?, 'sporting-presentation.manage')",

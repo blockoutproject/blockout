@@ -20,7 +20,6 @@ import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -86,18 +85,14 @@ class ChangeAccountProfileIntegrationTest {
     transaction = new TransactionTemplate(transactions);
     id =
         transaction.execute(
-            status ->
-                accounts.create(ISSUER, "auth0|one", "Original", "one@example.invalid", null).id());
+            status -> accounts.create(ISSUER, "auth0|one", "Original", "one@example.invalid").id());
   }
 
   @Test
   @DisplayName("Saves normalized username and photo together and preserves them on provider login")
   void savesProfileAtomically() {
     // Given
-    when(provider.read(ISSUER, "auth0|one"))
-        .thenReturn(
-            new PrincipalReader.Evidence(
-                "updated@example.invalid", Instant.parse("2020-01-01T00:00:00Z")));
+    when(provider.readEmail(ISSUER, "auth0|one")).thenReturn("updated@example.invalid");
 
     // When
     ReadAccount.View saved =
@@ -118,7 +113,7 @@ class ChangeAccountProfileIntegrationTest {
   void refusesCollisionAtomically() {
     // Given
     transaction.executeWithoutResult(
-        status -> accounts.create(ISSUER, "auth0|other", "TAKEN", "other@example.invalid", null));
+        status -> accounts.create(ISSUER, "auth0|other", "TAKEN", "other@example.invalid"));
     changes.change(ISSUER, "auth0|one", id, null, ProfilePhotoActionEnum.REPLACE, PHOTO);
     ProfilePhoto replacement = new ProfilePhoto(new byte[] {4, 5}, "image/jpeg", 2);
 
@@ -239,8 +234,7 @@ class ChangeAccountProfileIntegrationTest {
               });
       if (recreate) {
         transaction.executeWithoutResult(
-            status ->
-                accounts.create(ISSUER, "auth0|one", "Replacement", "new@example.invalid", null));
+            status -> accounts.create(ISSUER, "auth0|one", "Replacement", "new@example.invalid"));
       }
 
       // When
@@ -354,9 +348,7 @@ class ChangeAccountProfileIntegrationTest {
     UUID other =
         transaction.execute(
             status ->
-                accounts
-                    .create(ISSUER, "auth0|other", "Other", "other@example.invalid", null)
-                    .id());
+                accounts.create(ISSUER, "auth0|other", "Other", "other@example.invalid").id());
     CyclicBarrier start = new CyclicBarrier(2);
     try (ExecutorService workers = Executors.newFixedThreadPool(2)) {
       List<Future<ReadAccount.View>> results =

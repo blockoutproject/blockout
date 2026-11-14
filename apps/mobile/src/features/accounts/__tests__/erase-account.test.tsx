@@ -65,7 +65,6 @@ let privateClient = publicClient;
 const account = accountResponse({
   accountId: "00000000-0000-4000-8000-000000000284",
   username: "Demo284",
-  principalCreatedAt: "2020-01-02T03:04:05Z",
 });
 const previousEnvironment = { ...process.env };
 

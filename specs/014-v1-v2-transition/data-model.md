@@ -14,7 +14,7 @@ These flags contain no personal payload and survive only according to the platfo
 
 ## Identity and entitlement references
 
-Auth0 owns the retained principal, existing linked identities and principal creation date. F05 creates the new V2 business UUID and initial profile from the current authenticated principal. Existing V1 business UUIDs, personal data and administrative roles are not copied.
+Auth0 owns the retained principal and existing linked identities. F05 creates the new V2 business UUID and initial profile from the current authenticated principal. Existing V1 business UUIDs, personal data and administrative roles are not copied.
 
 RevenueCat/store records retain historical customers, product/receipt associations and current rights. F09 associates the new business UUID and handles explicit native restoration under its existing transfer rules. Migration never deletes an old provider customer simply because the business database is rebuilt. No matching by email, automatic alias rewrite or universal one-to-one assumption is valid.
 

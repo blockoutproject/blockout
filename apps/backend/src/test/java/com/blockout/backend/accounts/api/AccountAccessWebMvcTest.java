@@ -66,7 +66,7 @@ class AccountAccessWebMvcTest {
   private static final String ISSUER = "https://identity.example.invalid/";
   private static final UUID ID = UUID.fromString("00000000-0000-4000-8000-000000000169");
   private static final Account ACCOUNT =
-      new Account(ID, ISSUER, "auth0|one", "Player_169", "shared@example.invalid", null);
+      new Account(ID, ISSUER, "auth0|one", "Player_169", "shared@example.invalid");
   @Autowired private MockMvc mvc;
   @MockitoBean private AccountStore store;
   @MockitoBean private EstablishAccount establishment;
@@ -95,7 +95,7 @@ class AccountAccessWebMvcTest {
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.accountId").value(ID.toString()))
         .andExpect(jsonPath("$.username").value("Player_169"))
-        .andExpect(jsonPath("$.principalCreatedAt").value(org.hamcrest.Matchers.nullValue()))
+        .andExpect(jsonPath("$.principalCreatedAt").doesNotExist())
         .andExpect(jsonPath("$.hasPhoto").value(false))
         .andExpect(jsonPath("$.permissions.manageMaintenance").value(true))
         .andExpect(jsonPath("$.permissions.moderateStreamLinks").value(false));

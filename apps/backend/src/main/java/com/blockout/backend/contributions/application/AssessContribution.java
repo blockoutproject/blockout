@@ -1,6 +1,5 @@
 package com.blockout.backend.contributions.application;
 
-import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.contributions.domain.ContributionEligibility;
 import com.blockout.backend.contributions.domain.ContributionQuota;
 import com.blockout.backend.contributions.domain.ContributionState;
@@ -18,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class AssessContribution {
   private final ContributionStore store;
-  private final AccountAccess accounts;
 
   /**
    * Evaluates the shared pure policy from current facts in the caller's consistent transaction.
@@ -29,7 +27,7 @@ public class AssessContribution {
    * @param state current match revision and hold
    * @param moderator current exact moderation capability
    * @param proposed recognized literal address, or null for an eligibility read
-   * @param now one instant for age, window and quota boundaries
+   * @param now one instant for window and quota boundaries
    * @return policy outcome with the exact inputs needed by private eligibility presentation
    */
   @Transactional(propagation = Propagation.MANDATORY, readOnly = true)
@@ -40,12 +38,11 @@ public class AssessContribution {
       boolean moderator,
       StreamAddress proposed,
       Instant now) {
-    Instant createdAt = accounts.principalCreatedAt(owner);
     ContributionQuota.Day day = ContributionQuota.dayAt(now);
     ContributionQuota.Usage usage = store.usage(owner, facts.match().id(), day);
     ContributionEligibility.Decision decision =
         ContributionEligibility.evaluate(
-            new ContributionEligibility.Actor(owner, true, moderator, createdAt),
+            new ContributionEligibility.Actor(owner, true, moderator),
             new ContributionEligibility.Match(
                 facts.viewable(),
                 facts.professional(),
@@ -64,7 +61,6 @@ public class AssessContribution {
         decision,
         usage,
         day,
-        createdAt,
         ContributionEligibility.requiresApproval(moderator, facts.definitiveResult(), state));
   }
 
@@ -74,13 +70,11 @@ public class AssessContribution {
    * @param decision current pure eligibility outcome
    * @param usage persisted ordinary quota participation
    * @param day Paris quota interval containing the evaluation instant
-   * @param principalCreatedAt reliable account-age evidence, or null
    * @param requiresApproval approval rule for an otherwise permitted submission
    */
   public record Assessment(
       ContributionEligibility.Decision decision,
       ContributionQuota.Usage usage,
       ContributionQuota.Day day,
-      Instant principalCreatedAt,
       boolean requiresApproval) {}
 }

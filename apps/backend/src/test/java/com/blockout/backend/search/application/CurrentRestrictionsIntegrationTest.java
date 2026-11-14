@@ -129,7 +129,7 @@ class CurrentRestrictionsIntegrationTest {
     sql.update("DELETE FROM account");
     scope = SportingIngestionFixture.admit(sql, seasons, identities, cycles, runtimes);
     sql.update(
-        "INSERT INTO account(id,issuer,subject,username,email,principal_created_at) VALUES (?, 'https://identity.example.invalid/', 'issue213', 'Issue213', 'synthetic@example.invalid', '2020-01-01T00:00:00Z')",
+        "INSERT INTO account(id,issuer,subject,username,email) VALUES (?, 'https://identity.example.invalid/', 'issue213', 'Issue213', 'synthetic@example.invalid')",
         ACCOUNT);
     for (String grant :
         List.of("division-lifecycle.manage", "collection.manage", "sporting-presentation.manage")) {

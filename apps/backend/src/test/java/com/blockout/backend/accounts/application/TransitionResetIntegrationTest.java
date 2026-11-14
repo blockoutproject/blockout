@@ -30,7 +30,6 @@ import com.blockout.backend.notifications.application.NotificationContext;
 import com.blockout.backend.notifications.application.ReadInbox;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import java.time.Clock;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,7 +66,6 @@ class TransitionResetIntegrationTest {
   private static final String SUBJECT_A = "auth0|transition-a";
   private static final String SUBJECT_B = "auth0|transition-b";
   private static final String EMAIL = "shared@example.invalid";
-  private static final Instant PRINCIPAL_CREATED = Instant.parse("2020-01-02T03:04:05Z");
   private static final UUID OLD_REFERENCE = UUID.fromString("00000000-0000-4000-8000-000000000299");
   @Autowired private PostgreSQLContainer database;
   @Autowired private JdbcTemplate sql;
@@ -108,8 +106,7 @@ class TransitionResetIntegrationTest {
     follows.replace(new FollowContext(ACCOUNT, new Target(TargetType.TEAM, HOME)), true);
     follows.replace(new FollowContext(ACCOUNT, new Target(TargetType.POOL, POOL)), true);
     UUID foreignNotification = entry(sql, 1, ACCOUNT, NOW.minusSeconds(60));
-    when(provider.read(ISSUER, SUBJECT_A))
-        .thenReturn(new PrincipalReader.Evidence(EMAIL, PRINCIPAL_CREATED));
+    when(provider.readEmail(ISSUER, SUBJECT_A)).thenReturn(EMAIL);
 
     // When
     EstablishAccount.Outcome outcome = establishment.establish(ISSUER, SUBJECT_A);
@@ -120,7 +117,6 @@ class TransitionResetIntegrationTest {
     assertThat(fresh.id()).isNotIn(ACCOUNT, OLD_REFERENCE);
     assertThat(fresh.username()).matches("[A-Za-z0-9._-]{3,32}").isNotEqualTo("Former_profile");
     assertThat(fresh.email()).isEqualTo(EMAIL);
-    assertThat(fresh.principalCreatedAt()).isEqualTo(PRINCIPAL_CREATED);
     assertThat(outcome.view().hasPhoto()).isFalse();
     assertThat(outcome.view().permissions()).isEmpty();
     assertThat(accounts.current(ISSUER, SUBJECT_A)).isEqualTo(outcome.view());
@@ -145,8 +141,7 @@ class TransitionResetIntegrationTest {
     // Given
     sql.update(
         "UPDATE sporting_team SET source_name='Same sporting name' WHERE id IN (?, ?)", HOME, AWAY);
-    when(provider.read(ISSUER, SUBJECT_A))
-        .thenReturn(new PrincipalReader.Evidence(EMAIL, PRINCIPAL_CREATED));
+    when(provider.readEmail(ISSUER, SUBJECT_A)).thenReturn(EMAIL);
     Account owner = establishment.establish(ISSUER, SUBJECT_A).view().account();
     FollowContext selected = new FollowContext(owner.id(), new Target(TargetType.TEAM, HOME));
     assertThat(follows.read(selected)).isFalse();
@@ -176,8 +171,7 @@ class TransitionResetIntegrationTest {
   @DisplayName("Accepts a voluntary pool follow without creating team follows")
   void followsOnlyChosenPool() {
     // Given
-    when(provider.read(ISSUER, SUBJECT_A))
-        .thenReturn(new PrincipalReader.Evidence(EMAIL, PRINCIPAL_CREATED));
+    when(provider.readEmail(ISSUER, SUBJECT_A)).thenReturn(EMAIL);
     Account owner = establishment.establish(ISSUER, SUBJECT_A).view().account();
     FollowContext selected = new FollowContext(owner.id(), new Target(TargetType.POOL, POOL));
     assertThat(follows.read(selected)).isFalse();
@@ -206,8 +200,7 @@ class TransitionResetIntegrationTest {
   @DisplayName("Refuses an absent old target without selecting a similar rebuilt resource")
   void refusesOldSportingReference(TargetType type) {
     // Given
-    when(provider.read(ISSUER, SUBJECT_A))
-        .thenReturn(new PrincipalReader.Evidence(EMAIL, PRINCIPAL_CREATED));
+    when(provider.readEmail(ISSUER, SUBJECT_A)).thenReturn(EMAIL);
     Account owner = establishment.establish(ISSUER, SUBJECT_A).view().account();
     FollowContext old = new FollowContext(owner.id(), new Target(type, OLD_REFERENCE));
 
@@ -221,9 +214,8 @@ class TransitionResetIntegrationTest {
   @DisplayName("Keeps original private resources isolated through A, guest, B and return to A")
   void isolatesOriginalOwnersAcrossRequests() throws Exception {
     // Given
-    PrincipalReader.Evidence evidence = new PrincipalReader.Evidence(EMAIL, PRINCIPAL_CREATED);
-    when(provider.read(ISSUER, SUBJECT_A)).thenReturn(evidence);
-    when(provider.read(ISSUER, SUBJECT_B)).thenReturn(evidence);
+    when(provider.readEmail(ISSUER, SUBJECT_A)).thenReturn(EMAIL);
+    when(provider.readEmail(ISSUER, SUBJECT_B)).thenReturn(EMAIL);
     Account first = establishment.establish(ISSUER, SUBJECT_A).view().account();
     Account second = establishment.establish(ISSUER, SUBJECT_B).view().account();
     assertThat(second.id()).isNotEqualTo(first.id());

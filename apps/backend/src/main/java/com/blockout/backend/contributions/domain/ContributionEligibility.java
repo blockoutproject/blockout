@@ -15,14 +15,14 @@ public final class ContributionEligibility {
    * Assesses current authorization and revision before literal equality and quota refusal. Callers
    * supply facts reread under their ordered locks; this pure assessment acquires no locks.
    *
-   * @param actor current usable original account and exact capabilities/evidence
+   * @param actor current usable original account and exact capabilities
    * @param match current owner-provided sporting/visibility facts, never calendar classification
    * @param current bounded current active/own-pending versions and revision/hold
    * @param expectedRevision revision captured for this explicit intent
    * @param proposed locally recognized literal address, or null for a read-only eligibility
    *     assessment
    * @param usage current persisted ordinary aggregate
-   * @param now same action instant for age and sporting window
+   * @param now current action instant for the sporting window
    * @return refusal, unchanged version or intended new-version state
    */
   public static Decision evaluate(
@@ -48,12 +48,6 @@ public final class ContributionEligibility {
     if (!actor.moderator()) {
       if (current.active() != null && !actor.accountId().equals(current.active().ownerId())) {
         return new Decision(Status.NOT_OWNER, null);
-      }
-      if (actor.principalCreatedAt() == null) {
-        return new Decision(Status.ACCOUNT_AGE_UNKNOWN, null);
-      }
-      if (now.isBefore(accountEligibleAt(actor.principalCreatedAt()))) {
-        return new Decision(Status.ACCOUNT_TOO_YOUNG, null);
       }
       if (!match.definitiveResult()) {
         if (match.confirmedStart() == null) {
@@ -92,16 +86,6 @@ public final class ContributionEligibility {
   }
 
   /**
-   * Resolves the ordinary publication age boundary from reliable retained principal evidence.
-   *
-   * @param principalCreatedAt reliable Auth0 creation instant
-   * @return inclusive instant at which the seven elapsed days condition is satisfied
-   */
-  public static Instant accountEligibleAt(Instant principalCreatedAt) {
-    return principalCreatedAt.plus(Duration.ofDays(7));
-  }
-
-  /**
    * Resolves the ordinary publication window independently of calendar display categories.
    *
    * @param confirmedStart reliable current sporting start instant
@@ -130,10 +114,8 @@ public final class ContributionEligibility {
    * @param accountId original business lifecycle
    * @param mayPublish exact ordinary publication capability
    * @param moderator exact stream-links.moderate capability, never a generic role
-   * @param principalCreatedAt reliable retained Auth0 evidence, or null
    */
-  public record Actor(
-      UUID accountId, boolean mayPublish, boolean moderator, Instant principalCreatedAt) {}
+  public record Actor(UUID accountId, boolean mayPublish, boolean moderator) {}
 
   /**
    * Current facts supplied by their owners, with no duplicate sporting classifier or account
@@ -173,8 +155,6 @@ public final class ContributionEligibility {
     PROFESSIONAL_MATCH,
     STALE_REVISION,
     NOT_OWNER,
-    ACCOUNT_AGE_UNKNOWN,
-    ACCOUNT_TOO_YOUNG,
     START_UNCONFIRMED,
     WINDOW_NOT_OPEN,
     VERSION_LIMIT,

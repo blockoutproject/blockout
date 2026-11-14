@@ -66,7 +66,7 @@ class PermissionPersistenceIntegrationTest {
         transaction.execute(
             state ->
                 accounts.create(
-                    ISSUER, "auth0|operator", "Operator_152", "operator@example.invalid", null));
+                    ISSUER, "auth0|operator", "Operator_152", "operator@example.invalid"));
   }
 
   @ParameterizedTest
@@ -85,8 +85,7 @@ class PermissionPersistenceIntegrationTest {
     // Given
     Account other =
         transaction.execute(
-            state ->
-                accounts.create(ISSUER, "auth0|other", "Other_152", "other@example.invalid", null));
+            state -> accounts.create(ISSUER, "auth0|other", "Other_152", "other@example.invalid"));
     sql.update(
         "INSERT INTO account_permission(account_id, permission) VALUES (?, ?), (?, ?)",
         account.id(),
@@ -181,7 +180,7 @@ class PermissionPersistenceIntegrationTest {
           transaction.execute(
               state ->
                   accounts.create(
-                      ISSUER, "auth0|operator", "Operator_152", "operator@example.invalid", null));
+                      ISSUER, "auth0|operator", "Operator_152", "operator@example.invalid"));
     }
 
     // Then

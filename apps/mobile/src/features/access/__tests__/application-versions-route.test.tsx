@@ -198,7 +198,6 @@ function accessResponses(
         accountId: "00000000-0000-4000-8000-000000000185",
         username: "Operator_185",
         email: "operator@example.invalid",
-        principalCreatedAt: null,
         hasPhoto: false,
         permissions,
       });

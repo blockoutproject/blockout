@@ -183,8 +183,6 @@ class ContractBoundaryWebMvcTest {
     // Then
     assertThat(result.getResponse().getStatus()).isEqualTo(201);
     assertThat(response.getUsername()).isEqualTo("Ada");
-    assertThat(response.getPrincipalCreatedAt().isPresent()).isTrue();
-    assertThat(response.getPrincipalCreatedAt().get()).isNull();
     assertThat(response.getAdditionalProperties()).containsEntry("future", true);
     assertThat(response.getPermissions().getAdditionalProperties()).containsEntry("future", true);
   }
@@ -238,7 +236,6 @@ class ContractBoundaryWebMvcTest {
           .accountId(UUID.fromString("00000000-0000-4000-8000-000000000001"))
           .username("Ada")
           .email("fixture@example.invalid")
-          .principalCreatedAt(null)
           .hasPhoto(false)
           .permissions(new AccountPermissionsResponse().putAdditionalProperty("future", true))
           .putAdditionalProperty("future", true);

@@ -68,7 +68,6 @@ const environment = { ...process.env };
 const a = accountResponse({
   accountId: "00000000-0000-4000-8000-000000000335",
   username: "FreshA",
-  principalCreatedAt: "2020-01-02T12:00:00Z",
 });
 const b = accountResponse({
   accountId: "00000000-0000-4000-8000-000000000336",

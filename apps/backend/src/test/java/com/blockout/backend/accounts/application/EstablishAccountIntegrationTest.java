@@ -13,7 +13,6 @@ import com.blockout.backend.accounts.application.exception.AccountUnavailableExc
 import com.blockout.backend.accounts.application.exception.ProviderEmailUnavailableException;
 import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
-import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -49,7 +48,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class EstablishAccountIntegrationTest {
   private static final String ISSUER = "https://identity.example.invalid/";
-  private static final Instant CREATED = Instant.parse("2020-01-02T03:04:05Z");
   @Autowired private EstablishAccount establishment;
   @Autowired private ChangeAccountProfile profileChanges;
   @MockitoSpyBean private AccountStore accounts;
@@ -70,12 +68,12 @@ class EstablishAccountIntegrationTest {
   void settlesConcurrentEstablishment() throws Exception {
     // Given
     CyclicBarrier fetched = new CyclicBarrier(2);
-    when(provider.read(ISSUER, "auth0|one"))
+    when(provider.readEmail(ISSUER, "auth0|one"))
         .thenAnswer(
             call -> {
               assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
               fetched.await(10, TimeUnit.SECONDS);
-              return new PrincipalReader.Evidence("shared@example.invalid", CREATED);
+              return "shared@example.invalid";
             });
 
     // When
@@ -94,7 +92,6 @@ class EstablishAccountIntegrationTest {
       assertThat(sql.queryForObject("SELECT COUNT(*) FROM account", Long.class)).isEqualTo(1L);
       Account account = outcomes.getFirst().view().account();
       assertThat(account.username()).matches("[A-Za-z0-9._-]{3,32}");
-      assertThat(account.principalCreatedAt()).isEqualTo(CREATED);
       assertThat(accounts.hasPhoto(account.id())).isFalse();
     }
   }
@@ -103,14 +100,14 @@ class EstablishAccountIntegrationTest {
   @DisplayName("Preserves the concurrent winner's profile when synchronizing provider evidence")
   void preservesConcurrentWinnerProfile() {
     // Given
-    when(provider.read(ISSUER, "auth0|one"))
+    when(provider.readEmail(ISSUER, "auth0|one"))
         .thenAnswer(
             call -> {
               transaction.executeWithoutResult(
                   status ->
                       accounts.create(
-                          ISSUER, "auth0|one", "Initial_name", "initial@example.invalid", CREATED));
-              return new PrincipalReader.Evidence("updated@example.invalid", CREATED);
+                          ISSUER, "auth0|one", "Initial_name", "initial@example.invalid"));
+              return "updated@example.invalid";
             });
     AccountStore target = AopTestUtils.getUltimateTargetObject(accounts);
     doAnswer(
@@ -124,7 +121,7 @@ class EstablishAccountIntegrationTest {
               return call.callRealMethod();
             })
         .when(target)
-        .synchronize(any(UUID.class), eq("updated@example.invalid"), eq(CREATED));
+        .synchronize(any(UUID.class), eq("updated@example.invalid"));
 
     // When
     EstablishAccount.Outcome result = establishment.establish(ISSUER, "auth0|one");
@@ -141,8 +138,7 @@ class EstablishAccountIntegrationTest {
   @DisplayName("Keeps principals distinct when provider email is identical")
   void keepsSharedEmailSeparate() {
     // Given
-    when(provider.read(anyString(), anyString()))
-        .thenReturn(new PrincipalReader.Evidence("shared@example.invalid", null));
+    when(provider.readEmail(anyString(), anyString())).thenReturn("shared@example.invalid");
 
     // When
     Account first = establishment.establish(ISSUER, "auth0|one").view().account();
@@ -152,15 +148,13 @@ class EstablishAccountIntegrationTest {
     assertThat(first.id()).isNotEqualTo(second.id());
     assertThat(first.email()).isEqualTo(second.email());
     assertThat(first.username()).isNotEqualTo(second.username());
-    assertThat(first.principalCreatedAt()).isNull();
   }
 
   @Test
   @DisplayName("Refuses a neutral name collision without creating a replacement candidate")
   void rejectsNeutralNameCollision() {
     // Given
-    when(provider.read(ISSUER, "auth0|one"))
-        .thenReturn(new PrincipalReader.Evidence("shared@example.invalid", CREATED));
+    when(provider.readEmail(ISSUER, "auth0|one")).thenReturn("shared@example.invalid");
     AtomicBoolean collide = new AtomicBoolean(true);
     UUID competitor = UUID.randomUUID();
     AccountStore target = AopTestUtils.getUltimateTargetObject(accounts);
@@ -182,7 +176,7 @@ class EstablishAccountIntegrationTest {
               return call.callRealMethod();
             })
         .when(target)
-        .create(eq(ISSUER), eq("auth0|one"), anyString(), anyString(), any());
+        .create(eq(ISSUER), eq("auth0|one"), anyString(), anyString());
 
     // When / Then
     assertThatThrownBy(() -> establishment.establish(ISSUER, "auth0|one"))
@@ -196,8 +190,7 @@ class EstablishAccountIntegrationTest {
   @DisplayName("Rejects missing first email without committing partial data")
   void rejectsMissingInitialEmail() {
     // Given
-    when(provider.read(ISSUER, "auth0|one"))
-        .thenReturn(new PrincipalReader.Evidence(null, CREATED));
+    when(provider.readEmail(ISSUER, "auth0|one")).thenReturn(null);
 
     // When / Then
     assertThatThrownBy(() -> establishment.establish(ISSUER, "auth0|one"))
@@ -211,10 +204,8 @@ class EstablishAccountIntegrationTest {
     // Given
     Account original =
         transaction.execute(
-            status ->
-                accounts.create(
-                    ISSUER, "auth0|one", "Chosen_name", "known@example.invalid", CREATED));
-    when(provider.read(ISSUER, "auth0|one"))
+            status -> accounts.create(ISSUER, "auth0|one", "Chosen_name", "known@example.invalid"));
+    when(provider.readEmail(ISSUER, "auth0|one"))
         .thenAnswer(
             call -> {
               assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
@@ -237,8 +228,7 @@ class EstablishAccountIntegrationTest {
     Account original =
         transaction.execute(
             status ->
-                accounts.create(
-                    ISSUER, "auth0|photo", "Photo_owner", "known@example.invalid", CREATED));
+                accounts.create(ISSUER, "auth0|photo", "Photo_owner", "known@example.invalid"));
     // Synthetic storage bytes exercise presence only; actual image validation belongs to US2.
     sql.update(
         "UPDATE account SET photo_bytes = ?, photo_media_type = 'image/png', photo_dimension = 1 WHERE id = ?",
@@ -262,8 +252,7 @@ class EstablishAccountIntegrationTest {
     // Given
     Account original =
         transaction.execute(
-            status ->
-                accounts.create(ISSUER, "auth0|one", "Original", "known@example.invalid", CREATED));
+            status -> accounts.create(ISSUER, "auth0|one", "Original", "known@example.invalid"));
     sql.update(
         "UPDATE account SET photo_bytes = ?, photo_media_type = 'image/png', photo_dimension = 1 WHERE id = ?",
         new byte[] {1, 2, 3},
@@ -271,8 +260,7 @@ class EstablishAccountIntegrationTest {
     sql.update(
         "INSERT INTO account_permission (account_id, permission) VALUES (?, 'maintenance.manage')",
         original.id());
-    when(provider.read(ISSUER, "auth0|one"))
-        .thenReturn(new PrincipalReader.Evidence("current@example.invalid", CREATED));
+    when(provider.readEmail(ISSUER, "auth0|one")).thenReturn("current@example.invalid");
 
     // When
     ReadAccount.View view = establishment.establish(ISSUER, "auth0|one").view();
@@ -292,10 +280,8 @@ class EstablishAccountIntegrationTest {
     // Given
     Account original =
         transaction.execute(
-            status ->
-                accounts.create(ISSUER, "auth0|one", "Original", "known@example.invalid", CREATED));
-    when(provider.read(ISSUER, "auth0|one"))
-        .thenReturn(new PrincipalReader.Evidence("committed@example.invalid", CREATED));
+            status -> accounts.create(ISSUER, "auth0|one", "Original", "known@example.invalid"));
+    when(provider.readEmail(ISSUER, "auth0|one")).thenReturn("committed@example.invalid");
     AccountStore target = AopTestUtils.getUltimateTargetObject(accounts);
     doAnswer(
             call -> {
@@ -312,11 +298,7 @@ class EstablishAccountIntegrationTest {
                     sql.update("DELETE FROM account WHERE id = ?", original.id());
                     if (recreate) {
                       accounts.create(
-                          ISSUER,
-                          "auth0|one",
-                          "Replacement",
-                          "replacement@example.invalid",
-                          CREATED);
+                          ISSUER, "auth0|one", "Replacement", "replacement@example.invalid");
                     }
                   });
               return call.callRealMethod();
@@ -348,9 +330,8 @@ class EstablishAccountIntegrationTest {
     // Given
     Account original =
         transaction.execute(
-            status ->
-                accounts.create(ISSUER, "auth0|one", "Original", "known@example.invalid", CREATED));
-    when(provider.read(ISSUER, "auth0|one"))
+            status -> accounts.create(ISSUER, "auth0|one", "Original", "known@example.invalid"));
+    when(provider.readEmail(ISSUER, "auth0|one"))
         .thenAnswer(
             call -> {
               assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
@@ -359,13 +340,9 @@ class EstablishAccountIntegrationTest {
                 transaction.execute(
                     status ->
                         accounts.create(
-                            ISSUER,
-                            "auth0|one",
-                            "Replacement",
-                            "replacement@example.invalid",
-                            CREATED));
+                            ISSUER, "auth0|one", "Replacement", "replacement@example.invalid"));
               }
-              return new PrincipalReader.Evidence("late@example.invalid", null);
+              return "late@example.invalid";
             });
 
     // When / Then

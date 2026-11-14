@@ -17,9 +17,8 @@ import com.blockout.backend.accounts.application.EstablishAccount;
 import com.blockout.backend.accounts.application.PrincipalReader;
 import com.blockout.backend.accounts.application.exception.AccountNotFoundException;
 import com.blockout.backend.collection.application.service.ChangeCollectionControls;
-import com.blockout.backend.contributions.application.ContributionRejectedException;
 import com.blockout.backend.contributions.application.SubmitContribution;
-import com.blockout.backend.contributions.domain.ContributionEligibility.Status;
+import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.contributions.support.ContributionScenario;
 import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
@@ -33,7 +32,6 @@ import com.blockout.backend.sporting.application.service.ChangeSportingPresentat
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
 import java.net.URI;
-import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -47,7 +45,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -242,9 +239,7 @@ class DirectAuthorizationIntegrationTest extends ContributionScenario {
         sql.queryForList("SELECT * FROM access_settings ORDER BY id");
     RequestPostProcessor oldSession = operator(OTHER);
     currentAccount(OTHER).andExpect(jsonPath("$.permissions.manageCollection").value(true));
-    when(principal.read(ISSUER, OTHER.toString()))
-        .thenReturn(
-            new PrincipalReader.Evidence("synthetic@example.invalid", NOW.minusSeconds(604800)));
+    when(principal.readEmail(ISSUER, OTHER.toString())).thenReturn("synthetic@example.invalid");
 
     // When
     erasure.erase(ISSUER, OTHER.toString(), OTHER);
@@ -288,63 +283,22 @@ class DirectAuthorizationIntegrationTest extends ContributionScenario {
     assertThat(ordinary.version().ownerId()).isEqualTo(replacementId);
   }
 
-  @ParameterizedTest
-  @CsvSource({"-1,false", "604799,false", "604800,true"})
-  @DisplayName("Newly established ordinary accounts retain the exact F08 seven-day condition")
-  void retainsOrdinaryAge(long ageSeconds, boolean eligible) {
+  @Test
+  @DisplayName("Newly established ordinary accounts publish under the remaining F08 conditions")
+  void acceptsNewOrdinaryAccount() {
     // Given
-    when(principal.read(ISSUER, "auth0|new-287"))
-        .thenReturn(
-            new PrincipalReader.Evidence(
-                "new@example.invalid", ageSeconds < 0 ? null : NOW.minusSeconds(ageSeconds)));
+    when(principal.readEmail(ISSUER, "auth0|new-287")).thenReturn("new@example.invalid");
     UUID account = establishment.establish(ISSUER, "auth0|new-287").view().account().id();
 
     // When
-    ThrowingCallable publish =
-        () ->
-            submissions.submit(
-                account, matchId, "0", URI.create("https://youtu.be/ordinary"), false);
+    SubmitContribution.Outcome published =
+        submissions.submit(account, matchId, "0", URI.create("https://youtu.be/ordinary"), false);
 
     // Then
-    if (eligible) {
-      assertThatCode(publish).doesNotThrowAnyException();
-    } else {
-      assertThatThrownBy(publish)
-          .isInstanceOfSatisfying(
-              ContributionRejectedException.class,
-              failure ->
-                  assertThat(failure.getStatus())
-                      .isEqualTo(
-                          ageSeconds < 0 ? Status.ACCOUNT_AGE_UNKNOWN : Status.ACCOUNT_TOO_YOUNG));
-    }
+    assertThat(published.version().ownerId()).isEqualTo(account);
+    assertThat(published.version().state()).isEqualTo(ContributionVersion.State.ACTIVE);
     assertThat(permissions.forAccount(account)).isEmpty();
-    assertThat(count("contribution_version")).isEqualTo(eligible ? 1 : 0);
-  }
-
-  @ParameterizedTest
-  @EnumSource(
-      value = Permission.class,
-      names = {"MANAGE_MAINTENANCE", "MANAGE_COLLECTION", "MODERATE_STREAM_LINKS"})
-  @DisplayName("Only the F08 moderation grant provides its domain-owned age exception")
-  void restrictsAgeException(Permission assigned) {
-    // Given
-    grant(OTHER, assigned);
-    sql.update("UPDATE account SET principal_created_at=? WHERE id=?", Timestamp.from(NOW), OTHER);
-
-    // When
-    ThrowingCallable publish = () -> submit(OTHER, "0", "https://youtu.be/young", false);
-
-    // Then
-    if (assigned == Permission.MODERATE_STREAM_LINKS) {
-      assertThatCode(publish).doesNotThrowAnyException();
-    } else {
-      assertThatThrownBy(publish)
-          .isInstanceOfSatisfying(
-              ContributionRejectedException.class,
-              failure -> assertThat(failure.getStatus()).isEqualTo(Status.ACCOUNT_TOO_YOUNG));
-    }
-    assertThat(count("contribution_version"))
-        .isEqualTo(assigned == Permission.MODERATE_STREAM_LINKS ? 1 : 0);
+    assertThat(count("contribution_version")).isEqualTo(1);
   }
 
   @ParameterizedTest

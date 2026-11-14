@@ -87,7 +87,7 @@ class ContributionQualificationIntegrationTest extends ContributionScenario {
             .execute(
                 transaction ->
                     accounts
-                        .create(ISSUER, AUTHOR.toString(), "Recreated", "new@example.invalid", null)
+                        .create(ISSUER, AUTHOR.toString(), "Recreated", "new@example.invalid")
                         .id());
 
     // Then

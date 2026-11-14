@@ -5,7 +5,6 @@ import com.blockout.backend.accounts.application.exception.AccountUnavailableExc
 import com.blockout.backend.accounts.application.exception.UsernameUnavailableException;
 import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.generated.mobile.model.ProfilePhotoActionEnum;
-import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -103,13 +102,11 @@ public interface AccountStore {
    * @param subject exact validated subject
    * @param username neutral candidate, trimmed before native validation
    * @param email usable required provider email
-   * @param principalCreatedAt trustworthy provider creation instant, or null
    * @return the new account with its generated business UUID
    * @throws AccountCreationConflictException for a competing principal creation
    * @throws AccountUnavailableException when the generated username is already held
    */
-  Account create(
-      String issuer, String subject, String username, String email, Instant principalCreatedAt);
+  Account create(String issuer, String subject, String username, String email);
 
   /**
    * Locks and synchronizes only the captured lifecycle. Absence never becomes creation or an update
@@ -117,8 +114,7 @@ public interface AccountStore {
    *
    * @param id captured original business UUID
    * @param email usable provider email, or null/blank when unavailable
-   * @param principalCreatedAt trustworthy provider instant, or null when unavailable
    * @return updated account, or empty if the original lifecycle was erased
    */
-  Optional<Account> synchronize(UUID id, String email, Instant principalCreatedAt);
+  Optional<Account> synchronize(UUID id, String email);
 }

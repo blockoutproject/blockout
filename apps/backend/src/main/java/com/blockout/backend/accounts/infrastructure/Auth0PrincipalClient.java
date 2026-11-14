@@ -22,7 +22,7 @@ public class Auth0PrincipalClient implements PrincipalReader {
 
   /** {@inheritDoc} */
   @Override
-  public Evidence read(String issuer, String subject) {
+  public String readEmail(String issuer, String subject) {
     try {
       GetUserResponseContent principal =
           client
@@ -30,16 +30,14 @@ public class Auth0PrincipalClient implements PrincipalReader {
               .get(
                   subject,
                   GetUserRequestParameters.builder()
-                      .fields("user_id,email,created_at")
+                      .fields("user_id,email")
                       .includeFields(true)
                       .build());
       if (principal.getUserId().filter(subject::equals).isEmpty()) {
         throw new AccountUnavailableException();
       }
       String candidate = principal.getEmail().orElse(null);
-      String email = validator.validate(new ProviderEmail(candidate)).isEmpty() ? candidate : null;
-      return new Evidence(
-          email, principal.getCreatedAt().map(java.time.OffsetDateTime::toInstant).orElse(null));
+      return validator.validate(new ProviderEmail(candidate)).isEmpty() ? candidate : null;
     } catch (ManagementException
         | OAuth2AuthorizationException
         | AccountUnavailableException failure) {

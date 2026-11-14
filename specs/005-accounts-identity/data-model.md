@@ -1,6 +1,6 @@
 # Data model: accounts and erasure
 
-**Authority**: [spec](spec.md), [plan](plan.md). These are logical persistence and lifecycle decisions; migration syntax and JPA implementation belong to future implementation under F13's baseline policy.
+**Authority**: [spec](spec.md), [plan](plan.md). These are logical persistence and lifecycle decisions; Liquibase evolution and JPA mappings follow F13's retained-data policy.
 
 ## Active account
 
@@ -10,25 +10,24 @@
 | `issuer`, `subject`            | Exact validated Auth0 principal. Unique pair for concurrent bootstrap; no mapping by email or secondary purchase reference.                                                                      |
 | `username`                     | Outer whitespace trimmed; 3–32 ASCII letters, digits, dot, hyphen or underscore. Case-insensitive unique constraint; generated neutral candidate uses the same rules.                            |
 | `email`                        | Usable provider value required at creation; not unique and not editable through profile PATCH. Missing later data does not clear it.                                                             |
-| `principalCreatedAt`           | Nullable trustworthy Auth0 creation instant, preserved across business recreation for migration. Never inferred from local creation time.                                                        |
 | Optional photo                 | PNG/JPEG bytes with media type, byte length and square dimensions at most 1024 pixels; at most 5 MiB. No original metadata. Bytes and association share the profile transaction in PostgreSQL.   |
 | Business relationships         | F06 follows, F07 destinations/inbox, F08 attribution and F12 rights reference the business UUID. Each owner defines its own model and accepted cleanup. F05 does not add those features' tables. |
 | Historical customer references | Only established references needed for continuity or scoped erasure, discovered through F14's private evidence. No blanket copied customer profile or email-derived mapping.                     |
 
 The unique username constraint handles competing accounts. Profile mutation and validation follow the [plan](plan.md#profile-photo-and-concurrent-changes).
 
-A reliable known principal age remains usable during a provider outage. A null age restricts only dependent operations. No independent entitlement state, account-session table, global revision column or provider-profile mirror is stored.
+No independent entitlement state, account-session table, global revision column or provider-profile mirror is stored.
 
 ## Deletion boundary
 
 No pending account or deletion-request entity is stored. The original account row lock coordinates short personal-write transactions: a writer commits before deletion removes its result, or finds the original account absent. Provider synchronization captured for an existing UUID cannot update a replacement UUID. External calls take place after the transaction; private failure logs are operational evidence, not an exhaustive or durable workflow record.
 
-| Transition          | Guard and effects                                                                                                                                      |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Absent → active     | Explicit establishment, validated principal and usable provider email; unique principal and username constraints settle concurrent creation.           |
-| Active → active     | Authorized login synchronization or profile save; omitted or temporarily unavailable fields preserve known data.                                       |
-| Active → absent     | Owner confirmation and atomic local removal; preserve unowned content/moderation, then attempt external cleanup without rollback.                      |
-| Absent → new active | Explicit registration with a new business UUID; no old profile, follows, grants, gifts or attribution. Actual Auth0 principal evidence determines age. |
+| Transition          | Guard and effects                                                                                                                            |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Absent → active     | Explicit establishment, validated principal and usable provider email; unique principal and username constraints settle concurrent creation. |
+| Active → active     | Authorized login synchronization or profile save; omitted or temporarily unavailable fields preserve known data.                             |
+| Active → absent     | Owner confirmation and atomic local removal; preserve unowned content/moderation, then attempt external cleanup without rollback.            |
+| Absent → new active | Explicit registration with a new business UUID; no old profile, follows, grants, gifts or attribution.                                       |
 
 A repeated DELETE for the original absent UUID causes no provider effects. Re-registration does not wait for a cleanup row or provider-completion proof. Original target references appear only in the scoped private diagnostics/support handling in the [plan](plan.md#erasure-and-manual-resolution). No SQL retry record or per-step state is added.
 

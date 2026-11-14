@@ -39,20 +39,6 @@ public class AccountAccess {
   }
 
   /**
-   * Supplies retained reliable age evidence locally; performs no provider request.
-   *
-   * @param id original account, already checked by the caller when writing
-   * @return provider creation instant, or null when evidence is unknown
-   */
-  @Transactional(readOnly = true)
-  public java.time.Instant principalCreatedAt(UUID id) {
-    return accounts
-        .findById(id)
-        .map(com.blockout.backend.accounts.domain.Account::principalCreatedAt)
-        .orElse(null);
-  }
-
-  /**
    * Supplies current permitted attribution for one contribution response.
    *
    * @param id original lifecycle

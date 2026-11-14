@@ -16,9 +16,9 @@
 
 ## Principal and business identity
 
-**Decision:** uniquely map validated Auth0 `(issuer, sub)` to a new business UUID. Preserve existing linked identities; never link or merge by email. Bootstrap is explicit, ordinary reads are local, and provider synchronization is limited to required email/age at login or targeted missing-data retrieval.
+**Decision:** uniquely map validated Auth0 `(issuer, sub)` to a new business UUID. Preserve existing linked identities; never link or merge by email. Bootstrap is explicit, ordinary reads are local, and provider synchronization is limited to required email at explicit login or establishment.
 
-**Rationale:** a stable business UUID distinguishes a new account after erasure from an old provider reference and is the V2 RevenueCat App User ID. Exact-ID Auth0 reads expose the principal's creation and identity information without a broad user search. A PostgreSQL unique constraint settles concurrent creation: one insert is attempted and a principal conflict reads the winner after rollback. A generated-name collision is an ordinary failure for a later explicit request, without an automatic candidate loop.
+**Rationale:** a stable business UUID distinguishes a new account after erasure from an old provider reference and is the V2 RevenueCat App User ID. Exact-ID Auth0 reads request only `user_id,email`, without a broad user search or provider creation-date retrieval. A PostgreSQL unique constraint settles concurrent creation: one insert is attempted and a principal conflict reads the winner after rollback. A generated-name collision is an ordinary failure for a later explicit request, without an automatic candidate loop.
 
 **Alternatives:** using email would confuse legitimate distinct principals; reusing a provider ID as the business lifecycle would make old-target cleanup unsafe. A new linking process, periodic profile synchronization and business session registry have no accepted need.
 
@@ -26,7 +26,7 @@
 
 ## Backend Management API integration
 
-**Decision:** use the official [`auth0-java` 5.4.0](https://github.com/auth0/auth0-java/tree/5.4.0) Management SDK for exact-ID user reads and its typed response models. Spring Security OAuth2 Client retains the standard client-credentials acquisition, in-memory expiry cache and renewal through the environment's native `auth0` registration. SDK models remain inside the account infrastructure adapter; account establishment receives only necessary email and creation time. Destructive cleanup retains its separate live linked-identity and connection checks; removing unused establishment evidence does not weaken that boundary.
+**Decision:** use the official [`auth0-java` 5.4.0](https://github.com/auth0/auth0-java/tree/5.4.0) Management SDK for exact-ID user reads and its typed response models. Spring Security OAuth2 Client retains the standard client-credentials acquisition, in-memory expiry cache and renewal through the environment's native `auth0` registration. SDK models remain inside the account infrastructure adapter; account establishment receives only necessary email. Destructive cleanup retains its separate live linked-identity and connection checks; removing unused establishment evidence does not weaken that boundary.
 
 **Rationale:** the official SDK owns endpoint construction and provider decoding instead of a handwritten HTTP/JSON projection. Its native `ClientOptions` header supplier accepts Spring's bearer without a second token cache. The 5.4.0 built-in `OAuthTokenSupplier` uses its own static HTTP client with a fixed 30-second call deadline; that path does not inherit the selected token transport's deadlines/redirect policy. The supported header-supplier integration preserves the already selected bounded Spring token client. Management calls use the SDK's supported native OkHttp transport with explicit deadlines, disabled connection retries and redirects; SDK retries and payload logging remain disabled. Maven needs the explicit `okhttp-jvm` compile artifact corresponding to the SDK's 5.2.1 transport dependency; this does not upgrade the workspace or replace the mobile SDK.
 
@@ -98,7 +98,7 @@ The native preparation adapter uses Expo FileSystem's `File` on the prepared out
 
 **Decision:** remove business data in one transaction, attempt each known external target once after commit and use private failure logs/native alerts for manual repair. No durable pending state, automatic recovery or recreation gate. The [plan](plan.md#erasure-and-manual-resolution) owns sequencing and target safeguards.
 
-**Rationale:** the local transaction protects Blockout data without claiming distributed rollback. The owner accepts interruption between commit and log emission and ordinary errors when re-login overlaps provider deletion. A new business UUID prevents an old local deletion from targeting its replacement. Actual Auth0 principal age avoids a separate artificial lifecycle clock. The narrowly scoped original-target logging exception makes manual repair possible without a database workflow record.
+**Rationale:** the local transaction protects Blockout data without claiming distributed rollback. The owner accepts interruption between commit and log emission and ordinary errors when re-login overlaps provider deletion. A new business UUID prevents an old local deletion from targeting its replacement. The narrowly scoped original-target logging exception makes manual repair possible without a database workflow record.
 
 **Alternatives:** a durable tombstone/outbox would improve crash recovery and block recreation, but adds state and operational handling beyond the accepted need. No provider polling, queue, retry scheduler, custom session registry or permanent profile archive is selected. A provider acknowledgment is trusted without demanding inaccessible proof of physical erasure. Rejected mechanisms are not deferred roadmap items.
 
@@ -116,4 +116,4 @@ The native preparation adapter uses Expo FileSystem's `File` on the prepared out
 
 **Rationale:** [HTTP semantics](https://www.rfc-editor.org/rfc/rfc9110.html) and [atomic PATCH semantics](https://www.rfc-editor.org/rfc/rfc5789.html) fit these observable effects. No separate photo-write routes, login/logout API, job resource or bulk endpoint has a real consumer need. A 204 confirms local resource removal after bounded external attempts; a 404 confirms original resource absence, not physical provider purge. No monitor resource is needed.
 
-**Qualification:** multipart JSON/file binding, optional-field preservation, unknown-request rejection, additional-response tolerance, nullable dates and PNG/JPEG response handling must pass the integrated Java/TypeScript chain before adoption.
+**Qualification:** multipart JSON/file binding, optional-field preservation, unknown-request rejection, additional-response tolerance and PNG/JPEG response handling must pass the integrated Java/TypeScript chain before adoption.

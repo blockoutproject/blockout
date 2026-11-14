@@ -5,14 +5,12 @@ import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.config.MappingConfiguration;
 import com.blockout.backend.generated.mobile.model.AccountPermissionsResponse;
 import com.blockout.backend.generated.mobile.model.AccountResponse;
-import com.blockout.backend.shared.api.RequiredNullableMapping;
 import java.util.Set;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.NullValueCheckStrategy;
 
 /** Common generated account representation for reads, establishment and profile changes. */
-@Mapper(config = MappingConfiguration.class, uses = RequiredNullableMapping.class)
+@Mapper(config = MappingConfiguration.class)
 public interface AccountApiMapper {
   /**
    * Maps already-loaded account data and the current in-process grant projection without I/O.
@@ -24,10 +22,6 @@ public interface AccountApiMapper {
    */
   @Mapping(target = "accountId", source = "account.id")
   @Mapping(target = "additionalProperties", ignore = true)
-  @Mapping(
-      target = "principalCreatedAt",
-      source = "account.principalCreatedAt",
-      nullValueCheckStrategy = NullValueCheckStrategy.ON_IMPLICIT_CONVERSION)
   AccountResponse toDto(Account account, boolean hasPhoto, Set<Permission> permissions);
 
   /**

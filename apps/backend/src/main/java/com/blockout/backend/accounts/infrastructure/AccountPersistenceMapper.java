@@ -4,7 +4,7 @@ import com.blockout.backend.accounts.domain.Account;
 import com.blockout.backend.config.MappingConfiguration;
 import org.mapstruct.Mapper;
 
-/** Mechanical account snapshot mapping; provider-preservation decisions stay in the domain. */
+/** Mechanical account snapshot mapping; provider email updates stay with the account adapter. */
 @Mapper(config = MappingConfiguration.class)
 interface AccountPersistenceMapper {
   /**
