@@ -14,15 +14,18 @@ import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.RecordCollectionResult;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionFamilyEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionModeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionPhaseEnum;
+import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionTargetKindEnum;
 import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
 import java.net.URI;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -44,6 +47,7 @@ class RecordCollectionResultsTest {
   private static final UUID CONTROL = UUID.fromString("00000000-0000-4000-8000-000000000202");
   private static final UUID SCOPE = UUID.fromString("00000000-0000-4000-8000-000000000203");
   private static final UUID CYCLE = UUID.fromString("00000000-0000-4000-8000-000000000204");
+  private static final UUID SEASON = UUID.fromString("00000000-0000-4000-8000-000000000205");
   private static final Instant FIRST = Instant.parse("2026-10-25T00:00:00Z");
   @Mock private CollectionStore store;
   @Mock private CollectionCycleAccess cycleAccess;
@@ -63,6 +67,7 @@ class RecordCollectionResultsTest {
   @DisplayName("Requests committed diagnostics on the first competition failure")
   void reportsFirstCompetitionFailure() {
     // Given
+    when(store.lockControl(CONTROL)).thenReturn(control(SEASON, CollectionFamilyEnum.FFVB));
     when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(2));
     when(store.target(CYCLE, SCOPE, CollectionTargetKindEnum.CALENDAR))
         .thenReturn(Optional.of(target(CollectionTargetKindEnum.CALENDAR)));
@@ -78,12 +83,17 @@ class RecordCollectionResultsTest {
     service.record(CYCLE, failure);
 
     // Then
-    ArgumentCaptor<CollectionResult> written = ArgumentCaptor.forClass(CollectionResult.class);
-    verify(store).saveResult(eq(CONTROL), written.capture());
-    verify(events)
-        .publishEvent(
-            new CollectionOperationalDiagnostics.EvidenceChanged(
-                CONTROL, SCOPE, CollectionStageEnum.CALENDAR, CollectionPhaseEnum.ACQUISITION));
+    ArgumentCaptor<CollectionOperationalDiagnostics.EvidenceChanged> diagnostic =
+        ArgumentCaptor.forClass(CollectionOperationalDiagnostics.EvidenceChanged.class);
+    verify(events).publishEvent(diagnostic.capture());
+    assertThat(diagnostic.getValue().controlId()).isEqualTo(CONTROL);
+    assertThat(diagnostic.getValue().seasonId()).isEqualTo(SEASON);
+    assertThat(diagnostic.getValue().family()).isEqualTo(CollectionFamilyEnum.FFVB);
+    assertThat(diagnostic.getValue().scopeId()).isEqualTo(SCOPE);
+    assertThat(diagnostic.getValue().stage()).isEqualTo(CollectionStageEnum.CALENDAR);
+    assertThat(diagnostic.getValue().phase()).isEqualTo(CollectionPhaseEnum.ACQUISITION);
+    assertThat(diagnostic.getValue().observedAt()).isEqualTo(FIRST);
+    assertThat(diagnostic.getValue().outcome()).isEqualTo(CollectionOutcomeEnum.FAILED);
   }
 
   @ParameterizedTest
@@ -93,6 +103,11 @@ class RecordCollectionResultsTest {
   @DisplayName("Retains useful success when a later seasonless result is partial")
   void retainsSuccessAcrossCycles(CollectionStageEnum stage) {
     // Given
+    CollectionFamilyEnum family =
+        stage == CollectionStageEnum.CLUB_SHEET
+            ? CollectionFamilyEnum.CLUB_SHEETS
+            : CollectionFamilyEnum.GEOCODING;
+    when(store.lockControl(CONTROL)).thenReturn(control(null, family));
     when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(3));
     CollectionTargetKindEnum kind = CollectionTargetKindEnum.fromValue(stage.getValue());
     when(store.target(CYCLE, SCOPE, kind)).thenReturn(Optional.of(target(kind)));
@@ -120,6 +135,7 @@ class RecordCollectionResultsTest {
   @DisplayName("Requests recovery evidence from the previous outcome without an outage clock")
   void reportsRecoveryFromPreviousOutcome() {
     // Given
+    when(store.lockControl(CONTROL)).thenReturn(control(SEASON, CollectionFamilyEnum.FFVB));
     when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(3));
     when(store.target(CYCLE, SCOPE, CollectionTargetKindEnum.CALENDAR))
         .thenReturn(Optional.of(target(CollectionTargetKindEnum.CALENDAR)));
@@ -152,10 +168,13 @@ class RecordCollectionResultsTest {
             CollectionOutcomeEnum.SUCCESS));
 
     // Then
-    verify(events)
-        .publishEvent(
-            new CollectionOperationalDiagnostics.EvidenceChanged(
-                CONTROL, SCOPE, CollectionStageEnum.CALENDAR, CollectionPhaseEnum.ACQUISITION));
+    ArgumentCaptor<CollectionOperationalDiagnostics.EvidenceChanged> diagnostic =
+        ArgumentCaptor.forClass(CollectionOperationalDiagnostics.EvidenceChanged.class);
+    verify(events).publishEvent(diagnostic.capture());
+    assertThat(diagnostic.getValue().scopeId()).isEqualTo(SCOPE);
+    assertThat(diagnostic.getValue().observedAt()).isEqualTo(FIRST.plusSeconds(1));
+    assertThat(diagnostic.getValue().outcome()).isEqualTo(CollectionOutcomeEnum.SUCCESS);
+    assertThat(diagnostic.getValue().lastSuccessAt()).isEqualTo(FIRST.plusSeconds(1));
   }
 
   @ParameterizedTest
@@ -192,6 +211,7 @@ class RecordCollectionResultsTest {
   @DisplayName("Recovers only the exact phase with a new usable observation")
   void recoversExactPhase(CollectionPhaseEnum phase) {
     // Given
+    when(store.lockControl(CONTROL)).thenReturn(control(null, CollectionFamilyEnum.GEOCODING));
     when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(3));
     when(store.target(CYCLE, SCOPE, CollectionTargetKindEnum.GEOCODING))
         .thenReturn(Optional.of(target(CollectionTargetKindEnum.GEOCODING)));
@@ -213,10 +233,13 @@ class RecordCollectionResultsTest {
     verify(store).saveResult(eq(CONTROL), written.capture());
     assertThat(written.getValue().phase()).isEqualTo(phase);
     assertThat(written.getValue().lastSuccessAt()).isEqualTo(empty.observedAt());
-    verify(events)
-        .publishEvent(
-            new CollectionOperationalDiagnostics.EvidenceChanged(
-                CONTROL, SCOPE, CollectionStageEnum.GEOCODING, phase));
+    ArgumentCaptor<CollectionOperationalDiagnostics.EvidenceChanged> diagnostic =
+        ArgumentCaptor.forClass(CollectionOperationalDiagnostics.EvidenceChanged.class);
+    verify(events).publishEvent(diagnostic.capture());
+    assertThat(diagnostic.getValue().scopeId()).isEqualTo(SCOPE);
+    assertThat(diagnostic.getValue().phase()).isEqualTo(phase);
+    assertThat(diagnostic.getValue().observedAt()).isEqualTo(empty.observedAt());
+    assertThat(diagnostic.getValue().outcome()).isEqualTo(CollectionOutcomeEnum.SUCCESS);
   }
 
   @Test
@@ -244,6 +267,7 @@ class RecordCollectionResultsTest {
   @DisplayName("Requests a classification report for accepted catalog integration")
   void reportsAcceptedCatalog(CollectionOutcomeEnum outcome) {
     // Given
+    when(store.lockControl(CONTROL)).thenReturn(control(SEASON, CollectionFamilyEnum.FFVB));
     when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(2));
     when(store.target(CYCLE, SCOPE, CollectionTargetKindEnum.DISCOVERY))
         .thenReturn(Optional.of(target(CollectionTargetKindEnum.DISCOVERY)));
@@ -254,7 +278,10 @@ class RecordCollectionResultsTest {
     service.record(CYCLE, command);
 
     // Then
-    verify(events).publishEvent(new CollectionOperationalDiagnostics.CatalogObserved(CONTROL));
+    verify(events)
+        .publishEvent(
+            new CollectionOperationalDiagnostics.CatalogObserved(
+                SEASON, CollectionProviderEnum.FFVB, FIRST, null, null));
   }
 
   @ParameterizedTest
@@ -265,6 +292,7 @@ class RecordCollectionResultsTest {
   @DisplayName("Requests no classification report for rejected catalog integration")
   void ignoresRejectedCatalog(CollectionOutcomeEnum outcome) {
     // Given
+    when(store.lockControl(CONTROL)).thenReturn(control(SEASON, CollectionFamilyEnum.FFVB));
     when(cycleAccess.lockControlPassage(CYCLE)).thenReturn(cycle(2));
     when(store.target(CYCLE, SCOPE, CollectionTargetKindEnum.DISCOVERY))
         .thenReturn(Optional.of(target(CollectionTargetKindEnum.DISCOVERY)));
@@ -277,6 +305,12 @@ class RecordCollectionResultsTest {
     // Then
     verify(events, never())
         .publishEvent(any(CollectionOperationalDiagnostics.CatalogObserved.class));
+  }
+
+  private CollectionState.Control control(UUID seasonId, CollectionFamilyEnum family) {
+    return new CollectionState.Control(
+        CONTROL, seasonId, family, 0, true, null, null, CYCLE, FIRST, null, null, Set.of(),
+        Set.of());
   }
 
   /**

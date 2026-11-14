@@ -8,8 +8,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Current observation and latest usable success for one stable scope/stage/phase. Failure alerting
- * uses the current outcome without retaining outage clocks or incident history.
+ * Current operator projection and latest usable success for one stable scope/stage/phase,
+ * independent of dated diagnostic logs.
  */
 public record CollectionResult(
     UUID scopeId,

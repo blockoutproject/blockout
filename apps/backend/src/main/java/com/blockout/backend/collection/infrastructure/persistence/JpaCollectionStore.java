@@ -401,12 +401,6 @@ class JpaCollectionStore implements CollectionStore {
 
   /** {@inheritDoc} */
   @Override
-  public long countUnlaunchedSources(UUID seasonId, CollectionProviderEnum provider) {
-    return sources.countBySeasonIdAndProviderAndLaunchedFalse(seasonId, provider);
-  }
-
-  /** {@inheritDoc} */
-  @Override
   public List<CollectionState.Source> pendingValidations() {
     return sources.pendingValidations().stream().map(mapper::toView).toList();
   }

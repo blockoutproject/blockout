@@ -83,12 +83,6 @@ public class JpaSportingStore implements SportingStore {
 
   /** {@inheritDoc} */
   @Override
-  public long countUnclassifiedPools(UUID seasonId, CollectionProviderEnum provider) {
-    return pools.countUnclassified(seasonId, provider);
-  }
-
-  /** {@inheritDoc} */
-  @Override
   public SportingViews.CollectionResourcePage collectionChildren(
       UUID seasonId,
       CollectionProviderEnum provider,
