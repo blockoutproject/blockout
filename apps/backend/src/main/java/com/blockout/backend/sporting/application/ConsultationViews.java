@@ -140,7 +140,6 @@ public final class ConsultationViews {
       UUID poolId,
       StandingsAvailabilityEnum availability,
       OffsetDateTime observedAt,
-      boolean lastAttemptFailed,
       List<String> columns,
       List<StandingRow> rows) {
     /**
@@ -149,7 +148,6 @@ public final class ConsultationViews {
      * @param poolId viewable owner identity
      * @param availability current availability of the official table
      * @param observedAt accepted table observation time, or null without a table
-     * @param lastAttemptFailed whether the latest table attempt failed
      * @param columns published column order
      * @param rows published official row order
      */

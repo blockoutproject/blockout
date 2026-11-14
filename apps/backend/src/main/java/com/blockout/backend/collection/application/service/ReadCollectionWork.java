@@ -1,7 +1,6 @@
 package com.blockout.backend.collection.application.service;
 
 import com.blockout.backend.collection.application.exception.CollectionNotFoundException;
-import com.blockout.backend.collection.application.model.CollectionAttempt;
 import com.blockout.backend.collection.application.model.CollectionState;
 import com.blockout.backend.collection.application.model.CollectionState.Candidate;
 import com.blockout.backend.collection.application.model.CollectionState.Control;
@@ -16,7 +15,6 @@ import com.blockout.backend.collection.application.model.CollectionWorkMapper;
 import com.blockout.backend.collection.application.port.CollectionStore;
 import com.blockout.backend.generated.ingestion.model.CollectionCycleStateEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
-import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
 import com.blockout.backend.sporting.application.service.ReadCollectionSeasons;
 import java.util.ArrayList;
@@ -24,7 +22,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -125,18 +122,6 @@ public class ReadCollectionWork {
             .map(source -> mapper.toCandidate(source, seasonStates.get(source.seasonId())))
             .toList();
     return new Work(controls, candidates);
-  }
-
-  /**
-   * Exposes current acquisition attribution to sporting consultation without diagnostic payloads.
-   *
-   * @param scopeId exact resource identity
-   * @param stage independently acquired fact group
-   * @return latest logical acquisition attempt; admitting work alone supplies no evidence
-   */
-  @Transactional(readOnly = true)
-  public Optional<CollectionAttempt> latestAcquisition(UUID scopeId, CollectionStageEnum stage) {
-    return store.latestAcquisition(scopeId, stage);
   }
 
   /**

@@ -97,7 +97,6 @@ async function transport(url: string, request?: RequestInit) {
     return Response.json({
       poolId: team.id,
       availability: "not-published",
-      lastAttemptFailed: false,
       columns: [],
       rows: [],
     });

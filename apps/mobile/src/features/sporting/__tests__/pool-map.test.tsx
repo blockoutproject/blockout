@@ -117,7 +117,6 @@ beforeEach(() => {
   table = {
     poolId: pool.pool.id,
     availability: "not-published",
-    lastAttemptFailed: false,
     columns: [],
     rows: [],
   };
@@ -190,7 +189,6 @@ function publishedTable(
     poolId: pool.pool.id,
     availability: "available",
     observedAt: "2026-10-20T12:00:00Z",
-    lastAttemptFailed: false,
     columns,
     rows: [
       {
@@ -662,7 +660,6 @@ it("matches optional standings by exact team UUID without borrowing a source-nam
     poolId: pool.pool.id,
     availability: "available",
     observedAt: "2026-10-20T12:00:00Z",
-    lastAttemptFailed: false,
     columns: ["Jou.", "Gag.", "Per.", "Pts"],
     rows: [
       {

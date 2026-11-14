@@ -1,11 +1,7 @@
 package com.blockout.backend.sporting.application;
 
-import com.blockout.backend.collection.application.model.CollectionAttempt;
-import com.blockout.backend.collection.application.service.ReadCollectionWork;
 import com.blockout.backend.contributions.application.ReadPublicContribution;
-import com.blockout.backend.generated.ingestion.model.CollectionOutcomeEnum;
 import com.blockout.backend.generated.ingestion.model.CollectionProviderEnum;
-import com.blockout.backend.generated.ingestion.model.CollectionStageEnum;
 import com.blockout.backend.generated.ingestion.model.StandingsPublicationStateEnum;
 import com.blockout.backend.generated.mobile.model.StandingsAvailabilityEnum;
 import com.blockout.backend.generated.mobile.model.TeamLogoSelectionEnum;
@@ -14,7 +10,6 @@ import com.blockout.backend.sporting.application.ConsultationRequest.ClubSeasonR
 import com.blockout.backend.sporting.application.ConsultationStore.MatchInput;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.MatchDetails;
-import com.blockout.backend.sporting.application.model.ObservationOrder;
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactField;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Image;
 import com.blockout.backend.sporting.application.model.SportingPresentation.Locality;
@@ -55,7 +50,6 @@ public class ReadSportingResources {
   private final ConsultationViewMapper mapper;
   private final Clock clock;
   private final ReadPublicContribution contributions;
-  private final ReadCollectionWork collection;
   private final ReadMatchDocument documents;
 
   /**
@@ -170,21 +164,12 @@ public class ReadSportingResources {
    * Reads the retained official table independently from participants and calendars.
    *
    * @param poolId exact contextual pool
-   * @return official order, absence and original table freshness with current acquisition evidence
+   * @return official order, absence and original table freshness
    * @throws SportingResourceNotFoundException when the pool is hidden or unknown
    */
   public ConsultationViews.Standings standings(UUID poolId) {
     poolSummary(poolId);
     StandingsView source = owners.publicStandings(poolId).orElse(null);
-    CollectionAttempt attempt =
-        collection.latestAcquisition(poolId, CollectionStageEnum.STANDINGS).orElse(null);
-    boolean failed =
-        attempt != null
-            && attempt.outcome() != CollectionOutcomeEnum.SUCCESS
-            && (source == null
-                || new ObservationOrder(attempt.cycleOrder(), attempt.readOrdinal())
-                        .compareTo(new ObservationOrder(source.cycleOrder(), source.readOrdinal()))
-                    > 0);
     if (source == null || !source.tableAvailable()) {
       return new ConsultationViews.Standings(
           poolId,
@@ -192,7 +177,6 @@ public class ReadSportingResources {
               ? StandingsAvailabilityEnum.NOT_PUBLISHED
               : StandingsAvailabilityEnum.UNAVAILABLE,
           null,
-          failed,
           List.of(),
           List.of());
     }
@@ -208,7 +192,6 @@ public class ReadSportingResources {
         poolId,
         StandingsAvailabilityEnum.AVAILABLE,
         TemporalMapping.toDate(source.tableObservedAt()),
-        failed,
         source.columns(),
         source.rows().stream()
             .map(row -> mapper.toView(row, row.teamId() == null ? null : teams.get(row.teamId())))

@@ -77,7 +77,6 @@ export async function consultationResponse(
     return Response.json({
       poolId: sportingId,
       availability: "not-published",
-      lastAttemptFailed: false,
       columns: [],
       rows: [],
     });

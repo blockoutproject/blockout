@@ -754,7 +754,6 @@ class CollectorSportingReadIntegrationTest {
     assertThat(read.get("observedAt").asString()).isEqualTo(FIRST.toString());
     assertThat(read.at("/rows/0/sourceName").asString()).isEqualTo("Retained");
     assertThat(read.at("/rows/0/statistics/Ratio").asString()).isEqualTo("∞");
-    assertThat(read.get("lastAttemptFailed").asBoolean()).isFalse();
   }
 
   @Test
@@ -911,7 +910,6 @@ class CollectorSportingReadIntegrationTest {
             .isEqualTo(calendar);
         JsonNode retained = read("/pools/" + POOL + "/standings");
         assertThat(retained.get("availability").asString()).isEqualTo("available");
-        assertThat(retained.get("lastAttemptFailed").asBoolean()).isTrue();
         assertThat(retained.get("observedAt")).isEqualTo(table.get("observedAt"));
         assertThat(retained.get("rows")).isEqualTo(table.get("rows"));
       }
@@ -963,7 +961,6 @@ class CollectorSportingReadIntegrationTest {
     JsonNode read = read("/pools/" + POOL + "/standings");
 
     // Then
-    assertThat(read.get("lastAttemptFailed").asBoolean()).isTrue();
     assertThat(read.get("availability").asString())
         .isEqualTo(retainedTable ? "available" : "unavailable");
     if (retainedTable) {

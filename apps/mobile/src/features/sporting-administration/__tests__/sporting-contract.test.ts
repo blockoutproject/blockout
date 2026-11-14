@@ -51,7 +51,6 @@ function standings(): PoolStandingsResponse {
     poolId,
     availability: "available",
     observedAt: "2026-10-18T18:00:00Z",
-    lastAttemptFailed: false,
     columns: [],
     rows: [],
   };
@@ -216,7 +215,7 @@ it("accepts additive sporting response fields before Query admission", async () 
 it.each([
   ["unknown enum", { availability: "future" }],
   ["invalid date", { observedAt: "2026-02-31T18:00:00Z" }],
-  ["wrong known type", { lastAttemptFailed: "false" }],
+  ["wrong known type", { rows: "rows" }],
 ])(
   "rejects a sporting %s before Query admission",
   async (_scenario, invalid) => {

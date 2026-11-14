@@ -221,7 +221,6 @@ beforeEach(async () => {
     poolId: matchDetail().match.pool.pool.id,
     availability: "available",
     observedAt: "2026-10-28T12:00:00Z",
-    lastAttemptFailed: false,
     columns: ["Points"],
     rows: [
       {

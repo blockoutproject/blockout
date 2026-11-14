@@ -176,7 +176,6 @@ async function transport(url: string, request?: RequestInit) {
     return Response.json({
       poolId: pool.id,
       availability: "not-published",
-      lastAttemptFailed: false,
       columns: [],
       rows: [],
     });

@@ -79,6 +79,8 @@ The backend supplies the mobile API. F02 owns identities, classifications, sourc
 
 Use resource reads for club detail, club teams by season, team detail, pool detail, pool standings, pool participants, filtered matches and match detail. Document and logo subresources deliver their binary content. The [contract notes](contracts/README.md) identify canonical sources and consumers; no endpoint is added merely for an individual screen.
 
+Standings project F02's accepted table directly: availability, official columns/rows and their order, partial values and observation time. A supplier acquisition failure does not change a successful read of a valid retained table. F01 retains operational diagnostics independently; the public read requires no collection-reader dependency or acquisition lookup.
+
 An ordinary request is public and must not wait for account/Pro state. Signed-in Team/Pool page composition additionally requires the applicable holder’s F06 Follow read under FR-029; this presentation prerequisite adds no private field or authentication requirement to the public endpoint. Each tab’s own read remains outside common admission. Explicit maintenance bypass uses the existing F12 header and valid authorized account; invalid credentials do not silently become public admission. Unknown/hidden resources return ordinary NotFound without revealing retained data. Known restrictions apply to reads, relationships, images and PDFs. Return `Cache-Control: no-store`; F03/F05 govern mobile memory retention rather than HTTP caching.
 
 ## Calendar selection and consistency

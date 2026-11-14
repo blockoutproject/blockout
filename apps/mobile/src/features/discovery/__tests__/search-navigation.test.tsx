@@ -197,7 +197,6 @@ function publicReads(url: string): Promise<Response> {
       Response.json({
         poolId: firstId,
         availability: "not-published",
-        lastAttemptFailed: false,
         columns: [],
         rows: [],
       }),

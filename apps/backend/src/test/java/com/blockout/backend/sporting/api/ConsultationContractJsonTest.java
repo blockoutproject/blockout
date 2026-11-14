@@ -166,7 +166,6 @@ class ConsultationContractJsonTest {
             ID,
             availability,
             availability == StandingsAvailabilityEnum.AVAILABLE ? OBSERVED : null,
-            false,
             List.of(),
             availability == StandingsAvailabilityEnum.AVAILABLE
                 ? List.of(new StandingRow("Unmatched", null, null, Map.of()))

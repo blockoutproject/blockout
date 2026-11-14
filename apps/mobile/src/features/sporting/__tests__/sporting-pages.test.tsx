@@ -231,7 +231,6 @@ function reads(url: string, request?: RequestInit): Promise<Response> {
       Response.json({
         poolId: path.split("/")[2],
         availability: "not-published",
-        lastAttemptFailed: false,
         columns: [],
         rows: [],
       }),
@@ -385,7 +384,6 @@ it.each(["team", "pool"] as const)(
         Response.json({
           poolId: sportingId,
           availability: "available",
-          lastAttemptFailed: false,
           columns: [],
           rows: [],
         }),
@@ -592,7 +590,6 @@ it("starts initial Retry progress only for its explicit gesture while another re
       Response.json({
         poolId: sportingId,
         availability: "available",
-        lastAttemptFailed: false,
         columns: [],
         rows: [],
       }),
@@ -610,7 +607,6 @@ it("keeps source-unavailable first standings inside their own pool pane", async 
           Response.json({
             poolId: sportingId,
             availability: "unavailable",
-            lastAttemptFailed: true,
             columns: [],
             rows: [],
           }),
@@ -742,7 +738,6 @@ it("admits a prefilled first table while its one scene-owned reread is pending",
   const cached = {
     poolId: sportingId,
     availability: "not-published",
-    lastAttemptFailed: false,
     columns: [],
     rows: [],
   };
