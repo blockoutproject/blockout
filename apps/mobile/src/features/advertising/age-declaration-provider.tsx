@@ -50,34 +50,34 @@ export function AgeDeclarationProvider({
     state.status === "ready" ? state.declaration : null,
     state.evaluatedAt,
   );
-  useLayoutEffect(() => {
-    privacy.setContext(() => ({
-      account,
-      pro: proOwner.getState(),
-      admission,
-      category,
-    }));
-  });
-  const nativePrivacy = useSyncExternalStore(
-    privacy.subscribe,
-    privacy.getSnapshot,
-  );
   const ready =
     enabled &&
+    !pending &&
     state.status === "ready" &&
     admission.ordinary &&
     (pro.status === "active" ||
       getAgeDeclarationStatus(state.declaration, state.evaluatedAt) ===
         "current");
   useLayoutEffect(() => {
-    privacy.suspend();
+    privacy.setContext(() => ({
+      account,
+      pro: proOwner.getState(),
+      admission: { ordinary: ready },
+      category: state.status === "ready" ? category : null,
+    }));
+  });
+  const nativePrivacy = useSyncExternalStore(
+    privacy.subscribe,
+    privacy.getSnapshot,
+  );
+  useLayoutEffect(() => {
+    privacy.invalidateAd();
   }, [
     privacy,
     account.subject,
     account.accountId,
     account.status,
     pro.status,
-    category,
     ready,
   ]);
   useEffect(() => {
@@ -96,7 +96,7 @@ export function AgeDeclarationProvider({
     pending,
     state,
   ]);
-  useEffect(() => () => privacy.suspend(), [privacy]);
+  useEffect(() => () => privacy.invalidateAd(), [privacy]);
 
   useEffect(() => {
     mounted.current = true;

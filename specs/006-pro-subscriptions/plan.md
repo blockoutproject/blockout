@@ -81,7 +81,7 @@ Consume `CustomerInfo.entitlements.active["Blockout Pro"]` and the SDK's known s
 
 ## Entitlement and operation presentation
 
-The [data model](data-model.md) separates current entitlement from native operation facts. SDK-active rights suppress Blockout ads and select existing restrained Pro chrome; inactive rights delegate advertising eligibility to F11. No usable current state suppresses ads and the automatic Pro banner without inventing inactive rights or an app verification destination. Never derive inactivity from a transport failure.
+The [data model](data-model.md) separates current entitlement from native operation facts. SDK-active rights suppress Blockout ads and select existing restrained Pro chrome; inactive rights delegate advertising eligibility to F11. No usable current state suppresses ads and the automatic Pro banner without inventing inactive rights or an app verification destination. Never derive inactivity from a transport failure. F11 consumes current rights to retire prepared ads and recalculate loading/presentation eligibility; a Pro-state update does not restart unchanged [installation age/consent preparation](../004-advertising-privacy-legal/plan.md#runtime-composition). F09 owns no advertising consent persistence or replacement lifecycle.
 
 Expose current membership to [F13 shared UI](../003-shared-quality/plan.md#tokens-and-appearance) through the existing narrow boundary, with no entitlement Query, second cache or custom expiry clock. Preserve the SDK listener, foreground reads and current supplied CustomerInfo acceptance under the sequential identity owner. An obsolete principal, business UUID or private lifetime cannot publish current rights.
 

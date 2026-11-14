@@ -259,7 +259,6 @@ it("rechecks authorization before show and discards incompatible session and mod
     ...input,
     account: { ...input.account, ...session },
     choices: {
-      session: { ...session },
       canRequestAds: true,
       authorizedMode: "personalized",
     },
@@ -408,7 +407,6 @@ it.each(["switch", "first-account"])(
       account: { ...input.account, ...session },
       choices: {
         ...input.choices,
-        session: { ...session },
         canRequestAds: true,
         authorizedMode: "limited" as const,
       },
@@ -429,10 +427,6 @@ it.each(["switch", "first-account"])(
       accountId: "00000000-0000-4000-8000-000000000002",
     };
     current = { ...current, account: { ...current.account, ...session } };
-    current = {
-      ...current,
-      choices: { ...current.choices, session: { ...session } },
-    };
     ad.emit(AdEventType.OPENED);
     ad.emit(AdEventType.CLOSED);
     // Then

@@ -201,7 +201,8 @@ beforeEach(async () => {
     .mockResolvedValue({ current: null, all: { default: defaultOffering } });
   mockCreateAd.mockReset().mockImplementation(controlledInterstitial);
   jest.mocked(InterstitialAd.createForAdRequest).mockClear();
-  nativeAdvertising.AdsConsent.gatherConsent.mockClear();
+  nativeAdvertising.AdsConsent.requestInfoUpdate.mockClear();
+  nativeAdvertising.AdsConsent.loadAndShowConsentFormIfRequired.mockClear();
   jest.mocked(requestTrackingPermissionsAsync).mockClear();
   mockFetch.mockReset().mockImplementation(async (url) => {
     const parsed = new URL(String(url));
@@ -631,7 +632,9 @@ it.each(["APP_STORE", "PROMOTIONAL"] as const)(
       screen.getByRole("button", { name: "Supprimer mon compte" }),
     ).toBeEnabled();
     expect(mockCreateAd).not.toHaveBeenCalled();
-    expect(nativeAdvertising.AdsConsent.gatherConsent).not.toHaveBeenCalled();
+    expect(
+      nativeAdvertising.AdsConsent.loadAndShowConsentFormIfRequired,
+    ).not.toHaveBeenCalled();
     expect(requestTrackingPermissionsAsync).not.toHaveBeenCalled();
     expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
     expect(screen.queryByRole("adjustable")).toBeNull();
@@ -771,7 +774,7 @@ it("uses the SDK entitlement listener after the native purchase view is removed"
 it("keeps inactive sporting access public when native consent cannot authorize advertising", async () => {
   // Given
   jest
-    .spyOn(nativeAdvertising.AdsConsent, "gatherConsent")
+    .spyOn(nativeAdvertising.AdsConsent, "requestInfoUpdate")
     .mockRejectedValue(new Error("Native consent unavailable"));
   await openInstallation();
   await waitFor(() => expect(owners.pro.state.status).toBe("inactive"));
@@ -780,7 +783,9 @@ it("keeps inactive sporting access public when native consent cannot authorize a
   await consultPublicSport();
 
   // Then
-  expect(nativeAdvertising.AdsConsent.gatherConsent).toHaveBeenCalled();
+  expect(nativeAdvertising.AdsConsent.requestInfoUpdate).toHaveBeenCalledTimes(
+    1,
+  );
   expect(mockCreateAd).not.toHaveBeenCalled();
   expect(requestTrackingPermissionsAsync).not.toHaveBeenCalled();
 });

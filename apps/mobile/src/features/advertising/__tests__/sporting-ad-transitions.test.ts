@@ -134,7 +134,6 @@ it.each(["active", "unknown"])(
       ...input,
       account: { ...input.account, ...session, status: "authenticated" },
       choices: {
-        session: { ...session },
         canRequestAds: true,
         authorizedMode: "limited",
       },
@@ -291,7 +290,6 @@ it("abandons an obsolete asynchronous opening without blocking or clearing the n
     ...input,
     account: { ...input.account, ...session },
     choices: {
-      session: { ...session },
       canRequestAds: true,
       authorizedMode: "limited",
     },

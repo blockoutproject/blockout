@@ -170,7 +170,8 @@ beforeEach(async () => {
     .mockResolvedValue({ current: null, all: { default: defaultOffering } });
   mockMobileAds.initialize.mockClear();
   mockMobileAds.setRequestConfiguration.mockClear();
-  nativeAdvertising.AdsConsent.gatherConsent.mockClear();
+  nativeAdvertising.AdsConsent.requestInfoUpdate.mockClear();
+  nativeAdvertising.AdsConsent.loadAndShowConsentFormIfRequired.mockClear();
   mockFetch.mockReset().mockImplementation(async (url, options) => {
     if (String(url).endsWith("/application-access")) {
       return Response.json(applicationAccessResponse());
@@ -507,7 +508,10 @@ it("requires the actual age declaration after the skipped journey enters guest h
   expect(screen.queryByRole("button", { name: "Passer" })).toBeNull();
   expect(await readDiscoveryCompletion()).toBe(true);
   expect(await readAgeDeclaration()).toBeNull();
-  expect(nativeAdvertising.AdsConsent.gatherConsent).not.toHaveBeenCalled();
+  expect(nativeAdvertising.AdsConsent.requestInfoUpdate).not.toHaveBeenCalled();
+  expect(
+    nativeAdvertising.AdsConsent.loadAndShowConsentFormIfRequired,
+  ).not.toHaveBeenCalled();
   expect(mockMobileAds.initialize).not.toHaveBeenCalled();
 });
 

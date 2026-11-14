@@ -1,14 +1,12 @@
-import type { AccountSession, SessionSnapshot } from "@/features/accounts";
-import type { useAccessAdmission } from "@/features/access/queries/use-access-admission";
+import type { AccountSession } from "@/features/accounts";
 import type { ProState } from "@/features/pro";
 
 /**
- * Transient result of the native privacy owner for a captured F05 context.
+ * Transient result of the installation's native privacy owner.
  * The owner establishes applicable treatment, consent and permissions before supplying a mode.
  * Native persistence stays with the SDK; these inputs contain no copied consent strings or age.
  */
 export interface AdvertisingChoices {
-  readonly session: SessionSnapshot;
   readonly canRequestAds: boolean;
   readonly authorizedMode: "personalized" | "contextual" | "limited" | null;
 }
@@ -17,7 +15,7 @@ export interface AdvertisingChoices {
 export interface AdvertisingEligibilityInput {
   readonly account: Pick<AccountSession, "status" | "subject" | "accountId">;
   readonly pro: ProState;
-  readonly admission: Pick<ReturnType<typeof useAccessAdmission>, "ordinary">;
+  readonly admission: { readonly ordinary: boolean };
   readonly choices: AdvertisingChoices | null;
 }
 
@@ -33,18 +31,14 @@ export interface AdvertisingEligibility {
  * independent. Loading and presentation also require current native choices and F12 admission.
  */
 export function getAdvertisingEligibility({
-  account,
   pro,
   admission,
   choices,
 }: AdvertisingEligibilityInput): AdvertisingEligibility {
-  const current = account;
   const canServeAds =
     admission.ordinary &&
     (pro.status === "guest" || pro.status === "inactive") &&
     choices !== null &&
-    choices.session.subject === current.subject &&
-    choices.session.accountId === current.accountId &&
     choices.canRequestAds &&
     choices.authorizedMode !== null;
   return { canServeAds };

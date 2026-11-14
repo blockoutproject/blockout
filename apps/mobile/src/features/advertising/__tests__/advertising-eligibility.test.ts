@@ -61,7 +61,6 @@ it("lets an admitted guest prepare choices and serve ads without any account ent
     pro: getProState(account, null),
     admission: { ordinary: true },
     choices: {
-      session: { ...session },
       canRequestAds: true,
       authorizedMode: "limited",
     },
@@ -92,7 +91,6 @@ it.each([
       pro: getProState(account, nativePro),
       admission: { ordinary: true },
       choices: {
-        session: { ...session },
         canRequestAds: true,
         authorizedMode: "personalized",
       },
@@ -126,7 +124,6 @@ it.each(["absent", "pending", "failed", "missing-info"] as const)(
       pro: getProState(account, nativePro),
       admission: { ordinary: true },
       choices: {
-        session: { ...session },
         canRequestAds: true,
         authorizedMode: "contextual",
       },
@@ -155,7 +152,6 @@ it.each([
       pro: getProState(account, nativeState({ ...session })),
       admission: { ordinary: true },
       choices: {
-        session: { ...session },
         canRequestAds: true,
         authorizedMode: "limited",
       },
@@ -175,7 +171,6 @@ it.each(["personalized", "contextual", "limited"] as const)(
       pro: getProState(account, nativePro),
       admission: { ordinary: true },
       choices: {
-        session: { ...session },
         canRequestAds: true,
         authorizedMode,
       },
@@ -223,7 +218,7 @@ describe.each(["guest", "inactive"] as const)(
         account,
         pro: getProState(account, nativePro),
         admission,
-        choices: choices ? { ...choices, session: { ...session } } : null,
+        choices,
       });
       // Then
       expect(eligibility).toEqual({
@@ -248,7 +243,6 @@ it.each(["active", "inactive"] as const)(
       pro: getProState(account, previous),
       admission: { ordinary: true },
       choices: {
-        session: { ...session },
         canRequestAds: true,
         authorizedMode: "limited",
       },
@@ -260,10 +254,9 @@ it.each(["active", "inactive"] as const)(
   },
 );
 
-it("rejects obsolete native-choice preparation after a direct account switch even with current inactive rights", () => {
+it("reuses installation choices after an account switch with current inactive rights", () => {
   // Given
   const choices = {
-    session: { ...session },
     canRequestAds: true,
     authorizedMode: "limited" as const,
   };
@@ -280,15 +273,14 @@ it("rejects obsolete native-choice preparation after a direct account switch eve
 
   // Then
   expect(eligibility).toEqual({
-    canServeAds: false,
+    canServeAds: true,
   });
 });
-it("requires current choices when a guest becomes an established account during native account establishment", () => {
-  // Given: business account establishment changes the privacy input without a client epoch.
+it("reuses installation choices when a guest becomes an account with current inactive rights", () => {
+  // Given: installation choices are independent of business-account establishment.
   session = { subject: null, accountId: null };
   account = { ...account, ...session };
   const choices = {
-    session: { ...session },
     canRequestAds: true,
     authorizedMode: "limited" as const,
   };
@@ -303,6 +295,6 @@ it("requires current choices when a guest becomes an established account during 
   });
   // Then
   expect(eligibility).toEqual({
-    canServeAds: false,
+    canServeAds: true,
   });
 });

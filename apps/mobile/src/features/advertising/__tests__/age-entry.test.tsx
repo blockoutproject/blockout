@@ -1,5 +1,6 @@
 import { accountResponse } from "@/features/accounts/test-support/account-response";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AdsConsent } from "react-native-google-mobile-ads";
 import {
   act,
   cleanup,
@@ -518,13 +519,20 @@ it("avoids prompting known active Pro without transferring that exemption to a g
     await screen.findByRole("button", { name: "Continuer" }),
   ).toBeDisabled();
 });
-it("keeps one installation declaration through account replacement, local logout and tree recreation", async () => {
+it("keeps installation consent through account replacement and logout, refreshing only on a new launch", async () => {
   // Given
   await completeDiscovery();
   const previous = await submitAgeDeclaration(16);
+  const update = jest.spyOn(AdsConsent, "requestInfoUpdate");
+  update.mockClear();
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   const view = await openEntry("/session");
   await screen.findByText("Session: authenticated");
+  await waitFor(() =>
+    expect(installationAge.nativePrivacy.pending).toBe(false),
+  );
+  expect(update).toHaveBeenCalledTimes(1);
+
   // When
   await act(async () => {
     mockAccountId = "de5a2574-561b-48f5-9d2a-b96e55109b07";
@@ -563,12 +571,20 @@ it("keeps one installation declaration through account replacement, local logout
   await act(() => router.replace("/session"));
   await screen.findByText("Session: authenticated");
   await act(async () => account.clearCredentials());
+  // Then: private subtree replacements retain the installation SDK preparation.
+  await waitFor(() =>
+    expect(installationAge.nativePrivacy.pending).toBe(false),
+  );
+  expect(update).toHaveBeenCalledTimes(1);
+
+  // When: a real root teardown starts a new applicable launch.
   await view.unmount();
   await openEntry("/session");
   // Then
   expect(await screen.findByText("Category: 16–17")).toBeOnTheScreen();
   expect(await readAgeDeclaration()).toEqual(previous);
   expect(await readDiscoveryCompletion()).toBe(true);
+  await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
 });
 it("retains the unconfirmed choice across a live reduced-motion change", async () => {
   // Given
