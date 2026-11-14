@@ -135,7 +135,7 @@ function ClubPage({ clubId }: Readonly<ClubScreenProps>) {
         />
       }
     >
-      <PageContent>
+      <PageContent style={styles.header}>
         <Surface>
           <ResourceText>Coordonnées</ResourceText>
           <ContactLink
