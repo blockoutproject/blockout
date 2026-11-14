@@ -238,6 +238,34 @@ it("persists one submitted age while the rendered form is busy", async () => {
   expect(screen.getByText("Category: 16–17")).toBeOnTheScreen();
   expect(write).toHaveBeenCalledTimes(1);
 });
+it("prepares a same-category age correction after immediately acknowledged storage", async () => {
+  // Given
+  await completeDiscovery();
+  await submitAgeDeclaration(18);
+  const update = jest.spyOn(AdsConsent, "requestInfoUpdate");
+  update.mockClear();
+  await openEntry("/session");
+  await screen.findByText("Category: adult");
+  await waitFor(() => {
+    expect(installationAge.nativePrivacy.pending).toBe(false);
+    expect(installationAge.nativePrivacy.choices).not.toBeNull();
+  });
+  expect(update).toHaveBeenCalledTimes(1);
+
+  // When
+  await act(async () => {
+    await installationAge.confirm(20);
+  });
+
+  // Then
+  await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
+  await waitFor(() => {
+    expect(installationAge.nativePrivacy.pending).toBe(false);
+    expect(installationAge.nativePrivacy.choices).not.toBeNull();
+  });
+  expect(screen.getByText("Category: adult")).toBeOnTheScreen();
+});
+
 it("keeps the mounted guest age form busy through guest departure and its pending installation write", async () => {
   // Given
   await completeDiscovery();
