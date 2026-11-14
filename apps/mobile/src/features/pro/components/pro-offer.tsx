@@ -1,11 +1,11 @@
-import { useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { BrandMark } from "@/shared/components/brand-mark";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { membershipColors, tokens } from "@/shared/theme/tokens";
-import { canPurchasePro } from "../pro-offering";
+import { canShowProOffer } from "../pro-offering";
 import { usePro } from "../pro-provider";
+import { useOpenProPaywall } from "../use-open-pro-paywall";
 
 /**
  * Existing Pro offer pattern 5116:12765, composed only with visible bottom navigation.
@@ -14,16 +14,16 @@ import { usePro } from "../pro-provider";
 export function ProOffer() {
   const { state } = usePro();
   const { colors, scheme } = useTheme();
-  const router = useRouter();
+  const open = useOpenProPaywall();
   const premium = membershipColors.pro[scheme];
-  if (!canPurchasePro(state)) {
+  if (!canShowProOffer(state)) {
     return null;
   }
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel="Blockout Pro, sans publicité"
-      onPress={() => router.push("/pro")}
+      onPress={() => void open()}
       style={({ pressed }) => [
         styles.offer,
         {

@@ -11,31 +11,27 @@ import {
 } from "@/features/accounts/test-support/native-auth0";
 import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
-import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
 import { ProProvider, usePro, type ProContext } from "../pro-provider";
-import { ProVerification } from "../components/pro-verification";
 import { customerInfo } from "./customer-info";
 import { mockPurchases } from "./native-purchases";
 
 /** Ordinary real-provider descendant; captured APIs expose actions without mocking their behavior. */
-function Probe({ capture, onSupport }: Readonly<ProHarnessProps>) {
+function Probe({ capture }: Readonly<ProHarnessProps>) {
   useQueryClient().setQueryDefaults([], { retry: false, gcTime: Infinity });
   const account = useAccountSession();
   const pro = usePro();
   capture(account, pro);
   return (
-    <ActionFeedbackProvider scopeKey={account.subject ?? "guest"}>
+    <>
       <Text>Public sport</Text>
       <Text>Pro: {pro.state.status}</Text>
-      <ProVerification onSupport={onSupport} />
-    </ActionFeedbackProvider>
+    </>
   );
 }
 
-/** Captures current public APIs; the support destination remains a navigation double. */
+/** Captures the real current account and narrow Pro consumption APIs. */
 export interface ProHarnessProps {
   capture(account: AccountSession, pro: ProContext): void;
-  onSupport(): void;
 }
 
 /** Real F05, F09 and F13 providers; suites explicitly install native I/O mocks. */

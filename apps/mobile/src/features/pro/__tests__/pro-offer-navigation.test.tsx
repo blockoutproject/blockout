@@ -18,6 +18,8 @@ import SharedTabLayout, {
 import ProfileLayout, {
   unstable_settings as profileSettings,
 } from "@/app/(ordinary)/(tabs)/(profile)/profile/_layout";
+import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
+import { defaultOffering } from "../test-support/offering";
 import { sheetScreenOptions } from "@/shared/components/sheet";
 import {
   AccountSessionProvider,
@@ -49,7 +51,9 @@ jest.mock("expo-constants", () => ({
   __esModule: true,
   default: {
     expoConfig: {
-      extra: { revenueCat: { iosApiKey: "test_public" } },
+      extra: {
+        revenueCat: { iosApiKey: "test_public", offeringIdentifier: "default" },
+      },
     },
   },
 }));
@@ -57,6 +61,13 @@ jest.mock("react-native-purchases", () => ({
   __esModule: true,
   default: jest.requireActual("../test-support/native-purchases").mockPurchases,
 }));
+jest.mock("react-native-purchases-ui", () => {
+  const { Text } = jest.requireActual("react-native");
+  return {
+    __esModule: true,
+    default: { Paywall: () => <Text>Native paywall double</Text> },
+  };
+});
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
@@ -85,7 +96,9 @@ beforeEach(() => {
     proSessionModule.createProSession(),
   );
   prepareProNativeIO();
-  mockPurchases.getOfferings.mockReset();
+  mockPurchases.getOfferings
+    .mockReset()
+    .mockResolvedValue({ current: null, all: { default: defaultOffering } });
   client = createQueryClient();
 });
 
@@ -103,7 +116,9 @@ function JourneyProviders({ children }: Readonly<PropsWithChildren>) {
       <ThemeProvider>
         <AccountSessionProvider>
           <ApplicationAccessProvider>
-            <ProProvider>{children}</ProProvider>
+            <ActionFeedbackProvider scopeKey="test">
+              <ProProvider>{children}</ProProvider>
+            </ActionFeedbackProvider>
           </ApplicationAccessProvider>
         </AccountSessionProvider>
       </ThemeProvider>
@@ -124,7 +139,6 @@ function JourneyLayout() {
     <Stack screenOptions={{ headerShown: false, animation: "none" }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="invitation" options={sheetScreenOptions} />
-      <Stack.Screen name="pro" options={{ presentation: "fullScreenModal" }} />
     </Stack>
   );
 }
@@ -181,7 +195,6 @@ async function openJourney(initialUrl = "/search") {
       "(ordinary)/(tabs)/(discovery,home,notifications,profile)/matches/[matchId]":
         () => <Text>Match destination</Text>,
       "(ordinary)/invitation": () => <Text>Invitation destination</Text>,
-      "(ordinary)/pro": () => <Text>Pro destination</Text>,
     },
     { initialUrl, wrapper: JourneyProviders },
   );
@@ -364,7 +377,7 @@ it.each(["edit", "erase"])(
   },
 );
 
-it("opens the existing Pro destination only after pressing the offer", async () => {
+it("opens the native paywall from the banner without changing the originating tab", async () => {
   // Given
   const user = userEvent.setup();
   await openJourney();
@@ -375,13 +388,13 @@ it("opens the existing Pro destination only after pressing the offer", async () 
   await user.press(offer);
 
   // Then
-  expect(screen).toHavePathname("/pro");
-  expect(screen.getByText("Pro destination")).toBeVisible();
-  expect(screen.queryByRole("button", { name: offerName })).toBeNull();
+  expect(await screen.findByText("Native paywall double")).toBeOnTheScreen();
+  expect(screen).toHavePathname("/search");
+  expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(1);
 });
 
 it.each(["active", "guest", "unavailable"])(
-  "does not encourage purchase for %s rights",
+  "does not show the Pro banner for %s rights",
   async (state) => {
     // Given: native identity/SDK I/O supplies this actual provider state.
     if (state === "guest") {
@@ -445,7 +458,7 @@ it("removes the free-account offer when SDK rights become active and on local si
   );
 
   // When
-  await act(() => pro.refresh());
+  await act(() => proSessionModule.proSession.refresh(account));
 
   // Then
   expect(screen.queryByRole("button", { name: offerName })).toBeNull();
@@ -457,7 +470,7 @@ it("removes the free-account offer when SDK rights become active and on local si
     verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
   });
   mockPurchases.getCustomerInfo.mockResolvedValue(inactive);
-  await act(() => pro.refresh());
+  await act(() => proSessionModule.proSession.refresh(account));
   await screen.findByRole("button", { name: offerName });
   await act(() => account.clearCredentials());
 
@@ -472,14 +485,17 @@ it("does not encourage a second purchase while payment is pending or paid but un
   await screen.findByRole("button", { name: offerName });
 
   // When
-  await act(() => pro.completeOperation("pending"));
+  await act(() =>
+    proSessionModule.proSession.completeOperation(account, "pending"),
+  );
 
   // Then
   expect(screen.queryByRole("button", { name: offerName })).toBeNull();
 
   // When
   await act(() =>
-    pro.completeOperation(
+    proSessionModule.proSession.completeOperation(
+      account,
       "purchased",
       customerInfo({
         active: {},

@@ -39,7 +39,7 @@ import { usePro } from "../index";
 import * as proSessionModule from "../pro-session";
 import { customerInfo, entitlement } from "../test-support/customer-info";
 import { mockPurchases } from "../test-support/native-purchases";
-import { v2Offering } from "../test-support/offering";
+import { defaultOffering } from "../test-support/offering";
 
 jest.mock("@sentry/react-native", () => ({
   init: jest.fn(),
@@ -61,7 +61,10 @@ jest.mock("expo-constants", () => {
         ...actual.default.expoConfig,
         extra: {
           ...actual.default.expoConfig?.extra,
-          revenueCat: { iosApiKey: "test_public", offeringIdentifier: "v2" },
+          revenueCat: {
+            iosApiKey: "test_public",
+            offeringIdentifier: "default",
+          },
           advertising: {
             iosInterstitialUnitId: "synthetic-unit",
             androidInterstitialUnitId: "synthetic-unit",
@@ -97,7 +100,6 @@ jest.mock("react-native-purchases-ui", () => {
         mockPaywall = props;
         return <Text>Native store offer</Text>;
       },
-      CustomerCenterView: () => <Text>Native purchase management</Text>,
     },
   };
 });
@@ -196,7 +198,7 @@ beforeEach(async () => {
   mockPurchases.restorePurchases.mockReset().mockResolvedValue(inactive);
   mockPurchases.getOfferings
     .mockReset()
-    .mockResolvedValue({ current: null, all: { v2: v2Offering } });
+    .mockResolvedValue({ current: null, all: { default: defaultOffering } });
   mockCreateAd.mockReset().mockImplementation(controlledInterstitial);
   jest.mocked(InterstitialAd.createForAdRequest).mockClear();
   nativeAdvertising.AdsConsent.gatherConsent.mockClear();
@@ -638,10 +640,7 @@ it.each(["APP_STORE", "PROMOTIONAL"] as const)(
     await userEvent.press(screen.getByRole("button", { name: "Blockout Pro" }));
 
     // Then
-    expect(
-      await screen.findByText("Native purchase management"),
-    ).toBeOnTheScreen();
-    expect(screen.queryByText("Native store offer")).toBeNull();
+    expect(await screen.findByText("Native store offer")).toBeOnTheScreen();
   },
 );
 
@@ -709,7 +708,7 @@ it.each(["inactive", "active"] as const)(
   },
 );
 
-it("keeps unknown signed-in rights out of advertising and repurchase in the real Pro destination", async () => {
+it("keeps unknown signed-in rights out of advertising while explicit Pro opens its native paywall", async () => {
   // Given
   mockPurchases.getCustomerInfo.mockRejectedValue(
     new Error("No current native state"),
@@ -723,15 +722,8 @@ it("keeps unknown signed-in rights out of advertising and repurchase in the real
   await userEvent.press(screen.getByRole("button", { name: "Blockout Pro" }));
 
   // Then
-  expect(
-    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
-  ).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Réessayer" })).toBeEnabled();
-  expect(
-    screen.getByRole("button", { name: "Contacter l’assistance" }),
-  ).toBeEnabled();
-  expect(screen.queryByText("Native store offer")).toBeNull();
-  expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
+  expect(await screen.findByText("Native store offer")).toBeOnTheScreen();
+  expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(1);
   expect(mockCreateAd).not.toHaveBeenCalled();
 });
 
@@ -743,14 +735,6 @@ it("uses the SDK entitlement listener after the native purchase view is removed"
   await screen.findByText("Original");
   await userEvent.press(screen.getByRole("button", { name: "Blockout Pro" }));
   await screen.findByText("Native store offer");
-  const resume = jest.fn();
-  await act(() =>
-    mockPaywall.onPurchasePackageInitiated?.({
-      packageBeingPurchased: v2Offering.availablePackages[0],
-      resume,
-    }),
-  );
-  expect(resume).toHaveBeenCalledWith(true);
 
   // When
   await act(() => mockPaywall.onDismiss?.());

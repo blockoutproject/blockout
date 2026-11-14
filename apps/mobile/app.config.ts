@@ -200,8 +200,7 @@ const config: ExpoConfig = {
     revenueCat: {
       iosApiKey: testStoreApiKey || iosApiKey,
       androidApiKey: testStoreApiKey || androidApiKey,
-      offeringIdentifier: process.env.REVENUECAT_V2_OFFERING_ID,
-      supportActionIdentifier: process.env.REVENUECAT_SUPPORT_ACTION_ID,
+      offeringIdentifier: process.env.REVENUECAT_OFFERING_ID,
     },
   },
 };

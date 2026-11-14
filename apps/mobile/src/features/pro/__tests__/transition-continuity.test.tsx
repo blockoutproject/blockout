@@ -32,7 +32,7 @@ import {
   entitlement,
 } from "../../pro/test-support/customer-info";
 import { mockPurchases } from "../../pro/test-support/native-purchases";
-import { v2Offering } from "../../pro/test-support/offering";
+import { defaultOffering } from "../../pro/test-support/offering";
 import { completeDiscovery } from "@/features/onboarding/discovery-state";
 
 jest.mock("@sentry/react-native", () => ({
@@ -55,7 +55,10 @@ jest.mock("expo-constants", () => {
         ...actual.default.expoConfig,
         extra: {
           ...actual.default.expoConfig?.extra,
-          revenueCat: { iosApiKey: "test_public", offeringIdentifier: "v2" },
+          revenueCat: {
+            iosApiKey: "test_public",
+            offeringIdentifier: "default",
+          },
           advertising: {
             iosInterstitialUnitId: "synthetic-unit",
             androidInterstitialUnitId: "synthetic-unit",
@@ -90,7 +93,6 @@ jest.mock("react-native-purchases-ui", () => {
         mockPaywall = props;
         return <Text>Native store offer</Text>;
       },
-      CustomerCenterView: () => <Text>Native purchase management</Text>,
     },
   };
 });
@@ -200,7 +202,7 @@ beforeEach(async () => {
   mockPurchases.restorePurchases.mockReset().mockResolvedValue(inactive);
   mockPurchases.getOfferings
     .mockReset()
-    .mockResolvedValue({ current: null, all: { v2: v2Offering } });
+    .mockResolvedValue({ current: null, all: { default: defaultOffering } });
   mockCreateAd.mockReset().mockImplementation(controlledInterstitial);
   mockMobileAds.initialize.mockClear();
   mockMobileAds.setRequestConfiguration.mockClear();
@@ -457,22 +459,14 @@ it("keeps missing-email establishment unusable until an explicit account retry w
   );
 });
 
-it("keeps an outage unknown and offers explicit store restoration and actual cross-store assistance", async () => {
+it("keeps an outage unknown while the explicit paywall and independent private assistance remain available", async () => {
   // Given
   prepareLogin("apple|retained");
   mockPurchases.getCustomerInfo.mockRejectedValue(
-    new Error("Native verification unavailable"),
+    new Error("Native state unavailable"),
   );
   const user = userEvent.setup();
   await openInstallation("/sign-in");
-  await waitFor(() => expect(mockCreateAd).toHaveBeenCalled());
-  const guestRequests = mockCreateAd.mock.calls.length;
-  const guestAds = mockCreateAd.mock.results.flatMap((result) =>
-    result.type === "return" ? [result.value] : [],
-  );
-  guestAds.forEach((ad) => expect(ad.load).toHaveBeenCalledTimes(1));
-
-  // When
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
   await screen.findByText("Fresh_profile");
   await waitFor(() =>
@@ -481,40 +475,20 @@ it("keeps an outage unknown and offers explicit store restoration and actual cro
       reason: "customer-info",
     }),
   );
-
-  // Then
-  expect(mockCreateAd).toHaveBeenCalledTimes(guestRequests);
-  guestAds.forEach((ad) => {
-    expect(ad.load).toHaveBeenCalledTimes(1);
-    expect(ad.show).not.toHaveBeenCalled();
-  });
+  const adRequests = mockCreateAd.mock.calls.length;
 
   // When
   await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
 
   // Then
-  expect(
-    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.queryByText(/Compte gratuit|expiré|Native store offer/),
-  ).toBeNull();
-  expect(
-    screen.getByRole("button", { name: "Restaurer mes achats" }),
-  ).toBeEnabled();
-  expect(screen.getByText(/achats du store.*reçu entier/)).toBeOnTheScreen();
-  expect(
-    screen.getByText(/autre boutique peut nécessiter l’assistance/),
-  ).toBeOnTheScreen();
+  expect(await screen.findByText("Native store offer")).toBeOnTheScreen();
+  expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(1);
   expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
-  expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
-  expect(mockCreateAd).toHaveBeenCalledTimes(guestRequests);
-  guestAds.forEach((ad) => expect(ad.load).toHaveBeenCalledTimes(1));
+  expect(mockCreateAd).toHaveBeenCalledTimes(adRequests);
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Contacter l’assistance" }),
-  );
+  await act(() => mockPaywall.onDismiss?.());
+  await user.press(screen.getByRole("button", { name: "Besoin d’aide ?" }));
 
   // Then
   expect(await screen.findByLabelText("Titre")).toBeOnTheScreen();
@@ -522,9 +496,6 @@ it("keeps an outage unknown and offers explicit store restoration and actual cro
   expect(screen.getByLabelText("E-mail de réponse")).toHaveDisplayValue(
     "shared@example.invalid",
   );
-  expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
-  expect(mockCreateAd).toHaveBeenCalledTimes(guestRequests);
-  guestAds.forEach((ad) => expect(ad.load).toHaveBeenCalledTimes(1));
 });
 
 it.each(["APP_STORE", "PLAY_STORE"] as const)(
@@ -567,7 +538,6 @@ it.each(["APP_STORE", "PLAY_STORE"] as const)(
       created: false,
     });
     mockPurchases.getCustomerInfo.mockResolvedValue(inactive);
-    mockPurchases.getOfferings.mockResolvedValue({ current: null, all: {} });
     await act(() => router.push("/sign-in"));
     await user.press(
       await screen.findByRole("button", { name: "Se connecter" }),
@@ -588,22 +558,9 @@ it.each(["APP_STORE", "PLAY_STORE"] as const)(
 
     // When
     await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-    await screen.findByRole("header", { name: "Aucune offre Pro disponible" });
-    const result = Promise.withResolvers<CustomerInfo>();
-    mockPurchases.restorePurchases.mockReturnValueOnce(result.promise);
-    await user.press(
-      screen.getByRole("button", { name: "Restaurer mes achats" }),
-    );
-    expect(
-      await screen.findByRole("button", {
-        name: "Restaurer mes achats",
-        busy: true,
-      }),
-    ).toBeOnTheScreen();
-    expect(mockPurchases.restorePurchases).toHaveBeenCalledTimes(1);
+    await screen.findByText("Native store offer");
     const paid = rights(store);
-    mockPurchases.getCustomerInfo.mockResolvedValue(paid);
-    await act(() => result.resolve(paid));
+    await act(() => mockPaywall.onRestoreCompleted?.({ customerInfo: paid }));
 
     // Then
     await waitFor(() =>
@@ -614,40 +571,41 @@ it.each(["APP_STORE", "PLAY_STORE"] as const)(
     );
     expect(owners.session.accountId).toBe(replacementUuid);
     expect(owners.account.data?.username).toBe("Recreated_profile");
-    expect(mockPurchases.restorePurchases).toHaveBeenCalledTimes(1);
+    expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
   },
 );
 
-it("reports a restoration failure without replay or a verification prerequisite", async () => {
+it("consumes a native restoration failure without replay or a verification prerequisite", async () => {
   // Given
   prepareLogin("apple|retained");
-  mockPurchases.getOfferings.mockResolvedValue({ current: null, all: {} });
   const user = userEvent.setup();
   await openInstallation("/sign-in");
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
   await screen.findByText("Fresh_profile");
   await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-  await screen.findByRole("header", { name: "Aucune offre Pro disponible" });
-  mockPurchases.restorePurchases.mockRejectedValueOnce(
-    new Error("unknown native outcome"),
-  );
+  await screen.findByText("Native store offer");
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Restaurer mes achats" }),
-  );
-  await screen.findByText(
-    "Une erreur est survenue. Veuillez réessayer plus tard.",
+  await act(() =>
+    mockPaywall.onRestoreError?.({
+      error: {
+        code: mockPurchases.PURCHASES_ERROR_CODE.NETWORK_ERROR,
+        message: "Private native error",
+        readableErrorCode: "NETWORK_ERROR",
+        underlyingErrorMessage: "",
+        userCancelled: false,
+        userInfo: { readableErrorCode: "NETWORK_ERROR" },
+      },
+    }),
   );
 
   // Then
+  expect(screen.queryByRole("alert")).toBeNull();
   expect(
     screen.queryByRole("button", { name: "Vérifier mes droits" }),
   ).toBeNull();
-  expect(
-    screen.queryByText(/Restauration terminée|Native store offer/),
-  ).toBeNull();
-  expect(mockPurchases.restorePurchases).toHaveBeenCalledTimes(1);
+  expect(screen.getByText("Native store offer")).toBeOnTheScreen();
+  expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
   expect(owners.pro.state).toMatchObject({
     status: "inactive",
     operation: "failed",
@@ -679,10 +637,10 @@ it("keeps native pending payment separate from inactive rights after transition 
   );
 
   // Then
+  expect(screen.getByText("Native store offer")).toBeOnTheScreen();
   expect(
-    await screen.findByText(/Le paiement est en attente/),
-  ).toBeOnTheScreen();
-  expect(screen.queryByText("Native store offer")).toBeNull();
+    screen.queryByRole("button", { name: "Vérifier mes droits" }),
+  ).toBeNull();
   expect(owners.pro.state).toMatchObject({
     status: "inactive",
     operation: "pending",
@@ -690,33 +648,33 @@ it("keeps native pending payment separate from inactive rights after transition 
   expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
 });
 
-it("reports an empty explicit restore without activating Pro or announcing expiry", async () => {
+it("consumes an empty native restore without activating Pro or announcing expiry", async () => {
   // Given
   prepareLogin("apple|retained");
-  mockPurchases.getOfferings.mockResolvedValue({ current: null, all: {} });
   const user = userEvent.setup();
   await openInstallation("/sign-in");
   await user.press(await screen.findByRole("button", { name: "Se connecter" }));
   await screen.findByText("Fresh_profile");
   await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-  await screen.findByRole("header", { name: "Aucune offre Pro disponible" });
+  await screen.findByText("Native store offer");
+  const inactive = customerInfo({
+    active: {},
+    all: {},
+    verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
+  });
+  const reads = mockPurchases.getCustomerInfo.mock.calls.length;
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Restaurer mes achats" }),
-  );
+  await act(() => mockPaywall.onRestoreCompleted?.({ customerInfo: inactive }));
 
   // Then
-  expect(
-    await screen.findByText(/Restauration terminée\. Aucun droit Pro actif/),
-  ).toBeOnTheScreen();
   expect(owners.pro.state).toMatchObject({
     status: "inactive",
     operation: "restored",
   });
-  expect(screen.queryByText("Pro actif")).toBeNull();
-  expect(screen.queryByText(/expiré|Native store offer/)).toBeNull();
-  expect(mockPurchases.restorePurchases).toHaveBeenCalledTimes(1);
+  expect(screen.queryByText(/Pro actif|expiré/)).toBeNull();
+  expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
+  expect(mockPurchases.getCustomerInfo).toHaveBeenCalledTimes(reads);
 });
 
 it("reads current revoked rights after an old active listener signal without replaying restoration", async () => {

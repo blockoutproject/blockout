@@ -44,7 +44,7 @@ F01/F02 reconstruct the current and three completed seasons from controlled offi
 
 ## Release configuration
 
-The existing store apps, native package/bundle identifiers, EAS project, signing credentials and increasing build counters remain provider-owned. The existing subscription product/base plan carries the new price; a V2 offering changes presentation, not purchase identity. No Blockout price table mirrors store renewal cohorts.
+The existing store apps, native package/bundle identifiers, EAS project, signing credentials and increasing build counters remain provider-owned. V1 and V2 share the existing RevenueCat project, `default` offering, published `Blockout Pro` Paywall, products, entitlement and native platform keys. Its shared presentation is adapted under F09 without another offering/paywall or a purchase identity change. The existing subscription product/base plan carries the 1.99 EUR price only at the separately authorized V2 cutover; preparing the paywall leaves existing prices unchanged. No Blockout price table mirrors store renewal cohorts.
 
 The legacy status adapter reads a small deployment configuration: the qualified first V2 versions and existing store URLs, with the frozen historical wire shape and maintenance disabled for retired clients. It has no second writable settings aggregate. Its fixed retirement thresholds reject every supported V1 release independently of later F12 settings changes. The adapter remains callable while ordinary V2 use is in maintenance.
 

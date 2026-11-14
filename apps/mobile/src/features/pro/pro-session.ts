@@ -5,18 +5,13 @@ import Purchases from "react-native-purchases";
 import type { CustomerInfo } from "react-native-purchases";
 import type { SessionSnapshot } from "@/features/accounts";
 import { type ProOperation, type ProSessionState } from "./pro-state";
-import {
-  restoredProOperation,
-  restoreErrorOutcome,
-  verifiedProOperation,
-} from "./pro-operations";
+import { verifiedProOperation } from "./pro-operations";
 
 /** Current native evidence and verification lifecycle; rights remain SDK-owned. */
 export interface ProSessionSnapshot {
   evidence: ProSessionState | null;
-  /** The current attributed read owns both callback acceptance and the derived pending presentation. */
+  /** The latest attributed read controls which SDK response can update current evidence. */
   read: symbol | null;
-  verificationFailed: boolean;
 }
 
 /** Records bounded context only; raw SDK errors never enter the diagnostic pipeline. */
@@ -46,11 +41,10 @@ function sameSession(
  */
 export function createProSession() {
   let target: SessionSnapshot | null = null;
-  let identityInFlight = false;
+  let identityInFlight: Promise<void> | null = null;
   let snapshot: ProSessionSnapshot = {
     evidence: null,
     read: null,
-    verificationFailed: false,
   };
   const listeners = new Set<() => void>();
 
@@ -94,7 +88,6 @@ export function createProSession() {
             ),
           },
           read: null,
-          verificationFailed: false,
         });
         return true;
       }
@@ -102,7 +95,7 @@ export function createProSession() {
       diagnose("read", "failed");
       if (isAssociated(session) && snapshot.read === request) {
         // A failed refresh never withdraws independently known current rights.
-        publish({ ...snapshot, read: null, verificationFailed: true });
+        publish({ ...snapshot, read: null });
         return false;
       }
     }
@@ -140,7 +133,6 @@ export function createProSession() {
           operation: "idle",
         },
         read: null,
-        verificationFailed: false,
       });
       if (!customerInfo) {
         void refresh(desired);
@@ -149,42 +141,43 @@ export function createProSession() {
   }
 
   /** Settles one mutation before applying the newest desired target, without retaining a queue. */
-  async function associate() {
+  function associate(): Promise<void> {
     if (identityInFlight) {
-      return;
+      return identityInFlight;
     }
-    identityInFlight = true;
     const desired = target;
-    try {
-      const configured = await Purchases.isConfigured();
+    identityInFlight = (async () => {
+      try {
+        const configured = await Purchases.isConfigured();
+        if (!sameSession(target, desired)) {
+          return;
+        }
+        if (desired?.accountId) {
+          await associateAccount(desired, configured, desired.accountId);
+        } else if (configured && !(await Purchases.isAnonymous())) {
+          await Purchases.logOut();
+        }
+      } catch {
+        diagnose("association", "failed");
+        if (sameSession(target, desired) && desired?.accountId) {
+          publish({
+            evidence: {
+              session: desired,
+              association: "failed",
+              customerInfo: null,
+              operation: "idle",
+            },
+            read: null,
+          });
+        }
+      }
+    })().finally(() => {
+      identityInFlight = null;
       if (!sameSession(target, desired)) {
-        return;
+        return associate();
       }
-      if (desired?.accountId) {
-        await associateAccount(desired, configured, desired.accountId);
-      } else if (configured && !(await Purchases.isAnonymous())) {
-        await Purchases.logOut();
-      }
-    } catch {
-      diagnose("association", "failed");
-      if (sameSession(target, desired) && desired?.accountId) {
-        publish({
-          evidence: {
-            session: desired,
-            association: "failed",
-            customerInfo: null,
-            operation: "idle",
-          },
-          read: null,
-          verificationFailed: true,
-        });
-      }
-    } finally {
-      identityInFlight = false;
-      if (!sameSession(target, desired)) {
-        void associate();
-      }
-    }
+    });
+    return identityInFlight;
   }
 
   /** Accepts current SDK evidence directly; a normal refresh without supplied information never delays command feedback. */
@@ -198,7 +191,7 @@ export function createProSession() {
     }
     publish({
       ...snapshot,
-      ...(customerInfo ? { read: null, verificationFailed: false } : {}),
+      ...(customerInfo ? { read: null } : {}),
       evidence: {
         ...snapshot.evidence,
         operation: verifiedProOperation(
@@ -243,67 +236,21 @@ export function createProSession() {
             }
           : null,
         read: null,
-        verificationFailed: false,
       });
       void associate();
     },
 
     refresh,
 
-    /** Returns a verification outcome when associated; association retry remains owned by its lifecycle. */
-    async retry(session: SessionSnapshot): Promise<boolean | undefined> {
-      if (
-        !sameSession(target, session) ||
-        !session.accountId ||
-        identityInFlight
-      ) {
-        return;
+    /** Waits only for current native identity association, never for an entitlement read or disposed view. */
+    async prepare(session: SessionSnapshot): Promise<boolean> {
+      if (!sameSession(target, session) || !session.accountId) {
+        return false;
       }
-      if (isAssociated(session)) {
-        return refresh(session);
+      if (!isAssociated(session)) {
+        await associate();
       }
-      publish({
-        ...snapshot,
-        evidence: {
-          session,
-          association: "pending",
-          customerInfo: null,
-          operation: "idle",
-        },
-        verificationFailed: false,
-      });
-      void associate();
-    },
-
-    /** Explicit fallback independent of offers; SDK failures reject for ordinary feedback and never replay restoration. */
-    async restore(session: SessionSnapshot) {
-      if (!isAssociated(session) || !snapshot.evidence) {
-        return;
-      }
-      const association = snapshot.evidence?.session;
-      try {
-        const customerInfo = await Purchases.restorePurchases();
-        if (!snapshot.evidence || snapshot.evidence.session !== association) {
-          return;
-        }
-        await completeOperation(
-          session,
-          restoredProOperation(snapshot.evidence.operation, "restored"),
-          customerInfo,
-        );
-      } catch (error) {
-        if (!snapshot.evidence || snapshot.evidence.session !== association) {
-          return;
-        }
-        const outcome = restoreErrorOutcome(error);
-        await completeOperation(
-          session,
-          restoredProOperation(snapshot.evidence.operation, outcome),
-        );
-        if (outcome === "failed") {
-          throw error;
-        }
-      }
+      return isAssociated(session);
     },
 
     completeOperation,

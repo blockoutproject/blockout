@@ -1,8 +1,12 @@
+import type RevenueCatUI from "react-native-purchases-ui";
+import { defaultOffering } from "@/features/pro/test-support/offering";
+import { mockPurchases } from "@/features/pro/test-support/native-purchases";
 import {
   useState,
   useEffect,
   useLayoutEffect,
   type PropsWithChildren,
+  type ComponentProps,
 } from "react";
 import { createInstallationAdvertisingPrivacy } from "../advertising-privacy";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -115,6 +119,19 @@ jest.mock("react-native-purchases", () => ({
   default: jest.requireActual("@/features/pro/test-support/native-purchases")
     .mockPurchases,
 }));
+jest.mock("react-native-purchases-ui", () => {
+  const { Text } = jest.requireActual("react-native");
+  return {
+    __esModule: true,
+    default: {
+      Paywall: (props: ComponentProps<typeof RevenueCatUI.Paywall>) => {
+        mockPaywall = props;
+        return <Text>Native paywall double</Text>;
+      },
+    },
+  };
+});
+let mockPaywall: ComponentProps<typeof RevenueCatUI.Paywall>;
 jest.mock("react-native-google-mobile-ads", () => ({
   ...jest.requireActual("../test-support/native-privacy").nativeAdvertising,
   AdEventType: {
@@ -134,7 +151,11 @@ jest.mock("expo-constants", () => ({
           iosInterstitialUnitId: "synthetic-unit",
           androidInterstitialUnitId: "synthetic-unit",
         },
-        revenueCat: { iosApiKey: "test_public", androidApiKey: "test_public" },
+        revenueCat: {
+          iosApiKey: "test_public",
+          androidApiKey: "test_public",
+          offeringIdentifier: "default",
+        },
       },
     },
   },
@@ -202,6 +223,9 @@ beforeEach(async () => {
     proSessionModule.createProSession(),
   );
   prepareProNativeIO();
+  mockPurchases.getOfferings
+    .mockReset()
+    .mockResolvedValue({ current: null, all: { default: defaultOffering } });
   mockAuth0.hasValidCredentials.mockResolvedValue(false);
   jest.mocked(initializeV2Installation).mockResolvedValue();
   Object.assign(process.env, {
@@ -798,10 +822,12 @@ it.each([
       expect.objectContaining({ pathname: "/support" }),
     );
     await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-    expect(mockPush).toHaveBeenLastCalledWith(
-      authenticated ? "/pro" : "/sign-in-invitation",
-    );
-    if (!authenticated) {
+    if (authenticated) {
+      await screen.findByText("Native paywall double");
+      expect(mockPaywall.options?.offering).toBe(defaultOffering);
+      await act(() => mockPaywall.onDismiss?.());
+    } else {
+      expect(mockPush).toHaveBeenLastCalledWith("/sign-in-invitation");
       await user.press(screen.getByRole("button", { name: "Se connecter" }));
       expect(mockPush).toHaveBeenLastCalledWith("/sign-in");
     }

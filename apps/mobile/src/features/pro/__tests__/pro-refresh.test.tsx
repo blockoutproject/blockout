@@ -105,7 +105,6 @@ async function renderAccount() {
         account = a;
         pro = p;
       }}
-      onSupport={jest.fn()}
     />,
   );
 }
@@ -114,7 +113,6 @@ it.each([
   "association",
   "explicit refresh",
   "foreground",
-  "retry",
   "operation completion",
 ] as const)("publishes newly read rights after %s", async (trigger) => {
   // Given
@@ -166,7 +164,7 @@ it.each([
         await account.signIn("https://api.example.invalid");
         break;
       case "explicit refresh":
-        await pro.refresh();
+        await proSessionModule.proSession.refresh(account);
         break;
       case "foreground":
         // Native foreground is broadcast to every owner, independently of subscription order.
@@ -174,11 +172,11 @@ it.each([
           stateChange("active");
         }
         break;
-      case "retry":
-        await pro.retry();
-        break;
       case "operation completion":
-        await pro.completeOperation("completed");
+        await proSessionModule.proSession.completeOperation(
+          account,
+          "completed",
+        );
         break;
     }
   });
@@ -203,8 +201,10 @@ it("settles pending payment from SDK-purchased rights delivered through the surv
   mockAuth0.saveCredentials.mockResolvedValue();
   await act(() => account.signIn("https://api.example.invalid"));
   await screen.findByText("Pro: inactive");
-  await act(() => pro.completeOperation("pending"));
-  await screen.findByText(/Le paiement est en attente/);
+  await act(() =>
+    proSessionModule.proSession.completeOperation(account, "pending"),
+  );
+  expect(pro.state).toMatchObject({ operation: "pending" });
   const active = { "Blockout Pro": entitlement({ store: "APP_STORE" }) };
   const paid = customerInfo({
     active,
@@ -281,9 +281,9 @@ it("rejects a detached read and callbacks after provider remount into the same b
     mockPurchases.addCustomerInfoUpdateListener.mock.calls.at(-1)![0];
   const read = Promise.withResolvers<CustomerInfo>();
   mockPurchases.getCustomerInfo.mockReturnValueOnce(read.promise);
-  let refreshing: ReturnType<ProContext["refresh"]> | undefined;
+  let refreshing: Promise<boolean | undefined> | undefined;
   await act(() => {
-    refreshing = pro.refresh();
+    refreshing = proSessionModule.proSession.refresh(account);
     listener(info);
   });
   await cleanup();
@@ -346,14 +346,17 @@ it("reads operation completion without waiting for an earlier read and rejects i
         verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
       }),
     );
-  let refresh: ReturnType<ProContext["refresh"]> | undefined;
+  let refresh: Promise<boolean | undefined> | undefined;
   let completion: Promise<void> | undefined;
   await act(() => {
-    refresh = pro.refresh();
+    refresh = proSessionModule.proSession.refresh(account);
   });
   // When
   await act(() => {
-    completion = pro.completeOperation("completed");
+    completion = proSessionModule.proSession.completeOperation(
+      account,
+      "completed",
+    );
   });
   // Then: current operation evidence is usable while the unrelated earlier read is still pending.
   expect(screen.getByText("Pro: active")).toBeOnTheScreen();
@@ -389,11 +392,11 @@ it("keeps current verification busy when an older read fails", async () => {
   mockPurchases.getCustomerInfo
     .mockReturnValueOnce(earlier.promise)
     .mockReturnValueOnce(current.promise);
-  let first: ReturnType<ProContext["refresh"]> | undefined;
-  let latest: ReturnType<ProContext["refresh"]> | undefined;
+  let first: Promise<boolean | undefined> | undefined;
+  let latest: Promise<boolean | undefined> | undefined;
   await act(() => {
-    first = pro.refresh();
-    latest = pro.refresh();
+    first = proSessionModule.proSession.refresh(account);
+    latest = proSessionModule.proSession.refresh(account);
   });
   // When
   await act(async () => {
@@ -401,7 +404,6 @@ it("keeps current verification busy when an older read fails", async () => {
     await first;
   });
   // Then
-  expect(pro.refreshing).toBe(true);
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   // When
   const active = { "Blockout Pro": entitlement() };
@@ -417,7 +419,6 @@ it("keeps current verification busy when an older read fails", async () => {
   });
   // Then
   expect(screen.getByText("Pro: active")).toBeOnTheScreen();
-  expect(pro.refreshing).toBe(false);
 });
 it("ignores a queued listener from the removed principal before reading current B rights", async () => {
   // Given
@@ -503,16 +504,16 @@ it.each([
     const previous = previousActive ? activeInfo : info;
     const current = previousActive ? info : activeInfo;
     mockPurchases.getCustomerInfo.mockResolvedValueOnce(previous);
-    await act(() => pro.refresh());
+    await act(() => proSessionModule.proSession.refresh(account));
     const listener =
       mockPurchases.addCustomerInfoUpdateListener.mock.calls.at(-1)![0];
     const pending = Promise.withResolvers<CustomerInfo>();
     mockPurchases.getCustomerInfo
       .mockReturnValueOnce(pending.promise)
       .mockResolvedValue(current);
-    let refresh: ReturnType<ProContext["refresh"]> | undefined;
+    let refresh: Promise<boolean | undefined> | undefined;
     await act(() => {
-      refresh = pro.refresh();
+      refresh = proSessionModule.proSession.refresh(account);
     });
     // When: both signals read the SDK; their untagged payloads remain irrelevant.
     await act(() => {
@@ -596,9 +597,9 @@ it("clears local rights before native logout settles, without waiting for Revenu
       verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
     }),
   );
-  await act(() => pro.refresh());
+  await act(() => proSessionModule.proSession.refresh(account));
   expect(screen.getByText("Pro: active")).toBeOnTheScreen();
-  const oldPro = pro;
+  const oldAccount = account;
   const logout = Promise.withResolvers<CustomerInfo>();
   mockPurchases.logOut.mockReturnValueOnce(logout.promise);
   // When
@@ -608,7 +609,9 @@ it("clears local rights before native logout settles, without waiting for Revenu
   expect(screen.getByText("Pro: guest")).toBeOnTheScreen();
   expect(screen.getByText("Public sport")).toBeOnTheScreen();
   // When
-  await act(() => oldPro.completeOperation("completed"));
+  await act(() =>
+    proSessionModule.proSession.completeOperation(oldAccount, "completed"),
+  );
   await act(() => logout.resolve(info));
   // Then
   expect(screen.getByText("Pro: guest")).toBeOnTheScreen();

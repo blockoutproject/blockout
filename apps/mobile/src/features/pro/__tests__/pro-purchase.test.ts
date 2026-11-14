@@ -1,7 +1,7 @@
 import { waitFor } from "@testing-library/react-native";
 import { createProSession } from "../pro-session";
 import { getProState } from "../pro-state";
-import { canPurchasePro } from "../pro-offering";
+import { canShowProOffer } from "../pro-offering";
 import { purchaseErrorOutcome } from "../pro-operations";
 import { mockPurchases } from "../test-support/native-purchases";
 import { customerInfo, entitlement } from "../test-support/customer-info";
@@ -65,7 +65,7 @@ it.each([
   },
 );
 
-it("allows an explicit new purchase after a documented SDK network failure", async () => {
+it("keeps the existing Pro banner eligible after a documented SDK network failure", async () => {
   // Given
   const owner = createProSession();
   owner.setTarget(session);
@@ -82,7 +82,7 @@ it("allows an explicit new purchase after a documented SDK network failure", asy
   // Then
   expect(owner.getSnapshot().evidence?.operation).toBe("failed");
   expect(
-    canPurchasePro(
+    canShowProOffer(
       getProState(
         { status: "authenticated", ...session },
         owner.getSnapshot().evidence,
@@ -108,9 +108,8 @@ it("keeps confirmed payment separate from activation when verification is unavai
 
   // Then
   expect(owner.getSnapshot().evidence?.operation).toBe("purchased");
-  expect(owner.getSnapshot().verificationFailed).toBe(true);
   expect(
-    canPurchasePro(
+    canShowProOffer(
       getProState(
         { status: "authenticated", ...session },
         owner.getSnapshot().evidence,
@@ -145,7 +144,7 @@ it("accepts the SDK completion's active entitlement immediately and preserves gi
   // Then
   expect(owner.getSnapshot().evidence?.customerInfo).toBe(gifted);
   expect(
-    canPurchasePro(
+    canShowProOffer(
       getProState(
         { status: "authenticated", ...session },
         owner.getSnapshot().evidence,
@@ -174,7 +173,7 @@ it("rejects old starts and completions across A → guest → A and restarts fro
   // Then
   expect(owner.getSnapshot().evidence).toBeNull();
   expect(
-    canPurchasePro(
+    canShowProOffer(
       getProState(
         { status: "authenticated", ...session },
         owner.getSnapshot().evidence,
@@ -186,7 +185,7 @@ it("rejects old starts and completions across A → guest → A and restarts fro
 });
 
 it.each(["purchased", "already-owned", "pending"] as const)(
-  "allows a new explicit acquisition after %s was recognized as paid active and then expired",
+  "shows the existing Pro banner after %s was recognized as paid active and then expired",
   async (operation) => {
     // Given
     const owner = createProSession();
@@ -209,7 +208,7 @@ it.each(["purchased", "already-owned", "pending"] as const)(
 
     // Then
     expect(
-      canPurchasePro(
+      canShowProOffer(
         getProState(
           { status: "authenticated", ...session },
           owner.getSnapshot().evidence,
@@ -246,7 +245,7 @@ it.each(["purchased", "pending", "already-owned"] as const)(
     // Then
     expect(owner.getSnapshot().evidence?.operation).toBe(operation);
     expect(
-      canPurchasePro(
+      canShowProOffer(
         getProState(
           { status: "authenticated", ...session },
           owner.getSnapshot().evidence,

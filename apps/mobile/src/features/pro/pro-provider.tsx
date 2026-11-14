@@ -8,36 +8,31 @@ import {
   useEffectEvent,
   useMemo,
   useRef,
+  useState,
   type PropsWithChildren,
 } from "react";
-import { AppState } from "react-native";
+import { AppState, Modal, StyleSheet } from "react-native";
+import Constants from "expo-constants";
+import RevenueCatUI from "react-native-purchases-ui";
 import Purchases from "react-native-purchases";
-import type { CustomerInfo } from "react-native-purchases";
+import type { CustomerInfo, PurchasesOffering } from "react-native-purchases";
 import { useAccountSession } from "@/features/accounts/current-account";
 import { getProState, type ProOperation, type ProState } from "./pro-state";
 import { proSession } from "./pro-session";
+import { loadProOffering } from "./pro-offering";
+import {
+  purchaseErrorOutcome,
+  restoreErrorOutcome,
+  restoredProOperation,
+} from "./pro-operations";
 
 /** Current-session presentation and explicit commands; callbacks retain their rendering session. */
 export interface ProContext {
   state: ProState;
   /** Reads the owner’s current projection for native callbacks, without copying SDK evidence. */
   getState(): ProState;
-  refreshing: boolean;
-  verificationFailed: boolean;
-  /** Returns the current accepted read outcome, or undefined for an obsolete/unstarted attempt. */
-  refresh(): Promise<boolean | undefined>;
-  /** Retries association or verification, never payment; only an accepted verification returns an outcome. */
-  retry(): Promise<boolean | undefined>;
-  /**
-   * Consumes attributed operation outcomes and supplied CustomerInfo directly;
-   * starts an independent ordinary SDK refresh only when no CustomerInfo was supplied.
-   */
-  completeOperation(
-    operation: ProOperation,
-    customerInfo?: CustomerInfo,
-  ): Promise<void>;
-  /** Explicitly restores after current-account association; SDK failure rejects for the caller's ordinary feedback. */
-  restore(): Promise<void>;
+  /** Opens the explicit native offering after current account association; failures remain with the originating action. */
+  openPaywall(): Promise<void>;
 }
 
 const ProSessionContext = createContext<ProContext | null>(null);
@@ -46,7 +41,10 @@ const ProSessionContext = createContext<ProContext | null>(null);
  * Connects the process-wide native owner to F05 without gating navigation or local logout.
  * SDK listeners signal reads only; provider removal detaches subscriptions and clears presentation.
  */
-export function ProProvider({ children }: Readonly<PropsWithChildren>) {
+export function ProProvider({
+  children,
+  presentationEnabled = true,
+}: Readonly<PropsWithChildren<{ presentationEnabled?: boolean }>>) {
   const account = useAccountSession();
   const { status, subject, accountId } = account;
   const native = useSyncExternalStore(
@@ -54,14 +52,21 @@ export function ProProvider({ children }: Readonly<PropsWithChildren>) {
     proSession.getSnapshot,
   );
   const session = useMemo(() => ({ subject, accountId }), [subject, accountId]);
-  // Native callbacks may outlive a removed route, but never their private principal/UUID lifetime.
+  const [host, setHost] = useState<{
+    session: typeof session;
+    offering: PurchasesOffering;
+  } | null>(null);
+  const liveHost = useRef<typeof host>(null);
+  const opening = useRef<symbol | null>(null);
+  // Native callbacks may outlive a removed Modal, but never their private principal/UUID lifetime.
   const mountedSession = useRef<typeof session | null>(session);
   useLayoutEffect(() => {
-    mountedSession.current = session;
+    mountedSession.current =
+      status === "authenticated" && presentationEnabled ? session : null;
     return () => {
       mountedSession.current = null;
     };
-  }, [session]);
+  }, [session, status, presentationEnabled]);
   useLayoutEffect(() => {
     proSession.setTarget(
       status === "authenticated" ? session : { ...session, accountId: null },
@@ -84,44 +89,146 @@ export function ProProvider({ children }: Readonly<PropsWithChildren>) {
       foreground.remove();
     };
   }, []);
-  const current =
-    native.evidence?.session.subject === session.subject &&
-    native.evidence.session.accountId === session.accountId;
-  const refresh = useCallback(() => proSession.refresh(session), [session]);
-  const retry = useCallback(() => proSession.retry(session), [session]);
-  const completeOperation = useCallback(
-    (operation: ProOperation, customerInfo?: CustomerInfo) =>
-      mountedSession.current === session
-        ? proSession.completeOperation(session, operation, customerInfo)
-        : Promise.resolve(),
-    [session],
-  );
-  const restore = useCallback(
-    () =>
-      mountedSession.current === session
-        ? proSession.restore(session)
-        : Promise.resolve(),
-    [session],
-  );
+
+  function completeOperation(
+    operation: ProOperation,
+    customerInfo?: CustomerInfo,
+  ) {
+    return proSession.completeOperation(session, operation, customerInfo);
+  }
+
+  const openPaywall = useCallback(async () => {
+    if (mountedSession.current !== session || !accountId) {
+      return;
+    }
+    const request = Symbol();
+    opening.current = request;
+    let offering: PurchasesOffering | null;
+    try {
+      if (!(await proSession.prepare(session))) {
+        throw new Error("Pro association unavailable");
+      }
+      if (mountedSession.current !== session || opening.current !== request) {
+        return;
+      }
+      offering = await loadProOffering(
+        Constants.expoConfig?.extra?.revenueCat?.offeringIdentifier ?? "",
+      );
+      if (!offering) {
+        throw new Error("Pro offering unavailable");
+      }
+    } catch (error) {
+      if (mountedSession.current === session && opening.current === request) {
+        throw error;
+      }
+      return;
+    }
+    if (mountedSession.current !== session || opening.current !== request) {
+      return;
+    }
+    const next = { session, offering };
+    liveHost.current = next;
+    setHost(next);
+  }, [session, accountId]);
+  const currentHost =
+    host &&
+    status === "authenticated" &&
+    presentationEnabled &&
+    host.session === session
+      ? host
+      : null;
+
+  // Retire a host in its owner’s render so later admission cannot reopen a disposed presentation.
+  if (host && !currentHost) {
+    setHost(null);
+  }
+  useLayoutEffect(() => {
+    liveHost.current = null;
+    opening.current = null;
+  }, [session, status, presentationEnabled]);
+
+  function close() {
+    if (isCurrentHost()) {
+      liveHost.current = null;
+      opening.current = null;
+      setHost(null);
+    }
+  }
+
+  function isCurrentHost() {
+    return (
+      currentHost !== null &&
+      liveHost.current === currentHost &&
+      mountedSession.current === currentHost.session
+    );
+  }
+
+  function finishRestore(customerInfo?: CustomerInfo, error?: unknown) {
+    if (!isCurrentHost()) {
+      return;
+    }
+    const state = getProState(account, proSession.getSnapshot().evidence);
+    if (state.status === "guest") {
+      return;
+    }
+    const outcome = customerInfo ? "restored" : restoreErrorOutcome(error);
+    void completeOperation(
+      restoredProOperation(state.operation, outcome),
+      customerInfo,
+    );
+  }
+
   return (
     <ProSessionContext
       value={{
         state: getProState(account, native.evidence),
         getState: () => getProState(account, proSession.getSnapshot().evidence),
-        refreshing: current && native.read !== null,
-        verificationFailed: current && native.verificationFailed,
-        refresh,
-        retry,
-        completeOperation,
-        restore,
+        openPaywall,
       }}
     >
       {children}
+      {currentHost && (
+        <Modal
+          testID="pro-paywall-modal"
+          visible
+          onRequestClose={close}
+          presentationStyle="fullScreen"
+        >
+          <RevenueCatUI.Paywall
+            style={styles.provider}
+            options={{
+              offering: currentHost.offering,
+              displayCloseButton: true,
+            }}
+            onDismiss={close}
+            onPurchaseCompleted={({ customerInfo }) => {
+              if (isCurrentHost()) {
+                void completeOperation("purchased", customerInfo);
+              }
+            }}
+            onPurchaseCancelled={() => {
+              if (isCurrentHost()) {
+                void completeOperation("cancelled");
+              }
+            }}
+            onPurchaseError={({ error }) => {
+              if (isCurrentHost()) {
+                const outcome = purchaseErrorOutcome(error.code);
+                void completeOperation(outcome);
+              }
+            }}
+            onRestoreCompleted={({ customerInfo }) =>
+              finishRestore(customerInfo)
+            }
+            onRestoreError={({ error }) => finishRestore(undefined, error)}
+          />
+        </Modal>
+      )}
     </ProSessionContext>
   );
 }
 
-/** Reads F09's narrow current-session API; consumers own navigation, ads and provider UI. */
+/** Reads current Pro state and requests the existing owner’s native paywall entry. */
 export function usePro(): ProContext {
   const value = useContext(ProSessionContext);
   if (!value) {
@@ -129,3 +236,5 @@ export function usePro(): ProContext {
   }
   return value;
 }
+
+const styles = StyleSheet.create({ provider: { flex: 1 } });

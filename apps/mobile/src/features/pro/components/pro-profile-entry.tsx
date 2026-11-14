@@ -1,4 +1,3 @@
-import { useRouter } from "expo-router";
 import type { ReactNode } from "react";
 import { EntryGroup } from "@/shared/components/entry-group";
 import { ProEntry } from "./pro-entry";
@@ -8,14 +7,13 @@ export interface ProProfileEntryProps {
   children?: ReactNode;
 }
 
-/** Opens the Pro destination immediately; all SDK reads and recovery belong to that destination. */
+/** Keeps the existing profile group while the Pro owner presents the native paywall. */
 export function ProProfileEntry({
   children,
 }: Readonly<ProProfileEntryProps> = {}) {
-  const router = useRouter();
   return (
     <EntryGroup>
-      <ProEntry onOpenPresentation={() => router.navigate("/pro")} />
+      <ProEntry />
       {children}
     </EntryGroup>
   );

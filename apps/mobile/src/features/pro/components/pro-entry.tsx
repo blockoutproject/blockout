@@ -6,14 +6,11 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { EntryRow } from "@/shared/components/entry-row";
 import { usePro } from "../pro-provider";
+import { useOpenProPaywall } from "../use-open-pro-paywall";
 
-/** Profile command supplied by the native host owner; guests always take the ordinary F05 invitation. */
-export interface ProEntryProps {
-  onOpenPresentation: () => void;
-}
-
-/** Profile action only; native offering selection, entitlement presentation and operations remain T025-owned. */
-export function ProEntry({ onOpenPresentation }: Readonly<ProEntryProps>) {
+/** Keeps the shared guest invitation; connected entries use the existing native Pro owner. */
+export function ProEntry() {
+  const open = useOpenProPaywall();
   const account = useAccountSession();
   const router = useRouter();
   const session = account;
@@ -35,7 +32,7 @@ export function ProEntry({ onOpenPresentation }: Readonly<ProEntryProps>) {
         if (guest) {
           router.push("/sign-in-invitation");
         } else {
-          onOpenPresentation();
+          void open();
         }
       }}
     />
