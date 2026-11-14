@@ -43,7 +43,7 @@ export function useAccountAvailability() {
   };
 }
 
-/** Explicit login/retry owns one native mutation; detached callbacks retain their original client. */
+/** Explicit establishment reuses the captured native principal; it never starts hosted login. */
 export function useEstablishAccount() {
   const { request } = useOrdinaryRequest();
   const client = useQueryClient();

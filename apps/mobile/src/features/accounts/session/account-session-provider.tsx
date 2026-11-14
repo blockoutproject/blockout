@@ -226,34 +226,6 @@ function SessionScope({
     [credentialsFor, subject],
   );
 
-  /** Starts only native login; the explicit connection mutation composes establishment after it. */
-  async function authenticate(audience: string) {
-    if (initialization.status !== "ready") {
-      throw new Error("Native authentication is unavailable");
-    }
-    if (operation) {
-      return;
-    }
-    const remove = preparePushRemoval?.();
-    setOperation("authenticating");
-    try {
-      await remove?.().catch(() => undefined);
-      const credentials = await auth.authorize({
-        audience,
-        scope: "openid profile email offline_access",
-      });
-      const principal = parseIdToken(credentials.idToken).sub;
-      // Auth0 has completed login before React necessarily commits its user update.
-      currentSubject.current = principal;
-      return {
-        subject: principal,
-        getCredentials: () => credentialsFor(principal),
-      };
-    } finally {
-      setOperation(undefined);
-    }
-  }
-
   const connection = useMutation({
     mutationKey: ["account-connection"],
     retry: false,
@@ -317,7 +289,27 @@ function SessionScope({
       if (activeOperation) {
         return;
       }
-      return authenticate(audience);
+      if (initialization.status !== "ready") {
+        throw new Error("Native authentication is unavailable");
+      }
+      const remove = preparePushRemoval?.();
+      setOperation("authenticating");
+      try {
+        await remove?.().catch(() => undefined);
+        const credentials = await auth.authorize({
+          audience,
+          scope: "openid profile email offline_access",
+        });
+        const principal = parseIdToken(credentials.idToken).sub;
+        // Auth0 has completed login before React necessarily commits its user update.
+        currentSubject.current = principal;
+        return {
+          subject: principal,
+          getCredentials: () => credentialsFor(principal),
+        };
+      } finally {
+        setOperation(undefined);
+      }
     },
     async signOut() {
       if (activeOperation) {
