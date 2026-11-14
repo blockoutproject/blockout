@@ -90,7 +90,7 @@ Use the native map cases above. Refresh address-derived points from singleton to
 
 Check top, partial scroll, fully revealed and return-to-top behavior against [FR-005](spec.md#consultation-relationships-and-seasons): the full body summary remains; the compact center reveals ordered logos with accepted final totals/exact notation or the current nonfinal status. Return and authorized actions remain visible. Include final zero, unknown totals, missing referee/venue `-`, no pool icon, one-line ellipsis and full accessible names.
 
-Compare [Match top](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03?node-id=976-293), [scrolled document view](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03?node-id=5362-41722), [Team top](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03?node-id=1010-15711) and [scrolled Team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03?node-id=7785-11617). Static design references do not qualify native motion or accessibility.
+Compare [Match top](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03?node-id=976-293), [scrolled document view](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03?node-id=5362-41722), [Team top](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03?node-id=1010-15711) and the representative [Team composition](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03?node-id=7758-11084), using its existing identity/header properties for scroll reveal. Static design references do not qualify native motion or accessibility.
 
 ### Sporting recovery and match rereads
 
