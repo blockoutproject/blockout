@@ -239,8 +239,7 @@ class DirectAuthorizationIntegrationTest extends ContributionScenario {
         sql.queryForList("SELECT * FROM access_settings ORDER BY id");
     RequestPostProcessor oldSession = operator(OTHER);
     currentAccount(OTHER).andExpect(jsonPath("$.permissions.manageCollection").value(true));
-    when(principal.read(ISSUER, OTHER.toString()))
-        .thenReturn(new PrincipalReader.Evidence("synthetic@example.invalid"));
+    when(principal.readEmail(ISSUER, OTHER.toString())).thenReturn("synthetic@example.invalid");
 
     // When
     erasure.erase(ISSUER, OTHER.toString(), OTHER);
@@ -288,8 +287,7 @@ class DirectAuthorizationIntegrationTest extends ContributionScenario {
   @DisplayName("Newly established ordinary accounts publish under the remaining F08 conditions")
   void acceptsNewOrdinaryAccount() {
     // Given
-    when(principal.read(ISSUER, "auth0|new-287"))
-        .thenReturn(new PrincipalReader.Evidence("new@example.invalid"));
+    when(principal.readEmail(ISSUER, "auth0|new-287")).thenReturn("new@example.invalid");
     UUID account = establishment.establish(ISSUER, "auth0|new-287").view().account().id();
 
     // When

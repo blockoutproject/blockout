@@ -44,4 +44,4 @@ Current authorized account/session data admits the editor independently of priva
 | Permissions / admission               | F12 owns capabilities and global gates; business use cases consult current state. No grant enumeration or administration API is invented by F05.                                                                                                                                                                                     |
 | Contributions, support and transition | F08 detaches attribution; F10/F11 own private requests and retained content; F14 owns historical coverage and cutover. Native restore does not erase an old RevenueCat customer automatically.                                                                                                                                       |
 
-Generate backend/mobile consumers from the same canonical revision. Generate both consumers together; Future changes must preserve all F12-admitted mobile versions under F13's compatibility policy.
+Generate backend/mobile consumers together from the same canonical revision, preserving all F12-admitted mobile versions under F13's compatibility policy.

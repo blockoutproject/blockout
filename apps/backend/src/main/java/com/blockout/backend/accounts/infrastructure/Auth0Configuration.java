@@ -191,7 +191,7 @@ public class Auth0Configuration {
       if (!security.issuer().toString().equals(issuer)) {
         throw new AccountUnavailableException();
       }
-      return reader.read(issuer, subject);
+      return reader.readEmail(issuer, subject);
     };
   }
 }

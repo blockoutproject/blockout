@@ -76,8 +76,7 @@ class AccountMaintenanceAdmissionIntegrationTest {
   @DisplayName("Establishes a first profile while inactive, independently of bypass intent")
   void establishesWhileInactive(String intent) throws Exception {
     // Given
-    when(provider.read(ISSUER, "auth0|signup"))
-        .thenReturn(new PrincipalReader.Evidence("signup@example.invalid"));
+    when(provider.readEmail(ISSUER, "auth0|signup")).thenReturn("signup@example.invalid");
 
     MockHttpServletRequestBuilder request = post("/accounts").with(principal("auth0|signup"));
     if (intent != null) {
@@ -215,8 +214,7 @@ class AccountMaintenanceAdmissionIntegrationTest {
         "INSERT INTO account_permission (account_id, permission) VALUES (?, 'maintenance.bypass')",
         ACCOUNT);
     UUID replacement = UUID.fromString("00000000-0000-4000-8000-000000000999");
-    when(provider.read(ISSUER, "auth0|existing"))
-        .thenReturn(new PrincipalReader.Evidence("provider@example.invalid"));
+    when(provider.readEmail(ISSUER, "auth0|existing")).thenReturn("provider@example.invalid");
     doAnswer(
             call -> {
               Object admitted = call.callRealMethod();
@@ -270,8 +268,7 @@ class AccountMaintenanceAdmissionIntegrationTest {
     sql.update(
         "INSERT INTO account_permission (account_id, permission) VALUES (?, 'maintenance.bypass')",
         ACCOUNT);
-    when(provider.read(ISSUER, "auth0|existing"))
-        .thenReturn(new PrincipalReader.Evidence("current@example.invalid"));
+    when(provider.readEmail(ISSUER, "auth0|existing")).thenReturn("current@example.invalid");
 
     // When
     mvc.perform(
@@ -360,13 +357,13 @@ class AccountMaintenanceAdmissionIntegrationTest {
     // Given
     CountDownLatch providerStarted = new CountDownLatch(1);
     CountDownLatch releaseProvider = new CountDownLatch(1);
-    when(provider.read(ISSUER, "auth0|signup"))
+    when(provider.readEmail(ISSUER, "auth0|signup"))
         .thenAnswer(
             call -> {
               assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
               providerStarted.countDown();
               assertThat(releaseProvider.await(10, TimeUnit.SECONDS)).isTrue();
-              return new PrincipalReader.Evidence("signup@example.invalid");
+              return "signup@example.invalid";
             });
 
     // When

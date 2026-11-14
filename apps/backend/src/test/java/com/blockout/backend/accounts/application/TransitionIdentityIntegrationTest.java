@@ -78,10 +78,8 @@ class TransitionIdentityIntegrationTest {
     sql.update("INSERT INTO account_permission VALUES (?,'maintenance.manage')", OLD);
     // Synthetic reset of the business fixture only; F14 does not call voluntary erasure.
     sql.update("DELETE FROM account WHERE id=?", OLD);
-    when(provider.read(ISSUER, SUBJECT))
-        .thenReturn(
-            new PrincipalReader.Evidence("google@example.invalid"),
-            new PrincipalReader.Evidence("apple@privaterelay.example.invalid"));
+    when(provider.readEmail(ISSUER, SUBJECT))
+        .thenReturn("google@example.invalid", "apple@privaterelay.example.invalid");
 
     // When
     mvc.perform(post("/accounts").with(principal(SUBJECT))).andExpect(status().isCreated());
@@ -108,9 +106,8 @@ class TransitionIdentityIntegrationTest {
   void keepsUnlinkedSharedEmailSeparate(String secondEmail) throws Exception {
     // Given
     String other = "apple|unlinked";
-    when(provider.read(ISSUER, SUBJECT))
-        .thenReturn(new PrincipalReader.Evidence("shared@example.invalid"));
-    when(provider.read(ISSUER, other)).thenReturn(new PrincipalReader.Evidence(secondEmail));
+    when(provider.readEmail(ISSUER, SUBJECT)).thenReturn("shared@example.invalid");
+    when(provider.readEmail(ISSUER, other)).thenReturn(secondEmail);
     Account first = establishment.establish(ISSUER, SUBJECT).view().account();
     // Stored synthetic bytes make private-read refusal distinguishable from a missing photo.
     byte[] photo = new byte[] {1, 2, 3};
@@ -141,7 +138,7 @@ class TransitionIdentityIntegrationTest {
   @DisplayName("Suspends email-less first creation until an explicit usable-evidence retry")
   void retriesMissingEmailExplicitly(String email) throws Exception {
     // Given
-    when(provider.read(ISSUER, SUBJECT)).thenReturn(new PrincipalReader.Evidence(email));
+    when(provider.readEmail(ISSUER, SUBJECT)).thenReturn(email);
 
     // When
     mvc.perform(post("/accounts").with(principal(SUBJECT)))
@@ -151,11 +148,10 @@ class TransitionIdentityIntegrationTest {
     // Then
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM account", Long.class)).isZero();
     mvc.perform(get("/accounts/me").with(principal(SUBJECT))).andExpect(status().isNotFound());
-    verify(provider).read(ISSUER, SUBJECT);
+    verify(provider).readEmail(ISSUER, SUBJECT);
 
     // When
-    when(provider.read(ISSUER, SUBJECT))
-        .thenReturn(new PrincipalReader.Evidence("recovered@example.invalid"));
+    when(provider.readEmail(ISSUER, SUBJECT)).thenReturn("recovered@example.invalid");
     mvc.perform(post("/accounts").with(principal(SUBJECT))).andExpect(status().isCreated());
 
     // Then
@@ -168,8 +164,7 @@ class TransitionIdentityIntegrationTest {
   @DisplayName("Uses current SQL grants for both projection and protected commands")
   void appliesCurrentGrants() throws Exception {
     // Given
-    when(provider.read(ISSUER, SUBJECT))
-        .thenReturn(new PrincipalReader.Evidence("owner@example.invalid"));
+    when(provider.readEmail(ISSUER, SUBJECT)).thenReturn("owner@example.invalid");
     Account current = establishment.establish(ISSUER, SUBJECT).view().account();
     sql.update("INSERT INTO account_permission VALUES (?,'maintenance.manage')", current.id());
 
@@ -204,15 +199,13 @@ class TransitionIdentityIntegrationTest {
   @DisplayName("Uses the actual surviving or new principal after business erasure")
   void recreatesAfterBusinessErasure(boolean principalSurvives) {
     // Given
-    when(provider.read(ISSUER, SUBJECT))
-        .thenReturn(new PrincipalReader.Evidence("owner@example.invalid"));
+    when(provider.readEmail(ISSUER, SUBJECT)).thenReturn("owner@example.invalid");
     Account original = establishment.establish(ISSUER, SUBJECT).view().account();
     sql.update("UPDATE account SET username='Former_profile' WHERE id=?", original.id());
     sql.update("INSERT INTO account_permission VALUES (?,'maintenance.manage')", original.id());
     String currentSubject = principalSurvives ? SUBJECT : "apple|new-principal";
     if (!principalSurvives) {
-      when(provider.read(ISSUER, currentSubject))
-          .thenReturn(new PrincipalReader.Evidence("owner@example.invalid"));
+      when(provider.readEmail(ISSUER, currentSubject)).thenReturn("owner@example.invalid");
     }
     when(auth0Cleanup.remove(ISSUER, SUBJECT))
         .thenReturn(

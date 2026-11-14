@@ -92,8 +92,7 @@ class ChangeAccountProfileIntegrationTest {
   @DisplayName("Saves normalized username and photo together and preserves them on provider login")
   void savesProfileAtomically() {
     // Given
-    when(provider.read(ISSUER, "auth0|one"))
-        .thenReturn(new PrincipalReader.Evidence("updated@example.invalid"));
+    when(provider.readEmail(ISSUER, "auth0|one")).thenReturn("updated@example.invalid");
 
     // When
     ReadAccount.View saved =

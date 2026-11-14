@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** Captures a lifecycle, reads provider evidence outside SQL, then commits only that lifecycle. */
+/** Captures a lifecycle, reads provider email outside SQL, then commits only that lifecycle. */
 @Service
 @RequiredArgsConstructor
 public class EstablishAccount {
@@ -33,7 +33,7 @@ public class EstablishAccount {
    * @param subject exact validated subject
    * @return current original-account projection after commit and creation outcome
    * @throws ProviderEmailUnavailableException when creation lacks a usable provider address
-   * @throws AccountUnavailableException for unavailable evidence or an erased original UUID
+   * @throws AccountUnavailableException for an unavailable provider or an erased original UUID
    */
   @Transactional(propagation = Propagation.NOT_SUPPORTED)
   public Outcome establish(String issuer, String subject) {
@@ -46,7 +46,7 @@ public class EstablishAccount {
    * becomes creation.
    *
    * @param context validated principal and optional original lifecycle admitted by F12
-   * @return current original-account projection after its evidence commit and creation outcome
+   * @return current original-account projection after its email commit and creation outcome
    * @throws AccountUnavailableException if an admitted original disappears or is replaced
    * @throws ProviderEmailUnavailableException when ordinary creation lacks a usable address
    */
@@ -73,22 +73,22 @@ public class EstablishAccount {
     if (admittedAccount != null && original.filter(admittedAccount::equals).isEmpty()) {
       throw new AccountUnavailableException();
     }
-    PrincipalReader.Evidence evidence;
+    String email;
     boolean unavailable = false;
     try {
-      evidence = provider.read(issuer, subject);
+      email = provider.readEmail(issuer, subject);
     } catch (AccountUnavailableException failure) {
-      evidence = new PrincipalReader.Evidence(null);
+      email = null;
       unavailable = true;
     }
-    PrincipalReader.Evidence available = evidence;
+    String availableEmail = email;
     boolean providerUnavailable = unavailable;
     TransactionTemplate transaction = new TransactionTemplate(transactions);
     Committed committed;
     try {
       committed =
           transaction.execute(
-              status -> commit(issuer, subject, original, available, providerUnavailable));
+              status -> commit(issuer, subject, original, availableEmail, providerUnavailable));
     } catch (AccountCreationConflictException conflict) {
       UUID winner =
           capture
@@ -107,7 +107,7 @@ public class EstablishAccount {
    * @param issuer validated issuer
    * @param subject validated subject
    * @param original lifecycle identity observed before provider I/O
-   * @param evidence available minimal evidence
+   * @param email usable provider email, or null when unavailable
    * @param providerUnavailable distinguishes provider failure from a successful read without email
    * @return locally committed outcome
    * @throws AccountUnavailableException when the captured original has disappeared
@@ -117,24 +117,24 @@ public class EstablishAccount {
       String issuer,
       String subject,
       Optional<UUID> original,
-      PrincipalReader.Evidence evidence,
+      String email,
       boolean providerUnavailable) {
     Optional<UUID> current =
         original.isPresent() ? original : accounts.findIdByPrincipal(issuer, subject);
     if (current.isPresent()) {
       Account account =
           accounts
-              .synchronize(current.orElseThrow(), evidence.email())
+              .synchronize(current.orElseThrow(), email)
               .orElseThrow(() -> new AccountUnavailableException());
       return new Committed(account.id(), false);
     }
     if (providerUnavailable) {
       throw new AccountUnavailableException();
     }
-    if (evidence.email() == null || evidence.email().isBlank()) {
+    if (email == null || email.isBlank()) {
       throw new ProviderEmailUnavailableException();
     }
-    Account account = accounts.create(issuer, subject, AccountUsername.neutral(), evidence.email());
+    Account account = accounts.create(issuer, subject, AccountUsername.neutral(), email);
     return new Committed(account.id(), true);
   }
 

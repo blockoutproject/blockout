@@ -68,12 +68,12 @@ class EstablishAccountIntegrationTest {
   void settlesConcurrentEstablishment() throws Exception {
     // Given
     CyclicBarrier fetched = new CyclicBarrier(2);
-    when(provider.read(ISSUER, "auth0|one"))
+    when(provider.readEmail(ISSUER, "auth0|one"))
         .thenAnswer(
             call -> {
               assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
               fetched.await(10, TimeUnit.SECONDS);
-              return new PrincipalReader.Evidence("shared@example.invalid");
+              return "shared@example.invalid";
             });
 
     // When
@@ -100,14 +100,14 @@ class EstablishAccountIntegrationTest {
   @DisplayName("Preserves the concurrent winner's profile when synchronizing provider evidence")
   void preservesConcurrentWinnerProfile() {
     // Given
-    when(provider.read(ISSUER, "auth0|one"))
+    when(provider.readEmail(ISSUER, "auth0|one"))
         .thenAnswer(
             call -> {
               transaction.executeWithoutResult(
                   status ->
                       accounts.create(
                           ISSUER, "auth0|one", "Initial_name", "initial@example.invalid"));
-              return new PrincipalReader.Evidence("updated@example.invalid");
+              return "updated@example.invalid";
             });
     AccountStore target = AopTestUtils.getUltimateTargetObject(accounts);
     doAnswer(
@@ -138,8 +138,7 @@ class EstablishAccountIntegrationTest {
   @DisplayName("Keeps principals distinct when provider email is identical")
   void keepsSharedEmailSeparate() {
     // Given
-    when(provider.read(anyString(), anyString()))
-        .thenReturn(new PrincipalReader.Evidence("shared@example.invalid"));
+    when(provider.readEmail(anyString(), anyString())).thenReturn("shared@example.invalid");
 
     // When
     Account first = establishment.establish(ISSUER, "auth0|one").view().account();
@@ -155,8 +154,7 @@ class EstablishAccountIntegrationTest {
   @DisplayName("Refuses a neutral name collision without creating a replacement candidate")
   void rejectsNeutralNameCollision() {
     // Given
-    when(provider.read(ISSUER, "auth0|one"))
-        .thenReturn(new PrincipalReader.Evidence("shared@example.invalid"));
+    when(provider.readEmail(ISSUER, "auth0|one")).thenReturn("shared@example.invalid");
     AtomicBoolean collide = new AtomicBoolean(true);
     UUID competitor = UUID.randomUUID();
     AccountStore target = AopTestUtils.getUltimateTargetObject(accounts);
@@ -192,7 +190,7 @@ class EstablishAccountIntegrationTest {
   @DisplayName("Rejects missing first email without committing partial data")
   void rejectsMissingInitialEmail() {
     // Given
-    when(provider.read(ISSUER, "auth0|one")).thenReturn(new PrincipalReader.Evidence(null));
+    when(provider.readEmail(ISSUER, "auth0|one")).thenReturn(null);
 
     // When / Then
     assertThatThrownBy(() -> establishment.establish(ISSUER, "auth0|one"))
@@ -207,7 +205,7 @@ class EstablishAccountIntegrationTest {
     Account original =
         transaction.execute(
             status -> accounts.create(ISSUER, "auth0|one", "Chosen_name", "known@example.invalid"));
-    when(provider.read(ISSUER, "auth0|one"))
+    when(provider.readEmail(ISSUER, "auth0|one"))
         .thenAnswer(
             call -> {
               assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
@@ -262,8 +260,7 @@ class EstablishAccountIntegrationTest {
     sql.update(
         "INSERT INTO account_permission (account_id, permission) VALUES (?, 'maintenance.manage')",
         original.id());
-    when(provider.read(ISSUER, "auth0|one"))
-        .thenReturn(new PrincipalReader.Evidence("current@example.invalid"));
+    when(provider.readEmail(ISSUER, "auth0|one")).thenReturn("current@example.invalid");
 
     // When
     ReadAccount.View view = establishment.establish(ISSUER, "auth0|one").view();
@@ -284,8 +281,7 @@ class EstablishAccountIntegrationTest {
     Account original =
         transaction.execute(
             status -> accounts.create(ISSUER, "auth0|one", "Original", "known@example.invalid"));
-    when(provider.read(ISSUER, "auth0|one"))
-        .thenReturn(new PrincipalReader.Evidence("committed@example.invalid"));
+    when(provider.readEmail(ISSUER, "auth0|one")).thenReturn("committed@example.invalid");
     AccountStore target = AopTestUtils.getUltimateTargetObject(accounts);
     doAnswer(
             call -> {
@@ -335,7 +331,7 @@ class EstablishAccountIntegrationTest {
     Account original =
         transaction.execute(
             status -> accounts.create(ISSUER, "auth0|one", "Original", "known@example.invalid"));
-    when(provider.read(ISSUER, "auth0|one"))
+    when(provider.readEmail(ISSUER, "auth0|one"))
         .thenAnswer(
             call -> {
               assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isFalse();
@@ -346,7 +342,7 @@ class EstablishAccountIntegrationTest {
                         accounts.create(
                             ISSUER, "auth0|one", "Replacement", "replacement@example.invalid"));
               }
-              return new PrincipalReader.Evidence("late@example.invalid");
+              return "late@example.invalid";
             });
 
     // When / Then

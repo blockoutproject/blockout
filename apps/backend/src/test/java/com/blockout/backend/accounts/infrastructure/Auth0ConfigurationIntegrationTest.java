@@ -147,11 +147,11 @@ class Auth0ConfigurationIntegrationTest {
     PrincipalReader reader = reader();
 
     // When
-    PrincipalReader.Evidence first = reader.read(origin + "/", "auth0|one");
-    reader.read(origin + "/", "auth0|one");
+    String first = reader.readEmail(origin + "/", "auth0|one");
+    reader.readEmail(origin + "/", "auth0|one");
 
     // Then
-    assertThat(first.email()).isEqualTo("player@example.invalid");
+    assertThat(first).isEqualTo("player@example.invalid");
     assertThat(tokenRequest)
         .contains(
             "grant_type=client_credentials",
@@ -173,7 +173,7 @@ class Auth0ConfigurationIntegrationTest {
     PrincipalReader reader = reader();
 
     // When / Then
-    assertThatThrownBy(() -> reader.read(origin + "/", "auth0|one"))
+    assertThatThrownBy(() -> reader.readEmail(origin + "/", "auth0|one"))
         .isInstanceOf(AccountUnavailableException.class);
     assertThat(tokens.get()).isEqualTo(1);
     assertThat(reads.get()).isEqualTo(path.equals("/oauth/token") ? 0 : 1);
@@ -187,7 +187,7 @@ class Auth0ConfigurationIntegrationTest {
     PrincipalReader reader = reader();
 
     // When / Then
-    assertThatThrownBy(() -> reader.read(origin + "/", "auth0|one"))
+    assertThatThrownBy(() -> reader.readEmail(origin + "/", "auth0|one"))
         .isInstanceOf(AccountUnavailableException.class);
     assertThat(tokens.get()).isEqualTo(1);
     assertThat(reads.get()).isZero();
@@ -202,7 +202,7 @@ class Auth0ConfigurationIntegrationTest {
     PrincipalReader reader = reader();
     try (ExecutorService caller = Executors.newSingleThreadExecutor()) {
       java.util.concurrent.Future<?> read =
-          caller.submit(() -> reader.read(origin + "/", "auth0|one"));
+          caller.submit(() -> reader.readEmail(origin + "/", "auth0|one"));
       try {
         // When
         org.assertj.core.api.ThrowableAssert.ThrowingCallable response =
@@ -225,7 +225,7 @@ class Auth0ConfigurationIntegrationTest {
     PrincipalReader reader = reader();
 
     // When / Then
-    assertThatThrownBy(() -> reader.read("https://other.example.invalid/", "auth0|one"))
+    assertThatThrownBy(() -> reader.readEmail("https://other.example.invalid/", "auth0|one"))
         .isInstanceOf(AccountUnavailableException.class);
     assertThat(tokens.get()).isZero();
     assertThat(reads.get()).isZero();
@@ -239,7 +239,7 @@ class Auth0ConfigurationIntegrationTest {
     PrincipalReader reader = reader();
 
     // When / Then
-    assertThatThrownBy(() -> reader.read(origin + "/", "auth0|one"))
+    assertThatThrownBy(() -> reader.readEmail(origin + "/", "auth0|one"))
         .isInstanceOf(AccountUnavailableException.class)
         .hasMessageNotContaining("private provider diagnostics");
     assertThat(reads.get()).isZero();
@@ -268,7 +268,7 @@ class Auth0ConfigurationIntegrationTest {
       PrincipalReader reader = reader();
 
       // When / Then
-      assertThatThrownBy(() -> reader.read(origin + "/", "auth0|one"))
+      assertThatThrownBy(() -> reader.readEmail(origin + "/", "auth0|one"))
           .isInstanceOf(AccountUnavailableException.class);
       assertThat(forwarded.get()).isZero();
       assertThat(tokens.get()).isEqualTo(1);
