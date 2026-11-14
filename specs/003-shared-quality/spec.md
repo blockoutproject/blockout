@@ -29,7 +29,7 @@ then exercise a supplier failure and a visibility restriction.
 **Acceptance Scenarios**:
 
 1. **A01** — **Given** an application increment, **when** its qualification is prepared, **then** functional correctness and domain timing are checked without a synthetic workload, latency or capacity programme. (FR-001–FR-003)
-2. **A02** — **Given** an accepted sporting correction, **when** affected views are consulted/refreshed and derived projection processing completes, **then** they use the accepted state rather than restoring an older version. Current visibility and permissions apply even before a projection catches up; no continuous screen refresh or global propagation stopwatch is required. (FR-004, FR-005)
+2. **A02** — **Given** an accepted sporting correction, **when** an affected projection receives its next ordinary read or refresh and its processing completes, **then** it uses the accepted state. An already-loaded public sporting card or title may remain old until that event without rewriting other caches. Opening its destination still applies current server visibility and permissions; forbidden private data is withdrawn from its actual scope. No continuous screen refresh or global propagation stopwatch is required. (FR-004, FR-005)
 3. **A03** — **Given** an unavailable supplier and retained consultable data, **when** a user opens its details or calendar, **then** the accepted data remains usable under F02 with honest freshness. The supplier failure is visible to operations, not interpreted as sporting absence or successful integration. (FR-005, FR-008)
 
 ### User Story 2 — Understand application failures (Priority: P1)
@@ -153,7 +153,7 @@ As an operator who has associated club logos, I want the authorized reset not to
 - **FR-001**: No concurrency or action-rate target is retained in the current scope or deferred roadmap.
 - **FR-002**: No load-test, benchmark or capacity-study protocol is required for this scope or release.
 - **FR-003**: No numerical API latency or percentile acceptance target is retained. Ordinary correctness and bounded user waits remain required by FR-008.
-- **FR-004**: Accepted sporting changes MUST update their affected views and derived projections. New consultation/refresh MUST respect current permissions and visibility; a stale projection never authorises disclosure. Keep freshness honest and update failed projections through normal processing/manual correction. No global numerical propagation objective or continuous screen refresh is required.
+- **FR-004**: Accepted sporting changes MUST reach their affected views and derived projections through their ordinary reads and processing. Already-loaded public sporting cards, titles and calendar rows may remain old until their own next ordinary read or applicable foreground refresh; learning a public target is unavailable MUST NOT require immediate rewrites of other caches. A destination’s current server read and every protected action MUST respect current permissions and visibility; a stale projection grants no authority. Actual private refusal withdraws forbidden data, while a network failure alone revokes no authorization. Keep freshness honest and update failed projections through normal processing/manual correction. No global numerical propagation objective or continuous screen refresh is required.
 - **FR-005**: Distinguish supplier observation, acquisition, accepted integration and completed projection. Success at one step MUST NOT prove the next; failed or pending integration/projection remains diagnosable. F01 collection timing and domain-owned expiry/freshness rules remain applicable without a global performance qualification.
 
 #### Application diagnostics and bounded failures
@@ -237,7 +237,7 @@ The reproduced iOS truncation after changing system text size during use is temp
 ### Measurable Outcomes
 
 - **SC-001**: A01 verifies the qualification scope under FR-001–FR-003. No performance or capacity evidence is a release condition or deferred task.
-- **SC-002**: A02/A03 verify accepted changes across affected views, current restrictions and honest freshness. Supplier failure never becomes sporting deletion or integration success. No global propagation timing benchmark is required.
+- **SC-002**: A02/A03 verify accepted changes on ordinary projection reads, current destination restrictions, private withdrawal and honest freshness without immediate public cross-cache rewriting. Supplier failure never becomes sporting deletion or integration success. No global propagation timing benchmark is required.
 - **SC-003**: A04 verifies that absent or incomplete diagnostic observations do not establish a successful application outcome.
 - **SC-004**: A05–A07 distinguish each failing scope, partial success, unavailable readiness and positively evidenced business recovery. Diagnostics expose no forbidden content; a pause or success elsewhere never repairs a failed scope by inference.
 - **SC-005**: A08–A13 prevent unauthorized access, cross-account leaks, ordinary duplicate business effects, stale overwrite and incomplete reconstructions presented as complete. Apply each domain's explicit exceptional-delivery limits. Uncertainty never becomes invented success, and useful manual resolution does not require a generic recovery engine.

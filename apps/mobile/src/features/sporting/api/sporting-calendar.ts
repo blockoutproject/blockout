@@ -8,7 +8,6 @@ import type {
   ListMatchesParams,
   MatchCalendarResponse,
   MatchDayResponse,
-  MatchSummaryResponse,
 } from "../../../../.generated/schemas/index.zod";
 import type { createConsultationQueries } from "./consultation-queries";
 
@@ -44,27 +43,6 @@ export function refreshCalendar(
     { queryKey: options.queryKey, exact: true },
     { throwOnError: true },
   );
-}
-
-/** Filters currently unauthorized rows and their empty groups while preserving source context/cursor. */
-export function filterCalendarMatches(
-  page: MatchCalendarResponse,
-  retain: (match: MatchSummaryResponse) => boolean,
-): MatchCalendarResponse {
-  return {
-    ...page,
-    days: page.days
-      .map((day) => ({
-        ...day,
-        pools: day.pools
-          .map((pool) => ({
-            ...pool,
-            matches: pool.matches.filter(retain),
-          }))
-          .filter((pool) => pool.matches.length > 0),
-      }))
-      .filter((day) => day.pools.length > 0),
-  };
 }
 
 /** Deduplicates moved encounters for rendering without mutating the server's retained pages. */

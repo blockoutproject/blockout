@@ -1884,7 +1884,7 @@ it("retains its own calendar projection after an independent match-detail refusa
   ).toHaveLength(1);
 });
 
-it("keeps current absence across previously visited personal categories", async () => {
+it("retains a visited public category until its own ordinary refresh", async () => {
   // Given
   await mount();
   await screen.findByRole("button", {
@@ -1916,11 +1916,19 @@ it("keeps current absence across previously visited personal categories", async 
   await userEvent.press(screen.getByRole("tab", { name: "À venir" }));
 
   // Then
+  expect(
+    await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).toBeOnTheScreen();
+  expect(mockFetch).not.toHaveBeenCalled();
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
   await screen.findByText("Aucun suivi à afficher");
   expect(
     screen.queryByRole("link", { name: /Ouvrir le match Home — Away/ }),
   ).not.toBeOnTheScreen();
-  expect(mockFetch).not.toHaveBeenCalled();
 });
 
 it("captures the current loading zone when selecting a new personal season", async () => {

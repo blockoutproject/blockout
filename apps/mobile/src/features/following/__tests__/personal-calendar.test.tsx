@@ -1,7 +1,4 @@
-import {
-  InfiniteQueryObserver,
-  type InfiniteData,
-} from "@tanstack/react-query";
+import { InfiniteQueryObserver } from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react-native";
 import type { PersonalMatchCalendarResponse } from "../../../../.generated/schemas/index.zod";
 import { createQueryClient } from "@/shared/query/query-client";
@@ -286,211 +283,69 @@ it("withdraws all cached seasons after an original-account NotFound without a se
   expect(client.getQueryData(all.queryKey)).toBeUndefined();
 });
 
-it.each([sportingId, undefined])(
-  "withdraws current unavailable-follow effects from overlapping season/category caches for season %s",
-  async (seasonId) => {
-    // Given: all selections use real validated envelopes; only HTTP supplies current availability.
-    const current = createPersonalCalendarOptions(owner, request, {
-      ...selection,
-      seasonId,
-    });
-    const completed = createPersonalCalendarOptions(owner, request, {
-      ...selection,
-      category: "completed",
-    });
-    const otherSeasonId = "00000000-0000-4000-8000-000000000231";
-    const other = createPersonalCalendarOptions(owner, request, {
-      ...selection,
-      seasonId: otherSeasonId,
-    });
-    const all = createPersonalCalendarOptions(owner, request, {
-      ...selection,
-      seasonId: undefined,
-    });
-    const first = page("2026-10-29");
-    const another = page("2026-10-30", otherSeasonId);
-    const otherMatch = another.calendar.days[0].pools[0].matches[0];
-    another.calendar.days[0].pools[0].matches[0] = {
-      ...otherMatch,
-      pool: {
-        ...otherMatch.pool,
-        season: { ...otherMatch.pool.season, id: otherSeasonId },
-      },
-    };
-    mockFetch.mockResolvedValueOnce(
-      Response.json({
-        ...first,
-        calendar: {
-          ...first.calendar,
-          category: "completed",
-          nextDay: "2026-10-29",
-        },
-      }),
-    );
-    const observer = new InfiniteQueryObserver(client, completed);
-    const close = observer.subscribe(() => {});
-    await waitFor(() =>
-      expect(observer.getCurrentResult().isSuccess).toBe(true),
-    );
-    mockFetch.mockResolvedValueOnce(Response.json(another));
-    await client.infiniteQuery(other);
-    mockFetch.mockResolvedValueOnce(
-      Response.json({
-        ...first,
-        calendar: {
-          ...first.calendar,
-          days: [...first.calendar.days, ...another.calendar.days],
-        },
-      }),
-    );
-    await client.infiniteQuery(all);
-    const late = Promise.withResolvers<Response>();
-    mockFetch.mockReturnValueOnce(late.promise);
-    const append = observer.fetchNextPage();
-    await waitFor(() =>
-      expect(observer.getCurrentResult().isFetchingNextPage).toBe(true),
-    );
-    mockFetch.mockResolvedValueOnce(
-      Response.json({
-        hasAvailableFollows: false,
-        calendar: { ...first.calendar, days: [] },
-      }),
-    );
+it("retains other calendar projections after a current category has no available follows", async () => {
+  // Given
+  const current = createPersonalCalendarOptions(owner, request, selection);
+  const completed = createPersonalCalendarOptions(owner, request, {
+    ...selection,
+    category: "completed",
+  });
+  const previous = page("2026-10-29");
+  mockFetch.mockResolvedValueOnce(Response.json(previous));
+  await client.infiniteQuery(current);
+  const completedPage = {
+    ...previous,
+    calendar: { ...previous.calendar, category: "completed" },
+  };
+  mockFetch.mockResolvedValueOnce(Response.json(completedPage));
+  await client.infiniteQuery(completed);
+  const empty = {
+    hasAvailableFollows: false,
+    calendar: { ...previous.calendar, days: [] },
+  };
+  mockFetch.mockResolvedValueOnce(Response.json(empty));
 
-    // When
-    await client.fetchInfiniteQuery({ ...current, staleTime: 0 });
-    late.resolve(Response.json(first));
-    await append;
+  // When
+  await client.fetchInfiniteQuery({ ...current, staleTime: 0, pages: 1 });
 
-    // Then
-    expect(
-      observer
-        .getCurrentResult()
-        .data?.pages.flatMap((page) => page.calendar.days),
-    ).toEqual([]);
-    expect(
-      observer.getCurrentResult().data?.pages.at(-1)?.hasAvailableFollows,
-    ).toBe(false);
-    expect(observer.getCurrentResult().isFetchNextPageError).toBe(false);
-    const combined = client.getQueryData<
-      InfiniteData<PersonalMatchCalendarResponse>
-    >(all.queryKey);
-    expect(
-      combined?.pages.flatMap((page) =>
-        page.calendar.days.flatMap((day) =>
-          day.pools.flatMap((pool) =>
-            pool.matches.map((match) => match.pool.season.id),
-          ),
-        ),
-      ),
-    ).toEqual(seasonId ? [otherSeasonId] : []);
-    expect(
-      client.getQueryData<InfiniteData<PersonalMatchCalendarResponse>>(
-        other.queryKey,
-      )?.pages[0].calendar.days,
-    ).toEqual(seasonId ? another.calendar.days : []);
-    close();
-  },
-);
+  // Then
+  expect(client.getQueryData(current.queryKey)?.pages).toEqual([empty]);
+  expect(client.getQueryData(completed.queryKey)?.pages).toEqual([
+    completedPage,
+  ]);
 
-it.each(["success", "failure"])(
-  "withdraws retained omitted seasons only after a successful first options read: %s",
-  async (outcome) => {
-    // Given: the options query was evicted while ordinary retained traversals still exist.
-    const previous = page("2026-10-29");
-    const match = previous.calendar.days[0].pools[0].matches[0];
-    const omitted = match.pool.season;
-    const offered = {
-      ...omitted,
-      id: "00000000-0000-4000-8000-000000000299",
-      startYear: omitted.startYear + 1,
-    };
-    const remaining = {
-      ...match,
-      id: "00000000-0000-4000-8000-000000000298",
-      pool: { ...match.pool, season: offered },
-    };
-    const allPage = {
-      ...previous,
-      calendar: {
-        ...previous.calendar,
-        days: [
-          {
-            ...previous.calendar.days[0],
-            pools: [
-              {
-                ...previous.calendar.days[0].pools[0],
-                matches: [match, remaining],
-              },
-            ],
-          },
-        ],
-      },
-    };
-    const all = createPersonalCalendarOptions(owner, request, {
-      ...selection,
-      seasonId: undefined,
-    });
-    const exact = createPersonalCalendarOptions(owner, request, {
-      ...selection,
-      seasonId: omitted.id,
-    });
-    const bypass = createPersonalCalendarOptions(
-      owner,
-      request,
-      { ...selection, seasonId: omitted.id },
-      true,
-    );
-    client.setQueryData(all.queryKey, {
-      pages: [allPage],
-      pageParams: [undefined],
-    });
-    client.setQueryData(exact.queryKey, {
-      pages: [previous],
-      pageParams: [undefined],
-    });
-    client.setQueryData(bypass.queryKey, {
-      pages: [previous],
-      pageParams: [undefined],
-    });
-    mockFetch.mockResolvedValue(
-      outcome === "success"
-        ? Response.json({ seasons: [offered], defaultSeasonId: offered.id })
-        : new Response(null, { status: 503 }),
-    );
+  // When
+  mockFetch.mockResolvedValueOnce(
+    Response.json({
+      ...empty,
+      calendar: { ...empty.calendar, category: "completed" },
+    }),
+  );
+  await client.fetchInfiniteQuery({ ...completed, staleTime: 0, pages: 1 });
 
-    // When
-    const reload = client.fetchQuery({
-      ...createFollowOptionsQueryOptions(owner, request),
-      retryDelay: 0,
-    });
-    if (outcome === "success") {
-      await reload;
-    } else {
-      await expect(reload).rejects.toMatchObject({ status: 503 });
-    }
+  // Then
+  expect(
+    client.getQueryData(completed.queryKey)?.pages[0].hasAvailableFollows,
+  ).toBe(false);
+});
 
-    // Then
-    const retainedAll = client.getQueryData<
-      InfiniteData<PersonalMatchCalendarResponse>
-    >(all.queryKey);
-    const retainedExact = client.getQueryData<
-      InfiniteData<PersonalMatchCalendarResponse>
-    >(exact.queryKey);
-    expect(
-      retainedAll?.pages[0].calendar.days[0].pools[0].matches.map(
-        (item) => item.id,
-      ),
-    ).toEqual(
-      outcome === "success" ? [remaining.id] : [match.id, remaining.id],
-    );
-    expect(retainedExact?.pages[0].calendar.days).toEqual(
-      outcome === "success" ? [] : previous.calendar.days,
-    );
-    expect(
-      client.getQueryData<InfiniteData<PersonalMatchCalendarResponse>>(
-        bypass.queryKey,
-      )?.pages,
-    ).toEqual([previous]);
-  },
-);
+it("retains exact and All-seasons calendars when options omit a previously loaded season", async () => {
+  // Given
+  const exact = createPersonalCalendarOptions(owner, request, selection);
+  const all = createPersonalCalendarOptions(owner, request, {
+    ...selection,
+    seasonId: undefined,
+  });
+  const previous = page("2026-10-29");
+  mockFetch.mockImplementation(async () => Response.json(previous));
+  await client.infiniteQuery(exact);
+  await client.infiniteQuery(all);
+  mockFetch.mockResolvedValueOnce(Response.json({ seasons: [] }));
+
+  // When
+  await client.fetchQuery(createFollowOptionsQueryOptions(owner, request));
+
+  // Then
+  expect(client.getQueryData(exact.queryKey)?.pages).toEqual([previous]);
+  expect(client.getQueryData(all.queryKey)?.pages).toEqual([previous]);
+});

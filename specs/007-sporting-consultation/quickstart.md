@@ -102,7 +102,7 @@ Fail initial, common and independent reads on Club/Team/Pool/Match; distinguish 
 
 Hold/fail the F08 private contribution-ownership read for a contributed Match link. Its failure replaces required Match content at destination scope; Retry calls that existing read, preserves exact contribution identity and exclusive Open/Edit permissions, and keeps the card during active waiting. Back/support remain usable. The separately opened forms retain F08 recovery; no form implementation is part of this check.
 
-Correct a result/date/link, then exercise Match focus return, foreground and manual refresh. Only the addressed Match read changes; retained calendar rows/category remain under their own selection. Explicit refresh targets the active Club tab. Current refusal removes facts before a later technical failure; no provider fallback or alternate recovery owner is introduced.
+Correct a result/date/link, then exercise Match focus return, foreground and manual refresh. Only the addressed Match read changes; retained calendar rows/category and previously loaded public titles remain under their own read owners. Open the retained exact destination after sporting withdrawal: it must receive the current server refusal without rewriting those independent public projections. Their next ordinary read removes or updates the old representation. Explicit refresh targets the active Club tab. Current refusal removes the addressed sensitive facts before a later technical failure; no provider fallback or alternate recovery owner is introduced.
 
 ### Match document cases
 

@@ -11,7 +11,7 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { renderRouter } from "expo-router/testing-library";
-import { Stack, router } from "expo-router";
+import { Stack } from "expo-router";
 import { Dimensions, Linking, Text } from "react-native";
 import { useEffect, useState, useLayoutEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -41,7 +41,6 @@ import { applicationAccessResponse } from "@/shared/api/test-support/application
 import { notificationResponse } from "../test-support/notification-data";
 import { nativeNotificationResponse } from "../test-support/native-notification-data";
 import { createInboxQueries } from "../api/inbox-queries";
-import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
 import type { MatchDetailResponse } from "../../../../.generated/schemas/index.zod";
 import {
   AccessAdmissionProvider,
@@ -467,7 +466,7 @@ it("offers no fictional stream opening when the current match has no link", asyn
   expect(open).not.toHaveBeenCalled();
 });
 
-it("shows known link absence on the retained result when returning to an offline inbox", async () => {
+it("retains old public link wording on return until an ordinary inbox refresh", async () => {
   // Given: a real enriched result remains in the inbox while its current F03 link has gone.
   const linked = {
     ...row,
@@ -500,18 +499,37 @@ it("shows known link absence on the retained result when returning to an offline
   await screen.findByRole("header", { name: "Informations" });
   await user.press(screen.getByRole("button", { name: "Retour" }));
 
-  // Then: the accepted result/read/age slots survive, without presenting the old link claim.
+  // Then: the destination used current link authority; the retained public wording refreshes independently.
+  expect(
+    await screen.findByRole("link", { name: /^Un lien a été proposé/ }),
+  ).toBeOnTheScreen();
+  expect(screen).toHavePathname("/notifications");
+
+  // When
+  mockFetch.mockImplementation((url: string, init: RequestInit) =>
+    url.endsWith("/notifications")
+      ? Promise.resolve(
+          Response.json({
+            notifications: [
+              { ...linked, title: "Le lien n’est plus proposé." },
+            ],
+          }),
+        )
+      : ordinary(url, init),
+  );
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
   expect(
     await screen.findByRole("link", { name: /^Le lien n’est plus proposé./ }),
   ).toBeOnTheScreen();
   expect(
     screen.queryByRole("link", { name: /^Un lien a été proposé/ }),
   ).toBeNull();
-  expect(screen).toHavePathname("/notifications");
 });
 
-it("removes a currently unavailable match from the real inbox despite a delayed page and offline retry", async () => {
-  // Given: actual Router, F03 queries, notification state and F05 private client; HTTP is controlled.
+it("retains a public inbox row after destination refusal until ordinary refresh removes it", async () => {
+  // Given: actual Router, F03/F07 queries and the original private client; only HTTP is controlled.
   await openInbox();
   const user = userEvent.setup();
   await screen.findByRole("link", { name: /non lue$/ });
@@ -520,113 +538,45 @@ it("removes a currently unavailable match from the real inbox despite a delayed 
     { subject: "synthetic-owner", accountId: row.id },
     async () => ({}),
   );
-  const delayed = Promise.withResolvers<Response>();
   const ordinary = mockFetch.getMockImplementation();
   if (!ordinary) {
     throw new Error("Synthetic HTTP implementation is required");
   }
+  let removed = false;
   mockFetch.mockImplementation((url: string, init: RequestInit) => {
     if (url.endsWith("/notifications")) {
-      return delayed.promise;
+      return Promise.resolve(
+        Response.json({ notifications: removed ? [] : [row] }),
+      );
     }
     if (url.endsWith(`/matches/${row.match.id}`)) {
       return Promise.resolve(new Response(null, { status: 404 }));
     }
     return ordinary(url, init);
   });
-  const oldPage = privateClient
-    .fetchInfiniteQuery(queries.inbox)
-    .catch(() => undefined);
 
   // When
   await user.press(screen.getByRole("link", { name: /non lue$/ }));
   await screen.findByRole("alert");
-  await act(async () => {
-    delayed.resolve(Response.json({ notifications: [row] }));
-    await oldPage;
-  });
 
   // Then
   expect(screen).toHavePathname(`/matches/${row.match.id}`);
   expect(screen.queryByRole("link", { name: "Ouvrir le lien" })).toBeNull();
   expect(
     privateClient.getQueryData(queries.inbox.queryKey)?.pages[0].notifications,
-  ).toEqual([]);
+  ).toEqual([row]);
 
-  // When
-  mockFetch.mockRejectedValue(new TypeError("offline"));
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  // When: returning preserves the old public row until its own successful read.
+  await user.press(screen.getByRole("button", { name: "Retour" }));
+  await screen.findByText(row.title);
+  removed = true;
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
-  expect(await screen.findByRole("alert")).toBeOnTheScreen();
+  await screen.findByText("Aucune notification pour le moment");
   expect(
     privateClient.getQueryData(queries.inbox.queryKey)?.pages[0].notifications,
   ).toEqual([]);
-});
-
-it("keeps current-match restriction handling mounted while this subject's private reads are suspended", async () => {
-  // Given: a current-account refusal suspends F07 queries without replacing the F05 private client.
-  await openInbox();
-  await screen.findByRole("link", { name: /non lue$/ });
-  privateClient.setDefaultOptions({ queries: { retry: false } });
-  const queries = createInboxQueries(
-    { subject: "synthetic-owner", accountId: row.id },
-    async () => ({}),
-  );
-  const ordinary = mockFetch.getMockImplementation();
-  if (!ordinary) {
-    throw new Error("Synthetic HTTP implementation is required");
-  }
-  let suspended = true;
-  mockFetch.mockImplementation((url: string, init: RequestInit) => {
-    if (url.endsWith("accounts/me")) {
-      return suspended
-        ? Promise.resolve(new Response(null, { status: 403 }))
-        : ordinary(url, init);
-    }
-    if (url.endsWith(`/matches/${row.match.id}`)) {
-      return Promise.resolve(new Response(null, { status: 404 }));
-    }
-    if (url.endsWith("/notifications")) {
-      return Promise.reject(new TypeError("offline private refresh"));
-    }
-    return ordinary(url, init);
-  });
-  await act(async () => {
-    await privateClient.invalidateQueries({
-      queryKey: getGetMyAccountQueryKey(),
-      exact: true,
-    });
-  });
-  await waitFor(() =>
-    expect(screen.queryByRole("link", { name: /non lue$/ })).toBeNull(),
-  );
-
-  // When: public F03 consultation remains possible during this suspension.
-  await act(async () => router.push(`/matches/${row.match.id}`));
-  await screen.findByRole("alert");
-
-  // Then
-  expect(
-    privateClient.getQueryData(queries.inbox.queryKey)?.pages[0].notifications,
-  ).toEqual([]);
-
-  // When: the same account returns, while the ordinary inbox refresh is offline.
-  suspended = false;
-  await act(async () => {
-    await privateClient.invalidateQueries({
-      queryKey: getGetMyAccountQueryKey(),
-      exact: true,
-    });
-    router.back();
-  });
-
-  // Then
-  await waitFor(() => expect(screen).toHavePathname("/notifications"));
-  expect(
-    privateClient.getQueryData(queries.inbox.queryKey)?.pages[0].notifications,
-  ).toEqual([]);
-  expect(screen.queryByRole("link", { name: /non lue$/ })).toBeNull();
 });
 
 it("keeps the match available after a failed stream handoff and retries only on another press", async () => {
