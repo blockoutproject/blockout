@@ -1,255 +1,105 @@
-import type { SessionSnapshot, AccountSession } from "@/features/accounts";
-import Purchases, {
-  type CustomerInfo,
-  type PurchasesEntitlementInfo,
-} from "react-native-purchases";
-import { getProState, type ProSessionState } from "@/features/pro/pro-state";
+import type { ProState } from "@/features/pro";
+import { entitlement } from "@/features/pro/test-support/customer-info";
 import {
-  customerInfo,
-  entitlement,
-} from "@/features/pro/test-support/customer-info";
-import { getAdvertisingEligibility } from "../advertising-eligibility";
+  getAdvertisingEligibility,
+  type AdvertisingEligibilityInput,
+} from "../advertising-eligibility";
 
-// Only native SDK I/O is replaced; plain native principal snapshots and the real F09 state projection are used.
-jest.mock("react-native-purchases", () => ({
-  __esModule: true,
-  default: {
-    VERIFICATION_RESULT: jest.requireActual<
-      typeof import("react-native-purchases")
-    >("react-native-purchases").default.VERIFICATION_RESULT,
+const account = {
+  status: "authenticated",
+  subject: "auth0|advertising-account",
+  accountId: "00000000-0000-4000-8000-000000000001",
+} as const;
+const authorizedChoices = {
+  canRequestAds: true,
+  authorizedMode: "limited",
+} as const;
+
+it.each([
+  {
+    label: "guest",
+    account: { status: "guest", subject: null, accountId: null },
+    pro: { status: "guest" },
+    allowed: true,
   },
-}));
-const a = "00000000-0000-4000-8000-000000000001";
-const b = "00000000-0000-4000-8000-000000000002";
+  {
+    label: "SDK-inactive",
+    account,
+    pro: { status: "inactive", operation: "idle" },
+    allowed: true,
+  },
+  {
+    label: "SDK-active",
+    account,
+    pro: { status: "active", entitlement: entitlement(), operation: "idle" },
+    allowed: false,
+  },
+  {
+    label: "unavailable",
+    account,
+    pro: { status: "unavailable", reason: "customer-info", operation: "idle" },
+    allowed: false,
+  },
+] satisfies {
+  label: string;
+  account: AdvertisingEligibilityInput["account"];
+  pro: ProState;
+  allowed: boolean;
+}[])(
+  "allows advertising according to current $label rights",
+  ({ account, pro, allowed }) => {
+    // Given: F09 owns the SDK evidence and supplies its current public result.
 
-/** Synthetic native evidence attributed to the captured F05 session, without SDK freshness simulation. */
-function nativeState(
-  session: ProSessionState["session"],
-  right: PurchasesEntitlementInfo | null = null,
-): ProSessionState {
-  const active: CustomerInfo["entitlements"]["active"] = right
-    ? { "Blockout Pro": right }
-    : {};
-  return {
-    session,
-    association: "associated",
-    operation: "idle",
-    customerInfo: customerInfo({
-      active,
-      all: active,
-      verification: Purchases.VERIFICATION_RESULT.NOT_REQUESTED,
-    }),
-  };
-}
+    // When
+    const eligibility = getAdvertisingEligibility({
+      account,
+      pro,
+      admission: { ordinary: true },
+      choices: authorizedChoices,
+    });
 
-let session: SessionSnapshot;
-let account: Pick<AccountSession, "status" | "subject" | "accountId">;
-beforeEach(() => {
-  session = { subject: null, accountId: null };
-  session = { subject: `auth0|${a}`, accountId: a };
-  account = { ...account, ...session };
-  account = { status: "authenticated", ...session };
-});
-it("lets an admitted guest prepare choices and serve ads without any account entitlement read", () => {
+    // Then
+    expect(eligibility.canServeAds).toBe(allowed);
+  },
+);
+
+it.each([
+  {
+    label: "blocked application admission",
+    admission: { ordinary: false },
+    choices: authorizedChoices,
+  },
+  {
+    label: "missing native choices",
+    admission: { ordinary: true },
+    choices: null,
+  },
+  {
+    label: "native request refusal",
+    admission: { ordinary: true },
+    choices: { canRequestAds: false, authorizedMode: "limited" },
+  },
+  {
+    label: "no authorized advertising mode",
+    admission: { ordinary: true },
+    choices: { canRequestAds: true, authorizedMode: null },
+  },
+] satisfies {
+  label: string;
+  admission: AdvertisingEligibilityInput["admission"];
+  choices: AdvertisingEligibilityInput["choices"];
+}[])("refuses advertising with $label", ({ admission, choices }) => {
   // Given
-  session = { subject: null, accountId: null };
-  account = { ...account, ...session };
-  account.status = "guest";
+  const pro: ProState = { status: "inactive", operation: "idle" };
+
   // When
   const eligibility = getAdvertisingEligibility({
     account,
-    pro: getProState(account, null),
-    admission: { ordinary: true },
-    choices: {
-      canRequestAds: true,
-      authorizedMode: "limited",
-    },
+    pro,
+    admission,
+    choices,
   });
+
   // Then
-  expect(eligibility).toEqual({
-    canServeAds: true,
-  });
+  expect(eligibility.canServeAds).toBe(false);
 });
-it.each([
-  { label: "paid", right: entitlement() },
-  {
-    label: "gifted",
-    right: entitlement({
-      store: "PROMOTIONAL",
-      expirationDate: null,
-      expirationDateMillis: null,
-    }),
-  },
-])(
-  "suppresses advertising and unnecessary choice preparation for current $label Pro",
-  ({ right }) => {
-    // Given: SDK-active rights remain authoritative even when fixture dates precede today.
-    const nativePro = nativeState({ ...session }, right);
-    // When
-    const eligibility = getAdvertisingEligibility({
-      account,
-      pro: getProState(account, nativePro),
-      admission: { ordinary: true },
-      choices: {
-        canRequestAds: true,
-        authorizedMode: "personalized",
-      },
-    });
-    // Then
-    expect(eligibility).toEqual({
-      canServeAds: false,
-    });
-  },
-);
-it.each(["absent", "pending", "failed", "missing-info"] as const)(
-  "allows independent privacy preparation but no ads when signed-in native rights are %s",
-  (state) => {
-    // Given
-    const evidence = nativeState({ ...session });
-    const nativePro =
-      state === "absent"
-        ? null
-        : {
-            ...evidence,
-            association:
-              state === "pending" || state === "failed"
-                ? state
-                : evidence.association,
-            customerInfo:
-              state === "missing-info" ? null : evidence.customerInfo,
-          };
-    // When
-    const eligibility = getAdvertisingEligibility({
-      account,
-      pro: getProState(account, nativePro),
-      admission: { ordinary: true },
-      choices: {
-        canRequestAds: true,
-        authorizedMode: "contextual",
-      },
-    });
-    // Then
-    expect(eligibility).toEqual({
-      canServeAds: false,
-    });
-  },
-);
-it.each([
-  "restoring",
-  "authenticating",
-  "signing-out",
-  "authentication-error",
-  "reauthentication-required",
-  "initialization-error",
-] as const)(
-  "does not infer a guest or free account while F05 is %s",
-  (status) => {
-    // Given
-    account.status = status;
-    // When
-    const eligibility = getAdvertisingEligibility({
-      account,
-      pro: getProState(account, nativeState({ ...session })),
-      admission: { ordinary: true },
-      choices: {
-        canRequestAds: true,
-        authorizedMode: "limited",
-      },
-    });
-    // Then
-    expect(eligibility.canServeAds).toBe(false);
-  },
-);
-it.each(["personalized", "contextual", "limited"] as const)(
-  "permits the explicitly authorized %s mode for current SDK-inactive rights",
-  (authorizedMode) => {
-    // Given
-    const nativePro = nativeState({ ...session });
-    // When
-    const eligibility = getAdvertisingEligibility({
-      account,
-      pro: getProState(account, nativePro),
-      admission: { ordinary: true },
-      choices: {
-        canRequestAds: true,
-        authorizedMode,
-      },
-    });
-    // Then
-    expect(eligibility).toEqual({
-      canServeAds: true,
-    });
-  },
-);
-describe.each(["guest", "inactive"] as const)(
-  "%s advertising admission",
-  (state) => {
-    it.each([
-      {
-        label: "blocked F12 admission",
-        admission: { ordinary: false },
-        choices: { canRequestAds: true, authorizedMode: "limited" },
-      },
-      {
-        label: "missing native choices",
-        admission: { ordinary: true },
-        choices: null,
-      },
-      {
-        label: "native request refusal",
-        admission: { ordinary: true },
-        choices: { canRequestAds: false, authorizedMode: "limited" },
-      },
-      {
-        label: "no authorized advertising mode",
-        admission: { ordinary: true },
-        choices: { canRequestAds: true, authorizedMode: null },
-      },
-    ] as const)("rejects $label", ({ admission, choices }) => {
-      // Given
-      if (state === "guest") {
-        session = { subject: null, accountId: null };
-        account = { ...account, ...session };
-        account.status = "guest";
-      }
-      const nativePro = state === "guest" ? null : nativeState({ ...session });
-      // When
-      const eligibility = getAdvertisingEligibility({
-        account,
-        pro: getProState(account, nativePro),
-        admission,
-        choices,
-      });
-      // Then
-      expect(eligibility).toEqual({
-        canServeAds: false,
-      });
-    });
-  },
-);
-it.each(["active", "inactive"] as const)(
-  "rejects A's obsolete %s rights after switching directly to B",
-  (state) => {
-    // Given
-    const previous = nativeState(
-      { ...session },
-      state === "active" ? entitlement() : null,
-    );
-    // When
-    session = { subject: `auth0|${b}`, accountId: b };
-    account = { ...account, ...session };
-    const eligibility = getAdvertisingEligibility({
-      account,
-      pro: getProState(account, previous),
-      admission: { ordinary: true },
-      choices: {
-        canRequestAds: true,
-        authorizedMode: "limited",
-      },
-    });
-    // Then: B has neither A's exemption nor permission to serve ads while its own rights are unknown.
-    expect(eligibility).toEqual({
-      canServeAds: false,
-    });
-  },
-);

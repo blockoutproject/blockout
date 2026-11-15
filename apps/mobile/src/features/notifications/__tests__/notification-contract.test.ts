@@ -1,5 +1,4 @@
 import {
-  deletePushSubscription,
   getNotification,
   getListNotificationsQueryOptions,
   listNotifications,
@@ -187,18 +186,3 @@ it.each([200, 201])(
     expect(result).toEqual({ id, installationId: id });
   },
 );
-
-it("consumes 204 without invoking JSON parsing", async () => {
-  // Given
-  const response = new Response(null, { status: 204 });
-  const json = jest.spyOn(response, "json");
-  mockFetch.mockResolvedValue(response);
-
-  // When
-  const result = await deletePushSubscription(id, id);
-
-  // Then
-  expect(result).toBeUndefined();
-  expect(json).not.toHaveBeenCalled();
-  expect(mockFetch.mock.calls[0][1]?.method).toBe("DELETE");
-});

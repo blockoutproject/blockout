@@ -202,34 +202,33 @@ it("preserves the existing image when native selection is cancelled", async () =
   ).toBeOnTheScreen();
 });
 
-it.each(["ERR_USER_REJECTED_PERMISSIONS"])(
-  "keeps selection usable after native refusal/failure %s without disclosing provider text",
-  async (code) => {
-    // Given
-    launch.mockRejectedValueOnce(
-      Object.assign(new Error("private path/provider detail"), { code }),
-    );
-    const user = userEvent.setup();
-    const onSelect = jest.fn();
-    await renderField({ onSelect, images: [logo] });
+it("keeps selection usable after native permission refusal without disclosing provider text", async () => {
+  // Given
+  launch.mockRejectedValueOnce(
+    Object.assign(new Error("private path/provider detail"), {
+      code: "ERR_USER_REJECTED_PERMISSIONS",
+    }),
+  );
+  const user = userEvent.setup();
+  const onSelect = jest.fn();
+  await renderField({ onSelect, images: [logo] });
 
-    // When
-    await user.press(
-      screen.getByRole("button", { name: "Changer l’image : Logo du club" }),
-    );
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Changer l’image : Logo du club" }),
+  );
 
-    // Then
-    expect(await screen.findByRole("alert")).toHaveTextContent(TECHNICAL_ERROR);
-    expect(screen.queryByText(/private path/)).not.toBeOnTheScreen();
-    expect(onSelect).not.toHaveBeenCalled();
-    expect(
-      screen.getByRole("button", {
-        name: "Changer l’image : Logo du club",
-        disabled: false,
-      }),
-    ).toBeOnTheScreen();
-  },
-);
+  // Then
+  expect(await screen.findByRole("alert")).toHaveTextContent(TECHNICAL_ERROR);
+  expect(screen.queryByText(/private path/)).not.toBeOnTheScreen();
+  expect(onSelect).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole("button", {
+      name: "Changer l’image : Logo du club",
+      disabled: false,
+    }),
+  ).toBeOnTheScreen();
+});
 
 it("keeps the attachment passive without changing caller values", async () => {
   // Given

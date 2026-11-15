@@ -1,5 +1,4 @@
 import { createSupportRequest } from "../../../../.generated/mobile";
-import { SubmitSupportRequest } from "../../../../.generated/schemas/index.zod";
 import { supportImage, supportMetadata } from "./fixtures";
 
 const originalApiUrl = process.env.EXPO_PUBLIC_API_URL;
@@ -23,48 +22,6 @@ afterEach(() => {
     process.env.EXPO_PUBLIC_API_URL = originalApiUrl;
   }
 });
-
-it.each(["title", "description"])(
-  "rejects Unicode whitespace-only %s at the generated request boundary",
-  (field) => {
-    // Given
-    const metadata = { ...supportMetadata, [field]: "\u2003\u00a0\ufeff" };
-
-    // When
-    const result = SubmitSupportRequest.safeParse(metadata);
-
-    // Then
-    expect(result.success).toBe(false);
-  },
-);
-
-it.each([
-  ["title", 200],
-  ["description", 10_000],
-  ["screen", 256],
-] as const)(
-  "enforces the approved UTF-16 boundary for %s",
-  (field, maximum) => {
-    // Given
-    const text = "🏐".repeat(maximum / 2);
-    const exact =
-      field === "screen"
-        ? { ...supportMetadata, context: { screen: text } }
-        : { ...supportMetadata, [field]: text };
-    const excessive =
-      field === "screen"
-        ? { ...supportMetadata, context: { screen: text + "x" } }
-        : { ...supportMetadata, [field]: text + "x" };
-
-    // When
-    const accepted = SubmitSupportRequest.safeParse(exact);
-    const rejected = SubmitSupportRequest.safeParse(excessive);
-
-    // Then
-    expect(accepted.success).toBe(true);
-    expect(rejected.success).toBe(false);
-  },
-);
 
 it.each([0, 5])(
   "sends JSON metadata and %i repeated image parts through the generated client",

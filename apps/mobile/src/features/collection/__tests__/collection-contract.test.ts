@@ -63,6 +63,7 @@ it.each([
   ["an omitted required nullable timestamp", { lastSuccessAt: undefined }],
   ["a null optional season", { seasonId: null }],
   ["an invalid known timestamp", { lastAttemptAt: "not-a-date" }],
+  ["an impossible calendar date", { lastAttemptAt: "2026-02-31T12:00:00Z" }],
 ])(
   "rejects %s before accepting collection state",
   async (_scenario, invalid) => {

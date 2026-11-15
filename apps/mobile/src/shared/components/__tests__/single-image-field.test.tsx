@@ -87,84 +87,74 @@ describe.each(["ios", "android"] as const)(
       jest.replaceProperty(Platform, "OS", platform);
     });
 
-    it.each([
-      { appearance: "photo" as const, label: "Photo de profil", loading: true },
-    ])(
-      "keeps authorized $appearance choice and local reset available without a displayed image",
-      async ({ appearance, label, loading }) => {
-        // Given
-        const user = userEvent.setup();
-        const remove = jest.fn();
-        const select = jest.fn();
-        await render(
-          <EditableImage
-            label={label}
-            appearance={appearance}
-            hasImage
-            loading={loading}
-            helper="PNG/JPEG · 5 Mio maximum"
-            onSelect={select}
-            onRemove={remove}
-            removeLabel="Rétablir l’image automatique"
-          />,
-          { wrapper: MediaProviders },
-        );
+    it("keeps authorized photo choice and local reset available without a displayed image", async () => {
+      // Given
+      const label = "Photo de profil";
+      const user = userEvent.setup();
+      const remove = jest.fn();
+      const select = jest.fn();
+      await render(
+        <EditableImage
+          label={label}
+          appearance="photo"
+          hasImage
+          loading
+          helper="PNG/JPEG · 5 Mio maximum"
+          onSelect={select}
+          onRemove={remove}
+          removeLabel="Rétablir l’image automatique"
+        />,
+        { wrapper: MediaProviders },
+      );
 
-        // When
-        await user.press(
-          screen.getByRole("button", { name: "Modifier l’image" }),
-        );
+      // When
+      await user.press(
+        screen.getByRole("button", { name: "Modifier l’image" }),
+      );
 
-        // Then
-        expect([...nativeImageChoiceLabels()].sort()).toEqual(
-          [
-            "Choisir une image",
-            "Rétablir l’image automatique",
-            "Annuler",
-          ].sort(),
+      // Then
+      expect([...nativeImageChoiceLabels()].sort()).toEqual(
+        ["Choisir une image", "Rétablir l’image automatique", "Annuler"].sort(),
+      );
+      expect(
+        screen.queryByRole("button", { name: /Aperçu/ }),
+      ).not.toBeOnTheScreen();
+      expect(
+        screen.queryByRole("button", { name: "Réessayer" }),
+      ).not.toBeOnTheScreen();
+      expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
+      if (platform === "ios") {
+        expect(ActionSheetIOS.showActionSheetWithOptions).toHaveBeenCalledWith(
+          {
+            title: label,
+            options: [
+              "Choisir une image",
+              "Rétablir l’image automatique",
+              "Annuler",
+            ],
+            cancelButtonIndex: 2,
+            destructiveButtonIndex: 1,
+          },
+          expect.any(Function),
         );
+        expect(Alert.alert).not.toHaveBeenCalled();
+      } else {
+        expect(jest.mocked(Alert.alert).mock.lastCall?.[1]).toBeUndefined();
         expect(
-          screen.queryByRole("button", { name: /Aperçu/ }),
-        ).not.toBeOnTheScreen();
-        expect(
-          screen.queryByRole("button", { name: "Réessayer" }),
-        ).not.toBeOnTheScreen();
-        expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
-        if (platform === "ios") {
-          expect(
-            ActionSheetIOS.showActionSheetWithOptions,
-          ).toHaveBeenCalledWith(
-            {
-              title: label,
-              options: [
-                "Choisir une image",
-                "Rétablir l’image automatique",
-                "Annuler",
-              ],
-              cancelButtonIndex: 2,
-              destructiveButtonIndex: 1,
-            },
-            expect.any(Function),
-          );
-          expect(Alert.alert).not.toHaveBeenCalled();
-        } else {
-          expect(jest.mocked(Alert.alert).mock.lastCall?.[1]).toBeUndefined();
-          expect(
-            ActionSheetIOS.showActionSheetWithOptions,
-          ).not.toHaveBeenCalled();
-        }
+          ActionSheetIOS.showActionSheetWithOptions,
+        ).not.toHaveBeenCalled();
+      }
 
-        // When
-        await act(() =>
-          nativeImageChoiceAction("Rétablir l’image automatique")(),
-        );
+      // When
+      await act(() =>
+        nativeImageChoiceAction("Rétablir l’image automatique")(),
+      );
 
-        // Then
-        expect(remove).toHaveBeenCalledTimes(1);
-        expect(select).not.toHaveBeenCalled();
-        expect(launch).not.toHaveBeenCalled();
-      },
-    );
+      // Then
+      expect(remove).toHaveBeenCalledTimes(1);
+      expect(select).not.toHaveBeenCalled();
+      expect(launch).not.toHaveBeenCalled();
+    });
 
     it("cancels without work and prevents a duplicate or old callback from consuming a later menu", async () => {
       // Given

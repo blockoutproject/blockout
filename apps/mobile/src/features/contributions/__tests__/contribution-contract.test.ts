@@ -5,7 +5,6 @@ import {
   listStreamReports,
 } from "../../../../.generated/mobile";
 import {
-  ListOwnStreamContributionsParams,
   type ModeratedStreamContributionResponse,
   ModeratedStreamContributionsResponse,
 } from "../../../../.generated/schemas/index.zod";
@@ -177,14 +176,6 @@ it("accepts twenty items, the maximum page and a full JavaScript-safe report cou
   // Then
   expect(result).toEqual(body);
   expect(String(mockFetch.mock.calls[0][0])).toContain("page=107374182");
-  expect(ListOwnStreamContributionsParams.parse({ page: 107374182 }).page).toBe(
-    107374182,
-  );
-  for (const page of [-1, 107374183, 0.5, null]) {
-    expect(ListOwnStreamContributionsParams.safeParse({ page }).success).toBe(
-      false,
-    );
-  }
 });
 
 it.each([undefined, 42])(

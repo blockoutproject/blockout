@@ -85,27 +85,15 @@ function CacheConsumer() {
   });
 
   return (
-    <>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Update cached count"
-        onPress={() => {
-          client.setQueryData(["root-cache-probe"], 4);
-          client.setQueryData(["private-probe"], "private");
-        }}
-      >
-        <Text>Count: {data}</Text>
-      </Pressable>
-      <Text>
-        Private probe cached:{" "}
-        {client
-          .getQueryCache()
-          .getAll()
-          .some(({ queryKey }) => queryKey.at(-1) === "private-probe")
-          ? "yes"
-          : "no"}
-      </Text>
-    </>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Update cached count"
+      onPress={() => {
+        client.setQueryData(["root-cache-probe"], 4);
+      }}
+    >
+      <Text>Count: {data}</Text>
+    </Pressable>
   );
 }
 
