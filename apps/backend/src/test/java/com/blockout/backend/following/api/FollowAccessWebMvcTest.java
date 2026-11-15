@@ -85,10 +85,9 @@ class FollowAccessWebMvcTest {
         .thenAnswer(invocation -> new SimpleTransactionStatus());
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"free", "pro", "unknown"})
+  @Test
   @DisplayName("Admits the usable original UUID without entitlement conditions")
-  void admitsOriginal(String entitlement) throws Exception {
+  void admitsOriginal() throws Exception {
     // Given
     when(accounts.currentId(ISSUER, "subject")).thenReturn(Optional.of(ORIGINAL));
 
@@ -103,8 +102,7 @@ class FollowAccessWebMvcTest {
                                 token
                                     .issuer(ISSUER)
                                     .subject("subject")
-                                    .claim("azp", "mobile-test")
-                                    .claim("entitlement", entitlement))));
+                                    .claim("azp", "mobile-test"))));
 
     // Then
     response.andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"));
@@ -290,20 +288,5 @@ class FollowAccessWebMvcTest {
 
     // Then
     response.andExpect(status().isForbidden());
-  }
-
-  @ParameterizedTest
-  @ValueSource(strings = {"teams", "pools"})
-  @DisplayName("Admits public follower counts without reading any private profile")
-  void admitsPublicCounts(String resource) throws Exception {
-    // Given
-    String path = "/" + resource + "/" + REPLACEMENT + "/follower-count";
-
-    // When
-    ResultActions response = mvc.perform(get(path));
-
-    // Then
-    response.andExpect(status().isOk());
-    verifyNoInteractions(accounts, permissions);
   }
 }

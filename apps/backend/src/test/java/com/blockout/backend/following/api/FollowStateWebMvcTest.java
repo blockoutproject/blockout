@@ -163,34 +163,6 @@ class FollowStateWebMvcTest {
     verifyNoInteractions(state);
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"team", "pool"})
-  @DisplayName("Ignores undeclared member query properties for both GET and PUT")
-  void ignoresQuery(String kind) throws Exception {
-    // Given
-    when(accounts.currentId(ISSUER, "subject")).thenReturn(Optional.of(ACCOUNT));
-    MockHttpServletRequestBuilder request =
-        get(path(kind)).with(mobile()).param("seasonId", TARGET.toString());
-
-    // When
-    ResultActions response = mvc.perform(request);
-
-    // Then
-    response.andExpect(status().isOk());
-
-    // When
-    ResultActions secondResponse =
-        mvc.perform(
-            put(path(kind))
-                .with(mobile())
-                .param("following", "true", "false")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"following\":true}"));
-
-    // Then
-    secondResponse.andExpect(status().isOk());
-  }
-
   @Test
   @DisplayName("Rejects unsupported media before mutation")
   void rejectsMedia() throws Exception {

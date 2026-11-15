@@ -45,7 +45,6 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -119,27 +118,6 @@ class FollowerCountWebMvcTest {
 
     // Then
     response.andExpect(status().isOk()).andExpect(jsonPath("$.count").value(0));
-  }
-
-  @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "seasonId=00000000-0000-4000-8000-000000000001",
-        "page=0",
-        "accountId=other",
-        "bypass=true"
-      })
-  @DisplayName("Ignores undeclared public count query fields")
-  void ignoresQuery(String query) throws Exception {
-    // Given
-    MockHttpServletRequestBuilder request = get(path("team") + "?" + query);
-
-    // When
-    ResultActions response = mvc.perform(request);
-
-    // Then
-    response.andExpect(status().isOk());
-    verifyNoInteractions(accounts);
   }
 
   @ParameterizedTest

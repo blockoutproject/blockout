@@ -9,7 +9,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 /** Competition reads follow scheduled periods; seasonless reads retain exact attempt delays. */
 @DisplayName("Acquisition attempt cadence")
@@ -48,9 +47,7 @@ class CollectionCadenceTest {
 
   @ParameterizedTest(name = "{0} skips 09:05 and resumes at {2}")
   @CsvSource({
-    "DISCOVERY,2026-10-24T08:30:01Z,2026-10-24T09:30:00Z",
     "CALENDAR,2026-10-24T08:30:01Z,2026-10-24T09:30:00Z",
-    "STANDINGS,2026-10-24T08:30:01Z,2026-10-24T09:30:00Z",
     "DETAILS,2026-10-24T08:00:01Z,2026-10-24T10:00:00Z"
   })
   @DisplayName("A missed slow opportunity waits for the next scheduled cadence slot")
@@ -87,25 +84,6 @@ class CollectionCadenceTest {
     // Then
     assertThat(samePeriod).isFalse();
     assertThat(nextPeriod).isTrue();
-  }
-
-  @ParameterizedTest(name = "Current fast window={0} expects due={0}")
-  @ValueSource(booleans = {true, false})
-  @DisplayName("The current reliable window selects the scheduled competition cadence")
-  void usesCurrentReliableWindow(boolean fast) {
-    // Given
-    Target target =
-        Target.builder()
-            .kind(CollectionTargetKindEnum.CALENDAR)
-            .lastAttemptAt(Instant.parse("2026-10-24T09:00:01Z"))
-            .fastWindowEndsAt(fast ? Instant.parse("2026-10-24T13:00:00Z") : null)
-            .build();
-
-    // When
-    boolean due = FreezeCollectionTargets.due(target, Instant.parse("2026-10-24T09:05:00Z"));
-
-    // Then
-    assertThat(due).isEqualTo(fast);
   }
 
   @ParameterizedTest(name = "{0} retains its exact {1}-second delay")

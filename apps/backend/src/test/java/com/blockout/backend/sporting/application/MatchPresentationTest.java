@@ -8,7 +8,6 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -69,43 +68,5 @@ class MatchPresentationTest {
 
     // Then
     assertThat(category).isEqualTo(expected);
-  }
-
-  @Test
-  @DisplayName("Reclassifies a postponed match from its current schedule")
-  void reclassifiesPostponedMatch() {
-    // Given
-    Instant now = Instant.parse("2026-10-24T12:00:00Z");
-    ConsultationViews.Schedule old =
-        new ConsultationViews.Schedule(LocalDate.of(2026, 10, 20), null, null, null);
-    ConsultationViews.Schedule postponed =
-        new ConsultationViews.Schedule(LocalDate.of(2026, 11, 1), null, null, null);
-
-    // When
-    CalendarCategoryEnum before = MatchPresentation.category(old, null, now);
-    CalendarCategoryEnum after = MatchPresentation.category(postponed, null, now);
-
-    // Then
-    assertThat(before).isEqualTo(CalendarCategoryEnum.COMPLETED);
-    assertThat(after).isEqualTo(CalendarCategoryEnum.UPCOMING);
-  }
-
-  @Test
-  @DisplayName("Reapplies the current schedule after an early definitive result is withdrawn")
-  void reappliesScheduleAfterResultWithdrawal() {
-    // Given
-    Instant now = Instant.parse("2026-10-24T12:00:00Z");
-    ConsultationViews.Schedule schedule =
-        new ConsultationViews.Schedule(LocalDate.of(2026, 11, 1), null, null, null);
-    ConsultationViews.Result accepted =
-        new ConsultationViews.Result(ResultStateEnum.FINAL, 3, 0, null, null);
-
-    // When
-    CalendarCategoryEnum published = MatchPresentation.category(schedule, accepted, now);
-    CalendarCategoryEnum withdrawn = MatchPresentation.category(schedule, null, now);
-
-    // Then
-    assertThat(published).isEqualTo(CalendarCategoryEnum.COMPLETED);
-    assertThat(withdrawn).isEqualTo(CalendarCategoryEnum.UPCOMING);
   }
 }

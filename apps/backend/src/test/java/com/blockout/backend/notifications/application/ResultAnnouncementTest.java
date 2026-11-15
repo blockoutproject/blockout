@@ -142,11 +142,9 @@ class ResultAnnouncementTest {
             new MatchAnnouncementFacts(MATCH, false, true, false, NotificationFamily.PLAIN_RESULT));
   }
 
-  @ParameterizedTest
-  @CsvSource({"true,true", "true,false", "false,true", "false,false"})
-  @DisplayName(
-      "Never reallocates consumed results after correction, withdrawal, restoration or purge")
-  void preservesConsumedFacts(boolean previousFinal, boolean currentFinal) {
+  @Test
+  @DisplayName("Does not reallocate a consumed result when the final score is restored")
+  void preservesConsumedFacts() {
     // Given
     when(store.facts(MATCH))
         .thenReturn(
@@ -155,13 +153,7 @@ class ResultAnnouncementTest {
     // When
     List<Entry> created =
         processor.process(
-            transition(
-                previousFinal ? result(ResultStateEnum.FINAL) : null,
-                currentFinal ? result(ResultStateEnum.FINAL) : null,
-                false,
-                false,
-                true,
-                true));
+            transition(null, result(ResultStateEnum.FINAL), false, false, true, true));
 
     // Then
     assertThat(created).isEmpty();

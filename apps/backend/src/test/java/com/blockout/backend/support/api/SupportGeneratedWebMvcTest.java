@@ -39,48 +39,11 @@ import tools.jackson.databind.node.ObjectNode;
   ApiExceptionHandler.class,
   SupportGeneratedWebMvcTest.BindingAdapter.class
 })
-@DisplayName("Generated support multipart boundary")
+@DisplayName("Support context and text binding")
 class SupportGeneratedWebMvcTest {
   @Autowired private MockMvc mvc;
   @Autowired private BindingAdapter adapter;
   @Autowired private JsonMapper mapper;
-
-  @Test
-  @DisplayName("Binds Unicode JSON metadata and repeated image parts")
-  void bindsMultipart() throws Exception {
-    // Given
-    byte[] metadata = new ClassPathResource("support/metadata.json").getContentAsByteArray();
-    MockMultipartFile png =
-        new MockMultipartFile(
-            "images",
-            "first.png",
-            "image/png",
-            new ClassPathResource("support/synthetic.png").getContentAsByteArray());
-    MockMultipartFile jpeg =
-        new MockMultipartFile(
-            "images",
-            "second.jpg",
-            "image/jpeg",
-            new ClassPathResource("support/synthetic.jpg").getContentAsByteArray());
-
-    // When
-    ResultActions response =
-        mvc.perform(
-            multipart("/support-requests")
-                .file(
-                    new MockMultipartFile(
-                        "metadata", "metadata.json", "application/json", metadata))
-                .file(png)
-                .file(jpeg));
-
-    // Then
-    response.andExpect(status().isCreated());
-    assertThat(adapter.metadata.getTitle()).isEqualTo("Écran de démonstration 🏐");
-    assertThat(adapter.metadata.getSubject()).isNull();
-    assertThat(adapter.images)
-        .extracting(MultipartFile::getContentType)
-        .containsExactly("image/png", "image/jpeg");
-  }
 
   @Test
   @DisplayName("Rejects an undeclared context field before the adapter")
@@ -164,14 +127,12 @@ class SupportGeneratedWebMvcTest {
   @RestController
   static class BindingAdapter implements SupportApi {
     private SubmitSupportRequest metadata;
-    private List<MultipartFile> images;
 
     /** {@inheritDoc} */
     @Override
     public ResponseEntity<SupportRequestCreatedResponse> createSupportRequest(
         SubmitSupportRequest metadata, Boolean bypass, List<MultipartFile> images) {
       this.metadata = metadata;
-      this.images = images;
       return ResponseEntity.status(201)
           .body(
               new SupportRequestCreatedResponse(

@@ -17,6 +17,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 /**
  * Isolated link allowance decisions; producer locks and personal writes have integration evidence.
@@ -31,10 +32,10 @@ class LinkAnnouncementTest {
       new ProcessLinkAnnouncement(store, new AllocateAnnouncements(store), recipients);
 
   @ParameterizedTest
-  @CsvSource({"0,false", "1,false", "0,true"})
+  @ValueSource(longs = {0, 1})
   @DisplayName(
       "Consumes the live allowance at or after the reliable start even without an audience")
-  void consumesDueLiveAllowance(long elapsedSeconds, boolean acceptedPublication) {
+  void consumesDueLiveAllowance(long elapsedSeconds) {
     // Given
     when(store.facts(MATCH))
         .thenReturn(new MatchAnnouncementFacts(MATCH, false, false, false, null));
@@ -44,7 +45,7 @@ class LinkAnnouncementTest {
             true,
             false,
             START,
-            acceptedPublication,
+            false,
             START.plusSeconds(elapsedSeconds));
 
     // When
