@@ -1,6 +1,6 @@
 # F01 interface contracts
 
-**Authority**: [plan](../plan.md), [data model](../data-model.md), [F13 generation](../../003-shared-quality/contracts/README.md). These are authored planning contracts, not deployed or compiled APIs.
+**Authority**: [plan](../plan.md), [data model](../data-model.md), [F13 generation](../../003-shared-quality/contracts/README.md). Canonical authored definitions generate the active provider and consumer boundaries; their qualification remains scoped by the owning tasks.
 
 ## Ownership and canonical sources
 
@@ -62,7 +62,7 @@ The shared mobile and ingestion roots remain on OpenAPI 3.0.4 and the [F13 gener
 
 Use the [shared Problem Details responses](../../../contracts/http/common/problems.yaml), including their stale-revision and invalid-cycle-context types where applicable. Source qualification/lifecycle refusals use the existing generic conflict or unprocessable-content category with a safe specific detail; no second error catalogue is needed. Responses allow additional properties, requests reject unknown fields, and domain checks enforce conditional target fields, current scope and allowed terminal validation states without a polymorphic DTO hierarchy.
 
-The [quickstart](../quickstart.md) defines integrated qualification still to perform. Lint/bundle success establishes source structure only, not generated Java/TypeScript compatibility, provider coverage or production behavior.
+The [quickstart](../quickstart.md) defines integrated qualification scenarios and their evidence limits. Lint/bundle success establishes source structure only, not generated Java/TypeScript compatibility, provider coverage or production behavior.
 
 Historical logo recovery uses ordinary parent-pool targets. The ingestion target-kind enum contains no `logo` role and targets carry no selected native-team reference. The independent `logo` result stage remains supported with the stable team UUID, preserving provenance, coverage and mobile diagnostics. Backend and collector use matching generated consumers. Persistence decoding retains old LOGO snapshots and their native-team column, while active target projection refuses that obsolete role. Explicit collector replacement invalidates unfinished old work through the existing incarnation fence; no obsolete role is exposed on the active ingestion contract and no stored snapshot grants a new admission or bypasses closure. No applied change set or retained sporting/image data is removed.
 

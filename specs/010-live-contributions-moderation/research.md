@@ -30,7 +30,7 @@ The private owner collection also projects its exact active member independently
 
 ## Own-command compatibility
 
-**Decision:** Keep exact-member PATCH for active withdrawal and remove only the pending `cancel` action and `canCancel` capability. Preserve historical cancelled states/decision values, quota participation and their exclusion from reactivation. The admitted backend/mobile boundary and current native consumers expose no pending cancellation journey; no admitted external consumer was identified.
+**Decision:** Exact-member PATCH supports active withdrawal, without a pending `cancel` action or `canCancel` capability. Preserve historical cancelled states/decision values, quota participation and their exclusion from reactivation. The admitted backend/mobile boundary and current native consumers expose no pending cancellation journey; no admitted external consumer was identified.
 
 **Rationale:** An executable command without an admitted caller duplicates lifecycle and qualification work. Read-only history, superseding by a later eligible submission and authorized moderation retain the accepted proposal handling.
 

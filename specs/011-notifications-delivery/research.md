@@ -142,7 +142,7 @@ explains why reacquiring a native token from that callback can recursively emit 
 The process-level handler is installed while loading the native lifecycle module, before F14's
 asynchronous initialization, so the SDK's foreground-presenting default cannot fill that wait.
 
-**Decision.** Random installation UUID, fresh association UUID per sign-in, native token listener and ordinary registration opportunities. Guard removal by exact association and invalidation by its current JPA revision. No persisted logout retry. Public Match tap navigation waits for F12/SDK/Router readiness only, independently of first account GET success or business UUID. Remove both root canEnter and internal account-pending readiness coupling. A currently usable matching account alone permits private read acknowledgement; no fabricated/deferred ACK, foreign-owner request, queue or additional registration state is introduced. Keep no account-specific badge state. Clear a previous app-controlled native value with the standard nonblocking zero operation at the native lifecycle owner, without a migration flag or coordinator. Leave presented system notifications to platform behavior; handle and clear tap responses only for ordinary navigation. Keep the foreground receive listener for discreet inbox refresh alongside the SDK handler that suppresses presentation.
+**Decision.** Random installation UUID, fresh association UUID per sign-in, native token listener and ordinary registration opportunities. Guard removal by exact association and invalidation by its current JPA revision. No persisted logout retry. Public Match tap navigation waits for F12/SDK/Router readiness only, independently of first account GET success or business UUID. A currently usable matching account alone permits private read acknowledgement; no fabricated/deferred ACK, foreign-owner request, queue or additional registration state is introduced. Keep no account-specific badge state. Clear a previous app-controlled native value with the standard nonblocking zero operation at the native lifecycle owner, without a migration flag or coordinator. Leave presented system notifications to platform behavior; handle and clear tap responses only for ordinary navigation. Keep the foreground receive listener for discreet inbox refresh alongside the SDK handler that suppresses presentation.
 
 **Rationale.** An address rotates and proves no ownership. A distinct association prevents an old logout or receipt from removing a newer binding, including returning to the same account. Native events and ordinary lifecycle refresh satisfy best-effort synchronization without polling or background tasks. A push from a former account does not justify requesting that account's inbox.
 
@@ -163,14 +163,13 @@ The selected Java generator does not enforce the boolean enum, so the F07 bounda
 ## Native inbox navigation composition
 
 **Decision.** Use the installed `expo-router/ui` Tabs, TabSlot, TabList and TabTrigger
-for the newly introduced ordinary tab group. Native flex wrapping supplies the enlarged-text
+for the ordinary tab group. Native flex wrapping supplies the enlarged-text
 rows; the Router supplies selection, focus, history and trigger events. Query remains the sole
 inbox-data owner; the navigation entry has no counter. No navigation state mirror, event dispatcher or scroll mechanism is introduced.
 
 **Rationale and alternative.** The standard styled tab bar fits the ordinary single row, but its
-public styles do not expose wrapping of its inner item container. The approved [200% notification
-screen](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=1072-24724)
-and prototype `.scaled .bottom-nav` require two rows. The documented headless composition provides
+public styles do not expose wrapping of its inner item container. The approved [notification composition](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=1062-9325)
+and its enlarged-text behavior require reachable navigation, including two-row cases. The documented headless composition provides
 that layout without a second navigation implementation or dependency. It also preserves the
 [two-entry guest variant](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/Blockout-UI-Library?node-id=3305-1849).
 Keep route definitions for hidden personal triggers so guest initial entry still reaches the

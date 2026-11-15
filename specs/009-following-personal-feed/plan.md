@@ -1,6 +1,6 @@
 # Implementation Plan: Following and personal feed
 
-**Branch**: `tech/51-following-personal-feed` | **Date**: 2026-10-15 | **Spec**: [spec.md](spec.md)
+**Spec**: [spec.md](spec.md)
 
 **Input**: [spec.md](spec.md) and the accepted decisions recorded in [research.md](research.md).
 
@@ -18,7 +18,7 @@ Provide account-owned team/pool follows, public counts and a personal sporting c
 
 **Testing**: JUnit, Spring MVC, Testcontainers PostgreSQL, Jest Expo and React Native Testing Library; existing documentation and OpenAPI checks.
 
-**Target Platform**: Existing Linux backend and native iOS/Android clients.
+**Target Platform**: Locally executed backend and native iOS/Android clients.
 
 **Project Type**: Mobile application with a modular backend.
 
@@ -36,7 +36,7 @@ The bounded Home pager prototype and separate Figma reproduction for [A30/FR-008
 
 - F06 owns follows and personal selection; F02 owns sporting identities/visibility, F03 calendar semantics and F05 accounts/erasure. Consumer reconciliation is included below.
 - The [scoped design acceptance](../003-shared-quality/spec.md#evidence-scope) covers season reconciliation, Home states and ordinary follow interaction. The revised F06 presentation uses the separately approved scope above. Static fidelity establishes no native or provider pass.
-- Relevant design references: [Home](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=888-8), [followed team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1023-5097), [no available follows](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4480-3901), [no matches](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4480-4201). These establish accepted presentation, not native qualification.
+- Relevant design references: [Home](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=888-8), [followed team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1705-10104), [no available follows](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4480-3901). Existing properties express theme, copy and empty-calendar variations. These establish accepted presentation, not native qualification.
 - The [approved F06 references](spec.md#design-evidence) retain one required Following card with an enabled valid season selector, a collapsed section without premature reading, a section-local Empty/Search beside retained sibling rows, and the mounted season-sheet Error. The existing Follow Controls text property supplies `Indisponible`; its text and Users glyph use the same existing semantic icon foreground. No additional UI Library component, token or recovery mechanism is required.
 - One canonical mobile OpenAPI source and the existing generation chain; no feature-local editable copy or new deployment.
 - Ordinary relations, counts, projections and Query mechanisms satisfy the need without recovery infrastructure. The quickstart defines runtime validation scenarios.
@@ -57,7 +57,7 @@ specs/009-following-personal-feed/
 
 ### Source Code (repository root)
 
-Planned integration locations:
+Integration locations:
 
 ```text
 apps/backend/       # follow use cases, persistence projections and HTTP adapters
@@ -83,7 +83,7 @@ The operation replaces desired follow state: repeating true keeps the same relat
 
 Season choices compose F02's `SportingSeasonSelection` scalar Criteria API with F06's own follow predicates in one native query. F02 alone supplies seasonal fields and current visible target selections; no sporting entity, repository or private HQL fragment crosses into F06. This preserves season order, closed-season consultation and the current-follow default without materializing target IDs. See the [common composition qualification](../003-shared-quality/quickstart.md#shared-backend-reads-images-and-authority).
 
-The [canonical contracts](contracts/README.md) separate public counts from private state. Counts use the relationships directly, including retained hidden-target relations whenever the target itself is viewable. Failed reads never become zero. After final count-read failure, `FollowerCount` retains the icon and renders the static `Indisponible` label with `Nombre d’abonnés indisponible`; it derives this presentation from the existing public Query. Remove the dedicated count Retry. A later ordinary successful read restores the number, without a second count state, polling or synchronization. Public requests and deliberate guest viewing require no private account read. F03's first signed-in Team/Pool composition additionally resolves the holder's Follow state under FR-029, without changing public endpoint admission or making count indispensable.
+The [canonical contracts](contracts/README.md) separate public counts from private state. Counts use the relationships directly, including retained hidden-target relations whenever the target itself is viewable. Failed reads never become zero. After final count-read failure, `FollowerCount` retains the icon and renders the static `Indisponible` label with `Nombre d’abonnés indisponible`; it derives this presentation from the existing public Query. There is no dedicated count Retry. A later ordinary successful read restores the number, without a second count state, polling or synchronization. Public requests and deliberate guest viewing require no private account read. F03's first signed-in Team/Pool composition additionally resolves the holder's Follow state under FR-029, without changing public endpoint admission or making count indispensable.
 A public count NotFound keeps the count unavailable and invalidates only the addressed F03 detail
 through its existing captured context, preserving that detail's current authority and private
 contact withdrawal. It neither rewrites other sporting projections nor changes private Follow

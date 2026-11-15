@@ -1,6 +1,6 @@
 # Implementation Plan: Advertising, privacy and legal
 
-**Branch**: `tech/45-advertising-privacy-plan` | **Date**: 2026-10-14 | **Spec**: [spec.md](spec.md)
+**Spec**: [spec.md](spec.md)
 
 **Input**: [spec.md](spec.md) and the accepted [F13 foundation](../003-shared-quality/plan.md).
 
@@ -14,7 +14,7 @@ Use the native Google Mobile Ads/UMP integration and Meta mediation for eligible
 
 **Language/Version**: TypeScript/Expo mobile and Java/Spring Boot backend; versions follow the [F13 technical context](../003-shared-quality/plan.md#technical-context).
 
-**Primary Dependencies**: `react-native-google-mobile-ads` 17.4.0 and its compatible scoped Facebook mediation package/config plugin; SDK-pinned native dependencies, not manually upgraded adapters. Expo-compatible `expo-tracking-transparency` and `expo-web-browser`; `@react-native-community/slider` 5.2.0 for the selected Expo baseline. F13 owns the dependency installation/build toolchain.
+**Primary Dependencies**: `react-native-google-mobile-ads` 17.4.0 and its compatible scoped Facebook mediation package/config plugin; SDK-pinned native dependencies, not manually upgraded adapters. Expo-compatible `expo-tracking-transparency` and `expo-web-browser`; `@react-native-community/slider` 5.2.1 for the selected Expo baseline. F13 owns the dependency installation/build toolchain.
 
 **Storage**: Installation-local age category and declaration date; provider-owned native consent storage; memory-only advertising count and prepared ad. Static HTML files bundled with the backend. F02 PostgreSQL contact metadata for field restrictions. No server age/consent table or advertising-event history.
 
@@ -42,8 +42,6 @@ Use the native Google Mobile Ads/UMP integration and Meta mediation for eligible
 
 **Approved design**: the approved prototype, with the authorized search-counter removal. Figma: [age declaration/renewal](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=6650-4899), [privacy/correction](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5272-10390), [search](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=916-2832), published [Age Selector](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/?node-id=3681-609), and [public-document browser handoff](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5197-5300). Approval covers light/dark, compact-width and enlarged-text specimens; indicative browser controls define no custom reader.
 
-The UMP authoring illustrations `5272:10362`, `5297:11455`, `5303:12023`, `5303:12166`, `5303:12294` and `5642:15737` retain an unresolved ownership/use decision before removal; lack of instances does not establish abandonment. Native consent remains required. `5308:12231` belongs to notification read feedback.
-
 The post-design constitution check identifies no exception. Design approval establishes the reviewed experience; implementation and provider activation retain their separate authorization and qualification requirements.
 
 ## Project Structure
@@ -64,7 +62,7 @@ Specifications and planning artifacts are reviewed together after design reconci
 
 ### Source Code (repository root)
 
-Planned application locations within the [F13 workspace](../003-shared-quality/plan.md#project-structure):
+Application locations within the [F13 workspace](../003-shared-quality/plan.md#project-structure):
 
 ```text
 apps/mobile/src/features/advertising/     # age, eligibility, provider integration and single ad lifecycle

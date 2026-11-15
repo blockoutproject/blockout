@@ -40,7 +40,7 @@ FR-008 consumes [F13’s shared-route/anchored-Stack composition](../003-shared-
 
 **Alternatives**: A grouped one-time admission boundary blocks usable sibling tabs initially and can hide later detail failures. Hoisted duplicate readers, callbacks that mirror Query state, a universal recovery controller or another cache add no needed ownership. F13 owns the common retry/presentation convention and the two sporting reference consumers; remaining sporting adoption stays in [native tasks](tasks.md#initial-sporting-composition).
 
-**Approval and evidence**: This reconciles the functional target; it does not finalize affected native planning/adoption. The [Constitution Check](plan.md#constitution-check) requires prototype approval and separate Figma approval. Deterministic real-owner tests and representative iOS/Android checks remain distinct from both design gates.
+**Approval and evidence**: The [Constitution Check](plan.md#constitution-check) records the scoped prototype and separate Figma approvals. T084–T086 own the completed remaining composition design, adoption and bounded native qualification. Broader Map, PDF, provider and final owner qualification retain their distinct tasks; deterministic tests and native observations establish only their exercised boundaries.
 
 ## Participation titles
 

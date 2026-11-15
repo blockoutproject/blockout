@@ -6,7 +6,7 @@ Store a unique association `(accountId, permission)` referencing the active F05 
 
 Ordinary account capabilities are evaluated from usability and domain conditions, not seeded as privileged rows. No role, delegation scope, owner-account table, grant history or session registry is needed. The product owner controls the SQL access used for assignment; a mobile operator cannot obtain that access through an application grant.
 
-Manual assignment/revocation locks the target account in a short transaction before changing associations. Protected mutations acquire their domain root locks first, then account locks in UUID order, then read current grants and apply effects before commit. Grant-only changes need no domain root lock. A current read checks account existence and grants without claiming to invalidate an already returned response. Account erasure removes grants and private associations without acquiring sporting root locks; no writer acquires a sporting root after an account lock. F02 and F05 record the same boundary; later F07 transactions must preserve it.
+Manual assignment/revocation locks the target account in a short transaction before changing associations. Protected mutations acquire their domain root locks first, then account locks in UUID order, then read current grants and apply effects before commit. Grant-only changes need no domain root lock. A current read checks account existence and grants without claiming to invalidate an already returned response. Account erasure removes grants and private associations without acquiring sporting root locks; no writer acquires a sporting root after an account lock. F02, F05 and F07 preserve this same boundary.
 
 ## Permission projection
 

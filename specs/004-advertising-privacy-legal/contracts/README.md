@@ -23,4 +23,4 @@
 
 The collector contract does not gain privacy instructions or a new batch: backend enforcement applies to ordinary incoming records under the club lock. No new endpoint, enum, editable contract copy or consumer-specific response is added. Update concise descriptions at the canonical source when necessary; keep requirement traceability here rather than embedding feature identifiers in API prose.
 
-The [F13 contract toolchain](../../003-shared-quality/plan.md#http-generation-errors-and-compatibility) remains authoritative for existing JSON boundaries. Documentary lint does not replace generated Java/TypeScript compilation or contact concurrency tests in the future implementation.
+The [F13 contract toolchain](../../003-shared-quality/plan.md#http-generation-errors-and-compatibility) remains authoritative for existing JSON boundaries. Documentary lint does not replace generated Java/TypeScript compilation or the owning contact concurrency tests.

@@ -45,8 +45,8 @@ Deterministic consumer tests use independent same-target and different-target co
 The compact inverse action uses the public target's displayed season and accessible hint without
 writing a personal season selection or adding a success panel. Compare the live
 [team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1010-15711),
-[followed team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1023-5097)
-and [dark pool](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1755-14354)
+[followed team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1705-10104)
+and [pool](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1025-5785)
 instances with the UI Library's [compact button](https://www.figma.com/design/l8EIQApzbfM24FwR0WKyAC/?node-id=3386-697):
 36-point pill, 20-point leading Plus/Check, inverse surface/content and a separate platform
 touch target. The follow button has no stroke; the counter number uses
@@ -77,8 +77,8 @@ npm run test --workspace=@blockout/mobile -- --runTestsByPath src/features/follo
 #### Native recovery and accessibility
 
 Use the approved [Home and Sport references](plan.md#constitution-check), the
-[followed team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1023-5097)
-and [dark pool](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1755-14354).
+[followed team](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1705-10104)
+and [pool](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1025-5785).
 The group icon and numeric count sit beside the existing compact follow action. F13 owns Outfit,
 semantic tokens, system themes, native controls, freshness and accessibility. Use fictional accounts
 and task-owned fixtures; keep private diagnostics and relationships outside public artifacts.

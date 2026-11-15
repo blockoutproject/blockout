@@ -1,10 +1,8 @@
 # Feature Specification: Following and personal feed
 
-**Feature Branch**: `develop`
-
 **Created**: 2026-09-20
 
-**Status**: Accepted functional baseline; the technical dossier is available for review. Implementation qualification remains pending.
+**Status**: Accepted functional baseline. [plan.md](plan.md) owns technical decisions and [tasks.md](tasks.md) records implementation and remaining qualification.
 
 **Input**: F06 in the [specification navigation](../../README.md#specifications). Define following teams and pools, associated lists and counters, and match selection for the personal calendar. [F02](../002-sporting-data/spec.md) owns identities and visibility, [F03](../007-sporting-consultation/spec.md) calendars and [F05](../005-accounts-identity/spec.md) accounts. No club follows or automatic seasonal transfer is introduced. The [technical plan](plan.md) defines the implementation boundaries and qualifications.
 
