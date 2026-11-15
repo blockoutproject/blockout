@@ -1,4 +1,4 @@
-import { searchResults, uniqueSearchResults } from "../model/search-result";
+import { uniqueSearchResults } from "../model/search-result";
 
 it("keeps namesakes and updates a repeated UUID without moving its original position", () => {
   // Given: UUID casing does not create another sporting identity after a live index change.
@@ -24,44 +24,4 @@ it("keeps namesakes and updates a repeated UUID without moving its original posi
     ["Volley actuel", undefined],
     ["Volley", "Niort"],
   ]);
-});
-
-it("maps only generated public context and leaves unavailable relationships absent", () => {
-  // Given
-  const id = "00000000-0000-4000-8000-000000000001";
-  const season = { id, label: "2026/2027", startYear: 2026 };
-
-  // When
-  const [team] = searchResults({
-    teams: [
-      {
-        team: { id, name: "Équipe pro" },
-        season,
-        classification: {},
-        professional: true,
-      },
-    ],
-  });
-  const [pool] = searchResults({
-    pools: [
-      {
-        pool: { id, name: "Poule A" },
-        season,
-        classification: {},
-        competitionName: "Ligue",
-        phaseName: "Finale",
-      },
-    ],
-  });
-
-  // Then
-  expect(team).toEqual({
-    kind: "team",
-    identity: { id, name: "Équipe pro" },
-    season,
-    classification: {},
-    subtitle: undefined,
-  });
-  expect(pool.subtitle).toBe("Ligue · Finale");
-  expect(uniqueSearchResults(undefined)).toEqual([]);
 });

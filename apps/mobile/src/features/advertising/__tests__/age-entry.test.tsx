@@ -177,7 +177,6 @@ async function openEntry(initialUrl = "/sign-in") {
       "(ordinary)/search": () => <Text>Public search</Text>,
       "(recovery)/sign-in": SignInRoute,
       "(ordinary)/session": SessionProbe,
-      "(ordinary)/legal": () => <Text>Public legal reading</Text>,
       "(recovery)/support": () => <Text>Public support</Text>,
     },
     { initialUrl },
@@ -349,7 +348,7 @@ it("keeps back/restart unconfirmed and preserves completed discovery", async () 
   expect(await readAgeDeclaration()).toBeNull();
   expect(await readDiscoveryCompletion()).toBe(true);
 });
-it.each(["/legal", "/support", "/sign-in"])(
+it.each(["/support", "/sign-in"])(
   "leaves independent %s available without a declaration",
   async (path) => {
     // Given
@@ -366,16 +365,12 @@ it.each(["/legal", "/support", "/sign-in"])(
         await screen.findByRole("button", { name: "Se connecter" }),
       ).toBeOnTheScreen();
     } else {
-      expect(
-        await screen.findByText(
-          path === "/legal" ? "Public legal reading" : "Public support",
-        ),
-      ).toBeOnTheScreen();
+      expect(await screen.findByText("Public support")).toBeOnTheScreen();
     }
     expect(await readAgeDeclaration()).toBeNull();
   },
 );
-it.each(["/age-declaration", "/legal", "/support", "/sign-in"])(
+it.each(["/age-declaration", "/support", "/sign-in"])(
   "preserves the F12 gate for %s",
   async (path) => {
     // Given
@@ -715,7 +710,7 @@ it("announces one declaration read without exposing a default age or confirmatio
   }
 });
 
-it("keeps public legal navigation available while local age storage is pending", async () => {
+it("keeps public support navigation available while local age storage is pending", async () => {
   // Given
   await completeDiscovery();
   const read = Promise.withResolvers<string | null>();
@@ -724,9 +719,9 @@ it("keeps public legal navigation available while local age storage is pending",
     .mockResolvedValueOnce("true")
     .mockReturnValueOnce(read.promise);
   // When
-  await openEntry("/legal");
+  await openEntry("/support");
   // Then
-  expect(await screen.findByText("Public legal reading")).toBeOnTheScreen();
+  expect(await screen.findByText("Public support")).toBeOnTheScreen();
   expect(screen.queryByRole("adjustable")).toBeNull();
   // When
   await act(async () => read.resolve(null));
@@ -742,7 +737,7 @@ it("ignores an obsolete installation read after a new tree loads the current dec
     .spyOn(AsyncStorage, "getItem")
     .mockResolvedValueOnce("true")
     .mockReturnValueOnce(previous.promise);
-  const first = await openEntry("/legal");
+  const first = await openEntry("/support");
   // When
   await first.unmount();
   await openEntry("/session");

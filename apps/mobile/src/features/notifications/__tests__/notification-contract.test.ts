@@ -1,5 +1,4 @@
 import {
-  deletePushSubscription,
   getNotification,
   getListNotificationsQueryOptions,
   listNotifications,
@@ -8,7 +7,6 @@ import {
 } from "../../../../.generated/mobile";
 import {
   MarkNotificationReadRequest,
-  ReplacePushSubscriptionRequest,
   ListNotificationsParams,
   MatchSummaryResponse,
   SportingDivisionResponse,
@@ -137,40 +135,6 @@ it.each([
   }
 });
 
-it.each([
-  {},
-  { read: false },
-  { read: null },
-  { read: "true" },
-  { read: true, opened: true },
-])("rejects unsupported read intent: %j", (body) => {
-  // Given: the table supplies the unsupported read intent.
-
-  // When
-  const result = MarkNotificationReadRequest.strict().safeParse(body);
-
-  // Then
-  expect(result.success).toBe(false);
-});
-
-it.each([
-  {},
-  { installationId: id },
-  { installationId: null, expoPushToken: "synthetic" },
-  { installationId: "invalid", expoPushToken: "synthetic" },
-  { installationId: id, expoPushToken: null },
-  { installationId: id, expoPushToken: "" },
-  { installationId: id, expoPushToken: "synthetic", accountId: id },
-])("rejects incomplete or extra registration fields: %j", (body) => {
-  // Given: the table supplies the incomplete or extra registration fields.
-
-  // When
-  const result = ReplacePushSubscriptionRequest.strict().safeParse(body);
-
-  // Then
-  expect(result.success).toBe(false);
-});
-
 it("sends true-only intent and keeps an opaque continuation unmodified", async () => {
   // Given
   mockFetch
@@ -199,19 +163,6 @@ it("sends true-only intent and keeps an opaque continuation unmodified", async (
   ).toBe(cursor);
 });
 
-it.each([{ cursor: null }, { cursor: "" }, { opened: true }])(
-  "rejects invalid list parameters: %j",
-  (params) => {
-    // Given: the table supplies the invalid list parameters.
-
-    // When
-    const result = ListNotificationsParams.strict().safeParse(params);
-
-    // Then
-    expect(result.success).toBe(false);
-  },
-);
-
 it.each([200, 201])(
   "returns association identities for %s without requiring or echoing a destination",
   async (status) => {
@@ -235,18 +186,3 @@ it.each([200, 201])(
     expect(result).toEqual({ id, installationId: id });
   },
 );
-
-it("consumes 204 without invoking JSON parsing", async () => {
-  // Given
-  const response = new Response(null, { status: 204 });
-  const json = jest.spyOn(response, "json");
-  mockFetch.mockResolvedValue(response);
-
-  // When
-  const result = await deletePushSubscription(id, id);
-
-  // Then
-  expect(result).toBeUndefined();
-  expect(json).not.toHaveBeenCalled();
-  expect(mockFetch.mock.calls[0][1]?.method).toBe("DELETE");
-});

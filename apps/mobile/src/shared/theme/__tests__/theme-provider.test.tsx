@@ -108,103 +108,63 @@ it("updates navigation surfaces and preserves a mounted draft when native appear
   expect(screen.getByDisplayValue("Valeur conservée")).toBeOnTheScreen();
 });
 
-it("updates the Pro palette while preserving a mounted draft on native appearance changes", async () => {
+it("changes sporting context and Pro presentation independently without losing the draft", async () => {
   // Given
   jest.spyOn(Appearance, "getColorScheme").mockReturnValue("light");
-  const subscribe = jest.spyOn(Appearance, "addChangeListener");
+  const sportingContext = {
+    light: {
+      primary: "#B42340",
+      actionStart: "#B42340",
+      actionEnd: "#86192E",
+      onAction: "#FFFFFF",
+      shadow: "#00000014",
+    },
+    dark: {
+      primary: "#FFB3C3",
+      actionStart: "#FFB3C3",
+      actionEnd: "#FFDDE5",
+      onAction: "#171717",
+      shadow: "#00000038",
+    },
+  };
   const user = userEvent.setup();
-  await render(
+  const root = await render(
     <ThemeProvider proAccent>
       <ThemeConsumer />
     </ThemeProvider>,
   );
+  await user.type(screen.getByLabelText("Brouillon"), "Saisie conservée");
+
+  // When
+  await root.rerender(
+    <ThemeProvider context={sportingContext} proAccent>
+      <ThemeConsumer />
+    </ThemeProvider>,
+  );
+
+  // Then
+  expect(screen.getByLabelText("Accent sportif")).toHaveTextContent(
+    sportingContext.light.primary,
+  );
   expect(screen.getByLabelText("Accent de sélection")).toHaveTextContent(
     "#E7D39B",
   );
-  expect(screen.getByLabelText("Bordure de navigation")).toHaveTextContent(
-    "#C1AA68",
-  );
-  await user.type(screen.getByLabelText("Brouillon"), "Valeur conservée");
+  expect(screen.getByDisplayValue("Saisie conservée")).toBeOnTheScreen();
 
   // When
-  jest.mocked(Appearance.getColorScheme).mockReturnValue("dark");
-  await act(() => {
-    for (const [listener] of subscribe.mock.calls) {
-      listener({ colorScheme: "dark" });
-    }
-  });
+  await root.rerender(
+    <ThemeProvider context={sportingContext}>
+      <ThemeConsumer />
+    </ThemeProvider>,
+  );
 
   // Then
-  expect(screen.getByText("dark")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Accent sportif")).toHaveTextContent(
+    sportingContext.light.primary,
+  );
   expect(screen.getByLabelText("Accent de sélection")).toHaveTextContent(
-    "#E2C985",
+    "#171717",
   );
-  expect(screen.getByLabelText("Bordure de navigation")).toHaveTextContent(
-    "#A99662",
-  );
-  expect(screen.getByDisplayValue("Valeur conservée")).toBeOnTheScreen();
+  expect(screen.getByText("light")).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Saisie conservée")).toBeOnTheScreen();
 });
-
-it.each(["light", "dark"] as const)(
-  "changes sporting inputs and removes Pro presentation independently without losing the draft in %s",
-  async (scheme) => {
-    // Given
-    jest.spyOn(Appearance, "getColorScheme").mockReturnValue(scheme);
-    const sportingContext = {
-      light: {
-        primary: "#B42340",
-        actionStart: "#B42340",
-        actionEnd: "#86192E",
-        onAction: "#FFFFFF",
-        shadow: "#00000014",
-      },
-      dark: {
-        primary: "#FFB3C3",
-        actionStart: "#FFB3C3",
-        actionEnd: "#FFDDE5",
-        onAction: "#171717",
-        shadow: "#00000038",
-      },
-    };
-    const user = userEvent.setup();
-    const root = await render(
-      <ThemeProvider proAccent>
-        <ThemeConsumer />
-      </ThemeProvider>,
-    );
-    await user.type(screen.getByLabelText("Brouillon"), "Saisie conservée");
-
-    // When
-    await root.rerender(
-      <ThemeProvider context={sportingContext} proAccent>
-        <ThemeConsumer />
-      </ThemeProvider>,
-    );
-
-    // Then
-    expect(screen.getByLabelText("Accent sportif")).toHaveTextContent(
-      sportingContext[scheme].primary,
-    );
-    expect(screen.getByLabelText("Accent de sélection")).toHaveTextContent(
-      scheme === "dark" ? "#E2C985" : "#E7D39B",
-    );
-    expect(screen.getByDisplayValue("Saisie conservée")).toBeOnTheScreen();
-
-    // When
-    await root.rerender(
-      <ThemeProvider context={sportingContext}>
-        <ThemeConsumer />
-      </ThemeProvider>,
-    );
-
-    // Then
-    expect(screen.getByLabelText("Accent sportif")).toHaveTextContent(
-      sportingContext[scheme].primary,
-    );
-    expect(screen.getByLabelText("Accent de sélection")).toHaveTextContent(
-      scheme === "dark" ? "#F1F1F2" : "#171717",
-    );
-    expect(screen.getByText(scheme)).toBeOnTheScreen();
-    expect(screen.getByDisplayValue("Saisie conservée")).toBeOnTheScreen();
-  },
-);

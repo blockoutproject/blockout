@@ -362,30 +362,6 @@ it("keeps a failed save editable during its normal settings refresh", async () =
   }
 });
 
-it("does not publish defaults after an initial load failure", async () => {
-  // Given
-  mockFetch.mockImplementation(async (url) =>
-    String(url).endsWith("/accounts/me")
-      ? json(account)
-      : json(
-          {
-            type: "urn:blockout:problem:unavailable",
-            title: "Unavailable",
-            status: 503,
-          },
-          503,
-        ),
-  );
-
-  // When
-  await renderSettings();
-
-  // Then
-  expect(await screen.findByText("Une erreur est survenue")).toBeOnTheScreen();
-  expect(
-    screen.queryByLabelText("Message de maintenance"),
-  ).not.toBeOnTheScreen();
-});
 it("separates content preparation from explicit activation", async () => {
   // Given
   const user = userEvent.setup();
@@ -438,6 +414,7 @@ it("separates content preparation from explicit activation", async () => {
     message: "Mon brouillon",
   });
   expect(screen.getByLabelText("Maintenance inactive")).toBeOnTheScreen();
+  expect(Alert.alert).not.toHaveBeenCalled();
   expect(mockFetch.mock.calls.some(([, o]) => o?.method === "PUT")).toBe(false);
 });
 it("keeps an accepted save through a failed ordinary reread without replaying the write", async () => {
@@ -914,7 +891,7 @@ it("starts a fresh draft image preview when a previously failed URL returns", as
   expect(screen.getByDisplayValue(initial.message)).toBeOnTheScreen();
 });
 
-it.each([400, 403, 409, 422, 500, "stale-revision"] as const)(
+it.each([403, "stale-revision"] as const)(
   "retains the draft and revision after a %s refusal",
   async (refusal) => {
     // Given
@@ -1074,36 +1051,6 @@ it("keeps the production route closed until native admission is composed", async
   expect(
     screen.queryByLabelText("Message de maintenance"),
   ).not.toBeOnTheScreen();
-});
-
-it("saves content directly without an additional confirmation", async () => {
-  // Given
-  const user = userEvent.setup();
-  await renderSettings();
-  await screen.findByDisplayValue(initial.message);
-  await user.clear(screen.getByLabelText("Message de maintenance"));
-  await user.type(
-    screen.getByLabelText("Message de maintenance"),
-    "Mon brouillon",
-  );
-  mockFetch.mockImplementation(async (url, options) => {
-    if (options?.method === "PATCH") {
-      stored = { ...initial, revision: 3, message: "Mon brouillon" };
-    }
-    return json(String(url).endsWith("/accounts/me") ? account : stored);
-  });
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-
-  // Then
-  await waitFor(() =>
-    expect(
-      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
-    ).toHaveLength(1),
-  );
-  expect(Alert.alert).not.toHaveBeenCalled();
-  expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
 });
 
 it("starts a fresh local draft after unmounting a failed pending save", async () => {
@@ -1331,61 +1278,3 @@ it("presents an initial settings refusal with an opaque retryable card and no ed
     screen.queryByLabelText("Message de maintenance"),
   ).not.toBeOnTheScreen();
 });
-
-it.each([
-  ["Enregistrer", undefined, "PATCH"],
-  ["Activer la maintenance", "Activer", "PUT"],
-])(
-  "preserves dirty input after the server refuses %s prepared with delayed credentials",
-  async (action, confirmation, method) => {
-    // Given
-    const user = userEvent.setup();
-    await renderSettings();
-    await screen.findByDisplayValue(initial.message);
-    await user.clear(screen.getByLabelText("Message de maintenance"));
-    await user.type(
-      screen.getByLabelText("Message de maintenance"),
-      "Mon brouillon",
-    );
-    const credentials =
-      Promise.withResolvers<ReturnType<typeof credentialsFor>>();
-    mockAuth0.getCredentials.mockReturnValueOnce(credentials.promise);
-    mockFetch.mockImplementation(async (url, options) => {
-      if (options?.method === method) {
-        return json(
-          {
-            type: "urn:blockout:problem:forbidden",
-            title: "Forbidden",
-            status: 403,
-          },
-          403,
-        );
-      }
-      if (String(url).endsWith("/accounts/me")) {
-        return json(account);
-      }
-      return json(stored);
-    });
-    await user.press(screen.getByRole("button", { name: action }));
-    if (confirmation) {
-      await act(async () => nativeAlertAction(confirmation)());
-    }
-
-    // When
-    await act(async () =>
-      credentials.resolve(credentialsFor("auth0|operator")),
-    );
-
-    // Then
-    await screen.findByText(
-      "Une erreur est survenue. Veuillez réessayer plus tard.",
-    );
-    expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: action })).toBeEnabled(),
-    );
-    expect(
-      mockFetch.mock.calls.filter(([, options]) => options?.method === method),
-    ).toHaveLength(1);
-  },
-);

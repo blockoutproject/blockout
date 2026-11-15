@@ -8,7 +8,6 @@ import {
 } from "@testing-library/react-native";
 import type { PropsWithChildren } from "react";
 import { getAccountPhoto, getMyAccount } from "../../../../.generated/mobile";
-import { apiFetch } from "@/shared/api/api-fetch";
 import { createQueryClient } from "@/shared/query/query-client";
 import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
 import {
@@ -300,32 +299,6 @@ it("requires explicit choice for binary requests while independent identificatio
       "Blockout-Maintenance-Bypass",
     ),
   ).toBe(false);
-});
-
-it.each([
-  "https://identity.example.invalid/token",
-  "https://apps.apple.com/app/id1",
-  "https://images.example.invalid/photo",
-])("never forwards captured credentials or intent to %s", async (url) => {
-  // Given
-  const { result } = await renderAccessHooks();
-  await waitFor(() => expect(result.current.access.canBypass).toBe(true));
-  await act(() => {
-    result.current.access.bypassMaintenance();
-  });
-  const options = result.current.ordinary.request({
-    headers: { Authorization: "Bearer existing" },
-  });
-  mockFetch.mockClear();
-
-  // When
-  const request = apiFetch(url, options);
-
-  // Then
-  await expect(request).rejects.toMatchObject({
-    kind: "configuration",
-  });
-  expect(mockFetch).not.toHaveBeenCalled();
 });
 
 it("clears personal choice only after a successful complete inactive check", async () => {

@@ -11,12 +11,6 @@ import {
   listPersonalMatches,
   getListTeamFollowsQueryOptions,
 } from "../../../../.generated/mobile";
-import {
-  ReplaceFollowStateRequest,
-  ListTeamFollowsParams,
-  ListPoolFollowsParams,
-  ListPersonalMatchesParams,
-} from "../../../../.generated/schemas/index.zod";
 import { createQueryClient } from "@/shared/query/query-client";
 
 const account = "00000000-0000-4000-8000-000000000001";
@@ -89,22 +83,6 @@ it.each([{}, { following: null }, { following: "true" }, { following: 1 }])(
     await expect(response).rejects.toMatchObject({ kind: "schema" });
   },
 );
-
-it.each([
-  {},
-  { following: null },
-  { following: "false" },
-  { following: true, extra: 1 },
-])("rejects incomplete or additive mutation requests: %j", (body) => {
-  // Given
-  const schema = ReplaceFollowStateRequest.strict();
-
-  // When
-  const result = schema.safeParse(body);
-
-  // Then
-  expect(result.success).toBe(false);
-});
 
 it("preserves absent continuation and removes additive fields from a valid list", async () => {
   // Given
@@ -254,78 +232,6 @@ it.each(["team", "pool"] as const)(
     expect(new URL(mockFetch.mock.calls[0][0]).searchParams.get("page")).toBe(
       "107374182",
     );
-  },
-);
-
-it.each([-1, 107374183, 0.5, "1", null])(
-  "rejects unsupported request pages: %j",
-  (page) => {
-    // Given
-    const schemas = [ListTeamFollowsParams, ListPoolFollowsParams];
-
-    // When
-    const results = schemas.map((schema) =>
-      schema.strict().safeParse({ page }),
-    );
-
-    // Then
-    expect(results.every((result) => !result.success)).toBe(true);
-  },
-);
-
-it.each([{ seasonId: null }, { seasonId: "" }, { future: true }])(
-  "rejects invalid list request shapes: %j",
-  (params) => {
-    // Given
-    const schema = ListTeamFollowsParams.strict();
-
-    // When
-    const result = schema.safeParse(params);
-
-    // Then
-    expect(result.success).toBe(false);
-  },
-);
-
-it.each([
-  { category: "future", timeZone: "Europe/Paris" },
-  { category: "upcoming" },
-  { category: "upcoming", timeZone: "Europe/Paris", future: true },
-  { category: "upcoming", timeZone: "Europe/Paris", nextDay: null },
-])("rejects invalid calendar request shapes: %j", (params) => {
-  // Given
-  const schema = ListPersonalMatchesParams.strict();
-
-  // When
-  const result = schema.safeParse(params);
-
-  // Then
-  expect(result.success).toBe(false);
-});
-
-it.each([400, 401, 403, 404, 415, 503])(
-  "keeps HTTP %s as a safe error rather than false state",
-  async (status) => {
-    // Given
-    mockFetch.mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          type: "urn:blockout:problem:unavailable",
-          title: "Unavailable",
-          status,
-        }),
-        {
-          status,
-          headers: { "Content-Type": "application/problem+json" },
-        },
-      ),
-    );
-
-    // When
-    const result = replaceTeamFollowState(account, target, { following: true });
-
-    // Then
-    await expect(result).rejects.toMatchObject({ kind: "http", status });
   },
 );
 

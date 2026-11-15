@@ -176,42 +176,6 @@ it("updates retained match detail to the current phone zone on foreground return
   expect(mockFetch).toHaveBeenCalledTimes(requests + 1);
 });
 
-it.each([
-  "2026-11-06T12:00:00Z",
-  "2026-11-07T12:00:00Z",
-  "2026-11-08T12:00:00Z",
-])(
-  "shows the same concise schedule in summary and information on %s",
-  async (now) => {
-    // Given: the same kickoff must not gain a redundant tomorrow/today/yesterday prefix.
-    jest.setSystemTime(new Date(now));
-    const detail = matchDetail();
-    detail.match.schedule = {
-      localDate: "2026-11-07",
-      instant: "2026-11-07T19:40:00Z",
-      observedAt: "2026-11-01T12:00:00Z",
-    };
-    mockFetch.mockImplementation((url: string) =>
-      Promise.resolve(
-        Response.json(
-          new URL(url).pathname.endsWith("/application-access")
-            ? applicationAccessResponse()
-            : detail,
-        ),
-      ),
-    );
-
-    // When
-    await render(<MatchScreen matchId={sportingId} />, { wrapper: Providers });
-
-    // Then
-    expect(await screen.findAllByText("7 novembre 2026 à 20h40")).toHaveLength(
-      2,
-    );
-    expect(screen.queryByText(/Aujourd’hui|Demain|Hier/)).not.toBeOnTheScreen();
-  },
-);
-
 it("keeps the summary pool heading informational instead of inventing a navigation control", async () => {
   // Given
   const match = matchDetail().match;

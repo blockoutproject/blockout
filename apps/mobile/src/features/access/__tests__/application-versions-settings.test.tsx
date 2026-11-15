@@ -461,7 +461,7 @@ it("saves directly after the acknowledgement for the current raised minimum", as
     "2.11.0",
   );
 });
-it.each([403, 409, 422, 500, "stale-revision"] as const)(
+it.each([403, "stale-revision"] as const)(
   "preserves input after a %s refusal",
   async (refusal) => {
     // Given

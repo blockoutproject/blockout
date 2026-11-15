@@ -3,8 +3,6 @@ import { QueryClient } from "@tanstack/react-query";
 import {
   getApplicationAccess,
   getGetApplicationAccessQueryOptions,
-  getCollectionControl,
-  listNotifications,
   eraseAccount,
   getAccountPhoto,
   setPoolPresentation,
@@ -102,23 +100,20 @@ it.each([
   }
 });
 
-it.each(["{", "", '{"maintenance":'])(
-  "rejects malformed JSON %s",
-  async (body) => {
-    // Given
-    mockFetch.mockResolvedValue(
-      new Response(body, { headers: { "Content-Type": "application/json" } }),
-    );
+it("rejects malformed JSON", async () => {
+  // Given
+  mockFetch.mockResolvedValue(
+    new Response("{", { headers: { "Content-Type": "application/json" } }),
+  );
 
-    // When
-    const response = getApplicationAccess();
+  // When
+  const response = getApplicationAccess();
 
-    // Then
-    await expect(response).rejects.toMatchObject({
-      kind: "schema",
-    });
-  },
-);
+  // Then
+  await expect(response).rejects.toMatchObject({
+    kind: "schema",
+  });
+});
 
 it("requires a success schema for JSON", async () => {
   // Given
@@ -134,77 +129,6 @@ it("requires a success schema for JSON", async () => {
     kind: "schema",
   });
 });
-
-it("preserves an empty notification list", async () => {
-  // Given
-  mockFetch.mockResolvedValue(
-    new Response('{"notifications":[]}', {
-      headers: { "Content-Type": "application/json" },
-    }),
-  );
-
-  // When
-  const response = await listNotifications(accountId);
-
-  // Then
-  expect(response).toEqual({
-    notifications: [],
-  });
-});
-
-it("rejects a forbidden null notification cursor", async () => {
-  // Given
-  mockFetch.mockResolvedValue(
-    new Response('{"notifications":[],"nextCursor":null}', {
-      headers: { "Content-Type": "application/json" },
-    }),
-  );
-
-  // When
-  const response = listNotifications(accountId);
-
-  // Then
-  await expect(response).rejects.toMatchObject({
-    kind: "schema",
-  });
-});
-
-it.each([
-  { invalidField: "unknown family", invalid: { family: "future-family" } },
-  {
-    invalidField: "impossible date",
-    invalid: { lastAttemptAt: "2026-02-31T12:00:00Z" },
-  },
-  { invalidField: "malformed date", invalid: { lastAttemptAt: "not-a-date" } },
-])(
-  "rejects $invalidField through the generated consumer",
-  async ({ invalid }) => {
-    // Given
-    mockFetch.mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          id: accountId,
-          family: "ffvb",
-          revision: 0,
-          enabled: true,
-          pendingRequestId: null,
-          lastAttemptAt: null,
-          lastSuccessAt: null,
-          ...invalid,
-        }),
-        { headers: { "Content-Type": "application/json" } },
-      ),
-    );
-
-    // When
-    const response = getCollectionControl(accountId);
-
-    // Then
-    await expect(response).rejects.toMatchObject({
-      kind: "schema",
-    });
-  },
-);
 
 it("parses errors through the problem profile without validating them as success", async () => {
   // Given

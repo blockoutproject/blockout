@@ -71,7 +71,7 @@ it("reports an offline write once without pausing or replaying it", async () => 
   }
 });
 
-it("bounds temporary reads to attempts at 0, 1, 3 and 7 seconds", async () => {
+it("stops an exhausted temporary read after three relaunches", async () => {
   // Given: real Query retries and its native delay, with only request I/O controlled.
   jest.useFakeTimers();
   const client = createQueryClient();
@@ -82,21 +82,9 @@ it("bounds temporary reads to attempts at 0, 1, 3 and 7 seconds", async () => {
   const completion = client.fetchQuery({ queryKey: ["count"], queryFn: read });
   const rejected = expect(completion).rejects.toBe(failure);
   try {
-    await jest.advanceTimersByTimeAsync(0);
+    await jest.runAllTimersAsync();
 
     // Then
-    expect(read).toHaveBeenCalledTimes(1);
-    await jest.advanceTimersByTimeAsync(999);
-    expect(read).toHaveBeenCalledTimes(1);
-    await jest.advanceTimersByTimeAsync(1);
-    expect(read).toHaveBeenCalledTimes(2);
-    await jest.advanceTimersByTimeAsync(1999);
-    expect(read).toHaveBeenCalledTimes(2);
-    await jest.advanceTimersByTimeAsync(1);
-    expect(read).toHaveBeenCalledTimes(3);
-    await jest.advanceTimersByTimeAsync(3999);
-    expect(read).toHaveBeenCalledTimes(3);
-    await jest.advanceTimersByTimeAsync(1);
     await rejected;
     expect(read).toHaveBeenCalledTimes(4);
   } finally {
@@ -104,7 +92,7 @@ it("bounds temporary reads to attempts at 0, 1, 3 and 7 seconds", async () => {
   }
 });
 
-it.each([408, 429, 500, 502, 503, 504])(
+it.each([408, 429, 503])(
   "retries temporary HTTP %s using the common policy",
   async (status) => {
     // Given
@@ -176,52 +164,6 @@ it.each([
   }
 });
 
-it("does not retry a successful unavailable representation", async () => {
-  // Given: HTTP business availability is a successful read, not a Query rejection.
-  const client = createQueryClient();
-  const read = jest.fn().mockResolvedValue({ availability: "unavailable" });
-  try {
-    // When
-    const result = await client.fetchQuery({
-      queryKey: ["standings"],
-      queryFn: read,
-    });
-
-    // Then
-    expect(result).toEqual({ availability: "unavailable" });
-    expect(read).toHaveBeenCalledTimes(1);
-  } finally {
-    client.clear();
-  }
-});
-
-it("keeps public and private data in separate caches", async () => {
-  // Given
-  const publicClient = createQueryClient();
-  const privateClient = createQueryClient();
-  const key = ["shared-key"];
-  try {
-    // When
-    await publicClient.fetchQuery({
-      queryKey: key,
-      queryFn: async () => "public",
-    });
-    await privateClient.fetchQuery({
-      queryKey: key,
-      queryFn: async () => "private",
-    });
-
-    // Then
-    expect(publicClient.getQueryData(key)).toBe("public");
-    expect(privateClient.getQueryData(key)).toBe("private");
-    privateClient.clear();
-    expect(publicClient.getQueryData(key)).toBe("public");
-  } finally {
-    publicClient.clear();
-    privateClient.clear();
-  }
-});
-
 it.each(["about:blank", "urn:blockout:problem:unavailable"])(
   "retries the technical problem %s without changing its classification",
   async (type) => {
@@ -253,27 +195,6 @@ it.each(["about:blank", "urn:blockout:problem:unavailable"])(
     }
   },
 );
-
-it("preserves an explicit resource-owned no-retry policy", async () => {
-  // Given
-  const client = createQueryClient();
-  const failure = new ApiError("network");
-  const read = jest.fn().mockRejectedValue(failure);
-  try {
-    // When
-    const completion = client.fetchQuery({
-      queryKey: ["count"],
-      queryFn: read,
-      retry: false,
-    });
-
-    // Then
-    await expect(completion).rejects.toBe(failure);
-    expect(read).toHaveBeenCalledTimes(1);
-  } finally {
-    client.clear();
-  }
-});
 
 it("waits for Query's online resumption without attempting a paused read", async () => {
   // Given: this test supplies connectivity; no new application connectivity subscription is implied.

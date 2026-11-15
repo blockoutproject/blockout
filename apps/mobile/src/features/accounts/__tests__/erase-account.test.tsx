@@ -1,9 +1,5 @@
 import { useLayoutEffect, type PropsWithChildren } from "react";
-import {
-  onlineManager,
-  QueryClientProvider,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
   act,
   cleanup,
@@ -316,68 +312,6 @@ it.each(["explicit", "background"] as const)(
     }
   },
 );
-
-it("keeps the same required-read card idle while Retry is paused and restores the checkbox after resume", async () => {
-  // Given
-  const user = await openErasure();
-  await user.press(screen.getByRole("checkbox"));
-  mockFetch.mockRejectedValue(new TypeError("Account read unavailable"));
-  await act(() =>
-    privateClient.refetchQueries({
-      queryKey: getGetMyAccountQueryKey(),
-      exact: true,
-    }),
-  );
-  const card = await screen.findByRole("alert", {
-    name: "Une erreur est survenue",
-  });
-  const response = Promise.withResolvers<Response>();
-  mockFetch.mockClear().mockReturnValue(response.promise);
-  try {
-    // When
-    await act(() => onlineManager.setOnline(false));
-    await user.press(screen.getByRole("button", { name: "Réessayer" }));
-
-    // Then
-    await waitFor(() =>
-      expect(
-        privateClient.getQueryState(getGetMyAccountQueryKey())?.fetchStatus,
-      ).toBe("paused"),
-    );
-    expect(card).toBeOnTheScreen();
-    expect(
-      screen.getByRole("button", { name: "Réessayer", busy: false }),
-    ).toBeOnTheScreen();
-    expect(mockFetch).not.toHaveBeenCalled();
-    expect(screen.queryByRole("checkbox")).not.toBeOnTheScreen();
-
-    // When
-    await act(() => onlineManager.setOnline(true));
-
-    // Then
-    expect(
-      await screen.findByRole("button", { name: "Réessayer", busy: true }),
-    ).toBeOnTheScreen();
-    expect(card).toBeOnTheScreen();
-    await act(() => response.resolve(Response.json(account)));
-    expect(
-      await screen.findByRole("checkbox", { checked: true }),
-    ).toBeEnabled();
-    expect(
-      mockFetch.mock.calls.map(([url, request]) => [
-        String(url),
-        request?.method,
-      ]),
-    ).toEqual([["https://api.example.invalid/accounts/me", "GET"]]);
-    expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
-  } finally {
-    await act(async () => {
-      onlineManager.setOnline(true);
-      response.resolve(Response.json(account));
-      await privateClient.cancelQueries();
-    });
-  }
-});
 
 it.each(["refused", "lost-response"])(
   "retains the confirmation after %s and sends again only on an explicit action",

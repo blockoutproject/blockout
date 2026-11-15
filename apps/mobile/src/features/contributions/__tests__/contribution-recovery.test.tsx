@@ -447,12 +447,11 @@ it.each(
 );
 
 it.each(
-  (["publish", "approve", "reject", "withdraw", "reactivate"] as const).flatMap(
-    (action) =>
-      (action === "publish"
-        ? (["lost", "conflict", 408, 429] as const)
-        : (["lost", "conflict"] as const)
-      ).map((outcome) => ({ action, outcome })),
+  (["publish", "approve", "reactivate"] as const).flatMap((action) =>
+    (action === "publish"
+      ? (["lost", "conflict", 408, 429] as const)
+      : (["lost", "conflict"] as const)
+    ).map((outcome) => ({ action, outcome })),
   ),
 )(
   "invalidates moderation resources after $action $outcome without inferring historical execution",
@@ -688,80 +687,71 @@ it("restores the retained reason after required account recovery before an expli
   ]);
 });
 
-it.each(["lost", 408, 429] as const)(
-  "retains the report draft after %s for a later explicit retry on the same version",
-  async (outcome) => {
-    // Given
-    const user = userEvent.setup();
-    await render(
-      <ReportContributionScreen
-        matchId={match.match.id}
-        contributionId={version.id}
-        contributionUrl={version.url}
-      />,
-      { wrapper: Wrapper },
-    );
-    await user.type(
-      await screen.findByLabelText("Motif du signalement"),
-      "Fictional private reason",
-    );
-    write = async () => {
-      failRead = true;
-      if (outcome === "lost") {
-        throw new TypeError("Lost report acknowledgement");
-      }
-      return Response.json(
-        { status: outcome, title: "Unavailable" },
-        { status: outcome },
-      );
-    };
+it("retains the report draft after a lost response for a later explicit retry on the same version", async () => {
+  // Given
+  const user = userEvent.setup();
+  await render(
+    <ReportContributionScreen
+      matchId={match.match.id}
+      contributionId={version.id}
+      contributionUrl={version.url}
+    />,
+    { wrapper: Wrapper },
+  );
+  await user.type(
+    await screen.findByLabelText("Motif du signalement"),
+    "Fictional private reason",
+  );
+  write = async () => {
+    failRead = true;
+    throw new TypeError("Lost report acknowledgement");
+  };
 
-    // When
-    await user.press(
-      screen.getByRole("button", { name: "Envoyer le signalement" }),
-    );
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Envoyer le signalement" }),
+  );
 
-    // Then
-    expect(
-      await screen.findByText(
-        "Une erreur est survenue. Veuillez réessayer plus tard.",
-      ),
-    ).toBeOnTheScreen();
-    expect(
-      screen.getByDisplayValue("Fictional private reason"),
-    ).toBeOnTheScreen();
-    expect(
-      screen.queryByRole("button", { name: /Actualiser/ }),
-    ).not.toBeOnTheScreen();
-    expect(writes).toHaveLength(1);
-    expect(mockFetch).toHaveBeenCalledWith(
-      writes[0].url,
-      expect.objectContaining({ method: "POST" }),
-    );
-    expect(writes[0].url).toContain(
-      `/accounts/${account.accountId}/stream-contributions/${version.id}/report`,
-    );
+  // Then
+  expect(
+    await screen.findByText(
+      "Une erreur est survenue. Veuillez réessayer plus tard.",
+    ),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByDisplayValue("Fictional private reason"),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: /Actualiser/ }),
+  ).not.toBeOnTheScreen();
+  expect(writes).toHaveLength(1);
+  expect(mockFetch).toHaveBeenCalledWith(
+    writes[0].url,
+    expect.objectContaining({ method: "POST" }),
+  );
+  expect(writes[0].url).toContain(
+    `/accounts/${account.accountId}/stream-contributions/${version.id}/report`,
+  );
 
-    // Then: settlement does not require another read or offer a read-recovery mode.
-    expect(
-      screen.queryByRole("button", { name: "Réessayer" }),
-    ).not.toBeOnTheScreen();
+  // Then: settlement does not require another read or offer a read-recovery mode.
+  expect(
+    screen.queryByRole("button", { name: "Réessayer" }),
+  ).not.toBeOnTheScreen();
 
-    // When
-    failRead = false;
-    write = async () => Response.json({ reported: true });
-    await user.press(
-      screen.getByRole("button", { name: "Envoyer le signalement" }),
-    );
+  // When
+  failRead = false;
+  write = async () => Response.json({ reported: true });
+  await user.press(
+    screen.getByRole("button", { name: "Envoyer le signalement" }),
+  );
 
-    // Then
-    expect(
-      await screen.findByText("Votre signalement a été envoyé."),
-    ).toBeOnTheScreen();
-    expect(writes).toHaveLength(2);
-    expect(writes[1]).toEqual(writes[0]);
-  },
-);
+  // Then
+  expect(
+    await screen.findByText("Votre signalement a été envoyé."),
+  ).toBeOnTheScreen();
+  expect(writes).toHaveLength(2);
+  expect(writes[1]).toEqual(writes[0]);
+});
 
 it("retains a dirty contribution after conflict and failed explicit refresh without claiming a successful read", async () => {
   // Given
@@ -895,7 +885,7 @@ it.each(["submit", "withdraw"] as const)(
   },
 );
 
-it.each(["publish", "approve", "reject", "withdraw", "reactivate"] as const)(
+it.each(["publish", "approve", "reactivate"] as const)(
   "keeps confirmed moderator %s separate from failed derivative reads",
   async (action) => {
     // Given

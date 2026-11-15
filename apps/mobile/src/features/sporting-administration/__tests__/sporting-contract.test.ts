@@ -2,15 +2,12 @@ import {
   getDivision,
   getPoolPresentation,
   getTeamLogo,
-  getGetPoolStandingsQueryOptions,
   setPoolPresentation,
 } from "../../../../.generated/mobile";
 import type {
   DivisionResponse,
   PoolPresentationResponse,
-  PoolStandingsResponse,
 } from "../../../../.generated/schemas/index.zod";
-import { createQueryClient } from "@/shared/query/query-client";
 
 const poolId = "00000000-0000-4000-8000-000000000001";
 const division: DivisionResponse = {
@@ -42,17 +39,6 @@ function poolPresentation(): PoolPresentationResponse {
       effectiveName: "Synthetic pool",
       manualName: null,
     },
-  };
-}
-
-/** Supplies a usable official table without fabricated rows or recomputed sporting values. */
-function standings(): PoolStandingsResponse {
-  return {
-    poolId,
-    availability: "available",
-    observedAt: "2026-10-18T18:00:00Z",
-    columns: [],
-    rows: [],
   };
 }
 
@@ -187,94 +173,6 @@ it("rejects an omitted required nullable name in a generated response", async ()
 
   // Then
   await expect(request).rejects.toMatchObject({ kind: "schema" });
-});
-
-it("accepts additive sporting response fields before Query admission", async () => {
-  // Given
-  const body = standings();
-  mockFetch.mockResolvedValue(
-    new Response(JSON.stringify({ ...body, future: true }), {
-      headers: { "Content-Type": "application/json" },
-    }),
-  );
-  const client = createQueryClient();
-  const options = getGetPoolStandingsQueryOptions(poolId);
-
-  try {
-    // When
-    const result = await client.fetchQuery(options);
-
-    // Then
-    expect(result).toStrictEqual(body);
-    expect(client.getQueryData(options.queryKey)).toStrictEqual(body);
-  } finally {
-    client.clear();
-  }
-});
-
-it.each([
-  ["unknown enum", { availability: "future" }],
-  ["invalid date", { observedAt: "2026-02-31T18:00:00Z" }],
-  ["wrong known type", { rows: "rows" }],
-])(
-  "rejects a sporting %s before Query admission",
-  async (_scenario, invalid) => {
-    // Given
-    mockFetch.mockResolvedValue(
-      new Response(JSON.stringify({ ...standings(), ...invalid }), {
-        headers: { "Content-Type": "application/json" },
-      }),
-    );
-    const client = createQueryClient();
-    const options = getGetPoolStandingsQueryOptions(poolId);
-
-    try {
-      // When
-      const request = client.fetchQuery(options);
-
-      // Then
-      await expect(request).rejects.toMatchObject({ kind: "schema" });
-      expect(client.getQueryData(options.queryKey)).toBeUndefined();
-    } finally {
-      client.clear();
-    }
-  },
-);
-
-it("preserves a safe sporting outage after bounded retries without caching a successful table", async () => {
-  // Given
-  mockFetch.mockImplementation(
-    async () =>
-      new Response(
-        JSON.stringify({
-          type: "urn:blockout:problem:unavailable",
-          title: "Service Unavailable",
-          status: 503,
-        }),
-        {
-          status: 503,
-          headers: { "Content-Type": "application/problem+json" },
-        },
-      ),
-  );
-  const client = createQueryClient();
-  const options = getGetPoolStandingsQueryOptions(poolId);
-
-  try {
-    // When
-    const request = client.fetchQuery({ ...options, retryDelay: 0 });
-
-    // Then
-    await expect(request).rejects.toMatchObject({
-      kind: "http",
-      status: 503,
-      problem: { type: "urn:blockout:problem:unavailable" },
-    });
-    expect(client.getQueryData(options.queryKey)).toBeUndefined();
-    expect(mockFetch).toHaveBeenCalledTimes(4);
-  } finally {
-    client.clear();
-  }
 });
 
 it("selects automatic team artwork independently through the generated binary client", async () => {

@@ -111,6 +111,10 @@ it("shows the five common steps and conditional Pro help without a restoration a
 
 it("keeps interruption and back navigation incomplete", async () => {
   // Given
+  await AsyncStorage.multiSet([
+    ["onboardingComplete", "true"],
+    ["blockout:v2-initialized", "true"],
+  ]);
   const user = userEvent.setup();
   const view = await openDiscovery();
   await user.press(await screen.findByRole("button", { name: "Suivant" }));

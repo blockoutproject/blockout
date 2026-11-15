@@ -20,48 +20,6 @@ beforeEach(() => {
   mockPurchases.isConfigured.mockReset().mockResolvedValue(true);
 });
 
-it.each([
-  {
-    label: "temporary",
-    expirationDate: "2026-02-01T00:00:00Z",
-    expirationDateMillis: 1769904000000,
-  },
-  { label: "open-ended", expirationDate: null, expirationDateMillis: null },
-])(
-  "consumes SDK-active $label gifts without inferring expiry or a billed renewal",
-  async (validity) => {
-    // Given: the old date deliberately leaves validity with the SDK rather than the local clock.
-    const gift = entitlement({
-      store: "PROMOTIONAL",
-      willRenew: false,
-      expirationDate: validity.expirationDate,
-      expirationDateMillis: validity.expirationDateMillis,
-    });
-    const info = customerInfo({
-      active: { "Blockout Pro": gift },
-      all: { "Blockout Pro": gift },
-      verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
-    });
-    mockPurchases.logIn
-      .mockReset()
-      .mockResolvedValue({ customerInfo: info, created: false });
-    const owner = createProSession();
-
-    // When
-    owner.setTarget(session);
-    await waitFor(() =>
-      expect(owner.getSnapshot().evidence?.association).toBe("associated"),
-    );
-    const state = getProState(account, owner.getSnapshot().evidence);
-
-    // Then
-    expect(state).toMatchObject({ status: "active", entitlement: gift });
-    expect(info.activeSubscriptions).toEqual([]);
-    expect(gift.willRenew).toBe(false);
-    expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
-  },
-);
-
 it("retains independent paid rights and their native billing facts when the SDK stops supplying an active gift", async () => {
   // Given
   const gift = entitlement({

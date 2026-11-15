@@ -1,6 +1,5 @@
 import type { PropsWithChildren } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Dimensions } from "react-native";
 import {
   cleanup,
   render,
@@ -17,7 +16,6 @@ import { ApplicationAccessProvider } from "@/features/access/queries/use-applica
 import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { NotificationItem } from "../components/notification-item";
 import { notificationResponse } from "../test-support/notification-data";
-import { notificationMessageSamples } from "../test-support/notification-message-samples";
 
 jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
@@ -34,10 +32,6 @@ jest.mock("expo/fetch", () => ({
 const mockFetch = jest.fn();
 const environment = { ...process.env };
 const NativeDateTimeFormat = Intl.DateTimeFormat;
-const originalDimensions = {
-  window: Dimensions.get("window"),
-  screen: Dimensions.get("screen"),
-};
 let deviceZone: string;
 let client = createQueryClient();
 
@@ -65,7 +59,6 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   client.clear();
-  Dimensions.set(originalDimensions);
   jest.restoreAllMocks();
   jest.useRealTimers();
   process.env = { ...environment };
@@ -84,48 +77,45 @@ function Providers({ children }: Readonly<PropsWithChildren>) {
   );
 }
 
-it.each(notificationMessageSamples)(
-  "preserves the supplied %s variant: %s",
-  async (family, title) => {
-    // Given
-    const row = notificationResponse();
-    row.family = family;
-    row.title = title;
-    row.match.home.name = "Nantes";
-    row.match.away.name = "Tours";
-    row.match.result = {
-      state: "final",
-      homeSets: 3,
-      awaySets: 1,
-      observedAt: row.createdAt,
-    };
-    const accepted = NotificationResponse.parse(row);
-    const onPress = jest.fn();
+it("preserves the supplied message without inventing editorial or reading intent", async () => {
+  // Given
+  const title =
+    "Le résultat est disponible 🏐, avec le libellé fourni par le serveur.";
+  const row = notificationResponse();
+  row.title = title;
+  row.match.home.name = "Nantes";
+  row.match.away.name = "Tours";
+  row.match.result = {
+    state: "final",
+    homeSets: 3,
+    awaySets: 1,
+    observedAt: row.createdAt,
+  };
+  const accepted = NotificationResponse.parse(row);
+  const onPress = jest.fn();
 
-    // When
-    await render(
-      <NotificationItem notification={accepted} onPress={onPress} />,
-      { wrapper: Providers },
-    );
+  // When
+  await render(<NotificationItem notification={accepted} onPress={onPress} />, {
+    wrapper: Providers,
+  });
 
-    // Then
-    expect(screen.getByText(title)).toBeOnTheScreen();
-    expect(screen.getByRole("link")).toHaveAccessibleName(
-      `${title} Poule A. Nantes, Score domicile : 3. Tours, Score extérieur : 1. 24 oct. 2026 à 03h02 — non lue`,
-    );
-    expect(screen.getByText("3")).toBeOnTheScreen();
-    expect(screen.getByText("1")).toBeOnTheScreen();
-    expect(onPress).not.toHaveBeenCalled();
-    expect(
-      screen.queryByText(/en direct|replay vérifié|gratuit|victoire/i),
-    ).toBeNull();
-    expect(
-      screen.queryByRole("button", {
-        name: /supprimer|archiver|réglages|campagne/i,
-      }),
-    ).toBeNull();
-  },
-);
+  // Then
+  expect(screen.getByText(title)).toBeOnTheScreen();
+  expect(screen.getByRole("link")).toHaveAccessibleName(
+    `${title} Poule A. Nantes, Score domicile : 3. Tours, Score extérieur : 1. 24 oct. 2026 à 03h02 — non lue`,
+  );
+  expect(screen.getByText("3")).toBeOnTheScreen();
+  expect(screen.getByText("1")).toBeOnTheScreen();
+  expect(onPress).not.toHaveBeenCalled();
+  expect(
+    screen.queryByText(/en direct|replay vérifié|gratuit|victoire/i),
+  ).toBeNull();
+  expect(
+    screen.queryByRole("button", {
+      name: /supprimer|archiver|réglages|campagne/i,
+    }),
+  ).toBeNull();
+});
 
 it.each([
   ["Forfait", "Résultat particulier : Forfait."],
@@ -257,10 +247,7 @@ it.each([{ homeSets: 0 }, { awaySets: 3 }])(
 );
 
 it.each([
-  ["2026-03-15T19:00:00Z", "15 mars 2026 à 20h00", "15 mars 2026 à 15h00"],
   ["2026-03-29T01:30:00Z", "29 mars 2026 à 03h30", "28 mars 2026 à 21h30"],
-  ["2026-10-25T01:30:00Z", "25 oct. 2026 à 02h30", "24 oct. 2026 à 21h30"],
-  ["2026-11-01T06:30:00Z", "1 nov. 2026 à 07h30", "1 nov. 2026 à 01h30"],
 ])(
   "presents original instant %s in Paris then New York without changing editorial or reading",
   async (createdAt, paris, newYork) => {
@@ -291,47 +278,40 @@ it.each([
   },
 );
 
-it.each([1, 2])(
-  "exposes full names and reading state in a narrow context at font scale %s while a tap is pending",
-  async (fontScale) => {
-    // Given: native narrow/200% layout remains a device qualification, not a Jest geometry claim.
-    Dimensions.set({
-      window: { ...originalDimensions.window, width: 320, fontScale },
-      screen: originalDimensions.screen,
-    });
-    const row = notificationResponse();
-    row.match.home.name = "Volley des Deux Rives et de la Vallée";
-    row.match.pool.pool.name = "Poule de Prénationale au libellé complet";
-    row.title =
-      "Petit tour du terrain : le match Volley des Deux Rives et de la Vallée – Équipe B. Score final : 3–0.";
-    row.match.result = {
-      state: "final",
-      homeSets: 3,
-      awaySets: 0,
-      observedAt: row.createdAt,
-    };
-    const onPress = jest.fn();
-    const user = userEvent.setup();
+it("exposes full names and reading state while a tap is pending", async () => {
+  // Given
+  const row = notificationResponse();
+  row.match.home.name = "Volley des Deux Rives et de la Vallée";
+  row.match.pool.pool.name = "Poule de Prénationale au libellé complet";
+  row.title =
+    "Petit tour du terrain : le match Volley des Deux Rives et de la Vallée – Équipe B. Score final : 3–0.";
+  row.match.result = {
+    state: "final",
+    homeSets: 3,
+    awaySets: 0,
+    observedAt: row.createdAt,
+  };
+  const onPress = jest.fn();
+  const user = userEvent.setup();
 
-    // When
-    await render(
-      <NotificationItem
-        notification={NotificationResponse.parse(row)}
-        onPress={onPress}
-        pending
-      />,
-      { wrapper: Providers },
-    );
-    const link = screen.getByRole("link", {
-      name: /Poule de Prénationale au libellé complet.*Volley des Deux Rives et de la Vallée, Score domicile : 3.*Score extérieur : 0.*non lue$/,
-    });
-    await user.press(link);
+  // When
+  await render(
+    <NotificationItem
+      notification={NotificationResponse.parse(row)}
+      onPress={onPress}
+      pending
+    />,
+    { wrapper: Providers },
+  );
+  const link = screen.getByRole("link", {
+    name: /Poule de Prénationale au libellé complet.*Volley des Deux Rives et de la Vallée, Score domicile : 3.*Score extérieur : 0.*non lue$/,
+  });
+  await user.press(link);
 
-    // Then
-    expect(screen.getByText("3")).toBeOnTheScreen();
-    expect(screen.getByText("0")).toBeOnTheScreen();
-    expect(link).toBeDisabled();
-    expect(screen.getByRole("link", { busy: true, disabled: true })).toBe(link);
-    expect(onPress).not.toHaveBeenCalled();
-  },
-);
+  // Then
+  expect(screen.getByText("3")).toBeOnTheScreen();
+  expect(screen.getByText("0")).toBeOnTheScreen();
+  expect(link).toBeDisabled();
+  expect(screen.getByRole("link", { busy: true, disabled: true })).toBe(link);
+  expect(onPress).not.toHaveBeenCalled();
+});

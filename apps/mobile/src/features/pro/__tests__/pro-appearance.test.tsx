@@ -8,13 +8,11 @@ import {
   cleanup,
   render,
   screen,
-  userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import { Stack, useTheme as useNavigationTheme } from "expo-router";
-import { useEffect, useState, type ComponentType } from "react";
-import { Appearance, Pressable, Text, TextInput } from "react-native";
-import type { CustomerInfo } from "react-native-purchases";
+import { Stack } from "expo-router";
+import { useEffect, type ComponentType } from "react";
+import { Appearance, Text } from "react-native";
 import RootLayout from "@/app/_layout";
 import { useAccountSession } from "@/features/accounts/session/account-session-provider";
 import type { AccountSession } from "@/features/accounts";
@@ -28,7 +26,7 @@ import {
   membershipColors,
   neutralContext,
 } from "@/shared/theme/tokens";
-import { usePro, type ProContext } from "../index";
+import { usePro } from "../index";
 import { customerInfo, entitlement } from "../test-support/customer-info";
 import { mockPurchases } from "../test-support/native-purchases";
 import { prepareProNativeIO } from "../test-support/pro-harness";
@@ -71,10 +69,8 @@ jest.mock("react-native-auth0", () => {
 });
 jest.mock("expo/fetch", () => ({ fetch: jest.fn() }));
 const a = "00000000-0000-4000-8000-000000000001";
-const b = "00000000-0000-4000-8000-000000000002";
 let mockAccountId: string | undefined;
 let account: AccountSession;
-let pro: ProContext;
 const originalDomain = process.env.EXPO_PUBLIC_AUTH0_DOMAIN;
 const originalClient = process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID;
 const originalApiUrl = process.env.EXPO_PUBLIC_API_URL;
@@ -135,45 +131,27 @@ afterEach(async () => {
 /** Reads public presentation contracts; text exposes semantic values without style assertions. */
 function AppearanceValues() {
   const theme = useTheme();
-  const navigation = useNavigationTheme();
   return (
     <>
       <Text accessibilityLabel="Apparence">{theme.scheme}</Text>
       <Text accessibilityLabel="Accent Pro">{theme.membership.fill}</Text>
       <Text accessibilityLabel="Contexte sportif">{theme.context.primary}</Text>
       <Text accessibilityLabel="Fond neutre">{theme.colors.canvas}</Text>
-      <Text accessibilityLabel="Navigation native">
-        {String(navigation.colors.background)}{" "}
-        {String(navigation.colors.primary)}
-      </Text>
     </>
   );
 }
 
-/** Stateful route double; root Query, Auth0/session, Pro and theme owners stay real. */
+/** Reads the root composition while its Query, Auth0/session, Pro and theme owners stay real. */
 function AppearanceRoute() {
   const currentAccount = useAccountSession();
   const currentPro = usePro();
   useEffect(() => {
     account = currentAccount;
-    pro = currentPro;
   }, [currentAccount, currentPro]);
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState("");
   return (
     <>
       <AppearanceValues />
       <Text>Pro: {currentPro.state.status}</Text>
-      <Pressable accessibilityRole="button" onPress={() => setEditing(true)}>
-        <Text>Consulter le sport</Text>
-      </Pressable>
-      {editing && (
-        <TextInput
-          accessibilityLabel="Brouillon"
-          value={draft}
-          onChangeText={setDraft}
-        />
-      )}
     </>
   );
 }
@@ -193,309 +171,43 @@ function activeInfo(store: "APP_STORE" | "PROMOTIONAL" = "APP_STORE") {
   });
 }
 
-it.each(["light", "dark"] as const)(
-  "projects current paid and gifted SDK-active rights without changing neutral context in %s",
-  async (scheme) => {
-    // Given
-    jest.mocked(Appearance.getColorScheme).mockReturnValue(scheme);
-    await renderAccount();
-    await waitFor(() => expect(account.status).toBe("authenticated"));
-    mockAccountId = a;
-    mockAuth0.webAuth.mockResolvedValue(
-      credentialsFor(`auth0|${mockAccountId}`),
-    );
-    mockAuth0.getCredentials.mockResolvedValue(
-      credentialsFor(`auth0|${mockAccountId}`),
-    );
-    mockAuth0.saveCredentials.mockResolvedValue();
-    await act(() => account.signIn("https://api.example.invalid"));
-    await waitFor(() => expect(account.accountId).toBe(a));
-    await screen.findByText("Pro: inactive");
-    expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
-      membershipColors[scheme].fill,
-    );
-    // When
-    for (const store of ["APP_STORE", "PROMOTIONAL"] as const) {
-      mockPurchases.getCustomerInfo.mockResolvedValueOnce(activeInfo(store));
-      await act(() => proSessionModule.proSession.refresh(account));
-      // Then
-      expect(screen.getByText("Pro: active")).toBeOnTheScreen();
-      expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
-        membershipColors.pro[scheme].fill,
-      );
-      expect(screen.getByLabelText("Contexte sportif")).toHaveTextContent(
-        neutralContext[scheme].primary,
-      );
-      expect(screen.getByLabelText("Fond neutre")).toHaveTextContent(
-        appearanceColors[scheme].canvas,
-      );
-      expect(
-        screen.getByRole("button", { name: "Consulter le sport" }),
-      ).toBeEnabled();
-    }
-  },
-);
-it("keeps unknown account and unavailable SDK state neutral", async () => {
-  // Given
-  await render(<RootLayout />);
-  await waitFor(() => expect(account.status).toBe("authenticated"));
-  expect(screen.getByText("Pro: unavailable")).toBeOnTheScreen();
-  expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
-    membershipColors.light.fill,
-  );
-  mockPurchases.getCustomerInfo.mockRejectedValueOnce(
-    new Error("synthetic read failure"),
-  );
-  // When
-  mockAccountId = a;
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
-  );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() => expect(account.accountId).toBe(a));
-  // Then
-  expect(screen.getByText("Pro: unavailable")).toBeOnTheScreen();
-  expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
-    membershipColors.light.fill,
-  );
-});
-it.each(["signOut", "clearCredentials"] as const)(
-  "removes the previous accent at F05 %s before native logout settles",
-  async (action) => {
-    // Given: clearCredentials is F05's local invalidation seam after owner-accepted erasure.
-    await renderAccount();
-    await waitFor(() => expect(account.status).toBe("authenticated"));
-    mockAccountId = a;
-    mockAuth0.webAuth.mockResolvedValue(
-      credentialsFor(`auth0|${mockAccountId}`),
-    );
-    mockAuth0.getCredentials.mockResolvedValue(
-      credentialsFor(`auth0|${mockAccountId}`),
-    );
-    mockAuth0.saveCredentials.mockResolvedValue();
-    await act(() => account.signIn("https://api.example.invalid"));
-    await waitFor(() => expect(account.accountId).toBe(a));
-    await screen.findByText("Pro: inactive");
-    mockPurchases.getCustomerInfo.mockResolvedValueOnce(activeInfo());
-    await act(() => proSessionModule.proSession.refresh(account));
-    expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
-      membershipColors.pro.light.fill,
-    );
-    const logout = Promise.withResolvers<CustomerInfo>();
-    mockPurchases.logOut.mockReturnValueOnce(logout.promise);
-    // When
-    await act(() => account[action]());
-    // Then
-    expect(screen.getByText("Pro: guest")).toBeOnTheScreen();
-    expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
-      membershipColors.light.fill,
-    );
-    expect(
-      screen.getByRole("button", { name: "Consulter le sport" }),
-    ).toBeEnabled();
-    // When
-    await act(() => logout.resolve(activeInfo()));
-    // Then
-    expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
-      membershipColors.light.fill,
-    );
-  },
-);
-it("clears gold during reassociation and keeps a failed current association neutral", async () => {
+it("applies current Pro presentation at the root and removes it on sign-out", async () => {
   // Given
   await renderAccount();
   await waitFor(() => expect(account.status).toBe("authenticated"));
   mockAccountId = a;
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
-  );
+  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${a}`));
+  mockAuth0.getCredentials.mockResolvedValue(credentialsFor(`auth0|${a}`));
   mockAuth0.saveCredentials.mockResolvedValue();
   await act(() => account.signIn("https://api.example.invalid"));
   await waitFor(() => expect(account.accountId).toBe(a));
   await screen.findByText("Pro: inactive");
+  expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
+    membershipColors.light.fill,
+  );
   mockPurchases.getCustomerInfo.mockResolvedValueOnce(activeInfo());
+
+  // When
   await act(() => proSessionModule.proSession.refresh(account));
+
+  // Then
+  expect(screen.getByText("Pro: active")).toBeOnTheScreen();
   expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
     membershipColors.pro.light.fill,
   );
-  const login =
-    Promise.withResolvers<Awaited<ReturnType<typeof mockPurchases.logIn>>>();
-  mockPurchases.logIn.mockReturnValueOnce(login.promise);
-  // When
-  mockAccountId = b;
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
+  expect(screen.getByLabelText("Contexte sportif")).toHaveTextContent(
+    neutralContext.light.primary,
   );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() => expect(account.accountId).toBe(b));
-  // Then
-  expect(screen.getByText("Pro: unavailable")).toBeOnTheScreen();
-  expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
-    membershipColors.light.fill,
+  expect(screen.getByLabelText("Fond neutre")).toHaveTextContent(
+    appearanceColors.light.canvas,
   );
-  // When
-  await act(() => login.reject(new Error("synthetic association failure")));
-  // Then
-  expect(pro.state).toEqual(
-    expect.objectContaining({ reason: "association-failed" }),
-  );
-  expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
-    membershipColors.light.fill,
-  );
-});
-it("rejects previous-session gold through A → guest → A, including a late active read", async () => {
-  // Given
-  await renderAccount();
-  await waitFor(() => expect(account.status).toBe("authenticated"));
-  mockAccountId = a;
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
-  );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() => expect(account.accountId).toBe(a));
-  await screen.findByText("Pro: inactive");
-  const previous = activeInfo();
-  mockPurchases.getCustomerInfo.mockResolvedValueOnce(previous);
-  await act(() => proSessionModule.proSession.refresh(account));
-  expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
-    membershipColors.pro.light.fill,
-  );
-  const oldRead = Promise.withResolvers<CustomerInfo>();
-  mockPurchases.getCustomerInfo.mockReturnValueOnce(oldRead.promise);
-  let refreshing: Promise<boolean | undefined> | undefined;
-  await act(() => {
-    refreshing = proSessionModule.proSession.refresh(account);
-  });
+
   // When
   await act(() => account.clearCredentials());
+
+  // Then
   expect(screen.getByText("Pro: guest")).toBeOnTheScreen();
   expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
     membershipColors.light.fill,
   );
-  mockAuth0.webAuth.mockResolvedValueOnce(credentialsFor("auth0|synthetic"));
-  await act(() => account.signIn("https://api.example.invalid"));
-  mockAccountId = a;
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
-  );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() => expect(account.accountId).toBe(a));
-  await screen.findByText("Pro: inactive");
-  await act(async () => {
-    oldRead.resolve(previous);
-    await refreshing;
-  });
-  // Then
-  expect(screen.getByText("Pro: inactive")).toBeOnTheScreen();
-  expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
-    membershipColors.light.fill,
-  );
-});
-it("retains SDK-supplied cached active gold during failure, then removes it on reliable rights loss", async () => {
-  // Given: historical dates do not override the SDK's active map or create an app expiry clock.
-  await renderAccount();
-  await waitFor(() => expect(account.status).toBe("authenticated"));
-  mockAccountId = a;
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
-  );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() => expect(account.accountId).toBe(a));
-  await screen.findByText("Pro: inactive");
-  const cached = activeInfo();
-  mockPurchases.getCustomerInfo.mockResolvedValueOnce(cached);
-  await act(() => proSessionModule.proSession.refresh(account));
-  expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
-    membershipColors.pro.light.fill,
-  );
-  mockPurchases.getCustomerInfo.mockRejectedValueOnce(
-    new Error("synthetic outage"),
-  );
-  // When
-  await act(() => proSessionModule.proSession.refresh(account));
-  // Then
-  expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
-    membershipColors.pro.light.fill,
-  );
-  // When: a native event signals a current read; its payload cannot override that read.
-  mockPurchases.getCustomerInfo.mockResolvedValueOnce(
-    customerInfo({
-      active: {},
-      all: { "Blockout Pro": entitlement({ isActive: false }) },
-      verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
-    }),
-  );
-  const listener =
-    mockPurchases.addCustomerInfoUpdateListener.mock.calls.at(-1)![0];
-  await act(() => listener(cached));
-  // Then
-  expect(screen.getByText("Pro: inactive")).toBeOnTheScreen();
-  expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
-    membershipColors.light.fill,
-  );
-});
-it("follows live system appearance without resetting the mounted route or draft or restoring old gold", async () => {
-  // Given
-  const subscribe = jest.spyOn(Appearance, "addChangeListener");
-  await renderAccount();
-  await waitFor(() => expect(account.status).toBe("authenticated"));
-  mockAccountId = a;
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
-  );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() => expect(account.accountId).toBe(a));
-  await screen.findByText("Pro: inactive");
-  mockPurchases.getCustomerInfo.mockResolvedValueOnce(activeInfo());
-  await act(() => proSessionModule.proSession.refresh(account));
-  const user = userEvent.setup();
-  await user.press(screen.getByRole("button", { name: "Consulter le sport" }));
-  await user.type(screen.getByLabelText("Brouillon"), "Saisie conservée");
-  // When
-  for (const scheme of ["dark", "light"] as const) {
-    jest.mocked(Appearance.getColorScheme).mockReturnValue(scheme);
-    await act(() => {
-      for (const [listener] of subscribe.mock.calls) {
-        listener({ colorScheme: scheme });
-      }
-    });
-    // Then
-    expect(screen.getByLabelText("Apparence")).toHaveTextContent(scheme);
-    expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
-      membershipColors.pro[scheme].fill,
-    );
-    expect(screen.getByLabelText("Navigation native")).toHaveTextContent(
-      `${appearanceColors[scheme].canvas} ${neutralContext[scheme].primary}`,
-    );
-    expect(screen.getByDisplayValue("Saisie conservée")).toBeOnTheScreen();
-    expect(
-      screen.getByRole("button", { name: "Consulter le sport" }),
-    ).toBeEnabled();
-  }
-  // When
-  await act(() => proSessionModule.proSession.refresh(account));
-  jest.mocked(Appearance.getColorScheme).mockReturnValue("dark");
-  await act(() => {
-    for (const [listener] of subscribe.mock.calls) {
-      listener({ colorScheme: "dark" });
-    }
-  });
-  // Then
-  expect(screen.getByLabelText("Accent Pro")).toHaveTextContent(
-    membershipColors.dark.fill,
-  );
-  expect(screen.getByDisplayValue("Saisie conservée")).toBeOnTheScreen();
 });

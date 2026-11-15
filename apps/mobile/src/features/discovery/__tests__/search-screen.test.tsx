@@ -27,14 +27,10 @@ import {
   waitFor,
 } from "@testing-library/react-native";
 import { SearchScreen } from "../screens/search-screen";
-import { useDiscoveryQuery } from "../api/use-discovery-query";
 import { createDiscoveryContext } from "../api/discovery-context";
 import { createQueryClient } from "@/shared/query/query-client";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
-import {
-  AccountSessionProvider,
-  useAccountSession,
-} from "@/features/accounts/session/account-session-provider";
+import { AccountSessionProvider } from "@/features/accounts/session/account-session-provider";
 import {
   mockAuth0,
   credentialsFor,
@@ -189,11 +185,8 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-/** Supplies the actual required owners; membership changes presentation only. */
-function SearchOwners({
-  children,
-  proAccent = false,
-}: Readonly<PropsWithChildren<{ proAccent?: boolean }>>) {
+/** Supplies the actual public-read, native-session and presentation owners. */
+function SearchOwners({ children }: Readonly<PropsWithChildren>) {
   return (
     <GestureHandlerRootView>
       <SafeAreaProvider
@@ -203,7 +196,7 @@ function SearchOwners({
         }}
       >
         <QueryClientProvider client={publicClient}>
-          <ThemeProvider proAccent={proAccent}>
+          <ThemeProvider>
             <ApplicationAccessProvider>
               <AccountSessionProvider>
                 <PrivateQueries>
@@ -223,74 +216,16 @@ function SearchOwners({
 }
 
 /** Keeps screen scenarios under the same query, session and native presentation owners. */
-async function renderSearch(proAccent = false) {
+async function renderSearch() {
   const result = await render(<SearchScreen />, {
-    wrapper: ({ children }) => (
-      <SearchOwners proAccent={proAccent}>{children}</SearchOwners>
-    ),
+    wrapper: SearchOwners,
   });
   await layoutNativeTabs();
   return result;
 }
 
-it.each(["success", "failure"])(
-  "leaves an inactive Clubs search unread and retains its %s outcome on return",
-  async (outcome) => {
-    // Given: native paging can mount a neighbour before it becomes the selected tab.
-    mockFetch.mockImplementation((url: string) =>
-      outcome === "failure" && new URL(url).pathname.endsWith("/clubs")
-        ? Promise.resolve(Response.json({ status: 503 }, { status: 503 }))
-        : publicReads(url),
-    );
-    const { result, rerender } = await renderHook(
-      ({ active }: { active: boolean }) => {
-        const query = useDiscoveryQuery("club", { q: "Volley" }, active);
-        return {
-          data: query.data,
-          isError: query.isError,
-          isFetched: query.isFetched,
-          status: useAccountSession().status,
-        };
-      },
-      { initialProps: { active: false }, wrapper: SearchOwners },
-    );
-    await waitFor(() => expect(result.current.status).toBe("guest"));
-
-    // Then: mounting the scene neither executes its search nor creates accepted data.
-    expect(result.current.data).toBeUndefined();
-    expect(
-      mockFetch.mock.calls.filter(([url]) =>
-        new URL(String(url)).pathname.endsWith("/clubs"),
-      ),
-    ).toHaveLength(0);
-
-    // When
-    await rerender({ active: true });
-    await waitFor(() => expect(result.current.isFetched).toBe(true));
-    await rerender({ active: false });
-    mockFetch.mockClear();
-    await act(async () => {
-      await client.refetchQueries({
-        predicate: ({ queryKey }) =>
-          ["/clubs", "/teams", "/pools"].includes(String(queryKey[0])),
-        type: "active",
-      });
-    });
-    expect(mockFetch).not.toHaveBeenCalled();
-    await rerender({ active: true });
-    await waitFor(() => expect(client.isFetching()).toBe(0));
-
-    // Then: selecting the same context preserves its result or explicit recovery without another GET.
-    expect(mockFetch).not.toHaveBeenCalled();
-    await waitFor(() =>
-      expect(result.current.isError).toBe(outcome === "failure"),
-    );
-    expect(result.current.data !== undefined).toBe(outcome === "success");
-  },
-);
-
-it.each(["guest", "free", "Pro", "unresolved"])(
-  "allows all three public tabs for %s without waiting for Pro",
+it.each(["guest", "unresolved"])(
+  "allows all three public tabs for %s without waiting for native account resolution",
   async (access) => {
     // Given: no RevenueCat dependency is mounted; unresolved native restoration must not block public reads.
     const restoration = Promise.withResolvers<boolean>();
@@ -301,7 +236,7 @@ it.each(["guest", "free", "Pro", "unresolved"])(
     }
     const user = userEvent.setup();
     try {
-      await renderSearch(access === "Pro");
+      await renderSearch();
 
       // When
       await user.type(await screen.findByLabelText("Rechercher"), "Volley");

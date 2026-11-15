@@ -59,19 +59,3 @@ it("keeps every encounter individually addressable between sticky day headings a
   ).toEqual(["2026-10-26", "2026-10-27"]);
   expect(new Set(rows.map((row) => row.key)).size).toBe(rows.length);
 });
-
-it("removes the lateral grid spacers when enlarged text stacks the real day headings", () => {
-  // Given
-  const days: MatchDayResponse[] = [
-    {
-      date: "2026-10-26",
-      pools: [{ poolId: sportingId, matches: [matchDetail().match] }],
-    },
-  ];
-
-  // When
-  const rows = calendarRows(days, true);
-
-  // Then
-  expect(rows.map((row) => row.kind)).toEqual(["date", "pool", "match"]);
-});

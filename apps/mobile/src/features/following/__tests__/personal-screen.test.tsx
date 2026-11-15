@@ -2284,16 +2284,10 @@ it("opens the native season route and returns to Home with the same owner's acce
   expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
 });
 
-it.each(
-  [
-    ["À venir", "matches"],
-    ["Terminés", "matches"],
-    ["Suivis", "team-follows"],
-    ["Suivis", "pool-follows"],
-  ].flatMap(([tab, collection]) =>
-    ["catalog", "empty"].map((fallback) => [tab, collection, fallback]),
-  ),
-)(
+it.each([
+  ["À venir", "matches", "catalog"],
+  ["Suivis", "team-follows", "empty"],
+])(
   "reconciles a disappeared season after opening the selector following %s/%s failure with %s options",
   async (tab, collection, fallback) => {
     // Given: only HTTP/native I/O are controlled; Home, both lists, F03 calendars and Query are real.
@@ -2407,82 +2401,6 @@ it.each(
           (fallback === "catalog" ? newer.id : null),
       ),
     ).toBe(true);
-  },
-);
-
-it.each(
-  [
-    ["À venir", "matches"],
-    ["Suivis", "team-follows"],
-  ].flatMap(([tab, collection]) =>
-    ["offered", "failed"].map((outcome) => [tab, collection, outcome]),
-  ),
-)(
-  "retains the season in %s after %s NotFound when options are %s and bounds each explicit retry",
-  async (tab, collection, outcome) => {
-    // Given
-    let refused = false;
-    mockFetch.mockImplementation((url, request) => {
-      if (refused && new URL(url).pathname.endsWith(`/${collection}`)) {
-        return Promise.resolve(new Response(null, { status: 404 }));
-      }
-      if (refused && url.endsWith("/follow-options") && outcome === "failed") {
-        return Promise.reject(new TypeError("Synthetic options outage"));
-      }
-      return transport(url, request);
-    });
-    await mount();
-    await screen.findByRole("button", {
-      name: "Saison des suivis",
-      disabled: false,
-    });
-    await layoutNativeTabs();
-    await layoutNativeTabs();
-    await userEvent.press(screen.getByRole("tab", { name: tab }));
-    await screen.findByRole("link", {
-      name: tab === "Suivis" ? /Étoile/ : /Ouvrir le match Home — Away/,
-    });
-    if (tab === "Suivis") {
-      await userEvent.press(
-        screen.getByRole("button", { name: "Poules suivies", expanded: true }),
-      );
-    }
-    mockFetch.mockClear();
-
-    // When
-    refused = true;
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-    const retry = await screen.findByRole("button", { name: "Réessayer" });
-
-    // Then
-    expect(
-      screen.getByRole("button", { name: "Saison des suivis" }),
-    ).toHaveAccessibilityValue({ text: older.label });
-    expect(
-      mockFetch.mock.calls.filter(([url]) => url.endsWith("/follow-options")),
-    ).toHaveLength(0);
-    expect(
-      mockFetch.mock.calls.filter(([url]) =>
-        new URL(url).pathname.endsWith(`/${collection}`),
-      ),
-    ).toHaveLength(1);
-
-    // When: only the user's new attempt rereads the refused collection.
-    await userEvent.press(retry);
-    await screen.findByRole("button", { name: "Réessayer", busy: false });
-
-    // Then
-    expect(
-      mockFetch.mock.calls.filter(([url]) => url.endsWith("/follow-options")),
-    ).toHaveLength(0);
-    expect(
-      mockFetch.mock.calls.filter(([url]) =>
-        new URL(url).pathname.endsWith(`/${collection}`),
-      ),
-    ).toHaveLength(2);
-    expect(
-      screen.getByRole("button", { name: "Saison des suivis" }),
-    ).toHaveAccessibilityValue({ text: older.label });
   },
 );
 

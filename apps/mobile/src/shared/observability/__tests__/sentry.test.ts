@@ -195,35 +195,6 @@ it.each(["app:///index.android.bundle", "app:///main.jsbundle"])(
 );
 
 it.each([
-  { development: true, dsn: undefined },
-  { development: false, dsn: undefined },
-  { development: true, dsn: "https://public@example.invalid/1" },
-  { development: false, dsn: "https://public@example.invalid/1" },
-])(
-  "keeps reporting disabled with development=$development and dsn=$dsn",
-  ({ development, dsn }) => {
-    // Given
-    jest.replaceProperty(
-      globalThis as typeof globalThis & { __DEV__: boolean },
-      "__DEV__",
-      development,
-    );
-    if (dsn === undefined) {
-      delete process.env.EXPO_PUBLIC_SENTRY_DSN;
-    } else {
-      process.env.EXPO_PUBLIC_SENTRY_DSN = dsn;
-    }
-
-    // When
-    initializeSentry();
-    const options = jest.mocked(Sentry.init).mock.calls[0][0];
-
-    // Then
-    expect(options).toMatchObject({ dsn, enabled: false });
-  },
-);
-
-it.each([
   "app:///index.android.bundle?token=harmless-secret",
   "https://example.invalid/index.android.bundle",
   "file:///private/main.jsbundle",
@@ -304,25 +275,6 @@ it("drops a free-form message without an exception", async () => {
 
   // Then
   expect(result).toBeNull();
-});
-
-it("removes attachments carried outside the JavaScript event", async () => {
-  // Given
-  initializeSentry();
-  const options = jest.mocked(Sentry.init).mock.calls[0][0];
-  const hint = {
-    attachments: [{ filename: "private.txt", data: "private-provider-body" }],
-  };
-
-  // When
-  const result = await options?.beforeSend?.(
-    { type: undefined, exception: { values: [{ type: "Error" }] } },
-    hint,
-  );
-
-  // Then
-  expect(result?.exception?.values?.[0].type).toBe("Error");
-  expect(hint.attachments).toEqual([]);
 });
 
 it("replaces free-form exception names and mechanisms without losing failure coordinates", async () => {

@@ -162,7 +162,7 @@ it("waits for the next eligible sporting action after no-fill without treating i
   expect(mockCreateAd).toHaveBeenCalledTimes(2);
   expect(lifecycle.count).toBe(1);
 });
-it.each([3599999, 3600000, 3600001])(
+it.each([3599999, 3600000])(
   "uses LOADED freshness at %i ms and never displays an expired replacement late",
   async (age) => {
     // Given

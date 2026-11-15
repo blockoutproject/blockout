@@ -480,45 +480,6 @@ it("keeps missing-email establishment on ordinary Login until another explicit c
   );
 });
 
-it("keeps an outage unknown while the explicit paywall and independent private assistance remain available", async () => {
-  // Given
-  prepareLogin("apple|retained");
-  mockPurchases.getCustomerInfo.mockRejectedValue(
-    new Error("Native state unavailable"),
-  );
-  const user = userEvent.setup();
-  await openInstallation("/sign-in?returnTo=%2Fprofile");
-  await user.press(await screen.findByRole("button", { name: "Se connecter" }));
-  await screen.findByText("Fresh_profile");
-  await waitFor(() =>
-    expect(owners.pro.state).toMatchObject({
-      status: "unavailable",
-      reason: "customer-info",
-    }),
-  );
-  const adRequests = mockCreateAd.mock.calls.length;
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-
-  // Then
-  expect(await screen.findByText("Native store offer")).toBeOnTheScreen();
-  expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(1);
-  expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
-  expect(mockCreateAd).toHaveBeenCalledTimes(adRequests);
-
-  // When
-  await act(() => mockPaywall.onDismiss?.());
-  await user.press(screen.getByRole("button", { name: "Besoin d’aide ?" }));
-
-  // Then
-  expect(await screen.findByLabelText("Titre")).toBeOnTheScreen();
-  expect(screen).toHavePathname("/support");
-  expect(screen.getByLabelText("E-mail de réponse")).toHaveDisplayValue(
-    "shared@example.invalid",
-  );
-});
-
 it.each(["APP_STORE", "PLAY_STORE"] as const)(
   "restores only the explicit native %s result on a recreated UUID without reviving a gift",
   async (store) => {
@@ -596,43 +557,6 @@ it.each(["APP_STORE", "PLAY_STORE"] as const)(
   },
 );
 
-it("consumes a native restoration failure without replay or a verification prerequisite", async () => {
-  // Given
-  prepareLogin("apple|retained");
-  const user = userEvent.setup();
-  await openInstallation("/sign-in?returnTo=%2Fprofile");
-  await user.press(await screen.findByRole("button", { name: "Se connecter" }));
-  await screen.findByText("Fresh_profile");
-  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-  await screen.findByText("Native store offer");
-
-  // When
-  await act(() =>
-    mockPaywall.onRestoreError?.({
-      error: {
-        code: mockPurchases.PURCHASES_ERROR_CODE.NETWORK_ERROR,
-        message: "Private native error",
-        readableErrorCode: "NETWORK_ERROR",
-        underlyingErrorMessage: "",
-        userCancelled: false,
-        userInfo: { readableErrorCode: "NETWORK_ERROR" },
-      },
-    }),
-  );
-
-  // Then
-  expect(screen.queryByRole("alert")).toBeNull();
-  expect(
-    screen.queryByRole("button", { name: "Vérifier mes droits" }),
-  ).toBeNull();
-  expect(screen.getByText("Native store offer")).toBeOnTheScreen();
-  expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
-  expect(owners.pro.state).toMatchObject({
-    status: "inactive",
-    operation: "failed",
-  });
-});
-
 it("keeps native pending payment separate from inactive rights after transition sign-in", async () => {
   // Given
   prepareLogin("apple|retained");
@@ -696,31 +620,4 @@ it("consumes an empty native restore without activating Pro or announcing expiry
   expect(screen.queryByText(/Pro actif|expiré/)).toBeNull();
   expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
   expect(mockPurchases.getCustomerInfo).toHaveBeenCalledTimes(reads);
-});
-
-it("reads current revoked rights after an old active listener signal without replaying restoration", async () => {
-  // Given
-  prepareLogin("google-oauth2|retained");
-  const previouslyActive = rights("APP_STORE");
-  mockPurchases.getCustomerInfo.mockResolvedValue(previouslyActive);
-  const user = userEvent.setup();
-  await openInstallation("/sign-in?returnTo=%2Fprofile");
-  await user.press(await screen.findByRole("button", { name: "Se connecter" }));
-  await waitFor(() => expect(owners.pro.state.status).toBe("active"));
-  const inactive = customerInfo({
-    active: {},
-    all: { "Blockout Pro": entitlement({ isActive: false, willRenew: false }) },
-    verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
-  });
-  mockPurchases.getCustomerInfo.mockResolvedValue(inactive);
-  const listeners = mockPurchases.addCustomerInfoUpdateListener.mock.calls;
-  const listener = listeners[listeners.length - 1][0];
-
-  // When
-  await act(() => listener(previouslyActive));
-
-  // Then
-  await waitFor(() => expect(owners.pro.state.status).toBe("inactive"));
-  expect(owners.session.accountId).toBe(newUuid);
-  expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
 });

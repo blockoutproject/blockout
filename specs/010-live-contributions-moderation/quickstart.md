@@ -8,7 +8,7 @@ Use the [F13 environment](../003-shared-quality/plan.md) and [canonical contract
 
 ## Contracts and access
 
-Bundle/validate the mobile root, generate Java interfaces/DTOs and Orval client/Zod schemas, then compile the actual consumers. Qualify enums, required/absent/null fields, URI handling, additive responses, unknown request rejection and deterministic regeneration. Verify 201 Location, repeated-state 200, stale-revision 409, shared errors and no-store. A contributed public URL carries its exact version ID; a professional URL does not.
+Bundle/validate the mobile root, generate Java interfaces/DTOs and Orval client/Zod schemas, then compile the actual consumers. Use actual MVC request binding for finite enums, strict fields/null refusal and unknown-input rejection. The mobile consumer protects meaningful response admission: private context and erased attribution, opaque revisions and page/count bounds. Reuse F13 transport/Query error and validation proofs; do not repeat generated schema options or the same input refusal at every UI layer. Qualify URI handling, additive responses and deterministic regeneration, and verify 201 Location, repeated-state 200, stale-revision 409 and no-store at their HTTP owners. A contributed public URL carries its exact version ID; a professional URL does not.
 
 Reject another account, old erased account UUID, invalid session, ordinary user at an administrative route, wrong-environment token and ungranted maintenance bypass without effects. A stream-only moderator has all video actions and no unrelated administrative power. Test URI host-boundary spoofing, embedded credentials, malformed addresses, supported short/subdomain URLs and preserved query/fragment without network requests.
 

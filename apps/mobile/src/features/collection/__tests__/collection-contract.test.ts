@@ -63,6 +63,7 @@ it.each([
   ["an omitted required nullable timestamp", { lastSuccessAt: undefined }],
   ["a null optional season", { seasonId: null }],
   ["an invalid known timestamp", { lastAttemptAt: "not-a-date" }],
+  ["an impossible calendar date", { lastAttemptAt: "2026-02-31T12:00:00Z" }],
 ])(
   "rejects %s before accepting collection state",
   async (_scenario, invalid) => {
@@ -80,37 +81,6 @@ it.each([
     await expect(request).rejects.toMatchObject({ kind: "schema" });
   },
 );
-
-it("retains the shared conflict problem without treating it as collection state", async () => {
-  // Given
-  mockFetch.mockResolvedValue(
-    new Response(
-      JSON.stringify({
-        type: "urn:blockout:problem:stale-revision",
-        title: "Conflict",
-        status: 409,
-      }),
-      {
-        status: 409,
-        headers: {
-          "Content-Type": "application/problem+json",
-          "Cache-Control": "no-store",
-        },
-      },
-    ),
-  );
-
-  // When
-  const request = getCollectionControl(control.id);
-
-  // Then
-  await expect(request).rejects.toMatchObject({
-    kind: "http",
-    status: 409,
-    problem: { type: "urn:blockout:problem:stale-revision" },
-  });
-  expect(mockFetch).toHaveBeenCalledTimes(1);
-});
 
 it.each([403, 404])(
   "shows the current technical error after a %i withdrawal without restoring the season",

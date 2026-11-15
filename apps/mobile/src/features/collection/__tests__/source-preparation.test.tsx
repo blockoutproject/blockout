@@ -296,23 +296,6 @@ function AccountActions() {
   );
 }
 
-it("lists canonical seasons in the production collection overview", async () => {
-  // Given
-  const user = userEvent.setup();
-  await renderPreparation(<CollectionDashboardScreen />);
-
-  // When
-  await user.press(
-    await screen.findByRole("link", { name: "2026/2027, Active" }),
-  );
-
-  // Then
-  expect(mockPush).toHaveBeenCalledWith({
-    pathname: "/collection/[seasonId]",
-    params: { seasonId },
-  });
-});
-
 it("opens provider controls without loading unused source configuration", async () => {
   // Given
   const user = userEvent.setup();
@@ -370,28 +353,6 @@ it("announces pending collection navigation without inventing a season destinati
     await screen.findByRole("link", { name: "2026/2027, Active" }),
   ).toBeOnTheScreen();
   expect(screen.queryByRole("progressbar")).not.toBeOnTheScreen();
-});
-
-it("shows an honest empty season list and recovers an initial read failure explicitly", async () => {
-  // Given
-  mockFetch.mockImplementation(async (url) =>
-    String(url).endsWith("/collection-seasons") ? refused(503) : reads(url),
-  );
-  await renderPreparation(<CollectionDashboardScreen />);
-  await screen.findByText("Une erreur est survenue");
-
-  // When
-  mockFetch.mockImplementation(async (url) =>
-    String(url).endsWith("/collection-seasons")
-      ? json({ items: [] })
-      : reads(url),
-  );
-  await userEvent
-    .setup()
-    .press(screen.getByRole("button", { name: "Réessayer" }));
-
-  // Then
-  expect(await screen.findByText("Aucune saison découverte")).toBeOnTheScreen();
 });
 
 it.each([{}, { moderateStreams: true }, { manageSportingData: true }])(
@@ -473,40 +434,35 @@ it("saves an inline candidate and clears old qualification before another explic
   ).toHaveLength(0);
 });
 
-it.each(["unchanged", "trimmed"])(
-  "preserves qualified feedback when saving an %s candidate",
-  async (change) => {
-    // Given
-    source = binding({ validation: "qualified", seasonEvidence: "2026/2027" });
-    await renderPreparation();
-    const user = userEvent.setup();
-    await user.press(
-      await screen.findByRole("button", { name: "Modifier le lien" }),
-    );
-    if (change === "trimmed") {
-      await user.clear(screen.getByLabelText("URL officielle"));
-      await user.type(
-        screen.getByLabelText("URL officielle"),
-        `  ${candidateUrl}  `,
-      );
-    }
-    mockFetch.mockImplementation(async (url, options) =>
-      options?.method === "PUT" ? json(source) : reads(url),
-    );
+it("preserves qualification when saving the same candidate with outer whitespace", async () => {
+  // Given
+  source = binding({ validation: "qualified", seasonEvidence: "2026/2027" });
+  await renderPreparation();
+  const user = userEvent.setup();
+  await user.press(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  );
+  await user.clear(screen.getByLabelText("URL officielle"));
+  await user.type(
+    screen.getByLabelText("URL officielle"),
+    `  ${candidateUrl}  `,
+  );
+  mockFetch.mockImplementation(async (url, options) =>
+    options?.method === "PUT" ? json(source) : reads(url),
+  );
 
-    // When
-    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
-    // Then
-    expect(
-      await screen.findByRole("button", { name: "Modifier le lien" }),
-    ).toBeEnabled();
-    expect(screen.getByText("Prête")).toBeOnTheScreen();
-    expect(
-      screen.queryByRole("button", { name: "Valider la source" }),
-    ).not.toBeOnTheScreen();
-  },
-);
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Modifier le lien" }),
+  ).toBeEnabled();
+  expect(screen.getByText("Prête")).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Valider la source" }),
+  ).not.toBeOnTheScreen();
+});
 
 it("preserves dirty input through a background refetch and requires an explicit reread", async () => {
   // Given

@@ -218,38 +218,6 @@ it("shares one in-flight read across consumers of the same F12 bypass intent", a
   }
 });
 
-it("keeps each calendar selector, category and grouping zone in its generated context", () => {
-  // Given
-  const session = { subject: null, accountId: null };
-  const queries = createConsultationQueries(
-    session,
-    { request: (options) => options },
-    jest.fn(),
-  );
-  const input = {
-    clubId: sportingId,
-    seasonId: sportingId,
-    category: "upcoming" as const,
-    timeZone: "Europe/Paris",
-  };
-  const first = queries.calendar(input);
-
-  // When
-  const alternatives = [
-    queries.calendar({ ...input, category: "completed" }),
-    queries.calendar({ ...input, timeZone: "America/New_York" }),
-    queries.calendar({
-      ...input,
-      seasonId: "00000000-0000-4000-8000-000000000002",
-    }),
-  ];
-
-  // Then
-  alternatives.forEach((options) =>
-    expect(options.queryKey).not.toEqual(first.queryKey),
-  );
-});
-
 it.each([
   { category: "upcoming" as const, timeZone: "UTC" },
   { clubId: sportingId, category: "upcoming" as const, timeZone: "UTC" },

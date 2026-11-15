@@ -78,7 +78,6 @@ it("keeps page actions accessible while transient errors replace and expire", as
   // Given
   const user = userEvent.setup();
   await render(<Surface />);
-  // UIKit's window-level modal isolation requires separate native VoiceOver evidence.
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
   expect(
     screen.getByRole("button", { name: "Technical failure" }),

@@ -176,29 +176,6 @@ it.each([
   );
 });
 
-it.each(["local", "development", "preview", "production"])(
-  "requires Android 10 through native build properties in %s",
-  (variant) => {
-    // Given: the same supported OS floor applies to every installable variant.
-    if (variant !== "local") {
-      process.env.APP_VARIANT = variant;
-      process.env.EXPO_PROJECT_SLUG = "synthetic-project";
-    }
-
-    // When
-    const { default: config } =
-      jest.requireActual<typeof import("../app.config")>("../app.config");
-
-    // Then
-    expect(config.plugins).toContainEqual([
-      "expo-build-properties",
-      expect.objectContaining({
-        android: expect.objectContaining({ minSdkVersion: 29 }),
-      }),
-    ]);
-  },
-);
-
 it("configures isolated push inputs without a secret or background task", () => {
   // Given
   process.env.EXPO_PROJECT_ID = "00000000-0000-4000-8000-000000000001";

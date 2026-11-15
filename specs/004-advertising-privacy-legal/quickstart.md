@@ -4,7 +4,7 @@ Use the [runtime composition](plan.md#runtime-composition) and scenarios below t
 
 Native accessibility verification follows [F13 FR-030](../003-shared-quality/spec.md#platforms-accessibility-and-bounded-continuity).
 
-Apply [F13’s proportionate qualification](../003-shared-quality/plan.md#proportionate-qualification): deterministic suites own Pro-state variants, delayed responses and obsolete-session callbacks. Reuse applicable [F09 SDK identity/cache evidence](../006-pro-subscriptions/quickstart.md#scenarios-and-expected-outcomes). Native clients exercise ordinary current-session/Pro transitions and the changed platform mechanisms; no precisely timed native race is required solely to repeat a deterministic case.
+Apply [F13’s proportionate qualification](../003-shared-quality/plan.md#proportionate-qualification): F11 suites own advertising policy, native-choice/lifecycle responses and obsolete advertising callbacks. Reuse [F09 SDK identity/cache evidence](../006-pro-subscriptions/quickstart.md#scenarios-and-expected-outcomes) for entitlement derivation and attribution. Native clients exercise ordinary current-session/Pro transitions and the changed platform mechanisms; no precisely timed native race is required solely to repeat a deterministic case.
 
 Select representative age, correction, privacy and native-browser compositions, with active/neutral Profile context. Across them cover both themes and a live transition, narrow/enlarged text, reduced motion, ordinary focus/keyboard, names/roles/states, content order and reachable actions. Reuse unchanged shared evidence only when its source, mechanism, native dependencies, runtime and relevant configuration apply; do not cross every entitlement/session state with every appearance, font size and OS. Actual UMP/ATT forms, serving/mediation, privacy and release observations retain the prerequisites and owners below. Dedicated VoiceOver/TalkBack campaigns remain excluded under FR-030.
 
@@ -16,7 +16,7 @@ After README installation/mobile generation, run:
 npm run test --workspace=@blockout/mobile -- --runInBand src/features/advertising/__tests__/advertising-eligibility.test.ts
 ```
 
-Vary current F05 identity, F09 entitlement evidence, F12 admission and native choices for guest, free, active paid/gifted Pro and unknown signed-in rights. Expect one current eligibility decision for loading/presentation, reevaluated before each native effect. Known active Pro avoids new prompts; unknown rights permit choice preparation but no ad request/display. With the same installation age/choices, let account UUID and Pro state arrive/change, including A → B and A → guest → A while preparation is pending: no repeated age/consent preparation, no inherited exemption and no request/display from obsolete prepared ads. The current account/rights decide eligibility even when the installation result remains applicable.
+The pure policy suite supplies current guest/inactive/active/unavailable F09 results and F12/native-choice refusals. It proves advertising permission without recreating SDK evidence or identity transitions. Reuse the F09 state/session/refresh suites for paid/gifted and unknown rights, A → B and A → guest → A attribution. Through the existing privacy/lifecycle and `sporting-ad-entry` suites, hold installation age/choices while account UUID or Pro state changes: unchanged preparation remains applicable, while obsolete prepared ads and destinations are retired. Reevaluate current eligibility before each native effect. Known active Pro avoids new prompts; unknown rights permit choice preparation but no ad request/display.
 
 ## Interstitial lifecycle
 
@@ -47,7 +47,7 @@ Open the real root as guest/free/known-active Pro. Expect ordinary home to requi
 
 Read installation storage: only `category` (`under16`, `16–17`, `adult`) and local `declaredAt` day may persist after confirmation. Missing/invalid/future declarations use child protection without a fabricated record. A minor renews at the next installation-tree launch after one calendar year, including February 29 → February 28; no timer, category promotion or annual adult prompt. A known-active Pro exemption does not survive logout.
 
-Compare representative approved age journey/artwork compositions under the shared qualification scope above. Check native slider touch, names/roles/states and action reachability, reusing unchanged F13 controls. Independent sign-in/legal/support destinations retain F12 gates. Actual storage, consent/ATT and provider entitlement require native/provider checks; controlled I/O supplies no such approval.
+Compare representative approved age journey/artwork compositions under the shared qualification scope above. Check native slider touch, names/roles/states and action reachability, reusing unchanged F13 controls. Sign-in/support routes and the in-app legal-link entries retain F12 gates; public legal reading uses the native browser rather than an application route. Actual storage, consent/ATT and provider entitlement require native/provider checks; controlled I/O supplies no such approval.
 
 ## Native privacy choices
 
