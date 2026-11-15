@@ -132,7 +132,7 @@ public interface SportingStore {
    * Activates periodic acquisition after the first qualified source launch.
    *
    * @param id canonical season already exclusively locked by the caller
-   * @return flushed canonical lifecycle
+   * @return accepted canonical lifecycle
    */
   SportingViews.CollectionSeasonView activateCollectionSeason(UUID id);
 
@@ -140,7 +140,7 @@ public interface SportingStore {
    * Closes the canonical acquisition lifecycle under its caller's exclusive season lock.
    *
    * @param id authorized open season whose exact label has been checked
-   * @return flushed terminal state; sporting data remain intact
+   * @return accepted terminal state; sporting data remain intact
    */
   SportingViews.CollectionSeasonView closeCollectionSeason(UUID id);
 

@@ -193,7 +193,6 @@ public class PrepareCollectionSources {
     Source source = store.lockSource(sourceId);
     authorization.require(accountId, Permission.MANAGE_COLLECTION);
     CollectionLifecycle.requireOpen(season);
-    CollectionRevision.requireAdvance(source.revision());
     if (source.locked()) {
       throw new CollectionConflictException("conflict");
     }

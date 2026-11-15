@@ -4,15 +4,15 @@ import {
   useActionFeedback,
 } from "@/shared/components/action-feedback";
 import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { applicationVersionsValues } from "./application-versions-values";
 import { toApplicationVersionsRequest } from "../api/application-versions-request";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { useApplicationVersionsDraft } from "./use-application-versions-draft";
 import { applicationUpdateMessage } from "../application-update-message";
 import { Check } from "lucide-react-native";
 import { DisclosureChevron } from "@/shared/components/disclosure-chevron";
 import { useEffect, useRef, useState } from "react";
-import { Controller, useFormState, useWatch } from "react-hook-form";
+import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
 import {
   Modal,
   Platform,
@@ -56,18 +56,18 @@ export function ApplicationVersionsForm({
   const { fontScale } = useWindowDimensions();
   const largeText = fontScale > 1;
   const mounted = useRef(false);
-  const editor = useApplicationVersionsDraft(settings);
-  const state = editor.state;
-  const { baseline } = state;
   const [expanded, setExpanded] = useState({ ios: false, android: false });
   const [preview, setPreview] = useState(false);
   const [acknowledged, setAcknowledged] = useState<string>();
-  const { control, handleSubmit, reset } = editor.form;
-  const { isDirty, dirtyFields } = useFormState({
+  const { control, handleSubmit, reset } = useForm<ApplicationVersionsValues>({
+    resolver: zodResolver(applicationVersionsSchema),
+    defaultValues: applicationVersionsValues(settings),
+  });
+  const { isDirty, dirtyFields, defaultValues } = useFormState({
     control,
   });
   useDiscardChanges(isDirty, () => {
-    editor.discard();
+    reset();
   });
   const [iosMinimum, iosStore, androidMinimum, androidStore, message] =
     useWatch({
@@ -85,7 +85,7 @@ export function ApplicationVersionsForm({
     android: { minimumVersion: androidMinimum, storeUrl: androidStore },
     message,
   };
-  const raised = raisesMinimum(current, baseline);
+  const raised = raisesMinimum(current, defaultValues);
   const storeChoice = JSON.stringify([current.ios, current.android]);
   const checked = acknowledged === storeChoice;
   const busy = disabled || editing.content.isPending;
@@ -103,13 +103,9 @@ export function ApplicationVersionsForm({
     }
     actionFeedback.clear();
     try {
-      const command = editing.content.mutateAsync(
+      const accepted = await editing.content.mutateAsync(
         toApplicationVersionsRequest(draft, dirtyFields),
       );
-      const accepted = await command;
-      editor.update({
-        baseline: accepted,
-      });
       reset(applicationVersionsValues(accepted));
       if (mounted.current) {
         setAcknowledged(undefined);

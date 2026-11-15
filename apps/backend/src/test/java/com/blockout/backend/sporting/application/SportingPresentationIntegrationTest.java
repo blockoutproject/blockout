@@ -457,7 +457,6 @@ class SportingPresentationIntegrationTest {
     UUID match =
         sql.queryForObject("SELECT id FROM sporting_match WHERE home_team_id=?", UUID.class, team);
     contactRestrictions.restrict(club, Set.of(field));
-    Contacts restricted = configurationReads.clubContacts(account, club);
     Map<String, Object> cleared = sql.queryForMap(inspect, club);
 
     // When
@@ -553,8 +552,7 @@ class SportingPresentationIntegrationTest {
     sql.update(
         "INSERT INTO account_permission(account_id,permission) VALUES (?, 'division-lifecycle.manage')",
         account);
-    DivisionDetail inactive =
-        divisions.setActive(account, SportingIngestionFixture.DIVISION, false);
+    divisions.setActive(account, SportingIngestionFixture.DIVISION, false);
 
     // When
     divisions.setActive(account, SportingIngestionFixture.DIVISION, true);
@@ -1114,12 +1112,11 @@ class SportingPresentationIntegrationTest {
     Image first = new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x112233));
     Image second =
         new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x445566));
-    SportingPresentation.View saved =
-        presentation.set(
-            account,
-            SportingProjectionChanges.Kind.CLUB,
-            club,
-            new Edit(null, null, LogoActionEnum.REPLACE, first));
+    presentation.set(
+        account,
+        SportingProjectionChanges.Kind.CLUB,
+        club,
+        new Edit(null, null, LogoActionEnum.REPLACE, first));
     UUID nextSeason = seasons.getOrCreate(2027).id();
     UUID nextPool =
         identities
@@ -1239,9 +1236,6 @@ class SportingPresentationIntegrationTest {
                 .orElseThrow()
                 .bytes())
         .isEqualTo(clubImage.bytes());
-    SportingPresentation.View initial =
-        configurationReads.presentation(
-            account, SportingProjectionChanges.Kind.TEAM, professional.team());
     presentation.set(
         account,
         SportingProjectionChanges.Kind.TEAM,

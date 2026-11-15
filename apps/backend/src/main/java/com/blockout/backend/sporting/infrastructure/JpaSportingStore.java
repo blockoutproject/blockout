@@ -460,7 +460,6 @@ public class JpaSportingStore implements SportingStore {
     TeamEntity team = teams.findById(id).orElseThrow();
     if (!Objects.equals(team.getSourceName(), sourceName)) {
       team.setSourceName(sourceName);
-
       changes.submit(Kind.TEAM, id);
     }
   }
@@ -933,7 +932,6 @@ public class JpaSportingStore implements SportingStore {
             club.setLogo(next == null ? null : next.bytes());
             club.setLogoMediaType(next == null ? null : next.mediaType());
           }
-
           changes.submit(kind, id);
         }
       }
@@ -951,7 +949,6 @@ public class JpaSportingStore implements SportingStore {
             team.setLogo(next == null ? null : next.bytes());
             team.setLogoMediaType(next == null ? null : next.mediaType());
           }
-
           changes.submit(kind, id);
         }
       }
@@ -960,7 +957,6 @@ public class JpaSportingStore implements SportingStore {
           PoolEntity pool = pools.findById(id).orElseThrow();
           pool.setManualName(edit.manualName());
           pool.setManualShortName(edit.manualShortName());
-
           changes.submit(kind, id);
         }
       }
@@ -1142,7 +1138,6 @@ public class JpaSportingStore implements SportingStore {
     if (changed) {
       team.setSourceLogo(image.bytes());
       team.setSourceLogoMediaType(image.mediaType());
-
       changes.submit(Kind.TEAM, id);
     }
     team.setLogoCycleOrder(order.cycleOrder());

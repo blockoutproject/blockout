@@ -21,34 +21,20 @@ public class JpaAccessSettingsStore implements AccessSettingsStore {
   /** {@inheritDoc} */
   @Override
   public MaintenanceSettings maintenance() {
-    return maintenance(row("maintenance", false));
+    return maintenance(row("maintenance"));
   }
 
   /** {@inheritDoc} */
   @Override
   public ApplicationVersionSettings versions() {
-    return versions(row("versions", false));
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  @Transactional(propagation = Propagation.MANDATORY)
-  public MaintenanceSettings maintenanceForChange() {
-    return maintenance(row("maintenance", true));
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  @Transactional(propagation = Propagation.MANDATORY)
-  public ApplicationVersionSettings versionsForChange() {
-    return versions(row("versions", true));
+    return versions(row("versions"));
   }
 
   /** {@inheritDoc} */
   @Override
   @Transactional(propagation = Propagation.MANDATORY)
   public MaintenanceSettings saveMaintenance(MaintenanceSettings settings) {
-    AccessSettingsEntity entity = row("maintenance", false);
+    AccessSettingsEntity entity = row("maintenance");
     entity.maintenance(settings);
     return maintenance(entity);
   }
@@ -57,7 +43,7 @@ public class JpaAccessSettingsStore implements AccessSettingsStore {
   @Override
   @Transactional(propagation = Propagation.MANDATORY)
   public ApplicationVersionSettings saveVersions(ApplicationVersionSettings settings) {
-    AccessSettingsEntity entity = row("versions", false);
+    AccessSettingsEntity entity = row("versions");
     entity.versions(settings);
     return versions(entity);
   }
@@ -77,16 +63,14 @@ public class JpaAccessSettingsStore implements AccessSettingsStore {
   }
 
   /**
-   * Resolves a required fixed row, optionally retaining native optimistic checking until commit.
+   * Resolves a required fixed row through the caller's current persistence context.
    *
    * @param id fixed settings group identity
-   * @param forChange whether the transaction must retain optimistic checking
    * @return the current managed settings row
    * @throws AccessSettingsUnavailableException if the required row is missing
    */
-  private AccessSettingsEntity row(String id, boolean forChange) {
-    return (forChange ? rows.findByIdForUpdate(id) : rows.findById(id))
-        .orElseThrow(AccessSettingsUnavailableException::new);
+  private AccessSettingsEntity row(String id) {
+    return rows.findById(id).orElseThrow(AccessSettingsUnavailableException::new);
   }
 
   /**

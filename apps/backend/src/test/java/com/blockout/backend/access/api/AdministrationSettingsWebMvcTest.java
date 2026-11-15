@@ -181,7 +181,7 @@ class AdministrationSettingsWebMvcTest {
     when(account.id()).thenReturn(ID);
     MaintenanceSettings current =
         new MaintenanceSettings(true, "Stored", "https://assets.example.invalid/maintenance.png");
-    when(store.maintenanceForChange()).thenReturn(current);
+    when(store.maintenance()).thenReturn(current);
     when(store.saveMaintenance(any())).thenAnswer(call -> call.getArgument(0));
 
     // When
@@ -202,7 +202,7 @@ class AdministrationSettingsWebMvcTest {
   void refusesInvalidResult() throws Exception {
     // Given
     when(account.id()).thenReturn(ID);
-    when(store.versionsForChange()).thenReturn(emptyVersions());
+    when(store.versions()).thenReturn(emptyVersions());
 
     // When
     mvc.perform(
@@ -221,7 +221,7 @@ class AdministrationSettingsWebMvcTest {
   void setsDesiredActivation() throws Exception {
     // Given
     when(account.id()).thenReturn(ID);
-    when(store.maintenanceForChange()).thenReturn(new MaintenanceSettings(false, "Stored", null));
+    when(store.maintenance()).thenReturn(new MaintenanceSettings(false, "Stored", null));
     when(store.saveMaintenance(any())).thenAnswer(call -> call.getArgument(0));
 
     // When

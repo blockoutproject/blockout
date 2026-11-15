@@ -205,7 +205,7 @@ public class ReadCollectionConfiguration {
   }
 
   /**
-   * Reads one canonical preparation revision without changing it.
+   * Reads the current canonical season preparation state without changing it.
    *
    * @param accountId current local operator
    * @param seasonId canonical season

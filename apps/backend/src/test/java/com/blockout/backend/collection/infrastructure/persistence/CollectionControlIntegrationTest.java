@@ -249,7 +249,6 @@ class CollectionControlIntegrationTest {
 
     // When
     ResultActions pause = activity(false);
-    CollectionState.Control paused = configurationReads.control(ACCOUNT, CONTROL).control();
     ResultActions refusedRequest = request();
     ResultActions unchangedPause = activity(false);
     ResultActions resume = activity(true);

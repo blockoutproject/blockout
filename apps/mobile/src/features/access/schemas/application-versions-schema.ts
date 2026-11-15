@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ApplicationVersionsResponse } from "../../../../.generated/schemas/index.zod";
+import type { DefaultValues } from "react-hook-form";
 import {
   installedVersionStatus,
   parsePublishedVersion,
@@ -73,17 +73,16 @@ export type ApplicationVersionsValues = z.infer<
 /** Detects an actual numeric increase or first minimum before requesting manual store verification. */
 export function raisesMinimum(
   draft: ApplicationVersionsValues,
-  baseline: ApplicationVersionsResponse,
+  baseline: DefaultValues<ApplicationVersionsValues> | undefined,
 ) {
   return (["ios", "android"] as const).some((platform) => {
     const minimum = draft[platform].minimumVersion;
     if (!parsePublishedVersion(minimum)) {
       return false;
     }
-    const previous = baseline[platform].minimumVersion;
+    const previous = baseline?.[platform]?.minimumVersion;
     return (
-      previous === null ||
-      installedVersionStatus(minimum, previous) === "outdated"
+      !previous || installedVersionStatus(minimum, previous) === "outdated"
     );
   });
 }

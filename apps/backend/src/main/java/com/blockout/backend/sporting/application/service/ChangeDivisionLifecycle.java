@@ -29,7 +29,7 @@ public class ChangeDivisionLifecycle {
    * @param accountId original account with the lifecycle grant
    * @param definition complete validated name and colors
    * @param image validated PNG/JPEG content, or null
-   * @return created division with its initial version
+   * @return created division with its initial presentation and activity
    * @throws AccessDeniedException if the current lifecycle grant is absent
    * @throws SportingConflictException if the name exists ignoring case
    */

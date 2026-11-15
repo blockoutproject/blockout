@@ -228,14 +228,14 @@ OwnStreamContributionResponse:
 OwnStreamContributionDetailResponse:
   title: OwnStreamContributionDetailResponse
   type: object
-  description: Current owned version and match editing revision.
+  description: Current owned version and match contribution revision.
   additionalProperties: true
   properties:
     revision:
       type: string
       description:
-        Opaque current contribution revision for this match; stale revisions return 409 without
-        effects.
+        Opaque current contribution revision for a later submission. Exact personal withdrawal does
+        not submit this revision.
       minLength: 1
     contribution:
       $ref: "#/OwnStreamContributionResponse"

@@ -21,8 +21,6 @@ public class ChangeCollectionSourceState {
   @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
   public Source save(Source source) {
     CollectionRevision.requireAdvance(source.revision());
-    Source changed = store.saveSource(source);
-
-    return changed;
+    return store.saveSource(source);
   }
 }

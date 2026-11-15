@@ -31,7 +31,6 @@ export function CloseSeasonForm({
   const router = useRouter();
   const editor = useCloseSeasonDraft(season);
   const state = editor.state;
-  const { feedback } = state;
   const { control, handleSubmit } = editor.form;
   const { isDirty } = useFormState({ control });
   const confirmation = useWatch({ control, name: "confirmation" });
@@ -56,7 +55,6 @@ export function CloseSeasonForm({
     ) {
       return;
     }
-    editor.update({ ...editor.state, feedback: undefined });
     try {
       const attempt = editing.close.mutateAsync({
         confirmation: values.confirmation,
@@ -137,16 +135,6 @@ export function CloseSeasonForm({
           )}
         </Surface>
       )}
-      {feedback && (
-        <Text
-          accessibilityRole="alert"
-          accessibilityLiveRegion="polite"
-          style={[tokens.typography.body, { color: colors.text }]}
-        >
-          {feedback}
-        </Text>
-      )}
-
       <Button
         label={closed ? "Retour à la saison" : "Annuler"}
         variant="secondary"

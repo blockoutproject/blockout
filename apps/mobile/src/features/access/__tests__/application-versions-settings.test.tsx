@@ -443,6 +443,22 @@ it("saves directly after the acknowledgement for the current raised minimum", as
   expect(screen.getByLabelText("Version minimale iOS")).toHaveDisplayValue(
     "2.11.0",
   );
+
+  // When
+  await user.clear(screen.getByLabelText("Version minimale iOS"));
+  await user.type(screen.getByLabelText("Version minimale iOS"), "2.10.0");
+
+  // Then
+  expect(screen.queryByRole("checkbox")).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+
+  // When
+  await user.clear(screen.getByLabelText("Version minimale iOS"));
+  await user.type(screen.getByLabelText("Version minimale iOS"), "2.12.0");
+
+  // Then
+  expect(screen.getByRole("checkbox")).not.toBeChecked();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
 });
 it.each([403] as const)(
   "preserves input after a %s refusal",

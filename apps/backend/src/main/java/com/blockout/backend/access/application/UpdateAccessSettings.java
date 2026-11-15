@@ -41,7 +41,7 @@ public class UpdateAccessSettings {
   @Transactional
   public MaintenanceSettings changeMaintenance(UUID account, MaintenanceChange change) {
     authorization.require(account, Permission.MANAGE_MAINTENANCE);
-    MaintenanceSettings current = store.maintenanceForChange();
+    MaintenanceSettings current = store.maintenance();
     MaintenanceSettings result;
     try {
       result =
@@ -65,7 +65,7 @@ public class UpdateAccessSettings {
   @Transactional
   public MaintenanceSettings activate(UUID account, boolean active) {
     authorization.require(account, Permission.MANAGE_MAINTENANCE);
-    MaintenanceSettings current = store.maintenanceForChange();
+    MaintenanceSettings current = store.maintenance();
     return save(current, new MaintenanceSettings(active, current.message(), current.imageUrl()));
   }
 
@@ -80,7 +80,7 @@ public class UpdateAccessSettings {
   @Transactional
   public ApplicationVersionSettings changeVersions(UUID account, VersionChange change) {
     authorization.require(account, Permission.MANAGE_APPLICATION_VERSIONS);
-    ApplicationVersionSettings current = store.versionsForChange();
+    ApplicationVersionSettings current = store.versions();
     ApplicationVersionSettings result;
     try {
       result =

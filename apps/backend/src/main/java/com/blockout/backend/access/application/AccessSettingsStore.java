@@ -3,19 +3,15 @@ package com.blockout.backend.access.application;
 import com.blockout.backend.access.domain.ApplicationVersionSettings;
 import com.blockout.backend.access.domain.MaintenanceSettings;
 
-/** Settings persistence; writes and optimistic locks participate in the caller's transaction. */
+/**
+ * Settings persistence; writes participate in the caller's transaction with native JPA versions.
+ */
 public interface AccessSettingsStore {
   /** Returns complete stored maintenance, failing unavailable for a missing or invalid row. */
   MaintenanceSettings maintenance();
 
   /** Returns complete stored versions, failing unavailable for a missing or invalid row. */
   ApplicationVersionSettings versions();
-
-  /** Reads maintenance with a JPA optimistic check retained through commit, including no-ops. */
-  MaintenanceSettings maintenanceForChange();
-
-  /** Reads versions with the same commit-time optimistic check for both platform editors. */
-  ApplicationVersionSettings versionsForChange();
 
   /**
    * Applies changed content/activation and returns the accepted state.

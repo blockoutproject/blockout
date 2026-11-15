@@ -39,7 +39,7 @@ Optional message null removes the customization and uses the existing understand
 
 ## Native versions and complete reads
 
-JPA versions remain internal persistence protection. Manual commands lock and validate the current resulting group atomically; they do not accept or expose an editing revision. An older authorized form may replace submitted manual fields while omission preserves current fields. A no-op changes no stored state.
+JPA versions remain internal protection for actual concurrent writes. Manual commands read current settings after authorization and validate the resulting group atomically; they do not accept or expose an editing revision. An older authorized form may replace submitted manual fields while omission preserves current fields. A no-op changes no stored state and adds no optimistic read lock.
 
 Read both settings rows with one SQL statement projection so the complete access response has a coherent statement snapshot. Missing/invalid settings fail closed, never synthesize permissive initial values. No global revision row is needed.
 

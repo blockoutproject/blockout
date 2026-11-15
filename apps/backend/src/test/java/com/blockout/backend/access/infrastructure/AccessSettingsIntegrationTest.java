@@ -114,16 +114,6 @@ class AccessSettingsIntegrationTest {
   }
 
   @Test
-  @DisplayName("Refuses optimistic mutation loading without a transaction retaining the check")
-  void requiresMutationLoadTransaction() {
-    // Given: no caller transaction is open.
-
-    // When / Then
-    assertThatThrownBy(store::maintenanceForChange)
-        .isInstanceOf(IllegalTransactionStateException.class);
-  }
-
-  @Test
   @DisplayName("Seeds exactly two independently versioned fixed groups")
   void readsFixedGroups() {
     // Given
@@ -353,7 +343,7 @@ class AccessSettingsIntegrationTest {
               () ->
                   transaction.executeWithoutResult(
                       s -> {
-                        store.maintenanceForChange();
+                        store.maintenance();
                         awaitBoth(loaded);
                         updates.changeMaintenance(first, content("Independent"));
                       }));
@@ -362,7 +352,7 @@ class AccessSettingsIntegrationTest {
               () ->
                   transaction.executeWithoutResult(
                       s -> {
-                        store.versionsForChange();
+                        store.versions();
                         awaitBoth(loaded);
                         updates.changeVersions(
                             second,
@@ -497,32 +487,6 @@ class AccessSettingsIntegrationTest {
     }
   }
 
-  @Test
-  @DisplayName("A matching no-op retains JPA optimistic verification until outer commit")
-  void checksNoopAtCommit() {
-    // Given
-    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
-      org.assertj.core.api.ThrowableAssert.ThrowingCallable noop =
-          () ->
-              transaction.executeWithoutResult(
-                  state -> {
-                    store.maintenanceForChange();
-                    updates.changeMaintenance(first, content("Prepared"));
-                    try {
-                      worker
-                          .submit(() -> updates.changeMaintenance(second, content("Concurrent")))
-                          .get(15, TimeUnit.SECONDS);
-                    } catch (Exception failure) {
-                      throw new IllegalStateException("Concurrent fixture failed", failure);
-                    }
-                  });
-
-      // When / Then
-      assertThatThrownBy(noop).isInstanceOf(OptimisticLockingFailureException.class);
-      assertThat(reads.maintenance(second).message()).isEqualTo("Concurrent");
-    }
-  }
-
   /**
    * Loads the old managed state in both transactions before either attempts its application write.
    *
@@ -533,7 +497,7 @@ class AccessSettingsIntegrationTest {
   private void concurrentContent(UUID editor, String message, CyclicBarrier loaded) {
     transaction.executeWithoutResult(
         s -> {
-          store.maintenanceForChange();
+          store.maintenance();
           awaitBoth(loaded);
           updates.changeMaintenance(editor, content(message));
         });

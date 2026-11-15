@@ -447,11 +447,15 @@ class SourcePreparationIntegrationTest {
             candidate -> assertThat(candidate.revision()).isGreaterThan(projected.revision()));
   }
 
-  @Test
-  @DisplayName("A repeated current pending request retains one request and its revision")
-  void retainsPendingRequest() {
+  @ParameterizedTest
+  @ValueSource(longs = {1, 9_007_199_254_740_991L})
+  @DisplayName(
+      "A repeated pending request retains one intent even at the collector revision ceiling")
+  void retainsPendingRequest(long revision) {
     // Given
-    Source pending = preparation.requestValidation(ACCOUNT, SOURCE);
+    preparation.requestValidation(ACCOUNT, SOURCE);
+    sql.update("UPDATE collection_source_binding SET revision=? WHERE id=?", revision, SOURCE);
+    Source pending = store.source(SOURCE).orElseThrow();
 
     // When
     Source repeated = preparation.requestValidation(ACCOUNT, SOURCE);
