@@ -470,7 +470,92 @@ it("keeps an accepted save through a failed ordinary reread without replaying th
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
   ).toHaveLength(1);
 });
-it("sends the desired active state independently of dirty content", async () => {
+it.each(["PATCH", "PUT"])(
+  "keeps a required-read error through a delayed %s acknowledgement",
+  async (method) => {
+    // Given: a real mounted form and Query owner, with controlled HTTP responses.
+    const user = userEvent.setup();
+    await renderSettings();
+    await screen.findByDisplayValue(initial.message);
+    await user.clear(screen.getByLabelText("Message de maintenance"));
+    await user.type(
+      screen.getByLabelText("Message de maintenance"),
+      "Mon brouillon",
+    );
+    const acknowledgement = Promise.withResolvers<Response>();
+    const followingRead = Promise.withResolvers<Response>();
+    const accepted =
+      method === "PATCH"
+        ? { ...initial, message: "Mon brouillon" }
+        : { ...initial, active: true };
+    let reads = 0;
+    mockFetch.mockImplementation(async (url, options) => {
+      if (String(url).endsWith("/accounts/me")) {
+        return json(account);
+      }
+      if (options?.method === method) {
+        return acknowledgement.promise;
+      }
+      if (reads++ === 0) {
+        throw new Error("Read unavailable during the write");
+      }
+      return followingRead.promise;
+    });
+
+    // When
+    await user.press(
+      screen.getByRole("button", {
+        name: method === "PATCH" ? "Enregistrer" : "Activer la maintenance",
+      }),
+    );
+    if (method === "PUT") {
+      await act(async () => nativeAlertAction("Activer")());
+    }
+    await act(async () =>
+      client.refetchQueries({
+        queryKey: getGetMaintenanceSettingsQueryKey(),
+        exact: true,
+      }),
+    );
+
+    // Then
+    expect(
+      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+
+    try {
+      // When
+      await act(async () => {
+        acknowledgement.resolve(json(accepted));
+        await jest.runOnlyPendingTimersAsync();
+      });
+      await waitFor(() => expect(client.isFetching()).toBe(1));
+
+      // Then
+      expect(
+        screen.getByRole("alert", { name: "Une erreur est survenue" }),
+      ).toBeOnTheScreen();
+      expect(
+        screen.queryByLabelText("Message de maintenance"),
+      ).not.toBeOnTheScreen();
+      expect(
+        mockFetch.mock.calls.filter(
+          ([, options]) => options?.method === method,
+        ),
+      ).toHaveLength(1);
+    } finally {
+      await act(async () => followingRead.resolve(json(accepted)));
+    }
+
+    // Then: successful read recovery restores the accepted or still-editable draft without another write.
+    expect(await screen.findByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === method),
+    ).toHaveLength(1);
+  },
+);
+
+it("uses refreshed activation state while preserving dirty content", async () => {
   // Given
   const user = userEvent.setup();
   await renderSettings();
@@ -480,29 +565,42 @@ it("sends the desired active state independently of dirty content", async () => 
     screen.getByLabelText("Message de maintenance"),
     "Mon brouillon",
   );
+  stored = { ...stored, active: true };
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(await screen.findByLabelText("Maintenance active")).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
   mockFetch.mockImplementation(async (url, options) => {
     if (String(url).endsWith("/accounts/me")) {
       return json(account);
     }
     if (options?.method === "PUT") {
-      stored = { ...stored, active: true };
+      stored = { ...stored, active: false };
     }
     return json(stored);
   });
 
   // When
   await user.press(
-    screen.getByRole("button", { name: "Activer la maintenance" }),
+    screen.getByRole("button", { name: "Désactiver la maintenance" }),
   );
-  await act(async () => nativeAlertAction("Activer")());
+  await act(async () => nativeAlertAction("Désactiver")());
 
   // Then
-  await screen.findByLabelText("Maintenance active");
+  expect(
+    await screen.findByLabelText("Maintenance inactive"),
+  ).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
   const write = mockFetch.mock.calls.find(([, o]) => o?.method === "PUT");
   expect(JSON.parse(String(write?.[1]?.body))).toEqual({
-    active: true,
+    active: false,
   });
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
+  ).toBe(false);
 });
 it.each([500, 409])(
   "locks content during activation and retains its draft after %s",

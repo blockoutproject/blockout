@@ -296,7 +296,7 @@ it("retains entered text while current collection permission is unavailable", as
   ).toBeDisabled();
 });
 
-it("retains an incorrect draft through a background state change and refuses to submit it", async () => {
+it("retains an incorrect draft through a background refetch and refuses to submit it", async () => {
   // Given
   const user = userEvent.setup();
   await renderCollection(
@@ -312,7 +312,6 @@ it("retains an incorrect draft through a background state change and refuses to 
   );
 
   // When
-  peer.season = { ...peer.season };
   await act(async () => privateClient.invalidateQueries());
 
   // Then

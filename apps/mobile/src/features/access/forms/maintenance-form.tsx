@@ -41,10 +41,6 @@ export function MaintenanceForm({
   const { colors } = useTheme();
   const confirmAction = useActionConfirmation();
   const actionFeedback = useActionFeedback();
-  const [state, setState] = useState<{
-    baseline: MaintenanceSettingsResponse;
-  }>({ baseline: settings });
-  const { baseline } = state;
   const mounted = useRef(false);
   const { control, handleSubmit, reset } = useForm<MaintenanceValues>({
     resolver: zodResolver(maintenanceSchema),
@@ -71,16 +67,12 @@ export function MaintenanceForm({
     }
     actionFeedback.clear();
     try {
-      const command = editing.content.mutateAsync(
+      const accepted = await editing.content.mutateAsync(
         toMaintenanceRequest(draft, dirtyFields),
       );
-      const accepted = await command;
       if (!mounted.current) {
         return;
       }
-      setState({
-        baseline: accepted,
-      });
       reset(maintenanceValues(accepted));
     } catch {
       actionFeedback.error();
@@ -94,27 +86,20 @@ export function MaintenanceForm({
     }
     if (
       !(await confirmAction({
-        title: baseline.active
+        title: settings.active
           ? "Désactiver la maintenance ?"
           : "Activer la maintenance ?",
         message:
           "Cette action utilise le contenu enregistré. Votre brouillon est conservé.",
-        confirmLabel: baseline.active ? "Désactiver" : "Activer",
+        confirmLabel: settings.active ? "Désactiver" : "Activer",
       }))
     ) {
       return;
     }
     actionFeedback.clear();
     try {
-      const command = editing.activation.mutateAsync({
-        active: !baseline.active,
-      });
-      const accepted = await command;
-      if (!mounted.current) {
-        return;
-      }
-      setState({
-        baseline: accepted,
+      await editing.activation.mutateAsync({
+        active: !settings.active,
       });
     } catch {
       actionFeedback.error();
@@ -137,28 +122,28 @@ export function MaintenanceForm({
               </Text>
               <Text
                 accessibilityLabel={
-                  baseline.active
+                  settings.active
                     ? "Maintenance active"
                     : "Maintenance inactive"
                 }
                 style={[
                   styles.badge,
                   {
-                    color: baseline.active
+                    color: settings.active
                       ? colors.onWarning
                       : colors.onSuccessSubtle,
-                    backgroundColor: baseline.active
+                    backgroundColor: settings.active
                       ? colors.warning
                       : colors.successSubtle,
                   },
                 ]}
               >
-                {baseline.active ? "Activé" : "Désactivé"}
+                {settings.active ? "Activé" : "Désactivé"}
               </Text>
             </View>
           </View>
           <Text style={[tokens.typography.body, { color: colors.text }]}>
-            {baseline.active
+            {settings.active
               ? "L’accès ordinaire à l’application est bloqué."
               : "Aucun blocage de maintenance."}
           </Text>
@@ -169,10 +154,10 @@ export function MaintenanceForm({
             brouillon.
           </Text>
           <Button
-            variant={baseline.active ? "secondary" : "success"}
+            variant={settings.active ? "secondary" : "success"}
             fullWidth
             label={
-              baseline.active
+              settings.active
                 ? "Désactiver la maintenance"
                 : "Activer la maintenance"
             }
