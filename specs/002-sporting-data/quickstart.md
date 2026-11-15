@@ -14,6 +14,8 @@ Use isolated PostgreSQL at the [F13-selected version](../003-shared-quality/plan
 
 Integrate a complete contextual calendar, then replay it and postpone a known match. Expect stable identifiers and no duplicate participation or notification. Cover same club with distinct named teams, one team in multiple compatible pools, new season, qualified LNV team without club, optional technical attachment and a recognized bye without a fictional opponent.
 
+Use the existing [sporting acceptance and technical corrections](../../infra/operations/README.md#sporting-acceptance-and-technical-corrections) procedure for bounded outcome inspection and controlled alias, division-term or professional-club corrections.
+
 Submit 100 matches with one local failure. Expect 99 successful updates retained, the failed match unchanged and no absence reconciliation. Compare malformed global context, contradictory duplicates, a truly empty current calendar and wholly empty historical reconstruction. None may turn a parsing failure into a successful empty observation.
 
 ## Ordering and transactions
