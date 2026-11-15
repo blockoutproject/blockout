@@ -815,8 +815,8 @@ it("validates and saves division colors, gradient and name without touching acti
   });
 });
 
-it.each(["conflict", "network", "schema"])(
-  "preserves dirty fields after %s when ordinary invalidation finds a newer revision",
+it.each(["network", "schema"])(
+  "allows an explicit save with the retained revision after a %s failure and a newer read",
   async (outcome) => {
     // Given
     const user = userEvent.setup();
@@ -835,14 +835,6 @@ it.each(["conflict", "network", "schema"])(
         if (outcome === "schema") {
           return json({ revision: "r2" });
         }
-        return json(
-          {
-            type: "urn:blockout:problem:stale-revision",
-            title: "Conflict",
-            status: 409,
-          },
-          409,
-        );
       }
       return json({
         ...initial,
@@ -859,67 +851,153 @@ it.each(["conflict", "network", "schema"])(
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
     // Then
-    await screen.findByRole("button", { name: "Relire la présentation" });
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+    await screen.findByText(TECHNICAL_ERROR);
+    await waitFor(() => expect(client.isFetching()).toBe(0));
+    expect(
+      screen.queryByRole("button", { name: "Relire la présentation" }),
+    ).not.toBeOnTheScreen();
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
     expect(
       screen.getByLabelText("Nom complet personnalisé"),
     ).toHaveDisplayValue("My draft");
 
     // When
-    await user.press(
-      screen.getByRole("button", { name: "Relire la présentation" }),
-    );
-
-    // Then
-    await screen.findByText(
-      "Présentation relue. Vérifiez votre brouillon avant de l’enregistrer à nouveau.",
-    );
-    expect(
-      screen.getByLabelText("Nom complet personnalisé"),
-    ).toHaveDisplayValue("My draft");
-    expect(screen.getByLabelText("Nom court personnalisé")).toHaveDisplayValue(
-      "New short",
-    );
-    expect(
-      mockFetch.mock.calls.filter(([, o]) => o?.method === "PATCH"),
-    ).toHaveLength(1);
-
-    // When
-    stored = {
-      ...initial,
-      revision: "r3",
-      names: {
-        ...names,
-        manualName: "My draft",
-        effectiveName: "My draft",
-        manualShortName: "New short",
-        effectiveShortName: "New short",
-      },
-    };
-    mockFetch.mockImplementation(respond);
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
-    // Then
+    // Then: a new write is explicit and keeps the original editing revision.
     await waitFor(() =>
       expect(
-        screen.queryByText("Modifications non enregistrées"),
-      ).not.toBeOnTheScreen(),
+        mockFetch.mock.calls.filter(([, o]) => o?.method === "PATCH"),
+      ).toHaveLength(2),
     );
-    const writes = mockFetch.mock.calls.filter(
-      ([, o]) => o?.method === "PATCH",
-    );
-    expect(
-      JSON.parse(
-        await ((writes[1][1]?.body as FormData).get("metadata") as Blob).text(),
-      ),
-    ).toEqual({
-      revision: "r2",
+    const body = mockFetch.mock.calls.filter(
+      ([, options]) => options?.method === "PATCH",
+    )[1][1]?.body as FormData;
+    expect(JSON.parse(await (body.get("metadata") as Blob).text())).toEqual({
+      revision: "r1",
       manualName: "My draft",
-      manualShortName: "New short",
+      manualShortName: null,
       logoAction: "keep",
     });
+    expect(screen.getByDisplayValue("My draft")).toBeOnTheScreen();
   },
 );
+
+it("requires rereading only after a typed stale refusal and keeps the draft through a failed reread", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderEditor();
+  await screen.findByDisplayValue("Current name");
+  await user.clear(screen.getByLabelText("Nom complet personnalisé"));
+  await user.type(
+    screen.getByLabelText("Nom complet personnalisé"),
+    "My draft",
+  );
+  let readStatus = 200;
+  mockFetch.mockImplementation(async (_url, options) => {
+    if (options?.method === "PATCH") {
+      return json(
+        {
+          type: "urn:blockout:problem:stale-revision",
+          title: "Conflict",
+          status: 409,
+        },
+        409,
+      );
+    }
+    return readStatus === 200
+      ? json(initial)
+      : json({ status: readStatus }, readStatus);
+  });
+
+  // When: the typed refusal owns the recovery action even if GET has the same revision.
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  await screen.findByRole("button", { name: "Relire la présentation" });
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(screen.getByDisplayValue("My draft")).toBeOnTheScreen();
+
+  // When
+  readStatus = 503;
+  await user.press(
+    screen.getByRole("button", { name: "Relire la présentation" }),
+  );
+
+  // Then
+  await screen.findByRole("button", { name: "Réessayer" });
+  expect(
+    screen.getByDisplayValue("My draft", { includeHiddenElements: true }),
+  ).toBeOnTheScreen();
+  expect(
+    mockFetch.mock.calls.filter(([, o]) => o?.method === "PATCH"),
+  ).toHaveLength(1);
+
+  // When: card Retry restores the editor but does not resolve its typed write refusal.
+  stored = {
+    ...initial,
+    revision: "r2",
+    names: {
+      ...names,
+      manualName: "Other editor",
+      manualShortName: "New short",
+    },
+  };
+  mockFetch.mockImplementation(respond);
+  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(
+    await screen.findByRole("button", { name: "Relire la présentation" }),
+  );
+
+  // Then
+  await screen.findByText(
+    "Présentation relue. Vérifiez votre brouillon avant de l’enregistrer à nouveau.",
+  );
+  expect(screen.getByDisplayValue("My draft")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Nom court personnalisé")).toHaveDisplayValue(
+    "New short",
+  );
+  expect(
+    screen.queryByRole("button", { name: "Relire la présentation" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+  expect(
+    mockFetch.mock.calls.filter(([, o]) => o?.method === "PATCH"),
+  ).toHaveLength(1);
+
+  // When
+  stored = {
+    ...initial,
+    revision: "r3",
+    names: {
+      ...names,
+      manualName: "My draft",
+      effectiveName: "My draft",
+      manualShortName: "New short",
+      effectiveShortName: "New short",
+    },
+  };
+  mockFetch.mockImplementation(respond);
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  await waitFor(() =>
+    expect(
+      screen.queryByText("Modifications non enregistrées"),
+    ).not.toBeOnTheScreen(),
+  );
+  const writes = mockFetch.mock.calls.filter(([, o]) => o?.method === "PATCH");
+  expect(
+    JSON.parse(
+      await ((writes[1][1]?.body as FormData).get("metadata") as Blob).text(),
+    ),
+  ).toEqual({
+    revision: "r2",
+    manualName: "My draft",
+    manualShortName: "New short",
+    logoAction: "keep",
+  });
+});
 
 it("keeps an unknown conflict as an ordinary failure with an editable draft", async () => {
   // Given
@@ -1242,24 +1320,41 @@ it("keeps a dirty draft, prepared logo and editing revision during background re
     screen.getByRole("image", { name: "Miniature : Logo" }),
   ).toBeOnTheScreen();
   expect(mockFile.delete).not.toHaveBeenCalled();
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
-  );
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+  expect(
+    screen.queryByRole("button", { name: "Relire la présentation" }),
+  ).not.toBeOnTheScreen();
 
   // When
-  mockFetch.mockRejectedValue(new TypeError("Unavailable"));
-  await user.press(
-    screen.getByRole("button", { name: "Relire la présentation" }),
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PATCH"
+      ? Promise.resolve(
+          json(
+            {
+              type: "urn:blockout:problem:stale-revision",
+              title: "Conflict",
+              status: 409,
+            },
+            409,
+          ),
+        )
+      : respond(url, options),
   );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
-  // Then
-  await screen.findByRole("button", { name: "Réessayer" });
-  expect(
-    screen.queryByRole("button", { name: "Enregistrer" }),
-  ).not.toBeOnTheScreen();
-  expect(
-    screen.getByDisplayValue("My draft", { includeHiddenElements: true }),
-  ).toBeOnTheScreen();
+  // Then: only the actual write refusal asks for an explicit reread.
+  await screen.findByRole("button", { name: "Relire la présentation" });
+  const body = mockFetch.mock.calls.find(
+    ([, options]) => options?.method === "PATCH",
+  )?.[1]?.body as FormData;
+  expect(JSON.parse(await (body.get("metadata") as Blob).text())).toMatchObject(
+    { revision: "r1", manualName: "My draft", logoAction: "replace" },
+  );
+  expect(await (body.get("image") as Blob).arrayBuffer()).toEqual(
+    await mockFile.arrayBuffer(),
+  );
+  expect(screen.getByDisplayValue("My draft")).toBeOnTheScreen();
+  expect(mockFile.delete).not.toHaveBeenCalled();
 });
 
 it("keeps optional logo failure at its fallback after explicit refresh while preserving the editable draft", async () => {
@@ -2840,7 +2935,9 @@ it("preserves a different opaque revision read during a delayed accepted present
   );
 
   // Then
-  await screen.findByRole("button", { name: "Relire la présentation" });
+  await waitFor(() =>
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
+  );
   expect(
     client.getQueryCache().findAll({
       predicate: ({ queryKey }) =>
@@ -2849,23 +2946,36 @@ it("preserves a different opaque revision read during a delayed accepted present
         ),
     })[0]?.state.data,
   ).toMatchObject({ revision: "a-concurrent" });
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-  await waitFor(() =>
-    expect(
-      screen.getByRole("button", { name: "Relire la présentation" }),
-    ).toBeEnabled(),
-  );
+  expect(
+    screen.queryByRole("button", { name: "Relire la présentation" }),
+  ).not.toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Accepted draft")).toBeOnTheScreen();
 
   // When
-  await user.press(
-    screen.getByRole("button", { name: "Relire la présentation" }),
-  );
+  stored = {
+    ...initial,
+    revision: "second-accepted",
+    names: {
+      ...names,
+      manualName: "Accepted draft",
+      effectiveName: "Accepted draft",
+    },
+  };
+  mockFetch.mockImplementation(respond);
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
-  expect(await screen.findByDisplayValue("Concurrent")).toBeOnTheScreen();
-  expect(
-    mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
-  ).toHaveLength(1);
+  await waitFor(() =>
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
+    ).toHaveLength(2),
+  );
+  const body = mockFetch.mock.calls.filter(
+    ([, options]) => options?.method === "PATCH",
+  )[1][1]?.body as FormData;
+  expect(JSON.parse(await (body.get("metadata") as Blob).text())).toMatchObject(
+    { revision: "z-accepted", manualName: "Accepted draft" },
+  );
 });
 
 it("preserves a fresh local creation draft when an abandoned creation succeeds later", async () => {

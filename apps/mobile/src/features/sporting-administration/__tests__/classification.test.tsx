@@ -16,6 +16,7 @@ import {
   type QueryClient,
 } from "@tanstack/react-query";
 import {
+  getGetDivisionQueryKey,
   getGetPoolClassificationQueryKey,
   getListDivisionsQueryKey,
   getListClubTeamsQueryKey,
@@ -351,7 +352,7 @@ it("submits a complete pool override directly and excludes inactive choices", as
   );
 });
 
-it("refreshes classification data without replacing dirty choices or accepting a newer editing baseline", async () => {
+it("refreshes classification data without replacing dirty choices or requiring rereading", async () => {
   // Given
   stored.setting = classification;
   const user = userEvent.setup();
@@ -365,12 +366,19 @@ it("refreshes classification data without replacing dirty choices or accepting a
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
   // Then
-  await screen.findByRole("button", { name: "Relire la classification" });
+  await waitFor(() =>
+    expect(client.getQueryData(getGetPoolClassificationQueryKey(id))).toEqual(
+      stored,
+    ),
+  );
+  expect(
+    screen.queryByRole("button", { name: "Relire la classification" }),
+  ).not.toBeOnTheScreen();
   expect(
     screen.getByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });
   expect(screen.getByText("Modifications non enregistrées")).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
   expect(
     mockFetch.mock.calls.every(([, options]) => options?.method === "GET"),
   ).toBe(true);
@@ -760,19 +768,36 @@ it("retries each failed dependency from the same card while preserving dirty cho
   ).toBe(false);
 });
 
-it("refreshes saved activity after a failed deactivation response before explicit reactivation", async () => {
+it("rereads saved activity after a lost deactivation response and a typed stale conflict before explicit reactivation", async () => {
   // Given
   jest.spyOn(Alert, "alert");
-  const initialFetch = respond;
-  let deactivationSent = false;
+  let current = division;
+  let writes = 0;
   mockFetch.mockImplementation((url, options) => {
     if (options?.method === "PUT") {
-      deactivationSent = true;
-      return Promise.reject(new TypeError("Lost response"));
+      writes += 1;
+      if (writes === 1) {
+        current = { ...division, revision: "d2", active: false };
+        return Promise.reject(new TypeError("Lost response"));
+      }
+      if (writes === 2) {
+        return Promise.resolve(
+          json(
+            {
+              type: "urn:blockout:problem:stale-revision",
+              title: "Conflict",
+              status: 409,
+            },
+            409,
+          ),
+        );
+      }
+      current = { ...division, revision: "d3", active: true };
+      return Promise.resolve(json(current));
     }
-    return deactivationSent && String(url).endsWith(`/divisions/${divisionId}`)
-      ? Promise.resolve(json({ ...division, revision: "d2", active: false }))
-      : initialFetch(url, options);
+    return String(url).endsWith(`/divisions/${divisionId}`)
+      ? Promise.resolve(json(current))
+      : respond(url, options);
   });
   const user = userEvent.setup();
   await renderEditor("division");
@@ -782,17 +807,76 @@ it("refreshes saved activity after a failed deactivation response before explici
     await screen.findByRole("button", { name: "Désactiver la division" }),
   );
   await act(async () => nativeAlertAction("Désactiver")());
-  await user.press(
-    await screen.findByRole("button", { name: "Relire la division" }),
+
+  // Then
+  await screen.findByText(
+    "Une erreur est survenue. Veuillez réessayer plus tard.",
   );
+  await waitFor(() =>
+    expect(client.getQueryData(getGetDivisionQueryKey(divisionId))).toEqual(
+      current,
+    ),
+  );
+  expect(
+    screen.getByRole("button", { name: "Désactiver la division" }),
+  ).toBeEnabled();
+  expect(
+    screen.queryByRole("button", { name: "Relire la division" }),
+  ).not.toBeOnTheScreen();
+  expect(writes).toBe(1);
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Désactiver la division" }),
+  );
+  await act(async () => nativeAlertAction("Désactiver")());
+
+  // Then
+  await screen.findByRole("button", { name: "Relire la division" });
+  expect(
+    screen.getByRole("button", { name: "Désactiver la division" }),
+  ).toBeDisabled();
+  const deactivations = mockFetch.mock.calls.filter(
+    ([, options]) => options?.method === "PUT",
+  );
+  expect(deactivations).toHaveLength(2);
+  for (const [, options] of deactivations) {
+    expect(JSON.parse(String(options?.body))).toEqual({
+      revision: "d1",
+      active: false,
+    });
+  }
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Relire la division" }));
 
   // Then
   expect(
     await screen.findByRole("button", { name: "Réactiver la division" }),
   ).toBeEnabled();
   expect(
-    mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
-  ).toHaveLength(1);
+    screen.queryByRole("button", { name: "Relire la division" }),
+  ).not.toBeOnTheScreen();
+  expect(writes).toBe(2);
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Réactiver la division" }),
+  );
+  await act(async () => nativeAlertAction("Réactiver")());
+
+  // Then
+  await screen.findByText(
+    "Division réactivée. Les autres restrictions restent applicables.",
+  );
+  const requests = mockFetch.mock.calls.filter(
+    ([, options]) => options?.method === "PUT",
+  );
+  expect(requests).toHaveLength(3);
+  expect(JSON.parse(String(requests[2][1]?.body))).toEqual({
+    revision: "d2",
+    active: true,
+  });
 });
 
 /** Exposes real account refresh and keeps protected-route fixture mutations free of detached GC timers. */
@@ -990,16 +1074,24 @@ it.each(["classification", "activity"])(
   },
 );
 
-it("reports a refused save and uses a newer revision only on explicit resubmission", async () => {
+it("keeps direct resubmission available after a committed response is lost and rereads only after a typed stale conflict", async () => {
   // Given
   stored.setting = classification;
-  let refuse = true;
+  let writes = 0;
   mockFetch.mockImplementation((url, options) => {
     if (options?.method !== "PUT") {
       return respond(url, options);
     }
-    if (refuse) {
-      stored = { ...stored, revision: "r2" };
+    writes += 1;
+    if (writes === 1) {
+      stored = {
+        ...stored,
+        revision: "r2",
+        setting: { ...classification, format: "4x4" },
+      };
+      return Promise.reject(new TypeError("Lost committed response"));
+    }
+    if (writes === 2) {
       return Promise.resolve(
         json(
           {
@@ -1026,14 +1118,58 @@ it("reports a refused save and uses a newer revision only on explicit resubmissi
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then: the newer GET does not require recovery or replace the editing revision.
   await screen.findByText(
     "Une erreur est survenue. Veuillez réessayer plus tard.",
   );
-  stored = { ...stored, revision: "r2" };
-  await user.press(
-    await screen.findByRole("button", { name: "Relire la classification" }),
+  await waitFor(() =>
+    expect(client.getQueryData(getGetPoolClassificationQueryKey(id))).toEqual(
+      stored,
+    ),
   );
-  refuse = false;
+
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+  expect(
+    screen.queryByRole("button", { name: "Relire la classification" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
+  expect(writes).toBe(1);
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then: only the typed stale response requires an explicit reread.
+  await screen.findByRole("button", { name: "Relire la classification" });
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  const refusedWrites = mockFetch.mock.calls.filter(
+    ([, options]) => options?.method === "PUT",
+  );
+  expect(refusedWrites).toHaveLength(2);
+  expect(JSON.parse(String(refusedWrites[1][1]?.body))).toEqual({
+    revision: "r1",
+    classification: { ...classification, format: "4x4" },
+  });
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Relire la classification" }),
+  );
+  await screen.findByText(/État relu/);
+
+  // Then
+  expect(writes).toBe(2);
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+  expect(
+    screen.queryByRole("button", { name: "Relire la classification" }),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Format" }),
+  ).toHaveAccessibilityValue({ text: "4 × 4" });
+
+  // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
@@ -1042,11 +1178,11 @@ it("reports a refused save and uses a newer revision only on explicit resubmissi
       screen.queryByText("Modifications non enregistrées"),
     ).not.toBeOnTheScreen(),
   );
-  const writes = mockFetch.mock.calls.filter(
+  const acceptedWrites = mockFetch.mock.calls.filter(
     ([, options]) => options?.method === "PUT",
   );
-  expect(writes).toHaveLength(2);
-  expect(JSON.parse(String(writes[1][1]?.body))).toEqual({
+  expect(acceptedWrites).toHaveLength(3);
+  expect(JSON.parse(String(acceptedWrites[2][1]?.body))).toEqual({
     revision: "r2",
     classification: { ...classification, format: "4x4" },
   });
@@ -1670,12 +1806,27 @@ it("keeps the complete classification form hidden through active and repeated ca
 it("keeps the known draft and revision when indispensable catalogue rereading fails", async () => {
   // Given
   stored.setting = classification;
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PUT"
+      ? Promise.resolve(
+          json(
+            {
+              type: "urn:blockout:problem:stale-revision",
+              title: "Conflict",
+              status: 409,
+            },
+            409,
+          ),
+        )
+      : respond(url, options),
+  );
   const user = userEvent.setup();
   await renderEditor();
   await user.press(await screen.findByRole("button", { name: "Format" }));
   await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
   stored = { ...stored, revision: "r2" };
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  await screen.findByRole("button", { name: "Relire la classification" });
   mockFetch.mockImplementation((url, options) =>
     String(url).includes("/divisions?")
       ? Promise.reject(new TypeError("Catalogue unavailable"))
@@ -1703,8 +1854,8 @@ it("keeps the known draft and revision when indispensable catalogue rereading fa
   ).toBeOnTheScreen();
   expect(screen.queryByText(/État relu/)).not.toBeOnTheScreen();
   expect(
-    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
-  ).toBe(false);
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+  ).toHaveLength(1);
 });
 
 it.each(["pack", "pool"] as const)(
@@ -1712,6 +1863,20 @@ it.each(["pack", "pool"] as const)(
   async (kind) => {
     // Given
     stored.setting = classification;
+    mockFetch.mockImplementation((url, options) =>
+      options?.method === "PUT"
+        ? Promise.resolve(
+            json(
+              {
+                type: "urn:blockout:problem:stale-revision",
+                title: "Conflict",
+                status: 409,
+              },
+              409,
+            ),
+          )
+        : respond(url, options),
+    );
     const user = userEvent.setup();
     await renderEditor(kind);
     await user.press(
@@ -1720,7 +1885,8 @@ it.each(["pack", "pool"] as const)(
       }),
     );
     stored = { ...stored, revision: "r2" };
-    await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+    await screen.findByRole("button", { name: "Relire la classification" });
     mockFetch.mockImplementation((url, options) => {
       if (options?.method === "PUT") {
         stored = { ...stored, revision: "r3", setting: null };
@@ -1743,8 +1909,8 @@ it.each(["pack", "pool"] as const)(
       }),
     ).toBeOnTheScreen();
     expect(
-      mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
-    ).toBe(false);
+      mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+    ).toHaveLength(1);
 
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
@@ -1782,12 +1948,27 @@ it("treats a successfully read inactive division as field validation", async () 
 it("serializes explicit custom rereading until its catalogue settles, then permits catalogue-independent removal", async () => {
   // Given
   stored.setting = classification;
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PUT"
+      ? Promise.resolve(
+          json(
+            {
+              type: "urn:blockout:problem:stale-revision",
+              title: "Conflict",
+              status: 409,
+            },
+            409,
+          ),
+        )
+      : respond(url, options),
+  );
   const user = userEvent.setup();
   await renderEditor();
   await user.press(await screen.findByRole("button", { name: "Format" }));
   await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
   stored = { ...stored, revision: "r2" };
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  await screen.findByRole("button", { name: "Relire la classification" });
   const catalogue = Promise.withResolvers<Response>();
   mockFetch.mockImplementation((url, options) =>
     String(url).includes("/divisions?")
@@ -1814,7 +1995,22 @@ it("serializes explicit custom rereading until its catalogue settles, then permi
   await screen.findByText(/État relu/);
   await user.press(screen.getByRole("radio", { name: "Du pack" }));
   stored = { ...stored, revision: "r3" };
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PUT"
+      ? Promise.resolve(
+          json(
+            {
+              type: "urn:blockout:problem:stale-revision",
+              title: "Conflict",
+              status: 409,
+            },
+            409,
+          ),
+        )
+      : respond(url, options),
+  );
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+  await screen.findByRole("button", { name: "Relire la classification" });
   mockFetch.mockImplementation((url, options) =>
     String(url).includes("/divisions?")
       ? Promise.reject(new TypeError("Catalogue unavailable"))
@@ -1874,12 +2070,25 @@ it("saves the pack choice directly without reading the custom catalogue", async 
 it("keeps explicit revision rereading available after its classification read fails", async () => {
   // Given
   stored.setting = classification;
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PUT"
+      ? Promise.resolve(
+          json(
+            {
+              type: "urn:blockout:problem:stale-revision",
+              title: "Conflict",
+              status: 409,
+            },
+            409,
+          ),
+        )
+      : respond(url, options),
+  );
   const user = userEvent.setup();
   await renderEditor();
   await user.press(await screen.findByRole("button", { name: "Format" }));
   await user.press(await screen.findByRole("radio", { name: "4 × 4" }));
-  stored = { ...stored, revision: "r2" };
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
   await screen.findByRole("button", { name: "Relire la classification" });
   mockFetch.mockImplementation((url, options) =>
     String(url).includes("/classification")
@@ -1902,6 +2111,7 @@ it("keeps explicit revision rereading available after its classification read fa
   ).toHaveAccessibilityValue({ text: "4 × 4" });
 
   // When
+  stored = { ...stored, revision: "r2" };
   mockFetch.mockImplementation(respond);
   await user.press(screen.getByRole("button", { name: "Réessayer" }));
   await screen.findByRole("button", { name: "Relire la classification" });
@@ -1916,8 +2126,8 @@ it("keeps explicit revision rereading available after its classification read fa
     screen.getByRole("button", { name: "Format" }),
   ).toHaveAccessibilityValue({ text: "4 × 4" });
   expect(
-    mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
-  ).toBe(false);
+    mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
+  ).toHaveLength(1);
 });
 
 it("retains the accepted classification revision when the following read fails", async () => {

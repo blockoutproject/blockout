@@ -6,6 +6,7 @@ import { ImageValidationError } from "@/shared/images/image-validation-error";
 import { deleteOwnedImage } from "@/shared/images/delete-owned-image";
 import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
 import { useDivisionActivity } from "../api/classification";
+import { isStaleRevision } from "../api/is-stale-revision";
 import { DivisionColorFields } from "../components/division-color-fields";
 import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
@@ -111,9 +112,9 @@ export function PresentationForm({
   const selectedLogo =
     dirtyFields.logo !== undefined && draft.action === "replace";
   const rereadRequired =
-    presentation.kind !== "division-creation" &&
-    baseline.kind !== "division-creation" &&
-    presentation.data.revision !== baseline.data.revision;
+    !creating &&
+    (isStaleRevision(editing.save.error) ||
+      isStaleRevision(activity.save.error));
   const created = creating && baseline.kind === "division";
   const busy =
     disabled ||
@@ -226,6 +227,8 @@ export function PresentationForm({
         "Présentation relue. Vérifiez votre brouillon avant de l’enregistrer à nouveau.",
     });
     editor.reset(presentationValues(result.data), true);
+    editing.save.reset();
+    activity.save.reset();
   }
 
   /** Confirms and executes the separate lifecycle command against this editor's original revision. */
