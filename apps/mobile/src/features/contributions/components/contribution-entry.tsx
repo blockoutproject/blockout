@@ -24,12 +24,12 @@ export function useContributionEntry(
   publicContributionUrl?: string,
 ) {
   const router = useRouter();
-  const { session, query, usable, profile } = useOwnContributionsRead(
+  const { session, query, canRetain, profile } = useOwnContributionsRead(
     matchId,
     available,
   );
   const current = query.data?.pages[0];
-  const authorized = available && usable && !query.isError;
+  const authorized = available && canRetain && !query.isError;
   const hasProposals = authorized && (current?.proposalCount ?? 0) > 0;
   const ownsPublic =
     authorized &&
@@ -47,7 +47,7 @@ export function useContributionEntry(
     available &&
     (session.status === "guest" ||
       (authorized && current?.eligibility.canSubmit === true));
-  const admittedOwnershipRead = usable ? query : profile;
+  const admittedOwnershipRead = canRetain ? query : profile;
   const ownershipRead =
     session.status === "authenticated" ? admittedOwnershipRead : undefined;
   return {
@@ -85,7 +85,7 @@ export function useContributionEntry(
       if (!available || session.status !== "authenticated") {
         return Promise.resolve(undefined);
       }
-      return usable
+      return canRetain
         ? query.refetch({ cancelRefetch: false })
         : profile.refetch({ cancelRefetch: false });
     },

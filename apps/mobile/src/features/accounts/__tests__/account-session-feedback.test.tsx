@@ -44,7 +44,7 @@ beforeEach(() => {
     EXPO_PUBLIC_AUTH0_CLIENT_ID: "synthetic-client",
   });
   publicClient = createQueryClient();
-  publicClient.setDefaultOptions({ queries: { retry: false } });
+  publicClient.setQueryDefaults([], { retry: false });
   jest
     .mocked(initializeV2Installation)
     .mockReset()

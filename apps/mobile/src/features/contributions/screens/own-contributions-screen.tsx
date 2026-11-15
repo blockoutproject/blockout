@@ -138,7 +138,7 @@ export function OwnContributionsScreen({
     await query.fetchNextPage({ cancelRefetch: false });
   }
 
-  const requiredRead = !editing.usable
+  const requiredRead = !editing.canRetain
     ? editing.profile
     : ([editing.profile, match, query].find(
         (read) =>
@@ -223,7 +223,7 @@ export function OwnContributionsScreen({
                 ) : (
                   <ReadFeedback
                     failed={
-                      !editing.usable &&
+                      !editing.canRetain &&
                       editing.session.status === "authenticated" &&
                       !editing.profile.isPending
                     }

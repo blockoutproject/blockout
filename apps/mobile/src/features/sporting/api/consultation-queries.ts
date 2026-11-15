@@ -108,11 +108,6 @@ export function createConsultationQueries(
     return admission.request({ signal: context.signal, headers });
   }
 
-  /** Converts only authenticated artwork; ordinary public logos use native image loading. */
-  async function preview(blob: Blob, signal: AbortSignal) {
-    return binaryImagePreview(blob, signal);
-  }
-
   return {
     /** An unavailable followed target invalidates its own detail; related benign collections refresh normally. */
     async rejectTarget(
@@ -137,7 +132,7 @@ export function createConsultationQueries(
         queryKey: key(getGetClubLogoQueryKey(id)),
         queryFn: async (context) => {
           try {
-            return await preview(
+            return await binaryImagePreview(
               await getClubLogo(id, await request(context)),
               context.signal,
             );
@@ -153,7 +148,7 @@ export function createConsultationQueries(
         queryKey: key(getGetTeamLogoQueryKey(id, params)),
         queryFn: async (context) => {
           try {
-            return await preview(
+            return await binaryImagePreview(
               await getTeamLogo(id, params, await request(context)),
               context.signal,
             );
@@ -169,7 +164,7 @@ export function createConsultationQueries(
         queryKey: key(getGetDivisionLogoQueryKey(id)),
         queryFn: async (context) => {
           try {
-            return await preview(
+            return await binaryImagePreview(
               await getDivisionLogo(id, await request(context)),
               context.signal,
             );

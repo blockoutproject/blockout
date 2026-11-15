@@ -3,7 +3,7 @@ import { TECHNICAL_ERROR_TITLE } from "@/shared/components/error-copy";
 import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
 import { applicationAccessResponse as mockApplicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { onlineManager, QueryClientProvider } from "@tanstack/react-query";
 import {
   cleanup,
   act,
@@ -96,6 +96,7 @@ beforeEach(() => {
 afterEach(async () => {
   await cleanup();
   queryClient.clear();
+  onlineManager.setOnline(true);
   jest.restoreAllMocks();
   for (const [key, value] of Object.entries(configuration)) {
     if (value === undefined) {
@@ -283,6 +284,10 @@ it.each(["rejected", "lost"] as const)(
     });
     const user = userEvent.setup();
     await renderJourney(<SignInScreen admitted returnTo={returnTo} />);
+    if (outcome === "lost") {
+      // The public connection mutation inherits the real factory's offline dispatch policy.
+      await act(() => onlineManager.setOnline(false));
+    }
 
     // When
     await user.press(screen.getByRole("button", { name: "Se connecter" }));
@@ -300,6 +305,13 @@ it.each(["rejected", "lost"] as const)(
     expect(
       mockFetch.mock.calls.filter(([, options]) => options?.method === "POST"),
     ).toHaveLength(1);
+
+    // When: reconnecting must not replay the failed public connection command.
+    await act(() => onlineManager.setOnline(true));
+
+    // Then
+    expect(mockAuth0.webAuth).toHaveBeenCalledTimes(1);
+    expect(establishmentAttempts).toBe(1);
 
     // When: the user starts a fresh connection after the failed establishment.
     await user.press(screen.getByRole("button", { name: "Se connecter" }));

@@ -268,7 +268,7 @@ it.each([
   async ({ status, type }) => {
     // Given: actual account and moderation owners share the principal's Query client.
     const { result } = await renderHook(useModerator, { wrapper: Wrapper });
-    await waitFor(() => expect(result.current.allowed).toBe(true));
+    await waitFor(() => expect(result.current.canRetain).toBe(true));
     await waitFor(() => expect(client.isFetching()).toBe(0));
     mockFetch.mockResolvedValueOnce(
       Response.json(
@@ -283,8 +283,7 @@ it.each([
     });
 
     // Then
-    await waitFor(() => expect(result.current.allowed).toBe(false));
-    expect(result.current.canRetain).toBe(false);
+    await waitFor(() => expect(result.current.canRetain).toBe(false));
     expect(result.current.profile.data).toBeNull();
     expect(writes).toHaveLength(0);
 
@@ -294,7 +293,7 @@ it.each([
     });
 
     // Then
-    await waitFor(() => expect(result.current.allowed).toBe(true));
+    await waitFor(() => expect(result.current.canRetain).toBe(true));
     expect(result.current.profile.data?.accountId).toBe(account.accountId);
     expect(writes).toHaveLength(0);
   },

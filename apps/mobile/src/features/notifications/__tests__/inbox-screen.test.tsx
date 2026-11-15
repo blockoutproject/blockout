@@ -92,7 +92,7 @@ function Harness({ children }: Readonly<PropsWithChildren>) {
   useLayoutEffect(() => {
     privateClient = cache;
   }, [cache]);
-  useState(() => cache.setDefaultOptions({ queries: { retry: false } }));
+  useState(() => cache.setQueryDefaults([], { retry: false }));
   useLayoutEffect(() => {
     currentSession = session;
   }, [session]);
@@ -132,7 +132,7 @@ async function response(url: string, init: RequestInit): Promise<Response> {
 beforeEach(() => {
   jest.useFakeTimers({ now: new Date("2026-10-27T12:00:00Z") });
   client = createQueryClient();
-  client.setDefaultOptions({ queries: { retry: false } });
+  client.setQueryDefaults([], { retry: false });
   process.env.EXPO_PUBLIC_API_URL = "https://api.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_DOMAIN = "identity.example.invalid";
   process.env.EXPO_PUBLIC_AUTH0_CLIENT_ID = "synthetic-client";

@@ -33,8 +33,6 @@ export function useSupportSubmission() {
   }, []);
   const mutation = useMutation({
     mutationKey: getCreateSupportRequestMutationKey(),
-    retry: false,
-    networkMode: "always",
     mutationFn: async (body: CreateSupportRequestBody) => {
       const controller = new AbortController();
       pending.current = controller;

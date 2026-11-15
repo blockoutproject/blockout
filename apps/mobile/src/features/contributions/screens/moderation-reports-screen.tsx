@@ -59,11 +59,11 @@ export function ModerationReportsScreen({
     reading.session.status === "restoring" ||
     (!hasReadError(requiredRead) && requiredRead.isLoading);
   const FeedbackLayout = pending ? PageContent : ScreenState;
-  const refreshable = reading.allowed && reports.length > 0;
+  const refreshable = reading.canRetain && reports.length > 0;
 
   /** A native pull rereads this traversal; Query retains rows behind required-read feedback on failure. */
   async function refresh() {
-    if (!reading.allowed || query.isFetching) {
+    if (!reading.canRetain || query.isFetching) {
       return;
     }
     await query.refetch({ cancelRefetch: false });
@@ -72,7 +72,7 @@ export function ModerationReportsScreen({
   /** Automatic edges and explicit append Retry share Query's current next page; failed edges never retry themselves. */
   async function loadMore() {
     if (
-      !reading.allowed ||
+      !reading.canRetain ||
       !navigation.isFocused() ||
       denied ||
       !query.hasNextPage ||
@@ -112,7 +112,7 @@ export function ModerationReportsScreen({
         <Button
           label="Actualiser"
           leadingIcon={RefreshCw}
-          disabled={!reading.allowed}
+          disabled={!reading.canRetain}
           loading={query.isFetching}
           onPress={() => void query.refetch({ cancelRefetch: false })}
         />
@@ -184,7 +184,7 @@ export function ModerationReportsScreen({
               <ListContinuation
                 loading={query.isFetchingNextPage}
                 failed={query.isFetchNextPageError}
-                disabled={!reading.allowed || query.isFetching}
+                disabled={!reading.canRetain || query.isFetching}
                 onRetry={() => void loadMore()}
               />
               <BottomContentSpacer />

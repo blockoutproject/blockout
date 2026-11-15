@@ -157,8 +157,6 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
     operationKey = getCreateDivisionMutationKey();
   }
   const save = useMutation({
-    retry: false,
-    networkMode: "always",
     mutationKey: [...queryKey, ...operationKey],
     mutationFn: async ({
       revision,

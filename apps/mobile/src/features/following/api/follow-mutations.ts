@@ -41,8 +41,6 @@ export function useFollowMutation(
     mutationKey: owner
       ? followMutationKey(owner, target)
       : ["following-unavailable"],
-    retry: false,
-    networkMode: "always",
     mutationFn: async (following: boolean) => {
       if (!owner || !context.usable) {
         throw new ApiError("cancelled");

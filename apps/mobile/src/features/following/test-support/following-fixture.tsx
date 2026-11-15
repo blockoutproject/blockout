@@ -32,10 +32,8 @@ export function followingFixture() {
     const current = useAccountSession();
     const access = useApplicationAccess();
     const privateClient = useQueryClient();
-    privateClient.setDefaultOptions({
-      queries: { retry: false },
-      mutations: { networkMode: "always", retry: false, gcTime: Infinity },
-    });
+    privateClient.setQueryDefaults([], { retry: false });
+    privateClient.setMutationDefaults([], { gcTime: Infinity });
     useEffect(() => {
       clients.add(privateClient);
       client = privateClient;

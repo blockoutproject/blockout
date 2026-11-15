@@ -51,7 +51,6 @@ function useAdmission() {
     ...access,
     ...presentation,
     operations,
-    administration: operations,
     permissions,
     canBypass:
       canBypass &&

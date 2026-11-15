@@ -75,8 +75,6 @@ export function useContributionReport(matchId: string, contributionId: string) {
   });
   const mutationKey = contributionKeys.report(actor, contributionId);
   const command = useMutation({
-    retry: false,
-    networkMode: "always",
     mutationKey,
     mutationFn: async (body: CreateStreamReportRequest) =>
       createStreamReport(actor.accountId, contributionId, body, {

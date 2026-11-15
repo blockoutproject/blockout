@@ -282,7 +282,7 @@ it.each([false, true])(
     // Given: real Router, F03 screen, privacy/session owners and generated F07 commands.
     await openInbox();
     await screen.findByRole("link", { name: /non lue$/ });
-    privateClient.setDefaultOptions({ queries: { retry: false } });
+    privateClient.setQueryDefaults([], { retry: false });
     const ordinary = mockFetch.getMockImplementation();
     if (!ordinary) {
       throw new Error("Synthetic HTTP implementation is required");
@@ -533,7 +533,7 @@ it("retains a public inbox row after destination refusal until ordinary refresh 
   await openInbox();
   const user = userEvent.setup();
   await screen.findByRole("link", { name: /non lue$/ });
-  privateClient.setDefaultOptions({ queries: { retry: false } });
+  privateClient.setQueryDefaults([], { retry: false });
   const queries = createInboxQueries(
     { subject: "synthetic-owner", accountId: row.id },
     async () => ({}),
@@ -794,7 +794,7 @@ it("distinguishes append retry from failed refresh in the real inbox route", asy
     return Response.json({ notifications: [row], nextCursor: "same-boundary" });
   });
   await openInbox();
-  privateClient.setDefaultOptions({ queries: { retry: false } });
+  privateClient.setQueryDefaults([], { retry: false });
   const first = await screen.findByRole("link", { name: /^Le résultat/ });
   const user = userEvent.setup();
 

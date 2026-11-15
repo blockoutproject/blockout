@@ -132,7 +132,7 @@ export function ModerationFilters({
       );
     }
     if (
-      !reading.allowed ||
+      !reading.canRetain ||
       !reading.query.data ||
       reading.query.isError ||
       reading.profile.isError

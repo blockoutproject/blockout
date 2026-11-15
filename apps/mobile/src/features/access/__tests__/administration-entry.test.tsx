@@ -82,12 +82,7 @@ beforeEach(() => {
   publicClient = createQueryClient();
   client = publicClient;
   clients = new Set([publicClient]);
-  publicClient.setDefaultOptions({
-    mutations: {
-      ...publicClient.getDefaultOptions().mutations,
-      gcTime: Infinity,
-    },
-  });
+  publicClient.setMutationDefaults([], { gcTime: Infinity });
   Object.assign(process.env, {
     EXPO_PUBLIC_AUTH0_DOMAIN: "identity.example.invalid",
     EXPO_PUBLIC_AUTH0_CLIENT_ID: "mobile-test",
@@ -147,10 +142,8 @@ function AdministrationProviders({ children }: Readonly<PropsWithChildren>) {
 function PrivateQueries({ children }: Readonly<PropsWithChildren>) {
   const cache = useQueryClient();
   useState(() => {
-    cache.setDefaultOptions({
-      queries: { retry: false },
-      mutations: { retry: false, networkMode: "always", gcTime: Infinity },
-    });
+    cache.setQueryDefaults([], { retry: false });
+    cache.setMutationDefaults([], { gcTime: Infinity });
   });
   useLayoutEffect(() => {
     clients.add(cache);

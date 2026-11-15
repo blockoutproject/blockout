@@ -50,8 +50,6 @@ export function useEstablishAccount() {
   const mutation = useMutation({
     mutationKey: getEstablishAccountMutationKey(),
     gcTime: 0,
-    retry: false,
-    networkMode: "always",
     mutationFn: (session: AccountCommandSession) =>
       establishAccountForSession(session, request),
     /** The old client may be detached; it never redirects profile data into another principal's cache. */

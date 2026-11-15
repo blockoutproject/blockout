@@ -197,7 +197,7 @@ function QueueScene({
       refreshing ||
       !navigation.isFocused() ||
       AppState.currentState !== "active" ||
-      !editing.allowed ||
+      !editing.canRetain ||
       !query.hasNextPage ||
       query.isFetching ||
       (query.isError && !query.isFetchNextPageError)
@@ -220,7 +220,7 @@ function QueueScene({
     (editing.session.status === "restoring" ||
       !!editing.session.operation ||
       (editing.session.status === "authenticated" &&
-        (editing.profile.isLoading || (editing.allowed && query.isLoading))))
+        (editing.profile.isLoading || (editing.canRetain && query.isLoading))))
   ) {
     return (
       <PageScrollView

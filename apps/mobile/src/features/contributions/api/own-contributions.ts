@@ -157,7 +157,6 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
     request,
     session,
     profile,
-    usable: canRetain,
     canRetain,
     readFirstPage,
     refuseAccess: (error: unknown) => refuseOwnAccess(client, queryKey, error),
@@ -179,7 +178,6 @@ export function useOwnContributions(matchId: string) {
     request,
     session,
     profile,
-    usable,
     canRetain,
     readFirstPage,
     refuseAccess,
@@ -209,8 +207,6 @@ export function useOwnContributions(matchId: string) {
   }
 
   const submit = useMutation({
-    retry: false,
-    networkMode: "always",
     mutationKey: contributionKeys.submit(actor, matchId),
     mutationFn: async (body: CreateStreamContributionRequest) =>
       createStreamContribution(actor.accountId, matchId, body, {
@@ -221,8 +217,6 @@ export function useOwnContributions(matchId: string) {
     onError: (error) => refuseAccess(error),
   });
   const change = useMutation({
-    retry: false,
-    networkMode: "always",
     mutationKey: contributionKeys.updateOwn(actor, matchId),
     mutationFn: async ({ versionId, body }: OwnContributionChange) =>
       updateOwnStreamContribution(actor.accountId, matchId, versionId, body, {
@@ -238,7 +232,6 @@ export function useOwnContributions(matchId: string) {
     change,
     session,
     profile,
-    usable,
     canRetain,
     refresh: readFirstPage,
   };

@@ -232,7 +232,7 @@ RevenueCat's existing process owner serializes native identity work and attribut
 
 The [whole-form composition](plan.md#frontend-form-conventions) uses the mounted RHF visit and stable native scroller instead of first-success admission, copied initial responses or a recovery store. A failed consumed dependency hides the whole editable region; successful Retry reveals the same draft/files. Catalogue partial availability and reread-error toasts add a second behavior and are not retained. Passive Support contact and photo/logo previews introduce no form read prerequisite; age storage remains local.
 
-Generated functions/key factories and one generated Zod response boundary feed native Query. Reads use ordinary retry/remount behavior unless their resource owns a narrower policy; the default three retries permit four attempts. Native foreground/network detection requires its actual platform adapter; deleting opt-outs creates none. Mutations use retry false and networkMode always, with required invalidation in mutation-option callbacks. Native unmount/removal does not cancel them. Original credentials/targets, server permission/revision checks and route-local form errors remain independent of pending UI.
+Generated functions/key factories and one generated Zod response boundary feed native Query. Reads use ordinary retry/remount behavior unless their resource owns a narrower policy; the default three retries permit four attempts. Native foreground/network detection requires its actual platform adapter; deleting opt-outs creates none. The same `shared/query/query-client.ts` factory supplies mutation `retry: false` and `networkMode: "always"` to the separate public/private clients. Feature `useMutation` calls inherit that policy and retain only their resource-specific options, including required invalidation in mutation-option callbacks. Native unmount/removal does not cancel them. Original credentials/targets, server permission/revision checks and route-local form errors remain independent of pending UI.
 
 ### Resource-specific read policies
 
@@ -250,7 +250,7 @@ The [F03](../007-sporting-consultation/plan.md), [F04](../008-search-discovery/p
 
 ### Forms and submitted intent
 
-RHF/Zod owns the current route's editable values, dirty state, validation and submission. Keep a coherent server representation/revision baseline until an accepted save or deliberate reread/reset; preserving dirty values alone is not optimistic concurrency. A route/identity change may discard a draft; an in-flight command retains its actual submitted target/file. [F02](../002-sporting-data/plan.md), [F01](../001-source-acquisition/plan.md), [F08](../010-live-contributions-moderation/plan.md) and [F12](../013-administration-app-configuration/plan.md) own their editing semantics.
+RHF/Zod owns the current route's editable values, dirty state, validation and submission. F02 Presentation initializes its single server baseline/revision and RHF values together after mount, without exposing a ready baseline before logo/field defaults exist. Keep that baseline until an accepted save or deliberate reread/reset; background reads cannot rebase the draft. Profile retains its deliberate reactive `values`/dirty-retention behavior, and Classification retains its existing revision owner without a copied response. Preserving dirty values alone is not optimistic concurrency. A route/identity change may discard a draft; an in-flight command retains its actual submitted target/file. [F02](../002-sporting-data/plan.md), [F01](../001-source-acquisition/plan.md), [F08](../010-live-contributions-moderation/plan.md) and [F12](../013-administration-app-configuration/plan.md) own their editing semantics.
 
 ### Prepared images and request handles
 
@@ -272,7 +272,7 @@ Development demonstrations and controlled SDK/HTTP fixtures establish their name
 
 ### Generated HTTP writes
 
-Account establishment/profile, following, notification read/subscription, operational settings, collection administration, sporting corrections and contributions call their generated function from ordinary mutationFn. Capture original identity/target and complete form intent before dispatch; server permission, revision, unique constraints and transactions own correctness. Required cache invalidation belongs in mutation options, while mounted navigation/feedback remains ordinary presentation. Mutations retry false and execute immediately; no generic command ledger, automatic acknowledgement reread or monotone local publication is selected.
+Account establishment/profile, following, notification read/subscription, operational settings, collection administration, sporting corrections and contributions call their generated function from ordinary mutationFn. Capture original identity/target and complete form intent before dispatch; server permission, revision, unique constraints and transactions own correctness. Required cache invalidation belongs in mutation options, while mounted navigation/feedback remains ordinary presentation. Mutations inherit the existing shared client factory’s non-retrying immediate policy; repeating equivalent hook options adds no responsibility. No generic command ledger, automatic acknowledgement reread or monotone local publication is selected.
 
 ### Local, native and in-memory writes
 

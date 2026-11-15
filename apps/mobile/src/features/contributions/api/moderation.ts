@@ -85,7 +85,7 @@ function useModerationAuthority() {
     });
   }
 
-  return { allowed: canRetain, canRetain, session, profile, request };
+  return { canRetain, session, profile, request };
 }
 
 /** Identifies only generated private video-moderation resources for known grant withdrawal. */
@@ -158,7 +158,7 @@ export function useModerationQueue(filters: ModerationFilters, enabled = true) {
     },
     getNextPageParam: (page) => page.nextPage,
     enabled: (query) =>
-      authority.allowed && enabled && query.state.status !== "error",
+      authority.canRetain && enabled && query.state.status !== "error",
   });
   const query = useInfiniteQuery(options);
 
@@ -201,7 +201,7 @@ export function useModerationVersions(
     },
     getNextPageParam: (page) => page.nextPage,
     enabled: (query) =>
-      authority.allowed && enabled && query.state.status !== "error",
+      authority.canRetain && enabled && query.state.status !== "error",
   });
   const query = useInfiniteQuery(options);
 
@@ -268,8 +268,6 @@ export function useModerationMatch(
       ...getCreateModeratedStreamContributionMutationKey(),
       matchId,
     ],
-    retry: false,
-    networkMode: "always",
     mutationFn: async (body: CreateModeratedStreamContributionRequest) =>
       createModeratedStreamContribution(matchId, body, {
         ...(await authority.request()),
@@ -282,8 +280,6 @@ export function useModerationMatch(
       ...getUpdateModeratedStreamContributionMutationKey(),
       matchId,
     ],
-    retry: false,
-    networkMode: "always",
     mutationFn: async ({ versionId, body }: ModerationChange) =>
       updateModeratedStreamContribution(
         matchId,
@@ -295,8 +291,6 @@ export function useModerationMatch(
   });
   const reactivate = useMutation({
     mutationKey: [...getCreateStreamReactivationMutationKey(), matchId],
-    retry: false,
-    networkMode: "always",
     mutationFn: async ({ versionId, body }: ModerationReactivation) =>
       createStreamReactivation(
         matchId,
@@ -336,7 +330,7 @@ export function useModerationReports(
   const authority = useModerationAuthority();
   const query = useInfiniteQuery({
     queryKey: getListStreamReportsQueryKey(matchId, versionId),
-    enabled: authority.allowed && enabled,
+    enabled: authority.canRetain && enabled,
     gcTime: 0,
     refetchOnMount: "always",
     refetchOnReconnect: false,

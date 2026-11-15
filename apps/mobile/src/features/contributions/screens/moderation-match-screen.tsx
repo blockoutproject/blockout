@@ -96,7 +96,7 @@ export function ModerationMatchScreen({
     };
   }, []);
   const busy =
-    !editing.allowed ||
+    !editing.canRetain ||
     editing.change.isPending ||
     editing.reactivate.isPending ||
     editing.publish.isPending;
@@ -417,7 +417,7 @@ function VersionScene({
       !navigation.isFocused() ||
       AppState.currentState !== "active" ||
       busy ||
-      !reading.allowed ||
+      !reading.canRetain ||
       !query.hasNextPage ||
       query.isFetching ||
       (query.isError && !query.isFetchNextPageError)
@@ -437,7 +437,7 @@ function VersionScene({
     (reading.session.status === "restoring" ||
       !!reading.session.operation ||
       (reading.session.status === "authenticated" &&
-        (reading.profile.isLoading || (reading.allowed && query.isLoading))))
+        (reading.profile.isLoading || (reading.canRetain && query.isLoading))))
   ) {
     return (
       <PageScrollView

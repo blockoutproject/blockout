@@ -98,8 +98,6 @@ export function useClassification(target: ClassificationTarget) {
   }
 
   const save = useMutation({
-    retry: false,
-    networkMode: "always",
     mutationKey: [
       ...queryKey,
       ...(target.kind === "pack"
@@ -150,8 +148,6 @@ export function useDivisionActivity(id: string) {
   }
 
   const save = useMutation({
-    retry: false,
-    networkMode: "always",
     mutationKey: [...queryKey, ...getSetDivisionActivityMutationKey()],
     mutationFn: async (body: SetDivisionActivityRequest) =>
       setDivisionActivity(id, body, await authority.request()),

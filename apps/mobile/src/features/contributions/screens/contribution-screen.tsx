@@ -34,13 +34,17 @@ export function ContributionScreen({
   const guest = editing.session.status === "guest";
   const authenticated = editing.session.status === "authenticated";
 
-  const requiredRead = !editing.usable
+  const requiredRead = !editing.canRetain
     ? editing.profile
     : ([editing.profile, match, editing.query].find(hasReadError) ??
       (!match.data ? match : editing.query));
   const readFailed = hasReadError(requiredRead);
   const blocked =
-    !authenticated || !editing.usable || !current || !match.data || readFailed;
+    !authenticated ||
+    !editing.canRetain ||
+    !current ||
+    !match.data ||
+    readFailed;
   const initialLoading = !authenticated
     ? editing.session.status === "restoring" || !!editing.session.operation
     : !hasReadError(requiredRead) && requiredRead.isLoading;
@@ -82,7 +86,7 @@ export function ContributionScreen({
               />
             ) : (
               <ReadFeedback
-                failed={!editing.usable && !editing.profile.isPending}
+                failed={!editing.canRetain && !editing.profile.isPending}
                 query={requiredRead}
                 loadingContent={<ContributionFormLoading />}
                 onRetry={

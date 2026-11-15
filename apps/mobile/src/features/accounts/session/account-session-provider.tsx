@@ -228,8 +228,6 @@ function SessionScope({
 
   const connection = useMutation({
     mutationKey: ["account-connection"],
-    retry: false,
-    networkMode: "always",
     gcTime: 0,
     mutationFn: async ({ audience, signIn }: AccountConnectionInput) => {
       const principal = await signIn(audience);

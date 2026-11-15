@@ -20,7 +20,6 @@ export function createReadNotificationOptions(
   }
   return mutationOptions({
     mutationKey: [...queries.inbox.queryKey, "read"],
-    retry: false,
     mutationFn: async (id: string) =>
       markNotificationRead(
         accountId,
