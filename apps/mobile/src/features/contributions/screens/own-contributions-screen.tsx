@@ -139,12 +139,12 @@ export function OwnContributionsScreen({
   }
 
   const requiredRead = !editing.canRetain
-    ? editing.profile
-    : ([editing.profile, match, query].find(
+    ? editing.account
+    : ([editing.account, match, query].find(
         (read) =>
           hasReadError(read) && (read !== query || !query.isFetchNextPageError),
       ) ??
-      (!editing.profile.data ? editing.profile : !match.data ? match : query));
+      (!editing.account.data ? editing.account : !match.data ? match : query));
   const readFailed =
     hasReadError(requiredRead) &&
     (requiredRead !== query || !query.isFetchNextPageError);
@@ -225,7 +225,7 @@ export function OwnContributionsScreen({
                     failed={
                       !editing.canRetain &&
                       editing.session.status === "authenticated" &&
-                      !editing.profile.isPending
+                      !editing.account.isPending
                     }
                     query={requiredRead}
                     loadingContent={<ContributionProposalsLoading />}

@@ -35,8 +35,8 @@ export function ContributionScreen({
   const authenticated = editing.session.status === "authenticated";
 
   const requiredRead = !editing.canRetain
-    ? editing.profile
-    : ([editing.profile, match, editing.query].find(hasReadError) ??
+    ? editing.account
+    : ([editing.account, match, editing.query].find(hasReadError) ??
       (!match.data ? match : editing.query));
   const readFailed = hasReadError(requiredRead);
   const blocked =
@@ -86,7 +86,7 @@ export function ContributionScreen({
               />
             ) : (
               <ReadFeedback
-                failed={!editing.canRetain && !editing.profile.isPending}
+                failed={!editing.canRetain && !editing.account.isPending}
                 query={requiredRead}
                 loadingContent={<ContributionFormLoading />}
                 onRetry={

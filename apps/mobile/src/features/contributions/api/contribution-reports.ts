@@ -20,7 +20,7 @@ import { contributionKeys } from "./contribution-keys";
 /** Original-account report state and explicit reason-only writes; exact-version deduplication makes a later manual retry safe without a recovery state. */
 export function useContributionReport(matchId: string, contributionId: string) {
   const session = useAccountSession();
-  const profile = useCurrentAccount();
+  const account = useCurrentAccount();
   const admission = useOrdinaryRequest();
   const client = useQueryClient();
   const match = useConsultationQueries().match(matchId);
@@ -32,7 +32,7 @@ export function useContributionReport(matchId: string, contributionId: string) {
   const usable =
     admission.admitted &&
     session.status === "authenticated" &&
-    profile.data?.accountId === actor.accountId;
+    account.data?.accountId === actor.accountId;
 
   /** Uses the existing generated transport with no publication eligibility or persistent reason payload. */
   async function request(signal?: AbortSignal) {
@@ -108,5 +108,5 @@ export function useContributionReport(matchId: string, contributionId: string) {
       });
     },
   });
-  return { session, profile, usable, query, command };
+  return { session, account, usable, query, command };
 }

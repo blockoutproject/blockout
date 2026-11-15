@@ -124,7 +124,7 @@ export function ModerationFilters({
         <AccountSessionFeedback loadingContent={<ModerationFiltersLoading />} />
       );
     }
-    if (!reading.canRetain && reading.profile.isSuccess) {
+    if (!reading.canRetain && reading.account.isSuccess) {
       return (
         <Text style={[tokens.typography.body, { color: colors.text }]}>
           La modération des liens vidéo n’est pas autorisée.
@@ -135,11 +135,11 @@ export function ModerationFilters({
       !reading.canRetain ||
       !reading.query.data ||
       reading.query.isError ||
-      reading.profile.isError
+      reading.account.isError
     ) {
       const read =
-        reading.profile.isError || reading.profile.isPending
-          ? reading.profile
+        reading.account.isError || reading.account.isPending
+          ? reading.account
           : reading.query;
       return (
         <ReadFeedback

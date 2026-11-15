@@ -102,6 +102,7 @@ export function ModerationPublicationForm({
     (editing.query.error instanceof ApiError &&
       editing.query.error.status === 404);
   const disabled = !editing.canRetain || !current?.canPublish || refused;
+  const withdrawalDisabled = !editing.canRetain || busy || refused;
 
   /** Sends the ordinary publication directly with its original actor and dirty draft's viewed revision. */
   async function send(values: ContributionValues) {
@@ -166,9 +167,9 @@ export function ModerationPublicationForm({
             accessibilityRole="button"
             accessibilityLabel="Retirer"
             accessibilityState={{
-              disabled: !editing.canRetain || busy || refused,
+              disabled: withdrawalDisabled,
             }}
-            disabled={!editing.canRetain || busy || refused}
+            disabled={withdrawalDisabled}
             onPress={onWithdraw}
             style={styles.withdraw}
           >

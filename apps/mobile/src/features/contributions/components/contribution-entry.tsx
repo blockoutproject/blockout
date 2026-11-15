@@ -24,7 +24,7 @@ export function useContributionEntry(
   publicContributionUrl?: string,
 ) {
   const router = useRouter();
-  const { session, query, canRetain, profile } = useOwnContributionsRead(
+  const { session, query, canRetain, account } = useOwnContributionsRead(
     matchId,
     available,
   );
@@ -47,7 +47,7 @@ export function useContributionEntry(
     available &&
     (session.status === "guest" ||
       (authorized && current?.eligibility.canSubmit === true));
-  const admittedOwnershipRead = canRetain ? query : profile;
+  const admittedOwnershipRead = canRetain ? query : account;
   const ownershipRead =
     session.status === "authenticated" ? admittedOwnershipRead : undefined;
   return {
@@ -80,14 +80,14 @@ export function useContributionEntry(
         });
       }
     },
-    /** Reobserves the existing owner on match refresh; a recovered profile enables its dependent query. */
+    /** Reobserves the existing owner on match refresh; a recovered account enables its dependent query. */
     refresh() {
       if (!available || session.status !== "authenticated") {
         return Promise.resolve(undefined);
       }
       return canRetain
         ? query.refetch({ cancelRefetch: false })
-        : profile.refetch({ cancelRefetch: false });
+        : account.refetch({ cancelRefetch: false });
     },
     /** Opens the existing owner screen without replaying a mutation or carrying an address. */
     open() {

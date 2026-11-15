@@ -55,26 +55,26 @@ export type ModerationReactivation = {
 /** F05/F12 supply the current literal capability, admission and captured-principal credentials. */
 function useModerationAuthority() {
   const session = useAccountSession();
-  const profile = useCurrentAccount();
+  const account = useCurrentAccount();
   const admission = useOrdinaryRequest();
   const canRetain =
     admission.admitted &&
     session.status === "authenticated" &&
-    profile.data?.accountId === session.accountId &&
-    !isAccessDenied(profile.error) &&
-    profile.data?.permissions?.moderateStreamLinks === true;
+    account.data?.accountId === session.accountId &&
+    !isAccessDenied(account.error) &&
+    account.data?.permissions?.moderateStreamLinks === true;
   const client = useQueryClient();
   // These are this feature's generated HTTP resources, not a cross-cache propagation registry.
   useEffect(() => {
     if (
-      profile.isSuccess &&
-      profile.data?.permissions?.moderateStreamLinks !== true
+      account.isSuccess &&
+      account.data?.permissions?.moderateStreamLinks !== true
     ) {
       client.removeQueries({
         predicate: (query) => isModerationResource(query.queryKey[0]),
       });
     }
-  }, [client, profile.isSuccess, profile.data]);
+  }, [client, account.isSuccess, account.data]);
 
   /** Captured native credentials refuse a different subject before private dispatch. */
   async function request(signal?: AbortSignal) {
@@ -85,7 +85,7 @@ function useModerationAuthority() {
     });
   }
 
-  return { canRetain, session, profile, request };
+  return { canRetain, session, account, request };
 }
 
 /** Identifies only generated private video-moderation resources for known grant withdrawal. */
@@ -220,8 +220,7 @@ export function useModerationMatch(
   state?: StreamVersionFilterEnum,
   enabled = true,
 ) {
-  const reading = useModerationVersions(matchId, state, enabled);
-  const authority = reading;
+  const versions = useModerationVersions(matchId, state, enabled);
   const client = useQueryClient();
   const matchKey = useConsultationQueries().match(matchId).queryKey;
 
@@ -270,7 +269,7 @@ export function useModerationMatch(
     ],
     mutationFn: async (body: CreateModeratedStreamContributionRequest) =>
       createModeratedStreamContribution(matchId, body, {
-        ...(await authority.request()),
+        ...(await versions.request()),
         schema: ModeratedStreamContributionDetailResponse,
       }),
     onSettled: settled,
@@ -285,7 +284,7 @@ export function useModerationMatch(
         matchId,
         versionId,
         body,
-        await authority.request(),
+        await versions.request(),
       ),
     onSettled: settled,
   });
@@ -296,7 +295,7 @@ export function useModerationMatch(
         matchId,
         versionId,
         body,
-        await authority.request(),
+        await versions.request(),
       ),
     onSettled: settled,
   });
@@ -305,7 +304,7 @@ export function useModerationMatch(
   async function refresh() {
     const resource = getListModeratedStreamContributionsQueryKey(matchId)[0];
     return Promise.all([
-      reading.refresh(),
+      versions.refresh(),
       client.invalidateQueries(
         {
           predicate: (query) =>
@@ -318,10 +317,10 @@ export function useModerationMatch(
     ]);
   }
 
-  return { ...reading, publish, change, reactivate, refresh };
+  return { ...versions, publish, change, reactivate, refresh };
 }
 
-/** Paged reports retain their exact version; exposed authority keeps recovery with the profile while reads are disabled. */
+/** Paged reports retain their exact version; exposed authority keeps recovery with the account while reads are disabled. */
 export function useModerationReports(
   matchId: string,
   versionId: string,

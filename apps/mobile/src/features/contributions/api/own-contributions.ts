@@ -67,7 +67,7 @@ async function refuseOwnAccess(
 /** Shares original-account reads and revokes private data on public-match refusal, including while the entry is disabled. */
 export function useOwnContributionsRead(matchId: string, enabled = true) {
   const session = useAccountSession();
-  const profile = useCurrentAccount();
+  const account = useCurrentAccount();
   const admission = useOrdinaryRequest();
   const client = useQueryClient();
   const actor = { ...session, accountId: session.accountId ?? "" };
@@ -107,8 +107,8 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
   const canRetain =
     admission.admitted &&
     session.status === "authenticated" &&
-    profile.data?.accountId === actor.accountId &&
-    !isOwnContributionAccessDenied(profile.error);
+    account.data?.accountId === actor.accountId &&
+    !isOwnContributionAccessDenied(account.error);
 
   /** Applies the captured F12 intent only after fresh native credentials and original-owner checks. */
   async function request(signal?: AbortSignal) {
@@ -156,7 +156,7 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
     actor,
     request,
     session,
-    profile,
+    account,
     canRetain,
     readFirstPage,
     refuseAccess: (error: unknown) => refuseOwnAccess(client, queryKey, error),
@@ -177,7 +177,7 @@ export function useOwnContributions(matchId: string) {
     actor,
     request,
     session,
-    profile,
+    account,
     canRetain,
     readFirstPage,
     refuseAccess,
@@ -231,7 +231,7 @@ export function useOwnContributions(matchId: string) {
     submit,
     change,
     session,
-    profile,
+    account,
     canRetain,
     refresh: readFirstPage,
   };

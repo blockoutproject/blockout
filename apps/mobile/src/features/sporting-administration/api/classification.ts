@@ -90,7 +90,7 @@ export function useClassification(target: ClassificationTarget) {
   const query = useQuery(options);
 
   /** Refreshes the edited resource and dependent views after an explicit mutation attempt. */
-  function accept() {
+  function invalidateReads() {
     void client.invalidateQueries({ queryKey, exact: true });
     invalidateDivisionReads(client, queryKey);
     invalidateClassificationReads(client);
@@ -120,7 +120,7 @@ export function useClassification(target: ClassificationTarget) {
             : accepted,
       );
     },
-    onSettled: accept,
+    onSettled: invalidateReads,
   });
   return { authority, query, save, queryKey };
 }
@@ -140,7 +140,7 @@ export function useDivisionActivity(id: string) {
   const queryKey = [...getGetDivisionQueryKey(id)];
 
   /** Invalidates the original division and affected administration/public projections after settlement. */
-  function accept() {
+  function invalidateReads() {
     void client.invalidateQueries({ queryKey, exact: true });
     invalidateDivisionReads(client, queryKey);
     invalidateClassificationReads(client);
@@ -151,7 +151,7 @@ export function useDivisionActivity(id: string) {
     mutationKey: [...queryKey, ...getSetDivisionActivityMutationKey()],
     mutationFn: async (body: SetDivisionActivityRequest) =>
       setDivisionActivity(id, body, await authority.request()),
-    onSettled: accept,
+    onSettled: invalidateReads,
   });
   return { authority, save, queryKey };
 }

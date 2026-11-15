@@ -156,13 +156,13 @@ function QueueScene({
   filters: ModerationFilters;
 }>) {
   const [refreshing, setRefreshing] = useState(false);
-  const editing = useModerationQueue(filters, active);
-  const { query } = editing;
+  const queue = useModerationQueue(filters, active);
+  const { query } = queue;
   const { colors } = useTheme();
   const navigation = useNavigation();
   const criteria = hashKey([filters]);
   const current =
-    editing.canRetain && !isAccessDenied(query.error)
+    queue.canRetain && !isAccessDenied(query.error)
       ? query.data?.pages[0]
       : undefined;
   const rows = current
@@ -182,7 +182,7 @@ function QueueScene({
     }
     setRefreshing(true);
     try {
-      await editing.refresh();
+      await queue.refresh();
     } catch {
       // The exhausted required read owns its shared Error/Retry presentation.
     } finally {
@@ -197,7 +197,7 @@ function QueueScene({
       refreshing ||
       !navigation.isFocused() ||
       AppState.currentState !== "active" ||
-      !editing.canRetain ||
+      !queue.canRetain ||
       !query.hasNextPage ||
       query.isFetching ||
       (query.isError && !query.isFetchNextPageError)
@@ -208,7 +208,7 @@ function QueueScene({
   }
 
   const failed =
-    hasReadError(editing.profile) ||
+    hasReadError(queue.account) ||
     (hasReadError(query) && !query.isFetchNextPageError);
   const refreshControl =
     current && rows.length > 0 ? (
@@ -217,10 +217,10 @@ function QueueScene({
   if (
     !current &&
     !failed &&
-    (editing.session.status === "restoring" ||
-      !!editing.session.operation ||
-      (editing.session.status === "authenticated" &&
-        (editing.profile.isLoading || (editing.canRetain && query.isLoading))))
+    (queue.session.status === "restoring" ||
+      !!queue.session.operation ||
+      (queue.session.status === "authenticated" &&
+        (queue.account.isLoading || (queue.canRetain && query.isLoading))))
   ) {
     return (
       <PageScrollView
@@ -237,12 +237,12 @@ function QueueScene({
   if (rows.length === 0 || failed) {
     /** Recovers private queue admission before showing its empty state. */
     function renderEmptyState() {
-      if (editing.session.status !== "authenticated") {
+      if (queue.session.status !== "authenticated") {
         return (
           <AccountSessionFeedback loadingContent={<ModerationQueueLoading />} />
         );
       }
-      if (!editing.canRetain && editing.profile.isSuccess) {
+      if (!queue.canRetain && queue.account.isSuccess) {
         return (
           <Text style={[tokens.typography.body, { color: colors.text }]}>
             La modération des liens vidéo n’est pas autorisée.
@@ -251,8 +251,8 @@ function QueueScene({
       }
       if (!current || failed) {
         const read =
-          editing.profile.isError || editing.profile.isPending
-            ? editing.profile
+          queue.account.isError || queue.account.isPending
+            ? queue.account
             : query;
         return (
           <ReadFeedback
@@ -288,9 +288,9 @@ function QueueScene({
       >
         <ScreenState
           style={
-            editing.session.status === "authenticated" &&
-            !editing.canRetain &&
-            editing.profile.isSuccess
+            queue.session.status === "authenticated" &&
+            !queue.canRetain &&
+            queue.account.isSuccess
               ? styles.centered
               : undefined
           }

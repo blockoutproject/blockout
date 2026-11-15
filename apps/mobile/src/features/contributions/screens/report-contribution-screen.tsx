@@ -59,8 +59,8 @@ export function ReportContributionScreen({
     reporting.session.status === "restoring" || !!reporting.session.operation;
 
   const requiredRead = !reporting.usable
-    ? reporting.profile
-    : ([reporting.profile, match, reporting.query].find(hasReadError) ??
+    ? reporting.account
+    : ([reporting.account, match, reporting.query].find(hasReadError) ??
       (!match.data ? match : reporting.query));
   const readFailed = hasReadError(requiredRead);
   const blocked =
@@ -95,7 +95,7 @@ export function ReportContributionScreen({
               />
             ) : (
               <ReadFeedback
-                failed={!reporting.usable && !reporting.profile.isPending}
+                failed={!reporting.usable && !reporting.account.isPending}
                 query={requiredRead}
                 loadingContent={<ContributionReportLoading />}
               />

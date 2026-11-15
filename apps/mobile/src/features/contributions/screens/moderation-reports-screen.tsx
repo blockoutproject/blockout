@@ -52,8 +52,8 @@ export function ModerationReportsScreen({
     ).values(),
   ];
   const requiredRead =
-    hasReadError(reading.profile) || reading.profile.isPending
-      ? reading.profile
+    hasReadError(reading.account) || reading.account.isPending
+      ? reading.account
       : query;
   const pending =
     reading.session.status === "restoring" ||
@@ -91,14 +91,14 @@ export function ModerationReportsScreen({
         <AccountSessionFeedback loadingContent={<ModerationReportsLoading />} />
       );
     }
-    if (!reading.canRetain && reading.profile.isSuccess) {
+    if (!reading.canRetain && reading.account.isSuccess) {
       return <ErrorState />;
     }
     if (
       !pages ||
       hasReadError(query) ||
-      hasReadError(reading.profile) ||
-      reading.profile.isPending
+      hasReadError(reading.account) ||
+      reading.account.isPending
     ) {
       return (
         <ReadFeedback
@@ -123,7 +123,7 @@ export function ModerationReportsScreen({
   return (
     <Page header={<PageHeader title="Signalements" />}>
       {reports.length === 0 ||
-      hasReadError(reading.profile) ||
+      hasReadError(reading.account) ||
       (hasReadError(query) && !query.isFetchNextPageError) ? (
         <PageScrollView>
           <FeedbackLayout>{renderEmptyState()}</FeedbackLayout>
