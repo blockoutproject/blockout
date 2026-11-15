@@ -44,7 +44,7 @@ Omitted new facts preserve usable accepted values; qualified explicit withdrawal
 
 Use local date, optional local time, zone and optional resolved instant rather than requiring a fabricated timestamp. Europe/Paris is the ordinary covered context; ambiguous or nonexistent local time stays unresolved. FFVB 00:00 is unknown without contrary evidence. F03 owns user-zone grouping and calendar categories.
 
-Qualified information-sheet locators and professional PDF URLs belong to the existing match. Their source observation remains distinct from result freshness. The [F03 document model](../007-sporting-consultation/data-model.md#qualified-documents) defines the narrow auxiliary professional association: it cannot redefine DataProject sporting identity. Preserve the established document code through rescheduling; failed acquisition does not withdraw it. Result withdrawal changes document eligibility without erasing a still-qualified reference. Public document delivery rechecks current visibility and result conditions.
+Qualified information-sheet locators and professional PDF URLs belong to the existing match. Their source observation remains distinct from result freshness. The [F03 document model](../007-sporting-consultation/data-model.md#qualified-documents) defines the narrow auxiliary professional association: it cannot redefine DataProject sporting identity. Preserve the established document code through rescheduling; failed acquisition does not withdraw it, while a qualified explicit withdrawal removes only the named reference. Result withdrawal changes document eligibility without erasing a still-qualified reference. Public document delivery rechecks current visibility and result conditions.
 
 ## Presentation and privacy
 
