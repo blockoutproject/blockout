@@ -96,7 +96,7 @@ export function ModerationMatchScreen({
     };
   }, []);
   const busy =
-    !editing.allowed ||
+    !editing.canRetain ||
     editing.change.isPending ||
     editing.reactivate.isPending ||
     editing.publish.isPending;
@@ -118,13 +118,13 @@ export function ModerationMatchScreen({
       withdraw: "Retirer",
       reactivate: "Réactiver",
     }[action];
-    const selected = await confirmation({
+    const actionConfirmed = await confirmation({
       title: `${label} ce lien ?`,
       message: `${version.url}${(action === "approve" || action === "reactivate") && activeUrl ? `\n\nLien remplacé : ${activeUrl}` : ""}`,
       confirmLabel: label,
       destructive: action === "reject" || action === "withdraw",
     });
-    if (!selected || !mounted.current) {
+    if (!actionConfirmed || !mounted.current) {
       return;
     }
     feedback.clear();
@@ -252,8 +252,8 @@ function ActiveScene({
 
   const published = current?.activeContribution;
   const requiredRead =
-    editing.profile.isError || editing.profile.isPending
-      ? editing.profile
+    editing.account.isError || editing.account.isPending
+      ? editing.account
       : editing.query;
   const blocked = !current || hasReadError(requiredRead);
   const initialLoading = !hasReadError(requiredRead) && requiredRead.isLoading;
@@ -268,7 +268,7 @@ function ActiveScene({
         />
       );
     }
-    if (!editing.canRetain && editing.profile.isSuccess) {
+    if (!editing.canRetain && editing.account.isSuccess) {
       return (
         <Text style={[tokens.typography.body, { color: colors.text }]}>
           La modération des liens vidéo n’est pas autorisée.
@@ -417,7 +417,7 @@ function VersionScene({
       !navigation.isFocused() ||
       AppState.currentState !== "active" ||
       busy ||
-      !reading.allowed ||
+      !reading.canRetain ||
       !query.hasNextPage ||
       query.isFetching ||
       (query.isError && !query.isFetchNextPageError)
@@ -429,7 +429,7 @@ function VersionScene({
   }
 
   const failed =
-    hasReadError(reading.profile) ||
+    hasReadError(reading.account) ||
     (hasReadError(query) && !query.isFetchNextPageError);
   if (
     !current &&
@@ -437,7 +437,7 @@ function VersionScene({
     (reading.session.status === "restoring" ||
       !!reading.session.operation ||
       (reading.session.status === "authenticated" &&
-        (reading.profile.isLoading || (reading.allowed && query.isLoading))))
+        (reading.account.isLoading || (reading.canRetain && query.isLoading))))
   ) {
     return (
       <PageScrollView
@@ -458,7 +458,7 @@ function VersionScene({
           <AccountSessionFeedback loadingContent={<ModerationMatchLoading />} />
         );
       }
-      if (!reading.canRetain && reading.profile.isSuccess) {
+      if (!reading.canRetain && reading.account.isSuccess) {
         return (
           <Text style={[tokens.typography.body, { color: colors.text }]}>
             La modération des liens vidéo n’est pas autorisée.
@@ -466,8 +466,8 @@ function VersionScene({
         );
       }
       const read =
-        reading.profile.isError || reading.profile.isPending
-          ? reading.profile
+        reading.account.isError || reading.account.isPending
+          ? reading.account
           : query;
       return (
         <ReadFeedback
@@ -489,7 +489,7 @@ function VersionScene({
           style={
             reading.session.status === "authenticated" &&
             !reading.canRetain &&
-            reading.profile.isSuccess
+            reading.account.isSuccess
               ? styles.centered
               : undefined
           }

@@ -20,20 +20,21 @@ interface DraftState {
 export function usePresentationDraft(
   presentation: Presentation | null | undefined,
 ) {
-  const [state, update] = useState<DraftState>({
-    baseline: presentation ?? undefined,
-  });
+  const [state, update] = useState<DraftState>({});
   const form = useForm<PresentationValues>({
     resolver: zodResolver(presentationSchema),
-    defaultValues: presentation ? presentationValues(presentation) : undefined,
   });
   const uploading = useRef<File | undefined>(undefined);
   const released = useRef(false);
 
-  if (!state.baseline && presentation) {
-    update({ baseline: presentation });
-    form.reset(presentationValues(presentation));
-  }
+  // Publish the first baseline only after RHF has its fields, including the logo draft.
+  useEffect(() => {
+    if (!state.baseline && presentation) {
+      form.reset(presentationValues(presentation));
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- RHF must have its fields before the form receives its first baseline.
+      update({ baseline: presentation });
+    }
+  }, [form, presentation, state.baseline]);
 
   /** Deletes only an app-owned copy no longer used by this draft or its submitted upload. */
   function releaseUnused(file: File | undefined) {

@@ -186,8 +186,6 @@ function ErasureConfirmation({
 
   const command = useMutation({
     mutationKey: [...getEraseAccountMutationKey(), accountId],
-    retry: false,
-    networkMode: "always",
     mutationFn: async () => {
       if (session.accountId !== accountId) {
         throw new ApiError("cancelled");

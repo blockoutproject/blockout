@@ -328,6 +328,35 @@ function json(value: unknown, status = 200) {
   });
 }
 
+it("initializes the fields and logo together when the first presentation arrives after mount", async () => {
+  // Given
+  const read = Promise.withResolvers<Response>();
+  mockFetch.mockImplementation((url, request) =>
+    String(url).endsWith(`/teams/${resourceId}/presentation`)
+      ? read.promise
+      : respond(url, request),
+  );
+  await renderEditor();
+  await screen.findByText("Présentation autorisée");
+  expect(
+    screen.queryByLabelText("Nom complet personnalisé"),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Ajouter un logo" }),
+  ).not.toBeOnTheScreen();
+
+  // When
+  await act(() => read.resolve(json(initial)));
+
+  // Then
+  expect(await screen.findByDisplayValue("Current name")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Ajouter un logo" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+  expect(
+    screen.queryByText("Modifications non enregistrées"),
+  ).not.toBeOnTheScreen();
+});
+
 it("starts a fresh draft and releases its logo when the business account changes under the same principal", async () => {
   // Given
   const user = userEvent.setup();
@@ -1172,7 +1201,7 @@ it("keeps withdrawn data and its current error while an earlier accepted save in
   });
 });
 
-it("keeps a dirty draft and the editing revision during background refetch", async () => {
+it("keeps a dirty draft, prepared logo and editing revision during background refetch", async () => {
   // Given
   const user = userEvent.setup();
   await renderEditor();
@@ -1182,6 +1211,15 @@ it("keeps a dirty draft and the editing revision during background refetch", asy
     screen.getByLabelText("Nom complet personnalisé"),
     "My draft",
   );
+  jest.mocked(ImagePicker.launchImageLibraryAsync).mockResolvedValue({
+    canceled: false,
+    assets: [
+      { uri: "file:///cache/ImagePicker/selected.png", width: 120, height: 60 },
+    ],
+  });
+  await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
+  await act(nativeImageChoiceAction("Choisir un logo"));
+  await screen.findByRole("image", { name: "Miniature : Logo" });
   stored = {
     ...initial,
     revision: "r2",
@@ -1200,6 +1238,10 @@ it("keeps a dirty draft and the editing revision during background refetch", asy
   expect(screen.getByLabelText("Nom complet personnalisé")).toHaveDisplayValue(
     "My draft",
   );
+  expect(
+    screen.getByRole("image", { name: "Miniature : Logo" }),
+  ).toBeOnTheScreen();
+  expect(mockFile.delete).not.toHaveBeenCalled();
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
   );

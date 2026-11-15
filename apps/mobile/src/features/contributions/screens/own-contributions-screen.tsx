@@ -138,13 +138,13 @@ export function OwnContributionsScreen({
     await query.fetchNextPage({ cancelRefetch: false });
   }
 
-  const requiredRead = !editing.usable
-    ? editing.profile
-    : ([editing.profile, match, query].find(
+  const requiredRead = !editing.canRetain
+    ? editing.account
+    : ([editing.account, match, query].find(
         (read) =>
           hasReadError(read) && (read !== query || !query.isFetchNextPageError),
       ) ??
-      (!editing.profile.data ? editing.profile : !match.data ? match : query));
+      (!editing.account.data ? editing.account : !match.data ? match : query));
   const readFailed =
     hasReadError(requiredRead) &&
     (requiredRead !== query || !query.isFetchNextPageError);
@@ -223,9 +223,9 @@ export function OwnContributionsScreen({
                 ) : (
                   <ReadFeedback
                     failed={
-                      !editing.usable &&
+                      !editing.canRetain &&
                       editing.session.status === "authenticated" &&
-                      !editing.profile.isPending
+                      !editing.account.isPending
                     }
                     query={requiredRead}
                     loadingContent={<ContributionProposalsLoading />}

@@ -349,7 +349,7 @@ it("reconciles read state on another client's ordinary refresh after a lost ackn
   // Given: two native Query lifetimes share only the controlled server's read state.
   const { owner, queries } = context();
   const secondClient = createQueryClient();
-  secondClient.setDefaultOptions({ queries: { retry: false } });
+  secondClient.setQueryDefaults([], { retry: false });
   let read = false;
   mockFetch.mockImplementation(async (_url: string, init: RequestInit) => {
     if (init.method === "PATCH") {

@@ -40,16 +40,12 @@ export function useMaintenanceSettings(enabled: boolean) {
 
   const content = useMutation({
     mutationKey: [...queryKey, ...getChangeMaintenanceSettingsMutationKey()],
-    retry: false,
-    networkMode: "always",
     mutationFn: async (body: ChangeMaintenanceRequest) =>
       changeMaintenanceSettings(body, await request()),
     onSettled: invalidate,
   });
   const activation = useMutation({
     mutationKey: [...queryKey, ...getSetMaintenanceActivationMutationKey()],
-    retry: false,
-    networkMode: "always",
     mutationFn: async (body: SetMaintenanceActivationRequest) =>
       setMaintenanceActivation(body, await request()),
     onSettled: invalidate,

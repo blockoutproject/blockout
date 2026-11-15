@@ -103,6 +103,12 @@ reachability of the final field/save action, and back/gesture cancellation versu
 explicit draft discard. This preparation does not
 qualify the separately retained iOS text-resizing/minimum-iOS limits.
 
+Delay the first Presentation response until after mount, then verify that names,
+logo intent and the one editing revision become ready together. Dirty a field and
+prepare a replacement logo; a background response with another revision must not
+rebase either. Accept a save, explicitly discard subsequent edits and exercise the
+existing conflict reread separately, retaining the native scroller and file owner.
+
 Save names and a nonsquare PNG/JPEG in one multipart request, including manual
 logo → automatic → missing fallback, and reject invalid/oversized artwork without
 changing names or the last valid image. Exercise protected binary retrieval under

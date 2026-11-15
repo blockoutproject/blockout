@@ -52,18 +52,18 @@ export function ModerationReportsScreen({
     ).values(),
   ];
   const requiredRead =
-    hasReadError(reading.profile) || reading.profile.isPending
-      ? reading.profile
+    hasReadError(reading.account) || reading.account.isPending
+      ? reading.account
       : query;
   const pending =
     reading.session.status === "restoring" ||
     (!hasReadError(requiredRead) && requiredRead.isLoading);
   const FeedbackLayout = pending ? PageContent : ScreenState;
-  const refreshable = reading.allowed && reports.length > 0;
+  const refreshable = reading.canRetain && reports.length > 0;
 
   /** A native pull rereads this traversal; Query retains rows behind required-read feedback on failure. */
   async function refresh() {
-    if (!reading.allowed || query.isFetching) {
+    if (!reading.canRetain || query.isFetching) {
       return;
     }
     await query.refetch({ cancelRefetch: false });
@@ -72,7 +72,7 @@ export function ModerationReportsScreen({
   /** Automatic edges and explicit append Retry share Query's current next page; failed edges never retry themselves. */
   async function loadMore() {
     if (
-      !reading.allowed ||
+      !reading.canRetain ||
       !navigation.isFocused() ||
       denied ||
       !query.hasNextPage ||
@@ -91,14 +91,14 @@ export function ModerationReportsScreen({
         <AccountSessionFeedback loadingContent={<ModerationReportsLoading />} />
       );
     }
-    if (!reading.canRetain && reading.profile.isSuccess) {
+    if (!reading.canRetain && reading.account.isSuccess) {
       return <ErrorState />;
     }
     if (
       !pages ||
       hasReadError(query) ||
-      hasReadError(reading.profile) ||
-      reading.profile.isPending
+      hasReadError(reading.account) ||
+      reading.account.isPending
     ) {
       return (
         <ReadFeedback
@@ -112,7 +112,7 @@ export function ModerationReportsScreen({
         <Button
           label="Actualiser"
           leadingIcon={RefreshCw}
-          disabled={!reading.allowed}
+          disabled={!reading.canRetain}
           loading={query.isFetching}
           onPress={() => void query.refetch({ cancelRefetch: false })}
         />
@@ -123,7 +123,7 @@ export function ModerationReportsScreen({
   return (
     <Page header={<PageHeader title="Signalements" />}>
       {reports.length === 0 ||
-      hasReadError(reading.profile) ||
+      hasReadError(reading.account) ||
       (hasReadError(query) && !query.isFetchNextPageError) ? (
         <PageScrollView>
           <FeedbackLayout>{renderEmptyState()}</FeedbackLayout>
@@ -184,7 +184,7 @@ export function ModerationReportsScreen({
               <ListContinuation
                 loading={query.isFetchingNextPage}
                 failed={query.isFetchNextPageError}
-                disabled={!reading.allowed || query.isFetching}
+                disabled={!reading.canRetain || query.isFetching}
                 onRetry={() => void loadMore()}
               />
               <BottomContentSpacer />

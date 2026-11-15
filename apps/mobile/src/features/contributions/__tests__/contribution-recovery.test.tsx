@@ -102,7 +102,7 @@ const moderatedVersion = {
   canReactivate: false,
   decisions: [],
 } satisfies ModeratedStreamContributionResponse;
-let profile = account;
+let currentAccount = account;
 let owner = ownContributions();
 let detail: ModeratedStreamContributionsResponse;
 let failRead = false;
@@ -118,7 +118,7 @@ beforeEach(() => {
   publicClient = createQueryClient();
   client = publicClient;
   publicClient.setQueryDefaults([], { retry: false });
-  profile = account;
+  currentAccount = account;
   owner = ownContributions();
   detail = {
     revision: "viewed",
@@ -160,7 +160,7 @@ beforeEach(() => {
       return Response.json(applicationAccessResponse());
     }
     if (path.endsWith("/me")) {
-      return Response.json(profile);
+      return Response.json(currentAccount);
     }
     if (init?.method === "POST" || init?.method === "PATCH") {
       writes.push({
@@ -268,7 +268,7 @@ it.each([
   async ({ status, type }) => {
     // Given: actual account and moderation owners share the principal's Query client.
     const { result } = await renderHook(useModerator, { wrapper: Wrapper });
-    await waitFor(() => expect(result.current.allowed).toBe(true));
+    await waitFor(() => expect(result.current.canRetain).toBe(true));
     await waitFor(() => expect(client.isFetching()).toBe(0));
     mockFetch.mockResolvedValueOnce(
       Response.json(
@@ -279,23 +279,22 @@ it.each([
 
     // When
     await act(async () => {
-      await result.current.profile.refetch();
+      await result.current.account.refetch();
     });
 
     // Then
-    await waitFor(() => expect(result.current.allowed).toBe(false));
-    expect(result.current.canRetain).toBe(false);
-    expect(result.current.profile.data).toBeNull();
+    await waitFor(() => expect(result.current.canRetain).toBe(false));
+    expect(result.current.account.data).toBeNull();
     expect(writes).toHaveLength(0);
 
     // When: a fresh authorized read restores this same account's current grant.
     await act(async () => {
-      await result.current.profile.refetch();
+      await result.current.account.refetch();
     });
 
     // Then
-    await waitFor(() => expect(result.current.allowed).toBe(true));
-    expect(result.current.profile.data?.accountId).toBe(account.accountId);
+    await waitFor(() => expect(result.current.canRetain).toBe(true));
+    expect(result.current.account.data?.accountId).toBe(account.accountId);
     expect(writes).toHaveLength(0);
   },
 );
@@ -1015,7 +1014,7 @@ it("keeps B's native identity and private client when A's dispatched mutation co
     ...credentialsFor("auth0|other"),
     accessToken: "other-test-token",
   };
-  profile = accountResponse({
+  currentAccount = accountResponse({
     accountId: "00000000-0000-4000-8000-000000000077",
   });
   owner = ownContributions({ revision: "B-current" });
@@ -1041,7 +1040,7 @@ it("keeps B's native identity and private client when A's dispatched mutation co
   expect(otherClient).not.toBe(originalClient);
   expect(client).toBe(otherClient);
   expect(result.current.session.subject).toBe("auth0|other");
-  expect(result.current.session.accountId).toBe(profile.accountId);
+  expect(result.current.session.accountId).toBe(currentAccount.accountId);
   expect(result.current.submit.data).toBeUndefined();
   expect(result.current.query.data?.pages[0].revision).toBe("B-current");
   expect(writes).toEqual([

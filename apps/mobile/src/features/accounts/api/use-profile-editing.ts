@@ -31,8 +31,6 @@ export function useProfileEditing(accountId: string) {
 
   const save = useMutation({
     mutationKey: [...getChangeAccountProfileMutationKey(), accountId],
-    retry: false,
-    networkMode: "always",
     mutationFn: async (body: ChangeAccountProfileBody) => {
       const credentials = await session.getCredentials();
       if (

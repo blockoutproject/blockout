@@ -342,9 +342,7 @@ function PrivateQueries({ children }: Readonly<PropsWithChildren>) {
   useLayoutEffect(() => {
     client = current;
     current.setQueryDefaults([], { retry: false });
-    current.setDefaultOptions({
-      mutations: { retry: false, networkMode: "always", gcTime: Infinity },
-    });
+    current.setMutationDefaults([], { gcTime: Infinity });
   }, [current]);
   return children;
 }

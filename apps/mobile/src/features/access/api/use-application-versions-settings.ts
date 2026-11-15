@@ -38,8 +38,6 @@ export function useApplicationVersionsSettings(enabled: boolean) {
       ...queryKey,
       ...getChangeApplicationVersionSettingsMutationKey(),
     ],
-    retry: false,
-    networkMode: "always",
     mutationFn: async (body: ChangeApplicationVersionsRequest) =>
       changeApplicationVersionSettings(body, await request()),
     onSettled: invalidate,

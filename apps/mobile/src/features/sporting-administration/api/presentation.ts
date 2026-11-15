@@ -138,7 +138,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
   });
 
   /** Invalidates the edited resource and affected projections after settlement. */
-  function accept() {
+  function invalidateReads() {
     void client.invalidateQueries({ queryKey, exact: true });
     invalidateSportingReads(client);
     invalidateDivisionReads(client);
@@ -157,8 +157,6 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
     operationKey = getCreateDivisionMutationKey();
   }
   const save = useMutation({
-    retry: false,
-    networkMode: "always",
     mutationKey: [...queryKey, ...operationKey],
     mutationFn: async ({
       revision,
@@ -231,7 +229,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
           : accepted.data,
       );
     },
-    onSettled: accept,
+    onSettled: invalidateReads,
   });
   return { query, save, queryKey };
 }

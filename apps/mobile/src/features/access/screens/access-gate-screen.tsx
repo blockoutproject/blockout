@@ -281,7 +281,7 @@ export function AccessGateScreen() {
       query={access.query}
       onRefresh={access.retry}
       onAdministration={
-        access.administration ? () => router.push("/administration") : undefined
+        access.operations ? () => router.push("/administration") : undefined
       }
     />
   );

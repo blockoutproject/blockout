@@ -71,7 +71,9 @@ export function ContributionForm({
   const { submit, change, query } = editing;
   const busy = submit.isPending || change.isPending;
   const refused = isOwnContributionAccessDenied(query.error);
-  const disabled = !editing.usable || refused || !current.eligibility.canSubmit;
+  const withdrawalDisabled = !editing.canRetain || refused || busy;
+  const disabled =
+    !editing.canRetain || refused || !current.eligibility.canSubmit;
 
   /** Acknowledges the saved address before leaving for the exact match, without abandoning a dirty form. */
   function finish(url: string) {
@@ -109,7 +111,7 @@ export function ContributionForm({
 
   /** Withdraws the exact displayed published version independently of eligibility for a new proposal. */
   async function withdraw() {
-    if (!replacement?.canWithdraw || !editing.usable || refused || busy) {
+    if (!replacement?.canWithdraw || withdrawalDisabled) {
       return;
     }
     const target = {
@@ -153,9 +155,9 @@ export function ContributionForm({
             accessibilityRole="button"
             accessibilityLabel="Retirer"
             accessibilityState={{
-              disabled: !editing.usable || refused || busy,
+              disabled: withdrawalDisabled,
             }}
-            disabled={!editing.usable || refused || busy}
+            disabled={withdrawalDisabled}
             onPress={() => void withdraw()}
             style={styles.withdraw}
           >
