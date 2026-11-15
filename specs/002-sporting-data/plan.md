@@ -47,7 +47,7 @@ No constitutional exception is required. The [research](research.md) states the 
 
 Native artifacts: `plan.md`, `research.md`, `data-model.md`, `contracts/` and `quickstart.md`.
 
-The authored `contracts/http/ingestion/openapi.yaml` and `contracts/http/mobile/openapi.yaml` reference shared Problem Details and F02-owned classification enums under `contracts/http/common/`. These are canonical planning sources, not executable application scaffolding or generated output. The native [contract overview](contracts/README.md) identifies operations, owners and consumer coordination.
+The authored `contracts/http/ingestion/openapi.yaml` and `contracts/http/mobile/openapi.yaml` reference shared Problem Details and F02-owned classification enums under `contracts/http/common/`. These authored definitions generate the active server and consumer boundaries; generated output remains ignored. The native [contract overview](contracts/README.md) identifies operations, owners and consumer coordination.
 
 Executable structure follows F13: `apps/backend` contains a `sporting` capability with `api`, `application`, useful `domain` values and `infrastructure`; `apps/collector` owns supplier adapters and generated-client integration; `apps/mobile` retains existing feature boundaries. Persistence ports express use cases rather than mirroring repositories. Generated code stays under ignored build output.
 

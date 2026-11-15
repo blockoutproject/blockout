@@ -1,7 +1,5 @@
 # Feature Specification: Reports and feature suggestions
 
-**Feature Branch**: `tech/54-private-support-plan`
-
 **Created**: 2026-09-22
 
 **Status**: Accepted functional baseline. [Plan.md](plan.md) owns technical decisions, [tasks.md](tasks.md) implementation state and [quickstart.md](quickstart.md) validation scenarios and prerequisites.
@@ -141,7 +139,7 @@ Actual provider qualification retains one complete maximum-content/five-image re
 - **FR-028**: F10 MUST remain distinct from F08 moderation reporting: a support ticket does not count toward its thresholds or hide any link. Sporting, identity and Pro interventions remain subject to F02/F05/F09 decisions and permissions; the case does not bypass F02/F03 sporting visibility. F12 assigns permissions without implicit general moderator authorization.
 - **FR-029**: F11 MUST govern purposes, minimization, applicable erasure requests and retention of the ticket and files. Account deletion, issue closure or removal of an attachment link MUST NOT be presented as proof of file erasure. No periodic purge or automatic post-closure deletion is required; this does not authorize unlimited personal-data retention. Blockout organizes no independent backup of support cases or images: recovery depends on GitHub capabilities. These records are not copied into PostgreSQL.
 - **FR-030**: The form and its states MUST apply F13: French language, accessibility, understandable errors, safe diagnostics and offline limits. Lack of network means neither success nor a commitment to deferred sending; no new offline action queue is required.
-- **FR-031**: The interface MUST cover the guided form, image selection and review, refusals, abandonment, sending in progress, ordinary error and explicit retry, and confirmation as a whole. An invalid choice route MUST retain a truthful Close/Back exit to the form without a fictional read retry. F10 declares no screen approved and does not impose the presentation of a third-party application.
+- **FR-031**: The interface MUST cover the guided form, image selection and review, refusals, abandonment, sending in progress, ordinary error and explicit retry, and confirmation as a whole. An invalid choice route MUST retain a truthful Close/Back exit to the form without a fictional read retry. Visual approval remains limited to the [recorded design scope](#applicable-design-evidence) and does not impose or qualify the presentation of a third-party application.
 
 ### Key Entities
 

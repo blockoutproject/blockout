@@ -18,7 +18,7 @@ PostgreSQL constraints enforce structural references/uniqueness and use-case tra
 
 ## Quality objective
 
-Logical fields: owning requirement, affected user/operation, expected observable result and applicable evidence. This is specification/test intent, not persisted business data. Domain scheduling/expiry is meaningful; the withdrawn load, percentile-latency and monthly-availability objectives create no records or metrics programme.
+Logical fields: owning requirement, affected user/operation, expected observable result and applicable evidence. This is specification/test intent, not persisted business data. Domain scheduling and expiry remain meaningful. This intent introduces no load, percentile-latency or monthly-availability records or metrics programme.
 
 ## Operational observation and incident
 

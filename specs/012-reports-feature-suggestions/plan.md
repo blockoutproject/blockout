@@ -1,6 +1,6 @@
 # Implementation Plan: Private support and suggestions
 
-**Branch**: `tech/54-private-support-plan` | **Date**: 2026-10-15 | **Spec**: [spec.md](spec.md)
+**Spec**: [spec.md](spec.md)
 
 **Input**: [spec.md](spec.md), [F05 identity](../005-accounts-identity/plan.md) and [F11 privacy](../004-advertising-privacy-legal/plan.md).
 
@@ -89,13 +89,13 @@ After complete receipt, attempt the private Discord webhook with `wait=true`, co
 
 The [single F13 form composition](../003-shared-quality/plan.md#frontend-form-conventions) applies only to actual consumed reads. `SupportJourney` observes the existing account cache with `skipToken` for passive contact prefill; no account/context request or blocking read is added. The mounted `SupportVisitProvider` retains RHF text and prepared files across temporary choice routes.
 
-React Hook Form owns the current editable draft; TanStack Query owns the single direct submission mutation, inheriting the existing F13 `createQueryClient` defaults for immediate execution without automatic retry/reconnection replay; Support keeps its submission-specific options. The form admits zero-to-five ready files; the mutation snapshots the prepared references and metadata before asynchronous I/O. Disable duplicate submission while sending. On ordinary error, retain the form and permit correction/retry. On complete confirmation, offer the existing return action and explain that replies use email. Leaving or restarting proves neither cancellation nor failure; do not restore a receipt or prior submission.
+React Hook Form owns the current editable draft; TanStack Query owns the single direct submission mutation, inheriting the existing F13 `createQueryClient` defaults for immediate execution without automatic retry/reconnection replay; Support owns only its immutable send snapshot, credential selection, transport cancellation and current-owner feedback. The form admits zero-to-five ready files; the mutation snapshots the prepared references and metadata before asynchronous I/O. Disable duplicate submission while sending. On ordinary error, retain the form and permit correction/retry. On complete confirmation, offer the existing return action and explain that replies use email. Leaving or restarting proves neither cancellation nor failure; do not restore a receipt or prior submission.
 
 Use the shared image control, preserving support's multiple-image semantics. ImagePicker does not impose square editing; ImageManipulator performs a bounded preparation preserving proportions. A failed or oversized result remains an explicit selection error until replacement/removal, never an omitted file. Native file references are submitted through ordinary FormData rather than base64 JSON. Temporary picker UI does not discard the current form. Account/session change discards private input, invalidates callbacks and prevents a late response from changing the new form.
 
 Selected images use the shared passive thumbnails and their field-owned replacement/removal actions, without an enlarged viewer. An invalid choice route keeps the existing card and Close/Back exit to the retained form, with contextual guidance and no fictional read retry.
 
-The [canonical contract](contracts/README.md) owns the exact operation, enum values, fields and responses. The backend supplies one operation to the mobile; GitHub is not exposed as a client API. Existing generated Java/TypeScript clients and validators remain authoritative. No `Location` is invented for a resource with no mobile read route, and no private GitHub URL is returned. The shared unavailable response now delegates retry behavior to each operation rather than imposing a read-before-retry on F10.
+The [canonical contract](contracts/README.md) owns the exact operation, enum values, fields and responses. The backend supplies one operation to the mobile; GitHub is not exposed as a client API. Existing generated Java/TypeScript clients and validators remain authoritative. No `Location` is invented for a resource with no mobile read route, and no private GitHub URL is returned. The shared unavailable response delegates retry behavior to each operation rather than imposing a read-before-retry on F10.
 
 ## Privacy, recovery and shared owners
 
@@ -115,7 +115,7 @@ Exceptional privacy requests follow [F11](../004-advertising-privacy-legal/spec.
 
 The [approved experience](spec.md#applicable-design-evidence) demonstrates ordinary send/error/retry. Existing fields, image interactions, confirmation and visual direction remain. The owner explicitly approved this experience and its Figma reconciliation.
 
-Approved Figma references: [sending with the locked form](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5581-15954), [lost response with editable retry](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=5581-16247) and [leaving during sending](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4445-16590). Use published library controls and the existing support form pattern, without a reopened-operation screen or persistent uncertain-outcome composition. No provider console, support history, receipt screen or new erasure journey is designed.
+The retained [Support form](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1088-454) and [complete-receipt composition](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1113-756) supply the approved anatomy. Existing field, button and dialog properties express sending, ordinary editable retry and abandonment without separate transient-state frames. Use published library controls and the existing support form pattern, without a reopened-operation screen or persistent uncertain-outcome composition. No provider console, support history, receipt lookup or new erasure journey is designed.
 
 [Research](research.md) distinguishes documented official capabilities and inspected supplier code from actual integration evidence. [Qualification scenarios](quickstart.md) cover complete/partial uploads, privacy, lost responses, session isolation, native images and multipart generation. Documentation checks do not establish native sending, permissions, erasure or runtime compilation. No constitutional exception is requested.
 

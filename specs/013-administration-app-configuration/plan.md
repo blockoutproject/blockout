@@ -12,7 +12,7 @@ Keep current action grants in PostgreSQL, assigned manually by the product owner
 
 **Language/Version**: Java 25 LTS and TypeScript; Expo SDK 58 / React Native 0.88 / React 19.3.0 under the accepted [F13 foundation](../003-shared-quality/plan.md).
 
-**Primary Dependencies**: Spring Boot 4.1.1 and its managed Spring Security/JPA/Hibernate; native Auth0 SDK; Expo Router, expo-application and Linking; TanStack Query. Reuse F13's Redocly 2.62.1, OpenAPI Generator 7.26.0 and Orval 8.41.0 chain. Platform-compatible unpinned patches are resolved during executable work.
+**Primary Dependencies**: Spring Boot 4.1.1 and its managed Spring Security/JPA/Hibernate; native Auth0 SDK; Expo Router, expo-application and Linking; TanStack Query. Reuse F13's Redocly 2.62.1, OpenAPI Generator 7.26.0 and Orval 8.41.0 chain. The committed manifests and lockfiles own the resolved compatible dependency graph.
 
 **Storage**: PostgreSQL 18.6; two singleton settings rows and account–permission associations. Mobile access state, bypass intent and business cache remain in memory. Auth0 alone retains secure credentials.
 
@@ -53,6 +53,7 @@ specs/013-administration-app-configuration/
 ├── data-model.md
 ├── contracts/README.md
 ├── quickstart.md
+├── tasks.md
 └── checklists/requirements.md
 ```
 
@@ -98,7 +99,7 @@ At cold start, initiate the public complete check independently of Auth0 restora
 
 Ordinary Profile navigation uses `features/access/components/administration-entry.tsx` to link directly to `/collection`, `/administration/maintenance` and `/administration/application-versions`, under `manageCollection`, `manageMaintenance` and `manageApplicationVersions` respectively. `queries/use-access-admission.tsx` exposes the operational guard as `operations`, consumed by root navigation and the access gate. Profile administration links use `useAdministrationCapabilities` for their action-specific grants; the operations layout retains its existing route capability checks. Preserve destination admission and domain owners; this route guard does not replace an action-specific grant or personal bypass. Administration/operations retain native Back and draft removal decisions without F13’s main capsule, Pro offer or tab inset. The root/detail route composition consumes [F13 T221/T222’s scoped design approvals](../003-shared-quality/tasks.md#native-paging-and-navigation) and grants no operational access. T223/T224 retain native adoption and qualification. Sporting grants alone never expose Collections or configuration. Keep `/administration` and `AdministrationScreen` for `AccessGateScreen`'s permitted maintenance entry and explicit personal bypass; removing the Profile intermediate index must neither strand settings nor alter global gates.
 
-Use separate Expo Router protected groups and existing loading/gate presentations, outside the main capsule/Pro host. Access/onboarding, public gates and protected operations never gain ordinary tabs through a shared sporting route. Ordinary access requires a complete successful configuration, a satisfied platform minimum and either inactive maintenance or current authorized explicit bypass. F05’s common member boundary then decides when an authenticated ordinary navigator may render; sibling help/sign-in recovery routes remain subject to these same public conditions. Operational access requires a usable signed-in account, the relevant action permission and a satisfied platform minimum; it does not require personal maintenance bypass or grant ordinary access. Maintenance is visually first when both blocks apply, but the administration link cannot admit an outdated client. Public legal URLs remain independent of blocked in-app navigation.
+Use separate Expo Router protected groups and existing loading/gate presentations, outside the main capsule/Pro host. Access/onboarding, public gates and protected operations never gain ordinary tabs through a shared sporting route. Ordinary access requires a complete successful configuration, a satisfied platform minimum and either inactive maintenance or current authorized explicit bypass. After native identity restoration, F05 opens the ordinary navigator without waiting for a first successful account read; destinations own their required account reads and recovery. Sibling help/sign-in recovery routes remain subject to these same public conditions. Operational access requires a usable signed-in account, the relevant action permission and a satisfied platform minimum; it does not require personal maintenance bypass or grant ordinary access. Maintenance is visually first when both blocks apply, but the administration link cannot admit an outdated client. Public legal URLs remain independent of blocked in-app navigation.
 
 The complete public configuration uses its existing process-owned TanStack Query and shared read recovery. It starts independently of native identity restoration and is rechecked explicitly or by relevant invalidation, including an authoritative ordinary-request refusal. Disable focus/reconnect refetch for this query: foreground and authentication returns do not create another startup check. A failed cold start has no admitted data. Partial administrative reads never populate the complete result or create a second admission source. Management write attempts normally invalidate the complete query. Their direct `useMutation` calls inherit F13’s existing common client defaults while keeping settings-specific invalidation, field errors and revision handling. Native HTTP refusal remains authoritative for server-maintenance/action checks; the minimum version remains mobile-owned.
 
@@ -116,7 +117,7 @@ Retain the [approved animated blocking-screen backdrop](https://www.figma.com/de
 
 ## Production preparation
 
-A fresh baseline creates inactive maintenance with a usable message, no image, and absent platform thresholds/links/update message. These are initial database values, never a fallback after a read failure. Later deployments preserve state and follow F13's baseline-freeze/migration policy.
+A fresh baseline creates inactive maintenance with a usable message, no image, and absent platform thresholds/links/update message. These are initial database values, never a fallback after a read failure. Later deployments preserve state and applied creation changeSets, appending data-preserving owner migrations under F13; editing an applied baseline does not update an existing database or authorize a reset.
 
 Before public V2 publication, the owner signs in normally through a production test-channel binary, grants the new business account its required permissions manually, verifies administration, and activates maintenance if opening is deferred. Retain the pre-public exposure boundary; test-channel distribution does not itself secure the backend. F14 owns the wider transition and actual store availability. No seeded administrator, hidden sign-in or startup grant is added.
 

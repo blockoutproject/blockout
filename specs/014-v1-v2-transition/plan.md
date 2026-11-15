@@ -1,6 +1,6 @@
 # Implementation Plan: V1-to-V2 transition
 
-**Branch**: `tech/55-v1-v2-transition` | **Date**: 2026-10-15 | **Spec**: [spec.md](spec.md)
+**Spec**: [spec.md](spec.md)
 
 **Input**: [spec.md](spec.md), [F01 acquisition](../001-source-acquisition/plan.md), [F04 discovery](../008-search-discovery/plan.md), [F07 notifications](../011-notifications-delivery/plan.md) and [F10 support](../012-reports-feature-suggestions/plan.md).
 
@@ -128,7 +128,7 @@ Reuse an observation of an exact candidate across T012/T021/T022/T042 and final 
 
 Representative development-client observations cover ordinary discovery and immediate entry; controlled storage inputs cover flag read/write failure, retained session admission and a later launch. Reuse still-applicable native initialization evidence at its demonstrated boundary. These checks do not qualify a signed upgrade, actual Keychain/Keystore failure or platform backup/restore.
 
-Final acceptance remains in [F14's cross-cutting qualification tasks](tasks.md#phase-8-polish--cross-cutting-concerns), including the outstanding implementation and native/mobile review obligations. Reusing evidence or transferring review scope is not a passed qualification. Operational permissions remain separate from this artifact amendment.
+Final acceptance remains in [F14's cross-cutting qualification tasks](tasks.md#phase-8-polish--cross-cutting-concerns), including the outstanding implementation and native/mobile review obligations. Reusing evidence does not establish a new qualification. Operational permissions remain separate from documentary consistency.
 
 Reusing older data must respect current erasure, permissions, entitlements, privacy, F07 expiry and actual schema/code compatibility. No infrastructure backup schedule, restoration programme, release orchestrator or functional return to V1 is selected.
 
@@ -136,7 +136,7 @@ Reusing older data must respect current erasure, permissions, entitlements, priv
 
 The owner approved the common discovery prototype and explicitly approved its faithful Figma translation in advance. This owner instruction changes only the timing of the second validation for this scope; it is not a standing exception or an approval of new design choices.
 
-Common discovery includes former-user information in its last step. Existing sign-in, Pro, age and global-gate journeys remain in place. The corresponding Figma [light](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=804-148), [dark](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=831-382) and [320 px](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=6705-5025) states retain the approved prototype’s editable text, Outfit typography, library instances and existing tokens. The journey uses the existing UI library and excludes provider interfaces.
+Common discovery includes former-user information in its last step. Existing sign-in, Pro, age and global-gate journeys remain in place. The retained Figma [final discovery composition](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/Blockout-Product-Design?node-id=804-148) and its existing theme, width and text properties retain the approved prototype’s editable text, Outfit typography, library instances and existing tokens. The journey uses the existing UI library and excludes provider interfaces.
 
 The approved scope covers completion, skipping, the independent age gate and 320 px with 150% text. Native accessibility, secure storage, signed upgrade and provider continuity require their own qualification.
 

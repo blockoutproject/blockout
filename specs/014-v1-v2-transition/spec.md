@@ -1,7 +1,5 @@
 # Feature Specification: V1-to-V2 transition
 
-**Feature Branch**: `tech/55-v1-v2-transition`
-
 **Created**: 2026-09-23
 
 **Status**: Accepted functional transition baseline. Common V2 onboarding follows the [approved design scope](plan.md#design-approval), including the owner's explicit advance approval of its faithful Figma translation. [Tasks](tasks.md) track implementation and qualification.
@@ -103,7 +101,7 @@ A difficulty is observable and recoverable without reintroducing data that has b
 2. **A33** — **Given** a serious outage after opening and already accepted V2 actions, **when** service is recovered, **then** the intended path is V2 repair or restoration under F12/F13, without requiring a functional return to V1, silently resetting new data or permitting protection bounds to be exceeded. (FR-036, FR-037)
 3. **A34** — **Given** an old copy containing a deleted account or revoked entitlement, **when** it is used for restoration, **then** current restrictions are reapplied before access; if they cannot be established, affected access remains suspended. Reinstating an old application does not constitute undoing data changes. (FR-037)
 4. **A35** — **Given** a transition incident or partial qualification, **when** outcomes are examined, **then** F13 distinguishes stages, results, gaps and recovery without personal data in diagnostics; merely launching a command, a sample or checklist success does not constitute global qualification. (FR-038, FR-039)
-5. **A36** — **Given** onboarding, sign-in, reconstruction and recovery journeys, **when** future design and validation are prepared, **then** the design covers the states and Pro help, V1 evidence remains historical and technical choices follow the constitution and owning plan; no executed procedure or approved mockup is inferred from this spec. (FR-040)
+5. **A36** — **Given** onboarding, sign-in, reconstruction and recovery journeys, **when** their design and qualification are assessed, **then** the design covers the states and Pro help, V1 evidence remains historical and technical choices follow the constitution and owning plan; no executed procedure or approved mockup is inferred from this spec. (FR-040)
 
 ### Edge Cases
 
@@ -178,7 +176,7 @@ F11 selects EU27 availability for new store downloads, without a geographic appl
 - **FR-037**: Before restored data becomes available, check and apply current deletion, identity, rights and privacy obligations under F05/F09/F11/F13; standard provider checks and authorized manual correction are acceptable. Unresolved affected access remains suspended. A software rollback does not undo data changes; verify compatibility, recovered scope and actual loss before reopening. No synchronous external evidence store or automatic replay framework is prescribed.
 - **FR-038**: Preparation, reconstruction, cutover and recovery MUST provide F13 operational outcomes: scope, stages, last successes, failures, uncertainties, remaining work and demonstrated recovery. Continuity evidence containing personal information remains in its private processes; diagnostics and public artifacts do not reproduce its content. Safe application diagnostics remain governed by F13, without monthly availability accounting, on-call duty or a guaranteed human response time.
 - **FR-039**: Transition conditions MUST be verifiable from relevant outcomes, not an executed command, existence of an unreviewed backup or a writing-quality checklist. F14 MUST NOT invent a maintenance duration, sporting-coverage threshold or automatic destructive return when a deadline expires. Procedures and mechanisms selected later will need to demonstrate these outcomes before the real transition.
-- **FR-040**: Journeys MUST apply F13 for French language, accessibility and ordinary failure feedback. The interface MUST cover common onboarding before sign-in, immediate skipping/completion despite optional flag failures, sign-in and reset explanations, Pro/restoration/support states and F12 restrictions. Secure initialization retains its actual guest/retry journey; discovery adds no read-error, saving or retry screen. V1 evidence remains historical observations; no V2 screen, provider, procedure or software is deemed qualified. This spec delivers no code, contract, schema or production operation.
+- **FR-040**: Journeys MUST apply F13 for French language, accessibility and ordinary failure feedback. The interface MUST cover common onboarding before sign-in, immediate skipping/completion despite optional flag failures, sign-in and reset explanations, Pro/restoration/support states and F12 restrictions. Secure initialization retains its actual guest/retry journey; discovery adds no read-error, saving or retry screen. V1 evidence remains historical observations; specifications and scoped design approvals do not establish native, provider, procedure or software qualification.
 
 ### Key Entities
 

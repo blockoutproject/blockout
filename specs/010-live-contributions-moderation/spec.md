@@ -1,7 +1,5 @@
 # Feature Specification: Live contributions and moderation
 
-**Feature Branch**: `tech/52-live-contributions-moderation`
-
 **Created**: 2026-09-22
 
 **Status**: Accepted functional baseline; technical planning is documented in [plan.md](plan.md), with implementation qualification pending.
