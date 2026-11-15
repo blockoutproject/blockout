@@ -78,9 +78,9 @@ class SportingClassificationWebMvcTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
-        "{\"revision\":\"0\"}",
-        "{\"revision\":\"0\",\"classification\":{\"divisionId\":\"00000000-0000-4000-8000-000000000003\"}}",
-        "{\"revision\":\"0\",\"classification\":null,\"active\":true}"
+        "{}",
+        "{\"classification\":{\"divisionId\":\"00000000-0000-4000-8000-000000000003\"}}",
+        "{\"classification\":null,\"active\":true}"
       })
   @DisplayName("Rejects missing, partial and unknown writable state")
   void requiresCompleteState(String body) throws Exception {
@@ -106,8 +106,8 @@ class SportingClassificationWebMvcTest {
   void removesSetting() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(classifications.setPool(ACCOUNT, ID, "0", null))
-        .thenReturn(new ClassificationView(ID, "1", null, null));
+    when(classifications.setPool(ACCOUNT, ID, null))
+        .thenReturn(new ClassificationView(ID, null, null));
     // When
     ResultActions response =
         mvc.perform(
@@ -120,15 +120,14 @@ class SportingClassificationWebMvcTest {
                                     .issuer("https://identity.example.invalid/")
                                     .claim("azp", "mobile-test")))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":\"0\",\"classification\":null}"));
+                .content("{\"classification\":null}"));
     // Then
     response
         .andExpect(status().isOk())
         .andExpect(header().string("Cache-Control", "no-store"))
-        .andExpect(jsonPath("$.revision").value("1"))
         .andExpect(jsonPath("$.setting").value(nullValue()))
         .andExpect(jsonPath("$.effective").value(nullValue()));
-    verify(classifications).setPool(ACCOUNT, ID, "0", null);
+    verify(classifications).setPool(ACCOUNT, ID, null);
   }
 
   @Test
@@ -136,7 +135,7 @@ class SportingClassificationWebMvcTest {
   void exposesConflictScopes() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(classifications.setPack(eq(ACCOUNT), eq(ID), eq("0"), any()))
+    when(classifications.setPack(eq(ACCOUNT), eq(ID), any()))
         .thenThrow(new SportingConflictException("classification-conflict", List.of(ID)));
     // When
     ResultActions response =
@@ -150,7 +149,7 @@ class SportingClassificationWebMvcTest {
                                     .issuer("https://identity.example.invalid/")
                                     .claim("azp", "mobile-test")))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":\"0\",\"classification\":null}"));
+                .content("{\"classification\":null}"));
     // Then
     response
         .andExpect(status().isConflict())
@@ -209,7 +208,7 @@ class SportingClassificationWebMvcTest {
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     SportingClassification value =
         new SportingClassification(ID, SportFormatEnum._4X4, SportGenderEnum.MIXED);
-    ClassificationView current = new ClassificationView(ID, "2", value, value);
+    ClassificationView current = new ClassificationView(ID, value, value);
     if (resource.equals("packs")) {
       when(configurationReads.pack(ACCOUNT, ID)).thenReturn(current);
     } else {
@@ -241,8 +240,8 @@ class SportingClassificationWebMvcTest {
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     SportingClassification value =
         new SportingClassification(ID, SportFormatEnum._2X2, SportGenderEnum.MALE);
-    when(classifications.setPool(ACCOUNT, ID, "0", value))
-        .thenReturn(new ClassificationView(ID, "1", value, value));
+    when(classifications.setPool(ACCOUNT, ID, value))
+        .thenReturn(new ClassificationView(ID, value, value));
     // When
     ResultActions response =
         mvc.perform(
@@ -256,11 +255,11 @@ class SportingClassificationWebMvcTest {
                                     .claim("azp", "mobile-test")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
-                    "{\"revision\":\"0\",\"classification\":{\"divisionId\":\""
+                    "{\"classification\":{\"divisionId\":\""
                         + ID
                         + "\",\"format\":\"2x2\",\"gender\":\"male\"}}"));
     // Then
     response.andExpect(status().isOk()).andExpect(jsonPath("$.effective.format").value("2x2"));
-    verify(classifications).setPool(ACCOUNT, ID, "0", value);
+    verify(classifications).setPool(ACCOUNT, ID, value);
   }
 }

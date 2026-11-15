@@ -12,23 +12,8 @@ import lombok.NoArgsConstructor;
 /** Pure settings invariants, independent of persistence and transport coercion. */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class AccessSettingsValidation {
-  /** Largest integer exactly representable by the active JavaScript consumer. */
-  public static final long MAX_REVISION = 9007199254740991L;
-
   private static final Pattern VERSION =
       Pattern.compile("(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)");
-
-  /**
-   * Requires an exactly representable, nonnegative JSON/JavaScript revision.
-   *
-   * @param revision submitted or stored group revision
-   * @throws IllegalArgumentException for an unsafe or negative integer
-   */
-  public static void revision(long revision) {
-    if (revision < 0 || revision > MAX_REVISION) {
-      throw new IllegalArgumentException("Invalid revision");
-    }
-  }
 
   /**
    * Trims Unicode spacing and requires usable text when the field is mandatory.
@@ -79,7 +64,7 @@ public final class AccessSettingsValidation {
       throw new IllegalArgumentException("Invalid version");
     }
     for (String component : value.split("\\.")) {
-      if (new BigInteger(component).compareTo(BigInteger.valueOf(MAX_REVISION)) > 0) {
+      if (new BigInteger(component).compareTo(BigInteger.valueOf(9_007_199_254_740_991L)) > 0) {
         throw new IllegalArgumentException("Unsafe version component");
       }
     }

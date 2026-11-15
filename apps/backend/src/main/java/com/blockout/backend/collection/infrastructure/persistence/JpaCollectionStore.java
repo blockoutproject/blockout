@@ -240,7 +240,7 @@ class JpaCollectionStore implements CollectionStore {
       entityManager.lock(entity, LockModeType.PESSIMISTIC_FORCE_INCREMENT);
     }
     mapper.update(source, entity);
-    // Expose the native editing revision in the returned immutable view.
+    // Expose the native collector revision in the returned immutable view.
     sources.flush();
     return mapper.toView(entity);
   }
@@ -318,7 +318,7 @@ class JpaCollectionStore implements CollectionStore {
   public CollectionState.Runtime replaceRuntime(UUID incarnationId) {
     CollectorRuntimeEntity runtime = runtimes.findById(1).orElseThrow();
     runtime.setIncarnationId(incarnationId);
-    // The registration response carries the new native editing revision.
+    // The registration response carries the new native collector revision.
     runtimes.flush();
     return mapper.toView(runtime);
   }

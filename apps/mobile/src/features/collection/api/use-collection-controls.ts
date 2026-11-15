@@ -15,7 +15,6 @@ import {
 import {
   CollectionControlResponse,
   type CloseCollectionSeasonRequest,
-  type RequestCollectionRequest,
   type SetCollectionActivityRequest,
 } from "../../../../.generated/schemas/index.zod";
 import { createCollectionQueries } from "./collection-queries";
@@ -45,10 +44,10 @@ export function useCollectionControl(controlId: string, seasonId?: string) {
   const query = useQuery(controlOptions);
   const results = useInfiniteQuery(queries.results(controlId));
 
-  /** Same-revision reads may carry fresher execution facts; an ACK cannot revive withdrawn data. */
+  /** An acknowledged command cannot revive withdrawn data. */
   function acceptResponse(accepted: CollectionControlResponse) {
     client.setQueryData<CollectionControlResponse>(key, (current) =>
-      current && accepted.revision > current.revision ? accepted : current,
+      current ? accepted : current,
     );
     void client.invalidateQueries({ queryKey: key, exact: true });
     invalidateCollectionControls(client, seasonId);
@@ -64,8 +63,8 @@ export function useCollectionControl(controlId: string, seasonId?: string) {
   const request = useMutation({
     mutationKey: [...key, ...getRequestCollectionMutationKey()],
     // Orval's multi-success-status function supplies no decoder. Validate once at this consuming boundary.
-    mutationFn: async (body: RequestCollectionRequest) =>
-      requestCollection(controlId, body, {
+    mutationFn: async () =>
+      requestCollection(controlId, {
         ...(await authority.request()),
         schema: CollectionControlResponse,
       }),
@@ -80,7 +79,7 @@ export function useCollectionControl(controlId: string, seasonId?: string) {
   };
 }
 
-/** Exact terminal closure uses the existing season revision and never retries an uncertain acknowledgement. */
+/** Exact terminal closure targets its original season and never retries an uncertain acknowledgement. */
 export function useCloseCollectionSeason(seasonId: string) {
   const { authority, season, seasonKey: key } = useCollectionSeason(seasonId);
   const client = useQueryClient();

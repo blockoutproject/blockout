@@ -483,7 +483,6 @@ it("rereads a temporarily hidden target when its public page is reopened after r
 it("keeps the confirmed member state when returning from an explicit maintenance bypass", async () => {
   // Given
   let maintenance = false;
-  let revision = 0;
   let following = false;
   mockFetch.mockImplementation((url, request) => {
     if (url.endsWith("/application-access")) {
@@ -491,7 +490,6 @@ it("keeps the confirmed member state when returning from an explicit maintenance
         Response.json({
           ...applicationAccessResponse(),
           maintenance: {
-            revision,
             active: maintenance,
             message: null,
             imageUrl: null,
@@ -522,7 +520,6 @@ it("keeps the confirmed member state when returning from an explicit maintenance
     expect(screen.getByRole("button", { name: "Suivre" })).toBeEnabled(),
   );
   maintenance = true;
-  revision = 1;
   await act(async () => {
     await access.retry();
     access.requestBypass(session, true);
@@ -535,7 +532,6 @@ it("keeps the confirmed member state when returning from an explicit maintenance
 
   // When
   maintenance = false;
-  revision = 2;
   await act(async () => {
     await access.retry();
   });
@@ -1645,7 +1641,6 @@ it("suspends the canonical confirmed relation when its maintenance bypass is cle
         Response.json({
           ...applicationAccessResponse(),
           maintenance: {
-            revision: 1,
             active: true,
             message: null,
             imageUrl: null,

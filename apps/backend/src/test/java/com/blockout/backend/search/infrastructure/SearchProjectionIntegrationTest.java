@@ -305,7 +305,6 @@ class SearchProjectionIntegrationTest {
         contacts.correct(
             operator,
             CLUB,
-            "0",
             Map.of(
                 ContactField.CITY,
                 new ContactEdit(

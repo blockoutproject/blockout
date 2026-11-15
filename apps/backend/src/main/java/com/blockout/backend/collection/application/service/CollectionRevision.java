@@ -2,15 +2,15 @@ package com.blockout.backend.collection.application.service;
 
 import com.blockout.backend.collection.application.exception.CollectionConflictException;
 
-/** Safe wire revision bounds and stale desired-state decisions for collection. */
+/** Safe wire revision bounds and stale collector protocol decisions. */
 @lombok.NoArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 public class CollectionRevision {
   static final long MAX_SAFE_INTEGER = 9_007_199_254_740_991L;
 
   /**
-   * Refuses a stale desired-state command, including a matching no-op.
+   * Refuses a stale collector registration or admission request.
    *
-   * @param expected revision captured by the caller
+   * @param expected revision captured for the collector request
    * @param actual current locked revision
    */
   static void requireRevision(long expected, long actual) {

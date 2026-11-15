@@ -18,7 +18,6 @@ import com.blockout.backend.sporting.application.model.CalendarObservation;
 import com.blockout.backend.sporting.application.model.MatchObservation;
 import com.blockout.backend.sporting.application.model.ObservationOutcome;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
-import com.blockout.backend.sporting.application.model.SportingVisibility;
 import com.blockout.backend.sporting.application.service.AcceptCalendar;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import com.blockout.backend.sporting.application.service.ChangeDivisionLifecycle;
@@ -123,13 +122,11 @@ class CurrentSportingTruthIntegrationTest {
     // When: F02 accepts a schedule correction and an operator changes the pool presentation.
     ObservationOutcome.Calendar corrected =
         calendars.accept(scope.pool(), calendar(3, LocalDate.of(2026, 11, 2)));
-    SportingPresentation.View viewed =
-        sporting.publicPresentation(SportingVisibility.Kind.POOL, scope.pool()).orElseThrow();
     presentation.set(
         OPERATOR,
         SportingProjectionChanges.Kind.POOL,
         scope.pool(),
-        new SportingPresentation.Edit(viewed.revision(), "Corrected pool", null, null, null));
+        new SportingPresentation.Edit("Corrected pool", null, null, null));
 
     // Then: opening and explicitly rereading F03 uses accepted truth while the index is still old.
     assertThat(corrected.acceptedCount()).isEqualTo(1);
@@ -153,12 +150,7 @@ class CurrentSportingTruthIntegrationTest {
     assertThat(document().names()).contains("Corrected pool", "Synthetic pool");
 
     // When: a current owner restriction precedes catch-up and the held observation is delivered.
-    divisions.setActive(
-        OPERATOR,
-        DIVISION,
-        sql.queryForObject(
-            "SELECT revision::TEXT FROM sporting_division WHERE id=?", String.class, DIVISION),
-        false);
+    divisions.setActive(OPERATOR, DIVISION, false);
     ObservationOutcome.Calendar stale = calendars.accept(scope.pool(), older);
 
     // Then: stale work restores neither accepted facts nor direct/index-derived visibility.

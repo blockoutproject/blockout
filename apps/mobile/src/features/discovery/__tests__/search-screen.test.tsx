@@ -1311,7 +1311,6 @@ it("ends an inactive Clubs retry with its bypass context before ordinary public 
   account.permissions.bypassMaintenance = true;
   const complete = applicationAccessResponse();
   complete.maintenance = {
-    revision: 1,
     active: true,
     message: "Maintenance",
     imageUrl: null,
@@ -1385,7 +1384,6 @@ it("ends an inactive Clubs retry with its bypass context before ordinary public 
 
   // When: maintenance ends without changing the actor or removing ordinary routes.
   complete.maintenance = {
-    revision: 2,
     active: false,
     message: null,
     imageUrl: null,

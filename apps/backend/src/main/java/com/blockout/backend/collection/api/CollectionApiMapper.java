@@ -141,10 +141,9 @@ public interface CollectionApiMapper {
    * Projects preparation state from its canonical sporting owner.
    *
    * @param source season preparation view
-   * @return wire revision and lifecycle
+   * @return current lifecycle
    */
   @Mapping(target = "additionalProperties", ignore = true)
-  @Mapping(target = "revision", source = "collectionRevision")
   @Mapping(target = "state", source = "collectionState")
   CollectionSeasonResponse toDto(SportingViews.CollectionSeasonView source);
 
@@ -190,7 +189,7 @@ public interface CollectionApiMapper {
   CollectionState.SourceValidation toCommand(SubmitSourceValidationInternalRequest source);
 
   /**
-   * Acknowledges the current accepted qualification with its resulting editing revision.
+   * Acknowledges the current accepted qualification with its resulting collector revision.
    *
    * @param source accepted source
    * @return minimal ingestion acknowledgement

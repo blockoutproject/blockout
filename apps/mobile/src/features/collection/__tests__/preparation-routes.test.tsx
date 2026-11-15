@@ -92,7 +92,7 @@ const season = {
   id: seasonId,
   label: "2026/2027",
   startYear: 2026,
-  revision: 5,
+
   state: "active",
 };
 const sourceId = "00000000-0000-4000-8000-000000000180";
@@ -104,7 +104,7 @@ const source = {
   provider: "lnv",
   organizerReference: "137",
   label: "D1 masculine",
-  revision: 2,
+
   candidateUrl,
   acceptedUrl: null,
   locked: false,
@@ -219,7 +219,6 @@ function responses(
 ) {
   const access = applicationAccessResponse();
   access.maintenance = {
-    revision: 2,
     active: true,
     message: "Maintenance demo",
     imageUrl: null,
@@ -428,7 +427,7 @@ it("starts a fresh candidate form after route removal without replaying its deta
     pending.resolve(
       Response.json({
         ...source,
-        revision: 3,
+
         candidateUrl: submitted,
         validation: "unvalidated",
         seasonEvidence: null,
@@ -451,7 +450,7 @@ it("uses the current ready launch selection after a refusal removed its prior ro
   const permissions = Promise.withResolvers<Response>();
   let expanded = false;
   let writes = 0;
-  /** Advances the retained launch selection after a stale revision while preserving ordinary reads. */
+  /** Advances the retained launch selection after a current-state refusal while preserving ordinary reads. */
   const peer = async (url: RequestInfo | URL, options?: RequestInit) => {
     const path = new URL(String(url)).pathname;
     if (options?.method === "POST") {
@@ -459,7 +458,7 @@ it("uses the current ready launch selection after a refusal removed its prior ro
       return writes === 1
         ? Response.json(
             {
-              type: "urn:blockout:problem:stale-revision",
+              type: "urn:blockout:problem:conflict",
               title: "Conflict",
               status: 409,
             },
@@ -468,7 +467,7 @@ it("uses the current ready launch selection after a refusal removed its prior ro
               headers: { "Content-Type": "application/problem+json" },
             },
           )
-        : Response.json({ ...season, revision: 7 });
+        : Response.json({ ...season });
     }
     if (path.endsWith("/source-bindings")) {
       return Response.json({
@@ -485,7 +484,7 @@ it("uses the current ready launch selection after a refusal removed its prior ro
       });
     }
     if (expanded && path.endsWith(`/collection-seasons/${seasonId}`)) {
-      return Response.json({ ...season, revision: 6 });
+      return Response.json({ ...season });
     }
     return serve(url);
   };
@@ -536,7 +535,6 @@ it("uses the current ready launch selection after a refusal removed its prior ro
   );
   expect(calls).toHaveLength(2);
   expect(JSON.parse(String(calls[1][1]?.body))).toEqual({
-    revision: 6,
     sourceBindingIds: [sourceId, "00000000-0000-4000-8000-000000000183"],
   });
 });
@@ -836,12 +834,10 @@ it("keeps an already prepared command outcome while a newer minimum changes rout
   });
   const access = applicationAccessResponse();
   access.maintenance = {
-    revision: 2,
     active: true,
     message: "Maintenance demo",
     imageUrl: null,
   };
-  access.versions.revision = 1;
   access.versions.ios = {
     minimumVersion: "3.0.0",
     storeUrl: "https://apps.apple.com/fr/app/blockout/id123456789",
@@ -913,7 +909,7 @@ it("shows the newly created control after the first source launch without leavin
     const path = new URL(String(url)).pathname;
     if (options?.method === "POST") {
       launched = true;
-      return Promise.resolve(Response.json({ ...season, revision: 6 }));
+      return Promise.resolve(Response.json({ ...season }));
     }
     if (path.endsWith("/collection-controls")) {
       return Promise.resolve(

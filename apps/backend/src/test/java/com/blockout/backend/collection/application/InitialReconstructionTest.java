@@ -63,7 +63,7 @@ class InitialReconstructionTest {
         .require(OPERATOR, Permission.MANAGE_COLLECTION);
 
     // When / Then
-    assertThatThrownBy(() -> service.request(OPERATOR, SEASON, 0, Set.of(SOURCE), Set.of()))
+    assertThatThrownBy(() -> service.request(OPERATOR, SEASON, Set.of(SOURCE), Set.of()))
         .isInstanceOf(AccessDeniedException.class);
     verify(store, never()).setInitialIntent(any(), any(), any(), any());
   }
@@ -75,7 +75,7 @@ class InitialReconstructionTest {
     when(seasons.lockCollectionState(SEASON)).thenReturn(season(CollectionSeasonStateEnum.CLOSED));
 
     // When / Then
-    assertThatThrownBy(() -> service.request(OPERATOR, SEASON, 0, Set.of(SOURCE), Set.of()))
+    assertThatThrownBy(() -> service.request(OPERATOR, SEASON, Set.of(SOURCE), Set.of()))
         .isInstanceOf(CollectionConflictException.class);
     verify(store, never()).setInitialIntent(any(), any(), any(), any());
   }
@@ -106,7 +106,7 @@ class InitialReconstructionTest {
                 Set.of()));
 
     // When / Then
-    assertThatThrownBy(() -> service.request(OPERATOR, SEASON, 0, Set.of(SOURCE), Set.of()))
+    assertThatThrownBy(() -> service.request(OPERATOR, SEASON, Set.of(SOURCE), Set.of()))
         .isInstanceOf(CollectionConflictException.class);
     verify(store, never()).setInitialIntent(any(), any(), any(), any());
   }
@@ -123,7 +123,7 @@ class InitialReconstructionTest {
     when(store.lockControl(CONTROL)).thenReturn(pending);
 
     // When
-    List<Control> result = service.request(OPERATOR, SEASON, 0, Set.of(SOURCE), Set.of());
+    List<Control> result = service.request(OPERATOR, SEASON, Set.of(SOURCE), Set.of());
 
     // Then
     assertThat(result).containsExactly(pending);
@@ -142,7 +142,7 @@ class InitialReconstructionTest {
     when(store.lockControl(CONTROL)).thenReturn(pending);
 
     // When / Then
-    assertThatThrownBy(() -> service.request(OPERATOR, SEASON, 0, Set.of(SOURCE), Set.of()))
+    assertThatThrownBy(() -> service.request(OPERATOR, SEASON, Set.of(SOURCE), Set.of()))
         .isInstanceOf(CollectionConflictException.class);
     verify(store, never()).setInitialIntent(any(), any(), any(), any());
   }
@@ -154,7 +154,7 @@ class InitialReconstructionTest {
    * @return immutable canonical season
    */
   private CollectionSeasonView season(CollectionSeasonStateEnum state) {
-    return new CollectionSeasonView(SEASON, "2023/2024", 2023, state, 0);
+    return new CollectionSeasonView(SEASON, "2023/2024", 2023, state);
   }
 
   /**

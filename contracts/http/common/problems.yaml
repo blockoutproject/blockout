@@ -87,7 +87,7 @@ responses:
   Conflict:
     description: >-
       Conflict with current state (urn:blockout:problem:conflict); no command effects.
-      Specific types distinguish a stale editing revision (urn:blockout:problem:stale-revision),
+      Specific types distinguish a stale domain or collector revision (urn:blockout:problem:stale-revision),
       an invalid acquisition cycle context (urn:blockout:problem:invalid-cycle-context),
       conflicting sporting identities (urn:blockout:problem:identity-conflict), incompatible
       classification (urn:blockout:problem:classification-conflict), or an already-used username

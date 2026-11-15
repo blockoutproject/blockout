@@ -8,7 +8,7 @@ import {
 } from "../schemas/source-candidate-schema";
 import { sourceCandidateValues } from "./source-candidate-values";
 
-/** Original revision and local feedback belong to this mounted editing visit. */
+/** Original target and local feedback belong to this mounted editing visit. */
 interface DraftState {
   baseline?: SourceBindingResponse;
   editingUrl: boolean;

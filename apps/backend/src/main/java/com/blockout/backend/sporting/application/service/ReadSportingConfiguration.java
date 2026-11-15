@@ -42,7 +42,7 @@ public class ReadSportingConfiguration {
    *
    * @param accountId original established account with a current classification grant
    * @param poolId contextual pool
-   * @return current setting, inheritance and opaque revision
+   * @return current setting, inheritance
    * @throws AccessDeniedException if the current grant is absent
    * @throws SportingResourceNotFoundException if the pool is absent
    */
@@ -57,7 +57,7 @@ public class ReadSportingConfiguration {
    *
    * @param accountId original established account with a current classification grant
    * @param packId native grouping
-   * @return current setting and revision
+   * @return current setting
    * @throws AccessDeniedException if the current grant is absent
    * @throws SportingResourceNotFoundException if the pack is absent
    */
@@ -84,7 +84,7 @@ public class ReadSportingConfiguration {
   }
 
   /**
-   * Reads current editor state without changing activity or revisions.
+   * Reads current editor state without changing activity.
    *
    * @param accountId original account
    * @param id requested division

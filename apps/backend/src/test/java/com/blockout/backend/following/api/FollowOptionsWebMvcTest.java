@@ -79,7 +79,7 @@ class FollowOptionsWebMvcTest {
   /** Supplies ordinary admission without implying that an account lookup succeeded. */
   @BeforeEach
   void admission() {
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, false, "Prepared", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(false, "Prepared", null));
   }
 
   @Test

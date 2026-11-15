@@ -409,7 +409,6 @@ it("isolates deliberate maintenance bypass from the anonymous public count", asy
         Response.json({
           ...applicationAccessResponse(),
           maintenance: {
-            revision: active ? 1 : 0,
             active,
             message: null,
             imageUrl: null,

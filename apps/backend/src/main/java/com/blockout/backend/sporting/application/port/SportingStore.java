@@ -129,18 +129,17 @@ public interface SportingStore {
   Map<UUID, SportingViews.CollectionSeasonView> collectionSeasons(Set<UUID> ids);
 
   /**
-   * Advances preparation revision after a source change, optionally activating first launch.
+   * Activates periodic acquisition after the first qualified source launch.
    *
    * @param id canonical season already exclusively locked by the caller
-   * @param activate whether the approved source launch activates periodic acquisition
-   * @return flushed canonical state with its native version
+   * @return flushed canonical lifecycle
    */
-  SportingViews.CollectionSeasonView updatePreparation(UUID id, boolean activate);
+  SportingViews.CollectionSeasonView activateCollectionSeason(UUID id);
 
   /**
    * Closes the canonical acquisition lifecycle under its caller's exclusive season lock.
    *
-   * @param id authorized open season whose revision and exact label have been checked
+   * @param id authorized open season whose exact label has been checked
    * @return flushed terminal state; sporting data remain intact
    */
   SportingViews.CollectionSeasonView closeCollectionSeason(UUID id);
@@ -361,7 +360,7 @@ public interface SportingStore {
    * Reads the current pack default.
    *
    * @param id native grouping
-   * @return current setting and editing version, or empty
+   * @return current setting, or empty
    */
   Optional<PackView> pack(UUID id);
 
@@ -406,7 +405,7 @@ public interface SportingStore {
   List<UUID> teamPoolIds(UUID teamId);
 
   /**
-   * Replaces a complete pack default and flushes its managed editing revision.
+   * Replaces a complete pack default.
    *
    * @param id locked pack
    * @param setting complete default, or null to remove it
@@ -414,7 +413,7 @@ public interface SportingStore {
   void setPackClassification(UUID id, SportingClassification setting);
 
   /**
-   * Replaces a complete pool override and flushes its managed editing revision.
+   * Replaces a complete pool override.
    *
    * @param id pool within the locked season
    * @param setting complete override, or null to restore inheritance
@@ -463,14 +462,14 @@ public interface SportingStore {
    * @param gradient three validated colors, or null
    * @param image validated PNG/JPEG bytes, or null
    * @param mediaType actual image type, or null with no image
-   * @return committed-to-context identity and initial revision
+   * @return committed-to-context identity
    * @throws SportingConflictException if the name already exists ignoring case
    */
   DivisionDetail createDivision(
       String name, String color, List<String> gradient, byte[] image, String mediaType);
 
   /**
-   * Changes activity only and flushes the managed revision.
+   * Changes activity only.
    *
    * @param id division locked by the caller
    * @param active explicit desired activity
@@ -665,7 +664,7 @@ public interface SportingStore {
    * @param kind club, team or pool
    * @param id locked owner
    * @param edit validated complete desired state
-   * @return current state, preserving revision on a no-op
+   * @return current accepted state
    */
   SportingPresentation.View savePresentation(Kind kind, UUID id, SportingPresentation.Edit edit);
 

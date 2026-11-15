@@ -12,7 +12,7 @@ import { useAccountSession } from "@/features/accounts/current-account";
 export function useApplicationVersionsSettings(enabled: boolean) {
   const session = useAccountSession();
 
-  /** Supplies native credentials for the captured principal; the server validates grants and revisions. */
+  /** Supplies native credentials for the captured principal; the server validates current grants. */
   async function request() {
     const credentials = await session.getCredentials();
     return { headers: { Authorization: `Bearer ${credentials.accessToken}` } };

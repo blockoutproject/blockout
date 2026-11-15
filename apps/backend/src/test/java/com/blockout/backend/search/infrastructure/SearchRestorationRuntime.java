@@ -245,18 +245,7 @@ final class SearchRestorationRuntime implements AutoCloseable {
   void changeCity(UUID club, String city) throws Exception {
     String path = "/administration/clubs/" + club + "/contacts";
     String token = token();
-    HttpResponse<String> current =
-        http.send(
-            HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path))
-                .timeout(Duration.ofSeconds(5))
-                .header("Authorization", "Bearer " + token)
-                .build(),
-            HttpResponse.BodyHandlers.ofString());
-    assertThat(current.statusCode()).isEqualTo(200);
-    String revision = json.readTree(current.body()).path("revision").asText();
-    String body =
-        json.writeValueAsString(
-            Map.of("revision", revision, "city", Map.of("mode", "manual", "value", city)));
+    String body = json.writeValueAsString(Map.of("city", Map.of("mode", "manual", "value", city)));
     HttpResponse<String> changed =
         http.send(
             HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + port + path))

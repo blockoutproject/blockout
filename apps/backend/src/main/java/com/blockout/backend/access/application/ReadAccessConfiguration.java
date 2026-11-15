@@ -42,7 +42,7 @@ public class ReadAccessConfiguration {
    * Checks the independent current versions grant before exposing its settings.
    *
    * @param account original business UUID
-   * @return both authorized platforms and their shared revision/message
+   * @return both authorized platforms and their shared message
    * @throws AccessDeniedException if the current grant is absent
    */
   @Transactional(readOnly = true)

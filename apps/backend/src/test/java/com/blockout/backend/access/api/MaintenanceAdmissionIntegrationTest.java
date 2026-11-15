@@ -89,7 +89,6 @@ class MaintenanceAdmissionIntegrationTest {
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:maintenance"))
         .andExpect(jsonPath("$.maintenance.active").value(true))
         .andExpect(jsonPath("$.maintenance.message").value("Pause en cours"))
-        .andExpect(jsonPath("$.maintenance.revision").value(3))
         .andExpect(header().doesNotExist("Retry-After"));
   }
 
@@ -173,15 +172,11 @@ class MaintenanceAdmissionIntegrationTest {
             put("/administration/maintenance/activation")
                 .with(principal())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":3,\"active\":true}"))
+                .content("{\"active\":true}"))
         // Then
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.revision").value(4));
-    mvc.perform(get("/clubs"))
-        .andExpect(status().isServiceUnavailable())
-        .andExpect(jsonPath("$.maintenance.revision").value(4));
+        .andExpect(status().isOk());
+    mvc.perform(get("/clubs")).andExpect(status().isServiceUnavailable());
     assertThat(admission.currentMaintenance().active()).isTrue();
-    assertThat(admission.currentMaintenance().revision()).isEqualTo(4);
   }
 
   @Test
@@ -204,7 +199,6 @@ class MaintenanceAdmissionIntegrationTest {
 
           // Then
           assertThat(admission.currentMaintenance().active()).isTrue();
-          assertThat(admission.currentMaintenance().revision()).isEqualTo(4);
         });
   }
 

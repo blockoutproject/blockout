@@ -55,7 +55,7 @@ it("discards to the accepted creation values rather than the empty creation draf
     kind: "division" as const,
     data: {
       id: "00000000-0000-4000-8000-000000000196",
-      revision: "d1",
+
       name: "Accepted division",
       color: "#123456",
       gradient: null,

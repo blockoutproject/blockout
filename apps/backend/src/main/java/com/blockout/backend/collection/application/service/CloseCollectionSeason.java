@@ -27,26 +27,23 @@ public class CloseCollectionSeason {
    *
    * @param accountId operator holding the current collection grant
    * @param seasonId canonical season
-   * @param revision preparation revision read before confirmation
    * @param confirmation exact canonical label, without trimming or normalization
    * @return terminal season; source locks, accepted data and admitted cycles remain intact
    * @throws InvalidSeasonConfirmationException when the label differs
-   * @throws CollectionConflictException for closed history or stale revision
+   * @throws CollectionConflictException for closed history
    */
   @Transactional
-  public CollectionSeasonView close(
-      UUID accountId, UUID seasonId, long revision, String confirmation) {
+  public CollectionSeasonView close(UUID accountId, UUID seasonId, String confirmation) {
     store.lockRuntime();
     CollectionSeasonView season = seasons.lockCollectionState(seasonId);
     List<Control> controls =
         store.controls(seasonId).stream().map(control -> store.lockControl(control.id())).toList();
     authorization.require(accountId, Permission.MANAGE_COLLECTION);
-    CollectionRevision.requireRevision(revision, season.collectionRevision());
     CollectionLifecycle.requireOpen(season);
     if (!season.label().equals(confirmation)) {
       throw new InvalidSeasonConfirmationException();
     }
-    CollectionRevision.requireAdvance(season.collectionRevision());
+
     for (Control control : controls) {
       if (control.requestId() != null) {
         CollectionRevision.requireAdvance(control.revision());

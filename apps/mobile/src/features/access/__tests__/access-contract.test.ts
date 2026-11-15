@@ -39,11 +39,9 @@ afterEach(() => {
   }
 });
 
-it("accepts complete nullable groups and the maximum safe revisions", async () => {
+it("accepts complete nullable groups and additive response fields", async () => {
   // Given
   const body = applicationAccessResponse();
-  body.maintenance.revision = Number.MAX_SAFE_INTEGER;
-  body.versions.revision = Number.MAX_SAFE_INTEGER;
   mockFetch.mockResolvedValue(
     new Response(
       JSON.stringify({
@@ -90,15 +88,6 @@ it.each<[string, unknown]>([
       versions: { ...applicationAccessResponse().versions, message: undefined },
     },
   ],
-  ...[-1, 0.5, Number.MAX_SAFE_INTEGER + 1, "0"].map<[string, unknown]>(
-    (revision) => [
-      `invalid revision ${JSON.stringify(revision)}`,
-      {
-        ...applicationAccessResponse(),
-        maintenance: { ...applicationAccessResponse().maintenance, revision },
-      },
-    ],
-  ),
 ])("rejects %s before Query admission", async (_scenario, body) => {
   // Given
   mockFetch.mockResolvedValue(
@@ -171,11 +160,10 @@ it.each([
 });
 
 it.each([
-  ["omission", { revision: 0, ios: {} }],
+  ["omission", { ios: {} }],
   [
     "explicit removal",
     {
-      revision: 0,
       ios: { minimumVersion: null, storeUrl: null },
       message: null,
     },
@@ -203,7 +191,6 @@ it.each([
   [
     "maintenance",
     {
-      revision: 4,
       active: true,
       message: "Maintenance en cours",
       imageUrl: null,

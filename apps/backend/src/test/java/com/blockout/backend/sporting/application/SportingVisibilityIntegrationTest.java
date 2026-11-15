@@ -558,8 +558,7 @@ class SportingVisibilityIntegrationTest {
             .outcomes()
             .getFirst()
             .resourceId();
-    closure.close(
-        account, season, seasonReads.collectionState(season).collectionRevision(), "2026/2027");
+    closure.close(account, season, "2026/2027");
 
     // When
     calendars.accept(pool, calendar(2, List.of(candidate("M1", "Home", LocalDate.of(2027, 9, 1)))));
@@ -685,12 +684,9 @@ class SportingVisibilityIntegrationTest {
             .outcomes()
             .getFirst()
             .resourceId();
-    long revision =
-        sql.queryForObject(
-            "SELECT revision FROM collection_control WHERE id=?", Long.class, CONTROL);
 
     // When
-    controls.setActivity(account, CONTROL, revision, false);
+    controls.setActivity(account, CONTROL, false);
 
     // Then
     assertThat(reads.publicMatch(match)).isPresent();

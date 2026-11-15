@@ -74,8 +74,7 @@ class SportingPresentationMultipartIntegrationTest {
     when(account.id()).thenReturn(CLUB);
     when(presentation.set(any(), any(), any(), any())).thenReturn(view());
     byte[] image = SportingImageFixture.image("PNG", 0x112233);
-    MockHttpOutputMessage form =
-        encode("{\"revision\":\"0\",\"manualName\":null,\"logoAction\":\"replace\"}", image);
+    MockHttpOutputMessage form = encode("{\"manualName\":null,\"logoAction\":\"replace\"}", image);
 
     // When
     HttpResponse<String> response = send(form);
@@ -101,8 +100,7 @@ class SportingPresentationMultipartIntegrationTest {
     when(account.id()).thenReturn(CLUB);
     when(presentation.set(any(), any(), any(), any())).thenReturn(view());
     byte[] image = Arrays.copyOf(SportingImageFixture.image("PNG", 0x112233), 5_242_880 + extra);
-    MockHttpOutputMessage form =
-        encode("{\"revision\":\"0\",\"manualName\":null,\"logoAction\":\"replace\"}", image);
+    MockHttpOutputMessage form = encode("{\"manualName\":null,\"logoAction\":\"replace\"}", image);
 
     // When
     HttpResponse<String> response = send(form);
@@ -115,7 +113,7 @@ class SportingPresentationMultipartIntegrationTest {
   @DisplayName("Refuses omitted required metadata instead of treating it as an explicit null")
   void rejectsOmittedManualName() throws Exception {
     // Given
-    MockHttpOutputMessage form = encode("{\"revision\":\"0\",\"logoAction\":\"keep\"}", null);
+    MockHttpOutputMessage form = encode("{\"logoAction\":\"keep\"}", null);
 
     // When
     HttpResponse<String> response = send(form);
@@ -186,7 +184,6 @@ class SportingPresentationMultipartIntegrationTest {
     return new SportingPresentation.View(
         CLUB,
         Kind.CLUB,
-        "1",
         new SportingPresentation.Names("Club", "Club", null, null, null),
         new SportingPresentation.Logo(null, null, null));
   }

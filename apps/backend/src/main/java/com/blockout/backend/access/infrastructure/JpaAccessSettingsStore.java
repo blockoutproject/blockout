@@ -50,7 +50,6 @@ public class JpaAccessSettingsStore implements AccessSettingsStore {
   public MaintenanceSettings saveMaintenance(MaintenanceSettings settings) {
     AccessSettingsEntity entity = row("maintenance", false);
     entity.maintenance(settings);
-    rows.flush();
     return maintenance(entity);
   }
 
@@ -60,7 +59,6 @@ public class JpaAccessSettingsStore implements AccessSettingsStore {
   public ApplicationVersionSettings saveVersions(ApplicationVersionSettings settings) {
     AccessSettingsEntity entity = row("versions", false);
     entity.versions(settings);
-    rows.flush();
     return versions(entity);
   }
 
@@ -69,13 +67,8 @@ public class JpaAccessSettingsStore implements AccessSettingsStore {
   public Snapshot readComplete() {
     AccessSettingsRows value = rows.complete().orElseThrow(AccessSettingsUnavailableException::new);
     return new Snapshot(
-        maintenance(
-            value.maintenanceRevision(),
-            value.active(),
-            value.maintenanceMessage(),
-            value.imageUrl()),
+        maintenance(value.active(), value.maintenanceMessage(), value.imageUrl()),
         versions(
-            value.versionsRevision(),
             value.iosMinimumVersion(),
             value.iosStoreUrl(),
             value.androidMinimumVersion(),
@@ -104,27 +97,24 @@ public class JpaAccessSettingsStore implements AccessSettingsStore {
    * @throws AccessSettingsUnavailableException for invalid persisted state
    */
   private static MaintenanceSettings maintenance(AccessSettingsEntity entity) {
-    return maintenance(
-        entity.getRevision(), entity.getActive(), entity.getMessage(), entity.getImageUrl());
+    return maintenance(entity.getActive(), entity.getMessage(), entity.getImageUrl());
   }
 
   /**
    * Validates the same stored maintenance facts from entity and complete snapshot reads.
    *
-   * @param revision current group revision
    * @param active required stored activation state
    * @param message optional prepared message
    * @param imageUrl optional prepared image
    * @return complete valid maintenance state
    * @throws AccessSettingsUnavailableException for invalid persisted state
    */
-  private static MaintenanceSettings maintenance(
-      long revision, Boolean active, String message, String imageUrl) {
+  private static MaintenanceSettings maintenance(Boolean active, String message, String imageUrl) {
     try {
       if (active == null) {
         throw new IllegalArgumentException("Missing active state");
       }
-      return new MaintenanceSettings(revision, active, message, imageUrl);
+      return new MaintenanceSettings(active, message, imageUrl);
     } catch (IllegalArgumentException invalid) {
       throw new AccessSettingsUnavailableException(invalid);
     }
@@ -139,7 +129,6 @@ public class JpaAccessSettingsStore implements AccessSettingsStore {
    */
   private static ApplicationVersionSettings versions(AccessSettingsEntity entity) {
     return versions(
-        entity.getRevision(),
         entity.getIosMinimumVersion(),
         entity.getIosStoreUrl(),
         entity.getAndroidMinimumVersion(),
@@ -150,7 +139,6 @@ public class JpaAccessSettingsStore implements AccessSettingsStore {
   /**
    * Validates both platform settings consistently for entity and complete snapshot reads.
    *
-   * @param revision current shared versions revision
    * @param iosMinimumVersion optional stored iOS minimum
    * @param iosStoreUrl optional stored iOS destination
    * @param androidMinimumVersion optional stored Android minimum
@@ -160,7 +148,6 @@ public class JpaAccessSettingsStore implements AccessSettingsStore {
    * @throws AccessSettingsUnavailableException for invalid persisted state
    */
   private static ApplicationVersionSettings versions(
-      long revision,
       String iosMinimumVersion,
       String iosStoreUrl,
       String androidMinimumVersion,
@@ -168,7 +155,6 @@ public class JpaAccessSettingsStore implements AccessSettingsStore {
       String message) {
     try {
       return new ApplicationVersionSettings(
-          revision,
           new Platform(iosMinimumVersion, iosStoreUrl),
           new Platform(androidMinimumVersion, androidStoreUrl),
           message);

@@ -38,4 +38,8 @@
     </insert>
     <insert tableName="access_settings"><column name="id" value="versions"/></insert>
   </changeSet>
+  <changeSet id="access-remove-editor-revision-range-20261115" author="blockout">
+    <comment>The native JPA version is no longer a JavaScript editor token.</comment>
+    <sql>ALTER TABLE access_settings DROP CONSTRAINT ck_access_settings_revision</sql>
+  </changeSet>
 </databaseChangeLog>

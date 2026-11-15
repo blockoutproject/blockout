@@ -91,16 +91,9 @@ UpdateOwnStreamContributionRequest:
   description: Atomic withdrawal of an active owned version.
   additionalProperties: false
   properties:
-    revision:
-      type: string
-      description:
-        Opaque current contribution revision for this match; stale revisions return 409 without
-        effects.
-      minLength: 1
     action:
       $ref: "#/StreamOwnerActionEnum"
   required:
-    - revision
     - action
 CreateModeratedStreamContributionRequest:
   title: CreateModeratedStreamContributionRequest

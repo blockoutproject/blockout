@@ -133,7 +133,7 @@ class ContributionQualificationIntegrationTest extends ContributionScenario {
                         + selectedId)
                 .with(principal(AUTHOR))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":\"6\",\"action\":\"withdraw\"}"))
+                .content("{\"action\":\"withdraw\"}"))
         .andExpect(status().isNotFound());
     assertThat(contributions.active(matchId).orElseThrow().id()).isEqualTo(selectedId);
   }

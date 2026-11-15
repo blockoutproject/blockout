@@ -130,7 +130,7 @@ The [prepared A20–A24 cases](quickstart.md#support-privacy-cases) reuse F10's 
 
 ## Consumers and release conditions
 
-- **F02**: contact metadata, collection/edit enforcement, current revision and null representations; reuse existing contracts and club locking.
+- **F02**: contact metadata, collection/edit enforcement, current restrictions and null representations; reuse existing contracts and club locking.
 - **F05**: account/session changes update advertising eligibility and retire prepared ads, without restarting unchanged installation preparation. The advertising declaration does not create a profile field, account age gate or provider identity mapping. Existing synchronous local deletion/manual external cleanup is unchanged.
 - **F09**: current rights decide loading/presentation, without owning installation consent preparation. Active Pro avoids unnecessary prompts; unknown state suppresses ads and repurchase encouragement. Existing connected Pro entries open the same configured native Paywall after account/SDK association; this does not widen the free-account banner’s visibility or establish free rights. F09 qualifies the actual subscriber/unknown-state proposals and provider restoration/management journey. Qualify offer availability alongside EU27 distribution without revoking existing rights.
 - **F12**: preserve all three global access gates; no blocked legal-link entry or privacy/support route bypass.

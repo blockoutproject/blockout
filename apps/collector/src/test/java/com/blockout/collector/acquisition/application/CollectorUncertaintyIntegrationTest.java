@@ -455,7 +455,6 @@ class CollectorUncertaintyIntegrationTest {
    * @throws Exception if the isolated administrative HTTP request fails
    */
   private CollectorLifecycle.AdmittedCycle requestManualPassage() throws Exception {
-    CollectionBackend.ControlWork current = currentControl();
     HttpResponse<String> response =
         forwarding.send(
             HttpRequest.newBuilder(
@@ -467,9 +466,7 @@ class CollectorUncertaintyIntegrationTest {
                 .timeout(Duration.ofSeconds(10))
                 .header("Authorization", "Bearer " + runtime.mobileToken("qualification-195"))
                 .header("Content-Type", "application/json")
-                .POST(
-                    HttpRequest.BodyPublishers.ofString(
-                        "{\"revision\":" + current.revision() + "}"))
+                .POST(HttpRequest.BodyPublishers.noBody())
                 .build(),
             HttpResponse.BodyHandlers.ofString());
     assertThat(response.statusCode()).isEqualTo(202);

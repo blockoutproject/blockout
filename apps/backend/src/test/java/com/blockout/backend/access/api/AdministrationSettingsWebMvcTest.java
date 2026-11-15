@@ -121,17 +121,7 @@ class AdministrationSettingsWebMvcTest {
   }
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "{}",
-        "{\"revision\":null}",
-        "{\"revision\":-1}",
-        "{\"revision\":9007199254740992}",
-        "{\"revision\":0.5}",
-        "{\"revision\":\"0\"}",
-        "{\"revision\":0,\"active\":true}",
-        "{\"revision\":0,\"message\":null}"
-      })
+  @ValueSource(strings = {"{\"active\":true}", "{\"message\":null}"})
   @DisplayName("Rejects invalid maintenance shapes before use-case effects")
   void rejectsMaintenanceShape(String body) throws Exception {
     // Given
@@ -150,12 +140,7 @@ class AdministrationSettingsWebMvcTest {
   }
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "{\"revision\":0,\"ios\":null}",
-        "{\"revision\":0,\"ios\":{\"future\":true}}",
-        "{\"revision\":0,\"future\":true}"
-      })
+  @ValueSource(strings = {"{\"ios\":null}", "{\"ios\":{\"future\":true}}", "{\"future\":true}"})
   @DisplayName("Rejects unknown and null platform request objects")
   void rejectsVersionShape(String body) throws Exception {
     // Given
@@ -178,7 +163,7 @@ class AdministrationSettingsWebMvcTest {
     // Given
     when(account.id()).thenReturn(ID);
     when(permissions.findByAccountId(ID)).thenReturn(Set.of(Permission.MANAGE_MAINTENANCE));
-    when(store.maintenance()).thenReturn(new MaintenanceSettings(4, false, "Prepared", null));
+    when(store.maintenance()).thenReturn(new MaintenanceSettings(false, "Prepared", null));
 
     // When
     mvc.perform(get("/administration/maintenance").with(mobile()))
@@ -186,10 +171,7 @@ class AdministrationSettingsWebMvcTest {
         .andExpect(status().isOk())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(header().string("Accept-Patch", "application/json"))
-        .andExpect(
-            content()
-                .json(
-                    "{\"revision\":4,\"active\":false,\"message\":\"Prepared\",\"imageUrl\":null}"));
+        .andExpect(content().json("{\"active\":false,\"message\":\"Prepared\",\"imageUrl\":null}"));
   }
 
   @Test
@@ -198,8 +180,7 @@ class AdministrationSettingsWebMvcTest {
     // Given
     when(account.id()).thenReturn(ID);
     MaintenanceSettings current =
-        new MaintenanceSettings(
-            2, true, "Stored", "https://assets.example.invalid/maintenance.png");
+        new MaintenanceSettings(true, "Stored", "https://assets.example.invalid/maintenance.png");
     when(store.maintenanceForChange()).thenReturn(current);
     when(store.saveMaintenance(any())).thenAnswer(call -> call.getArgument(0));
 
@@ -208,32 +189,12 @@ class AdministrationSettingsWebMvcTest {
             patch("/administration/maintenance")
                 .with(mobile())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":2,\"imageUrl\":null}"))
+                .content("{\"imageUrl\":null}"))
         // Then
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.message").value("Stored"))
         .andExpect(jsonPath("$.active").value(true))
         .andExpect(jsonPath("$.imageUrl").isEmpty());
-  }
-
-  @Test
-  @DisplayName("Returns 409 for a stale no-op rather than HTTP precondition failure")
-  void rejectsStaleNoop() throws Exception {
-    // Given
-    when(account.id()).thenReturn(ID);
-    when(store.maintenanceForChange())
-        .thenReturn(new MaintenanceSettings(2, false, "Stored", null));
-
-    // When
-    mvc.perform(
-            patch("/administration/maintenance")
-                .with(mobile())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":1,\"message\":\"Stored\"}"))
-        // Then
-        .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.type").value("urn:blockout:problem:stale-revision"));
-    verify(store, never()).saveMaintenance(any());
   }
 
   @Test
@@ -248,7 +209,7 @@ class AdministrationSettingsWebMvcTest {
             patch("/administration/application-versions")
                 .with(mobile())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":0,\"ios\":{\"minimumVersion\":\"2.0.0\"}}"))
+                .content("{\"ios\":{\"minimumVersion\":\"2.0.0\"}}"))
         // Then
         .andExpect(status().isUnprocessableContent())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:unprocessable-content"));
@@ -260,8 +221,7 @@ class AdministrationSettingsWebMvcTest {
   void setsDesiredActivation() throws Exception {
     // Given
     when(account.id()).thenReturn(ID);
-    when(store.maintenanceForChange())
-        .thenReturn(new MaintenanceSettings(0, false, "Stored", null));
+    when(store.maintenanceForChange()).thenReturn(new MaintenanceSettings(false, "Stored", null));
     when(store.saveMaintenance(any())).thenAnswer(call -> call.getArgument(0));
 
     // When
@@ -269,7 +229,7 @@ class AdministrationSettingsWebMvcTest {
             put("/administration/maintenance/activation")
                 .with(mobile())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":0,\"active\":true}"))
+                .content("{\"active\":true}"))
         // Then
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.active").value(true))
@@ -284,7 +244,7 @@ class AdministrationSettingsWebMvcTest {
         patch("/administration/maintenance")
             .with(mobile())
             .contentType("application/merge-patch+json")
-            .content("{\"revision\":0}");
+            .content("{}");
 
     // When
     mvc.perform(request)
@@ -311,7 +271,7 @@ class AdministrationSettingsWebMvcTest {
         .andExpect(
             content()
                 .json(
-                    "{\"revision\":0,\"ios\":{\"minimumVersion\":null,\"storeUrl\":null},\"android\":{\"minimumVersion\":null,\"storeUrl\":null},\"message\":null}"));
+                    "{\"ios\":{\"minimumVersion\":null,\"storeUrl\":null},\"android\":{\"minimumVersion\":null,\"storeUrl\":null},\"message\":null}"));
   }
 
   @Test
@@ -322,7 +282,7 @@ class AdministrationSettingsWebMvcTest {
         .thenReturn(
             new ReadAccessConfiguration.Snapshot(
                 new MaintenanceSettings(
-                    3, false, "Private preparation", "https://assets.example.invalid/a.png"),
+                    false, "Private preparation", "https://assets.example.invalid/a.png"),
                 emptyVersions()));
 
     // When
@@ -330,7 +290,6 @@ class AdministrationSettingsWebMvcTest {
         // Then
         .andExpect(status().isOk())
         .andExpect(header().string("Cache-Control", "no-store"))
-        .andExpect(jsonPath("$.maintenance.revision").value(3))
         .andExpect(jsonPath("$.maintenance.message").isEmpty())
         .andExpect(jsonPath("$.maintenance.imageUrl").isEmpty())
         .andExpect(jsonPath("$.versions.ios.minimumVersion").isEmpty());
@@ -367,11 +326,7 @@ class AdministrationSettingsWebMvcTest {
 
   @ParameterizedTest
   @ValueSource(
-      strings = {
-        "{\"revision\":0}",
-        "{\"revision\":0,\"active\":null}",
-        "{\"revision\":0,\"active\":true,\"message\":\"Unwanted content\"}"
-      })
+      strings = {"{}", "{\"active\":null}", "{\"active\":true,\"message\":\"Unwanted content\"}"})
   @DisplayName("Activation requires a desired boolean and cannot accept content fields")
   void refusesInvalidActivation(String body) throws Exception {
     // Given
@@ -396,7 +351,6 @@ class AdministrationSettingsWebMvcTest {
   /** Represents an initially unconfigured versions group without inventing platform defaults. */
   private static ApplicationVersionSettings emptyVersions() {
     return new ApplicationVersionSettings(
-        0,
         new ApplicationVersionSettings.Platform(null, null),
         new ApplicationVersionSettings.Platform(null, null),
         null);

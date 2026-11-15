@@ -36,22 +36,18 @@ public class ChangeSportingClassification {
    *
    * @param accountId original established account with a current classification grant
    * @param packId native grouping in the locked season
-   * @param revision opaque current editor revision
    * @param setting complete default, or null to stop inheritance
-   * @return updated editor state; matching commands retain their revision
-   * @throws SportingConflictException for stale state, inactive assignment or conflicting
-   *     identities
+   * @return updated current classification
+   * @throws SportingConflictException for inactive assignment or conflicting identities
    * @throws AccessDeniedException if authorization is absent or withdrawn before the account lock
    */
   @Transactional
-  public ClassificationView setPack(
-      UUID accountId, UUID packId, String revision, SportingClassification setting) {
+  public ClassificationView setPack(UUID accountId, UUID packId, SportingClassification setting) {
     permissions.requireForRead(accountId, Permission.MANAGE_SPORTING_CLASSIFICATION);
     store.lockPackSeason(packId);
     PackView pack = store.pack(packId).orElseThrow(SportingResourceNotFoundException::new);
     DivisionDetail division = lockDivision(setting);
     authorization.require(accountId, Permission.MANAGE_SPORTING_CLASSIFICATION);
-    SportingEditRevision.require(revision, ClassificationView.from(pack).revision());
     if (Objects.equals(setting, pack.setting())) {
       return ClassificationView.from(pack);
     }
@@ -71,16 +67,13 @@ public class ChangeSportingClassification {
    *
    * @param accountId original established account with a current classification grant
    * @param poolId contextual pool in the locked season
-   * @param revision opaque revision including applicable inheritance
    * @param setting complete override, or null to inherit
    * @return updated editor state without erasing published data on absent acquisition
-   * @throws SportingConflictException for stale state, inactive assignment or conflicting
-   *     identities
+   * @throws SportingConflictException for inactive assignment or conflicting identities
    * @throws AccessDeniedException if authorization is absent or withdrawn before the account lock
    */
   @Transactional
-  public ClassificationView setPool(
-      UUID accountId, UUID poolId, String revision, SportingClassification setting) {
+  public ClassificationView setPool(UUID accountId, UUID poolId, SportingClassification setting) {
     permissions.requireForRead(accountId, Permission.MANAGE_SPORTING_CLASSIFICATION);
     // Resolve only an immutable season reference before loading mutable editor state.
     store.lockPoolSeason(poolId);
@@ -89,7 +82,6 @@ public class ChangeSportingClassification {
     SportingClassification effective = setting == null ? pack.setting() : setting;
     DivisionDetail division = lockDivision(effective);
     authorization.require(accountId, Permission.MANAGE_SPORTING_CLASSIFICATION);
-    SportingEditRevision.require(revision, ClassificationView.from(pool, pack).revision());
     if (Objects.equals(setting, pool.setting())) {
       return ClassificationView.from(pool, pack);
     }

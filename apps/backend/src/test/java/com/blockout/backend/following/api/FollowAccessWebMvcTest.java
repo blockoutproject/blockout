@@ -80,7 +80,7 @@ class FollowAccessWebMvcTest {
   /** Supplies inactive maintenance and ordinary transaction execution without a database. */
   @BeforeEach
   void inactiveMaintenance() {
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, false, "Prepared", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(false, "Prepared", null));
     when(transactions.getTransaction(ArgumentMatchers.any(TransactionDefinition.class)))
         .thenAnswer(invocation -> new SimpleTransactionStatus());
   }
@@ -196,7 +196,7 @@ class FollowAccessWebMvcTest {
   @DisplayName("Requires explicit current bypass before ordinary following access")
   void requiresBypass() throws Exception {
     // Given
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(2, true, "Pause", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(true, "Pause", null));
     when(accounts.currentId(ISSUER, "subject")).thenReturn(Optional.of(ORIGINAL));
     when(accounts.lock(ORIGINAL)).thenReturn(true);
     when(permissions.findByAccountId(ORIGINAL)).thenReturn(Set.of(Permission.BYPASS_MAINTENANCE));
@@ -238,7 +238,7 @@ class FollowAccessWebMvcTest {
   @DisplayName("Bypass never authorizes another original lifecycle")
   void keepsBypassOwner() throws Exception {
     // Given
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(2, true, "Pause", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(true, "Pause", null));
     when(accounts.currentId(ISSUER, "subject")).thenReturn(Optional.of(REPLACEMENT));
     when(accounts.lock(REPLACEMENT)).thenReturn(true);
     when(permissions.findByAccountId(REPLACEMENT))
@@ -266,7 +266,7 @@ class FollowAccessWebMvcTest {
   @DisplayName("Bypass requires a current grant rather than an administrator claim")
   void refusesMissingGrant() throws Exception {
     // Given
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(2, true, "Pause", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(true, "Pause", null));
     when(accounts.currentId(ISSUER, "subject")).thenReturn(Optional.of(ORIGINAL));
     when(accounts.lock(ORIGINAL)).thenReturn(true);
     when(permissions.findByAccountId(ORIGINAL)).thenReturn(Set.of());

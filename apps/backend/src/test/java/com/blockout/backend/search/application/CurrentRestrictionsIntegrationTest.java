@@ -150,9 +150,6 @@ class CurrentRestrictionsIntegrationTest {
         SportingProjectionChanges.Kind.TEAM,
         first.homeTeamId(),
         new Edit(
-            configuration
-                .presentation(ACCOUNT, SportingProjectionChanges.Kind.TEAM, first.homeTeamId())
-                .revision(),
             null,
             null,
             LogoActionEnum.REPLACE,
@@ -497,18 +494,9 @@ class CurrentRestrictionsIntegrationTest {
     events.clear();
 
     // When
-    controls.setActivity(
-        ACCOUNT,
-        CONTROL,
-        sql.queryForObject(
-            "SELECT revision FROM collection_control WHERE id=?", Long.class, CONTROL),
-        false);
+    controls.setActivity(ACCOUNT, CONTROL, false);
     assertVisible(first);
-    closure.close(
-        ACCOUNT,
-        scope.season(),
-        seasonReads.collectionState(scope.season()).collectionRevision(),
-        "2026/2027");
+    closure.close(ACCOUNT, scope.season(), "2026/2027");
     calendars.accept(scope.pool(), calendar(2, "M1"));
     results.complete(scope.cycle().id(), NOW.plusSeconds(10));
 
@@ -617,17 +605,12 @@ class CurrentRestrictionsIntegrationTest {
   }
 
   /**
-   * Applies the actual current division command at the latest editing revision.
+   * Applies the actual current division command against current state.
    *
    * @param active desired independent division activity
    */
   private void activity(boolean active) {
-    divisions.setActive(
-        ACCOUNT,
-        DIVISION,
-        sql.queryForObject(
-            "SELECT revision::TEXT FROM sporting_division WHERE id=?", String.class, DIVISION),
-        active);
+    divisions.setActive(ACCOUNT, DIVISION, active);
   }
 
   /**

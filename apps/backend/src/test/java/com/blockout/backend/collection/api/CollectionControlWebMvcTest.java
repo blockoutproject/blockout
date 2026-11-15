@@ -65,7 +65,7 @@ class CollectionControlWebMvcTest {
     // Given
     UUID pending = UUID.fromString("00000000-0000-4000-8000-000000000185");
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(controls.request(ACCOUNT, CONTROL, 0))
+    when(controls.request(ACCOUNT, CONTROL))
         .thenReturn(new RequestOutcome(controlView(null, pending), false));
 
     // When
@@ -74,7 +74,7 @@ class CollectionControlWebMvcTest {
             post("/administration/collection-controls/{id}/requests", CONTROL)
                 .with(operator())
                 .contentType("application/json")
-                .content("{\"revision\":0}"));
+                .content("{}"));
 
     // Then
     response
@@ -105,7 +105,7 @@ class CollectionControlWebMvcTest {
             null,
             null);
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(controls.request(ACCOUNT, CONTROL, 0))
+    when(controls.request(ACCOUNT, CONTROL))
         .thenReturn(new RequestOutcome(controlView(running, null), true));
 
     // When
@@ -114,7 +114,7 @@ class CollectionControlWebMvcTest {
             post("/administration/collection-controls/{id}/requests", CONTROL)
                 .with(operator())
                 .contentType("application/json")
-                .content("{\"revision\":0}"));
+                .content("{}"));
 
     // Then
     response
@@ -125,17 +125,8 @@ class CollectionControlWebMvcTest {
   }
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "{\"enabled\":true}",
-        "{\"revision\":0}",
-        "{\"revision\":0,\"enabled\":null}",
-        "{\"revision\":-1,\"enabled\":true}",
-        "{\"revision\":9007199254740992,\"enabled\":true}",
-        "{\"revision\":0,\"enabled\":true,\"initialImport\":true}"
-      })
-  @DisplayName(
-      "Activity requires a safe revision and explicit boolean, and rejects unknown properties")
+  @ValueSource(strings = {"{}", "{\"enabled\":null}", "{\"enabled\":true,\"initialImport\":true}"})
+  @DisplayName("Activity requires an explicit boolean and rejects unknown properties")
   void validatesActivity(String body) throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(UUID.randomUUID()));
@@ -157,33 +148,8 @@ class CollectionControlWebMvcTest {
   @ValueSource(
       strings = {
         "{}",
-        "{\"revision\":0,\"scopeId\":\"00000000-0000-4000-8000-000000000183\"}",
-        "{\"revision\":0,\"mode\":\"initial-import\"}"
-      })
-  @DisplayName("Manual HTTP requests cannot select an individual target or initial-import mode")
-  void validatesRequest(String body) throws Exception {
-    // Given
-    when(accounts.currentId(any(), any())).thenReturn(Optional.of(UUID.randomUUID()));
-
-    // When
-    ResultActions response =
-        mvc.perform(
-            post("/administration/collection-controls/{id}/requests", UUID.randomUUID())
-                .with(operator())
-                .contentType("application/json")
-                .content(body));
-
-    // Then
-    response.andExpect(status().isBadRequest());
-    verifyNoInteractions(controls, closure);
-  }
-
-  @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "{\"revision\":0}",
-        "{\"revision\":0,\"confirmation\":\"\"}",
-        "{\"revision\":0,\"confirmation\":\"2026/2027\",\"reopen\":true}"
+        "{\"confirmation\":\"\"}",
+        "{\"confirmation\":\"2026/2027\",\"reopen\":true}"
       })
   @DisplayName("Closure requires typed confirmation and offers no reopening flag")
   void validatesClosure(String body) throws Exception {

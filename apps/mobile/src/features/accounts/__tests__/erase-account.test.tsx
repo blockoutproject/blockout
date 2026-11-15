@@ -475,7 +475,6 @@ it("still clears A after admission removes the pending confirmation", async () =
       publicClient.setQueryData(getGetApplicationAccessQueryKey(), {
         ...mockApplicationAccessResponse(),
         maintenance: {
-          revision: 1,
           active: true,
           message: null,
           imageUrl: null,

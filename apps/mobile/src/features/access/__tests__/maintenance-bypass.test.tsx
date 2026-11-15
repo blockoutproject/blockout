@@ -67,7 +67,6 @@ beforeEach(() => {
   client = createQueryClient();
   full = applicationAccessResponse();
   full.maintenance = {
-    revision: 1,
     active: true,
     message: "Maintenance",
     imageUrl: null,
@@ -310,7 +309,7 @@ it("clears personal choice only after a successful complete inactive check", asy
   });
   full = {
     ...full,
-    maintenance: { revision: 2, active: false, message: null, imageUrl: null },
+    maintenance: { active: false, message: null, imageUrl: null },
   };
 
   // When
@@ -345,6 +344,6 @@ it.each([401, 403])(
 
     // Then
     expect(result.current.ordinary.bypass).toBeUndefined();
-    expect(result.current.access.snapshot.maintenance?.revision).toBe(1);
+    expect(result.current.access.snapshot.maintenance?.active).toBe(true);
   },
 );

@@ -36,13 +36,11 @@ public class ChangeClubContacts {
    *
    * @param accountId original operator, rechecked under the account lock after the club lock
    * @param clubId stable club
-   * @param revision contacts revision read before editing
    * @param edits nonempty supplied field modes, with omission represented by an absent map entry
-   * @return current contact state; matching no-ops preserve its revision
+   * @return current accepted contact state
    */
   @Transactional
-  public Contacts correct(
-      UUID accountId, UUID clubId, String revision, Map<ContactField, ContactEdit> edits) {
+  public Contacts correct(UUID accountId, UUID clubId, Map<ContactField, ContactEdit> edits) {
     permissions.requireForRead(accountId, Permission.MANAGE_SPORTING_PRESENTATION);
     if (edits.isEmpty()) {
       throw new SportingValidationException();
@@ -50,7 +48,6 @@ public class ChangeClubContacts {
     store.lockPresentation(Kind.CLUB, clubId);
     authorization.require(accountId, Permission.MANAGE_SPORTING_PRESENTATION);
     Contacts current = store.clubContacts(clubId);
-    SportingEditRevision.require(revision, Long.toString(current.revision()));
     Map<ContactField, ContactValue> fields = new EnumMap<>(current.fields());
     for (Map.Entry<ContactField, ContactEdit> entry : edits.entrySet()) {
       ContactEdit edit = entry.getValue();
@@ -75,12 +72,7 @@ public class ChangeClubContacts {
     }
     store.saveClubContacts(
         new Contacts(
-            clubId,
-            current.revision(),
-            fields,
-            current.order(),
-            current.observedAt(),
-            current.providerPublishedAt()),
+            clubId, fields, current.order(), current.observedAt(), current.providerPublishedAt()),
         null);
     return store.clubContacts(clubId);
   }

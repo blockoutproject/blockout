@@ -81,7 +81,7 @@ class DirectAuthorizationIntegrationTest extends ContributionScenario {
   @Autowired private EstablishAccount establishment;
   @MockitoBean private PrincipalReader principal;
 
-  /** Restores only this suite's disposable settings so every command uses a fresh revision. */
+  /** Restores only this suite's disposable settings for independently authorized commands. */
   @BeforeEach
   void resetSettings() {
     sql.update(
@@ -202,13 +202,13 @@ class DirectAuthorizationIntegrationTest extends ContributionScenario {
                     SportingIngestionFixture.CONTROL)
                 .with(caller)
                 .contentType("application/json")
-                .content("{\"revision\":1,\"enabled\":false}"));
+                .content("{\"enabled\":false}"));
     ResultActions divide =
         mvc.perform(
             put("/administration/divisions/{id}/activity", SportingIngestionFixture.DIVISION)
                 .with(caller)
                 .contentType("application/json")
-                .content("{\"revision\":\"0\",\"active\":false}"));
+                .content("{\"active\":false}"));
     ResultActions publish =
         mvc.perform(
             post("/administration/matches/{id}/stream-contributions", matchId)
@@ -416,12 +416,12 @@ class DirectAuthorizationIntegrationTest extends ContributionScenario {
           settings.changeMaintenance(
               actor,
               new UpdateAccessSettings.MaintenanceChange(
-                  0, "Synthetic maintenance", JsonNullable.undefined()));
+                  "Synthetic maintenance", JsonNullable.undefined()));
       case MANAGE_APPLICATION_VERSIONS ->
           settings.changeVersions(
               actor,
               new UpdateAccessSettings.VersionChange(
-                  0, null, null, JsonNullable.of("Synthetic update")));
+                  null, null, JsonNullable.of("Synthetic update")));
       case BYPASS_MAINTENANCE -> {
         // Fixture activation is rolled back, so this read-only admission probe changes no settings.
         new TransactionTemplate(transactions)
@@ -436,23 +436,15 @@ class DirectAuthorizationIntegrationTest extends ContributionScenario {
                 });
       }
       case MANAGE_COLLECTION ->
-          collection.setActivity(
-              actor,
-              SportingIngestionFixture.CONTROL,
-              sql.queryForObject(
-                  "SELECT revision FROM collection_control WHERE id=?",
-                  Long.class,
-                  SportingIngestionFixture.CONTROL),
-              false);
+          collection.setActivity(actor, SportingIngestionFixture.CONTROL, false);
       case MANAGE_SPORTING_PRESENTATION ->
           presentation.set(
-              actor, Kind.POOL, scope.pool(), new Edit("0", "Qualified pool", null, null, null));
+              actor, Kind.POOL, scope.pool(), new Edit("Qualified pool", null, null, null));
       case MANAGE_SPORTING_CLASSIFICATION ->
           classification.setPack(
               actor,
               sql.queryForObject(
                   "SELECT pack_id FROM sporting_pool WHERE id=?", UUID.class, scope.pool()),
-              "0",
               new SportingClassification(
                   SportingIngestionFixture.DIVISION, SportFormatEnum._6X6, SportGenderEnum.MALE));
       case MANAGE_DIVISION_LIFECYCLE ->
@@ -488,7 +480,7 @@ class DirectAuthorizationIntegrationTest extends ContributionScenario {
         SELECT m.active, m.message AS maintenance_message, m.revision AS maintenance_revision,
                v.message AS update_message, v.revision AS versions_revision,
                c.enabled, c.request_id, c.revision AS control_revision,
-               p.manual_name, p.presentation_revision, p.revision AS pool_revision,
+               p.manual_name, p.revision AS pool_revision,
                k.setting_division_id, k.setting_format, k.setting_gender, k.revision AS pack_revision,
                d.active AS division_active, d.revision AS division_revision,
                (SELECT COUNT(*) FROM sporting_division) AS divisions,

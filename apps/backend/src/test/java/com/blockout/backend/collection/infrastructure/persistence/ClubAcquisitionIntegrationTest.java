@@ -530,11 +530,7 @@ class ClubAcquisitionIntegrationTest {
    * @param fields scenario-owned desired independent modes and values
    */
   private void correct(Map<ContactField, ContactEdit> fields) {
-    details.correct(
-        account,
-        CLUB,
-        Long.toString(configurationReads.clubContacts(account, CLUB).revision()),
-        fields);
+    details.correct(account, CLUB, fields);
   }
 
   /**

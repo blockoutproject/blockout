@@ -376,7 +376,10 @@ it.each(
         {
           status: 409,
           title: "Conflict",
-          type: "urn:blockout:problem:stale-revision",
+          type:
+            action === "submit"
+              ? "urn:blockout:problem:stale-revision"
+              : "urn:blockout:problem:conflict",
         },
         { status: 409 },
       );
@@ -392,7 +395,7 @@ it.each(
             })
           : result.current.change.mutateAsync({
               versionId: version.id,
-              body: { action, revision: "initial" },
+              body: { action },
             });
       await expect(attempt).rejects.toBeInstanceOf(ApiError);
     });
@@ -430,7 +433,7 @@ it.each(
     expect(writes[0].body).toEqual(
       action === "submit"
         ? { revision: "initial", url: version.url }
-        : { action, revision: "initial" },
+        : { action },
     );
     expect(writes[0].url).toContain(
       action === "submit"
@@ -865,7 +868,7 @@ it.each(["submit", "withdraw"] as const)(
       } else {
         await result.current.change.mutateAsync({
           versionId: version.id,
-          body: { action, revision: "initial" },
+          body: { action },
         });
       }
     });
@@ -1053,7 +1056,7 @@ it("refuses another subject's credentials captured before contribution dispatch"
     attempt = result.current.change
       .mutateAsync({
         versionId: version.id,
-        body: { action: "withdraw", revision: "initial" },
+        body: { action: "withdraw" },
       })
       .catch((error: unknown) => error);
   });

@@ -126,7 +126,7 @@ public interface CollectionStore {
    * Replaces the exclusively locked startup identity.
    *
    * @param incarnationId new startup; caller already holds the exclusive runtime lock
-   * @return flushed native editing revision
+   * @return flushed native collector revision
    */
   Runtime replaceRuntime(UUID incarnationId);
 
@@ -263,7 +263,7 @@ public interface CollectionStore {
       String candidateUrl);
 
   /**
-   * Persists one approved state change and advances its native editing revision.
+   * Persists one approved state change and advances its native collector revision.
    *
    * @param source new mutable state of the locked source
    * @return flushed current state, including a new revision when renewing obsolete intent
@@ -321,7 +321,7 @@ public interface CollectionStore {
   void startControl(Control control, Cycle cycle);
 
   /**
-   * Links the exact candidate without changing its editing revision.
+   * Links the exact candidate without changing its collector revision.
    *
    * @param source locked candidate
    * @param cycle newly admitted validation

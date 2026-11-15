@@ -54,7 +54,6 @@ public class InitialReconstructionService {
    *
    * @param operator current local account with collection permission
    * @param seasonId canonical open season
-   * @param revision last read season preparation revision
    * @param sourceIds exact selected qualified roots
    * @param scopeIds optional failed scopes or explicitly selected parent pools of failed LNV logos;
    *     empty selects the supplied roots. A parent passage may integrate ordinary sporting facts
@@ -62,12 +61,12 @@ public class InitialReconstructionService {
    * @return accepted controls with pending identities for explicit rereads
    * @throws AccessDeniedException when the operator lacks the current collection grant
    * @throws SportingResourceNotFoundException when the canonical season is unknown
-   * @throws CollectionConflictException for stale revisions, closed or active history, unqualified
-   *     sources, unattributable retry scopes, or conflicting pending or running work
+   * @throws CollectionConflictException for closed or active history, unqualified sources,
+   *     unattributable retry scopes, or conflicting pending or running work
    */
   @Transactional
   public List<Control> request(
-      UUID operator, UUID seasonId, long revision, Set<UUID> sourceIds, Set<UUID> scopeIds) {
+      UUID operator, UUID seasonId, Set<UUID> sourceIds, Set<UUID> scopeIds) {
     store.lockRuntime();
     CollectionSeasonView season = seasons.lockCollectionState(seasonId);
     List<Source> selected =
@@ -85,7 +84,6 @@ public class InitialReconstructionService {
       }
     }
     authorization.require(operator, Permission.MANAGE_COLLECTION);
-    CollectionRevision.requireRevision(revision, season.collectionRevision());
     if (season.collectionState() != CollectionSeasonStateEnum.PREPARING
         || sourceIds.isEmpty()
         || selected.size() != sourceIds.size()
@@ -229,8 +227,7 @@ public class InitialReconstructionService {
    * @throws IllegalArgumentException when the sporting year or provider is unsupported
    * @throws AccessDeniedException when the operator lacks the current collection grant
    * @throws InvalidSourceException when the candidate URL or organizer is unsupported
-   * @throws CollectionConflictException when the season is closed, a locked reference differs, or
-   *     the current preparation revision cannot advance
+   * @throws CollectionConflictException when the season is closed or a locked reference differs
    */
   @Transactional
   public Source prepare(
@@ -249,16 +246,14 @@ public class InitialReconstructionService {
     CollectionLifecycle.requireOpen(season);
     Source source;
     if (existing == null) {
-      source =
-          preparation.create(
-              operator, seasonId, season.collectionRevision(), provider, organizer, url);
+      source = preparation.create(operator, seasonId, provider, organizer, url);
     } else {
       if (!Objects.equals(
           existing.locked() ? existing.acceptedUrl() : existing.candidateUrl(), url.toString())) {
         if (existing.locked()) {
           throw new CollectionConflictException("conflict");
         }
-        source = preparation.setCandidate(operator, existing.id(), existing.revision(), url);
+        source = preparation.setCandidate(operator, existing.id(), url);
       } else {
         source = existing;
       }
@@ -266,7 +261,7 @@ public class InitialReconstructionService {
     source = configurationReads.sourceView(source);
     if (source.validationState() == SourceValidationStateEnum.UNVALIDATED
         || source.validationState() == SourceValidationStateEnum.INVALID) {
-      source = preparation.requestValidation(operator, source.id(), source.revision());
+      source = preparation.requestValidation(operator, source.id());
     }
     if (store
         .initialCoverage(

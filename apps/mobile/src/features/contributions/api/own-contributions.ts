@@ -163,7 +163,7 @@ export function useOwnContributionsRead(matchId: string, enabled = true) {
   };
 }
 
-/** Selected member and viewed revision remain together through native confirmation and dispatch. */
+/** The exact selected version remains the target through native confirmation and dispatch. */
 export interface OwnContributionChange {
   versionId: string;
   body: UpdateOwnStreamContributionRequest;

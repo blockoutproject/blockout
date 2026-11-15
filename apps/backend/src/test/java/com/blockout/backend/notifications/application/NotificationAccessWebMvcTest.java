@@ -276,7 +276,7 @@ class NotificationAccessWebMvcTest {
   @DisplayName("Keeps maintenance admission independent of usable ownership")
   void requiresAdmission() throws Exception {
     // Given
-    doThrow(new MaintenanceRequiredException(new MaintenanceSettings(7L, true, "Pause", null)))
+    doThrow(new MaintenanceRequiredException(new MaintenanceSettings(true, "Pause", null)))
         .when(admission)
         .requireOrdinaryAccess(issuer, "auth0|a", false);
 

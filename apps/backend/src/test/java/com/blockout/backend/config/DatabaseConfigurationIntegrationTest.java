@@ -108,6 +108,98 @@ class DatabaseConfigurationIntegrationTest {
   }
 
   @Test
+  @DisplayName("Removes editor counters while preserving retained club values and privacy")
+  void removesEditorCountersFromRetainedSportingData() throws Exception {
+    // Given
+    createSchema("sporting_editor_upgrade");
+    try (Connection connection =
+            DriverManager.getConnection(
+                url("sporting_editor_upgrade"), "blockout_migration", "harmless-migration");
+        Liquibase liquibase =
+            new Liquibase(
+                "db/changelog/sporting.xml",
+                new ClassLoaderResourceAccessor(),
+                new JdbcConnection(connection));
+        Statement sql = connection.createStatement()) {
+      liquibase.update(5, new Contexts(), new LabelExpression());
+      sql.executeUpdate(
+          """
+          INSERT INTO sporting_club
+            (id, provider, reference, source_name, manual_name, logo, logo_media_type,
+             presentation_revision, contacts_revision, email_restricted, locality_revision)
+          VALUES ('00000000-0000-4000-8000-000000000829', 'FFVB', '00829', 'Source club',
+                  'Manual club', decode('89504e47', 'hex'), 'image/png', 7, 9, true, 11)
+          """);
+
+      // When
+      liquibase.update(new Contexts(), new LabelExpression());
+
+      // Then
+      try (ResultSet club = sql.executeQuery("SELECT * FROM sporting_club")) {
+        assertThat(club.next()).isTrue();
+        assertThat(club.getString("reference")).isEqualTo("00829");
+        assertThat(club.getString("source_name")).isEqualTo("Source club");
+        assertThat(club.getString("manual_name")).isEqualTo("Manual club");
+        assertThat(club.getBytes("logo"))
+            .containsExactly((byte) 0x89, (byte) 0x50, (byte) 0x4e, (byte) 0x47);
+        assertThat(club.getString("logo_media_type")).isEqualTo("image/png");
+        assertThat(club.getBoolean("email_restricted")).isTrue();
+        assertThat(club.getLong("locality_revision")).isEqualTo(11);
+        assertThat(club.next()).isFalse();
+      }
+      try (ResultSet columns =
+          sql.executeQuery(
+              """
+              SELECT COUNT(*) FROM information_schema.columns
+              WHERE table_schema = 'sporting_editor_upgrade'
+                AND table_name IN ('sporting_club', 'sporting_team', 'sporting_pool')
+                AND column_name IN ('presentation_revision', 'contacts_revision')
+              """)) {
+        assertThat(columns.next()).isTrue();
+        assertThat(columns.getInt(1)).isZero();
+      }
+    }
+  }
+
+  @Test
+  @DisplayName("Keeps settings and native versions after removing the editor wire range")
+  void removesSettingsEditorRangeFromRetainedData() throws Exception {
+    // Given
+    createSchema("settings_editor_upgrade");
+    migrate("settings_editor_upgrade", "db/changelog/accounts.xml");
+    try (Connection connection =
+            DriverManager.getConnection(
+                url("settings_editor_upgrade"), "blockout_migration", "harmless-migration");
+        Liquibase liquibase =
+            new Liquibase(
+                "db/changelog/access.xml",
+                new ClassLoaderResourceAccessor(),
+                new JdbcConnection(connection));
+        Statement sql = connection.createStatement()) {
+      liquibase.update(2, new Contexts(), new LabelExpression());
+      sql.executeUpdate(
+          """
+          UPDATE access_settings SET active = true, message = 'Retained maintenance',
+            revision = 9007199254740991 WHERE id = 'maintenance'
+          """);
+
+      // When
+      liquibase.update(new Contexts(), new LabelExpression());
+      sql.executeUpdate(
+          "UPDATE access_settings SET revision = revision + 1 WHERE id = 'maintenance'");
+
+      // Then
+      try (ResultSet settings =
+          sql.executeQuery("SELECT * FROM access_settings WHERE id = 'maintenance'")) {
+        assertThat(settings.next()).isTrue();
+        assertThat(settings.getBoolean("active")).isTrue();
+        assertThat(settings.getString("message")).isEqualTo("Retained maintenance");
+        assertThat(settings.getLong("revision")).isEqualTo(9007199254740992L);
+      }
+    }
+  }
+
+  @Test
   @DisplayName("Allows application credentials to insert, update and delete migrated data")
   void allowsApplicationDataWrites() throws Exception {
     // Given

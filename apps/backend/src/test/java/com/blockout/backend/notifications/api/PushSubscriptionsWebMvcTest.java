@@ -210,7 +210,7 @@ class PushSubscriptionsWebMvcTest {
   @DisplayName("Ordinary maintenance admission precedes destination changes")
   void enforcesAdmission() throws Exception {
     // Given
-    doThrow(new MaintenanceRequiredException(new MaintenanceSettings(7L, true, "Pause", null)))
+    doThrow(new MaintenanceRequiredException(new MaintenanceSettings(true, "Pause", null)))
         .when(admission)
         .requireOrdinaryAccess(anyString(), anyString(), eq(false));
 

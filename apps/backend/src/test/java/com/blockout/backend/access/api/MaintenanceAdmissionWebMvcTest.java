@@ -63,9 +63,7 @@ class MaintenanceAdmissionWebMvcTest {
       "Refuses ordinary direct calls including unsupported methods and unknown administration")
   void refusesOrdinary(String method, String path) throws Exception {
     // Given
-    doThrow(
-            new MaintenanceRequiredException(
-                new MaintenanceSettings(7, true, "Pause en cours", null)))
+    doThrow(new MaintenanceRequiredException(new MaintenanceSettings(true, "Pause en cours", null)))
         .when(admission)
         .requireOrdinaryAccess(nullable(String.class), nullable(String.class), anyBoolean());
 
@@ -76,7 +74,6 @@ class MaintenanceAdmissionWebMvcTest {
         // Then
         .andExpect(status().isServiceUnavailable())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:maintenance"))
-        .andExpect(jsonPath("$.maintenance.revision").value(7))
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(header().doesNotExist("Retry-After"));
   }
@@ -154,7 +151,7 @@ class MaintenanceAdmissionWebMvcTest {
   @DisplayName("Does not manufacture active maintenance from an inconsistent refusal")
   void rejectsInactiveRefusal() throws Exception {
     // Given
-    doThrow(new MaintenanceRequiredException(new MaintenanceSettings(7, false, "Prepared", null)))
+    doThrow(new MaintenanceRequiredException(new MaintenanceSettings(false, "Prepared", null)))
         .when(admission)
         .requireOrdinaryAccess(nullable(String.class), nullable(String.class), anyBoolean());
 

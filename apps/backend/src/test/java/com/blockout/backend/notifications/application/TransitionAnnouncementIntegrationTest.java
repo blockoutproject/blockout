@@ -357,12 +357,7 @@ class TransitionAnnouncementIntegrationTest {
   private Cycle initialCycle() {
     Control requested =
         reconstruction
-            .request(
-                OPERATOR,
-                source.seasonId(),
-                seasons.collectionState(source.seasonId()).collectionRevision(),
-                Set.of(source.id()),
-                Set.of())
+            .request(OPERATOR, source.seasonId(), Set.of(source.id()), Set.of())
             .getFirst();
     return admit(requested);
   }
@@ -374,12 +369,11 @@ class TransitionAnnouncementIntegrationTest {
    */
   private Cycle ordinaryCycle() {
     CollectionSeasonView season = seasons.collectionState(source.seasonId());
-    preparation.launch(OPERATOR, season.id(), season.collectionRevision(), Set.of(source.id()));
+    preparation.launch(OPERATOR, season.id(), Set.of(source.id()));
     Control current = configuration.control(OPERATOR, initial.controlId()).control();
-    controls.setActivity(OPERATOR, current.id(), current.revision(), true);
+    controls.setActivity(OPERATOR, current.id(), true);
     current = configuration.control(OPERATOR, current.id()).control();
-    Control requested =
-        controls.request(OPERATOR, current.id(), current.revision()).view().control();
+    Control requested = controls.request(OPERATOR, current.id()).view().control();
     when(clock.instant()).thenReturn(NOW.plusSeconds(1800));
     return admit(requested);
   }

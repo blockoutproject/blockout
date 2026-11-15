@@ -136,7 +136,7 @@ class ContributionAccessWebMvcTest {
   void prepare() {
     when(accounts.currentId(issuer, "original-subject")).thenReturn(Optional.of(ACCOUNT));
     when(permissions.findByAccountId(ACCOUNT)).thenReturn(Set.of());
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(0, false, "Available", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(false, "Available", null));
     when(transactions.getTransaction(any()))
         .thenAnswer(invocation -> new SimpleTransactionStatus());
   }
@@ -321,7 +321,7 @@ class ContributionAccessWebMvcTest {
       throws Exception {
     // Given
     when(accounts.lock(ACCOUNT)).thenReturn(true);
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, true, "Maintenance", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(true, "Maintenance", null));
     when(permissions.findByAccountId(ACCOUNT)).thenReturn(grants);
     String bearer = token(issuer, "mobile-test", "mobile-client", false);
 

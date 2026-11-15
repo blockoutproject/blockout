@@ -863,7 +863,7 @@ it("withdraws only the confirmed published version despite an edited draft and u
       url: expect.stringContaining(
         `/stream-contributions/${accepted.contribution.id}`,
       ),
-      body: { action: "withdraw", revision: "initial" },
+      body: { action: "withdraw" },
     },
   ]);
   expect(posts).toHaveLength(0);

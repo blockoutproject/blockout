@@ -174,12 +174,10 @@ function accessResponses(
 ) {
   const access = applicationAccessResponse();
   access.maintenance = {
-    revision: 2,
     active: true,
     message: "Maintenance demo",
     imageUrl: null,
   };
-  access.versions.revision = 3;
   access.versions.ios = {
     minimumVersion: outdated ? "2.10.0" : "2.0.0",
     storeUrl: "https://apps.apple.com/fr/app/blockout/id123456789",

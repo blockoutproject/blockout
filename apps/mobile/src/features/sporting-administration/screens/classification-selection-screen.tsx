@@ -110,7 +110,7 @@ function Selection({
   const blocked =
     !authority.enabled || requiredRead.isPending || hasReadError(requiredRead);
 
-  /** Pull refresh reuses this visit's existing reads without changing its revision or draft. */
+  /** Pull refresh reuses this visit's existing reads without replacing its draft. */
   async function refresh() {
     await Promise.all([
       classification.query.refetch(),

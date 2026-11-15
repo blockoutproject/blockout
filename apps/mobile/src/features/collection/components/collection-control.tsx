@@ -46,7 +46,7 @@ export function CollectionControl({
     };
   }, []);
 
-  /** Sends the desired state and revision; native mutation callbacks own invalidation. */
+  /** Sends the desired state; native mutation callbacks own invalidation. */
   async function send(command: "activity" | "request") {
     if (
       !mounted.current ||
@@ -61,10 +61,9 @@ export function CollectionControl({
       const attempt =
         command === "activity"
           ? editing.activity.mutateAsync({
-              revision: control.revision,
               enabled: !control.enabled,
             })
-          : editing.request.mutateAsync({ revision: control.revision });
+          : editing.request.mutateAsync();
       actionFeedback.clear();
       await attempt;
     } catch {
@@ -72,7 +71,7 @@ export function CollectionControl({
     }
   }
 
-  /** Native confirmation belongs to the mounted control; the backend rechecks current permission and revision. */
+  /** Native confirmation belongs to the mounted control; the backend rechecks current permission and eligibility. */
   async function confirmRequest() {
     if (busy || closed || refused) {
       return;

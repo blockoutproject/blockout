@@ -589,7 +589,7 @@ class CollectorPresentationBoundaryIntegrationTest {
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(GEOCODING, null, 0, null);
     // Manual F11 restriction has no public endpoint; seed its resulting current owner state.
     runtime.sql.update(
-        "UPDATE sporting_club SET municipality=NULL,municipality_manual=NULL,municipality_restricted=TRUE,locality_revision=2,contacts_revision=1 WHERE id=?",
+        "UPDATE sporting_club SET municipality=NULL,municipality_manual=NULL,municipality_restricted=TRUE,locality_revision=2 WHERE id=?",
         CLUB);
     ClubGeocoder geocoder = mock(ClubGeocoder.class);
 
@@ -688,7 +688,7 @@ class CollectorPresentationBoundaryIntegrationTest {
           email=NULL,email_manual=NULL,email_restricted=TRUE,
           phone=NULL,phone_manual=NULL,phone_restricted=TRUE,
           website=NULL,website_manual=NULL,website_restricted=TRUE,
-          latitude=NULL,longitude=NULL,locality_revision=2,contacts_revision=1
+          latitude=NULL,longitude=NULL,locality_revision=2
         WHERE id=?
         """,
         CLUB);
@@ -780,14 +780,12 @@ class CollectorPresentationBoundaryIntegrationTest {
     sporting.logo(team, context(cycle), source);
     byte[] manual = image("jpeg");
     presentation(team, "replace", "Manual team", manual);
-    String revision = presentation(team).path("revision").asString();
 
     // When / Then
     assertThatThrownBy(() -> presentation(team, "replace", "Rejected name", new byte[] {1, 2, 3}))
         .isInstanceOfSatisfying(
             HttpClientErrorException.class,
             failure -> assertThat(failure.getStatusCode().value()).isEqualTo(422));
-    assertThat(presentation(team).path("revision").asString()).isEqualTo(revision);
     assertThat(
             runtime.sql.queryForObject(
                 "SELECT manual_name FROM sporting_team WHERE id=?", String.class, team))
@@ -944,7 +942,7 @@ class CollectorPresentationBoundaryIntegrationTest {
   /**
    * Reads the canonical current contact response without a parallel transport model.
    *
-   * @return current contact choices and their opaque revision
+   * @return current contact choices
    * @throws RestClientException when the local backend refuses or cannot complete the read
    */
   private JsonNode contacts() {
@@ -956,25 +954,23 @@ class CollectorPresentationBoundaryIntegrationTest {
   }
 
   /**
-   * Applies only supplied contact choices using the real current revision and controller.
+   * Applies only supplied contact choices through the real controller.
    *
    * @param fields scenario-owned canonical field modes and values
    * @throws RestClientException when the local backend refuses or cannot complete the correction
    */
   private void correct(Map<String, Object> fields) {
-    Map<String, Object> request = new LinkedHashMap<>(fields);
-    request.put("revision", contacts().path("revision").asString());
     mobile
         .patch()
         .uri("/administration/clubs/{id}/contacts", CLUB)
         .contentType(MediaType.APPLICATION_JSON)
-        .body(request)
+        .body(fields)
         .retrieve()
         .toBodilessEntity();
   }
 
   /**
-   * Reads the canonical team editor response to obtain its current opaque revision.
+   * Reads the canonical current team presentation.
    *
    * @param team original team UUID
    * @return current canonical presentation projection
@@ -1003,7 +999,6 @@ class CollectorPresentationBoundaryIntegrationTest {
     HttpHeaders json = new HttpHeaders();
     json.setContentType(MediaType.APPLICATION_JSON);
     Map<String, Object> metadata = new LinkedHashMap<>();
-    metadata.put("revision", presentation(team).path("revision").asString());
     metadata.put("logoAction", action);
     metadata.put("manualName", name);
     metadata.put("manualShortName", null);

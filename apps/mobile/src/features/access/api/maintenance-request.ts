@@ -4,11 +4,10 @@ import type { MaintenanceValues } from "../schemas/maintenance-schema";
 
 /** Encodes only dirty content; an empty dirty image is null, while untouched fields stay absent. */
 export function toMaintenanceRequest(
-  revision: ChangeMaintenanceRequest["revision"],
   values: MaintenanceValues,
   dirty: FieldNamesMarkedBoolean<MaintenanceValues>,
 ): ChangeMaintenanceRequest {
-  const body: ChangeMaintenanceRequest = { revision };
+  const body: ChangeMaintenanceRequest = {};
   if (dirty.message) {
     body.message = values.message;
   }

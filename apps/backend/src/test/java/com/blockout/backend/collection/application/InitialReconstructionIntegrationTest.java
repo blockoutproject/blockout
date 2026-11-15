@@ -177,17 +177,11 @@ class InitialReconstructionIntegrationTest {
     Source source = qualify(prepareViaCommand(year));
     UUID pool = pool(source, "P1");
     sql.update("UPDATE sporting_pool SET catalog_eligible=FALSE WHERE id=?", pool);
-    CollectionSeasonView before = seasonReads.collectionState(source.seasonId());
 
     // When
     Control pending =
         reconstruction
-            .request(
-                OPERATOR,
-                source.seasonId(),
-                before.collectionRevision(),
-                Set.of(source.id()),
-                Set.of())
+            .request(OPERATOR, source.seasonId(), Set.of(source.id()), Set.of())
             .getFirst();
     Cycle cycle = admit(pending);
     calendars.accept(
@@ -244,7 +238,7 @@ class InitialReconstructionIntegrationTest {
     assertThatThrownBy(
             () ->
                 preparation.setCandidate(
-                    OPERATOR, source.id(), 1, URI.create("https://www.ffvb.org/changed")))
+                    OPERATOR, source.id(), URI.create("https://www.ffvb.org/changed")))
         .isInstanceOf(CollectionConflictException.class);
   }
 
@@ -334,7 +328,7 @@ class InitialReconstructionIntegrationTest {
     Source source = qualified(2023, "ABCCS");
     Control pending = request(source, Set.of());
     CollectionSeasonView season = seasonReads.collectionState(source.seasonId());
-    preparation.launch(OPERATOR, season.id(), season.collectionRevision(), Set.of(source.id()));
+    preparation.launch(OPERATOR, season.id(), Set.of(source.id()));
 
     // When / Then
     assertThatThrownBy(() -> admit(pending)).isInstanceOf(CollectionConflictException.class);
@@ -874,9 +868,9 @@ class InitialReconstructionIntegrationTest {
     results.complete(first.id(), NOW.plusSeconds(60));
     InitialCoverage.Page before = reconstruction.coverage(OPERATOR, source.seasonId(), 0, 200);
     CollectionSeasonView season = seasonReads.collectionState(source.seasonId());
-    preparation.launch(OPERATOR, season.id(), season.collectionRevision(), Set.of(source.id()));
+    preparation.launch(OPERATOR, season.id(), Set.of(source.id()));
     Control current = configuration.control(OPERATOR, initial.id()).control();
-    controls.setActivity(OPERATOR, current.id(), current.revision(), true);
+    controls.setActivity(OPERATOR, current.id(), true);
     current = configuration.control(OPERATOR, initial.id()).control();
 
     when(clock.instant()).thenReturn(NOW.plusSeconds(1800));
@@ -952,13 +946,7 @@ class InitialReconstructionIntegrationTest {
                 "135",
                 URI.create("https://lnv-web.dataproject.com/CompetitionHome.aspx?ID=135")));
     Set<UUID> roots = Set.of(ffvb.id(), lnv.id());
-    List<Control> pending =
-        reconstruction.request(
-            OPERATOR,
-            ffvb.seasonId(),
-            seasonReads.collectionState(ffvb.seasonId()).collectionRevision(),
-            roots,
-            Set.of());
+    List<Control> pending = reconstruction.request(OPERATOR, ffvb.seasonId(), roots, Set.of());
     for (Control control : pending) {
       Cycle cycle = admit(control);
       results.complete(cycle.id(), NOW.plusSeconds(60));
@@ -966,13 +954,7 @@ class InitialReconstructionIntegrationTest {
 
     // When / Then
     assertThatThrownBy(
-            () ->
-                reconstruction.request(
-                    OPERATOR,
-                    ffvb.seasonId(),
-                    seasonReads.collectionState(ffvb.seasonId()).collectionRevision(),
-                    roots,
-                    Set.of(ffvb.id())))
+            () -> reconstruction.request(OPERATOR, ffvb.seasonId(), roots, Set.of(ffvb.id())))
         .isInstanceOf(CollectionConflictException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM collection_request_source", Long.class))
         .isZero();
@@ -1054,12 +1036,11 @@ class InitialReconstructionIntegrationTest {
             List.of(),
             List.of()));
     CollectionSeasonView season = seasonReads.collectionState(source.seasonId());
-    assertThatThrownBy(
-            () -> closure.close(OPERATOR, season.id(), season.collectionRevision(), " 2023/2024"))
+    assertThatThrownBy(() -> closure.close(OPERATOR, season.id(), " 2023/2024"))
         .isInstanceOf(InvalidSeasonConfirmationException.class);
 
     // When
-    closure.close(OPERATOR, season.id(), season.collectionRevision(), season.label());
+    closure.close(OPERATOR, season.id(), season.label());
     calendars.accept(
         pool, new CalendarObservation(context(cycle, 2), true, List.of(), List.of(), List.of()));
     results.complete(cycle.id(), NOW.plusSeconds(60));
@@ -1514,7 +1495,7 @@ class InitialReconstructionIntegrationTest {
   }
 
   /**
-   * Explicitly requests this source with its current preparation revision.
+   * Explicitly requests this exact source against current state.
    *
    * @param source exact root selected for this request
    * @param scopes empty for the root or an explicit set of failed target identities
@@ -1522,12 +1503,7 @@ class InitialReconstructionIntegrationTest {
    */
   private Control request(Source source, Set<UUID> scopes) {
     return reconstruction
-        .request(
-            OPERATOR,
-            source.seasonId(),
-            seasonReads.collectionState(source.seasonId()).collectionRevision(),
-            Set.of(source.id()),
-            scopes)
+        .request(OPERATOR, source.seasonId(), Set.of(source.id()), scopes)
         .getFirst();
   }
 

@@ -46,7 +46,7 @@ export function control(
     id: "00000000-0000-4000-8000-000000000189",
     family: "ffvb",
     seasonId,
-    revision: 3,
+
     enabled: true,
     pendingRequestId: null,
     lastAttemptAt: null,
@@ -88,7 +88,7 @@ export function refused(status: number) {
     {
       type:
         status === 409
-          ? "urn:blockout:problem:stale-revision"
+          ? "urn:blockout:problem:conflict"
           : "urn:blockout:problem:unprocessable-content",
       title: "Refused",
       status,
@@ -114,7 +114,7 @@ export function collectionPeer(): CollectionPeer {
       id: seasonId,
       label: "2026/2027",
       startYear: 2026,
-      revision: 5,
+
       state: "active",
     },
     controls: [control()],

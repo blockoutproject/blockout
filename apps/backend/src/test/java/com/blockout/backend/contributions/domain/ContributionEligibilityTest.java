@@ -42,7 +42,7 @@ class ContributionEligibilityTest {
 
     // When
     ContributionEligibility.Decision result =
-        ContributionEligibility.evaluate(actor, ELIGIBLE, INITIAL, 0, ADDRESS, EMPTY, NOW);
+        ContributionEligibility.evaluate(actor, ELIGIBLE, INITIAL, ADDRESS, EMPTY, NOW);
 
     // Then
     assertThat(result.status()).isEqualTo(Status.ACTIVE);
@@ -57,7 +57,7 @@ class ContributionEligibilityTest {
 
     // When
     ContributionEligibility.Decision result =
-        ContributionEligibility.evaluate(ORDINARY, match, INITIAL, 0, ADDRESS, EMPTY, NOW);
+        ContributionEligibility.evaluate(ORDINARY, match, INITIAL, ADDRESS, EMPTY, NOW);
 
     // Then
     assertThat(result.status()).isEqualTo(expected);
@@ -71,7 +71,7 @@ class ContributionEligibilityTest {
 
     // When
     ContributionEligibility.Decision result =
-        ContributionEligibility.evaluate(ORDINARY, dateOnly, INITIAL, 0, ADDRESS, EMPTY, NOW);
+        ContributionEligibility.evaluate(ORDINARY, dateOnly, INITIAL, ADDRESS, EMPTY, NOW);
 
     // Then
     assertThat(result.status()).isEqualTo(Status.START_UNCONFIRMED);
@@ -85,7 +85,7 @@ class ContributionEligibilityTest {
 
     // When
     ContributionEligibility.Decision result =
-        ContributionEligibility.evaluate(ORDINARY, match, INITIAL, 0, ADDRESS, EMPTY, NOW);
+        ContributionEligibility.evaluate(ORDINARY, match, INITIAL, ADDRESS, EMPTY, NOW);
 
     // Then
     assertThat(result.status()).isEqualTo(Status.PENDING);
@@ -99,7 +99,7 @@ class ContributionEligibilityTest {
 
     // When
     ContributionEligibility.Decision result =
-        ContributionEligibility.evaluate(ORDINARY, ELIGIBLE, held, 4, ADDRESS, EMPTY, NOW);
+        ContributionEligibility.evaluate(ORDINARY, ELIGIBLE, held, ADDRESS, EMPTY, NOW);
 
     // Then
     assertThat(result.status()).isEqualTo(Status.PENDING);
@@ -116,7 +116,7 @@ class ContributionEligibilityTest {
 
     // When
     ContributionEligibility.Decision result =
-        ContributionEligibility.evaluate(ORDINARY, ELIGIBLE, current, 2, third, EMPTY, NOW);
+        ContributionEligibility.evaluate(ORDINARY, ELIGIBLE, current, third, EMPTY, NOW);
 
     // Then
     assertThat(result.status()).isEqualTo(Status.ACTIVE);
@@ -133,7 +133,7 @@ class ContributionEligibilityTest {
 
     // When
     ContributionEligibility.Decision result =
-        ContributionEligibility.evaluate(ORDINARY, rescheduled, current, 2, third, EMPTY, NOW);
+        ContributionEligibility.evaluate(ORDINARY, rescheduled, current, third, EMPTY, NOW);
 
     // Then
     assertThat(result.status()).isEqualTo(Status.WINDOW_NOT_OPEN);
@@ -148,7 +148,7 @@ class ContributionEligibilityTest {
 
     // When
     ContributionEligibility.Decision result =
-        ContributionEligibility.evaluate(MODERATOR, match, held, 0, ADDRESS, FULL, NOW);
+        ContributionEligibility.evaluate(MODERATOR, match, held, ADDRESS, FULL, NOW);
 
     // Then
     assertThat(result.status()).isEqualTo(Status.ACTIVE);
@@ -174,7 +174,7 @@ class ContributionEligibilityTest {
 
     // When
     ContributionEligibility.Decision result =
-        ContributionEligibility.evaluate(actor, match, INITIAL, 0, ADDRESS, usage, NOW);
+        ContributionEligibility.evaluate(actor, match, INITIAL, ADDRESS, usage, NOW);
 
     // Then
     assertThat(result.status()).isEqualTo(expected);
@@ -188,7 +188,7 @@ class ContributionEligibilityTest {
 
     // When
     ContributionEligibility.Decision result =
-        ContributionEligibility.evaluate(unrelated, ELIGIBLE, INITIAL, 0, ADDRESS, EMPTY, NOW);
+        ContributionEligibility.evaluate(unrelated, ELIGIBLE, INITIAL, ADDRESS, EMPTY, NOW);
 
     // Then
     assertThat(result.status()).isEqualTo(Status.FORBIDDEN);
@@ -210,33 +210,11 @@ class ContributionEligibilityTest {
 
     // When
     ContributionEligibility.Decision result =
-        ContributionEligibility.evaluate(ORDINARY, ELIGIBLE, current, 4, ADDRESS, FULL, NOW);
+        ContributionEligibility.evaluate(ORDINARY, ELIGIBLE, current, ADDRESS, FULL, NOW);
 
     // Then
     assertThat(result.status()).isEqualTo(Status.UNCHANGED);
     assertThat(result.existingVersionId()).isEqualTo(VERSION);
-  }
-
-  @ParameterizedTest
-  @ValueSource(booleans = {false, true})
-  @DisplayName(
-      "Rejects a stale revision before recognizing an unchanged address, including for moderators")
-  void rejectsStaleRepetition(boolean moderator) {
-    // Given
-    Current current =
-        new Current(
-            new ContributionState(MATCH, 4, null),
-            version(OWNER, ContributionVersion.State.ACTIVE, ADDRESS),
-            null);
-
-    Actor actor = moderator ? MODERATOR : ORDINARY;
-
-    // When
-    ContributionEligibility.Decision result =
-        ContributionEligibility.evaluate(actor, ELIGIBLE, current, 3, ADDRESS, FULL, NOW);
-
-    // Then
-    assertThat(result.status()).isEqualTo(Status.STALE_REVISION);
   }
 
   @Test
@@ -252,7 +230,7 @@ class ContributionEligibilityTest {
 
     // When
     ContributionEligibility.Decision result =
-        ContributionEligibility.evaluate(revoked, ELIGIBLE, current, 4, ADDRESS, FULL, NOW);
+        ContributionEligibility.evaluate(revoked, ELIGIBLE, current, ADDRESS, FULL, NOW);
 
     // Then
     assertThat(result.status()).isEqualTo(Status.FORBIDDEN);
@@ -270,7 +248,7 @@ class ContributionEligibilityTest {
 
     // When
     ContributionEligibility.Decision result =
-        ContributionEligibility.evaluate(ORDINARY, ELIGIBLE, staleRead, 0, ADDRESS, FULL, NOW);
+        ContributionEligibility.evaluate(ORDINARY, ELIGIBLE, staleRead, ADDRESS, FULL, NOW);
 
     // Then
     assertThat(result.status()).isEqualTo(Status.VERSION_LIMIT);
@@ -291,7 +269,7 @@ class ContributionEligibilityTest {
 
     // When
     ContributionEligibility.Decision result =
-        ContributionEligibility.evaluate(ORDINARY, ELIGIBLE, current, 0, ADDRESS, EMPTY, NOW);
+        ContributionEligibility.evaluate(ORDINARY, ELIGIBLE, current, ADDRESS, EMPTY, NOW);
 
     // Then
     assertThat(result.status()).isEqualTo(Status.NOT_OWNER);
@@ -313,7 +291,7 @@ class ContributionEligibilityTest {
 
     // When
     ContributionEligibility.Decision result =
-        ContributionEligibility.evaluate(MODERATOR, ELIGIBLE, current, 0, replacement, FULL, NOW);
+        ContributionEligibility.evaluate(MODERATOR, ELIGIBLE, current, replacement, FULL, NOW);
 
     // Then
     assertThat(result.status()).isEqualTo(Status.ACTIVE);
@@ -333,7 +311,7 @@ class ContributionEligibilityTest {
 
     // When
     ContributionEligibility.Decision result =
-        ContributionEligibility.evaluate(ORDINARY, ELIGIBLE, current, 0, changed, FULL, NOW);
+        ContributionEligibility.evaluate(ORDINARY, ELIGIBLE, current, changed, FULL, NOW);
 
     // Then
     assertThat(result.status()).isEqualTo(Status.VERSION_LIMIT);

@@ -86,7 +86,6 @@ public interface AccessApiMapper {
    */
   static PublicMaintenanceResponse toPublicDto(MaintenanceSettings source) {
     return new PublicMaintenanceResponse(
-        source.revision(),
         source.active(),
         source.active() ? source.message() : null,
         source.active() ? UriMapping.toUri(source.imageUrl()) : null);

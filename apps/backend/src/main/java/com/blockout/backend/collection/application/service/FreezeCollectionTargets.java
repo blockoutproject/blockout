@@ -99,7 +99,6 @@ public class FreezeCollectionTargets {
             && sources.size() != control.sourceBindingIds().size())) {
       throw invalid();
     }
-    boolean lockedReference = false;
     for (Source candidate : sources) {
       Source source;
       if (candidate.validationState() != SourceValidationStateEnum.QUALIFIED
@@ -109,7 +108,6 @@ public class FreezeCollectionTargets {
       if (!candidate.locked()) {
         CollectionRevision.requireAdvance(candidate.revision());
         source = store.lockAcceptedSource(candidate);
-        lockedReference = true;
       } else {
         source = candidate;
       }
@@ -153,10 +151,6 @@ public class FreezeCollectionTargets {
         }
         afterPool = references.getLast().poolId();
       }
-    }
-    if (lockedReference) {
-      CollectionRevision.requireAdvance(season.collectionRevision());
-      seasons.updatePreparation(season.id(), false);
     }
   }
 

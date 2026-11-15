@@ -124,7 +124,7 @@ function ClassificationVisit({
           accessibilityElementsHidden={blocked}
           importantForAccessibility={blocked ? "no-hide-descendants" : "auto"}
         >
-          {editor.state.revision && (
+          {editor.form.formState.defaultValues && (
             <ClassificationForm
               target={target}
               current={current ?? null}

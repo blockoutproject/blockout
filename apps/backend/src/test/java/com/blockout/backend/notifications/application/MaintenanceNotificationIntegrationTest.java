@@ -49,7 +49,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * Real F12 HTTP/settings, F02 producers, F07 inbox/sender/retention and migrated PostgreSQL. Only
@@ -68,7 +67,6 @@ import tools.jackson.databind.ObjectMapper;
 @DisplayName("Maintenance notification continuity through actual owners")
 class MaintenanceNotificationIntegrationTest extends ContributionScenario {
   @Autowired private MockMvc mvc;
-  @Autowired private ObjectMapper json;
   @Autowired private ReadInbox inbox;
   @Autowired private ChangePushSubscriptions subscriptions;
   @Autowired private NotificationRetentionConfiguration daily;
@@ -287,24 +285,17 @@ class MaintenanceNotificationIntegrationTest extends ContributionScenario {
   }
 
   /**
-   * Exercises the actual generated management read/activation and complete public response.
+   * Exercises actual generated activation and the complete public response.
    *
    * @param active explicit desired maintenance state, never a toggle
    * @throws Exception if the production HTTP boundary refuses or returns invalid JSON
    */
   private void maintenance(boolean active) throws Exception {
-    String current =
-        mvc.perform(get("/administration/maintenance").with(principal(AUTHOR)))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-    long revision = json.readTree(current).path("revision").asLong();
     mvc.perform(
             put("/administration/maintenance/activation")
                 .with(principal(AUTHOR))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":" + revision + ",\"active\":" + active + "}"))
+                .content("{\"active\":" + active + "}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.active").value(active));
     mvc.perform(get("/application-access"))

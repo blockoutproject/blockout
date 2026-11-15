@@ -47,16 +47,10 @@ class AccessContractWebMvcTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
-        "{}",
-        "{\"revision\":null}",
-        "{\"revision\":-1}",
-        "{\"revision\":\"0\"}",
-        "{\"revision\":0.4}",
-        "{\"revision\":9007199254740992}",
-        "{\"revision\":0,\"future\":true}",
-        "{\"revision\":0,\"ios\":{\"future\":true}}",
-        "{\"revision\":0,\"ios\":null}",
-        "{\"revision\":0,\"message\":\"\"}"
+        "{\"future\":true}",
+        "{\"ios\":{\"future\":true}}",
+        "{\"ios\":null}",
+        "{\"message\":\"\"}"
       })
   @DisplayName("Rejects invalid version changes with canonical non-cacheable errors")
   void rejectsInvalidVersionChange(String body) throws Exception {
@@ -79,10 +73,10 @@ class AccessContractWebMvcTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
-        "{\"revision\":0}",
-        "{\"revision\":9007199254740991,\"ios\":{}}",
-        "{\"revision\":0,\"message\":null,\"ios\":{\"minimumVersion\":null,\"storeUrl\":null}}",
-        "{\"revision\":0,\"ios\":{\"minimumVersion\":\"2.10.0\",\"storeUrl\":\"https://apps.apple.com/app/id123\"}}"
+        "{}",
+        "{\"ios\":{}}",
+        "{\"message\":null,\"ios\":{\"minimumVersion\":null,\"storeUrl\":null}}",
+        "{\"ios\":{\"minimumVersion\":\"2.10.0\",\"storeUrl\":\"https://apps.apple.com/app/id123\"}}"
       })
   @DisplayName("Preserves omitted, null and supplied version fields")
   void preservesVersionPresence(String body) throws Exception {
@@ -101,12 +95,12 @@ class AccessContractWebMvcTest {
   @CsvSource(
       delimiter = '|',
       value = {
-        "maintenance|{\"revision\":0,\"active\":true}",
-        "maintenance|{\"revision\":0,\"message\":null}",
-        "activation|{\"revision\":0}",
-        "activation|{\"revision\":0,\"active\":null}",
-        "activation|{\"revision\":0,\"active\":\"true\"}",
-        "activation|{\"revision\":0,\"active\":true,\"message\":\"Unexpected\"}"
+        "maintenance|{\"active\":true}",
+        "maintenance|{\"message\":null}",
+        "activation|{}",
+        "activation|{\"active\":null}",
+        "activation|{\"active\":\"true\"}",
+        "activation|{\"active\":true,\"message\":\"Unexpected\"}"
       })
   @DisplayName("Keeps content edits separate from explicit boolean activation")
   void rejectsInvalidMaintenanceChange(String route, String body) throws Exception {

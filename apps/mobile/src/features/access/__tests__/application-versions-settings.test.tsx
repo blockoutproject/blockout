@@ -71,7 +71,6 @@ let client: QueryClient;
 let publicClient = createQueryClient();
 const environment = { ...process.env };
 const initial = {
-  revision: 2,
   ios: {
     minimumVersion: "2.0.0",
     storeUrl: "https://apps.apple.com/fr/app/blockout/id123456789",
@@ -161,20 +160,6 @@ function json(value: unknown, status = 200) {
   });
 }
 
-/** Finds the real generated private query so refetches exercise the production consumer. */
-function settingsKey() {
-  const query = client
-    .getQueryCache()
-    .findAll()
-    .find((q) =>
-      q.queryKey.includes(getGetApplicationVersionSettingsQueryKey()[0]),
-    );
-  if (!query) {
-    throw new Error("The versions query is missing");
-  }
-  return query.queryKey;
-}
-
 it("shows loading without publishing defaults, then retries a failed initial read", async () => {
   // Given
   const user = userEvent.setup();
@@ -238,7 +223,7 @@ it("shows loading without publishing defaults, then retries a failed initial rea
     mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
   ).toBe(false);
 });
-it("saves independent iOS and Android edits atomically under one revision", async () => {
+it("saves independent iOS and Android edits atomically", async () => {
   // Given
   const user = userEvent.setup();
   await renderSettings();
@@ -275,7 +260,6 @@ it("saves independent iOS and Android edits atomically under one revision", asyn
   const writes = mockFetch.mock.calls.filter(([, o]) => o?.method === "PATCH");
   expect(writes).toHaveLength(1);
   expect(JSON.parse(String(writes[0][1]?.body))).toEqual({
-    revision: 2,
     ios: { minimumVersion: "1.8.0" },
     android: { storeUrl: initial.android.storeUrl + "&hl=fr" },
   });
@@ -286,7 +270,7 @@ it("saves independent iOS and Android edits atomically under one revision", asyn
   // When
   stored = {
     ...initial,
-    revision: 3,
+
     ios: { ...initial.ios, minimumVersion: "1.8.0" },
     android: {
       ...initial.android,
@@ -315,7 +299,7 @@ it("removes a platform minimum and optional message with null while omitting the
   mockFetch.mockImplementation(async () =>
     json({
       ...initial,
-      revision: 3,
+
       ios: { ...initial.ios, minimumVersion: null },
       message: null,
     }),
@@ -332,7 +316,6 @@ it("removes a platform minimum and optional message with null while omitting the
   );
   const write = mockFetch.mock.calls.find(([, o]) => o?.method === "PATCH");
   expect(JSON.parse(String(write?.[1]?.body))).toEqual({
-    revision: 2,
     ios: { minimumVersion: null },
     message: null,
   });
@@ -441,7 +424,7 @@ it("saves directly after the acknowledgement for the current raised minimum", as
     if (options?.method === "PATCH") {
       stored = {
         ...initial,
-        revision: 3,
+
         ios: { ...initial.ios, minimumVersion: "2.11.0" },
       };
     }
@@ -461,7 +444,7 @@ it("saves directly after the acknowledgement for the current raised minimum", as
     "2.11.0",
   );
 });
-it.each([403, "stale-revision"] as const)(
+it.each([403] as const)(
   "preserves input after a %s refusal",
   async (refusal) => {
     // Given
@@ -470,15 +453,12 @@ it.each([403, "stale-revision"] as const)(
     await screen.findByDisplayValue(initial.message);
     await user.clear(screen.getByLabelText("Message commun"));
     await user.type(screen.getByLabelText("Message commun"), "Mon brouillon");
-    const status = refusal === "stale-revision" ? 409 : refusal;
+    const status = refusal;
     mockFetch.mockImplementation(async (url, options) => {
       if (options?.method === "PATCH") {
         return json(
           {
-            type:
-              refusal === "stale-revision"
-                ? "urn:blockout:problem:stale-revision"
-                : "urn:blockout:problem:forbidden",
+            type: "urn:blockout:problem:forbidden",
             title: "Refused",
             status,
           },
@@ -522,7 +502,6 @@ it.each([403, "stale-revision"] as const)(
       ([, options]) => options?.method === "PATCH",
     );
     expect(JSON.parse(String(writes[1][1]?.body))).toEqual({
-      revision: initial.revision,
       message: "Mon brouillon",
     });
   },
@@ -593,7 +572,7 @@ it("keeps an accepted save after a failed ordinary read and retries only that re
   await screen.findByDisplayValue(initial.message);
   await user.clear(screen.getByLabelText("Message commun"));
   await user.type(screen.getByLabelText("Message commun"), "Accepted copy");
-  const accepted = { ...initial, revision: 3, message: "Accepted copy" };
+  const accepted = { ...initial, message: "Accepted copy" };
   mockFetch.mockImplementation(async (url, options) => {
     if (String(url).endsWith("/accounts/me")) {
       return json(account);
@@ -635,159 +614,6 @@ it("keeps an accepted save after a failed ordinary read and retries only that re
   ).toHaveLength(1);
 });
 
-it.each(["conflict", "lost", "invalid-response"])(
-  "keeps dirty fields when invalidation finds a newer revision after %s",
-  async (outcome) => {
-    // Given
-    const user = userEvent.setup();
-    await renderSettings();
-    await screen.findByDisplayValue(initial.message);
-    await user.clear(screen.getByLabelText("Message commun"));
-    await user.type(screen.getByLabelText("Message commun"), "Mon brouillon");
-    let writes = 0;
-    mockFetch.mockImplementation(async (url, options) => {
-      if (String(url).endsWith("/accounts/me")) {
-        return json(account);
-      }
-      if (options?.method === "PATCH") {
-        writes++;
-        if (writes === 1) {
-          if (outcome === "lost") {
-            throw new TypeError("Lost response");
-          }
-          if (outcome === "invalid-response") {
-            return json({ revision: 3 });
-          }
-          return json(
-            {
-              type: "urn:blockout:problem:stale-revision",
-              title: "Conflict",
-              status: 409,
-            },
-            409,
-          );
-        }
-        stored = { ...stored, revision: 4, message: "Mon brouillon" };
-        return json(stored);
-      }
-      if (stored.revision < 3) {
-        stored = {
-          ...initial,
-          revision: 3,
-          ios: { ...initial.ios, minimumVersion: "1.8.0" },
-          message: "Autre éditeur",
-        };
-      }
-      return json(stored);
-    });
-
-    // When
-    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-
-    // Then
-    await screen.findByRole("button", { name: "Relire les réglages" });
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-    expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
-      "Mon brouillon",
-    );
-    expect(writes).toBe(1);
-
-    // When
-    await user.press(
-      screen.getByRole("button", { name: "Relire les réglages" }),
-    );
-
-    // Then
-    await screen.findByText(
-      "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
-    );
-    expect(writes).toBe(1);
-    expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
-      "Mon brouillon",
-    );
-
-    // When
-    await user.press(screen.getByRole("button", { name: "iOS" }));
-
-    // Then
-    expect(screen.getByLabelText("Version minimale iOS")).toHaveDisplayValue(
-      "1.8.0",
-    );
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
-
-    // When
-    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-
-    // Then
-    await waitFor(() =>
-      expect(
-        screen.queryByText("Modifications non enregistrées"),
-      ).not.toBeOnTheScreen(),
-    );
-    const calls = mockFetch.mock.calls.filter(([, o]) => o?.method === "PATCH");
-    expect(JSON.parse(String(calls[1][1]?.body))).toEqual({
-      revision: 3,
-      message: "Mon brouillon",
-    });
-  },
-);
-it("keeps dirty values and blocks writes after a newer refetch and a failed reread", async () => {
-  // Given
-  const user = userEvent.setup();
-  await renderSettings();
-  await screen.findByDisplayValue(initial.message);
-  await user.clear(screen.getByLabelText("Message commun"));
-  await user.type(screen.getByLabelText("Message commun"), "Mon brouillon");
-  stored = { ...initial, revision: 3, message: "Autre éditeur" };
-
-  // When
-  await act(async () =>
-    client.refetchQueries({ queryKey: settingsKey(), exact: true }),
-  );
-
-  // Then
-  expect(screen.getByLabelText("Message commun")).toHaveDisplayValue(
-    "Mon brouillon",
-  );
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
-  );
-
-  // When
-  mockFetch.mockImplementation(async () =>
-    json(
-      {
-        type: "urn:blockout:problem:unavailable",
-        title: "Unavailable",
-        status: 503,
-      },
-      503,
-    ),
-  );
-  await user.press(screen.getByRole("button", { name: "Relire les réglages" }));
-
-  // Then
-  expect(
-    await screen.findByRole("alert", { name: "Une erreur est survenue" }),
-  ).toBeOnTheScreen();
-  expect(screen.queryByLabelText("Message commun")).not.toBeOnTheScreen();
-  expect(
-    screen.queryByRole("button", { name: "Enregistrer" }),
-  ).not.toBeOnTheScreen();
-
-  // When
-  mockFetch.mockImplementation(async (url) =>
-    json(String(url).endsWith("/accounts/me") ? account : stored),
-  );
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
-
-  // Then
-  expect(await screen.findByDisplayValue("Mon brouillon")).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-  expect(
-    screen.getByRole("button", { name: "Relire les réglages" }),
-  ).toBeEnabled();
-});
 it.each(["revoked", "unavailable"])(
   "hides the mounted draft after %s account data",
   async (outcome) => {
@@ -913,7 +739,7 @@ it("preserves dirty input through older valid data and an invalid refresh respon
     json(
       String(url).endsWith("/accounts/me")
         ? account
-        : { ...initial, revision: 1, message: "Older state" },
+        : { ...initial, message: "Older state" },
     ),
   );
 
@@ -930,11 +756,7 @@ it("preserves dirty input through older valid data and an invalid refresh respon
 
   // When
   mockFetch.mockImplementation(async (url) =>
-    json(
-      String(url).endsWith("/accounts/me")
-        ? account
-        : { revision: 5, ios: null },
-    ),
+    json(String(url).endsWith("/accounts/me") ? account : { ios: null }),
   );
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
 
@@ -1070,4 +892,47 @@ it("ignores a late store failure from a previously closed native preview", async
   expect(
     screen.getByRole("button", { name: "Mettre à jour l’application" }),
   ).toBeEnabled();
+});
+
+it("saves an older iOS draft after a disjoint Android update without a global edit token", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderSettings();
+  await user.press(await screen.findByRole("button", { name: "iOS" }));
+  await user.clear(screen.getByLabelText("Version minimale iOS"));
+  await user.type(screen.getByLabelText("Version minimale iOS"), "1.8.0");
+  stored = {
+    ...stored,
+    android: {
+      ...stored.android,
+      storeUrl: "https://play.google.com/store/apps/details?id=current.android",
+    },
+  };
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+  mockFetch.mockImplementation(async (url, options) => {
+    if (options?.method === "PATCH") {
+      const body = JSON.parse(String(options.body));
+      stored = { ...stored, ios: { ...stored.ios, ...body.ios } };
+      return json(stored);
+    }
+    return String(url).endsWith("/accounts/me") ? json(account) : json(stored);
+  });
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  await waitFor(() => expect(stored.ios.minimumVersion).toBe("1.8.0"));
+  expect(stored.android.storeUrl).toBe(
+    "https://play.google.com/store/apps/details?id=current.android",
+  );
+  const write = mockFetch.mock.calls.find(
+    ([, options]) => options?.method === "PATCH",
+  );
+  expect(JSON.parse(String(write?.[1]?.body))).toEqual({
+    ios: { minimumVersion: "1.8.0" },
+  });
+  expect(
+    screen.queryByRole("button", { name: "Relire les réglages" }),
+  ).toBeNull();
 });

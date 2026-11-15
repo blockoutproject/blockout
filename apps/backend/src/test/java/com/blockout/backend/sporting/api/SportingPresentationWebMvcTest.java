@@ -25,7 +25,6 @@ import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.generated.mobile.model.ContactModeEnum;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
-import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactField;
 import com.blockout.backend.sporting.application.model.SportingPresentation.ContactValue;
@@ -36,7 +35,6 @@ import com.blockout.backend.sporting.application.service.ReadSportingConfigurati
 import com.blockout.backend.sporting.support.SportingImageFixture;
 import java.nio.charset.StandardCharsets;
 import java.util.EnumMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -97,7 +95,7 @@ class SportingPresentationWebMvcTest {
             put("/administration/pools/{id}/presentation", RESOURCE)
                 .with(operator())
                 .contentType("application/json")
-                .content("{\"revision\":\"0\",\"manualName\":null,\"manualShortName\":\"Short\"}"))
+                .content("{\"manualName\":null,\"manualShortName\":\"Short\"}"))
         .andExpect(status().isOk())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.names.effectiveShortName").value("Short"));
@@ -142,7 +140,7 @@ class SportingPresentationWebMvcTest {
     when(presentation.set(any(), any(), any(), any()))
         .thenReturn(view(path.equals("clubs") ? Kind.CLUB : Kind.TEAM));
     when(presentation.setDivision(any(), any(), any()))
-        .thenReturn(new DivisionDetail(RESOURCE, 1, "Division", "#112233", null, true, false));
+        .thenReturn(new DivisionDetail(RESOURCE, "Division", "#112233", null, true, false));
     byte[] bytes = SportingImageFixture.image(format, 0x112233);
 
     // When
@@ -271,9 +269,9 @@ class SportingPresentationWebMvcTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
-        "{\"revision\":\"0\",\"manualName\":null}",
-        "{\"revision\":\"0\",\"manualName\":null,\"manualShortName\":null,\"logoAction\":\"keep\"}",
-        "{\"revision\":\"0\",\"manualName\":null,\"manualShortName\":null,\"image\":\"bad\"}"
+        "{\"manualName\":null}",
+        "{\"manualName\":null,\"manualShortName\":null,\"logoAction\":\"keep\"}",
+        "{\"manualName\":null,\"manualShortName\":null,\"image\":\"bad\"}"
       })
   @DisplayName("Rejects incomplete or non-name pool state through the generated strict request")
   void rejectsInvalidPoolState(String body) throws Exception {
@@ -298,7 +296,7 @@ class SportingPresentationWebMvcTest {
   void mapsIndependentContacts() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(contacts.correct(eq(ACCOUNT), eq(RESOURCE), eq("0"), any())).thenReturn(contactState());
+    when(contacts.correct(eq(ACCOUNT), eq(RESOURCE), any())).thenReturn(contactState());
     when(configurationReads.clubContacts(ACCOUNT, RESOURCE)).thenReturn(contactState());
 
     // When
@@ -307,7 +305,7 @@ class SportingPresentationWebMvcTest {
                 .with(operator())
                 .contentType("application/json")
                 .content(
-                    "{\"revision\":\"0\",\"email\":{\"mode\":\"hidden\"},\"phone\":{\"mode\":\"manual\",\"value\":\"0123456789\"}}"))
+                    "{\"email\":{\"mode\":\"hidden\"},\"phone\":{\"mode\":\"manual\",\"value\":\"0123456789\"}}"))
         .andExpect(status().isOk())
         .andExpect(header().string("Accept-Patch", "application/json"))
         .andExpect(jsonPath("$.email.effectiveValue").value(nullValue()));
@@ -319,17 +317,13 @@ class SportingPresentationWebMvcTest {
     @SuppressWarnings("unchecked")
     ArgumentCaptor<Map<ContactField, SportingPresentation.ContactEdit>> changes =
         ArgumentCaptor.forClass(Map.class);
-    verify(contacts).correct(eq(ACCOUNT), eq(RESOURCE), eq("0"), changes.capture());
+    verify(contacts).correct(eq(ACCOUNT), eq(RESOURCE), changes.capture());
     assertThat(changes.getValue()).containsOnlyKeys(ContactField.EMAIL, ContactField.PHONE);
     assertThat(changes.getValue().get(ContactField.EMAIL).mode()).isEqualTo(ContactModeEnum.HIDDEN);
   }
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "{\"revision\":\"0\",\"email\":null}",
-        "{\"revision\":\"0\",\"email\":{\"mode\":\"source\",\"extra\":true}}"
-      })
+  @ValueSource(strings = {"{\"email\":null}", "{\"email\":{\"mode\":\"source\",\"extra\":true}}"})
   @DisplayName("Rejects null field objects and strict nested contact properties")
   void rejectsMalformedContactPatch(String body) throws Exception {
     // Given
@@ -345,7 +339,7 @@ class SportingPresentationWebMvcTest {
 
     // Then
     response.andExpect(status().isBadRequest());
-    verify(contacts, never()).correct(any(), any(), any(), any());
+    verify(contacts, never()).correct(any(), any(), any());
   }
 
   @Test
@@ -370,28 +364,6 @@ class SportingPresentationWebMvcTest {
         .andExpect(status().isForbidden())
         .andExpect(header().string("Cache-Control", "no-store"));
     verify(presentation, never()).set(any(), any(), any(), any());
-  }
-
-  @Test
-  @DisplayName("Returns the canonical stale conflict without private submitted content")
-  void translatesStaleRevision() throws Exception {
-    // Given
-    when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(presentation.set(any(), any(), any(), any()))
-        .thenThrow(new SportingConflictException("stale-revision", List.of()));
-
-    // When
-    ResultActions response =
-        mvc.perform(
-            put("/administration/pools/{id}/presentation", RESOURCE)
-                .with(operator())
-                .contentType("application/json")
-                .content("{\"revision\":\"old\",\"manualName\":null,\"manualShortName\":null}"));
-
-    // Then
-    response
-        .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.type").value("urn:blockout:problem:stale-revision"));
   }
 
   @Test
@@ -454,8 +426,7 @@ class SportingPresentationWebMvcTest {
         "metadata",
         "",
         "application/json",
-        ("{\"revision\":\"0\"," + fields + "\"logoAction\":\"" + action + "\"}")
-            .getBytes(StandardCharsets.UTF_8));
+        ("{" + fields + "\"logoAction\":\"" + action + "\"}").getBytes(StandardCharsets.UTF_8));
   }
 
   /**
@@ -468,7 +439,6 @@ class SportingPresentationWebMvcTest {
     return new SportingPresentation.View(
         RESOURCE,
         kind,
-        "1",
         new SportingPresentation.Names(
             "Source",
             "Source",
@@ -488,6 +458,6 @@ class SportingPresentationWebMvcTest {
     for (ContactField field : ContactField.values()) {
       fields.put(field, new ContactValue(null, null, ContactModeEnum.SOURCE, false));
     }
-    return new SportingPresentation.Contacts(RESOURCE, 1, fields, null, null, null);
+    return new SportingPresentation.Contacts(RESOURCE, fields, null, null, null);
   }
 }

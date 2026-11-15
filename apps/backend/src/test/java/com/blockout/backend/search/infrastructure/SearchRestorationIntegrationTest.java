@@ -128,7 +128,7 @@ class SearchRestorationIntegrationTest {
       // Current synthetic privacy evidence is newer than the archive. Reconcile before reopening;
       // this is fixture setup, not qualification of F11's separately owned manual invocation.
       runtime.sql.update(
-          "UPDATE sporting_club SET municipality = NULL, municipality_manual = NULL, municipality_restricted = TRUE, contacts_revision = contacts_revision + 1 WHERE id = ?",
+          "UPDATE sporting_club SET municipality = NULL, municipality_manual = NULL, municipality_restricted = TRUE WHERE id = ?",
           CLUB);
       String restoredPrefix = runtime.prefix + "-restored";
       assertThat(aliases(runtime, restoredPrefix)).isEmpty();

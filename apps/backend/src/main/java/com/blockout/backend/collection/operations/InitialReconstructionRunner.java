@@ -41,21 +41,17 @@ public class InitialReconstructionRunner implements ApplicationRunner {
                   inputs.organizerReference(),
                   inputs.candidateUrl());
           case CONFIRM ->
-              preparation.confirmSeason(
-                  inputs.operator(), inputs.sourceId(), inputs.revision(), inputs.label());
+              preparation.confirmSeason(inputs.operator(), inputs.sourceId(), inputs.label());
           case REQUEST ->
               reconstruction.request(
                   inputs.operator(),
                   inputs.seasonId(),
-                  inputs.revision(),
                   inputs.sources(),
                   inputs.scopes() == null ? Set.of() : inputs.scopes());
           case REPORT ->
               reconstruction.report(
                   inputs.operator(), inputs.seasonId(), inputs.page(), inputs.size());
-          case CLOSE ->
-              closure.close(
-                  inputs.operator(), inputs.seasonId(), inputs.revision(), inputs.label());
+          case CLOSE -> closure.close(inputs.operator(), inputs.seasonId(), inputs.label());
         };
     System.out.println(json.writeValueAsString(result));
   }

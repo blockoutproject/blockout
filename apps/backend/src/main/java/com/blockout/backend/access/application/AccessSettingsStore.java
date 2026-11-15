@@ -18,18 +18,18 @@ public interface AccessSettingsStore {
   ApplicationVersionSettings versionsForChange();
 
   /**
-   * Applies changed content/activation and flushes to return the actual JPA-managed revision.
+   * Applies changed content/activation and returns the accepted state.
    *
-   * @param settings complete validated result, retaining the previously checked revision
-   * @return flushed group with the managed version
+   * @param settings complete validated result
+   * @return accepted group
    */
   MaintenanceSettings saveMaintenance(MaintenanceSettings settings);
 
   /**
-   * Applies the complete valid versions result and returns the flushed JPA-managed revision.
+   * Applies the complete valid versions result and returns the accepted group.
    *
-   * @param settings complete validated result, retaining the previously checked revision
-   * @return flushed versions group
+   * @param settings complete validated result
+   * @return accepted versions group
    */
   ApplicationVersionSettings saveVersions(ApplicationVersionSettings settings);
 

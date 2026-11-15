@@ -98,7 +98,7 @@ class ContributionSubmissionWebMvcTest {
    */
   @BeforeEach
   void admission() {
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, false, "Prepared", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(false, "Prepared", null));
     when(accounts.currentId("https://identity.example.invalid/", "subject"))
         .thenReturn(Optional.of(OWNER));
   }

@@ -37,7 +37,6 @@ public class PrepareCollectionSources {
    *
    * @param accountId current local operator
    * @param seasonId canonical open season
-   * @param revision preparation revision read before editing
    * @param provider designated qualification authority
    * @param organizerReference expected native organizer or championship
    * @param candidateUrl proposed HTTP URL without credentials
@@ -47,7 +46,6 @@ public class PrepareCollectionSources {
   public Source create(
       UUID accountId,
       UUID seasonId,
-      long revision,
       CollectionProviderEnum provider,
       String organizerReference,
       URI candidateUrl) {
@@ -55,8 +53,6 @@ public class PrepareCollectionSources {
     CollectionSeasonView season = seasons.lockCollectionState(seasonId);
     authorization.require(accountId, Permission.MANAGE_COLLECTION);
     CollectionLifecycle.requireOpen(season);
-    CollectionRevision.requireAdvance(season.collectionRevision());
-    CollectionRevision.requireRevision(revision, season.collectionRevision());
     SourceReference.requireUrl(candidateUrl, false);
     if (!StringUtils.hasText(organizerReference)) {
       throw new InvalidSourceException();
@@ -64,10 +60,7 @@ public class PrepareCollectionSources {
     if (store.source(seasonId, provider, organizerReference).isPresent()) {
       throw new CollectionConflictException("conflict");
     }
-    Source created =
-        store.createSource(seasonId, provider, organizerReference, candidateUrl.toString());
-    seasons.updatePreparation(seasonId, false);
-    return created;
+    return store.createSource(seasonId, provider, organizerReference, candidateUrl.toString());
   }
 
   /**
@@ -75,13 +68,12 @@ public class PrepareCollectionSources {
    *
    * @param accountId current local operator
    * @param sourceId unlaunched and unlocked binding
-   * @param revision source revision read before editing
    * @param candidateUrl entire replacement candidate
    * @return saved candidate with prior evidence cleared
    */
   @Transactional
-  public Source setCandidate(UUID accountId, UUID sourceId, long revision, URI candidateUrl) {
-    Source source = editable(accountId, sourceId, revision);
+  public Source setCandidate(UUID accountId, UUID sourceId, URI candidateUrl) {
+    Source source = editable(accountId, sourceId);
     SourceReference.requireUrl(candidateUrl, false);
     if (candidateUrl.toString().equals(source.candidateUrl())) {
       return configurationReads.sourceView(source);
@@ -99,12 +91,11 @@ public class PrepareCollectionSources {
    *
    * @param accountId current local operator
    * @param sourceId unlocked candidate in an open season
-   * @param revision current editing revision
    * @return pending source, never a claim that validation has started or succeeded
    */
   @Transactional
-  public Source requestValidation(UUID accountId, UUID sourceId, long revision) {
-    Source source = editable(accountId, sourceId, revision);
+  public Source requestValidation(UUID accountId, UUID sourceId) {
+    Source source = editable(accountId, sourceId);
     if (source.candidateUrl() == null) {
       throw new CollectionConflictException("conflict");
     }
@@ -128,13 +119,12 @@ public class PrepareCollectionSources {
    *
    * @param accountId current local operator
    * @param sourceId compatible unlocked candidate
-   * @param revision current editing revision
    * @param label exact canonical season label, without trimming or normalization
    * @return qualified candidate without locking or launching it
    */
   @Transactional
-  public Source confirmSeason(UUID accountId, UUID sourceId, long revision, String label) {
-    Source source = editable(accountId, sourceId, revision);
+  public Source confirmSeason(UUID accountId, UUID sourceId, String label) {
+    Source source = editable(accountId, sourceId);
     if (source.validationState() != SourceValidationStateEnum.CONFIRMATION_REQUIRED
         || !seasonReads.collectionState(source.seasonId()).label().equals(label)) {
       throw new CollectionConflictException("conflict");
@@ -151,21 +141,17 @@ public class PrepareCollectionSources {
    *
    * @param accountId current local operator
    * @param seasonId canonical open season
-   * @param revision current preparation revision
    * @param selected complete explicit selection; one invalid member refuses the entire command
    * @return resulting canonical season state
    */
   @Transactional
-  public CollectionSeasonView launch(
-      UUID accountId, UUID seasonId, long revision, Set<UUID> selected) {
+  public CollectionSeasonView launch(UUID accountId, UUID seasonId, Set<UUID> selected) {
     store.lockRuntime();
     CollectionSeasonView season = seasons.lockCollectionState(seasonId);
     List<Source> sources =
         store.sources(seasonId).stream().filter(source -> selected.contains(source.id())).toList();
     authorization.require(accountId, Permission.MANAGE_COLLECTION);
     CollectionLifecycle.requireOpen(season);
-    CollectionRevision.requireAdvance(season.collectionRevision());
-    CollectionRevision.requireRevision(revision, season.collectionRevision());
     if (selected.isEmpty()
         || sources.size() != selected.size()
         || sources.stream()
@@ -191,7 +177,7 @@ public class PrepareCollectionSources {
       store.ensureSeasonControl(seasonId, source.provider());
       changed = true;
     }
-    return changed ? seasons.updatePreparation(seasonId, true) : season;
+    return changed ? seasons.activateCollectionSeason(seasonId) : season;
   }
 
   /**
@@ -199,17 +185,14 @@ public class PrepareCollectionSources {
    *
    * @param accountId original local account
    * @param sourceId candidate identity
-   * @param revision operator's editing revision
    * @return editable source under transaction-held locks
    */
-  private Source editable(UUID accountId, UUID sourceId, long revision) {
+  private Source editable(UUID accountId, UUID sourceId) {
     store.lockRuntime();
     CollectionSeasonView season = seasons.lockCollectionState(store.sourceSeason(sourceId));
     Source source = store.lockSource(sourceId);
     authorization.require(accountId, Permission.MANAGE_COLLECTION);
     CollectionLifecycle.requireOpen(season);
-    CollectionRevision.requireAdvance(season.collectionRevision());
-    CollectionRevision.requireRevision(revision, source.revision());
     CollectionRevision.requireAdvance(source.revision());
     if (source.locked()) {
       throw new CollectionConflictException("conflict");

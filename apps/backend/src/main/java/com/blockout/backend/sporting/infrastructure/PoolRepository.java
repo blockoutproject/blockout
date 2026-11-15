@@ -43,7 +43,7 @@ interface PoolRepository extends JpaRepository<PoolEntity, UUID> {
   @Query(
       """
       SELECT NEW com.blockout.backend.sporting.infrastructure.SportingPresentationRow(
-        p.id, p.sourceName, p.manualName, p.manualShortName, p.presentationRevision, NULL,
+        p.id, p.sourceName, p.manualName, p.manualShortName, NULL,
         FALSE, FALSE, NULL, FALSE)
       FROM PoolEntity p WHERE p.id IN :ids
       """)

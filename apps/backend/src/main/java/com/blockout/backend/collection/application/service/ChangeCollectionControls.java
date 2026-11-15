@@ -33,20 +33,18 @@ public class ChangeCollectionControls {
    *
    * @param accountId current operator checked under its account lock
    * @param id independent control
-   * @param revision last read editing revision
    * @param enabled desired ordinary eligibility
    * @return current state; matching no-op preserves the revision
    * @throws AccessDeniedException if the current operator lacks the collection grant
-   * @throws CollectionConflictException if the revision or lifecycle refuses the change
+   * @throws CollectionConflictException if the lifecycle refuses the change
    */
   @Transactional
-  public ControlView setActivity(UUID accountId, UUID id, long revision, boolean enabled) {
+  public ControlView setActivity(UUID accountId, UUID id, boolean enabled) {
     store.lockRuntime();
     UUID seasonId = store.controlSeason(id);
     CollectionSeasonView season = seasonId == null ? null : seasons.lockCollectionState(seasonId);
     Control control = store.lockControl(id);
     authorization.require(accountId, Permission.MANAGE_COLLECTION);
-    CollectionRevision.requireRevision(revision, control.revision());
     CollectionLifecycle.requireOpen(season);
     if (enabled) {
       requireLaunched(control, season);
@@ -68,20 +66,18 @@ public class ChangeCollectionControls {
    *
    * @param accountId current operator, never retained as a future actor session
    * @param id selected family
-   * @param revision last read editing revision
    * @return existing running work or a single pending intent, distinguished by its application
    *     outcome; acceptance promises no start time
    * @throws AccessDeniedException if the current operator lacks the collection grant
-   * @throws CollectionConflictException if the revision or current eligibility refuses the request
+   * @throws CollectionConflictException if current eligibility refuses the request
    */
   @Transactional
-  public RequestOutcome request(UUID accountId, UUID id, long revision) {
+  public RequestOutcome request(UUID accountId, UUID id) {
     store.lockRuntime();
     UUID seasonId = store.controlSeason(id);
     CollectionSeasonView season = seasonId == null ? null : seasons.lockCollectionState(seasonId);
     Control control = store.lockControl(id);
     authorization.require(accountId, Permission.MANAGE_COLLECTION);
-    CollectionRevision.requireRevision(revision, control.revision());
     CollectionLifecycle.requireOpen(season);
     if (!control.enabled()
         || (season != null && season.collectionState() != CollectionSeasonStateEnum.ACTIVE)) {

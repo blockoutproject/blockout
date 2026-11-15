@@ -158,13 +158,9 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
   }
   const save = useMutation({
     mutationKey: [...queryKey, ...operationKey],
-    mutationFn: async ({
-      revision,
-      values,
-    }: {
-      revision: string;
-      values: PresentationValues;
-    }): Promise<SavedPresentation> => {
+    mutationFn: async (
+      values: PresentationValues,
+    ): Promise<SavedPresentation> => {
       const options = await authority.request();
       let accepted: SavedPresentation;
       switch (target.kind) {
@@ -179,7 +175,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
             kind: "club",
             data: await setClubPresentation(
               target.id,
-              toClubPresentationBody(revision, values),
+              toClubPresentationBody(values),
               options,
             ),
           };
@@ -189,7 +185,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
             kind: "team",
             data: await setTeamPresentation(
               target.id,
-              toTeamPresentationBody(revision, values),
+              toTeamPresentationBody(values),
               options,
             ),
           };
@@ -199,7 +195,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
             kind: "pool",
             data: await setPoolPresentation(
               target.id,
-              toPoolPresentationBody(revision, values),
+              toPoolPresentationBody(values),
               options,
             ),
           };
@@ -209,7 +205,7 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
             kind: "division",
             data: await setDivisionPresentation(
               target.id,
-              toDivisionPresentationBody(revision, values),
+              toDivisionPresentationBody(values),
               options,
             ),
           };
@@ -217,16 +213,14 @@ export function usePresentation(target: PresentationTarget, enabled: boolean) {
       }
       return accepted;
     },
-    onSuccess: (accepted, { revision }) => {
-      // A late save cannot restore refused data or replace a newer observed revision.
+    onSuccess: (accepted) => {
+      // An acknowledged save cannot restore data withdrawn by a current refusal.
       const acceptedKey =
         target.kind === "division-creation"
           ? getGetDivisionQueryKey(accepted.data.id)
           : queryKey;
       client.setQueryData<PresentationData | null>(acceptedKey, (current) =>
-        current === null || (current && current.revision !== revision)
-          ? undefined
-          : accepted.data,
+        current === null ? undefined : accepted.data,
       );
     },
     onSettled: invalidateReads,
@@ -239,7 +233,6 @@ export function usePresentationLogo(
   target: PresentationTarget,
   selection: "effective" | "automatic",
   enabled: boolean,
-  revision: string,
 ) {
   const authority = useSportingAuthority(
     target.kind === "division" ? "divisions" : "presentation",
@@ -255,7 +248,6 @@ export function usePresentationLogo(
       },
       target,
       selection,
-      revision,
     ),
   );
 }

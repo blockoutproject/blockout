@@ -8,10 +8,9 @@ import {
 } from "../schemas/application-versions-schema";
 import { applicationVersionsValues } from "./application-versions-values";
 
-/** Original revision and local feedback belong to this mounted editing visit. */
+/** Accepted defaults belong to this mounted editing visit. */
 interface DraftState {
   baseline: ApplicationVersionsResponse;
-  feedback?: string;
 }
 
 /** Owns RHF fields and their coherent baseline for the mounted route only. */

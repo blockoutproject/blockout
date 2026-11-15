@@ -218,13 +218,12 @@ class CollectionControlIntegrationTest {
     // The isolated active season has the current account grant and actual F12 maintenance.
 
     // When
-    ResultActions firstRequest = request(0);
+    ResultActions firstRequest = request();
     CollectionState.Control pending = configurationReads.control(ACCOUNT, CONTROL).control();
-    ResultActions repeatedRequest = request(pending.revision());
+    ResultActions repeatedRequest = request();
     long repeatedRevision = configurationReads.control(ACCOUNT, CONTROL).control().revision();
     ResultActions currentControl =
         mvc.perform(get("/administration/collection-controls/{id}", CONTROL).with(operator()));
-    ResultActions staleRequest = request(0);
 
     // Then
     firstRequest
@@ -240,32 +239,26 @@ class CollectionControlIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.pendingRequestId").value(pending.requestId().toString()));
     assertThat(sql.queryForObject("SELECT count(*) FROM collection_cycle", Integer.class)).isZero();
-    staleRequest
-        .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.type").value("urn:blockout:problem:stale-revision"));
   }
 
   @Test
   @DisplayName("Pause cancels pending intent and resume restores eligibility without replay")
   void pauseResume() throws Exception {
     // Given
-    ResultActions pendingRequest = request(0);
-    long revision = configurationReads.control(ACCOUNT, CONTROL).control().revision();
+    ResultActions pendingRequest = request();
 
     // When
-    ResultActions pause = activity(revision, false);
+    ResultActions pause = activity(false);
     CollectionState.Control paused = configurationReads.control(ACCOUNT, CONTROL).control();
-    ResultActions refusedRequest = request(paused.revision());
-    ResultActions unchangedPause = activity(paused.revision(), false);
-    ResultActions resume = activity(paused.revision(), true);
+    ResultActions refusedRequest = request();
+    ResultActions unchangedPause = activity(false);
+    ResultActions resume = activity(true);
 
     // Then
     pendingRequest.andExpect(status().isAccepted());
     pause.andExpect(status().isOk()).andExpect(jsonPath("$.pendingRequestId").isEmpty());
     refusedRequest.andExpect(status().isConflict());
-    unchangedPause
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.revision").value(paused.revision()));
+    unchangedPause.andExpect(status().isOk());
     resume.andExpect(status().isOk()).andExpect(jsonPath("$.pendingRequestId").isEmpty());
     assertThat(sql.queryForObject("SELECT count(*) FROM collection_cycle", Integer.class)).isZero();
   }
@@ -278,22 +271,18 @@ class CollectionControlIntegrationTest {
         "INSERT INTO account_permission(account_id, permission) VALUES (?, 'maintenance.manage')",
         ACCOUNT);
     cycles.admit(new CollectionState.StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null));
-    long revision = configurationReads.control(ACCOUNT, CONTROL).control().revision();
-    activity(revision, false).andExpect(status().isOk());
+    activity(false).andExpect(status().isOk());
     CollectionState.Control paused = configurationReads.control(ACCOUNT, CONTROL).control();
     UUID activeControl = UUID.fromString("00000000-0000-4000-8000-000000000001");
     CollectionState.Control active = configurationReads.control(ACCOUNT, activeControl).control();
     assertThat(active.enabled()).isTrue();
-    long maintenanceRevision =
-        sql.queryForObject(
-            "SELECT revision FROM access_settings WHERE id='maintenance'", Long.class);
 
     // When
     mvc.perform(
             put("/administration/maintenance/activation")
                 .with(operator())
                 .contentType("application/json")
-                .content("{\"revision\":" + maintenanceRevision + ",\"active\":false}"))
+                .content("{\"active\":false}"))
         .andExpect(status().isOk());
     assertThat(configurationReads.control(ACCOUNT, CONTROL).control()).isEqualTo(paused);
     assertThat(configurationReads.control(ACCOUNT, activeControl).control()).isEqualTo(active);
@@ -301,7 +290,7 @@ class CollectionControlIntegrationTest {
             put("/administration/maintenance/activation")
                 .with(operator())
                 .contentType("application/json")
-                .content("{\"revision\":" + (maintenanceRevision + 1) + ",\"active\":true}"))
+                .content("{\"active\":true}"))
         .andExpect(status().isOk());
     assertThat(configurationReads.control(ACCOUNT, CONTROL).control()).isEqualTo(paused);
     assertThat(configurationReads.control(ACCOUNT, activeControl).control()).isEqualTo(active);
@@ -324,13 +313,11 @@ class CollectionControlIntegrationTest {
   void drainsRunning() throws Exception {
     // Given
     cycles.admit(new CollectionState.StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null));
-    long revision = configurationReads.control(ACCOUNT, CONTROL).control().revision();
 
     // When
-    ResultActions currentRun = request(revision);
-    ResultActions pause = activity(revision, false);
-    ResultActions refusedRequest =
-        request(configurationReads.control(ACCOUNT, CONTROL).control().revision());
+    ResultActions currentRun = request();
+    ResultActions pause = activity(false);
+    ResultActions refusedRequest = request();
     results.complete(CYCLE, Instant.now().plusSeconds(1));
 
     // Then
@@ -345,12 +332,12 @@ class CollectionControlIntegrationTest {
   @DisplayName("Grant withdrawal is checked before returning an already pending request")
   void currentGrantBeforeDuplicate() throws Exception {
     // Given
-    request(0).andExpect(status().isAccepted());
+    request().andExpect(status().isAccepted());
     CollectionState.Control pending = configurationReads.control(ACCOUNT, CONTROL).control();
     sql.update("DELETE FROM account_permission WHERE account_id=?", ACCOUNT);
 
     // When
-    ResultActions response = request(pending.revision());
+    ResultActions response = request();
 
     // Then
     response.andExpect(status().isForbidden());
@@ -361,27 +348,24 @@ class CollectionControlIntegrationTest {
   }
 
   @Test
-  @DisplayName(
-      "Closure checks exact canonical label and revision before cancelling only this season")
+  @DisplayName("Closure checks the exact canonical label before cancelling only this season")
   void exactTerminalClosure() throws Exception {
     // Given
-    request(0).andExpect(status().isAccepted());
+    request().andExpect(status().isAccepted());
 
     // When
-    ResultActions invalidLabel = close(0, "2026/2027 ");
-    ResultActions staleRevision = close(1, "2026/2027");
+    ResultActions invalidLabel = close("2026/2027 ");
     UUID retainedRequest = configurationReads.control(ACCOUNT, CONTROL).control().requestId();
-    ResultActions closureResponse = close(0, "2026/2027");
+    ResultActions closureResponse = close("2026/2027");
     CollectionState.Control closed = configurationReads.control(ACCOUNT, CONTROL).control();
-    ResultActions refusedResume = activity(closed.revision(), true);
-    ResultActions refusedRequest = request(closed.revision());
-    ResultActions refusedClosure = close(1, "2026/2027");
+    ResultActions refusedResume = activity(true);
+    ResultActions refusedRequest = request();
+    ResultActions refusedClosure = close("2026/2027");
     ResultActions remainingControls =
         mvc.perform(get("/administration/collection-controls").with(operator()));
 
     // Then
     invalidLabel.andExpect(status().isUnprocessableContent());
-    staleRevision.andExpect(status().isConflict());
     assertThat(retainedRequest).isNotNull();
     closureResponse.andExpect(status().isOk()).andExpect(jsonPath("$.state").value("closed"));
     assertThat(closed.requestId()).isNull();
@@ -405,7 +389,7 @@ class CollectionControlIntegrationTest {
     cycles.admit(new CollectionState.StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null));
 
     // When
-    ResultActions closureResponse = close(0, "2026/2027");
+    ResultActions closureResponse = close("2026/2027");
     results.complete(CYCLE, Instant.now().plusSeconds(1));
 
     // When / Then
@@ -440,7 +424,7 @@ class CollectionControlIntegrationTest {
         otherSeason,
         otherRequest);
     // When
-    ResultActions response = close(0, "2026/2027");
+    ResultActions response = close("2026/2027");
 
     // Then
     response.andExpect(status().isOk());
@@ -464,15 +448,15 @@ class CollectionControlIntegrationTest {
       "Exhausted control revisions refuse pending cancellation and roll back the entire closure")
   void refusesRevisionOverflowAtomically() throws Exception {
     // Given
-    request(0).andExpect(status().isAccepted());
+    request().andExpect(status().isAccepted());
     sql.update("UPDATE collection_control SET revision=9007199254740991 WHERE id=?", CONTROL);
 
     // When
-    ResultActions response = close(0, "2026/2027");
+    ResultActions response = close("2026/2027");
 
     // Then
     response.andExpect(status().isConflict());
-    assertThat(seasonReads.collectionState(season).collectionRevision()).isZero();
+
     assertThat(configurationReads.control(ACCOUNT, CONTROL).control().requestId()).isNotNull();
   }
 
@@ -481,17 +465,15 @@ class CollectionControlIntegrationTest {
   void deniesRevokedRunningAndClosure() throws Exception {
     // Given
     cycles.admit(new CollectionState.StartCycle(CYCLE, STARTUP, CONTROL, null, 0, null));
-    long revision = configurationReads.control(ACCOUNT, CONTROL).control().revision();
     sql.update("DELETE FROM account_permission WHERE account_id=?", ACCOUNT);
 
     // When
-    ResultActions runningResponse = request(revision);
-    ResultActions closureResponse = close(0, "2026/2027");
+    ResultActions runningResponse = request();
+    ResultActions closureResponse = close("2026/2027");
 
     // Then
     runningResponse.andExpect(status().isForbidden());
     closureResponse.andExpect(status().isForbidden());
-    assertThat(seasonReads.collectionState(season).collectionRevision()).isZero();
   }
 
   @Test
@@ -502,9 +484,9 @@ class CollectionControlIntegrationTest {
     sql.update("UPDATE collection_source_binding SET launched=false WHERE id=?", SOURCE);
 
     // When
-    ResultActions requestResponse = request(0);
+    ResultActions requestResponse = request();
     sql.update("UPDATE collection_control SET enabled=false WHERE id=?", CONTROL);
-    ResultActions resumeResponse = activity(0, true);
+    ResultActions resumeResponse = activity(true);
 
     // Then
     requestResponse.andExpect(status().isConflict());
@@ -530,7 +512,7 @@ class CollectionControlIntegrationTest {
               () ->
                   transaction.executeWithoutResult(
                       status -> {
-                        closure.close(ACCOUNT, season, 0, "2026/2027");
+                        closure.close(ACCOUNT, season, "2026/2027");
                         held.countDown();
                         awaitRelease(release);
                       }));
@@ -594,7 +576,7 @@ class CollectionControlIntegrationTest {
                         status -> {
                           closurePid.complete(
                               sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
-                          closure.close(ACCOUNT, season, 0, "2026/2027");
+                          closure.close(ACCOUNT, season, "2026/2027");
                         }));
         PostgresTestDatabase.awaitBlocked(sql, closurePid);
         release.countDown();
@@ -724,47 +706,44 @@ class CollectionControlIntegrationTest {
   }
 
   /**
-   * Sends one explicit manual intent at the revision read by the operator.
+   * Sends one explicit manual intent against current server state.
    *
-   * @param revision last-read control revision
    * @return response for scenario-owned assertions
    */
-  private ResultActions request(long revision) throws Exception {
+  private ResultActions request() throws Exception {
     return mvc.perform(
         post("/administration/collection-controls/{id}/requests", CONTROL)
             .with(operator())
             .contentType("application/json")
-            .content("{\"revision\":" + revision + "}"));
+            .content("{}"));
   }
 
   /**
    * Replaces desired activity without any provider interaction.
    *
-   * @param revision last-read control revision
    * @param enabled desired eligibility
    * @return response for scenario-owned assertions
    */
-  private ResultActions activity(long revision, boolean enabled) throws Exception {
+  private ResultActions activity(boolean enabled) throws Exception {
     return mvc.perform(
         put("/administration/collection-controls/{id}/activity", CONTROL)
             .with(operator())
             .contentType("application/json")
-            .content("{\"revision\":" + revision + ",\"enabled\":" + enabled + "}"));
+            .content("{\"enabled\":" + enabled + "}"));
   }
 
   /**
    * Sends the exact typed canonical label, without normalization.
    *
-   * @param revision last-read season revision
    * @param confirmation scenario's exact confirmation, including any deliberate mismatch
    * @return response for scenario-owned assertions
    */
-  private ResultActions close(long revision, String confirmation) throws Exception {
+  private ResultActions close(String confirmation) throws Exception {
     return mvc.perform(
         post("/administration/collection-seasons/{id}/closure", season)
             .with(operator())
             .contentType("application/json")
-            .content("{\"revision\":" + revision + ",\"confirmation\":\"" + confirmation + "\"}"));
+            .content("{\"confirmation\":\"" + confirmation + "\"}"));
   }
 
   /**

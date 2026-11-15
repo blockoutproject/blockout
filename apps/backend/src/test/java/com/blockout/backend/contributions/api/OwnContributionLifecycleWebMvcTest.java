@@ -21,11 +21,9 @@ import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.config.SecurityConfiguration;
 import com.blockout.backend.contributions.application.ChangeOwnContribution;
 import com.blockout.backend.contributions.application.ContributionConflictException;
-import com.blockout.backend.contributions.application.ContributionRejectedException;
 import com.blockout.backend.contributions.application.ReadOwnContributions;
 import com.blockout.backend.contributions.application.SubmitContribution;
 import com.blockout.backend.contributions.application.SubmitModeratedContribution;
-import com.blockout.backend.contributions.domain.ContributionEligibility.Status;
 import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.contributions.domain.StreamAddress;
 import com.blockout.backend.shared.http.ApiExceptionHandler;
@@ -86,7 +84,7 @@ class OwnContributionLifecycleWebMvcTest {
   /** Supplies admitted original identity; each scenario owns its decisive request or refusal. */
   @BeforeEach
   void admission() {
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, false, "Prepared", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(false, "Prepared", null));
     when(accounts.currentId("https://identity.example.invalid/", "subject"))
         .thenReturn(Optional.of(OWNER));
   }
@@ -95,15 +93,10 @@ class OwnContributionLifecycleWebMvcTest {
   @ValueSource(
       strings = {
         "{}",
-        "{\"action\":\"withdraw\"}",
-        "{\"revision\":\"opaque:a\"}",
-        "{\"revision\":null,\"action\":\"withdraw\"}",
-        "{\"revision\":\"1\",\"action\":null}",
-        "{\"revision\":\"\",\"action\":\"withdraw\"}",
-        "{\"revision\":1,\"action\":\"withdraw\"}",
-        "{\"revision\":\"1\",\"action\":\"cancel\"}",
-        "{\"revision\":\"1\",\"action\":\"approve\"}",
-        "{\"revision\":\"1\",\"action\":\"withdraw\",\"url\":\"https://youtu.be/changed\"}"
+        "{\"action\":null}",
+        "{\"action\":\"cancel\"}",
+        "{\"action\":\"approve\"}",
+        "{\"action\":\"withdraw\",\"url\":\"https://youtu.be/changed\"}"
       })
   @DisplayName("Rejects malformed atomic commands before any application write")
   void rejectsInvalidCommand(String body) throws Exception {
@@ -129,7 +122,7 @@ class OwnContributionLifecycleWebMvcTest {
         patch(PATH.replace(OWNER.toString(), VERSION.toString()))
             .with(mobile())
             .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"revision\":\"1\",\"action\":\"withdraw\"}");
+            .content("{\"action\":\"withdraw\"}");
 
     // When
     ResultActions response = mvc.perform(request);
@@ -161,7 +154,7 @@ class OwnContributionLifecycleWebMvcTest {
   @DisplayName("Current maintenance refuses an owner command without an explicit permitted bypass")
   void refusesCurrentMaintenance() throws Exception {
     // Given
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(2, true, "Maintenance", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(true, "Maintenance", null));
 
     // When
     ResultActions response =
@@ -169,7 +162,7 @@ class OwnContributionLifecycleWebMvcTest {
             patch(PATH)
                 .with(mobile())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":\"1\",\"action\":\"withdraw\"}"));
+                .content("{\"action\":\"withdraw\"}"));
 
     // Then
     response
@@ -182,7 +175,6 @@ class OwnContributionLifecycleWebMvcTest {
   @DisplayName("Returns the exact acknowledged version and current revision without a Location")
   void returnsExactAcknowledgement() throws Exception {
     // Given
-    String revision = "opaque:current";
     ContributionVersion version =
         new ContributionVersion(
             VERSION,
@@ -196,7 +188,7 @@ class OwnContributionLifecycleWebMvcTest {
             null,
             null,
             null);
-    when(changes.change(OWNER, MATCH, VERSION, revision))
+    when(changes.change(OWNER, MATCH, VERSION))
         .thenReturn(new ReadOwnContributions.Detail("opaque:next", version));
 
     // When
@@ -205,7 +197,7 @@ class OwnContributionLifecycleWebMvcTest {
             patch(PATH)
                 .with(mobile())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":\"" + revision + "\",\"action\":\"withdraw\"}"));
+                .content("{\"action\":\"withdraw\"}"));
 
     // Then
     response
@@ -218,20 +210,15 @@ class OwnContributionLifecycleWebMvcTest {
         .andExpect(jsonPath("$.contribution.url").value("https://youtu.be/literal?keep=1#time"))
         .andExpect(jsonPath("$.contribution.canCancel").doesNotExist())
         .andExpect(jsonPath("$.contribution.canWithdraw").value(false));
-    verify(changes).change(OWNER, MATCH, VERSION, revision);
+    verify(changes).change(OWNER, MATCH, VERSION);
     verifyNoInteractions(submissions, reads);
   }
 
-  @ParameterizedTest
-  @ValueSource(booleans = {false, true})
-  @DisplayName("Distinguishes stale revisions from incompatible lifecycle conflicts")
-  void returnsCanonicalConflicts(boolean stale) throws Exception {
+  @Test
+  @DisplayName("Returns the current exact target's incompatible lifecycle conflict")
+  void returnsCanonicalConflicts() throws Exception {
     // Given
-    RuntimeException failure =
-        stale
-            ? new ContributionRejectedException(Status.STALE_REVISION)
-            : new ContributionConflictException();
-    when(changes.change(OWNER, MATCH, VERSION, "1")).thenThrow(failure);
+    when(changes.change(OWNER, MATCH, VERSION)).thenThrow(new ContributionConflictException());
 
     // When
     ResultActions response =
@@ -239,25 +226,20 @@ class OwnContributionLifecycleWebMvcTest {
             patch(PATH)
                 .with(mobile())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":\"1\",\"action\":\"withdraw\"}"));
+                .content("{\"action\":\"withdraw\"}"));
 
     // Then
     response
         .andExpect(status().isConflict())
         .andExpect(header().string("Cache-Control", "no-store"))
-        .andExpect(
-            jsonPath("$.type")
-                .value(
-                    stale
-                        ? "urn:blockout:problem:stale-revision"
-                        : "urn:blockout:problem:conflict"));
+        .andExpect(jsonPath("$.type").value("urn:blockout:problem:conflict"));
   }
 
   @Test
   @DisplayName("A withdrawn maintenance bypass grant prevents a later owner action")
   void refusesRevokedBypass() throws Exception {
     // Given
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(2, true, "Maintenance", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(true, "Maintenance", null));
     when(accounts.lock(OWNER)).thenReturn(true);
     when(permissions.findByAccountId(OWNER)).thenReturn(java.util.Set.of());
 
@@ -268,7 +250,7 @@ class OwnContributionLifecycleWebMvcTest {
                 .with(mobile())
                 .header("Blockout-Maintenance-Bypass", "true")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":\"1\",\"action\":\"withdraw\"}"));
+                .content("{\"action\":\"withdraw\"}"));
 
     // Then
     response.andExpect(status().isForbidden());

@@ -70,9 +70,6 @@ public class DivisionAdministrationController implements DivisionAdministrationA
       UUID divisionId, SetDivisionActivityRequest request) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(
-            mapper.toDto(
-                divisions.setActive(
-                    account.id(), divisionId, request.getRevision(), request.getActive())));
+        .body(mapper.toDto(divisions.setActive(account.id(), divisionId, request.getActive())));
   }
 }

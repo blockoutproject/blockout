@@ -78,7 +78,7 @@ export function createSportingAdministrationQueries(
         queryFn: (context) =>
           read(context, (options) => getDivision(id, options)),
       }),
-    /** Original club presentation retains its editing revision without a cache-specific wrapper. */
+    /** Original club presentation uses the generated query owner without a cache-specific wrapper. */
     clubPresentation: (id: string) =>
       queryOptions<Awaited<ReturnType<typeof getClubPresentation>> | null>({
         queryKey: getGetClubPresentationQueryKey(id),
@@ -114,7 +114,7 @@ export function createSportingAdministrationQueries(
         queryFn: (context) =>
           read(context, (options) => getPackClassification(id, options)),
       }),
-    /** Pool classification retains the same read shape as its revision-guarded command response. */
+    /** Pool classification retains the same read shape as its atomic command response. */
     poolClassification: (id: string) =>
       queryOptions<Awaited<ReturnType<typeof getPoolClassification>> | null>({
         queryKey: getGetPoolClassificationQueryKey(id),

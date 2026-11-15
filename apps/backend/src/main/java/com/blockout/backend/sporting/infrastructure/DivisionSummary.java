@@ -6,8 +6,6 @@ import java.util.UUID;
 interface DivisionSummary {
   UUID getId();
 
-  long getRevision();
-
   String getName();
 
   String getColor();

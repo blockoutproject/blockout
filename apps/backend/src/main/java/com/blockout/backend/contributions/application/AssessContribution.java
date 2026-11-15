@@ -53,7 +53,6 @@ public class AssessContribution {
                 state,
                 store.active(facts.match().id()).orElse(null),
                 store.pending(facts.match().id(), owner).orElse(null)),
-            state.revision(),
             proposed,
             usage,
             now);

@@ -62,7 +62,6 @@ public final class SportingPresentation {
   /** Immutable current contacts and their independent source freshness/order. */
   public record Contacts(
       UUID clubId,
-      long revision,
       Map<ContactField, ContactValue> fields,
       ObservationOrder order,
       Instant observedAt,
@@ -71,7 +70,6 @@ public final class SportingPresentation {
      * Detaches current field state; no former contact value is retained.
      *
      * @param clubId persistent organization
-     * @param revision current contact editor revision
      * @param fields all six independent current field states
      * @param order latest accepted source-page token, or null
      * @param observedAt source-page observation time, or null before acceptance
@@ -132,20 +130,15 @@ public final class SportingPresentation {
   /** Effective and candidate artwork references; the image's owner retains the actual bytes. */
   public record Logo(String effectiveUrl, String manualUrl, String automaticUrl) {}
 
-  /** Detached presentation editor state, with its own resource editing revision. */
-  public record View(UUID id, Kind kind, String revision, Names names, Logo logo) {}
+  /** Detached current presentation values. */
+  public record View(UUID id, Kind kind, Names names, Logo logo) {}
 
   /** Complete desired names and explicit manual-image action after content validation. */
   public record Edit(
-      String revision,
-      String manualName,
-      String manualShortName,
-      LogoActionEnum logoAction,
-      Image image) {
+      String manualName, String manualShortName, LogoActionEnum logoAction, Image image) {
     /**
      * Rejects blank customizations while assembling the complete command before a transaction.
      *
-     * @param revision captured current editing revision
      * @param manualName independent full-name override, or null for automatic naming
      * @param manualShortName independent short override, absent for a club
      * @param logoAction explicit artwork handling, absent for a pool
@@ -175,16 +168,10 @@ public final class SportingPresentation {
 
   /** Division presentation remains separate from its explicit activity command. */
   public record DivisionEdit(
-      String revision,
-      String name,
-      String color,
-      List<String> gradient,
-      LogoActionEnum logoAction,
-      Image image) {
+      String name, String color, List<String> gradient, LogoActionEnum logoAction, Image image) {
     /**
      * Retains explicit null rather than converting an absent gradient into empty colors.
      *
-     * @param revision captured division revision
      * @param name nonblank display name
      * @param color validated primary color
      * @param gradient three validated colors, or null for derived treatment

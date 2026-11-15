@@ -11,7 +11,6 @@ import com.blockout.backend.generated.mobile.model.ConfirmSourceSeasonRequest;
 import com.blockout.backend.generated.mobile.model.CreateSourceBindingRequest;
 import com.blockout.backend.generated.mobile.model.DiscoveredCollectionResourcePageResponse;
 import com.blockout.backend.generated.mobile.model.LaunchCollectionSourcesRequest;
-import com.blockout.backend.generated.mobile.model.RequestSourceValidationRequest;
 import com.blockout.backend.generated.mobile.model.SetSourceCandidateRequest;
 import com.blockout.backend.generated.mobile.model.SourceBindingListResponse;
 import com.blockout.backend.generated.mobile.model.SourceBindingResponse;
@@ -71,7 +70,6 @@ public class CollectionSourcesController implements CollectionSourcesApi {
         preparation.create(
             account.id(),
             seasonId,
-            request.getSeasonRevision(),
             mapper.toProvider(request.getProvider()),
             request.getOrganizerReference(),
             request.getCandidateUrl());
@@ -89,22 +87,16 @@ public class CollectionSourcesController implements CollectionSourcesApi {
         .body(
             mapper.toDto(
                 preparation.setCandidate(
-                    account.id(),
-                    sourceBindingId,
-                    request.getRevision(),
-                    request.getCandidateUrl())));
+                    account.id(), sourceBindingId, request.getCandidateUrl())));
   }
 
   /** {@inheritDoc} */
   @Override
   public ResponseEntity<SourceBindingResponse> requestCollectionSourceValidation(
-      UUID sourceBindingId, RequestSourceValidationRequest request) {
+      UUID sourceBindingId) {
     return ResponseEntity.accepted()
         .cacheControl(CacheControl.noStore())
-        .body(
-            mapper.toDto(
-                preparation.requestValidation(
-                    account.id(), sourceBindingId, request.getRevision())));
+        .body(mapper.toDto(preparation.requestValidation(account.id(), sourceBindingId)));
   }
 
   /** {@inheritDoc} */
@@ -116,10 +108,7 @@ public class CollectionSourcesController implements CollectionSourcesApi {
         .body(
             mapper.toDto(
                 preparation.confirmSeason(
-                    account.id(),
-                    sourceBindingId,
-                    request.getRevision(),
-                    request.getSeasonLabel())));
+                    account.id(), sourceBindingId, request.getSeasonLabel())));
   }
 
   /** {@inheritDoc} */
@@ -130,8 +119,7 @@ public class CollectionSourcesController implements CollectionSourcesApi {
         .cacheControl(CacheControl.noStore())
         .body(
             mapper.toDto(
-                preparation.launch(
-                    account.id(), seasonId, request.getRevision(), request.getSourceBindingIds())));
+                preparation.launch(account.id(), seasonId, request.getSourceBindingIds())));
   }
 
   /** {@inheritDoc} */

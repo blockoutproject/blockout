@@ -37,7 +37,7 @@ import {
 } from "../schemas/application-versions-schema";
 import { ApplicationVersionsPreview } from "../screens/access-gate-screen";
 
-/** Keeps one editable group revision and a local draft; only explicit reread reconciles newer server data. */
+/** Keeps one local draft; background reads preserve its editable values. */
 export interface ApplicationVersionsFormProps {
   settings: ApplicationVersionsResponse;
   editing: ReturnType<typeof useApplicationVersionsSettings>;
@@ -59,10 +59,6 @@ export function ApplicationVersionsForm({
   const editor = useApplicationVersionsDraft(settings);
   const state = editor.state;
   const { baseline } = state;
-  const feedback =
-    Math.max(settings.revision, 0) > baseline.revision
-      ? "Les réglages ont changé. Relisez-les avant une nouvelle soumission."
-      : state.feedback;
   const [expanded, setExpanded] = useState({ ios: false, android: false });
   const [preview, setPreview] = useState(false);
   const [acknowledged, setAcknowledged] = useState<string>();
@@ -93,7 +89,6 @@ export function ApplicationVersionsForm({
   const storeChoice = JSON.stringify([current.ios, current.android]);
   const checked = acknowledged === storeChoice;
   const busy = disabled || editing.content.isPending;
-  const rereadRequired = Math.max(settings.revision, 0) > baseline.revision;
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -103,13 +98,13 @@ export function ApplicationVersionsForm({
 
   /** Maps only dirty fields, with null removals, into the generated atomic PATCH. */
   async function submit(draft: ApplicationVersionsValues) {
-    if (busy || rereadRequired || (raised && !checked)) {
+    if (busy || (raised && !checked)) {
       return;
     }
     actionFeedback.clear();
     try {
       const command = editing.content.mutateAsync(
-        toApplicationVersionsRequest(baseline.revision, draft, dirtyFields),
+        toApplicationVersionsRequest(draft, dirtyFields),
       );
       const accepted = await command;
       editor.update({
@@ -122,33 +117,6 @@ export function ApplicationVersionsForm({
     } catch {
       actionFeedback.error();
     }
-  }
-
-  /** Adopts the current settings revision while preserving dirty fields for explicit resubmission. */
-  async function reread() {
-    actionFeedback.clear();
-    const result = await editing.query.refetch();
-    // Query may restore its old success when route removal cancels this read.
-    if (!mounted.current) {
-      return;
-    }
-    if (
-      !result.data ||
-      result.isError ||
-      result.data.revision < baseline.revision
-    ) {
-      return;
-    }
-    editor.update({
-      baseline: result.data,
-      feedback:
-        "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
-    });
-    reset(applicationVersionsValues(result.data), {
-      keepDirtyValues: true,
-      keepDirty: true,
-    });
-    setAcknowledged(undefined);
   }
 
   const previewPlatform = Platform.OS === "ios" ? "ios" : "android";
@@ -336,9 +304,7 @@ export function ApplicationVersionsForm({
               <Button
                 fullWidth
                 label="Enregistrer"
-                disabled={
-                  busy || rereadRequired || !isDirty || (raised && !checked)
-                }
+                disabled={busy || !isDirty || (raised && !checked)}
                 loading={editing.content.isPending}
                 onPress={() =>
                   void handleSubmit(submit, (errors) =>
@@ -353,22 +319,6 @@ export function ApplicationVersionsForm({
           </View>
         </View>
       </Surface>
-      {feedback && (
-        <Text
-          accessibilityLiveRegion="polite"
-          style={[tokens.typography.body, { color: colors.text }]}
-        >
-          {feedback}
-        </Text>
-      )}
-      {rereadRequired && (
-        <Button
-          label="Relire les réglages"
-          onPress={() => void reread()}
-          loading={editing.query.isFetching}
-          disabled={busy}
-        />
-      )}
       <Modal
         visible={preview}
         animationType="slide"

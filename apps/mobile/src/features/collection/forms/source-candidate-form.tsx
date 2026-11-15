@@ -50,16 +50,11 @@ export function SourceCandidateForm({
   const state = editor.state;
   const { editingUrl, feedback } = state;
   const { control, handleSubmit, reset } = editor.form;
-  const { isDirty, dirtyFields } = useFormState({
+  const { isDirty } = useFormState({
     control,
   });
   const confirmDiscard = useDiscardChanges(isDirty, editor.discard);
-  // Subscribe to RHF's dirty fields so keepDirtyValues retains the editable snapshot on reread.
-  void dirtyFields;
-  const displayed =
-    source && (!state.baseline || source.revision >= state.baseline.revision)
-      ? source
-      : state.baseline;
+  const displayed = source ?? state.baseline;
   const savedUrl = displayed?.acceptedUrl ?? displayed?.candidateUrl;
   const officialUrl =
     savedUrl && candidateUrlSchema.safeParse(savedUrl).success
@@ -77,10 +72,6 @@ export function SourceCandidateForm({
     editing.candidate.isPending ||
     editing.validation.isPending ||
     editing.confirmation.isPending;
-  const reconciliationRequired =
-    !!displayed &&
-    !!state.baseline &&
-    displayed.revision > state.baseline.revision;
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -114,20 +105,19 @@ export function SourceCandidateForm({
     editor.update({ ...editor.state, editingUrl: false });
   }
 
-  /** Reports a failed action without replacing the candidate draft or its accepted revision. */
+  /** Reports a failed action without replacing the candidate draft. */
   function failed() {
     editor.update({ ...editor.state, feedback: undefined });
     actionFeedback.error();
   }
 
-  /** Replaces only the candidate against its editing revision; a successful response invalidates old evidence. */
+  /** Replaces only the candidate; a successful response invalidates old evidence. */
   async function save(values: SourceCandidateValues) {
-    if (busy || readOnly || reconciliationRequired) {
+    if (busy || readOnly) {
       return;
     }
     try {
       const attempt = editing.candidate.mutateAsync({
-        revision: baseline.revision,
         candidateUrl: values.candidateUrl,
       });
       editor.update({ ...editor.state, feedback: undefined });
@@ -153,13 +143,11 @@ export function SourceCandidateForm({
 
   /** Requests validation once; 202 stays pending until an operator rereads the binding. */
   async function validate() {
-    if (busy || readOnly || reconciliationRequired || isDirty) {
+    if (busy || readOnly || isDirty) {
       return;
     }
     try {
-      const attempt = editing.validation.mutateAsync({
-        revision: baseline.revision,
-      });
+      const attempt = editing.validation.mutateAsync();
       editor.update({ ...editor.state, feedback: undefined });
       actionFeedback.clear();
       const accepted = await attempt;
@@ -178,7 +166,6 @@ export function SourceCandidateForm({
     if (
       busy ||
       readOnly ||
-      reconciliationRequired ||
       isDirty ||
       !season ||
       current.validation !== "confirmation-required"
@@ -200,12 +187,11 @@ export function SourceCandidateForm({
 
   /** The request boundary rechecks live grants/session even when a native alert callback was held. */
   async function acceptSeason() {
-    if (busy || readOnly || reconciliationRequired || isDirty || !season) {
+    if (busy || readOnly || isDirty || !season) {
       return;
     }
     try {
       const attempt = editing.confirmation.mutateAsync({
-        revision: baseline.revision,
         seasonLabel: season.label,
       });
       editor.update({ ...editor.state, feedback: undefined });
@@ -219,35 +205,6 @@ export function SourceCandidateForm({
     } catch {
       failed();
     }
-  }
-
-  /** Reads source and season; failure or an older source response preserves the baseline and dirty URL. */
-  async function reread() {
-    const [sourceResult, seasonResult] = await Promise.all([
-      editing.source.refetch(),
-      editing.season.refetch(),
-    ]);
-    if (!mounted.current) {
-      return;
-    }
-    if (
-      sourceResult.isError ||
-      seasonResult.isError ||
-      !sourceResult.data ||
-      !seasonResult.data ||
-      sourceResult.data.revision < baseline.revision
-    ) {
-      return;
-    }
-    reset(sourceCandidateValues(sourceResult.data), {
-      keepDirtyValues: true,
-      keepDirty: true,
-    });
-    editor.update({
-      ...editor.state,
-      baseline: sourceResult.data,
-      feedback: "État relu. Vérifiez votre saisie avant une nouvelle action.",
-    });
   }
 
   return (
@@ -367,7 +324,7 @@ export function SourceCandidateForm({
                     label="Enregistrer"
                     fullWidth
                     onPress={() => void handleSubmit(save)()}
-                    disabled={busy || readOnly || reconciliationRequired}
+                    disabled={busy || readOnly}
                     loading={editing.candidate.isPending}
                   />
                   <Button
@@ -396,7 +353,7 @@ export function SourceCandidateForm({
                   label="Valider la source"
                   fullWidth
                   onPress={() => void validate()}
-                  disabled={busy || reconciliationRequired || isDirty}
+                  disabled={busy || isDirty}
                   loading={editing.validation.isPending}
                 />
               )}
@@ -405,7 +362,7 @@ export function SourceCandidateForm({
                 label="Confirmer la saison"
                 fullWidth
                 onPress={confirmSeason}
-                disabled={busy || reconciliationRequired || isDirty}
+                disabled={busy || isDirty}
                 loading={editing.confirmation.isPending}
               />
             )}
@@ -466,16 +423,6 @@ export function SourceCandidateForm({
         >
           {feedback}
         </Text>
-      )}
-
-      {reconciliationRequired && (
-        <Button
-          label="Relire l’état"
-          variant="secondary"
-          onPress={() => void reread()}
-          disabled={busy}
-          loading={editing.source.isFetching || editing.season.isFetching}
-        />
       )}
     </View>
   );

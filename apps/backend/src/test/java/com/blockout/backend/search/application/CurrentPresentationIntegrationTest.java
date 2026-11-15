@@ -42,7 +42,6 @@ import com.blockout.backend.sporting.application.service.ChangeClubContacts;
 import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import com.blockout.backend.sporting.application.service.ChangeSportingPresentation;
 import com.blockout.backend.sporting.application.service.ReadSportingAcquisition;
-import com.blockout.backend.sporting.application.service.ReadSportingConfiguration;
 import com.blockout.backend.sporting.application.service.ReadSportingData;
 import com.blockout.backend.sporting.application.service.RestrictClubContacts;
 import com.blockout.backend.sporting.application.service.ValidateSportingImage;
@@ -111,7 +110,6 @@ class CurrentPresentationIntegrationTest {
   @Autowired private AcceptClubLocality localities;
   @Autowired private AcceptSourceImage images;
   @Autowired private ChangeSportingPresentation presentation;
-  @Autowired private ReadSportingConfiguration configuration;
   @Autowired private ReadSportingData sporting;
   @Autowired private ReadSportingAcquisition acquisition;
   @Autowired private ProjectSearch projection;
@@ -546,7 +544,7 @@ class CurrentPresentationIntegrationTest {
   }
 
   /**
-   * Applies one full presentation command using the currently owned editor revision.
+   * Applies one full presentation command against current server state.
    *
    * @param kind exact sporting resource kind
    * @param id original resource identity
@@ -557,26 +555,16 @@ class CurrentPresentationIntegrationTest {
    */
   private void edit(
       Kind kind, UUID id, String name, String shortName, LogoActionEnum action, Image image) {
-    presentation.set(
-        ACCOUNT,
-        kind,
-        id,
-        new Edit(
-            configuration.presentation(ACCOUNT, kind, id).revision(),
-            name,
-            shortName,
-            action,
-            image));
+    presentation.set(ACCOUNT, kind, id, new Edit(name, shortName, action, image));
   }
 
   /**
-   * Applies only the explicit independent contact choices at the current contacts revision.
+   * Applies only the explicit independent contact choices to current server state.
    *
    * @param fields explicit independent contact choices
    */
   private void correct(Map<ContactField, ContactEdit> fields) {
-    contacts.correct(
-        ACCOUNT, club, Long.toString(configuration.clubContacts(ACCOUNT, club).revision()), fields);
+    contacts.correct(ACCOUNT, club, fields);
   }
 
   /**

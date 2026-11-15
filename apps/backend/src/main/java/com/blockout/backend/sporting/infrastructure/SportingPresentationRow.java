@@ -10,7 +10,6 @@ import java.util.UUID;
  * @param sourceName current attributable name
  * @param manualName independent full-name override
  * @param manualShortName independent short-name override when supported
- * @param revision current resource presentation revision
  * @param provider team source, or null for another resource
  * @param hasLogo whether manual image bytes exist
  * @param hasSourceLogo whether professional source artwork exists
@@ -22,7 +21,6 @@ record SportingPresentationRow(
     String sourceName,
     String manualName,
     String manualShortName,
-    long revision,
     CollectionProviderEnum provider,
     boolean hasLogo,
     boolean hasSourceLogo,

@@ -2,20 +2,18 @@ package com.blockout.backend.collection.application.service;
 
 import com.blockout.backend.collection.application.model.CollectionState.Source;
 import com.blockout.backend.collection.application.port.CollectionStore;
-import com.blockout.backend.sporting.application.service.ChangeCollectionSeasons;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Publishes a source revision together with its canonical season preparation revision. */
+/** Persists source state with the revision retained by collector protocols. */
 @Service
 @RequiredArgsConstructor
 public class ChangeCollectionSourceState {
   private final CollectionStore store;
-  private final ChangeCollectionSeasons seasons;
 
   /**
-   * Publishes one source mutation together with the season's preparation revision.
+   * Persists one approved source mutation.
    *
    * @param source already authorized state change
    * @return flushed source revision
@@ -24,7 +22,7 @@ public class ChangeCollectionSourceState {
   public Source save(Source source) {
     CollectionRevision.requireAdvance(source.revision());
     Source changed = store.saveSource(source);
-    seasons.updatePreparation(source.seasonId(), false);
+
     return changed;
   }
 }

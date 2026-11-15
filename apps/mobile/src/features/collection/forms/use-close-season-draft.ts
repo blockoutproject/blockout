@@ -8,7 +8,7 @@ import {
 } from "../schemas/close-season-schema";
 import { closeSeasonValues } from "./close-season-values";
 
-/** Original revision and local feedback belong to this mounted editing visit. */
+/** Original target and local feedback belong to this mounted editing visit. */
 interface DraftState {
   baseline?: CollectionSeasonResponse;
   feedback?: string;

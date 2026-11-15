@@ -5,8 +5,7 @@ ClubPresentation:
       - SportingPresentation
     summary: Read club presentation
     description: >-
-      Returns the club's effective names, manual customizations and logo values, and current editing
-      revision. Requires global sporting-presentation permission; resource conditions still apply.
+      Returns the club's effective names, manual customizations and logo values. Requires global sporting-presentation permission; resource conditions still apply.
     responses:
       "400":
         $ref: ../../common/problems.yaml#/responses/BadRequest
@@ -49,7 +48,7 @@ ClubPresentation:
       manual display name and logo action together, preserving source values and identity. replace
       requires a decodable PNG/JPEG image of at most 5242880 bytes and 4194304 pixels; keep and
       automatic forbid an image. For a club, automatic clears its manual logo and selects missing
-      artwork. A stale revision returns 409 without changes. A failed or lost response permits
+      artwork. A failed or lost response permits
       explicit manual retry without a verification read.
     responses:
       "200":
@@ -129,8 +128,7 @@ TeamPresentation:
       - SportingPresentation
     summary: Read team presentation
     description: >-
-      Returns the team's effective names, manual customizations and logo values, and current editing
-      revision. Requires global sporting-presentation permission; resource conditions still apply.
+      Returns the team's effective names, manual customizations and logo values. Requires global sporting-presentation permission; resource conditions still apply.
     responses:
       "400":
         $ref: ../../common/problems.yaml#/responses/BadRequest
@@ -174,8 +172,7 @@ TeamPresentation:
       and identity. replace requires a decodable PNG/JPEG image of at most 5242880 bytes and 4194304
       pixels; keep and automatic forbid an image. automatic clears the manual team logo. For a
       professional team, it resolves the accepted LNV logo, then its associated club logo; other
-      teams use the club logo. Missing fallback leaves no image. A stale revision returns 409
-      without changes. A failed or lost response permits explicit manual retry without a verification read.
+      teams use the club logo. Missing fallback leaves no image. A failed or lost response permits explicit manual retry without a verification read.
     responses:
       "200":
         description: >-
@@ -254,7 +251,7 @@ PoolPresentation:
       - SportingPresentation
     summary: Read pool presentation
     description: >-
-      Returns the pool's effective names, manual customizations, and current editing revision.
+      Returns the pool's effective names and manual customizations.
       Requires global sporting-presentation permission; resource conditions still apply.
     responses:
       "400":
@@ -294,7 +291,7 @@ PoolPresentation:
     description: >-
       Requires global sporting-presentation permission; resource conditions still apply. Sets
       independent full and short name customizations; source values, inherited artwork,
-      classification and identity remain unchanged. A stale revision returns 409 without changes. A
+      classification and identity remain unchanged. A
       failed or lost response permits explicit manual retry without a verification read.
     responses:
       "415":
@@ -345,7 +342,7 @@ PackClassification:
       - SportingClassification
     summary: Read pack classification
     description: >-
-      Returns the pack default, effective acquisition classification and current editing revision.
+      Returns the pack default, effective acquisition classification.
       Requires global sporting-classification permission; all affected resources remain subject to their business rules.
     responses:
       "400":
@@ -387,7 +384,7 @@ PackClassification:
       their business rules. Sets or removes the complete pack default atomically. Removing the pack
       default leaves pools without their own override unclassified for acquisition; individual
       overrides remain in effect. Without an effective classification, collection stops while
-      accepted published classification remains. A stale revision, conflicting shared participation
+      accepted published classification remains. A conflicting shared participation
       or target-identity collision refuses the entire change without splitting or merging teams. A
       failed or lost response permits explicit manual retry without a verification read.
     responses:
@@ -439,7 +436,7 @@ PoolClassification:
       - SportingClassification
     summary: Read pool classification
     description: >-
-      Returns the pool override, effective acquisition classification and current editing revision.
+      Returns the pool override, effective acquisition classification.
       Requires global sporting-classification permission; all affected resources remain subject to their business rules.
     responses:
       "400":
@@ -480,8 +477,7 @@ PoolClassification:
       Requires global sporting-classification permission; all affected resources remain subject to
       their business rules. Sets or removes the complete pool override atomically. Removing the pool
       override restores its pack default, if available. Without an effective classification,
-      collection stops while accepted published classification remains. A stale revision,
-      conflicting shared participation or target-identity collision refuses the entire change
+      collection stops while accepted published classification remains. A conflicting shared participation or target-identity collision refuses the entire change
       without splitting or merging teams. A failed or lost response permits explicit manual retry
       without a verification read.
     responses:
@@ -533,7 +529,7 @@ ClubContacts:
       - SportingPresentation
     summary: Read editable club contacts
     description: >-
-      Returns current contact values, independent management modes and the editing revision.
+      Returns current contact values and independent management modes.
       Requires global sporting-presentation permission for contact correction. Current privacy restrictions apply to
       every returned value.
     responses:
@@ -575,9 +571,9 @@ ClubContacts:
     summary: Correct selected club contact fields
     description: >-
       Requires global sporting-presentation permission for contact correction. Applies supplied
-      field modes atomically against the current revision; omitted fields are unchanged. A change to
+      field modes atomically against current server state; omitted fields are unchanged. A change to
       the effective municipality or postal context clears the old point and advances the locality
-      revision. A stale revision or a write conflicting with a contact privacy restriction returns
+      revision. A write conflicting with a contact privacy restriction returns
       409 without changes. Ordinary edits cannot lift a privacy restriction. A failed or lost
       response permits explicit manual retry without a verification read.
     responses:
@@ -739,7 +735,7 @@ Division:
       - DivisionAdministration
     summary: Read a division
     description: >-
-      Returns the division’s presentation, activity and current editing revision. Requires
+      Returns the division’s presentation and activity. Requires
       sporting-presentation, sporting-classification or division-lifecycle permission.
     responses:
       "400":
@@ -782,7 +778,7 @@ DivisionPresentation:
       without changing identity or activity. Case-insensitive name uniqueness applies. replace
       requires a decodable PNG/JPEG image of at most 5242880 bytes and 4194304 pixels; keep and
       automatic forbid an image. automatic removes the manual logo without a team or club fallback.
-      A stale revision returns 409 without changes. A failed or lost response permits explicit
+      A failed or lost response permits explicit
       manual retry without a verification read.
     responses:
       "200":
@@ -862,10 +858,10 @@ DivisionActivity:
       - DivisionAdministration
     summary: Change division activity
     description: >-
-      Requires division-lifecycle permission and the current editing revision. Deactivation hides
+      Requires division-lifecycle permission. Deactivation hides
       dependent sporting resources and prevents collection from the next acquisition cycle; clubs
       remain visible and already-running cycles may finish. Reactivation lifts only the inactivity
-      restriction. A stale revision returns 409 without changes. A failed or lost response permits
+      restriction. A failed or lost response permits
       explicit manual retry without a verification read.
     responses:
       "415":

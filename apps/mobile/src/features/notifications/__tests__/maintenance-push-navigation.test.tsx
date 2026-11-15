@@ -174,7 +174,6 @@ it.each(["owner", "operator", "guest"] as const)(
     // Given: the native version is 2.9.0; maintenance and the newer minimum are independently current.
     const access = applicationAccessResponse();
     access.maintenance = {
-      revision: 1,
       active: true,
       message: "Maintenance en cours.",
       imageUrl: null,
@@ -243,7 +242,6 @@ it.each(["owner", "operator", "guest"] as const)(
 
     // When: lifting maintenance alone still leaves the current minimum in force.
     access.maintenance = {
-      revision: 2,
       active: false,
       message: null,
       imageUrl: null,

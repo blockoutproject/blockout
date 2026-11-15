@@ -94,9 +94,8 @@ class LegacyApplicationStatusIntegrationTest {
             put("/administration/maintenance/activation")
                 .with(editor())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":0,\"active\":true}"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.revision").value(1));
+                .content("{\"active\":true}"))
+        .andExpect(status().isOk());
     ResultActions legacy =
         mvc.perform(get(LEGACY_PATH).header("Authorization", "Bearer obsolete-v1"));
 
@@ -127,7 +126,6 @@ class LegacyApplicationStatusIntegrationTest {
     String change =
         """
         {
-          "revision": 0,
           "ios": {"minimumVersion": "%s", "storeUrl": "https://apps.apple.com/app/id987654321"},
           "android": {"minimumVersion": "%s", "storeUrl": "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout&hl=fr"},
           "message": "Nouvelle version V2"
@@ -141,8 +139,7 @@ class LegacyApplicationStatusIntegrationTest {
                 .with(editor())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(change))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.revision").value(1));
+        .andExpect(status().isOk());
     ResultActions legacy = mvc.perform(get(LEGACY_PATH));
 
     // Then
@@ -172,7 +169,6 @@ class LegacyApplicationStatusIntegrationTest {
     String change =
         """
         {
-          "revision": 0,
           "ios": {"minimumVersion": null, "storeUrl": null},
           "android": {"minimumVersion": null, "storeUrl": null},
           "message": null
@@ -185,8 +181,7 @@ class LegacyApplicationStatusIntegrationTest {
                 .with(editor())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(change))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.revision").value(1));
+        .andExpect(status().isOk());
     ResultActions legacy = mvc.perform(get(LEGACY_PATH));
 
     // Then

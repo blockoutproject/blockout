@@ -2,7 +2,6 @@ package com.blockout.backend.access.api;
 
 import com.blockout.backend.access.domain.AccessSettingsUnavailableException;
 import com.blockout.backend.access.domain.InvalidAccessSettingsException;
-import com.blockout.backend.access.domain.StaleSettingsRevisionException;
 import com.blockout.backend.shared.http.HttpProblems;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
@@ -20,8 +19,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Slf4j
 public class AccessSettingsExceptionHandler {
 
-  /** Treats both the submitted-revision and JPA commit-time failures as the canonical 409. */
-  @ExceptionHandler({StaleSettingsRevisionException.class, OptimisticLockingFailureException.class})
+  /** Translates a native JPA commit-time conflict. */
+  @ExceptionHandler(OptimisticLockingFailureException.class)
   ResponseEntity<Object> stale() {
     return HttpProblems.response(HttpStatus.CONFLICT, "urn:blockout:problem:stale-revision");
   }

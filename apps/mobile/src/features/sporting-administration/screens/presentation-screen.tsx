@@ -62,7 +62,7 @@ function PresentationScreenContent({
   const ordinary = useOrdinaryRequest();
   const consultation = useConsultationQueries();
 
-  /** Selects the exact existing binary cache owner for refresh after a presentation reread. */
+  /** Selects the exact existing binary cache owner for refresh after a presentation refresh. */
   function getLogoKey() {
     if (target.kind === "team") {
       return getGetTeamLogoQueryKey(target.id);

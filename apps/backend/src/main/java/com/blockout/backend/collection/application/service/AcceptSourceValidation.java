@@ -49,7 +49,7 @@ public class AcceptSourceValidation {
     Cycle cycle = store.lockCycleForUpdate(result.cycleId());
     Source source = store.lockSource(sourceId);
     CollectionLifecycle.requireOpen(season);
-    CollectionRevision.requireAdvance(season.collectionRevision());
+
     if (!cycle.id().equals(source.currentCycleId())) {
       throw CollectionConflictException.invalidContext();
     }

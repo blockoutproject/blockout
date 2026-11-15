@@ -94,7 +94,7 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
         sql.update(
             "INSERT INTO account_permission(account_id,permission) VALUES (?,'division-lifecycle.manage')",
             AUTHOR);
-        divisions.setActive(AUTHOR, SportingIngestionFixture.DIVISION, "0", false);
+        divisions.setActive(AUTHOR, SportingIngestionFixture.DIVISION, false);
       }
       default -> throw new IllegalArgumentException(restriction);
     }

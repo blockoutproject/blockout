@@ -39,12 +39,7 @@ public class RestrictClubContacts {
     }
     store.saveClubContacts(
         new Contacts(
-            clubId,
-            current.revision(),
-            fields,
-            current.order(),
-            current.observedAt(),
-            current.providerPublishedAt()),
+            clubId, fields, current.order(), current.observedAt(), current.providerPublishedAt()),
         null);
   }
 }

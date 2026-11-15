@@ -17,7 +17,7 @@ import { useAccountSession } from "@/features/accounts/current-account";
 export function useMaintenanceSettings(enabled: boolean) {
   const session = useAccountSession();
 
-  /** Uses captured native credentials; the server owns grant and revision validation. */
+  /** Uses captured native credentials; the server owns current grant validation. */
   async function request() {
     const credentials = await session.getCredentials();
     return { headers: { Authorization: `Bearer ${credentials.accessToken}` } };

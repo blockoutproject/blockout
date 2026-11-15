@@ -46,11 +46,11 @@ Race real F08 publication with first final-result acceptance in both orders. Exp
 
 Generate actual Spring interfaces/DTOs, RestClient and mobile consumers from the canonical roots; compile and exercise real request/response binding. Cover omitted/null/value, strict unknown request fields, tolerant response additions, unknown enums, dates, safe Problem Details and bounded partial outcomes. Regeneration must be deterministic without template patches or committed generated output.
 
-Exercise club, team and division atomic multipart PATCH presentation saves through real MVC and mobile transport: JSON metadata with explicit nulls, image replacement, automatic-logo restoration and name/color changes in the same transaction. Reject an invalid image without saving another part of the form. Verify that `keep`/`automatic` reject an unexpected image and `replace` requires one. Pool PUT edits accept complete JSON names only and reject missing required fields, image or logo-action fields. Repeat an already-current permitted write: expect no new revision, image association or lifecycle transition. Contacts PATCH must apply all supplied fields or none. Division POST must return a usable Location matching the response identity; unsupported media types return 415.
+Exercise club, team and division atomic multipart PATCH presentation saves through real MVC and mobile transport: JSON metadata with explicit nulls, image replacement, automatic-logo restoration and name/color changes in the same transaction. Reject an invalid image without saving another part of the form. Verify that `keep`/`automatic` reject an unexpected image and `replace` requires one. Pool PUT edits accept complete JSON names only and reject missing required fields, image or logo-action fields. Repeat an already-current permitted write: expect no additional image association or lifecycle transition. Contacts PATCH must apply all supplied fields or none. Division POST must return a usable Location matching the response identity; unsupported media types return 415.
 
 Verify `Cache-Control: no-store` on administration/ingestion successes and errors, and the Bearer challenge on 401; the application-owned query cache must still obey account-switch and permission rules.
 
-Try wrong-environment M2M tokens and unauthorized/stale administrative commands. Expect no effects. Lose a response, retain editable input and ordinary mutation feedback, and explicitly retry without a verification prerequisite; current server revisions and authorization remain effective and no write replays automatically. Exceed the calendar/image bounds and verify explicit refusal, never truncation or deletion of valid images. Qualify a complete source-season catalog against the 8-MiB JSON bound; include repeated pool labels under distinct compound contexts and identical duplicates. Expect positional result correlation, one atomic catalog commit, and no absence change for stale, invalid or oversized input.
+Try wrong-environment M2M tokens and unauthorized administrative commands and current domain conflicts. Expect no effects. Lose a response, retain editable input and ordinary mutation feedback, and explicitly retry without a verification prerequisite; current server authorization and domain validation remain effective and no write replays automatically. Exceed the calendar/image bounds and verify explicit refusal, never truncation or deletion of valid images. Qualify a complete source-season catalog against the 8-MiB JSON bound; include repeated pool labels under distinct compound contexts and identical duplicates. Expect positional result correlation, one atomic catalog commit, and no absence change for stale, invalid or oversized input.
 
 ### Generated facts and public reads
 
@@ -72,15 +72,15 @@ Load the bounded Divisions catalogue with search/activity criteria, then exhaust
 
 Create a division through the name/color/logo form without a catalogue GET. Save directly through generated multipart metadata, with no extra confirmation or activity write. Submit a duplicate differing only by letter case: the server 409 remains at the name field and preserves all entered values and the logo candidate. A non-name refusal on creation keeps ordinary feedback and editable values, without unavailable reread advice. Accept POST 201 and verify the terminal form retains the accepted name, colors and identity. Exercise the existing reset/discard paths and fail a later GET: none restores the empty creation draft or labels that read failure as a failed save. This adds no new action to the terminal creation screen.
 
-For classification and existing presentation, exercise typed stale-revision refusal, failed then successful explicit original-target reread and protected-route withdrawal/reentry. A failed explicit reread uses the same whole-form Error Card and safe Retry, preserving its draft and original editing revision; a sporting-scope collision still refuses the entire correction after reread. A technical or lost save response retains the exact editable draft with ordinary failure feedback and normal settlement invalidation; a later explicit save needs no verification read. Let ordinary invalidation return a newer revision after a lost response: Save remains available and the next voluntary request still carries the original editing revision. Only a typed stale-revision refusal requires explicit rereading; a background GET alone does not. Name uniqueness, original target and current revision/permission checks remain authoritative; no write is replayed automatically. Keep division activity as a distinct lifecycle command and keep unsaved-draft exit guards.
+For classification and existing presentation, save an older valid draft after newer manual/source data without Relire. Only submitted manual fields may change; omitted PATCH fields preserve current values and explicit null retains its removal meaning. Current permission, uniqueness, privacy and complete sporting-scope collisions still refuse without partial effects. Fail a save response and retain the exact draft, target and prepared file for another voluntary save without a verification GET. Accept an ACK, fail the normal invalidated read and recover through the whole-form card: accepted defaults remain accepted, the mounted draft/scroller survive and read Retry sends no write. Keep division activity separate and retain unsaved-draft exit guards.
 
 Compare the [mapping controls](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4652-28674), [division catalogue](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1340-9338), [creation](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1370-10242) and [custom gradient](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=4604-31796), [deactivation](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1404-12777) and [reactivation](https://www.figma.com/design/rKu4xc8eJsx0f0Vu4E6U03/?node-id=1405-12885). Native design qualification requires actual integrated journeys; implementation illustrations and controlled native SDK/HTTP inputs cannot establish that qualification.
 
 ## Presentation, contacts and continuity
 
-Edit a team while its parent club artwork changes. Expect KEEP and own-name edits to use the team's presentation revision, REPLACE to preserve precedence and AUTOMATIC to resolve the latest fallback. Hold a separate parent-club row lock and verify the independent team edit can complete. Preserve own-team stale/no-op protection, current grants and privacy restrictions.
+Edit a team while its parent club artwork changes. KEEP and omitted fields preserve current manual state, REPLACE preserves precedence and AUTOMATIC resolves the latest permitted fallback. The valid command requires no editing revision. Preserve current grants, privacy restrictions, UUID and native transaction protection.
 
-For a retained-chain upgrade, preserve applied checksums, accepted image bytes/media type/name and own presentation/locality/contact revisions. Stop incompatible writers before the contract change; removed club-logo counters and F01 outage clocks require compatible forward repair rather than a claimed schema rollback. Check clean creation separately on a disposable database.
+For a retained-chain upgrade, preserve applied checksums, accepted image bytes/media type/name and locality/observation revisions and native persistence versions. Stop incompatible writers before the contract change; removed club-logo counters and F01 outage clocks require compatible forward repair rather than a claimed schema rollback. Check clean creation separately on a disposable database.
 
 Exercise the [shared single-image cases](../003-shared-quality/quickstart.md#single-image-fields) in representative club/team/division forms: open native choices/cancel without a draft change, replace, reset a customization without preview, retain a candidate through remote refusal and save explicitly. Verify nonprofessional club inheritance and professional team → LNV → optional club precedence using different source images. Changing or losing parent media never removes an unsaved team choice or grants new removal rights. Pool editing stays names-only. Current permission loss makes callbacks from an already open OS menu inert; cancellation/dismissal remains system-owned, without requiring dynamically disabled native buttons; prepared work stays with its original field/session. Multi-image support remains F10-owned.
 
@@ -106,10 +106,10 @@ explicit draft discard. This preparation does not
 qualify the separately retained iOS text-resizing/minimum-iOS limits.
 
 Delay the first Presentation response until after mount, then verify that names,
-logo intent and the one editing revision become ready together. Dirty a field and
-prepare a replacement logo; a background response with another revision must not
+logo intent and the one useful editing baseline become ready together. Dirty a field and
+prepare a replacement logo; a background response with newer server values must not
 rebase either. Accept a save, explicitly discard subsequent edits and exercise the
-existing conflict reread separately, retaining the native scroller and file owner.
+existing discard separately, retaining the native scroller and file owner.
 
 Save names and a nonsquare PNG/JPEG in one multipart request, including manual
 logo → automatic → missing fallback, and reject invalid/oversized artwork without
@@ -122,9 +122,7 @@ refetch. Race another editor, lose a save response, fail the subsequent read and
 withdraw the action grant/session while the picker or save is pending. Ordinary
 failed/lost saves retain exact input and allow another explicit save under current
 domain rules, with normal settlement invalidation and no successful-read
-prerequisite. Typed stale-revision conflicts keep their explicit original-target
-reread and preserve dirty fields while updating untouched fields/current revision;
-failed reread masks the editable zone under the common F13 card and remains retryable without discarding the mounted draft. No mutation may replay automatically. A current
+prerequisite. An older valid draft can save after newer manual values without Relire; only submitted fields change. Current business collisions, permissions and privacy restrictions still refuse without partial effects. A failed required read masks the editable zone under the common F13 card while retaining its draft. No mutation may replay automatically. A current
 matching state establishes only the observed outcome, never a historical receipt.
 
 In the F03-owned journey, separately check the professional team without a club,
@@ -148,7 +146,7 @@ Exercise repeated matches/pools and two teams sharing one image URL. Expect one 
 
 Read current locality targets after admission and submit that revision. Change effective address/city/postcode or return to source while the provider is in flight: expect stale-result refusal, no forbidden context publication and no withdrawal after technical acquisition failure. Manual locality and intentional absence survive recollection; masked source changes preserve point/revision. An unambiguous municipality fallback remains located without recalculation.
 
-Send actual Servlet multipart PATCH with explicit-null JSON metadata and image bytes. Invalid replacement preserves the entire previous form/revision; automatic restoration returns accepted source bytes. Keep loopback supplier/identity checks distinct from live provider reads, native networking, private rights handling and protected-logo recovery.
+Send actual Servlet multipart PATCH with explicit-null JSON metadata and image bytes. Invalid replacement preserves the entire previous form state; automatic restoration returns accepted source bytes. Keep loopback supplier/identity checks distinct from live provider reads, native networking, private rights handling and protected-logo recovery.
 
 ### Current visibility and projection boundary
 

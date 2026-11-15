@@ -218,7 +218,6 @@ public interface SportingPresentationMapper {
   default ClubContactsResponse toDto(SportingPresentation.Contacts source) {
     return new ClubContactsResponse(
         source.clubId(),
-        Long.toString(source.revision()),
         toDto(source.fields().get(ContactField.ADDRESS)),
         toDto(source.fields().get(ContactField.CITY)),
         toDto(source.fields().get(ContactField.POSTAL_CODE)),
