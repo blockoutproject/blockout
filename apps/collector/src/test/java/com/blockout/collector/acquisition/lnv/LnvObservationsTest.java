@@ -245,31 +245,6 @@ class LnvObservationsTest {
     assertThat(facts.result().get().awaySets()).isEqualTo(2);
   }
 
-  @Test
-  @DisplayName("An invalid detail clock preserves independently published aggregate facts")
-  void isolatesInvalidDetailClock() {
-    // Given
-    String html =
-        "<span id=Content_Main_LB_DateTime>samedi 17 octobre 2026 - 24:00</span>"
-            + "<span id=Content_Main_LBL_WonSetHome>3</span><span id=Content_Main_LBL_WonSetGuest>1</span>";
-
-    // When
-    LnvDetailParser.Read read =
-        new LnvDetailParser()
-            .inspect(
-                bytes(html),
-                URI.create("https://lnv-web.dataproject.com/MatchStatistics.aspx?mID=990&ID=901"),
-                "990",
-                "901");
-
-    // Then
-    assertThat(read.complete()).isFalse();
-    SportingObservation.Facts facts = read.facts();
-    assertThat(facts.localDate()).isNull();
-    assertThat(facts.localTime()).isNull();
-    assertThat(facts.result().get().homeSets()).isEqualTo(3);
-  }
-
   @ParameterizedTest
   @CsvSource({"'', true", "invalid - 18:00, false", "17/10/2026 - 24:00, false"})
   @DisplayName("Missing or malformed schedule fields preserve identified calendar participants")

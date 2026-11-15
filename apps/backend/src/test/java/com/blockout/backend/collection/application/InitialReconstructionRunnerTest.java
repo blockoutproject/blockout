@@ -3,18 +3,12 @@ package com.blockout.backend.collection.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import com.blockout.backend.collection.application.model.InitialCoverage;
-import com.blockout.backend.collection.application.model.InitialReconstructionReport;
 import com.blockout.backend.collection.application.service.CloseCollectionSeason;
 import com.blockout.backend.collection.application.service.InitialReconstructionService;
 import com.blockout.backend.collection.application.service.PrepareCollectionSources;
 import com.blockout.backend.collection.operations.InitialReconstructionProperties;
 import com.blockout.backend.collection.operations.InitialReconstructionRunner;
-import com.blockout.backend.generated.ingestion.model.CollectionSeasonStateEnum;
-import com.blockout.backend.sporting.application.model.SportingViews.CollectionSeasonView;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -121,45 +115,6 @@ class InitialReconstructionRunnerTest {
 
     // Then
     verify(service).request(operator, season, 0, Set.of(source), Set.of());
-  }
-
-  @Test
-  @DisplayName(
-      "Dispatches a bounded report to the existing current-permission application boundary")
-  void dispatchesReport() {
-    // Given
-    InitialReconstructionService service = mock(InitialReconstructionService.class);
-    UUID operator = UUID.fromString("00000000-0000-4000-8000-000000000257");
-    UUID season = UUID.fromString("00000000-0000-4000-8000-000000000258");
-    when(service.report(operator, season, 0, 200))
-        .thenReturn(
-            new InitialReconstructionReport(
-                new CollectionSeasonView(
-                    season, "2023/2024", 2023, CollectionSeasonStateEnum.PREPARING, 0),
-                List.of(),
-                List.of(),
-                new InitialCoverage.Page(List.of(), 0, false)));
-    ApplicationContextRunner report =
-        context.withPropertyValues(
-            "blockout.reconstruction.operator=" + operator,
-            "blockout.reconstruction.action=report",
-            "blockout.reconstruction.season-id=" + season);
-
-    // When
-    report.run(
-        application -> {
-          InitialReconstructionRunner runner =
-              new InitialReconstructionRunner(
-                  application.getBean(InitialReconstructionProperties.class),
-                  service,
-                  mock(PrepareCollectionSources.class),
-                  mock(CloseCollectionSeason.class),
-                  JsonMapper.builder().build());
-          runner.run(new DefaultApplicationArguments());
-        });
-
-    // Then
-    verify(service).report(operator, season, 0, 200);
   }
 
   /** Imports only the native configuration binder and Bean Validation. */

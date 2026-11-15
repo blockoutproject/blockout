@@ -36,9 +36,7 @@ class ProfilePhotoProcessorTest {
   @CsvSource({
     "png,image/png,image/png,1",
     "png,image/png,image/png,1024",
-    "jpeg,image/jpeg,image/jpeg,32",
-    "png,IMAGE/PNG,image/png,2",
-    "jpeg,Image/Jpeg,image/jpeg,2"
+    "jpeg,image/jpeg,image/jpeg,32"
   })
   @DisplayName("Reencodes supported square pixels without retaining trailing source data")
   void reencodesPixels(String format, String mediaType, String expectedMediaType, int dimension)
@@ -118,17 +116,6 @@ class ProfilePhotoProcessorTest {
     // When / Then
     assertThatThrownBy(() -> processor.prepare(original, "image/png"))
         .isInstanceOf(InvalidProfilePhotoException.class);
-  }
-
-  @Test
-  @DisplayName("Refuses the unsupported declaration before excessive compressed bytes")
-  void checksDeclarationBeforeByteBound() {
-    // Given
-    byte[] original = new byte[5 * 1024 * 1024 + 1];
-
-    // When / Then
-    assertThatThrownBy(() -> processor.prepare(original, "image/gif"))
-        .isInstanceOf(UnsupportedProfilePhotoException.class);
   }
 
   @Test

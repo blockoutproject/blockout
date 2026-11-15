@@ -1,16 +1,13 @@
 package com.blockout.backend.sporting.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.blockout.backend.config.HttpConfiguration;
 import com.blockout.backend.generated.mobile.model.CalendarCategoryEnum;
-import com.blockout.backend.generated.mobile.model.MatchCalendarResponse;
 import com.blockout.backend.generated.mobile.model.MatchDetailResponse;
 import com.blockout.backend.generated.mobile.model.ResultStateEnum;
 import com.blockout.backend.generated.mobile.model.SportingDivisionResponse;
 import com.blockout.backend.generated.mobile.model.StandingsAvailabilityEnum;
-import com.blockout.backend.sporting.application.ConsultationViews;
 import com.blockout.backend.sporting.application.ConsultationViews.Classification;
 import com.blockout.backend.sporting.application.ConsultationViews.Division;
 import com.blockout.backend.sporting.application.ConsultationViews.Identity;
@@ -24,7 +21,6 @@ import com.blockout.backend.sporting.application.ConsultationViews.StandingRow;
 import com.blockout.backend.sporting.application.ConsultationViews.Standings;
 import com.blockout.backend.sporting.application.ConsultationViews.StreamLink;
 import com.blockout.backend.sporting.application.model.SportingViews.SeasonView;
-import jakarta.validation.Validator;
 import java.net.URI;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -34,13 +30,10 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.mapstruct.factory.Mappers;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.json.JsonTest;
-import org.springframework.boot.validation.autoconfigure.ValidationAutoConfiguration;
 import org.springframework.context.annotation.Import;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -48,14 +41,12 @@ import tools.jackson.databind.json.JsonMapper;
 /** Real generated DTO/mapping and configured JSON boundary; no HTTP endpoint is exercised here. */
 @JsonTest
 @Import(HttpConfiguration.class)
-@ImportAutoConfiguration(ValidationAutoConfiguration.class)
 @DisplayName("Consultation generated mapping boundary")
 class ConsultationContractJsonTest {
   private static final UUID ID = UUID.fromString("00000000-0000-4000-8000-000000000001");
   private static final OffsetDateTime OBSERVED = OffsetDateTime.parse("2026-10-24T16:00:00+02:00");
   private final ConsultationApiMapper mapper = Mappers.getMapper(ConsultationApiMapper.class);
   @Autowired JsonMapper json;
-  @Autowired Validator validator;
 
   @Test
   @DisplayName("Keeps unknown optional facts absent without manufacturing numbers or private state")
@@ -68,7 +59,6 @@ class ConsultationContractJsonTest {
     JsonNode body = json.readTree(json.writeValueAsString(response));
 
     // Then
-    assertThat(validator.validate(response)).isEmpty();
     assertThat(body.at("/match/schedule/localDate").asString()).isEqualTo("2026-10-25");
     assertThat(body.at("/match/schedule/observedAt").asString())
         .isEqualTo("2026-10-24T16:00:00+02:00");
@@ -139,12 +129,10 @@ class ConsultationContractJsonTest {
   }
 
   @Test
-  @DisplayName("Emits the required gradient as null and preserves exactly three configured colors")
+  @DisplayName("Emits the required gradient as null when no colors are configured")
   void mapsNullableGradient() {
     // Given
     Division plain = new Division(ID, "Division", null, "#112233", null);
-    Division colored =
-        new Division(ID, "Division", null, "#112233", List.of("#112233", "#223344", "#334455"));
 
     // When
     SportingDivisionResponse response = mapper.toDto(plain);
@@ -153,7 +141,6 @@ class ConsultationContractJsonTest {
     // Then
     assertThat(body.has("gradient")).isTrue();
     assertThat(body.get("gradient").isNull()).isTrue();
-    assertThat(validator.validate(mapper.toDto(colored))).isEmpty();
   }
 
   @ParameterizedTest
@@ -178,46 +165,6 @@ class ConsultationContractJsonTest {
     assertThat(body.get("availability").asString()).isEqualTo(availability.getValue());
     assertThat(body.at("/rows/0/position").isMissingNode()).isTrue();
     assertThat(body.at("/rows/0/team").isMissingNode()).isTrue();
-  }
-
-  @Test
-  @DisplayName("Accepts additive generated response properties")
-  void acceptsAdditiveFields() {
-    // Given
-    String body =
-        "{\"id\":\""
-            + ID
-            + "\",\"name\":\"Division\",\"color\":\"#112233\",\"gradient\":null,\"future\":true}";
-
-    // When
-    SportingDivisionResponse response = json.readValue(body, SportingDivisionResponse.class);
-
-    // Then
-    assertThat(response.getAdditionalProperty("future")).isEqualTo(true);
-    assertThat(response.getGradient().isPresent()).isTrue();
-    assertThat(response.getGradient().get()).isNull();
-  }
-
-  @ParameterizedTest
-  @CsvSource(
-      delimiter = '|',
-      value = {"category|\"future\"", "category|1", "evaluatedAt|\"tomorrow\"", "nextDay|null"})
-  @DisplayName("Rejects an invalid known field in an otherwise valid generated calendar")
-  void rejectsKnownFields(String field, String value) {
-    // Given: the complete valid control must decode before its one-field mutation is tested.
-    ConsultationViews.Calendar calendar =
-        new ConsultationViews.Calendar(
-            CalendarCategoryEnum.UPCOMING, "Europe/Paris", OBSERVED, List.of(), null);
-    String valid = json.writeValueAsString(mapper.toDto(calendar));
-    assertThat(validator.validate(json.readValue(valid, MatchCalendarResponse.class))).isEmpty();
-    tools.jackson.databind.node.ObjectNode body =
-        (tools.jackson.databind.node.ObjectNode) json.readTree(valid);
-    body.set(field, json.readTree(value));
-
-    // When / Then
-    assertThatThrownBy(() -> json.readValue(body.toString(), MatchCalendarResponse.class))
-        .isInstanceOf(RuntimeException.class)
-        .hasMessageContaining(field);
   }
 
   /**

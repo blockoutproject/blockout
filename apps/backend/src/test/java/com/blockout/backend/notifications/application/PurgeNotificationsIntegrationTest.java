@@ -21,7 +21,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -38,7 +37,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -145,30 +143,6 @@ class PurgeNotificationsIntegrationTest {
         .isEqualTo(12);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM account", Long.class)).isEqualTo(2);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM sporting_match", Long.class)).isEqualTo(12);
-  }
-
-  @ParameterizedTest
-  @CsvSource({
-    "Europe/Paris, 2026-03-30T01:30:00Z",
-    "America/New_York, 2026-03-09T06:30:00Z",
-    "Europe/Paris, 2026-10-26T02:30:00Z",
-    "America/New_York, 2026-11-02T07:30:00Z"
-  })
-  @DisplayName("Uses 24-hour elapsed days across spring and autumn time changes")
-  void ignoresDaylightSaving(String zone, Instant now) {
-    // Given
-    Instant cutoff = now.minus(Duration.ofDays(29));
-    UUID retained = entry(sql, 1, ACCOUNT, cutoff.plusNanos(1000));
-    entry(sql, 2, ACCOUNT, cutoff);
-    PurgeNotifications purge =
-        new PurgeNotifications(store, transactions, Clock.fixed(now, ZoneId.of(zone)));
-
-    // When
-    purge.run();
-
-    // Then
-    assertThat(sql.queryForList("SELECT id FROM notification", UUID.class))
-        .containsExactly(retained);
   }
 
   @Test

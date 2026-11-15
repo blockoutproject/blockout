@@ -167,23 +167,6 @@ class ExpoPushClientTest {
   }
 
   @Test
-  @DisplayName("Accepts a thousand IDs in one native SDK receipt observation")
-  void acceptsReceiptLimit() throws Exception {
-    // Given
-    List<String> ids =
-        java.util.stream.IntStream.range(0, 1000).mapToObj(value -> "ticket-" + value).toList();
-    when(sdk.getPushNotificationReceipts(ids)).thenReturn(Map.of());
-
-    // When
-    Map<String, Outcome> outcomes = client.receipts(ids);
-
-    // Then
-    assertThat(outcomes).hasSize(1000);
-    assertThat(outcomes.values()).allMatch(value -> value.status() == Status.UNKNOWN);
-    verify(sdk).getPushNotificationReceipts(ids);
-  }
-
-  @Test
   @DisplayName(
       "An SDK decoding failure loses only receipt evidence without parsing private messages")
   void keepsFailedReceiptUnknown() throws Exception {

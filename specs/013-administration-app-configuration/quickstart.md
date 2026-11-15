@@ -89,23 +89,13 @@ Run the actual local F01/F05/F10 operation boundaries in their owning quickstart
 
 T030 also retains a real confirmed native purchase across maintenance, consuming [F09 T027's actual purchase qualification](../006-pro-subscriptions/tasks.md#phase-5-user-story-3--purchase-and-manage-my-subscription-without-ambiguity-priority-p1). Local admission or controlled purchase callbacks do not complete that junction. Keep actual purchase/provider inputs and authorization at their owners and report the remaining outcome as unavailable until exercised. Uncertainty follows each domain; no general cancellation, suspension or catch-up mechanism is introduced.
 
-## Sporting push maintenance policy
-
-After dependency installation and contract bundling, run:
-
-```sh
-./mvnw -B -ntp -pl apps/backend test -Dtest=MaintenancePushAdmissionTest
-```
-
-Exercise current maintenance before each handoff decision without recipient privilege/bypass input. Expect active maintenance or unavailable state to prevent a new handoff, while an earlier admitted handoff may finish. This policy check alone does not establish actual sender binding or receipt.
-
 ## Maintenance notification continuity
 
 Run the actual F07 producer/inbox/sender/purge and current F12 SQL admission boundaries:
 
 ```sh
 ./mvnw -B -ntp -pl apps/backend verify \
-  -Dtest=MaintenancePushAdmissionTest \
+  -Dtest=PushDeliveryTest \
   -Dit.test=MaintenanceNotificationIntegrationTest
 NX_LOAD_DOT_ENV_FILES=false EXPO_NO_DOTENV=1 \
   npm run test --workspace=@blockout/mobile -- --runInBand --reporters=default \
