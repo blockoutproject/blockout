@@ -68,8 +68,8 @@ import org.springframework.transaction.support.SimpleTransactionStatus;
 })
 @DisplayName("Public follower count HTTP boundary")
 class FollowerCountWebMvcTest {
-  private static final UUID ACCOUNT = UUID.fromString(FollowingContractWebMvcTest.ACCOUNT);
-  private static final UUID SEASON = UUID.fromString(FollowingContractWebMvcTest.TARGET);
+  private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000001");
+  private static final UUID SEASON = UUID.fromString("00000000-0000-4000-8000-000000000002");
   @Autowired private MockMvc mvc;
   @MockitoBean private ReadFollowerCount counts;
   @MockitoBean private FollowState state;

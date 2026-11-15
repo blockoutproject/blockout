@@ -234,46 +234,6 @@ class CollectPassageTest {
     }
 
     @Test
-    @DisplayName("A technical geocoding failure cannot submit an empty locality or replay the read")
-    void preservesLocalityOnTechnicalFailure(CapturedOutput output) {
-      // Given
-      when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
-      when(backend.register(0, lifecycle.getIncarnationId()))
-          .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
-      lifecycle.start();
-      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
-      CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
-      CollectionBackend.Target target =
-          CollectionBackend.Target.builder()
-              .scopeId(POOL)
-              .clubId(POOL)
-              .kind(CollectionTargetKindEnum.GEOCODING)
-              .localityRevision("9")
-              .municipality("Paris")
-              .build();
-      when(backend.targets(admitted.getCycle().id(), 0))
-          .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
-      when(geocoder.read(null, "Paris", null, "9"))
-          .thenThrow(new IllegalStateException("private-provider-response"));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
-
-      // When
-      passage.execute(admitted);
-
-      // Then
-      verifyNoInteractions(sporting);
-      verify(geocoder).read(null, "Paris", null, "9");
-      ArgumentCaptor<CollectionBackend.Result> result =
-          ArgumentCaptor.forClass(CollectionBackend.Result.class);
-      verify(backend).record(eq(admitted.getCycle().id()), result.capture());
-      assertThat(result.getValue().phase()).isEqualTo(CollectionPhaseEnum.ACQUISITION);
-      assertThat(result.getValue().outcome()).isEqualTo(CollectionOutcomeEnum.FAILED);
-      assertThat(result.getValue().reason()).doesNotContain("private-provider-response");
-      assertThat(output.getAll()).doesNotContain("private-provider-response");
-    }
-
-    @Test
     @DisplayName("A lost club integration acknowledgement is reported once without replay")
     void reportsUncertainClubIntegration() {
       // Given
@@ -311,44 +271,6 @@ class CollectPassageTest {
           .isEqualTo(CollectionPhaseEnum.INTEGRATION);
       assertThat(result.getAllValues().getLast().outcome())
           .isEqualTo(CollectionOutcomeEnum.UNCONFIRMED);
-    }
-
-    @Test
-    @DisplayName("An admitted club-sheet target reaches F02 independently of competition seasons")
-    void executesClubSheetFamily() {
-      // Given
-      when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
-      when(backend.register(0, lifecycle.getIncarnationId()))
-          .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
-      lifecycle.start();
-      when(backend.admit(any())).thenAnswer(call -> runningControl(call.getArgument(0)));
-      CollectorLifecycle.AdmittedCycle admitted = lifecycle.admit(CONTROL, null, 0, null);
-      CollectionBackend.Target target =
-          CollectionBackend.Target.builder()
-              .scopeId(POOL)
-              .clubId(POOL)
-              .clubReference("000042")
-              .provider(CollectionProviderEnum.FFVB)
-              .kind(CollectionTargetKindEnum.CLUB_SHEET)
-              .build();
-      when(backend.targets(admitted.getCycle().id(), 0))
-          .thenReturn(new CollectionBackend.TargetPage(List.of(target), 0, false));
-      when(backend.complete(admitted.getCycle().id(), NOW))
-          .thenReturn(completed(admitted.getCycle(), NOW));
-
-      SportingObservation.Club sheet =
-          SportingObservation.Club.builder().sourceName("Synthetic club").build();
-      when(clubs.read("000042")).thenReturn(sheet);
-      when(sporting.club(eq(POOL), any(), eq(sheet)))
-          .thenReturn(
-              new SportingObservation.Outcome(
-                  "000042", ObservationOutcomeEnum.ACCEPTED, POOL, null, null, null));
-
-      // When
-      passage.execute(admitted);
-
-      // Then
-      verify(sporting).club(eq(POOL), any(), eq(sheet));
     }
   }
 

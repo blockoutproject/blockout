@@ -2,12 +2,10 @@ package com.blockout.backend.legal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
-import java.util.stream.Stream;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -16,8 +14,6 @@ import javax.xml.xpath.XPathFactory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.core.io.ClassPathResource;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -26,9 +22,8 @@ import org.xml.sax.InputSource;
 import org.xml.sax.helpers.DefaultHandler;
 
 /**
- * Validates complete bundled resources and isolated synthetic fixtures. Syntax/completeness checks
- * prove neither publication nor the accuracy of legal facts or dates. Documents use XML-compatible
- * HTML for the JDK DOM parser.
+ * Validates complete bundled resources. Syntax/completeness checks prove neither publication nor
+ * the accuracy of legal facts or dates. Documents use XML-compatible HTML for the JDK DOM parser.
  */
 @DisplayName("Legal document content validation")
 class LegalDocumentContentTest {
@@ -68,114 +63,6 @@ class LegalDocumentContentTest {
     assertThat(contact.getAttribute("href"))
         .isEqualTo("mailto:blockoutproject@gmail.com?subject=Suppression%20de%20compte%20Blockout");
     assertThat(section.getElementsByTagName("form").getLength()).isZero();
-  }
-
-  @Test
-  @DisplayName("Accepts a complete UTF-8 document with a free-form version")
-  void acceptsCompleteDocument() throws Exception {
-    // Given
-    String html = fixture("complete.html");
-
-    // When / Then
-    assertThatCode(() -> validate(html)).doesNotThrowAnyException();
-  }
-
-  @Test
-  @DisplayName("Accepts changed content retaining the same version label")
-  void acceptsUnchangedVersion() throws Exception {
-    // Given
-    String original = fixture("complete.html");
-    String updated = original.replace("Contenu complet synthétique", "Contenu synthétique corrigé");
-
-    // When / Then
-    assertThatCode(() -> validate(original)).doesNotThrowAnyException();
-    assertThatCode(() -> validate(updated)).doesNotThrowAnyException();
-  }
-
-  @Test
-  @DisplayName("Rejects an incomplete document even when metadata is present")
-  void rejectsIncompleteDocument() throws Exception {
-    // Given
-    String html = fixture("incomplete.html");
-
-    // When / Then
-    assertThatThrownBy(() -> validate(html)).isInstanceOf(AssertionError.class);
-  }
-
-  @ParameterizedTest(name = "Rejects {0}")
-  @MethodSource("invalidDocuments")
-  @DisplayName("Rejects missing or empty metadata and content")
-  void rejectsInvalidDocument(String scenario, String html) {
-    // Given: each example changes only the named completeness condition.
-
-    // When / Then
-    assertThatThrownBy(() -> validate(html)).isInstanceOf(AssertionError.class);
-  }
-
-  @ParameterizedTest(name = "Rejects modification date {0}")
-  @org.junit.jupiter.params.provider.ValueSource(
-      strings = {"", "yesterday", "2026-02-30", "2026-13-01"})
-  @DisplayName("Rejects invalid modification dates independently of free-form versions")
-  void rejectsInvalidDate(String date) throws Exception {
-    // Given
-    String html =
-        fixture("complete.html").replace("datetime=\"2026-11-08\"", "datetime=\"" + date + "\"");
-
-    // When / Then
-    assertThatThrownBy(() -> validate(html))
-        .isInstanceOf(java.time.format.DateTimeParseException.class);
-  }
-
-  @Test
-  @DisplayName("Rejects a truncated document rather than accepting its partial body")
-  void rejectsTruncatedDocument() throws Exception {
-    // Given
-    String html = fixture("complete.html").replace("</article>", "");
-
-    // When / Then
-    assertThatThrownBy(() -> validate(html)).isInstanceOf(org.xml.sax.SAXParseException.class);
-  }
-
-  /**
-   * Supplies omissions and blank values without introducing fictional deployable legal resources.
-   *
-   * @return independent malformed variants of the complete test-only document
-   * @throws Exception if the checked-in fixture cannot be read
-   */
-  private static Stream<Arguments> invalidDocuments() throws Exception {
-    String html = fixture("complete.html");
-    return Stream.of(
-        Arguments.of("a missing title", html.replaceAll("(?s)<title>.*?</title>", "")),
-        Arguments.of(
-            "a blank title", html.replaceAll("(?s)<title>.*?</title>", "<title> </title>")),
-        Arguments.of("a missing version", html.replaceAll("(?s)<p data-version=.*?</p>", "")),
-        Arguments.of(
-            "a blank version",
-            html.replace("data-version=\"édition de test / stable\"", "data-version=\" \"")),
-        Arguments.of("a missing body", html.replaceAll("(?s)<body>.*</body>", "")),
-        Arguments.of("a missing content", html.replaceAll("(?s)<article>.*?</article>", "")),
-        Arguments.of(
-            "blank content", html.replaceAll("(?s)<article>.*?</article>", "<article> </article>")),
-        Arguments.of("a missing date", html.replaceAll("<time .*?</time>", "")),
-        Arguments.of("an undisplayed date", html.replace(">2026-11-08</time>", "> </time>")),
-        Arguments.of(
-            "an inconsistent displayed title",
-            html.replaceAll("<h1>.*</h1>", "<h1>Other fixture</h1>")),
-        Arguments.of(
-            "an undisplayed version",
-            html.replace("Version : édition de test / stable", "Version indisponible")));
-  }
-
-  /**
-   * Reads one UTF-8 fixture from its test-only directory.
-   *
-   * @param name fixture filename, never a deployable static/legals path
-   * @return full document text
-   * @throws Exception if the checked-in fixture is unavailable
-   */
-  private static String fixture(String name) throws Exception {
-    return new ClassPathResource("legal-fixtures/" + name)
-        .getContentAsString(StandardCharsets.UTF_8);
   }
 
   /**

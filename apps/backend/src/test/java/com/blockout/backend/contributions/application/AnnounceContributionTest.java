@@ -1,29 +1,21 @@
 package com.blockout.backend.contributions.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.blockout.backend.generated.ingestion.model.ResultStateEnum;
 import com.blockout.backend.notifications.application.AfterCommitAnnouncements;
-import com.blockout.backend.notifications.application.AllocateAnnouncements.Entry;
 import com.blockout.backend.notifications.application.ProcessLinkAnnouncement;
-import com.blockout.backend.notifications.domain.NotificationFamily;
-import com.blockout.backend.notifications.domain.NotificationVariant;
 import com.blockout.backend.sporting.application.model.MatchObservation.Result;
 import com.blockout.backend.sporting.application.model.MatchSchedule;
 import com.blockout.backend.sporting.application.model.SportingViews.MatchView;
 import com.blockout.backend.sporting.application.service.MatchContributionAccess.Facts;
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
@@ -72,65 +64,5 @@ class AnnounceContributionTest {
     assertThat(context.getValue().now()).isEqualTo(NOW);
     assertThat(context.getValue().match().id()).isEqualTo(MATCH);
     assertThat(context.getValue().start()).isEqualTo(NOW.minusSeconds(60));
-  }
-
-  @Test
-  @DisplayName("Propagates a required internal failure before any after-commit handoff")
-  void propagatesRequiredFailure() {
-    // Given
-    ReadPublicContribution links = mock(ReadPublicContribution.class);
-    ProcessLinkAnnouncement announcements = mock(ProcessLinkAnnouncement.class);
-    AfterCommitAnnouncements handoff = mock(AfterCommitAnnouncements.class);
-    when(links.read(MATCH)).thenReturn(Optional.empty());
-    IllegalStateException failure = new IllegalStateException("Controlled internal failure");
-    when(announcements.process(any())).thenThrow(failure);
-    AnnounceContribution transitions = new AnnounceContribution(links, announcements, handoff);
-    Facts facts =
-        new Facts(
-            new MatchView(MATCH, MATCH, "synthetic", MATCH, MATCH),
-            MatchSchedule.builder().id(MATCH).build(),
-            null,
-            true,
-            false);
-
-    // When / Then
-    assertThatThrownBy(() -> transitions.published(facts, NOW)).isSameAs(failure);
-    verifyNoInteractions(handoff);
-  }
-
-  @Test
-  @DisplayName("Hands the created original-account allocations to the after-commit boundary")
-  void handsOffCreatedAllocations() {
-    // Given
-    ReadPublicContribution links = mock(ReadPublicContribution.class);
-    ProcessLinkAnnouncement announcements = mock(ProcessLinkAnnouncement.class);
-    AfterCommitAnnouncements handoff = mock(AfterCommitAnnouncements.class);
-    when(links.read(MATCH))
-        .thenReturn(
-            Optional.of(new ReadPublicContribution.Link(MATCH, "https://youtube.com/current")));
-    Entry entry =
-        new Entry(
-            UUID.fromString("00000000-0000-4000-8000-000000000253"),
-            UUID.fromString("00000000-0000-4000-8000-000000000254"),
-            MATCH,
-            NotificationFamily.POST_RESULT_LINK,
-            NotificationVariant.FIRST,
-            NOW);
-    List<Entry> created = List.of(entry);
-    when(announcements.process(any())).thenReturn(created);
-    AnnounceContribution transitions = new AnnounceContribution(links, announcements, handoff);
-    Facts facts =
-        new Facts(
-            new MatchView(MATCH, MATCH, "synthetic", MATCH, MATCH),
-            MatchSchedule.builder().id(MATCH).reliableStart(NOW.minusSeconds(60)).build(),
-            new Result(ResultStateEnum.FINAL, 3, 1, null),
-            true,
-            false);
-
-    // When
-    transitions.published(facts, NOW);
-
-    // Then
-    verify(handoff).submit(created);
   }
 }

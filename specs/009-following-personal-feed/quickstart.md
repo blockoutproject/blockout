@@ -17,7 +17,7 @@ Verify unauthenticated requests, another account, erased original account, hidde
 Exercise repeated desired-state true/false, remove/re-follow, independent typed targets, current F02 hiding/restoration, identity corrections, rollback and competing original-account writes on migrated PostgreSQL. Repeated true retains the relation UUID; false removes it; re-follow creates a new UUID. Check uniqueness and foreign keys with the restricted application role. Original-account erasure serializes with writes and leaves no orphan relation.
 
 ```sh
-./mvnw -B -ntp -pl apps/backend verify -Dtest=FollowStateWebMvcTest,FollowingContractWebMvcTest,FollowAccessWebMvcTest -Dit.test=FollowRelationsIntegrationTest
+./mvnw -B -ntp -pl apps/backend verify -Dtest=FollowStateWebMvcTest,FollowListsWebMvcTest,PersonalCalendarWebMvcTest,FollowerCountWebMvcTest,FollowAccessWebMvcTest -Dit.test=FollowRelationsIntegrationTest
 ```
 
 ## Relationships and calendar

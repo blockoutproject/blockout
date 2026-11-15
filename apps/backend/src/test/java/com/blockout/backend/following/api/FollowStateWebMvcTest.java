@@ -71,8 +71,8 @@ import org.springframework.transaction.support.SimpleTransactionStatus;
 })
 @DisplayName("Canonical follow member state")
 class FollowStateWebMvcTest {
-  private static final UUID ACCOUNT = UUID.fromString(FollowingContractWebMvcTest.ACCOUNT);
-  private static final UUID TARGET = UUID.fromString(FollowingContractWebMvcTest.TARGET);
+  private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000001");
+  private static final UUID TARGET = UUID.fromString("00000000-0000-4000-8000-000000000002");
   private static final String ISSUER = "https://identity.example.invalid/";
   @Autowired private MockMvc mvc;
   @MockitoBean private ReadFollowerCount counts;

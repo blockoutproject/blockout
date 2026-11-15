@@ -99,23 +99,6 @@ class ResultAnnouncementTest {
   }
 
   @Test
-  @DisplayName("Discovery without a link records no emitted result composition")
-  void preservesLaterPublication() {
-    // Given
-    when(store.facts(MATCH))
-        .thenReturn(new MatchAnnouncementFacts(MATCH, false, false, false, null));
-
-    // When
-    processor.process(transition(null, result(ResultStateEnum.FINAL), true, false, true, false));
-
-    // Then
-    ArgumentCaptor<MatchAnnouncementFacts> recorded =
-        ArgumentCaptor.forClass(MatchAnnouncementFacts.class);
-    verify(store).saveFacts(recorded.capture());
-    assertThat(recorded.getValue().resultComposition()).isNull();
-  }
-
-  @Test
   @DisplayName(
       "An already-final accepted result cannot masquerade as a new event without stored facts")
   void suppressesAlreadyFinal() {

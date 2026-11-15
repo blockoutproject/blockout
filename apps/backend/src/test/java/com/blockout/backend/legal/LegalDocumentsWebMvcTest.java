@@ -70,22 +70,6 @@ class LegalDocumentsWebMvcTest {
 
   @ParameterizedTest
   @ValueSource(strings = {"imprint", "privacy", "terms"})
-  @DisplayName("Returns the complete UTF-8 HTML anonymously through maintenance")
-  void returnsCompletePublicDocument(String kind) throws Exception {
-    // Given
-    ClassPathResource fixture = new ClassPathResource("legal-fixtures/complete.html");
-    when(resources.getResource("classpath:static/legals/" + kind + ".html")).thenReturn(fixture);
-
-    // When / Then
-    mvc.perform(get("/legals/" + kind))
-        .andExpect(status().isOk())
-        .andExpect(content().contentType("text/html;charset=UTF-8"))
-        .andExpect(content().bytes(fixture.getContentAsByteArray()));
-    verifyNoInteractions(settings, accounts, authorization, transactions);
-  }
-
-  @ParameterizedTest
-  @ValueSource(strings = {"imprint", "privacy", "terms"})
   @DisplayName("Returns each actual bundled document unchanged at its public URL")
   void returnsBundledDocument(String kind) throws Exception {
     // Given

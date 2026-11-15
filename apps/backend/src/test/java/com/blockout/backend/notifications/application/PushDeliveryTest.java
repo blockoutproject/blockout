@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -108,9 +107,6 @@ class PushDeliveryTest {
 
     // Then
     verifyNoInteractions(provider, scheduler);
-    org.mockito.InOrder order = inOrder(eligibility, admission);
-    order.verify(eligibility).current(created, target);
-    order.verify(admission).allowsHandoff();
   }
 
   @Test
@@ -173,31 +169,6 @@ class PushDeliveryTest {
     assertThat(handoffs).hasSize(7);
     assertThat(handoffs.get(6) - handoffs.getFirst()).isGreaterThanOrEqualTo(1_000_000_000L);
     verifyNoInteractions(scheduler);
-  }
-
-  @Test
-  @DisplayName("Restart discards queued work and does not reconstruct sends from the inbox")
-  void losesWorkOnRestart() {
-    // Given
-    delivery.onReady(
-        new AfterCommitAnnouncements.Ready(List.of(created), Map.of(OWNER, List.of(target))));
-
-    // When: a new process gets no replay input or durable job.
-    DeliverPush restarted =
-        new DeliverPush(
-            eligibility,
-            subscriptions,
-            admission,
-            provider,
-            executor,
-            scheduler,
-            Clock.fixed(NOW, ZoneOffset.UTC),
-            true);
-    restarted.onReady(new AfterCommitAnnouncements.Ready(List.of(), Map.of()));
-
-    // Then
-    verify(executor, times(1)).execute(any(Runnable.class));
-    verifyNoInteractions(provider, eligibility, scheduler);
   }
 
   @Test

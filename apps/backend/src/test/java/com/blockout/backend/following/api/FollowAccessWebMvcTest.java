@@ -62,8 +62,8 @@ import org.springframework.transaction.support.SimpleTransactionStatus;
 })
 @DisplayName("Following original owner admission")
 class FollowAccessWebMvcTest {
-  private static final UUID ORIGINAL = UUID.fromString(FollowingContractWebMvcTest.ACCOUNT);
-  private static final UUID REPLACEMENT = UUID.fromString(FollowingContractWebMvcTest.TARGET);
+  private static final UUID ORIGINAL = UUID.fromString("00000000-0000-4000-8000-000000000001");
+  private static final UUID REPLACEMENT = UUID.fromString("00000000-0000-4000-8000-000000000002");
   private static final String ISSUER = "https://identity.example.invalid/";
   private static final String PATH = "/accounts/" + ORIGINAL + "/team-follows/" + REPLACEMENT;
   @Autowired MockMvc mvc;
