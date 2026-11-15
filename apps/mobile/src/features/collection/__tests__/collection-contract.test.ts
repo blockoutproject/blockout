@@ -9,7 +9,7 @@ import type {
 const control: CollectionControlResponse = {
   id: "00000000-0000-4000-8000-000000000001",
   family: "club-sheets",
-  revision: 0,
+
   enabled: false,
   pendingRequestId: null,
   lastAttemptAt: null,
@@ -59,7 +59,6 @@ it("accepts explicit nullable evidence and additive fields through the generated
 
 it.each([
   ["an unknown family", { family: "unknown" }],
-  ["an unsafe revision", { revision: Number.MAX_SAFE_INTEGER + 1 }],
   ["an omitted required nullable timestamp", { lastSuccessAt: undefined }],
   ["a null optional season", { seasonId: null }],
   ["an invalid known timestamp", { lastAttemptAt: "not-a-date" }],
@@ -93,7 +92,7 @@ it.each([403, 404])(
       id: control.id,
       label: "2026/2027",
       startYear: 2026,
-      revision: 5,
+
       state: "active",
     };
     const options = createCollectionQueries({

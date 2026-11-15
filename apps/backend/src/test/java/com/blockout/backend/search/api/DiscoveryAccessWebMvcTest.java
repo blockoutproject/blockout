@@ -89,7 +89,7 @@ class DiscoveryAccessWebMvcTest {
   @DisplayName("Admits public textual discovery without an account lookup")
   void admitsGuest(String path) throws Exception {
     // Given
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, false, "Available", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(false, "Available", null));
     when(reads.read(any(), any())).thenReturn(new SearchPage(List.of(), null));
 
     // When
@@ -105,7 +105,7 @@ class DiscoveryAccessWebMvcTest {
   @DisplayName("Ignores entitlement claims for ordinary public search")
   void admitsPublicRights(String entitlement) throws Exception {
     // Given
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, false, "Available", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(false, "Available", null));
     when(reads.read(any(), any())).thenReturn(new SearchPage(List.of(), null));
 
     // When
@@ -130,7 +130,7 @@ class DiscoveryAccessWebMvcTest {
   @DisplayName("Refuses anonymous explicit bypass during active maintenance")
   void refusesMissingBypassIdentity() throws Exception {
     // Given
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(2, true, "Pause", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(true, "Pause", null));
 
     // When
     ResultActions response =
@@ -188,7 +188,7 @@ class DiscoveryAccessWebMvcTest {
   @DisplayName("Refuses ordinary search during active maintenance before reading sporting data")
   void refusesActiveMaintenance() throws Exception {
     // Given
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(2, true, "Pause", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(true, "Pause", null));
 
     // When
     ResultActions response = mvc.perform(get("/clubs").param("q", "eagles"));
@@ -204,7 +204,7 @@ class DiscoveryAccessWebMvcTest {
   @DisplayName("Rechecks the actual current bypass grant on every search request")
   void rechecksCurrentGrant() throws Exception {
     // Given
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(2, true, "Pause", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(true, "Pause", null));
     when(accounts.currentId("https://identity.example.invalid/", "subject"))
         .thenReturn(Optional.of(ACCOUNT));
     when(accounts.lock(ACCOUNT)).thenReturn(true);

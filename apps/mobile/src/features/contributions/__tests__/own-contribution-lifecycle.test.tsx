@@ -479,7 +479,7 @@ it("withdraws only the active version when publication is unavailable and leaves
   expect(patches).toEqual([
     {
       id: version(2, "active").id,
-      body: { action: "withdraw", revision: "initial" },
+      body: { action: "withdraw" },
     },
   ]);
   expect(
@@ -665,7 +665,7 @@ it("refreshes after conflict without transferring the old confirmation to a new 
       context = { ...context, revision: "concurrent" };
       return Response.json(
         {
-          type: "urn:blockout:problem:stale-revision",
+          type: "urn:blockout:problem:conflict",
           title: "Conflict",
           status: 409,
         },
@@ -699,7 +699,7 @@ it("refreshes after conflict without transferring the old confirmation to a new 
   expect(patches).toEqual([
     {
       id: version(2, "active").id,
-      body: { action: "withdraw", revision: "initial" },
+      body: { action: "withdraw" },
     },
   ]);
   expect(await screen.findByText("Ancien lien remplacé")).toBeOnTheScreen();

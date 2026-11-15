@@ -4,7 +4,6 @@ import com.blockout.backend.access.application.ActionAuthorization;
 import com.blockout.backend.access.application.CurrentPermissions;
 import com.blockout.backend.access.domain.Permission;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
-import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.exception.SportingResourceNotFoundException;
 import com.blockout.backend.sporting.application.model.SportingPresentation;
 import com.blockout.backend.sporting.application.model.SportingViews.DivisionDetail;
@@ -31,8 +30,7 @@ public class ChangeSportingPresentation {
    * @param kind club, team or pool
    * @param id stable resource
    * @param edit complete desired metadata and already decoded image
-   * @return current state, preserving revision on a matching no-op
-   * @throws SportingConflictException for stale state, including a stale matching no-op
+   * @return current accepted state
    */
   @Transactional
   public SportingPresentation.View set(
@@ -40,9 +38,6 @@ public class ChangeSportingPresentation {
     permissions.requireForRead(accountId, Permission.MANAGE_SPORTING_PRESENTATION);
     store.lockPresentation(kind, id);
     authorization.require(accountId, Permission.MANAGE_SPORTING_PRESENTATION);
-    SportingPresentation.View current =
-        store.presentation(kind, id).orElseThrow(SportingResourceNotFoundException::new);
-    SportingEditRevision.require(edit.revision(), current.revision());
     return store.savePresentation(kind, id, edit);
   }
 
@@ -58,10 +53,8 @@ public class ChangeSportingPresentation {
   public DivisionDetail setDivision(
       UUID accountId, UUID id, SportingPresentation.DivisionEdit edit) {
     permissions.requireForRead(accountId, Permission.MANAGE_SPORTING_PRESENTATION);
-    DivisionDetail current =
-        store.lockDivision(id).orElseThrow(SportingResourceNotFoundException::new);
+    store.lockDivision(id).orElseThrow(SportingResourceNotFoundException::new);
     authorization.require(accountId, Permission.MANAGE_SPORTING_PRESENTATION);
-    SportingEditRevision.require(edit.revision(), Long.toString(current.revision()));
     return store.saveDivisionPresentation(id, edit);
   }
 }

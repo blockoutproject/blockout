@@ -29,7 +29,7 @@ public class ChangeDivisionLifecycle {
    * @param accountId original account with the lifecycle grant
    * @param definition complete validated name and colors
    * @param image validated PNG/JPEG content, or null
-   * @return created division with its initial version
+   * @return created division with its initial presentation and activity
    * @throws AccessDeniedException if the current lifecycle grant is absent
    * @throws SportingConflictException if the name exists ignoring case
    */
@@ -49,19 +49,16 @@ public class ChangeDivisionLifecycle {
    *
    * @param accountId original account with the lifecycle grant
    * @param id configured division
-   * @param revision current editor revision
    * @param active explicit desired activity
-   * @return unchanged state for a matching no-op, otherwise the new version
-   * @throws SportingConflictException if even a matching command has a stale revision
+   * @return unchanged state for a matching no-op, otherwise the accepted activity
    * @throws AccessDeniedException if the lifecycle grant is absent or withdrawn
    */
   @Transactional
-  public DivisionDetail setActive(UUID accountId, UUID id, String revision, boolean active) {
+  public DivisionDetail setActive(UUID accountId, UUID id, boolean active) {
     permissions.requireForRead(accountId, Permission.MANAGE_DIVISION_LIFECYCLE);
     DivisionDetail current =
         store.lockDivision(id).orElseThrow(SportingResourceNotFoundException::new);
     authorization.require(accountId, Permission.MANAGE_DIVISION_LIFECYCLE);
-    SportingEditRevision.require(revision, Long.toString(current.revision()));
     return current.active() == active ? current : store.setDivisionActive(id, active);
   }
 }

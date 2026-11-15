@@ -123,9 +123,7 @@ public class SportingPresentationController implements SportingPresentationApi {
   public ResponseEntity<ClubContactsResponse> setClubContacts(
       UUID clubId, SetClubContactsRequest request) {
     return response(
-        mapper.toDto(
-            contacts.correct(
-                account.id(), clubId, request.getRevision(), mapper.toContactCommands(request))),
+        mapper.toDto(contacts.correct(account.id(), clubId, mapper.toContactCommands(request))),
         "application/json");
   }
 

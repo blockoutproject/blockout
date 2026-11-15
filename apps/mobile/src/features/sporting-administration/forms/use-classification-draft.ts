@@ -10,30 +10,26 @@ import {
 import { classificationValues } from "./classification-values";
 import { useClassificationVisit } from "./classification-visit";
 
-/** Original revision and local feedback belong to this mounted editing visit. */
+/** Local feedback belong to this mounted editing visit. */
 interface DraftState {
-  revision: string | undefined;
   feedback?: string;
 }
 
-/** Owns RHF defaults and fields with the editing revision for this mounted route. */
+/** Owns RHF defaults and fields for this mounted route. */
 export function useClassificationDraft(
   target: ClassificationTarget,
   current: ClassificationDetailResponse | null,
 ) {
-  const [state, update] = useState<DraftState>({ revision: current?.revision });
+  const [state, update] = useState<DraftState>({});
   const form = useForm<ClassificationValues>({
     resolver: zodResolver(classificationSchema),
     defaultValues: current ? classificationValues(current) : undefined,
   });
-  if (!state.revision && current) {
-    update({ revision: current.revision });
-  }
   const {
     reset,
     formState: { defaultValues },
   } = form;
-  // Only the first response initializes RHF; later reads require the explicit revision reread.
+  // Only the first response initializes RHF; later reads preserve the mounted draft.
   useEffect(() => {
     if (!defaultValues && current) {
       reset(classificationValues(current));

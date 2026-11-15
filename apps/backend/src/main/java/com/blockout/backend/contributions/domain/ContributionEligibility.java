@@ -12,13 +12,12 @@ import lombok.NoArgsConstructor;
 public final class ContributionEligibility {
 
   /**
-   * Assesses current authorization and revision before literal equality and quota refusal. Callers
-   * supply facts reread under their ordered locks; this pure assessment acquires no locks.
+   * Assesses current authorization before literal equality and quota refusal. Callers supply facts
+   * reread under their ordered locks; this pure assessment acquires no locks.
    *
    * @param actor current usable original account and exact capabilities
    * @param match current owner-provided sporting/visibility facts, never calendar classification
    * @param current bounded current active/own-pending versions and revision/hold
-   * @param expectedRevision revision captured for this explicit intent
    * @param proposed locally recognized literal address, or null for a read-only eligibility
    *     assessment
    * @param usage current persisted ordinary aggregate
@@ -29,7 +28,6 @@ public final class ContributionEligibility {
       Actor actor,
       Match match,
       Current current,
-      long expectedRevision,
       StreamAddress proposed,
       ContributionQuota.Usage usage,
       Instant now) {
@@ -41,9 +39,6 @@ public final class ContributionEligibility {
     }
     if (match.professional()) {
       return new Decision(Status.PROFESSIONAL_MATCH, null);
-    }
-    if (current.state().revision() != expectedRevision) {
-      return new Decision(Status.STALE_REVISION, null);
     }
     if (!actor.moderator()) {
       if (current.active() != null && !actor.accountId().equals(current.active().ownerId())) {

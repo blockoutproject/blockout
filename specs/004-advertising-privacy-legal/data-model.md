@@ -27,7 +27,7 @@ Three stable types: `imprint`, `privacy`, `terms`. Each complete static HTML doc
 
 ## Club contact restriction
 
-[F02 owns the field metadata, restriction flag, transactions and revisions](../002-sporting-data/data-model.md#presentation-and-privacy). F11 requires restricted data to remain absent after collection, ordinary editing and restoration. Existing private support may retain proportionate request evidence under F10/F11; it is not an archive of the removed contact values.
+[F02 owns the field metadata, restriction flag, transactions and locality revisions](../002-sporting-data/data-model.md#presentation-and-privacy). F11 requires restricted data to remain absent after collection, ordinary editing and restoration. Existing private support may retain proportionate request evidence under F10/F11; it is not an archive of the removed contact values.
 
 ## Existing independent owners
 

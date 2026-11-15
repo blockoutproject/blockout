@@ -75,7 +75,7 @@ class ContributionReportsWebMvcTest {
    */
   @BeforeEach
   void admission() {
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, false, "Prepared", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(false, "Prepared", null));
     when(accounts.currentId("https://identity.example.invalid/", "subject"))
         .thenReturn(Optional.of(ACCOUNT));
   }
@@ -183,7 +183,7 @@ class ContributionReportsWebMvcTest {
   @DisplayName("Maintenance does not confer an implicit reporting bypass")
   void refusesMaintenance() throws Exception {
     // Given
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(2, true, "Maintenance", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(true, "Maintenance", null));
 
     // When
     ResultActions response =

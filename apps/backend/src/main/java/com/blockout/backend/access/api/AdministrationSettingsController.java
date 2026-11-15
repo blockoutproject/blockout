@@ -60,9 +60,7 @@ public class AdministrationSettingsController implements ApplicationAccessApi {
       SetMaintenanceActivationRequest request) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(
-            mapper.toDto(
-                updates.activate(account.id(), request.getRevision(), request.getActive())));
+        .body(mapper.toDto(updates.activate(account.id(), request.getActive())));
   }
 
   /** {@inheritDoc} */

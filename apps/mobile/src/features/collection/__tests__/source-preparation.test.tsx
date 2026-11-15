@@ -99,7 +99,7 @@ function binding(
     provider: "lnv",
     organizerReference: "137",
     label: "D1 masculine",
-    revision: 2,
+
     candidateUrl,
     acceptedUrl: null,
     locked: false,
@@ -129,7 +129,7 @@ function refused(status: number) {
     {
       type:
         status === 409
-          ? "urn:blockout:problem:stale-revision"
+          ? "urn:blockout:problem:conflict"
           : "urn:blockout:problem:unprocessable-content",
       title: "Refused",
       status,
@@ -176,7 +176,7 @@ beforeEach(() => {
     id: seasonId,
     label: "2026/2027",
     startYear: 2026,
-    revision: 5,
+
     state: "active",
   };
   source = binding();
@@ -408,7 +408,7 @@ it("saves an inline candidate and clears old qualification before another explic
   await user.type(screen.getByLabelText("URL officielle"), draftUrl);
   mockFetch.mockImplementation(async (url, options) =>
     options?.method === "PUT"
-      ? json((source = binding({ revision: 3, candidateUrl: draftUrl })))
+      ? json((source = binding({ candidateUrl: draftUrl })))
       : reads(url),
   );
 
@@ -426,7 +426,6 @@ it("saves an inline candidate and clears old qualification before another explic
     ([, options]) => options?.method === "PUT",
   );
   expect(JSON.parse(String(write?.[1]?.body))).toEqual({
-    revision: 2,
     candidateUrl: draftUrl,
   });
   expect(
@@ -464,7 +463,7 @@ it("preserves qualification when saving the same candidate with outer whitespace
   ).not.toBeOnTheScreen();
 });
 
-it("preserves dirty input through a background refetch and requires an explicit reread", async () => {
+it("saves its dirty candidate after a newer background read without rereading", async () => {
   // Given
   const user = userEvent.setup();
   await renderPreparation();
@@ -473,83 +472,32 @@ it("preserves dirty input through a background refetch and requires an explicit 
   );
   await user.clear(screen.getByLabelText("URL officielle"));
   await user.type(screen.getByLabelText("URL officielle"), draftUrl);
-  const query = client
-    .getQueryCache()
-    .findAll()
-    .find((q) =>
-      q.queryKey.includes(getGetCollectionSourceQueryKey(sourceId)[0]),
-    );
-  if (!query) {
-    throw new Error("Source query missing");
-  }
-  source = binding({ revision: 3, candidateUrl: `${candidateUrl}&other=1` });
-
-  // When
-  await act(async () => {
-    await client.refetchQueries({ queryKey: query.queryKey, exact: true });
-  });
-
-  // Then
-  expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
+  source = binding({ candidateUrl: `${candidateUrl}&other=1` });
+  await act(async () =>
+    client.refetchQueries({
+      queryKey: getGetCollectionSourceQueryKey(sourceId),
+      exact: true,
+    }),
   );
-
-  // When
-  mockFetch.mockImplementation((url) =>
-    String(url).endsWith(`/source-bindings/${sourceId}`)
-      ? Promise.resolve(refused(503))
+  mockFetch.mockImplementation((url, options) =>
+    options?.method === "PUT"
+      ? Promise.resolve(json((source = binding({ candidateUrl: draftUrl }))))
       : reads(url),
   );
-  await user.press(screen.getByRole("button", { name: "Relire l’état" }));
-
-  // Then
-  await screen.findByRole("button", { name: "Réessayer", busy: false });
-  expect(screen.queryByLabelText("URL officielle")).toBeNull();
-  expect(
-    screen.queryByText(
-      "Une erreur est survenue. Veuillez réessayer plus tard.",
-    ),
-  ).toBeNull();
 
   // When
-  mockFetch.mockImplementation(reads);
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
   // Then
-  expect(await screen.findByLabelText("URL officielle")).toHaveDisplayValue(
-    draftUrl,
+  await screen.findByRole("button", { name: "Modifier le lien" });
+  const write = mockFetch.mock.calls.find(
+    ([, options]) => options?.method === "PUT",
   );
+  expect(JSON.parse(String(write?.[1]?.body))).toEqual({
+    candidateUrl: draftUrl,
+  });
+  expect(screen.queryByRole("button", { name: "Relire l’état" })).toBeNull();
 });
-
-it.each([400, 403, 422])(
-  "keeps the candidate after a confirmed %i refusal",
-  async (status) => {
-    // Given
-    await renderPreparation();
-    const user = userEvent.setup();
-    await user.press(
-      await screen.findByRole("button", { name: "Modifier le lien" }),
-    );
-    await user.clear(screen.getByLabelText("URL officielle"));
-    await user.type(screen.getByLabelText("URL officielle"), draftUrl);
-    mockFetch.mockImplementation(async (url, options) =>
-      options?.method === "PUT" ? refused(status) : reads(url),
-    );
-
-    // When
-    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-
-    // Then
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Une erreur est survenue. Veuillez réessayer plus tard.",
-    );
-    expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
-    );
-  },
-);
 
 it("keeps 202 pending distinct from qualification and only rereads on demand", async () => {
   // Given
@@ -558,7 +506,7 @@ it("keeps 202 pending distinct from qualification and only rereads on demand", a
   await screen.findByRole("button", { name: "Valider la source" });
   mockFetch.mockImplementation(async (url, options) =>
     options?.method === "POST"
-      ? json((source = binding({ revision: 3, validation: "pending" })), 202)
+      ? json((source = binding({ validation: "pending" })), 202)
       : reads(url),
   );
 
@@ -576,7 +524,6 @@ it("keeps 202 pending distinct from qualification and only rereads on demand", a
 
   // When
   source = binding({
-    revision: 4,
     validation: "confirmation-required",
     reason: "Attribution saisonnière manquante",
   });
@@ -596,7 +543,6 @@ it("confirms only missing seasonal attribution with the exact canonical season",
     options?.method === "PUT"
       ? json(
           (source = binding({
-            revision: 3,
             validation: "qualified",
             seasonEvidence: "2026/2027",
           })),
@@ -620,7 +566,6 @@ it("confirms only missing seasonal attribution with the exact canonical season",
     ([, options]) => options?.method === "PUT",
   );
   expect(JSON.parse(String(write?.[1]?.body))).toEqual({
-    revision: 2,
     seasonLabel: "2026/2027",
   });
 });
@@ -761,7 +706,7 @@ it("withdraws empty-source actions after the collection grant is withdrawn", asy
   ).toBeNull();
 });
 
-it("adds only an unqualified candidate for the explicit provider and current season revision", async () => {
+it("adds only an unqualified candidate for the explicit provider and original season target", async () => {
   // Given
   sources = [];
   const created = Promise.withResolvers<Response>();
@@ -801,7 +746,6 @@ it("adds only an unqualified candidate for the explicit provider and current sea
 
   // When
   sources = [binding()];
-  season.revision = 6;
   await act(() => created.resolve(json(sources[0], 201)));
 
   // Then
@@ -811,20 +755,12 @@ it("adds only an unqualified candidate for the explicit provider and current sea
   );
   expect(writes).toHaveLength(1);
   expect(JSON.parse(String(writes[0][1]?.body))).toEqual({
-    seasonRevision: 5,
     provider: "lnv",
     organizerReference: "137",
     candidateUrl,
   });
 
   // When
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Relire l’état" })).toBeEnabled(),
-  );
-  await user.press(screen.getByRole("button", { name: "Relire l’état" }));
-  await screen.findByText(
-    "État relu. Vérifiez votre saisie avant une nouvelle action.",
-  );
   await user.press(screen.getByRole("button", { name: "Ajouter une source" }));
 
   // Then
@@ -856,7 +792,7 @@ it("keeps a manual draft read-only when ordinary refresh establishes terminal se
   await screen.findByText(
     "Une erreur est survenue. Veuillez réessayer plus tard.",
   );
-  season = { ...season, revision: 6, state: "closed" };
+  season = { ...season, state: "closed" };
 
   // When
   await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
@@ -882,7 +818,7 @@ it("launches an initial-import-locked qualified binding unchanged", async () => 
   );
   await screen.findByRole("link", { name: "Préparer D1 masculine" });
   mockFetch.mockImplementation(async (url, options) =>
-    options?.method === "POST" ? json({ ...season, revision: 6 }) : reads(url),
+    options?.method === "POST" ? json({ ...season }) : reads(url),
   );
 
   // When
@@ -897,7 +833,6 @@ it("launches an initial-import-locked qualified binding unchanged", async () => 
     ([, options]) => options?.method === "POST",
   );
   expect(JSON.parse(String(write?.[1]?.body))).toEqual({
-    revision: 5,
     sourceBindingIds: [sourceId],
   });
 });
@@ -1328,7 +1263,7 @@ it("rejects a source mutation arriving after the original F05 session ended", as
   // When
   await user.press(screen.getByRole("button", { name: "Déconnexion" }));
   await act(async () =>
-    pending.resolve(json(binding({ revision: 3, candidateUrl: draftUrl }))),
+    pending.resolve(json(binding({ candidateUrl: draftUrl }))),
   );
 
   // Then
@@ -1342,7 +1277,7 @@ it("rejects a source mutation arriving after the original F05 session ended", as
   ).not.toBe(draftUrl);
 });
 
-it("preserves a newer source read when an older accepted candidate response arrives later", async () => {
+it("keeps current source data and permits another explicit save after a delayed candidate acknowledgement", async () => {
   // Given
   const response = Promise.withResolvers<Response>();
   await renderPreparation();
@@ -1352,7 +1287,7 @@ it("preserves a newer source read when an older accepted candidate response arri
   );
   await user.clear(screen.getByLabelText("URL officielle"));
   await user.type(screen.getByLabelText("URL officielle"), draftUrl);
-  const accepted = binding({ revision: 3, candidateUrl: draftUrl });
+  const accepted = binding({ candidateUrl: draftUrl });
   mockFetch.mockImplementation((url, options) =>
     options?.method === "PUT" ? response.promise : reads(url),
   );
@@ -1362,8 +1297,8 @@ it("preserves a newer source read when an older accepted candidate response arri
     busy: true,
   });
 
-  // When — a later server revision is admitted while the command acknowledgement is delayed.
-  source = binding({ revision: 4, candidateUrl: `${candidateUrl}&PID=194` });
+  // When — a later source read is admitted while the command acknowledgement is delayed.
+  source = binding({ candidateUrl: `${candidateUrl}&PID=194` });
   await act(async () =>
     client.refetchQueries({
       predicate: ({ queryKey }) =>
@@ -1382,7 +1317,7 @@ it("preserves a newer source read when an older accepted candidate response arri
   );
   await user.press(screen.getByRole("button", { name: "Modifier le lien" }));
 
-  // Then — acceptance is retained, but its older baseline cannot authorize another write.
+  // Then — acceptance and current source data are retained, with another explicit save available.
   expect(
     client.getQueryCache().findAll({
       predicate: ({ queryKey }) =>
@@ -1392,8 +1327,8 @@ it("preserves a newer source read when an older accepted candidate response arri
             part.endsWith(`/source-bindings/${sourceId}`),
         ),
     })[0]?.state.data,
-  ).toMatchObject({ revision: 4, candidateUrl: source.candidateUrl });
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
+  ).toMatchObject({ candidateUrl: source.candidateUrl });
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
   expect(
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
   ).toHaveLength(1);
@@ -1651,7 +1586,7 @@ it("hides the whole source editor when its current account reread fails", async 
   ).toEqual([{ path: "/accounts/me", method: "GET" }]);
 });
 
-it("preserves an edited source URL when pull-to-refresh reads a newer source revision", async () => {
+it("preserves an edited source URL when pull-to-refresh reads current source data", async () => {
   // Given
   const user = userEvent.setup();
   await renderPreparation();
@@ -1661,7 +1596,7 @@ it("preserves an edited source URL when pull-to-refresh reads a newer source rev
   await user.clear(screen.getByLabelText("URL officielle"));
   await user.type(screen.getByLabelText("URL officielle"), draftUrl);
   expect(screen.queryByRole("button", { name: "Relire l’état" })).toBeNull();
-  source = binding({ revision: 3, label: "D1 actualisée" });
+  source = binding({ label: "D1 actualisée" });
   mockFetch.mockClear();
 
   // When
@@ -1670,8 +1605,8 @@ it("preserves an edited source URL when pull-to-refresh reads a newer source rev
   // Then
   await screen.findByRole("header", { name: "D1 actualisée" });
   expect(screen.getByDisplayValue(draftUrl)).toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-  expect(screen.getByRole("button", { name: "Relire l’état" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
+  expect(screen.queryByRole("button", { name: "Relire l’état" })).toBeNull();
   expect(
     mockFetch.mock.calls.every(
       ([, options]) => !options?.method || options.method === "GET",

@@ -20,7 +20,6 @@ import type {
   ConfirmSourceSeasonRequest,
   CreateSourceBindingRequest,
   LaunchCollectionSourcesRequest,
-  RequestSourceValidationRequest,
   SetSourceCandidateRequest,
 } from "../../../../.generated/schemas/index.zod";
 import { useAdministrationCapabilities } from "@/features/access/api/use-administration-capabilities";
@@ -41,7 +40,7 @@ export function useCollectionAuthority() {
   const enabled =
     capabilities.permissions?.manageCollection === true && version.satisfied;
 
-  /** Supplies original-principal credentials; the server validates the action grant and revision. */
+  /** Supplies original-principal credentials; the server validates the current action grant and eligibility. */
   async function request() {
     const credentials = await session.getCredentials();
     return {
@@ -133,12 +132,8 @@ export function useSourcePreparation(seasonId: string, sourceId: string) {
       ...queryKey,
       ...getRequestCollectionSourceValidationMutationKey(),
     ],
-    mutationFn: async (body: RequestSourceValidationRequest) =>
-      requestCollectionSourceValidation(
-        sourceId,
-        body,
-        await authority.request(),
-      ),
+    mutationFn: async () =>
+      requestCollectionSourceValidation(sourceId, await authority.request()),
     onSuccess: accept,
   });
   const confirmation = useMutation({

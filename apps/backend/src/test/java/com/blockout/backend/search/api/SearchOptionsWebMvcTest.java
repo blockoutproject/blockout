@@ -95,7 +95,7 @@ class SearchOptionsWebMvcTest {
   @DisplayName("Returns public current options with no-store")
   void returnsOptions() throws Exception {
     // Given
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, false, "Available", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(false, "Available", null));
 
     when(options.read(SearchResourceTypeEnum.TEAM))
         .thenReturn(
@@ -138,7 +138,7 @@ class SearchOptionsWebMvcTest {
                 List.of(),
                 List.of(SportFormatEnum.values()),
                 List.of(SportGenderEnum.values())));
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, false, "Available", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(false, "Available", null));
 
     // When
     ResultActions response =
@@ -153,7 +153,7 @@ class SearchOptionsWebMvcTest {
   @DisplayName("Rejects missing or unsupported sporting type vocabulary")
   void rejectsInvalidType(String type) throws Exception {
     // Given
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, false, "Available", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(false, "Available", null));
 
     // When
     ResultActions response =
@@ -169,7 +169,7 @@ class SearchOptionsWebMvcTest {
   @DisplayName("Requires a valid resource type through generated binding")
   void rejectsInvalidShape() throws Exception {
     // Given
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, false, "Available", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(false, "Available", null));
 
     // When
     ResultActions absent = mvc.perform(get("/sporting-search-options"));
@@ -194,7 +194,7 @@ class SearchOptionsWebMvcTest {
                 List.of(),
                 List.of(SportFormatEnum.values()),
                 List.of(SportGenderEnum.values())));
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, false, "Available", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(false, "Available", null));
 
     // When
     ResultActions response =
@@ -218,7 +218,7 @@ class SearchOptionsWebMvcTest {
   @DisplayName("An unavailable current database remains a safe failure instead of empty choices")
   void rejectsUnavailableDatabase() throws Exception {
     // Given
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, false, "Available", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(false, "Available", null));
     when(options.read(SearchResourceTypeEnum.TEAM))
         .thenThrow(new DataAccessResourceFailureException("Controlled local failure"));
 
@@ -245,7 +245,7 @@ class SearchOptionsWebMvcTest {
                 List.of(),
                 List.of(SportFormatEnum.values()),
                 List.of(SportGenderEnum.values())));
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(2, true, "Pause", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(true, "Pause", null));
     when(accounts.currentId("https://identity.example.invalid/", "subject"))
         .thenReturn(Optional.of(ACCOUNT));
     when(accounts.lock(ACCOUNT)).thenReturn(true);

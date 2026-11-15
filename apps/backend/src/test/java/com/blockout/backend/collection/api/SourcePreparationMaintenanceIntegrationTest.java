@@ -234,7 +234,6 @@ class SourcePreparationMaintenanceIntegrationTest {
         .andExpect(status().isServiceUnavailable())
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:maintenance"))
         .andExpect(jsonPath("$.maintenance.active").value(true))
-        .andExpect(jsonPath("$.maintenance.revision").value(3))
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(header().doesNotExist("Retry-After"));
   }
@@ -310,24 +309,24 @@ class SourcePreparationMaintenanceIntegrationTest {
             HttpMethod.POST,
             seasonPath + "/source-bindings",
             """
-            {"seasonRevision":0,"provider":"ffvb","organizerReference":"PTCA06","candidateUrl":"https://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=PTCA06"}
+            {"provider":"ffvb","organizerReference":"PTCA06","candidateUrl":"https://www.ffvbbeach.org/ffvbapp/resu/vbspo_home.php?codent=PTCA06"}
             """,
             201),
         Arguments.of(
             HttpMethod.PUT,
             sourcePath + "/candidate",
-            "{\"revision\":0,\"candidateUrl\":\"" + URL + "&saison=2026/2027\"}",
+            "{\"candidateUrl\":\"" + URL + "&saison=2026/2027\"}",
             200),
-        Arguments.of(HttpMethod.POST, sourcePath + "/validations", "{\"revision\":0}", 202),
+        Arguments.of(HttpMethod.POST, sourcePath + "/validations", "{}", 202),
         Arguments.of(
             HttpMethod.PUT,
             sourcePath + "/season-confirmation",
-            "{\"revision\":0,\"seasonLabel\":\"2026/2027\"}",
+            "{\"seasonLabel\":\"2026/2027\"}",
             200),
         Arguments.of(
             HttpMethod.POST,
             seasonPath + "/source-launches",
-            "{\"revision\":0,\"sourceBindingIds\":[\"" + QUALIFIED + "\"]}",
+            "{\"sourceBindingIds\":[\"" + QUALIFIED + "\"]}",
             200));
   }
 }

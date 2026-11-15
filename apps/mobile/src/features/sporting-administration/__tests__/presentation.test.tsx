@@ -166,7 +166,7 @@ const logo = { effectiveUrl: null, manualUrl: null, automaticUrl: null };
 const initial: SportingPresentationResponse = {
   id: resourceId,
   kind: "team",
-  revision: "r1",
+
   names,
   logo,
 };
@@ -424,7 +424,7 @@ it("saves independent names and a nonsquare logo in one generated multipart PATC
     if (options?.method === "PATCH") {
       stored = {
         ...initial,
-        revision: "r2",
+
         names: { ...names, manualName: "Chosen", effectiveName: "Chosen" },
       };
     }
@@ -449,7 +449,6 @@ it("saves independent names and a nonsquare logo in one generated multipart PATC
   const parts = Array.from((body as FormData).entries());
   expect(parts.map(([key]) => key)).toEqual(["metadata", "image"]);
   expect(JSON.parse(await (parts[0][1] as Blob).text())).toEqual({
-    revision: "r1",
     manualName: "Chosen",
     manualShortName: null,
     logoAction: "replace",
@@ -486,7 +485,7 @@ it("restores known customized artwork without decoded bytes and clears only the 
     if (options?.method === "PATCH") {
       stored = {
         ...initial,
-        revision: "r2",
+
         names: { ...names, manualName: null, effectiveName: names.sourceName },
         logo,
       };
@@ -507,14 +506,13 @@ it("restores known customized artwork without decoded bytes and clears only the 
     ?.body as FormData;
   expect(Array.from(body.keys())).toEqual(["metadata"]);
   expect(JSON.parse(await (body.get("metadata") as Blob).text())).toEqual({
-    revision: "r1",
     manualName: null,
     manualShortName: null,
     logoAction: "automatic",
   });
 });
 
-it("keeps the accepted revision behind the form read-error card when the following presentation read fails", async () => {
+it("keeps the accepted values behind the form read-error card when the following presentation read fails", async () => {
   // Given
   const user = userEvent.setup();
   await renderEditor();
@@ -530,7 +528,7 @@ it("keeps the accepted revision behind the form read-error card when the followi
       return Promise.resolve(
         json({
           ...initial,
-          revision: `r${writes + 1}`,
+
           names: {
             ...names,
             manualName: "Accepted name",
@@ -555,7 +553,9 @@ it("keeps the accepted revision behind the form read-error card when the followi
       status: 503,
     }),
   );
-  expect(client.getQueryData(queryKey)).toMatchObject({ revision: "r2" });
+  expect(client.getQueryData(queryKey)).toMatchObject({
+    names: { manualName: "Accepted name", effectiveName: "Accepted name" },
+  });
   await screen.findByRole("button", { name: "Réessayer" });
   expect(screen.queryByDisplayValue("Accepted name")).not.toBeOnTheScreen();
   expect(
@@ -574,7 +574,7 @@ it("keeps the accepted revision behind the form read-error card when the followi
   // When: Retry is a read and restores the already accepted form defaults.
   stored = {
     ...initial,
-    revision: "r2",
+
     names: {
       ...names,
       manualName: "Accepted name",
@@ -601,7 +601,7 @@ it("keeps the accepted revision behind the form read-error card when the followi
     JSON.parse(
       await ((secondWrite?.body as FormData).get("metadata") as Blob).text(),
     ),
-  ).toMatchObject({ revision: "r2" });
+  ).toMatchObject({ manualName: "Accepted name", logoAction: "keep" });
 });
 
 it("keeps inherited artwork editable while its read is pending without offering customization removal", async () => {
@@ -656,7 +656,7 @@ it("keeps inherited artwork editable while its read is pending without offering 
 
 it("edits pool names with complete JSON and no logo or contacts", async () => {
   // Given
-  stored = { id: resourceId, revision: "r1", names };
+  stored = { id: resourceId, names };
   const user = userEvent.setup();
   await renderEditor("pool");
   await screen.findByDisplayValue("Current name");
@@ -670,7 +670,7 @@ it("edits pool names with complete JSON and no logo or contacts", async () => {
     if (options?.method === "PUT") {
       stored = {
         id: resourceId,
-        revision: "r2",
+
         names: {
           ...names,
           manualShortName: "Custom short",
@@ -692,7 +692,6 @@ it("edits pool names with complete JSON and no logo or contacts", async () => {
   );
   const write = mockFetch.mock.calls.find(([, o]) => o?.method === "PUT");
   expect(JSON.parse(String(write?.[1]?.body))).toEqual({
-    revision: "r1",
     manualName: "Current name",
     manualShortName: "Custom short",
   });
@@ -714,7 +713,7 @@ it("saves club presentation without a short-name field", async () => {
       stored = {
         ...initial,
         kind: "club",
-        revision: "r2",
+
         names: {
           ...names,
           manualName: "Club chosen",
@@ -737,7 +736,6 @@ it("saves club presentation without a short-name field", async () => {
   const body = mockFetch.mock.calls.find(([, o]) => o?.method === "PATCH")?.[1]
     ?.body as FormData;
   expect(JSON.parse(await (body.get("metadata") as Blob).text())).toEqual({
-    revision: "r1",
     manualName: "Club chosen",
     logoAction: "keep",
   });
@@ -750,7 +748,7 @@ it("validates and saves division colors, gradient and name without touching acti
   // Given
   stored = {
     id: resourceId,
-    revision: "r1",
+
     name: "Division",
     color: "#123456",
     gradient: null,
@@ -767,7 +765,7 @@ it("validates and saves division colors, gradient and name without touching acti
     if (options?.method === "PATCH") {
       stored = {
         id: resourceId,
-        revision: "r2",
+
         name: "Division",
         color: "#abcdef",
         gradient: ["#111111", "#222222", "#333333"],
@@ -807,7 +805,6 @@ it("validates and saves division colors, gradient and name without touching acti
   const body = mockFetch.mock.calls.find(([, o]) => o?.method === "PATCH")?.[1]
     ?.body as FormData;
   expect(JSON.parse(await (body.get("metadata") as Blob).text())).toEqual({
-    revision: "r1",
     name: "Division",
     color: "#abcdef",
     gradient: ["#111111", "#222222", "#333333"],
@@ -816,7 +813,7 @@ it("validates and saves division colors, gradient and name without touching acti
 });
 
 it.each(["network", "schema"])(
-  "allows an explicit save with the retained revision after a %s failure and a newer read",
+  "allows an explicit save with retained input after a %s failure and a newer read",
   async (outcome) => {
     // Given
     const user = userEvent.setup();
@@ -833,12 +830,12 @@ it.each(["network", "schema"])(
           throw new TypeError("Lost response");
         }
         if (outcome === "schema") {
-          return json({ revision: "r2" });
+          return json({});
         }
       }
       return json({
         ...initial,
-        revision: "r2",
+
         names: {
           ...names,
           manualName: "Other editor",
@@ -864,7 +861,7 @@ it.each(["network", "schema"])(
     // When
     await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
-    // Then: a new write is explicit and keeps the original editing revision.
+    // Then: a new write is explicit and keeps the original target and draft.
     await waitFor(() =>
       expect(
         mockFetch.mock.calls.filter(([, o]) => o?.method === "PATCH"),
@@ -874,7 +871,6 @@ it.each(["network", "schema"])(
       ([, options]) => options?.method === "PATCH",
     )[1][1]?.body as FormData;
     expect(JSON.parse(await (body.get("metadata") as Blob).text())).toEqual({
-      revision: "r1",
       manualName: "My draft",
       manualShortName: null,
       logoAction: "keep",
@@ -882,122 +878,6 @@ it.each(["network", "schema"])(
     expect(screen.getByDisplayValue("My draft")).toBeOnTheScreen();
   },
 );
-
-it("requires rereading only after a typed stale refusal and keeps the draft through a failed reread", async () => {
-  // Given
-  const user = userEvent.setup();
-  await renderEditor();
-  await screen.findByDisplayValue("Current name");
-  await user.clear(screen.getByLabelText("Nom complet personnalisé"));
-  await user.type(
-    screen.getByLabelText("Nom complet personnalisé"),
-    "My draft",
-  );
-  let readStatus = 200;
-  mockFetch.mockImplementation(async (_url, options) => {
-    if (options?.method === "PATCH") {
-      return json(
-        {
-          type: "urn:blockout:problem:stale-revision",
-          title: "Conflict",
-          status: 409,
-        },
-        409,
-      );
-    }
-    return readStatus === 200
-      ? json(initial)
-      : json({ status: readStatus }, readStatus);
-  });
-
-  // When: the typed refusal owns the recovery action even if GET has the same revision.
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-
-  // Then
-  await screen.findByRole("button", { name: "Relire la présentation" });
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-  expect(screen.getByDisplayValue("My draft")).toBeOnTheScreen();
-
-  // When
-  readStatus = 503;
-  await user.press(
-    screen.getByRole("button", { name: "Relire la présentation" }),
-  );
-
-  // Then
-  await screen.findByRole("button", { name: "Réessayer" });
-  expect(
-    screen.getByDisplayValue("My draft", { includeHiddenElements: true }),
-  ).toBeOnTheScreen();
-  expect(
-    mockFetch.mock.calls.filter(([, o]) => o?.method === "PATCH"),
-  ).toHaveLength(1);
-
-  // When: card Retry restores the editor but does not resolve its typed write refusal.
-  stored = {
-    ...initial,
-    revision: "r2",
-    names: {
-      ...names,
-      manualName: "Other editor",
-      manualShortName: "New short",
-    },
-  };
-  mockFetch.mockImplementation(respond);
-  await user.press(screen.getByRole("button", { name: "Réessayer" }));
-  await user.press(
-    await screen.findByRole("button", { name: "Relire la présentation" }),
-  );
-
-  // Then
-  await screen.findByText(
-    "Présentation relue. Vérifiez votre brouillon avant de l’enregistrer à nouveau.",
-  );
-  expect(screen.getByDisplayValue("My draft")).toBeOnTheScreen();
-  expect(screen.getByLabelText("Nom court personnalisé")).toHaveDisplayValue(
-    "New short",
-  );
-  expect(
-    screen.queryByRole("button", { name: "Relire la présentation" }),
-  ).not.toBeOnTheScreen();
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
-  expect(
-    mockFetch.mock.calls.filter(([, o]) => o?.method === "PATCH"),
-  ).toHaveLength(1);
-
-  // When
-  stored = {
-    ...initial,
-    revision: "r3",
-    names: {
-      ...names,
-      manualName: "My draft",
-      effectiveName: "My draft",
-      manualShortName: "New short",
-      effectiveShortName: "New short",
-    },
-  };
-  mockFetch.mockImplementation(respond);
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-
-  // Then
-  await waitFor(() =>
-    expect(
-      screen.queryByText("Modifications non enregistrées"),
-    ).not.toBeOnTheScreen(),
-  );
-  const writes = mockFetch.mock.calls.filter(([, o]) => o?.method === "PATCH");
-  expect(
-    JSON.parse(
-      await ((writes[1][1]?.body as FormData).get("metadata") as Blob).text(),
-    ),
-  ).toEqual({
-    revision: "r2",
-    manualName: "My draft",
-    manualShortName: "New short",
-    logoAction: "keep",
-  });
-});
 
 it("keeps an unknown conflict as an ordinary failure with an editable draft", async () => {
   // Given
@@ -1122,7 +1002,7 @@ it.each(["pending", "failed"] as const)(
             (latest?.[1]?.body as FormData).get("metadata") as Blob
           ).text(),
         ),
-      ).toMatchObject({ revision: initial.revision, manualName: "My draft" });
+      ).toMatchObject({ manualName: "My draft" });
     } finally {
       refresh.resolve();
       await waitFor(() => expect(client.isFetching()).toBe(0));
@@ -1256,7 +1136,7 @@ it("keeps withdrawn data and its current error while an earlier accepted save in
     save.resolve(
       json({
         ...initial,
-        revision: "r2",
+
         names: { ...names, manualName: "Submitted draft" },
       }),
     ),
@@ -1279,7 +1159,7 @@ it("keeps withdrawn data and its current error while an earlier accepted save in
   });
 });
 
-it("keeps a dirty draft, prepared logo and editing revision during background refetch", async () => {
+it("keeps a dirty draft and prepared logo during background refetch", async () => {
   // Given
   const user = userEvent.setup();
   await renderEditor();
@@ -1300,7 +1180,7 @@ it("keeps a dirty draft, prepared logo and editing revision during background re
   await screen.findByRole("image", { name: "Miniature : Logo" });
   stored = {
     ...initial,
-    revision: "r2",
+
     names: { ...names, manualName: "Concurrent" },
   };
 
@@ -1331,7 +1211,7 @@ it("keeps a dirty draft, prepared logo and editing revision during background re
       ? Promise.resolve(
           json(
             {
-              type: "urn:blockout:problem:stale-revision",
+              type: "urn:blockout:problem:conflict",
               title: "Conflict",
               status: 409,
             },
@@ -1342,13 +1222,14 @@ it("keeps a dirty draft, prepared logo and editing revision during background re
   );
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
 
-  // Then: only the actual write refusal asks for an explicit reread.
-  await screen.findByRole("button", { name: "Relire la présentation" });
+  // Then: ordinary refusal preserves the draft and its prepared file for a later send.
+  await screen.findByText(TECHNICAL_ERROR);
+  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
   const body = mockFetch.mock.calls.find(
     ([, options]) => options?.method === "PATCH",
   )?.[1]?.body as FormData;
   expect(JSON.parse(await (body.get("metadata") as Blob).text())).toMatchObject(
-    { revision: "r1", manualName: "My draft", logoAction: "replace" },
+    { manualName: "My draft", logoAction: "replace" },
   );
   expect(await (body.get("image") as Blob).arrayBuffer()).toEqual(
     await mockFile.arrayBuffer(),
@@ -1503,7 +1384,6 @@ it.each([403, 404])(
       expect(screen.queryByText("Une erreur est survenue")).toBeNull();
       const logoQueryKey = [
         ...getGetTeamLogoQueryKey(resourceId, { selection: "effective" }),
-        "r1",
       ];
       expect(client.getQueryData(logoQueryKey)).toBeNull();
       expect(client.getQueryState(logoQueryKey)?.error).toMatchObject({
@@ -1615,7 +1495,7 @@ it("shows accepted division bytes after releasing the submitted creation logo", 
   permissions = { manageDivisionLifecycle: true };
   const created = {
     id: resourceId,
-    revision: "d1",
+
     name: "Division with logo",
     color: "#245FD8",
     gradient: null,
@@ -1676,7 +1556,7 @@ it("shows accepted division bytes after releasing the submitted creation logo", 
     // Then
     await screen.findByRole("button", { name: "Voir les divisions" });
     await waitFor(() => expect(mockFile.delete).toHaveBeenCalledTimes(1));
-    const logoQueryKey = [...getGetDivisionLogoQueryKey(resourceId), "d1"];
+    const logoQueryKey = getGetDivisionLogoQueryKey(resourceId);
     await waitFor(() =>
       expect(client.getQueryData(logoQueryKey)).toBe(
         "data:image/png;base64,accepted-division-logo",
@@ -2099,9 +1979,7 @@ it("rejects a delayed save result after the session has ended", async () => {
 
   // When
   await user.press(screen.getByRole("button", { name: "Quitter la session" }));
-  await act(async () =>
-    saveResponse.resolve(json({ ...initial, revision: "r2" })),
-  );
+  await act(async () => saveResponse.resolve(json({ ...initial })));
 
   // Then
   await waitFor(() =>
@@ -2123,7 +2001,7 @@ it("opens without a catalogue read and directly creates an active division with 
   const initialFetch = respond;
   const created = {
     id: resourceId,
-    revision: "d1",
+
     name: "National 2",
     color: "#123456",
     gradient: null,
@@ -2180,7 +2058,6 @@ it("opens without a catalogue read and directly creates an active division with 
 
 it.each([
   { type: "conflict", feedback: "Ce nom de division est déjà utilisé." },
-  { type: "stale-revision", feedback: TECHNICAL_ERROR },
 ])(
   "retains creation input after a server $type without proposing an unavailable reread",
   async ({ type, feedback }) => {
@@ -2233,7 +2110,7 @@ it("keeps lifecycle independent at the end of the division editor for a lifecycl
   permissions = { manageDivisionLifecycle: true };
   const division = {
     id: resourceId,
-    revision: "d1",
+
     name: "National 2",
     color: "#123456",
     gradient: null,
@@ -2251,7 +2128,7 @@ it("keeps lifecycle independent at the end of the division editor for a lifecycl
   );
   const confirmation = nativeAlertAction("Désactiver");
   mockFetch.mockImplementation(async () =>
-    json({ ...division, revision: "d2", active: false }),
+    json({ ...division, active: false }),
   );
   await act(async () => {
     confirmation();
@@ -2266,7 +2143,7 @@ it("keeps lifecycle independent at the end of the division editor for a lifecycl
     expect.stringContaining(`/divisions/${resourceId}/activity`),
     expect.objectContaining({
       method: "PUT",
-      body: JSON.stringify({ revision: "d1", active: false }),
+      body: JSON.stringify({ active: false }),
     }),
   );
   expect(
@@ -2279,7 +2156,7 @@ it("suspends lifecycle-only commands after a missing division read until the res
   permissions = { manageDivisionLifecycle: true };
   const division = {
     id: resourceId,
-    revision: "d1",
+
     name: "National 2",
     color: "#123456",
     gradient: null,
@@ -2295,7 +2172,7 @@ it("suspends lifecycle-only commands after a missing division read until the res
   const queryKey = getGetDivisionQueryKey(resourceId);
   mockFetch.mockImplementation((url, options) => {
     if (options?.method === "PUT") {
-      stored = { ...division, revision: "d2", active: false };
+      stored = { ...division, active: false };
       return Promise.resolve(json(stored));
     }
     return String(url).endsWith(`/divisions/${resourceId}`) && status !== 200
@@ -2346,7 +2223,7 @@ it("suspends lifecycle-only commands after a missing division read until the res
   ).not.toBeOnTheScreen();
 });
 
-it("preserves unsaved presentation values while an independent activity response advances the division revision", async () => {
+it("preserves unsaved presentation values while an independent activity response changes division activity", async () => {
   // Given
   permissions = {
     manageSportingPresentation: true,
@@ -2354,7 +2231,7 @@ it("preserves unsaved presentation values while an independent activity response
   };
   const division = {
     id: resourceId,
-    revision: "d1",
+
     name: "Division",
     color: "#123456",
     gradient: null,
@@ -2365,7 +2242,7 @@ it("preserves unsaved presentation values while an independent activity response
   const originalFetch = respond;
   mockFetch.mockImplementation((url, options) => {
     if (options?.method === "PUT") {
-      stored = { ...division, revision: "d2", active: false };
+      stored = { ...division, active: false };
       return Promise.resolve(json(stored));
     }
     return originalFetch(url, options);
@@ -2404,7 +2281,7 @@ it("preserves unsaved presentation values while an independent activity response
     ([, options]) => options?.method === "PATCH",
   )?.[1]?.body as FormData;
   expect(JSON.parse(await (body.get("metadata") as Blob).text())).toMatchObject(
-    { revision: "d2", name: "Unsaved presentation" },
+    { name: "Unsaved presentation" },
   );
   expect(
     screen.queryByRole("button", { name: "Désactiver la division" }),
@@ -2415,7 +2292,7 @@ it("restores automatic division paint without sending a separate color or lifecy
   // Given
   stored = {
     id: resourceId,
-    revision: "d1",
+
     name: "Division",
     color: "#123456",
     gradient: ["#111111", "#222222", "#333333"],
@@ -2429,7 +2306,7 @@ it("restores automatic division paint without sending a separate color or lifecy
     if (options?.method === "PATCH") {
       stored = {
         id: resourceId,
-        revision: "d2",
+
         name: "Division",
         color: "#123456",
         gradient: null,
@@ -2458,7 +2335,7 @@ it("restores automatic division paint without sending a separate color or lifecy
     ([, options]) => options?.method === "PATCH",
   )?.[1]?.body as FormData;
   expect(JSON.parse(await (body.get("metadata") as Blob).text())).toMatchObject(
-    { revision: "d1", color: "#123456", gradient: null },
+    { color: "#123456", gradient: null },
   );
   expect(
     mockFetch.mock.calls.some(([, options]) => options?.method === "PUT"),
@@ -2469,7 +2346,7 @@ it("preserves an empty invalid gradient stop when another stop changes", async (
   // Given
   stored = {
     id: resourceId,
-    revision: "d1",
+
     name: "Division",
     color: "#123456",
     gradient: ["#111111", "#222222", "#333333"],
@@ -2606,7 +2483,7 @@ it("ignores the retained lifecycle confirmation after protected-route removal an
   permissions = { manageDivisionLifecycle: true };
   stored = {
     id: resourceId,
-    revision: "d1",
+
     name: "National 2",
     color: "#123456",
     gradient: null,
@@ -2734,7 +2611,7 @@ it.each([200, 503])(
     stored = { items: [] };
     const created = {
       id: resourceId,
-      revision: "d1",
+
       name: "National 2",
       color: "#123456",
       gradient: null,
@@ -2820,7 +2697,7 @@ it("keeps the shared division read authorized when creation loses its separate l
     items: [
       {
         id: resourceId,
-        revision: "d1",
+
         name: "Current division",
         color: "#123456",
         gradient: null,
@@ -2889,94 +2766,6 @@ it("keeps a fresh editor usable when an abandoned save fails later", async () =>
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
   ).toHaveLength(1);
 });
-it("preserves a different opaque revision read during a delayed accepted presentation save", async () => {
-  // Given
-  const response = Promise.withResolvers<Response>();
-  const user = userEvent.setup();
-  await renderEditor();
-  await screen.findByDisplayValue("Current name");
-  await user.clear(screen.getByLabelText("Nom complet personnalisé"));
-  await user.type(
-    screen.getByLabelText("Nom complet personnalisé"),
-    "Accepted draft",
-  );
-  mockFetch.mockImplementation((url, options) =>
-    options?.method === "PATCH" ? response.promise : respond(url, options),
-  );
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-  await screen.findByRole("button", { name: "Enregistrer", busy: true });
-
-  // When — revisions are opaque; the distinct accepted read must not be ordered lexically.
-  stored = {
-    ...initial,
-    revision: "a-concurrent",
-    names: { ...names, manualName: "Concurrent", effectiveName: "Concurrent" },
-  };
-  await act(async () =>
-    client.refetchQueries({
-      predicate: ({ queryKey }) =>
-        queryKey.some(
-          (part) => typeof part === "string" && part.endsWith("/presentation"),
-        ),
-    }),
-  );
-  await act(async () =>
-    response.resolve(
-      json({
-        ...initial,
-        revision: "z-accepted",
-        names: {
-          ...names,
-          manualName: "Accepted draft",
-          effectiveName: "Accepted draft",
-        },
-      }),
-    ),
-  );
-
-  // Then
-  await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
-  );
-  expect(
-    client.getQueryCache().findAll({
-      predicate: ({ queryKey }) =>
-        queryKey.some(
-          (part) => typeof part === "string" && part.endsWith("/presentation"),
-        ),
-    })[0]?.state.data,
-  ).toMatchObject({ revision: "a-concurrent" });
-  expect(
-    screen.queryByRole("button", { name: "Relire la présentation" }),
-  ).not.toBeOnTheScreen();
-  expect(screen.getByDisplayValue("Accepted draft")).toBeOnTheScreen();
-
-  // When
-  stored = {
-    ...initial,
-    revision: "second-accepted",
-    names: {
-      ...names,
-      manualName: "Accepted draft",
-      effectiveName: "Accepted draft",
-    },
-  };
-  mockFetch.mockImplementation(respond);
-  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-
-  // Then
-  await waitFor(() =>
-    expect(
-      mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
-    ).toHaveLength(2),
-  );
-  const body = mockFetch.mock.calls.filter(
-    ([, options]) => options?.method === "PATCH",
-  )[1][1]?.body as FormData;
-  expect(JSON.parse(await (body.get("metadata") as Blob).text())).toMatchObject(
-    { revision: "z-accepted", manualName: "Accepted draft" },
-  );
-});
 
 it("preserves a fresh local creation draft when an abandoned creation succeeds later", async () => {
   // Given
@@ -2985,7 +2774,7 @@ it("preserves a fresh local creation draft when an abandoned creation succeeds l
   const creation = Promise.withResolvers<Response>();
   const created = {
     id: resourceId,
-    revision: "d1",
+
     name: "Original division",
     color: "#123456",
     gradient: null,

@@ -91,7 +91,7 @@ class FollowStateWebMvcTest {
    */
   @BeforeEach
   void admission() {
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, false, "Prepared", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(false, "Prepared", null));
   }
 
   @ParameterizedTest
@@ -275,7 +275,7 @@ class FollowStateWebMvcTest {
   @DisplayName("Requires a current explicit maintenance bypass for the original owner")
   void admitsExplicitBypass() throws Exception {
     // Given
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(2, true, "Pause", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(true, "Pause", null));
     when(accounts.currentId(ISSUER, "subject")).thenReturn(Optional.of(ACCOUNT));
     when(accounts.lock(ACCOUNT)).thenReturn(true);
     when(permissions.findByAccountId(ACCOUNT)).thenReturn(Set.of(Permission.BYPASS_MAINTENANCE));

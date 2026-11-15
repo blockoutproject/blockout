@@ -83,7 +83,7 @@ class ContributionSportingLocksIntegrationTest extends ContributionScenario {
                                   divisionPid.complete(
                                       sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
                                   divisions.setActive(
-                                      OTHER, SportingIngestionFixture.DIVISION, "0", false);
+                                      OTHER, SportingIngestionFixture.DIVISION, false);
                                 }));
                 PostgresTestDatabase.awaitBlocked(sql, divisionPid);
                 assertThat(deactivation.isDone())

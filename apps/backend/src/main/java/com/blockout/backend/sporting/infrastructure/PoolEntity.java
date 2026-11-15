@@ -75,7 +75,6 @@ public class PoolEntity {
 
   @Setter private String manualName;
   @Setter private String manualShortName;
-  @Setter private long presentationRevision;
 
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "division_id")

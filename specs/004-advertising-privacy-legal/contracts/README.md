@@ -19,7 +19,7 @@
 
 ## Existing contact semantics and compatibility
 
-`getClubContacts` and `setClubContacts` retain their routes, fields and current-revision conflict semantics. For a restricted field, source/manual/effective values remain null. Ordinary contact mutation cannot lift the restriction or persist a prohibited value; reject a conflicting write atomically with the existing conflict response. Existing hidden mode remains a display choice, not proof of erasure.
+`getClubContacts` and `setClubContacts` retain their routes and current authorization/privacy conflict semantics without an editing-revision input. For a restricted field, source/manual/effective values remain null. Ordinary contact mutation cannot lift the restriction or persist a prohibited value; reject a conflicting write atomically with the existing conflict response. Existing hidden mode remains a display choice, not proof of erasure.
 
 The collector contract does not gain privacy instructions or a new batch: backend enforcement applies to ordinary incoming records under the club lock. No new endpoint, enum, editable contract copy or consumer-specific response is added. Update concise descriptions at the canonical source when necessary; keep requirement traceability here rather than embedding feature identifiers in API prose.
 

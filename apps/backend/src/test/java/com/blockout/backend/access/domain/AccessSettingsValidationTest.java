@@ -21,7 +21,7 @@ class AccessSettingsValidationTest {
     // The parameter source supplies the decisive blank message.
 
     // When / Then
-    assertThatThrownBy(() -> new MaintenanceSettings(0, false, message, null))
+    assertThatThrownBy(() -> new MaintenanceSettings(false, message, null))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
@@ -38,7 +38,7 @@ class AccessSettingsValidationTest {
     // The parameter source supplies the decisive destination; the message remains usable.
 
     // When / Then
-    assertThatThrownBy(() -> new MaintenanceSettings(0, false, "Prepared", url))
+    assertThatThrownBy(() -> new MaintenanceSettings(false, "Prepared", url))
         .isInstanceOf(IllegalArgumentException.class);
   }
 
@@ -63,7 +63,6 @@ class AccessSettingsValidationTest {
     assertThatThrownBy(
             () ->
                 new ApplicationVersionSettings(
-                    0,
                     new ApplicationVersionSettings.Platform(
                         version, "https://apps.apple.com/app/id123"),
                     new ApplicationVersionSettings.Platform(null, null),
@@ -87,7 +86,6 @@ class AccessSettingsValidationTest {
     assertThatThrownBy(
             () ->
                 new ApplicationVersionSettings(
-                    0,
                     new ApplicationVersionSettings.Platform(null, null),
                     new ApplicationVersionSettings.Platform("2.0.0", url),
                     null))
@@ -106,7 +104,7 @@ class AccessSettingsValidationTest {
     String message = "A < B remains plain text";
 
     // When
-    MaintenanceSettings value = new MaintenanceSettings(0, false, message, imageUrl);
+    MaintenanceSettings value = new MaintenanceSettings(false, message, imageUrl);
 
     // Then
     assertThat(value.imageUrl()).isEqualTo(imageUrl);
@@ -122,7 +120,6 @@ class AccessSettingsValidationTest {
     // When
     ApplicationVersionSettings value =
         new ApplicationVersionSettings(
-            0,
             new ApplicationVersionSettings.Platform(
                 version, "https://apps.apple.com/fr/app/blockout/id123"),
             new ApplicationVersionSettings.Platform(null, null),

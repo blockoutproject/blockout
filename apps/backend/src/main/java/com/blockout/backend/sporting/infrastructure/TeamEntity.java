@@ -58,7 +58,6 @@ public class TeamEntity {
 
   @Setter private String manualName;
   @Setter private String manualShortName;
-  @Setter private long presentationRevision;
 
   @Column(nullable = false)
   private String comparisonName;

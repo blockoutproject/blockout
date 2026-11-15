@@ -176,7 +176,7 @@ class TransitionIdentityIntegrationTest {
             put("/administration/maintenance/activation")
                 .with(principal(SUBJECT))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":0,\"active\":false}"))
+                .content("{\"active\":false}"))
         .andExpect(status().isOk());
     sql.update("DELETE FROM account_permission WHERE account_id=?", current.id());
 
@@ -190,7 +190,7 @@ class TransitionIdentityIntegrationTest {
             put("/administration/maintenance/activation")
                 .with(principal(SUBJECT))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":0,\"active\":false}"))
+                .content("{\"active\":false}"))
         .andExpect(status().isForbidden());
   }
 

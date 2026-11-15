@@ -17,8 +17,6 @@ import com.blockout.backend.notifications.application.InboxViews.Page;
 import com.blockout.backend.sporting.application.ReadSportingResources;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import jakarta.persistence.EntityManagerFactory;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
@@ -28,11 +26,6 @@ import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-import liquibase.Contexts;
-import liquibase.LabelExpression;
-import liquibase.Liquibase;
-import liquibase.database.jvm.JdbcConnection;
-import liquibase.resource.ClassLoaderResourceAccessor;
 import org.hibernate.SessionFactory;
 import org.hibernate.resource.jdbc.spi.StatementInspector;
 import org.junit.jupiter.api.AfterEach;
@@ -180,42 +173,6 @@ class ReadInboxIntegrationTest {
         .isInstanceOf(NotificationNotFoundException.class);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM notification WHERE id=?", Long.class, id))
         .isEqualTo(1);
-  }
-
-  @Test
-  @DisplayName("Removing the retired unread index preserves retained entries and read state")
-  void removesUnusedIndexWithoutChangingEntries() throws Exception {
-    // Given: restore the preceding schema in this suite's disposable database only.
-    try (Connection connection =
-            DriverManager.getConnection(
-                database.getJdbcUrl().replace("/postgres", "/blockout"),
-                "blockout_migration",
-                "harmless-migration");
-        Liquibase migration =
-            new Liquibase(
-                "db/changelog/notifications.xml",
-                new ClassLoaderResourceAccessor(),
-                new JdbcConnection(connection))) {
-      migration.rollback(1, new Contexts(), new LabelExpression());
-      UUID id = entry(sql, 1, ACCOUNT, NOW.minusSeconds(60));
-      sql.update("UPDATE notification SET is_read=TRUE WHERE id=?", id);
-      NotificationContext owner = new NotificationContext(ACCOUNT);
-      Entry original = reads.member(owner, id);
-      assertThat(
-              sql.queryForObject(
-                  "SELECT to_regclass('ix_notification_owner_read') IS NOT NULL", Boolean.class))
-          .isTrue();
-
-      // When
-      migration.update(new Contexts(), new LabelExpression());
-
-      // Then
-      assertThat(reads.member(owner, id)).isEqualTo(original);
-      assertThat(
-              sql.queryForObject(
-                  "SELECT to_regclass('ix_notification_owner_read') IS NULL", Boolean.class))
-          .isTrue();
-    }
   }
 
   @ParameterizedTest

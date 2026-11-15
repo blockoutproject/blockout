@@ -48,8 +48,6 @@ public class ClubEntity {
 
   @Setter private String sourceName;
   @Setter private String manualName;
-  @Setter private long presentationRevision;
-  @Setter private long contactsRevision;
   @Setter private byte[] logo;
   @Setter private String logoMediaType;
   @Setter private Long detailCycleOrder;

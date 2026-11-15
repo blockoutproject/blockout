@@ -321,7 +321,7 @@ class NotificationsWebMvcTest {
 
     // Then
     response.andExpect(status().isUnauthorized());
-    doThrow(new MaintenanceRequiredException(new MaintenanceSettings(7L, true, "Pause", null)))
+    doThrow(new MaintenanceRequiredException(new MaintenanceSettings(true, "Pause", null)))
         .when(admission)
         .requireOrdinaryAccess(anyString(), anyString(), eq(false));
 

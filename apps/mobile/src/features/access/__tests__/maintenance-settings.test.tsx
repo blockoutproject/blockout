@@ -70,7 +70,6 @@ let client: QueryClient;
 let publicClient = createQueryClient();
 const environment = { ...process.env };
 const initial = {
-  revision: 2,
   active: false,
   message: "Message préparé",
   imageUrl: null,
@@ -392,7 +391,7 @@ it("separates content preparation from explicit activation", async () => {
     ).toBeDisabled();
   } finally {
     // When
-    stored = { ...stored, revision: 3, message: "Mon brouillon" };
+    stored = { ...stored, message: "Mon brouillon" };
     await act(async () => response.resolve(json(stored)));
   }
 
@@ -410,7 +409,6 @@ it("separates content preparation from explicit activation", async () => {
   ).toBeEnabled();
   const writes = mockFetch.mock.calls.filter(([, o]) => o?.method === "PATCH");
   expect(JSON.parse(String(writes[0][1]?.body))).toEqual({
-    revision: 2,
     message: "Mon brouillon",
   });
   expect(screen.getByLabelText("Maintenance inactive")).toBeOnTheScreen();
@@ -427,7 +425,7 @@ it("keeps an accepted save through a failed ordinary reread without replaying th
     screen.getByLabelText("Message de maintenance"),
     "Accepted content",
   );
-  const accepted = { ...initial, revision: 3, message: "Accepted content" };
+  const accepted = { ...initial, message: "Accepted content" };
   mockFetch.mockImplementation(async (url, options) => {
     if (String(url).endsWith("/accounts/me")) {
       return json(account);
@@ -472,7 +470,92 @@ it("keeps an accepted save through a failed ordinary reread without replaying th
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
   ).toHaveLength(1);
 });
-it("sends the desired active state independently of dirty content", async () => {
+it.each(["PATCH", "PUT"])(
+  "keeps a required-read error through a delayed %s acknowledgement",
+  async (method) => {
+    // Given: a real mounted form and Query owner, with controlled HTTP responses.
+    const user = userEvent.setup();
+    await renderSettings();
+    await screen.findByDisplayValue(initial.message);
+    await user.clear(screen.getByLabelText("Message de maintenance"));
+    await user.type(
+      screen.getByLabelText("Message de maintenance"),
+      "Mon brouillon",
+    );
+    const acknowledgement = Promise.withResolvers<Response>();
+    const followingRead = Promise.withResolvers<Response>();
+    const accepted =
+      method === "PATCH"
+        ? { ...initial, message: "Mon brouillon" }
+        : { ...initial, active: true };
+    let reads = 0;
+    mockFetch.mockImplementation(async (url, options) => {
+      if (String(url).endsWith("/accounts/me")) {
+        return json(account);
+      }
+      if (options?.method === method) {
+        return acknowledgement.promise;
+      }
+      if (reads++ === 0) {
+        throw new Error("Read unavailable during the write");
+      }
+      return followingRead.promise;
+    });
+
+    // When
+    await user.press(
+      screen.getByRole("button", {
+        name: method === "PATCH" ? "Enregistrer" : "Activer la maintenance",
+      }),
+    );
+    if (method === "PUT") {
+      await act(async () => nativeAlertAction("Activer")());
+    }
+    await act(async () =>
+      client.refetchQueries({
+        queryKey: getGetMaintenanceSettingsQueryKey(),
+        exact: true,
+      }),
+    );
+
+    // Then
+    expect(
+      await screen.findByRole("alert", { name: "Une erreur est survenue" }),
+    ).toBeOnTheScreen();
+
+    try {
+      // When
+      await act(async () => {
+        acknowledgement.resolve(json(accepted));
+        await jest.runOnlyPendingTimersAsync();
+      });
+      await waitFor(() => expect(client.isFetching()).toBe(1));
+
+      // Then
+      expect(
+        screen.getByRole("alert", { name: "Une erreur est survenue" }),
+      ).toBeOnTheScreen();
+      expect(
+        screen.queryByLabelText("Message de maintenance"),
+      ).not.toBeOnTheScreen();
+      expect(
+        mockFetch.mock.calls.filter(
+          ([, options]) => options?.method === method,
+        ),
+      ).toHaveLength(1);
+    } finally {
+      await act(async () => followingRead.resolve(json(accepted)));
+    }
+
+    // Then: successful read recovery restores the accepted or still-editable draft without another write.
+    expect(await screen.findByDisplayValue("Mon brouillon")).toBeOnTheScreen();
+    expect(
+      mockFetch.mock.calls.filter(([, options]) => options?.method === method),
+    ).toHaveLength(1);
+  },
+);
+
+it("uses refreshed activation state while preserving dirty content", async () => {
   // Given
   const user = userEvent.setup();
   await renderSettings();
@@ -482,30 +565,42 @@ it("sends the desired active state independently of dirty content", async () => 
     screen.getByLabelText("Message de maintenance"),
     "Mon brouillon",
   );
+  stored = { ...stored, active: true };
+
+  // When
+  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
+
+  // Then
+  expect(await screen.findByLabelText("Maintenance active")).toBeOnTheScreen();
+  expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
   mockFetch.mockImplementation(async (url, options) => {
     if (String(url).endsWith("/accounts/me")) {
       return json(account);
     }
     if (options?.method === "PUT") {
-      stored = { ...stored, revision: 3, active: true };
+      stored = { ...stored, active: false };
     }
     return json(stored);
   });
 
   // When
   await user.press(
-    screen.getByRole("button", { name: "Activer la maintenance" }),
+    screen.getByRole("button", { name: "Désactiver la maintenance" }),
   );
-  await act(async () => nativeAlertAction("Activer")());
+  await act(async () => nativeAlertAction("Désactiver")());
 
   // Then
-  await screen.findByLabelText("Maintenance active");
+  expect(
+    await screen.findByLabelText("Maintenance inactive"),
+  ).toBeOnTheScreen();
   expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
   const write = mockFetch.mock.calls.find(([, o]) => o?.method === "PUT");
   expect(JSON.parse(String(write?.[1]?.body))).toEqual({
-    revision: 2,
-    active: true,
+    active: false,
   });
+  expect(
+    mockFetch.mock.calls.some(([, options]) => options?.method === "PATCH"),
+  ).toBe(false);
 });
 it.each([500, 409])(
   "locks content during activation and retains its draft after %s",
@@ -573,7 +668,7 @@ it.each([500, 409])(
             {
               type:
                 status === 409
-                  ? "urn:blockout:problem:stale-revision"
+                  ? "urn:blockout:problem:conflict"
                   : "about:blank",
               title: "Refused",
               status,
@@ -612,12 +707,11 @@ it.each([500, 409])(
       ([, options]) => options?.method === "PUT",
     );
     expect(JSON.parse(String(activation?.[1]?.body))).toEqual({
-      revision: initial.revision,
       active: true,
     });
   },
 );
-it("preserves a dirty draft after a newer background response", async () => {
+it("saves its older dirty message after a newer response while leaving the current image untouched", async () => {
   // Given
   const user = userEvent.setup();
   await renderSettings();
@@ -634,7 +728,11 @@ it("preserves a dirty draft after a newer background response", async () => {
   if (!query) {
     throw new Error("The real settings query is missing");
   }
-  stored = { ...initial, revision: 3, message: "Autre éditeur" };
+  stored = {
+    ...initial,
+    message: "Autre éditeur",
+    imageUrl: "https://assets.example.invalid/current.png",
+  };
 
   // When
   await act(async () => {
@@ -644,9 +742,30 @@ it("preserves a dirty draft after a newer background response", async () => {
   // Then
   expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
   await waitFor(() =>
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled(),
+    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled(),
   );
+  mockFetch.mockImplementation(async (url, options) => {
+    if (options?.method === "PATCH") {
+      stored = { ...stored, ...JSON.parse(String(options.body)) };
+      return json(stored);
+    }
+    return String(url).endsWith("/accounts/me") ? json(account) : json(stored);
+  });
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Enregistrer" }));
+
+  // Then
+  await waitFor(() => expect(stored.message).toBe("Mon brouillon"));
+  expect(stored.imageUrl).toBe("https://assets.example.invalid/current.png");
+  const write = mockFetch.mock.calls.find(
+    ([, options]) => options?.method === "PATCH",
+  );
+  expect(JSON.parse(String(write?.[1]?.body))).toEqual({
+    message: "Mon brouillon",
+  });
 });
+
 it("refuses blank text before sending any mutation", async () => {
   // Given
   const user = userEvent.setup();
@@ -718,7 +837,7 @@ it("clears the optional image using explicit null", async () => {
   expect(
     screen.getByRole("image", { name: "Aperçu absent" }),
   ).toBeOnTheScreen();
-  mockFetch.mockImplementation(async () => json({ ...initial, revision: 3 }));
+  mockFetch.mockImplementation(async () => json({ ...initial }));
 
   // When
   await user.press(screen.getByRole("button", { name: "Enregistrer" }));
@@ -731,7 +850,6 @@ it("clears the optional image using explicit null", async () => {
   );
   const write = mockFetch.mock.calls.find(([, o]) => o?.method === "PATCH");
   expect(JSON.parse(String(write?.[1]?.body))).toEqual({
-    revision: 2,
     imageUrl: null,
   });
 });
@@ -761,7 +879,7 @@ it("finishes local image progress only when the native image is displayed", asyn
 });
 
 it.each(["loading", "failed"])(
-  "saves a dirty message at its original revision while its optional image is %s",
+  "saves a dirty message while its optional image is %s",
   async (status) => {
     // Given
     const user = userEvent.setup();
@@ -782,7 +900,7 @@ it.each(["loading", "failed"])(
     }
     const accepted = {
       ...stored,
-      revision: 3,
+
       message: "Texte enregistré sans attendre l’image",
     };
     mockFetch.mockClear().mockImplementation(async () => json(accepted));
@@ -800,7 +918,6 @@ it.each(["loading", "failed"])(
       ([, options]) => options?.method === "PATCH",
     );
     expect(JSON.parse(String(write?.[1]?.body))).toStrictEqual({
-      revision: initial.revision,
       message: "Texte enregistré sans attendre l’image",
     });
     expect(screen.getByLabelText("URL de l’image")).toHaveDisplayValue(
@@ -891,8 +1008,8 @@ it("starts a fresh draft image preview when a previously failed URL returns", as
   expect(screen.getByDisplayValue(initial.message)).toBeOnTheScreen();
 });
 
-it.each([403, "stale-revision"] as const)(
-  "retains the draft and revision after a %s refusal",
+it.each([403] as const)(
+  "retains the draft after a %s refusal",
   async (refusal) => {
     // Given
     const user = userEvent.setup();
@@ -903,7 +1020,7 @@ it.each([403, "stale-revision"] as const)(
       screen.getByLabelText("Message de maintenance"),
       "Mon brouillon",
     );
-    const status = refusal === "stale-revision" ? 409 : refusal;
+    const status = refusal;
     mockFetch.mockImplementation(async (url, options) => {
       if (String(url).endsWith("/accounts/me")) {
         return json(account);
@@ -913,10 +1030,7 @@ it.each([403, "stale-revision"] as const)(
       }
       return json(
         {
-          type:
-            refusal === "stale-revision"
-              ? "urn:blockout:problem:stale-revision"
-              : "urn:blockout:problem:unprocessable-content",
+          type: "urn:blockout:problem:forbidden",
           title: "Refused",
           status,
         },
@@ -951,94 +1065,11 @@ it.each([403, "stale-revision"] as const)(
     );
     expect(writes).toHaveLength(2);
     expect(JSON.parse(String(writes[1][1]?.body))).toMatchObject({
-      revision: initial.revision,
       message: "Mon brouillon",
     });
   },
 );
-it.each(["conflict", "lost"])(
-  "keeps dirty fields when invalidation finds a newer revision after %s",
-  async (outcome) => {
-    // Given
-    const user = userEvent.setup();
-    await renderSettings();
-    await screen.findByDisplayValue(initial.message);
-    await user.clear(screen.getByLabelText("Message de maintenance"));
-    await user.type(
-      screen.getByLabelText("Message de maintenance"),
-      "Mon brouillon",
-    );
-    let writes = 0;
-    mockFetch.mockImplementation(async (url, options) => {
-      if (String(url).endsWith("/accounts/me")) {
-        return json(account);
-      }
-      if (options?.method === "PATCH") {
-        writes++;
-        if (writes === 1) {
-          if (outcome === "lost") {
-            throw new TypeError("Lost response");
-          }
-          return json(
-            {
-              type: "urn:blockout:problem:stale-revision",
-              title: "Conflict",
-              status: 409,
-            },
-            409,
-          );
-        }
-        stored = { ...stored, revision: 4, message: "Mon brouillon" };
-        return json(stored);
-      }
-      if (stored.revision < 3) {
-        stored = { ...stored, revision: 3, message: "Autre éditeur" };
-      }
-      return json(stored);
-    });
 
-    // When
-    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-
-    // Then
-    expect(
-      await screen.findByRole("button", { name: "Relire les réglages" }),
-    ).toBeOnTheScreen();
-    expect(screen.getByRole("button", { name: "Enregistrer" })).toBeDisabled();
-    expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
-    expect(writes).toBe(1);
-
-    // When
-    await user.press(
-      screen.getByRole("button", { name: "Relire les réglages" }),
-    );
-
-    // Then
-    await screen.findByText(
-      "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
-    );
-    expect(writes).toBe(1);
-    expect(screen.getByDisplayValue("Mon brouillon")).toBeOnTheScreen();
-    expect(
-      screen.getByText("Modifications non enregistrées"),
-    ).toBeOnTheScreen();
-
-    // When
-    await user.press(screen.getByRole("button", { name: "Enregistrer" }));
-
-    // Then
-    await waitFor(() =>
-      expect(
-        screen.queryByText("Modifications non enregistrées"),
-      ).not.toBeOnTheScreen(),
-    );
-    expect(
-      screen.queryByText("Modifications non enregistrées"),
-    ).not.toBeOnTheScreen();
-    const calls = mockFetch.mock.calls.filter(([, o]) => o?.method === "PATCH");
-    expect(JSON.parse(String(calls[1][1]?.body)).revision).toBe(3);
-  },
-);
 it("keeps the production route closed until native admission is composed", async () => {
   // Given
   const route = <MaintenanceRoute />;

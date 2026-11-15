@@ -100,7 +100,7 @@ class SourcePreparationWebMvcTest {
   }
 
   @Test
-  @DisplayName("Returns ordered canonical seasons with their preparation revisions")
+  @DisplayName("Returns ordered canonical seasons with their current lifecycle")
   void readsSeasons() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
@@ -108,7 +108,7 @@ class SourcePreparationWebMvcTest {
         .thenReturn(
             List.of(
                 new CollectionSeasonView(
-                    SEASON, "2026/2027", 2026, CollectionSeasonStateEnum.PREPARING, 3)));
+                    SEASON, "2026/2027", 2026, CollectionSeasonStateEnum.PREPARING)));
 
     // When
     ResultActions response = mvc.perform(get("/administration/collection-seasons").with(mobile()));
@@ -117,7 +117,6 @@ class SourcePreparationWebMvcTest {
     response
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.items[0].startYear").value(2026))
-        .andExpect(jsonPath("$.items[0].revision").value(3))
         .andExpect(jsonPath("$.items[0].state").value("preparing"));
   }
 
@@ -126,8 +125,7 @@ class SourcePreparationWebMvcTest {
   void createsUnqualifiedCandidate() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(preparation.create(
-            ACCOUNT, SEASON, 3, CollectionProviderEnum.FFVB, "ABCCS", URI.create(URL)))
+    when(preparation.create(ACCOUNT, SEASON, CollectionProviderEnum.FFVB, "ABCCS", URI.create(URL)))
         .thenReturn(source(SourceValidationStateEnum.UNVALIDATED));
 
     // When
@@ -138,7 +136,7 @@ class SourcePreparationWebMvcTest {
                 .contentType("application/json")
                 .content(
                     """
-        {"seasonRevision":3,"provider":"ffvb","organizerReference":"ABCCS","candidateUrl":"%s"}
+        {"provider":"ffvb","organizerReference":"ABCCS","candidateUrl":"%s"}
         """
                         .formatted(URL)));
 
@@ -154,7 +152,7 @@ class SourcePreparationWebMvcTest {
   void acceptsPendingValidation() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(preparation.requestValidation(ACCOUNT, SOURCE, 0))
+    when(preparation.requestValidation(ACCOUNT, SOURCE))
         .thenReturn(source(SourceValidationStateEnum.PENDING));
 
     // When
@@ -163,7 +161,7 @@ class SourcePreparationWebMvcTest {
             post("/administration/source-bindings/{id}/validations", SOURCE)
                 .with(mobile())
                 .contentType("application/json")
-                .content("{\"revision\":0}"));
+                .content("{}"));
 
     // Then
     response
@@ -173,11 +171,11 @@ class SourcePreparationWebMvcTest {
   }
 
   @Test
-  @DisplayName("Candidate replacement forwards the whole URL and current editing revision")
+  @DisplayName("Candidate replacement forwards the whole URL")
   void replacesCandidate() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(preparation.setCandidate(ACCOUNT, SOURCE, 2, URI.create(URL)))
+    when(preparation.setCandidate(ACCOUNT, SOURCE, URI.create(URL)))
         .thenReturn(source(SourceValidationStateEnum.UNVALIDATED));
 
     // When
@@ -186,11 +184,11 @@ class SourcePreparationWebMvcTest {
             put("/administration/source-bindings/{id}/candidate", SOURCE)
                 .with(mobile())
                 .contentType("application/json")
-                .content("{\"revision\":2,\"candidateUrl\":\"" + URL + "\"}"));
+                .content("{\"candidateUrl\":\"" + URL + "\"}"));
 
     // Then
     response.andExpect(status().isOk()).andExpect(jsonPath("$.validation").value("unvalidated"));
-    verify(preparation).setCandidate(ACCOUNT, SOURCE, 2, URI.create(URL));
+    verify(preparation).setCandidate(ACCOUNT, SOURCE, URI.create(URL));
   }
 
   @Test
@@ -198,8 +196,7 @@ class SourcePreparationWebMvcTest {
   void refusesDuplicateBinding() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(preparation.create(
-            ACCOUNT, SEASON, 3, CollectionProviderEnum.FFVB, "ABCCS", URI.create(URL)))
+    when(preparation.create(ACCOUNT, SEASON, CollectionProviderEnum.FFVB, "ABCCS", URI.create(URL)))
         .thenThrow(new CollectionConflictException("conflict"));
 
     // When
@@ -210,7 +207,7 @@ class SourcePreparationWebMvcTest {
                 .contentType("application/json")
                 .content(
                     """
-        {"seasonRevision":3,"provider":"ffvb","organizerReference":"ABCCS","candidateUrl":"%s"}
+        {"provider":"ffvb","organizerReference":"ABCCS","candidateUrl":"%s"}
         """
                         .formatted(URL)));
 
@@ -253,7 +250,7 @@ class SourcePreparationWebMvcTest {
   void preservesExactConfirmation() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(preparation.confirmSeason(ACCOUNT, SOURCE, 2, " 2026/2027"))
+    when(preparation.confirmSeason(ACCOUNT, SOURCE, " 2026/2027"))
         .thenThrow(new CollectionConflictException("conflict"));
 
     // When
@@ -262,11 +259,11 @@ class SourcePreparationWebMvcTest {
             put("/administration/source-bindings/{id}/season-confirmation", SOURCE)
                 .with(mobile())
                 .contentType("application/json")
-                .content("{\"revision\":2,\"seasonLabel\":\" 2026/2027\"}"));
+                .content("{\"seasonLabel\":\" 2026/2027\"}"));
 
     // Then
     response.andExpect(status().isConflict());
-    verify(preparation).confirmSeason(ACCOUNT, SOURCE, 2, " 2026/2027");
+    verify(preparation).confirmSeason(ACCOUNT, SOURCE, " 2026/2027");
   }
 
   @Test
@@ -274,10 +271,9 @@ class SourcePreparationWebMvcTest {
   void forwardsCompleteSelection() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(preparation.launch(ACCOUNT, SEASON, 3, Set.of(SOURCE)))
+    when(preparation.launch(ACCOUNT, SEASON, Set.of(SOURCE)))
         .thenReturn(
-            new CollectionSeasonView(
-                SEASON, "2026/2027", 2026, CollectionSeasonStateEnum.ACTIVE, 4));
+            new CollectionSeasonView(SEASON, "2026/2027", 2026, CollectionSeasonStateEnum.ACTIVE));
 
     // When
     ResultActions response =
@@ -285,36 +281,11 @@ class SourcePreparationWebMvcTest {
             post("/administration/collection-seasons/{id}/source-launches", SEASON)
                 .with(mobile())
                 .contentType("application/json")
-                .content("{\"revision\":3,\"sourceBindingIds\":[\"" + SOURCE + "\"]}"));
+                .content("{\"sourceBindingIds\":[\"" + SOURCE + "\"]}"));
 
     // Then
     response.andExpect(status().isOk()).andExpect(jsonPath("$.state").value("active"));
-    verify(preparation).launch(ACCOUNT, SEASON, 3, Set.of(SOURCE));
-  }
-
-  @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "{}",
-        "{\"revision\":null}",
-        "{\"revision\":-1}",
-        "{\"revision\":9007199254740992}"
-      })
-  @DisplayName("Missing or invalid body revisions fail before any application command")
-  void refusesInvalidRevision(String body) throws Exception {
-    // Given
-    MockHttpServletRequestBuilder request =
-        post("/administration/source-bindings/{id}/validations", SOURCE)
-            .with(mobile())
-            .contentType("application/json")
-            .content(body);
-
-    // When
-    ResultActions response = mvc.perform(request);
-
-    // Then
-    response.andExpect(status().isBadRequest());
-    verifyNoInteractions(preparation);
+    verify(preparation).launch(ACCOUNT, SEASON, Set.of(SOURCE));
   }
 
   @Test

@@ -46,10 +46,7 @@ public class SportingClassificationController implements SportingClassificationA
         .body(
             mapper.toDto(
                 classifications.setPack(
-                    account.id(),
-                    packId,
-                    request.getRevision(),
-                    mapper.toCommand(request.getClassification().get()))));
+                    account.id(), packId, mapper.toCommand(request.getClassification().get()))));
   }
 
   /** {@inheritDoc} */
@@ -61,9 +58,6 @@ public class SportingClassificationController implements SportingClassificationA
         .body(
             mapper.toDto(
                 classifications.setPool(
-                    account.id(),
-                    poolId,
-                    request.getRevision(),
-                    mapper.toCommand(request.getClassification().get()))));
+                    account.id(), poolId, mapper.toCommand(request.getClassification().get()))));
   }
 }

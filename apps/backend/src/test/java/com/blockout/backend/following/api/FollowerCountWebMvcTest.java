@@ -83,7 +83,7 @@ class FollowerCountWebMvcTest {
   /** Supplies ordinary admission without implying that an account lookup succeeded. */
   @BeforeEach
   void admission() {
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, false, "Prepared", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(false, "Prepared", null));
   }
 
   @ParameterizedTest
@@ -160,7 +160,7 @@ class FollowerCountWebMvcTest {
   @DisplayName("Requires authenticated current grants for an explicit maintenance bypass")
   void explicitBypass() throws Exception {
     // Given
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(2, true, "Pause", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(true, "Pause", null));
     when(accounts.currentId("https://identity.example.invalid/", "subject"))
         .thenReturn(Optional.of(ACCOUNT));
     when(accounts.lock(ACCOUNT)).thenReturn(true);
@@ -188,7 +188,7 @@ class FollowerCountWebMvcTest {
   @DisplayName("Rejects a bypass without a current grant")
   void rejectsUnprivilegedBypass() throws Exception {
     // Given
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(2, true, "Pause", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(true, "Pause", null));
     when(accounts.currentId("https://identity.example.invalid/", "subject"))
         .thenReturn(Optional.of(ACCOUNT));
     when(accounts.lock(ACCOUNT)).thenReturn(true);

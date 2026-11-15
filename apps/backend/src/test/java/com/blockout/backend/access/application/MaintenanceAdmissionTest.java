@@ -30,7 +30,7 @@ class MaintenanceAdmissionTest {
     AccessSettingsStore settings = mock(AccessSettingsStore.class);
     AccountAccess accounts = mock(AccountAccess.class);
     ActionAuthorization authorization = mock(ActionAuthorization.class);
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, false, "Prepared", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(false, "Prepared", null));
     MaintenanceAdmission admission =
         new MaintenanceAdmission(
             settings, accounts, authorization, mock(PlatformTransactionManager.class));
@@ -50,7 +50,7 @@ class MaintenanceAdmissionTest {
     AccessSettingsStore settings = mock(AccessSettingsStore.class);
     AccountAccess accounts = mock(AccountAccess.class);
     ActionAuthorization authorization = mock(ActionAuthorization.class);
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, true, "Maintenance", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(true, "Maintenance", null));
     when(accounts.currentId("https://identity.example.invalid/", "synthetic-subject"))
         .thenReturn(Optional.of(ID));
     MaintenanceAdmission admission =
@@ -77,7 +77,7 @@ class MaintenanceAdmissionTest {
   void refusesGuestBypass() {
     // Given
     AccessSettingsStore settings = mock(AccessSettingsStore.class);
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, true, "Maintenance", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(true, "Maintenance", null));
     MaintenanceAdmission admission =
         new MaintenanceAdmission(
             settings,
@@ -95,7 +95,7 @@ class MaintenanceAdmissionTest {
   void refusesOrdinaryGuest() {
     // Given
     AccessSettingsStore settings = mock(AccessSettingsStore.class);
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, true, "Maintenance", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(true, "Maintenance", null));
     MaintenanceAdmission admission =
         new MaintenanceAdmission(
             settings,

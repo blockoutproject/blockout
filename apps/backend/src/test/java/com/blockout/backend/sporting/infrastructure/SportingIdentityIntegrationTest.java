@@ -137,7 +137,6 @@ class SportingIdentityIntegrationTest {
 
     // Then
     assertThat(locked.collectionState()).isEqualTo(CollectionSeasonStateEnum.CLOSED);
-    assertThat(locked.collectionRevision()).isEqualTo(1);
   }
 
   @Test

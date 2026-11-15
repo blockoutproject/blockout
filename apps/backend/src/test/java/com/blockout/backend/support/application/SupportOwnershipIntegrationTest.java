@@ -115,7 +115,7 @@ class SupportOwnershipIntegrationTest extends ContributionScenario {
     sql.update(
         "INSERT INTO account_permission(account_id,permission) VALUES (?,'division-lifecycle.manage')",
         AUTHOR);
-    divisions.setActive(AUTHOR, SportingIngestionFixture.DIVISION, "0", false);
+    divisions.setActive(AUTHOR, SportingIngestionFixture.DIVISION, false);
     mvc.perform(get("/matches/{id}", matchId)).andExpect(status().isNotFound());
     clearInvocations(resources);
 
@@ -158,10 +158,7 @@ class SupportOwnershipIntegrationTest extends ContributionScenario {
     assertThatThrownBy(
             () ->
                 presentation.set(
-                    OTHER,
-                    Kind.POOL,
-                    scope.pool(),
-                    new Edit("0", "Claimed pool", null, null, null)))
+                    OTHER, Kind.POOL, scope.pool(), new Edit("Claimed pool", null, null, null)))
         .isInstanceOf(AccessDeniedException.class);
     assertThatThrownBy(() -> erasure.erase(ISSUER, OTHER.toString(), AUTHOR))
         .isInstanceOf(AccountNotFoundException.class);

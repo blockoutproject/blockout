@@ -10,7 +10,6 @@ import com.blockout.backend.generated.mobile.model.CloseCollectionSeasonRequest;
 import com.blockout.backend.generated.mobile.model.CollectionControlListResponse;
 import com.blockout.backend.generated.mobile.model.CollectionControlResponse;
 import com.blockout.backend.generated.mobile.model.CollectionSeasonResponse;
-import com.blockout.backend.generated.mobile.model.RequestCollectionRequest;
 import com.blockout.backend.generated.mobile.model.SetCollectionActivityRequest;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -52,17 +51,13 @@ public class CollectionControlsController implements CollectionApi {
       UUID controlId, SetCollectionActivityRequest request) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(
-            mapper.toDto(
-                controls.setActivity(
-                    account.id(), controlId, request.getRevision(), request.getEnabled())));
+        .body(mapper.toDto(controls.setActivity(account.id(), controlId, request.getEnabled())));
   }
 
   /** {@inheritDoc} */
   @Override
-  public ResponseEntity<CollectionControlResponse> requestCollection(
-      UUID controlId, RequestCollectionRequest request) {
-    RequestOutcome outcome = controls.request(account.id(), controlId, request.getRevision());
+  public ResponseEntity<CollectionControlResponse> requestCollection(UUID controlId) {
+    RequestOutcome outcome = controls.request(account.id(), controlId);
     ResponseEntity.BodyBuilder response =
         outcome.running() ? ResponseEntity.ok() : ResponseEntity.accepted();
     return response.cacheControl(CacheControl.noStore()).body(mapper.toDto(outcome.view()));
@@ -74,9 +69,6 @@ public class CollectionControlsController implements CollectionApi {
       UUID seasonId, CloseCollectionSeasonRequest request) {
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
-        .body(
-            mapper.toDto(
-                closure.close(
-                    account.id(), seasonId, request.getRevision(), request.getConfirmation())));
+        .body(mapper.toDto(closure.close(account.id(), seasonId, request.getConfirmation())));
   }
 }

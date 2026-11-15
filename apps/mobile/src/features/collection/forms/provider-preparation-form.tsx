@@ -21,7 +21,7 @@ import { CreateSourceForm } from "./create-source-form";
 import { useProviderPreparationDraft } from "./use-provider-preparation-draft";
 import { createSourceValues } from "./create-source-values";
 
-/** Shares a coherent season revision and selection with the mounted manual-source form. */
+/** Shares the original season target and selection with the mounted manual-source form. */
 export interface ProviderPreparationFormProps {
   season: CollectionSeasonResponse | null | undefined;
   provider: CollectionProviderEnum;
@@ -60,10 +60,7 @@ export function ProviderPreparationForm({
     editing.sources.data?.items.filter(
       (source) => source.provider === provider,
     ) ?? [];
-  const current =
-    editing.season.data && editing.season.data.revision >= baseline.revision
-      ? editing.season.data
-      : baseline;
+  const current = editing.season.data ?? baseline;
   const closed = current.state === "closed";
   const busy =
     !editing.sources.data ||
@@ -71,7 +68,6 @@ export function ProviderPreparationForm({
     !authority.enabled ||
     editing.create.isPending ||
     editing.launch.isPending;
-  const reconciliationRequired = current.revision > baseline.revision;
   const ready = sources
     .filter(
       (source) =>
@@ -103,7 +99,7 @@ export function ProviderPreparationForm({
     editor.update({ ...editor.state, adding: false });
   }
 
-  /** Reports a failed launch while preserving its selected sources and accepted revision. */
+  /** Reports a failed launch while preserving its selected sources. */
   function failed() {
     editor.update({ ...editor.state, feedback: undefined });
     actionFeedback.error();
@@ -111,7 +107,7 @@ export function ProviderPreparationForm({
 
   /** Presents the actual selected labels; a native confirmation never broadens the atomic launch scope. */
   async function confirmLaunch() {
-    if (busy || reconciliationRequired || !canLaunch) {
+    if (busy || !canLaunch) {
       return;
     }
     editor.update({ ...state, selected: selection });
@@ -132,14 +128,13 @@ export function ProviderPreparationForm({
     await launch(selection);
   }
 
-  /** Sends exactly the selection against its read revision and clears it only after confirmed acceptance. */
+  /** Sends exactly the selected targets and clears it only after confirmed acceptance. */
   async function launch(confirmed: string[]) {
-    if (busy || reconciliationRequired || !canLaunch) {
+    if (busy || !canLaunch) {
       return;
     }
     try {
       const attempt = editing.launch.mutateAsync({
-        revision: baseline.revision,
         sourceBindingIds: confirmed,
       });
       editor.update({ ...editor.state, feedback: undefined });
@@ -154,31 +149,6 @@ export function ProviderPreparationForm({
     } catch {
       failed();
     }
-  }
-
-  /** Reads launch choices and season revision; failure or an older season response preserves selection and baseline. */
-  async function reread() {
-    const [seasonResult, sourcesResult] = await Promise.all([
-      editing.season.refetch(),
-      editing.sources.refetch(),
-    ]);
-    if (!mounted.current) {
-      return;
-    }
-    if (
-      seasonResult.isError ||
-      sourcesResult.isError ||
-      !seasonResult.data ||
-      !sourcesResult.data ||
-      seasonResult.data.revision < baseline.revision
-    ) {
-      return;
-    }
-    editor.update({
-      ...editor.state,
-      baseline: seasonResult.data,
-      feedback: "État relu. Vérifiez votre saisie avant une nouvelle action.",
-    });
   }
 
   return (
@@ -247,7 +217,7 @@ export function ProviderPreparationForm({
             label="Lancer les sources prêtes"
             fullWidth
             onPress={confirmLaunch}
-            disabled={busy || reconciliationRequired || !canLaunch}
+            disabled={busy || !canLaunch}
             loading={editing.launch.isPending}
           />
           {selected !== null && !canLaunch && (
@@ -274,7 +244,7 @@ export function ProviderPreparationForm({
             editor={editor}
             provider={provider}
             editing={editing}
-            disabled={busy || closed || reconciliationRequired}
+            disabled={busy || closed}
             onCancel={() => void cancelAddition()}
           />
         </Surface>
@@ -287,16 +257,6 @@ export function ProviderPreparationForm({
         >
           {feedback}
         </Text>
-      )}
-
-      {reconciliationRequired && (
-        <Button
-          label="Relire l’état"
-          variant="secondary"
-          onPress={() => void reread()}
-          disabled={busy}
-          loading={editing.season.isFetching || editing.sources.isFetching}
-        />
       )}
     </View>
   );

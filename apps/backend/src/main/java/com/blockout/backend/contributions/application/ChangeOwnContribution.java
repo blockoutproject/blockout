@@ -2,7 +2,6 @@ package com.blockout.backend.contributions.application;
 
 import com.blockout.backend.accounts.application.AccountAccess;
 import com.blockout.backend.accounts.application.exception.AccountNotFoundException;
-import com.blockout.backend.contributions.domain.ContributionEligibility.Status;
 import com.blockout.backend.contributions.domain.ContributionState;
 import com.blockout.backend.contributions.domain.ContributionVersion;
 import com.blockout.backend.contributions.domain.ContributionVersion.Decision;
@@ -38,16 +37,13 @@ public class ChangeOwnContribution {
    * @param owner original usable account, checked again under its erasure lock
    * @param matchId currently viewable sporting match
    * @param versionId exact selected personal version, never replaced by the current active version
-   * @param revision viewed opaque match contribution revision
    * @return current exact version and revision, including a current terminal repetition
    * @throws AccountNotFoundException when the original lifecycle was erased before locking
    * @throws SportingResourceNotFoundException for an unavailable match or missing/foreign version
-   * @throws ContributionRejectedException when the viewed revision is stale, including a no-op
    * @throws ContributionConflictException when the exact target has an incompatible lifecycle
    */
   @Transactional
-  public ReadOwnContributions.Detail change(
-      UUID owner, UUID matchId, UUID versionId, String revision) {
+  public ReadOwnContributions.Detail change(UUID owner, UUID matchId, UUID versionId) {
     Facts facts = sporting.lock(matchId);
     Set<UUID> affected = new HashSet<>(store.attributionAccounts(matchId));
     affected.add(owner);
@@ -66,11 +62,8 @@ public class ChangeOwnContribution {
             .filter(current -> current.matchId().equals(matchId) && owner.equals(current.ownerId()))
             .orElseThrow(SportingResourceNotFoundException::new);
     ContributionState state = store.state(matchId);
-    if (!Long.toString(state.revision()).equals(revision)) {
-      throw new ContributionRejectedException(Status.STALE_REVISION);
-    }
     if (version.state() == State.WITHDRAWN) {
-      return new ReadOwnContributions.Detail(revision, version);
+      return new ReadOwnContributions.Detail(Long.toString(state.revision()), version);
     }
     if (version.state() != State.ACTIVE) {
       throw new ContributionConflictException();

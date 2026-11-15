@@ -10,7 +10,6 @@ import com.blockout.backend.generated.ingestion.model.SportFormatEnum;
 import com.blockout.backend.generated.ingestion.model.SportGenderEnum;
 import com.blockout.backend.generated.mobile.model.LogoActionEnum;
 import com.blockout.backend.sporting.application.SportingProjectionChanges.Kind;
-import com.blockout.backend.sporting.application.exception.SportingConflictException;
 import com.blockout.backend.sporting.application.exception.SportingValidationException;
 import com.blockout.backend.sporting.application.model.PoolKey;
 import com.blockout.backend.sporting.application.model.SportingClassification;
@@ -146,7 +145,7 @@ class TransitionLogoIntegrationTest {
             account,
             Kind.CLUB,
             target.id(),
-            new Edit("0", "Current V2 club name", null, LogoActionEnum.KEEP, null));
+            new Edit("Current V2 club name", null, LogoActionEnum.KEEP, null));
 
     // When
     permissions.requireForRead(account, Permission.MANAGE_SPORTING_PRESENTATION);
@@ -156,12 +155,7 @@ class TransitionLogoIntegrationTest {
             account,
             Kind.CLUB,
             target.id(),
-            new Edit(
-                current.revision(),
-                current.names().manualName(),
-                null,
-                LogoActionEnum.REPLACE,
-                validated));
+            new Edit(current.names().manualName(), null, LogoActionEnum.REPLACE, validated));
 
     // Then
     assertThat(target.id()).isEqualTo(club).isNotEqualTo(similar);
@@ -239,7 +233,7 @@ class TransitionLogoIntegrationTest {
                   account,
                   Kind.CLUB,
                   club,
-                  new Edit(current.revision(), null, null, LogoActionEnum.REPLACE, validated));
+                  new Edit(null, null, LogoActionEnum.REPLACE, validated));
             })
         .isInstanceOf(NoSuchFileException.class);
     assertThat(configurationReads.presentation(account, Kind.CLUB, club)).isEqualTo(current);
@@ -255,7 +249,7 @@ class TransitionLogoIntegrationTest {
         new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x112233));
     View current =
         presentation.set(
-            account, Kind.CLUB, club, new Edit("0", null, null, LogoActionEnum.REPLACE, original));
+            account, Kind.CLUB, club, new Edit(null, null, LogoActionEnum.REPLACE, original));
     Path preserved =
         Files.write(
             preservedFiles.resolve("corrupt.png"), corrupt.getBytes(StandardCharsets.ISO_8859_1));
@@ -269,7 +263,7 @@ class TransitionLogoIntegrationTest {
                   account,
                   Kind.CLUB,
                   club,
-                  new Edit(current.revision(), null, null, LogoActionEnum.REPLACE, validated));
+                  new Edit(null, null, LogoActionEnum.REPLACE, validated));
             })
         .isInstanceOf(SportingValidationException.class);
     assertThat(configurationReads.presentation(account, Kind.CLUB, club)).isEqualTo(current);
@@ -280,7 +274,6 @@ class TransitionLogoIntegrationTest {
   @DisplayName("Refuses reassociation after the current operator grant is withdrawn")
   void refusesRevokedGrant() throws Exception {
     // Given
-    View current = configurationReads.presentation(account, Kind.CLUB, club);
     Image original =
         new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x112233));
     sql.update("DELETE FROM account_permission WHERE account_id=?", account);
@@ -292,37 +285,27 @@ class TransitionLogoIntegrationTest {
                     account,
                     Kind.CLUB,
                     club,
-                    new Edit(current.revision(), null, null, LogoActionEnum.REPLACE, original)))
+                    new Edit(null, null, LogoActionEnum.REPLACE, original)))
         .isInstanceOf(AccessDeniedException.class);
     assertThat(reads.publicLogo(Kind.CLUB, club)).isEmpty();
   }
 
   @Test
-  @DisplayName("Preserves a newer manual logo when an earlier revision is resubmitted")
-  void refusesStaleReplacement() throws Exception {
+  @DisplayName("An older prepared logo can replace a more recently saved manual logo")
+  void appliesEarlierPreparedLogo() throws Exception {
     // Given
-    View earlier = configurationReads.presentation(account, Kind.CLUB, club);
-    Image newer = new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x445566));
-    View current =
-        presentation.set(
-            account,
-            Kind.CLUB,
-            club,
-            new Edit(earlier.revision(), null, null, LogoActionEnum.REPLACE, newer));
     Image oldCopy =
         new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x112233));
+    Edit older = new Edit(null, null, LogoActionEnum.REPLACE, oldCopy);
+    Image newer = new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x445566));
+    presentation.set(account, Kind.CLUB, club, new Edit(null, null, LogoActionEnum.REPLACE, newer));
 
-    // When / Then
-    assertThatThrownBy(
-            () ->
-                presentation.set(
-                    account,
-                    Kind.CLUB,
-                    club,
-                    new Edit(earlier.revision(), null, null, LogoActionEnum.REPLACE, oldCopy)))
-        .isInstanceOf(SportingConflictException.class);
-    assertThat(configurationReads.presentation(account, Kind.CLUB, club)).isEqualTo(current);
-    assertThat(reads.publicLogo(Kind.CLUB, club).orElseThrow().bytes()).isEqualTo(newer.bytes());
+    // When
+    View saved = presentation.set(account, Kind.CLUB, club, older);
+
+    // Then
+    assertThat(configurationReads.presentation(account, Kind.CLUB, club)).isEqualTo(saved);
+    assertThat(reads.publicLogo(Kind.CLUB, club).orElseThrow().bytes()).isEqualTo(oldCopy.bytes());
   }
 
   @Test
@@ -383,7 +366,7 @@ class TransitionLogoIntegrationTest {
 
     // When
     presentation.set(
-        account, Kind.CLUB, club, new Edit("0", null, null, LogoActionEnum.REPLACE, original));
+        account, Kind.CLUB, club, new Edit(null, null, LogoActionEnum.REPLACE, original));
 
     // Then
     assertThat(reads.publicLogo(Kind.TEAM, team).orElseThrow().bytes()).isEqualTo(original.bytes());

@@ -107,13 +107,10 @@ class ClassificationIntegrationTest {
     // Given
     PoolView pool = pool("A", "pack", ORIGINAL);
     MatchView match = match(pool, "Home", "Away");
-    ClassificationView first = configurationReads.pool(account, pool.id());
-    ClassificationView configured =
-        classifications.setPool(account, pool.id(), first.revision(), classification(TARGET));
+    classifications.setPool(account, pool.id(), classification(TARGET));
 
     // When
-    ClassificationView removed =
-        classifications.setPool(account, pool.id(), configured.revision(), null);
+    ClassificationView removed = classifications.setPool(account, pool.id(), null);
 
     // Then
     assertThat(removed.setting()).isNull();
@@ -123,10 +120,7 @@ class ClassificationIntegrationTest {
     assertThat(acquisitionReads.team(match.homeTeamId()).orElseThrow().classification())
         .isEqualTo(classification(TARGET));
     assertThat(acquisitionReads.match(match.id())).contains(match);
-    assertThat(
-            classifications
-                .setPool(account, pool.id(), removed.revision(), classification(TARGET))
-                .effective())
+    assertThat(classifications.setPool(account, pool.id(), classification(TARGET)).effective())
         .isEqualTo(classification(TARGET));
   }
 
@@ -145,9 +139,7 @@ class ClassificationIntegrationTest {
 
     // When / Then
     assertThatThrownBy(
-            () ->
-                classifications.setPack(
-                    account, first.packId(), before.revision(), classification(TARGET)))
+            () -> classifications.setPack(account, first.packId(), classification(TARGET)))
         .isInstanceOfSatisfying(
             SportingConflictException.class,
             error ->
@@ -170,10 +162,7 @@ class ClassificationIntegrationTest {
     ClassificationView before = configurationReads.pool(account, first.id());
 
     // When / Then
-    assertThatThrownBy(
-            () ->
-                classifications.setPool(
-                    account, first.id(), before.revision(), classification(TARGET)))
+    assertThatThrownBy(() -> classifications.setPool(account, first.id(), classification(TARGET)))
         .isInstanceOfSatisfying(
             SportingConflictException.class,
             error -> assertThat(error.getResourceIds()).contains(existing.homeTeamId()));
@@ -200,10 +189,7 @@ class ClassificationIntegrationTest {
     ClassificationView before = configurationReads.pool(account, first.id());
 
     // When / Then
-    assertThatThrownBy(
-            () ->
-                classifications.setPool(
-                    account, first.id(), before.revision(), classification(TARGET)))
+    assertThatThrownBy(() -> classifications.setPool(account, first.id(), classification(TARGET)))
         .isInstanceOfSatisfying(
             SportingConflictException.class,
             error ->
@@ -233,9 +219,7 @@ class ClassificationIntegrationTest {
 
     // When / Then
     assertThatThrownBy(
-            () ->
-                classifications.setPack(
-                    account, first.packId(), before.revision(), classification(ORIGINAL)))
+            () -> classifications.setPack(account, first.packId(), classification(ORIGINAL)))
         .isInstanceOfSatisfying(
             SportingConflictException.class,
             error ->
@@ -266,10 +250,9 @@ class ClassificationIntegrationTest {
         season,
         organizer,
         competition);
-    ClassificationView before = configurationReads.pool(account, first.id());
 
     // When
-    classifications.setPool(account, first.id(), before.revision(), classification(TARGET));
+    classifications.setPool(account, first.id(), classification(TARGET));
     MatchView observed = match(first, "Shared alias", "First away");
 
     // Then
@@ -312,10 +295,9 @@ class ClassificationIntegrationTest {
         season,
         existing.homeTeamId(),
         otherSeason);
-    ClassificationView before = configurationReads.pool(account, first.id());
 
     // When
-    classifications.setPool(account, first.id(), before.revision(), classification(TARGET));
+    classifications.setPool(account, first.id(), classification(TARGET));
     MatchView observed = match(first, "Shared alias", "First away");
 
     // Then
@@ -326,21 +308,20 @@ class ClassificationIntegrationTest {
   }
 
   @Test
-  @DisplayName("Preserves a matching revision and rejects a stale no-op after an inherited change")
-  void rejectsStaleNoOp() {
+  @DisplayName(
+      "An older pool draft resolves current pack inheritance when it explicitly clears its override")
+  void appliesCurrentInheritance() {
     // Given
     PoolView pool = pool("A", "pack", ORIGINAL);
-    ClassificationView before = configurationReads.pool(account, pool.id());
-    ClassificationView pack = configurationReads.pack(account, pool.packId());
-    assertThat(classifications.setPool(account, pool.id(), before.revision(), null))
-        .isEqualTo(before);
-    classifications.setPack(account, pool.packId(), pack.revision(), classification(TARGET));
+    classifications.setPool(account, pool.id(), classification(ORIGINAL));
+    classifications.setPack(account, pool.packId(), classification(TARGET));
 
-    // When / Then
-    assertThatThrownBy(() -> classifications.setPool(account, pool.id(), before.revision(), null))
-        .isInstanceOfSatisfying(
-            SportingConflictException.class,
-            error -> assertThat(error.getType()).isEqualTo("stale-revision"));
+    // When
+    ClassificationView saved = classifications.setPool(account, pool.id(), null);
+
+    // Then
+    assertThat(saved.setting()).isNull();
+    assertThat(saved.effective()).isEqualTo(classification(TARGET));
   }
 
   @Test
@@ -352,15 +333,11 @@ class ClassificationIntegrationTest {
     PoolView override = pool("C", "pack", ORIGINAL);
     MatchView shared = match(first, "Shared", "First away");
     match(second, "Shared", "Second away");
-    ClassificationView initial = configurationReads.pool(account, override.id());
     ClassificationView overridden =
-        classifications.setPool(
-            account, override.id(), initial.revision(), classification(ORIGINAL));
-    ClassificationView pack = configurationReads.pack(account, first.packId());
-
+        classifications.setPool(account, override.id(), classification(ORIGINAL));
     // When
     ClassificationView corrected =
-        classifications.setPack(account, first.packId(), pack.revision(), classification(TARGET));
+        classifications.setPack(account, first.packId(), classification(TARGET));
 
     // Then
     assertThat(corrected.effective()).isEqualTo(classification(TARGET));
@@ -371,10 +348,7 @@ class ClassificationIntegrationTest {
     assertThat(acquisitionReads.team(shared.homeTeamId()).orElseThrow().classification())
         .isEqualTo(classification(TARGET));
     assertThat(configurationReads.pool(account, override.id())).isEqualTo(overridden);
-    assertThat(
-            classifications
-                .setPool(account, override.id(), overridden.revision(), null)
-                .effective())
+    assertThat(classifications.setPool(account, override.id(), null).effective())
         .isEqualTo(classification(TARGET));
   }
 
@@ -391,8 +365,7 @@ class ClassificationIntegrationTest {
         new SportingClassification(TARGET, SportFormatEnum._4X4, SportGenderEnum.MIXED);
 
     // When / Then
-    assertThatThrownBy(
-            () -> classifications.setPack(account, first.packId(), pack.revision(), changed))
+    assertThatThrownBy(() -> classifications.setPack(account, first.packId(), changed))
         .isInstanceOf(SportingConflictException.class);
     assertThat(configurationReads.pack(account, first.packId())).isEqualTo(pack);
   }
@@ -422,10 +395,7 @@ class ClassificationIntegrationTest {
                                   pid.complete(
                                       sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
                                   classifications.setPool(
-                                      account,
-                                      first.id(),
-                                      before.revision(),
-                                      classification(TARGET));
+                                      account, first.id(), classification(TARGET));
                                 }));
                 PostgresTestDatabase.awaitBlocked(sql, pid);
                 match(outside, "Shared", "Outside away");
@@ -446,7 +416,6 @@ class ClassificationIntegrationTest {
     // Given
     PoolView pool = pool("A", "pack", ORIGINAL);
     MatchView match = match(pool, "Home", "Away");
-    ClassificationView before = configurationReads.pool(account, pool.id());
     CompletableFuture<Integer> pid = new CompletableFuture<>();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
     try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
@@ -454,8 +423,7 @@ class ClassificationIntegrationTest {
       Future<MatchView> collection =
           transaction.execute(
               state -> {
-                classifications.setPool(
-                    account, pool.id(), before.revision(), classification(TARGET));
+                classifications.setPool(account, pool.id(), classification(TARGET));
                 Future<MatchView> pending =
                     worker.submit(
                         () ->
@@ -481,7 +449,6 @@ class ClassificationIntegrationTest {
   void refusesWithdrawnGrant() throws Exception {
     // Given
     PoolView pool = pool("A", "pack", ORIGINAL);
-    ClassificationView before = configurationReads.pool(account, pool.id());
     CompletableFuture<Integer> pid = new CompletableFuture<>();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
     try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
@@ -499,10 +466,7 @@ class ClassificationIntegrationTest {
                                   pid.complete(
                                       sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
                                   classifications.setPool(
-                                      account,
-                                      pool.id(),
-                                      before.revision(),
-                                      classification(TARGET));
+                                      account, pool.id(), classification(TARGET));
                                 }));
                 PostgresTestDatabase.awaitBlocked(sql, pid);
                 sql.update("DELETE FROM account_permission WHERE account_id = ?", account);

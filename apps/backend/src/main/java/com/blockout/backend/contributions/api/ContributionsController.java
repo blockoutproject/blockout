@@ -82,8 +82,7 @@ public class ContributionsController implements StreamSubmissionApi {
       UpdateOwnStreamContributionRequest body,
       Boolean bypass) {
     request.current().requireOriginalAccount(accountId);
-    ReadOwnContributions.Detail detail =
-        changes.change(accountId, matchId, contributionId, body.getRevision());
+    ReadOwnContributions.Detail detail = changes.change(accountId, matchId, contributionId);
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
         .header("Accept-Patch", "application/json")

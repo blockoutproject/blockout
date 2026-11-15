@@ -6,7 +6,6 @@ import { ImageValidationError } from "@/shared/images/image-validation-error";
 import { deleteOwnedImage } from "@/shared/images/delete-owned-image";
 import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
 import { useDivisionActivity } from "../api/classification";
-import { isStaleRevision } from "../api/is-stale-revision";
 import { DivisionColorFields } from "../components/division-color-fields";
 import { useRouter } from "expo-router";
 import { useEffect, useRef } from "react";
@@ -44,7 +43,7 @@ export interface PresentationFormProps {
   professionalTeam?: boolean;
 }
 
-/** Saves one revision atomically and retains dirty fields through refusals and explicit original-target rereads. */
+/** Saves the explicit draft atomically and retains dirty fields and prepared files through ordinary refusals. */
 export function PresentationForm({
   presentation,
   target,
@@ -108,13 +107,8 @@ export function PresentationForm({
   const previewColor = /^#[0-9a-fA-F]{6}$/.test(draftColor)
     ? draftColor
     : colors.mediaPlaceholder;
-  // This subscription also lets RHF retain all dirty fields during the explicit reread reset.
   const selectedLogo =
     dirtyFields.logo !== undefined && draft.action === "replace";
-  const rereadRequired =
-    !creating &&
-    (isStaleRevision(editing.save.error) ||
-      isStaleRevision(activity.save.error));
   const created = creating && baseline.kind === "division";
   const busy =
     disabled ||
@@ -122,12 +116,7 @@ export function PresentationForm({
     imageSelection.pending ||
     editing.save.isPending ||
     activity.save.isPending;
-  const {
-    logo: currentLogo,
-    title,
-    names,
-    revision,
-  } = presentationContext(baseline);
+  const { logo: currentLogo, title, names } = presentationContext(baseline);
   const selection = draft.action === "automatic" ? "automatic" : "effective";
   const hasLogo =
     editing.query.data !== null &&
@@ -140,7 +129,6 @@ export function PresentationForm({
       : target,
     selection,
     hasLogo && draft.action !== "replace",
-    revision,
   );
   let uri;
   if (draft.action === "replace") {
@@ -159,21 +147,13 @@ export function PresentationForm({
 
   /** Only an explicit save writes; ordinary errors preserve mounted input for refresh or retry. */
   async function submit(values: PresentationValues) {
-    if (
-      !mounted.current ||
-      imageSelection.isPending() ||
-      busy ||
-      rereadRequired
-    ) {
+    if (!mounted.current || imageSelection.isPending() || busy) {
       return;
     }
     editor.update({ ...state, feedback: undefined });
     const file =
       values.logo.action === "replace" ? values.logo.prepared : undefined;
-    const attempt = editing.save.mutateAsync({
-      revision,
-      values,
-    });
+    const attempt = editing.save.mutateAsync(values);
     actionFeedback.clear();
     editor.beginUpload(file);
     try {
@@ -212,26 +192,7 @@ export function PresentationForm({
     }
   }
 
-  /** Refreshes non-dirty fields and the revision only after a successful explicit read; no write is replayed. */
-  async function reread() {
-    const result = await editing.query.refetch();
-    if (!mounted.current || imageSelection.isPending()) {
-      return;
-    }
-    if (result.isError || !result.data) {
-      return;
-    }
-    editor.update({
-      baseline: result.data,
-      feedback:
-        "Présentation relue. Vérifiez votre brouillon avant de l’enregistrer à nouveau.",
-    });
-    editor.reset(presentationValues(result.data), true);
-    editing.save.reset();
-    activity.save.reset();
-  }
-
-  /** Confirms and executes the separate lifecycle command against this editor's original revision. */
+  /** Confirms and executes the separate lifecycle command for the original division. */
   async function changeActivity() {
     if (
       baseline.kind !== "division" ||
@@ -239,8 +200,7 @@ export function PresentationForm({
       editing.save.isPending ||
       activity.save.isPending ||
       editing.query.data === null ||
-      !activity.authority.enabled ||
-      rereadRequired
+      !activity.authority.enabled
     ) {
       return;
     }
@@ -261,7 +221,6 @@ export function PresentationForm({
     }
     try {
       const attempt = activity.save.mutateAsync({
-        revision: division.revision,
         active: !division.active,
       });
       editor.update({ ...editor.state, feedback: undefined });
@@ -312,24 +271,6 @@ export function PresentationForm({
             {feedback}
           </Text>
         )}
-        {rereadRequired && (
-          <Button
-            label={
-              target.kind === "division"
-                ? "Relire la division"
-                : "Relire la présentation"
-            }
-            variant="secondary"
-            onPress={() => void reread()}
-            disabled={
-              imageSelection.pending ||
-              editing.save.isPending ||
-              activity.save.isPending ||
-              editing.query.isFetching
-            }
-            loading={editing.query.isFetching}
-          />
-        )}
         {created && (
           <Button
             label="Voir les divisions"
@@ -341,7 +282,7 @@ export function PresentationForm({
           <Button
             label="Enregistrer"
             fullWidth
-            disabled={busy || rereadRequired}
+            disabled={busy}
             loading={editing.save.isPending}
             onPress={() => void handleSubmit(submit)()}
           />
@@ -355,8 +296,7 @@ export function PresentationForm({
               disabled={
                 imageSelection.pending ||
                 editing.save.isPending ||
-                editing.query.data === null ||
-                rereadRequired
+                editing.query.data === null
               }
               onPress={() => void changeActivity()}
             />
@@ -514,7 +454,6 @@ function presentationContext(baseline: Presentation) {
   if (baseline.kind === "division-creation") {
     return {
       title: "Nouvelle division",
-      revision: "",
       logo: undefined,
       names: undefined,
     };
@@ -522,14 +461,12 @@ function presentationContext(baseline: Presentation) {
   if (baseline.kind === "division") {
     return {
       title: baseline.data.name,
-      revision: baseline.data.revision,
       logo: baseline.data.logo,
       names: undefined,
     };
   }
   return {
     title: baseline.data.names.effectiveName,
-    revision: baseline.data.revision,
     names: baseline.data.names,
     logo: baseline.kind === "pool" ? undefined : baseline.data.logo,
   };

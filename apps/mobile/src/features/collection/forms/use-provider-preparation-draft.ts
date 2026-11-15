@@ -8,7 +8,7 @@ import {
 } from "../schemas/create-source-schema";
 import { createSourceValues } from "./create-source-values";
 
-/** Original revision and local feedback belong to this mounted editing visit. */
+/** Original target and local feedback belong to this mounted editing visit. */
 interface DraftState {
   baseline?: CollectionSeasonResponse;
   selected: string[] | null;

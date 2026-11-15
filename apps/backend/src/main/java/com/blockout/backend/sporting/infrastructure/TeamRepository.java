@@ -45,7 +45,7 @@ interface TeamRepository extends JpaRepository<TeamEntity, UUID> {
   @Query(
       """
       SELECT NEW com.blockout.backend.sporting.infrastructure.SportingPresentationRow(
-        t.id, t.sourceName, t.manualName, t.manualShortName, t.presentationRevision, t.provider,
+        t.id, t.sourceName, t.manualName, t.manualShortName, t.provider,
         t.logo IS NOT NULL, t.sourceLogo IS NOT NULL, c.id, c.logo IS NOT NULL)
       FROM TeamEntity t LEFT JOIN t.club c WHERE t.id IN :ids
       """)

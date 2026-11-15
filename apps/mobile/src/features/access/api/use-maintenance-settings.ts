@@ -8,6 +8,7 @@ import {
 } from "../../../../.generated/mobile";
 import type {
   ChangeMaintenanceRequest,
+  MaintenanceSettingsResponse,
   SetMaintenanceActivationRequest,
 } from "../../../../.generated/schemas/index.zod";
 import { createMaintenanceSettingsQueryOptions } from "./access-settings-queries";
@@ -17,7 +18,7 @@ import { useAccountSession } from "@/features/accounts/current-account";
 export function useMaintenanceSettings(enabled: boolean) {
   const session = useAccountSession();
 
-  /** Uses captured native credentials; the server owns grant and revision validation. */
+  /** Uses captured native credentials; the server owns current grant validation. */
   async function request() {
     const credentials = await session.getCredentials();
     return { headers: { Authorization: `Bearer ${credentials.accessToken}` } };
@@ -38,16 +39,25 @@ export function useMaintenanceSettings(enabled: boolean) {
     void invalidateAccess();
   }
 
+  /** An acknowledgement does not recover a failed required read. */
+  function accept(accepted: MaintenanceSettingsResponse) {
+    if (client.getQueryState(queryKey)?.status !== "error") {
+      client.setQueryData(queryKey, accepted);
+    }
+  }
+
   const content = useMutation({
     mutationKey: [...queryKey, ...getChangeMaintenanceSettingsMutationKey()],
     mutationFn: async (body: ChangeMaintenanceRequest) =>
       changeMaintenanceSettings(body, await request()),
+    onSuccess: accept,
     onSettled: invalidate,
   });
   const activation = useMutation({
     mutationKey: [...queryKey, ...getSetMaintenanceActivationMutationKey()],
     mutationFn: async (body: SetMaintenanceActivationRequest) =>
       setMaintenanceActivation(body, await request()),
+    onSuccess: accept,
     onSettled: invalidate,
   });
   return { query, queryKey, content, activation };

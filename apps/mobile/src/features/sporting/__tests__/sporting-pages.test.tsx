@@ -184,7 +184,6 @@ function reads(url: string, request?: RequestInit): Promise<Response> {
       Response.json({
         id: sportingId,
         ...presentationResourceKind(),
-        revision: "presentation-1",
         names: {
           sourceName: "Source",
           effectiveName: "Presented name",

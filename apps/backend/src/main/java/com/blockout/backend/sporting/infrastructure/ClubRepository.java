@@ -22,7 +22,7 @@ interface ClubRepository extends JpaRepository<ClubEntity, UUID> {
   @Query(
       """
       SELECT NEW com.blockout.backend.sporting.infrastructure.SportingPresentationRow(
-        c.id, c.sourceName, c.manualName, NULL, c.presentationRevision, NULL,
+        c.id, c.sourceName, c.manualName, NULL, NULL,
         c.logo IS NOT NULL, FALSE, NULL, FALSE)
       FROM ClubEntity c WHERE c.id IN :ids
       """)

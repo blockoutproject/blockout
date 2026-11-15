@@ -54,7 +54,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.openapitools.jackson.nullable.JsonNullable;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.springframework.web.client.HttpClientErrorException;
@@ -855,28 +854,19 @@ class CollectorSportingReadIntegrationTest {
           .when(provider)
           .page(any());
       // Request each ordinary pass through F01 instead of bypassing its failure cadence in SQL.
-      JsonNode control =
-          publicReads
-              .get()
-              .uri("/administration/collection-controls/" + CONTROL)
-              .header("Authorization", authorization)
-              .retrieve()
-              .body(JsonNode.class);
-      JsonNode requested =
-          publicReads
-              .post()
-              .uri("/administration/collection-controls/" + CONTROL + "/requests")
-              .header("Authorization", authorization)
-              .contentType(MediaType.APPLICATION_JSON)
-              .body(Map.of("revision", control.get("revision").asLong()))
-              .retrieve()
-              .body(JsonNode.class);
+      publicReads
+          .post()
+          .uri("/administration/collection-controls/" + CONTROL + "/requests")
+          .header("Authorization", authorization)
+          .retrieve()
+          .toBodilessEntity();
+      CollectionBackend.ControlWork requested =
+          lifecycle.work().controls().stream()
+              .filter(control -> control.id().equals(CONTROL))
+              .findFirst()
+              .orElseThrow();
       CollectorLifecycle.AdmittedCycle cycle =
-          lifecycle.admit(
-              CONTROL,
-              null,
-              requested.get("revision").asLong(),
-              UUID.fromString(requested.get("pendingRequestId").asString()));
+          lifecycle.admit(CONTROL, null, requested.revision(), requested.requestId());
       passage.execute(cycle);
 
       // Then: acquisition fails operationally, without any successful integration or inferred

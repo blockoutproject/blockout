@@ -28,12 +28,10 @@ export function toCreateDivisionBody(
 
 /** Encodes the complete club presentation draft; an empty name restores the automatic value. */
 export function toClubPresentationBody(
-  revision: string,
   values: PresentationValues,
 ): SetClubPresentationBody {
   return {
     metadata: {
-      revision,
       manualName: values.name === "" ? null : values.name.trim(),
       logoAction: values.logo.action,
     },
@@ -45,10 +43,9 @@ export function toClubPresentationBody(
 
 /** Adds the independent short-name intent to the shared club/team presentation transport fields. */
 export function toTeamPresentationBody(
-  revision: string,
   values: PresentationValues,
 ): SetTeamPresentationBody {
-  const body = toClubPresentationBody(revision, values);
+  const body = toClubPresentationBody(values);
   return {
     ...body,
     metadata: {
@@ -60,21 +57,17 @@ export function toTeamPresentationBody(
 
 /** Encodes pool names only; pool presentation has no image or logo action. */
 export function toPoolPresentationBody(
-  revision: string,
   values: PresentationValues,
 ): SetPoolPresentationBody {
   return {
-    revision,
     manualName: values.name === "" ? null : values.name.trim(),
     manualShortName: values.shortName === "" ? null : values.shortName.trim(),
   };
 }
 
-/** Adds the original revision to division presentation fields without changing its separate activity state. */
+/** Encodes division presentation fields without changing its separate activity state. */
 export function toDivisionPresentationBody(
-  revision: string,
   values: PresentationValues,
 ): SetDivisionPresentationBody {
-  const body = toCreateDivisionBody(values);
-  return { ...body, metadata: { ...body.metadata, revision } };
+  return toCreateDivisionBody(values);
 }

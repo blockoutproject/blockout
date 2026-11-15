@@ -116,7 +116,7 @@ export function ContributionForm({
     }
     const target = {
       versionId: replacement.id,
-      body: { action: "withdraw" as const, revision: current.revision },
+      body: { action: "withdraw" as const },
     };
     const confirmed = await confirmAction({
       title: "Retirer ce lien ?",

@@ -24,7 +24,6 @@ public record InitialReconstructionProperties(
     String organizerReference,
     URI candidateUrl,
     UUID seasonId,
-    @Min(0) @Max(9007199254740991L) Long revision,
     @Size(max = 200) Set<UUID> sources,
     @Size(min = 1, max = 200) Set<UUID> scopes,
     UUID sourceId,
@@ -41,7 +40,6 @@ public record InitialReconstructionProperties(
    * @param organizerReference native root identity, never a guessed year
    * @param candidateUrl official candidate awaiting ordinary qualification
    * @param seasonId canonical season for request/report/closure
-   * @param revision current preparation or source revision
    * @param sources exact request roots
    * @param scopes optional narrower failed scopes
    * @param sourceId exact candidate for seasonal confirmation
@@ -82,10 +80,10 @@ public record InitialReconstructionProperties(
               && organizerReference != null
               && !organizerReference.isBlank()
               && candidateUrl != null;
-      case CONFIRM -> sourceId != null && revision != null && label != null;
-      case REQUEST -> seasonId != null && revision != null && !sources.isEmpty();
+      case CONFIRM -> sourceId != null && label != null;
+      case REQUEST -> seasonId != null && !sources.isEmpty();
       case REPORT -> seasonId != null;
-      case CLOSE -> seasonId != null && revision != null && label != null;
+      case CLOSE -> seasonId != null && label != null;
     };
   }
 }

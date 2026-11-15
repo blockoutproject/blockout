@@ -183,8 +183,7 @@ class SportingPresentationIntegrationTest {
             put("/administration/pools/{id}/presentation", pool)
                 .with(operator())
                 .contentType("application/json")
-                .content(
-                    "{\"revision\":\"0\",\"manualName\":\"Manual pool\",\"manualShortName\":null}"))
+                .content("{\"manualName\":\"Manual pool\",\"manualShortName\":null}"))
         .andExpect(status().isOk());
 
     // Then
@@ -201,13 +200,11 @@ class SportingPresentationIntegrationTest {
   @DisplayName("Keeps independent team names across source refresh and restoration")
   void preservesIndependentNames() {
     // Given
-    SportingPresentation.View before =
-        configurationReads.presentation(account, SportingProjectionChanges.Kind.TEAM, team);
     presentation.set(
         account,
         SportingProjectionChanges.Kind.TEAM,
         team,
-        new Edit(before.revision(), "Manual full", "Manual short", LogoActionEnum.KEEP, null));
+        new Edit("Manual full", "Manual short", LogoActionEnum.KEEP, null));
 
     // When
     identities.identifyMatch(
@@ -222,7 +219,7 @@ class SportingPresentationIntegrationTest {
             account,
             SportingProjectionChanges.Kind.TEAM,
             team,
-            new Edit(refreshed.revision(), null, "Manual short", LogoActionEnum.KEEP, null));
+            new Edit(null, "Manual short", LogoActionEnum.KEEP, null));
 
     // Then
     assertThat(refreshed.names().sourceName()).isEqualTo("HOME");
@@ -239,33 +236,24 @@ class SportingPresentationIntegrationTest {
   }
 
   @Test
-  @DisplayName("Preserves no-op revisions while rejecting stale matching presentation changes")
-  void rejectsStaleNoOp() {
+  @DisplayName("An older valid presentation draft can replace a newer manual name")
+  void appliesOlderPresentationDraft() {
     // Given
-    SportingPresentation.View current =
-        configurationReads.presentation(account, SportingProjectionChanges.Kind.CLUB, club);
-    Edit unchanged = new Edit(current.revision(), null, null, LogoActionEnum.KEEP, null);
-    SportingPresentation.View noOp =
-        presentation.set(account, SportingProjectionChanges.Kind.CLUB, club, unchanged);
-    SportingPresentation.View changed =
-        presentation.set(
-            account,
-            SportingProjectionChanges.Kind.CLUB,
-            club,
-            new Edit(current.revision(), "Manual", null, LogoActionEnum.KEEP, null));
+    Edit older = new Edit("Older draft", null, LogoActionEnum.KEEP, null);
+    presentation.set(
+        account,
+        SportingProjectionChanges.Kind.CLUB,
+        club,
+        new Edit("Newer value", null, LogoActionEnum.KEEP, null));
 
-    // When / Then
-    assertThat(noOp.revision()).isEqualTo(current.revision());
-    assertThatThrownBy(
-            () ->
-                presentation.set(
-                    account,
-                    SportingProjectionChanges.Kind.CLUB,
-                    club,
-                    new Edit(current.revision(), "Manual", null, LogoActionEnum.KEEP, null)))
-        .isInstanceOf(SportingConflictException.class);
+    // When
+    SportingPresentation.View saved =
+        presentation.set(account, SportingProjectionChanges.Kind.CLUB, club, older);
+
+    // Then
+    assertThat(saved.names().manualName()).isEqualTo("Older draft");
     assertThat(configurationReads.presentation(account, SportingProjectionChanges.Kind.CLUB, club))
-        .isEqualTo(changed);
+        .isEqualTo(saved);
   }
 
   @Test
@@ -290,7 +278,6 @@ class SportingPresentationIntegrationTest {
         details.correct(
             account,
             club,
-            Long.toString(configurationReads.clubContacts(account, club).revision()),
             Map.of(
                 ContactField.PHONE, new ContactEdit(ContactModeEnum.MANUAL, "0100000099"),
                 ContactField.EMAIL, new ContactEdit(ContactModeEnum.HIDDEN, null)));
@@ -313,7 +300,6 @@ class SportingPresentationIntegrationTest {
         details.correct(
             account,
             club,
-            Long.toString(refreshed.revision()),
             Map.of(ContactField.PHONE, new ContactEdit(ContactModeEnum.SOURCE, null)));
 
     // Then
@@ -343,7 +329,6 @@ class SportingPresentationIntegrationTest {
                 JsonNullable.of("source@example.invalid"),
                 ContactField.PHONE,
                 JsonNullable.of("0100000001"))));
-    long revision = configurationReads.clubContacts(account, club).revision();
 
     // When
     clubObservations.accept(
@@ -370,7 +355,6 @@ class SportingPresentationIntegrationTest {
                 Map.of(ContactField.WEBSITE, JsonNullable.of("https://old.example.invalid/"))));
 
     // Then
-    assertThat(retained.revision()).isEqualTo(revision);
     assertThat(retained.fields().get(ContactField.EMAIL).effectiveValue())
         .isEqualTo("source@example.invalid");
     assertThat(
@@ -410,7 +394,6 @@ class SportingPresentationIntegrationTest {
                 details.correct(
                     account,
                     club,
-                    Long.toString(current.revision()),
                     Map.of(
                         ContactField.PHONE, new ContactEdit(ContactModeEnum.MANUAL, "0100000001"),
                         ContactField.EMAIL,
@@ -422,7 +405,6 @@ class SportingPresentationIntegrationTest {
                 details.correct(
                     account,
                     club,
-                    Long.toString(current.revision()),
                     Map.of(
                         ContactField.PHONE, new ContactEdit(ContactModeEnum.MANUAL, "0100000001"),
                         ContactField.WEBSITE,
@@ -470,23 +452,18 @@ class SportingPresentationIntegrationTest {
             Map.of(
                 field, JsonNullable.of(sourceValue), unrelated, JsonNullable.of(unrelatedValue))));
     details.correct(
-        account, club, "1", Map.of(field, new ContactEdit(ContactModeEnum.MANUAL, manualValue)));
-    long editingRevision = configurationReads.clubContacts(account, club).revision();
+        account, club, Map.of(field, new ContactEdit(ContactModeEnum.MANUAL, manualValue)));
+
     UUID match =
         sql.queryForObject("SELECT id FROM sporting_match WHERE home_team_id=?", UUID.class, team);
     contactRestrictions.restrict(club, Set.of(field));
-    Contacts restricted = configurationReads.clubContacts(account, club);
     Map<String, Object> cleared = sql.queryForMap(inspect, club);
 
     // When
     clubObservations.accept(
         club,
         new ClubObservation(context(sheets, 2), null, Map.of(field, JsonNullable.of(sourceValue))));
-    details.correct(
-        account,
-        club,
-        Long.toString(restricted.revision()),
-        Map.of(field, new ContactEdit(ContactModeEnum.SOURCE, null)));
+    details.correct(account, club, Map.of(field, new ContactEdit(ContactModeEnum.SOURCE, null)));
     UUID reconstructedTeam =
         identities
             .identifyMatch(
@@ -505,7 +482,6 @@ class SportingPresentationIntegrationTest {
     contactRestrictions.restrict(club, Set.of(field));
 
     // Then
-    assertThat(restricted.revision()).isEqualTo(editingRevision + 1);
     assertThat(restored.fields().get(field))
         .isEqualTo(new ContactValue(null, null, ContactModeEnum.SOURCE, true));
     assertThat(reads.publicClubContacts(club).get(field)).isNull();
@@ -535,13 +511,13 @@ class SportingPresentationIntegrationTest {
 
   @ParameterizedTest
   @EnumSource(ContactModeEnum.class)
-  @DisplayName("Rejects a contact editor opened before a restriction through the generated route")
+  @DisplayName("A prior contact draft cannot restore a currently restricted value")
   void rejectsEditorsPredatingRestriction(ContactModeEnum mode) throws Exception {
     // Given
-    String revision = Long.toString(configurationReads.clubContacts(account, club).revision());
+
     contactRestrictions.restrict(club, Set.of(ContactField.EMAIL));
     SetClubContactsRequest request =
-        new SetClubContactsRequest(revision)
+        new SetClubContactsRequest()
             .email(
                 new ContactFieldRequest(mode)
                     .value(mode == ContactModeEnum.MANUAL ? "private@example.invalid" : null));
@@ -552,8 +528,7 @@ class SportingPresentationIntegrationTest {
                 .with(operator())
                 .contentType("application/json")
                 .content(json.writeValueAsString(request)))
-        .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.type").value("urn:blockout:problem:stale-revision"));
+        .andExpect(status().is(mode == ContactModeEnum.MANUAL ? 409 : 200));
 
     // Then
     String body =
@@ -563,7 +538,6 @@ class SportingPresentationIntegrationTest {
             .getResponse()
             .getContentAsString();
     ClubContactsResponse response = json.readValue(body, ClubContactsResponse.class);
-    assertThat(response.getRevision()).isEqualTo("1");
     assertThat(response.getEmail().getSourceValue()).isEqualTo(JsonNullable.of(null));
     assertThat(response.getEmail().getManualValue()).isEqualTo(JsonNullable.of(null));
     assertThat(response.getEmail().getEffectiveValue()).isEqualTo(JsonNullable.of(null));
@@ -578,12 +552,10 @@ class SportingPresentationIntegrationTest {
     sql.update(
         "INSERT INTO account_permission(account_id,permission) VALUES (?, 'division-lifecycle.manage')",
         account);
-    DivisionDetail inactive =
-        divisions.setActive(account, SportingIngestionFixture.DIVISION, "0", false);
+    divisions.setActive(account, SportingIngestionFixture.DIVISION, false);
 
     // When
-    divisions.setActive(
-        account, SportingIngestionFixture.DIVISION, Long.toString(inactive.revision()), true);
+    divisions.setActive(account, SportingIngestionFixture.DIVISION, true);
     clubObservations.accept(
         club,
         new ClubObservation(
@@ -618,7 +590,7 @@ class SportingPresentationIntegrationTest {
                 .contentType("application/json")
                 .content(
                     """
-                    {"revision":"1","email":{"mode":"manual","value":"private@example.invalid"},
+                    {"email":{"mode":"manual","value":"private@example.invalid"},
                      "phone":{"mode":"manual","value":"0100000001"}}
                     """))
         .andExpect(status().isConflict())
@@ -682,10 +654,10 @@ class SportingPresentationIntegrationTest {
 
   @Test
   @DisplayName(
-      "A contact edit waiting on a restriction rejects its obsolete revision without partial writes")
+      "A contact edit waiting on a restriction refuses restricted manual values without partial writes")
   void rejectsEditWaitingOnRestriction() throws Exception {
     // Given
-    String revision = Long.toString(configurationReads.clubContacts(account, club).revision());
+
     CompletableFuture<Integer> pid = new CompletableFuture<>();
     TransactionTemplate transaction = new TransactionTemplate(transactions);
     try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
@@ -704,7 +676,6 @@ class SportingPresentationIntegrationTest {
                                   return details.correct(
                                       account,
                                       club,
-                                      revision,
                                       Map.of(
                                           ContactField.EMAIL,
                                               new ContactEdit(
@@ -742,7 +713,6 @@ class SportingPresentationIntegrationTest {
                 details.correct(
                     account,
                     club,
-                    "0",
                     Map.of(
                         ContactField.EMAIL,
                         new ContactEdit(ContactModeEnum.MANUAL, "manual326@example.invalid"),
@@ -764,7 +734,6 @@ class SportingPresentationIntegrationTest {
 
       // Then
       Contacts current = configurationReads.clubContacts(account, club);
-      assertThat(current.revision()).isEqualTo(2);
       assertThat(current.fields().get(ContactField.EMAIL))
           .isEqualTo(new ContactValue(null, null, ContactModeEnum.MANUAL, true));
       assertThat(
@@ -803,7 +772,6 @@ class SportingPresentationIntegrationTest {
     details.correct(
         account,
         club,
-        Long.toString(configurationReads.clubContacts(account, club).revision()),
         Map.of(
             ContactField.CITY,
             new ContactEdit(ContactModeEnum.MANUAL, "Paris"),
@@ -823,10 +791,7 @@ class SportingPresentationIntegrationTest {
                 JsonNullable.of("Changed source street"))));
     SportingPresentation.Locality masked = reads.publicLocality(club).orElseThrow();
     details.correct(
-        account,
-        club,
-        Long.toString(configurationReads.clubContacts(account, club).revision()),
-        Map.of(ContactField.CITY, new ContactEdit(ContactModeEnum.SOURCE, null)));
+        account, club, Map.of(ContactField.CITY, new ContactEdit(ContactModeEnum.SOURCE, null)));
     SportingPresentation.Locality changed = reads.publicLocality(club).orElseThrow();
     ObservationOutcome late =
         localities.accept(
@@ -870,7 +835,6 @@ class SportingPresentationIntegrationTest {
     details.correct(
         account,
         club,
-        Long.toString(configurationReads.clubContacts(account, club).revision()),
         Map.of(
             ContactField.ADDRESS,
             new ContactEdit(ContactModeEnum.MANUAL, "Current synthetic street")));
@@ -885,7 +849,6 @@ class SportingPresentationIntegrationTest {
     details.correct(
         account,
         club,
-        Long.toString(configurationReads.clubContacts(account, club).revision()),
         Map.of(
             ContactField.ADDRESS,
             new ContactEdit(
@@ -911,10 +874,7 @@ class SportingPresentationIntegrationTest {
   void excludesLocatedClubFromGeocoding() {
     // Given
     details.correct(
-        account,
-        club,
-        "0",
-        Map.of(ContactField.CITY, new ContactEdit(ContactModeEnum.MANUAL, "Paris")));
+        account, club, Map.of(ContactField.CITY, new ContactEdit(ContactModeEnum.MANUAL, "Paris")));
     CollectionState.Cycle geocoding = admitFamily("GEOCODING");
     String revision = reads.publicLocality(club).orElseThrow().revision();
 
@@ -940,7 +900,6 @@ class SportingPresentationIntegrationTest {
     details.correct(
         account,
         club,
-        "0",
         Map.of(
             ContactField.CITY,
             new ContactEdit(ContactModeEnum.MANUAL, "Paris"),
@@ -974,7 +933,6 @@ class SportingPresentationIntegrationTest {
     details.correct(
         account,
         club,
-        "0",
         Map.of(
             ContactField.CITY,
             new ContactEdit(ContactModeEnum.MANUAL, "Paris"),
@@ -1020,7 +978,7 @@ class SportingPresentationIntegrationTest {
             account,
             SportingProjectionChanges.Kind.CLUB,
             club,
-            new Edit("0", "First", null, LogoActionEnum.REPLACE, first));
+            new Edit("First", null, LogoActionEnum.REPLACE, first));
 
     // When
     new TransactionTemplate(transactions)
@@ -1030,7 +988,7 @@ class SportingPresentationIntegrationTest {
                   account,
                   SportingProjectionChanges.Kind.CLUB,
                   club,
-                  new Edit(saved.revision(), "Second", null, LogoActionEnum.REPLACE, second));
+                  new Edit("Second", null, LogoActionEnum.REPLACE, second));
               status.setRollbackOnly();
             });
     SportingPresentation.View noOp =
@@ -1038,7 +996,7 @@ class SportingPresentationIntegrationTest {
             account,
             SportingProjectionChanges.Kind.CLUB,
             club,
-            new Edit(saved.revision(), "First", null, LogoActionEnum.REPLACE, first));
+            new Edit("First", null, LogoActionEnum.REPLACE, first));
 
     // Then
     assertThat(noOp).isEqualTo(saved);
@@ -1079,12 +1037,7 @@ class SportingPresentationIntegrationTest {
                                       account,
                                       SportingProjectionChanges.Kind.CLUB,
                                       club,
-                                      new Edit(
-                                          before.revision(),
-                                          "Denied",
-                                          null,
-                                          LogoActionEnum.KEEP,
-                                          null));
+                                      new Edit("Denied", null, LogoActionEnum.KEEP, null));
                                 }));
                 PostgresTestDatabase.awaitBlocked(sql, pid);
                 return save;
@@ -1159,12 +1112,11 @@ class SportingPresentationIntegrationTest {
     Image first = new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x112233));
     Image second =
         new ValidateSportingImage().validate(SportingImageFixture.image("PNG", 0x445566));
-    SportingPresentation.View saved =
-        presentation.set(
-            account,
-            SportingProjectionChanges.Kind.CLUB,
-            club,
-            new Edit("0", null, null, LogoActionEnum.REPLACE, first));
+    presentation.set(
+        account,
+        SportingProjectionChanges.Kind.CLUB,
+        club,
+        new Edit(null, null, LogoActionEnum.REPLACE, first));
     UUID nextSeason = seasons.getOrCreate(2027).id();
     UUID nextPool =
         identities
@@ -1189,15 +1141,13 @@ class SportingPresentationIntegrationTest {
                 new TeamCandidate(null, "Home", "00193", "Club"),
                 new TeamCandidate(null, "Away", "00194", "Other"))
             .homeTeamId();
-    SportingPresentation.View teamBefore =
-        configurationReads.presentation(account, SportingProjectionChanges.Kind.TEAM, team);
 
     // When
     presentation.set(
         account,
         SportingProjectionChanges.Kind.CLUB,
         club,
-        new Edit(saved.revision(), null, null, LogoActionEnum.REPLACE, second));
+        new Edit(null, null, LogoActionEnum.REPLACE, second));
 
     // Then
     assertThat(reads.publicLogo(SportingProjectionChanges.Kind.TEAM, team).orElseThrow().bytes())
@@ -1211,19 +1161,17 @@ class SportingPresentationIntegrationTest {
                 Integer.class,
                 club))
         .isZero();
-    SportingPresentation.View kept =
-        presentation.set(
-            account,
-            SportingProjectionChanges.Kind.TEAM,
-            team,
-            new Edit(teamBefore.revision(), null, null, LogoActionEnum.KEEP, null));
-    assertThat(kept.revision()).isEqualTo(teamBefore.revision());
+    presentation.set(
+        account,
+        SportingProjectionChanges.Kind.TEAM,
+        team,
+        new Edit(null, null, LogoActionEnum.KEEP, null));
     SportingPresentation.View renamed =
         presentation.set(
             account,
             SportingProjectionChanges.Kind.TEAM,
             team,
-            new Edit(teamBefore.revision(), "Independent team", null, LogoActionEnum.KEEP, null));
+            new Edit("Independent team", null, LogoActionEnum.KEEP, null));
     assertThat(renamed.names().effectiveName()).isEqualTo("Independent team");
     assertThat(reads.publicLogo(SportingProjectionChanges.Kind.TEAM, team).orElseThrow().bytes())
         .isEqualTo(second.bytes());
@@ -1233,8 +1181,6 @@ class SportingPresentationIntegrationTest {
   @DisplayName("Edits team fields without waiting for its inherited club artwork lock")
   void editsTeamIndependentlyOfClub() {
     // Given
-    SportingPresentation.View current =
-        configurationReads.presentation(account, SportingProjectionChanges.Kind.TEAM, team);
     TransactionTemplate parent = new TransactionTemplate(transactions);
     try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
       parent.executeWithoutResult(
@@ -1250,12 +1196,7 @@ class SportingPresentationIntegrationTest {
                             account,
                             SportingProjectionChanges.Kind.TEAM,
                             team,
-                            new Edit(
-                                current.revision(),
-                                "Independent team",
-                                null,
-                                LogoActionEnum.KEEP,
-                                null)));
+                            new Edit("Independent team", null, LogoActionEnum.KEEP, null)));
 
             // Then
             assertThatCode(() -> pending.get(5, TimeUnit.SECONDS)).doesNotThrowAnyException();
@@ -1286,7 +1227,7 @@ class SportingPresentationIntegrationTest {
         account,
         SportingProjectionChanges.Kind.CLUB,
         club,
-        new Edit("0", null, null, LogoActionEnum.REPLACE, clubImage));
+        new Edit(null, null, LogoActionEnum.REPLACE, clubImage));
     // Synthetic exact technical association; ingestion never writes this optional relation.
     sql.update("UPDATE sporting_team SET club_id=? WHERE id=?", club, professional.team());
     assertThat(
@@ -1295,14 +1236,11 @@ class SportingPresentationIntegrationTest {
                 .orElseThrow()
                 .bytes())
         .isEqualTo(clubImage.bytes());
-    SportingPresentation.View initial =
-        configurationReads.presentation(
-            account, SportingProjectionChanges.Kind.TEAM, professional.team());
     presentation.set(
         account,
         SportingProjectionChanges.Kind.TEAM,
         professional.team(),
-        new Edit(initial.revision(), null, null, LogoActionEnum.REPLACE, manualImage));
+        new Edit(null, null, LogoActionEnum.REPLACE, manualImage));
 
     // When
     images.requireSource(professional.team(), context(professional.cycle(), 1));
@@ -1329,7 +1267,7 @@ class SportingPresentationIntegrationTest {
             account,
             SportingProjectionChanges.Kind.TEAM,
             professional.team(),
-            new Edit(current.revision(), null, null, LogoActionEnum.AUTOMATIC, null));
+            new Edit(null, null, LogoActionEnum.AUTOMATIC, null));
 
     // Then
     assertThat(stillManual.bytes()).isEqualTo(manualImage.bytes());
@@ -1388,10 +1326,9 @@ class SportingPresentationIntegrationTest {
     assertThat(stale.outcome()).isEqualTo(ObservationOutcomeEnum.STALE);
     assertThat(refreshed.outcome()).isEqualTo(ObservationOutcomeEnum.UNCHANGED);
     assertThat(
-            configurationReads
-                .presentation(account, SportingProjectionChanges.Kind.TEAM, professional.team())
-                .revision())
-        .isEqualTo(before.revision());
+            configurationReads.presentation(
+                account, SportingProjectionChanges.Kind.TEAM, professional.team()))
+        .isEqualTo(before);
     assertThat(acquisitionReads.match(professional.match())).isPresent();
     assertThat(
             reads
@@ -1460,11 +1397,10 @@ class SportingPresentationIntegrationTest {
                   account,
                   SportingProjectionChanges.Kind.CLUB,
                   club,
-                  new Edit("0", "Manual club", null, LogoActionEnum.REPLACE, image));
+                  new Edit("Manual club", null, LogoActionEnum.REPLACE, image));
               details.correct(
                   account,
                   club,
-                  "0",
                   Map.of(ContactField.CITY, new ContactEdit(ContactModeEnum.MANUAL, "Paris")));
               assertThat(events.stream(SportingProjectionChanges.Changed.class)).isEmpty();
             });
@@ -1552,7 +1488,7 @@ class SportingPresentationIntegrationTest {
   private record Professional(UUID team, UUID match, CollectionState.Cycle cycle) {}
 
   @Test
-  @DisplayName("Division presentation preserves explicit inactivity and matching no-op revision")
+  @DisplayName("Division presentation preserves explicit inactivity and accepts matching no-ops")
   void preservesInactiveDivisionPresentation() {
     // Given
     UUID division = UUID.fromString("00000000-0000-4000-8000-000000000195");
@@ -1561,7 +1497,7 @@ class SportingPresentationIntegrationTest {
         division);
     SportingPresentation.DivisionEdit edit =
         new SportingPresentation.DivisionEdit(
-            "0", "Renamed", "#445566", null, LogoActionEnum.KEEP, null);
+            "Renamed", "#445566", null, LogoActionEnum.KEEP, null);
 
     // When
     DivisionDetail changed = presentation.setDivision(account, division, edit);
@@ -1570,12 +1506,7 @@ class SportingPresentationIntegrationTest {
             account,
             division,
             new SportingPresentation.DivisionEdit(
-                Long.toString(changed.revision()),
-                "Renamed",
-                "#445566",
-                null,
-                LogoActionEnum.KEEP,
-                null));
+                "Renamed", "#445566", null, LogoActionEnum.KEEP, null));
 
     // Then
     assertThat(changed.active()).isFalse();
@@ -1600,7 +1531,7 @@ class SportingPresentationIntegrationTest {
                     account,
                     division,
                     new SportingPresentation.DivisionEdit(
-                        "0", "synthetic", "#445566", null, LogoActionEnum.KEEP, null)))
+                        "synthetic", "#445566", null, LogoActionEnum.KEEP, null)))
         .isInstanceOf(SportingConflictException.class);
     assertThat(configurationReads.division(account, division)).isEqualTo(before);
   }

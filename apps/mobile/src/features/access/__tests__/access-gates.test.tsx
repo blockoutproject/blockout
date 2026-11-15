@@ -264,7 +264,6 @@ it("keeps the current complete check on native focus and reconnect", async () =>
   await openRoute("/");
   await screen.findByText("Sign-in route");
   full.maintenance = {
-    revision: 1,
     active: true,
     message: "Maintenance",
     imageUrl: null,
@@ -439,7 +438,6 @@ it.each(["maintenance", "update"] as const)(
     const full = applicationAccessResponse();
     if (restriction === "maintenance") {
       full.maintenance = {
-        revision: 1,
         active: true,
         message: "Nous intervenons sur le service.",
         imageUrl: null,
@@ -493,7 +491,6 @@ it("admits a current maintenance manager without personal bypass only into opera
   // Given
   const full = applicationAccessResponse();
   full.maintenance = {
-    revision: 1,
     active: true,
     message: "Maintenance",
     imageUrl: null,
@@ -527,7 +524,6 @@ it("displays maintenance first but refuses an outdated operator and every minimu
   // Given
   const full = applicationAccessResponse();
   full.maintenance = {
-    revision: 1,
     active: true,
     message: "Maintenance",
     imageUrl: null,
@@ -565,7 +561,6 @@ it("refreshes maintenance and retries existing-account identification without in
   // Given
   const full = applicationAccessResponse();
   full.maintenance = {
-    revision: 1,
     active: true,
     message: "Maintenance",
     imageUrl: null,
@@ -1018,7 +1013,6 @@ it("a bypass-only account makes its explicit personal choice before ordinary acc
   // Given
   const full = applicationAccessResponse();
   full.maintenance = {
-    revision: 1,
     active: true,
     message: "Maintenance",
     imageUrl: null,
@@ -1151,7 +1145,6 @@ it("retries failed Auth0 restoration without clearing credentials or starting in
   // Given
   const full = applicationAccessResponse();
   full.maintenance = {
-    revision: 1,
     active: true,
     message: "Maintenance",
     imageUrl: null,

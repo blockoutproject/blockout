@@ -1,6 +1,5 @@
 import { controlOpacity } from "@/shared/components/control-styles";
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
 import { Controller, useFormState, useWatch } from "react-hook-form";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ClassificationDetailResponse } from "../../../../.generated/schemas/index.zod";
@@ -21,7 +20,6 @@ import {
   type useClassification,
 } from "../api/classification";
 import { toClassificationRequest } from "../api/classification-request";
-import { isStaleRevision } from "../api/is-stale-revision";
 import { type ClassificationValues } from "../schemas/classification-schema";
 import { classificationValues } from "./classification-values";
 import type { useClassificationDraft } from "./use-classification-draft";
@@ -35,7 +33,7 @@ export interface ClassificationFormProps {
   divisions: ReturnType<typeof useDivisions>;
 }
 
-/** Complete override/inheritance correction with explicit revision recovery. */
+/** Complete override/inheritance correction with current business validation. */
 export function ClassificationForm({
   target,
   current,
@@ -46,41 +44,26 @@ export function ClassificationForm({
   const router = useRouter();
   const { colors } = useTheme();
   const actionFeedback = useActionFeedback();
-  const mounted = useRef(false);
-  const [rereading, setRereading] = useState(false);
   const state = editor.state;
-  const { revision } = state;
   const feedback = state.feedback;
   const { control, handleSubmit, reset, setError } = editor.form;
-  const { isDirty, dirtyFields } = useFormState({
+  const { isDirty } = useFormState({
     control,
   });
   useDiscardChanges(isDirty, () => {
     editor.discard();
   });
-  void dirtyFields;
   const custom = useWatch({ control, name: "custom" });
   const divisionId = useWatch({ control, name: "divisionId" });
-  const busy =
-    rereading ||
-    !current ||
-    !editing.authority.enabled ||
-    editing.save.isPending;
+  const busy = !current || !editing.authority.enabled || editing.save.isPending;
   const choicesUnavailable = !divisions.query.isSuccess;
   const choicesBusy = busy || divisions.query.isFetching || choicesUnavailable;
-  const rereadRequired = isStaleRevision(editing.save.error);
   const choices =
     divisions.query.data?.items.filter((item) => item.active) ?? [];
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
 
-  /** Validates active custom choices and sends the complete state against its editing revision. */
+  /** Validates active custom choices and sends the complete requested state. */
   async function submit(values: ClassificationValues) {
-    if (busy || !revision || rereadRequired) {
+    if (busy) {
       return;
     }
     if (values.custom && (choicesUnavailable || divisions.query.isFetching)) {
@@ -96,14 +79,11 @@ export function ClassificationForm({
       return;
     }
     try {
-      const attempt = editing.save.mutateAsync(
-        toClassificationRequest(revision, values),
-      );
+      const attempt = editing.save.mutateAsync(toClassificationRequest(values));
       editor.update({ ...editor.state, feedback: undefined });
       actionFeedback.clear();
       const accepted = await attempt;
       editor.update({
-        revision: accepted.revision,
         feedback: undefined,
       });
       reset(classificationValues(accepted));
@@ -132,39 +112,6 @@ export function ClassificationForm({
       ...editor.state,
       feedback: `${reason}${Array.isArray(conflictIds) && conflictIds.length > 0 ? ` Périmètres en conflit : ${conflictIds.join(", ")}.` : ""} Votre brouillon est conservé.`,
     });
-  }
-
-  /** Updates the revision and non-dirty values only after successful reads, without sending a write. */
-  async function reread() {
-    if (rereading || editing.save.isPending) {
-      return;
-    }
-    setRereading(true);
-    try {
-      const [result, available] = await Promise.all([
-        editing.query.refetch(),
-        ...(custom ? [divisions.query.refetch()] : []),
-      ]);
-      if (!mounted.current) {
-        return;
-      }
-      if (result.isError || !result.data || available?.isError) {
-        return;
-      }
-      reset(classificationValues(result.data), {
-        keepDirtyValues: true,
-        keepDirty: true,
-      });
-      editor.update({
-        revision: result.data.revision,
-        feedback: "État relu. Vérifiez le brouillon puis enregistrez-le.",
-      });
-      editing.save.reset();
-    } finally {
-      if (mounted.current) {
-        setRereading(false);
-      }
-    }
   }
 
   const effective = current?.effective;
@@ -298,20 +245,10 @@ export function ClassificationForm({
           {feedback}
         </Text>
       )}
-      {rereadRequired && (
-        <Button
-          label="Relire la classification"
-          variant="secondary"
-          disabled={
-            rereading || !editing.authority.enabled || editing.save.isPending
-          }
-          onPress={() => void reread()}
-        />
-      )}
       <Button
         label="Enregistrer"
         fullWidth
-        disabled={busy || rereadRequired || (custom && choicesBusy)}
+        disabled={busy || (custom && choicesBusy)}
         loading={editing.save.isPending}
         onPress={() => void handleSubmit(submit)()}
       />

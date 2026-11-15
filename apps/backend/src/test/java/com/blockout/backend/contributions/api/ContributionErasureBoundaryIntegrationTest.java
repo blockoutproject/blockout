@@ -169,16 +169,13 @@ class ContributionErasureBoundaryIntegrationTest extends ContributionScenario {
     sql.update(
         "INSERT INTO account_permission(account_id,permission) VALUES (?,'maintenance.manage')",
         OTHER);
-    long revision =
-        sql.queryForObject(
-            "SELECT revision FROM access_settings WHERE id='maintenance'", Long.class);
 
     // When
     mvc.perform(
             put("/administration/maintenance/activation")
                 .with(principal(OTHER))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"revision\":" + revision + ",\"active\":true}"))
+                .content("{\"active\":true}"))
         .andExpect(status().isOk());
 
     // Then

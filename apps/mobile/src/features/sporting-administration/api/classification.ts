@@ -62,7 +62,7 @@ export function useSportingAuthority(action: SportingAction) {
     hasSportingPermission(capabilities.permissions, action) &&
     version.satisfied;
 
-  /** The server validates the action grant and revision after native principal credential preparation. */
+  /** The server validates the current action grant after native principal credential preparation. */
   async function request(signal?: AbortSignal) {
     const credentials = await session.getCredentials();
     if (!credentials) {
@@ -77,7 +77,7 @@ export function useSportingAuthority(action: SportingAction) {
   return { ...capabilities, session, enabled, request };
 }
 
-/** Reads complete settings and submits a single revision-guarded correction through generated transport. */
+/** Reads complete settings and submits a single atomic correction through generated transport. */
 export function useClassification(target: ClassificationTarget) {
   const authority = useSportingAuthority("classification");
   const client = useQueryClient();
@@ -110,14 +110,11 @@ export function useClassification(target: ClassificationTarget) {
         ? setPackClassification(target.id, body, options)
         : setPoolClassification(target.id, body, options);
     },
-    // A late save cannot restore refused data or replace a newer observed revision.
-    onSuccess: (accepted, { revision }) => {
+    // An acknowledged save cannot restore data withdrawn by a current refusal.
+    onSuccess: (accepted) => {
       client.setQueryData<ClassificationDetailResponse | null>(
         queryKey,
-        (current) =>
-          current === null || (current && current.revision !== revision)
-            ? undefined
-            : accepted,
+        (current) => (current === null ? undefined : accepted),
       );
     },
     onSettled: invalidateReads,

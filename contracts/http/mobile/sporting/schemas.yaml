@@ -30,20 +30,15 @@ SetClassificationRequest:
     a scoped atomic correction, not a list of partial pool patches.
   additionalProperties: false
   properties:
-    revision:
-      type: string
-      description: Current editing revision from the same resource GET.
-      minLength: 1
     classification:
       $ref: "#/AcquisitionClassificationRequest"
   required:
-    - revision
     - classification
 ClassificationDetailResponse:
   title: ClassificationDetailResponse
   type: object
   description: >-
-    Current pack or pool setting, effective acquisition classification and editing revision. The
+    Current pack or pool setting, effective acquisition classification. The
     effective value governs collection; it does not describe the retained classification of
     already published sporting data.
   additionalProperties: true
@@ -52,16 +47,12 @@ ClassificationDetailResponse:
       type: string
       description: Pack or pool identity.
       format: uuid
-    revision:
-      type: string
-      description: Opaque revision covering relevant state and inherited values.
     setting:
       $ref: "#/AcquisitionClassificationResponse"
     effective:
       $ref: "#/AcquisitionClassificationResponse"
   required:
     - id
-    - revision
     - setting
     - effective
 NamePresentationResponse:
@@ -130,7 +121,7 @@ SportingPresentationResponse:
   title: SportingPresentationResponse
   type: object
   description: >-
-    Club or team names, effective and manual logo values, and editing revision. Team club
+    Club or team names, effective and manual logo values. Team club
     associations are not editable through this projection.
   additionalProperties: true
   properties:
@@ -140,11 +131,6 @@ SportingPresentationResponse:
       format: uuid
     kind:
       $ref: "#/SportingResourceKindEnum"
-    revision:
-      type: string
-      description:
-        Opaque current editing revision for this resource's own presentation. Inherited club artwork
-        changes do not invalidate a team edit; freshness-only refreshes do not change the revision.
     names:
       $ref: "#/NamePresentationResponse"
     logo:
@@ -152,7 +138,6 @@ SportingPresentationResponse:
   required:
     - id
     - kind
-    - revision
     - names
     - logo
 SetClubPresentationRequest:
@@ -161,10 +146,6 @@ SetClubPresentationRequest:
   description: Set the manual club display name and logo action; source values, contacts and identity remain unchanged.
   additionalProperties: false
   properties:
-    revision:
-      type: string
-      description: Current editing revision.
-      minLength: 1
     manualName:
       type: string
       description:
@@ -175,7 +156,6 @@ SetClubPresentationRequest:
     logoAction:
       $ref: "#/LogoActionEnum"
   required:
-    - revision
     - manualName
     - logoAction
 SetTeamPresentationRequest:
@@ -186,10 +166,6 @@ SetTeamPresentationRequest:
     never implicitly clears another.
   additionalProperties: false
   properties:
-    revision:
-      type: string
-      description: Current editing revision.
-      minLength: 1
     manualName:
       type: string
       description: Null restores current automatic full name; empty/whitespace-only is invalid.
@@ -203,7 +179,6 @@ SetTeamPresentationRequest:
     logoAction:
       $ref: "#/LogoActionEnum"
   required:
-    - revision
     - manualName
     - manualShortName
     - logoAction
@@ -213,10 +188,6 @@ SetPoolPresentationRequest:
   description: Set independent pool full/short name customizations; no image or logo action.
   additionalProperties: false
   properties:
-    revision:
-      type: string
-      description: Current editing revision.
-      minLength: 1
     manualName:
       type: string
       description: Null restores current automatic full name; empty/whitespace-only is invalid.
@@ -228,29 +199,22 @@ SetPoolPresentationRequest:
       nullable: true
       minLength: 1
   required:
-    - revision
     - manualName
     - manualShortName
 PoolPresentationResponse:
   title: PoolPresentationResponse
   type: object
-  description: Current pool name presentation and editing revision.
+  description: Current pool name presentation.
   additionalProperties: true
   properties:
     id:
       type: string
       description: Stable resource identity.
       format: uuid
-    revision:
-      type: string
-      description:
-        Opaque current editing revision for this resource's own presentation. Inherited club artwork
-        changes do not invalidate a team edit; freshness-only refreshes do not change the revision.
     names:
       $ref: "#/NamePresentationResponse"
   required:
     - id
-    - revision
     - names
 ContactFieldRequest:
   title: ContactFieldRequest
@@ -300,15 +264,11 @@ SetClubContactsRequest:
   type: object
   description:
     Set desired state only for supplied fields. Omitted fields are unchanged. At least
-    one field is required alongside revision. This application/json change document replaces
+    one field is required. This application/json change document replaces
     each supplied field mode atomically; it is not JSON Merge Patch or JSON Patch. Null field
     objects are invalid; use source or hidden mode instead.
   additionalProperties: false
   properties:
-    revision:
-      type: string
-      description: Current club contacts editing revision.
-      minLength: 1
     address:
       $ref: "#/ContactFieldRequest"
     city:
@@ -321,8 +281,6 @@ SetClubContactsRequest:
       $ref: "#/ContactFieldRequest"
     website:
       $ref: "#/ContactFieldRequest"
-  required:
-    - revision
 ClubContactsResponse:
   title: ClubContactsResponse
   type: object
@@ -333,9 +291,6 @@ ClubContactsResponse:
       type: string
       description: Stable club identity.
       format: uuid
-    revision:
-      type: string
-      description: Opaque contact editing revision.
     address:
       $ref: "#/ContactFieldResponse"
     city:
@@ -350,7 +305,6 @@ ClubContactsResponse:
       $ref: "#/ContactFieldResponse"
   required:
     - clubId
-    - revision
     - address
     - city
     - postalCode
@@ -383,14 +337,10 @@ SetDivisionPresentationRequest:
   title: SetDivisionPresentationRequest
   type: object
   description: >-
-    Division name, colors and logo action with the current editing revision; activity remains
+    Division name, colors and logo action; activity remains
     unchanged.
   additionalProperties: false
   properties:
-    revision:
-      type: string
-      description: Current division editing revision.
-      minLength: 1
     name:
       type: string
       description: Nonempty display name, unique ignoring case.
@@ -402,7 +352,6 @@ SetDivisionPresentationRequest:
     logoAction:
       $ref: "#/LogoActionEnum"
   required:
-    - revision
     - name
     - color
     - gradient
@@ -417,9 +366,6 @@ DivisionResponse:
       type: string
       description: Stable division identity.
       format: uuid
-    revision:
-      type: string
-      description: Current editing revision.
     name:
       type: string
       description: Nonempty display name, unique ignoring case.
@@ -435,7 +381,6 @@ DivisionResponse:
       description: Explicit lifecycle state; presentation writes never change it.
   required:
     - id
-    - revision
     - name
     - color
     - gradient
@@ -462,17 +407,12 @@ SetDivisionActivityRequest:
   description: Explicit lifecycle command separate from presentation. Never deletes sporting history.
   additionalProperties: false
   properties:
-    revision:
-      type: string
-      description: Current division revision.
-      minLength: 1
     active:
       type: boolean
       description:
         Desired activity; lifting inactivity leaves independent hiding/eligibility reasons
         intact.
   required:
-    - revision
     - active
 LogoActionEnum:
   title: LogoActionEnum

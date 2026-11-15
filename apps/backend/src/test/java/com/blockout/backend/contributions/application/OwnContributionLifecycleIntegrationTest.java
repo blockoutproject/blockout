@@ -51,7 +51,7 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
     SubmitContribution.Outcome pending = submit(AUTHOR, "1", "https://twitch.tv/proposal", false);
 
     // When
-    ResultActions response = change(AUTHOR, pending.version().id(), "2", "cancel");
+    ResultActions response = change(AUTHOR, pending.version().id(), "cancel");
 
     // Then
     response
@@ -72,7 +72,7 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
     SubmitContribution.Outcome pending = submit(AUTHOR, "1", "https://twitch.tv/proposal", false);
 
     // When
-    ResultActions response = change(AUTHOR, active.version().id(), "2", "withdraw");
+    ResultActions response = change(AUTHOR, active.version().id(), "withdraw");
 
     // Then
     response
@@ -104,7 +104,7 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
         matchId);
 
     // When
-    ResultActions response = change(AUTHOR, active.version().id(), "3", "withdraw");
+    ResultActions response = change(AUTHOR, active.version().id(), "withdraw");
 
     // Then
     response.andExpect(status().isOk());
@@ -125,7 +125,7 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
         "UPDATE contribution_version SET state=? WHERE id=?", state.name(), version.version().id());
 
     // When
-    ResultActions response = change(AUTHOR, version.version().id(), "1", "withdraw");
+    ResultActions response = change(AUTHOR, version.version().id(), "withdraw");
 
     // Then
     response
@@ -137,28 +137,26 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
   }
 
   @Test
-  @DisplayName("Only a current revision repeats an exact terminal target without new effects")
+  @DisplayName(
+      "An exact terminal withdrawal repeated after replacement leaves that replacement and quota untouched")
   void repeatsExactTerminalTarget() throws Exception {
     // Given
     SubmitContribution.Outcome original = submit(AUTHOR, "0", "https://youtu.be/original", false);
-    change(AUTHOR, original.version().id(), "1", "withdraw").andExpect(status().isOk());
+    change(AUTHOR, original.version().id(), "withdraw").andExpect(status().isOk());
     ContributionVersion completed = contributions.version(original.version().id()).orElseThrow();
     SubmitContribution.Outcome replacement =
         submit(AUTHOR, "2", "https://youtu.be/replacement", false);
+    long used = reads.read(AUTHOR, matchId, 0).usage().versionsUsed();
 
     // When
-    ResultActions stale = change(AUTHOR, original.version().id(), "1", "withdraw");
-    ResultActions repeated = change(AUTHOR, original.version().id(), "3", "withdraw");
+    ResultActions repeated = change(AUTHOR, original.version().id(), "withdraw");
 
     // Then
-    stale
-        .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.type").value("urn:blockout:problem:stale-revision"));
-    repeated.andExpect(status().isOk()).andExpect(jsonPath("$.revision").value("3"));
+    repeated.andExpect(status().isOk());
     assertThat(contributions.version(original.version().id()).orElseThrow()).isEqualTo(completed);
     assertThat(completed.state()).isEqualTo(State.WITHDRAWN);
-    assertThat(contributions.version(replacement.version().id()).orElseThrow())
-        .isEqualTo(replacement.version());
+    assertThat(contributions.active(matchId).orElseThrow()).isEqualTo(replacement.version());
+    assertThat(reads.read(AUTHOR, matchId, 0).usage().versionsUsed()).isEqualTo(used);
     assertThat(contributions.state(matchId).revision()).isEqualTo(3);
   }
 
@@ -248,7 +246,7 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
     }
 
     // When
-    ResultActions response = change(OTHER, original.version().id(), "1", "withdraw");
+    ResultActions response = change(OTHER, original.version().id(), "withdraw");
 
     // Then
     response.andExpect(status().isNotFound());
@@ -291,7 +289,7 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
     sql.update("DELETE FROM account WHERE id=?", AUTHOR);
 
     // When
-    ResultActions response = change(AUTHOR, active.version().id(), "1", "withdraw");
+    ResultActions response = change(AUTHOR, active.version().id(), "withdraw");
 
     // Then
     response.andExpect(status().isForbidden());
@@ -307,7 +305,7 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
     sql.update("UPDATE sporting_match SET present=FALSE WHERE id=?", matchId);
 
     // When
-    ResultActions response = change(AUTHOR, active.version().id(), "1", "withdraw");
+    ResultActions response = change(AUTHOR, active.version().id(), "withdraw");
 
     // Then
     response.andExpect(status().isNotFound());
@@ -338,8 +336,7 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
                                 inner -> {
                                   pid.complete(
                                       sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
-                                  return changes.change(
-                                      AUTHOR, matchId, active.version().id(), "1");
+                                  return changes.change(AUTHOR, matchId, active.version().id());
                                 }));
                 PostgresTestDatabase.awaitBlocked(sql, pid);
                 assertThat(future.isDone())
@@ -367,12 +364,10 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
    *
    * @param owner original path and authenticated account
    * @param version exact selected version, never resolved from a current active row
-   * @param revision captured contribution revision
    * @param action wire action, including the retired cancellation value for refusal coverage
    * @return actual HTTP result, with persistence assertions owned by the calling scenario
    */
-  private ResultActions change(UUID owner, UUID version, String revision, String action)
-      throws Exception {
+  private ResultActions change(UUID owner, UUID version, String action) throws Exception {
     return mvc.perform(
         patch("/accounts/" + owner + "/matches/" + matchId + "/stream-contributions/" + version)
             .with(
@@ -384,6 +379,6 @@ class OwnContributionLifecycleIntegrationTest extends ContributionScenario {
                                 .subject(owner.toString())
                                 .claim("azp", "mobile-test")))
             .contentType(MediaType.APPLICATION_JSON)
-            .content("{\"revision\":\"" + revision + "\",\"action\":\"" + action + "\"}"));
+            .content("{\"action\":\"" + action + "\"}"));
   }
 }

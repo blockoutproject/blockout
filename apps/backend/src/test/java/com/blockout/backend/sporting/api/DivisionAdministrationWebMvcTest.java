@@ -78,7 +78,7 @@ class DivisionAdministrationWebMvcTest {
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     when(divisions.create(
             eq(ACCOUNT), eq(new DivisionDefinition("National 2", "#112233", null)), any()))
-        .thenReturn(new DivisionDetail(DIVISION, 0L, "National 2", "#112233", null, false, true));
+        .thenReturn(new DivisionDetail(DIVISION, "National 2", "#112233", null, false, true));
 
     // When
     ResultActions response =
@@ -207,7 +207,7 @@ class DivisionAdministrationWebMvcTest {
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
     when(divisions.create(
             eq(ACCOUNT), eq(new DivisionDefinition("National 2", "#112233", null)), any()))
-        .thenReturn(new DivisionDetail(DIVISION, 0L, "National 2", "#112233", null, true, true));
+        .thenReturn(new DivisionDetail(DIVISION, "National 2", "#112233", null, true, true));
 
     // When
     ResultActions response =
@@ -299,7 +299,6 @@ class DivisionAdministrationWebMvcTest {
     DivisionDetail division =
         new DivisionDetail(
             DIVISION,
-            2L,
             "National 2",
             "#112233",
             List.of("#112233", "#445566", "#778899"),
@@ -339,7 +338,6 @@ class DivisionAdministrationWebMvcTest {
     member
         .andExpect(status().isOk())
         .andExpect(header().string("Cache-Control", "no-store"))
-        .andExpect(jsonPath("$.revision").value("2"))
         .andExpect(jsonPath("$.gradient[1]").value("#445566"));
   }
 
@@ -348,15 +346,15 @@ class DivisionAdministrationWebMvcTest {
   void deactivatesDivision() throws Exception {
     // Given
     when(accounts.currentId(any(), any())).thenReturn(Optional.of(ACCOUNT));
-    when(divisions.setActive(ACCOUNT, DIVISION, "0", false))
-        .thenReturn(new DivisionDetail(DIVISION, 1L, "National 2", "#112233", null, false, false));
+    when(divisions.setActive(ACCOUNT, DIVISION, false))
+        .thenReturn(new DivisionDetail(DIVISION, "National 2", "#112233", null, false, false));
 
     // When
     ResultActions response =
         mvc.perform(
             put("/administration/divisions/{id}/activity", DIVISION)
                 .contentType("application/json")
-                .content("{\"revision\":\"0\",\"active\":false}")
+                .content("{\"active\":false}")
                 .with(
                     jwt()
                         .jwt(
@@ -370,7 +368,7 @@ class DivisionAdministrationWebMvcTest {
         .andExpect(status().isOk())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.active").value(false));
-    verify(divisions).setActive(ACCOUNT, DIVISION, "0", false);
+    verify(divisions).setActive(ACCOUNT, DIVISION, false);
   }
 
   @Test

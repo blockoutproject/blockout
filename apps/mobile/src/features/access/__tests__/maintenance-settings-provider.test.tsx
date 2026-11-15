@@ -35,19 +35,15 @@ suite("configured provider and generated client wire integration", () => {
 
   it("preserves omitted fields and decodes explicit null removals for both PATCH models", async () => {
     // Given
-    const maintenance = await getMaintenanceSettings(editor);
     const prepared = await changeMaintenanceSettings(
       {
-        revision: maintenance.revision,
         message: "Prepared wire content",
         imageUrl: "https://assets.example.invalid/maintenance.png",
       },
       editor,
     );
-    const versions = await getApplicationVersionSettings(editor);
-    const configured = await changeApplicationVersionSettings(
+    await changeApplicationVersionSettings(
       {
-        revision: versions.revision,
         ios: {
           minimumVersion: "2.10.0",
           storeUrl: "https://apps.apple.com/fr/app/blockout/id123",
@@ -64,16 +60,15 @@ suite("configured provider and generated client wire integration", () => {
 
     // When
     const retainedImage = await changeMaintenanceSettings(
-      { revision: prepared.revision, message: "Updated wire content" },
+      { message: "Updated wire content" },
       editor,
     );
     const removedImage = await changeMaintenanceSettings(
-      { revision: retainedImage.revision, imageUrl: null },
+      { imageUrl: null },
       editor,
     );
     const removedMinimum = await changeApplicationVersionSettings(
       {
-        revision: configured.revision,
         ios: { minimumVersion: null },
         message: null,
       },
@@ -82,20 +77,17 @@ suite("configured provider and generated client wire integration", () => {
 
     // Then
     expect(retainedImage).toStrictEqual({
-      revision: prepared.revision + 1,
       active: prepared.active,
       message: "Updated wire content",
       imageUrl: "https://assets.example.invalid/maintenance.png",
     });
     expect(removedImage).toStrictEqual({
-      revision: retainedImage.revision + 1,
       active: prepared.active,
       message: "Updated wire content",
       imageUrl: null,
     });
     expect(await getMaintenanceSettings(editor)).toStrictEqual(removedImage);
     expect(removedMinimum).toStrictEqual({
-      revision: configured.revision + 1,
       ios: {
         minimumVersion: null,
         storeUrl: "https://apps.apple.com/fr/app/blockout/id123",
@@ -112,28 +104,25 @@ suite("configured provider and generated client wire integration", () => {
     );
   });
 
-  it("decodes a real stale-revision 409 Problem Detail", async () => {
+  it("applies an older valid draft against current settings without changing omitted fields", async () => {
     // Given
-    const current = await getMaintenanceSettings(editor);
+    const draft = { message: "Older draft content" };
     await changeMaintenanceSettings(
-      { revision: current.revision, message: "Current conflict content" },
+      {
+        message: "Newer content",
+        imageUrl: "https://assets.example.invalid/current.png",
+      },
       editor,
     );
 
     // When
-    const staleWrite = changeMaintenanceSettings(
-      { revision: current.revision, message: "Rejected stale content" },
-      editor,
-    );
+    const accepted = await changeMaintenanceSettings(draft, editor);
 
     // Then
-    await expect(staleWrite).rejects.toMatchObject({
-      kind: "http",
-      status: 409,
-      problem: {
-        type: "urn:blockout:problem:stale-revision",
-        status: 409,
-      },
-    });
+    expect(accepted.message).toBe("Older draft content");
+    expect(accepted.imageUrl).toBe(
+      "https://assets.example.invalid/current.png",
+    );
+    expect(await getMaintenanceSettings(editor)).toStrictEqual(accepted);
   });
 });

@@ -83,14 +83,12 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-it("requires the exact displayed label and sends the current revision once", async () => {
+it("requires the exact displayed label and targets the original season once", async () => {
   // Given
   mockFetch.mockImplementation((url, options) =>
     options?.method === "POST"
       ? Promise.resolve(
-          json(
-            (peer.season = { ...peer.season, revision: 6, state: "closed" }),
-          ),
+          json((peer.season = { ...peer.season, state: "closed" })),
         )
       : peer.reads(url, options),
   );
@@ -128,7 +126,6 @@ it("requires the exact displayed label and sends the current revision once", asy
     `/collection-seasons/${seasonId}/closure`,
   );
   expect(JSON.parse(String(writes[0][1]?.body))).toEqual({
-    revision: 5,
     confirmation: "2026/2027",
   });
   expect(Alert.alert).not.toHaveBeenCalled();
@@ -184,7 +181,7 @@ it("observes an accepted closure on a later explicit read after a lost response"
   const user = userEvent.setup();
   mockFetch.mockImplementation((url, options) => {
     if (options?.method === "POST") {
-      peer.season = { ...peer.season, revision: 6, state: "closed" };
+      peer.season = { ...peer.season, state: "closed" };
       return Promise.reject(new TypeError("Lost acknowledgement"));
     }
     return peer.reads(url, options);
@@ -299,7 +296,7 @@ it("retains entered text while current collection permission is unavailable", as
   ).toBeDisabled();
 });
 
-it("retains an incorrect draft through a background revision change and refuses to submit it", async () => {
+it("retains an incorrect draft through a background refetch and refuses to submit it", async () => {
   // Given
   const user = userEvent.setup();
   await renderCollection(
@@ -315,7 +312,6 @@ it("retains an incorrect draft through a background revision change and refuses 
   );
 
   // When
-  peer.season = { ...peer.season, revision: 6 };
   await act(async () => privateClient.invalidateQueries());
 
   // Then
@@ -382,9 +378,7 @@ it.each([422, 409])(
     mockFetch.mockImplementation((url, options) =>
       options?.method === "POST"
         ? Promise.resolve(
-            json(
-              (peer.season = { ...peer.season, revision: 6, state: "closed" }),
-            ),
+            json((peer.season = { ...peer.season, state: "closed" })),
           )
         : peer.reads(url, options),
     );
@@ -406,11 +400,11 @@ it.each([422, 409])(
     ).toEqual([
       {
         path: `/administration/collection-seasons/${seasonId}/closure`,
-        body: { revision: 5, confirmation: "2026/2027" },
+        body: { confirmation: "2026/2027" },
       },
       {
         path: `/administration/collection-seasons/${seasonId}/closure`,
-        body: { revision: 5, confirmation: "2026/2027" },
+        body: { confirmation: "2026/2027" },
       },
     ]);
   },
@@ -467,12 +461,12 @@ it("allows another explicit closure after a lost response without a prerequisite
     {
       path: `/administration/collection-seasons/${seasonId}/closure`,
       method: "POST",
-      body: { revision: 5, confirmation: "2026/2027" },
+      body: { confirmation: "2026/2027" },
     },
     {
       path: `/administration/collection-seasons/${seasonId}/closure`,
       method: "POST",
-      body: { revision: 5, confirmation: "2026/2027" },
+      body: { confirmation: "2026/2027" },
     },
   ]);
 });

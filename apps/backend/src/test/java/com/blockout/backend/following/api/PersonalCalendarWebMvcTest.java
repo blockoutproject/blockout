@@ -86,7 +86,7 @@ class PersonalCalendarWebMvcTest {
   /** Supplies ordinary admission without implying that an account lookup succeeded. */
   @BeforeEach
   void admission() {
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, false, "Prepared", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(false, "Prepared", null));
   }
 
   @Test
@@ -273,7 +273,7 @@ class PersonalCalendarWebMvcTest {
   @DisplayName("Maintenance refuses ordinary calendar access before personal reads")
   void maintenance() throws Exception {
     // Given
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(2, true, "Prepared", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(true, "Prepared", null));
 
     // When
     ResultActions response =

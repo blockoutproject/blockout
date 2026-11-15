@@ -10,7 +10,7 @@ import { type CreateSourceValues } from "../schemas/create-source-schema";
 import type { useProviderPreparationDraft } from "./use-provider-preparation-draft";
 import { createSourceValues } from "./create-source-values";
 
-/** Shares the provider's original season revision and its explicit local cancellation owner. */
+/** Shares the provider's original season target and its explicit local cancellation owner. */
 export interface CreateSourceFormProps {
   editor: ReturnType<typeof useProviderPreparationDraft>;
   provider: CollectionProviderEnum;
@@ -39,7 +39,6 @@ export function CreateSourceForm({
     }
     try {
       const attempt = editing.create.mutateAsync({
-        seasonRevision: baseline.revision,
         provider,
         ...values,
       });

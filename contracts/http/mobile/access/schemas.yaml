@@ -1,19 +1,9 @@
-SettingsRevision:
-  type: integer
-  format: int64
-  minimum: 0
-  maximum: 9007199254740991
-  description:
-    Monotonic revision of one settings group, exactly representable in JavaScript. Submit the revision
-    read for that group.
 MaintenanceSettingsResponse:
   title: MaintenanceSettingsResponse
   type: object
   description: Stored maintenance settings, visible only with maintenance-management permission.
   additionalProperties: true
   properties:
-    revision:
-      $ref: "#/SettingsRevision"
     active:
       type: boolean
       description: Whether ordinary access is blocked by maintenance.
@@ -27,7 +17,6 @@ MaintenanceSettingsResponse:
       nullable: true
       description: Optional controlled HTTPS image URL without credentials or personalized tracking; null means no stored image. Display failure does not block text or retry.
   required:
-    - revision
     - active
     - message
     - imageUrl
@@ -39,8 +28,6 @@ PublicMaintenanceResponse:
     message.
   additionalProperties: true
   properties:
-    revision:
-      $ref: "#/SettingsRevision"
     active:
       type: boolean
       description: Current maintenance restriction.
@@ -54,7 +41,6 @@ PublicMaintenanceResponse:
       nullable: true
       description: Optional controlled HTTPS image URL without credentials or personalized tracking; null means no published image. Display failure does not block text or retry.
   required:
-    - revision
     - active
     - message
     - imageUrl
@@ -66,8 +52,6 @@ ChangeMaintenanceRequest:
     is unchanged.
   additionalProperties: false
   properties:
-    revision:
-      $ref: "#/SettingsRevision"
     message:
       type: string
       minLength: 1
@@ -79,23 +63,17 @@ ChangeMaintenanceRequest:
       description:
         Optional controlled HTTPS image URL without credentials or personalized tracking; null removes
         it. Display failure does not block text or retry.
-  required:
-    - revision
 SetMaintenanceActivationRequest:
   title: SetMaintenanceActivationRequest
   type: object
-  description:
-    Set the desired activation state using the current maintenance revision. This does not toggle or
+  description: Set the desired activation state. This does not toggle or
     replace content.
   additionalProperties: false
   properties:
-    revision:
-      $ref: "#/SettingsRevision"
     active:
       type: boolean
       description: Desired activation state; true requires a usable stored message.
   required:
-    - revision
     - active
 PlatformVersionResponse:
   title: PlatformVersionResponse
@@ -141,11 +119,9 @@ ChangePlatformVersionRequest:
 ApplicationVersionsResponse:
   title: ApplicationVersionsResponse
   type: object
-  description: Both platform settings and one shared message, governed by a single revision.
+  description: Both platform settings and one shared message.
   additionalProperties: true
   properties:
-    revision:
-      $ref: "#/SettingsRevision"
     ios:
       $ref: "#/PlatformVersionResponse"
     android:
@@ -156,7 +132,6 @@ ApplicationVersionsResponse:
       minLength: 1
       description: Optional trimmed update message. Null means the standard app text applies.
   required:
-    - revision
     - ios
     - android
     - message
@@ -168,8 +143,6 @@ ChangeApplicationVersionsRequest:
     removes optional values.
   additionalProperties: false
   properties:
-    revision:
-      $ref: "#/SettingsRevision"
     ios:
       $ref: "#/ChangePlatformVersionRequest"
     android:
@@ -179,8 +152,6 @@ ChangeApplicationVersionsRequest:
       nullable: true
       minLength: 1
       description: Optional trimmed update message. Null uses the standard app text; blank text is rejected.
-  required:
-    - revision
 ApplicationAccessResponse:
   title: ApplicationAccessResponse
   type: object

@@ -539,7 +539,6 @@ interface SportingPersistenceMapper {
    * @return complete contact snapshot without managed values
    */
   @Mapping(target = "clubId", source = "id")
-  @Mapping(target = "revision", source = "contactsRevision")
   @Mapping(target = "fields", source = "source", qualifiedByName = "contactFields")
   @Mapping(target = "order", source = "source", qualifiedByName = "contactOrder")
   @Mapping(target = "observedAt", source = "detailObservedAt")
@@ -594,7 +593,6 @@ interface SportingPersistenceMapper {
             source.getSourceName(),
             source.getManualName(),
             null,
-            source.getPresentationRevision(),
             null,
             source.getLogo() != null,
             false,
@@ -618,7 +616,6 @@ interface SportingPersistenceMapper {
             source.getSourceName(),
             source.getManualName(),
             source.getManualShortName(),
-            source.getPresentationRevision(),
             source.getProvider(),
             source.getLogo() != null,
             source.getSourceLogo() != null,
@@ -641,7 +638,6 @@ interface SportingPersistenceMapper {
             source.getSourceName(),
             source.getManualName(),
             source.getManualShortName(),
-            source.getPresentationRevision(),
             null,
             false,
             false,
@@ -655,11 +651,10 @@ interface SportingPersistenceMapper {
    *
    * @param source scalar owner facts, including image presence without its bytes
    * @param kind club, team or pool presentation owner
-   * @return detached presentation with its own resource editing revision and current artwork
+   * @return detached current presentation and artwork
    */
   default SportingPresentation.View toPresentation(SportingPresentationRow source, Kind kind) {
     SportingPresentation.Logo logo = null;
-    String revision = Long.toString(source.revision());
     switch (kind) {
       case CLUB -> {
         String manual = source.hasLogo() ? "/clubs/" + source.id() + "/logo" : null;
@@ -683,7 +678,6 @@ interface SportingPersistenceMapper {
     return new SportingPresentation.View(
         source.id(),
         kind,
-        revision,
         SportingPresentation.Names.resolve(
             source.sourceName(), source.manualName(), source.manualShortName(), kind != Kind.CLUB),
         logo);

@@ -89,7 +89,7 @@ class FollowListsWebMvcTest {
   /** Provides ordinary F12 admission without implying current-account success. */
   @BeforeEach
   void admission() {
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, false, "Prepared", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(false, "Prepared", null));
   }
 
   @Test
@@ -255,7 +255,7 @@ class FollowListsWebMvcTest {
   void requiresExplicitBypass() throws Exception {
     // Given
     owner();
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(2, true, "Pause", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(true, "Pause", null));
     when(accounts.lock(ACCOUNT)).thenReturn(true);
     when(permissions.findByAccountId(ACCOUNT)).thenReturn(Set.of(Permission.BYPASS_MAINTENANCE));
     when(transactions.getTransaction(any(TransactionDefinition.class)))

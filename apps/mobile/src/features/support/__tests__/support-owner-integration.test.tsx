@@ -443,7 +443,6 @@ it.each(["maintenance", "mandatory-update", "access-unavailable"])(
     account.permissions = { manageMaintenance: true, bypassMaintenance: true };
     if (gate === "maintenance") {
       access.maintenance = {
-        revision: 1,
         active: true,
         message: "Maintenance",
         imageUrl: null,
@@ -528,7 +527,6 @@ it("uses existing credentials and the shared header only after explicitly choosi
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   account.permissions = { bypassMaintenance: true };
   access.maintenance = {
-    revision: 1,
     active: true,
     message: "Maintenance",
     imageUrl: null,
@@ -560,7 +558,6 @@ it.each([401, 403])(
     mockAuth0.hasValidCredentials.mockResolvedValue(true);
     account.permissions = { bypassMaintenance: true };
     access.maintenance = {
-      revision: 1,
       active: true,
       message: "Maintenance",
       imageUrl: null,
@@ -593,7 +590,6 @@ it.each(["NO_CREDENTIALS", "NO_REFRESH_TOKEN"])(
     mockAuth0.hasValidCredentials.mockResolvedValue(true);
     account.permissions = { bypassMaintenance: true };
     access.maintenance = {
-      revision: 1,
       active: true,
       message: "Maintenance",
       imageUrl: null,
@@ -629,7 +625,6 @@ it("removes an already bypassed support form after foreground grant withdrawal",
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   account.permissions = { bypassMaintenance: true };
   access.maintenance = {
-    revision: 1,
     active: true,
     message: "Maintenance",
     imageUrl: null,
@@ -655,7 +650,6 @@ it("enforces the current minimum after a refusal-triggered complete recheck", as
   mockAuth0.hasValidCredentials.mockResolvedValue(true);
   account.permissions = { bypassMaintenance: true };
   access.maintenance = {
-    revision: 1,
     active: true,
     message: "Maintenance",
     imageUrl: null,

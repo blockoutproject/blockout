@@ -4,7 +4,7 @@ import type { DivisionResponse } from "../../../../.generated/schemas/index.zod"
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 
-/** The editor owns revision and confirmation; Query owns recovery. This control presents and delegates the action. */
+/** The editor owns the exact target and confirmation; Query owns recovery. This control presents and delegates the action. */
 export interface DivisionActivityActionProps {
   division: DivisionResponse;
   executing: boolean;

@@ -38,7 +38,8 @@ public final class CollectionState {
   }
 
   /**
-   * Current environment startup and safe editing revision; null incarnation means never registered.
+   * Current environment startup and safe collector registration revision; null incarnation means
+   * never registered.
    */
   public record Runtime(long revision, UUID incarnationId) {}
 
@@ -144,7 +145,7 @@ public final class CollectionState {
      * @param id current control identity
      * @param seasonId owning season, absent for seasonless collection
      * @param family independently controlled acquisition family
-     * @param revision current editing revision
+     * @param revision current collector candidate revision
      * @param enabled desired periodic eligibility
      * @param requestId pending explicit request, when present
      * @param requestedMode pending explicit collection mode

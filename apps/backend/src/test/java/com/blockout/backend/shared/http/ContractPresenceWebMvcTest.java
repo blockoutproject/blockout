@@ -41,12 +41,7 @@ class ContractPresenceWebMvcTest {
   @Autowired private MockMvc mvc;
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "{\"revision\":\"r1\"}",
-        "{\"revision\":\"r1\",\"manualName\":null}",
-        "{\"revision\":\"r1\",\"manualShortName\":null}"
-      })
+  @ValueSource(strings = {"{}", "{\"manualName\":null}", "{\"manualShortName\":null}"})
   @DisplayName("Rejects omitted required names instead of interpreting them as removal")
   void rejectsOmittedRequiredNames(String body) throws Exception {
     // Given
@@ -65,8 +60,8 @@ class ContractPresenceWebMvcTest {
   @ParameterizedTest
   @ValueSource(
       strings = {
-        "{\"revision\":\"r1\",\"manualName\":null,\"manualShortName\":null}",
-        "{\"revision\":\"r1\",\"manualName\":\"Synthetic pool\",\"manualShortName\":\"Pool A\"}"
+        "{\"manualName\":null,\"manualShortName\":null}",
+        "{\"manualName\":\"Synthetic pool\",\"manualShortName\":\"Pool A\"}"
       })
   @DisplayName("Preserves explicitly supplied null or value names")
   void preservesRequiredNames(String body) throws Exception {

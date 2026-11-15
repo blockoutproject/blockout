@@ -16,7 +16,7 @@ The optional `activeContribution` is the current exact caller-owned active membe
 
 The own collection requires `proposalCount`, a nonnegative safe integer counting all original-account/match versions, including active and terminal states. The count is an SQL aggregate independent of pagination, read coherently with the page/context; an empty collection returns zero.
 
-Read lists in pages of twenty with optional nextPage; preserve filters and reset on refresh. Searches are literal case-insensitive fragments, not wildcard syntax. Private representations and errors use no-store. Body revision conflicts reuse the existing 409 problem; no conditional HTTP precondition or 412 contract is introduced. PATCH uses atomic application/json change documents; omitted fields are not invented updates and null is rejected in these required command inputs.
+Read lists in pages of twenty with optional nextPage; preserve filters and reset on refresh. Searches are literal case-insensitive fragments, not wildcard syntax. Private representations and errors use no-store. Submission/moderation body revision conflicts reuse the existing 409 problem; exact personal withdrawal has no global-revision input; no conditional HTTP precondition or 412 contract is introduced. PATCH uses atomic application/json change documents; omitted fields are not invented updates and null is rejected in these required command inputs.
 
 Completed creation returns 201 and a resource Location; existing current repetitions return 200. A report Location identifies the account/version report subresource; a reactivation Location identifies the new administrative contribution member, not a new job. Reports do not transfer to another version. A current authorized `reported:true` for the exact account/version establishes “already reported”, including after a lost POST response, without attributing success to a request. False or failed reads do not establish POST failure; they may precede delayed completion. There is no automatic write retry or exact historical receipt.
 
@@ -25,7 +25,7 @@ F13 owns [dialect, generators and validation](../../003-shared-quality/contracts
 The delivered submission/member-read operations and own-version PATCH use the `StreamSubmission`
 generation tag, separating their executable Java interface from reporting/moderation
 operations. Routes, operation IDs, request/response schemas and mobile consumer names remain
-unchanged. The PATCH retains its exact target and required viewed revision; active
+unchanged. The personal PATCH retains its exact immutable version UUID without a global-revision input; active
 withdrawal returns the current private member with `Accept-Patch: application/json` and `no-store`.
 
 The executable reporting operations use the `StreamReports` generation tag without changing routes, operation IDs or DTOs. Requests contain only `reason`; whitespace-only reasons receive 422 after normalization. Ordinary admitted usable accounts retain the current reporting right independently of publication quotas. Existing reports return unchanged 200 before activity/threshold evaluation; own-state GET exposes only `reported`. A later explicit retry remains on that account/version, with no automatic replay or special mobile recovery state.

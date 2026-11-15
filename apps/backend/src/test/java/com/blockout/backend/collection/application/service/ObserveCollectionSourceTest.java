@@ -46,8 +46,7 @@ class ObserveCollectionSourceTest {
     when(seasons.getOrCreate(2026)).thenReturn(new SeasonView(SEASON, 2026, "2026/2027"));
     when(seasons.lockCollectionState(SEASON))
         .thenReturn(
-            new CollectionSeasonView(
-                SEASON, "2026/2027", 2026, CollectionSeasonStateEnum.ACTIVE, 4));
+            new CollectionSeasonView(SEASON, "2026/2027", 2026, CollectionSeasonStateEnum.ACTIVE));
     Source existing =
         Source.builder()
             .id(SOURCE)
@@ -75,8 +74,7 @@ class ObserveCollectionSourceTest {
     when(seasons.getOrCreate(2026)).thenReturn(new SeasonView(SEASON, 2026, "2026/2027"));
     when(seasons.lockCollectionState(SEASON))
         .thenReturn(
-            new CollectionSeasonView(
-                SEASON, "2026/2027", 2026, CollectionSeasonStateEnum.CLOSED, 4));
+            new CollectionSeasonView(SEASON, "2026/2027", 2026, CollectionSeasonStateEnum.CLOSED));
 
     // When / Then
     assertThatThrownBy(() -> service.observe(proposal))

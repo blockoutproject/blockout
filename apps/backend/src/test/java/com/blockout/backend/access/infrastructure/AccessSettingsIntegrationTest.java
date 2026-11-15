@@ -14,7 +14,6 @@ import com.blockout.backend.access.domain.ApplicationVersionSettings;
 import com.blockout.backend.access.domain.InvalidAccessSettingsException;
 import com.blockout.backend.access.domain.MaintenanceSettings;
 import com.blockout.backend.access.domain.Permission;
-import com.blockout.backend.access.domain.StaleSettingsRevisionException;
 import com.blockout.backend.accounts.application.AccountStore;
 import com.blockout.backend.testsupport.PostgresTestConfiguration;
 import com.blockout.backend.testsupport.PostgresTestDatabase;
@@ -106,22 +105,12 @@ class AccessSettingsIntegrationTest {
   @DisplayName("Refuses a settings write without its application transaction")
   void requiresWriteTransaction() {
     // Given
-    MaintenanceSettings changed = new MaintenanceSettings(0, true, "Changed", null);
+    MaintenanceSettings changed = new MaintenanceSettings(true, "Changed", null);
 
     // When / Then
     assertThatThrownBy(() -> store.saveMaintenance(changed))
         .isInstanceOf(IllegalTransactionStateException.class);
-    assertThat(store.maintenance()).isEqualTo(new MaintenanceSettings(0, false, "Prepared", null));
-  }
-
-  @Test
-  @DisplayName("Refuses optimistic mutation loading without a transaction retaining the check")
-  void requiresMutationLoadTransaction() {
-    // Given: no caller transaction is open.
-
-    // When / Then
-    assertThatThrownBy(store::maintenanceForChange)
-        .isInstanceOf(IllegalTransactionStateException.class);
+    assertThat(store.maintenance()).isEqualTo(new MaintenanceSettings(false, "Prepared", null));
   }
 
   @Test
@@ -161,7 +150,7 @@ class AccessSettingsIntegrationTest {
             try {
               ReadAccessConfiguration.Snapshot result = read.get(15, TimeUnit.SECONDS);
               assertThat(result.maintenance().message()).isEqualTo("Prepared");
-              assertThat(result.versions().revision()).isZero();
+              assertThat(result.versions().message()).isNull();
             } catch (Exception failure) {
               throw new IllegalStateException(
                   "Protected read waited for the account lock", failure);
@@ -178,7 +167,7 @@ class AccessSettingsIntegrationTest {
   void refusesReadAfterWithdrawal(Permission permission) {
     // Given
     assertThat(reads.maintenance(first).message()).isEqualTo("Prepared");
-    assertThat(reads.versions(first).revision()).isZero();
+    assertThat(reads.versions(first).message()).isNull();
     sql.update(
         "DELETE FROM account_permission WHERE account_id = ? AND permission = ?",
         first,
@@ -199,57 +188,52 @@ class AccessSettingsIntegrationTest {
   @DisplayName("Saving content retains activation and leaves the versions group untouched")
   void preservesActivation(boolean active) {
     // Given
-    updates.activate(first, 0, active);
-    long revision = reads.maintenance(first).revision();
+    updates.activate(first, active);
 
     // When
     MaintenanceSettings saved =
         updates.changeMaintenance(
             first,
             new MaintenanceChange(
-                revision,
                 "  New message  ",
                 JsonNullable.of("https://assets.example.invalid/maintenance.png")));
 
     // Then
     assertThat(saved.active()).isEqualTo(active);
     assertThat(saved.message()).isEqualTo("New message");
-    assertThat(reads.versions(first).revision()).isZero();
+    assertThat(reads.versions(first).message()).isNull();
     assertThat(reads.read().maintenance().message()).isEqualTo("New message");
   }
 
   @Test
-  @DisplayName("Matching no-ops preserve revision while stale no-ops conflict")
-  void distinguishesNoops() {
+  @DisplayName(
+      "An older maintenance draft replaces only its submitted content under current grants")
+  void appliesOlderMaintenanceDraft() {
     // Given
-    MaintenanceSettings current = updates.changeMaintenance(first, content(0, "Changed"));
+    MaintenanceChange older = content("Older draft");
+    updates.changeMaintenance(first, content("Newer saved value"));
+    updates.activate(first, true);
 
     // When
-    MaintenanceSettings noop =
-        updates.changeMaintenance(second, content(current.revision(), "Changed"));
+    MaintenanceSettings saved = updates.changeMaintenance(second, older);
 
     // Then
-    assertThat(noop.revision()).isEqualTo(current.revision());
-    assertThatThrownBy(() -> updates.changeMaintenance(first, content(0, "Changed")))
-        .isInstanceOf(StaleSettingsRevisionException.class);
-    assertThat(updates.activate(first, current.revision(), false).revision())
-        .isEqualTo(current.revision());
+    assertThat(saved.message()).isEqualTo("Older draft");
+    assertThat(saved.active()).isTrue();
+    assertThat(reads.maintenance(first)).isEqualTo(saved);
   }
 
   @Test
   @DisplayName("Null clears only the image and omission keeps the content")
   void clearsOptionalImage() {
     // Given
-    MaintenanceSettings withImage =
-        updates.changeMaintenance(
-            first,
-            new MaintenanceChange(
-                0, null, JsonNullable.of("https://assets.example.invalid/a.png")));
+    updates.changeMaintenance(
+        first,
+        new MaintenanceChange(null, JsonNullable.of("https://assets.example.invalid/a.png")));
 
     // When
     MaintenanceSettings saved =
-        updates.changeMaintenance(
-            first, new MaintenanceChange(withImage.revision(), null, JsonNullable.of(null)));
+        updates.changeMaintenance(first, new MaintenanceChange(null, JsonNullable.of(null)));
 
     // Then
     assertThat(saved.imageUrl()).isNull();
@@ -263,7 +247,6 @@ class AccessSettingsIntegrationTest {
     // Given
     VersionChange valid =
         new VersionChange(
-            0,
             new PlatformChange(
                 JsonNullable.of("2.10.0"),
                 JsonNullable.of("https://apps.apple.com/fr/app/blockout/id123")),
@@ -277,7 +260,6 @@ class AccessSettingsIntegrationTest {
                 updates.changeVersions(
                     first,
                     new VersionChange(
-                        saved.revision(),
                         new PlatformChange(JsonNullable.undefined(), JsonNullable.of(null)),
                         new PlatformChange(
                             JsonNullable.of("3.0.0"),
@@ -289,38 +271,36 @@ class AccessSettingsIntegrationTest {
   }
 
   @Test
-  @DisplayName("Platform changes share one revision and cannot overwrite each other")
-  void conflictsAcrossPlatforms() {
+  @DisplayName("An older disjoint platform edit preserves the currently saved other platform")
+  void preservesDisjointPlatforms() {
     // Given
+    VersionChange olderAndroid =
+        new VersionChange(
+            null,
+            new PlatformChange(
+                JsonNullable.of("3.0.0"),
+                JsonNullable.of(
+                    "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout")),
+            JsonNullable.undefined());
     updates.changeVersions(
         first,
         new VersionChange(
-            0,
             new PlatformChange(
                 JsonNullable.of("2.0.0"), JsonNullable.of("https://apps.apple.com/app/id123")),
             null,
-            JsonNullable.undefined()));
+            JsonNullable.of("Current shared message")));
 
-    // When / Then
-    assertThatThrownBy(
-            () ->
-                updates.changeVersions(
-                    second,
-                    new VersionChange(
-                        0,
-                        null,
-                        new PlatformChange(
-                            JsonNullable.of("2.0.0"),
-                            JsonNullable.of(
-                                "https://play.google.com/store/apps/details?id=com.blockoutproject.blockout")),
-                        JsonNullable.undefined())))
-        .isInstanceOf(StaleSettingsRevisionException.class);
-    assertThat(reads.versions(first).android().minimumVersion()).isNull();
+    // When
+    ApplicationVersionSettings saved = updates.changeVersions(second, olderAndroid);
+
+    // Then
+    assertThat(saved.ios().minimumVersion()).isEqualTo("2.0.0");
+    assertThat(saved.android().minimumVersion()).isEqualTo("3.0.0");
+    assertThat(saved.message()).isEqualTo("Current shared message");
   }
 
   @Test
-  @DisplayName(
-      "Concurrent same-group writes retain JPA optimistic exclusion after revision comparison")
+  @DisplayName("Concurrent same-group writes retain native JPA optimistic exclusion")
   void excludesConcurrentCommit() throws Exception {
     // Given
     CyclicBarrier loaded = new CyclicBarrier(2);
@@ -344,7 +324,10 @@ class AccessSettingsIntegrationTest {
       assertThat(accepted).isEqualTo(1);
       assertThat(conflicts).isEqualTo(1);
     }
-    assertThat(reads.maintenance(first).revision()).isEqualTo(1);
+    assertThat(
+            sql.queryForObject(
+                "SELECT revision FROM access_settings WHERE id = 'maintenance'", Long.class))
+        .isEqualTo(1);
   }
 
   @Test
@@ -360,47 +343,31 @@ class AccessSettingsIntegrationTest {
               () ->
                   transaction.executeWithoutResult(
                       s -> {
-                        store.maintenanceForChange();
+                        store.maintenance();
                         awaitBoth(loaded);
-                        updates.changeMaintenance(first, content(0, "Independent"));
+                        updates.changeMaintenance(first, content("Independent"));
                       }));
       Future<?> versions =
           workers.submit(
               () ->
                   transaction.executeWithoutResult(
                       s -> {
-                        store.versionsForChange();
+                        store.versions();
                         awaitBoth(loaded);
                         updates.changeVersions(
                             second,
-                            new VersionChange(
-                                0, null, null, JsonNullable.of("Independent update")));
+                            new VersionChange(null, null, JsonNullable.of("Independent update")));
                       }));
       maintenance.get(15, TimeUnit.SECONDS);
       versions.get(15, TimeUnit.SECONDS);
     }
 
     // Then
-    assertThat(reads.maintenance(first).revision()).isEqualTo(1);
-    assertThat(reads.versions(first).revision()).isEqualTo(1);
-  }
-
-  @Test
-  @DisplayName("Refuses revision overflow but accepts the largest matching no-op")
-  void refusesOverflow() {
-    // Given
-    sql.update("UPDATE access_settings SET revision=9007199254740991 WHERE id='maintenance'");
-
-    // When
-    MaintenanceSettings noop =
-        updates.changeMaintenance(first, content(9007199254740991L, "Prepared"));
-
-    // Then
-    assertThat(noop.revision()).isEqualTo(9007199254740991L);
-    assertThatThrownBy(
-            () -> updates.changeMaintenance(first, content(9007199254740991L, "Overflow")))
-        .isInstanceOf(InvalidAccessSettingsException.class);
-    assertThat(reads.maintenance(first)).isEqualTo(noop);
+    assertThat(
+            sql.queryForObject(
+                "SELECT revision FROM access_settings WHERE id = 'maintenance'", Long.class))
+        .isEqualTo(1);
+    assertThat(reads.versions(first).message()).isEqualTo("Independent update");
   }
 
   @ParameterizedTest
@@ -439,7 +406,7 @@ class AccessSettingsIntegrationTest {
     sql.update("DELETE FROM account_permission WHERE account_id=?", first);
 
     // When / Then
-    assertThatThrownBy(() -> updates.changeMaintenance(first, content(0, "Refused")))
+    assertThatThrownBy(() -> updates.changeMaintenance(first, content("Refused")))
         .isInstanceOf(AccessDeniedException.class);
     assertThat(reads.maintenance(second).message()).isEqualTo("Prepared");
   }
@@ -465,7 +432,7 @@ class AccessSettingsIntegrationTest {
                                   mutationPid.complete(
                                       sql.queryForObject("SELECT pg_backend_pid()", Integer.class));
                                   updates.changeMaintenance(
-                                      first, content(0, "Refused after withdrawal"));
+                                      first, content("Refused after withdrawal"));
                                 }));
                 PostgresTestDatabase.awaitBlocked(sql, mutationPid);
                 sql.update(
@@ -492,7 +459,7 @@ class AccessSettingsIntegrationTest {
       Future<?> withdrawal =
           transaction.execute(
               state -> {
-                updates.changeMaintenance(first, content(0, "Accepted before withdrawal"));
+                updates.changeMaintenance(first, content("Accepted before withdrawal"));
                 Future<?> pending =
                     worker.submit(
                         () ->
@@ -515,72 +482,9 @@ class AccessSettingsIntegrationTest {
 
       // Then
       assertThat(reads.maintenance(second).message()).isEqualTo("Accepted before withdrawal");
-      assertThatThrownBy(() -> updates.activate(first, 1, true))
+      assertThatThrownBy(() -> updates.activate(first, true))
           .isInstanceOf(AccessDeniedException.class);
     }
-  }
-
-  @Test
-  @DisplayName("Version no-ops preserve the largest safe revision and real changes refuse overflow")
-  void refusesVersionOverflow() {
-    // Given
-    sql.update("UPDATE access_settings SET revision=9007199254740991 WHERE id='versions'");
-
-    // When
-    ApplicationVersionSettings noop =
-        updates.changeVersions(
-            first, new VersionChange(9007199254740991L, null, null, JsonNullable.undefined()));
-
-    // Then
-    assertThat(noop.revision()).isEqualTo(9007199254740991L);
-    assertThatThrownBy(
-            () ->
-                updates.changeVersions(
-                    first,
-                    new VersionChange(9007199254740991L, null, null, JsonNullable.of("Overflow"))))
-        .isInstanceOf(InvalidAccessSettingsException.class);
-    assertThat(reads.versions(first)).isEqualTo(noop);
-  }
-
-  @Test
-  @DisplayName("A matching no-op retains JPA optimistic verification until outer commit")
-  void checksNoopAtCommit() {
-    // Given
-    try (ExecutorService worker = Executors.newSingleThreadExecutor()) {
-      org.assertj.core.api.ThrowableAssert.ThrowingCallable noop =
-          () ->
-              transaction.executeWithoutResult(
-                  state -> {
-                    store.maintenanceForChange();
-                    updates.changeMaintenance(first, content(0, "Prepared"));
-                    try {
-                      worker
-                          .submit(() -> updates.changeMaintenance(second, content(0, "Concurrent")))
-                          .get(15, TimeUnit.SECONDS);
-                    } catch (Exception failure) {
-                      throw new IllegalStateException("Concurrent fixture failed", failure);
-                    }
-                  });
-
-      // When / Then
-      assertThatThrownBy(noop).isInstanceOf(OptimisticLockingFailureException.class);
-      assertThat(reads.maintenance(second).message()).isEqualTo("Concurrent");
-    }
-  }
-
-  @ParameterizedTest
-  @ValueSource(longs = {-1L, 9007199254740992L})
-  @DisplayName("PostgreSQL rejects unsafe persisted revisions independently of the application")
-  void constrainsStoredRevision(long revision) {
-    // Given: the parameter supplies a revision outside the supported persisted range.
-
-    // When / Then
-    assertThatThrownBy(
-            () ->
-                sql.update(
-                    "UPDATE access_settings SET revision = ? WHERE id = 'maintenance'", revision))
-        .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
-    assertThat(reads.maintenance(first).revision()).isZero();
   }
 
   /**
@@ -593,9 +497,9 @@ class AccessSettingsIntegrationTest {
   private void concurrentContent(UUID editor, String message, CyclicBarrier loaded) {
     transaction.executeWithoutResult(
         s -> {
-          store.maintenanceForChange();
+          store.maintenance();
           awaitBoth(loaded);
-          updates.changeMaintenance(editor, content(0, message));
+          updates.changeMaintenance(editor, content(message));
         });
   }
 
@@ -613,13 +517,12 @@ class AccessSettingsIntegrationTest {
   }
 
   /**
-   * Keeps decisive revision/message explicit while omitting the optional image.
+   * Keeps desired content explicit while omitting the optional image.
    *
-   * @param revision expected maintenance revision
    * @param message desired content for the scenario
    * @return a content-only command retaining stored media
    */
-  private static MaintenanceChange content(long revision, String message) {
-    return new MaintenanceChange(revision, message, JsonNullable.undefined());
+  private static MaintenanceChange content(String message) {
+    return new MaintenanceChange(message, JsonNullable.undefined());
   }
 }

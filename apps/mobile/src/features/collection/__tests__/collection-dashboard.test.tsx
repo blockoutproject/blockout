@@ -617,8 +617,8 @@ it.each([202, 200])(
       if (options?.method === "POST") {
         const accepted = control(
           status === 202
-            ? { revision: 4, pendingRequestId: running.id }
-            : { revision: 4, cycle: running },
+            ? { pendingRequestId: running.id }
+            : { cycle: running },
         );
         peer.controls = [accepted];
         return json(accepted, status);
@@ -656,17 +656,16 @@ it.each([202, 200])(
     expect(String(url)).toContain(
       `/collection-controls/${control().id}/requests`,
     );
-    expect(JSON.parse(String(options?.body))).toEqual({ revision: 3 });
+    expect(options?.body).toBeUndefined();
   },
 );
 
-it("pauses and resumes the selected control directly with its current revision", async () => {
+it("pauses and resumes the selected control directly against current server state", async () => {
   // Given
   const user = userEvent.setup();
   mockFetch.mockImplementation(async (url, options) => {
     if (options?.method === "PUT") {
       const accepted = control({
-        revision: peer.controls[0].revision + 1,
         enabled: !peer.controls[0].enabled,
       });
       peer.controls = [accepted];
@@ -713,10 +712,7 @@ it("pauses and resumes the selected control directly with its current revision",
   ]);
   expect(
     writes.map(([, options]) => JSON.parse(String(options?.body))),
-  ).toEqual([
-    { revision: 3, enabled: false },
-    { revision: 4, enabled: true },
-  ]);
+  ).toEqual([{ enabled: false }, { enabled: true }]);
 });
 
 it("keeps the activity target after response loss and waits for a later explicit action", async () => {
@@ -728,7 +724,7 @@ it("keeps the activity target after response loss and waits for a later explicit
       if (failed) {
         throw new TypeError("Lost command response");
       }
-      peer.controls = [control({ revision: 4, enabled: false })];
+      peer.controls = [control({ enabled: false })];
       return json(peer.controls[0]);
     }
     return peer.reads(url, options);
@@ -774,10 +770,7 @@ it("keeps the activity target after response loss and waits for a later explicit
   ]);
   expect(
     writes.map(([, options]) => JSON.parse(String(options?.body))),
-  ).toEqual([
-    { revision: 3, enabled: false },
-    { revision: 3, enabled: false },
-  ]);
+  ).toEqual([{ enabled: false }, { enabled: false }]);
 });
 
 it.each([409, "lost"])(
@@ -806,7 +799,7 @@ it.each([409, "lost"])(
     await act(async () => nativeAlertAction("Relancer")());
     await screen.findByRole("alert");
     await waitFor(() => expect(privateClient.isFetching()).toBe(0));
-    peer.controls = [control({ revision: 9 })];
+    peer.controls = [control({})];
     await view.rerender(<></>);
     await view.rerender(
       <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
@@ -822,7 +815,7 @@ it.each([409, "lost"])(
       ([, init]) => init?.method === "POST",
     );
     expect(writes).toHaveLength(2);
-    expect(JSON.parse(String(writes[1][1]?.body))).toEqual({ revision: 9 });
+    expect(writes[1][1]?.body).toBeUndefined();
   },
 );
 
@@ -1029,7 +1022,6 @@ it.each(["club-sheets", "geocoding"] as const)(
           family,
           seasonId: undefined,
           enabled: true,
-          revision: 4,
         });
         peer.controls = [accepted];
         return json(accepted, 200);
@@ -1073,7 +1065,6 @@ it("retains running evidence while pause cancels an unstarted request", async ()
   mockFetch.mockImplementation(async (url, options) => {
     if (options?.method === "PUT") {
       const accepted = control({
-        revision: 4,
         enabled: false,
         cycle: {
           id: "00000000-0000-4000-8000-000000000193",
@@ -1319,7 +1310,7 @@ it("keeps Pause usable during result failure and never treats read Retry as a co
   let resultsAvailable = false;
   mockFetch.mockImplementation(async (url, options) => {
     if (options?.method === "PUT") {
-      peer.controls = [control({ enabled: false, revision: 4 })];
+      peer.controls = [control({ enabled: false })];
       return json(peer.controls[0]);
     }
     if (
@@ -1369,7 +1360,7 @@ it("retains an accepted activity ACK when its ordinary control reread fails", as
   // Given
   const user = userEvent.setup();
   let unavailable = false;
-  const accepted = control({ enabled: false, revision: 4 });
+  const accepted = control({ enabled: false });
   mockFetch.mockImplementation(async (url, options) => {
     if (options?.method === "PUT") {
       peer.controls = [accepted];
@@ -1536,126 +1527,6 @@ it.each(["settled", "in-flight"])(
   },
 );
 
-it("keeps a newer running read when an older accepted pending acknowledgement arrives", async () => {
-  // Given
-  const user = userEvent.setup();
-  const pending = Promise.withResolvers<Response>();
-  const geocoding = control({
-    id: "00000000-0000-4000-8000-000000000195",
-    family: "geocoding",
-    seasonId: undefined,
-  });
-  peer.controls = [control(), geocoding];
-  mockFetch.mockImplementation((url, options) =>
-    options?.method === "POST" ? pending.promise : peer.reads(url, options),
-  );
-  const view = await renderCollection(
-    <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
-    client,
-    (cache) => {
-      privateClient = cache;
-    },
-  );
-
-  // When
-  await user.press(await screen.findByRole("button", { name: "Relancer" }));
-  await act(async () => nativeAlertAction("Relancer")());
-  await view.rerender(<CollectionControlScreen family="geocoding" />);
-  await screen.findByRole("header", { name: "Géocodage" });
-  peer.controls = [
-    control({
-      revision: 5,
-      cycle: {
-        id: "00000000-0000-4000-8000-000000000193",
-        state: "running",
-        mode: "manual",
-        startedAt: "2026-10-24T12:00:00Z",
-      },
-    }),
-    geocoding,
-  ];
-  await view.rerender(
-    <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
-  );
-  await screen.findByText("Collecte en cours");
-  await act(async () =>
-    pending.resolve(
-      json(
-        control({
-          revision: 4,
-          pendingRequestId: "00000000-0000-4000-8000-000000000192",
-        }),
-        202,
-      ),
-    ),
-  );
-  await waitFor(() => expect(privateClient.isMutating()).toBe(0));
-
-  // Then
-  expect(screen.getByText("Collecte en cours")).toBeOnTheScreen();
-  expect(screen.queryByText("En attente de démarrage")).toBeNull();
-  expect(screen.getByRole("button", { name: "En cours" })).toBeDisabled();
-});
-
-it("keeps completion freshness already read at the same editing revision as a delayed pause acknowledgement", async () => {
-  // Given
-  const user = userEvent.setup();
-  const cycle = {
-    id: "00000000-0000-4000-8000-000000000193",
-    state: "running" as const,
-    mode: "manual" as const,
-    startedAt: "2026-10-24T12:00:00Z",
-  };
-  const pending = Promise.withResolvers<Response>();
-  const geocoding = control({
-    id: "00000000-0000-4000-8000-000000000195",
-    family: "geocoding",
-    seasonId: undefined,
-  });
-  peer.controls = [control({ cycle }), geocoding];
-  mockFetch.mockImplementation((url, options) =>
-    options?.method === "PUT" ? pending.promise : peer.reads(url, options),
-  );
-  const view = await renderCollection(
-    <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
-    client,
-    (cache) => {
-      privateClient = cache;
-    },
-  );
-
-  // When
-  await user.press(
-    await screen.findByRole("button", { name: "Mettre en pause" }),
-  );
-  await view.rerender(<CollectionControlScreen family="geocoding" />);
-  await screen.findByRole("header", { name: "Géocodage" });
-  peer.controls = [
-    control({
-      revision: 4,
-      enabled: false,
-      cycle: {
-        ...cycle,
-        state: "completed",
-        completedAt: "2026-10-24T12:01:00Z",
-      },
-    }),
-    geocoding,
-  ];
-  await view.rerender(
-    <CollectionControlScreen family="ffvb" seasonId={seasonId} />,
-  );
-  await screen.findByText("Dernier cycle terminé");
-  await act(async () =>
-    pending.resolve(json(control({ revision: 4, enabled: false, cycle }))),
-  );
-  await waitFor(() => expect(privateClient.isMutating()).toBe(0));
-
-  // Then
-  expect(screen.getByText("Dernier cycle terminé")).toBeOnTheScreen();
-  expect(screen.queryByText("Collecte en cours")).toBeNull();
-});
-
 it("disables the empty-result refresh action while a collection command is awaiting acknowledgement", async () => {
   // Given
   const user = userEvent.setup();
@@ -1693,7 +1564,6 @@ it("disables the empty-result refresh action while a collection command is await
   // When
   peer.controls = [
     control({
-      revision: 4,
       pendingRequestId: "00000000-0000-4000-8000-000000000192",
     }),
   ];
@@ -1752,7 +1622,6 @@ it("blocks refresh and automatic paging while a collection command is awaiting a
   // When
   peer.controls = [
     control({
-      revision: 4,
       pendingRequestId: "00000000-0000-4000-8000-000000000192",
     }),
   ];
@@ -1760,7 +1629,6 @@ it("blocks refresh and automatic paging while a collection command is awaiting a
     acknowledgement.resolve(
       json(
         control({
-          revision: 4,
           pendingRequestId: "00000000-0000-4000-8000-000000000192",
         }),
         202,

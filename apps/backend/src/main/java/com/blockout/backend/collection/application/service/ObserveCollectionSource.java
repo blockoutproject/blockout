@@ -59,14 +59,14 @@ public class ObserveCollectionSource {
     if (existing.isPresent()) {
       source = existing.orElseThrow();
     } else {
-      CollectionRevision.requireAdvance(season.collectionRevision());
+
       source =
           store.createSource(
               season.id(),
               proposal.provider(),
               proposal.organizerReference(),
               proposal.candidateUrl().toString());
-      seasons.updatePreparation(season.id(), false);
+
       events.publishEvent(
           new CollectionOperationalDiagnostics.SourceObserved(
               season.id(), proposal.provider(), proposal.observedAt()));

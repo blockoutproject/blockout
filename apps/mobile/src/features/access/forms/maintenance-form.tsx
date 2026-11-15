@@ -25,7 +25,7 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { useMaintenanceSettings } from "../api/use-maintenance-settings";
 
-/** One editable snapshot; newer remote data cannot silently replace dirty input or its revision. */
+/** One editable snapshot; newer remote data cannot silently replace dirty input. */
 export interface MaintenanceFormProps {
   settings: MaintenanceSettingsResponse;
   editing: ReturnType<typeof useMaintenanceSettings>;
@@ -41,15 +41,6 @@ export function MaintenanceForm({
   const { colors } = useTheme();
   const confirmAction = useActionConfirmation();
   const actionFeedback = useActionFeedback();
-  const [state, setState] = useState<{
-    baseline: MaintenanceSettingsResponse;
-    feedback?: string;
-  }>({ baseline: settings });
-  const { baseline } = state;
-  const feedback =
-    Math.max(settings.revision, 0) > baseline.revision
-      ? "Les réglages ont changé. Relisez-les avant une nouvelle soumission."
-      : state.feedback;
   const mounted = useRef(false);
   const { control, handleSubmit, reset } = useForm<MaintenanceValues>({
     resolver: zodResolver(maintenanceSchema),
@@ -66,27 +57,22 @@ export function MaintenanceForm({
   const imageUrl = useWatch({ control, name: "imageUrl" });
   const busy =
     disabled || editing.content.isPending || editing.activation.isPending;
-  const rereadRequired = Math.max(settings.revision, 0) > baseline.revision;
   const validPreview =
     imageUrl !== "" && maintenanceImageSchema.safeParse(imageUrl).success;
 
-  /** Submits supplied dirty content against its accepted editing revision, without activation. */
+  /** Submits supplied dirty content without changing activation. */
   async function submit(draft: MaintenanceValues) {
-    if (rereadRequired || busy) {
+    if (busy) {
       return;
     }
     actionFeedback.clear();
     try {
-      const command = editing.content.mutateAsync(
-        toMaintenanceRequest(baseline.revision, draft, dirtyFields),
+      const accepted = await editing.content.mutateAsync(
+        toMaintenanceRequest(draft, dirtyFields),
       );
-      const accepted = await command;
       if (!mounted.current) {
         return;
       }
-      setState({
-        baseline: accepted,
-      });
       reset(maintenanceValues(accepted));
     } catch {
       actionFeedback.error();
@@ -95,62 +81,29 @@ export function MaintenanceForm({
 
   /** Changes only the desired global state and leaves the content draft in RHF untouched. */
   async function activate() {
-    if (rereadRequired || busy) {
+    if (busy) {
       return;
     }
     if (
       !(await confirmAction({
-        title: baseline.active
+        title: settings.active
           ? "Désactiver la maintenance ?"
           : "Activer la maintenance ?",
         message:
           "Cette action utilise le contenu enregistré. Votre brouillon est conservé.",
-        confirmLabel: baseline.active ? "Désactiver" : "Activer",
+        confirmLabel: settings.active ? "Désactiver" : "Activer",
       }))
     ) {
       return;
     }
     actionFeedback.clear();
     try {
-      const command = editing.activation.mutateAsync({
-        revision: baseline.revision,
-        active: !baseline.active,
-      });
-      const accepted = await command;
-      if (!mounted.current) {
-        return;
-      }
-      setState({
-        baseline: accepted,
+      await editing.activation.mutateAsync({
+        active: !settings.active,
       });
     } catch {
       actionFeedback.error();
     }
-  }
-
-  /** Adopts explicitly reread settings while preserving dirty fields for a later submission. */
-  async function reread() {
-    actionFeedback.clear();
-    const result = await editing.query.refetch();
-    if (!mounted.current) {
-      return;
-    }
-    if (
-      !result.data ||
-      result.isError ||
-      result.data.revision < baseline.revision
-    ) {
-      return;
-    }
-    setState({
-      baseline: result.data,
-      feedback:
-        "Réglages relus. Vérifiez votre brouillon avant de le soumettre à nouveau.",
-    });
-    reset(maintenanceValues(result.data), {
-      keepDirtyValues: true,
-      keepDirty: true,
-    });
   }
 
   return (
@@ -169,28 +122,28 @@ export function MaintenanceForm({
               </Text>
               <Text
                 accessibilityLabel={
-                  baseline.active
+                  settings.active
                     ? "Maintenance active"
                     : "Maintenance inactive"
                 }
                 style={[
                   styles.badge,
                   {
-                    color: baseline.active
+                    color: settings.active
                       ? colors.onWarning
                       : colors.onSuccessSubtle,
-                    backgroundColor: baseline.active
+                    backgroundColor: settings.active
                       ? colors.warning
                       : colors.successSubtle,
                   },
                 ]}
               >
-                {baseline.active ? "Activé" : "Désactivé"}
+                {settings.active ? "Activé" : "Désactivé"}
               </Text>
             </View>
           </View>
           <Text style={[tokens.typography.body, { color: colors.text }]}>
-            {baseline.active
+            {settings.active
               ? "L’accès ordinaire à l’application est bloqué."
               : "Aucun blocage de maintenance."}
           </Text>
@@ -201,15 +154,15 @@ export function MaintenanceForm({
             brouillon.
           </Text>
           <Button
-            variant={baseline.active ? "secondary" : "success"}
+            variant={settings.active ? "secondary" : "success"}
             fullWidth
             label={
-              baseline.active
+              settings.active
                 ? "Désactiver la maintenance"
                 : "Activer la maintenance"
             }
             onPress={() => void activate()}
-            disabled={busy || rereadRequired}
+            disabled={busy}
             loading={editing.activation.isPending}
           />
         </View>
@@ -279,27 +232,11 @@ export function MaintenanceForm({
             fullWidth
             label="Enregistrer"
             onPress={() => void handleSubmit(submit)()}
-            disabled={busy || rereadRequired}
+            disabled={busy}
             loading={editing.content.isPending}
           />
         </View>
       </Surface>
-      {feedback && (
-        <Text
-          accessibilityLiveRegion="polite"
-          style={[tokens.typography.body, { color: colors.text }]}
-        >
-          {feedback}
-        </Text>
-      )}
-      {rereadRequired && (
-        <Button
-          label="Relire les réglages"
-          onPress={() => void reread()}
-          loading={editing.query.isFetching}
-          disabled={busy}
-        />
-      )}
     </View>
   );
 }

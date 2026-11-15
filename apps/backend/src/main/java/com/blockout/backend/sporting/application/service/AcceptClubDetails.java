@@ -96,7 +96,6 @@ public class AcceptClubDetails {
     store.saveClubContacts(
         new Contacts(
             clubId,
-            current.revision(),
             fields,
             order,
             observation.context().observedAt(),

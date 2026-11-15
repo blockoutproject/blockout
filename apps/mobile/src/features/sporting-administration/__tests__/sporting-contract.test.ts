@@ -12,7 +12,7 @@ import type {
 const poolId = "00000000-0000-4000-8000-000000000001";
 const division: DivisionResponse = {
   id: "00000000-0000-4000-8000-000000000002",
-  revision: "0",
+
   name: "Synthetic division",
   color: "#112233",
   gradient: null,
@@ -33,7 +33,7 @@ jest.mock("expo/fetch", () => ({
 function poolPresentation(): PoolPresentationResponse {
   return {
     id: poolId,
-    revision: "revision-1",
+
     names: {
       sourceName: "Synthetic pool",
       effectiveName: "Synthetic pool",
@@ -132,7 +132,6 @@ it.each([
   async (_scenario, names) => {
     // Given
     const change = {
-      revision: "revision-1",
       ...names,
     };
     mockFetch.mockResolvedValue(

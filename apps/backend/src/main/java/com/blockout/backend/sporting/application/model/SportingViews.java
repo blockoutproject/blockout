@@ -41,11 +41,7 @@ public final class SportingViews {
 
   /** Canonical season's F01 lifecycle, read under the existing owner transaction. */
   public record CollectionSeasonView(
-      UUID id,
-      String label,
-      long startYear,
-      CollectionSeasonStateEnum collectionState,
-      long collectionRevision) {}
+      UUID id, String label, long startYear, CollectionSeasonStateEnum collectionState) {}
 
   /**
    * Persistent organization, even before a club-page read succeeds.
@@ -134,66 +130,28 @@ public final class SportingViews {
   public record MatchView(
       UUID id, UUID poolId, String reference, UUID homeTeamId, UUID awayTeamId) {}
 
-  /**
-   * Administrative setting and effective acquisition value, separate from published facts.
-   *
-   * @param id edited pack or pool
-   * @param revision current opaque editing revision
-   * @param setting local setting, or null for no setting
-   * @param effective inherited acquisition classification, or null
-   */
+  /** Administrative setting and effective acquisition value, separate from published facts. */
   public record ClassificationView(
-      UUID id, String revision, SportingClassification setting, SportingClassification effective) {
-    /**
-     * Projects the pack's own complete setting.
-     *
-     * @param pack current default owner
-     * @return local and effective settings with its managed version
-     */
+      UUID id, SportingClassification setting, SportingClassification effective) {
+    /** Projects the pack's own complete setting. */
     public static ClassificationView from(PackView pack) {
-      return new ClassificationView(
-          pack.id(), Long.toString(pack.revision()), pack.setting(), pack.setting());
+      return new ClassificationView(pack.id(), pack.setting(), pack.setting());
     }
 
-    /**
-     * Includes the inherited owner's version only while this pool actually inherits.
-     *
-     * @param pool current local editor state
-     * @param pack owning inheritance source
-     * @return a revision invalidated by any relevant local or inherited change
-     */
+    /** Resolves current inheritance only while the pool has no local override. */
     public static ClassificationView from(PoolClassificationView pool, PackView pack) {
-      String revision = Long.toString(pool.revision());
-      if (pool.setting() == null) {
-        revision += ":" + pack.revision();
-      }
       return new ClassificationView(
           pool.pool().id(),
-          revision,
           pool.setting(),
           pool.setting() == null ? pack.setting() : pool.setting());
     }
   }
 
-  /**
-   * Pack state read under its season's transaction.
-   *
-   * @param id native grouping
-   * @param seasonId canonical season
-   * @param revision managed editing version
-   * @param setting current complete default, or null
-   */
-  public record PackView(UUID id, UUID seasonId, long revision, SportingClassification setting) {}
+  /** Pack state read under its season's transaction. */
+  public record PackView(UUID id, UUID seasonId, SportingClassification setting) {}
 
-  /**
-   * Pool classification editor state without exporting a managed entity.
-   *
-   * @param pool established published identity
-   * @param revision managed local editing version
-   * @param setting complete override, or null to inherit
-   */
-  public record PoolClassificationView(
-      PoolView pool, long revision, SportingClassification setting) {}
+  /** Pool classification state without exporting a managed entity. */
+  public record PoolClassificationView(PoolView pool, SportingClassification setting) {}
 
   /**
    * Retained participation involved in a correction, including currently absent teams.
@@ -209,7 +167,6 @@ public final class SportingViews {
    * Current division editing state; image delivery remains the public read owner's responsibility.
    *
    * @param id stable identity
-   * @param revision managed editing version
    * @param name unique name
    * @param color primary sRGB color
    * @param gradient explicit three colors, or null for ordinary derivation
@@ -217,18 +174,11 @@ public final class SportingViews {
    * @param active independent lifecycle state
    */
   public record DivisionDetail(
-      UUID id,
-      long revision,
-      String name,
-      String color,
-      List<String> gradient,
-      boolean hasLogo,
-      boolean active) {
+      UUID id, String name, String color, List<String> gradient, boolean hasLogo, boolean active) {
     /**
      * Detaches optional colors from persistence.
      *
      * @param id stable division identity
-     * @param revision current managed editing version
      * @param name unique division name
      * @param color primary sRGB color
      * @param gradient explicit three colors, or null for ordinary derivation

@@ -22,7 +22,7 @@ function isRefusedOrMissingPreview(error: unknown): boolean {
 }
 
 /**
- * Keeps an editor's selected binary preview with its original revision. Generated calls own HTTP;
+ * Keeps an editor's selected binary preview in its generated cache owner. Generated calls own HTTP;
  * the memory URI conversion consumes cancellation and rejects an obsolete session after FileReader.
  * A refused or missing remote preview is removed until a successful read; local draft files belong to the form.
  */
@@ -30,7 +30,6 @@ export function createPresentationLogoQueryOptions(
   authority: SportingQueryAuthority,
   target: PresentationTarget,
   selection: "effective" | "automatic",
-  revision: string,
 ) {
   const params = { selection };
   let generatedKey;
@@ -44,7 +43,7 @@ export function createPresentationLogoQueryOptions(
     generatedKey = ["presentation-logo-unavailable", target.kind];
   }
   return queryOptions<string | null>({
-    queryKey: [...generatedKey, revision],
+    queryKey: generatedKey,
     enabled:
       authority.enabled &&
       target.kind !== "pool" &&

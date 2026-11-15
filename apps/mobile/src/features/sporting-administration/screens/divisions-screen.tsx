@@ -293,7 +293,6 @@ function DivisionCard({
     { kind: "division", id: division.id },
     "effective",
     division.logo.effectiveUrl != null,
-    division.revision,
   );
   return (
     <Pressable

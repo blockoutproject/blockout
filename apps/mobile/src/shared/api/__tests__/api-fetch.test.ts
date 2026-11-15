@@ -73,7 +73,7 @@ it.each([
     "missing nullable",
     {
       ...applicationAccessResponse(),
-      maintenance: { revision: 0, active: false },
+      maintenance: { active: false },
     },
   ],
 ])("rejects %s before Query success", async (_case, body) => {
@@ -200,7 +200,6 @@ it("rejects an unexpected 204 for a generated JSON mutation without replay", asy
 
   // When
   const response = setPoolPresentation(accountId, {
-    revision: "revision-1",
     manualName: null,
     manualShortName: null,
   });

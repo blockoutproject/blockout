@@ -74,7 +74,6 @@ class InitialReconstructionRunnerTest {
             "blockout.reconstruction.operator=00000000-0000-4000-8000-000000000257",
             "blockout.reconstruction.action=request",
             "blockout.reconstruction.season-id=00000000-0000-4000-8000-000000000258",
-            "blockout.reconstruction.revision=0",
             "blockout.reconstruction.sources=00000000-0000-4000-8000-000000000259",
             "blockout.reconstruction." + selection);
 
@@ -99,7 +98,6 @@ class InitialReconstructionRunnerTest {
             "blockout.reconstruction.operator=" + operator,
             "blockout.reconstruction.action=request",
             "blockout.reconstruction.season-id=" + season,
-            "blockout.reconstruction.revision=0",
             "blockout.reconstruction.sources=" + source);
 
     // When
@@ -114,7 +112,7 @@ class InitialReconstructionRunnerTest {
                 .run(new DefaultApplicationArguments()));
 
     // Then
-    verify(service).request(operator, season, 0, Set.of(source), Set.of());
+    verify(service).request(operator, season, Set.of(source), Set.of());
   }
 
   /** Imports only the native configuration binder and Bean Validation. */

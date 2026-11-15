@@ -162,17 +162,16 @@ class DivisionIntegrationTest {
   }
 
   @Test
-  @DisplayName("Changes activity without changing presentation and rejects stale matching commands")
-  void preservesPresentationAndNoOpRevision() {
+  @DisplayName("Changes activity without changing presentation and accepts repeated desired state")
+  void preservesPresentationAndRepeatedState() {
     // Given
     List<String> gradient = List.of("#112233", "#445566", "#778899");
     DivisionDetail original =
         divisions.create(account, new DivisionDefinition("National 2", "#112233", gradient), null);
 
     // When
-    DivisionDetail inactive = divisions.setActive(account, original.id(), "0", false);
-    DivisionDetail unchanged =
-        divisions.setActive(account, original.id(), Long.toString(inactive.revision()), false);
+    DivisionDetail inactive = divisions.setActive(account, original.id(), false);
+    DivisionDetail unchanged = divisions.setActive(account, original.id(), false);
 
     // Then
     assertThat(inactive.active()).isFalse();
@@ -181,13 +180,7 @@ class DivisionIntegrationTest {
     assertThat(unchanged).isEqualTo(inactive);
     assertThat(configurationReads.divisions(account, false)).isEmpty();
     assertThat(configurationReads.divisions(account, true)).containsExactly(inactive);
-    assertThatThrownBy(() -> divisions.setActive(account, original.id(), "0", false))
-        .isInstanceOf(SportingConflictException.class);
-    assertThat(
-            divisions
-                .setActive(account, original.id(), Long.toString(inactive.revision()), true)
-                .active())
-        .isTrue();
+    assertThat(divisions.setActive(account, original.id(), true).active()).isTrue();
   }
 
   @ParameterizedTest
@@ -210,7 +203,7 @@ class DivisionIntegrationTest {
     assertThatThrownBy(
             () -> permissions.requireForRead(account, Permission.MANAGE_DIVISION_LIFECYCLE))
         .isInstanceOf(AccessDeniedException.class);
-    assertThatThrownBy(() -> divisions.setActive(account, division.id(), "0", false))
+    assertThatThrownBy(() -> divisions.setActive(account, division.id(), false))
         .isInstanceOf(AccessDeniedException.class);
     assertThatThrownBy(
             () ->
@@ -250,7 +243,7 @@ class DivisionIntegrationTest {
             new Image(new byte[] {1, 2, 3}, "image/png"));
     DivisionDetail gamma =
         divisions.create(account, new DivisionDefinition("gamma", "#778899", null), null);
-    DivisionDetail inactive = divisions.setActive(account, gamma.id(), "0", false);
+    DivisionDetail inactive = divisions.setActive(account, gamma.id(), false);
 
     // When
     List<DivisionDetail> active = configurationReads.divisions(account, false);
@@ -291,7 +284,7 @@ class DivisionIntegrationTest {
       Future<?> correction =
           transaction.execute(
               state -> {
-                divisions.setActive(account, target.id(), "0", false);
+                divisions.setActive(account, target.id(), false);
                 Future<?> pending =
                     worker.submit(
                         () ->
@@ -302,7 +295,6 @@ class DivisionIntegrationTest {
                                   classifications.setPool(
                                       account,
                                       pool.id(),
-                                      before.revision(),
                                       new SportingClassification(
                                           target.id(),
                                           SportFormatEnum._6X6,

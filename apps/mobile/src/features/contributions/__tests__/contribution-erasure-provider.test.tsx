@@ -1,7 +1,6 @@
 import {
   createStreamReactivation,
   eraseAccount,
-  getMaintenanceSettings,
   getMatch,
   getModeratedStreamContribution,
   listModeratedStreamContributions,
@@ -124,7 +123,7 @@ suite("generated contribution consumers over actual account erasure", () => {
         authorId,
         matchId,
         selectedId,
-        { action: "withdraw", revision: initial.revision },
+        { action: "withdraw" },
         author,
       ),
     ).rejects.toMatchObject({ kind: "network" });
@@ -146,18 +145,42 @@ suite("generated contribution consumers over actual account erasure", () => {
       { actorAccountId: moderatorId, revision: withdrawn.revision },
       moderator,
     );
-    await expect(
-      updateOwnStreamContribution(
-        authorId,
-        matchId,
-        selectedId,
-        { action: "withdraw", revision: initial.revision },
-        author,
-      ),
-    ).rejects.toMatchObject({
-      status: 409,
-      problem: { type: "urn:blockout:problem:stale-revision" },
+    const ownerBeforeRepeat = await listOwnStreamContributions(
+      authorId,
+      matchId,
+      undefined,
+      author,
+    );
+
+    // When: repeating the exact withdrawn target leaves its replacement and quota unchanged.
+    const repeated = await updateOwnStreamContribution(
+      authorId,
+      matchId,
+      selectedId,
+      { action: "withdraw" },
+      author,
+    );
+    const ownerAfterRepeat = await listOwnStreamContributions(
+      authorId,
+      matchId,
+      undefined,
+      author,
+    );
+
+    // Then
+    expect(repeated.contribution).toMatchObject({
+      id: selectedId,
+      state: "withdrawn",
     });
+    expect(repeated.revision).toBe(reactivated.revision);
+    expect(ownerAfterRepeat.quota).toStrictEqual(ownerBeforeRepeat.quota);
+    expect(
+      await getModeratedStreamContribution(
+        matchId,
+        reactivated.contribution.id,
+        observer,
+      ),
+    ).toStrictEqual(reactivated);
     const beforeErasure = await listModeratedStreamContributions(
       matchId,
       undefined,
@@ -187,7 +210,7 @@ suite("generated contribution consumers over actual account erasure", () => {
       authorId,
       matchId,
       reactivated.contribution.id,
-      { action: "withdraw", revision: reactivated.revision },
+      { action: "withdraw" },
       author,
     ).catch((error: unknown) => error);
     await delay.started.promise;
@@ -290,11 +313,7 @@ suite("generated contribution consumers over actual account erasure", () => {
     ]);
 
     // When: F12 changes current admission after erasure; the observer's stream grant is no bypass.
-    const maintenance = await getMaintenanceSettings(observer);
-    const activeMaintenance = await setMaintenanceActivation(
-      { revision: maintenance.revision, active: true },
-      observer,
-    );
+    await setMaintenanceActivation({ active: true }, observer);
     try {
       // Then
       await expect(getMatch(matchId)).rejects.toMatchObject({
@@ -308,10 +327,7 @@ suite("generated contribution consumers over actual account erasure", () => {
         problem: { type: "urn:blockout:problem:maintenance" },
       });
     } finally {
-      await setMaintenanceActivation(
-        { revision: activeMaintenance.revision, active: false },
-        observer,
-      );
+      await setMaintenanceActivation({ active: false }, observer);
     }
 
     // When

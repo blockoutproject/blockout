@@ -1,6 +1,5 @@
 import { SeasonIdentity } from "../components/source-summary";
 import { useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
 import { Controller, useFormState, useWatch } from "react-hook-form";
 import { StyleSheet, Text, View } from "react-native";
 import type { CollectionSeasonResponse } from "../../../../.generated/schemas/index.zod";
@@ -21,7 +20,7 @@ export interface CloseSeasonFormProps {
   editing: ReturnType<typeof useCloseCollectionSeason>;
 }
 
-/** A closure decision owns its original revision; background results cannot replace the user's typed confirmation. */
+/** A closure decision retains its exact season target and the user's typed confirmation. */
 export function CloseSeasonForm({
   season,
   editing,
@@ -30,50 +29,34 @@ export function CloseSeasonForm({
   const { colors } = useTheme();
   const actionFeedback = useActionFeedback();
   const router = useRouter();
-  const mounted = useRef(false);
   const editor = useCloseSeasonDraft(season);
   const state = editor.state;
-  const { feedback } = state;
   const { control, handleSubmit } = editor.form;
   const { isDirty } = useFormState({ control });
   const confirmation = useWatch({ control, name: "confirmation" });
   useDiscardChanges(isDirty && season?.state !== "closed", editor.discard);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-
   if (!state.baseline) {
     return null;
   }
   const baseline = state.baseline;
 
-  const current =
-    editing.season.data && editing.season.data.revision >= baseline.revision
-      ? editing.season.data
-      : baseline;
+  const current = editing.season.data ?? baseline;
   const closed = current.state === "closed";
   const busy =
     !authority.enabled || !editing.season.data || editing.close.isPending;
-  const needsRead = current.revision !== baseline.revision;
 
-  /** Exact equality and the original revision are checked before sending; the backend atomically rechecks both. */
+  /** Exact confirmation is checked before sending; the backend atomically checks current eligibility. */
   async function close(values: CloseSeasonValues) {
     if (
       busy ||
       closed ||
-      needsRead ||
       values.confirmation !== current.label ||
       values.confirmation !== baseline.label
     ) {
       return;
     }
-    editor.update({ ...editor.state, feedback: undefined });
     try {
       const attempt = editing.close.mutateAsync({
-        revision: baseline.revision,
         confirmation: values.confirmation,
       });
       actionFeedback.clear();
@@ -82,25 +65,6 @@ export function CloseSeasonForm({
     } catch {
       actionFeedback.error();
     }
-  }
-
-  /** Adopts the current season revision without replacing the RHF-owned confirmation text. */
-  async function reread() {
-    if (busy) {
-      return;
-    }
-    const read = await editing.season.refetch();
-    if (!mounted.current) {
-      return;
-    }
-    if (read.isError || !read.data || read.data.revision < baseline.revision) {
-      return;
-    }
-    editor.update({
-      baseline: read.data,
-      feedback:
-        "État relu. Vérifiez le nom de la saison avant une nouvelle action.",
-    });
   }
 
   return (
@@ -153,7 +117,6 @@ export function CloseSeasonForm({
             fullWidth
             disabled={
               busy ||
-              needsRead ||
               confirmation !== current.label ||
               confirmation !== baseline.label
             }
@@ -171,25 +134,6 @@ export function CloseSeasonForm({
             </Text>
           )}
         </Surface>
-      )}
-      {feedback && (
-        <Text
-          accessibilityRole="alert"
-          accessibilityLiveRegion="polite"
-          style={[tokens.typography.body, { color: colors.text }]}
-        >
-          {feedback}
-        </Text>
-      )}
-
-      {!closed && needsRead && (
-        <Button
-          label="Relire l’état"
-          variant="secondary"
-          disabled={busy}
-          loading={editing.season.isFetching}
-          onPress={() => void reread()}
-        />
       )}
       <Button
         label={closed ? "Retour à la saison" : "Annuler"}

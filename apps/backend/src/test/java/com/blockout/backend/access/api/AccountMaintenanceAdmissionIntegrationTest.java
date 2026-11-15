@@ -121,7 +121,6 @@ class AccountMaintenanceAdmissionIntegrationTest {
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:maintenance"))
         .andExpect(jsonPath("$.status").value(503))
         .andExpect(jsonPath("$.maintenance.active").value(true))
-        .andExpect(jsonPath("$.maintenance.revision").value(3))
         .andExpect(jsonPath("$.maintenance.message").value("Prepared"));
     verifyNoInteractions(provider);
     assertThat(sql.queryForObject("SELECT COUNT(*) FROM account", Long.class)).isZero();

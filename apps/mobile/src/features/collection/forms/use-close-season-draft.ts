@@ -8,10 +8,9 @@ import {
 } from "../schemas/close-season-schema";
 import { closeSeasonValues } from "./close-season-values";
 
-/** Original revision and local feedback belong to this mounted editing visit. */
+/** The original target belongs to this mounted editing visit. */
 interface DraftState {
   baseline?: CollectionSeasonResponse;
-  feedback?: string;
 }
 
 /** Seeds the single editable baseline from the first available read; the mounted visit owns it thereafter. */

@@ -63,7 +63,7 @@ class LegalDocumentsWebMvcTest {
   /** Keeps maintenance active; exact legal GETs must bypass it without reading current SQL. */
   @BeforeEach
   void activeMaintenance() {
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(2, true, "Pause", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(true, "Pause", null));
     when(transactions.getTransaction(any(TransactionDefinition.class)))
         .thenAnswer(invocation -> new SimpleTransactionStatus());
   }

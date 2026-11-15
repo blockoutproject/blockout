@@ -216,7 +216,7 @@ class ContributionLifecycleQualificationIntegrationTest extends ContributionScen
         submit(AUTHOR, "3", pending.version().address().value(), false);
     moderation.change(
         OTHER, matchId, pending.version().id(), "3", StreamModerationActionEnum.APPROVE);
-    changes.change(AUTHOR, matchId, pending.version().id(), "4");
+    changes.change(AUTHOR, matchId, pending.version().id());
     SubmitContribution.Outcome reactivated =
         moderation.reactivate(OTHER, matchId, pending.version().id(), "5");
 

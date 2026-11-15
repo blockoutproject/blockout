@@ -82,7 +82,7 @@ class ContributionModerationWebMvcTest {
   /** Establishes only this slice's admitted original identity and exact moderation grant. */
   @BeforeEach
   void admit() {
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(1, false, "Prepared", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(false, "Prepared", null));
     when(accounts.currentId("https://identity.example.invalid/", "subject"))
         .thenReturn(Optional.of(ACTOR));
     when(permissions.findByAccountId(ACTOR)).thenReturn(Set.of(Permission.MODERATE_STREAM_LINKS));
@@ -266,7 +266,7 @@ class ContributionModerationWebMvcTest {
   @DisplayName("Ordinary maintenance admission still denies stream-only moderators")
   void keepsOrdinaryAdmission() throws Exception {
     // Given
-    when(settings.maintenance()).thenReturn(new MaintenanceSettings(2, true, "Maintenance", null));
+    when(settings.maintenance()).thenReturn(new MaintenanceSettings(true, "Maintenance", null));
 
     // When
     ResultActions response = mvc.perform(get(MEMBER).with(mobile()));

@@ -60,7 +60,7 @@ Use the [bounded preservation/reassociation procedure](../../infra/operations/RE
 ./mvnw -B -ntp -pl apps/backend verify -Dtest=ImageDecoderTest,ValidateSportingImageTest -Dit.test=TransitionLogoIntegrationTest
 ```
 
-Expect distinct exact FFVB strings such as `000339` and `339`, no name-based association, rejected missing/corrupt bytes without presentation changes and ordinary uniqueness/grant/revision protection. A clubless professional team receives no guessed club logo. [Private copy completeness and deployed V1 preservation](plan.md#protected-logos-and-sporting-reconstruction) require T029’s actual authorized freeze, association-and-byte copy and source checks; the fictional rehearsal does not establish them. T029 remains incomplete until every affected source record/file has its required private evidence.
+Expect distinct exact FFVB strings such as `000339` and `339`, no name-based association, rejected missing/corrupt bytes without presentation changes and ordinary uniqueness, current-grant and exact-target protection. A clubless professional team receives no guessed club logo. [Private copy completeness and deployed V1 preservation](plan.md#protected-logos-and-sporting-reconstruction) require T029’s actual authorized freeze, association-and-byte copy and source checks; the fictional rehearsal does not establish them. T029 remains incomplete until every affected source record/file has its required private evidence.
 
 ## Local reconstruction and silent initial mode
 

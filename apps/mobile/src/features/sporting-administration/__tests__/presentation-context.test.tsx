@@ -163,7 +163,7 @@ beforeEach(async () => {
       }
       return Response.json({
         id: resourceId,
-        revision: "r1",
+
         names,
         ...(kind === "pool"
           ? {}

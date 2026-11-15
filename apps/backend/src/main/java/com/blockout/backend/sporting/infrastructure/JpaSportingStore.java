@@ -38,7 +38,6 @@ import com.blockout.backend.sporting.application.model.StandingsView;
 import com.blockout.backend.sporting.application.model.TeamCandidate;
 import com.blockout.backend.sporting.application.port.SportingStore;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.LockModeType;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -267,17 +266,9 @@ public class JpaSportingStore implements SportingStore {
   /** {@inheritDoc} */
   @Override
   @Transactional(propagation = Propagation.MANDATORY)
-  public SportingViews.CollectionSeasonView updatePreparation(UUID id, boolean activate) {
+  public SportingViews.CollectionSeasonView activateCollectionSeason(UUID id) {
     SeasonEntity season = seasons.findById(id).orElseThrow(SportingResourceNotFoundException::new);
-    long revision = season.getCollectionRevision();
-    if (activate) {
-      season.setCollectionState(CollectionSeasonStateEnum.ACTIVE);
-    }
-    // Observe dirty version advancement before forcing a revision for a source-only change.
-    seasons.flush();
-    if (season.getCollectionRevision() == revision) {
-      entityManager.lock(season, LockModeType.PESSIMISTIC_FORCE_INCREMENT);
-    }
+    season.setCollectionState(CollectionSeasonStateEnum.ACTIVE);
     return mapper.toCollectionView(season);
   }
 
@@ -287,8 +278,6 @@ public class JpaSportingStore implements SportingStore {
   public SportingViews.CollectionSeasonView closeCollectionSeason(UUID id) {
     SeasonEntity season = seasons.findById(id).orElseThrow(SportingResourceNotFoundException::new);
     season.setCollectionState(CollectionSeasonStateEnum.CLOSED);
-    // Materialize the editing revision before returning the terminal lifecycle.
-    seasons.flush();
     return mapper.toCollectionView(season);
   }
 
@@ -471,7 +460,6 @@ public class JpaSportingStore implements SportingStore {
     TeamEntity team = teams.findById(id).orElseThrow();
     if (!Objects.equals(team.getSourceName(), sourceName)) {
       team.setSourceName(sourceName);
-      team.setPresentationRevision(team.getPresentationRevision() + 1);
       changes.submit(Kind.TEAM, id);
     }
   }
@@ -576,8 +564,6 @@ public class JpaSportingStore implements SportingStore {
   @Transactional(propagation = Propagation.MANDATORY)
   public void setPackClassification(UUID id, SportingClassification setting) {
     packs.findById(id).orElseThrow().setSetting(mapper.toSetting(setting));
-    // The enclosing command returns the updated @Version as its editing revision.
-    packs.flush();
   }
 
   /** {@inheritDoc} */
@@ -585,8 +571,6 @@ public class JpaSportingStore implements SportingStore {
   @Transactional(propagation = Propagation.MANDATORY)
   public void setPoolClassification(UUID id, SportingClassification setting) {
     pools.findById(id).orElseThrow().setSetting(mapper.toSetting(setting));
-    // The enclosing command returns the updated @Version as its editing revision.
-    pools.flush();
   }
 
   /** {@inheritDoc} */
@@ -652,8 +636,6 @@ public class JpaSportingStore implements SportingStore {
     DivisionEntity division = divisions.findById(id).orElseThrow();
     division.setActive(active);
     changes.submit(Kind.DIVISION, id);
-    // Materialize the revision returned by the activity command.
-    divisions.flush();
     return mapper.toDetail(division);
   }
 
@@ -780,9 +762,6 @@ public class JpaSportingStore implements SportingStore {
     }
     boolean changed =
         !pool.isCatalogEligible() || !Objects.equals(pool.getSourceName(), candidate.sourceName());
-    if (!Objects.equals(pool.getSourceName(), candidate.sourceName())) {
-      pool.setPresentationRevision(pool.getPresentationRevision() + 1);
-    }
     pool.setSourceName(candidate.sourceName());
     pool.setCatalogEligible(true);
     if (changed) {
@@ -953,7 +932,6 @@ public class JpaSportingStore implements SportingStore {
             club.setLogo(next == null ? null : next.bytes());
             club.setLogoMediaType(next == null ? null : next.mediaType());
           }
-          club.setPresentationRevision(club.getPresentationRevision() + 1);
           changes.submit(kind, id);
         }
       }
@@ -971,7 +949,6 @@ public class JpaSportingStore implements SportingStore {
             team.setLogo(next == null ? null : next.bytes());
             team.setLogoMediaType(next == null ? null : next.mediaType());
           }
-          team.setPresentationRevision(team.getPresentationRevision() + 1);
           changes.submit(kind, id);
         }
       }
@@ -980,7 +957,6 @@ public class JpaSportingStore implements SportingStore {
           PoolEntity pool = pools.findById(id).orElseThrow();
           pool.setManualName(edit.manualName());
           pool.setManualShortName(edit.manualShortName());
-          pool.setPresentationRevision(pool.getPresentationRevision() + 1);
           changes.submit(kind, id);
         }
       }
@@ -1053,7 +1029,7 @@ public class JpaSportingStore implements SportingStore {
       }
       changes.submit(Kind.DIVISION, id);
       try {
-        // Resolve the named uniqueness constraint before mapping the new editing revision.
+        // Resolve the named uniqueness constraint before returning the accepted presentation.
         divisions.flush();
       } catch (DataIntegrityViolationException failure) {
         if (failure.getCause() instanceof ConstraintViolationException constraint
@@ -1089,10 +1065,6 @@ public class JpaSportingStore implements SportingStore {
     boolean nameChanged = sourceName != null && !Objects.equals(sourceName, club.getSourceName());
     if (nameChanged) {
       club.setSourceName(sourceName);
-      club.setPresentationRevision(club.getPresentationRevision() + 1);
-    }
-    if (contactChanged) {
-      club.setContactsRevision(club.getContactsRevision() + 1);
     }
     if (!Objects.equals(
             addressBefore,
@@ -1166,7 +1138,6 @@ public class JpaSportingStore implements SportingStore {
     if (changed) {
       team.setSourceLogo(image.bytes());
       team.setSourceLogoMediaType(image.mediaType());
-      team.setPresentationRevision(team.getPresentationRevision() + 1);
       changes.submit(Kind.TEAM, id);
     }
     team.setLogoCycleOrder(order.cycleOrder());

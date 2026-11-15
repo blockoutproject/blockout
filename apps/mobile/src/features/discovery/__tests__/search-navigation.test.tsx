@@ -844,7 +844,6 @@ it.each(["tab", "route", "principal", "admission"])(
     } else {
       const access = applicationAccessResponse();
       access.maintenance = {
-        revision: 1,
         active: true,
         message: null,
         imageUrl: null,
