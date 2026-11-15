@@ -582,6 +582,58 @@ class CollectorSportingReadIntegrationTest {
   }
 
   @Test
+  @DisplayName("Named information-sheet withdrawal preserves the other accepted match facts")
+  void withdrawsEstablishedInformationSheet() {
+    // Given
+    professionalScope();
+    CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
+    UUID id =
+        sporting
+            .calendar(
+                POOL,
+                context(cycle, cycle.nextReadOrdinal(), FIRST, PUBLISHED),
+                calendar(
+                    documents()
+                        .result(
+                            JsonNullable.of(
+                                new SportingObservation.Result(ResultStateEnum.FINAL, 1, 0, null)))
+                        .sets(JsonNullable.of(List.of(new SportingObservation.SetScore(25, 20))))
+                        .build()))
+            .outcomes()
+            .getFirst()
+            .resourceId();
+    Instant withdrawnAt = FIRST.plusSeconds(60);
+
+    // When
+    SportingObservation.Outcome outcome =
+        sporting.detail(
+            id,
+            context(cycle, cycle.nextReadOrdinal(), withdrawnAt, null),
+            SportingObservation.Facts.builder().informationSheet(JsonNullable.of(null)).build());
+    JsonNode read = read("/matches/" + id);
+
+    // Then
+    assertThat(outcome.outcome()).isEqualTo(ObservationOutcomeEnum.ACCEPTED);
+    assertThat(
+            read.get("documents")
+                .valueStream()
+                .map(document -> document.get("kind").asString())
+                .toList())
+        .containsExactly("scoresheet", "statistics");
+    assertThatThrownBy(() -> read("/matches/" + id + "/documents/information"))
+        .isInstanceOfSatisfying(
+            HttpClientErrorException.class,
+            failure -> assertThat(failure.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND));
+    assertThat(read.at("/match/schedule/observedAt").asString()).isEqualTo(FIRST.toString());
+    assertThat(read.at("/match/result/observedAt").asString()).isEqualTo(FIRST.toString());
+    assertThat(read.at("/sets/observedAt").asString()).isEqualTo(FIRST.toString());
+    assertThat(
+            runtime.sql.queryForObject(
+                "SELECT documents_observed_at FROM sporting_match WHERE id=?", Instant.class, id))
+        .isEqualTo(withdrawnAt);
+  }
+
+  @Test
   @DisplayName(
       "Rescheduling retains the qualified information code and private document attribution")
   void preservesDocumentAssociation() {

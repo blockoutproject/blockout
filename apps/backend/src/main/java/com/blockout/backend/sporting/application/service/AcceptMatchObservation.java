@@ -388,12 +388,13 @@ public class AcceptMatchObservation {
       }
     }
     boolean documents = false;
-    // An auxiliary date/participant lookup cannot replace a code already attached to this match.
+    // An auxiliary lookup cannot replace an established code; a named withdrawal still removes it.
     boolean establishedProfessionalCode =
         previous.informationSheet() != null
             && "AALNV".equals(previous.informationSheet().organizerReference());
     if (facts.informationSheet().isPresent()
         && (!establishedProfessionalCode
+            || facts.informationSheet().get() == null
             || Objects.equals(previous.informationSheet(), facts.informationSheet().get()))) {
       changed |= !Objects.equals(previous.informationSheet(), facts.informationSheet().get());
       next.informationSheet(facts.informationSheet().get());
