@@ -223,11 +223,13 @@ function DocumentAttempt({
   );
 }
 
-/** Both the owned download and the PDF peer's supported pending slot reserve the actual document viewport. */
+/** Both native pending slots use the approved reader's shared text skeletons. */
 function DocumentLoading() {
   return (
     <LoadingGroup label="Chargement du document" style={styles.loading}>
-      <Skeleton height="100%" shape="rectangle" />
+      <Skeleton width="64%" height={tokens.typography.heading.lineHeight} />
+      <Skeleton height={tokens.typography.body.lineHeight} />
+      <Skeleton width="76%" height={tokens.typography.body.lineHeight} />
     </LoadingGroup>
   );
 }
@@ -244,5 +246,10 @@ const styles = StyleSheet.create({
   hiddenReader: { opacity: 0 },
   stateOverlay: StyleSheet.absoluteFill,
   stateContent: { flexGrow: 1 },
-  loading: { flex: 1, width: "100%", padding: tokens.spacing.screen },
+  loading: {
+    flex: 1,
+    width: "100%",
+    padding: tokens.spacing.screen,
+    gap: tokens.spacing.lg,
+  },
 });
