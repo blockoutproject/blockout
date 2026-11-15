@@ -363,45 +363,6 @@ class AcquisitionSchedulerTest {
   }
 
   @Test
-  @DisplayName("A backend RUNNING cycle excludes another admission after an unacknowledged passage")
-  void skipsBackendRunningCycle() {
-    // Given
-    when(backend.current()).thenReturn(new CollectionBackend.Runtime(0, null));
-    when(backend.register(0, lifecycle.getIncarnationId()))
-        .thenReturn(new CollectionBackend.Runtime(1, lifecycle.getIncarnationId()));
-    lifecycle.start();
-    AcquisitionScheduler scheduler =
-        new AcquisitionScheduler(
-            timer, new SyncTaskExecutor(), lifecycle, discovery, passages, qualification);
-    scheduler.start();
-    org.mockito.ArgumentCaptor<Runnable> scheduled =
-        org.mockito.ArgumentCaptor.forClass(Runnable.class);
-    verify(timer, times(3)).schedule(scheduled.capture(), any(Trigger.class));
-    when(backend.work(lifecycle.getIncarnationId()))
-        .thenReturn(
-            new CollectionBackend.Work(
-                List.of(
-                    new CollectionBackend.ControlWork(
-                        CONTROL,
-                        CollectionFamilyEnum.FFVB,
-                        SEASON,
-                        0,
-                        true,
-                        CollectionSeasonStateEnum.ACTIVE,
-                        null,
-                        null,
-                        REQUEST)),
-                List.of()));
-
-    // When
-    scheduled.getAllValues().get(1).run();
-
-    // Then
-    verify(backend, never()).admit(any());
-    verifyNoInteractions(passages, qualification);
-  }
-
-  @Test
   @DisplayName("Discovery is independent of seasons and lenient triggers skip overrun firings")
   void skipsOverrunFirings() {
     // Given

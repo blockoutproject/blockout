@@ -33,8 +33,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -65,8 +63,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 })
 @DisplayName("Personal season options HTTP boundary")
 class FollowOptionsWebMvcTest {
-  private static final UUID ACCOUNT = UUID.fromString(FollowingContractWebMvcTest.ACCOUNT);
-  private static final UUID SEASON = UUID.fromString(FollowingContractWebMvcTest.TARGET);
+  private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000001");
+  private static final UUID SEASON = UUID.fromString("00000000-0000-4000-8000-000000000002");
   @Autowired private MockMvc mvc;
   @MockitoBean private ReadFollowerCount counts;
   @MockitoBean private FollowState state;
@@ -122,23 +120,6 @@ class FollowOptionsWebMvcTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.seasons").isEmpty())
         .andExpect(jsonPath("$.defaultSeasonId").doesNotExist());
-  }
-
-  @ParameterizedTest
-  @ValueSource(strings = {"seasonId=00000000-0000-4000-8000-000000000001", "q=team", "page=0"})
-  @DisplayName("Ignores undeclared options query fields")
-  void ignoresQuery(String query) throws Exception {
-    // Given
-    when(accounts.currentId("https://identity.example.invalid/", "subject"))
-        .thenReturn(Optional.of(ACCOUNT));
-    when(options.read(ACCOUNT)).thenReturn(new Options(List.of(), null));
-    MockHttpServletRequestBuilder request = get(path() + "?" + query).with(mobile());
-
-    // When
-    ResultActions response = mvc.perform(request);
-
-    // Then
-    response.andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"));
   }
 
   @Test

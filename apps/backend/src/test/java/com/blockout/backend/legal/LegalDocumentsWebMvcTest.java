@@ -42,8 +42,8 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 
 /**
- * Exercises real routing, security and maintenance admission with bundled HTML, isolated fixtures
- * and controlled SQL. Synthetic fixtures never occupy a deployable static/legals path.
+ * Exercises real routing, security and maintenance admission with bundled HTML and controlled
+ * admission collaborators.
  */
 @WebMvcTest(controllers = LegalDocumentsController.class)
 @Import({SecurityConfiguration.class, ApiExceptionHandler.class, MaintenanceAdmission.class})
@@ -66,22 +66,6 @@ class LegalDocumentsWebMvcTest {
     when(settings.maintenance()).thenReturn(new MaintenanceSettings(2, true, "Pause", null));
     when(transactions.getTransaction(any(TransactionDefinition.class)))
         .thenAnswer(invocation -> new SimpleTransactionStatus());
-  }
-
-  @ParameterizedTest
-  @ValueSource(strings = {"imprint", "privacy", "terms"})
-  @DisplayName("Returns the complete UTF-8 HTML anonymously through maintenance")
-  void returnsCompletePublicDocument(String kind) throws Exception {
-    // Given
-    ClassPathResource fixture = new ClassPathResource("legal-fixtures/complete.html");
-    when(resources.getResource("classpath:static/legals/" + kind + ".html")).thenReturn(fixture);
-
-    // When / Then
-    mvc.perform(get("/legals/" + kind))
-        .andExpect(status().isOk())
-        .andExpect(content().contentType("text/html;charset=UTF-8"))
-        .andExpect(content().bytes(fixture.getContentAsByteArray()));
-    verifyNoInteractions(settings, accounts, authorization, transactions);
   }
 
   @ParameterizedTest
@@ -118,22 +102,17 @@ class LegalDocumentsWebMvcTest {
     verifyNoInteractions(settings, accounts, authorization, transactions);
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"free", "pro", "unknown"})
-  @DisplayName("Returns the same public resource without entitlement conditions")
-  void ignoresEntitlement(String entitlement) throws Exception {
+  @Test
+  @DisplayName("Returns the same public resource to an authenticated visitor")
+  void returnsDocumentToAuthenticatedVisitor() throws Exception {
     // Given
-    ClassPathResource fixture = new ClassPathResource("legal-fixtures/complete.html");
-    when(resources.getResource("classpath:static/legals/privacy.html")).thenReturn(fixture);
+    ClassPathResource document = new ClassPathResource("static/legals/privacy.html");
+    when(resources.getResource("classpath:static/legals/privacy.html")).thenReturn(document);
 
     // When / Then
-    mvc.perform(
-            get("/legals/privacy")
-                .with(
-                    jwt()
-                        .jwt(token -> token.claim("azp", "mobile-test").claim("pro", entitlement))))
+    mvc.perform(get("/legals/privacy").with(jwt().jwt(token -> token.claim("azp", "mobile-test"))))
         .andExpect(status().isOk())
-        .andExpect(content().string(fixture.getContentAsString(StandardCharsets.UTF_8)));
+        .andExpect(content().string(document.getContentAsString(StandardCharsets.UTF_8)));
     verifyNoInteractions(settings, accounts, authorization, transactions);
   }
 

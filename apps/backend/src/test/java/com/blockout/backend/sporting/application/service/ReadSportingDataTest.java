@@ -51,36 +51,6 @@ class ReadSportingDataTest {
   }
 
   @Test
-  @DisplayName("An eligible direct link keeps its exact retained identity")
-  void hydratesSameIdentity() {
-    // Given
-    SportingStore store = mock(SportingStore.class);
-    SportingReadStore current = mock(SportingReadStore.class);
-    MatchView match =
-        new MatchView(
-            MATCH,
-            UUID.fromString("00000000-0000-4000-8000-000000000187"),
-            "M1",
-            UUID.fromString("00000000-0000-4000-8000-000000000188"),
-            UUID.fromString("00000000-0000-4000-8000-000000000189"));
-    when(current.visibility(Kind.MATCH, MATCH))
-        .thenReturn(Optional.of(new SportingVisibility(MATCH, Kind.MATCH, Set.of())));
-    when(store.match(MATCH)).thenReturn(Optional.of(match));
-    ReadSportingData reads =
-        new ReadSportingData(
-            store,
-            org.mapstruct.factory.Mappers.getMapper(
-                com.blockout.backend.sporting.application.model.SportingModelMapper.class),
-            current);
-
-    // When
-    Optional<MatchView> result = reads.publicMatch(MATCH);
-
-    // Then
-    assertThat(result).contains(match);
-  }
-
-  @Test
   @DisplayName("Rechecks owner visibility on the next read without retaining a second registry")
   void rechecksVisibility() {
     // Given

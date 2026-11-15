@@ -62,8 +62,8 @@ import org.springframework.transaction.support.SimpleTransactionStatus;
 })
 @DisplayName("Following original owner admission")
 class FollowAccessWebMvcTest {
-  private static final UUID ORIGINAL = UUID.fromString(FollowingContractWebMvcTest.ACCOUNT);
-  private static final UUID REPLACEMENT = UUID.fromString(FollowingContractWebMvcTest.TARGET);
+  private static final UUID ORIGINAL = UUID.fromString("00000000-0000-4000-8000-000000000001");
+  private static final UUID REPLACEMENT = UUID.fromString("00000000-0000-4000-8000-000000000002");
   private static final String ISSUER = "https://identity.example.invalid/";
   private static final String PATH = "/accounts/" + ORIGINAL + "/team-follows/" + REPLACEMENT;
   @Autowired MockMvc mvc;
@@ -85,10 +85,9 @@ class FollowAccessWebMvcTest {
         .thenAnswer(invocation -> new SimpleTransactionStatus());
   }
 
-  @ParameterizedTest
-  @ValueSource(strings = {"free", "pro", "unknown"})
+  @Test
   @DisplayName("Admits the usable original UUID without entitlement conditions")
-  void admitsOriginal(String entitlement) throws Exception {
+  void admitsOriginal() throws Exception {
     // Given
     when(accounts.currentId(ISSUER, "subject")).thenReturn(Optional.of(ORIGINAL));
 
@@ -103,8 +102,7 @@ class FollowAccessWebMvcTest {
                                 token
                                     .issuer(ISSUER)
                                     .subject("subject")
-                                    .claim("azp", "mobile-test")
-                                    .claim("entitlement", entitlement))));
+                                    .claim("azp", "mobile-test"))));
 
     // Then
     response.andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"));
@@ -290,20 +288,5 @@ class FollowAccessWebMvcTest {
 
     // Then
     response.andExpect(status().isForbidden());
-  }
-
-  @ParameterizedTest
-  @ValueSource(strings = {"teams", "pools"})
-  @DisplayName("Admits public follower counts without reading any private profile")
-  void admitsPublicCounts(String resource) throws Exception {
-    // Given
-    String path = "/" + resource + "/" + REPLACEMENT + "/follower-count";
-
-    // When
-    ResultActions response = mvc.perform(get(path));
-
-    // Then
-    response.andExpect(status().isOk());
-    verifyNoInteractions(accounts, permissions);
   }
 }

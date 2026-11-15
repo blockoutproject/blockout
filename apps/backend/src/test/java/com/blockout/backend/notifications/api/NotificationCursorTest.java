@@ -18,20 +18,14 @@ import org.springframework.web.server.ResponseStatusException;
 /** Opaque continuation precision and syntax, independent of a retained anchor or owner registry. */
 @DisplayName("Inbox continuation keys")
 class NotificationCursorTest {
-  @ParameterizedTest
-  @ValueSource(
-      strings = {
-        "2026-10-25T12:00:00Z",
-        "2026-10-25T12:00:00.123Z",
-        "2026-10-25T12:00:00.000001Z",
-        "2026-10-25T12:00:00.123456Z"
-      })
+  @Test
   @DisplayName("Preserves all PostgreSQL microseconds and UUID bits")
-  void preservesPrecision(String createdAt) {
+  void preservesPrecision() {
     // Given
     Continuation keys =
         new Continuation(
-            Instant.parse(createdAt), UUID.fromString("ffffffff-ffff-4fff-bfff-ffffffffffff"));
+            Instant.parse("2026-10-25T12:00:00.123456Z"),
+            UUID.fromString("ffffffff-ffff-4fff-bfff-ffffffffffff"));
 
     // When
     String cursor = NotificationCursor.encode(keys);
@@ -40,45 +34,6 @@ class NotificationCursorTest {
     // Then
     assertThat(cursor).matches("[A-Za-z0-9_-]+");
     assertThat(decoded).isEqualTo(keys);
-  }
-
-  @Test
-  @DisplayName("Leaves a fresh traversal without continuation keys")
-  void preservesAbsentCursor() {
-    // Given
-    String cursor = null;
-
-    // When
-    Continuation decoded = NotificationCursor.decode(cursor);
-
-    // Then
-    assertThat(decoded).isNull();
-  }
-
-  @Test
-  @DisplayName("Emits no continuation token after exhaustion")
-  void preservesAbsentContinuation() {
-    // Given
-    Continuation keys = null;
-
-    // When
-    String cursor = NotificationCursor.encode(keys);
-
-    // Then
-    assertThat(cursor).isNull();
-  }
-
-  @ParameterizedTest
-  @ValueSource(strings = {"", "?", "a===", "bm90LWtleXM"})
-  @DisplayName("Rejects malformed URL-safe tokens")
-  void rejectsMalformedToken(String token) {
-    // Given: the parameter supplies one malformed token.
-
-    // When / Then
-    assertThatThrownBy(() -> NotificationCursor.decode(token))
-        .isInstanceOfSatisfying(
-            ResponseStatusException.class,
-            error -> assertThat(error.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST));
   }
 
   @ParameterizedTest

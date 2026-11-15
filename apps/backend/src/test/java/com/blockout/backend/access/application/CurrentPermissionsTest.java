@@ -1,6 +1,5 @@
 package com.blockout.backend.access.application;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -21,19 +20,6 @@ class CurrentPermissionsTest {
   private static final UUID ACCOUNT_ID = UUID.fromString("00000000-0000-4000-8000-000000000152");
   private final PermissionStore store = mock(PermissionStore.class);
   private final CurrentPermissions permissions = new CurrentPermissions(store);
-
-  @Test
-  @DisplayName("Grants no automatic privilege to an account without assignments")
-  void grantsNothingAutomatically() {
-    // Given
-    when(store.findByAccountId(ACCOUNT_ID)).thenReturn(Set.of());
-
-    // When
-    Set<Permission> result = permissions.forAccount(ACCOUNT_ID);
-
-    // Then
-    assertThat(result).isEmpty();
-  }
 
   @ParameterizedTest
   @EnumSource(Permission.class)

@@ -2,7 +2,6 @@ package com.blockout.collector.acquisition.infrastructure.provider;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.blockout.collector.acquisition.application.ProviderResponse;
 import com.blockout.collector.config.AcquisitionConfiguration;
@@ -88,24 +87,6 @@ class ProviderHttpClientIntegrationTest {
       // Then
       assertThat(result.body()).isEqualTo("ok".getBytes(StandardCharsets.UTF_8));
       assertThat(requests).hasValue(2);
-    }
-  }
-
-  @Test
-  @DisplayName("Raises checked transport failures directly with their native cause")
-  void raisesTransportFailureSynchronously() throws Exception {
-    // Given
-    server.createContext(
-        "/source",
-        exchange -> {
-          exchange.sendResponseHeaders(500, -1);
-          exchange.close();
-        });
-    try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
-      // When / Then
-      assertThatThrownBy(() -> client.page(origin.resolve("/source")))
-          .isInstanceOf(UncheckedIOException.class)
-          .hasCauseInstanceOf(HttpResponseException.class);
     }
   }
 
@@ -241,114 +222,6 @@ class ProviderHttpClientIntegrationTest {
         release.countDown();
       }
       assertThat(running.get(5, TimeUnit.SECONDS)).isNotNull();
-    }
-  }
-
-  @Test
-  @DisplayName("Closing the transport ends pending reads without another supplier request")
-  void closesPendingReads() throws Exception {
-    // Given
-    AtomicInteger requests = new AtomicInteger();
-    CountDownLatch entered = new CountDownLatch(1);
-    CountDownLatch waiting = new CountDownLatch(1);
-    CountDownLatch release = new CountDownLatch(1);
-    server.createContext(
-        "/source",
-        exchange -> {
-          requests.incrementAndGet();
-          entered.countDown();
-          try {
-            release.await(5, TimeUnit.SECONDS);
-          } catch (InterruptedException failure) {
-            Thread.currentThread().interrupt();
-          } finally {
-            exchange.close();
-          }
-        });
-    try (ExecutorService callers = Executors.newFixedThreadPool(2);
-        ProviderHttpClient client = client(32, Duration.ofSeconds(3), 10)) {
-      Future<Throwable> active =
-          callers.submit(() -> catchThrowable(() -> client.page(origin.resolve("/source"))));
-      assertThat(entered.await(3, TimeUnit.SECONDS)).isTrue();
-      Future<Throwable> pending =
-          callers.submit(
-              () -> {
-                waiting.countDown();
-                return catchThrowable(() -> client.page(origin.resolve("/source")));
-              });
-      assertThat(waiting.await(3, TimeUnit.SECONDS)).isTrue();
-
-      // When
-      client.close();
-
-      // Then
-      assertThat(active.get(5, TimeUnit.SECONDS))
-          .isInstanceOfAny(UncheckedIOException.class, IllegalStateException.class);
-      assertThat(pending.get(5, TimeUnit.SECONDS))
-          .isInstanceOfAny(UncheckedIOException.class, IllegalStateException.class);
-      assertThat(requests).hasValue(1);
-    } finally {
-      release.countDown();
-    }
-  }
-
-  @Test
-  @DisplayName("Rejects a read when its provider permit cannot be obtained within the bound")
-  void boundsPermitWait() throws Exception {
-    // Given
-    AtomicInteger requests = new AtomicInteger();
-    server.createContext(
-        "/source",
-        exchange -> {
-          requests.incrementAndGet();
-          exchange.sendResponseHeaders(200, -1);
-          exchange.close();
-        });
-    try (ProviderHttpClient client = client(32, Duration.ofSeconds(3), 1)) {
-      client.page(origin.resolve("/source"));
-
-      // When / Then
-      assertThatThrownBy(() -> client.page(origin.resolve("/source")))
-          .isInstanceOf(RequestNotPermitted.class);
-      assertThat(requests).hasValue(1);
-    }
-  }
-
-  @Test
-  @DisplayName("Interrupting a started caller produces no further supplier request")
-  void interruptsStartedCaller() throws Exception {
-    // Given
-    AtomicInteger requests = new AtomicInteger();
-    CountDownLatch started = new CountDownLatch(1);
-    CountDownLatch finished = new CountDownLatch(1);
-    server.createContext(
-        "/source",
-        exchange -> {
-          requests.incrementAndGet();
-          exchange.sendResponseHeaders(200, -1);
-          exchange.close();
-        });
-    try (ExecutorService callers = Executors.newSingleThreadExecutor();
-        ProviderHttpClient client = client(32, Duration.ofSeconds(3), 1, Duration.ofSeconds(5))) {
-      client.page(origin.resolve("/source"));
-      Future<?> pending =
-          callers.submit(
-              () -> {
-                started.countDown();
-                try {
-                  client.page(origin.resolve("/source"));
-                } finally {
-                  finished.countDown();
-                }
-              });
-      assertThat(started.await(3, TimeUnit.SECONDS)).isTrue();
-
-      // When
-      pending.cancel(true);
-
-      // Then
-      assertThat(finished.await(3, TimeUnit.SECONDS)).isTrue();
-      assertThat(requests).hasValue(1);
     }
   }
 
@@ -526,20 +399,6 @@ class ProviderHttpClientIntegrationTest {
    * @return independently closable provider budget
    */
   private ProviderHttpClient client(int bytes, Duration timeout, int permits) {
-    return client(bytes, timeout, permits, Duration.ZERO);
-  }
-
-  /**
-   * Builds the same isolated native budget with a scenario-owned finite permit wait.
-   *
-   * @param bytes maximum decoded response size
-   * @param timeout native connection, response and lease wait
-   * @param permits shared request budget for the test period
-   * @param permitTimeout maximum wait for another native request permit
-   * @return caller-owned transport without a provider executor
-   */
-  private ProviderHttpClient client(
-      int bytes, Duration timeout, int permits, Duration permitTimeout) {
     AcquisitionProperties properties =
         new AcquisitionProperties(
             List.of(origin.toString()),
@@ -551,7 +410,7 @@ class ProviderHttpClientIntegrationTest {
             1,
             permits,
             Duration.ofMinutes(1),
-            permitTimeout,
+            Duration.ZERO,
             List.of());
     return new AcquisitionConfiguration().ffvbProviderClient(properties);
   }

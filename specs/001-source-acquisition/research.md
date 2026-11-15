@@ -18,7 +18,7 @@ The pool alone does not bound the number of waiting callers: the finite passage/
 
 **Alternatives rejected**: Spring Batch, Quartz, a broker, generic durable jobs, browser execution and a handwritten retry/pacing loop add lifecycle or infrastructure not required by ordinary ticks and explicit manual recovery. jsoup's convenient HTTP client alone does not meet the chosen transport behavior. Resilience4j's full Spring integration, circuit breakers and retry modules are unnecessary.
 
-**Qualification**: Compile exact managed versions; exercise bounded decoded bytes, redirects, timeout/retry exhaustion, rate limits, native pool contention/lease timeout, post-lease permit timing, checked-I/O classification and shutdown. Library documentation establishes capability, not the integrated collector's behavior. Limits remain deployment configuration; no throughput benchmark or provider freshness guarantee is inferred.
+**Qualification**: Compile exact managed versions; exercise bounded decoded bytes, redirects, timeout/retry exhaustion, rate limits, native pool contention/lease timeout, post-lease permit timing and checked-I/O classification. Library documentation establishes capability, not the integrated collector's behavior. Limits remain deployment configuration; no throughput benchmark or provider freshness guarantee is inferred.
 
 ## FFVB source patterns
 

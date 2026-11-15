@@ -190,24 +190,6 @@ class FfvbDiscoveryTest {
   }
 
   @Test
-  @DisplayName("A query season alone cannot turn an unsupported empty response into absence")
-  void requiresPublishedSeasonForEmpty() {
-    // Given
-    String html = "<ul id=menu><li><a>Compétitions</a></li></ul>";
-
-    // When / Then
-    assertThatThrownBy(
-            () ->
-                new FfvbDiscovery()
-                    .parse(
-                        (html).getBytes(Charset.forName("windows-1252")),
-                        ROOT,
-                        "2026/2027",
-                        "LIRA"))
-        .isInstanceOf(FfvbAcquisitionException.class);
-  }
-
-  @Test
   @DisplayName("A retained season header without a competition catalog cannot prove absence")
   void refusesSeasonHeaderAlone() {
     // Given

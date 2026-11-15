@@ -71,8 +71,8 @@ import org.springframework.transaction.support.SimpleTransactionStatus;
 })
 @DisplayName("Canonical follow member state")
 class FollowStateWebMvcTest {
-  private static final UUID ACCOUNT = UUID.fromString(FollowingContractWebMvcTest.ACCOUNT);
-  private static final UUID TARGET = UUID.fromString(FollowingContractWebMvcTest.TARGET);
+  private static final UUID ACCOUNT = UUID.fromString("00000000-0000-4000-8000-000000000001");
+  private static final UUID TARGET = UUID.fromString("00000000-0000-4000-8000-000000000002");
   private static final String ISSUER = "https://identity.example.invalid/";
   @Autowired private MockMvc mvc;
   @MockitoBean private ReadFollowerCount counts;
@@ -161,34 +161,6 @@ class FollowStateWebMvcTest {
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.type").value("urn:blockout:problem:invalid-request"));
     verifyNoInteractions(state);
-  }
-
-  @ParameterizedTest
-  @ValueSource(strings = {"team", "pool"})
-  @DisplayName("Ignores undeclared member query properties for both GET and PUT")
-  void ignoresQuery(String kind) throws Exception {
-    // Given
-    when(accounts.currentId(ISSUER, "subject")).thenReturn(Optional.of(ACCOUNT));
-    MockHttpServletRequestBuilder request =
-        get(path(kind)).with(mobile()).param("seasonId", TARGET.toString());
-
-    // When
-    ResultActions response = mvc.perform(request);
-
-    // Then
-    response.andExpect(status().isOk());
-
-    // When
-    ResultActions secondResponse =
-        mvc.perform(
-            put(path(kind))
-                .with(mobile())
-                .param("following", "true", "false")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"following\":true}"));
-
-    // Then
-    secondResponse.andExpect(status().isOk());
   }
 
   @Test

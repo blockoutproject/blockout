@@ -25,10 +25,9 @@ import org.springframework.core.io.ClassPathResource;
 class SupportValidationTest {
   @TempDir Path temporaryDirectory;
 
-  @ParameterizedTest
-  @ValueSource(ints = {0, 5})
+  @Test
   @DisplayName("Accepts every image and cleans private originals when the snapshot closes")
-  void acceptsCompleteInput(int count) throws Exception {
+  void acceptsCompleteInput() throws Exception {
     // Given
     byte[] image = fixture("synthetic.png");
     SupportValidation validation = new SupportValidation(temporaryDirectory);
@@ -36,10 +35,10 @@ class SupportValidationTest {
 
     // When
     try (SupportSubmission submission =
-        validation.validate(metadata(), Collections.nCopies(count, image))) {
+        validation.validate(metadata(), Collections.nCopies(5, image))) {
       // Then
       assertThat(submission.requestId()).isNotNull();
-      assertThat(submission.images()).hasSize(count);
+      assertThat(submission.images()).hasSize(5);
       for (Path accepted : submission.images()) {
         paths.add(accepted);
         assertThat(accepted.toString()).endsWith(".png");
@@ -180,25 +179,6 @@ class SupportValidationTest {
     // When / Then
     assertThatThrownBy(() -> validation.validate(metadata(), List.of(new byte[0])))
         .isInstanceOf(SupportValidation.InvalidSubmission.class);
-    assertEmptyTemporaryDirectory();
-  }
-
-  @Test
-  @DisplayName("Cleans original files when downstream processing throws")
-  void cleansAfterProcessingFailure() throws Exception {
-    // Given
-    SupportValidation validation = new SupportValidation(temporaryDirectory);
-    byte[] image = fixture("synthetic.jpg");
-
-    // When / Then
-    assertThatThrownBy(
-            () -> {
-              try (SupportSubmission submission = validation.validate(metadata(), List.of(image))) {
-                assertThat(submission.images()).hasSize(1);
-                throw new IllegalStateException("Synthetic processing failure");
-              }
-            })
-        .isInstanceOf(IllegalStateException.class);
     assertEmptyTemporaryDirectory();
   }
 

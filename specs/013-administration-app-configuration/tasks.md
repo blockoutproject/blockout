@@ -147,7 +147,7 @@ description: "Implementation tasks for F12 administration and application access
 
 ### Tests for User Story 4
 
-- [x] T032 [US4] Prepare failing maintenance-consumer cases in `apps/backend/src/test/java/com/blockout/backend/notifications/application/MaintenancePushAdmissionTest.java` against the concrete F07-owned SportingPushAdmission policy using T025's actual current-maintenance read and controlled handoff context, before the provider sender exists. Cover current maintenance immediately before each provider-handoff admission, ordinary and bypass recipients, no mutation of inbox/purge state, activation after an earlier admission, no recall claim and no replay on reopening; controlled provider results prepare the policy proof without claiming an actual send.
+- [x] T032 [US4] Verify the concrete F07 producer/inbox/sender/purge and T025's current SQL maintenance read in `apps/backend/src/test/java/com/blockout/backend/notifications/application/MaintenanceNotificationIntegrationTest.java`. Cover maintenance before each new provider handoff, ordinary and bypass recipients, retained inbox and purge, activation after an earlier admission and no replay on reopening. Controlled provider results establish handoff behavior without claiming physical receipt or remote recall.
 
 ### Implementation and qualification for User Story 4
 
