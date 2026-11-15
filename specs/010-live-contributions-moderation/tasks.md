@@ -30,7 +30,7 @@ description: "Implementation tasks for F08 live contributions and moderation"
 **Purpose**: Reuse the selected applications, contract tooling and database posture.
 
 - [x] T001 Verify F13 T001–T017's foundation in `apps/backend/pom.xml`, `apps/mobile/package.json`, `apps/mobile/orval.config.ts` and `README.md`: Java 25/Spring Boot 4.1.1, PostgreSQL 18.6, Expo 58/React Native 0.88/React 19.3.0, pinned TanStack Query and existing JUnit/Testcontainers/Jest tooling. Reuse Java URI/time, JPA and native forms; no dependency upgrade or video-provider client. Resolve only the bounded owner inputs below.
-- [x] T002 Inspect `apps/backend/src/main/resources/db/changelog/db.changelog-master.xml` and actual environment posture through `README.md`; preserve the applied XML creation chain and append data-preserving owner changes under [F13's schema lifecycle](../003-shared-quality/plan.md#runtime-data-and-consistency). Preserve F13 application/migration role separation; no reset or speculative release migration.
+- [x] T002 Inspect `apps/backend/src/main/resources/db/changelog/db.changelog-master.xml` and actual environment posture through `README.md`; maintain the current initial XML schema under [F13's predeployment lifecycle](../003-shared-quality/plan.md#runtime-data-and-consistency), without alteration changeSets. Preserve F13 application/migration role separation; no reset or speculative release migration.
 
 ---
 

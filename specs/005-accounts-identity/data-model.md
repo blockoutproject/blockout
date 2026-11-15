@@ -1,6 +1,6 @@
 # Data model: accounts and erasure
 
-**Authority**: [spec](spec.md), [plan](plan.md). These are logical persistence and lifecycle decisions; Liquibase evolution and JPA mappings follow F13's retained-data policy.
+**Authority**: [spec](spec.md), [plan](plan.md). These are logical persistence and lifecycle decisions; initial Liquibase definitions and JPA mappings follow F13's predeployment baseline posture.
 
 ## Active account
 

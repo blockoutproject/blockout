@@ -127,7 +127,7 @@ Verify that current `collection.manage` authorizes operational preparation durin
 
 Exercise bounded supplier transport through controlled HTTP peers, including native retries/redirects, decoded limits, connection lease and request permits. F01 FR-037’s at-most-two-additional supplier attempts are separate from F13’s shared mobile GET retry budget. Check one-attempt terminal calls and ordinary polling after failure without a second inhibition set. The [ordered uncertainty cases](#ordered-uncertainty-cases) define lost-response and replacement behavior.
 
-For retained-state upgrades, preserve applied checksums, current ordering/outcomes/reasons/counts and latest attempt/useful success. Stop incompatible writers and check admitted consumers before the [local data-integrity boundary](../003-shared-quality/plan.md#data-integrity-and-reuse); application rollback cannot recreate removed outage-clock values. Use an isolated disposable database for fault injection. Prototype/Figma approval, synthetic peers and application checks do not establish live-provider or native qualification.
+Create the current initial collection schema on isolated disposable PostgreSQL, following [F13’s predeployment posture](../003-shared-quality/plan.md#runtime-data-and-consistency). Verify current ordering/outcomes/reasons/counts and latest attempt/useful success, with no obsolete outage-clock fields or removal migrations. Use the same isolated ownership for fault injection; this fresh-creation proof establishes no upgrade of an existing database. Prototype/Figma approval, synthetic peers and application checks do not establish live-provider or native qualification.
 
 ## Ordered uncertainty cases
 

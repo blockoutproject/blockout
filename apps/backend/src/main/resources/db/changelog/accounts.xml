@@ -2,7 +2,7 @@
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
-  <!-- Creation baseline; the master changelog owns applied-history and no-reset policy. -->
+  <!-- Initial domain schema; the master changelog owns the predeployment baseline posture. -->
   <changeSet id="accounts" author="blockout">
     <createTable tableName="account">
       <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
@@ -10,7 +10,6 @@
       <column name="subject" type="TEXT"><constraints nullable="false"/></column>
       <column name="username" type="VARCHAR(32)"><constraints nullable="false"/></column>
       <column name="email" type="TEXT"><constraints nullable="false"/></column>
-      <column name="principal_created_at" type="TIMESTAMP WITH TIME ZONE"/>
       <column name="photo_bytes" type="BYTEA"/>
       <column name="photo_media_type" type="VARCHAR(255)"/>
       <column name="photo_dimension" type="INTEGER"/>
@@ -30,8 +29,5 @@
           AND photo_dimension BETWEEN 1 AND 1024)
       );
     </sql>
-  </changeSet>
-  <changeSet id="accounts-remove-principal-created-at" author="blockout">
-    <dropColumn tableName="account" columnName="principal_created_at"/>
   </changeSet>
 </databaseChangeLog>

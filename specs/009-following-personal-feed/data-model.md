@@ -15,7 +15,7 @@ True from absence creates a UUID; repeated true retains it. False removes the ro
 
 Account deletion removes both associations in the same local transaction under F05's account lock. Never cascade a follow removal into a sporting target. Sporting hiding/restoration preserves associations and only changes their visibility in reads. A newly established account receives a new identity and no old relationships. F14 does not import V1 personal follows.
 
-Follow [F13's retained-data schema lifecycle](../003-shared-quality/plan.md#runtime-data-and-consistency): preserve the applied Liquibase XML creation chain and append data-preserving owner changes. Application startup validates the schema; local development authorizes no baseline rewrite, reset or checksum clearing.
+Follow [F13's predeployment schema lifecycle](../003-shared-quality/plan.md#runtime-data-and-consistency): keep the current follow tables, keys and indexes in the initial Liquibase XML definitions for fresh disposable V2 databases, without alteration changeSets. Application startup validates the schema and performs no initialization or reset.
 
 ## Derived read models
 

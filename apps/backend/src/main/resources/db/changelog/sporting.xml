@@ -2,7 +2,7 @@
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
-  <!-- Keep applied F02 changeSets intact; append retained-data changes without an environment reset. -->
+  <!-- Initial sporting schema. -->
   <changeSet id="sporting-identities" author="blockout">
     <createTable tableName="sporting_season">
       <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
@@ -34,11 +34,8 @@
       <column name="reference" type="TEXT"><constraints nullable="false"/></column>
       <column name="source_name" type="TEXT"><constraints nullable="true"/></column>
       <column name="manual_name" type="TEXT"></column>
-      <column name="presentation_revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
       <column name="logo" type="BYTEA"></column>
       <column name="logo_media_type" type="VARCHAR(255)"></column>
-      <column name="contacts_revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
-      <column name="logo_revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
       <column name="latitude" type="DOUBLE PRECISION"></column>
       <column name="longitude" type="DOUBLE PRECISION"></column>
       <column name="detail_cycle_order" type="BIGINT"></column>
@@ -103,8 +100,11 @@
       <column name="setting_format" type="VARCHAR(255)"/>
       <column name="setting_gender" type="VARCHAR(255)"/>
       <column name="manual_name" type="TEXT"></column>
-      <column name="presentation_revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
       <column name="manual_short_name" type="TEXT"></column>
+      <column name="calendar_cycle_order" type="BIGINT"/>
+      <column name="calendar_read_ordinal" type="BIGINT"/>
+      <column name="completed_cycle_order" type="BIGINT"/>
+      <column name="completed_read_ordinal" type="BIGINT"/>
     </createTable>
     <addForeignKeyConstraint baseTableName="sporting_pack" baseColumnNames="setting_division_id" referencedTableName="sporting_division" referencedColumnNames="id" constraintName="fk_pack_setting_division"/>
     <addForeignKeyConstraint baseTableName="sporting_pool" baseColumnNames="setting_division_id" referencedTableName="sporting_division" referencedColumnNames="id" constraintName="fk_pool_setting_division"/>
@@ -122,7 +122,6 @@
       <column name="format" type="VARCHAR(255)"><constraints nullable="false"/></column>
       <column name="gender" type="VARCHAR(255)"><constraints nullable="false"/></column>
       <column name="manual_name" type="TEXT"></column>
-      <column name="presentation_revision" type="BIGINT" defaultValueNumeric="0"><constraints nullable="false"/></column>
       <column name="manual_short_name" type="TEXT"></column>
       <column name="logo" type="BYTEA"></column>
       <column name="logo_media_type" type="VARCHAR(255)"></column>
@@ -149,6 +148,41 @@
       <column name="home_team_id" type="UUID"><constraints nullable="false"/></column>
       <column name="away_team_id" type="UUID"><constraints nullable="false"/></column>
       <column name="local_date" type="DATE"><constraints nullable="true"/></column>
+      <column name="accepted_cycle_order" type="BIGINT"/>
+      <column name="accepted_read_ordinal" type="BIGINT"/>
+      <column name="local_time" type="VARCHAR(5)"/>
+      <column name="time_zone" type="VARCHAR(255)"/>
+      <column name="schedule_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="schedule_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="reference_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="reference_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="result_state" type="VARCHAR(255)"/>
+      <column name="home_sets" type="INT"/>
+      <column name="away_sets" type="INT"/>
+      <column name="special_label" type="VARCHAR(255)"/>
+      <column name="uninterpreted_result" type="TEXT"/>
+      <column name="venue_name" type="TEXT"/>
+      <column name="venue_address" type="TEXT"/>
+      <column name="professional_stream_url" type="TEXT"/>
+      <column name="scoresheet_url" type="TEXT"/>
+      <column name="statistics_url" type="TEXT"/>
+      <column name="document_season_label" type="TEXT"/>
+      <column name="document_organizer_reference" type="TEXT"/>
+      <column name="document_match_code" type="TEXT"/>
+      <column name="result_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="result_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="sets_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="sets_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="venue_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="venue_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="referees_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="referees_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="stream_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="stream_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="documents_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="documents_published_at" type="TIMESTAMP WITH TIME ZONE"/>
+      <column name="sets_available" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
+      <column name="referees_available" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
     </createTable>
     <createTable tableName="sporting_club_alias">
       <column name="club_id" type="UUID"><constraints nullable="false"/></column>
@@ -230,24 +264,6 @@
   </changeSet>
 
   <changeSet id="sporting-ingestion" author="blockout">
-    <addColumn tableName="sporting_pool">
-      <column name="calendar_cycle_order" type="BIGINT"/>
-      <column name="calendar_read_ordinal" type="BIGINT"/>
-      <column name="completed_cycle_order" type="BIGINT"/>
-      <column name="completed_read_ordinal" type="BIGINT"/>
-    </addColumn>
-    <addColumn tableName="sporting_match">
-      <column name="accepted_cycle_order" type="BIGINT"/>
-      <column name="accepted_read_ordinal" type="BIGINT"/>
-    </addColumn>
-    <addColumn tableName="sporting_match">
-      <column name="local_time" type="VARCHAR(5)"/>
-      <column name="time_zone" type="VARCHAR(255)"/>
-      <column name="schedule_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
-      <column name="schedule_published_at" type="TIMESTAMP WITH TIME ZONE"/>
-      <column name="reference_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
-      <column name="reference_published_at" type="TIMESTAMP WITH TIME ZONE"/>
-    </addColumn>
     <createTable tableName="sporting_catalog">
       <column name="source_id" type="UUID"><constraints primaryKey="true" nullable="false"/></column>
       <column name="cycle_order" type="BIGINT"><constraints nullable="false"/></column>
@@ -257,35 +273,6 @@
     </createTable>
   </changeSet>
   <changeSet id="sporting-match-details" author="blockout">
-    <addColumn tableName="sporting_match">
-      <column name="result_state" type="VARCHAR(255)"/>
-      <column name="home_sets" type="INT"/>
-      <column name="away_sets" type="INT"/>
-      <column name="special_label" type="VARCHAR(255)"/>
-      <column name="uninterpreted_result" type="TEXT"/>
-      <column name="venue_name" type="TEXT"/>
-      <column name="venue_address" type="TEXT"/>
-      <column name="professional_stream_url" type="TEXT"/>
-      <column name="scoresheet_url" type="TEXT"/>
-      <column name="statistics_url" type="TEXT"/>
-      <column name="document_season_label" type="TEXT"/>
-      <column name="document_organizer_reference" type="TEXT"/>
-      <column name="document_match_code" type="TEXT"/>
-      <column name="result_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
-      <column name="result_published_at" type="TIMESTAMP WITH TIME ZONE"/>
-      <column name="sets_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
-      <column name="sets_published_at" type="TIMESTAMP WITH TIME ZONE"/>
-      <column name="venue_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
-      <column name="venue_published_at" type="TIMESTAMP WITH TIME ZONE"/>
-      <column name="referees_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
-      <column name="referees_published_at" type="TIMESTAMP WITH TIME ZONE"/>
-      <column name="stream_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
-      <column name="stream_published_at" type="TIMESTAMP WITH TIME ZONE"/>
-      <column name="documents_observed_at" type="TIMESTAMP WITH TIME ZONE"/>
-      <column name="documents_published_at" type="TIMESTAMP WITH TIME ZONE"/>
-      <column name="sets_available" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
-      <column name="referees_available" type="BOOLEAN" defaultValueBoolean="false"><constraints nullable="false"/></column>
-    </addColumn>
     <createTable tableName="sporting_match_set">
       <column name="match_id" type="UUID"><constraints nullable="false"/></column>
       <column name="set_index" type="INT"><constraints nullable="false"/></column>
@@ -343,16 +330,5 @@
     </createTable>
     <addPrimaryKey tableName="sporting_standing_statistic" columnNames="row_id,label" constraintName="pk_standing_statistic"/>
     <addForeignKeyConstraint baseTableName="sporting_standing_statistic" baseColumnNames="row_id" referencedTableName="sporting_standing_row" referencedColumnNames="id" constraintName="fk_standing_statistic_row"/>
-  </changeSet>
-  <changeSet id="sporting-team-presentation-independence-20261101" author="blockout">
-    <comment>Team edit revisions no longer depend on inherited club artwork; retain all logo bytes.</comment>
-    <dropColumn tableName="sporting_club" columnName="logo_revision"/>
-  </changeSet>
-  <changeSet id="sporting-remove-editor-revisions-20261115" author="blockout">
-    <comment>Remove counters used only by manual editor preconditions; retain sporting values and native transaction versions.</comment>
-    <dropColumn tableName="sporting_club" columnName="presentation_revision"/>
-    <dropColumn tableName="sporting_club" columnName="contacts_revision"/>
-    <dropColumn tableName="sporting_team" columnName="presentation_revision"/>
-    <dropColumn tableName="sporting_pool" columnName="presentation_revision"/>
   </changeSet>
 </databaseChangeLog>

@@ -2,7 +2,7 @@
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
-  <!-- Creation baseline; the master changelog owns applied-history and no-reset policy. -->
+  <!-- Initial domain schema; the master changelog owns the predeployment baseline posture. -->
   <changeSet id="notifications-baseline" author="blockout">
     <createTable tableName="match_announcement">
       <column name="match_id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
@@ -27,9 +27,6 @@
     <createIndex tableName="notification" indexName="ix_notification_owner_date_id">
       <column name="account_id"/><column name="created_at" descending="true"/><column name="id" descending="true"/>
     </createIndex>
-    <createIndex tableName="notification" indexName="ix_notification_owner_read">
-      <column name="account_id"/><column name="is_read"/>
-    </createIndex>
     <createIndex tableName="notification" indexName="ix_notification_age"><column name="created_at"/></createIndex>
     <createTable tableName="push_subscription">
       <column name="id" type="UUID"><constraints nullable="false" primaryKey="true"/></column>
@@ -44,13 +41,5 @@
     <addUniqueConstraint tableName="push_subscription" columnNames="installation_id" constraintName="uk_push_subscription_installation"/>
     <addUniqueConstraint tableName="push_subscription" columnNames="expo_push_token" constraintName="uk_push_subscription_address"/>
     <createIndex tableName="push_subscription" indexName="ix_push_subscription_account"><column name="account_id"/></createIndex>
-  </changeSet>
-  <changeSet id="notifications-remove-unread-index" author="blockout">
-    <dropIndex tableName="notification" indexName="ix_notification_owner_read"/>
-    <rollback>
-      <createIndex tableName="notification" indexName="ix_notification_owner_read">
-        <column name="account_id"/><column name="is_read"/>
-      </createIndex>
-    </rollback>
   </changeSet>
 </databaseChangeLog>

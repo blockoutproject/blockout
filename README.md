@@ -182,7 +182,7 @@ LIQUIBASE_PASSWORD=local-migration-only \
 npx nx run backend:migrate
 ```
 
-The [XML entry point](apps/backend/src/main/resources/db/changelog/db.changelog-master.xml) includes the domain creation chain and appended owner migrations. Backend startup disables SQL initialization and uses Hibernate validation; Liquibase is confined to the migration plugin and integration tests, outside the application runtime. Preserve applied changeSets and retained data. The [schema lifecycle](specs/003-shared-quality/plan.md#runtime-data-and-consistency) owns compatibility and manual migration/restart limits; no reset is implied.
+The [XML entry point](apps/backend/src/main/resources/db/changelog/db.changelog-master.xml) includes the current domain creation definitions. V2 has not been deployed, and all V2 databases are disposable: edit the initial tables, columns, defaults, keys and indexes directly rather than append alteration changeSets. An edited baseline is for a freshly created schema; it does not upgrade an existing database. Backend startup disables SQL initialization and uses Hibernate validation; Liquibase is confined to the migration plugin and integration tests, outside the application runtime. The [schema lifecycle](specs/003-shared-quality/plan.md#runtime-data-and-consistency) owns this posture; no reset or volume deletion runs automatically. Reassess and freeze applied history before the first deployment retains data.
 
 ### Local search infrastructure
 
