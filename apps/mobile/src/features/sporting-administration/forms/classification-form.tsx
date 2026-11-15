@@ -21,6 +21,7 @@ import {
   type useClassification,
 } from "../api/classification";
 import { toClassificationRequest } from "../api/classification-request";
+import { isStaleRevision } from "../api/is-stale-revision";
 import { type ClassificationValues } from "../schemas/classification-schema";
 import { classificationValues } from "./classification-values";
 import type { useClassificationDraft } from "./use-classification-draft";
@@ -67,7 +68,7 @@ export function ClassificationForm({
     editing.save.isPending;
   const choicesUnavailable = !divisions.query.isSuccess;
   const choicesBusy = busy || divisions.query.isFetching || choicesUnavailable;
-  const rereadRequired = current !== null && current.revision !== revision;
+  const rereadRequired = isStaleRevision(editing.save.error);
   const choices =
     divisions.query.data?.items.filter((item) => item.active) ?? [];
   useEffect(() => {
@@ -158,6 +159,7 @@ export function ClassificationForm({
         revision: result.data.revision,
         feedback: "État relu. Vérifiez le brouillon puis enregistrez-le.",
       });
+      editing.save.reset();
     } finally {
       if (mounted.current) {
         setRereading(false);
