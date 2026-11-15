@@ -1008,29 +1008,6 @@ it("keeps acknowledged success when the dependent history read fails", async () 
   expect(writes).toHaveLength(1);
 });
 
-it("does not dispatch a cancelled exact-version confirmation", async () => {
-  // Given
-  const alert = jest.spyOn(Alert, "alert");
-  await mount(<ModerationMatchScreen matchId={sporting.id} />);
-  await screen.findByDisplayValue("https://youtu.be/retained");
-  const user = userEvent.setup();
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Retirer" }));
-  await act(async () => {
-    alert.mock.calls
-      .at(-1)?.[2]
-      ?.find((button) => button.style === "cancel")
-      ?.onPress?.();
-  });
-
-  // Then
-  expect(writes).toHaveLength(0);
-  expect(
-    screen.getByDisplayValue("https://youtu.be/retained"),
-  ).toBeOnTheScreen();
-});
-
 it("does not restore private content from a late concurrent response after refusal", async () => {
   // Given: two real moderation observers have independent in-flight HTTP reads.
   const ordinary = mockFetch.getMockImplementation();

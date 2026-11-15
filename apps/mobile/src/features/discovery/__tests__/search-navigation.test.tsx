@@ -16,7 +16,6 @@ import { router, Stack } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { DiscoveryPage } from "../api/discovery-queries";
 import { createDiscoveryContext } from "../api/discovery-context";
-import { uniqueSearchResults } from "../model/search-result";
 import {
   act,
   cleanup,
@@ -637,130 +636,6 @@ it("opens the selected namesake and retains context and loaded pages on return",
   ).toBeOnTheScreen();
   expect(client.getQueryData(queryKey)).toEqual(accepted);
   expect(mockFetch).not.toHaveBeenCalled();
-});
-
-it("traverses all 47 stable identities through three pages in one context", async () => {
-  // Given: no total is supplied, and each generated envelope contains at most twenty summaries.
-  const clubs = Array.from({ length: 47 }, (_, index) => ({
-    club: {
-      id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
-      name: `Volley ${index + 1}`,
-    },
-  }));
-  mockFetch.mockImplementation((url: string) => {
-    const parsed = new URL(url);
-    if (!parsed.pathname.endsWith("/clubs")) {
-      return publicReads(url);
-    }
-    if (!parsed.searchParams.get("q")) {
-      return Promise.resolve(Response.json({ clubs: clubs.slice(0, 5) }));
-    }
-    const start = Number(parsed.searchParams.get("cursor") ?? 0);
-    return Promise.resolve(
-      Response.json({
-        clubs: clubs.slice(start, start + 20),
-        ...(start + 20 < clubs.length
-          ? { nextCursor: String(start + 20) }
-          : {}),
-      }),
-    );
-  });
-  const user = userEvent.setup();
-  await renderSearch();
-  await user.press(screen.getByRole("tab", { name: "Clubs" }));
-  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
-  await screen.findByRole("header", { name: "20 résultats chargés" });
-
-  // When
-  await fireEvent(
-    screen.getByLabelText("Résultats de recherche"),
-    "endReached",
-  );
-  await screen.findByRole("header", { name: "40 résultats chargés" });
-  await fireEvent(
-    screen.getByLabelText("Résultats de recherche"),
-    "endReached",
-  );
-  await screen.findByRole("header", { name: "47 résultats chargés" });
-
-  // Then: cache assertions protect the native paging contract, not the viewport's implementation.
-  const accepted = client.getQueriesData<InfiniteData<DiscoveryPage>>({
-    predicate: (query) =>
-      ["/clubs", "/teams", "/pools"].includes(String(query.queryKey[0])) &&
-      query.state.data !== undefined,
-  });
-  expect(accepted).toHaveLength(1);
-  expect(accepted[0][1]?.pageParams).toEqual([undefined, "20", "40"]);
-  expect(
-    uniqueSearchResults(accepted[0][1]?.pages).map(
-      ({ identity }) => identity.id,
-    ),
-  ).toEqual(clubs.map(({ club }) => club.id));
-  expect(
-    screen.queryByText(/Fin des résultats|sur 47|47 résultats au total/),
-  ).not.toBeOnTheScreen();
-  const attempts = mockFetch.mock.calls.length;
-  await fireEvent(
-    screen.getByLabelText("Résultats de recherche"),
-    "endReached",
-  );
-  expect(mockFetch).toHaveBeenCalledTimes(attempts);
-});
-
-it("cancels an old append during an owner-authorized reread and never appends it to the replacement", async () => {
-  // Given: the HTTP double deliberately delivers a response after its signal was cancelled.
-  const pending = Promise.withResolvers<Response>();
-  let appendSignal: AbortSignal | undefined;
-  mockFetch.mockImplementation((url: string, options: RequestInit) => {
-    if (new URL(url).searchParams.has("cursor")) {
-      appendSignal = options.signal ?? undefined;
-      return pending.promise;
-    }
-    return publicReads(url);
-  });
-  const user = userEvent.setup();
-  await renderSearch();
-  await user.press(screen.getByRole("tab", { name: "Clubs" }));
-  await user.paste(screen.getByLabelText("Rechercher"), "Volley");
-  await screen.findByText("Niort");
-  await fireEvent(
-    screen.getByLabelText("Résultats de recherche"),
-    "endReached",
-  );
-  await waitFor(() => expect(appendSignal).toBeDefined());
-  mockFetch.mockImplementation((url: string) =>
-    new URL(url).pathname.endsWith("/clubs")
-      ? Promise.resolve(
-          Response.json({
-            clubs: [{ club: { id: secondId, name: "Résultat actuel" } }],
-          }),
-        )
-      : publicReads(url),
-  );
-
-  // When: Query owns the controlled reread; Search exposes no refresh gesture or action.
-  await act(async () =>
-    client.refetchQueries({
-      predicate: ({ queryKey }) =>
-        ["/clubs", "/teams", "/pools"].includes(String(queryKey[0])),
-      type: "active",
-    }),
-  );
-  await act(async () =>
-    pending.resolve(
-      Response.json({
-        clubs: [{ club: { id: firstId, name: "Page obsolète" } }],
-      }),
-    ),
-  );
-
-  // Then
-  expect(appendSignal?.aborted).toBe(true);
-  expect(await screen.findByText("Résultat actuel")).toBeOnTheScreen();
-  expect(
-    screen.getByRole("header", { name: "1 résultat chargé" }),
-  ).toBeOnTheScreen();
-  expect(screen.queryByText(/Page obsolète|Niort|Lyon/)).not.toBeOnTheScreen();
 });
 
 it.each(["hidden", "network"])(

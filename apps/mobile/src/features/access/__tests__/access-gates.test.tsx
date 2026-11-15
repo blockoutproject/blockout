@@ -152,7 +152,6 @@ async function openRoute(
       "(recovery)/support/_layout": SupportLayout,
       "(recovery)/support/index": SupportRoute,
       "(recovery)/support/choice": SupportChoiceRoute,
-      "(ordinary)/legal": () => <Text>Legal route</Text>,
       "(recovery)/sign-in": signIn,
       "(operations)/collection": () => null,
       "(operations)/administration/application-versions": () => null,
@@ -229,7 +228,7 @@ it("starts the public request while F14 initialization has not completed", async
   }
 });
 
-it.each(["/support", "/legal", "/sign-in", "/administration"])(
+it.each(["/support", "/sign-in", "/administration"])(
   "refuses the direct route %s after an unavailable public check",
   async (path) => {
     // Given
@@ -434,7 +433,7 @@ const operator = accountResponse({
 });
 
 it.each(["maintenance", "update"] as const)(
-  "keeps ordinary entry and legal/support/sign-in routes behind the %s gate",
+  "keeps ordinary entry and support/sign-in routes behind the %s gate",
   async (restriction) => {
     // Given
     const full = applicationAccessResponse();
@@ -469,7 +468,7 @@ it.each(["maintenance", "update"] as const)(
       router.push("/sign-in");
     });
     await act(async () => {
-      router.push("/legal");
+      router.push("/support");
     });
     await act(async () => {
       router.back();

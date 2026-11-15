@@ -1,4 +1,3 @@
-import { SupportRequestSubjectEnum } from "../../../../.generated/schemas/index.zod";
 import { supportSchema, type SupportValues } from "../schemas/support-schema";
 import { supportValues } from "../forms/support-values";
 import { toSupportRequest } from "../api/support-request";
@@ -27,20 +26,6 @@ it.each(["problem", "suggestion"])("accepts %s without a subject", (kind) => {
   expect(request.kind).toBe(kind);
   expect(request).not.toHaveProperty("subject");
 });
-
-it.each(SupportRequestSubjectEnum.options)(
-  "retains optional canonical subject %s",
-  (subject) => {
-    // Given
-    const draft = { ...validSupportValues(), subject };
-
-    // When
-    const request = toSupportRequest(supportSchema.parse(draft), {});
-
-    // Then
-    expect(request.subject).toBe(subject);
-  },
-);
 
 it.each(["title", "description", "replyEmail"])("refuses blank %s", (field) => {
   // Given

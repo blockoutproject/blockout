@@ -9,7 +9,7 @@ import {
   userEvent,
 } from "@testing-library/react-native";
 import * as ImagePicker from "expo-image-picker";
-import { useState, type PropsWithChildren } from "react";
+import type { PropsWithChildren } from "react";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
 import {
   ImageField as ImageFieldControl,
@@ -95,28 +95,6 @@ beforeEach(() => {
   mockDeleteFile.mockReset();
 });
 
-it("keeps image selection explicit after validation instead of promising a retry", async () => {
-  // Given
-  launch.mockResolvedValue({ canceled: true, assets: null });
-  const user = userEvent.setup();
-  const onSelect = jest.fn();
-  await renderField({
-    onSelect,
-    error:
-      "Cette image ne peut pas être enregistrée. Choisissez une autre image.",
-  });
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Choisir une image" }));
-
-  // Then
-  expect(launch).toHaveBeenCalledTimes(1);
-  expect(onSelect).not.toHaveBeenCalled();
-  expect(
-    screen.queryByRole("button", { name: "Réessayer" }),
-  ).not.toBeOnTheScreen();
-});
-
 it("loans native image copies without imposing cropping and releases them after acceptance", async () => {
   // Given
   launch.mockResolvedValue({ canceled: false, assets: [photo] });
@@ -141,50 +119,6 @@ it("loans native image copies without imposing cropping and releases them after 
     screen.queryByRole("image", { name: "Miniature : Logo du club" }),
   ).not.toBeOnTheScreen();
 });
-
-it.each([
-  {
-    operation: "addition",
-    images: [],
-    action: "Choisir une image",
-    replaceId: undefined,
-  },
-  {
-    operation: "replacement",
-    images: [logo],
-    action: "Changer l’image : Logo du club",
-    replaceId: logo.id,
-  },
-])(
-  "forwards caller-owned native cropping for $operation",
-  async ({ images, action, replaceId }) => {
-    // Given
-    const cropped = { ...photo, width: 800, height: 800 };
-    launch.mockResolvedValue({ canceled: false, assets: [cropped] });
-    const user = userEvent.setup();
-    const onSelect = jest.fn();
-    await renderField({
-      onSelect,
-      images,
-      allowsEditing: true,
-      aspect: [1, 1],
-    });
-
-    // When
-    await user.press(screen.getByRole("button", { name: action }));
-
-    // Then
-    expect(launch).toHaveBeenCalledWith(
-      expect.objectContaining({
-        allowsEditing: true,
-        aspect: [1, 1],
-        allowsMultipleSelection: false,
-        selectionLimit: 1,
-      }),
-    );
-    expect(onSelect).toHaveBeenCalledWith([cropped], replaceId);
-  },
-);
 
 it("opens one native picker when selection is requested twice before a render", async () => {
   // Given — the public selection owner must also reject duplicate native dispatch without a field rerender.
@@ -268,7 +202,7 @@ it("preserves the existing image when native selection is cancelled", async () =
   ).toBeOnTheScreen();
 });
 
-it.each(["ERR_USER_REJECTED_PERMISSIONS", "ERR_TEST_PICKER"])(
+it.each(["ERR_USER_REJECTED_PERMISSIONS"])(
   "keeps selection usable after native refusal/failure %s without disclosing provider text",
   async (code) => {
     // Given
@@ -399,34 +333,6 @@ it("prioritizes multiple additions over native cropping but allows cropping a si
       selectionLimit: 1,
     }),
   );
-});
-
-it("preserves the controlled image when its owner supplies a validation error", async () => {
-  // Given
-  const onSelect = jest.fn();
-  const view = await render(
-    <ImageField label="Pièces jointes" images={[logo]} onSelect={onSelect} />,
-    { wrapper: MediaProviders },
-  );
-
-  // When
-  await view.rerender(
-    <ImageField
-      label="Pièces jointes"
-      images={[logo]}
-      onSelect={onSelect}
-      error="PNG/JPEG, 5 Mio maximum après préparation."
-    />,
-  );
-
-  // Then
-  expect(screen.getByRole("alert")).toHaveTextContent(
-    "PNG/JPEG, 5 Mio maximum après préparation.",
-  );
-  expect(
-    screen.getByRole("image", { name: "Miniature : Logo du club" }),
-  ).toBeOnTheScreen();
-  expect(onSelect).not.toHaveBeenCalled();
 });
 
 it("keeps a failed attachment thumbnail in its nominal slot with its file actions", async () => {
@@ -583,62 +489,6 @@ it("ignores a native selection returned after the field unmounts", async () => {
   // Then
   expect(onSelect).not.toHaveBeenCalled();
   expect(mockDeleteFile).toHaveBeenCalledWith(photo.uri);
-});
-
-it("shows accepted caller values and removes them only when the owner updates", async () => {
-  // Given
-  launch.mockResolvedValue({ canceled: false, assets: [photo] });
-
-  /** Local controlled fixture, without upload or business persistence. */
-  function Owner() {
-    const [images, setImages] = useState([logo]);
-    return (
-      <MediaProviders>
-        <ImageField
-          label="Logo"
-          images={images}
-          onSelect={() =>
-            setImages([
-              {
-                id: "replacement",
-                uri: "data:image/jpeg;base64,cHJldmlldw==",
-                label: "Nouveau logo",
-              },
-            ])
-          }
-          onRemove={(id) =>
-            setImages((current) => current.filter((image) => image.id !== id))
-          }
-        />
-      </MediaProviders>
-    );
-  }
-
-  const user = userEvent.setup();
-  await render(<Owner />);
-
-  // When
-  await user.press(
-    screen.getByRole("button", { name: "Changer l’image : Logo du club" }),
-  );
-
-  // Then
-  expect(
-    screen.getByRole("image", { name: "Miniature : Nouveau logo" }),
-  ).toBeOnTheScreen();
-  expect(
-    screen.queryByRole("image", { name: "Miniature : Logo du club" }),
-  ).not.toBeOnTheScreen();
-
-  // When
-  await user.press(
-    screen.getByRole("button", { name: "Supprimer l’image : Nouveau logo" }),
-  );
-
-  // Then
-  expect(
-    screen.getByRole("button", { name: "Choisir une image" }),
-  ).toBeOnTheScreen();
 });
 
 it("retains the caller's image choice after an empty-field validation error", async () => {

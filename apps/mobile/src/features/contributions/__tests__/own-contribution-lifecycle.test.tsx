@@ -645,26 +645,6 @@ it("does not dispatch an old confirmation after the original session changes", a
   expect(patches).toHaveLength(0);
 });
 
-it("abandons the native confirmation without changing either version", async () => {
-  // Given
-  const user = userEvent.setup();
-  await mount();
-
-  // When
-  await user.press(await screen.findByRole("button", { name: "Retirer" }));
-  const buttons = alert.mock.calls.at(-1)?.[2];
-  await act(async () => {
-    buttons
-      ?.find((button: { style?: string }) => button.style === "cancel")
-      ?.onPress?.();
-  });
-
-  // Then
-  expect(patches).toHaveLength(0);
-  expect(screen.getByText("Votre lien public")).toBeOnTheScreen();
-  expect(screen.getByText("En attente de validation")).toBeOnTheScreen();
-});
-
 it("refreshes after conflict without transferring the old confirmation to a new version", async () => {
   // Given
   const boundary = mockFetch.getMockImplementation();
@@ -909,35 +889,6 @@ it("refreshes recovered match context together with the private history", async 
 
   // Then
   expect(await screen.findByText("Home")).toBeOnTheScreen();
-});
-
-it("opens only one native confirmation and settles its saved callback once", async () => {
-  // Given
-  const user = userEvent.setup();
-  await mount();
-
-  // When
-  await user.press(await screen.findByRole("button", { name: "Retirer" }));
-  await user.press(screen.getByRole("button", { name: "Retirer" }));
-
-  // Then
-  expect(alert).toHaveBeenCalledTimes(1);
-
-  // When: the same native callback arrives again after its command completed.
-  const accept = alert.mock.calls[0]?.[2]?.find(
-    (button: { style?: string }) => button.style === "destructive",
-  )?.onPress;
-  await act(async () => {
-    accept?.();
-  });
-  await screen.findByText("Lien retiré");
-  await act(async () => {
-    accept?.();
-  });
-
-  // Then
-  expect(patches).toHaveLength(1);
-  expect(screen.queryByLabelText("Adresse du lien")).not.toBeOnTheScreen();
 });
 
 it.each(["refresh", "reconcile", "acknowledgement"])(

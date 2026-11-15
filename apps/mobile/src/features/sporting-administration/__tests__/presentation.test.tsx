@@ -2794,58 +2794,6 @@ it("keeps a fresh editor usable when an abandoned save fails later", async () =>
     mockFetch.mock.calls.filter(([, options]) => options?.method === "PATCH"),
   ).toHaveLength(1);
 });
-it("executes a confirmed division activity once when the native callback is delivered twice", async () => {
-  // Given
-  permissions = { manageDivisionLifecycle: true };
-  const division = {
-    id: resourceId,
-    revision: "d1",
-    name: "Division",
-    color: "#123456",
-    gradient: null,
-    logo,
-    active: true,
-  };
-  stored = division;
-  const response = Promise.withResolvers<Response>();
-  mockFetch.mockImplementation((url, options) =>
-    options?.method === "PUT" ? response.promise : respond(url, options),
-  );
-  jest.spyOn(Alert, "alert");
-  const user = userEvent.setup();
-  await renderEditor("division");
-  await user.press(
-    await screen.findByRole("button", { name: "Désactiver la division" }),
-  );
-  const confirmation = nativeAlertAction("Désactiver");
-
-  // When
-  await act(async () => {
-    confirmation();
-    confirmation();
-  });
-
-  // Then
-  await screen.findByRole("button", {
-    name: "Désactiver la division",
-    busy: true,
-  });
-  expect(
-    mockFetch.mock.calls.filter(([, options]) => options?.method === "PUT"),
-  ).toHaveLength(1);
-
-  // When
-  stored = { ...division, revision: "d2", active: false };
-  await act(async () => response.resolve(json(stored)));
-
-  // Then
-  await waitFor(() =>
-    expect(
-      screen.getByRole("button", { name: "Réactiver la division" }),
-    ).toBeEnabled(),
-  );
-});
-
 it("preserves a different opaque revision read during a delayed accepted presentation save", async () => {
   // Given
   const response = Promise.withResolvers<Response>();

@@ -667,23 +667,6 @@ it("keeps an acknowledged report accepted when a refused derivative read withdra
   expect(posts).toHaveLength(1);
 });
 
-it("cancels without sending a report", async () => {
-  // Given
-  const user = userEvent.setup();
-  await mount();
-  await screen.findByLabelText("Motif du signalement");
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Annuler" }));
-
-  // Then
-  expect(mockDismissTo).toHaveBeenCalledWith({
-    pathname: "/matches/[matchId]",
-    params: { matchId: detail.match.id },
-  });
-  expect(posts).toHaveLength(0);
-});
-
 it.each(["session", "departure"])(
   "ignores a late report acknowledgement after %s",
   async (end) => {

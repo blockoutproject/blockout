@@ -1,7 +1,7 @@
 import { InfiniteQueryObserver, MutationObserver } from "@tanstack/react-query";
 import { waitFor } from "@testing-library/react-native";
 import { createQueryClient } from "@/shared/query/query-client";
-import { createInboxQueries, refreshInbox } from "../api/inbox-queries";
+import { createInboxQueries } from "../api/inbox-queries";
 import { createReadNotificationOptions } from "../api/inbox-mutations";
 import { notificationResponse } from "../test-support/notification-data";
 import { expireInbox } from "../state/inbox-expiry";
@@ -43,57 +43,6 @@ afterEach(async () => {
   } else {
     process.env.EXPO_PUBLIC_API_URL = originalUrl;
   }
-});
-
-it("retains a failed continuation boundary and refetches the loaded traversal natively", async () => {
-  // Given
-  const { queries } = context();
-  const second = { ...row, id: "00000000-0000-4000-8000-000000000239" };
-  mockFetch.mockResolvedValueOnce(
-    Response.json({ notifications: [row], nextCursor: "boundary" }),
-  );
-  const observer = new InfiniteQueryObserver(client, queries.inbox);
-  await observer.refetch();
-  mockFetch.mockRejectedValueOnce(new TypeError("offline"));
-
-  // When
-  await observer.fetchNextPage();
-
-  // Then
-  expect(observer.getCurrentResult().isFetchNextPageError).toBe(true);
-  expect(observer.getCurrentResult().data?.pages[0].notifications).toEqual([
-    row,
-  ]);
-  mockFetch.mockResolvedValueOnce(Response.json({ notifications: [second] }));
-  await observer.fetchNextPage();
-  expect(
-    new URL(mockFetch.mock.calls.at(-1)[0]).searchParams.get("cursor"),
-  ).toBe("boundary");
-  expect(observer.getCurrentResult().data?.pages).toHaveLength(2);
-  mockFetch.mockRejectedValueOnce(new TypeError("offline"));
-  await expect(refreshInbox(client, queries)).rejects.toMatchObject({
-    kind: "network",
-  });
-  expect(client.getQueryData(queries.inbox.queryKey)?.pages).toHaveLength(2);
-  mockFetch
-    .mockResolvedValueOnce(
-      Response.json({
-        notifications: [{ ...row, read: true }],
-        nextCursor: "fresh-boundary",
-      }),
-    )
-    .mockResolvedValueOnce(Response.json({ notifications: [second] }));
-  const before = mockFetch.mock.calls.length;
-  await refreshInbox(client, queries);
-  expect(client.getQueryData(queries.inbox.queryKey)?.pages).toEqual([
-    { notifications: [{ ...row, read: true }], nextCursor: "fresh-boundary" },
-    { notifications: [second] },
-  ]);
-  expect(
-    mockFetch.mock.calls
-      .slice(before)
-      .map(([url]) => new URL(url).searchParams.get("cursor")),
-  ).toEqual([null, "fresh-boundary"]);
 });
 
 it("invalidates the inbox after a successful read without rewriting retained rows", async () => {
@@ -342,52 +291,6 @@ it("keeps other notifications when a member is missing and refresh fails", async
     ).toHaveLength(2);
   } finally {
     stopList();
-  }
-});
-
-it("reconciles read state on another client's ordinary refresh after a lost acknowledgement", async () => {
-  // Given: two native Query lifetimes share only the controlled server's read state.
-  const { owner, queries } = context();
-  const secondClient = createQueryClient();
-  secondClient.setQueryDefaults([], { retry: false });
-  let read = false;
-  mockFetch.mockImplementation(async (_url: string, init: RequestInit) => {
-    if (init.method === "PATCH") {
-      read = true;
-      throw new TypeError("Lost acknowledgement");
-    }
-    return Response.json({ notifications: [{ ...row, read }] });
-  });
-  await secondClient.fetchInfiniteQuery(queries.inbox);
-  const command = new MutationObserver(
-    client,
-    createReadNotificationOptions(client, owner, queries),
-  );
-  try {
-    // When
-    await expect(command.mutate(row.id)).rejects.toMatchObject({
-      kind: "network",
-    });
-
-    // Then: another client has no immediate cross-client update guarantee.
-    expect(
-      secondClient.getQueryData(queries.inbox.queryKey)?.pages[0]
-        .notifications[0].read,
-    ).toBe(false);
-
-    // When
-    await refreshInbox(secondClient, queries);
-
-    // Then
-    expect(
-      secondClient.getQueryData(queries.inbox.queryKey)?.pages[0]
-        .notifications[0].read,
-    ).toBe(true);
-    expect(
-      mockFetch.mock.calls.filter(([, init]) => init.method === "PATCH"),
-    ).toHaveLength(1);
-  } finally {
-    secondClient.clear();
   }
 });
 

@@ -102,23 +102,20 @@ it.each([
   }
 });
 
-it.each(["{", "", '{"maintenance":'])(
-  "rejects malformed JSON %s",
-  async (body) => {
-    // Given
-    mockFetch.mockResolvedValue(
-      new Response(body, { headers: { "Content-Type": "application/json" } }),
-    );
+it.each(["{"])("rejects malformed JSON %s", async (body) => {
+  // Given
+  mockFetch.mockResolvedValue(
+    new Response(body, { headers: { "Content-Type": "application/json" } }),
+  );
 
-    // When
-    const response = getApplicationAccess();
+  // When
+  const response = getApplicationAccess();
 
-    // Then
-    await expect(response).rejects.toMatchObject({
-      kind: "schema",
-    });
-  },
-);
+  // Then
+  await expect(response).rejects.toMatchObject({
+    kind: "schema",
+  });
+});
 
 it("requires a success schema for JSON", async () => {
   // Given

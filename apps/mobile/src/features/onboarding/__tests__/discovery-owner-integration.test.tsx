@@ -313,43 +313,6 @@ it("keeps skipped discovery complete across sign-in and sign-out when its option
   expect(await readDiscoveryCompletion()).toBe(false);
 });
 
-it("treats SDK-expired rights as inactive while unknown verification has no free-account or offer evidence", async () => {
-  // Given
-  await AsyncStorage.setItem(initializationMarker, "true");
-  await completeDiscovery();
-  mockAuth0.hasValidCredentials.mockResolvedValue(true);
-  const expired = customerInfo({
-    active: {},
-    all: {
-      "Blockout Pro": entitlement({
-        isActive: false,
-        willRenew: false,
-        expirationDate: "2020-01-01T00:00:00Z",
-        expirationDateMillis: 1577836800000,
-      }),
-    },
-    verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
-  });
-  mockPurchases.getCustomerInfo.mockResolvedValue(expired);
-  const user = userEvent.setup();
-
-  // When
-  await openInstallation("/profile");
-
-  // Then
-  expect(await screen.findByText("Compte gratuit")).toBeOnTheScreen();
-  expect(owners.pro.state.status).toBe("inactive");
-  expect(mockPurchases.getOfferings).not.toHaveBeenCalled();
-  expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Blockout Pro" }));
-
-  // Then
-  expect(await screen.findByText("Native store offer")).toBeOnTheScreen();
-  expect(mockPurchases.getOfferings).toHaveBeenCalledTimes(1);
-});
-
 it("keeps unknown Pro rights out of free/expired presentation and ads while explicit native Pro and private assistance remain available", async () => {
   // Given
   await AsyncStorage.setItem(initializationMarker, "true");

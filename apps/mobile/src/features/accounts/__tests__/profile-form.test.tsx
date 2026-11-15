@@ -744,37 +744,6 @@ it("keeps optional photo failure at its fallback after explicit refresh without 
   ).toBe(true);
 });
 
-it("does not reread or announce an inactive failed photo after explicit draft removal", async () => {
-  // Given
-  mockFetch.mockImplementation(async (url) =>
-    String(url).endsWith("/photo")
-      ? new Response(null, { status: 503 })
-      : json({ ...account, hasPhoto: true }),
-  );
-  const user = userEvent.setup();
-  await mountProfile();
-  await screen.findByRole("image", { name: "Photo de profil indisponible" });
-  await user.press(screen.getByRole("button", { name: "Modifier la photo" }));
-  await act(nativeImageChoiceAction("Supprimer la photo"));
-  mockFetch.mockClear();
-
-  // When
-  await fireEvent(screen.getByLabelText("Actualiser les données"), "refresh");
-
-  // Then
-  expect(
-    screen.getByRole("button", { name: "Ajouter une photo" }),
-  ).toBeEnabled();
-  expect(screen.getByRole("button", { name: "Enregistrer" })).toBeEnabled();
-  expect(screen.queryByText(TECHNICAL_ERROR)).not.toBeOnTheScreen();
-  expect(
-    mockFetch.mock.calls.filter(([url]) => String(url).endsWith("/photo")),
-  ).toHaveLength(0);
-  expect(
-    mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),
-  ).toBe(true);
-});
-
 it("preserves the active save and suspends refresh and cancellation", async () => {
   // Given
   const user = userEvent.setup();

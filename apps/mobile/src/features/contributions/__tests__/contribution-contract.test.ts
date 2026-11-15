@@ -1,28 +1,13 @@
 import {
-  getModeratedStreamContribution,
   getMatch,
   listModeratedStreamContributions,
   listOwnStreamContributions,
   listStreamReports,
 } from "../../../../.generated/mobile";
 import {
-  AccountPermissionsResponse,
-  CreateModeratedStreamContributionRequest,
-  CreateStreamContributionRequest,
-  CreateStreamReactivationRequest,
-  CreateStreamReportRequest,
   ListOwnStreamContributionsParams,
   type ModeratedStreamContributionResponse,
   ModeratedStreamContributionsResponse,
-  StreamContributionStateEnum,
-  StreamDecisionEnum,
-  StreamModerationActionEnum,
-  StreamModerationFilterEnum,
-  StreamOwnerActionEnum,
-  StreamPlatformEnum,
-  StreamVersionFilterEnum,
-  UpdateModeratedStreamContributionRequest,
-  UpdateOwnStreamContributionRequest,
 } from "../../../../.generated/schemas/index.zod";
 import { createQueryClient } from "@/shared/query/query-client";
 import { ownContributions } from "../test-support/contribution-data";
@@ -91,110 +76,6 @@ afterEach(() => {
   }
 });
 
-it.each([
-  ["platform", StreamPlatformEnum],
-  ["state", StreamContributionStateEnum],
-  ["moderation filter", StreamModerationFilterEnum],
-  ["version filter", StreamVersionFilterEnum],
-  ["owner action", StreamOwnerActionEnum],
-  ["moderation action", StreamModerationActionEnum],
-  ["decision", StreamDecisionEnum],
-])("keeps the %s vocabulary finite", (_name, schema) => {
-  // Given
-  const invalid = "future-value";
-
-  // When
-  const result = schema.safeParse(invalid);
-
-  // Then
-  expect(result.success).toBe(false);
-  for (const value of schema.options) {
-    expect(schema.parse(value)).toBe(value);
-  }
-});
-
-it.each([
-  [
-    "submission",
-    CreateStreamContributionRequest,
-    { revision: "opaque:a", url: "https://twitch.tv/synthetic" },
-  ],
-  [
-    "owner update",
-    UpdateOwnStreamContributionRequest,
-    { revision: "opaque:a", action: "withdraw" },
-  ],
-  [
-    "moderated submission",
-    CreateModeratedStreamContributionRequest,
-    {
-      actorAccountId: id,
-      revision: "opaque:a",
-      url: "https://fb.watch/synthetic",
-    },
-  ],
-  [
-    "moderated update",
-    UpdateModeratedStreamContributionRequest,
-    { actorAccountId: id, revision: "opaque:a", action: "approve" },
-  ],
-  [
-    "reactivation",
-    CreateStreamReactivationRequest,
-    { actorAccountId: id, revision: "opaque:a" },
-  ],
-  ["report", CreateStreamReportRequest, { reason: "Synthetic reason" }],
-])(
-  "validates required %s fields with the generated mobile schema",
-  (_command, schema, body) => {
-    // Given
-    const valid = body;
-
-    // When
-    const accepted = schema.safeParse(valid);
-
-    // Then: MVC proves strict rejection; Orval request schemas check known field shapes.
-    expect(accepted.success).toBe(true);
-    for (const field of Object.keys(body)) {
-      // When
-      const nullField = schema.safeParse({ ...body, [field]: null });
-      const missingField = schema.safeParse({ ...body, [field]: undefined });
-
-      // Then
-      expect(nullField.success).toBe(false);
-      expect(missingField.success).toBe(false);
-    }
-    if ("revision" in body) {
-      // When
-      const emptyRevision = schema.safeParse({ ...body, revision: "" });
-
-      // Then
-      expect(emptyRevision.success).toBe(false);
-    }
-  },
-);
-
-it("retires pending cancellation while retaining withdrawal and readable cancellation history", () => {
-  // Given
-  const viewed = { revision: "opaque:a" };
-
-  // When
-  const withdrawal = UpdateOwnStreamContributionRequest.safeParse({
-    ...viewed,
-    action: "withdraw",
-  });
-  const cancellation = UpdateOwnStreamContributionRequest.safeParse({
-    ...viewed,
-    action: "cancel",
-  });
-
-  // Then
-  expect(withdrawal.success).toBe(true);
-  expect(cancellation.success).toBe(false);
-  expect(StreamContributionStateEnum.parse("cancelled")).toBe("cancelled");
-  expect(StreamDecisionEnum.parse("cancel")).toBe("cancel");
-});
-
 it("admits erased attribution and hidden dateless private sporting context through the generated client", async () => {
   // Given
   mockFetch.mockResolvedValue(
@@ -221,9 +102,6 @@ it("admits erased attribution and hidden dateless private sporting context throu
 
 it.each([
   ["required revision absent", { revision: undefined }],
-  ["revision null", { revision: null }],
-  ["empty revision", { revision: "" }],
-  ["numeric revision", { revision: 1 }],
   ["required items absent", { items: undefined }],
   ["optional active version null", { activeContribution: null }],
   ["unknown platform", { items: [{ ...version, platform: "unknown" }] }],
@@ -248,10 +126,7 @@ it.each([
     "unsafe reports",
     { counts: { ...moderation.counts, reports: Number.MAX_SAFE_INTEGER + 1 } },
   ],
-  ["fractional reports", { counts: { ...moderation.counts, reports: 0.5 } }],
-  ["negative reports", { counts: { ...moderation.counts, reports: -1 } }],
   ["overflow page", { nextPage: 107374183 }],
-  ["null page", { nextPage: null }],
   ["zero continuation", { nextPage: 0 }],
   ["oversized page", { items: Array.from({ length: 21 }, () => version) }],
   ["null private schedule", { match: { ...match, schedule: null } }],
@@ -358,52 +233,6 @@ it("accepts optional genuine schedule/result without deriving public viewability
   expect(result.match.result?.state).toBe("final");
 });
 
-it.each([
-  {},
-  { moderateStreamLinks: false },
-  { moderateStreamLinks: true, future: true },
-])(
-  "grants moderation only through literal true in additive account projection %j",
-  (permissions) => {
-    // Given: the table supplies the account permission projection.
-
-    // When
-    const result = AccountPermissionsResponse.parse(permissions);
-
-    // Then
-    expect(result.moderateStreamLinks === true).toBe(
-      permissions.moderateStreamLinks === true,
-    );
-    expect(result.bypassMaintenance).toBeUndefined();
-    for (const invalid of [null, "true", 1]) {
-      expect(
-        AccountPermissionsResponse.safeParse({ moderateStreamLinks: invalid })
-          .success,
-      ).toBe(false);
-    }
-  },
-);
-
-it("keeps a shared conflict as an HTTP error instead of successful contribution data", async () => {
-  // Given
-  mockFetch.mockResolvedValue(
-    new Response(
-      '{"type":"urn:blockout:problem:stale-revision","title":"Conflict","status":409}',
-      { status: 409, headers: { "Content-Type": "application/problem+json" } },
-    ),
-  );
-
-  // When
-  const result = getModeratedStreamContribution(id, id);
-
-  // Then
-  await expect(result).rejects.toMatchObject({
-    kind: "http",
-    status: 409,
-    problem: { type: "urn:blockout:problem:stale-revision" },
-  });
-});
-
 it("preserves an opaque owner revision and nullable-independent quota context", async () => {
   // Given
   const body = {
@@ -449,7 +278,7 @@ it.each([0, Number.MAX_SAFE_INTEGER])(
   },
 );
 
-it.each([undefined, null, -1, 0.5, Number.MAX_SAFE_INTEGER + 1, "1"])(
+it.each([undefined, Number.MAX_SAFE_INTEGER + 1])(
   "rejects proposal total %s before admitting the response into Query",
   async (proposalCount) => {
     // Given

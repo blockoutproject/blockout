@@ -47,7 +47,7 @@ Open the real root as guest/free/known-active Pro. Expect ordinary home to requi
 
 Read installation storage: only `category` (`under16`, `16–17`, `adult`) and local `declaredAt` day may persist after confirmation. Missing/invalid/future declarations use child protection without a fabricated record. A minor renews at the next installation-tree launch after one calendar year, including February 29 → February 28; no timer, category promotion or annual adult prompt. A known-active Pro exemption does not survive logout.
 
-Compare representative approved age journey/artwork compositions under the shared qualification scope above. Check native slider touch, names/roles/states and action reachability, reusing unchanged F13 controls. Independent sign-in/legal/support destinations retain F12 gates. Actual storage, consent/ATT and provider entitlement require native/provider checks; controlled I/O supplies no such approval.
+Compare representative approved age journey/artwork compositions under the shared qualification scope above. Check native slider touch, names/roles/states and action reachability, reusing unchanged F13 controls. Sign-in/support routes and the in-app legal-link entries retain F12 gates; public legal reading uses the native browser rather than an application route. Actual storage, consent/ATT and provider entitlement require native/provider checks; controlled I/O supplies no such approval.
 
 ## Native privacy choices
 

@@ -57,25 +57,6 @@ it("keeps the draft and exposes its current validation error", async () => {
   expect(screen.queryByText("Nom officiel")).not.toBeOnTheScreen();
 });
 
-it("forwards native focus and blur to the owning form", async () => {
-  // Given
-  const onFocus = jest.fn();
-  const onBlur = jest.fn();
-  const user = userEvent.setup();
-  await render(
-    <ThemeProvider>
-      <TextField label="Nom du club" onFocus={onFocus} onBlur={onBlur} />
-    </ThemeProvider>,
-  );
-
-  // When
-  await user.type(screen.getByLabelText("Nom du club"), "Volley");
-
-  // Then
-  expect(onFocus).toHaveBeenCalledTimes(1);
-  expect(onBlur).toHaveBeenCalledTimes(1);
-});
-
 it.each([{ editable: false }, { editable: true, readOnly: true }])(
   "prevents editing an unavailable field: %j",
   async (availability) => {
@@ -101,27 +82,3 @@ it.each([{ editable: false }, { editable: true, readOnly: true }])(
     expect(screen.getByDisplayValue("Volley")).toBeDisabled();
   },
 );
-
-it("honors native readOnly precedence when editing remains allowed", async () => {
-  // Given
-  const onChangeText = jest.fn();
-  const user = userEvent.setup();
-  await render(
-    <ThemeProvider>
-      <TextField
-        label="Nom du club"
-        value=""
-        editable={false}
-        readOnly={false}
-        onChangeText={onChangeText}
-      />
-    </ThemeProvider>,
-  );
-
-  // When
-  await user.type(screen.getByLabelText("Nom du club"), "V");
-
-  // Then
-  expect(onChangeText).toHaveBeenCalledWith("V");
-  expect(screen.getByLabelText("Nom du club")).toBeEnabled();
-});

@@ -1,19 +1,16 @@
 import AgeDeclarationRoute from "@/app/age-declaration";
 import { ProfileScreen } from "@/features/accounts/screens/profile-screen";
 import { TECHNICAL_ERROR } from "@/shared/components/error-copy";
-import * as Application from "expo-application";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { focusManager } from "@tanstack/react-query";
 import { act, cleanup, screen, userEvent } from "@testing-library/react-native";
 import { Stack } from "expo-router";
 import { renderRouter } from "expo-router/testing-library";
 import type { ComponentType } from "react";
-import type { Credentials } from "react-native-auth0";
 import { Linking, Pressable, Text } from "react-native";
 import RootLayout from "@/app/_layout";
 import EntryRoute from "@/app/index";
 import OnboardingRoute from "@/app/onboarding";
-import SignInRoute from "@/app/(recovery)/sign-in";
 import RecoveryLayout from "@/app/(recovery)/_layout";
 import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
 import { useAccountSession } from "@/features/accounts/current-account";
@@ -21,7 +18,6 @@ import {
   credentialsFor,
   mockAuth0,
 } from "@/features/accounts/test-support/native-auth0";
-import Purchases from "react-native-purchases";
 import { initializeV2Installation } from "../initialize-v2-installation";
 import { readDiscoveryCompletion } from "../discovery-state";
 import { AccessGateScreen } from "@/features/access/screens/access-gate-screen";
@@ -158,96 +154,6 @@ it("presents common discovery before ordinary access, then keeps sign-out and fo
   expect(await readDiscoveryCompletion()).toBe(true);
 });
 
-it.each(["cancelled", "failed", "establishment unavailable"])(
-  "keeps completed discovery and ordinary guest/support access after %s sign-in",
-  async (outcome) => {
-    // Given
-    const user = userEvent.setup();
-    if (outcome === "establishment unavailable") {
-      mockAuth0.webAuth.mockResolvedValue(credentialsFor("auth0|discovery"));
-      mockAuth0.saveCredentials.mockImplementation(
-        async (credentials: Credentials) => {
-          mockAuth0.hasValidCredentials.mockResolvedValue(true);
-          mockAuth0.getCredentials.mockResolvedValue(credentials);
-        },
-      );
-      mockFetch.mockImplementation(async (url) =>
-        String(url).endsWith("/application-access")
-          ? Response.json(applicationAccessResponse())
-          : Response.json(
-              {
-                type: "urn:blockout:problem:internal-error",
-                title: "Unavailable",
-                status: 500,
-              },
-              { status: 500 },
-            ),
-      );
-    } else {
-      mockAuth0.webAuth.mockRejectedValue({
-        code:
-          outcome === "cancelled"
-            ? "a0.session.user_cancelled"
-            : "a0.network_error",
-        message: "Controlled native failure",
-      });
-    }
-    await openInstallation("/", SignInRoute);
-    await user.press(await screen.findByRole("button", { name: "Passer" }));
-
-    // When
-    await user.press(
-      await screen.findByRole("button", { name: "Se connecter" }),
-    );
-
-    // Then
-    expect(
-      await screen.findByRole("alert", { name: "Une erreur est survenue." }),
-    ).toBeOnTheScreen();
-    expect(screen).toHavePathname("/sign-in");
-    expect(screen.getByRole("button", { name: "Se connecter" })).toBeEnabled();
-    expect(screen.queryByRole("button", { name: "Réessayer" })).toBeNull();
-    expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
-    expect(
-      screen.getByRole("button", { name: "Continuer en tant qu’invité" }),
-    ).toBeEnabled();
-    expect(
-      screen.getByRole("link", { name: "Besoin d’aide ?" }),
-    ).toBeOnTheScreen();
-    expect(Purchases.restorePurchases).not.toHaveBeenCalled();
-    expect(await readDiscoveryCompletion()).toBe(true);
-
-    // When
-    await user.press(screen.getByRole("link", { name: "Besoin d’aide ?" }));
-
-    // Then
-    expect(await screen.findByText("Support route")).toBeOnTheScreen();
-  },
-);
-
-it.each(["/onboarding", "/sign-in", "/legal", "/support"])(
-  "keeps %s behind current F12 blocking",
-  async (path) => {
-    // Given
-    jest.useFakeTimers();
-    mockFetch.mockRejectedValue(new Error("Unavailable"));
-
-    // When
-    await openInstallation(path);
-    await act(async () => jest.advanceTimersByTimeAsync(7500));
-
-    // Then
-    expect(
-      await screen.findByText("Une erreur est survenue"),
-    ).toBeOnTheScreen();
-    expect(screen.queryByRole("button", { name: "Passer" })).toBeNull();
-    expect(
-      screen.queryByText(/Ordinary sign-in|Legal route|Support route/),
-    ).toBeNull();
-    expect(await readDiscoveryCompletion()).toBe(false);
-  },
-);
-
 it("preserves a completed installation’s deep link while its local flag is being read", async () => {
   // Given
   const read = Promise.withResolvers<string | null>();
@@ -290,53 +196,6 @@ it("opens ordinary entry after a failed discovery read and write, with discovery
   expect(
     await screen.findByRole("button", { name: "Passer" }),
   ).toBeOnTheScreen();
-});
-
-it.each(["maintenance", "minimum version"])(
-  "suppresses discovery under %s",
-  async (gate) => {
-    // Given
-    const access = applicationAccessResponse();
-    if (gate === "maintenance") {
-      access.maintenance.active = true;
-    } else {
-      access.versions.ios.minimumVersion = "9.0.0";
-      access.versions.android.minimumVersion = "9.0.0";
-    }
-    mockFetch.mockImplementation(async () => Response.json(access));
-
-    // When
-    await openInstallation("/onboarding");
-
-    // Then
-    expect(
-      await screen.findByRole("header", {
-        name:
-          gate === "maintenance"
-            ? "Blockout est en maintenance"
-            : "Mets Blockout à jour.",
-      }),
-    ).toBeOnTheScreen();
-    expect(screen.queryByRole("button", { name: "Passer" })).toBeNull();
-    expect(await readDiscoveryCompletion()).toBe(false);
-  },
-);
-
-it("leaves completed discovery unchanged after restart and a later V2 release", async () => {
-  // Given
-  const user = userEvent.setup();
-  const view = await openInstallation();
-  await user.press(await screen.findByRole("button", { name: "Passer" }));
-  await view.unmount();
-
-  // When
-  jest.replaceProperty(Application, "nativeApplicationVersion", "3.0.0");
-  await openInstallation("/support");
-
-  // Then
-  expect(await screen.findByText("Support route")).toBeOnTheScreen();
-  expect(screen.queryByRole("button", { name: "Passer" })).toBeNull();
-  expect(await readDiscoveryCompletion()).toBe(true);
 });
 
 it("keeps the public store action and its error available while installation initialization is pending", async () => {

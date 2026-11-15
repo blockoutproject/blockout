@@ -219,12 +219,8 @@ async function openRoute(path: string) {
       ),
       "(recovery)/_layout": RecoveryLayout,
       "(ordinary)/index": () => <Text>Home</Text>,
-      "(ordinary)/teams/[teamId]": () => (
-        <TeamScreen teamId={resourceId} renderFollow={() => null} />
-      ),
-      "(ordinary)/pools/[poolId]": () => (
-        <PoolScreen poolId={resourceId} renderFollow={() => null} />
-      ),
+      "(ordinary)/teams/[teamId]": () => <TeamScreen teamId={resourceId} />,
+      "(ordinary)/pools/[poolId]": () => <PoolScreen poolId={resourceId} />,
       "(recovery)/support/_layout": SupportLayout,
       "(recovery)/support/index": SupportRoute,
       "(recovery)/support/choice": SupportChoiceRoute,

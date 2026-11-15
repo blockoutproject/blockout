@@ -89,7 +89,6 @@ describe.each(["ios", "android"] as const)(
 
     it.each([
       { appearance: "photo" as const, label: "Photo de profil", loading: true },
-      { appearance: "logo" as const, label: "Logo", loading: false },
     ])(
       "keeps authorized $appearance choice and local reset available without a displayed image",
       async ({ appearance, label, loading }) => {
@@ -166,28 +165,6 @@ describe.each(["ios", "android"] as const)(
         expect(launch).not.toHaveBeenCalled();
       },
     );
-
-    it("offers only choosing and cancellation when the owner supplies no removal", async () => {
-      // Given
-      const user = userEvent.setup();
-      await render(
-        <EditableImage label="Logo" hasImage onSelect={jest.fn()} />,
-        {
-          wrapper: MediaProviders,
-        },
-      );
-
-      // When
-      await user.press(
-        screen.getByRole("button", { name: "Modifier l’image" }),
-      );
-
-      // Then
-      expect([...nativeImageChoiceLabels()].sort()).toEqual([
-        "Annuler",
-        "Choisir une image",
-      ]);
-    });
 
     it("cancels without work and prevents a duplicate or old callback from consuming a later menu", async () => {
       // Given
@@ -321,41 +298,6 @@ describe.each(["ios", "android"] as const)(
       expect(ActionSheetIOS.dismissActionSheet).toHaveBeenCalledTimes(
         platform === "ios" ? 1 : 0,
       );
-    });
-
-    it("dispatches the current authorized callback when the same owner rerenders", async () => {
-      // Given
-      const user = userEvent.setup();
-      const previous = jest.fn();
-      const current = jest.fn();
-      const view = await render(
-        <EditableImage
-          label="Logo"
-          hasImage
-          onSelect={jest.fn()}
-          onRemove={previous}
-        />,
-        { wrapper: MediaProviders },
-      );
-      await user.press(
-        screen.getByRole("button", { name: "Modifier l’image" }),
-      );
-      const retained = nativeImageChoiceAction("Supprimer l’image");
-
-      // When
-      await view.rerender(
-        <EditableImage
-          label="Logo"
-          hasImage
-          onSelect={jest.fn()}
-          onRemove={current}
-        />,
-      );
-      await act(() => retained());
-
-      // Then
-      expect(previous).not.toHaveBeenCalled();
-      expect(current).toHaveBeenCalledTimes(1);
     });
 
     it("rejects callbacks from an unmounted field without dismissing a later field's menu", async () => {

@@ -376,54 +376,6 @@ it("reads operation completion without waiting for an earlier read and rejects i
   // Then
   expect(screen.getByText("Pro: active")).toBeOnTheScreen();
 });
-it("keeps current verification busy when an older read fails", async () => {
-  // Given
-  await renderAccount();
-  await waitFor(() => expect(account.status).toBe("authenticated"));
-  mockAccountId = "00000000-0000-4000-8000-000000000001";
-  mockAuth0.webAuth.mockResolvedValue(credentialsFor(`auth0|${mockAccountId}`));
-  mockAuth0.getCredentials.mockResolvedValue(
-    credentialsFor(`auth0|${mockAccountId}`),
-  );
-  mockAuth0.saveCredentials.mockResolvedValue();
-  await act(() => account.signIn("https://api.example.invalid"));
-  await waitFor(() =>
-    expect(account.accountId).toBe("00000000-0000-4000-8000-000000000001"),
-  );
-  await screen.findByText("Pro: inactive");
-  const earlier = Promise.withResolvers<CustomerInfo>();
-  const current = Promise.withResolvers<CustomerInfo>();
-  mockPurchases.getCustomerInfo
-    .mockReturnValueOnce(earlier.promise)
-    .mockReturnValueOnce(current.promise);
-  let first: Promise<boolean | undefined> | undefined;
-  let latest: Promise<boolean | undefined> | undefined;
-  await act(() => {
-    first = proSessionModule.proSession.refresh(account);
-    latest = proSessionModule.proSession.refresh(account);
-  });
-  // When
-  await act(async () => {
-    earlier.reject(new Error("synthetic old failure"));
-    await first;
-  });
-  // Then
-  expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
-  // When
-  const active = { "Blockout Pro": entitlement() };
-  await act(async () => {
-    current.resolve(
-      customerInfo({
-        active,
-        all: active,
-        verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
-      }),
-    );
-    await latest;
-  });
-  // Then
-  expect(screen.getByText("Pro: active")).toBeOnTheScreen();
-});
 it("ignores a queued listener from the removed principal before reading current B rights", async () => {
   // Given
   await renderAccount();

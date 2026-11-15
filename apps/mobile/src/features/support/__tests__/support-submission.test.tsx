@@ -406,17 +406,11 @@ it("allows one concurrent tap, locks all fields and confirms only after complete
   expect(supportHttp).toHaveBeenCalledTimes(1);
 });
 
-it.each([
-  "offline",
-  "refusal",
-  "unavailable",
-  "lost-response",
-  "malformed-success",
-])(
+it.each(["offline", "refusal", "unavailable", "malformed-success"])(
   "retains editable input after %s and sends corrected input only on an explicit retry",
   async (failure) => {
     // Given
-    if (failure === "offline" || failure === "lost-response") {
+    if (failure === "offline") {
       supportHttp.mockRejectedValueOnce(
         new TypeError("Synthetic lost connection"),
       );

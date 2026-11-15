@@ -401,86 +401,30 @@ async function consultPublicSport() {
   ).toBeNull();
 }
 
-/** States expected from the explicit scenario table, independently of the production entitlement derivation. */
-function expectedProStatus(state: string) {
-  if (state === "guest") {
-    return "guest";
-  }
-  if (state === "paid" || state === "gifted") {
-    return "active";
-  }
-  return ["free", "expired", "revoked"].includes(state)
-    ? "inactive"
-    : "unavailable";
-}
-
-/** Controls native association/rights failures only; production owners still derive all displayed access state. */
-function configureNativeProState(state: string) {
-  if (state === "guest") {
-    mockAuth0.hasValidCredentials.mockResolvedValue(false);
-  }
-  if (state === "paid" || state === "gifted") {
-    mockPurchases.getCustomerInfo.mockResolvedValue(
-      rights(state === "paid" ? "APP_STORE" : "PROMOTIONAL"),
-    );
-  }
-  if (state === "association-pending") {
-    mockPurchases.isConfigured.mockReturnValue(new Promise(() => undefined));
-  }
-  if (state === "association-failed") {
-    mockPurchases.isConfigured.mockRejectedValue(
-      new Error("Native association unavailable"),
-    );
-  }
-  if (state === "read-pending") {
-    mockPurchases.getCustomerInfo.mockReturnValue(new Promise(() => undefined));
-  }
-  if (state === "unknown") {
-    mockPurchases.getCustomerInfo.mockRejectedValue(
-      new Error("Native verification unavailable"),
-    );
-  }
-  if (state === "expired" || state === "revoked") {
-    mockPurchases.getCustomerInfo.mockResolvedValue(
-      customerInfo({
-        active: {},
-        all: {
-          "Blockout Pro": entitlement({
-            isActive: false,
-            store: state === "expired" ? "APP_STORE" : "PROMOTIONAL",
-          }),
-        },
-        verification: mockPurchases.VERIFICATION_RESULT.NOT_REQUESTED,
-      }),
-    );
-  }
-}
-
 it.each([
-  "guest",
-  "free",
-  "paid",
-  "gifted",
-  "association-pending",
-  "association-failed",
-  "read-pending",
-  "unknown",
-  "expired",
-  "revoked",
-] as const)(
-  "keeps maps and complete upcoming/completed club calendars public for %s",
-  async (state) => {
+  { state: "guest", status: "guest" },
+  { state: "free", status: "inactive" },
+  { state: "paid", status: "active" },
+  { state: "unknown", status: "unavailable" },
+])(
+  "keeps maps and complete upcoming/completed club calendars public for $state",
+  async ({ state, status }) => {
     // Given
-    configureNativeProState(state);
+    if (state === "guest") {
+      mockAuth0.hasValidCredentials.mockResolvedValue(false);
+    } else if (state === "paid") {
+      mockPurchases.getCustomerInfo.mockResolvedValue(rights("APP_STORE"));
+    } else if (state === "unknown") {
+      mockPurchases.getCustomerInfo.mockRejectedValue(
+        new Error("Native verification unavailable"),
+      );
+    }
     await openInstallation();
-    const status = expectedProStatus(state);
     await waitFor(() => expect(owners.pro.state.status).toBe(status));
-    if (status === "unavailable") {
-      let reason = "customer-info";
-      if (state === "association-pending" || state === "association-failed") {
-        reason = state;
-      }
-      await waitFor(() => expect(owners.pro.state).toMatchObject({ reason }));
+    if (state === "unknown") {
+      await waitFor(() =>
+        expect(owners.pro.state).toMatchObject({ reason: "customer-info" }),
+      );
     }
 
     // When

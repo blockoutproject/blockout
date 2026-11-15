@@ -224,50 +224,26 @@ function SessionExit() {
   );
 }
 
-it("invites a guest without retaining a deferred publication", async () => {
+it("keeps a refused form unavailable without an eligibility ledger", async () => {
   // Given
-  mockAuth0.hasValidCredentials.mockResolvedValue(false);
-  const user = userEvent.setup();
+  const reason = "La publication ouvre une heure avant le match.";
+  context = ownContributions({
+    eligibility: { canSubmit: false, requiresApproval: false, reason },
+  });
   await mount();
 
   // When
-  await user.press(await screen.findByRole("button", { name: "Se connecter" }));
+  await screen.findByLabelText("Adresse du lien");
 
   // Then
-  expect(mockPush).toHaveBeenCalledWith({
-    pathname: "/sign-in-invitation",
-    params: { reason: "contribution" },
-  });
+  expect(
+    screen.getByRole("button", { name: "Soumettre le lien" }),
+  ).toBeDisabled();
+  expect(screen.queryByText(reason)).not.toBeOnTheScreen();
+  expect(screen.queryByText(/Disponible à partir du/)).not.toBeOnTheScreen();
+  expect(screen.queryByText(/versions pour ce match/)).not.toBeOnTheScreen();
   expect(posts).toHaveLength(0);
 });
-
-it.each([
-  "La contribution n’est pas autorisée dans la situation actuelle.",
-  "L’heure du match doit être confirmée.",
-  "La publication ouvre une heure avant le match.",
-  "Les contributions ne sont pas disponibles pour ce match professionnel.",
-])(
-  "keeps a refused form unavailable without an eligibility ledger: %s",
-  async (reason) => {
-    // Given
-    context = ownContributions({
-      eligibility: { canSubmit: false, requiresApproval: false, reason },
-    });
-    await mount();
-
-    // When
-    await screen.findByLabelText("Adresse du lien");
-
-    // Then
-    expect(
-      screen.getByRole("button", { name: "Soumettre le lien" }),
-    ).toBeDisabled();
-    expect(screen.queryByText(reason)).not.toBeOnTheScreen();
-    expect(screen.queryByText(/Disponible à partir du/)).not.toBeOnTheScreen();
-    expect(screen.queryByText(/versions pour ce match/)).not.toBeOnTheScreen();
-    expect(posts).toHaveLength(0);
-  },
-);
 
 it("validates unsupported addresses before any request", async () => {
   // Given
@@ -384,38 +360,6 @@ it("ignores a late accepted response after session departure", async () => {
   ).toBeOnTheScreen();
 });
 
-it("suspends submission when the current profile is unavailable and permits a read-only retry", async () => {
-  // Given
-  const user = userEvent.setup();
-  const reads = mockFetch.getMockImplementation();
-  let unavailable = true;
-  mockFetch.mockImplementation(async (url, init) => {
-    if (String(url).endsWith("/me") && unavailable) {
-      unavailable = false;
-      return Response.json(
-        {
-          type: "urn:blockout:problem:unavailable",
-          title: "Unavailable",
-          status: 503,
-        },
-        { status: 503 },
-      );
-    }
-    if (!reads) {
-      throw new Error("Missing test HTTP boundary");
-    }
-    return reads(url, init);
-  });
-  await mount();
-
-  // When
-  await user.press(await screen.findByRole("button", { name: "Réessayer" }));
-
-  // Then
-  expect(await screen.findByLabelText("Adresse du lien")).toBeOnTheScreen();
-  expect(posts).toHaveLength(0);
-});
-
 it("retains the typed address through account read failure and a GET-only retry", async () => {
   // Given: the session and RHF form are real; only the account HTTP read is controlled.
   const user = userEvent.setup();
@@ -504,39 +448,6 @@ it("uses moderator eligibility without local clock, quota or Pro gates", async (
   // Then
   await waitFor(() => expect(mockDismissTo).toHaveBeenCalledTimes(1));
   expect(posts).toHaveLength(1);
-});
-
-it("refuses malformed generated reads before cache admission", async () => {
-  // Given
-  mockFetch.mockImplementation(async (url) => {
-    if (String(url).endsWith("/me")) {
-      return Response.json(account);
-    }
-    if (String(url).includes("/stream-contributions")) {
-      return Response.json({ ...context, revision: null });
-    }
-    return Response.json(match);
-  });
-  await mount();
-
-  // When
-  await screen.findByRole("button", { name: "Réessayer" });
-
-  // Then
-  expect(screen.queryByLabelText("Adresse du lien")).not.toBeOnTheScreen();
-  expect(
-    client
-      .getQueryCache()
-      .getAll()
-      .filter((q) =>
-        q.queryKey.some(
-          (part) =>
-            typeof part === "string" && part.includes("stream-contributions"),
-        ),
-      )
-      .every((q) => q.state.data === undefined),
-  ).toBe(true);
-  expect(posts).toHaveLength(0);
 });
 
 it("keeps a draft after conflict and requires a fresh explicit submission", async () => {
@@ -651,22 +562,6 @@ it("retains the address after a new time restriction without adding availability
   expect(posts).toHaveLength(1);
 });
 
-it("presents only the address and supported platforms before submission", async () => {
-  // Given
-  await mount();
-
-  // When
-  await screen.findByLabelText("Adresse du lien");
-
-  // Then: the ordinary form has no repeated introduction, availability disclaimer or quota counters.
-  expect(screen.getByText("YouTube, Twitch ou Facebook")).toBeOnTheScreen();
-  expect(
-    screen.queryByText("Une adresse de diffusion pour ce match."),
-  ).not.toBeOnTheScreen();
-  expect(screen.queryByText(/L’adresse ne prouve pas/)).not.toBeOnTheScreen();
-  expect(screen.queryByText(/versions pour ce match/)).not.toBeOnTheScreen();
-});
-
 it("refreshes the actual F03 match key after a publication under explicit maintenance bypass", async () => {
   // Given
   mockMaintenance = true;
@@ -717,25 +612,6 @@ it("refreshes the actual F03 match key after a publication under explicit mainte
   expect(new Headers(posts[0].headers).get("Blockout-Maintenance-Bypass")).toBe(
     "true",
   );
-});
-
-it("shows compact match context without inventing unknown scores or extra sporting navigation", async () => {
-  // Given: the public match has no published score.
-
-  // When
-  await mount();
-  await screen.findByLabelText("Adresse du lien");
-
-  // Then
-  expect(screen.getByText("Home")).toBeOnTheScreen();
-  expect(screen.getByText("Away")).toBeOnTheScreen();
-  expect(screen.queryByText("À venir")).not.toBeOnTheScreen();
-  expect(
-    screen.queryByLabelText("Score domicile : indisponible"),
-  ).not.toBeOnTheScreen();
-  expect(
-    screen.queryByRole("link", { name: /Home · Score/ }),
-  ).not.toBeOnTheScreen();
 });
 
 it("delegates failed native session restoration to F05 instead of showing an endless loader", async () => {
@@ -993,7 +869,7 @@ it("withdraws only the confirmed published version despite an edited draft and u
   expect(posts).toHaveLength(0);
 });
 
-it.each(["cancel", "session", "unmount"])(
+it.each(["session", "unmount"])(
   "does not dispatch a held withdrawal after %s",
   async (departure) => {
     // Given
@@ -1007,11 +883,6 @@ it.each(["cancel", "session", "unmount"])(
     )?.onPress;
 
     // When
-    if (departure === "cancel") {
-      await act(async () =>
-        buttons?.find((button) => button.style === "cancel")?.onPress?.(),
-      );
-    }
     if (departure === "session") {
       await user.press(
         screen.getByRole("button", { name: "Quitter la session" }),

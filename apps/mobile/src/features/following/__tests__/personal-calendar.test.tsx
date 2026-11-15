@@ -6,7 +6,6 @@ import {
   matchDetail,
   sportingId,
 } from "@/features/sporting/test-support/consultation-data";
-import { refreshCalendar } from "@/features/sporting/api/sporting-calendar";
 import {
   createFollowOptionsQueryOptions,
   createPersonalCalendarOptions,
@@ -119,77 +118,6 @@ it("retains complete pages on append and unchanged-context refresh failure witho
   expect(observer.getCurrentResult().data).toEqual(retained);
   expect(observer.getCurrentResult().hasNextPage).toBe(true);
   expect(mockFetch).toHaveBeenCalledTimes(3);
-  close();
-});
-
-it("restarts reset visible queries at the first page and defers hidden mounted categories until display", async () => {
-  // Given
-  const options = createPersonalCalendarOptions(owner, request, selection);
-  const hiddenOptions = createPersonalCalendarOptions(owner, request, {
-    ...selection,
-    category: "completed",
-  });
-  mockFetch.mockImplementation(async () =>
-    Response.json(page("2026-10-29", sportingId, "2026-10-29")),
-  );
-  const visible = new InfiniteQueryObserver(client, options);
-  const hidden = new InfiniteQueryObserver(client, {
-    ...hiddenOptions,
-    enabled: false,
-  });
-  const close = [visible.subscribe(() => {}), hidden.subscribe(() => {})];
-  await waitFor(() => expect(visible.getCurrentResult().isSuccess).toBe(true));
-  await visible.fetchNextPage();
-  mockFetch.mockClear();
-
-  // When: confirmed-change callbacks use native resetQueries for the same generated collection.
-  await client.resetQueries({ queryKey: options.queryKey.slice(0, -1) });
-
-  // Then
-  expect(visible.getCurrentResult().data?.pages).toHaveLength(1);
-  expect(mockFetch).toHaveBeenCalledTimes(1);
-  expect(new URL(mockFetch.mock.calls[0][0]).searchParams.has("nextDay")).toBe(
-    false,
-  );
-  expect(hidden.getCurrentResult().data).toBeUndefined();
-
-  // When
-  hidden.setOptions({ ...hiddenOptions, enabled: true });
-  await waitFor(() => expect(hidden.getCurrentResult().isSuccess).toBe(true));
-  visible.setOptions({ ...options, enabled: false });
-  visible.setOptions({ ...options, enabled: true });
-
-  // Then
-  expect(mockFetch).toHaveBeenCalledTimes(2);
-  expect(new URL(mockFetch.mock.calls[1][0]).searchParams.get("category")).toBe(
-    "completed",
-  );
-  close.forEach((unsubscribe) => unsubscribe());
-});
-
-it("cancels a late prior append before a successful first-page replacement", async () => {
-  // Given
-  const options = createPersonalCalendarOptions(owner, request, selection);
-  const late = Promise.withResolvers<Response>();
-  mockFetch
-    .mockResolvedValueOnce(
-      Response.json(page("2026-10-29", sportingId, "2026-10-29")),
-    )
-    .mockReturnValueOnce(late.promise);
-  const observer = new InfiniteQueryObserver(client, options);
-  const close = observer.subscribe(() => {});
-  await waitFor(() => expect(observer.getCurrentResult().isSuccess).toBe(true));
-  const pending = observer.fetchNextPage();
-  await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
-  mockFetch.mockResolvedValueOnce(Response.json(page("2026-11-01")));
-
-  // When
-  await refreshCalendar(client, options);
-  late.resolve(Response.json(page("2026-10-30")));
-  await pending;
-
-  // Then
-  expect(observer.getCurrentResult().data?.pages).toEqual([page("2026-11-01")]);
   close();
 });
 

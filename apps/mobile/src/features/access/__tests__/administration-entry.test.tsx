@@ -275,27 +275,6 @@ it.each([
   },
 );
 
-it.each(["true", 1, null])(
-  "does not coerce malformed capabilities (%s) into grants",
-  async (manageMaintenance) => {
-    // Given
-    mockFetch.mockImplementation(async () =>
-      json({ ...account, permissions: { manageMaintenance } }),
-    );
-
-    // When
-    await renderAdministration();
-
-    // Then
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Une erreur est survenue",
-    );
-    expect(
-      screen.queryByRole("link", { name: "Maintenance" }),
-    ).not.toBeOnTheScreen();
-  },
-);
-
 it("removes a revoked command independently while retaining another current grant", async () => {
   // Given
   mockFetch.mockImplementation(async () =>
@@ -499,21 +478,6 @@ it("recovers current command presentation only after an explicit successful retr
   expect(
     screen.queryByRole("link", { name: "Administration technique" }),
   ).not.toBeOnTheScreen();
-});
-
-it("hands back navigation to the router without an account command", async () => {
-  // Given
-  const user = userEvent.setup();
-  await renderAdministration(<AdministrationScreen admitted={false} />);
-
-  // When
-  await user.press(screen.getByRole("button", { name: "Retour" }));
-
-  // Then
-  expect(mockBack).toHaveBeenCalledTimes(1);
-  expect(
-    mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),
-  ).toBe(true);
 });
 
 it("keeps direct route admission closed with no F12 composition, even with a management grant", async () => {

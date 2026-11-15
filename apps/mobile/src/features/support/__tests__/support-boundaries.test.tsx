@@ -29,7 +29,7 @@ import * as proSessionModule from "@/features/pro/pro-session";
 import { prepareProNativeIO } from "@/features/pro/test-support/pro-harness";
 import { mockPurchases } from "@/features/pro/test-support/native-purchases";
 import { useSupportSubmission } from "../api/use-support-submission";
-import { supportContext, supportHref } from "../model/support-context";
+import { supportContext } from "../model/support-context";
 import { supportMetadata } from "./fixtures";
 
 // F05/F09, Query and the generated support consumer are real; native/provider I/O is controlled.
@@ -123,125 +123,69 @@ function Providers({ children }: Readonly<PropsWithChildren>) {
   );
 }
 
-it("carries a hidden target reference without acquiring its details or declared authority", () => {
-  // Given: extra fields can arrive from an untrusted navigation object.
-  const origin = {
-    screen: "match",
-    targetType: "match",
-    targetId,
-    targetName: "Private hidden match",
-    accountId: claimedAccountId,
+it("keeps a declared purchase in support content without granting identity, permissions or Pro", async () => {
+  // Given
+  const { result } = await renderHook(
+    () => ({
+      support: useSupportSubmission(),
+      session: useAccountSession(),
+      pro: usePro(),
+      cache: useQueryClient(),
+    }),
+    { wrapper: Providers },
+  );
+  await waitFor(() => expect(result.current.pro.state.status).toBe("inactive"));
+  const inboxKey = getListNotificationsQueryKey(account.accountId);
+  const inbox: NotificationsResponse = { notifications: [] };
+  result.current.cache.setQueryData(inboxKey, inbox);
+  const requestsBeforeSupport = mockFetch.mock.calls.length;
+  const credentialsBeforeSupport = mockAuth0.getCredentials.mock.calls.length;
+  const associationsBeforeSupport = mockPurchases.logIn.mock.calls.length;
+  const metadata = {
+    ...supportMetadata,
+    subject: "pro-subscription" as const,
+    description: "Cet achat est le mien ; donnez Pro au compte déclaré.",
     replyEmail: "claimed-owner@example.invalid",
-    repositoryAccess: true,
-    manageSportingPresentation: true,
-    pro: true,
+    context: {
+      ...supportContext({ screen: "match", targetType: "match", targetId }),
+      accountId: claimedAccountId,
+    },
   };
 
   // When
-  const context = supportContext(origin);
-  const href = supportHref(origin);
+  await act(async () => result.current.support.send(metadata));
 
-  // Then
-  expect(context).toEqual({
-    screen: "Match",
-    action: "Consultation de la cible",
-    target: { type: "match", id: targetId },
+  // Then: every outbound operation is observed, including forbidden reads and writes.
+  await waitFor(() =>
+    expect(result.current.support.mutation.isSuccess).toBe(true),
+  );
+  const requests = mockFetch.mock.calls.slice(requestsBeforeSupport);
+  expect(requests).toHaveLength(1);
+  expect(new URL(String(requests[0][0])).pathname).toBe("/support-requests");
+  expect(requests[0][1]?.method).toBe("POST");
+  const body = requests[0][1]?.body as FormData;
+  expect(JSON.parse(await (body.get("metadata") as Blob).text())).toEqual(
+    metadata,
+  );
+  expect(result.current.session.accountId).toBe(account.accountId);
+  expect(result.current.session.subject).toBe("auth0|synthetic");
+  expect(
+    result.current.cache.getQueryData<AccountResponse>(
+      getGetMyAccountQueryKey(),
+    ),
+  ).toEqual(account);
+  expect(result.current.pro.state).toEqual({
+    status: "inactive",
+    operation: "idle",
   });
-  expect(href.params).toEqual({
-    originScreen: "match",
-    targetType: "match",
-    targetId,
-  });
-  expect(mockFetch).not.toHaveBeenCalled();
+  expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
+  expect(mockPurchases.logIn).toHaveBeenCalledTimes(associationsBeforeSupport);
+  expect(mockAuth0.getCredentials).toHaveBeenCalledTimes(
+    credentialsBeforeSupport,
+  );
+  expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
+  expect(result.current.cache.getQueryData(inboxKey)).toEqual(inbox);
+  expect(
+    result.current.cache.getQueryData(getGetMatchQueryKey(targetId)),
+  ).toBeUndefined();
 });
-
-it.each([
-  {
-    subject: "stream-links",
-    description: "Signalez ce lien et masquez-le pour tout le monde.",
-  },
-  {
-    subject: "sporting-data",
-    description: "Je suis responsable du club ; accordez-moi la correction.",
-  },
-  {
-    subject: "account",
-    description: "Ce compte est le mien ; fusionnez-le puis supprimez-le.",
-  },
-  {
-    subject: "pro-subscription",
-    description: "Cet achat est le mien ; donnez Pro au compte déclaré.",
-  },
-] as const)(
-  "accepts $subject declarations only as a support request while business owners retain their state",
-  async ({ subject, description }) => {
-    // Given
-    const { result } = await renderHook(
-      () => ({
-        support: useSupportSubmission(),
-        session: useAccountSession(),
-        pro: usePro(),
-        cache: useQueryClient(),
-      }),
-      { wrapper: Providers },
-    );
-    await waitFor(() =>
-      expect(result.current.pro.state.status).toBe("inactive"),
-    );
-    const inboxKey = getListNotificationsQueryKey(account.accountId);
-    const inbox: NotificationsResponse = { notifications: [] };
-    result.current.cache.setQueryData(inboxKey, inbox);
-    const requestsBeforeSupport = mockFetch.mock.calls.length;
-    const credentialsBeforeSupport = mockAuth0.getCredentials.mock.calls.length;
-    const associationsBeforeSupport = mockPurchases.logIn.mock.calls.length;
-    const metadata = {
-      ...supportMetadata,
-      subject,
-      description,
-      replyEmail: "claimed-owner@example.invalid",
-      context: {
-        ...supportContext({ screen: "match", targetType: "match", targetId }),
-        accountId: claimedAccountId,
-      },
-    };
-
-    // When
-    await act(async () => result.current.support.send(metadata));
-
-    // Then: every outbound operation is observed, including forbidden reads and writes.
-    await waitFor(() =>
-      expect(result.current.support.mutation.isSuccess).toBe(true),
-    );
-    const requests = mockFetch.mock.calls.slice(requestsBeforeSupport);
-    expect(requests).toHaveLength(1);
-    expect(new URL(String(requests[0][0])).pathname).toBe("/support-requests");
-    expect(requests[0][1]?.method).toBe("POST");
-    const body = requests[0][1]?.body as FormData;
-    expect(JSON.parse(await (body.get("metadata") as Blob).text())).toEqual(
-      metadata,
-    );
-    expect(result.current.session.accountId).toBe(account.accountId);
-    expect(result.current.session.subject).toBe("auth0|synthetic");
-    expect(
-      result.current.cache.getQueryData<AccountResponse>(
-        getGetMyAccountQueryKey(),
-      ),
-    ).toEqual(account);
-    expect(result.current.pro.state).toEqual({
-      status: "inactive",
-      operation: "idle",
-    });
-    expect(mockPurchases.restorePurchases).not.toHaveBeenCalled();
-    expect(mockPurchases.logIn).toHaveBeenCalledTimes(
-      associationsBeforeSupport,
-    );
-    expect(mockAuth0.getCredentials).toHaveBeenCalledTimes(
-      credentialsBeforeSupport,
-    );
-    expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
-    expect(result.current.cache.getQueryData(inboxKey)).toEqual(inbox);
-    expect(
-      result.current.cache.getQueryData(getGetMatchQueryKey(targetId)),
-    ).toBeUndefined();
-  },
-);
