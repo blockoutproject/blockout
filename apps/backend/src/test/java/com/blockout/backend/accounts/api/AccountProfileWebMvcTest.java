@@ -265,7 +265,7 @@ class AccountProfileWebMvcTest {
     Account original = new Account(ID, ISSUER, "auth0|one", "Original", "shared@example.invalid");
     byte[] bytes = new byte[] {1, 2, 3};
     when(store.findById(ID)).thenReturn(Optional.of(original));
-    when(store.photo(ID)).thenReturn(Optional.of(new ProfilePhoto(bytes, "image/png", 1)));
+    when(store.photo(ID)).thenReturn(Optional.of(new ProfilePhoto(bytes, "image/png")));
 
     // When
     ResultActions response = mvc.perform(get("/accounts/" + ID + "/photo").with(principal()));

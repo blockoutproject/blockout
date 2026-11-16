@@ -25,7 +25,7 @@ export interface SingleImageFieldProps {
   readRevision?: number;
   hasImage: boolean;
   selection: ImageSelection;
-  /** Selects fallback glyph and copy; all artwork proportionally covers the shared rounded-square frame. */
+  /** Selects fallback glyph and copy; the complete image fits inside the shared rounded-square frame. */
   appearance?: "photo" | "logo";
   loading?: boolean;
   disabled?: boolean;
@@ -98,7 +98,7 @@ export function SingleImageField({
             accessibilityRole="image"
             accessibilityLabel={`Miniature : ${visibleImage.label}`}
             cachePolicy="none"
-            contentFit="cover"
+            contentFit="contain"
             style={styles.image}
             onDisplay={nativeImage.onDisplay}
             onError={nativeImage.onError}

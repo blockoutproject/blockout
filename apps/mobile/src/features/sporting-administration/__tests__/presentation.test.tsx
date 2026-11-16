@@ -107,10 +107,9 @@ jest.mock("expo/fetch", () => ({
         )
       : mockFetch(url, options),
 }));
-jest.mock("expo-image-picker", () => ({ launchImageLibraryAsync: jest.fn() }));
-jest.mock("expo-image-manipulator", () => ({
-  ImageManipulator: { manipulate: () => mockContext },
-  SaveFormat: { PNG: "png" },
+jest.mock("expo-image-picker", () => ({
+  ...jest.requireActual("expo-image-picker"),
+  launchImageLibraryAsync: jest.fn(),
 }));
 jest.mock("expo-file-system", () => ({
   File: jest.fn(),
@@ -127,12 +126,6 @@ jest.mock("@react-native-async-storage/async-storage", () =>
   ),
 );
 
-const mockContext = {
-  resize: jest.fn(),
-  renderAsync: jest.fn(),
-  release: jest.fn(),
-};
-const mockImage = { saveAsync: jest.fn(), release: jest.fn() };
 const mockFile = Object.assign(
   new Blob([new Uint8Array([137, 80, 78, 71])], { type: "image/png" }),
   { uri: "file:///prepared.png", exists: true, delete: jest.fn() },
@@ -231,10 +224,6 @@ beforeEach(async () => {
     .mockReset()
     .mockResolvedValue(credentialsFor("auth0|operator"));
   mockAuth0.clearCredentials.mockReset().mockResolvedValue();
-  mockContext.renderAsync.mockReset().mockResolvedValue(mockImage);
-  mockImage.saveAsync
-    .mockReset()
-    .mockResolvedValue({ uri: "file:///prepared.png", width: 120, height: 60 });
   jest
     .mocked(ImagePicker.launchImageLibraryAsync)
     .mockReset()
@@ -1644,7 +1633,6 @@ it("hides the retained draft and drops a held native selection when the current 
   expect(
     screen.queryByRole("image", { name: "Miniature : Logo" }),
   ).not.toBeOnTheScreen();
-  expect(mockContext.renderAsync).not.toHaveBeenCalled();
   expect(mockPickedFile.delete).toHaveBeenCalledTimes(1);
 });
 
@@ -2450,28 +2438,22 @@ it("deletes a prepared logo completed after its form unmounts", async () => {
     canceled: false,
     assets: [
       {
-        uri: "file:///cache/ImagePicker/source.heic",
-        mimeType: "image/heic",
+        uri: "file:///cache/ImagePicker/source.png",
+        mimeType: "image/png",
         width: 120,
         height: 60,
       },
     ],
   });
-  const output = Promise.withResolvers<{
-    uri: string;
-    width: number;
-    height: number;
-  }>();
-  mockImage.saveAsync.mockReturnValue(output.promise);
+  const copying = Promise.withResolvers<void>();
+  mockPickedFile.copy.mockReturnValue(copying.promise);
   await user.press(screen.getByRole("button", { name: "Ajouter un logo" }));
   await act(nativeImageChoiceAction("Choisir un logo"));
-  await waitFor(() => expect(mockImage.saveAsync).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(mockPickedFile.copy).toHaveBeenCalledTimes(1));
 
   // When
   await screen.unmount();
-  await act(async () =>
-    output.resolve({ uri: "file:///prepared.png", width: 120, height: 60 }),
-  );
+  await act(async () => copying.resolve());
 
   // Then
   expect(mockFile.delete).toHaveBeenCalledTimes(1);

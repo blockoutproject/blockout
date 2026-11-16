@@ -1,4 +1,4 @@
-import { RoundedContainedImage } from "@/shared/components/rounded-contained-image";
+import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import { useAccountSession } from "@/features/accounts/current-account";
@@ -10,6 +10,7 @@ import { useOpenProPaywall } from "../use-open-pro-paywall";
 
 /** Keeps the shared guest invitation; connected entries use the existing native Pro owner. */
 export function ProEntry() {
+  const { colors } = useTheme();
   const open = useOpenProPaywall();
   const account = useAccountSession();
   const router = useRouter();
@@ -22,10 +23,11 @@ export function ProEntry() {
       label="Blockout Pro"
       disabled={!available}
       icon={
-        <RoundedContainedImage
+        <Image
           accessible={false}
           source={require("../../../../assets/accounts/pro.png")}
-          style={styles.icon}
+          contentFit="contain"
+          style={[styles.icon, { backgroundColor: colors.mediaPlaceholder }]}
         />
       }
       onPress={() => {

@@ -109,7 +109,7 @@ class EraseAccountIntegrationTest extends ContributionScenario {
         FOLLOWER,
         null,
         ProfilePhotoActionEnum.REPLACE,
-        new ProfilePhoto(new byte[] {1}, "image/png", 1));
+        new ProfilePhoto(new byte[] {1}, "image/png"));
     destinations.replace(new Registration(CONNECTION, INSTALLATION, FOLLOWER, "Expo[original]"));
     moderator(FOLLOWER);
     sql.update(

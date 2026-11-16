@@ -102,7 +102,6 @@ export function useSupportImages(
 
   const selection = useImageSelection({
     multiple: true,
-    allowsEditing: false,
     selectionLimit: Math.max(1, 5 - images.length),
     canSelect,
     onSelect: async (assets, replaceId) => {

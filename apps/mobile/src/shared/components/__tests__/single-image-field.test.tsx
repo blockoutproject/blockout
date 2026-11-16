@@ -20,7 +20,10 @@ import {
   type SingleImageFieldProps,
 } from "../single-image-field";
 
-jest.mock("expo-image-picker", () => ({ launchImageLibraryAsync: jest.fn() }));
+jest.mock("expo-image-picker", () => ({
+  ...jest.requireActual("expo-image-picker"),
+  launchImageLibraryAsync: jest.fn(),
+}));
 jest.mock("expo-file-system", () => ({
   File: jest.fn((uri: string) => ({ uri, exists: true, delete: jest.fn() })),
   Paths: {

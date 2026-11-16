@@ -147,8 +147,8 @@ Member:
                 type: string
                 format: binary
                 description:
-                  Square PNG/JPEG, 1–1024 pixels per side and at most 5242880 bytes; actual
-                  decoded content is validated.
+                  Original PNG/JPEG of at most 5242880 bytes; actual decoded content is validated.
+                  Accepted bytes are stored unchanged, without cropping, resizing or re-encoding.
           encoding:
             metadata:
               contentType: application/json
@@ -212,7 +212,7 @@ Photo:
       "503":
         $ref: ../access/problems.yaml#/responses/AccessUnavailable
       "200":
-        description: Accepted photo bytes, without original metadata.
+        description: Accepted original photo bytes, unchanged from the upload.
         headers:
           Cache-Control:
             $ref: ../../common/headers.yaml#/NoStore
@@ -221,9 +221,9 @@ Photo:
             schema:
               type: string
               format: binary
-              description: Square accepted photo.
+              description: Accepted original PNG photo.
           image/jpeg:
             schema:
               type: string
               format: binary
-              description: Square accepted photo.
+              description: Accepted original JPEG photo.

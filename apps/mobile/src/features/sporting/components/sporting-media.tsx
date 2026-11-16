@@ -1,4 +1,4 @@
-import { RoundedContainedImage } from "@/shared/components/rounded-contained-image";
+import { Image } from "expo-image";
 import { BlurredArtwork } from "@/shared/components/blurred-artwork";
 import { ImageFallback } from "@/shared/components/image-fallback";
 import { useState, type ReactNode } from "react";
@@ -40,7 +40,7 @@ export function SportingMedia({
   function renderArtwork() {
     if (available) {
       return (
-        <RoundedContainedImage
+        <Image
           key={image.attemptKey}
           accessible
           accessibilityRole="image"
@@ -48,6 +48,7 @@ export function SportingMedia({
           accessibilityState={{ busy: pending }}
           source={{ uri }}
           cachePolicy="none"
+          contentFit="contain"
           recyclingKey={uri}
           onDisplay={image.onDisplay}
           onError={image.onError}

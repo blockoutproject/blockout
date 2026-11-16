@@ -21,7 +21,7 @@ import { TextField } from "@/shared/components/text-field";
 import { Surface } from "@/shared/components/surface";
 import { tokens } from "@/shared/theme/tokens";
 import { useProfileEditing, useProfilePhoto } from "../api/use-profile-editing";
-import { prepareProfilePhoto } from "../profile/prepare-profile-photo";
+import { copySelectedImage } from "@/shared/images/copy-selected-image";
 import { profileSchema, type ProfileValues } from "../schemas/profile-schema";
 import { profileValues } from "./profile-values";
 import { toProfileBody } from "../api/profile-request";
@@ -57,15 +57,13 @@ export function ProfileForm({
   const uploading = useRef<File | undefined>(undefined);
   const selection = useImageSelection({
     canSelect: () => !disabled && !save.isPending,
-    allowsEditing: true,
-    aspect: [1, 1],
     onSelect: async (assets) => {
       const selected = assets[0];
       if (!selected) {
         return;
       }
       try {
-        const prepared = await prepareProfilePhoto(selected);
+        const prepared = await copySelectedImage(selected);
         if (active.current) {
           replacePhoto({ action: "replace", prepared });
         } else {
@@ -77,8 +75,7 @@ export function ProfileForm({
         }
         if (error instanceof ImageValidationError) {
           setError("photo", {
-            message:
-              "Impossible de préparer la photo. Votre choix précédent est conservé.",
+            message: "Choisissez une image PNG ou JPEG de 5 Mio maximum.",
           });
         } else {
           throw error;
@@ -272,7 +269,6 @@ export function ProfileForm({
                     autoCapitalize="none"
                     autoCorrect={false}
                     editable={!disabled && !busy}
-                    helper="3 à 32 caractères : lettres sans accent, chiffres, point, tiret ou soulignement. Les espaces autour sont retirés."
                     error={fieldState.error?.message}
                   />
                 )}

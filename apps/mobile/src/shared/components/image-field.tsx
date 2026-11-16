@@ -1,4 +1,4 @@
-import { Image, type ImageProps } from "expo-image";
+import { Image } from "expo-image";
 import type { ImageSelection } from "@/shared/images/use-image-selection";
 import { ImageFallback } from "./image-fallback";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -7,7 +7,6 @@ import { tokens } from "@/shared/theme/tokens";
 import { LoadingIndicator } from "./loading-indicator";
 import { FieldMessage } from "./field-message";
 import { useNativeImageLifecycle } from "@/shared/images/use-native-image-lifecycle";
-import { RoundedContainedImage } from "./rounded-contained-image";
 
 /** Stable caller identity and accessible description for an existing or prepared local image. */
 export interface ImageFieldImage {
@@ -34,8 +33,6 @@ export interface ImageFieldProps {
   /** Uses the published standard or compact image/action composition. */
   size?: "standard" | "compact";
   chooseLabel?: string;
-  /** Image fitting only; use contain for logos. This does not transform selected assets. */
-  contentFit?: "cover" | "contain";
   replaceLabel?: string;
   removeLabel?: string;
   helper?: string;
@@ -52,7 +49,6 @@ export function ImageField({
   disabled = false,
   size = "standard",
   chooseLabel = "Choisir une image",
-  contentFit = "cover",
   replaceLabel = "Changer l’image",
   removeLabel = "Supprimer l’image",
   helper,
@@ -86,11 +82,7 @@ export function ImageField({
               },
             ]}
           >
-            <ImageThumbnail
-              image={image}
-              compact={compact}
-              contentFit={contentFit}
-            />
+            <ImageThumbnail image={image} compact={compact} />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`${replaceLabel} : ${image.label}`}
@@ -180,31 +172,12 @@ export function ImageField({
 function ImageThumbnail({
   image,
   compact,
-  contentFit,
 }: Readonly<{
   image: ImageFieldImage;
   compact: boolean;
-  contentFit: NonNullable<ImageFieldProps["contentFit"]>;
 }>) {
   const { colors } = useTheme();
   const nativeImage = useNativeImageLifecycle(image.uri);
-  const thumbnailProps = {
-    source: { uri: image.uri },
-    accessible: true,
-    accessibilityRole: "image",
-    accessibilityLabel: `Miniature : ${image.label}`,
-    cachePolicy: "none",
-    style: [
-      StyleSheet.absoluteFill,
-      {
-        borderRadius: compact
-          ? tokens.media.radius.preview
-          : tokens.media.radius.profile,
-      },
-    ],
-    onDisplay: nativeImage.onDisplay,
-    onError: nativeImage.onError,
-  } satisfies ImageProps;
   return (
     <View
       style={[
@@ -214,18 +187,25 @@ function ImageThumbnail({
       ]}
     >
       {image.uri && nativeImage.status !== "failed" ? (
-        contentFit === "contain" ? (
-          <RoundedContainedImage
-            key={nativeImage.attemptKey}
-            {...thumbnailProps}
-          />
-        ) : (
-          <Image
-            key={nativeImage.attemptKey}
-            {...thumbnailProps}
-            contentFit={contentFit}
-          />
-        )
+        <Image
+          key={nativeImage.attemptKey}
+          source={{ uri: image.uri }}
+          accessible
+          accessibilityRole="image"
+          accessibilityLabel={`Miniature : ${image.label}`}
+          cachePolicy="none"
+          contentFit="contain"
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              borderRadius: compact
+                ? tokens.media.radius.preview
+                : tokens.media.radius.profile,
+            },
+          ]}
+          onDisplay={nativeImage.onDisplay}
+          onError={nativeImage.onError}
+        />
       ) : (
         <ImageFallback
           label={`${image.uri ? "Image indisponible" : "Image absente"} : ${image.label}`}

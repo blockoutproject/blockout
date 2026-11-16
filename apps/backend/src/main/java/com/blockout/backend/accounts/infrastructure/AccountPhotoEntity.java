@@ -24,26 +24,22 @@ class AccountPhotoEntity {
   @Column(name = "photo_media_type")
   private String mediaType;
 
-  @Column(name = "photo_dimension")
-  private Integer dimension;
-
   /**
    * Reads this lifecycle's complete accepted photo without exporting a managed object.
    *
-   * @return accepted pixels, or null when the photo is absent
+   * @return accepted original bytes, or null when the photo is absent
    */
   ProfilePhoto photo() {
-    return bytes == null ? null : new ProfilePhoto(bytes, mediaType, dimension);
+    return bytes == null ? null : new ProfilePhoto(bytes, mediaType);
   }
 
   /**
    * Replaces or clears the complete photo association under the original account row lock.
    *
-   * @param photo prepared pixels, or null for explicit removal
+   * @param photo accepted original bytes, or null for explicit removal
    */
   void replace(ProfilePhoto photo) {
     bytes = photo == null ? null : photo.bytes();
     mediaType = photo == null ? null : photo.mediaType();
-    dimension = photo == null ? null : photo.dimension();
   }
 }

@@ -19,7 +19,7 @@ public class ValidateSportingImage {
 
   /**
    * Decodes actual PNG/JPEG content outside a write transaction after the caller's grant preflight.
-   * Retains native validation of the original metadata, unlike profile/support preparation.
+   * Retains native validation of the original metadata.
    *
    * @param bytes original bounded content, never an arbitrary URL
    * @return immutable original bytes with their detected content type

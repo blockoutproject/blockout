@@ -1,4 +1,4 @@
-import { RoundedContainedImage } from "@/shared/components/rounded-contained-image";
+import { Image } from "expo-image";
 import { StyleSheet, Text, View } from "react-native";
 import { ImageFallback } from "@/shared/components/image-fallback";
 import { LoadingGroup } from "@/shared/components/loading-group";
@@ -41,14 +41,18 @@ export function PresentationIdentity({
   return (
     <>
       {available ? (
-        <RoundedContainedImage
+        <Image
           key={nativeImage.attemptKey}
           source={{ uri }}
           cachePolicy="none"
+          contentFit="contain"
           accessible
           accessibilityRole="image"
           accessibilityLabel={`Logo : ${identityName}`}
-          style={isDivision ? styles.divisionLogo : styles.contextLogo}
+          style={[
+            isDivision ? styles.divisionLogo : styles.contextLogo,
+            { backgroundColor: colors.mediaPlaceholder },
+          ]}
           onDisplay={nativeImage.onDisplay}
           onError={nativeImage.onError}
         />

@@ -96,7 +96,7 @@ class TransitionResetIntegrationTest {
     // These synthetic bytes exercise another owner's stored-photo presence, not image validation.
     sql.update(
         "UPDATE account SET username='Former_profile', email=?, photo_bytes=?,"
-            + " photo_media_type='image/png', photo_dimension=1 WHERE id=?",
+            + " photo_media_type='image/png' WHERE id=?",
         EMAIL,
         new byte[] {1, 2, 3},
         ACCOUNT);

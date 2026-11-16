@@ -5,7 +5,7 @@ import { useActionFeedback } from "@/shared/components/action-feedback";
 import { useDiscardChanges } from "@/shared/forms/use-discard-changes";
 import { useActionConfirmation } from "@/shared/forms/use-action-confirmation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { RoundedContainedImage } from "@/shared/components/rounded-contained-image";
+import { Image } from "expo-image";
 import { FileText, Wrench } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
@@ -243,19 +243,23 @@ export function MaintenanceForm({
 
 /** Keeps the nominal slot without a usable URL; only a validated URL starts native loading, independently of RHF. */
 function MaintenanceImagePreview({ uri }: Readonly<{ uri?: string }>) {
+  const { colors } = useTheme();
   const [status, setStatus] = useState<"loading" | "displayed" | "failed">(
     "loading",
   );
   return (
-    <View style={styles.preview}>
+    <View
+      style={[styles.preview, { backgroundColor: colors.mediaPlaceholder }]}
+    >
       {!uri || status === "failed" ? (
         <ImageFallback label={uri ? "Aperçu indisponible" : "Aperçu absent"} />
       ) : (
-        <RoundedContainedImage
+        <Image
           accessible
           accessibilityRole="image"
           accessibilityLabel="Aperçu de l’image de maintenance"
           source={{ uri }}
+          contentFit="contain"
           style={[StyleSheet.absoluteFill, styles.previewImage]}
           onDisplay={() => setStatus("displayed")}
           onError={() => setStatus("failed")}

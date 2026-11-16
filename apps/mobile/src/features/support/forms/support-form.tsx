@@ -177,7 +177,6 @@ export function SupportForm({ onSubmit }: Readonly<SupportFormProps>) {
         selection={attachments.selection}
         onRemove={attachments.remove}
         multiple
-        contentFit="contain"
         chooseLabel="Ajouter des images"
         helper="Jusqu’à cinq images PNG ou JPEG, de 5 Mio maximum chacune."
         error={attachments.error}

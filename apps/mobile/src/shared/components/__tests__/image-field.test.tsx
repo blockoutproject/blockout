@@ -20,7 +20,10 @@ import {
   type ImageSelectionOptions,
 } from "@/shared/images/use-image-selection";
 
-jest.mock("expo-image-picker", () => ({ launchImageLibraryAsync: jest.fn() }));
+jest.mock("expo-image-picker", () => ({
+  ...jest.requireActual("expo-image-picker"),
+  launchImageLibraryAsync: jest.fn(),
+}));
 jest.mock("expo-file-system", () => ({
   File: jest.fn((uri: string) => ({
     uri,
@@ -61,8 +64,6 @@ function ImageField({
   canSelect,
   multiple,
   selectionLimit,
-  allowsEditing,
-  aspect,
   ...props
 }: Readonly<Omit<ImageFieldProps, "selection"> & ImageSelectionOptions>) {
   const selection = useImageSelection({
@@ -70,8 +71,6 @@ function ImageField({
     canSelect,
     multiple,
     selectionLimit,
-    allowsEditing,
-    aspect,
   });
   return (
     <ImageFieldControl {...props} multiple={multiple} selection={selection} />
@@ -109,7 +108,8 @@ it("loans native image copies without imposing cropping and releases them after 
   expect(launch).toHaveBeenCalledWith(
     expect.objectContaining({
       mediaTypes: ["images"],
-      allowsEditing: false,
+      preferredAssetRepresentationMode:
+        ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
       allowsMultipleSelection: false,
     }),
   );
@@ -184,8 +184,6 @@ it("preserves the existing image when native selection is cancelled", async () =
     onSelect,
     onRemove,
     images: [logo],
-    allowsEditing: true,
-    aspect: [1, 1],
   });
 
   // When
@@ -284,7 +282,7 @@ it("replaces a specific image and delegates automatic-logo restoration meaning",
   ).toBeOnTheScreen();
 });
 
-it("prioritizes multiple additions over native cropping but allows cropping a single replacement", async () => {
+it("selects multiple additions and only one image for a replacement", async () => {
   // Given
   const replacement = {
     ...photo,
@@ -299,8 +297,6 @@ it("prioritizes multiple additions over native cropping but allows cropping a si
     images: [logo],
     multiple: true,
     selectionLimit: 4,
-    allowsEditing: true,
-    aspect: [1, 1],
     chooseLabel: "Ajouter des captures",
   });
 
@@ -313,7 +309,6 @@ it("prioritizes multiple additions over native cropping but allows cropping a si
   expect(launch).toHaveBeenLastCalledWith(
     expect.objectContaining({
       allowsMultipleSelection: true,
-      allowsEditing: false,
       selectionLimit: 4,
     }),
   );
@@ -327,8 +322,6 @@ it("prioritizes multiple additions over native cropping but allows cropping a si
   expect(launch).toHaveBeenLastCalledWith(
     expect.objectContaining({
       allowsMultipleSelection: false,
-      allowsEditing: true,
-      aspect: [1, 1],
       selectionLimit: 1,
     }),
   );

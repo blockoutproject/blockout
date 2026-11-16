@@ -112,7 +112,7 @@ class TransitionIdentityIntegrationTest {
     // Stored synthetic bytes make private-read refusal distinguishable from a missing photo.
     byte[] photo = new byte[] {1, 2, 3};
     sql.update(
-        "UPDATE account SET photo_bytes=?, photo_media_type='image/png', photo_dimension=1 WHERE id=?",
+        "UPDATE account SET photo_bytes=?, photo_media_type='image/png' WHERE id=?",
         photo,
         first.id());
 

@@ -25,7 +25,7 @@ import {
   type PresentationTarget,
   type usePresentation,
 } from "../api/presentation";
-import { prepareSportingLogo } from "../images/prepare-sporting-logo";
+import { copySelectedImage } from "@/shared/images/copy-selected-image";
 import { type PresentationValues } from "../schemas/presentation-schema";
 import { presentationValues } from "./presentation-values";
 import type { usePresentationDraft } from "./use-presentation-draft";
@@ -74,7 +74,7 @@ export function PresentationForm({
         return;
       }
       try {
-        const prepared = await prepareSportingLogo(asset);
+        const prepared = await copySelectedImage(asset);
         if (mounted.current) {
           editor.replaceLogo({ action: "replace", prepared });
         } else {
@@ -86,8 +86,7 @@ export function PresentationForm({
         }
         if (mounted.current) {
           setError("logo", {
-            message:
-              "Impossible de préparer le logo. Votre choix précédent est conservé.",
+            message: "Choisissez une image PNG ou JPEG de 5 Mio maximum.",
           });
         }
       }

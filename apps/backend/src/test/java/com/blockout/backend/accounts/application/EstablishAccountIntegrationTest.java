@@ -231,7 +231,7 @@ class EstablishAccountIntegrationTest {
                 accounts.create(ISSUER, "auth0|photo", "Photo_owner", "known@example.invalid"));
     // Synthetic storage bytes exercise presence only; actual image validation belongs to US2.
     sql.update(
-        "UPDATE account SET photo_bytes = ?, photo_media_type = 'image/png', photo_dimension = 1 WHERE id = ?",
+        "UPDATE account SET photo_bytes = ?, photo_media_type = 'image/png' WHERE id = ?",
         new byte[] {1, 2, 3},
         original.id());
 
@@ -254,7 +254,7 @@ class EstablishAccountIntegrationTest {
         transaction.execute(
             status -> accounts.create(ISSUER, "auth0|one", "Original", "known@example.invalid"));
     sql.update(
-        "UPDATE account SET photo_bytes = ?, photo_media_type = 'image/png', photo_dimension = 1 WHERE id = ?",
+        "UPDATE account SET photo_bytes = ?, photo_media_type = 'image/png' WHERE id = ?",
         new byte[] {1, 2, 3},
         original.id());
     sql.update(

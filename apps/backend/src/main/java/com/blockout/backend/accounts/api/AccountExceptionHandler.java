@@ -31,7 +31,7 @@ public class AccountExceptionHandler {
     return HttpProblems.response(HttpStatus.CONFLICT, "urn:blockout:problem:username-unavailable");
   }
 
-  /** Returns a bounded upload refusal, including reencoded output that exceeds the bound. */
+  /** Returns the original upload's byte-bound refusal. */
   @ExceptionHandler(ProfilePhotoTooLargeException.class)
   ResponseEntity<Object> photoTooLarge() {
     return HttpProblems.response(

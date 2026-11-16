@@ -7,8 +7,7 @@ import { useActionFeedback } from "@/shared/components/action-feedback";
 /**
  * Native selection and the caller's preparation share one operation. Delivered app-cache copies
  * are borrowed until `onSelect` settles; prepare, copy or read accepted bytes before resolving.
- * Library/content-provider sources remain borrowed. The Android crop intermediate that Expo does
- * not return remains the documented SDK exception (#523); this owner deletes only returned copies.
+ * Library/content-provider sources remain borrowed; this owner deletes only returned cache copies.
  * Key or unmount the owner when its session/resource changes; feature callbacks also guard their identity.
  */
 export interface ImageSelectionOptions {
@@ -21,10 +20,6 @@ export interface ImageSelectionOptions {
   multiple?: boolean;
   /** Remaining native capacity for multiple additions; replacements always select one asset. */
   selectionLimit?: number;
-  /** Native cropping applies only to single selection; no upload format validation is implied. */
-  allowsEditing?: boolean;
-  /** Android crop ratio; iOS native editing always crops to a square. */
-  aspect?: ImagePicker.ImagePickerOptions["aspect"];
 }
 
 /** Observable selection owner shared by the field and the form's write exclusion. */
@@ -41,8 +36,6 @@ export function useImageSelection({
   onSelect,
   multiple = false,
   selectionLimit = 1,
-  allowsEditing = false,
-  aspect,
 }: ImageSelectionOptions): ImageSelection {
   const feedback = useActionFeedback();
   const active = useRef(false);
@@ -67,8 +60,8 @@ export function useImageSelection({
       // The image-only system library requires no broad photo permission request.
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
-        allowsEditing: allowsEditing && !allowsMultipleSelection,
-        aspect,
+        preferredAssetRepresentationMode:
+          ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Compatible,
         allowsMultipleSelection,
         selectionLimit: allowsMultipleSelection ? selectionLimit : 1,
       });

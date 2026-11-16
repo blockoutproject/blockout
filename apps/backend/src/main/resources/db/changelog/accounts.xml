@@ -12,21 +12,19 @@
       <column name="email" type="TEXT"><constraints nullable="false"/></column>
       <column name="photo_bytes" type="BYTEA"/>
       <column name="photo_media_type" type="VARCHAR(255)"/>
-      <column name="photo_dimension" type="INTEGER"/>
     </createTable>
     <addUniqueConstraint tableName="account" columnNames="issuer, subject" constraintName="uk_account_principal"/>
     <createIndex tableName="account" indexName="uk_account_username" unique="true">
       <column name="lower(username)" computed="true"/>
     </createIndex>
     <!-- Community Liquibase has no native CHECK change; PostgreSQL owns complete, bounded storage.
-         Actual image decoding and metadata removal belong to profile input validation. -->
+         Actual image decoding belongs to profile input validation; accepted bytes remain unchanged. -->
     <sql>
       ALTER TABLE account ADD CONSTRAINT ck_account_photo CHECK (
-        (photo_bytes IS NULL AND photo_media_type IS NULL AND photo_dimension IS NULL)
-        OR (photo_bytes IS NOT NULL AND photo_media_type IS NOT NULL AND photo_dimension IS NOT NULL
+        (photo_bytes IS NULL AND photo_media_type IS NULL)
+        OR (photo_bytes IS NOT NULL AND photo_media_type IS NOT NULL
           AND octet_length(photo_bytes) BETWEEN 1 AND 5242880
-          AND photo_media_type IN ('image/png', 'image/jpeg')
-          AND photo_dimension BETWEEN 1 AND 1024)
+          AND photo_media_type IN ('image/png', 'image/jpeg'))
       );
     </sql>
   </changeSet>

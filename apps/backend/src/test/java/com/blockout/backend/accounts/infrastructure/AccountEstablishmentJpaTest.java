@@ -352,7 +352,7 @@ class AccountEstablishmentJpaTest {
     // Synthetic bytes qualify storage only; actual image decoding belongs to profile validation.
     byte[] originalBytes = {1, 2, 3};
     sql.update(
-        "UPDATE account SET photo_bytes = ?, photo_media_type = 'image/png', photo_dimension = 128 WHERE id = ?",
+        "UPDATE account SET photo_bytes = ?, photo_media_type = 'image/png' WHERE id = ?",
         originalBytes,
         original.id());
 
@@ -361,7 +361,7 @@ class AccountEstablishmentJpaTest {
         state -> {
           access.lock(original.id());
           sql.update(
-              "UPDATE account SET photo_bytes = ?, photo_dimension = 256 WHERE id = ?",
+              "UPDATE account SET photo_bytes = ?, photo_media_type = 'image/jpeg' WHERE id = ?",
               new byte[] {4, 5},
               original.id());
           state.setRollbackOnly();
@@ -374,20 +374,14 @@ class AccountEstablishmentJpaTest {
         .isEqualTo(originalBytes);
     assertThat(
             sql.queryForObject(
-                "SELECT photo_dimension FROM account WHERE id = ?", Integer.class, original.id()))
-        .isEqualTo(128);
+                "SELECT photo_media_type FROM account WHERE id = ?", String.class, original.id()))
+        .isEqualTo("image/png");
   }
 
   @ParameterizedTest
-  @CsvSource({
-    "image/png, 0, 1",
-    "image/png, 1025, 1",
-    "image/png, 1, 5242881",
-    "image/gif, 1, 1",
-    "image/png, 1, 0"
-  })
-  @DisplayName("Rejects photo storage outside its media, byte and square-dimension limits")
-  void rejectsInvalidPhotoStorage(String mediaType, int dimension, int length) {
+  @CsvSource({"image/png, 5242881", "image/gif, 1", "image/png, 0"})
+  @DisplayName("Rejects photo storage outside its media and byte limits")
+  void rejectsInvalidPhotoStorage(String mediaType, int length) {
     // Given
     Account original =
         transaction.execute(
@@ -397,10 +391,9 @@ class AccountEstablishmentJpaTest {
     assertThatThrownBy(
             () ->
                 sql.update(
-                    "UPDATE account SET photo_bytes = ?, photo_media_type = ?, photo_dimension = ? WHERE id = ?",
+                    "UPDATE account SET photo_bytes = ?, photo_media_type = ? WHERE id = ?",
                     new byte[length],
                     mediaType,
-                    dimension,
                     original.id()))
         .isInstanceOf(DataIntegrityViolationException.class)
         .hasStackTraceContaining("ck_account_photo");

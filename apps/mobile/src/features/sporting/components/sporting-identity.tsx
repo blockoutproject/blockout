@@ -143,7 +143,6 @@ export function SportingIdentity({
           uri={logo.uri}
           loading={logo.loading}
           label={`${imageLabel} : ${logoIdentity.name}`}
-          contentFit="contain"
           cachePolicy="none"
           fallback={
             <ImageFallback
