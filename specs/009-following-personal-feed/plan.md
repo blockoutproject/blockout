@@ -138,3 +138,5 @@ Failed or lost Follow responses keep F13's ordinary action feedback, invalidatio
 ## Qualification
 
 The [quickstart](quickstart.md) owns database, mobile and generated-boundary validation scenarios and expected outcomes. F03 owns ordinary retained-calendar refresh, F05 account erasure and F07 notification eligibility; the preceding sections define their F06 integration boundaries.
+
+T029 receives A13–A17's PostgreSQL/ICU and Hibernate/MVC evidence separately from the actual generated list/calendar consumers, including the availability explanation and retained season. Reuse unchanged proofs at their demonstrated source/configuration/runtime boundary and rerun only changed boundaries or missing compositions. Representative native interaction retains T045/T054/T056's separate scope; neither native captures nor general CI establish SQL ordering.
