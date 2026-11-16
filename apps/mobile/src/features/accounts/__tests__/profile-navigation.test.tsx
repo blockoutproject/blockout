@@ -197,6 +197,7 @@ it("opens the profile overview without mounting its editor", async () => {
 
   // Then
   expect(screen.getByRole("header", { name: "Mon profil" })).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Retour" })).toBeNull();
   expect(
     screen.getByRole("button", { name: "Modifier mon profil" }),
   ).toBeOnTheScreen();

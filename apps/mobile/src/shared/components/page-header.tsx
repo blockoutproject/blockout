@@ -14,13 +14,14 @@ import { tokens } from "@/shared/theme/tokens";
 import { IconButton } from "./icon-button";
 import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 
-/** Ordinary page chrome; the default Back uses global history or Home, while nested owners can supply their departure. */
+/** Ordinary page chrome; tab roots omit Back, while details use history or their owning departure. */
 export interface PageHeaderProps {
   title?: string;
   /** A composed compact identity may replace the plain title between the navigation rails. */
   children?: ReactNode;
   /** An owner-supplied action remains available independently of the detail read. */
   action?: ReactNode;
+  back?: boolean;
   /** A nested destination can leave through its own stack instead of the global tab history. */
   onBack?: () => void;
   /** Native normalized reveal affects only the center; navigation and actions remain available. */
@@ -32,6 +33,7 @@ export function PageHeader({
   title,
   children,
   action,
+  back = true,
   onBack,
   revealProgress,
 }: Readonly<PageHeaderProps>) {
@@ -87,20 +89,22 @@ export function PageHeader({
   return (
     <View style={styles.header}>
       <View style={[styles.rail, { width: actionWidth }]}>
-        <IconButton
-          label="Retour"
-          onPress={
-            onBack ??
-            (() =>
-              router.canGoBack() ? router.back() : router.replace(homeHref))
-          }
-        >
-          <ChevronLeft
-            accessible={false}
-            color={colors.icon}
-            size={tokens.size.icon.lg}
-          />
-        </IconButton>
+        {back && (
+          <IconButton
+            label="Retour"
+            onPress={
+              onBack ??
+              (() =>
+                router.canGoBack() ? router.back() : router.replace(homeHref))
+            }
+          >
+            <ChevronLeft
+              accessible={false}
+              color={colors.icon}
+              size={tokens.size.icon.lg}
+            />
+          </IconButton>
+        )}
       </View>
       {identity}
       <View

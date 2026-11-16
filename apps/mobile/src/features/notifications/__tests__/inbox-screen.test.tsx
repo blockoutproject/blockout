@@ -192,9 +192,31 @@ it("displays one unread card without summary requests or marking on display", as
 
   // Then
   expect(item).toBeOnTheScreen();
+  expect(screen.queryByRole("button", { name: "Retour" })).toBeNull();
   expect(
     mockFetch.mock.calls.some(([url]) => url.endsWith("notification-summary")),
   ).toBe(false);
+  expect(mockFetch.mock.calls.some(([, init]) => init.method === "PATCH")).toBe(
+    false,
+  );
+});
+
+it("opens support from the notifications root without marking entries", async () => {
+  // Given
+  await showInbox();
+  await screen.findByRole("link", { name: /non lue$/ });
+  const user = userEvent.setup();
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Signaler un problème" }),
+  );
+
+  // Then
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: "/support",
+    params: { originScreen: "notifications" },
+  });
   expect(mockFetch.mock.calls.some(([, init]) => init.method === "PATCH")).toBe(
     false,
   );
@@ -346,6 +368,10 @@ it("keeps first-account failure on its card without background Retry progress an
 
     // Then
     expect(card).toBeOnTheScreen();
+    expect(screen.queryByRole("button", { name: "Retour" })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Signaler un problème" }),
+    ).toBeEnabled();
     expect(
       screen.getByRole("button", { name: "Réessayer", busy: false }),
     ).toBeOnTheScreen();

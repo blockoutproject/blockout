@@ -13,6 +13,7 @@ import { PersonalScreen } from "@/features/following/screens/personal-screen";
 import { NotificationsScreen } from "@/features/notifications/screens/notifications-screen";
 import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import { AccountSessionProvider } from "../session/account-session-provider";
+import { AccountFeedbackProvider } from "../test-support/account-feedback-provider";
 import { mockAuth0 } from "../test-support/native-auth0";
 
 jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
@@ -77,7 +78,9 @@ it.each([
         <ThemeProvider>
           <ApplicationAccessProvider>
             <AccountSessionProvider>
-              <Consumer />
+              <AccountFeedbackProvider>
+                <Consumer />
+              </AccountFeedbackProvider>
             </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>
@@ -122,7 +125,9 @@ it.each([
         <ThemeProvider>
           <ApplicationAccessProvider>
             <AccountSessionProvider>
-              <Consumer />
+              <AccountFeedbackProvider>
+                <Consumer />
+              </AccountFeedbackProvider>
             </AccountSessionProvider>
           </ApplicationAccessProvider>
         </ThemeProvider>

@@ -1,4 +1,4 @@
-import { RefreshCw } from "lucide-react-native";
+import { Flag, RefreshCw } from "lucide-react-native";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { PageFlatList } from "@/shared/components/page-list";
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
@@ -7,9 +7,9 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useNavigation, useIsFocused } from "expo-router";
+import { useNavigation, useIsFocused, useRouter } from "expo-router";
 import { useEffect, useEffectEvent, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet } from "react-native";
 
 import {
   Page,
@@ -18,6 +18,8 @@ import {
   pageContentStyle,
 } from "@/shared/components/page";
 import { PageHeader } from "@/shared/components/page-header";
+import { IconButton } from "@/shared/components/icon-button";
+import { supportHref } from "@/features/support";
 
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
 import { ListContinuation } from "@/shared/components/list-continuation";
@@ -66,10 +68,7 @@ export function NotificationsScreen() {
   }
   if (!authority.queries) {
     return (
-      <Page
-        edges={["top", "left", "right"]}
-        header={<PageHeader title="Notifications" />}
-      >
+      <Page edges={["top", "left", "right"]} header={<NotificationsHeader />}>
         <PageScrollView>
           <FeedbackLayout>{feedback}</FeedbackLayout>
         </PageScrollView>
@@ -81,6 +80,29 @@ export function NotificationsScreen() {
       key={`${authority.owner.subject}:${authority.owner.accountId}`}
       owner={authority.owner}
       queries={authority.queries}
+    />
+  );
+}
+
+function NotificationsHeader() {
+  const router = useRouter();
+  const { colors } = useTheme();
+  return (
+    <PageHeader
+      title="Notifications"
+      back={false}
+      action={
+        <IconButton
+          label="Signaler un problème"
+          onPress={() => router.push(supportHref({ screen: "notifications" }))}
+        >
+          <Flag
+            accessible={false}
+            size={tokens.size.icon.lg}
+            color={colors.icon}
+          />
+        </IconButton>
+      }
     />
   );
 }
@@ -106,7 +128,6 @@ function Inbox({
   const sporting = useSportingNavigation();
   const navigation = useNavigation();
   const feedback = useActionFeedback();
-  const { colors } = useTheme();
   // Cached rows pass the opening cutoff before effects; ordinary focus/resume events clean retained pages.
   const [openedAt] = useState(Date.now);
   const rows =
@@ -210,22 +231,7 @@ function Inbox({
   }
 
   return (
-    <Page
-      edges={["top", "left", "right"]}
-      header={
-        <View style={styles.header}>
-          <Text
-            accessibilityRole="header"
-            accessibilityLabel="Notifications"
-            numberOfLines={1}
-            ellipsizeMode="tail"
-            style={[tokens.typography.navigation, { color: colors.text }]}
-          >
-            Notifications
-          </Text>
-        </View>
-      }
-    >
+    <Page edges={["top", "left", "right"]} header={<NotificationsHeader />}>
       <PageFlatList
         {...hiddenScrollIndicators}
         alwaysBounceVertical={rows.length > 0}
@@ -275,10 +281,5 @@ function Inbox({
 }
 
 const styles = StyleSheet.create({
-  header: {
-    minHeight: tokens.layout.header,
-    paddingHorizontal: tokens.spacing.screen,
-    justifyContent: "center",
-  },
   empty: { flexGrow: 1 },
 });

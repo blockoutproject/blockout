@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { useRouter, useIsFocused } from "expo-router";
+import { createLucideIcon, Flag } from "lucide-react-native";
 import { StyleSheet, Text, View } from "react-native";
 import {
   useAccountSession,
@@ -9,6 +10,8 @@ import {
 } from "@/features/accounts/current-account";
 import { Page, PageContent, PageScrollView } from "@/shared/components/page";
 import { BrandMark } from "@/shared/components/brand-mark";
+import { IconButton } from "@/shared/components/icon-button";
+import { supportHref } from "@/features/support";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { PagedTabs } from "@/shared/components/paged-tabs";
 import { PersonalCalendar } from "../components/personal-calendar";
@@ -19,11 +22,34 @@ import { CalendarLoading } from "@/features/sporting/calendar";
 import { SportingEntityCardLoading } from "@/features/sporting/entity-card";
 import { Button } from "@/shared/components/button";
 import { tokens } from "@/shared/theme/tokens";
+import { useNativeHandoff } from "@/shared/native/use-native-handoff";
 import {
   usePersonalSeasonScope,
   type PersonalSeasonScope,
 } from "../components/personal-season-provider";
 import { PersonalSeasonSelector } from "../components/personal-season-selector";
+
+// The installed icon set has no Instagram glyph; the public factory keeps Lucide's stroke defaults.
+const Instagram = createLucideIcon({
+  name: "instagram",
+  size: 24,
+  node: [
+    [
+      "rect",
+      {
+        x: "2",
+        y: "2",
+        width: "20",
+        height: "20",
+        rx: "5",
+        ry: "5",
+        key: "frame",
+      },
+    ],
+    ["circle", { cx: "12", cy: "12", r: "4", key: "lens" }],
+    ["path", { d: "M17.5 6.5h.01", key: "flash" }],
+  ],
+});
 
 /**
  * Composes account-owned personal calendars with the shared season and native F03 presentation.
@@ -77,22 +103,49 @@ export function PersonalScreen() {
   );
 }
 
-/** Keeps fully named, one-line Home branding in ordinary chrome and the pager's collapsible header. */
+/** Keeps Home branding and its adjacent actions together in ordinary chrome and the pager's collapsible header. */
 function PersonalHeader() {
+  const router = useRouter();
   const { colors } = useTheme();
+  const handoff = useNativeHandoff("https://www.instagram.com/hugoecken");
   return (
-    <View style={styles.header} accessible accessibilityLabel="Blockout">
-      <BrandMark />
-      <Text
-        numberOfLines={1}
-        ellipsizeMode="tail"
-        style={[
-          tokens.typography.headingXl,
-          { color: colors.text, flexShrink: 1 },
-        ]}
-      >
-        Blockout
-      </Text>
+    <View style={styles.header}>
+      <View style={styles.brand} accessible accessibilityLabel="Blockout">
+        <BrandMark />
+        <Text
+          numberOfLines={1}
+          ellipsizeMode="tail"
+          style={[
+            tokens.typography.headingXl,
+            { color: colors.text, flexShrink: 1 },
+          ]}
+        >
+          Blockout
+        </Text>
+      </View>
+      <View style={styles.actions}>
+        <IconButton
+          label="Instagram"
+          onPress={handoff.open}
+          loading={handoff.pending}
+        >
+          <Instagram
+            accessible={false}
+            size={tokens.size.icon.lg}
+            color={colors.icon}
+          />
+        </IconButton>
+        <IconButton
+          label="Signaler un problème"
+          onPress={() => router.push(supportHref({ screen: "home" }))}
+        >
+          <Flag
+            accessible={false}
+            size={tokens.size.icon.lg}
+            color={colors.icon}
+          />
+        </IconButton>
+      </View>
     </View>
   );
 }
@@ -217,6 +270,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: tokens.spacing.sm,
   },
+  brand: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+  },
+  actions: { flexDirection: "row", alignItems: "center" },
   controls: {
     paddingTop: tokens.spacing.sm,
     flexDirection: "row",
