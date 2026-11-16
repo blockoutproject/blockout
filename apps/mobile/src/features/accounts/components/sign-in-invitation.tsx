@@ -9,7 +9,7 @@ import { Sheet, SheetContent } from "@/shared/components/sheet";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
-// Product Design 5263:6373 / 5263:6555; the lettering's visible bounds define the compact hero frame.
+// Product Design 8299:3022 / 8299:3096; the athlete may extend beyond the compact hero.
 const heroHeight = 184;
 const letteringAspectRatio = 343 / 176.42;
 const gradient = `<svg xmlns="http://www.w3.org/2000/svg" width="343" height="210.373" viewBox="0 0 343 210.373"><defs><linearGradient id="g" x1="27.5944" y1="0" x2="173.459" y2="283.426" gradientUnits="userSpaceOnUse"><stop stop-color="#404040"/><stop offset=".7" stop-color="#171717"/><stop offset="1" stop-color="#737373"/></linearGradient></defs><rect width="343" height="210.373" fill="url(#g)"/></svg>`;
@@ -96,13 +96,8 @@ export function SignInInvitationCard({
         <View style={styles.illustration}>
           <View style={styles.scene}>
             <Image
-              source={require("../../../../assets/accounts/invitation-block.svg")}
-              style={styles.block}
-              contentFit="contain"
-            />
-            <Image
-              source={require("../../../../assets/accounts/invitation-out.svg")}
-              style={styles.out}
+              source={require("../../../../assets/accounts/invitation-title.svg")}
+              style={styles.title}
               contentFit="contain"
             />
             <Image
@@ -138,36 +133,29 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   hero: {
-    height: heroHeight,
+    paddingVertical: tokens.spacing.md,
     alignItems: "center",
     justifyContent: "center",
     zIndex: 1,
   },
-  // Keep equal lettering margins; narrow cards scale the whole scene without changing its proportions.
+  // Narrow cards scale the complete group while the hero keeps the athlete's overflow visible.
   illustration: {
     width: "100%",
     maxWidth: (heroHeight - 2 * tokens.spacing.md) * letteringAspectRatio,
   },
   // Resolve the available width before applying the aspect ratio, including a narrower card.
   scene: { width: "100%", aspectRatio: letteringAspectRatio },
-  block: {
+  title: {
     position: "absolute",
-    left: "5.45%",
-    top: 0,
-    width: "54.81%",
-    height: "24.37%",
-  },
-  out: {
-    position: "absolute",
-    left: "6%",
-    top: "26.13%",
-    width: "53.68%",
-    height: "73.87%",
+    left: "4.3275%",
+    top: "-4.3348%",
+    width: "54.5863%",
+    height: "101.2555%",
   },
   athlete: {
     position: "absolute",
-    left: "50%",
-    top: "-16.65%",
+    left: "48.8737%",
+    top: "-20.9851%",
     width: "49%",
     height: "142.90%",
     zIndex: 1,
