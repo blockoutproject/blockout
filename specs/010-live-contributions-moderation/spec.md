@@ -16,7 +16,7 @@ As a user, I want to share a stream link for an eligible match and understand th
 
 **Why this priority**: Publication must be useful without bypassing rights, sporting restrictions or moderation.
 
-**Independent Test**: Present eligible and refused accounts, matches and links around publication boundaries.
+**Independent Test**: Present usable accounts, including newly established ones, matches and links around publication boundaries. Refusals preserve existing versions, quotas and required internal announcement state; native presentation and SQL integrity are qualified at their respective owners.
 
 **Acceptance Scenarios**:
 
