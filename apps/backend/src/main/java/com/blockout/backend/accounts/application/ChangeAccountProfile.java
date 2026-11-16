@@ -19,14 +19,14 @@ public class ChangeAccountProfile {
   private final ReadAccount reads;
 
   /**
-   * Commits supplied fields only; photo pixels must already have been prepared outside SQL.
+   * Commits supplied fields only; accepted photo bytes must pass header recognition outside SQL.
    *
    * @param issuer validated caller issuer
    * @param subject validated caller subject
    * @param id original business UUID
    * @param username supplied username, or null to preserve it
    * @param photoAction exact contract intent, or null to preserve the photo
-   * @param photo prepared pixels for replacement only
+   * @param photo accepted original image bytes for replacement only
    * @return complete accepted original account
    * @throws InvalidProfileChangeException for invalid supplied fields or photo intent
    * @throws AccountNotFoundException when the original account is absent or belongs to another

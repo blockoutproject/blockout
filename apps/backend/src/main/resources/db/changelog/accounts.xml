@@ -18,7 +18,7 @@
       <column name="lower(username)" computed="true"/>
     </createIndex>
     <!-- Community Liquibase has no native CHECK change; PostgreSQL owns complete, bounded storage.
-         Actual image decoding belongs to profile input validation; accepted bytes remain unchanged. -->
+         Image format/header recognition belongs to profile input validation; accepted bytes remain unchanged. -->
     <sql>
       ALTER TABLE account ADD CONSTRAINT ck_account_photo CHECK (
         (photo_bytes IS NULL AND photo_media_type IS NULL)
