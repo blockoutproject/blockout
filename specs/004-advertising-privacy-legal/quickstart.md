@@ -73,7 +73,18 @@ Inspect `ios/Podfile.lock` and Android `debugRuntimeClasspath` for the [selected
 
 Check absent and explicit public inputs, native compile/install/launch, delayed measurement and no premature initialization/request/consent/ATT. Google demo units do not qualify Meta mediation. Qualify actual provider test devices/settings, physical-device behavior and store reconciliation under the [release conditions](plan.md#consumers-and-release-conditions); preserve V1 configuration.
 
-Compare legal-document handoff with [FR-016](spec.md#legal-documents) and the [approved native-browser design](plan.md#constitution-check). Fail native opening, observe brief feedback at the original link, then press it again explicitly. Once the browser opens, use its own network/reload/return controls; no Blockout document-read screen or cache is involved. Qualify actual native reading/return and reviewed legal content separately from design-source structure.
+For local legal qualification, start the actual host-run backend through the [README application processes](../../README.md#application-processes), with a task-owned Metro port and compatible native clients. Use `localhost` for iOS Simulator and `10.0.2.2` for Android Emulator. Read `/legals/imprint`, `/legals/privacy` and `/legals/terms` through that service; compare their complete title, visible version, modification date and body with the bundled files. Open `/legals/privacy#account-deletion` independently without an account and verify the deletion direction and direct contact action. This checks available content, not the factual/legal review owned by T039.
+
+After the README installation and contract bundle steps, reuse the existing resource, routing and handoff suites:
+
+```sh
+./mvnw -B -ntp -pl apps/backend test -Dtest='LegalDocumentContentTest,LegalDocumentsWebMvcTest'
+npm run test --workspace=@blockout/mobile -- --runInBand src/features/privacy/__tests__/open-legal-document.test.ts src/features/privacy/__tests__/legal-entry.test.tsx src/features/accounts/__tests__/public-account-links.test.tsx --reporters=default
+```
+
+Use disposable ignored build/resource copies for missing or invalid content, preserving tracked documents and other tasks' services. When altering an ignored classpath copy, run the content suite with `-Dmaven.resources.skip=true` and verify that the altered copy is not replaced during the run. Restore the copy and rerun the ordinary command afterward. The content suite owns rejection of incomplete or malformed resources with useful safe failure; it is a prepublication check, not runtime document validation. The routing suite owns the truthful missing-resource response and narrow public/security exceptions. No deployment or failed-release preservation experiment is required for T027.
+
+Exercise the shared legal actions from the retained Profile and sign-in/recovery consumers against [FR-016](spec.md#legal-documents) and the [approved native-browser design](plan.md#constitution-check). Controlled handoff tests establish brief origin feedback after rejected opening and another explicit link press. Separately, on both iOS and Android, observe actual document loading, reading/scrolling and native return; exercise an absent resource and a network failure, then restore local availability and use the browser's available reload or close-and-explicit-reopen action. Record the controls actually available on each platform. Expo WebBrowser owns these opened-document states; add no preliminary document GET, Blockout reader, cache or recovery screen. Keep controlled handoff, native reading, legal-text review and public/store publication results distinct.
 
 ## Prerequisites
 
