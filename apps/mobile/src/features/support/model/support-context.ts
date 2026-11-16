@@ -14,8 +14,10 @@ export interface SupportOrigin {
 }
 
 const screens = {
+  home: "Accueil",
   search: "Recherche",
   profile: "Profil",
+  notifications: "Notifications",
   "sign-in": "Connexion",
   club: "Club",
   team: "Équipe",

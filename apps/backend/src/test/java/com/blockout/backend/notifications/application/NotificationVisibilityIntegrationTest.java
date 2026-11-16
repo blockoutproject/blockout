@@ -9,7 +9,9 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.blockout.backend.contributions.application.ModerateContribution;
+import com.blockout.backend.contributions.application.ReadModeration;
 import com.blockout.backend.contributions.application.ReadPublicContribution;
+import com.blockout.backend.contributions.application.ReportContribution;
 import com.blockout.backend.contributions.application.SubmitContribution;
 import com.blockout.backend.contributions.support.ContributionScenario;
 import com.blockout.backend.generated.ingestion.model.MatchFactsInternalRequest;
@@ -30,6 +32,7 @@ import com.blockout.backend.sporting.application.service.ChangeDivisionLifecycle
 import com.blockout.backend.sporting.support.SportingIngestionFixture;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -55,6 +58,8 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
   @Autowired private MarkNotificationRead marks;
   @Autowired private ChangeDivisionLifecycle divisions;
   @Autowired private ModerateContribution moderation;
+  @Autowired private ReportContribution reporting;
+  @Autowired private ReadModeration privateLinks;
   @Autowired private DeliverPush sender;
   @MockitoBean private PushProvider provider;
 
@@ -139,7 +144,7 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
   }
 
   @Test
-  @DisplayName("Current link hold, withdrawal and reactivation preserve the result allocation")
+  @DisplayName("Actual report hold, reactivation and withdrawal preserve the result allocation")
   void projectsCurrentLinkLifecycle() {
     // Given
     moderator(AUTHOR);
@@ -154,15 +159,22 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
     MatchAnnouncementFacts consumed =
         new TransactionTemplate(transactions)
             .<MatchAnnouncementFacts>execute(status -> notifications.facts(matchId));
+    List<UUID> reporters = new ArrayList<>(List.of(FOLLOWER, OTHER));
+    for (int number = 4; number <= 11; number++) {
+      UUID reporter = UUID.fromString("00000000-0000-4000-8000-%012d".formatted(number));
+      sql.update(
+          "INSERT INTO account(id,issuer,subject,username,email) VALUES (?, 'https://identity.example.invalid/', ?, ?, 'synthetic@example.invalid')",
+          reporter,
+          reporter.toString(),
+          "reporter" + number);
+      reporters.add(reporter);
+    }
     when(provider.send(any())).thenReturn(List.of(new Outcome(Status.UNKNOWN, null)));
 
-    // When: a controlled persisted hold/hiding fixture; actual report-threshold commands remain
-    // T046.
-    sql.update("UPDATE contribution_version SET state='HIDDEN' WHERE id=?", active.version().id());
-    sql.update(
-        "UPDATE contribution_state SET report_hold_version_id=? WHERE match_id=?",
-        active.version().id(),
-        matchId);
+    // When
+    for (UUID reporter : reporters) {
+      reporting.report(reporter, active.version().id(), "Synthetic unavailable-link reason");
+    }
     Entry hidden = inbox.member(OWNER, original.id());
     sender.deliver(List.of(new DeliverPush.Attempt(captured, target)));
 
@@ -171,6 +183,7 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
     assertThat(transport.text(hidden)).contains("Le lien n’est plus proposé.");
     assertThat(publicLinks.read(matchId)).isEmpty();
     assertThat(sporting.match(matchId).stream()).isNull();
+    assertThat(contributions.state(matchId).reportHoldVersionId()).isEqualTo(active.version().id());
     assertThat(hidden).usingRecursiveComparison().ignoringFields("publicLink").isEqualTo(original);
     verify(provider)
         .send(
@@ -182,11 +195,24 @@ class NotificationVisibilityIntegrationTest extends ContributionScenario {
 
     // When
     SubmitContribution.Outcome restored =
-        moderation.reactivate(AUTHOR, matchId, active.version().id(), "1");
+        moderation.reactivate(AUTHOR, matchId, active.version().id(), "11");
     Entry reappeared = inbox.member(OWNER, original.id());
+
+    // Then
     assertThat(reappeared).isEqualTo(original);
     assertThat(publicLinks.read(matchId).orElseThrow().contributionId())
         .isEqualTo(restored.version().id());
+    assertThat(contributions.state(matchId).reportHoldVersionId()).isNull();
+    assertThat(privateLinks.reports(AUTHOR, matchId, active.version().id(), 0).count())
+        .isEqualTo(10);
+    assertThat(privateLinks.reports(AUTHOR, matchId, restored.version().id(), 0).count()).isZero();
+    assertThat(count("notification")).isEqualTo(1);
+    assertThat(
+            new TransactionTemplate(transactions)
+                .<MatchAnnouncementFacts>execute(status -> notifications.facts(matchId)))
+        .isEqualTo(consumed);
+
+    // When
     moderation.change(
         AUTHOR,
         matchId,

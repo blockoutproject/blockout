@@ -14,7 +14,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react-native";
-import { AccessibilityInfo, View } from "react-native";
+import { AccessibilityInfo, Linking, View } from "react-native";
 import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
 import type { PersonalMatchCalendarResponse } from "../../../../.generated/schemas/index.zod";
 import { renderRouter } from "expo-router/testing-library";
@@ -328,6 +328,54 @@ beforeEach(() => {
   proposed = older;
   following = false;
   mockFocus.focused = true;
+});
+
+it("opens support from Home without changing personal data", async () => {
+  // Given
+  await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
+  await layoutNativeTabs();
+  const user = userEvent.setup();
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Signaler un problème" }),
+  );
+
+  // Then
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: "/support",
+    params: { originScreen: "home" },
+  });
+  expect(
+    mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),
+  ).toBe(true);
+});
+
+it("hands Home's Instagram destination to the native platform without changing personal data", async () => {
+  // Given
+  const opening = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
+  await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
+  await layoutNativeTabs();
+  const user = userEvent.setup();
+
+  // When
+  await user.press(screen.getByRole("button", { name: "Instagram" }));
+
+  // Then
+  expect(opening).toHaveBeenCalledTimes(1);
+  expect(opening).toHaveBeenCalledWith("https://www.instagram.com/hugoecken");
+  expect(mockPush).not.toHaveBeenCalled();
+  expect(
+    mockFetch.mock.calls.every(([, request]) => request?.method === "GET"),
+  ).toBe(true);
 });
 
 it("shows separate current teams and pools in Following and opens their exact sporting destinations", async () => {

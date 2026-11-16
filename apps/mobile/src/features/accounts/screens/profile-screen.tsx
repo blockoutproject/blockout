@@ -256,6 +256,7 @@ function ProfileHeader({
   return (
     <PageHeader
       title="Mon profil"
+      back={false}
       action={
         <>
           {onEdit && (
