@@ -11,7 +11,7 @@ import { tokens } from "@/shared/theme/tokens";
 
 // Product Design 8299:3022 / 8299:3096; the athlete may extend beyond the compact hero.
 const heroHeight = 184;
-const letteringAspectRatio = 343 / 176.42;
+const sceneAspectRatio = 343 / 176.42;
 const gradient = `<svg xmlns="http://www.w3.org/2000/svg" width="343" height="210.373" viewBox="0 0 343 210.373"><defs><linearGradient id="g" x1="27.5944" y1="0" x2="173.459" y2="283.426" gradientUnits="userSpaceOnUse"><stop stop-color="#404040"/><stop offset=".7" stop-color="#171717"/><stop offset="1" stop-color="#737373"/></linearGradient></defs><rect width="343" height="210.373" fill="url(#g)"/></svg>`;
 
 /** Shared invitation artwork and explicit account action; optional content sits between the message and action. */
@@ -103,7 +103,7 @@ export function SignInInvitationCard({
             <Image
               source={require("../../../../assets/accounts/athlete.png")}
               style={styles.athlete}
-              contentFit="cover"
+              contentFit="contain"
             />
           </View>
         </View>
@@ -138,27 +138,33 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     zIndex: 1,
   },
-  // Narrow cards scale the complete group while the hero keeps the athlete's overflow visible.
+  // The title centers vertically; the athlete keeps its independent top clearance and lower overflow.
   illustration: {
     width: "100%",
-    maxWidth: (heroHeight - 2 * tokens.spacing.md) * letteringAspectRatio,
+    maxWidth: (heroHeight - 2 * tokens.spacing.md) * sceneAspectRatio,
   },
   // Resolve the available width before applying the aspect ratio, including a narrower card.
-  scene: { width: "100%", aspectRatio: letteringAspectRatio },
+  scene: {
+    width: "100%",
+    aspectRatio: sceneAspectRatio,
+    justifyContent: "center",
+  },
   title: {
-    position: "absolute",
-    left: "4.3275%",
-    top: "-4.3348%",
+    marginLeft: "4.3275%",
     width: "54.5863%",
-    height: "101.2555%",
+    aspectRatio: 187.2309 / 178.6349,
   },
   athlete: {
     position: "absolute",
-    left: "48.8737%",
-    top: "-20.9851%",
-    width: "49%",
-    height: "142.90%",
+    left: "50.1237%",
+    top: "-11%",
+    width: "46.5%",
+    aspectRatio: 2 / 3,
     zIndex: 1,
   },
-  content: { padding: tokens.spacing.lg, gap: tokens.spacing.md },
+  content: {
+    padding: tokens.spacing.lg,
+    paddingTop: tokens.spacing.md,
+    gap: tokens.spacing.md,
+  },
 } as const);
