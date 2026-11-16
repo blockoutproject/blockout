@@ -74,11 +74,12 @@ public class AccountRequest {
   }
 
   /**
-   * Checks multipart shape and prepares accepted pixels before the account write transaction.
+   * Checks multipart shape and recognizes original image headers before the account write
+   * transaction.
    *
    * @param action generated photo intent, or null to preserve the current image
    * @param image optional multipart image, present only for replacement
-   * @return prepared image, or null when no replacement was requested
+   * @return accepted original image, or null when no replacement was requested
    * @throws InvalidProfileChangeException for unknown/repeated parts or inconsistent intent
    * @throws InvalidProfilePhotoException when multipart bytes cannot be read
    */

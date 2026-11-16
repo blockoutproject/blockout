@@ -64,7 +64,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 class ChangeAccountProfileIntegrationTest {
   private static final String ISSUER = "https://identity.example.invalid/";
   // Storage fixtures exercise transaction semantics; ImageIO content has its own processor suite.
-  private static final ProfilePhoto PHOTO = new ProfilePhoto(new byte[] {1, 2, 3}, "image/png", 1);
+  private static final ProfilePhoto PHOTO = new ProfilePhoto(new byte[] {1, 2, 3}, "image/png");
   @Autowired private ChangeAccountProfile changes;
   @Autowired private AccountStore accounts;
   @Autowired private ReadAccount reads;
@@ -115,7 +115,7 @@ class ChangeAccountProfileIntegrationTest {
     transaction.executeWithoutResult(
         status -> accounts.create(ISSUER, "auth0|other", "TAKEN", "other@example.invalid"));
     changes.change(ISSUER, "auth0|one", id, null, ProfilePhotoActionEnum.REPLACE, PHOTO);
-    ProfilePhoto replacement = new ProfilePhoto(new byte[] {4, 5}, "image/jpeg", 2);
+    ProfilePhoto replacement = new ProfilePhoto(new byte[] {4, 5}, "image/jpeg");
 
     // When / Then
     assertThatThrownBy(
@@ -153,9 +153,7 @@ class ChangeAccountProfileIntegrationTest {
 
     // Then
     assertThat(
-            sql.queryForMap(
-                    "SELECT photo_bytes, photo_media_type, photo_dimension FROM account WHERE id = ?",
-                    id)
+            sql.queryForMap("SELECT photo_bytes, photo_media_type FROM account WHERE id = ?", id)
                 .values())
         .containsOnlyNulls();
     assertThat(reads.original(ISSUER, "auth0|one", id).hasPhoto()).isFalse();
@@ -251,11 +249,11 @@ class ChangeAccountProfileIntegrationTest {
   }
 
   @Test
-  @DisplayName("Validates and reencodes actual image bytes before entering the profile transaction")
+  @DisplayName("Validates outside SQL and atomically retains the original rectangular image bytes")
   void preparesPhotoOutsideSql() throws Exception {
     // Given
     ByteArrayOutputStream encoded = new ByteArrayOutputStream();
-    ImageIO.write(new BufferedImage(8, 8, BufferedImage.TYPE_INT_RGB), "png", encoded);
+    ImageIO.write(new BufferedImage(1200, 800, BufferedImage.TYPE_INT_RGB), "png", encoded);
     MockPart metadata =
         new MockPart(
             "metadata",
@@ -289,7 +287,7 @@ class ChangeAccountProfileIntegrationTest {
 
     // Then
     assertThat(reads.original(ISSUER, "auth0|one", id).account().username()).isEqualTo("Prepared");
-    assertThat(reads.photo(ISSUER, "auth0|one", id).dimension()).isEqualTo(8);
+    assertThat(reads.photo(ISSUER, "auth0|one", id).bytes()).isEqualTo(encoded.toByteArray());
   }
 
   @ParameterizedTest

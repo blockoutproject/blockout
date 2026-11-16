@@ -25,7 +25,11 @@ export function SelectField({
 }: Readonly<SelectFieldProps>) {
   const { colors } = useTheme();
   return (
-    <View style={[styles.field, disabled && styles.disabled]}>
+    <View
+      // Keep the native parent stable when disabled opacity changes during route removal.
+      collapsable={false}
+      style={[styles.field, disabled && styles.disabled]}
+    >
       <Text style={[tokens.typography.label, { color: colors.text }]}>
         {label}
       </Text>

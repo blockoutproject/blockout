@@ -36,10 +36,10 @@ import {
 } from "../test-support/native-images";
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock(
-  "expo-image-picker",
-  () => jest.requireActual("../test-support/native-images").picker,
-);
+jest.mock("expo-image-picker", () => ({
+  ...jest.requireActual("expo-image-picker"),
+  ...jest.requireActual("../test-support/native-images").picker,
+}));
 jest.mock(
   "expo-image-manipulator",
   () => jest.requireActual("../test-support/native-images").manipulator,

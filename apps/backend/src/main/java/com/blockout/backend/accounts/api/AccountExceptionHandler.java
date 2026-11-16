@@ -31,7 +31,7 @@ public class AccountExceptionHandler {
     return HttpProblems.response(HttpStatus.CONFLICT, "urn:blockout:problem:username-unavailable");
   }
 
-  /** Returns a bounded upload refusal, including reencoded output that exceeds the bound. */
+  /** Returns the original upload's byte-bound refusal. */
   @ExceptionHandler(ProfilePhotoTooLargeException.class)
   ResponseEntity<Object> photoTooLarge() {
     return HttpProblems.response(
@@ -45,7 +45,7 @@ public class AccountExceptionHandler {
         HttpStatus.UNSUPPORTED_MEDIA_TYPE, "urn:blockout:problem:unsupported-media-type");
   }
 
-  /** Refuses actual invalid image content without publishing decoder details. */
+  /** Refuses unreadable or mismatched image headers without publishing reader details. */
   @ExceptionHandler(InvalidProfilePhotoException.class)
   ResponseEntity<Object> invalidPhoto() {
     return HttpProblems.response(

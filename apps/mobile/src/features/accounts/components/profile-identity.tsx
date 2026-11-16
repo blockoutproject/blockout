@@ -42,7 +42,6 @@ export function ProfileIdentity({
           uri={uri}
           loading={account.hasPhoto && photo.isFetching}
           label="Photo de profil"
-          contentFit="cover"
           fallback={
             <ImageFallback
               label={

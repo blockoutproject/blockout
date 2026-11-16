@@ -64,7 +64,7 @@ public interface AccountStore {
   boolean hasPhoto(UUID id);
 
   /**
-   * Loads only the original account's accepted pixels; callers authorize the owner first.
+   * Loads only the original account's accepted image bytes; callers authorize the owner first.
    *
    * @param id original lifecycle UUID
    * @return accepted photo, or empty when absent
@@ -78,7 +78,7 @@ public interface AccountStore {
    * @param id original UUID locked by the caller
    * @param username normalized supplied username, or null to preserve
    * @param photoAction supplied canonical photo intent, or null to preserve
-   * @param photo prepared replacement pixels, otherwise null
+   * @param photo accepted original replacement bytes, otherwise null
    * @throws UsernameUnavailableException when another account holds the supplied username
    */
   void changeProfile(

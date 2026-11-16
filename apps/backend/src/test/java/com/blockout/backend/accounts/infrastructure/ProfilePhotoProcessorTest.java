@@ -9,7 +9,6 @@ import com.blockout.backend.accounts.application.exception.ProfilePhotoTooLargeE
 import com.blockout.backend.accounts.application.exception.UnsupportedProfilePhotoException;
 import com.blockout.backend.shared.image.ImageFixture;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -27,44 +26,47 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-/** Synthetic image pixels exercise actual ImageIO decoding/encoding without private assets. */
-@DisplayName("Bounded profile photo preparation")
+/** Synthetic images exercise native header recognition and original-byte preservation. */
+@DisplayName("Original profile photo validation")
 class ProfilePhotoProcessorTest {
   private final ProfilePhotoProcessor processor = new ProfilePhotoProcessor();
 
   @ParameterizedTest
-  @CsvSource({
-    "png,image/png,image/png,1",
-    "png,image/png,image/png,1024",
-    "jpeg,image/jpeg,image/jpeg,32"
-  })
-  @DisplayName("Reencodes supported square pixels without retaining trailing source data")
-  void reencodesPixels(String format, String mediaType, String expectedMediaType, int dimension)
+  @CsvSource({"png,image/png,1,1", "png,image/png,1200,800", "jpeg,image/jpeg,320,600"})
+  @DisplayName("Retains accepted PNG and JPEG originals without a square or 1024-pixel requirement")
+  void retainsOriginalBytes(String format, String mediaType, int width, int height)
       throws Exception {
     // Given
-    byte[] pixels = image(format, dimension, dimension);
-    ByteArrayOutputStream original = new ByteArrayOutputStream();
-    original.write(pixels);
-    original.write("unrelated-private-metadata".getBytes(StandardCharsets.UTF_8));
+    byte[] original = image(format, width, height);
 
     // When
-    ProfilePhoto photo = processor.prepare(original.toByteArray(), mediaType);
+    ProfilePhoto photo = processor.prepare(original, mediaType);
 
     // Then
-    assertThat(photo.mediaType()).isEqualTo(expectedMediaType);
-    assertThat(photo.dimension()).isEqualTo(dimension);
-    assertThat(ImageIO.read(new ByteArrayInputStream(photo.bytes())).getWidth())
-        .isEqualTo(dimension);
-    assertThat(new String(photo.bytes(), StandardCharsets.ISO_8859_1))
-        .doesNotContain("unrelated-private-metadata");
+    assertThat(photo.mediaType()).isEqualTo(mediaType);
+    assertThat(photo.bytes()).isEqualTo(original);
   }
 
-  @ParameterizedTest
-  @CsvSource({"2,1", "1025,1025"})
-  @DisplayName("Rejects non-square or excessive dimensions")
-  void rejectsDimensions(int width, int height) throws Exception {
+  @Test
+  @DisplayName("Recognizes an image header without requiring or decoding raster data")
+  void recognizesHeaderWithoutDecodingPixels() throws Exception {
     // Given
-    byte[] original = image("png", width, height);
+    // A complete PNG header is recognizable, but its missing pixel data cannot be decoded.
+    byte[] original = Arrays.copyOf(image("png", 2, 3), 33);
+
+    // When
+    ProfilePhoto photo = processor.prepare(original, "image/png");
+
+    // Then
+    assertThat(photo.mediaType()).isEqualTo("image/png");
+    assertThat(photo.bytes()).isEqualTo(original);
+  }
+
+  @Test
+  @DisplayName("Rejects a recognized PNG with an unreadable header")
+  void rejectsUnreadableHeader() throws Exception {
+    // Given
+    byte[] original = Arrays.copyOf(image("png", 2, 3), 24);
 
     // When / Then
     assertThatThrownBy(() -> processor.prepare(original, "image/png"))
@@ -119,7 +121,7 @@ class ProfilePhotoProcessorTest {
   }
 
   @Test
-  @DisplayName("Refuses excessive compressed bytes before decoding malformed content")
+  @DisplayName("Refuses excessive compressed bytes before recognizing malformed content")
   void checksByteBoundBeforeContent() {
     // Given
     byte[] original = new byte[5 * 1024 * 1024 + 1];
@@ -130,8 +132,8 @@ class ProfilePhotoProcessorTest {
   }
 
   @Test
-  @DisplayName("Discards embedded PNG text metadata while retaining accepted pixels")
-  void discardsEmbeddedMetadata() throws Exception {
+  @DisplayName("Preserves the accepted original including embedded PNG metadata")
+  void retainsEmbeddedMetadata() throws Exception {
     // Given
     BufferedImage pixels = new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB);
     pixels.setRGB(0, 0, 0xFF336699);
@@ -161,15 +163,11 @@ class ProfilePhotoProcessorTest {
     ProfilePhoto photo = processor.prepare(encoded.toByteArray(), "image/png");
 
     // Then
-    assertThat(new String(photo.bytes(), StandardCharsets.ISO_8859_1))
-        .doesNotContain("unrelated-original-metadata");
-    assertThat(photo.dimension()).isEqualTo(2);
-    BufferedImage decoded = ImageIO.read(new ByteArrayInputStream(photo.bytes()));
-    assertThat(decoded.getRGB(0, 0)).isEqualTo(0xFF336699);
+    assertThat(photo.bytes()).isEqualTo(encoded.toByteArray());
   }
 
   @Test
-  @DisplayName("Reencodes valid pixels while ignoring malformed original text metadata")
+  @DisplayName("Preserves optional original text metadata without interpreting it")
   void ignoresMalformedOriginalMetadata() throws Exception {
     // Given
     byte[] original = ImageFixture.pngWithMalformedCompressedText();
@@ -179,8 +177,7 @@ class ProfilePhotoProcessorTest {
 
     // Then
     assertThat(photo.mediaType()).isEqualTo("image/png");
-    assertThat(photo.dimension()).isEqualTo(2);
-    assertThat(ImageIO.read(new ByteArrayInputStream(photo.bytes())).getWidth()).isEqualTo(2);
+    assertThat(photo.bytes()).isEqualTo(original);
   }
 
   @Test
@@ -193,8 +190,7 @@ class ProfilePhotoProcessorTest {
     ProfilePhoto photo = processor.prepare(original, "image/png");
 
     // Then
-    assertThat(photo.dimension()).isEqualTo(1);
-    assertThat(photo.bytes().length).isLessThan(original.length);
+    assertThat(photo.bytes()).isEqualTo(original);
   }
 
   /**

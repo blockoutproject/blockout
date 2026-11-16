@@ -165,7 +165,7 @@ class AccountMaintenanceAdmissionIntegrationTest {
     // Stored bytes exercise admission and binary reading; image decoding has its own boundary.
     byte[] photo = {1, 2, 3};
     sql.update(
-        "UPDATE account SET photo_bytes=?, photo_media_type='image/png', photo_dimension=1 WHERE id=?",
+        "UPDATE account SET photo_bytes=?, photo_media_type='image/png' WHERE id=?",
         photo,
         ACCOUNT);
     sql.update(
@@ -297,7 +297,7 @@ class AccountMaintenanceAdmissionIntegrationTest {
         "existing@example.invalid");
     UUID other = UUID.fromString("00000000-0000-4000-8000-000000000999");
     sql.update(
-        "INSERT INTO account (id, issuer, subject, username, email, photo_bytes, photo_media_type, photo_dimension) VALUES (?, ?, ?, ?, ?, ?, 'image/png', 1)",
+        "INSERT INTO account (id, issuer, subject, username, email, photo_bytes, photo_media_type) VALUES (?, ?, ?, ?, ?, ?, 'image/png')",
         other,
         ISSUER,
         "auth0|other",

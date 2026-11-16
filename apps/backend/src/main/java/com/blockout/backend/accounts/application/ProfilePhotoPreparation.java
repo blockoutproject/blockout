@@ -4,16 +4,17 @@ import com.blockout.backend.accounts.application.exception.InvalidProfilePhotoEx
 import com.blockout.backend.accounts.application.exception.ProfilePhotoTooLargeException;
 import com.blockout.backend.accounts.application.exception.UnsupportedProfilePhotoException;
 
-/** Produces accepted, metadata-free profile pixels before the short account write transaction. */
+/** Recognizes original profile image headers before the short account write transaction. */
 public interface ProfilePhotoPreparation {
   /**
-   * Decodes bounded square PNG/JPEG and reencodes pixels without original metadata.
+   * Recognizes PNG/JPEG format and dimensions without allocating a raster or changing original
+   * bytes. Header recognition does not establish full pixel validity.
    *
    * @param bytes compressed image part, at most 5 MiB
    * @param mediaType declared PNG/JPEG media type, checked against detected content
-   * @return accepted pixels with their actual media type and square dimension
-   * @throws InvalidProfilePhotoException for unreadable, spoofed or out-of-bounds pixels
-   * @throws ProfilePhotoTooLargeException for excessive input or output bytes
+   * @return unchanged original bytes with their actual media type
+   * @throws InvalidProfilePhotoException for an unreadable header or a mismatched declared format
+   * @throws ProfilePhotoTooLargeException for excessive input bytes
    * @throws UnsupportedProfilePhotoException for an unsupported media declaration
    */
   ProfilePhoto prepare(byte[] bytes, String mediaType);

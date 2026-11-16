@@ -22,10 +22,10 @@ import {
 } from "../test-support/native-images";
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
-jest.mock(
-  "expo-image-picker",
-  () => jest.requireActual("../test-support/native-images").picker,
-);
+jest.mock("expo-image-picker", () => ({
+  ...jest.requireActual("expo-image-picker"),
+  ...jest.requireActual("../test-support/native-images").picker,
+}));
 jest.mock(
   "expo-image-manipulator",
   () => jest.requireActual("../test-support/native-images").manipulator,
@@ -86,7 +86,6 @@ it("prepares five images without square crop and rejects a sixth without losing 
   expect(picker.launchImageLibraryAsync).toHaveBeenCalledWith(
     expect.objectContaining({
       allowsMultipleSelection: true,
-      allowsEditing: false,
       selectionLimit: 5,
     }),
   );
@@ -206,7 +205,6 @@ it.each([5242881, 0])(
     expect(picker.launchImageLibraryAsync).toHaveBeenLastCalledWith(
       expect.objectContaining({
         allowsMultipleSelection: false,
-        allowsEditing: false,
       }),
     );
   },

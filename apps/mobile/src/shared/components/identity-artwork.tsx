@@ -3,7 +3,6 @@ import { useState, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import { tokens } from "@/shared/theme/tokens";
 import { Skeleton } from "./skeleton";
-import { RoundedContainedImage } from "./rounded-contained-image";
 
 /** One authorized identity source; the caller keys this presentation by URI and supplies its named fallback. */
 export interface IdentityArtworkProps {
@@ -11,7 +10,6 @@ export interface IdentityArtworkProps {
   loading?: boolean;
   label: string;
   fallback: ReactNode;
-  contentFit: "cover" | "contain";
   cachePolicy?: ImageProps["cachePolicy"];
 }
 
@@ -21,35 +19,27 @@ export function IdentityArtwork({
   loading = false,
   label,
   fallback,
-  contentFit,
   cachePolicy,
 }: Readonly<IdentityArtworkProps>) {
   const [status, setStatus] = useState<"loading" | "displayed" | "failed">(
     "loading",
   );
   const pending = uri ? status === "loading" : loading;
-  const artworkProps = {
-    accessible: true,
-    accessibilityRole: "image",
-    accessibilityLabel: label,
-    accessibilityState: { busy: pending },
-    source: { uri },
-    style: styles.image,
-    cachePolicy,
-    onDisplay: () => setStatus("displayed"),
-    onError: () => setStatus("failed"),
-  } satisfies ImageProps;
   return (
     <View style={styles.artwork}>
       {uri && status !== "failed" ? (
-        contentFit === "contain" ? (
-          <RoundedContainedImage
-            {...artworkProps}
-            radius={tokens.media.radius.profile}
-          />
-        ) : (
-          <Image {...artworkProps} contentFit={contentFit} />
-        )
+        <Image
+          accessible
+          accessibilityRole="image"
+          accessibilityLabel={label}
+          accessibilityState={{ busy: pending }}
+          source={{ uri }}
+          contentFit="contain"
+          style={styles.image}
+          cachePolicy={cachePolicy}
+          onDisplay={() => setStatus("displayed")}
+          onError={() => setStatus("failed")}
+        />
       ) : (
         !pending && fallback
       )}

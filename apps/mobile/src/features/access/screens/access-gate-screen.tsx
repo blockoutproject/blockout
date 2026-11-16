@@ -5,7 +5,7 @@ import {
   type ReadFeedbackQuery,
 } from "@/shared/components/read-feedback";
 import { applicationUpdateMessage } from "../application-update-message";
-import { RoundedContainedImage } from "@/shared/components/rounded-contained-image";
+import { Image } from "expo-image";
 import { ImageFallback } from "@/shared/components/image-fallback";
 import { SplashScreen, useRouter } from "expo-router";
 import { X } from "lucide-react-native";
@@ -211,10 +211,11 @@ function GateImage({ uri }: Readonly<{ uri?: string | null }>) {
   const { colors } = useTheme();
   const [failed, setFailed] = useState(false);
   return uri && !failed ? (
-    <RoundedContainedImage
+    <Image
       source={{ uri }}
       accessible={false}
-      style={styles.media}
+      contentFit="contain"
+      style={[styles.media, { backgroundColor: colors.mediaPlaceholder }]}
       onError={() => setFailed(true)}
     />
   ) : (
