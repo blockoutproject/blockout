@@ -120,12 +120,6 @@ function SignInJourney({
     <View style={[styles.screen, { backgroundColor: colors.canvas }]}>
       <SignInArtwork />
       <SafeAreaView edges={["bottom", "left", "right"]} style={styles.content}>
-        <View style={styles.inset}>
-          <Text style={[styles.summary, { color: colors.text }]}>
-            Les calendriers, les résultats disponibles et vos équipes, au même
-            endroit.
-          </Text>
-        </View>
         <SignInClubRail />
         <View style={[styles.inset, styles.footer]}>
           <View style={styles.actions}>
@@ -180,7 +174,6 @@ const styles = StyleSheet.create({
   inset: { paddingHorizontal: 22 },
   footer: { gap: tokens.spacing.sm },
   actions: { gap: tokens.spacing.md },
-  summary: tokens.typography.title,
   guest: {
     minHeight: tokens.size.control.default,
     padding: tokens.spacing.md,
