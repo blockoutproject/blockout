@@ -147,7 +147,8 @@ Member:
                 type: string
                 format: binary
                 description:
-                  Original PNG/JPEG of at most 5242880 bytes; actual decoded content is validated.
+                  Original PNG/JPEG of at most 5242880 bytes; native format and header dimensions are
+                  recognized without decoding pixel data. Full pixel validity is not established.
                   Accepted bytes are stored unchanged, without cropping, resizing or re-encoding.
           encoding:
             metadata:

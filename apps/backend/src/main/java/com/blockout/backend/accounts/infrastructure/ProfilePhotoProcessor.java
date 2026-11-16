@@ -5,21 +5,25 @@ import com.blockout.backend.accounts.application.ProfilePhotoPreparation;
 import com.blockout.backend.accounts.application.exception.InvalidProfilePhotoException;
 import com.blockout.backend.accounts.application.exception.ProfilePhotoTooLargeException;
 import com.blockout.backend.accounts.application.exception.UnsupportedProfilePhotoException;
-import com.blockout.backend.shared.image.ImageDecoder;
-import com.blockout.backend.shared.image.ImageDecoder.DecodedImage;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.Iterator;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.MemoryCacheImageInputStream;
 import org.springframework.http.InvalidMediaTypeException;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 
-/** Validates original photo bytes before the SQL transaction. */
+/** Recognizes original photo headers before the SQL transaction. */
 @Component
 public class ProfilePhotoProcessor implements ProfilePhotoPreparation {
   /**
    * {@inheritDoc}
    *
    * <p>All streams remain in memory; callers finish preparation before acquiring the account lock.
-   * Native decoding ignores ancillary metadata; accepted original bytes remain unchanged.
+   * Native header recognition allocates no pixel raster and does not establish full pixel validity.
+   * Accepted original bytes remain unchanged.
    */
   @Override
   public ProfilePhoto prepare(byte[] bytes, String mediaType) {
@@ -36,20 +40,33 @@ public class ProfilePhotoProcessor implements ProfilePhotoPreparation {
     if (bytes.length > 5 * 1024 * 1024) {
       throw new ProfilePhotoTooLargeException();
     }
-    try {
-      DecodedImage image =
-          ImageDecoder.decode(
-              bytes,
-              true,
-              header -> {
-                if (!MediaType.parseMediaType(header.mediaType()).equalsTypeAndSubtype(declaredType)
-                    || header.width() < 1
-                    || header.height() < 1) {
-                  throw new InvalidProfilePhotoException();
-                }
-              });
-      image.pixels().flush();
-      return new ProfilePhoto(bytes, image.mediaType());
+    try (MemoryCacheImageInputStream input =
+        new MemoryCacheImageInputStream(new ByteArrayInputStream(bytes))) {
+      Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
+      if (!readers.hasNext()) {
+        throw new InvalidProfilePhotoException();
+      }
+      ImageReader reader = readers.next();
+      try {
+        String format = reader.getFormatName();
+        MediaType actualType;
+        if ("PNG".equalsIgnoreCase(format)) {
+          actualType = MediaType.IMAGE_PNG;
+        } else if ("JPEG".equalsIgnoreCase(format)) {
+          actualType = MediaType.IMAGE_JPEG;
+        } else {
+          throw new InvalidProfilePhotoException();
+        }
+        reader.setInput(input, true, true);
+        if (!actualType.equalsTypeAndSubtype(declaredType)
+            || reader.getWidth(0) < 1
+            || reader.getHeight(0) < 1) {
+          throw new InvalidProfilePhotoException();
+        }
+        return new ProfilePhoto(bytes, actualType.toString());
+      } finally {
+        reader.dispose();
+      }
     } catch (IOException failure) {
       throw new InvalidProfilePhotoException();
     }

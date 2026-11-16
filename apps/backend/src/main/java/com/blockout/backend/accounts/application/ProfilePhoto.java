@@ -11,10 +11,10 @@ import com.blockout.backend.generated.mobile.model.ProfilePhotoActionEnum;
  */
 public record ProfilePhoto(byte[] bytes, String mediaType) {
   /**
-   * Requires an image exactly for replacement, both before decoding and before a prepared save.
+   * Requires an image exactly for replacement, both before preparation and before a prepared save.
    *
    * @param action explicit photo intent, or null to preserve the existing photo
-   * @param supplied whether a multipart image or validated image bytes are present
+   * @param supplied whether a multipart image or accepted image bytes are present
    * @throws InvalidProfileChangeException when the image and intent disagree
    */
   public static void requireConsistentIntent(ProfilePhotoActionEnum action, boolean supplied) {

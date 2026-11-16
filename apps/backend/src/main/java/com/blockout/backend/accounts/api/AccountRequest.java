@@ -74,7 +74,8 @@ public class AccountRequest {
   }
 
   /**
-   * Checks multipart shape and validates original image bytes before the account write transaction.
+   * Checks multipart shape and recognizes original image headers before the account write
+   * transaction.
    *
    * @param action generated photo intent, or null to preserve the current image
    * @param image optional multipart image, present only for replacement

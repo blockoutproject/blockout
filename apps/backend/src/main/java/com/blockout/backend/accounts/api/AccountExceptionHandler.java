@@ -45,7 +45,7 @@ public class AccountExceptionHandler {
         HttpStatus.UNSUPPORTED_MEDIA_TYPE, "urn:blockout:problem:unsupported-media-type");
   }
 
-  /** Refuses actual invalid image content without publishing decoder details. */
+  /** Refuses unreadable or mismatched image headers without publishing reader details. */
   @ExceptionHandler(InvalidProfilePhotoException.class)
   ResponseEntity<Object> invalidPhoto() {
     return HttpProblems.response(

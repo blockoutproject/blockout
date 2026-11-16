@@ -26,7 +26,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-/** Synthetic images exercise actual ImageIO validation without private assets. */
+/** Synthetic images exercise native header recognition and original-byte preservation. */
 @DisplayName("Original profile photo validation")
 class ProfilePhotoProcessorTest {
   private final ProfilePhotoProcessor processor = new ProfilePhotoProcessor();
@@ -45,6 +45,32 @@ class ProfilePhotoProcessorTest {
     // Then
     assertThat(photo.mediaType()).isEqualTo(mediaType);
     assertThat(photo.bytes()).isEqualTo(original);
+  }
+
+  @Test
+  @DisplayName("Recognizes an image header without requiring or decoding raster data")
+  void recognizesHeaderWithoutDecodingPixels() throws Exception {
+    // Given
+    // A complete PNG header is recognizable, but its missing pixel data cannot be decoded.
+    byte[] original = Arrays.copyOf(image("png", 2, 3), 33);
+
+    // When
+    ProfilePhoto photo = processor.prepare(original, "image/png");
+
+    // Then
+    assertThat(photo.mediaType()).isEqualTo("image/png");
+    assertThat(photo.bytes()).isEqualTo(original);
+  }
+
+  @Test
+  @DisplayName("Rejects a recognized PNG with an unreadable header")
+  void rejectsUnreadableHeader() throws Exception {
+    // Given
+    byte[] original = Arrays.copyOf(image("png", 2, 3), 24);
+
+    // When / Then
+    assertThatThrownBy(() -> processor.prepare(original, "image/png"))
+        .isInstanceOf(InvalidProfilePhotoException.class);
   }
 
   @ParameterizedTest
@@ -95,7 +121,7 @@ class ProfilePhotoProcessorTest {
   }
 
   @Test
-  @DisplayName("Refuses excessive compressed bytes before decoding malformed content")
+  @DisplayName("Refuses excessive compressed bytes before recognizing malformed content")
   void checksByteBoundBeforeContent() {
     // Given
     byte[] original = new byte[5 * 1024 * 1024 + 1];
@@ -141,7 +167,7 @@ class ProfilePhotoProcessorTest {
   }
 
   @Test
-  @DisplayName("Validates pixels without interpreting optional original text metadata")
+  @DisplayName("Preserves optional original text metadata without interpreting it")
   void ignoresMalformedOriginalMetadata() throws Exception {
     // Given
     byte[] original = ImageFixture.pngWithMalformedCompressedText();

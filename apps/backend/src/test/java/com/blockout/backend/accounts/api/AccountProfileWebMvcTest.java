@@ -188,7 +188,7 @@ class AccountProfileWebMvcTest {
   }
 
   @Test
-  @DisplayName("Rejects invalid decoded content before applying a username")
+  @DisplayName("Rejects an unrecognized image before applying a username")
   void refusesInvalidPhoto() throws Exception {
     // Given
     MockMultipartHttpServletRequestBuilder request =
