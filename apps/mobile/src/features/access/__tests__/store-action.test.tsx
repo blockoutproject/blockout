@@ -1,5 +1,6 @@
 import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
 import {
+  act,
   cleanup,
   render,
   screen,
@@ -15,11 +16,12 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
-it("keeps the action available after a failed native open and retries explicitly", async () => {
+it("waits for native opening before permitting an explicit retry after failure", async () => {
   // Given
+  const opening = Promise.withResolvers<void>();
   jest
     .mocked(Linking.openURL)
-    .mockRejectedValueOnce(new Error("Store unavailable"))
+    .mockReturnValueOnce(opening.promise)
     .mockResolvedValueOnce(undefined);
   const user = userEvent.setup();
   await render(
@@ -37,10 +39,35 @@ it("keeps the action available after a failed native open and retries explicitly
 
   // Then
   expect(
+    screen.getByRole("button", { name: "Mettre à jour l’application" }),
+  ).toBeBusy();
+  expect(
+    screen.getByRole("button", { name: "Mettre à jour l’application" }),
+  ).toBeDisabled();
+
+  // When
+  await user.press(
+    screen.getByRole("button", { name: "Mettre à jour l’application" }),
+  );
+
+  // Then
+  expect(Linking.openURL).toHaveBeenCalledTimes(1);
+
+  // When
+  await act(async () => opening.reject(new Error("Store unavailable")));
+
+  // Then
+  expect(
     await screen.findByText(
       "Une erreur est survenue. Veuillez réessayer plus tard.",
     ),
   ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Mettre à jour l’application" }),
+  ).toBeEnabled();
+  expect(
+    screen.getByRole("button", { name: "Mettre à jour l’application" }),
+  ).not.toBeBusy();
   expect(Linking.openURL).toHaveBeenCalledTimes(1);
 
   // When
