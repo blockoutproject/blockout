@@ -187,6 +187,7 @@ export function OwnContributionsScreen({
         contentContainerStyle={pageContentStyle}
         data={rows}
         keyExtractor={(item) => item.id}
+        onEndReachedThreshold={0.5}
         onEndReached={() => {
           if (!query.isError) {
             void loadMore();
