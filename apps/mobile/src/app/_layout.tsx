@@ -80,7 +80,10 @@ function Navigation({
         >
           <Stack.Screen name="onboarding" />
         </Stack.Protected>
-        <Stack.Protected guard={access.ordinary && discovery.complete}>
+        <Stack.Protected
+          guard={access.ordinary && discovery.complete}
+          redirectTo={access.ordinary ? "/onboarding" : "/access"}
+        >
           <Stack.Screen name="index" />
           <Stack.Screen name="(ordinary)" options={{ animation: "none" }} />
           <Stack.Screen name="(recovery)" options={{ animation: "none" }} />

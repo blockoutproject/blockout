@@ -1,4 +1,5 @@
 import { accountResponse } from "@/features/accounts/test-support/account-response";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { focusManager, onlineManager } from "@tanstack/react-query";
 import {
   cleanup,
@@ -88,7 +89,7 @@ const mockFetch = jest.fn<
 >();
 const environment = { ...process.env };
 
-// These route scenarios start after common discovery has been explicitly completed.
+// Most route scenarios start after common discovery has been explicitly completed.
 jest.mock("@react-native-async-storage/async-storage", () =>
   jest.requireActual(
     "@react-native-async-storage/async-storage/jest/async-storage-mock",
@@ -1048,6 +1049,48 @@ it("a bypass-only account makes its explicit personal choice before ordinary acc
       String(url).endsWith("/application-access"),
     ),
   ).toHaveLength(1);
+});
+
+it("opens unfinished discovery after an explicit maintenance bypass from a blocked direct route", async () => {
+  // Given: real root, discovery and session owners with controlled storage and HTTP I/O.
+  await AsyncStorage.removeItem("blockout:v2-discovery-complete");
+  const full = applicationAccessResponse();
+  full.maintenance = {
+    active: true,
+    message: "Maintenance",
+    imageUrl: null,
+  };
+  mockAuth0.hasValidCredentials.mockResolvedValue(true);
+  mockFetch.mockImplementation(async (url) =>
+    json(
+      String(url).endsWith("/accounts/me")
+        ? { ...operator, permissions: { bypassMaintenance: true } }
+        : full,
+    ),
+  );
+  const user = userEvent.setup();
+  await openRoute("/support");
+  expect(
+    await screen.findByRole("header", { name: "Blockout est en maintenance" }),
+  ).toBeOnTheScreen();
+
+  // When
+  await user.press(
+    await screen.findByRole("link", { name: "Accès administrateur" }),
+  );
+  await user.press(
+    await screen.findByRole("button", {
+      name: "Accéder à l’application pendant la maintenance",
+    }),
+  );
+
+  // Then
+  expect(
+    await screen.findByRole("button", { name: "Passer" }),
+  ).toBeOnTheScreen();
+  expect(screen).toHavePathname("/onboarding");
+  expect(screen.queryByText("Ordinary home")).toBeNull();
+  expect(screen.queryByText("Sign-in route")).toBeNull();
 });
 
 it("keeps an unknown direct route behind the gate", async () => {
