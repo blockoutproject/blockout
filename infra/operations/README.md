@@ -258,7 +258,7 @@ The next ordinary daily pass starts again from due rows; there is no immediate r
 
 ## Protected club-logo preservation and reassociation
 
-This is F14 T028's preparation and T030's local rehearsal procedure. Actual V1 access, administrator freeze, source copy, reconstruction and live reassociation require separate operation-specific authorization under F14. This procedure authorizes none of those operations. Use only a verified isolated target and synthetic files for a rehearsal. The [F14 model](../../specs/014-v1-v2-transition/data-model.md#protected-club-logo-association) owns preservation outcomes; [F02](../../specs/002-sporting-data/plan.md#presentation-administration-and-locality) owns image validation, storage and inheritance.
+This is F14 T028's preparation and T030's local rehearsal procedure. [F14 T029](../../specs/014-v1-v2-transition/tasks.md#phase-5-user-story-3--rebuild-data-without-losing-protected-elements-priority-p1) owns actual private preservation and F02 A39 reassociation qualification. Actual V1 access, administrator freeze, source copy, reconstruction and live reassociation require separate operation-specific authorization under F14. This procedure authorizes none of those operations. Use only a verified isolated target and synthetic files for a rehearsal. The [F14 model](../../specs/014-v1-v2-transition/data-model.md#protected-club-logo-association) owns preservation outcomes; [F02](../../specs/002-sporting-data/plan.md#presentation-administration-and-locality) owns image validation, storage and inheritance.
 
 ### Prepare the private preservation copy
 

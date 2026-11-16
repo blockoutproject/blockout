@@ -127,12 +127,17 @@ matching state establishes only the observed outcome, never a historical receipt
 
 In the F03-owned journey, separately check the professional team without a club,
 the optional club link when present, and partial maps without invented locations.
-For A39, use private F14 recovery inputs: certain identity with retained file,
+Actual private A39 qualification and SC-007's corresponding recovery boundary
+belong to [F14 T029](../014-v1-v2-transition/tasks.md#phase-5-user-story-3--rebuild-data-without-losing-protected-elements-priority-p1),
+using the [F14 protected-logo scenarios and private-evidence limits](../014-v1-v2-transition/quickstart.md#protected-logo-rehearsal).
+Use separately authorized private inputs: certain identity with retained file,
 unresolved/missing identity with retained association, and certain identity with
-missing file. Reapply only the certain retained file; keep unresolved evidence
-private and report missing bytes explicitly. Never publish recovery associations,
-original URLs, personal diagnostics or files in this repository/PR. These cases
-require the actual native journeys and separately authorized private recovery inputs.
+missing file. Reapply only validated bytes for a certain exact identity; preserve
+normal team inheritance, keep unresolved evidence private and report missing bytes
+explicitly. A retained URL does not establish file preservation. Never publish
+recovery associations, original URLs, personal diagnostics or files in this
+repository/PR. Controlled rehearsals and completed native editor checks do not
+establish this real V1 preservation/reassociation qualification.
 
 Change effective address/city/postcode while a geocoding response is in flight: the old point must not return. A street-only effective correction must advance locality revision and clear the old point; an overridden source change must preserve both. Exercise source/manual/hidden modes, restrictions, deliberate absence and return to source independently. Missing city suppresses the complete target context and point; absent address with usable city permits municipality lookup. An unambiguous municipality fallback is a valid located point without repeated address upgrade or normal-rerun recalculation. Retain no former personal details or new precision state. Qualify these effective-context cases through the [current locality boundary](plan.md#presentation-administration-and-locality); municipality-only inputs do not establish the full-address behavior.
 
