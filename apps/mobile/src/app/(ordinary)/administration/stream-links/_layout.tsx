@@ -1,3 +1,4 @@
+import { stackScreenOptions } from "@/shared/native/stack-screen-options";
 import { Stack } from "expo-router";
 import { sheetScreenOptions } from "@/shared/components/sheet";
 import { useTheme } from "@/shared/theme/theme-provider";
@@ -6,7 +7,7 @@ import { useTheme } from "@/shared/theme/theme-provider";
 export default function ModerationLayout() {
   const { colors } = useTheme();
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={stackScreenOptions}>
       <Stack.Screen
         name="filters"
         options={{

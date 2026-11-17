@@ -1,3 +1,4 @@
+import { stackScreenOptions } from "@/shared/native/stack-screen-options";
 import { ClassificationVisitProvider } from "@/features/sporting-administration/forms/classification-visit";
 import { Stack } from "expo-router";
 import { sheetScreenOptions } from "@/shared/components/sheet";
@@ -11,7 +12,7 @@ export default function OperationsLayout() {
   const { colors } = useTheme();
   return (
     <ClassificationVisitProvider>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={stackScreenOptions}>
         <Stack.Screen name="administration/index" />
         <Stack.Protected guard={permissions?.manageMaintenance === true}>
           <Stack.Screen name="administration/maintenance" />

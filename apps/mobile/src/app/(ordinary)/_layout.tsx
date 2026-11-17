@@ -1,3 +1,4 @@
+import { stackScreenOptions } from "@/shared/native/stack-screen-options";
 import { NotificationState } from "@/features/notifications/state/notification-state";
 import { Stack } from "expo-router";
 import { useTheme } from "@/shared/theme/theme-provider";
@@ -11,7 +12,7 @@ export default function OrdinaryLayout() {
   const { colors } = useTheme();
   return (
     <NotificationState>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={stackScreenOptions}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="privacy"

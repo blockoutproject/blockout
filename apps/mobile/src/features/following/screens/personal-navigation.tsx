@@ -1,4 +1,5 @@
 import { Stack } from "expo-router";
+import { stackScreenOptions } from "@/shared/native/stack-screen-options";
 import { sheetScreenOptions } from "@/shared/components/sheet";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { usePersonalSeasonScope } from "../components/personal-season-provider";
@@ -11,7 +12,7 @@ export function PersonalNavigation() {
     scope?.usable && !scope.blocked && scope.season.options.data,
   );
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={stackScreenOptions}>
       <Stack.Screen name="index" />
       <Stack.Protected guard={canChoose}>
         <Stack.Screen

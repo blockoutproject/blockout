@@ -5,12 +5,11 @@ import {
   useContext,
   useRef,
   useState,
-  type ReactElement,
   type ReactNode,
   type RefObject,
   type ComponentProps,
 } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedProps,
   useAnimatedStyle,
@@ -18,7 +17,6 @@ import Animated, {
   useSharedValue,
   type SharedValue,
 } from "react-native-reanimated";
-import { ScrollViewMarker } from "react-native-screens/experimental";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
@@ -37,20 +35,6 @@ export const NavigationScrollOffsetContext =
 /** Reads only layout clearance, independently of feature selection and scroll position. */
 export function useNavigationInset() {
   return useContext(NavigationInsetContext);
-}
-
-/** Custom chrome owns its material; the single native ScrollView must not add a second top-edge effect. */
-export function NavigationScrollMarker({
-  children,
-}: Readonly<{ children: ReactElement }>) {
-  if (Platform.OS !== "ios") {
-    return children;
-  }
-  return (
-    <ScrollViewMarker style={styles.fill} scrollEdgeEffects={{ top: "hidden" }}>
-      {children}
-    </ScrollViewMarker>
-  );
 }
 
 /** Reveals native blur with scroll; a hidden resting view removes the material's tint. */
@@ -108,7 +92,8 @@ export function PageViewport({
     <View style={styles.fill}>
       <NavigationInsetContext value={height}>
         <NavigationScrollOffsetContext value={scrollOffset}>
-          <BlurTargetView ref={target} style={styles.fill}>
+          {/* Keep content first in the native hierarchy so Stack can configure its scroll edge. */}
+          <BlurTargetView ref={target} collapsable={false} style={styles.fill}>
             {children}
           </BlurTargetView>
           <View

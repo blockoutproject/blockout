@@ -1,3 +1,4 @@
+import { stackScreenOptions } from "@/shared/native/stack-screen-options";
 import { createInstallationAdvertisingPrivacy } from "@/features/advertising/advertising-privacy";
 import { QueryClientProvider } from "@tanstack/react-query";
 import * as Sentry from "@sentry/react-native";
@@ -70,7 +71,7 @@ function Navigation({
         enabled={access.ordinary && discovery.complete}
       />
       <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={stackScreenOptions}>
         <Stack.Protected guard={!access.ordinary}>
           <Stack.Screen name="access" />
         </Stack.Protected>
