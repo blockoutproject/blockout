@@ -1,14 +1,15 @@
-import { Image } from "expo-image";
 import { Fragment } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type {
   MatchSetsResponse,
   MatchSummaryResponse,
+  SportingIdentityResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { MatchSurface } from "./match-surface";
-import { SportingLogo } from "./sporting-identity";
+import { useSportingLogo } from "../api/use-sporting-logo";
+import { SportingAtmosphere, SportingMedia } from "./sporting-media";
 
 /** Accepted set sequence and its original home/away identities; missing detail never becomes zeros. */
 export interface MatchSetScoresProps {
@@ -38,41 +39,15 @@ export function MatchSetScores({ match, sets }: Readonly<MatchSetScoresProps>) {
                 {
                   team: match.home,
                   side: "Domicile",
-                  halo: require("../../../../assets/sporting/crest-halo-home.svg"),
                 },
                 {
                   team: match.away,
                   side: "Extérieur",
-                  halo: require("../../../../assets/sporting/crest-halo-away.svg"),
                 },
-              ].map(({ team, side, halo }, index) => (
+              ].map(({ team, side }, index) => (
                 <Fragment key={side}>
                   {index > 0 && <View style={styles.centerColumn} />}
-                  <View style={styles.team}>
-                    <Image
-                      accessible={false}
-                      source={halo}
-                      contentFit="contain"
-                      style={styles.halo}
-                    />
-                    <SportingLogo
-                      kind="team"
-                      identity={team}
-                      size={tokens.sporting.setLogo}
-                    />
-                    <Text
-                      numberOfLines={2}
-                      accessibilityLabel={team.name}
-                      style={[styles.name, { color: colors.text }]}
-                    >
-                      {team.name}
-                    </Text>
-                    <Text
-                      style={[styles.side, { color: colors.secondaryText }]}
-                    >
-                      {side}
-                    </Text>
-                  </View>
+                  <MatchScoreTeam identity={team} side={side} />
                 </Fragment>
               ))}
             </View>
@@ -138,6 +113,45 @@ export function MatchSetScores({ match, sets }: Readonly<MatchSetScoresProps>) {
         )}
       </View>
     </MatchSurface>
+  );
+}
+
+/** Shares the current admitted source while keeping optional light failure independent from the sharp crest. */
+function MatchScoreTeam({
+  identity,
+  side,
+}: Readonly<{ identity: SportingIdentityResponse; side: string }>) {
+  const { colors } = useTheme();
+  const logo = useSportingLogo(identity, "team");
+  return (
+    <View style={styles.team}>
+      {logo.uri && (
+        <View pointerEvents="none" accessible={false} style={styles.halo}>
+          <SportingAtmosphere
+            key={logo.uri}
+            uri={logo.uri}
+            testID={`match-score-atmosphere-${identity.id}`}
+          />
+        </View>
+      )}
+      <SportingMedia
+        key={`${identity.id}:${identity.logoUrl ?? ""}`}
+        identity={identity}
+        kind="team"
+        size={tokens.sporting.setLogo}
+        uri={logo.uri}
+        loading={logo.loading}
+        error={logo.error}
+      />
+      <Text
+        numberOfLines={2}
+        accessibilityLabel={identity.name}
+        style={[styles.name, { color: colors.text }]}
+      >
+        {identity.name}
+      </Text>
+      <Text style={[styles.side, { color: colors.secondaryText }]}>{side}</Text>
+    </View>
   );
 }
 

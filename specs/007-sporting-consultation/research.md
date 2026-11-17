@@ -62,7 +62,7 @@ The native standings panel retains generated Query options, its private client, 
 
 ## Sporting decorative artwork
 
-The Match halo preview retains the existing SVG assets and scales their original falloff at the dimensions in [the plan](plan.md#design-and-validation). The larger extent is explicitly requested for native simulator review; the existing smaller approved Figma asset is not evidence of approval for that proposal. Standings retain their existing blurred crest bitmap but mask only its decorative atmosphere with radial alpha, revealing the real card at the edge. A background-colored cover would reproduce a rectangle on another surface; changing the foreground logo or card geometry would widen the correction. Image absence, decoding fallback and withdrawal keep their existing owner.
+The native candidate shares `SportingAtmosphere` between Match Score and standings, deriving its color from the same admitted crest shown in the foreground. Native bitmap blur plus scale spreads that color before an alpha-only radial fade reveals the real surface. This reuses existing rendering rather than extracting a palette, processing a replacement bitmap or painting a background-colored cover. The visible [diffuse-light criteria](plan.md#design-and-validation) govern review; source coefficients and a static halo asset’s extent are not accepted targets. Match’s optional atmosphere has independent decode failure so a decorative error cannot remove its sharp crest. Standings explicitly retain their existing shared-error removal of foreground and atmosphere. Both keep source absence/refusal withdrawal; no generalized image-lifetime change is introduced. Native captures remain required before judging the candidate.
 
 ## Native maps
 

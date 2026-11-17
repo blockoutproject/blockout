@@ -20,10 +20,11 @@ import SharedTabLayout, {
   unstable_settings as sharedTabSettings,
 } from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/_layout";
 import NotificationsRoute from "@/app/(ordinary)/(tabs)/(notifications)/notifications";
-import SearchLayout from "@/app/(ordinary)/(tabs)/(discovery)/search/_layout";
-import SearchRoute from "@/app/(ordinary)/(tabs)/(discovery)/search/index";
-import SearchFiltersRoute from "@/app/(ordinary)/(tabs)/(discovery)/search/(sheets)/filters";
-import SearchChoiceRoute from "@/app/(ordinary)/(tabs)/(discovery)/search/(sheets)/choice";
+import { SearchVisitProvider } from "@/features/discovery/forms/search-visit";
+import { sheetScreenOptions } from "@/shared/components/sheet";
+import SearchRoute from "@/app/(ordinary)/(tabs)/(discovery)/search";
+import SearchFiltersRoute from "@/app/(ordinary)/search/(sheets)/filters";
+import SearchChoiceRoute from "@/app/(ordinary)/search/(sheets)/choice";
 import MatchRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/matches/[matchId]";
 import { NotificationState } from "../state/notification-state";
 import { createQueryClient } from "@/shared/query/query-client";
@@ -253,7 +254,18 @@ async function openInbox() {
     {
       _layout: Root,
       "(ordinary)/_layout": () => (
-        <Stack screenOptions={{ headerShown: false }} />
+        <SearchVisitProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen
+              name="search/(sheets)/filters"
+              options={sheetScreenOptions}
+            />
+            <Stack.Screen
+              name="search/(sheets)/choice"
+              options={sheetScreenOptions}
+            />
+          </Stack>
+        </SearchVisitProvider>
       ),
       "(ordinary)/(tabs)/_layout": TabsLayout,
       "(ordinary)/(tabs)/(discovery,home,notifications,profile)/_layout": {
@@ -262,11 +274,9 @@ async function openInbox() {
       },
       "(ordinary)/(tabs)/(home)/(personal)/_layout": () => <Stack />,
       "(ordinary)/(tabs)/(home)/(personal)/index": () => <Text>Accueil</Text>,
-      "(ordinary)/(tabs)/(discovery)/search/_layout": SearchLayout,
-      "(ordinary)/(tabs)/(discovery)/search/index": SearchRoute,
-      "(ordinary)/(tabs)/(discovery)/search/(sheets)/filters":
-        SearchFiltersRoute,
-      "(ordinary)/(tabs)/(discovery)/search/(sheets)/choice": SearchChoiceRoute,
+      "(ordinary)/(tabs)/(discovery)/search": SearchRoute,
+      "(ordinary)/search/(sheets)/filters": SearchFiltersRoute,
+      "(ordinary)/search/(sheets)/choice": SearchChoiceRoute,
       "(ordinary)/(tabs)/(profile)/profile": () => <Text>Profil</Text>,
       "(ordinary)/(tabs)/(notifications)/notifications": NotificationsRoute,
       "(ordinary)/(tabs)/(discovery,home,notifications,profile)/matches/[matchId]":

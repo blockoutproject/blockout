@@ -111,6 +111,8 @@ After the native implementation checks, observe one controlled common-read failu
 
 ### Shared personal season boundary
 
+Home and `/season` share their existing owner above the ordinary Stack’s Tabs and contextual leaves. Open/choose/close through the parent presentation on both platforms: season rows and final actions remain above the retained capsule, and modal content uses only its own insets. Visit Search or an ordinary public detail with a retained season: no personal-season options read starts from that unrelated route. A native principal/business UUID change resets only its private season context, preserving unrelated public navigation and Search’s RHF visit.
+
 Use generated-consumer tests for the shared personal selection across Home, Teams, Pools and calendar: followed-versus-catalog default, historical/All seasons, reset, fresh-opening choices, successful disappearance, failed reconciliation and obsolete session/selection completions. A selected-season error does not read options automatically; opening the existing selector is the explicit recovery. Only successful options establish omission and apply valid-choice fallback. Verify that other retained exact-season/All-seasons query data and in-flight reads remain untouched.
 
 For representative native sheet compositions on iOS/Android, use a short season catalogue and

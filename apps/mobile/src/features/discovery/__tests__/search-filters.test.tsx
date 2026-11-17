@@ -8,10 +8,10 @@ import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { router, Stack } from "expo-router";
+import { router } from "expo-router";
 import { Text } from "react-native";
 import { renderRouter } from "expo-router/testing-library";
-import SearchLayout from "@/app/(ordinary)/(tabs)/(discovery)/search/_layout";
+import { SearchJourneyLayout } from "../test-support/search-journey-layout";
 import { SearchFilters } from "../components/search-filters";
 import { SearchFilterChoice } from "../components/search-filter-choice";
 import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
@@ -177,11 +177,8 @@ afterEach(async () => {
 async function renderSearch() {
   const result = await renderRouter(
     {
-      _layout: () => (
-        <Stack screenOptions={{ headerShown: false, animation: "none" }} />
-      ),
-      "search/_layout": SearchLayout,
-      "search/index": SearchScreen,
+      _layout: SearchJourneyLayout,
+      search: SearchScreen,
       "search/(sheets)/filters": SearchFilters,
       "search/(sheets)/choice": SearchFilterChoice,
       detail: () => <Text>Controlled detail destination</Text>,

@@ -30,7 +30,8 @@ import { homeHref } from "@/shared/native/home-href";
 import AgeRoute from "@/app/age-declaration";
 import HomeRoute from "@/app/(ordinary)/(tabs)/(home)/(personal)/index";
 import HomeLayout from "@/app/(ordinary)/(tabs)/(home)/(personal)/_layout";
-import SeasonRoute from "@/app/(ordinary)/(tabs)/(home)/(personal)/(sheets)/season";
+import SeasonRoute from "@/app/(ordinary)/(sheets)/season";
+import OrdinaryLayout from "@/app/(ordinary)/_layout";
 import OnboardingRoute from "@/app/onboarding";
 import SignInRoute from "@/app/(recovery)/sign-in";
 import RecoveryLayout from "@/app/(recovery)/_layout";
@@ -166,14 +167,23 @@ async function openEntry(initialUrl = "/sign-in") {
       "age-declaration": AgeRoute,
       "(operations)/_layout": () => <Stack />,
       "(operations)/administration/index": () => <Text>Operations</Text>,
-      "(ordinary)/_layout": () => <Stack />,
+      "(ordinary)/(tabs)/_layout": () => <Stack />,
+      "(ordinary)/_layout": {
+        default: OrdinaryLayout,
+        unstable_settings: { anchor: "(tabs)" },
+      },
       "(recovery)/_layout": RecoveryLayout,
       "(ordinary)/(tabs)/(home)/(personal)/_layout": {
         default: HomeLayout,
         unstable_settings: { anchor: "index" },
       },
       "(ordinary)/(tabs)/(home)/(personal)/index": HomeRoute,
-      "(ordinary)/(tabs)/(home)/(personal)/(sheets)/season": SeasonRoute,
+      "(ordinary)/(sheets)/season": SeasonRoute,
+      "(ordinary)/search/(sheets)/filters": () => null,
+      "(ordinary)/search/(sheets)/choice": () => null,
+      "(ordinary)/privacy": () => null,
+      "(ordinary)/privacy-age": () => null,
+      "(ordinary)/sign-in-invitation": () => null,
       "(ordinary)/search": () => <Text>Public search</Text>,
       "(recovery)/sign-in": SignInRoute,
       "(ordinary)/session": SessionProbe,

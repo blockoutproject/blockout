@@ -73,6 +73,7 @@ import { TeamScreen } from "../screens/team-screen";
 import { PoolScreen } from "../screens/pool-screen";
 import { MatchScreen } from "../screens/match-screen";
 import { MatchSummary } from "../components/match-summary";
+import { MatchSetScores } from "../components/match-set-scores";
 
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
 jest.mock("react-native-keyboard-controller", () =>
@@ -1860,6 +1861,51 @@ it.each(["provisional", "unconfirmed"] as const)(
     expect(screen.queryByRole("link")).not.toBeOnTheScreen();
   },
 );
+
+it("keeps a sharp Score crest when its same-source decorative light fails", async () => {
+  // Given: each score identity supplies its own current admitted logo.
+  match.match.home.logoUrl = `/teams/${match.match.home.id}/logo`;
+  match.match.away.logoUrl = `/teams/${match.match.away.id}/logo`;
+  await renderPage(
+    <MatchSetScores
+      match={match.match}
+      sets={{
+        observedAt: "2026-10-24T14:00:00Z",
+        items: [{ home: 25, away: 0 }],
+      }}
+    />,
+  );
+  const foreground = screen.getByRole("image", {
+    name: `Logo : ${match.match.home.name}`,
+  });
+  const atmosphere = screen.getByTestId(
+    `match-score-atmosphere-${match.match.home.id}`,
+  );
+  const uri = `https://api.example.invalid${match.match.home.logoUrl}`;
+  expect(foreground).toHaveProp("source", expect.arrayContaining([{ uri }]));
+  expect(atmosphere).toHaveProp("source", { uri, cache: "reload" });
+  await fireEvent(foreground, "display");
+
+  // When
+  await fireEvent(atmosphere, "error", {
+    nativeEvent: { error: "Decorative image decoding failed" },
+  });
+
+  // Then
+  expect(
+    screen.queryByTestId(`match-score-atmosphere-${match.match.home.id}`),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("image", {
+      name: `Logo : ${match.match.home.name}`,
+      busy: false,
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByTestId(`match-score-atmosphere-${match.match.away.id}`),
+  ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Set 1 : 25 à 0")).toBeOnTheScreen();
+});
 
 it("retains exact published set points and separates the match venue from a club municipality", async () => {
   // Given

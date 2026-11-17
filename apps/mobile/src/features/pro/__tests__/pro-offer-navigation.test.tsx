@@ -141,6 +141,10 @@ function JourneyLayout() {
     <Stack screenOptions={{ headerShown: false, animation: "none" }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="invitation" options={sheetScreenOptions} />
+      <Stack.Screen
+        name="search/(sheets)/filters"
+        options={sheetScreenOptions}
+      />
     </Stack>
   );
 }
@@ -172,13 +176,8 @@ async function openJourney(initialUrl = "/search") {
       "(ordinary)/(tabs)/(home)/(personal)/index": () => (
         <Text>Home destination</Text>
       ),
-      "(ordinary)/(tabs)/(discovery)/search/_layout": () => (
-        <Stack>
-          <Stack.Screen name="(sheets)/filters" options={sheetScreenOptions} />
-        </Stack>
-      ),
-      "(ordinary)/(tabs)/(discovery)/search/index": SearchDestination,
-      "(ordinary)/(tabs)/(discovery)/search/(sheets)/filters": () => (
+      "(ordinary)/(tabs)/(discovery)/search": SearchDestination,
+      "(ordinary)/search/(sheets)/filters": () => (
         <Text>Filter destination</Text>
       ),
       "(ordinary)/(tabs)/(notifications)/notifications": () => (
@@ -451,8 +450,18 @@ it("retains the bar and offer beneath an existing contextual route", async () =>
 
   // Then
   expect(await screen.findByText("Filter destination")).toBeVisible();
-  expect(screen.getByRole("button", { name: "Rechercher" })).toBeVisible();
-  expect(screen.getByRole("button", { name: offerName })).toBeVisible();
+  expect(
+    screen.getByRole("button", {
+      name: "Rechercher",
+      includeHiddenElements: true,
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", {
+      name: offerName,
+      includeHiddenElements: true,
+    }),
+  ).toBeOnTheScreen();
 });
 
 it("removes the free-account offer when SDK rights become active and on local sign-out", async () => {

@@ -18,9 +18,13 @@ import { AccessibilityInfo, Linking, View } from "react-native";
 import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
 import type { PersonalMatchCalendarResponse } from "../../../../.generated/schemas/index.zod";
 import { renderRouter } from "expo-router/testing-library";
-import { PersonalSeasonProvider } from "../components/personal-season-provider";
-import { PersonalNavigation } from "../screens/personal-navigation";
+import { Stack } from "expo-router";
 import { PersonalSeasonScreen } from "../screens/personal-season-screen";
+import {
+  PersonalSeasonProvider,
+  usePersonalSeasonScope,
+} from "../components/personal-season-provider";
+import { sheetScreenOptions } from "@/shared/components/sheet";
 import {
   useEffect,
   useState,
@@ -175,24 +179,36 @@ function SessionBinding({ children }: Readonly<PropsWithChildren>) {
   return children;
 }
 
-/** Keeps the single product season owner above both real native routes; other sporting navigation remains a command boundary. */
-function PersonalLayout() {
+/** Keeps real seasonal admission in the focused feature Stack; root age-entry policy has its own integration tests. */
+function PersonalJourneyStack() {
+  const scope = usePersonalSeasonScope();
+  const canChoose = Boolean(
+    scope?.usable && !scope.blocked && scope.season.options.data,
+  );
   return (
-    <PersonalSeasonProvider>
-      <PersonalNavigation />
-    </PersonalSeasonProvider>
+    <Stack screenOptions={{ headerShown: false, animation: "none" }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Protected guard={canChoose}>
+        <Stack.Screen name="(sheets)/season" options={sheetScreenOptions} />
+      </Stack.Protected>
+    </Stack>
   );
 }
 
-/** Provides real session, admission, advertising, Query and route owners for Home and its season surface. */
+/** Provides real feature/query/session owners without activating unrelated installation-age or root-route behavior. */
 async function mount(extra?: ReactNode) {
   return renderRouter(
     {
       _layout: {
-        default: PersonalLayout,
-        unstable_settings: { anchor: "index" },
+        default: () => (
+          <PersonalSeasonProvider>
+            <PersonalJourneyStack />
+          </PersonalSeasonProvider>
+        ),
+        unstable_settings: { anchor: "(tabs)" },
       },
-      index: () => (
+      "(tabs)/_layout": () => <Stack />,
+      "(tabs)/index": () => (
         <>
           <PersonalScreen />
           {extra}

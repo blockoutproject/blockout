@@ -10,6 +10,7 @@ import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SearchVisitProvider } from "../forms/search-visit";
+import { useSearchOptions } from "../api/use-search-options";
 import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
 import {
   QueryClientProvider,
@@ -36,7 +37,10 @@ import {
   credentialsFor,
 } from "@/features/accounts/test-support/native-auth0";
 import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
-import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
+import {
+  ApplicationAccessProvider,
+  useApplicationAccess,
+} from "@/features/access/queries/use-application-access";
 import {
   AccessAdmissionProvider,
   useAccessAdmission,
@@ -186,7 +190,10 @@ afterEach(async () => {
 });
 
 /** Supplies the actual public-read, native-session and presentation owners. */
-function SearchOwners({ children }: Readonly<PropsWithChildren>) {
+function SearchOwners({
+  children,
+  enabled = true,
+}: Readonly<PropsWithChildren<{ enabled?: boolean }>>) {
   return (
     <GestureHandlerRootView>
       <SafeAreaProvider
@@ -202,7 +209,9 @@ function SearchOwners({ children }: Readonly<PropsWithChildren>) {
                 <PrivateQueries>
                   <AccountFeedbackProvider>
                     <AdvertisingProviders>
-                      <SearchVisitProvider>{children}</SearchVisitProvider>
+                      <SearchVisitProvider enter={enabled}>
+                        {children}
+                      </SearchVisitProvider>
                     </AdvertisingProviders>
                   </AccountFeedbackProvider>
                 </PrivateQueries>
@@ -223,6 +232,46 @@ async function renderSearch() {
   await layoutNativeTabs();
   return result;
 }
+
+it("defers public search options until enabled and retains them while paused", async () => {
+  // Given: the shared visit is mounted for an unrelated destination.
+  const { result, rerender } = await renderHook(
+    ({ enabled }: Readonly<{ enabled: boolean }>) => ({
+      access: useApplicationAccess(),
+      options: useSearchOptions("team", enabled),
+    }),
+    {
+      initialProps: { enabled: false },
+      wrapper: ({ children }) => (
+        <SearchOwners enabled={false}>{children}</SearchOwners>
+      ),
+    },
+  );
+  await waitFor(() => expect(result.current.access.query.isSuccess).toBe(true));
+  expect(
+    mockFetch.mock.calls.some(([url]) =>
+      new URL(url).pathname.endsWith("/sporting-search-options"),
+    ),
+  ).toBe(false);
+
+  // When
+  await rerender({ enabled: true });
+  await waitFor(() => expect(result.current.options.isSuccess).toBe(true));
+
+  // Then
+  expect(result.current.options.data?.seasons).toEqual([season]);
+  const reads = mockFetch.mock.calls.length;
+
+  // When
+  await rerender({ enabled: false });
+  await act(() =>
+    client.invalidateQueries({ queryKey: ["/sporting-search-options"] }),
+  );
+
+  // Then
+  expect(mockFetch).toHaveBeenCalledTimes(reads);
+  expect(result.current.options.data?.seasons).toEqual([season]);
+});
 
 it.each(["guest", "unresolved"])(
   "allows all three public tabs for %s without waiting for native account resolution",

@@ -91,7 +91,6 @@ export function SportingMedia({
 
   const { colors } = useTheme();
   const image = useNativeImageLifecycle(uri);
-  const atmosphereMaskId = useId();
   const failed = image.status === "failed";
   const available = !!uri && !failed;
   const pending = available && image.status === "pending";
@@ -146,8 +145,34 @@ export function SportingMedia({
   if (!renderWithAtmosphere) {
     return logo;
   }
-  // Native bitmap blur retains opaque edges; alpha falloff removes the rectangular boundary.
   const atmosphere = available ? (
+    <SportingAtmosphere
+      key={image.attemptKey}
+      testID="sporting-logo-atmosphere"
+      uri={uri}
+      onError={image.onError}
+    />
+  ) : null;
+  return renderWithAtmosphere(logo, atmosphere);
+}
+
+/** Optional same-crest light; its own decode failure removes only this decoration unless the caller shares failure ownership. */
+export function SportingAtmosphere({
+  uri,
+  onError,
+  testID,
+}: Readonly<{
+  uri: string;
+  onError?: () => void;
+  testID?: string;
+}>) {
+  const image = useNativeImageLifecycle(uri);
+  const atmosphereMaskId = useId();
+  if (image.status === "failed") {
+    return null;
+  }
+  // Spread the blurred bitmap beneath an alpha fade; only the separate foreground retains recognizable artwork.
+  return (
     <MaskedView
       accessible={false}
       pointerEvents="none"
@@ -172,21 +197,18 @@ export function SportingMedia({
     >
       <BlurredArtwork
         key={image.attemptKey}
-        testID="sporting-logo-atmosphere"
+        testID={testID}
         uri={uri}
         resizeMode="contain"
-        blurRadius={tokens.sporting.coverBlur}
-        onError={image.onError}
-        style={[
-          StyleSheet.absoluteFill,
-          {
-            opacity: tokens.sporting.standingsCard.atmosphereOpacity,
-          },
-        ]}
+        blurRadius={tokens.sporting.atmosphere.blur}
+        onError={() => {
+          image.onError();
+          onError?.();
+        }}
+        style={styles.atmosphere}
       />
     </MaskedView>
-  ) : null;
-  return renderWithAtmosphere(logo, atmosphere);
+  );
 }
 
 /** Decorative cover inputs preserve the current source and its accepted tint without introducing fallback artwork. */
@@ -222,6 +244,11 @@ export function SportingCover({ uri, primary }: Readonly<SportingCoverProps>) {
 }
 
 const styles = StyleSheet.create({
+  atmosphere: {
+    ...StyleSheet.absoluteFill,
+    opacity: tokens.sporting.atmosphere.opacity,
+    transform: [{ scale: tokens.sporting.atmosphere.scale }],
+  },
   artwork: {
     ...StyleSheet.absoluteFill,
     alignItems: "center",
