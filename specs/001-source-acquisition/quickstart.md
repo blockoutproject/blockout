@@ -145,7 +145,7 @@ Use the [disposable runtime command](../../README.md#collector-to-sporting-quali
 
 For every case, retain the original cycle/candidate identity privately, check actual SQL effects and HTTP call counts, and separate confirmed acceptance, refused acceptance and unresolved outcome. Availability evidence does not identify an instant crash: no heartbeat, watchdog, retry worker, sweep, checkpoint or broad reset is involved. An empty/unexecuted selection supplies no failure or recovery observation.
 
-Use the [operations guide](../../infra/operations/README.md#collection-inspection-and-explicit-recovery) for inspection and explicit restart after the integrated fault cases; keep accepted facts and uncertain outcomes distinct.
+Use the [operations guide](../../infra/operations/README.md#collection-inspection-and-explicit-recovery) for inspection and explicit restart after the integrated fault cases; keep accepted facts and uncertain outcomes distinct. Separately use [F13 hosted qualification](../003-shared-quality/quickstart.md#hosted-preproduction) to observe one registration attempt before scheduling in each failed process, at most three native restarts ten seconds apart and explicit intervention after exhaustion. This platform observation does not replace the controlled incarnation/admission proofs or permit fault injection into V1/production.
 
 ## Operational diagnostics
 

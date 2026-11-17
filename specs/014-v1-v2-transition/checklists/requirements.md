@@ -34,3 +34,5 @@
 [Design evidence and the owner's scoped approval](../plan.md#design-approval) are recorded in the plan. Implementation-independence and technology-agnostic criteria remain unchecked because the accepted Auth0 initialization, native SDK and legacy-binary continuity constraints are explicit. This checklist assesses requirements quality, not implementation or native/provider qualification.
 
 - identity/payment/logo retention, compatible devices and actual availability in both stores remain transition prerequisites. No infrastructure decision authorizes intentional loss or reset. [F12](../../013-administration-app-configuration/spec.md) governs blocked routes and access by an already authenticated administrator; F11 standalone public reading retains its scope.
+
+- FR-030/A37 cover isolated hosted preview and unchanged V1 coexistence, with production prepared but stopped. Preview installation/journeys remain distinct from corrected production candidates, signed upgrades, providers, stores and cutover qualification.

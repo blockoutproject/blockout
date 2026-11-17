@@ -15,7 +15,7 @@
 - V2 rebuilds backend, ingestion and mobile internals. Historical V1 technology is not a default; preserve accepted behavior and continuity obligations. The initial executable workspace contains backend, collector and native mobile launchers; owning feature lots implement business behavior.
 - This repository has independent history. Historical references retain their `blockout-legacy` identity; they authorize no inspection of other repositories or production/provider changes.
 - F10 requires a private support destination. Never put private diagnostics or attachments in this public repository.
-- Before the first V2 deployment, every V2 database is disposable. Maintain only the current initial Liquibase schema, with final columns, defaults, keys and indexes in its creation definitions; do not append incremental alteration changeSets. [F13](specs/003-shared-quality/plan.md#runtime-data-and-consistency) owns this posture and its transition before deployed data must be retained.
+- Until mandatory V2 data retention, maintain the current initial Liquibase schema, with final columns, defaults, keys and indexes in its creation definitions. Preserve hosted preproduction data between ordinary deployments; an exceptional reset requires an explicit owner decision. [F13](specs/003-shared-quality/plan.md#runtime-data-and-consistency) owns this posture and the freeze of applied history before retained-data changes require incremental migrations. Never clear checksums or reset automatically.
 
 ## Design inputs
 
@@ -54,7 +54,9 @@ Follow [F13 FR-030's accessibility qualification scope](specs/003-shared-quality
 
 Before delivery, review every added or modified handwritten test against the applicable testing skill and its canonical examples; passing checks alone do not establish compliance.
 
-For native UI checks, prefer the official [agent-device skill](.agents/skills/agent-device/SKILL.md) and [setup](README.md#native-ui-checks). Target the task's device and session explicitly; use desktop automation for host setup or unsupported interactions, and diagnose repeated unchanged failures.
+Physical-device testing belongs to the owner, who reports findings. Agents prepare installable builds and use emulators or simulators for automated native checks.
+
+For agent-driven native UI checks, prefer the official [agent-device skill](.agents/skills/agent-device/SKILL.md) and [setup](README.md#native-ui-checks). Target the task's device and session explicitly; use desktop automation for host setup or unsupported interactions, and diagnose repeated unchanged failures.
 
 Reuse compatible development builds and task-owned services/devices. Prefer standalone Android Emulator and compact Device Hub windows, and serialize desktop interactions.
 

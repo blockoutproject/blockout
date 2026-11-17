@@ -1,4 +1,4 @@
--- Disposable local development only. Production roles belong to explicit operations.
+-- Empty-volume bootstrap only; each environment supplies its own passwords explicitly.
 \getenv app_password BLOCKOUT_APP_PASSWORD
 \getenv migration_password BLOCKOUT_MIGRATION_PASSWORD
 
