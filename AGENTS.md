@@ -15,7 +15,7 @@
 - V2 rebuilds backend, ingestion and mobile internals. Historical V1 technology is not a default; preserve accepted behavior and continuity obligations. The initial executable workspace contains backend, collector and native mobile launchers; owning feature lots implement business behavior.
 - This repository has independent history. Historical references retain their `blockout-legacy` identity; they authorize no inspection of other repositories or production/provider changes.
 - F10 requires a private support destination. Never put private diagnostics or attachments in this public repository.
-- Before the first V2 deployment, every V2 database is disposable. Maintain only the current initial Liquibase schema, with final columns, defaults, keys and indexes in its creation definitions; do not append incremental alteration changeSets. [F13](specs/003-shared-quality/plan.md#runtime-data-and-consistency) owns this posture and its transition before deployed data must be retained.
+- Until mandatory V2 data retention, maintain the current initial Liquibase schema, with final columns, defaults, keys and indexes in its creation definitions. Preserve hosted preproduction data between ordinary deployments; an exceptional reset requires an explicit owner decision. [F13](specs/003-shared-quality/plan.md#runtime-data-and-consistency) owns this posture and the freeze of applied history before retained-data changes require incremental migrations. Never clear checksums or reset automatically.
 
 ## Design inputs
 

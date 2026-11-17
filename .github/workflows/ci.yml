@@ -126,3 +126,83 @@ jobs:
         run: |
           test "$QUALITY_RESULT" = success
           test "$APPLICATIONS_RESULT" = success
+
+  images:
+    name: Publish ${{ matrix.image }}
+    if: github.event_name == 'push'
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: blockout-backend
+            dockerfile: apps/backend/Dockerfile
+            target: runtime
+          - image: blockout-collector
+            dockerfile: apps/collector/Dockerfile
+            target: runtime
+          - image: blockout-backend-migrations
+            dockerfile: apps/backend/Dockerfile
+            target: migrations
+    steps:
+      - name: Check out the verified source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Authenticate to GHCR with the native workflow token
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+
+      - name: Build and publish the verified revision for the VPS architecture
+        env:
+          IMAGE: ${{ matrix.image }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          docker build --platform linux/amd64 --file "$DOCKERFILE" --target "$TARGET" \
+            --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --tag "ghcr.io/$GITHUB_REPOSITORY_OWNER/$IMAGE:$GITHUB_SHA" .
+          docker push "ghcr.io/$GITHUB_REPOSITORY_OWNER/$IMAGE:$GITHUB_SHA"
+
+  preproduction:
+    name: Request preproduction deployments
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    needs: images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: preproduction
+    concurrency:
+      group: deploy-preproduction
+      cancel-in-progress: false
+    steps:
+      - name: Update only the image and queue backend then collector
+        env:
+          DOKPLOY_URL: ${{ vars.DOKPLOY_URL }}
+          DOKPLOY_TOKEN: ${{ secrets.DOKPLOY_TOKEN }}
+          BACKEND_ID: ${{ vars.DOKPLOY_BACKEND_ID }}
+          COLLECTOR_ID: ${{ vars.DOKPLOY_COLLECTOR_ID }}
+        # A queued deployment is not readiness; collector startup uses its native bounded restarts.
+        run: |
+          test -n "$DOKPLOY_URL" && test -n "$DOKPLOY_TOKEN"
+          test -n "$BACKEND_ID" && test -n "$COLLECTOR_ID"
+          for application in "backend:$BACKEND_ID" "collector:$COLLECTOR_ID"; do
+            image="ghcr.io/$GITHUB_REPOSITORY_OWNER/blockout-${application%%:*}:$GITHUB_SHA"
+            application_id="${application#*:}"
+            jq -n --arg id "$application_id" --arg image "$image" \
+              '{applicationId: $id, dockerImage: $image}' |
+              curl --fail --silent --show-error --max-time 30 --output /dev/null \
+                -H "x-api-key: $DOKPLOY_TOKEN" -H 'Content-Type: application/json' \
+                --data-binary @- "$DOKPLOY_URL/api/application.update"
+            jq -n --arg id "$application_id" '{applicationId: $id}' |
+              curl --fail --silent --show-error --max-time 30 --output /dev/null \
+                -H "x-api-key: $DOKPLOY_TOKEN" -H 'Content-Type: application/json' \
+                --data-binary @- "$DOKPLOY_URL/api/application.deploy"
+          done

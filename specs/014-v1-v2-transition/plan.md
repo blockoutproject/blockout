@@ -4,11 +4,11 @@
 
 **Input**: [spec.md](spec.md), [F01 acquisition](../001-source-acquisition/plan.md), [F04 discovery](../008-search-discovery/plan.md), [F07 notifications](../011-notifications-delivery/plan.md) and [F10 support](../012-reports-feature-suggestions/plan.md).
 
-**Status**: Transition and implementation decisions. The common discovery prototype is approved and its faithfully reconciled Figma scope is covered by the owner's explicit advance approval. [Tasks](tasks.md) track implementation and qualification; [quickstart](quickstart.md) separates independent local checks from existing native signed-upgrade, provider and mobile-store qualifications. Server deployment and infrastructure recovery are outside the current plan.
+**Status**: Transition and implementation decisions. The common discovery prototype is approved and its faithfully reconciled Figma scope is covered by the owner's explicit advance approval. [Tasks](tasks.md) track implementation and qualification; [quickstart](quickstart.md) separates local checks, isolated hosted preview and native signed-upgrade, provider and mobile-store qualifications. F13 owns server packaging/delivery; infrastructure recovery programmes remain outside this plan.
 
 ## Summary
 
-Implement and verify common skippable discovery, explicit first V2 sign-in, ordinary F05/F09 owner composition, protected-logo reassociation and the single read-only legacy status boundary. Preserve existing mobile build/signing identities, production-identity upgrades, native provider qualification, accepted pricing and mobile store-publication/availability conditions. Local controlled development proceeds independently; server deployment and infrastructure recovery remain outside this plan.
+Implement and verify common skippable discovery, explicit first V2 sign-in, ordinary F05/F09 owner composition, protected-logo reassociation and the single read-only legacy status boundary. Preserve existing mobile build/signing identities, production-identity upgrades, native provider qualification, accepted pricing and mobile store-publication/availability conditions. Isolated hosted preview coexists with unchanged V1 under F13 delivery; production activation and cutover retain separate authorization. Local controlled development proceeds independently; infrastructure recovery programmes remain outside this plan.
 
 ## Technical Context
 
@@ -66,7 +66,7 @@ apps/mobile/                          # installation initialization and common d
 contracts/http/legacy-mobile/openapi.yaml
 ```
 
-The legacy root describes one boundary of the same backend. It creates no deployable, editable contract copy or generated client for V1 binaries that are already distributed. F13's Redocly/OpenAPI Generator chain produces the server interface/DTO; active V2 clients continue to use their existing roots. No migration application is scaffolded.
+The legacy root describes one boundary of the same backend. It creates no separate legacy deployable, editable contract copy or generated client for V1 binaries that are already distributed. F13's Redocly/OpenAPI Generator chain produces the server interface/DTO; active V2 clients continue to use their existing roots. F13's one-off schema migrations Application is independent of this legacy surface.
 
 ## Installation initialization
 
@@ -108,7 +108,9 @@ Use the existing F01 preparation/reconstruction and F02 acceptance paths for the
 
 ## Cutover and recovery
 
-The existing mobile preparation uses `apps/mobile/eas.json` and its separate preview and production identities. Preserve exact source/build identifiers, valid signing/push associations and remote counters. Preview builds do not replace the signed production-identity binary needed to establish upgrade and store behavior. No GitHub server deployment workflow or hosted topology is selected here.
+The existing mobile preparation uses `apps/mobile/eas.json` and its separate preview and production identities. Preserve exact source/build identifiers, valid signing/push associations and remote counters. Configure only the EAS `preview` environment with the verified `https://api-preproduction.blockoutproject.com` and existing preproduction Auth0 client/audiences. Keep the distinct “Blockout Preprod” package/bundle identity and compatible signatures. Build Android APK and iOS internal-distribution artifacts for registered test devices using the existing profile; backend delivery does not rebuild mobile automatically. Observe actual sign-in, Profile, consultation, search, collection and internal inbox with authorized accounts and current-season F01 data. Preserve the activation state of push, external support, provider cleanup, reporting and other dedicated integrations. Preview builds do not replace corrected signed production candidates, upgrades or store evidence; production inputs and concurrent production-candidate work remain untouched.
+
+[F13's hosted plan](../003-shared-quality/plan.md#hosted-packaging-and-delivery) prepares separate native production resources without starting them or binding the future `https://api.blockoutproject.com`. Existing V1 routes/services/volumes and intentional stops remain unchanged throughout preview. No V1 import or full historical reconstruction is required for this bounded preproduction. [Preview qualification](quickstart.md#hosted-preview-and-v1-coexistence) is independent of the public cutover sequence below.
 
 1. Qualify signed production-identity upgrades against supported installed V1 binaries on iOS/Android, including credential initialization, current Google/Apple callbacks, native purchases and push under their actual owners. Controlled local tests remain independent and prove only their tested boundary.
 2. Prepare functional store review with the existing Google/Apple methods and usable authorized review accounts/backend access. Introduce no production password method or hidden demo authorization.
@@ -144,7 +146,7 @@ The approved scope covers completion, skipping, the independent age gate and 320
 
 [Research](research.md) separates current source/console observations from provider capabilities and unqualified outcomes. [Data model](data-model.md) identifies retained/reset data without inventing migration tables. [Contracts](contracts/README.md) owns the legacy wire boundary and generation implications. [Quickstart](quickstart.md) specifies local interruption/owner cases and existing native signed-upgrade, provider and store qualification.
 
-Local checks establish no signed V1-to-V2 upgrade, population completeness, price activation, actual protected-source preservation or retirement. The native/mobile cases retain those actual prerequisites and evidence limits without restoring a server-deployment programme.
+Local checks and isolated preview establish no signed V1-to-V2 upgrade, population completeness, price activation, actual protected-source preservation or retirement. The native/mobile cases retain their actual prerequisites and evidence limits. F13 delivery does not authorize public opening or V1 retirement.
 
 ## Complexity Tracking
 

@@ -1,6 +1,75 @@
 # Manual operations
 
-This guide covers local application diagnosis and authorized business operations under the owning specifications. Use task-owned processes, disposable qualification data and existing private provider/support tools. Each external or destructive action retains its own authorization and evidence requirements; these instructions perform none of them.
+This guide covers application diagnosis, hosted V2 delivery and authorized business operations under the owning specifications. Use environment-owned resources and existing private provider/support tools. Each external or destructive action retains its own authorization and evidence requirements; these instructions perform none of them.
+
+## Hosted V2 environments
+
+[F13](../../specs/003-shared-quality/plan.md#hosted-packaging-and-delivery) owns packaging, delivery and schema lifecycle; [F14](../../specs/014-v1-v2-transition/plan.md) owns coexistence and production readiness. Use the existing Dokploy instance at `https://monitoring.blockoutproject.com`; these instructions use its v0.31.0 API contract. Recheck the installed version before configuration, without an upgrade as part of routine V2 deployment.
+
+Use the Blockout V2 project with independent `preproduction` and `production` environments. Configure each with four Applications (`backend`, `collector`, `opensearch`, `migrations`), one native PostgreSQL resource and its persistent volumes. Production preparation does not start those resources, bind `https://api.blockoutproject.com`, replace V1 routes or activate dedicated integrations. The preproduction API is `https://api-preproduction.blockoutproject.com`.
+
+### Configure native resources
+
+Before provisioning or deploying, inspect current VPS memory/disk and the existing V1 service/route state. Preserve unrelated resources, volumes and intentionally stopped services. Image compilation runs away from the VPS. A prior capacity observation does not reserve resources.
+
+Use [native Dokploy networks](https://docs.dokploy.com/docs/core/networks): an overlay per environment, attached to all five resources. The API also stays on `dokploy-network` for Traefik. Detach PostgreSQL, OpenSearch, collector and migrations from that shared network. Use their environment-owned service names for private DNS; publish no PostgreSQL/OpenSearch port. Collector still requires outbound access to Auth0 and approved source origins, so its overlay is not Docker's `internal` network mode.
+
+Create native PostgreSQL with `postgres:18.6`, bootstrap database `postgres`, an environment-specific admin password and a named volume mounted at `/var/lib/postgresql` from the outset (PostgreSQL 18 image layout). Before first startup, mount [init-roles.sql](../postgres/init-roles.sql) through a native File Mount at `/docker-entrypoint-initdb.d/10-blockout-roles.sql`. Supply independent hosted `BLOCKOUT_MIGRATION_PASSWORD` and `BLOCKOUT_APP_PASSWORD`; local example passwords are never hosting inputs. The script creates `blockout`, its migration owner and its restricted application role. Initialization runs only on an empty volume; changing the file does not update existing roles.
+
+OpenSearch uses `opensearchproject/opensearch:3.9.0`, one instance and an independent volume at `/usr/share/opensearch/data`. Reuse [the verified configuration](../opensearch/opensearch.yml) and [scoped roles](../opensearch/security/roles.yml), adapting cluster/node names, service DNS, certificate SAN/DN and paths to the environment. Supply certificates, private keys and native security configuration through File Mounts; keep their contents private. Preserve HTTPS verification and the backend's PEM trust bundle. Check native file/volume ownership and the documented host `vm.max_map_count` prerequisite before startup; do not weaken TLS or change unrelated services to make it start.
+
+Backend, collector and OpenSearch each use one replica, with native `UpdateConfig.Order` and `RollbackConfig.Order` set to `stop-first` and `Parallelism: 1`. Set collector `RestartPolicy` to `Condition: on-failure`, `Delay: 10000000000` (nanoseconds), `MaxAttempts: 3`. Each process attempts registration once before scheduling; exhausted native restarts require explicit operator intervention. Migrations use one ordinary replica and `RestartPolicy.Condition: none`, with no domain or published port. Do not use `ReplicatedJob` for the current configuration contract.
+
+Set application sources to Docker images, disable Auto Deploy and Preview Deployments, and create no webhooks or schedules. Select a private GHCR Registry with a `read:packages` classic token for the three Blockout images. Keep credentials in Dokploy, never in image layers or Docker build arguments. Backend receives only its application-role connection and existing authorized provider inputs; migrations alone receive schema credentials. Collector receives its existing ingestion identity and environment-owned API URL, with no SQL credentials. Preserve push, cleanup, external support and reporting activation state.
+
+Verify DNS and the certificate before binding the unused preproduction host. Configure its native Dokploy domain with HTTPS/Let's Encrypt and backend port 8080. Keep the future production host unbound until a separately authorized cutover.
+
+### Images and delivery
+
+Build from the repository root with the committed lockfile, contract inputs and Maven wrapper:
+
+```sh
+docker build --platform linux/amd64 -f apps/backend/Dockerfile --target runtime \
+  -t ghcr.io/blockoutproject/blockout-backend:<commit-sha> .
+docker build --platform linux/amd64 -f apps/collector/Dockerfile --target runtime \
+  -t ghcr.io/blockoutproject/blockout-collector:<commit-sha> .
+docker build --platform linux/amd64 -f apps/backend/Dockerfile --target migrations \
+  -t ghcr.io/blockoutproject/blockout-backend-migrations:<commit-sha> .
+```
+
+Replace `<commit-sha>` with the complete source commit before running. The monorepo `.dockerignore` excludes local/private files, caches and generated results; builds install locked npm inputs, bundle contracts and package Java 25 from source. API runtime contains no migration tool or migration credentials. Its existing GitHub CLI dependency does not activate external support.
+
+[CI](../../.github/workflows/ci.yml) keeps `verify` as the checks gate. PRs run checks only. Successful pushes to `develop` and `main` publish the three private SHA-tagged images using native `GITHUB_TOKEN`; only `develop` requests preproduction backend/collector deployment. Keep GHCR package visibility private and grant the source repository Actions access when associating initially operator-published packages.
+
+Configure GitHub environments `preproduction` and `production` with `DOKPLOY_URL`, `DOKPLOY_BACKEND_ID` and `DOKPLOY_COLLECTOR_ID` variables and a private `DOKPLOY_TOKEN` secret. IDs identify only the corresponding V2 Applications. The workflow sends native `application.update` with only `applicationId` and `dockerImage`, then `application.deploy`, preserving stored environment, Registry, mounts and domains. Responses are discarded; never print resolved configurations or secrets. An HTTP success acknowledges a queued request, not readiness or the running revision. Backend then collector requests provide no readiness barrier; the collector's native restart policy handles an ordinary initial startup failure.
+
+The [manual production workflow](../../.github/workflows/deploy-production.yml) accepts only `main`, requires successful push CI for that exact revision and requires all three existing images. It performs no rebuild or implicit migration/infrastructure startup. Starting production or switching V1 routes still requires the owner's separate authorization. Backend deployment never rebuilds mobile.
+
+### First startup and explicit migration
+
+1. Start only the intended preproduction PostgreSQL resource; verify initialization and role separation privately.
+2. Set the migrations Application to the intended SHA image. Supply `LIQUIBASE_URL`, `LIQUIBASE_USERNAME` and `LIQUIBASE_PASSWORD` for the migration owner only. Deploy it once and inspect the actual task exit code: require 0 before proceeding. The image runs the existing `./mvnw -B -ntp -pl apps/backend liquibase:update` command.
+3. Start OpenSearch and verify native security/TLS privately.
+4. Deploy backend and verify anonymous HTTPS `GET /health` returns 200. Confirm the actual running SHA and private database/search connectivity; a deployment queue entry proves neither.
+5. Deploy collector, verify its one registration and scheduler, and use the existing F01 administration/qualification mechanisms for real current-season collection. Do not import V1 data or reconstruct full history.
+
+Schema changes require an explicit migration run with the matching revision. Backend remains Hibernate validation-only; incompatibility fails without repair, checksum clearing or reset. Keep preproduction data across ordinary image updates and rollbacks. Until data retention becomes mandatory, the current initial schema is disposable only by explicit owner decision; an edited initial schema cannot upgrade an existing volume. Before mandatory retention, freeze applied history and use incremental migrations under [F13's schema lifecycle](../../specs/003-shared-quality/plan.md#runtime-data-and-consistency).
+
+After deployment, verify current-season consultation, search, collection and internal inbox with authorized test accounts. Verify one running process per Application and data persistence through a real redeployment. A controlled collector startup failure belongs only to preproduction; inspect task attempts and ten-second spacing, then restore the valid configuration and relaunch manually. Do not inject failures into V1 or production.
+
+### Diagnose, renew and reset
+
+Use Dokploy Deployments, Logs and native Docker task inspection for queue/build/pull/startup failures, exit codes and current image digest/revision. First check Registry access, environment-owned DNS/network attachments, file ownership, TLS validity and `/health`; a bounded second actual attempt follows correction of a diagnosed cause. Preserve private diagnostics locally. Do not add a readiness controller, remote monitoring stack or automatic recovery service.
+
+For an ordinary rollback, select the prior compatible SHA image through the native Application settings and deploy with `stop-first`. Check schema compatibility first; an image rollback does not reverse schema/data changes. PostgreSQL, OpenSearch and migrations are not redeployed on every code push.
+
+Before Registry token expiry, replace the stored read-only token through native Registry settings and verify a private pull without displaying it. Renew the Dokploy API token and GitHub environment secret together, keeping permissions limited to the intended operator scope. Dokploy manages the public Let's Encrypt certificate; inspect its validity ordinarily. Renew private OpenSearch certificates with the same verified CA/name/permissions contract, update File Mounts and trust material, then replace only the owned affected Applications explicitly.
+
+An exceptional preproduction reset requires an explicit owner decision naming that environment and its data. Stop only its collector/backend/migrations/OpenSearch as needed, verify the exact owned volume/resource before any deletion, and use native operations with their required confirmations. Reinitialize roles and migrate, then repeat the first-start qualification. Never delete or reset V1, production or another environment's volumes, and never treat a migration failure as reset permission.
+
+### Preview mobile
+
+After the hosted API is healthy, set only the existing EAS `preview` environment to its verified HTTPS URL and existing preproduction Auth0 inputs. Keep the `Blockout Preprod` identity, internal distribution, existing project and compatible signatures. Build from a committed revision through the pinned official EAS CLI: Android APK and iOS ad hoc for registered test devices. Keep build IDs and private provisioning evidence in their native records; do not copy credentials here. Verify the installed binaries' actual sign-in, profile, consultation, search, collection and inbox journeys. State unsupported device/provider cases explicitly; JavaScript export or an old production-identity archive does not replace this evidence. Production candidates, store submission and V1 cutover remain separate.
 
 ## Owner-only action grants
 

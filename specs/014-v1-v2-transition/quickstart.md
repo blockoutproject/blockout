@@ -1,6 +1,6 @@
 # Quickstart: qualifying the V1-to-V2 transition
 
-Use the [mobile preparation and continuity sequence](plan.md#cutover-and-recovery). Independent local checks use disposable migrated PostgreSQL and controlled HTTP/native SDK fixtures. Signed upgrades, real providers and store outcomes require the native inputs below only for their own qualification; they do not block local development. No server deployment or infrastructure-restoration procedure is selected.
+Use the [mobile preparation and continuity sequence](plan.md#cutover-and-recovery). Independent local checks use disposable migrated PostgreSQL and controlled HTTP/native SDK fixtures. [Hosted preview](#hosted-preview-and-v1-coexistence) uses F13's isolated delivery while V1 remains unchanged. Signed upgrades, real providers and store outcomes require the native inputs below only for their own qualification; they do not block local development. Infrastructure-restoration programmes remain outside scope.
 
 ## Prerequisites
 
@@ -10,6 +10,14 @@ The following inputs apply to actual native/store/transition qualification. Cont
 - Authorized qualification accounts covering the actual identity/purchase categories, both paying stores and linked sign-in methods. Current provider settings, credentials, build counters and release prerequisites verified privately.
 - Usable private logo/reference preservation with the owner's manual-edit freeze in force, current obligations available, and current privacy/rights constraints established. Missing indispensable evidence blocks its destruction.
 - Approved common discovery prototype and Figma revision. Browser simulations do not qualify native upgrade, store or provider behavior.
+
+## Hosted preview and V1 coexistence
+
+1. Complete [F13's actual hosted preproduction checks](../003-shared-quality/quickstart.md#hosted-preproduction), including verified DNS/HTTPS/health, explicit migrated schema and bounded real current-season F01 data. Keep production stopped and the V1 starting service/route/volume state unchanged. The future production API is preparation only, without a domain binding or cutover.
+2. Privately verify the existing EAS project/profile, Blockout Preprod application identifier, compatible credentials and registered iOS test devices. Configure only EAS `preview` with `https://api-preproduction.blockoutproject.com` and the existing F05 preproduction client/audiences. Production inputs and corrected production-candidate work remain separate. Resolve the actual profile/configuration without printing secrets.
+3. From `apps/mobile`, use the retained EAS CLI with `eas build --profile preview --platform all --non-interactive --freeze-credentials`. Deliver the Android APK and iOS internal-distribution build for registered devices; retain exact source, build IDs, signatures and download/install results in ordinary private build records. Diagnose a failed platform before a bounded second attempt; an iOS simulator cannot establish installation of an ad hoc device artifact. Do not submit to stores or trigger builds on backend deployment.
+4. On the exact compatible installed artifacts, observe preproduction sign-in, usable Profile, real current-season sporting consultation, search, granted source qualification/collection and internal inbox. State the actual device/platform and controlled substitutions for each outcome; a completed cloud build, development client or HTTP fixture alone does not qualify an unobserved preview journey. Preserve the current activation state of push, external support, provider cleanup, reporting and other dedicated integrations.
+5. Recheck V1 services/routes and stopped production after the preview exercise. Preview establishes neither production identity continuity, signed upgrade, corrected production candidate, purchase/push qualification, store availability nor authorization to retire V1.
 
 ## Signed candidate preparation
 

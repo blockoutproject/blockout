@@ -2,7 +2,7 @@
 
 **Date**: 2026-10-16 | **Plan**: [plan.md](plan.md)
 
-The decisions below define the shared application stack, responsibilities and relevant tradeoffs. Official documentation and bounded implementation evidence establish their named boundaries, not native/provider qualification. Executable contract qualification is owned by the [boundary suites](../../README.md#verification). Server hosting and release tooling, external monitoring and backup policy are outside this research scope; existing native build and store qualification remains applicable.
+The decisions below define the shared application stack, responsibilities and relevant tradeoffs. Official documentation and bounded implementation evidence establish their named boundaries, not native/provider qualification. Executable contract qualification is owned by the [boundary suites](../../README.md#verification). Hosted packaging/delivery is bounded by the owning plan; external monitoring and backup programmes remain outside scope. Existing native build and store qualification remains applicable.
 
 [Quickstart](quickstart.md) defines the required validation. A failed qualification blocks affected adoption rather than weakening an invariant. Rejected alternatives are not a roadmap; no load/capacity or monthly-availability programme is introduced.
 
@@ -64,13 +64,21 @@ The simpler alternative of one surrounding transaction is rejected for calendar 
 
 ## Schema lifecycle
 
-**Decision**: Before the first V2 deployment, all V2 databases are disposable. Maintain the current initial Liquibase XML schema in place, with final table definitions, defaults, keys, constraints and indexes and no incremental alteration changeSets. Execute Liquibase explicitly through the Maven target with separate credentials; the application validates its schema at startup.
+**Decision**: The current initial Liquibase XML schema supplies fresh database creation. Until mandatory retention, maintain that initial schema for disposable V2 databases while preserving preproduction data between ordinary deployments; exceptional reset requires an explicit owner decision. Freeze applied history before data retention becomes mandatory and use explicit compatible incremental migrations afterward. Execute Liquibase through the existing Maven target with separate credentials; the application validates its schema at startup.
 
-**Rationale**: No deployed or retained V2 environment depends on the current applied history. Fresh schema creation expresses the actual persistence model directly, without obsolete columns, historical additions/removals or release-migration machinery.
+**Rationale**: Fresh creation expresses the actual persistence model directly. Even disposable preproduction retains its data ordinarily; changing an applied baseline invalidates checksums instead of upgrading that data and grants no reset authority. Mandatory retention makes frozen history and incremental compatibility required. Explicit migration preserves schema ownership without putting DDL authority in the serving API.
 
-**Alternatives and tradeoffs**: Hibernate schema updates surrender explicit schema ownership. Incremental migrations add no current compatibility benefit. Editing a baseline does not update an already initialized database; use a freshly created disposable schema for qualification rather than clearing checksums. No reset runs at application startup. Before the first deployment retains data, establish compatibility and freeze applied history under the [plan](plan.md#runtime-data-and-consistency).
+**Alternatives and tradeoffs**: Hibernate schema updates surrender explicit schema ownership. Editing a baseline supplies no upgrade for an existing database. Fresh disposable schemas remain useful for tests; reset of owned preproduction is exceptional and explicitly decided. No startup reset, checksum clearing or automatic repair runs. Code rollback cannot reverse schema/data; compatibility remains governed by the [plan](plan.md#runtime-data-and-consistency).
 
 **Evidence and limits**: `spring.jpa.hibernate.ddl-auto=validate` and `spring.sql.init.mode=never` prevent application schema initialization; the Maven plugin owns explicit XML migration and integration tests use test-scoped `liquibase-core`. [Spring database initialization](https://docs.spring.io/spring-boot/how-to/data-initialization.html) and [Liquibase changesets](https://docs.liquibase.com/concepts/changelogs/changeset.html) document these mechanisms. Actual startup/role and PostgreSQL tests qualify the application boundary.
+
+## Hosted packaging and delivery
+
+**Decision**: Use individual native resources in the existing Dokploy installation, independent environment networks/volumes, private SHA-tagged GHCR images and the existing GitHub verification workflow. Preproduction runs; production is prepared without startup or V1 route changes. The [plan](plan.md#hosted-packaging-and-delivery) owns the concrete topology, builds, first-start order and native collector failure policy.
+
+**Rationale**: [Dokploy Applications](https://docs.dokploy.com/docs/core/applications), [advanced settings](https://docs.dokploy.com/docs/core/applications/advanced), [native databases](https://docs.dokploy.com/docs/core/databases), [networks](https://docs.dokploy.com/docs/core/networks) and [deployment API](https://docs.dokploy.com/docs/core/auto-deploy#api-method) provide the required configuration and lifecycle. Standard [multi-stage builds](https://docs.docker.com/build/building/multi-stage/) separate compilation/migration dependencies from runtime. [GHCR authentication](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-to-the-container-registry) supports native workflow publication and restricted hosted pulls. Partial image updates preserve private stored configuration. The installed Dokploy version and actual service state remain qualification inputs, not an assumption from rolling documentation.
+
+**Alternatives and limits**: A deployment Compose layer, custom CLI/SSH orchestrator, readiness controller or registration retry loop duplicates platform responsibility. An ordinary one-replica migrations Application with no restart avoids relying on unqualified ReplicatedJob compatibility. Stop-first replacement accepts a short interruption and prevents intended overlapping writers/volume ownership. Native collector restarts permit ordinary startup recovery but stop after the agreed bound; queued deployment requests cannot prove readiness. No monitoring/backup programme or automatic production activation is introduced.
 
 ## HTTP contracts and validation
 

@@ -156,7 +156,7 @@ Repackage the backend after every backend source change; the suite executes that
 
 ## Local development
 
-CI verifies the applications and their contracts. Backend and collector run on the host against the local infrastructure below; native development clients use the configured local API. Hosted environments and release workflows are outside the current repository setup.
+CI verifies the applications and their contracts. Backend and collector run on the host against the local infrastructure below; native development clients use the configured local API. The [hosted operations guide](infra/operations/README.md#hosted-v2-environments) describes separate native Dokploy resources, private SHA images, explicit migrations and preview builds. Production preparation does not authorize startup or V1 cutover.
 
 Application diagnostics retain native ECS logging, safe bounded fields, health/readiness and Micrometer metrics. OTLP export is disabled by default. The [application observability boundary](specs/003-shared-quality/plan.md#application-diagnostics-and-health) owns the permitted data; no remote collection, dashboard or alert stack is configured.
 
@@ -182,7 +182,7 @@ LIQUIBASE_PASSWORD=local-migration-only \
 npx nx run backend:migrate
 ```
 
-The [XML entry point](apps/backend/src/main/resources/db/changelog/db.changelog-master.xml) includes the current domain creation definitions. V2 has not been deployed, and all V2 databases are disposable: edit the initial tables, columns, defaults, keys and indexes directly rather than append alteration changeSets. An edited baseline is for a freshly created schema; it does not upgrade an existing database. Backend startup disables SQL initialization and uses Hibernate validation; Liquibase is confined to the migration plugin and integration tests, outside the application runtime. The [schema lifecycle](specs/003-shared-quality/plan.md#runtime-data-and-consistency) owns this posture; no reset or volume deletion runs automatically. Reassess and freeze applied history before the first deployment retains data.
+The [XML entry point](apps/backend/src/main/resources/db/changelog/db.changelog-master.xml) includes the current domain creation definitions. Until mandatory data retention, the initial tables, columns, defaults, keys and indexes remain the current baseline. An edited baseline creates a fresh schema; it does not upgrade an existing database. Hosted preproduction data persists across ordinary deployments: resetting even disposable preproduction data requires an explicit owner decision. Backend startup disables SQL initialization and uses Hibernate validation; Liquibase is confined to the migration plugin and integration tests, outside the application runtime. The [schema lifecycle](specs/003-shared-quality/plan.md#runtime-data-and-consistency) owns the transition: freeze applied history before data retention becomes mandatory, then use incremental migrations. No reset, checksum clearing or volume deletion runs automatically.
 
 ### Local search infrastructure
 

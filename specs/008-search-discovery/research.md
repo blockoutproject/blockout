@@ -8,7 +8,7 @@
 
 **Rationale**: Native text analysis, word prefixes, typo tolerance, exact filters, relevance, bulk indexing, deep traversal and atomic aliases cover the accepted behavior without building a search engine in application SQL/code. [OpenSearch releases](https://opensearch.org/releases/) and the [Java client release](https://github.com/opensearch-project/opensearch-java/releases/tag/v3.10.0) establish the selected versions; [official Java client guidance](https://docs.opensearch.org/latest/clients/java/) recommends Apache HttpClient 5. Its [compatibility matrix](https://github.com/opensearch-project/opensearch-java/blob/v3.10.0/COMPATIBILITY.md) lists tested JDKs through 21, not Java 25. This is a qualification gap, not evidence of incompatibility or permission to change Java.
 
-**Alternatives considered**: PostgreSQL-only full-text/trigram search avoids another service but requires more application composition for the accepted multi-field prefix/fuzzy relevance semantics. Elasticsearch retains familiar V1 concepts but is not a continuity obligation. A second framework integration adds a dependency without a needed abstraction. The engine adds local security and rebuild work. Hosted topology and provisioning are outside the current scope.
+**Alternatives considered**: PostgreSQL-only full-text/trigram search avoids another service but requires more application composition for the accepted multi-field prefix/fuzzy relevance semantics. Elasticsearch retains familiar V1 concepts but is not a continuity obligation. A second framework integration adds a dependency without a needed abstraction. The engine adds local security and rebuild work. F13 owns hosted topology and provisioning; the same verified security configuration is retained.
 
 **Validation**: Check client TLS, serialization and native query/bulk/alias behavior under the selected Java/client/engine combination through [the quickstart](quickstart.md#contracts-and-access). Analyzer behavior, business traversal, deployment and capacity cannot be inferred from dependency documentation.
 
@@ -76,8 +76,8 @@ Search uses no pull-to-refresh or refresh button. Existing Query owners retain s
 
 ## Local engine security and diagnostics
 
-**Decision**: Verify local engine TLS and scoped namespace permissions. Indexes are rebuildable derivatives. Use application diagnostics for update/rebuild failure and latest useful success; no query text, contact values or engine payloads in logs.
+**Decision**: Verify engine TLS and scoped namespace permissions locally and reuse the same configuration for F13 private hosted OpenSearch, adapting only DNS and mounted paths. Indexes are rebuildable derivatives. Use application diagnostics for update/rebuild failure and latest useful success; no query text, contact values or engine payloads in logs.
 
-**Rationale**: Native OpenSearch [security configuration](https://docs.opensearch.org/latest/security/configuration/index/) supports trusted TLS and least-privilege client access. Disposable local fixtures verify these boundaries without selecting hosted networks, environments or infrastructure recovery.
+**Rationale**: Native OpenSearch [security configuration](https://docs.opensearch.org/latest/security/configuration/index/) supports trusted TLS and least-privilege client access. Disposable local fixtures verify their own boundary; [F13](../003-shared-quality/plan.md#hosted-packaging-and-delivery) owns the separate hosted network, File Mount and persistent-volume qualification. No trust-all or shared/public engine access is introduced.
 
-**Alternatives considered**: A separate operator screen or another persistent index-recovery model adds no needed application behavior. Hosting, external alerting, infrastructure backup and restoration choices remain unselected.
+**Alternatives considered**: A separate operator screen or another persistent index-recovery model adds no needed application behavior. F13 selects bounded native hosting; external alerting, infrastructure backup and restoration programmes remain unselected.
