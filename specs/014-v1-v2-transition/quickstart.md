@@ -11,6 +11,15 @@ The following inputs apply to actual native/store/transition qualification. Cont
 - Usable private logo/reference preservation with the owner's manual-edit freeze in force, current obligations available, and current privacy/rights constraints established. Missing indispensable evidence blocks its destruction.
 - Approved common discovery prototype and Figma revision. Browser simulations do not qualify native upgrade, store or provider behavior.
 
+## Signed candidate preparation
+
+Build under explicit signing authorization with the existing provider access and [native configuration decision](research.md#native-application-and-provider-configuration). Constructing candidates needs neither installed phones nor a deployed backend.
+
+1. Verify the existing EAS project, production application identity, valid signing/push associations and latest EAS/store counters, including every later V1 submission. Keep `appVersionSource: remote` and production `autoIncrement`; adjust the existing remote counter only if needed to exceed submitted builds.
+2. Load the authorized build inputs privately, including the actual Firebase application JSON. Verify the production profile resolves the retained identity, numeric published version, iOS 16.4 floor and qualified Android graph. Keep private inputs ignored and commit the native source/configuration before building.
+3. From `apps/mobile`, use the retained EAS CLI and `eas build --profile production --platform all` to construct both signed candidates. Preserve exact source, profile, native graph/configuration, EAS build IDs and binaries in the existing private build records. Retry a failed platform only after diagnosing its actual failure.
+4. Hand the exact binaries to [F13's native candidate qualification](../003-shared-quality/quickstart.md#native-build-candidates) and the applicable F05/F09/F07 owners. Build completion establishes neither store transfer nor provider, installed-phone or public-release acceptance. Keep test-circuit transfers with their existing qualification owners under the applicable authorization; the build command omits automatic submission.
+
 ## Scenarios and expected outcomes
 
 | Scenario                                        | Expected evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |

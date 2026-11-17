@@ -42,7 +42,7 @@ if (variant && !easSlug) {
 const config: ExpoConfig = {
   name: applicationName,
   slug: easSlug ?? "blockout-local",
-  version: "0.0.0",
+  version: "2.0.0",
   userInterfaceStyle: "automatic",
   ...(!release ? { scheme: "blockout-local" } : {}),
   platforms: ["ios", "android"],
@@ -193,6 +193,7 @@ const config: ExpoConfig = {
   ],
   ios: {
     bundleIdentifier: applicationId,
+    deploymentTarget: "16.4",
     supportsTablet: false,
   },
   android: {
