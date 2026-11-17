@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-19
 
-**Status**: Accepted functional baseline; the [technical dossier](plan.md) formalizes the planning decisions. Implementation qualification remains pending.
+**Status**: Accepted functional baseline. The [plan](plan.md) owns technical decisions and [tasks](tasks.md) records implementation and remaining qualification.
 
 **Input**: F04 in the [specification navigation](../../README.md#specifications). Define public discovery/search for clubs, teams and pools, filters, seasons, ordering, complete browsing and recovery. [F02](../002-sporting-data/spec.md) owns identities/visibility, [F03](../007-sporting-consultation/spec.md) owns destinations and [F13](../003-shared-quality/spec.md) owns shared quality. No additional searchable resource is introduced; technical artifacts own engine/contracts and the constitution governs affected design approvals.
 
@@ -187,7 +187,7 @@ As a user, I want to distinguish an empty search from a failure and retry withou
 - Refresh preserves discovery or search mode and valid choices. Catalog changes may alter result order or count: no permanently frozen snapshot is promised.
 - Search tolerance does not change F02 identity rules, where accents and digits may be significant. Technical relevance tuning will need to satisfy the scenarios, without selecting an engine, score or comparison distance in this specification.
 - Batch size, visual example count and tie-breaking details do not constitute new business choices; the approved design defines their accessible presentation, and the technical plan selects the implementation. No mandatory total, new searchable resource or search history is added.
-- The accepted functional and design baselines are routed by [design inputs](../../AGENTS.md#design-inputs). The [technical plan](plan.md) preserves that design scope; runtime qualification remains future work.
+- The accepted functional and design baselines are routed by [design inputs](../../AGENTS.md#design-inputs). The [technical plan](plan.md) preserves that design scope; [tasks](tasks.md) and [quickstart](quickstart.md) retain qualification scope and evidence boundaries.
 
 ## Evidence and traceability
 
