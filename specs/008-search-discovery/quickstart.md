@@ -55,7 +55,7 @@ Run these boundaries from the repository root after the README's contract bundle
 ```sh
 ./mvnw -B -ntp -pl apps/backend verify \
   -Dtest=ProjectSearchTest,SearchProjectionSchedulerTest \
-  -Dit.test=SearchProjectionIntegrationTest,SearchDiagnosticsIntegrationTest,SearchProjectionConfigurationIntegrationTest
+  -Dit.test=SearchProjectionIntegrationTest,SearchDiagnosticsIntegrationTest,SearchProjectionConfigurationIntegrationTest,SearchRestorationIntegrationTest
 ```
 
 ## Mobile journey
