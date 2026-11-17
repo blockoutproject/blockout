@@ -42,7 +42,7 @@ if (variant && !easSlug) {
 const config: ExpoConfig = {
   name: applicationName,
   slug: easSlug ?? "blockout-local",
-  version: "0.0.0",
+  version: "2.0.0",
   userInterfaceStyle: "automatic",
   ...(!release ? { scheme: "blockout-local" } : {}),
   platforms: ["ios", "android"],
@@ -186,6 +186,8 @@ const config: ExpoConfig = {
     [
       "@sentry/react-native",
       {
+        // F13 keeps reporting and debug-file uploads disabled.
+        disableAutoUpload: true,
         organization: process.env.SENTRY_ORG,
         project: process.env.SENTRY_PROJECT,
       },
@@ -193,6 +195,7 @@ const config: ExpoConfig = {
   ],
   ios: {
     bundleIdentifier: applicationId,
+    deploymentTarget: "16.4",
     supportsTablet: false,
   },
   android: {
