@@ -54,7 +54,9 @@ Follow [F13 FR-030's accessibility qualification scope](specs/003-shared-quality
 
 Before delivery, review every added or modified handwritten test against the applicable testing skill and its canonical examples; passing checks alone do not establish compliance.
 
-For native UI checks, prefer the official [agent-device skill](.agents/skills/agent-device/SKILL.md) and [setup](README.md#native-ui-checks). Target the task's device and session explicitly; use desktop automation for host setup or unsupported interactions, and diagnose repeated unchanged failures.
+Physical-device testing belongs to the owner, who reports findings. Agents prepare installable builds and use emulators or simulators for automated native checks.
+
+For agent-driven native UI checks, prefer the official [agent-device skill](.agents/skills/agent-device/SKILL.md) and [setup](README.md#native-ui-checks). Target the task's device and session explicitly; use desktop automation for host setup or unsupported interactions, and diagnose repeated unchanged failures.
 
 Reuse compatible development builds and task-owned services/devices. Prefer standalone Android Emulator and compact Device Hub windows, and serialize desktop interactions.
 
