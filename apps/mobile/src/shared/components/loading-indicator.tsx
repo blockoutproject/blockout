@@ -1,25 +1,18 @@
-import { ActivityIndicator, StyleSheet, View } from "react-native";
-import { tokens } from "@/shared/theme/tokens";
+import { ActivityIndicator, type ActivityIndicatorProps } from "react-native";
 
 /** Native progress for caller-owned pending controls; the control retains its name and busy state. */
-export function LoadingIndicator({ color }: Readonly<{ color: string }>) {
+export function LoadingIndicator({
+  color,
+  style,
+}: Readonly<{ color: string; style?: ActivityIndicatorProps["style"] }>) {
   return (
-    <View
-      style={styles.slot}
+    <ActivityIndicator
+      size="small"
+      color={color}
+      style={style}
       accessible={false}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-    >
-      <ActivityIndicator size="small" color={color} accessible={false} />
-    </View>
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  slot: {
-    width: tokens.size.icon.md,
-    height: tokens.size.icon.md,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});

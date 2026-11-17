@@ -96,11 +96,10 @@ export function Button({
     colors,
   );
   const Icon = LeadingIcon ?? TrailingIcon;
-  const progress = <LoadingIndicator color={foreground} />;
   const icon =
     Icon &&
     (loading ? (
-      progress
+      <LoadingIndicator color={foreground} />
     ) : (
       <Icon accessible={false} size={tokens.size.icon.md} color={foreground} />
     ));
@@ -185,7 +184,12 @@ export function Button({
             {label}
           </Text>
           {!LeadingIcon && icon}
-          {loading && !Icon && <View style={styles.progress}>{progress}</View>}
+          {loading && !Icon && (
+            <LoadingIndicator
+              color={foreground}
+              style={StyleSheet.absoluteFill}
+            />
+          )}
         </View>
       )}
     </Pressable>
@@ -256,11 +260,6 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.sm,
   },
   gradient: { ...StyleSheet.absoluteFill, borderRadius: tokens.radius.control },
-  progress: {
-    ...StyleSheet.absoluteFill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   container: { alignSelf: "stretch" },
   content: { alignSelf: "flex-start", maxWidth: "100%" },
   label: { ...tokens.typography.strong, flexShrink: 1, textAlign: "center" },

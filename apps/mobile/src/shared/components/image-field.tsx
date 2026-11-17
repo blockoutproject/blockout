@@ -104,9 +104,10 @@ export function ImageField({
                 {replaceLabel}
               </Text>
               {busy && (
-                <View style={styles.progress}>
-                  <LoadingIndicator color={colors.icon} />
-                </View>
+                <LoadingIndicator
+                  color={colors.icon}
+                  style={StyleSheet.absoluteFill}
+                />
               )}
             </Pressable>
           </View>
@@ -268,11 +269,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexShrink: 1,
     gap: tokens.spacing.xs,
-  },
-  progress: {
-    ...StyleSheet.absoluteFill,
-    alignItems: "center",
-    justifyContent: "center",
   },
   remove: {
     minWidth: tokens.touch.minimum,

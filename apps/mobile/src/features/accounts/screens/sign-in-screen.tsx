@@ -157,9 +157,10 @@ function SignInJourney({
                 Continuer en tant qu’invité
               </Text>
               {guest.pending && (
-                <View style={styles.progress}>
-                  <LoadingIndicator color={colors.icon} />
-                </View>
+                <LoadingIndicator
+                  color={colors.icon}
+                  style={StyleSheet.absoluteFill}
+                />
               )}
             </Pressable>
           </View>
@@ -195,10 +196,5 @@ const styles = StyleSheet.create({
     ...tokens.typography.strong,
     flexShrink: 1,
     textAlign: "center",
-  },
-  progress: {
-    ...StyleSheet.absoluteFill,
-    alignItems: "center",
-    justifyContent: "center",
   },
 });

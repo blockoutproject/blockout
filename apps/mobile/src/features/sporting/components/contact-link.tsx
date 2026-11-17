@@ -159,44 +159,19 @@ function ContactHandoff({
   icon: Icon,
   presentation = "contact",
 }: Readonly<ContactLinkProps>) {
-  /** Preserves informational rows and optional native links while opening remains owned by the handoff. */
-  function renderContact() {
-    if (presentation === "information") {
-      return (
-        <InformationRow
-          label={label}
-          value={value ?? "-"}
-          icon={Icon}
-          onPress={destination ? handoff.open : undefined}
-          pending={handoff.pending}
-        />
-      );
-    }
-    if (destination) {
-      return (
-        <Pressable
-          accessibilityRole="link"
-          accessibilityLabel={`${label} : ${value}`}
-          onPress={handoff.open}
-          disabled={handoff.pending}
-          accessibilityState={{
-            disabled: handoff.pending,
-            busy: handoff.pending,
-          }}
-          style={({ pressed }) => [
-            styles.row,
-            { opacity: pressed ? tokens.opacity.pressed : 1 },
-          ]}
-        >
-          {content}
-        </Pressable>
-      );
-    }
-    return <View style={styles.row}>{content}</View>;
-  }
-
   const { colors } = useTheme();
   const handoff = useNativeHandoff(destination);
+  if (presentation === "information") {
+    return (
+      <InformationRow
+        label={label}
+        value={value ?? "-"}
+        icon={Icon}
+        onPress={destination ? handoff.open : undefined}
+        pending={handoff.pending}
+      />
+    );
+  }
   const content = (
     <>
       {Icon && (
@@ -236,7 +211,27 @@ function ContactHandoff({
       )}
     </>
   );
-  return <View>{renderContact()}</View>;
+  if (!destination) {
+    return <View style={styles.row}>{content}</View>;
+  }
+  return (
+    <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={`${label} : ${value}`}
+      onPress={handoff.open}
+      disabled={handoff.pending}
+      accessibilityState={{
+        disabled: handoff.pending,
+        busy: handoff.pending,
+      }}
+      style={({ pressed }) => [
+        styles.row,
+        { opacity: pressed ? tokens.opacity.pressed : 1 },
+      ]}
+    >
+      {content}
+    </Pressable>
+  );
 }
 
 const styles = StyleSheet.create({

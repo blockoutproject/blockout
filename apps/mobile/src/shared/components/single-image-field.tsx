@@ -141,9 +141,10 @@ export function SingleImageField({
           {hasImage ? editLabel : addLabel}
         </Text>
         {selection.pending && (
-          <View style={styles.progress}>
-            <LoadingIndicator color={colors.icon} />
-          </View>
+          <LoadingIndicator
+            color={colors.icon}
+            style={StyleSheet.absoluteFill}
+          />
         )}
       </Pressable>
       <FieldMessage error={error} />
@@ -257,9 +258,4 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.xs,
   },
   entryLabel: tokens.typography.strong,
-  progress: {
-    ...StyleSheet.absoluteFill,
-    alignItems: "center",
-    justifyContent: "center",
-  },
 });
