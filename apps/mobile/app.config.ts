@@ -186,6 +186,8 @@ const config: ExpoConfig = {
     [
       "@sentry/react-native",
       {
+        // F13 keeps reporting and debug-file uploads disabled.
+        disableAutoUpload: true,
         organization: process.env.SENTRY_ORG,
         project: process.env.SENTRY_PROJECT,
       },
