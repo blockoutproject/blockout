@@ -33,6 +33,8 @@ This dedicated repository has independent history and contains no V1 runtime imp
 
 Accepted product/design decisions and V1/V2 continuity remain applicable. Withdrawn technical dossiers, former stack decisions, backups and historical technical discussions are not planning inputs unless the owner explicitly requests their consultation. Technical decisions belong in the official Spec Kit artifacts that own them. The existing agent guidance links the design inputs; no parallel architecture or design dossier is required.
 
+The official Expo deployment skills (`eas-app-stores`, `expo-dev-client`, `eas-update` and `eas-workflows`) and their required references are copied unchanged into `.agents/skills/` from [expo/skills at dfdebcc6](https://github.com/expo/skills/tree/dfdebcc6c4c1bf7a9471cefd6b6f39c7ba6c884d/plugins/expo/skills), under the included [MIT license](.agents/skills/EXPO-LICENSE). The shared launch reference retains its upstream path without installing the overview skill. See [Expo's official skills documentation](https://docs.expo.dev/skills/) for installation guidance.
+
 ## Verification
 
 Use Node 24, npm 12, Temurin Java 25 and Docker Compose v2. The committed Maven wrapper downloads and verifies Maven 3.9.16; no global Maven is needed. Install the npm lockfile, then run the same verification as CI:

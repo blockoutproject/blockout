@@ -12,6 +12,7 @@ coverage/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.agents/skills/eas-workflows/scripts/.cache/
 **/generated/
 .generated/
 apps/mobile/android/

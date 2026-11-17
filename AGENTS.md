@@ -33,6 +33,7 @@
 - Logging: `application-logging`; apply the explicit F05/F11 exception only to private original-target references needed for manual account cleanup, as defined in their owning specifications. It permits no public identifier, credential or payload disclosure. Container configuration: `docker-conventions`.
 - Nx: the relevant official workspace, generation, task, linking, plugin, import or CI skill; do not enable Nx Cloud/MCP or upgrade Nx implicitly.
 - If Expo is selected: `react-native-expo` and `expo-testing`. Python: `python-development` and `python-testing`; load ingestion references only for ingestion work.
+- Expo deployment: `eas-app-stores` for builds and distribution, `expo-dev-client` for development clients, `eas-update` for OTA updates and `eas-workflows` for EAS workflows. Preserve these official upstream skills unchanged.
 
 Identity, session and authorization work reads its owning specifications and applicable approved plans. Concrete paths, versions and executable commands belong to this repository, not portable skills.
 
