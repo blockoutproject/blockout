@@ -106,7 +106,7 @@ For a rebuild, create new generation indexes for all three resources, read Postg
 
 Use short SQL reads; a rebuild is not a cross-resource business snapshot. Its temporary mixed-age projection is subject to the same current visibility guards and eventual catch-up as targeted indexing. Clean only inactive/temporary generations in this application's environment namespace, after a confirmed complete publication and a fresh alias read. An uncertain alias acknowledgement is a failed run, even if the switch already applied. Keep its candidates until the next successfully acknowledged full run; an old-state read cannot cancel an in-flight switch. Do not reclassify uncertainty as success through a second metadata protocol. A cleanup error is logged, not treated as a successful deletion or a reason to delete an active index. No persisted rebuild-state machine is required.
 
-Only the serving backend process starts this scheduler and writes indexes. Non-web operator/migration invocations do not start it; their relevant data changes are covered by the next full run. Local execution uses one serving backend writer. Multiwriter coordination and deployment topology are outside this plan.
+Only the serving backend process starts this scheduler and writes indexes. Non-web operator/migration invocations do not start it; their relevant data changes are covered by the next full run. One serving backend per environment owns these writes. [F13](../003-shared-quality/plan.md#hosted-packaging-and-delivery) supplies hosted resource topology; multiwriter coordination remains outside this plan.
 
 ## Mobile state and navigation
 

@@ -338,7 +338,7 @@ Observable behavior, approvals and exact design references are owned by [F12](..
 
 ## Derived search application boundary
 
-[F04 research](../008-search-discovery/research.md) owns the OpenSearch client, native matching and automatic reconstruction used by local development. PostgreSQL remains authoritative. After-commit work and full reconstruction preserve current visibility and useful prior results without a durable recovery platform. This shared foundation selects no hosted search topology, provisioning or separate backup chain; engine/client behavior is qualified through F04's actual application tests.
+[F04 research](../008-search-discovery/research.md) owns the OpenSearch client, native matching and automatic reconstruction used by local and hosted execution. PostgreSQL remains authoritative. After-commit work and full reconstruction preserve current visibility and useful prior results without a durable recovery platform. The [hosted delivery plan](plan.md#hosted-packaging-and-delivery) supplies the private engine resource and configuration without a separate backup chain. F04's application tests qualify engine/client behavior; actual hosted TLS, permissions and reads retain their runtime qualification.
 
 ## Native paging and navigation
 

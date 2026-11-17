@@ -24,6 +24,8 @@ Set application sources to Docker images, disable Auto Deploy and Preview Deploy
 
 Verify DNS and the certificate before binding the unused preproduction host. Configure its native Dokploy domain with HTTPS/Let's Encrypt and backend port 8080. Keep the future production host unbound until a separately authorized cutover.
 
+Preproduction collector uses the existing `BLOCKOUT_INGESTION_TIMEOUT=60s` for finite backend exchanges during calendar integration. A timeout can leave independently accepted facts with an unconfirmed passage outcome; inspect that outcome before another explicit collection. Preserve the local and prepared production values until their own qualification.
+
 ### Images and delivery
 
 Build from the repository root with the committed lockfile, contract inputs and Maven wrapper:
@@ -63,13 +65,23 @@ Use Dokploy Deployments, Logs and native Docker task inspection for queue/build/
 
 For an ordinary rollback, select the prior compatible SHA image through the native Application settings and deploy with `stop-first`. Check schema compatibility first; an image rollback does not reverse schema/data changes. PostgreSQL, OpenSearch and migrations are not redeployed on every code push.
 
-Before Registry token expiry, replace the stored read-only token through native Registry settings and verify a private pull without displaying it. Renew the Dokploy API token and GitHub environment secret together, keeping permissions limited to the intended operator scope. Dokploy manages the public Let's Encrypt certificate; inspect its validity ordinarily. Renew private OpenSearch certificates with the same verified CA/name/permissions contract, update File Mounts and trust material, then replace only the owned affected Applications explicitly.
+Before Registry token expiry, replace the read-only token in the native Registry record and in each Docker-source Application's provider credentials; v0.31.0 does not propagate the Registry record to those fields. Keep output Registry associations null and verify a private pull without displaying credentials. Renew the Dokploy API token and GitHub environment secret together, keeping permissions limited to the intended operator scope. Dokploy manages the public Let's Encrypt certificate; inspect its validity ordinarily. Renew private OpenSearch certificates with the same verified CA/name/permissions contract, update File Mounts and trust material, then replace only the owned affected Applications explicitly.
 
 An exceptional preproduction reset requires an explicit owner decision naming that environment and its data. Stop only its collector/backend/migrations/OpenSearch as needed, verify the exact owned volume/resource before any deletion, and use native operations with their required confirmations. Reinitialize roles and migrate, then repeat the first-start qualification. Never delete or reset V1, production or another environment's volumes, and never treat a migration failure as reset permission.
 
 ### Preview mobile
 
 After the hosted API is healthy, set only the existing EAS `preview` environment to its verified HTTPS URL and existing preproduction Auth0 inputs. Keep the `Blockout Preprod` identity, internal distribution, existing project and compatible signatures. Build from a committed revision through the pinned official EAS CLI: Android APK and iOS ad hoc for registered test devices. Keep build IDs and private provisioning evidence in their native records; do not copy credentials here. Verify the installed binaries' actual sign-in, profile, consultation, search, collection and inbox journeys. State unsupported device/provider cases explicitly; JavaScript export or an old production-identity archive does not replace this evidence. Production candidates, store submission and V1 cutover remain separate.
+
+Run EAS commands from `apps/mobile`. Set `APP_VARIANT=preview` and `EXPO_PROJECT_SLUG=blockoutproject` before commands that resolve the project: `env:exec` identifies the project before loading its remote environment, and its project lookup does not apply a build profile's variables. Verify the retained project `10cdf86a-a81e-496a-bcaa-07c132678f6d`; do not initialize or attach the local variant while preparing preview. For first iOS ad hoc setup, use the existing Apple account, valid distribution certificate and registered test devices:
+
+```sh
+APP_VARIANT=preview EXPO_PROJECT_SLUG=blockoutproject \
+npx eas-cli@25.1.1 env:exec preview \
+'npx eas-cli@25.1.1 credentials:configure-build --platform ios --profile preview'
+```
+
+After credentials are ready, the same project selectors with `eas build --profile preview --platform all --freeze-credentials` request the internal builds. EAS's official `--local` build with the same profile is available when its cloud queue delays qualification and the required native tools already exist. Preserve the exact artifact/source and distinguish local development clients from signed preview binaries; do not install providers, buy capacity or rebuild compatible clients by default.
 
 ## Owner-only action grants
 
