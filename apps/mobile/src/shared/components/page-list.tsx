@@ -20,6 +20,7 @@ import {
 import { useAnimatedRef, useScrollOffset } from "react-native-reanimated";
 import {
   NavigationScrollOffsetContext,
+  NavigationScrollMarker,
   useNavigationInset,
 } from "./navigation-backdrop";
 
@@ -58,20 +59,22 @@ export function PageList<T>({
     );
   }
   return (
-    <AnimatedLegendList
-      {...props}
-      sharedValues={sharedValues}
-      contentContainerStyle={[
-        contentContainerStyle,
-        {
-          paddingTop: inset + (typeof padding === "number" ? padding : 0),
-        },
-      ]}
-      stickyHeaderConfig={{
-        ...stickyHeaderConfig,
-        offset: inset + (stickyHeaderConfig?.offset ?? 0),
-      }}
-    />
+    <NavigationScrollMarker>
+      <AnimatedLegendList
+        {...props}
+        sharedValues={sharedValues}
+        contentContainerStyle={[
+          contentContainerStyle,
+          {
+            paddingTop: inset + (typeof padding === "number" ? padding : 0),
+          },
+        ]}
+        stickyHeaderConfig={{
+          ...stickyHeaderConfig,
+          offset: inset + (stickyHeaderConfig?.offset ?? 0),
+        }}
+      />
+    </NavigationScrollMarker>
   );
 }
 
@@ -113,17 +116,19 @@ export function PageFlatList<T>({
     );
   }
   return (
-    <FlatList
-      {...props}
-      ref={list}
-      scrollEventThrottle={props.scrollEventThrottle ?? 16}
-      refreshControl={refreshControl}
-      contentContainerStyle={[
-        contentContainerStyle,
-        {
-          paddingTop: inset + (typeof padding === "number" ? padding : 0),
-        },
-      ]}
-    />
+    <NavigationScrollMarker>
+      <FlatList
+        {...props}
+        ref={list}
+        scrollEventThrottle={props.scrollEventThrottle ?? 16}
+        refreshControl={refreshControl}
+        contentContainerStyle={[
+          contentContainerStyle,
+          {
+            paddingTop: inset + (typeof padding === "number" ? padding : 0),
+          },
+        ]}
+      />
+    </NavigationScrollMarker>
   );
 }
