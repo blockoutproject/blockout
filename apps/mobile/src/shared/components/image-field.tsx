@@ -95,10 +95,19 @@ export function ImageField({
                 { opacity: pressed ? tokens.opacity.pressed : 1 },
               ]}
             >
-              {busy && <LoadingIndicator color={colors.icon} />}
-              <Text style={[styles.label, { color: colors.text }]}>
+              <Text
+                style={[
+                  styles.label,
+                  { color: colors.text, opacity: busy ? 0 : 1 },
+                ]}
+              >
                 {replaceLabel}
               </Text>
+              {busy && (
+                <View style={styles.progress}>
+                  <LoadingIndicator color={colors.icon} />
+                </View>
+              )}
             </Pressable>
           </View>
           {onRemove && (
@@ -259,6 +268,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexShrink: 1,
     gap: tokens.spacing.xs,
+  },
+  progress: {
+    ...StyleSheet.absoluteFill,
+    alignItems: "center",
+    justifyContent: "center",
   },
   remove: {
     minWidth: tokens.touch.minimum,

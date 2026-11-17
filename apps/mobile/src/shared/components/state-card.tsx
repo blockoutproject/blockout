@@ -63,7 +63,6 @@ export function ErrorState({
             leadingIcon={RotateCcw}
             onPress={onRetry}
             loading={retrying}
-            loadingIndicator="spinner"
           />
           {children}
         </>

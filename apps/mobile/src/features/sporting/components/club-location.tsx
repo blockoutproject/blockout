@@ -3,7 +3,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 import type { ClubDetailResponse } from "../../../../.generated/schemas/index.zod";
 import { Surface } from "@/shared/components/surface";
-import { controlOpacity } from "@/shared/components/control-styles";
+import { LoadingIndicator } from "@/shared/components/loading-indicator";
 import { useNativeHandoff } from "@/shared/native/use-native-handoff";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
@@ -104,17 +104,23 @@ export function ClubLocation({
             }}
             style={({ pressed }) => [
               styles.action,
-              { opacity: controlOpacity(handoff.pending, pressed) },
+              { opacity: pressed ? tokens.opacity.pressed : 1 },
             ]}
           >
             <Text style={[tokens.typography.metadata, { color: colors.text }]}>
               Ouvrir la carte
             </Text>
-            <ExternalLink
-              accessible={false}
-              size={tokens.size.icon.sm}
-              color={colors.icon}
-            />
+            <View style={styles.disclosure}>
+              {handoff.pending ? (
+                <LoadingIndicator color={colors.icon} />
+              ) : (
+                <ExternalLink
+                  accessible={false}
+                  size={tokens.size.icon.sm}
+                  color={colors.icon}
+                />
+              )}
+            </View>
           </Pressable>
         </>
       )}
@@ -123,6 +129,12 @@ export function ClubLocation({
 }
 
 const styles = StyleSheet.create({
+  disclosure: {
+    width: tokens.size.icon.md,
+    height: tokens.size.icon.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   card: { padding: 0, gap: 0 },
   municipality: {
     flexDirection: "row",

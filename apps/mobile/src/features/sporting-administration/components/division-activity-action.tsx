@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { LoadingIndicator } from "@/shared/components/loading-indicator";
 import type { DivisionResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "@/shared/theme/tokens";
@@ -46,24 +46,34 @@ export function DivisionActivityAction({
         ];
       }}
     >
-      {executing && (
-        <LoadingIndicator
-          color={division.active ? colors.error : colors.text}
-        />
-      )}
       <Text
         style={[
           styles.label,
-          { color: division.active ? colors.error : colors.text },
+          {
+            color: division.active ? colors.error : colors.text,
+            opacity: executing ? 0 : 1,
+          },
         ]}
       >
         {label}
       </Text>
+      {executing && (
+        <View style={styles.progress}>
+          <LoadingIndicator
+            color={division.active ? colors.error : colors.text}
+          />
+        </View>
+      )}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  progress: {
+    ...StyleSheet.absoluteFill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   action: {
     minHeight: tokens.size.control.default,
     flexDirection: "row",

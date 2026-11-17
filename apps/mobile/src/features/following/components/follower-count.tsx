@@ -2,7 +2,7 @@ import type { FollowingTarget } from "../api/following-keys";
 import { StyleSheet, Text, View } from "react-native";
 import { UsersRound } from "lucide-react-native";
 import { hasReadError } from "@/shared/components/read-feedback";
-import { LoadingIndicator } from "@/shared/components/loading-indicator";
+import { TextSkeleton } from "@/shared/components/text-skeleton";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { useFollowerCountQuery } from "../api/use-follower-count-query";
@@ -41,7 +41,7 @@ export function FollowerCount({ target }: Readonly<FollowerCountProps>) {
         color={colors.icon}
       />
       {initialLoading ? (
-        <LoadingIndicator color={colors.icon} />
+        <TextSkeleton width={tokens.size.icon.md} />
       ) : (
         <Text style={[tokens.typography.body, { color: colors.icon }]}>
           {unavailable ? "Indisponible" : count.toLocaleString("fr-FR")}

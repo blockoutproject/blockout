@@ -86,7 +86,6 @@ function FollowAction({ target, season, read }: Readonly<FollowActionProps>) {
           : `Saison ${season.label}.`
       }
       loading={action.isPending || initialLoading}
-      loadingIndicator={action.isPending ? "spinner" : "skeleton"}
       disabled={!guest && (!read.usable || following === undefined)}
       onPress={async () => {
         if (guest) {

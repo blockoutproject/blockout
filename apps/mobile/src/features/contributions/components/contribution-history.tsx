@@ -8,6 +8,7 @@ import type {
 } from "../../../../.generated/schemas/index.zod";
 import { Button } from "@/shared/components/button";
 import { EntryRow } from "@/shared/components/entry-row";
+import { LoadingIndicator } from "@/shared/components/loading-indicator";
 import { useNativeHandoff } from "@/shared/native/use-native-handoff";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
@@ -86,6 +87,10 @@ export function ContributionHistory({
               <Pressable
                 accessibilityRole="link"
                 accessibilityLabel={`Ouvrir ${version.url}`}
+                accessibilityState={{
+                  disabled: handoff.pending,
+                  busy: handoff.pending,
+                }}
                 disabled={handoff.pending}
                 onPress={() => void handoff.open()}
                 style={styles.address}
@@ -99,11 +104,15 @@ export function ContributionHistory({
                 >
                   {version.url}
                 </Text>
-                <ArrowUpRight
-                  accessible={false}
-                  size={tokens.size.icon.md}
-                  color={colors.icon}
-                />
+                {handoff.pending ? (
+                  <LoadingIndicator color={colors.icon} />
+                ) : (
+                  <ArrowUpRight
+                    accessible={false}
+                    size={tokens.size.icon.md}
+                    color={colors.icon}
+                  />
+                )}
               </Pressable>
               {onAction &&
                 (version.canApprove ||

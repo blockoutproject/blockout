@@ -3,6 +3,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { ChevronRight, type LucideIcon } from "lucide-react-native";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
+import { LoadingIndicator } from "@/shared/components/loading-indicator";
 
 /** Accepts only published HTTP(S) destinations without credentials; malformed values remain plain text. */
 export function safeWebsite(value?: string): string | undefined {
@@ -92,11 +93,17 @@ export function InformationRow({
         </View>
       </View>
       {onPress && (
-        <ChevronRight
-          accessible={false}
-          size={tokens.size.icon.sm}
-          color={colors.icon}
-        />
+        <View style={styles.disclosure}>
+          {pending ? (
+            <LoadingIndicator color={colors.icon} />
+          ) : (
+            <ChevronRight
+              accessible={false}
+              size={tokens.size.icon.sm}
+              color={colors.icon}
+            />
+          )}
+        </View>
       )}
     </>
   );
@@ -119,20 +126,10 @@ export function InformationRow({
           onPress={onPress}
           disabled={pending}
           accessibilityState={{ disabled: pending, busy: pending }}
-          style={({ pressed }) => {
-            let opacity = 1;
-            if (pending) {
-              opacity = tokens.opacity.disabled;
-            } else if (pressed) {
-              opacity = tokens.opacity.pressed;
-            }
-            return [
-              styles.informationRow,
-              {
-                opacity,
-              },
-            ];
-          }}
+          style={({ pressed }) => [
+            styles.informationRow,
+            { opacity: pressed ? tokens.opacity.pressed : 1 },
+          ]}
         >
           {content}
         </Pressable>
@@ -186,20 +183,10 @@ function ContactHandoff({
             disabled: handoff.pending,
             busy: handoff.pending,
           }}
-          style={({ pressed }) => {
-            let opacity = 1;
-            if (handoff.pending) {
-              opacity = tokens.opacity.disabled;
-            } else if (pressed) {
-              opacity = tokens.opacity.pressed;
-            }
-            return [
-              styles.row,
-              {
-                opacity,
-              },
-            ];
-          }}
+          style={({ pressed }) => [
+            styles.row,
+            { opacity: pressed ? tokens.opacity.pressed : 1 },
+          ]}
         >
           {content}
         </Pressable>
@@ -235,11 +222,17 @@ function ContactHandoff({
         </Text>
       </View>
       {destination && (
-        <ChevronRight
-          accessible={false}
-          size={tokens.size.icon.sm}
-          color={colors.icon}
-        />
+        <View style={styles.disclosure}>
+          {handoff.pending ? (
+            <LoadingIndicator color={colors.icon} />
+          ) : (
+            <ChevronRight
+              accessible={false}
+              size={tokens.size.icon.sm}
+              color={colors.icon}
+            />
+          )}
+        </View>
       )}
     </>
   );
@@ -247,6 +240,12 @@ function ContactHandoff({
 }
 
 const styles = StyleSheet.create({
+  disclosure: {
+    width: tokens.size.icon.md,
+    height: tokens.size.icon.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   informationRow: {
     flexDirection: "row",
     alignItems: "center",

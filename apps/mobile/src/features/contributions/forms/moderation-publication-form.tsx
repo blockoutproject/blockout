@@ -156,7 +156,7 @@ export function ModerationPublicationForm({
         {active && (
           <IconButton
             label={`Ouvrir ${active.url}`}
-            disabled={handoff.pending}
+            loading={handoff.pending}
             onPress={() => void handoff.open()}
           >
             <ArrowUpRight color={colors.icon} size={tokens.size.icon.md} />

@@ -147,13 +147,20 @@ function SignInJourney({
                 },
               ]}
             >
-              {guest.pending && <LoadingIndicator color={colors.icon} />}
               <Text
                 numberOfLines={2}
-                style={[styles.guestLabel, { color: colors.text }]}
+                style={[
+                  styles.guestLabel,
+                  { color: colors.text, opacity: guest.pending ? 0 : 1 },
+                ]}
               >
                 Continuer en tant qu’invité
               </Text>
+              {guest.pending && (
+                <View style={styles.progress}>
+                  <LoadingIndicator color={colors.icon} />
+                </View>
+              )}
             </Pressable>
           </View>
           <PublicAccountLinks supportOrigin={supportOrigin} />
@@ -188,5 +195,10 @@ const styles = StyleSheet.create({
     ...tokens.typography.strong,
     flexShrink: 1,
     textAlign: "center",
+  },
+  progress: {
+    ...StyleSheet.absoluteFill,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

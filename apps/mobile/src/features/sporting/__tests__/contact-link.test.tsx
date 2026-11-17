@@ -62,3 +62,55 @@ it("does not carry a late opening failure across destination changes, including 
   ]);
   expect(screen.queryByRole("alert")).not.toBeOnTheScreen();
 });
+
+it.each(["contact", "information"] as const)(
+  "keeps the named %s action unavailable until native opening completes",
+  async (presentation) => {
+    // Given
+    const opening = Promise.withResolvers<void>();
+    const open = jest
+      .spyOn(Linking, "openURL")
+      .mockReturnValueOnce(opening.promise)
+      .mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    await render(
+      <ContactLink
+        label="Site"
+        value="Club A"
+        destination="https://a.example.invalid"
+        presentation={presentation}
+      />,
+      {
+        wrapper: ({ children }) => (
+          <ThemeProvider>
+            <ActionFeedbackProvider scopeKey="test">
+              {children}
+            </ActionFeedbackProvider>
+          </ThemeProvider>
+        ),
+      },
+    );
+
+    // When
+    await user.press(screen.getByRole("link", { name: "Site : Club A" }));
+    await user.press(
+      screen.getByRole("link", {
+        name: "Site : Club A",
+        disabled: true,
+        busy: true,
+      }),
+    );
+
+    // Then
+    expect(open).toHaveBeenCalledTimes(1);
+    await act(async () => opening.resolve());
+    await user.press(
+      screen.getByRole("link", {
+        name: "Site : Club A",
+        disabled: false,
+        busy: false,
+      }),
+    );
+    expect(open).toHaveBeenCalledTimes(2);
+  },
+);
