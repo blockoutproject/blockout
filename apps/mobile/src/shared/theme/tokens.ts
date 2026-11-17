@@ -285,8 +285,8 @@ export const tokens = {
       tintOpacity: 0.16,
       performanceHeight: 3,
     },
-    haloSize: 120,
-    haloTop: -26,
+    haloSize: 160,
+    haloTop: -46,
   } as const,
   // Select the bundled static face explicitly so approved weights stay consistent across platforms.
   typography: {

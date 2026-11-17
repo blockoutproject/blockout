@@ -6,6 +6,7 @@ import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
   act,
   cleanup,
+  fireEvent,
   screen,
   userEvent,
   waitFor,
@@ -18,6 +19,7 @@ import SharedTabLayout, {
 import ProfileLayout, {
   unstable_settings as profileSettings,
 } from "@/app/(ordinary)/(tabs)/(profile)/profile/_layout";
+import { useBottomContentInset } from "@/shared/components/bottom-content-inset";
 import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
 import { defaultOffering } from "../test-support/offering";
 import { sheetScreenOptions } from "@/shared/components/sheet";
@@ -143,6 +145,17 @@ function JourneyLayout() {
   );
 }
 
+/** Observes the shared content-clearance contract through a real tab route. */
+function SearchDestination() {
+  const bottom = useBottomContentInset();
+  return (
+    <>
+      <Text>Search destination</Text>
+      <Text>{`Bottom clearance: ${bottom}`}</Text>
+    </>
+  );
+}
+
 /** Keeps the production tab stacks and profile anchor; probes omit unrelated feature reads and forms. */
 async function openJourney(initialUrl = "/search") {
   await renderRouter(
@@ -164,9 +177,7 @@ async function openJourney(initialUrl = "/search") {
           <Stack.Screen name="(sheets)/filters" options={sheetScreenOptions} />
         </Stack>
       ),
-      "(ordinary)/(tabs)/(discovery)/search/index": () => (
-        <Text>Search destination</Text>
-      ),
+      "(ordinary)/(tabs)/(discovery)/search/index": SearchDestination,
       "(ordinary)/(tabs)/(discovery)/search/(sheets)/filters": () => (
         <Text>Filter destination</Text>
       ),
@@ -351,7 +362,7 @@ it("restores the same sporting detail and tab after dismissing an outer native s
 });
 
 it.each(["edit", "erase"])(
-  "keeps the bar and offer out of the dedicated Profile %s form",
+  "retains the bar and offer on the dedicated Profile %s form",
   async (form) => {
     // Given
     await openJourney("/profile");
@@ -362,8 +373,8 @@ it.each(["edit", "erase"])(
 
     // Then
     expect(screen).toHavePathname(`/profile/${form}`);
-    expect(screen.queryByRole("button", { name: "Rechercher" })).toBeNull();
-    expect(screen.queryByRole("button", { name: offerName })).toBeNull();
+    expect(screen.getByRole("button", { name: "Rechercher" })).toBeVisible();
+    expect(screen.getByRole("button", { name: offerName })).toBeVisible();
 
     // When
     await act(() => router.back());
@@ -430,7 +441,7 @@ it.each(["active", "guest", "unavailable"])(
   },
 );
 
-it("hides the offer together with the tab bar in an existing contextual route", async () => {
+it("retains the bar and offer beneath an existing contextual route", async () => {
   // Given
   await openJourney();
   await screen.findByRole("button", { name: offerName });
@@ -440,8 +451,8 @@ it("hides the offer together with the tab bar in an existing contextual route", 
 
   // Then
   expect(await screen.findByText("Filter destination")).toBeVisible();
-  expect(screen.queryByRole("button", { name: "Rechercher" })).toBeNull();
-  expect(screen.queryByRole("button", { name: offerName })).toBeNull();
+  expect(screen.getByRole("button", { name: "Rechercher" })).toBeVisible();
+  expect(screen.getByRole("button", { name: offerName })).toBeVisible();
 });
 
 it("removes the free-account offer when SDK rights become active and on local sign-out", async () => {
@@ -508,3 +519,38 @@ it("does not encourage a second purchase while payment is pending or paid but un
   // Then
   expect(screen.queryByRole("button", { name: offerName })).toBeNull();
 });
+
+it.each(["/search/filters", "/invitation"])(
+  "preserves measured page clearance through the %s native presentation",
+  async (destination) => {
+    // Given: native layout measures the whole navigation group; only native geometry is supplied.
+    await openJourney();
+    const offer = await screen.findByRole("button", { name: offerName });
+    // Layout does not bubble natively; dispatch it on the measured host itself.
+    let navigationGroup = offer;
+    while (
+      typeof navigationGroup.props.onLayout !== "function" &&
+      navigationGroup.parent
+    ) {
+      navigationGroup = navigationGroup.parent;
+    }
+    await fireEvent(navigationGroup, "layout", {
+      nativeEvent: { layout: { x: 0, y: 0, width: 390, height: 64 } },
+    });
+    expect(screen.getByText("Bottom clearance: 72")).toBeVisible();
+
+    // When
+    await act(() => router.push(destination));
+
+    // Then: the presenting page keeps its clearance even when native accessibility hides it.
+    expect(
+      screen.getByText("Bottom clearance: 72", { includeHiddenElements: true }),
+    ).toBeOnTheScreen();
+
+    // When
+    await act(() => router.back());
+
+    // Then
+    expect(screen.getByText("Bottom clearance: 72")).toBeVisible();
+  },
+);

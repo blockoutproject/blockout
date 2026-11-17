@@ -7,7 +7,7 @@ import {
   type RefObject,
 } from "react";
 import { BlurTargetView, BlurView } from "expo-blur";
-import { useIsFocused, useRouter, useSegments } from "expo-router";
+import { useRouter } from "expo-router";
 import {
   Pressable,
   StyleSheet,
@@ -50,12 +50,8 @@ import { SelectionIndicator } from "@/shared/components/selection-indicator";
 import { BottomContentInsetContext } from "@/shared/components/bottom-content-inset";
 import { ProOffer } from "@/features/pro";
 
-/** Expo owns focus/history; the measured offer/capsule group shares visibility and enlarged-text clearance. */
+/** Native presentations cover the retained capsule; its measured clearance keeps the presenting page stable. */
 export default function TabsLayout() {
-  const focused = useIsFocused();
-  const segments = useSegments();
-  const navigationVisible =
-    focused && !segments.includes("(sheets)") && !segments.includes("(forms)");
   const session = useAccountSession();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
@@ -70,7 +66,7 @@ export default function TabsLayout() {
   return (
     <BottomContentInsetContext
       value={
-        navigationVisible && navigationHeight > 0
+        navigationHeight > 0
           ? navigationHeight + insets.bottom + tokens.spacing.sm
           : 0
       }
@@ -96,7 +92,6 @@ export default function TabsLayout() {
               marginBottom: insets.bottom + tokens.spacing.sm,
               marginHorizontal:
                 fontScale >= 1.5 ? tokens.spacing.lg : tokens.spacing.sm,
-              display: navigationVisible ? "flex" : "none",
             }}
           >
             <TabTrigger name="index" href={homeHref} asChild>
