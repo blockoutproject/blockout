@@ -1,5 +1,6 @@
 import {
   NavigationScrollOffsetContext,
+  NavigationScrollMarker,
   useNavigationInset,
 } from "./navigation-backdrop";
 import { cloneElement, useCallback, useContext, type RefCallback } from "react";
@@ -158,18 +159,20 @@ function NativeFormScrollView({
     }
 >) {
   return Platform.OS === "ios" ? (
-    <Animated.ScrollView
-      {...props}
-      ref={nativeRef}
-      scrollEventThrottle={props.scrollEventThrottle ?? 16}
-      {...hiddenScrollIndicators}
-      alwaysBounceVertical={!!props.refreshControl}
-      automaticallyAdjustKeyboardInsets
-      keyboardShouldPersistTaps="handled"
-    >
-      {children}
-      <BottomContentSpacer />
-    </Animated.ScrollView>
+    <NavigationScrollMarker>
+      <Animated.ScrollView
+        {...props}
+        ref={nativeRef}
+        scrollEventThrottle={props.scrollEventThrottle ?? 16}
+        {...hiddenScrollIndicators}
+        alwaysBounceVertical={!!props.refreshControl}
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
+      >
+        {children}
+        <BottomContentSpacer />
+      </Animated.ScrollView>
+    </NavigationScrollMarker>
   ) : (
     <KeyboardProvider>
       <KeyboardAwareScrollView
