@@ -16,6 +16,7 @@ import type {
   SourceBindingResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { Button } from "@/shared/components/button";
+import { LoadingIndicator } from "@/shared/components/loading-indicator";
 import { TextField } from "@/shared/components/text-field";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
@@ -235,15 +236,19 @@ export function SourceCandidateForm({
             style={({ pressed }) => [
               styles.sourceLink,
               {
-                opacity: controlOpacity(handoff.pending, pressed),
+                opacity: pressed ? tokens.opacity.pressed : 1,
               },
             ]}
           >
-            <Globe
-              accessible={false}
-              color={colors.icon}
-              size={tokens.size.icon.md}
-            />
+            {handoff.pending ? (
+              <LoadingIndicator color={colors.icon} />
+            ) : (
+              <Globe
+                accessible={false}
+                color={colors.icon}
+                size={tokens.size.icon.md}
+              />
+            )}
             <View style={styles.url}>
               <Text
                 style={[

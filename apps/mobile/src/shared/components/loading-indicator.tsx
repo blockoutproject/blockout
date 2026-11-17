@@ -1,25 +1,18 @@
-import { StyleSheet, View } from "react-native";
-import { tokens } from "@/shared/theme/tokens";
-import { Skeleton } from "./skeleton";
+import { ActivityIndicator, type ActivityIndicatorProps } from "react-native";
 
-/** Shared compact skeleton for caller-owned pending controls; the control retains its name and busy state. */
-export function LoadingIndicator({ color }: Readonly<{ color: string }>) {
+/** Native progress for caller-owned pending controls; the control retains its name and busy state. */
+export function LoadingIndicator({
+  color,
+  style,
+}: Readonly<{ color: string; style?: ActivityIndicatorProps["style"] }>) {
   return (
-    <View style={styles.slot} accessible={false}>
-      <Skeleton
-        width={tokens.size.icon.md}
-        height={tokens.spacing.md}
-        color={color}
-      />
-    </View>
+    <ActivityIndicator
+      size="small"
+      color={color}
+      style={style}
+      accessible={false}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  slot: {
-    width: tokens.size.icon.md,
-    height: tokens.size.icon.md,
-    justifyContent: "center",
-    opacity: tokens.opacity.disabled,
-  },
-});

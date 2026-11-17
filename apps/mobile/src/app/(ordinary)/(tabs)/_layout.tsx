@@ -1,5 +1,12 @@
 import { homeHref } from "@/shared/native/home-href";
-import { useEffect, useState, type ComponentPropsWithRef } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ComponentPropsWithRef,
+  type RefObject,
+} from "react";
+import { BlurTargetView, BlurView } from "expo-blur";
 import { useIsFocused, useRouter, useSegments } from "expo-router";
 import {
   Pressable,
@@ -7,6 +14,7 @@ import {
   View,
   useWindowDimensions,
   type LayoutRectangle,
+  type ViewInstance,
 } from "react-native";
 import Animated, {
   Easing,
@@ -55,6 +63,7 @@ export default function TabsLayout() {
   const reducedMotion = useReducedMotion();
   const [selectionLayout, setSelectionLayout] = useState<LayoutRectangle>();
   const [navigationHeight, setNavigationHeight] = useState(0);
+  const target = useRef<ViewInstance>(null);
   const guest = session.status === "guest";
   const columns =
     fontScale >= 1.5 && !guest ? styles.twoColumns : styles.oneRow;
@@ -70,9 +79,12 @@ export default function TabsLayout() {
         style={[styles.tabs, { backgroundColor: colors.canvas }]}
         options={{ backBehavior: "history" }}
       >
-        <TabSlot />
+        <BlurTargetView ref={target} style={styles.tabs}>
+          <TabSlot />
+        </BlurTargetView>
         <TabList asChild>
           <NavigationCapsule
+            target={target}
             onLayout={({ nativeEvent }) => {
               if (nativeEvent.layout.height > 0) {
                 setNavigationHeight(nativeEvent.layout.height);
@@ -134,6 +146,7 @@ export default function TabsLayout() {
 
 /** TabList's public slot retains direct trigger discovery while the full floating group owns measurement. */
 interface NavigationCapsuleProps extends ComponentPropsWithRef<typeof View> {
+  target: RefObject<ViewInstance | null>;
   layout?: LayoutRectangle;
   reducedMotion: boolean;
 }
@@ -143,10 +156,11 @@ function NavigationCapsule({
   children,
   layout,
   reducedMotion,
+  target,
   style,
   ...props
 }: Readonly<NavigationCapsuleProps>) {
-  const { colors, membership } = useTheme();
+  const { scheme, membership } = useTheme();
   return (
     <SafeAreaView
       {...props}
@@ -155,12 +169,16 @@ function NavigationCapsule({
       style={[style, styles.navigation]}
     >
       <ProOffer />
-      <View
-        style={[
-          styles.capsule,
-          { borderColor: membership.border, backgroundColor: colors.raised },
-        ]}
-      >
+      <View style={[styles.capsule, { borderColor: membership.border }]}>
+        <BlurView
+          pointerEvents="none"
+          blurTarget={target}
+          blurMethod="dimezisBlurView"
+          tint={tokens.blur.navigation.tint[scheme]}
+          intensity={tokens.blur.navigation.intensity}
+          blurReductionFactor={tokens.blur.navigation.androidReduction}
+          style={StyleSheet.absoluteFill}
+        />
         <View style={styles.row}>
           <SelectionIndicator
             layout={layout}
@@ -299,6 +317,7 @@ const styles = StyleSheet.create({
     padding: tokens.spacing.xs,
     borderRadius: tokens.radius.panel,
     borderWidth: tokens.border.thin,
+    overflow: "hidden",
   },
   row: {
     flexDirection: "row",

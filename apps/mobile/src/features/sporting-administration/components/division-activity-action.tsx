@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text } from "react-native";
 import { LoadingIndicator } from "@/shared/components/loading-indicator";
+import { controlOpacity } from "@/shared/components/control-styles";
 import type { DivisionResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
@@ -20,7 +21,7 @@ export function DivisionActivityAction({
   onPress,
 }: Readonly<DivisionActivityActionProps>) {
   const { colors } = useTheme();
-  const busy = disabled || executing;
+  const unavailable = disabled || executing;
   const label = division.active
     ? "Désactiver la division"
     : "Réactiver la division";
@@ -28,37 +29,31 @@ export function DivisionActivityAction({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ disabled: busy, busy: executing }}
-      disabled={busy}
+      accessibilityState={{ disabled: unavailable, busy: executing }}
+      disabled={unavailable}
       onPress={onPress}
-      style={({ pressed }) => {
-        let opacity = 1;
-        if (disabled && !executing) {
-          opacity = tokens.opacity.disabled;
-        } else if (pressed) {
-          opacity = tokens.opacity.pressed;
-        }
-        return [
-          styles.action,
-          {
-            opacity,
-          },
-        ];
-      }}
+      style={({ pressed }) => [
+        styles.action,
+        { opacity: controlOpacity(disabled && !executing, pressed) },
+      ]}
     >
-      {executing && (
-        <LoadingIndicator
-          color={division.active ? colors.error : colors.text}
-        />
-      )}
       <Text
         style={[
           styles.label,
-          { color: division.active ? colors.error : colors.text },
+          {
+            color: division.active ? colors.error : colors.text,
+            opacity: executing ? 0 : 1,
+          },
         ]}
       >
         {label}
       </Text>
+      {executing && (
+        <LoadingIndicator
+          color={division.active ? colors.error : colors.text}
+          style={StyleSheet.absoluteFill}
+        />
+      )}
     </Pressable>
   );
 }

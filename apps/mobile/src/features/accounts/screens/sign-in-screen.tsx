@@ -147,13 +147,21 @@ function SignInJourney({
                 },
               ]}
             >
-              {guest.pending && <LoadingIndicator color={colors.icon} />}
               <Text
                 numberOfLines={2}
-                style={[styles.guestLabel, { color: colors.text }]}
+                style={[
+                  styles.guestLabel,
+                  { color: colors.text, opacity: guest.pending ? 0 : 1 },
+                ]}
               >
                 Continuer en tant qu’invité
               </Text>
+              {guest.pending && (
+                <LoadingIndicator
+                  color={colors.icon}
+                  style={StyleSheet.absoluteFill}
+                />
+              )}
             </Pressable>
           </View>
           <PublicAccountLinks supportOrigin={supportOrigin} />

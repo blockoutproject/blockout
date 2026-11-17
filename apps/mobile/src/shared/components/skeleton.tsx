@@ -7,14 +7,11 @@ export function Skeleton({
   width = "100%",
   height = 16,
   shape = "text",
-  color,
   radius,
 }: Readonly<{
   width?: DimensionValue;
   height?: DimensionValue;
   shape?: "text" | "rectangle";
-  /** Compact pending controls may retain their current foreground contrast. */
-  color?: string;
   /** Image slots supply their semantic media radius; other shapes keep their defaults. */
   radius?: number;
 }>) {
@@ -31,7 +28,7 @@ export function Skeleton({
         borderRadius:
           radius ??
           (shape === "text" ? tokens.radius.sm : tokens.radius.control),
-        backgroundColor: color ?? colors.skeleton,
+        backgroundColor: colors.skeleton,
       }}
     />
   );

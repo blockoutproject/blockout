@@ -126,18 +126,26 @@ export function SingleImageField({
         style={({ pressed }) => [
           styles.entry,
           {
-            opacity: controlOpacity(unavailable, pressed),
+            opacity: controlOpacity(disabled, pressed),
           },
         ]}
       >
-        {selection.pending && <LoadingIndicator color={colors.icon} />}
         <Text
           numberOfLines={2}
           ellipsizeMode="tail"
-          style={[styles.entryLabel, { color: colors.text }]}
+          style={[
+            styles.entryLabel,
+            { color: colors.text, opacity: selection.pending ? 0 : 1 },
+          ]}
         >
           {hasImage ? editLabel : addLabel}
         </Text>
+        {selection.pending && (
+          <LoadingIndicator
+            color={colors.icon}
+            style={StyleSheet.absoluteFill}
+          />
+        )}
       </Pressable>
       <FieldMessage error={error} />
     </View>

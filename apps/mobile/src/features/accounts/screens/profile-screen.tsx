@@ -181,7 +181,7 @@ export function ProfileScreen({
           />
           <Button
             label="Supprimer mon compte"
-            variant="secondary"
+            variant="destructive"
             fullWidth
             disabled={!account.isSuccess}
             onPress={() => router.push("/profile/erase")}

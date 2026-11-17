@@ -8,6 +8,7 @@ import {
 import type { NotificationResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
+import { LoadingIndicator } from "@/shared/components/loading-indicator";
 import {
   MatchSurface,
   SportingLogo,
@@ -92,12 +93,21 @@ export function NotificationItem({
               {date}
             </Text>
           </View>
-          {!row.read && (
-            <View
-              accessible={false}
-              style={[styles.dot, { backgroundColor: colors.secondaryText }]}
-            />
-          )}
+          <View style={styles.status}>
+            {pending ? (
+              <LoadingIndicator color={foreground} />
+            ) : (
+              !row.read && (
+                <View
+                  accessible={false}
+                  style={[
+                    styles.dot,
+                    { backgroundColor: colors.secondaryText },
+                  ]}
+                />
+              )
+            )}
+          </View>
         </View>
         <View style={styles.body}>
           <Text style={[tokens.typography.body, { color: colors.text }]}>
@@ -148,6 +158,12 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   identity: { flex: 1, gap: tokens.spacing.optical, minWidth: 0 },
+  status: {
+    width: tokens.size.icon.md,
+    height: tokens.size.icon.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   dot: {
     width: tokens.spacing.sm,
     height: tokens.spacing.sm,

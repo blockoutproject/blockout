@@ -95,10 +95,20 @@ export function ImageField({
                 { opacity: pressed ? tokens.opacity.pressed : 1 },
               ]}
             >
-              {busy && <LoadingIndicator color={colors.icon} />}
-              <Text style={[styles.label, { color: colors.text }]}>
+              <Text
+                style={[
+                  styles.label,
+                  { color: colors.text, opacity: busy ? 0 : 1 },
+                ]}
+              >
                 {replaceLabel}
               </Text>
+              {busy && (
+                <LoadingIndicator
+                  color={colors.icon}
+                  style={StyleSheet.absoluteFill}
+                />
+              )}
             </Pressable>
           </View>
           {onRemove && (

@@ -11,12 +11,16 @@ import {
 } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, {
+  useAnimatedProps,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   type SharedValue,
 } from "react-native-reanimated";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
+
+const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
 
 /** Measured pinned chrome clearance; scroll containers reserve it inside their content. */
 export const NavigationInsetContext = createContext(0);
@@ -33,7 +37,7 @@ export function useNavigationInset() {
   return useContext(NavigationInsetContext);
 }
 
-/** One material fades in with native scrolling; opacity also removes Expo's tint entirely at the top. */
+/** Reveals native blur with scroll; a hidden resting view removes the material's tint. */
 export function NavigationBackdrop({
   target,
   scrollOffset,
@@ -45,22 +49,26 @@ export function NavigationBackdrop({
   style?: ComponentProps<typeof Animated.View>["style"];
 }>) {
   const { scheme } = useTheme();
+  const progress = useDerivedValue(() =>
+    Math.min(1, Math.max(0, scrollOffset.get()) / tokens.layout.header),
+  );
+  // UIKit visual effects require full ancestor alpha; animate the supported intensity instead.
   const reveal = useAnimatedStyle(() => ({
-    opacity: Math.min(
-      1,
-      Math.max(0, scrollOffset.get()) / tokens.layout.header,
-    ),
+    opacity: progress.get() > 0 ? 1 : 0,
+  }));
+  const material = useAnimatedProps(() => ({
+    intensity: Math.max(1, progress.get() * tokens.blur.navigation.intensity),
   }));
   return (
     <Animated.View
       pointerEvents="none"
       style={[StyleSheet.absoluteFill, style, reveal]}
     >
-      <BlurView
+      <AnimatedBlurView
         blurTarget={target}
         blurMethod="dimezisBlurView"
-        tint={scheme}
-        intensity={tokens.blur.navigation.intensity}
+        tint={tokens.blur.navigation.tint[scheme]}
+        animatedProps={material}
         blurReductionFactor={tokens.blur.navigation.androidReduction}
         style={StyleSheet.absoluteFill}
       />
