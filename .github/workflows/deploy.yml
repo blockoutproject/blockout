@@ -1,4 +1,4 @@
-name: Deploy production
+name: Deploy
 
 on:
   workflow_dispatch:
@@ -9,22 +9,22 @@ permissions:
   packages: read
 
 concurrency:
-  group: deploy-production
+  group: deploy-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
-  production:
-    if: github.ref == 'refs/heads/main'
+  deploy:
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    environment: production
+    environment: ${{ github.ref_name == 'main' && 'production' || 'preproduction' }}
     steps:
-      - name: Require successful push CI for this exact main revision
+      - name: Require successful push CI for the selected revision
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           count=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml \
-            --branch main --commit "$GITHUB_SHA" --event push --status success \
+            --branch "$GITHUB_REF_NAME" --commit "$GITHUB_SHA" --event push --status success \
             --json databaseId --jq 'length')
           test "$count" -gt 0
 
@@ -45,7 +45,7 @@ jobs:
           DOKPLOY_TOKEN: ${{ secrets.DOKPLOY_TOKEN }}
           BACKEND_ID: ${{ vars.DOKPLOY_BACKEND_ID }}
           COLLECTOR_ID: ${{ vars.DOKPLOY_COLLECTOR_ID }}
-        # Migration and infrastructure startup are explicit operations before this request.
+        # A queued request is not readiness; migration and infrastructure startup stay explicit.
         run: |
           test -n "$DOKPLOY_URL" && test -n "$DOKPLOY_TOKEN"
           test -n "$BACKEND_ID" && test -n "$COLLECTOR_ID"
