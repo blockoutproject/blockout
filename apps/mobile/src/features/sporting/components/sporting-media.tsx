@@ -195,21 +195,11 @@ export function SportingAtmosphere({
   const fade = `${id}-fade`;
   const mask = `${id}-mask`;
   const secondary = `${id}-secondary`;
-  return (
+  const maskedArtwork = (
     <MaskedView
       accessible={false}
       pointerEvents="none"
-      style={
-        horizontal
-          ? [
-              styles.horizontalAtmosphere,
-              {
-                opacity: tokens.sporting.atmosphere.horizontal.opacity[scheme],
-                mixBlendMode: scheme === "dark" ? "screen" : "normal",
-              },
-            ]
-          : StyleSheet.absoluteFill
-      }
+      style={StyleSheet.absoluteFill}
       maskElement={
         <Svg accessible={false} width="100%" height="100%">
           <Defs>
@@ -271,6 +261,23 @@ export function SportingAtmosphere({
         style={styles.atmosphere}
       />
     </MaskedView>
+  );
+  if (!horizontal) return maskedArtwork;
+  // MaskedView's legacy native manager does not apply the Fabric blend mode.
+  return (
+    <View
+      accessible={false}
+      pointerEvents="none"
+      style={[
+        styles.horizontalAtmosphere,
+        {
+          opacity: tokens.sporting.atmosphere.horizontal.opacity[scheme],
+          mixBlendMode: scheme === "dark" ? "screen" : "normal",
+        },
+      ]}
+    >
+      {maskedArtwork}
+    </View>
   );
 }
 

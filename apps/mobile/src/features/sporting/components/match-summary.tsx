@@ -49,7 +49,8 @@ export function MatchSummary({
       <View
         style={[
           styles.pool,
-          contextual && [styles.contextPool, { backgroundColor: accent }],
+          contextual && styles.contextPool,
+          { backgroundColor: contextual ? accent : colors.surface },
         ]}
       >
         {contextual && division && <DivisionPaint division={division} />}

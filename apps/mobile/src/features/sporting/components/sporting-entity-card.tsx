@@ -150,7 +150,9 @@ export function SportingEntityCard({
           </>
         ) : (
           <>
-            <View style={styles.identity}>
+            <View
+              style={[styles.identity, { backgroundColor: colors.surface }]}
+            >
               {atmosphere}
               {logo}
               <View style={styles.name}>
