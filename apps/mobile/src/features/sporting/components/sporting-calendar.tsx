@@ -392,10 +392,10 @@ function CalendarGroupPart({
 >) {
   const { colors } = useTheme();
   const tint =
-    divisionColor && `${divisionColor}${colors.sportingSurfaceAlpha}`;
+    divisionColor && `${divisionColor}${colors.calendarPoolSurfaceAlpha}`;
   const startAlpha = first
     ? colors.calendarPoolHeaderAlpha
-    : colors.sportingSurfaceAlpha;
+    : colors.calendarPoolSurfaceAlpha;
   return (
     <View
       style={[
