@@ -1,4 +1,4 @@
-/** Shared custom chrome owns the top material; UIKit must not add another scroll-edge surface. */
+/** A mounted ordinary scroller can opt into the native top edge for its screen. */
 export const stackScreenOptions = {
   headerShown: false,
   scrollEdgeEffects: { top: "hidden" },

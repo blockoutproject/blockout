@@ -1,4 +1,5 @@
 import { Page, PageScrollView } from "@/shared/components/page";
+import { PageViewport } from "@/shared/components/navigation-backdrop";
 import {
   hasReadError,
   ReadFeedback,
@@ -164,44 +165,47 @@ function GateView({
     );
   }
 
-  return (
-    <Page
-      header={
-        <BrandHeader>
-          <View style={styles.headerActions}>
-            <Text
-              style={[
-                styles.badge,
-                { color: colors.text, borderColor: colors.border },
-              ]}
-            >
-              {onClose ? "APERÇU" : badge}
-            </Text>
-            {onClose && (
-              <IconButton label="Fermer" onPress={onClose}>
-                <X
-                  accessible={false}
-                  size={tokens.size.icon.lg}
-                  color={colors.icon}
-                />
-              </IconButton>
-            )}
-          </View>
-        </BrandHeader>
-      }
-    >
-      <PageScrollView
-        refreshControl={
-          !onClose && onRefresh && !simple ? (
-            <DataRefreshControl
-              onRefresh={onRefresh}
-              fetching={query?.isFetching}
+  const header = (
+    <BrandHeader>
+      <View style={styles.headerActions}>
+        <Text
+          style={[
+            styles.badge,
+            { color: colors.text, borderColor: colors.border },
+          ]}
+        >
+          {onClose ? "APERÇU" : badge}
+        </Text>
+        {onClose && (
+          <IconButton label="Fermer" onPress={onClose}>
+            <X
+              accessible={false}
+              size={tokens.size.icon.lg}
+              color={colors.icon}
             />
-          ) : undefined
-        }
-      >
-        {renderContent()}
-      </PageScrollView>
+          </IconButton>
+        )}
+      </View>
+    </BrandHeader>
+  );
+
+  // The startup gate and the native preview can render outside the route's scroll host.
+  return (
+    <Page fullBleed>
+      <PageViewport header={header}>
+        <PageScrollView
+          refreshControl={
+            !onClose && onRefresh && !simple ? (
+              <DataRefreshControl
+                onRefresh={onRefresh}
+                fetching={query?.isFetching}
+              />
+            ) : undefined
+          }
+        >
+          {renderContent()}
+        </PageScrollView>
+      </PageViewport>
     </Page>
   );
 }
