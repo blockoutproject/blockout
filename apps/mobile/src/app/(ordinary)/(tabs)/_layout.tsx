@@ -60,7 +60,7 @@ import { ProOffer } from "@/features/pro";
 interface SelectionInk {
   light: string;
   dark: string;
-  isLight: DerivedValue<boolean>;
+  lightMix: DerivedValue<number>;
 }
 
 /** Native presentations cover the retained capsule; its measured clearance keeps the presenting page stable. */
@@ -79,20 +79,27 @@ export default function TabsLayout() {
     reducedMotion
       ? fill
       : withTiming(fill, {
-          duration: tokens.motion.navigation.duration,
-          easing: Easing.out(Easing.cubic),
+          duration: tokens.motion.navigation.accentDuration,
+          easing: Easing.inOut(Easing.quad),
           reduceMotion: ReduceMotion.System,
         }),
   );
-  // Follow the displayed fill so dark and light ink switch where contrast allows it.
-  const isLight = useDerivedValue(
-    () => contrastColor(animatedFill.value) === "white",
-  );
+  // Keep the ink blend short and start it where the displayed fill changes contrast.
+  const lightMix = useDerivedValue(() => {
+    const target = contrastColor(animatedFill.value) === "white" ? 1 : 0;
+    return reducedMotion
+      ? target
+      : withTiming(target, {
+          duration: tokens.motion.navigation.accentInkDuration,
+          easing: Easing.inOut(Easing.quad),
+          reduceMotion: ReduceMotion.System,
+        });
+  });
   const lightTarget = contrastColor(fill) === "white";
   const selectionInk = {
     light: lightTarget ? content : "#FFFFFF",
     dark: lightTarget ? "#000000" : content,
-    isLight,
+    lightMix,
   };
   const [navigationHeight, setNavigationHeight] = useState(0);
   const target = useRef<ViewInstance>(null);
@@ -259,7 +266,7 @@ function TabButton({
   style,
   onLayout,
   reducedMotion,
-  selectionInk: { light, dark, isLight },
+  selectionInk: { light, dark, lightMix },
   onFocusedLayout,
   ...props
 }: Readonly<TabButtonProps>) {
@@ -282,7 +289,7 @@ function TabButton({
     color: interpolateColor(
       focus.value,
       [0, 1],
-      [colors.text, isLight.value ? light : dark],
+      [colors.text, interpolateColor(lightMix.value, [0, 1], [dark, light])],
     ),
   }));
   const iconStyle = useAnimatedStyle(() => ({
@@ -293,10 +300,10 @@ function TabButton({
   }));
   const inactiveStyle = useAnimatedStyle(() => ({ opacity: 1 - focus.value }));
   const lightStyle = useAnimatedStyle(() => ({
-    opacity: isLight.value ? focus.value : 0,
+    opacity: focus.value * lightMix.value,
   }));
   const darkStyle = useAnimatedStyle(() => ({
-    opacity: isLight.value ? 0 : focus.value,
+    opacity: focus.value * (1 - lightMix.value),
   }));
   return (
     <Pressable
