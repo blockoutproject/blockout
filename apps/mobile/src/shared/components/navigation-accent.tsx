@@ -27,11 +27,15 @@ export const NavigationAccentContext = createContext<AccentScope | undefined>(
 export function useSelectedTabRouteKey() {
   const tabs = useRoute();
   return useNavigationState((state) => {
-    let route = state.routes.find((candidate) => candidate.key === tabs.key);
-    while (route?.state?.index !== undefined) {
-      route = route.state.routes[route.state.index];
+    const tab = state.routes.find((candidate) => candidate.key === tabs.key);
+    let nested = tab?.state;
+    let key = tab?.key;
+    while (nested?.index !== undefined) {
+      const route = nested.routes[nested.index];
+      key = route?.key;
+      nested = route?.state;
     }
-    return route?.key;
+    return key;
   });
 }
 
