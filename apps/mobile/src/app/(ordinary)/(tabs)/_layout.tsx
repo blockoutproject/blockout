@@ -69,6 +69,7 @@ export default function TabsLayout() {
   const { colors, membership } = useTheme();
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
+  // Read the live setting instead of Reanimated's system preference captured at startup.
   const reducedMotion = useReducedMotion();
   const [selectionLayout, setSelectionLayout] = useState<LayoutRectangle>();
   const selectedRouteKey = useSelectedTabRouteKey();
@@ -79,33 +80,37 @@ export default function TabsLayout() {
   const hasAccent = !!currentAccent;
   const fillDuration = hasAccent
     ? tokens.motion.navigation.accentEntryDuration
-    : tokens.motion.navigation.accentDuration;
+    : tokens.motion.navigation.accentReturnDuration;
   const animatedFill = useDerivedValue(() =>
     reducedMotion
       ? fill
       : withTiming(fill, {
           duration: fillDuration,
           easing: Easing.inOut(Easing.quad),
-          reduceMotion: ReduceMotion.System,
+          reduceMotion: ReduceMotion.Never,
         }),
   );
-  // Ink settles with the division fill on entry. The return keeps its contrast-triggered blend.
+  const lightTarget = contrastColor(fill) === "white";
+  // On return, the visible fill sets the ink target only when it crosses the contrast threshold.
+  const lightInkTarget = useDerivedValue(() =>
+    hasAccent || reducedMotion
+      ? lightTarget
+      : contrastColor(animatedFill.value) === "white",
+  );
   const lightMix = useDerivedValue<number>(() => {
-    const background = hasAccent ? fill : animatedFill.value;
-    const target = contrastColor(background) === "white" ? 1 : 0;
+    const target = lightInkTarget.value ? 1 : 0;
     return reducedMotion
       ? target
       : withTiming(target, {
           duration: hasAccent
             ? fillDuration
-            : tokens.motion.navigation.accentInkDuration,
+            : tokens.motion.navigation.accentReturnInkDuration,
           easing: hasAccent
             ? Easing.in(Easing.cubic)
             : Easing.inOut(Easing.quad),
-          reduceMotion: ReduceMotion.System,
+          reduceMotion: ReduceMotion.Never,
         });
   });
-  const lightTarget = contrastColor(fill) === "white";
   const selectionInk = {
     light: lightTarget ? content : "#FFFFFF",
     dark: lightTarget ? "#000000" : content,
@@ -292,7 +297,7 @@ function TabButton({
     withTiming(isFocused ? 1 : 0, {
       duration: reducedMotion ? 0 : tokens.motion.navigation.duration,
       easing: Easing.out(Easing.cubic),
-      reduceMotion: ReduceMotion.System,
+      reduceMotion: ReduceMotion.Never,
     }),
   );
   const labelStyle = useAnimatedStyle(() => ({

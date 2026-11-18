@@ -13,7 +13,7 @@ export interface SelectionIndicatorProps {
   layout?: LayoutRectangle;
   reducedMotion: boolean;
   radius?: number;
-  /** The capsule shares the animated fill with its foreground to preserve contrast. */
+  /** A shared fill animates paint independently of the indicator bounds. */
   fill: string | DerivedValue<string>;
   borderColor?: string;
 }
@@ -33,7 +33,7 @@ export function SelectionIndicator({
     const timing = {
       duration: reducedMotion ? 0 : tokens.motion.navigation.duration,
       easing: Easing.out(Easing.cubic),
-      reduceMotion: ReduceMotion.System,
+      reduceMotion: ReduceMotion.Never,
     };
     return {
       left: withTiming(layout.x, timing),

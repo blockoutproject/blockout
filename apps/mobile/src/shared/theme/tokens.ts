@@ -267,8 +267,8 @@ export const tokens = {
       iconScale: 1.04,
       iconLift: 1,
       accentEntryDuration: 330,
-      accentDuration: 420,
-      accentInkDuration: 140,
+      accentReturnDuration: 420,
+      accentReturnInkDuration: 140,
     },
   },
   sporting: {
