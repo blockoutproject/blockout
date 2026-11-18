@@ -27,8 +27,6 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
-const supportsSoftNavigationEdge =
-  Platform.OS === "ios" && Number.parseInt(String(Platform.Version), 10) >= 26;
 const softScrollEdge = { top: "soft" } as const;
 const NativeNavigationEdgeContext = createContext(false);
 
@@ -81,10 +79,14 @@ function SoftNavigationEdgeOptions() {
   return null;
 }
 
-function useReducedTransparency(enabled: boolean) {
-  const [reduced, setReduced] = useState(true);
+function useSoftNavigationEdge(ownsStackScrollEdge: boolean) {
+  const supported =
+    ownsStackScrollEdge &&
+    Platform.OS === "ios" &&
+    Number.parseInt(String(Platform.Version), 10) >= 26;
+  const [reducedTransparency, setReducedTransparency] = useState(true);
   useEffect(() => {
-    if (!enabled) {
+    if (!supported) {
       return;
     }
 
@@ -93,13 +95,13 @@ function useReducedTransparency(enabled: boolean) {
       "reduceTransparencyChanged",
       (value) => {
         acceptInitialRead = false;
-        setReduced(value);
+        setReducedTransparency(value);
       },
     );
     void AccessibilityInfo.isReduceTransparencyEnabled().then(
       (value) => {
         if (acceptInitialRead) {
-          setReduced(value);
+          setReducedTransparency(value);
         }
       },
       () => {
@@ -110,8 +112,9 @@ function useReducedTransparency(enabled: boolean) {
       acceptInitialRead = false;
       subscription.remove();
     };
-  }, [enabled]);
-  return reduced;
+  }, [supported]);
+  // Under Reduce Transparency the native edge can leave the custom controls uncovered.
+  return supported && !reducedTransparency;
 }
 
 /** Reveals native blur with scroll; a hidden resting view removes the material's tint. */
@@ -160,21 +163,18 @@ export function NavigationBackdrop({
 export function PageViewport({
   header,
   children,
-  nativeScrollEdge = false,
+  ownsStackScrollEdge = false,
 }: Readonly<{
   header: ReactNode;
   children: ReactNode;
-  /** Only the main route viewport owns Stack options. An overlay may sit above a pager. */
-  nativeScrollEdge?: boolean;
+  /** Overlays and standalone previews keep their own material without setting route options. */
+  ownsStackScrollEdge?: boolean;
 }>) {
   const target = useRef<ViewInstance>(null);
   const top = useContext(NavigationSafeAreaContext);
   const scrollOffset = useSharedValue(0);
   const [height, setHeight] = useState(0);
-  const canUseSoftEdge = nativeScrollEdge && supportsSoftNavigationEdge;
-  // UIKit's reduced-transparency edge only protects the status area above the custom header.
-  const reducedTransparency = useReducedTransparency(canUseSoftEdge);
-  const useSoftEdge = canUseSoftEdge && !reducedTransparency;
+  const useSoftEdge = useSoftNavigationEdge(ownsStackScrollEdge);
   return (
     <View style={styles.fill}>
       {useSoftEdge && <SoftNavigationEdgeOptions />}

@@ -58,7 +58,7 @@ export interface PageProps extends PropsWithChildren {
   header?: ReactNode;
   /** Validated six-digit hex accent blended into the page canvas. */
   canvasTint?: string;
-  /** A composed pager supplies its own overlay header and consumes the shared top safe area. */
+  /** The child composition supplies its own header and consumes the shared top safe area. */
   fullBleed?: boolean;
   /** A native modal covers the tab capsule and keeps its own complete safe-area reservation. */
   accessibilityViewIsModal?: boolean;
@@ -131,7 +131,7 @@ export function Page({
           <PageCanvasBackingContext value={canvasBacking}>
             <BottomContentInsetContext value={inset}>
               {header ? (
-                <PageViewport header={header} nativeScrollEdge>
+                <PageViewport header={header} ownsStackScrollEdge>
                   {children}
                 </PageViewport>
               ) : (
