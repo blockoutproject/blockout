@@ -393,6 +393,9 @@ function CalendarGroupPart({
   const { colors } = useTheme();
   const tint =
     divisionColor && `${divisionColor}${colors.sportingSurfaceAlpha}`;
+  const startAlpha = first
+    ? colors.calendarPoolHeaderAlpha
+    : colors.sportingSurfaceAlpha;
   return (
     <View
       style={[
@@ -409,7 +412,7 @@ function CalendarGroupPart({
           {
             backgroundColor: colors.surface,
             backgroundImage: tint
-              ? `linear-gradient(${tint}, ${tint})`
+              ? `linear-gradient(${divisionColor}${startAlpha}, ${tint} 60%)`
               : undefined,
             borderColor: divisionColor
               ? `${divisionColor}${colors.contextBorderAlpha}`
