@@ -30,7 +30,6 @@ import {
 import type {
   MatchCalendarResponse,
   MatchPoolGroupResponse,
-  MatchSummaryResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { Button } from "@/shared/components/button";
@@ -301,7 +300,10 @@ export function SportingCalendarView({
           );
         }
         return (
-          <CalendarGroupPart match={item.match} last={item.last}>
+          <CalendarGroupPart
+            divisionColor={item.match.pool.classification.division?.color}
+            last={item.last}
+          >
             <View
               style={[
                 styles.match,
@@ -369,20 +371,20 @@ function CalendarDate({
 
 /** Extends the shadow past each interior join, where the cell clips it to a continuous side edge. */
 function CalendarGroupPart({
-  match,
+  divisionColor,
   first,
   last,
   children,
 }: Readonly<
   PropsWithChildren<{
-    match: MatchSummaryResponse;
+    divisionColor?: string;
     first?: boolean;
     last?: boolean;
   }>
 >) {
   const { colors } = useTheme();
-  const division = match.pool.classification.division;
-  const tint = division && `${division.color}${colors.sportingSurfaceAlpha}`;
+  const tint =
+    divisionColor && `${divisionColor}${colors.sportingSurfaceAlpha}`;
   return (
     <View
       style={[
@@ -401,8 +403,8 @@ function CalendarGroupPart({
             backgroundImage: tint
               ? `linear-gradient(${tint}, ${tint})`
               : undefined,
-            borderColor: division
-              ? `${division.color}${colors.contextBorderAlpha}`
+            borderColor: divisionColor
+              ? `${divisionColor}${colors.contextBorderAlpha}`
               : colors.border,
             boxShadow: colors.cardShadow,
           },
@@ -433,7 +435,7 @@ function CalendarPoolHeader({
       2 * Math.ceil(styles.dateMeta.lineHeight * fontScale * scale)) /
       scale;
   return (
-    <CalendarGroupPart match={group.matches[0]} first>
+    <CalendarGroupPart divisionColor={division?.color} first>
       <View
         style={[styles.groupInset, besideDate && { minHeight: dateHeight }]}
       >
@@ -482,8 +484,8 @@ const monthFormat = new Intl.DateTimeFormat("fr-FR", {
   month: "short",
 });
 
-const groupShadowGutter = tokens.spacing.md;
-const groupShadowOverlap = tokens.spacing["2xl"];
+const groupShadowGutter = tokens.elevation.cardShadowBlurRadius;
+const groupShadowOverlap = 2 * groupShadowGutter;
 
 const styles = StyleSheet.create({
   stateControls: { paddingBottom: 0 },
@@ -510,7 +512,7 @@ const styles = StyleSheet.create({
     marginTop: -groupShadowGutter,
     paddingTop: groupShadowGutter,
   },
-  groupClipEnd: { paddingBottom: groupShadowGutter },
+  groupClipEnd: { paddingBottom: tokens.layout.list.gap },
   groupPart: {
     borderLeftWidth: tokens.border.thin,
     borderRightWidth: tokens.border.thin,

@@ -6,6 +6,8 @@ import { Platform, type TextStyle } from "react-native";
  * Typography/layout/effects: sibling foundation pages 7:4–7:6; control nodes are linked by quickstart.
  */
 const reference = { white: "#FFFFFF", neutral900: "#171717" };
+const cardShadowBlurRadius = 12;
+const cardShadowGeometry = `0px 4px ${cardShadowBlurRadius}px`;
 
 /** Sporting owners supply both approved appearances; the theme never derives division colors. */
 export interface ContextColors {
@@ -55,7 +57,7 @@ export const appearanceColors = {
     contextBorderAlpha: "4D",
     sportingSurfaceAlpha: "0C",
     border: "#20212424",
-    cardShadow: "0px 4px 12px #181C2E20",
+    cardShadow: `${cardShadowGeometry} #181C2E20`,
     capsuleShadow: "0px 5px 16px #14192426",
     text: "#1C1C1E",
     accentPrimary: reference.neutral900,
@@ -113,7 +115,7 @@ export const appearanceColors = {
     contextBorderAlpha: "6B",
     sportingSurfaceAlpha: "1C",
     border: "#FFFFFF2E",
-    cardShadow: "0px 4px 12px #00000065",
+    cardShadow: `${cardShadowGeometry} #00000065`,
     capsuleShadow: "0px 5px 16px #00000080",
     text: "#F7F7F8",
     accentPrimary: "#F1F1F2",
@@ -252,7 +254,7 @@ export const tokens = {
       },
     },
   },
-  elevation: { offsetX: 0, offsetY: 4, blur: 10 },
+  elevation: { offsetX: 0, offsetY: 4, blur: 10, cardShadowBlurRadius },
   motion: {
     slow: 480,
     // UI Library Motion / Navigation 3194:109; selection remains immediate while its decoration follows.

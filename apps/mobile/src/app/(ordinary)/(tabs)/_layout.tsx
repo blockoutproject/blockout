@@ -184,6 +184,7 @@ function NavigationCapsule({
             layout={layout}
             reducedMotion={reducedMotion}
             radius={tokens.radius.panelInset}
+            fill={membership.fill}
           />
           {children}
         </View>

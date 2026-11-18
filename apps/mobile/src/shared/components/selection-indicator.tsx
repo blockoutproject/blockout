@@ -5,7 +5,6 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
-import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
 /** The owner supplies a selected child's native rectangle in the same borderless coordinate space. */
@@ -13,7 +12,7 @@ export interface SelectionIndicatorProps {
   layout?: LayoutRectangle;
   reducedMotion: boolean;
   radius?: number;
-  fill?: string;
+  fill: string;
   borderColor?: string;
 }
 
@@ -25,7 +24,6 @@ export function SelectionIndicator({
   fill,
   borderColor,
 }: Readonly<SelectionIndicatorProps>) {
-  const { membership } = useTheme();
   const animated = useAnimatedStyle(() => {
     if (!layout) {
       return {};
@@ -52,7 +50,7 @@ export function SelectionIndicator({
       style={[
         styles.indicator,
         {
-          backgroundColor: fill ?? membership.fill,
+          backgroundColor: fill,
           borderRadius: radius,
           borderColor,
           borderWidth: borderColor ? tokens.border.thin : 0,

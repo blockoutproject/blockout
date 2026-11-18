@@ -66,7 +66,7 @@ For a deferred Team calendar, mount in zone A and activate it after travel to B:
 
 ### Complete-day calendar qualification
 
-Compare the planned shared date breathing room below the fixed upper pager rail in normal and stacked layouts, retaining the stacked bottom spacing. Dates remain opaque and sticky with ordinary push-off; list positions, offsets and virtualization do not change. F06’s personal calendar consumes the same date and group presentation.
+Compare the planned shared date breathing room below the fixed upper pager rail in normal and stacked layouts, retaining the stacked bottom spacing. Check that opaque sticky dates push off normally and that scrolling through the virtualized groups remains continuous. F06’s personal calendar consumes the same date and group presentation.
 
 Compare a single-match pool and a multi-match pool on Home and a sporting calendar. In each group, the space between the banner and the first match equals the space from the last match to the group's lower edge. The leading date visually merges with the canvas. The first banner beside a lateral date can use the shared row's extra height while preserving the match inset. Scroll through the group and check the continuous outer depth and opaque date push-off. Return via an exact match link. Distribute light/dark and normal/stacked cells across representative cases.
 
