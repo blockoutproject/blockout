@@ -304,7 +304,7 @@ function DivisionCard({
         styles.card,
         {
           backgroundColor: colors.surface,
-          borderColor: `${division.color}${tokens.sporting.borderAlpha}`,
+          borderColor: `${division.color}${colors.contextBorderAlpha}`,
           opacity: pressed ? tokens.opacity.pressed : 1,
         },
       ]}

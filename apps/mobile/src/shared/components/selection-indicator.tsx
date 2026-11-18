@@ -13,6 +13,8 @@ export interface SelectionIndicatorProps {
   layout?: LayoutRectangle;
   reducedMotion: boolean;
   radius?: number;
+  fill?: string;
+  borderColor?: string;
 }
 
 /** Animates measured bounds directly on the UI thread on both platforms; reduced motion settles immediately. */
@@ -20,6 +22,8 @@ export function SelectionIndicator({
   layout,
   reducedMotion,
   radius = tokens.radius.control,
+  fill,
+  borderColor,
 }: Readonly<SelectionIndicatorProps>) {
   const { membership } = useTheme();
   const animated = useAnimatedStyle(() => {
@@ -48,8 +52,10 @@ export function SelectionIndicator({
       style={[
         styles.indicator,
         {
-          backgroundColor: membership.fill,
+          backgroundColor: fill ?? membership.fill,
           borderRadius: radius,
+          borderColor,
+          borderWidth: borderColor ? tokens.border.thin : 0,
         },
         animated,
       ]}

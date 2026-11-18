@@ -44,7 +44,7 @@ export function MatchSummary({
   const contextual = presentation === "context";
   const schedule = formatSportingSchedule(match.schedule, displayTimeZone);
   return (
-    <MatchSurface division={division}>
+    <MatchSurface division={division} raised={!contextual}>
       <View
         style={[
           styles.pool,
@@ -91,7 +91,16 @@ export function MatchSummary({
         )}
       </View>
       {!contextual && (
-        <View style={[styles.metadata, { backgroundColor: colors.subtle }]}>
+        <View
+          style={[
+            styles.metadata,
+            {
+              backgroundColor: division
+                ? `${accent}${colors.sportingSurfaceAlpha}`
+                : colors.subtle,
+            },
+          ]}
+        >
           <View style={styles.status}>
             <View
               accessible={false}

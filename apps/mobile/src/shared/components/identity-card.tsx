@@ -32,6 +32,7 @@ export function IdentityCard({
         {
           backgroundColor: colors.surface,
           borderColor: borderColor ?? colors.border,
+          boxShadow: colors.cardShadow,
         },
       ]}
     >

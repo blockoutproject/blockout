@@ -8,19 +8,29 @@ import Animated, {
 } from "react-native-reanimated";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
-import { Tabs } from "./tabs";
+import { Tabs, type TabSelection } from "./tabs";
 
 /** Every pager keeps library navigation and binds only label color to its existing native progress. */
 export function NavigationTabBar({
   reducedMotion,
+  contextColor,
   ...props
 }: Readonly<
   ComponentProps<typeof DefaultTabBar> & {
     /** The shared pager owns one native preference for page commands and the existing static fallback. */
     reducedMotion: boolean;
+    contextColor?: string;
   }
 >) {
-  const { colors, membership } = useTheme();
+  const { colors, membership, proAccent } = useTheme();
+  const selection: TabSelection =
+    contextColor && !proAccent
+      ? {
+          fill: `${contextColor}${colors.sportingSurfaceAlpha}`,
+          content: colors.text,
+          borderColor: `${contextColor}${colors.contextBorderAlpha}`,
+        }
+      : membership;
   // RNCT 0.1.3 always animates its rail's auto-centering. Its public renderTabBar
   // slot reuses our existing static rail when the platform requests reduced motion.
   if (reducedMotion) {
@@ -32,25 +42,32 @@ export function NavigationTabBar({
         }))}
         selected={props.tabNames[props.activeIndex] ?? ""}
         onSelect={props.onTabPress}
+        selection={selection}
       />
     );
   }
   return (
     <DefaultTabBar
       {...props}
-      activeColor={membership.content}
+      activeColor={selection.content}
       inactiveColor={colors.secondaryText}
-      indicatorColor={membership.fill}
+      indicatorColor={selection.fill}
       style={styles.bar}
       tabStyle={styles.tab}
-      indicatorStyle={styles.indicator}
+      indicatorStyle={[
+        styles.indicator,
+        selection.borderColor && {
+          borderColor: selection.borderColor,
+          borderWidth: tokens.border.thin,
+        },
+      ]}
       renderLabel={({ label, index, focused }) => (
         <NavigationTabLabel
           label={label}
           index={index}
           focused={focused}
           position={props.indexDecimal}
-          activeColor={membership.content}
+          activeColor={selection.content}
           inactiveColor={colors.secondaryText}
         />
       )}

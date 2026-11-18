@@ -109,9 +109,10 @@ export function SportingIdentity({
   }
 
   const { colors } = useTheme();
+  const division = classification?.division;
   const logoIdentity =
     kind === "pool"
-      ? (classification?.division ?? { ...identity, logoUrl: undefined })
+      ? (division ?? { ...identity, logoUrl: undefined })
       : identity;
   const logo = useSportingLogo(
     logoIdentity,
@@ -162,15 +163,18 @@ export function SportingIdentity({
         ) : undefined
       }
       railBackground={
-        logo.uri && classification?.division ? (
-          <DivisionPaint division={classification.division} />
-        ) : undefined
+        logo.uri && division ? <DivisionPaint division={division} /> : undefined
       }
-      borderColor={classification?.division?.color}
+      railBackgroundColor={
+        division ? `${division.color}${colors.sportingSurfaceAlpha}` : undefined
+      }
+      borderColor={
+        division ? `${division.color}${colors.contextBorderAlpha}` : undefined
+      }
     >
       <View style={styles.heading}>
         <Text style={[styles.eyebrow, { color: colors.secondaryText }]}>
-          {classification?.division?.name ?? identityKindLabel()}
+          {division?.name ?? identityKindLabel()}
         </Text>
         <Text
           accessibilityRole="header"

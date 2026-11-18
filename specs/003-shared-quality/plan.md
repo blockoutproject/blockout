@@ -351,6 +351,8 @@ Related buttons use `tokens.layout.actions.gap`, the eight-point core spacing, w
 
 One `theme-provider.tsx`, composed by `apps/mobile/src/app/_layout.tsx`, resolves system appearance through React Native `useColorScheme`; Expo native appearance is automatic. Use light only if the native scheme is unavailable, without storing a preference or adding a selector. Consumers obtain current semantic values from this one owner, including open sheets and foreground return; avoid remounting forms/navigation to change appearance. Platform and reduced-motion values retain their separate native inputs. F02 owns effective sporting colors and their approved light/dark derivation; Figma Context Color modes illustrate representative divisions, not an exhaustive runtime division palette. F09 alone supplies current Pro eligibility; shared UI receives the needed presentation inputs without importing feature internals or caching entitlement. Unknown, inactive or obsolete-session eligibility supplies no Pro accent. Changing appearance does not change any of these inputs.
 
+Use one shared, subdued canvas recipe in both appearances. Calendar date rails use its opaque base under [F03’s calendar composition](../007-sporting-consultation/plan.md#mobile-state-and-navigation). The theme keeps neutral canvas and surfaces, strong sporting accents, weaker sporting fills and edge/selection colors distinct. F09 membership accents reach their eligible chrome and Profile consumers through the existing presentation boundary.
+
 ### Components, patterns and screens
 
 #### Shared page composition
@@ -375,7 +377,7 @@ Common geometry uses one semantic token owner in `shared/theme/tokens.ts`, with 
 
 `FilterButton` in `shared/components/filter-button.tsx` shares only the identical Search/Moderation presentation: existing minimum size/font-scale calculation, SVG, active marker, theme and press treatment. Its inputs are `active` and `onPress`. Criteria, RHF draft, Query reads, keyboard dismissal and routing stay with each feature. Existing `controlOpacity`/`control-styles.ts` owns the identical disabled/pressed treatment in source-link and classification controls; no toolbar or new token family is needed.
 
-`Surface` groups flat information or form content with the semantic default surface and subtle border, a 16-point inset and a 12-point child gap. An actual form owns its 16-point field stack inside that surface; child margins do not add another gap. Raised or context-specific cards retain a separate owner only where their actual treatment is needed.
+`Surface` groups flat information or form content with the semantic default surface and subtle border, a 16-point inset and a 12-point child gap. An actual form owns its 16-point field stack inside that surface; child margins do not add another gap. Raised cards share soft shadow characteristics through their existing owners. The floating capsule supplies its own shadow outside the clipped blur, and [F03](../007-sporting-consultation/plan.md#mobile-state-and-navigation) owns sporting card and calendar depth.
 
 `SeasonSelector` shares Home and Club’s compact pill, chevron, minimum touch target and accessible selected value. Callers provide its label, action, disabled/expanded state and contextual layout constraints; Home’s adapter alone maps F06 options and limits its width beside the tabs, while Club retains its own season state and inline choices.
 

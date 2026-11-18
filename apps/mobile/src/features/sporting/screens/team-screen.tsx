@@ -97,6 +97,7 @@ function TeamPage({
         <PagedTabs
           selected={tab ?? "upcoming"}
           onSelect={setSelected}
+          contextColor={data.team.classification.division?.color}
           header={
             data && (
               <SportingPageHeader

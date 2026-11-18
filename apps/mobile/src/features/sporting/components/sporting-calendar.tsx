@@ -356,7 +356,7 @@ function CalendarDate({
   );
 }
 
-/** Reuses one pool outline across separate header and encounter cells, with rounded ends only. */
+/** Extends the shadow past each interior join, where the cell clips it to a continuous side edge. */
 function CalendarGroupPart({
   match,
   first,
@@ -371,21 +371,34 @@ function CalendarGroupPart({
 >) {
   const { colors } = useTheme();
   const division = match.pool.classification.division;
+  const tint = division && `${division.color}${colors.sportingSurfaceAlpha}`;
   return (
     <View
       style={[
-        styles.groupPart,
-        first && styles.groupStart,
-        last && styles.groupEnd,
-        {
-          backgroundColor: colors.surface,
-          borderColor: division
-            ? `${division.color}${tokens.sporting.borderAlpha}`
-            : colors.border,
-        },
+        styles.groupClip,
+        first && styles.groupClipStart,
+        last && styles.groupClipEnd,
       ]}
     >
-      {children}
+      <View
+        style={[
+          styles.groupPart,
+          first ? styles.groupStart : styles.groupContinueAbove,
+          last ? styles.groupEnd : styles.groupContinueBelow,
+          {
+            backgroundColor: colors.surface,
+            backgroundImage: tint
+              ? `linear-gradient(${tint}, ${tint})`
+              : undefined,
+            borderColor: division
+              ? `${division.color}${colors.contextBorderAlpha}`
+              : colors.border,
+            boxShadow: colors.cardShadow,
+          },
+        ]}
+      >
+        {children}
+      </View>
     </View>
   );
 }
@@ -447,6 +460,9 @@ const monthFormat = new Intl.DateTimeFormat("fr-FR", {
   month: "short",
 });
 
+const groupShadowGutter = tokens.spacing.md;
+const groupShadowOverlap = tokens.spacing["2xl"];
+
 const styles = StyleSheet.create({
   stateControls: { paddingBottom: 0 },
   sceneHeader: { gap: tokens.spacing.lg, marginBottom: tokens.spacing.lg },
@@ -463,6 +479,16 @@ const styles = StyleSheet.create({
   },
   date: { ...tokens.typography.headingXl },
   dateMeta: { ...tokens.typography.metadata },
+  groupClip: {
+    overflow: "hidden",
+    marginHorizontal: -groupShadowGutter,
+    paddingHorizontal: groupShadowGutter,
+  },
+  groupClipStart: {
+    marginTop: -groupShadowGutter,
+    paddingTop: groupShadowGutter,
+  },
+  groupClipEnd: { paddingBottom: groupShadowGutter },
   groupPart: {
     borderLeftWidth: tokens.border.thin,
     borderRightWidth: tokens.border.thin,
@@ -477,7 +503,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: tokens.border.thin,
     borderBottomLeftRadius: tokens.radius.panel,
     borderBottomRightRadius: tokens.radius.panel,
-    marginBottom: tokens.spacing.md,
+  },
+  groupContinueAbove: {
+    marginTop: -groupShadowOverlap,
+    paddingTop: groupShadowOverlap,
+  },
+  groupContinueBelow: {
+    marginBottom: -groupShadowOverlap,
+    paddingBottom: groupShadowOverlap,
   },
   groupInset: { padding: tokens.spacing.xs, paddingBottom: 0 },
   pool: {

@@ -7,16 +7,27 @@ import { useTheme } from "@/shared/theme/theme-provider";
 /** Figma's match surfaces share the current division border; content owns its internal insets. */
 export interface MatchSurfaceProps extends PropsWithChildren {
   division?: SportingDivisionResponse;
+  /** The primary consultation card is raised; informational copies remain flat. */
+  raised?: boolean;
 }
 
-/** Flat 22 px surface; the canonical six-digit division color receives Context border/default alpha. */
+/** Clips its content to the rounded outline while the main card's shadow sits outside it. */
 export function MatchSurface({
   division,
+  raised = false,
   children,
 }: Readonly<MatchSurfaceProps>) {
   const { colors } = useTheme();
   return (
-    <View style={[styles.surface, { backgroundColor: colors.surface }]}>
+    <View
+      style={[
+        styles.surface,
+        {
+          backgroundColor: colors.surface,
+          boxShadow: raised ? colors.cardShadow : undefined,
+        },
+      ]}
+    >
       {children}
       <View
         pointerEvents="none"
@@ -25,7 +36,7 @@ export function MatchSurface({
           styles.stroke,
           {
             borderColor: division
-              ? `${division.color}${tokens.sporting.borderAlpha}`
+              ? `${division.color}${colors.contextBorderAlpha}`
               : colors.border,
           },
         ]}

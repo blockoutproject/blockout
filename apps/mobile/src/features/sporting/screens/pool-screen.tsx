@@ -92,6 +92,7 @@ function PoolPage({
         <PagedTabs
           selected={tab}
           onSelect={setTab}
+          contextColor={data.pool.classification.division?.color}
           header={
             data && (
               <SportingPageHeader

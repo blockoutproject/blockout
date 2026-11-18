@@ -29,6 +29,7 @@ export function ProOffer() {
         {
           backgroundColor: colors.surface,
           borderColor: premium.border,
+          boxShadow: colors.cardShadow,
           opacity: pressed ? tokens.opacity.pressed : 1,
         },
       ]}

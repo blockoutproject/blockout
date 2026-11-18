@@ -20,6 +20,13 @@ import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 import { tokens } from "@/shared/theme/tokens";
 import { SelectionIndicator } from "./selection-indicator";
 
+/** Local selections supply their paired paint; ordinary tabs use membership colors. */
+export interface TabSelection {
+  fill: string;
+  content: string;
+  borderColor?: string;
+}
+
 /** Content choices keep settled caller selection and full labels in a horizontally scrolling rail. */
 export interface TabsProps {
   items: readonly { id: string; label: string }[];
@@ -27,6 +34,7 @@ export interface TabsProps {
   onSelect: (id: string) => void;
   /** Home retains its approved compact visual inside a platform-sized touch target. */
   size?: "regular" | "compact";
+  selection?: TabSelection;
 }
 
 /** Shared content tabs retain their rest inset inside scrolling content and decorate settled selection. */
@@ -35,7 +43,9 @@ export function Tabs({
   selected,
   onSelect,
   size = "regular",
+  selection,
 }: Readonly<TabsProps>) {
+  const { membership } = useTheme();
   const rail = useRef<ScrollViewInstance>(null);
   const [layouts, setLayouts] = useState<Record<string, LayoutRectangle>>({});
   const reducedMotion = useReducedMotion();
@@ -55,12 +65,18 @@ export function Tabs({
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.tabs}
     >
-      <SelectionIndicator layout={target} reducedMotion={reducedMotion} />
+      <SelectionIndicator
+        layout={target}
+        reducedMotion={reducedMotion}
+        fill={selection?.fill}
+        borderColor={selection?.borderColor}
+      />
       {items.map((item) => (
         <StandaloneTab
           key={item.id}
           label={item.label}
           selected={selected === item.id}
+          activeColor={selection?.content ?? membership.content}
           compact={size === "compact"}
           reducedMotion={reducedMotion}
           onSelect={() => onSelect(item.id)}
@@ -85,6 +101,7 @@ export function Tabs({
 function StandaloneTab({
   label,
   selected,
+  activeColor,
   compact,
   reducedMotion,
   onSelect,
@@ -92,6 +109,7 @@ function StandaloneTab({
 }: Readonly<{
   label: string;
   selected: boolean;
+  activeColor: string;
   compact: boolean;
   reducedMotion: boolean;
   onSelect: () => void;
@@ -99,7 +117,7 @@ function StandaloneTab({
 }>) {
   const outer = useRef<LayoutRectangle | undefined>(undefined);
   const inner = useRef<LayoutRectangle | undefined>(undefined);
-  const { colors, membership } = useTheme();
+  const { colors } = useTheme();
   const focus = useDerivedValue(() =>
     withTiming(selected ? 1 : 0, {
       duration: reducedMotion ? 0 : tokens.motion.navigation.duration,
@@ -111,7 +129,7 @@ function StandaloneTab({
     color: interpolateColor(
       focus.value,
       [0, 1],
-      [colors.secondaryText, membership.content],
+      [colors.secondaryText, activeColor],
     ),
   }));
 

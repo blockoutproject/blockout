@@ -91,6 +91,7 @@ export function Page({
         styles.page,
         {
           backgroundColor: colors.canvas,
+          backgroundImage: colors.canvasGradient,
           paddingTop: ownsTop && !overlay ? tokens.spacing.sm : 0,
         },
       ]}

@@ -74,7 +74,10 @@ export function SportingEntityCard({
   const label = [identity.name, subtitle, ...metadata.map(({ label }) => label)]
     .filter(Boolean)
     .join(", ");
-  const style = [styles.card, { backgroundColor: colors.surface }];
+  const style = [
+    styles.card,
+    { backgroundColor: colors.surface, boxShadow: colors.cardShadow },
+  ];
   const content = (
     <>
       <View style={styles.identity}>
@@ -109,7 +112,14 @@ export function SportingEntityCard({
         )}
       </View>
       {metadata.length > 0 && (
-        <View style={styles.metadata}>
+        <View
+          style={[
+            styles.metadata,
+            division && {
+              backgroundColor: `${division.color}${colors.sportingSurfaceAlpha}`,
+            },
+          ]}
+        >
           {metadata.map(({ id, label }) => (
             <View
               key={id}
@@ -146,7 +156,7 @@ export function SportingEntityCard({
           styles.edge,
           {
             borderColor: division
-              ? `${division.color}${tokens.sporting.borderAlpha}`
+              ? `${division.color}${colors.contextBorderAlpha}`
               : colors.border,
           },
         ]}
