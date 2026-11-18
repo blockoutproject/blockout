@@ -221,17 +221,21 @@ The serving backend's [ordinary complete F04 rebuild](#search-projection-and-rec
 
 ## Auth0 V1 default-role isolation
 
-[F14 T019](../../specs/014-v1-v2-transition/tasks.md) and [#162](https://github.com/blockoutproject/blockout/issues/162) restrict the existing `assign-default-role` post-login Action to the retained V1 native client. Obtain authorization for this exact tenant/Action operation before editing or deploying it. V2 permissions remain PostgreSQL-owned; no replacement role endpoint, identity linking, credential rotation or V1 retirement is included.
+[F14's identity boundary](../../specs/014-v1-v2-transition/plan.md#identity-and-purchase-continuity) retains the existing `assign-default-role` client guard and exempts the V2 production mobile audience when the native registration is shared. Obtain authorization for this exact tenant/Action operation before editing or deploying it. V2 permissions remain PostgreSQL-owned; no replacement role endpoint, identity linking, credential rotation or V1 retirement is included.
 
 1. Confirm the V1 native application's exact client ID from its current Auth0 registration and production callback identities. Record the bound Action's deployed version, runtime and dependencies, and keep a recoverable source copy privately outside this public repository. Do not open or copy secret values. Stop if another draft or concurrent revision differs from the reviewed source.
-2. Insert this guard as the first executable statement of `exports.onExecutePostLogin`, before reading secrets, roles or user data. The public client ID below was verified for the retained V1 registration; reverify the target before another execution. Match neither the display name nor a client-ID prefix.
+2. Confirm the new production Mobile API uses the exact audience below. Add its early return before the existing client guard, leaving the configured `V1_CLIENT_ID` reference unchanged. The retained native client is `L3AotVuEqikyNrCQexkf6S3D1LZjk69E`; reverify the target without copying secret values. Match neither a display name nor an identifier prefix.
 
    ```js
-   if (event.client.client_id !== "L3AotVuEqikyNrCQexkf6S3D1LZjk69E") return;
+   if (
+     event.resource_server?.identifier === "urn:blockout:v2:production:mobile"
+   )
+     return;
+   if (event.client.client_id !== event.secrets.V1_CLIENT_ID) return;
    ```
 
-3. Keep V1's executable body unchanged. With synthetic data and controlled HTTP, verify its existing-role claim, encoded assignment request, five-second timeout, claims after assignment and login-blocking assignment failure. Verify non-V1 clients with and without prior roles produce neither legacy HTTP nor legacy claims, even when legacy secrets are unavailable. Auth0 documents the trusted [initiating client](https://auth0.com/docs/actions/reference/post-login/post-login-event-object#event-client) and [controlled Action tests](https://auth0.com/docs/customize/actions/unit-test).
-4. In Auth0's native tester, exercise the candidate with a non-V1 client, both with and without roles, and V1 with an already assigned synthetic role. Do not send a synthetic roleless V1 identity to the real assignment endpoint: that test can perform a production write. Controlled tests establish their own boundaries, not a real mobile login or population continuity.
+3. Keep V1's remaining executable body unchanged. With synthetic data and controlled HTTP, verify its existing-role claim, encoded assignment request, five-second timeout, claims after assignment and login-blocking assignment failure, including absent `resource_server`. Verify the V2 audience returns with and without roles before any legacy secret, HTTP or claim access. Preserve the existing other-client guard. Auth0 documents the trusted [initiating client and resource server](https://auth0.com/docs/actions/reference/post-login/post-login-event-object) and [controlled Action tests](https://auth0.com/docs/customize/actions/unit-test).
+4. In Auth0's native tester, exercise the V2 audience and retained client with and without roles, and V1 with an already assigned synthetic role. Do not send a synthetic roleless V1 identity to the real assignment endpoint: that test can perform a production write. Controlled tests establish their own boundaries, not real mobile login, renewal or population continuity. Actual V2 login and refresh must expose the expected audience boundary under F05; an absent resource server retains V1 behavior and is not proof of V2 isolation.
 5. Deploy the reviewed version of the already-bound Action and verify its published version and unchanged post-login binding. Have the owner perform a real V1 sign-in with the existing application/account, then inspect the corresponding Auth0 outcome privately. Record safe version/results and remaining limits in the owning [qualification guide](../../specs/014-v1-v2-transition/quickstart.md). Full V2 native sign-in and prior-role categories remain T021-owned.
 6. If the scoped change breaks V1, use Auth0's native [Version History / Revert](https://auth0.com/docs/customize/actions/manage-versions) for the recorded prior version, verify its deployed binding and repeat the affected check. Reread uncertain deployment results before repeating an operation; create no retry service or extra Action.
 

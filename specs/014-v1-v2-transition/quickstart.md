@@ -67,7 +67,7 @@ Exercise the identity/Pro scenario row with actual F05/F09/F12 composition. Expe
 
 ## Auth0 default-role isolation
 
-The completed scoped `assign-default-role` isolation is described in the [business procedure](../../infra/operations/README.md#auth0-v1-default-role-isolation). Local V2 account/session checks use existing authorized native applications and dedicated test users without modifying that Action, its binding or the V1 application. Current local work grants no final dependency-removal authority.
+Follow the [business procedure](../../infra/operations/README.md#auth0-v1-default-role-isolation) before reusing the retained production native client. Verify the exact V2 audience returns before legacy secrets, HTTP and claims, while V1 cases with and without a resource server retain their existing behavior. Controlled cases do not qualify actual V2 renewal: observe the native login and refresh boundary under F05. Local checks use authorized clients and dedicated test users; they grant no provider deployment, binding change or final dependency-removal authority.
 
 ## Protected-logo rehearsal
 
