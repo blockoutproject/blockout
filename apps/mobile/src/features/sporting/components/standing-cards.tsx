@@ -113,7 +113,7 @@ function StandingCard({
     const content = (
       <>
         {podium && <RankTint color={rank.fill} />}
-        {atmosphere && (
+        {podium && atmosphere ? (
           <View
             pointerEvents="none"
             accessible={false}
@@ -121,6 +121,8 @@ function StandingCard({
           >
             {atmosphere}
           </View>
+        ) : (
+          atmosphere
         )}
         <View style={podium ? styles.podiumIdentity : styles.rowIdentity}>
           <View
@@ -224,6 +226,10 @@ function StandingCard({
       identity={row.team}
       kind="team"
       size={podium ? tokens.size.media.row : tokens.size.media.match}
+      atmosphere={{
+        layout: podium ? "podium" : "horizontal",
+        withdrawLogoOnError: true,
+      }}
       renderWithAtmosphere={renderCard}
     />
   ) : (
@@ -395,7 +401,11 @@ const styles = StyleSheet.create({
   },
   atmosphere: {
     position: "absolute",
-    top: tokens.sporting.standingsCard.atmosphereTop,
+    top:
+      tokens.spacing.sm +
+      (tokens.sporting.standingsCard.podiumIdentityMinHeight -
+        tokens.sporting.standingsCard.atmosphereHeight) /
+        2,
     left: tokens.sporting.standingsCard.atmosphereLeft,
     width: tokens.sporting.standingsCard.atmosphereWidth,
     height: tokens.sporting.standingsCard.atmosphereHeight,

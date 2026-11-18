@@ -1207,7 +1207,17 @@ it.each(["club", "team", "pool", "match"] as const)(
 );
 
 it("shares the newest/selected club season between teams and both calendar entries", async () => {
-  // Given
+  // Given: a classified team in the club's current season.
+  team.team.classification = {
+    division: {
+      id: "00000000-0000-4000-8000-000000000013",
+      name: "Prénationale",
+      color: "#C74750",
+      gradient: null,
+    },
+    gender: "female",
+    format: "6x6",
+  };
   const user = userEvent.setup();
   await renderPage(<ClubScreen clubId={sportingId} />);
   await layoutSportingPage();
@@ -1216,19 +1226,31 @@ it("shares the newest/selected club season between teams and both calendar entri
 
   // When
   await user.press(screen.getByRole("tab", { name: "Équipes" }));
-  await screen.findByRole("link", { name: team.team.team.name });
+
+  // Then: the link announces all visible classification for that team.
+  expect(
+    await screen.findByRole("link", {
+      name: "Équipe des Deux Rives, Prénationale, Féminin, 6 × 6",
+    }),
+  ).toBeOnTheScreen();
   const selector = screen.getByRole("button", {
     name: "Saison du club",
     expanded: false,
   });
   expect(selector).toHaveAccessibilityValue({ text: season.label });
+
+  // When
   await user.press(selector);
+
+  // Then
   expect(
     screen.getByRole("button", { name: "Saison du club", expanded: true }),
   ).toHaveAccessibilityValue({ text: season.label });
   expect(
     screen.getByRole("radio", { name: season.label, checked: true }),
   ).toBeOnTheScreen();
+
+  // When
   await user.press(
     screen.getByRole("radio", { name: olderSeason.label, checked: false }),
   );
@@ -1832,6 +1854,47 @@ it.each(["summary", "context"] as const)(
   },
 );
 
+it("keeps the full Match summary readable when its competition badge fails to decode", async () => {
+  // Given
+  const divisionId = "00000000-0000-4000-8000-000000000013";
+  const division = {
+    id: divisionId,
+    name: "Prénationale",
+    color: "#C74750",
+    gradient: null,
+    logoUrl: `/divisions/${divisionId}/logo`,
+  };
+  match.match.pool.classification = { division };
+  match.match.category = "completed";
+  match.match.result = {
+    state: "final",
+    homeSets: 3,
+    awaySets: 1,
+    observedAt: "2026-10-25T20:00:00Z",
+  };
+  await renderPage(<MatchSummary match={match.match} />);
+  const badge = screen.getByRole("image", { name: "Logo : Prénationale" });
+  expect(screen.getByTestId("sporting-logo-atmosphere")).toBeOnTheScreen();
+
+  // When
+  await fireEvent(badge, "error", {
+    nativeEvent: { error: "Competition badge decoding failed" },
+  });
+
+  // Then
+  expect(
+    screen.getByRole("image", { name: "Logo indisponible : Prénationale" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByTestId("sporting-logo-atmosphere"),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: match.match.pool.pool.name }),
+  ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Score domicile : 3")).toHaveTextContent("3");
+  expect(screen.getByLabelText("Score extérieur : 1")).toHaveTextContent("1");
+});
+
 it.each(["provisional", "unconfirmed"] as const)(
   "retains the full %s uncertainty when the contribution context has no status band",
   async (state) => {
@@ -1900,6 +1963,46 @@ it("keeps a sharp Score crest when its same-source decorative light fails", asyn
       name: `Logo : ${match.match.home.name}`,
       busy: false,
     }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByTestId(`match-score-atmosphere-${match.match.away.id}`),
+  ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Set 1 : 25 à 0")).toBeOnTheScreen();
+});
+
+it("withdraws only the failed Score crest and its associated halo", async () => {
+  // Given
+  match.match.home.logoUrl = `/teams/${match.match.home.id}/logo`;
+  match.match.away.logoUrl = `/teams/${match.match.away.id}/logo`;
+  await renderPage(
+    <MatchSetScores
+      match={match.match}
+      sets={{
+        observedAt: "2026-10-24T14:00:00Z",
+        items: [{ home: 25, away: 0 }],
+      }}
+    />,
+  );
+  const haloId = `match-score-atmosphere-${match.match.home.id}`;
+  expect(screen.getByTestId(haloId)).toBeOnTheScreen();
+
+  // When
+  const crest = screen.getByRole("image", {
+    name: `Logo : ${match.match.home.name}`,
+  });
+  await fireEvent(crest, "error", {
+    nativeEvent: { error: "Score crest decoding failed" },
+  });
+
+  // Then
+  expect(screen.queryByTestId(haloId)).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("image", {
+      name: `Logo indisponible : ${match.match.home.name}`,
+    }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("image", { name: `Logo : ${match.match.away.name}` }),
   ).toBeOnTheScreen();
   expect(
     screen.getByTestId(`match-score-atmosphere-${match.match.away.id}`),
@@ -2163,6 +2266,8 @@ it("keeps a team readable when its native public logo fails", async () => {
     name: `Logo : ${team.team.team.name}`,
   });
 
+  expect(screen.getByTestId("sporting-logo-atmosphere")).toBeOnTheScreen();
+
   // When
   await fireEvent(image, "error", {
     nativeEvent: { error: "Native decode failed" },
@@ -2172,6 +2277,9 @@ it("keeps a team readable when its native public logo fails", async () => {
   await screen.findByRole("image", {
     name: `Logo indisponible : ${team.team.team.name}`,
   });
+  expect(
+    screen.queryByTestId("sporting-logo-atmosphere"),
+  ).not.toBeOnTheScreen();
   expect(screen.getByText(team.team.team.name)).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("/logo")),

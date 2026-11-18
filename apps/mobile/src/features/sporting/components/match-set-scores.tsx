@@ -7,8 +7,9 @@ import type {
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { MatchSurface } from "./match-surface";
-import { useSportingLogo } from "../api/use-sporting-logo";
-import { SportingAtmosphere, SportingMedia } from "./sporting-media";
+import { SportingLogo } from "./sporting-identity";
+
+const scoreHaloSize = tokens.sporting.atmosphere.crestSize;
 
 /** Accepted set sequence and its original home/away identities; missing detail never becomes zeros. */
 export interface MatchSetScoresProps {
@@ -112,26 +113,26 @@ function MatchScoreTeam({
   side: "home" | "away";
 }>) {
   const { colors } = useTheme();
-  const logo = useSportingLogo(identity, "team");
   return (
     <View style={styles.team}>
-      {logo.uri && (
-        <View pointerEvents="none" accessible={false} style={styles.halo}>
-          <SportingAtmosphere
-            key={logo.uri}
-            uri={logo.uri}
-            testID={`match-score-atmosphere-${identity.id}`}
-          />
-        </View>
-      )}
-      <SportingMedia
-        key={`${identity.id}:${identity.logoUrl ?? ""}`}
+      <SportingLogo
         identity={identity}
         kind="team"
         size={tokens.sporting.setLogo}
-        uri={logo.uri}
-        loading={logo.loading}
-        error={logo.error}
+        atmosphere={{
+          layout: "crest",
+          testID: `match-score-atmosphere-${identity.id}`,
+        }}
+        renderWithAtmosphere={(logo, halo) => (
+          <>
+            {halo && (
+              <View pointerEvents="none" accessible={false} style={styles.halo}>
+                {halo}
+              </View>
+            )}
+            {logo}
+          </>
+        )}
       />
       <Text
         numberOfLines={2}
@@ -163,9 +164,9 @@ const styles = StyleSheet.create({
   },
   halo: {
     position: "absolute",
-    width: tokens.sporting.haloSize,
-    height: tokens.sporting.haloSize,
-    top: tokens.sporting.haloTop,
+    width: scoreHaloSize,
+    height: scoreHaloSize,
+    top: tokens.spacing.md + (tokens.sporting.setLogo - scoreHaloSize) / 2,
   },
   name: {
     ...tokens.typography.setTeam,

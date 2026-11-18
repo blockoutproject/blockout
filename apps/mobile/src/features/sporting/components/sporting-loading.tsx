@@ -61,9 +61,13 @@ export function SportingMatchLoading() {
 function MatchSummarySkeleton() {
   const { colors } = useTheme();
   const { fontScale } = useWindowDimensions();
+  const scoreHeight = Math.max(
+    tokens.sporting.scoreSize,
+    tokens.typography.heading.lineHeight * fontScale + 2 * tokens.spacing.tight,
+  );
   return (
     <MatchSurface>
-      <View style={[styles.pool, { backgroundColor: colors.skeletonHeader }]}>
+      <View style={styles.pool}>
         <Skeleton
           width={tokens.size.media.row}
           height={tokens.size.media.row}
@@ -77,7 +81,6 @@ function MatchSummarySkeleton() {
         <TextSkeleton role="metadata" width={49 * fontScale} />
         <View style={styles.date}>
           <TextSkeleton role="metadata" width={134 * fontScale} />
-          <TextSkeleton role="metadata" width={84 * fontScale} />
         </View>
       </View>
       {[0, 1].map((index) => (
@@ -96,9 +99,11 @@ function MatchSummarySkeleton() {
             <View style={styles.copy}>
               <TextSkeleton role="navigation" width="85%" />
             </View>
-            <View style={styles.score}>
-              <TextSkeleton role="heading" width={12 * fontScale} />
-            </View>
+            <Skeleton
+              width={tokens.sporting.scoreSize}
+              height={scoreHeight}
+              shape="rectangle"
+            />
           </View>
         </Fragment>
       ))}
@@ -139,14 +144,6 @@ const styles = StyleSheet.create({
     paddingVertical: tokens.spacing.md,
   },
   copy: { flex: 1, minWidth: 0 },
-  score: {
-    minWidth: 40,
-    minHeight: 40,
-    paddingHorizontal: tokens.spacing.sm,
-    paddingVertical: tokens.spacing.tight,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   separator: {
     height: tokens.border.thin,
     opacity: tokens.sporting.separatorOpacity,

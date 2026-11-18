@@ -4,6 +4,7 @@ import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { PageHeader } from "@/shared/components/page-header";
+import { NavigationAccent } from "@/shared/components/navigation-accent";
 import { Page, PageScrollView, PageContent } from "@/shared/components/page";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
@@ -180,6 +181,7 @@ export function MatchScreen({
         )
       }
     >
+      <NavigationAccent color={failed ? undefined : division?.color} />
       <PageScrollView
         refreshControl={
           data && !failed ? (

@@ -74,6 +74,7 @@ export function PersonalCalendar({
     <SportingCalendarView
       key={hashKey(options.queryKey)}
       calendar={calendar}
+      category={category}
       active={active}
       onRefresh={refreshCalendar}
       emptyState={

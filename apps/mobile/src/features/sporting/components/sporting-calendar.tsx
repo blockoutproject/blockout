@@ -51,12 +51,10 @@ import {
   currentSportingTimeZone,
   formatSportingDay,
 } from "../model/sporting-time";
-import { divisionTextColor } from "../presentation";
 import { genderLabel } from "../classification-presentation";
 
 import { CalendarMatch } from "./calendar-match";
-import { DivisionPaint } from "./division-paint";
-import { SportingLogo, SportingArtwork } from "./sporting-identity";
+import { SportingLogo } from "./sporting-identity";
 import { SportingMedia } from "./sporting-media";
 
 /** One native tab owns its exact calendar traversal; inactive panels keep data without issuing reads. */
@@ -84,6 +82,7 @@ export function SportingCalendar({
     <SportingCalendarView
       key={hashKey(queryKey)}
       calendar={calendar}
+      category={selection.category}
       active={active}
       onRefresh={refresh}
     >
@@ -110,6 +109,8 @@ export interface SportingCalendarViewProps {
     /** Native Query eligibility; an explicit scoped Retry can reread a failed disabled observer. */
     isEnabled?: boolean;
   };
+  /** The loading structure is known from the selected calendar before any matches arrive. */
+  category: CalendarSelection["category"];
   active?: boolean;
   onRefresh: (timeZone: string) => Promise<unknown>;
   emptyState?: ReactNode;
@@ -120,6 +121,7 @@ export interface SportingCalendarViewProps {
 /** Keeps the native calendar mounted during continuation; other read failures retain their scoped card. */
 export function SportingCalendarView({
   calendar,
+  category,
   active = true,
   onRefresh,
   emptyState,
@@ -219,7 +221,11 @@ export function SportingCalendarView({
         calendar.isEnabled !== false ? (
           <PageContent>
             {children}
-            <CalendarLoading columns={columns} stacked={stacked} />
+            <CalendarLoading
+              category={category}
+              columns={columns}
+              stacked={stacked}
+            />
           </PageContent>
         ) : (
           <>
@@ -423,13 +429,11 @@ function CalendarPoolHeader({
   group,
   besideDate,
 }: Readonly<{ group: MatchPoolGroupResponse; besideDate: boolean }>) {
-  const { context } = useTheme();
+  const { colors } = useTheme();
   const { fontScale, scale } = useWindowDimensions();
   const pool = group.matches[0].pool;
   const division = pool.classification.division;
-  const accent = division?.color ?? context.primary;
-  const foreground = division ? divisionTextColor(accent) : context.onAction;
-  // The banner fills the row reserved by the date so each pool keeps the same match insets.
+  // The heading fills the row reserved by the date so each pool keeps the same match insets.
   const dateHeight =
     styles.dateHeading.paddingTop +
     styles.dateHeading.gap +
@@ -441,13 +445,9 @@ function CalendarPoolHeader({
       <View
         style={[styles.groupInset, besideDate && { minHeight: dateHeight }]}
       >
-        <View style={[styles.pool, { backgroundColor: accent }]}>
+        <View style={styles.pool}>
           {division ? (
-            <>
-              <DivisionPaint division={division} />
-              <SportingArtwork division={division} />
-              <SportingLogo identity={division} kind="division" size={40} />
-            </>
+            <SportingLogo identity={division} kind="division" size={40} />
           ) : (
             <SportingMedia identity={pool.pool} kind="division" size={40} />
           )}
@@ -457,11 +457,11 @@ function CalendarPoolHeader({
               accessibilityLabel={pool.pool.name}
               numberOfLines={2}
               ellipsizeMode="tail"
-              style={[styles.poolName, { color: foreground }]}
+              style={[styles.poolName, { color: colors.text }]}
             >
               {pool.pool.name}
             </Text>
-            <Text style={[styles.metadata, { color: foreground }]}>
+            <Text style={[styles.metadata, { color: colors.secondaryText }]}>
               {[division?.name, genderLabel(pool.classification.gender)]
                 .filter(Boolean)
                 .join(" ")}
@@ -545,9 +545,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: tokens.spacing.md,
     padding: tokens.spacing.md,
-    borderTopLeftRadius: tokens.radius.panelInset,
-    borderTopRightRadius: tokens.radius.panelInset,
-    overflow: "hidden",
   },
   identity: { flex: 1, minWidth: 0, gap: tokens.spacing.xs },
   poolName: { ...tokens.typography.strong },

@@ -12,8 +12,13 @@ export default function PoolRoute() {
     <PoolScreen
       poolId={poolId}
       initialFollow={follow.usable ? follow.query : undefined}
-      renderFollow={(_identity, season) => (
-        <SportingActions target={target} season={season} read={follow} />
+      renderFollow={(_identity, season, contextColor) => (
+        <SportingActions
+          target={target}
+          season={season}
+          read={follow}
+          contextColor={contextColor}
+        />
       )}
     />
   );
