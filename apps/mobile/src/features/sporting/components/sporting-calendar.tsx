@@ -433,7 +433,7 @@ function CalendarPoolHeader({
   const { fontScale, scale } = useWindowDimensions();
   const pool = group.matches[0].pool;
   const division = pool.classification.division;
-  // The heading fills the row reserved by the date so each pool keeps the same match insets.
+  // The side date reserves row height; align the banner to the first match's fixed inset.
   const dateHeight =
     styles.dateHeading.paddingTop +
     styles.dateHeading.gap +
@@ -538,13 +538,17 @@ const styles = StyleSheet.create({
     marginBottom: -groupShadowOverlap,
     paddingBottom: groupShadowOverlap,
   },
-  groupInset: { padding: tokens.spacing.xs, paddingBottom: 0 },
+  groupInset: {
+    paddingHorizontal: tokens.spacing.xs,
+    paddingTop: tokens.spacing.xs,
+    justifyContent: "flex-end",
+  },
   pool: {
-    flexGrow: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.md,
-    padding: tokens.spacing.md,
+    paddingHorizontal: tokens.spacing.md,
+    paddingTop: tokens.spacing.md,
   },
   identity: { flex: 1, minWidth: 0, gap: tokens.spacing.xs },
   poolName: { ...tokens.typography.strong },

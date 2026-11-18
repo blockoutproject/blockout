@@ -15,6 +15,7 @@ import {
 } from "react";
 import { AccessibilityInfo, Platform, StyleSheet, View } from "react-native";
 import Animated, {
+  Easing,
   useAnimatedProps,
   useAnimatedStyle,
   useDerivedValue,
@@ -27,6 +28,7 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
+const easeBlurReveal = Easing.out(Easing.quad);
 const softScrollEdge = { top: "soft" } as const;
 const NativeNavigationEdgeContext = createContext(false);
 
@@ -117,7 +119,7 @@ function useSoftNavigationEdge(ownsStackScrollEdge: boolean) {
   return supported && !reducedTransparency;
 }
 
-/** Reveals native blur with scroll; a hidden resting view removes the material's tint. */
+/** One Expo material follows the scroll offset for ordinary pages and paged scenes. */
 export function NavigationBackdrop({
   target,
   scrollOffset,
@@ -129,13 +131,19 @@ export function NavigationBackdrop({
   style?: ComponentProps<typeof Animated.View>["style"];
 }>) {
   const { scheme } = useTheme();
-  const progress = useDerivedValue(() =>
-    Math.min(1, Math.max(0, scrollOffset.get()) / tokens.layout.header),
-  );
-  // UIKit visual effects require full ancestor alpha; animate the supported intensity instead.
-  const reveal = useAnimatedStyle(() => ({
-    opacity: progress.get() > 0 ? 1 : 0,
-  }));
+  const fadeLayer = Platform.OS === "android";
+  const progress = useDerivedValue(() => {
+    const amount = Math.min(
+      1,
+      Math.max(0, scrollOffset.get()) / tokens.layout.header,
+    );
+    return easeBlurReveal(amount);
+  });
+  // Fade Android's grain with the material. UIKit requires full alpha while visible.
+  const reveal = useAnimatedStyle(() => {
+    const amount = progress.get();
+    return { opacity: fadeLayer ? amount : Number(amount > 0) };
+  });
   const material = useAnimatedProps(() => ({
     intensity: Math.max(
       1,
@@ -150,7 +158,7 @@ export function NavigationBackdrop({
       <AnimatedBlurView
         blurTarget={target}
         blurMethod="dimezisBlurView"
-        tint={tokens.blur.navigation.tint[scheme]}
+        tint={tokens.blur.navigation.headerTint[scheme]}
         animatedProps={material}
         blurReductionFactor={tokens.blur.navigation.androidReduction}
         style={StyleSheet.absoluteFill}

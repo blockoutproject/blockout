@@ -251,6 +251,10 @@ export const tokens = {
     navigation: {
       intensity: 100,
       headerIntensity: 85,
+      headerTint: {
+        light: "systemMaterialLight" as const,
+        dark: "systemMaterialDark" as const,
+      },
       androidReduction: 2.8125,
       tint: {
         light: "systemThickMaterialLight" as const,

@@ -225,11 +225,9 @@ function GateImage({ uri }: Readonly<{ uri?: string | null }>) {
   ) : (
     <View
       style={[
+        styles.media,
         styles.placeholder,
-        {
-          backgroundColor: colors.mediaPlaceholder,
-          borderColor: colors.secondaryText,
-        },
+        { backgroundColor: colors.mediaPlaceholder },
       ]}
     >
       <ImageFallback color={colors.secondaryText} />
@@ -330,15 +328,7 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     alignItems: "center",
-    width: "100%",
-    maxWidth: 280,
-    minHeight: 140,
     justifyContent: "center",
-    borderWidth: tokens.border.thin,
-    borderStyle: "dashed",
-    borderRadius: tokens.media.radius.profile,
-    overflow: "hidden",
-    padding: tokens.spacing.sm,
   },
   copy: { ...tokens.typography.body, lineHeight: 21 },
   heading: {
