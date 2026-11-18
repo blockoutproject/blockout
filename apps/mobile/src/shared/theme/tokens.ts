@@ -297,7 +297,6 @@ export const tokens = {
       scale: 3,
       opacity: { light: 0.34, dark: 0.42 },
       horizontalWidth: 150,
-      crestSize: 112,
       crestScale: 2,
     },
     clubTeam: { minHeight: 114, railWidth: 66, logoSize: 44 },
