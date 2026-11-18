@@ -95,7 +95,7 @@ Verify the actual F01 → F02 → F03 handoff for a published empty standings ta
 
 ## Collector partial success and absence
 
-Use the [disposable collector-to-sporting runtime](../../README.md#collector-to-sporting-qualification) with the separately packaged backend, generated RestClient consumers, migrated PostgreSQL and restricted application role. Use synthetic supplier/token peers and the real FFVB interpreter for malformed-context cases.
+Use the [disposable collector-to-sporting runtime](../../README.md#collector-to-sporting-qualification) with the separately packaged backend, generated RestClient consumers, migrated PostgreSQL and restricted application role. Use synthetic supplier/token peers and the real FFVB interpreter for malformed-context cases. In `CollectorSportingReadIntegrationTest`, exercise FFVB rows with out-of-order, repeated and omitted printed ranks and LNV rows with no printed ranks. Check that the generated handoff retains the full sequence, including unlinked rows, and that later qualified LNV input changing only row order replaces the previous sequence.
 
 | Case                               | Expected result                                                                                                                                                                                                                 |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

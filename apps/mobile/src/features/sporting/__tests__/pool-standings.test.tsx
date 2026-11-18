@@ -19,6 +19,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from "@testing-library/react-native";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -233,7 +234,7 @@ function panel(refreshEmpty = true) {
   );
 }
 
-it("preserves official labels positions and missing values without guessed links", async () => {
+it("numbers each published list row and preserves official labels and statistics", async () => {
   // Given
   const user = userEvent.setup();
   await open(panel());
@@ -248,20 +249,21 @@ it("preserves official labels positions and missing values without guessed links
     pathname: "/teams/[teamId]",
     params: { teamId: sportingId },
   });
-  expect(screen.getByText("7")).toBeOnTheScreen();
+  expect(screen.getByLabelText("Rang 1")).toHaveTextContent("1");
+  expect(screen.getByLabelText("Rang 2")).toHaveTextContent("2");
+  expect(screen.getByLabelText("Rang 3")).toHaveTextContent("3");
   expect(screen.getByText("4")).toBeOnTheScreen();
   expect(screen.getByText("Unmatched")).toBeOnTheScreen();
   expect(
     screen.getByRole("image", { name: "Logo absent : Unmatched" }),
   ).toBeOnTheScreen();
   expect(screen.queryByRole("link", { name: /Unmatched/ })).toBeNull();
-  expect(screen.queryByText("1")).toBeNull();
   expect(screen.getAllByText("0")).toHaveLength(1);
   expect(
-    screen.getByRole("link", { name: /Official Z/, selected: true }),
+    screen.getByRole("link", { name: /Official Z\. Rang 1/, selected: true }),
   ).toBeOnTheScreen();
   expect(
-    screen.getByRole("link", { name: /Official A/, selected: false }),
+    screen.getByRole("link", { name: /Official A\. Rang 3/, selected: false }),
   ).toBeOnTheScreen();
 });
 
@@ -440,13 +442,21 @@ it("keeps an admitted pool calendar usable after its standings refresh fails", a
   ).toBe(false);
 });
 
-it("switches to the approved cards without another read or team emphasis", async () => {
+it("numbers Team cards without printed ranks, another read or team emphasis", async () => {
   // Given
   const user = userEvent.setup();
-  await open(panel());
-  await screen.findByRole("tab", { name: "Classement" });
+  table.rows = table.rows.map(({ sourceName, team, statistics }) => ({
+    sourceName,
+    team,
+    statistics,
+  }));
+  await open(<TeamScreen teamId={sportingId} />);
+  await screen.findAllByRole("tab", { includeHiddenElements: true });
   await layoutNativeTabs();
-  await screen.findByText("Official Z");
+  await screen.findByRole("tab", { name: pool.pool.name });
+  expect(
+    await screen.findByRole("link", { name: /Official Z\. Rang 1/ }),
+  ).toBeOnTheScreen();
   const reads = mockFetch.mock.calls.length;
 
   // When
@@ -457,9 +467,12 @@ it("switches to the approved cards without another read or team emphasis", async
     screen.getByRole("radio", { name: "Afficher en cartes", checked: true }),
   ).toBeOnTheScreen();
   expect(
-    screen.getByRole("link", { name: /Official Z.*Jou\. : 4/ }),
+    screen.getByRole("link", { name: /Official Z\. Rang 1.*Jou\. : 4/ }),
   ).toBeOnTheScreen();
-  expect(screen.getByText("Unmatched")).toBeOnTheScreen();
+  expect(screen.getByLabelText(/^Unmatched\. Rang 2/)).toBeOnTheScreen();
+  expect(
+    screen.getByRole("link", { name: /Official A\. Rang 3/ }),
+  ).toBeOnTheScreen();
   expect(
     screen.getByRole("image", { name: "Logo absent : Unmatched" }),
   ).toBeOnTheScreen();
@@ -468,29 +481,28 @@ it("switches to the approved cards without another read or team emphasis", async
   expect(mockFetch).toHaveBeenCalledTimes(reads);
 });
 
-it("projects only official podium ranks as 2–1–3 and preserves the remaining order", async () => {
-  // Given: the official third-place row has no resolved team and must keep its nominal logo without a link.
+it("keeps Pool row numbers through the 2–1–3 card layout even with irregular printed ranks", async () => {
+  // Given: two rows share a printed rank and points, and the unlinked row has the most points.
   const user = userEvent.setup();
   table.rows = [
     table.rows[0],
-    { ...table.rows[2], position: 1 },
-    {
-      sourceName: "Third",
-      position: 3,
-      statistics: { Pts: "9" },
-    },
-    {
-      sourceName: "Second",
-      position: 2,
-      statistics: { Pts: "12" },
-      team: { id: "00000000-0000-4000-8000-000000002094", name: "Second" },
-    },
-    table.rows[1],
+    { ...table.rows[1], statistics: { Pts: "24" } },
+    { ...table.rows[2], position: 7, statistics: { Pts: "18" } },
+    { sourceName: "Fourth", position: 1, statistics: { Pts: "12" } },
+    { sourceName: "Fifth", statistics: { Pts: "16" } },
   ];
-  const sourceOrder = table.rows.map((row) => row.sourceName);
-  await open(panel());
-  await screen.findByRole("tab", { name: "Classement" });
+  await open(<PoolScreen poolId={pool.pool.id} />);
+  await screen.findAllByRole("tab", { includeHiddenElements: true });
   await layoutNativeTabs();
+  await screen.findByRole("tab", { name: "Classement" });
+  await screen.findByRole("link", { name: /Official Z\. Rang 1/ });
+  expect(screen.getAllByLabelText(/^Rang \d+$/)).toEqual([
+    screen.getByLabelText("Rang 1"),
+    screen.getByLabelText("Rang 2"),
+    screen.getByLabelText("Rang 3"),
+    screen.getByLabelText("Rang 4"),
+    screen.getByLabelText("Rang 5"),
+  ]);
 
   // When
   await user.press(
@@ -498,35 +510,22 @@ it("projects only official podium ranks as 2–1–3 and preserves the remaining
   );
 
   // Then
-  const links = screen.getAllByRole("link");
-  expect(links).toHaveLength(3);
-  expect(links[0]).toHaveAccessibleName(/^Second(?:\.|$)/);
-  expect(links[1]).toHaveAccessibleName(/^Official A(?:\.|$)/);
-  expect(links[2]).toHaveAccessibleName(/^Official Z(?:\.|$)/);
-  expect(screen.queryByRole("link", { name: /^Third(?:\.|$)/ })).toBeNull();
-  expect(
-    screen.getByRole("image", { name: "Logo absent : Third" }),
-  ).toBeOnTheScreen();
-  expect(
-    client
-      .getQueryCache()
-      .findAll()
-      .find((query) => String(query.queryKey[0]).endsWith("/standings"))?.state
-      .data,
-  ).toMatchObject({ rows: sourceOrder.map((sourceName) => ({ sourceName })) });
-  expect(screen.getByText("Unmatched")).toBeOnTheScreen();
+  const unlinked = screen.getByLabelText(/^Unmatched\. Rang 2.*Pts : 24/);
+  expect(screen.getAllByLabelText(/\. Rang \d/)).toEqual([
+    unlinked,
+    screen.getByRole("link", { name: /^Official Z\. Rang 1/ }),
+    screen.getByRole("link", { name: /^Official A\. Rang 3/ }),
+    screen.getByLabelText(/^Fourth\. Rang 4/),
+    screen.getByLabelText(/^Fifth\. Rang 5/),
+  ]);
+  expect(within(unlinked).getByText("2")).toBeOnTheScreen();
+  expect(screen.queryByRole("link", { name: /Unmatched/ })).toBeNull();
 });
 
-it("keeps ambiguous podium ranks in source order without inventing a place", async () => {
+it("keeps a two-row table in source order in cards", async () => {
   // Given
   const user = userEvent.setup();
-  table.rows = [
-    table.rows[0],
-    { ...table.rows[2], position: 1 },
-    { sourceName: "Also first", position: 1, statistics: {} },
-    { sourceName: "Second", position: 2, statistics: {} },
-    { sourceName: "Third", position: 3, statistics: {} },
-  ];
+  table.rows = [table.rows[0], table.rows[2]];
   await open(panel());
   await screen.findByRole("tab", { name: "Classement" });
   await layoutNativeTabs();
@@ -539,11 +538,8 @@ it("keeps ambiguous podium ranks in source order without inventing a place", asy
   // Then
   const links = screen.getAllByRole("link");
   expect(links).toHaveLength(2);
-  expect(links[0]).toHaveAccessibleName(/^Official Z(?:\.|$)/);
-  expect(links[1]).toHaveAccessibleName(/^Official A(?:\.|$)/);
-  expect(screen.getByText("Also first")).toBeOnTheScreen();
-  expect(screen.getByText("Second")).toBeOnTheScreen();
-  expect(screen.getByText("Third")).toBeOnTheScreen();
+  expect(links[0]).toHaveAccessibleName(/^Official Z\. Rang 1/);
+  expect(links[1]).toHaveAccessibleName(/^Official A\. Rang 2/);
 });
 
 it("retries an initial failure without announcing a successful empty table", async () => {

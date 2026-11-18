@@ -13,39 +13,29 @@ import { SportingLogo } from "./sporting-identity";
 import { SportingMedia } from "./sporting-media";
 import { StandingPerformanceBar } from "./standing-performance-bar";
 
-/** Accepted source rows and columns; presentation never supplies a missing rank, statistic or association. */
 export interface StandingCardsProps {
-  rows: readonly StandingRowResponse[];
+  rows: readonly { row: StandingRowResponse; displayRank: number }[];
   columns: readonly string[];
   /** The caller's currently selected native tab owns accepted card openings. */
   active?: boolean;
 }
 
-/**
- * Projects one unambiguous official podium in the approved 2–1–3 composition.
- * Other rows keep source order; incomplete or duplicate podium ranks keep every row in that order.
- */
+/** Places the first three numbered rows in the 2–1–3 composition when the table has at least three rows. */
 export function StandingCards({
   rows,
   columns,
   active = true,
 }: Readonly<StandingCardsProps>) {
-  const podium = [2, 1, 3].flatMap((position) => {
-    const matching = rows.filter((row) => row.position === position);
-    return matching.length === 1 ? matching : [];
-  });
-  const hasPodium = podium.length === 3;
-  const remaining = hasPodium
-    ? rows.filter((row) => !podium.includes(row))
-    : rows;
+  const podium = rows.length >= 3 ? [rows[1], rows[0], rows[2]] : [];
   return (
     <View style={styles.cards}>
-      {hasPodium && (
+      {podium.length > 0 && (
         <View style={styles.podium}>
-          {podium.map((row) => (
+          {podium.map(({ row, displayRank }) => (
             <StandingCard
-              key={`${row.position}:${row.team?.id ?? "unlinked"}`}
+              key={`${displayRank}:${row.team?.id ?? "unlinked"}`}
               row={row}
+              displayRank={displayRank}
               active={active}
               columns={columns}
               podium
@@ -53,10 +43,11 @@ export function StandingCards({
           ))}
         </View>
       )}
-      {remaining.map((row, index) => (
+      {rows.slice(podium.length).map(({ row, displayRank }) => (
         <StandingCard
-          key={`${index}:${row.team?.id ?? "unlinked"}`}
+          key={`${displayRank}:${row.team?.id ?? "unlinked"}`}
           row={row}
+          displayRank={displayRank}
           columns={columns}
           active={active}
         />
@@ -65,9 +56,9 @@ export function StandingCards({
   );
 }
 
-/** A card consumes only its exact source row; current-team emphasis belongs exclusively to the list. */
 interface StandingCardProps {
   row: StandingRowResponse;
+  displayRank: number;
   columns: readonly string[];
   podium?: boolean;
   active: boolean;
@@ -76,6 +67,7 @@ interface StandingCardProps {
 /** Source identity, nominal artwork/fallback and exact statistics share one optional real-team link. */
 function StandingCard({
   row,
+  displayRank,
   columns,
   podium = false,
   active,
@@ -83,18 +75,18 @@ function StandingCard({
   const sporting = useSportingNavigation(active);
   const { colors } = useTheme();
   let rank: { fill: string; content: string };
-  if (row.position === 1) {
+  if (displayRank === 1) {
     rank = { fill: colors.rank.first, content: colors.rank.firstContent };
-  } else if (row.position === 2) {
+  } else if (displayRank === 2) {
     rank = { fill: colors.rank.second, content: colors.rank.secondContent };
-  } else if (row.position === 3) {
+  } else if (displayRank === 3) {
     rank = { fill: colors.rank.third, content: colors.rank.thirdContent };
   } else {
     rank = { fill: colors.rank.neutral, content: colors.text };
   }
   const label = [
     row.sourceName,
-    row.position === undefined ? "Rang non renseigné" : `Rang ${row.position}`,
+    `Rang ${displayRank}`,
     columns
       .map(
         (column) => `${column} : ${row.statistics[column] ?? "non renseigné"}`,
@@ -105,9 +97,9 @@ function StandingCard({
   const statistics = columns.filter((column) => column !== points);
   let minHeight: number;
   if (podium) {
-    if (row.position === 1) {
+    if (displayRank === 1) {
       minHeight = tokens.sporting.standingsCard.firstMinHeight;
-    } else if (row.position === 2) {
+    } else if (displayRank === 2) {
       minHeight = tokens.sporting.standingsCard.secondMinHeight;
     } else {
       minHeight = tokens.sporting.standingsCard.thirdMinHeight;
@@ -146,7 +138,7 @@ function StandingCard({
                 { color: rank.content },
               ]}
             >
-              {row.position ?? "—"}
+              {displayRank}
             </Text>
           </View>
           {logo}
