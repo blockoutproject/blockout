@@ -68,7 +68,7 @@ For a deferred Team calendar, mount in zone A and activate it after travel to B:
 
 Compare the planned shared date breathing room below the fixed upper pager rail in normal and stacked layouts, retaining the stacked bottom spacing. Dates remain opaque and sticky with ordinary push-off; list positions, offsets and virtualization do not change. F06’s personal calendar consumes the same date and group presentation.
 
-Compare a single-match pool and a multi-match pool on Home and a sporting calendar. Scroll through the multi-match group: the division tint surrounds the quieter match rows, the soft outer depth reads continuously and no shadow creates an interior seam. Check the opaque date through push-off and return via an exact match link. Distribute light/dark and normal/stacked cells across representative cases.
+Compare a single-match pool and a multi-match pool on Home and a sporting calendar. The lateral date visually merges with the canvas, and the first pool's tint fills the shared row beside it through to the quieter match cells. Scroll through the multi-match group and check that the soft outer depth reads continuously at its internal joins. Check the opaque date through push-off and return via an exact match link. Distribute light/dark and normal/stacked cells across representative cases.
 
 Keep Paris/New York/Tokyo, known/date-only/absent times, both DST changes, Paris midnight, all selectors, multiple participations, 150 matches on one day, more than seven gapped days and equal/unknown-time ordering in the deterministic calendar/backend tests. Expect complete-day pages, exclusive continuation, one identity per page and a coherent response; a between-page change may require refresh.
 

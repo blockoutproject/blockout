@@ -20,7 +20,13 @@ import {
   type PropsWithChildren,
   type ReactNode,
 } from "react";
-import { AppState, StyleSheet, Text, View } from "react-native";
+import {
+  AppState,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import type {
   MatchCalendarResponse,
   MatchPoolGroupResponse,
@@ -279,7 +285,7 @@ export function SportingCalendarView({
         ) : undefined
       }
       refreshControl={refreshControl}
-      renderItem={({ item }) => {
+      renderItem={({ item, index }) => {
         if (item.kind === "space") {
           return null;
         }
@@ -287,7 +293,12 @@ export function SportingCalendarView({
           return <CalendarDate date={item.date} stacked={stacked} />;
         }
         if (item.kind === "pool") {
-          return <CalendarPoolHeader group={item.group} />;
+          return (
+            <CalendarPoolHeader
+              group={item.group}
+              besideDate={!stacked && rows[index - 1]?.kind === "date"}
+            />
+          );
         }
         return (
           <CalendarGroupPart match={item.match} last={item.last}>
@@ -406,15 +417,26 @@ function CalendarGroupPart({
 /** Pool headings retain a two-line name, full accessible label and nominal media slot without inventing a division. */
 function CalendarPoolHeader({
   group,
-}: Readonly<{ group: MatchPoolGroupResponse }>) {
+  besideDate,
+}: Readonly<{ group: MatchPoolGroupResponse; besideDate: boolean }>) {
   const { context } = useTheme();
+  const { fontScale, scale } = useWindowDimensions();
   const pool = group.matches[0].pool;
   const division = pool.classification.division;
   const accent = division?.color ?? context.primary;
   const foreground = division ? divisionTextColor(accent) : context.onAction;
+  // LegendList advances the shared row by its tallest cell, so the tint must reach the date edge.
+  const dateHeight =
+    styles.dateHeading.paddingTop +
+    styles.dateHeading.gap +
+    (Math.ceil(styles.date.lineHeight * fontScale * scale) +
+      2 * Math.ceil(styles.dateMeta.lineHeight * fontScale * scale)) /
+      scale;
   return (
     <CalendarGroupPart match={group.matches[0]} first>
-      <View style={styles.groupInset}>
+      <View
+        style={[styles.groupInset, besideDate && { minHeight: dateHeight }]}
+      >
         <View style={[styles.pool, { backgroundColor: accent }]}>
           {division ? (
             <>
