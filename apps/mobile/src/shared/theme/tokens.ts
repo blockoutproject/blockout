@@ -23,7 +23,8 @@ export const appearanceColors = {
   light: {
     canvas: "#FCFCFD",
     canvasHighlight: "#7E8FB2",
-    canvasTintStart: 0.025,
+    canvasHighlightStart: 0.025,
+    canvasTintStart: 0.01,
     canvasHighlightEnd: 0.05,
     canvasTintEnd: 0.05,
     surface: reference.white,
@@ -88,9 +89,10 @@ export const appearanceColors = {
   dark: {
     canvas: "#0D0D0E",
     canvasHighlight: "#7885A5",
-    canvasTintStart: 0.05,
+    canvasHighlightStart: 0.05,
+    canvasTintStart: 0.01,
     canvasHighlightEnd: 0.075,
-    canvasTintEnd: 0.1,
+    canvasTintEnd: 0.08,
     surface: "#19191A",
     subtle: "#FFFFFF14",
     insetSurface: "#FFFFFF08",
@@ -265,6 +267,8 @@ export const tokens = {
   sporting: {
     headerMinHeight: 72,
     teamMinHeight: 64,
+    scoreSize: 40,
+    calendarMatch: { teamMinHeight: 56, timeWidth: 56 },
     dateMinWidth: 120,
     statusDot: 4,
     separatorOpacity: 0.2,
@@ -277,7 +281,13 @@ export const tokens = {
     coverBlur: 20,
     coverOpacity: 0.32,
     coverVeilOpacity: 0.28,
-    atmosphere: { blur: 14, scale: 3, opacity: 1 },
+    atmosphere: {
+      blur: 14,
+      scale: 3,
+      opacity: 1,
+      horizontal: { width: 150, opacity: { light: 0.28, dark: 0.34 } },
+    },
+    clubTeam: { minHeight: 114, railWidth: 66, logoSize: 44 },
     // Product Design compact official standings row 4502:39958.
     standingsRowMinHeight: 68,
     standingsRankWidth: 28,

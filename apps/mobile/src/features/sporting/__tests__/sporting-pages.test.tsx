@@ -1832,6 +1832,47 @@ it.each(["summary", "context"] as const)(
   },
 );
 
+it("keeps the full Match summary readable when its competition badge fails to decode", async () => {
+  // Given
+  const divisionId = "00000000-0000-4000-8000-000000000013";
+  const division = {
+    id: divisionId,
+    name: "Prénationale",
+    color: "#C74750",
+    gradient: null,
+    logoUrl: `/divisions/${divisionId}/logo`,
+  };
+  match.match.pool.classification = { division };
+  match.match.category = "completed";
+  match.match.result = {
+    state: "final",
+    homeSets: 3,
+    awaySets: 1,
+    observedAt: "2026-10-25T20:00:00Z",
+  };
+  await renderPage(<MatchSummary match={match.match} />);
+  const badge = screen.getByRole("image", { name: "Logo : Prénationale" });
+  expect(screen.getByTestId("sporting-logo-atmosphere")).toBeOnTheScreen();
+
+  // When
+  await fireEvent(badge, "error", {
+    nativeEvent: { error: "Competition badge decoding failed" },
+  });
+
+  // Then
+  expect(
+    screen.getByRole("image", { name: "Logo indisponible : Prénationale" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByTestId("sporting-logo-atmosphere"),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("header", { name: match.match.pool.pool.name }),
+  ).toBeOnTheScreen();
+  expect(screen.getByLabelText("Score domicile : 3")).toHaveTextContent("3");
+  expect(screen.getByLabelText("Score extérieur : 1")).toHaveTextContent("1");
+});
+
 it.each(["provisional", "unconfirmed"] as const)(
   "retains the full %s uncertainty when the contribution context has no status band",
   async (state) => {
@@ -2163,6 +2204,8 @@ it("keeps a team readable when its native public logo fails", async () => {
     name: `Logo : ${team.team.team.name}`,
   });
 
+  expect(screen.getByTestId("sporting-logo-atmosphere")).toBeOnTheScreen();
+
   // When
   await fireEvent(image, "error", {
     nativeEvent: { error: "Native decode failed" },
@@ -2172,6 +2215,9 @@ it("keeps a team readable when its native public logo fails", async () => {
   await screen.findByRole("image", {
     name: `Logo indisponible : ${team.team.team.name}`,
   });
+  expect(
+    screen.queryByTestId("sporting-logo-atmosphere"),
+  ).not.toBeOnTheScreen();
   expect(screen.getByText(team.team.team.name)).toBeOnTheScreen();
   expect(
     mockFetch.mock.calls.filter(([url]) => String(url).includes("/logo")),

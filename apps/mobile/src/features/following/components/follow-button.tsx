@@ -16,6 +16,7 @@ export interface FollowControlProps {
   target: FollowingTarget;
   season: SportingSeasonResponse;
   read: FollowStateRead;
+  contextColor?: string;
   /** Appears beside the compact action and never becomes a private-read prerequisite. */
   audience?: ReactNode;
 }
@@ -25,6 +26,7 @@ export function FollowControl({
   target,
   season,
   read,
+  contextColor,
   audience,
 }: Readonly<FollowControlProps>) {
   const privateKey = hashKey(read.options.queryKey);
@@ -36,6 +38,7 @@ export function FollowControl({
         target={target}
         season={season}
         read={read}
+        contextColor={contextColor}
       />
       {audience}
     </View>
@@ -47,10 +50,16 @@ interface FollowActionProps {
   target: FollowingTarget;
   season: SportingSeasonResponse;
   read: FollowStateRead;
+  contextColor?: string;
 }
 
 /** Owns one explicit mutation and guest invitation without remounting the adjacent public audience. */
-function FollowAction({ target, season, read }: Readonly<FollowActionProps>) {
+function FollowAction({
+  target,
+  season,
+  read,
+  contextColor,
+}: Readonly<FollowActionProps>) {
   const action = useFollowMutation(target, read);
   const router = useRouter();
   const feedback = useActionFeedback();
@@ -76,7 +85,8 @@ function FollowAction({ target, season, read }: Readonly<FollowActionProps>) {
     <Button
       label={label}
       size="compact"
-      variant="inverse"
+      variant={!unavailable && !initialLoading ? "solid" : "inverse"}
+      contextColor={contextColor}
       bordered={false}
       leadingIcon={unavailable ? undefined : followIcon}
       selected={following}

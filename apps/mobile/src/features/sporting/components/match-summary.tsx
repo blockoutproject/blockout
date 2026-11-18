@@ -40,6 +40,7 @@ export function MatchSummary({
   const { colors, context } = useTheme();
   const division = match.pool.classification.division;
   const accent = division?.color ?? context.primary;
+  const onAccent = division ? divisionTextColor(accent) : context.onAction;
   const result = match.result;
   const contextual = presentation === "context";
   const schedule = formatSportingSchedule(match.schedule, displayTimeZone);
@@ -48,14 +49,26 @@ export function MatchSummary({
       <View
         style={[
           styles.pool,
-          contextual && styles.contextPool,
-          { backgroundColor: accent },
+          contextual && [styles.contextPool, { backgroundColor: accent }],
         ]}
       >
-        {division && <DivisionPaint division={division} />}
-        {division && <SportingArtwork division={division} />}
+        {contextual && division && <DivisionPaint division={division} />}
+        {contextual && division && <SportingArtwork division={division} />}
         {division ? (
-          <SportingLogo kind="division" identity={division} />
+          <SportingLogo
+            kind="division"
+            identity={division}
+            renderWithAtmosphere={
+              contextual
+                ? undefined
+                : (logo, atmosphere) => (
+                    <>
+                      {atmosphere}
+                      {logo}
+                    </>
+                  )
+            }
+          />
         ) : (
           <SportingMedia kind="division" identity={match.pool.pool} />
         )}
@@ -66,41 +79,19 @@ export function MatchSummary({
           ellipsizeMode="tail"
           style={[
             styles.poolName,
-            {
-              color: division
-                ? divisionTextColor(division.color)
-                : context.onAction,
-            },
+            { color: contextual ? onAccent : colors.text },
           ]}
         >
           {match.pool.pool.name}
         </Text>
         {contextual && (
-          <Text
-            style={[
-              styles.metadataText,
-              {
-                color: division
-                  ? divisionTextColor(division.color)
-                  : context.onAction,
-              },
-            ]}
-          >
+          <Text style={[styles.metadataText, { color: onAccent }]}>
             {schedule.time}
           </Text>
         )}
       </View>
       {!contextual && (
-        <View
-          style={[
-            styles.metadata,
-            {
-              backgroundColor: division
-                ? `${accent}${colors.sportingSurfaceAlpha}`
-                : colors.subtle,
-            },
-          ]}
-        >
+        <View style={[styles.metadata, { backgroundColor: colors.subtle }]}>
           <View style={styles.status}>
             <View
               accessible={false}
@@ -143,10 +134,20 @@ export function MatchSummary({
                 {team.name}
               </Text>
               {(!contextual || score !== undefined) && (
-                <View style={[styles.scoreCell, { borderColor: accent }]}>
+                <View
+                  style={[
+                    styles.scoreCell,
+                    contextual
+                      ? [styles.contextScore, { borderColor: accent }]
+                      : { backgroundColor: accent },
+                  ]}
+                >
                   <Text
                     accessibilityLabel={`Score ${side} : ${score ?? "indisponible"}`}
-                    style={[styles.score, { color: colors.text }]}
+                    style={[
+                      styles.score,
+                      { color: contextual ? colors.text : onAccent },
+                    ]}
                   >
                     {score ?? "-"}
                   </Text>
@@ -267,16 +268,15 @@ const styles = StyleSheet.create({
   },
   teamName: { ...tokens.typography.navigation, flex: 1, minWidth: 0 },
   scoreCell: {
-    // The approved score cell is a 40-point minimum, independent of logo/media dimensions.
-    minWidth: 40,
-    minHeight: 40,
+    minWidth: tokens.sporting.scoreSize,
+    minHeight: tokens.sporting.scoreSize,
     paddingHorizontal: tokens.spacing.sm,
     paddingVertical: tokens.spacing.tight,
     borderRadius: tokens.radius.control,
-    borderWidth: tokens.border.thin,
     justifyContent: "center",
     alignItems: "center",
   },
+  contextScore: { borderWidth: tokens.border.thin },
   score: { ...tokens.typography.heading, textAlign: "center" },
   separator: {
     height: tokens.border.thin,

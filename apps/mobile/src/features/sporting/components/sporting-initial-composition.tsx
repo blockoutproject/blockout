@@ -6,6 +6,7 @@ import { PageViewport } from "@/shared/components/navigation-backdrop";
 import { ScreenState } from "@/shared/components/screen-state";
 import { ErrorState } from "@/shared/components/state-card";
 import { hasReadError } from "@/shared/components/read-feedback";
+import { NavigationAccent } from "@/shared/components/navigation-accent";
 
 /** An existing Query result supplies indispensable data and safe read recovery, never a copied cache. */
 export type SportingInitialRead = Pick<
@@ -55,6 +56,7 @@ export function SportingInitialComposition({
 
   return (
     <Page fullBleed canvasTint={blocked ? undefined : canvasTint}>
+      <NavigationAccent color={blocked ? undefined : canvasTint} />
       <View
         style={[styles.content, blocked && styles.hidden]}
         pointerEvents={blocked ? "none" : "auto"}

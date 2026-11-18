@@ -8,6 +8,7 @@ import {
   type PressableProps,
 } from "react-native";
 import { type Theme, useTheme } from "@/shared/theme/theme-provider";
+import { solidForeground } from "@/shared/theme/solid-foreground";
 import { tokens, type ContextColors } from "@/shared/theme/tokens";
 import { LoadingIndicator } from "./loading-indicator";
 
@@ -25,14 +26,15 @@ export interface ButtonProps {
   accessibilityHint?: string;
   /** Destination openings use link semantics; commands retain the default button role. */
   accessibilityRole?: "button" | "link";
-  /** Effective #RRGGBB accent: inverse border or the primary action's approved context paint. */
+  /** Effective #RRGGBB accent for contextual actions or an inverse outline. */
   contextColor?: string;
   /** Three qualified authored primary-action stops; null/absence uses the primary-to-8%-darker default. */
   contextGradient?: readonly string[] | null;
   /** Caller-resolved black/white contrast against contextColor, independent of system appearance. */
   contextForeground?: string;
   /** Source-owned paints, including flat destructive confirmation from UI Library 7000:4103. */
-  variant?: "primary" | "success" | "destructive" | "secondary" | "inverse";
+  variant?:
+    "primary" | "solid" | "success" | "destructive" | "secondary" | "inverse";
   /** Set false for a solid action without a stroke; other callers retain their variant's border. */
   bordered?: boolean;
   /** Decorative trailing glyph from the library; busy state replaces it with the shared indicator. */
@@ -71,11 +73,13 @@ export function Button({
         shadow: scheme === "dark" ? "#00000033" : `${contextColor}1A`,
       }
     : context;
-  const { foreground, backgroundColor } = buttonPaints(
-    variant,
-    actionContext,
-    colors,
-  );
+  const { foreground, backgroundColor } =
+    variant === "solid" && contextColor
+      ? {
+          foreground: contextForeground ?? solidForeground(contextColor),
+          backgroundColor: contextColor,
+        }
+      : buttonPaints(variant, actionContext, colors);
   const Icon = LeadingIcon ?? TrailingIcon;
   const icon =
     Icon &&
@@ -186,6 +190,7 @@ function buttonPaints(
         foreground: colors.onDangerAction,
         backgroundColor: colors.dangerAction,
       };
+    case "solid":
     case "inverse":
       return { foreground: colors.onInverse, backgroundColor: colors.inverse };
     default:

@@ -1,4 +1,5 @@
 import { StyleSheet, View, useWindowDimensions } from "react-native";
+import type { CalendarCategoryEnum } from "../../../../.generated/schemas/index.zod";
 import { LoadingGroup } from "@/shared/components/loading-group";
 import { Skeleton } from "@/shared/components/skeleton";
 import { TextSkeleton } from "@/shared/components/text-skeleton";
@@ -8,6 +9,7 @@ import { useCalendarLayout } from "../hooks/use-calendar-layout";
 
 /** Two initial dated groups use the owning calendar's measured native geometry. */
 export interface CalendarLoadingProps {
+  category?: CalendarCategoryEnum;
   columns?: number;
   stacked?: boolean;
   label?: string;
@@ -27,27 +29,36 @@ export function CalendarLoading({
 
 /** Decorative dated groups can join an identity in an already announced page read. */
 export function CalendarSkeleton({
+  category = "upcoming",
   columns,
   stacked,
 }: Readonly<Omit<CalendarLoadingProps, "label">>) {
   return columns === undefined || stacked === undefined ? (
-    <ViewportCalendarLoading />
+    <ViewportCalendarLoading category={category} />
   ) : (
-    <CalendarLoadingContent columns={columns} stacked={stacked} />
+    <CalendarLoadingContent
+      category={category}
+      columns={columns}
+      stacked={stacked}
+    />
   );
 }
 
 /** Uses the existing grid calculation before a calendar list has mounted. */
-function ViewportCalendarLoading() {
+function ViewportCalendarLoading({
+  category,
+}: Readonly<{ category: CalendarCategoryEnum }>) {
   const layout = useCalendarLayout();
-  return <CalendarLoadingContent {...layout} />;
+  return <CalendarLoadingContent {...layout} category={category} />;
 }
 
 /** Dates and two bounded groups begin where the real native list content begins. */
 function CalendarLoadingContent({
+  category,
   columns,
   stacked,
 }: Readonly<{
+  category: CalendarCategoryEnum;
   columns: number;
   stacked: boolean;
 }>) {
@@ -71,7 +82,11 @@ function CalendarLoadingContent({
               <TextSkeleton role="metadata" width={20 * fontScale} />
             </View>
           </View>
-          <PoolGroupSkeleton stacked={stacked} status={index === 0} />
+          <PoolGroupSkeleton
+            completed={category === "completed"}
+            stacked={stacked}
+            status={index === 0}
+          />
         </View>
       ))}
     </View>
@@ -80,9 +95,11 @@ function CalendarLoadingContent({
 
 /** A neutral two-line pool identity heading and fixture keep the loaded card's borders and insets. */
 function PoolGroupSkeleton({
+  completed,
   stacked,
   status,
 }: Readonly<{
+  completed: boolean;
   stacked: boolean;
   status: boolean;
 }>) {
@@ -97,9 +114,7 @@ function PoolGroupSkeleton({
       ]}
     >
       <View style={styles.headingInset}>
-        <View
-          style={[styles.heading, { backgroundColor: colors.skeletonHeader }]}
-        >
+        <View style={styles.heading}>
           <Skeleton
             width={tokens.size.media.row}
             height={tokens.size.media.row}
@@ -125,20 +140,22 @@ function PoolGroupSkeleton({
           )}
           <View style={styles.fixtureContent}>
             <View style={styles.teams}>
-              <TeamSkeleton continuation />
-              <TeamSkeleton divided />
+              <TeamSkeleton continuation score={completed} />
+              <TeamSkeleton divided score={completed} />
             </View>
-            <View
-              style={[
-                styles.time,
-                {
-                  width: 56 * fontScale,
-                  backgroundColor: colors.skeletonHeader,
-                },
-              ]}
-            >
-              <TextSkeleton width={34 * fontScale} />
-            </View>
+            {!completed && (
+              <View
+                style={[
+                  styles.time,
+                  {
+                    width: tokens.sporting.calendarMatch.timeWidth * fontScale,
+                    backgroundColor: colors.skeletonHeader,
+                  },
+                ]}
+              >
+                <TextSkeleton width={34 * fontScale} />
+              </View>
+            )}
           </View>
         </View>
       </View>
@@ -150,9 +167,11 @@ function PoolGroupSkeleton({
 function TeamSkeleton({
   divided = false,
   continuation = false,
+  score,
 }: Readonly<{
   divided?: boolean;
   continuation?: boolean;
+  score: boolean;
 }>) {
   const { colors } = useTheme();
   return (
@@ -174,6 +193,13 @@ function TeamSkeleton({
         <TextSkeleton width="90%" />
         {continuation && <TextSkeleton width="65%" />}
       </View>
+      {score && (
+        <Skeleton
+          width={tokens.sporting.scoreSize}
+          height={tokens.sporting.scoreSize}
+          radius={tokens.radius.sm}
+        />
+      )}
     </View>
   );
 }
@@ -206,8 +232,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: tokens.spacing.md,
     padding: tokens.spacing.md,
-    borderTopLeftRadius: tokens.radius.panelInset,
-    borderTopRightRadius: tokens.radius.panelInset,
   },
   headingCopy: { flex: 1, minWidth: 0, gap: tokens.spacing.xs },
   fixtureInset: { padding: tokens.spacing.lg },
@@ -229,7 +253,7 @@ const styles = StyleSheet.create({
   },
   teams: { flex: 1, minWidth: 0 },
   team: {
-    minHeight: 56,
+    minHeight: tokens.sporting.calendarMatch.teamMinHeight,
     flexDirection: "row",
     alignItems: "center",
     padding: tokens.spacing.sm,

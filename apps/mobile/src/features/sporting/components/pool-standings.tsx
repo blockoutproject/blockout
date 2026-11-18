@@ -6,6 +6,7 @@ import {
 } from "../model/standing-columns";
 import { useQuery } from "@tanstack/react-query";
 import { useSportingNavigation } from "../navigation";
+import { divisionTextColor } from "../presentation";
 import { Columns3, List, RefreshCw } from "lucide-react-native";
 import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -53,6 +54,11 @@ export function PoolStandings({
   const [layout, setLayout] = useState<"list" | "cards">("list");
   const data = standings.data;
   const columns = standingVisibleColumns(data?.columns ?? []);
+  const divisionColor = pool.classification.division?.color;
+  const selectedFill = divisionColor ?? colors.subtle;
+  const selectedIcon = divisionColor
+    ? divisionTextColor(divisionColor)
+    : colors.icon;
 
   /** Joins or starts this table's safe read; Query owns retries, suspension and its result. */
   async function refresh() {
@@ -91,11 +97,14 @@ export function PoolStandings({
               style={[
                 styles.layoutVisual,
                 {
-                  backgroundColor: layout === value ? colors.subtle : undefined,
+                  backgroundColor: layout === value ? selectedFill : undefined,
                 },
               ]}
             >
-              <Icon size={tokens.size.icon.md} color={colors.icon} />
+              <Icon
+                size={tokens.size.icon.md}
+                color={layout === value ? selectedIcon : colors.icon}
+              />
             </View>
           </Pressable>
         ))}
@@ -187,7 +196,7 @@ export function PoolStandings({
                   highlighted={
                     row.team !== undefined && row.team.id === highlightTeamId
                   }
-                  color={pool.classification.division?.color}
+                  color={divisionColor}
                   last={displayRank === rows.length}
                 />
               ))}

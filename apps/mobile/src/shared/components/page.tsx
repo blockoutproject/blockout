@@ -75,7 +75,9 @@ export function Page({
 }: Readonly<PageProps>) {
   const { colors } = useTheme();
   const highlight = canvasTint ?? colors.canvasHighlight;
-  const startTint = colors.canvasTintStart;
+  const startTint = canvasTint
+    ? colors.canvasTintStart
+    : colors.canvasHighlightStart;
   const endTint = canvasTint ? colors.canvasTintEnd : colors.canvasHighlightEnd;
   const mixCanvas = (tint: number) =>
     interpolateColor(tint, [0, 1], [colors.canvas, highlight], "RGB", {

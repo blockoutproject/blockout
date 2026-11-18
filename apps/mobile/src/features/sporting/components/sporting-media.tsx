@@ -6,7 +6,15 @@ import { BlurredArtwork } from "@/shared/components/blurred-artwork";
 import { ImageFallback } from "@/shared/components/image-fallback";
 import { useId, useState, type ComponentType, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
-import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
+import Svg, {
+  Defs,
+  G,
+  LinearGradient,
+  Mask,
+  RadialGradient,
+  Rect,
+  Stop,
+} from "react-native-svg";
 import type { SportingIdentityResponse } from "../../../../.generated/schemas/index.zod";
 import { Skeleton } from "@/shared/components/skeleton";
 import { useNativeImageLifecycle } from "@/shared/images/use-native-image-lifecycle";
@@ -28,12 +36,14 @@ export interface SportingMediaProps {
   kind: "club" | "team" | "division";
   /** The owning composition sizes the slot; Media/Logo and Entity Card retain their approved shapes. */
   size?: number;
-  presentation?: "logo" | "entity";
-  /** The owner places both layers; a decoding failure removes the foreground and atmosphere together. */
+  presentation?: "logo" | "entity" | "identity";
+  /** The owner places both layers. A failed sharp source withdraws its decoration as well. */
   renderWithAtmosphere?: (logo: ReactNode, atmosphere: ReactNode) => ReactNode;
+  /** Podium keeps its existing unrestricted light; horizontal cards share one tapered layer. */
+  atmosphereLayout?: "horizontal" | "podium";
 }
 
-/** Keeps native media beneath its skeleton without remounting the caller's card; either layer's error withdraws both. */
+/** Keeps native media beneath its skeleton without remounting the caller's card. */
 export function SportingMedia({
   identity,
   uri,
@@ -43,6 +53,7 @@ export function SportingMedia({
   size = tokens.size.media.row,
   presentation = "logo",
   renderWithAtmosphere,
+  atmosphereLayout = "horizontal",
 }: Readonly<SportingMediaProps>) {
   /** Keeps the native image, loading skeleton and absent-artwork fallback in the same media slot. */
   function renderArtwork() {
@@ -63,7 +74,7 @@ export function SportingMedia({
           style={{
             width: imageSize,
             height: imageSize,
-            borderRadius: mediaRadius(imageSize),
+            borderRadius: identityPlate ? borderRadius : mediaRadius(imageSize),
             overflow: "hidden",
           }}
         />
@@ -94,15 +105,21 @@ export function SportingMedia({
   const failed = image.status === "failed";
   const available = !!uri && !failed;
   const pending = available && image.status === "pending";
+  const identityPlate = presentation === "identity";
   const label = available
-    ? "Logo"
+    ? identityPlate && error
+      ? "Logo non actualisé"
+      : "Logo"
     : loading
       ? "Chargement du logo"
       : error || failed
         ? "Logo indisponible"
         : "Logo absent";
-  const imageSize = kind === "division" ? size : size * (5 / 6);
-  const borderRadius = mediaRadius(size);
+  const imageSize =
+    kind === "division" || identityPlate ? size : size * (5 / 6);
+  const borderRadius = identityPlate
+    ? tokens.media.radius.profile
+    : mediaRadius(size);
   const logo = (
     <View
       style={[
@@ -150,48 +167,94 @@ export function SportingMedia({
       key={image.attemptKey}
       testID="sporting-logo-atmosphere"
       uri={uri}
-      onError={image.onError}
+      horizontal={atmosphereLayout === "horizontal"}
+      onError={identityPlate ? undefined : image.onError}
     />
   ) : null;
   return renderWithAtmosphere(logo, atmosphere);
 }
 
-/** Optional same-crest light; its own decode failure removes only this decoration unless the caller shares failure ownership. */
+/** Optional same-crest light; decoration has its own native decoding unless the consumer shares failure ownership. */
 export function SportingAtmosphere({
   uri,
   onError,
   testID,
+  horizontal = false,
 }: Readonly<{
   uri: string;
   onError?: () => void;
   testID?: string;
+  horizontal?: boolean;
 }>) {
   const image = useNativeImageLifecycle(uri);
-  const atmosphereMaskId = useId();
+  const id = useId();
+  const { scheme } = useTheme();
   if (image.status === "failed") {
     return null;
   }
-  // Spread the blurred bitmap beneath an alpha fade; only the separate foreground retains recognizable artwork.
+  const fade = `${id}-fade`;
+  const mask = `${id}-mask`;
+  const secondary = `${id}-secondary`;
   return (
     <MaskedView
       accessible={false}
       pointerEvents="none"
-      style={StyleSheet.absoluteFill}
+      style={
+        horizontal
+          ? [
+              styles.horizontalAtmosphere,
+              {
+                opacity: tokens.sporting.atmosphere.horizontal.opacity[scheme],
+                mixBlendMode: scheme === "dark" ? "screen" : "normal",
+              },
+            ]
+          : StyleSheet.absoluteFill
+      }
       maskElement={
         <Svg accessible={false} width="100%" height="100%">
           <Defs>
             <RadialGradient
-              id={atmosphereMaskId}
-              cx="50%"
-              cy="50%"
-              rx="50%"
-              ry="50%"
+              id={id}
+              cx={horizontal ? "40%" : "50%"}
+              cy={horizontal ? "30%" : "50%"}
+              rx={horizontal ? "80%" : "50%"}
+              ry={horizontal ? "85%" : "50%"}
             >
-              <Stop offset="0" stopColor="black" stopOpacity={1} />
-              <Stop offset="1" stopColor="black" stopOpacity={0} />
+              <Stop offset={0} stopColor="white" stopOpacity={1} />
+              <Stop
+                offset={horizontal ? 0.7 : 1}
+                stopColor="white"
+                stopOpacity={0}
+              />
             </RadialGradient>
+            {horizontal && (
+              <>
+                <RadialGradient
+                  id={secondary}
+                  cx="65%"
+                  cy="30%"
+                  rx="80%"
+                  ry="85%"
+                >
+                  <Stop offset={0} stopColor="white" stopOpacity={1} />
+                  <Stop offset={0.7} stopColor="white" stopOpacity={0} />
+                </RadialGradient>
+                <LinearGradient id={fade} x1="0%" y1="0%" x2="100%" y2="0%">
+                  <Stop offset={0} stopColor="white" stopOpacity={1} />
+                  <Stop offset={1} stopColor="white" stopOpacity={0} />
+                </LinearGradient>
+                <Mask id={mask} x={0} y={0} width="100%" height="100%">
+                  <Rect width="100%" height="100%" fill={`url(#${fade})`} />
+                </Mask>
+              </>
+            )}
           </Defs>
-          <Rect width="100%" height="100%" fill={`url(#${atmosphereMaskId})`} />
+          <G mask={horizontal ? `url(#${mask})` : undefined}>
+            <Rect width="100%" height="100%" fill={`url(#${id})`} />
+            {horizontal && (
+              <Rect width="100%" height="100%" fill={`url(#${secondary})`} />
+            )}
+          </G>
         </Svg>
       }
     >
@@ -244,6 +307,13 @@ export function SportingCover({ uri, primary }: Readonly<SportingCoverProps>) {
 }
 
 const styles = StyleSheet.create({
+  horizontalAtmosphere: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    bottom: 0,
+    width: tokens.sporting.atmosphere.horizontal.width,
+  },
   atmosphere: {
     ...StyleSheet.absoluteFill,
     opacity: tokens.sporting.atmosphere.opacity,

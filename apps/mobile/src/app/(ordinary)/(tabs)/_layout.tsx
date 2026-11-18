@@ -47,17 +47,21 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 import { SelectionIndicator } from "@/shared/components/selection-indicator";
+import { NavigationAccentContext } from "@/shared/components/navigation-accent";
+import type { TabSelection } from "@/shared/components/tabs";
 import { BottomContentInsetContext } from "@/shared/components/bottom-content-inset";
 import { ProOffer } from "@/features/pro";
 
 /** Native presentations cover the retained capsule; its measured clearance keeps the presenting page stable. */
 export default function TabsLayout() {
   const session = useAccountSession();
-  const { colors } = useTheme();
+  const { colors, membership } = useTheme();
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
   const reducedMotion = useReducedMotion();
   const [selectionLayout, setSelectionLayout] = useState<LayoutRectangle>();
+  const [accent, setAccent] = useState<TabSelection>();
+  const selection = accent ?? membership;
   const [navigationHeight, setNavigationHeight] = useState(0);
   const target = useRef<ViewInstance>(null);
   const guest = session.status === "guest";
@@ -76,7 +80,9 @@ export default function TabsLayout() {
         options={{ backBehavior: "history" }}
       >
         <BlurTargetView ref={target} style={styles.tabs}>
-          <TabSlot />
+          <NavigationAccentContext value={setAccent}>
+            <TabSlot />
+          </NavigationAccentContext>
         </BlurTargetView>
         <TabList asChild>
           <NavigationCapsule
@@ -87,6 +93,7 @@ export default function TabsLayout() {
               }
             }}
             layout={selectionLayout}
+            selectedFill={selection.fill}
             reducedMotion={reducedMotion}
             style={{
               marginBottom: insets.bottom + tokens.spacing.sm,
@@ -97,6 +104,7 @@ export default function TabsLayout() {
             <TabTrigger name="index" href={homeHref} asChild>
               <TabButton
                 label="Accueil"
+                selectedColor={selection.content}
                 icon={House}
                 hidden={guest}
                 style={columns}
@@ -107,6 +115,7 @@ export default function TabsLayout() {
             <TabTrigger name="search" href="/search" asChild>
               <TabButton
                 label="Rechercher"
+                selectedColor={selection.content}
                 icon={Search}
                 style={columns}
                 reducedMotion={reducedMotion}
@@ -116,6 +125,7 @@ export default function TabsLayout() {
             <TabTrigger name="notifications" href="/notifications" asChild>
               <TabButton
                 label="Notifications"
+                selectedColor={selection.content}
                 icon={Bell}
                 hidden={guest}
                 style={columns}
@@ -126,6 +136,7 @@ export default function TabsLayout() {
             <TabTrigger name="profile" href="/profile" asChild>
               <TabButton
                 label="Profil"
+                selectedColor={selection.content}
                 icon={UserRound}
                 style={columns}
                 reducedMotion={reducedMotion}
@@ -143,6 +154,7 @@ export default function TabsLayout() {
 interface NavigationCapsuleProps extends ComponentPropsWithRef<typeof View> {
   target: RefObject<ViewInstance | null>;
   layout?: LayoutRectangle;
+  selectedFill: string;
   reducedMotion: boolean;
 }
 
@@ -151,6 +163,7 @@ function NavigationCapsule({
   children,
   layout,
   reducedMotion,
+  selectedFill,
   target,
   style,
   ...props
@@ -184,7 +197,7 @@ function NavigationCapsule({
             layout={layout}
             reducedMotion={reducedMotion}
             radius={tokens.radius.panelInset}
-            fill={membership.fill}
+            fill={selectedFill}
           />
           {children}
         </View>
@@ -200,6 +213,7 @@ interface TabButtonProps extends Omit<TabTriggerSlotProps, "ref"> {
   label: string;
   icon: LucideIcon;
   hidden?: boolean;
+  selectedColor: string;
   reducedMotion: boolean;
   onFocusedLayout: (layout: LayoutRectangle | undefined) => void;
 }
@@ -213,11 +227,12 @@ function TabButton({
   style,
   onLayout,
   reducedMotion,
+  selectedColor,
   onFocusedLayout,
   ...props
 }: Readonly<TabButtonProps>) {
   const router = useRouter();
-  const { colors, membership } = useTheme();
+  const { colors } = useTheme();
   const [layout, setLayout] = useState<LayoutRectangle>();
   useEffect(() => {
     if (isFocused) {
@@ -232,11 +247,7 @@ function TabButton({
     }),
   );
   const labelStyle = useAnimatedStyle(() => ({
-    color: interpolateColor(
-      focus.value,
-      [0, 1],
-      [colors.text, membership.content],
-    ),
+    color: interpolateColor(focus.value, [0, 1], [colors.text, selectedColor]),
   }));
   const iconStyle = useAnimatedStyle(() => ({
     transform: [
@@ -292,7 +303,7 @@ function TabButton({
         <Animated.View style={[StyleSheet.absoluteFill, activeStyle]}>
           <Icon
             accessible={false}
-            color={membership.content}
+            color={selectedColor}
             size={tokens.size.icon.lg}
           />
         </Animated.View>

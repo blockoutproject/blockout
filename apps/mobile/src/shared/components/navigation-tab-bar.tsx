@@ -8,6 +8,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
+import { solidForeground } from "@/shared/theme/solid-foreground";
 import { Tabs, type TabSelection } from "./tabs";
 
 /** Every pager keeps library navigation and binds only label color to its existing native progress. */
@@ -22,15 +23,10 @@ export function NavigationTabBar({
     contextColor?: string;
   }
 >) {
-  const { colors, membership, proAccent } = useTheme();
-  const selection: TabSelection =
-    contextColor && !proAccent
-      ? {
-          fill: `${contextColor}${colors.sportingSurfaceAlpha}`,
-          content: colors.text,
-          borderColor: `${contextColor}${colors.contextBorderAlpha}`,
-        }
-      : membership;
+  const { colors, membership } = useTheme();
+  const selection: TabSelection = contextColor
+    ? { fill: contextColor, content: solidForeground(contextColor) }
+    : membership;
   // RNCT 0.1.3 always animates its rail's auto-centering. Its public renderTabBar
   // slot reuses our existing static rail when the platform requests reduced motion.
   if (reducedMotion) {
@@ -54,13 +50,7 @@ export function NavigationTabBar({
       indicatorColor={selection.fill}
       style={styles.bar}
       tabStyle={styles.tab}
-      indicatorStyle={[
-        styles.indicator,
-        selection.borderColor && {
-          borderColor: selection.borderColor,
-          borderWidth: tokens.border.thin,
-        },
-      ]}
+      indicatorStyle={styles.indicator}
       renderLabel={({ label, index, focused }) => (
         <NavigationTabLabel
           label={label}

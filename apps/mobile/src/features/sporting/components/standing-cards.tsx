@@ -113,7 +113,7 @@ function StandingCard({
     const content = (
       <>
         {podium && <RankTint color={rank.fill} />}
-        {atmosphere && (
+        {podium && atmosphere ? (
           <View
             pointerEvents="none"
             accessible={false}
@@ -121,6 +121,8 @@ function StandingCard({
           >
             {atmosphere}
           </View>
+        ) : (
+          atmosphere
         )}
         <View style={podium ? styles.podiumIdentity : styles.rowIdentity}>
           <View
@@ -224,6 +226,7 @@ function StandingCard({
       identity={row.team}
       kind="team"
       size={podium ? tokens.size.media.row : tokens.size.media.match}
+      atmosphereLayout={podium ? "podium" : "horizontal"}
       renderWithAtmosphere={renderCard}
     />
   ) : (
@@ -231,6 +234,7 @@ function StandingCard({
       identity={{ name: row.sourceName }}
       kind="team"
       size={podium ? tokens.size.media.row : tokens.size.media.match}
+      atmosphereLayout={podium ? "podium" : "horizontal"}
       renderWithAtmosphere={renderCard}
     />
   );

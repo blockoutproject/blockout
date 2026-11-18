@@ -7,7 +7,7 @@ import { useTheme } from "@/shared/theme/theme-provider";
 export interface IdentityCardProps {
   artwork: ReactNode;
   atmosphere?: ReactNode;
-  railBackground?: ReactNode;
+  surfaceArtwork?: ReactNode;
   borderColor?: string;
   artworkBackgroundColor?: string;
   railBackgroundColor?: string;
@@ -18,7 +18,7 @@ export interface IdentityCardProps {
 export function IdentityCard({
   artwork,
   atmosphere,
-  railBackground,
+  surfaceArtwork,
   borderColor,
   artworkBackgroundColor,
   railBackgroundColor,
@@ -36,13 +36,13 @@ export function IdentityCard({
         },
       ]}
     >
+      {surfaceArtwork}
       <View
         style={[
           styles.rail,
           { backgroundColor: railBackgroundColor ?? colors.subtle },
         ]}
       >
-        {railBackground}
         {atmosphere && (
           <View
             pointerEvents="none"

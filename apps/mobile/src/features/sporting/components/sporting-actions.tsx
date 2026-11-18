@@ -20,6 +20,7 @@ import {
 export interface SportingActionsProps {
   target: FollowingTarget;
   season: SportingSeasonResponse;
+  contextColor?: string;
   /** The route shares this same reader with F03's initial composition. */
   read: FollowStateRead;
 }
@@ -33,6 +34,7 @@ export function SportingActions(props: Readonly<SportingActionsProps>) {
         target={props.target}
         season={props.season}
         read={props.read}
+        contextColor={props.contextColor}
         audience={<FollowerCount target={props.target} />}
       />
     </View>

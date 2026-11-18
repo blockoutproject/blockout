@@ -224,6 +224,7 @@ function PersonalSpace({
                           <SportingEntityCardLoading label="Chargement des suivis" />
                         ) : (
                           <CalendarLoading
+                            category={id}
                             label={
                               scope ? undefined : "Chargement de l'accueil"
                             }

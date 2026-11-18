@@ -17,11 +17,7 @@ import {
   SportingCover,
   type SportingMediaProps,
 } from "./sporting-media";
-import { DivisionPaint } from "./division-paint";
 import { IdentityCard } from "@/shared/components/identity-card";
-import { IdentityArtwork } from "@/shared/components/identity-artwork";
-import { IdentityAtmosphere } from "@/shared/components/identity-atmosphere";
-import { ImageFallback } from "@/shared/components/image-fallback";
 
 /** Addressed sporting identity; public native artwork and explicit bypass share the owning resource guard. */
 export interface SportingLogoProps {
@@ -30,7 +26,8 @@ export interface SportingLogoProps {
   size?: number;
   presentation?: SportingMediaProps["presentation"];
   /** Places one admitted foreground logo and its optional same-image atmosphere in an owning card. */
-  renderWithAtmosphere?: (logo: ReactNode, atmosphere: ReactNode) => ReactNode;
+  renderWithAtmosphere?: SportingMediaProps["renderWithAtmosphere"];
+  atmosphereLayout?: SportingMediaProps["atmosphereLayout"];
 }
 
 /** Native image failure keeps a readable identity; known resource restriction withdraws foreground and atmosphere. */
@@ -40,6 +37,7 @@ export function SportingLogo({
   size = tokens.size.media.row,
   presentation,
   renderWithAtmosphere,
+  atmosphereLayout,
 }: Readonly<SportingLogoProps>) {
   const logo = useSportingLogo(identity, kind);
   return (
@@ -53,6 +51,7 @@ export function SportingLogo({
       loading={logo.loading}
       error={logo.error}
       renderWithAtmosphere={renderWithAtmosphere}
+      atmosphereLayout={atmosphereLayout}
     />
   );
 }
@@ -76,7 +75,7 @@ export function SportingArtwork({
 /** Common profile inputs; follow/actions remain supplied by their owner once available. */
 export interface SportingIdentityProps extends Omit<
   SportingLogoProps,
-  "kind" | "renderWithAtmosphere" | "presentation"
+  "kind" | "renderWithAtmosphere" | "atmosphereLayout" | "presentation"
 > {
   kind: "club" | "team" | "pool";
   classification?: SportingClassificationResponse;
@@ -114,22 +113,8 @@ export function SportingIdentity({
     kind === "pool"
       ? (division ?? { ...identity, logoUrl: undefined })
       : identity;
-  const logo = useSportingLogo(
-    logoIdentity,
-    kind === "pool" ? "division" : kind,
-  );
-  let imageLabel;
-  if (logo.uri) {
-    if (logo.error) {
-      imageLabel = "Logo non actualisé";
-    } else {
-      imageLabel = "Logo";
-    }
-  } else if (logo.loading) {
-    imageLabel = "Chargement du logo";
-  } else {
-    imageLabel = "Logo";
-  }
+  const logoKind = kind === "pool" ? "division" : kind;
+  const logo = useSportingLogo(logoIdentity, logoKind);
   const gender = genderLabel(classification?.gender);
   const metadata = [
     season?.label,
@@ -137,81 +122,67 @@ export function SportingIdentity({
     gender,
   ].filter(Boolean);
   return (
-    <IdentityCard
-      artwork={
-        <IdentityArtwork
-          key={logo.uri}
-          uri={logo.uri}
-          loading={logo.loading}
-          label={`${imageLabel} : ${logoIdentity.name}`}
-          cachePolicy="none"
-          fallback={
-            <ImageFallback
-              color={colors.logoInk}
-              label={`${logo.uri || logo.error ? "Logo indisponible" : "Logo absent"} : ${logoIdentity.name}`}
-            />
+    <SportingMedia
+      identity={logoIdentity}
+      kind={logoKind}
+      uri={logo.uri}
+      loading={logo.loading}
+      error={logo.error}
+      size={tokens.size.media.profile}
+      presentation="identity"
+      renderWithAtmosphere={(artwork, surfaceArtwork) => (
+        <IdentityCard
+          artwork={artwork}
+          surfaceArtwork={surfaceArtwork}
+          railBackgroundColor="transparent"
+          borderColor={
+            division
+              ? `${division.color}${colors.contextBorderAlpha}`
+              : undefined
           }
-        />
-      }
-      atmosphere={
-        logo.uri ? (
-          <IdentityAtmosphere
-            key={logo.uri}
-            uri={logo.uri}
-            testID="sporting-logo-atmosphere"
-          />
-        ) : undefined
-      }
-      railBackground={
-        logo.uri && division ? <DivisionPaint division={division} /> : undefined
-      }
-      railBackgroundColor={
-        division ? `${division.color}${colors.sportingSurfaceAlpha}` : undefined
-      }
-      borderColor={
-        division ? `${division.color}${colors.contextBorderAlpha}` : undefined
-      }
-    >
-      <View style={styles.heading}>
-        <Text style={[styles.eyebrow, { color: colors.secondaryText }]}>
-          {division?.name ?? identityKindLabel()}
-        </Text>
-        <Text
-          accessibilityRole="header"
-          accessibilityLabel={identity.name}
-          numberOfLines={kind === "pool" ? 2 : undefined}
-          ellipsizeMode="tail"
-          style={[
-            kind === "club" ? styles.clubName : styles.name,
-            { color: colors.text },
-          ]}
         >
-          {identity.name}
-        </Text>
-      </View>
-      {subtitle && (
-        <Text style={[styles.eyebrow, { color: colors.secondaryText }]}>
-          {subtitle}
-        </Text>
-      )}
-      {(metadata.length > 0 || !!clubId) && (
-        <View style={styles.metadata}>
-          {metadata.map((label) => (
+          <View style={styles.heading}>
+            <Text style={[styles.eyebrow, { color: colors.secondaryText }]}>
+              {division?.name ?? identityKindLabel()}
+            </Text>
             <Text
-              key={label}
+              accessibilityRole="header"
+              accessibilityLabel={identity.name}
+              numberOfLines={kind === "pool" ? 2 : undefined}
+              ellipsizeMode="tail"
               style={[
-                styles.badge,
-                { color: colors.secondaryText, borderColor: colors.border },
+                kind === "club" ? styles.clubName : styles.name,
+                { color: colors.text },
               ]}
             >
-              {label}
+              {identity.name}
             </Text>
-          ))}
-          {clubId && <ClubBadge key={clubId} clubId={clubId} />}
-        </View>
+          </View>
+          {subtitle && (
+            <Text style={[styles.eyebrow, { color: colors.secondaryText }]}>
+              {subtitle}
+            </Text>
+          )}
+          {(metadata.length > 0 || !!clubId) && (
+            <View style={styles.metadata}>
+              {metadata.map((label) => (
+                <Text
+                  key={label}
+                  style={[
+                    styles.badge,
+                    { color: colors.secondaryText, borderColor: colors.border },
+                  ]}
+                >
+                  {label}
+                </Text>
+              ))}
+              {clubId && <ClubBadge key={clubId} clubId={clubId} />}
+            </View>
+          )}
+          {children}
+        </IdentityCard>
       )}
-      {children}
-    </IdentityCard>
+    />
   );
 }
 

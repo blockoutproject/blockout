@@ -1,4 +1,5 @@
-import { SportingEntityCardLoading } from "../entity-card";
+import { SportingEntityCard, SportingEntityCardLoading } from "../entity-card";
+import { useSportingNavigation } from "../navigation";
 import { SportingClubLoading } from "../components/sporting-loading";
 import { ClubLocation } from "../components/club-location";
 import { PageList } from "@/shared/components/page-list";
@@ -10,7 +11,6 @@ import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import { PagedTabs } from "@/shared/components/paged-tabs";
 import { ListSeparator } from "@/shared/components/list-separator";
 import { BottomContentSpacer } from "@/shared/components/bottom-content-inset";
-import { ResourceText } from "../components/resource-text";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
 import { PageHeader } from "@/shared/components/page-header";
@@ -39,10 +39,7 @@ import { SeasonSelector } from "@/shared/components/season-selector";
 import { SelectionRow } from "@/shared/components/selection-row";
 import { useConsultationQueries } from "../api/use-consultation-queries";
 
-import {
-  SportingIdentity,
-  SportingLink,
-} from "../components/sporting-identity";
+import { SportingIdentity } from "../components/sporting-identity";
 import {
   ContactLink,
   phoneDestination,
@@ -290,6 +287,7 @@ function ClubTeams({
   children?: ReactNode;
 }>) {
   const queries = useConsultationQueries();
+  const sporting = useSportingNavigation(active);
   const teams = useQuery({
     ...queries.clubTeams(clubId, seasonId),
     enabled: (query) => active && query.state.status !== "error",
@@ -324,7 +322,10 @@ function ClubTeams({
         {teams.isLoading ? (
           <PageContent>
             {children}
-            <SportingEntityCardLoading label="Chargement des équipes du club" />
+            <SportingEntityCardLoading
+              layout="club-team"
+              label="Chargement des équipes du club"
+            />
           </PageContent>
         ) : (
           <>
@@ -374,19 +375,13 @@ function ClubTeams({
       data={data.items}
       keyExtractor={(item) => item.team.id}
       renderItem={({ item }) => (
-        <Surface>
-          <SportingLink
-            key={item.team.id}
-            kind="team"
-            active={active}
-            id={item.team.id}
-            identity={item.team}
-            label={item.team.name}
-          />
-          {item.classification.division && (
-            <ResourceText>{item.classification.division.name}</ResourceText>
-          )}
-        </Surface>
+        <SportingEntityCard
+          kind="team"
+          layout="club-team"
+          identity={item.team}
+          classification={item.classification}
+          onPress={() => void sporting.navigate("team", item.team.id)}
+        />
       )}
       ListHeaderComponent={
         <View style={[styles.header, styles.seasonHeader]}>{children}</View>

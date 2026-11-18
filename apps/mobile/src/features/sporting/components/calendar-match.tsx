@@ -119,7 +119,10 @@ export function CalendarMatch({
           <View
             style={[
               styles.time,
-              { backgroundColor: accent, width: 56 * fontScale },
+              {
+                backgroundColor: accent,
+                width: tokens.sporting.calendarMatch.timeWidth * fontScale,
+              },
             ]}
           >
             <Text style={[styles.timeText, { color: foreground }]}>
@@ -157,7 +160,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
-    minHeight: 56,
+    minHeight: tokens.sporting.calendarMatch.teamMinHeight,
     padding: tokens.spacing.sm,
   },
   name: {
@@ -167,15 +170,15 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   scoreCell: {
-    minWidth: 40,
-    minHeight: 40,
+    minWidth: tokens.sporting.scoreSize,
+    minHeight: tokens.sporting.scoreSize,
     padding: tokens.spacing.xs,
     borderRadius: tokens.radius.sm,
     alignItems: "center",
     justifyContent: "center",
   },
   score: { ...tokens.typography.navigation, textAlign: "center" },
-  time: { width: 56, padding: tokens.spacing.xs, justifyContent: "center" },
+  time: { padding: tokens.spacing.xs, justifyContent: "center" },
   timeText: { ...tokens.typography.strong, textAlign: "center" },
   special: { ...tokens.typography.metadata, padding: tokens.spacing.sm },
 });
