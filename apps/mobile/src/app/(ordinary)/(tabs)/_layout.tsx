@@ -85,7 +85,7 @@ export default function TabsLayout() {
         }),
   );
   // Keep the ink blend short and start it where the displayed fill changes contrast.
-  const lightMix = useDerivedValue(() => {
+  const lightMix = useDerivedValue<number>(() => {
     const target = contrastColor(animatedFill.value) === "white" ? 1 : 0;
     return reducedMotion
       ? target
