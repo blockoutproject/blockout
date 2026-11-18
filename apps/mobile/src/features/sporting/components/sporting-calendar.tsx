@@ -3,6 +3,7 @@ import {
   PageScrollView,
   PageContent,
   pageContentStyle,
+  usePageCanvasBacking,
 } from "@/shared/components/page";
 import { type LegendListRef } from "@legendapp/list/react-native";
 import {
@@ -347,6 +348,7 @@ function CalendarDate({
   stacked,
 }: Readonly<{ date: string; stacked: boolean }>) {
   const { colors } = useTheme();
+  const backgroundColor = usePageCanvasBacking();
   const value = new Date(`${date}T12:00:00Z`);
   return (
     <View
@@ -355,7 +357,7 @@ function CalendarDate({
       accessibilityLabel={formatSportingDay(date)}
       style={[
         styles.dateHeading,
-        { backgroundColor: colors.canvas },
+        { backgroundColor },
         stacked && styles.stackedDate,
       ]}
     >

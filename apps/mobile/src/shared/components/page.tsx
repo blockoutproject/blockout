@@ -8,6 +8,7 @@ import {
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
 import {
   cloneElement,
+  createContext,
   useContext,
   useImperativeHandle,
   type PropsWithChildren,
@@ -24,6 +25,7 @@ import {
   type ViewProps,
 } from "react-native";
 import Animated, {
+  interpolateColor,
   useAnimatedRef,
   useScrollOffset,
 } from "react-native-reanimated";
@@ -41,12 +43,20 @@ import {
   useBottomContentInset,
 } from "./bottom-content-inset";
 
+const PageCanvasBackingContext = createContext<string | undefined>(undefined);
+
+/** Gives sticky content an opaque color close to the canvas behind the leading rail. */
+export function usePageCanvasBacking() {
+  const { colors } = useTheme();
+  return useContext(PageCanvasBackingContext) ?? colors.canvas;
+}
+
 /** The route composes its header and content; native bottom clearance belongs inside the scrolling content. */
 export interface PageProps extends PropsWithChildren {
   edges?: SafeAreaViewProps["edges"];
   /** Pinned shared chrome overlays the scrolling viewport. */
   header?: ReactNode;
-  /** Validated six-digit hex accent for the page's subdued canvas highlight. */
+  /** Validated six-digit hex accent blended into the page canvas. */
   canvasTint?: string;
   /** A composed pager supplies its own overlay header and consumes the shared top safe area. */
   fullBleed?: boolean;
@@ -65,11 +75,16 @@ export function Page({
 }: Readonly<PageProps>) {
   const { colors } = useTheme();
   const highlight = canvasTint ?? colors.canvasHighlight;
-  const alpha = canvasTint
-    ? colors.canvasTintAlpha
-    : colors.canvasHighlightAlpha;
-  // Start the diagonal beyond the leading date rail so it blends into the opaque base.
-  const canvasGradient = `linear-gradient(to bottom right, ${highlight}00 65%, ${highlight}${alpha})`;
+  const startTint = colors.canvasTintStart;
+  const endTint = canvasTint ? colors.canvasTintEnd : colors.canvasHighlightEnd;
+  const mixCanvas = (tint: number) =>
+    interpolateColor(tint, [0, 1], [colors.canvas, highlight], "RGB", {
+      gamma: 1,
+    });
+  const canvasStart = mixCanvas(startTint);
+  const canvasEnd = mixCanvas(endTint);
+  // Sticky dates need a solid fill. Sample the gradient near the leading rail.
+  const canvasBacking = mixCanvas(startTint + (endTint - startTint) / 3);
   const bottomContentInset = useBottomContentInset();
   const safeArea = useSafeAreaInsets();
   const activeEdges: EdgeRecord = Array.isArray(edges)
@@ -99,8 +114,8 @@ export function Page({
       style={[
         styles.page,
         {
-          backgroundColor: colors.canvas,
-          backgroundImage: canvasGradient,
+          backgroundColor: canvasStart,
+          backgroundImage: `linear-gradient(to bottom right, ${canvasStart}, ${canvasEnd})`,
           paddingTop: ownsTop && !overlay ? tokens.spacing.sm : 0,
         },
       ]}
@@ -111,13 +126,15 @@ export function Page({
         }
       >
         <NavigationScrollOffsetContext value={null}>
-          <BottomContentInsetContext value={inset}>
-            {header ? (
-              <PageViewport header={header}>{children}</PageViewport>
-            ) : (
-              children
-            )}
-          </BottomContentInsetContext>
+          <PageCanvasBackingContext value={canvasBacking}>
+            <BottomContentInsetContext value={inset}>
+              {header ? (
+                <PageViewport header={header}>{children}</PageViewport>
+              ) : (
+                children
+              )}
+            </BottomContentInsetContext>
+          </PageCanvasBackingContext>
         </NavigationScrollOffsetContext>
       </NavigationSafeAreaContext>
     </SafeAreaView>

@@ -23,8 +23,9 @@ export const appearanceColors = {
   light: {
     canvas: "#FCFCFD",
     canvasHighlight: "#7E8FB2",
-    canvasHighlightAlpha: "11",
-    canvasTintAlpha: "11",
+    canvasTintStart: 0.025,
+    canvasHighlightEnd: 0.05,
+    canvasTintEnd: 0.05,
     surface: reference.white,
     subtle: "#2021240F",
     // Soft grouped surface approved through the native moderation review; its designated-library projection is tracked by F08.
@@ -87,8 +88,9 @@ export const appearanceColors = {
   dark: {
     canvas: "#0D0D0E",
     canvasHighlight: "#7885A5",
-    canvasHighlightAlpha: "17",
-    canvasTintAlpha: "26",
+    canvasTintStart: 0.05,
+    canvasHighlightEnd: 0.075,
+    canvasTintEnd: 0.1,
     surface: "#19191A",
     subtle: "#FFFFFF14",
     insetSurface: "#FFFFFF08",
