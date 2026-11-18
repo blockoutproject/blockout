@@ -41,6 +41,8 @@ export function SignInArtwork() {
             <Image
               source={require("../../../../assets/accounts/athlete-shadow.png")}
               contentFit="contain"
+              tintColor="#000000"
+              blurRadius={8}
               style={styles.shadow}
             />
             <Image

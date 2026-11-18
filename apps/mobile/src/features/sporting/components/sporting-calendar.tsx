@@ -450,12 +450,16 @@ const monthFormat = new Intl.DateTimeFormat("fr-FR", {
 const styles = StyleSheet.create({
   stateControls: { paddingBottom: 0 },
   sceneHeader: { gap: tokens.spacing.lg, marginBottom: tokens.spacing.lg },
-  dateHeading: { gap: tokens.spacing.xs, paddingRight: tokens.spacing.xs },
+  dateHeading: {
+    gap: tokens.spacing.xs,
+    paddingTop: tokens.spacing.lg,
+    paddingRight: tokens.spacing.xs,
+  },
   stackedDate: {
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
-    paddingVertical: tokens.spacing.sm,
+    paddingBottom: tokens.spacing.sm,
   },
   date: { ...tokens.typography.headingXl },
   dateMeta: { ...tokens.typography.metadata },

@@ -1,4 +1,3 @@
-import { Fragment } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type {
   MatchSetsResponse,
@@ -35,21 +34,9 @@ export function MatchSetScores({ match, sets }: Readonly<MatchSetScoresProps>) {
         {sets?.items.length ? (
           <>
             <View style={styles.teams}>
-              {[
-                {
-                  team: match.home,
-                  side: "Domicile",
-                },
-                {
-                  team: match.away,
-                  side: "Extérieur",
-                },
-              ].map(({ team, side }, index) => (
-                <Fragment key={side}>
-                  {index > 0 && <View style={styles.centerColumn} />}
-                  <MatchScoreTeam identity={team} side={side} />
-                </Fragment>
-              ))}
+              <MatchScoreTeam identity={match.home} side="home" />
+              <View style={styles.centerColumn} />
+              <MatchScoreTeam identity={match.away} side="away" />
             </View>
             <View>
               {sets.items.map((set, index) => (
@@ -120,7 +107,10 @@ export function MatchSetScores({ match, sets }: Readonly<MatchSetScoresProps>) {
 function MatchScoreTeam({
   identity,
   side,
-}: Readonly<{ identity: SportingIdentityResponse; side: string }>) {
+}: Readonly<{
+  identity: SportingIdentityResponse;
+  side: "home" | "away";
+}>) {
   const { colors } = useTheme();
   const logo = useSportingLogo(identity, "team");
   return (
@@ -150,7 +140,9 @@ function MatchScoreTeam({
       >
         {identity.name}
       </Text>
-      <Text style={[styles.side, { color: colors.secondaryText }]}>{side}</Text>
+      <Text style={[styles.side, { color: colors.secondaryText }]}>
+        {side === "home" ? "Domicile" : "Extérieur"}
+      </Text>
     </View>
   );
 }
@@ -174,7 +166,6 @@ const styles = StyleSheet.create({
     width: tokens.sporting.haloSize,
     height: tokens.sporting.haloSize,
     top: tokens.sporting.haloTop,
-    alignSelf: "center",
   },
   name: {
     ...tokens.typography.setTeam,

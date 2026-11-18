@@ -73,7 +73,10 @@ export function NavigationBackdrop({
     opacity: progress.get() > 0 ? 1 : 0,
   }));
   const material = useAnimatedProps(() => ({
-    intensity: Math.max(1, progress.get() * tokens.blur.navigation.intensity),
+    intensity: Math.max(
+      1,
+      progress.get() * tokens.blur.navigation.headerIntensity,
+    ),
   }));
   return (
     <Animated.View
