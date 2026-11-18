@@ -16,6 +16,7 @@ import com.blockout.collector.acquisition.infrastructure.backend.CollectionBacke
 import com.blockout.collector.acquisition.infrastructure.backend.SportingObservationClient;
 import com.blockout.collector.acquisition.infrastructure.backend.SportingObservationMapperImpl;
 import com.blockout.collector.acquisition.infrastructure.provider.ProviderHttpClient;
+import com.blockout.collector.acquisition.lnv.LnvStandingsParser;
 import com.blockout.collector.generated.ingestion.api.CollectionApi;
 import com.blockout.collector.generated.ingestion.api.CollectorOperationsApi;
 import com.blockout.collector.generated.ingestion.api.SportingApi;
@@ -684,28 +685,43 @@ class CollectorSportingReadIntegrationTest {
 
   @Test
   @DisplayName(
-      "Official rows keep order, unknown rank, missing statistics and independent participant links")
+      "FFVB rows keep published order across conflicting printed ranks and partial statistics")
   void preservesOfficialRows() {
     // Given
     CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
-    sporting
-        .calendar(
-            POOL,
-            context(cycle, cycle.nextReadOrdinal(), FIRST, null),
-            calendar(SportingObservation.Facts.builder().localDate(JsonNullable.of(DATE)).build()))
-        .outcomes()
-        .getFirst()
-        .resourceId();
-    SportingObservation.Standings table =
-        new SportingObservation.Standings(
-            StandingsPublicationStateEnum.PUBLISHED,
-            List.of("Points", "Ratio"),
-            List.of(
-                new SportingObservation.Standing("Unknown second", null, 2, Map.of("Ratio", "MAX")),
-                new SportingObservation.Standing("Home", null, 1, Map.of("Points", "9")),
-                new SportingObservation.Standing("Unranked", null, null, Map.of())));
+    sporting.calendar(
+        POOL,
+        context(cycle, cycle.nextReadOrdinal(), FIRST, null),
+        calendar(SportingObservation.Facts.builder().localDate(JsonNullable.of(DATE)).build()));
+    String html =
+        """
+        <form method='post' action='vbspo_calendrier_export.php'>
+          <input name='cal_saison' value='2026/2027'>
+          <input name='cal_codent' value='SYNTHETIC'>
+          <input name='cal_codpoule' value='POOL'>
+          <input name='cal_coddiv' value=''>
+          <input name='cal_codtour' value=''>
+          <input name='typ_edition' value='E'>
+          <input name='type' value='RES'>
+          <input name='rech_equipe' value=''>
+        </form>
+        <table>
+          <tr><td></td><td></td><td>Points</td><td>Jou.</td><td>Coeff.S</td></tr>
+          <tr><td>2.</td><td>Visitor</td><td>3</td><td></td><td>MAX</td></tr>
+          <tr><td>2.</td><td>Home</td><td>9</td><td>3</td><td></td></tr>
+          <tr><td></td><td>Unranked</td><td></td><td></td><td></td></tr>
+          <tr><td>1.</td><td>Away</td><td>9</td><td>4</td><td></td></tr>
+        </table>
+        """;
+    FfvbPage page =
+        new FfvbPage(
+            html.getBytes(Charset.forName("windows-1252")),
+            URI.create(
+                "https://www.ffvbbeach.org/ffvbapp/resu/vbspo_calendrier.php?calend=COMPLET"),
+            new FfvbScope("2026/2027", "SYNTHETIC", "COMP", "POOL", null, null));
 
     // When
+    SportingObservation.Standings table = new FfvbStandingsParser().parse(page);
     sporting.standings(POOL, context(cycle, cycle.nextReadOrdinal(), FIRST, PUBLISHED), table);
     JsonNode read = read("/pools/" + POOL + "/standings");
     JsonNode participants = read("/pools/" + POOL + "/participants");
@@ -713,14 +729,16 @@ class CollectorSportingReadIntegrationTest {
     // Then
     assertThat(read.get("availability").asString()).isEqualTo("available");
     assertThat(read.get("columns").valueStream().map(JsonNode::asString).toList())
-        .containsExactly("Points", "Ratio");
+        .containsExactly("Points", "Jou.", "Coeff.S");
     assertThat(read.get("rows").valueStream().map(row -> row.get("sourceName").asString()).toList())
-        .containsExactly("Unknown second", "Home", "Unranked");
+        .containsExactly("Visitor", "Home", "Unranked", "Away");
     assertThat(read.at("/rows/0/position").asInt()).isEqualTo(2);
-    assertThat(read.at("/rows/1/position").asInt()).isEqualTo(1);
+    assertThat(read.at("/rows/1/position").asInt()).isEqualTo(2);
     assertThat(read.at("/rows/2").has("position")).isFalse();
-    assertThat(read.at("/rows/0/statistics/Ratio").asString()).isEqualTo("MAX");
-    assertThat(read.at("/rows/0/statistics").has("Points")).isFalse();
+    assertThat(read.at("/rows/3/position").asInt()).isEqualTo(1);
+    assertThat(read.at("/rows/0/statistics/Points").asString()).isEqualTo("3");
+    assertThat(read.at("/rows/0/statistics/Coeff.S").asString()).isEqualTo("MAX");
+    assertThat(read.at("/rows/0/statistics").has("Jou.")).isFalse();
     assertThat(read.at("/rows/2/statistics").isEmpty()).isTrue();
     assertThat(read.at("/rows/0").has("team")).isFalse();
     assertThat(read.at("/rows/2").has("team")).isFalse();
@@ -728,6 +746,67 @@ class CollectorSportingReadIntegrationTest {
     assertThat(participants.get("items").size()).isEqualTo(2);
     assertThat(runtime.sql.queryForObject("SELECT COUNT(*) FROM sporting_team", Integer.class))
         .isEqualTo(2);
+  }
+
+  @Test
+  @DisplayName("LNV tables without printed ranks replace stored rows when only order changes")
+  void replacesRanklessStandingsInPublishedOrder() {
+    // Given
+    professionalScope();
+    CollectorLifecycle.AdmittedCycle cycle = lifecycle.admit(CONTROL, null, 0, null);
+    sporting.calendar(
+        POOL,
+        context(cycle, cycle.nextReadOrdinal(), FIRST, null),
+        calendar(SportingObservation.Facts.builder().localDate(JsonNullable.of(DATE)).build()));
+    URI url =
+        URI.create("https://lnv-web.dataproject.com/CompetitionStandings.aspx?ID=901&PID=902");
+    String html =
+        """
+        <div id='Content_Main_903'><table class='rgMasterTable'>
+          <thead><tr><th>Equipe</th><th>Points</th></tr></thead>
+          <tbody>%s%s%s</tbody>
+        </table></div>
+        """;
+    String visitor = "<tr><td>Visitor</td><td>3</td></tr>";
+    String home = "<tr><td>Home</td><td>9</td></tr>";
+    String away = "<tr><td>Away</td><td>9</td></tr>";
+    LnvStandingsParser parser = new LnvStandingsParser();
+    sporting.standings(
+        POOL,
+        context(cycle, cycle.nextReadOrdinal(), FIRST, PUBLISHED),
+        parser.parse(
+            html.formatted(visitor, home, away).getBytes(StandardCharsets.UTF_8), url, "903"));
+    JsonNode initial = read("/pools/" + POOL + "/standings");
+
+    // When
+    Instant refreshedAt = FIRST.plusSeconds(60);
+    SportingObservation.Outcome outcome =
+        sporting.standings(
+            POOL,
+            context(cycle, cycle.nextReadOrdinal(), refreshedAt, PUBLISHED),
+            parser.parse(
+                html.formatted(home, away, visitor).getBytes(StandardCharsets.UTF_8), url, "903"));
+    JsonNode refreshed = read("/pools/" + POOL + "/standings");
+
+    // Then
+    assertThat(initial.get("availability").asString()).isEqualTo("available");
+    assertThat(
+            initial.get("rows").valueStream().map(row -> row.get("sourceName").asString()).toList())
+        .containsExactly("Visitor", "Home", "Away");
+    assertThat(initial.get("rows").valueStream().toList()).noneMatch(row -> row.has("position"));
+    assertThat(initial.at("/rows/0").has("team")).isFalse();
+    assertThat(initial.at("/rows/1/team/name").asString()).isEqualTo("Home");
+    assertThat(initial.at("/rows/0/statistics/Points").asString()).isEqualTo("3");
+    assertThat(outcome.outcome()).isEqualTo(ObservationOutcomeEnum.ACCEPTED);
+    assertThat(refreshed.get("observedAt").asString()).isEqualTo(refreshedAt.toString());
+    assertThat(refreshed.get("rows").valueStream().toList())
+        .containsExactly(initial.at("/rows/1"), initial.at("/rows/2"), initial.at("/rows/0"));
+    assertThat(
+            runtime.sql.queryForList(
+                "SELECT source_name FROM sporting_standing_row WHERE pool_id=? ORDER BY row_index",
+                String.class,
+                POOL))
+        .containsExactly("Home", "Away", "Visitor");
   }
 
   @Test

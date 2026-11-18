@@ -60,7 +60,7 @@ Exercise numeric final/provisional/unconfirmed results; synthetic `F`, `P`, `3/F
 
 Submit a logo with supplied/omitted publication metadata and compare the actual F03 binary response to the synthetic PNG. Verify private qualified document locators, information independent of result, professional finality, withdrawal/restoration and rescheduling under stable identity. F03 exposes only backend document subresources; ineligible binary requests return NotFound before supplier access.
 
-For standings, preserve official order, unknown rank/statistics, nonnumeric ratios, exact/absent participant links and the usable table's own freshness through non-publication/failure. Distinguish no table, `not-published` and published Empty. Synthetic special notations establish no provider-observed sample; [source interpretation](research.md#supplier-interpretation-limits) and [F03 document/native boundaries](../007-sporting-consultation/plan.md#maps-and-documents) retain their own requirements.
+For standings, compare the complete parsed provider sequence to the persisted `row_index` and the order in the public response. Repeat with a newer qualified observation changing only the supplied row sequence. Verify that any printed ranks, absent ranks and statistics, nonnumeric ratios, exact or absent team links and the usable table's own freshness keep their meaning through non-publication and failure. Distinguish no table, `not-published` and published Empty. Synthetic special notations establish no provider-observed sample; [source interpretation](research.md#supplier-interpretation-limits) and [F03 document/native boundaries](../007-sporting-consultation/plan.md#maps-and-documents) retain their own requirements.
 
 ## Classification and division editors
 

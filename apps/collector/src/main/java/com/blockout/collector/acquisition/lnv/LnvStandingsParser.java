@@ -90,7 +90,7 @@ public class LnvStandingsParser {
           statistics.put(columns.get(index), value);
         }
       }
-      // A native position is only sent when explicitly printed; source order is always preserved.
+      // The qualified LNV grid has no printed rank column.
       rows.add(
           new SportingObservation.Standing(
               label, team == null ? null : team.attr("value"), null, statistics));

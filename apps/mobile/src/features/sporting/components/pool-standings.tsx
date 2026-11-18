@@ -157,6 +157,8 @@ export function PoolStandings({
       </PageScrollView>
     );
   }
+  // Number the entire published table before the cards arrange the podium.
+  const rows = data.rows.map((row, index) => ({ row, displayRank: index + 1 }));
   return (
     <PageScrollView
       alwaysBounceVertical
@@ -172,20 +174,21 @@ export function PoolStandings({
         <View style={styles.standings}>
           {headerRow}
           {layout === "cards" ? (
-            <StandingCards rows={data.rows} columns={columns} active={active} />
+            <StandingCards rows={rows} columns={columns} active={active} />
           ) : (
             <View>
-              {data.rows.map((row, index) => (
+              {rows.map(({ row, displayRank }) => (
                 <StandingEntry
-                  key={`${index}:${row.team?.id ?? "unlinked"}`}
+                  key={`${displayRank}:${row.team?.id ?? "unlinked"}`}
                   row={row}
+                  displayRank={displayRank}
                   active={active}
                   columns={columns}
                   highlighted={
                     row.team !== undefined && row.team.id === highlightTeamId
                   }
                   color={pool.classification.division?.color}
-                  last={index === data.rows.length - 1}
+                  last={displayRank === rows.length}
                 />
               ))}
             </View>
@@ -196,9 +199,9 @@ export function PoolStandings({
   );
 }
 
-/** Official source rows have no row identity; their list order is presentation, never a rank. */
 interface StandingEntryProps {
   row: StandingRowResponse;
+  displayRank: number;
   columns: string[];
   highlighted: boolean;
   color?: string;
@@ -209,6 +212,7 @@ interface StandingEntryProps {
 /** Preserves source labels, nominal media and optional values; only an explicitly associated team opens a route. */
 function StandingEntry({
   row,
+  displayRank,
   columns,
   highlighted,
   color,
@@ -220,20 +224,17 @@ function StandingEntry({
   const statistics = columns
     .map((column) => `${column} : ${row.statistics[column] ?? "non renseigné"}`)
     .join(", ");
-  const label = [
-    row.sourceName,
-    row.position === undefined ? "Rang non renseigné" : `Rang ${row.position}`,
-    statistics,
-  ]
+  const rankLabel = `Rang ${displayRank}`;
+  const label = [row.sourceName, rankLabel, statistics]
     .filter(Boolean)
     .join(". ");
   const points = standingPointsColumn(columns);
   let medal: "first" | "second" | "third" | undefined;
-  if (row.position === 1) {
+  if (displayRank === 1) {
     medal = "first";
-  } else if (row.position === 2) {
+  } else if (displayRank === 2) {
     medal = "second";
-  } else if (row.position === 3) {
+  } else if (displayRank === 3) {
     medal = "third";
   } else {
     medal = undefined;
@@ -249,18 +250,14 @@ function StandingEntry({
         />
       )}
       <Text
-        accessibilityLabel={
-          row.position === undefined
-            ? "Rang non renseigné"
-            : `Rang ${row.position}`
-        }
+        accessibilityLabel={rankLabel}
         style={[
           styles.position,
           tokens.typography.headingSm,
           { color: rankInk, backgroundColor: rankFill },
         ]}
       >
-        {row.position ?? "—"}
+        {displayRank}
       </Text>
       <View style={styles.identity}>
         {row.team ? (
