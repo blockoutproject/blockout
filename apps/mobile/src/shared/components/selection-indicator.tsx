@@ -36,7 +36,6 @@ export function SelectionIndicator({
       reduceMotion: ReduceMotion.System,
     };
     return {
-      backgroundColor: typeof fill === "string" ? fill : fill.value,
       left: withTiming(layout.x, timing),
       top: withTiming(layout.y, timing),
       width: withTiming(layout.width, timing),
@@ -53,6 +52,7 @@ export function SelectionIndicator({
       style={[
         styles.indicator,
         {
+          backgroundColor: fill,
           borderRadius: radius,
           borderColor,
           borderWidth: borderColor ? tokens.border.thin : 0,
