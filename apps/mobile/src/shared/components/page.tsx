@@ -68,8 +68,8 @@ export function Page({
   const alpha = canvasTint
     ? colors.canvasTintAlpha
     : colors.canvasHighlightAlpha;
-  // Keep the leading edge on the opaque base shared with sticky calendar dates.
-  const canvasGradient = `radial-gradient(ellipse 70% 105% at 100% 5%, ${highlight}${alpha}, ${highlight}00)`;
+  // Start the diagonal beyond the leading date rail so it blends into the opaque base.
+  const canvasGradient = `linear-gradient(to bottom right, ${highlight}00 65%, ${highlight}${alpha})`;
   const bottomContentInset = useBottomContentInset();
   const safeArea = useSafeAreaInsets();
   const activeEdges: EdgeRecord = Array.isArray(edges)
