@@ -521,18 +521,15 @@ it("offers sign-in and independent public links to a guest without profile-editi
   expect(mockAuth0.webAuth).not.toHaveBeenCalled();
 });
 
-it("keeps a dirty editor without the main bar when Back is refused", async () => {
+it("retains a dirty editor and main navigation when Back is refused", async () => {
   // Given
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
   const user = userEvent.setup();
   await openProfile("/profile/edit");
   await user.clear(await screen.findByLabelText("Pseudo"));
   await user.type(screen.getByLabelText("Pseudo"), "Retained");
-  expect(screen.queryByRole("button", { name: "Rechercher" })).toBeNull();
-  expect(screen.queryByRole("button", { name: "Profil" })).toBeNull();
-  expect(
-    screen.queryByRole("button", { name: "Blockout Pro, sans publicité" }),
-  ).toBeNull();
+  expect(screen.getByRole("button", { name: "Rechercher" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Profil" })).toBeVisible();
 
   // When
   await act(() => router.back());
@@ -541,6 +538,7 @@ it("keeps a dirty editor without the main bar when Back is refused", async () =>
   // Then
   expect(screen).toHavePathname("/profile/edit");
   expect(screen.getByDisplayValue("Retained")).toBeOnTheScreen();
+  expect(screen.getByRole("button", { name: "Rechercher" })).toBeVisible();
   expect(mockAuth0.clearCredentials).not.toHaveBeenCalled();
 
   // When

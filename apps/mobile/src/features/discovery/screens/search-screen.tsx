@@ -13,7 +13,7 @@ import { Button } from "@/shared/components/button";
 import { hasReadError } from "@/shared/components/read-feedback";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { Keyboard, StyleSheet, View } from "react-native";
 
@@ -53,6 +53,9 @@ const searchTabs = [
  */
 export function SearchScreen() {
   const visit = useSearchVisit();
+  const { resetVisit } = visit;
+  // The shared modal provider outlives this route; only a genuine unmount ends its visit, not a tab switch or sheet.
+  useEffect(() => resetVisit, [resetVisit]);
   const router = useRouter();
   const { colors } = useTheme();
   const [resource, setResource] = useState<DiscoveryResource>("team");

@@ -1,14 +1,22 @@
 import { Image } from "expo-image";
+import NativeMaskedView, {
+  type MaskedViewProps,
+} from "@react-native-masked-view/masked-view";
 import { BlurredArtwork } from "@/shared/components/blurred-artwork";
 import { ImageFallback } from "@/shared/components/image-fallback";
-import { useState, type ReactNode } from "react";
+import { useId, useState, type ComponentType, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
+import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
 import type { SportingIdentityResponse } from "../../../../.generated/schemas/index.zod";
 import { Skeleton } from "@/shared/components/skeleton";
 import { useNativeImageLifecycle } from "@/shared/images/use-native-image-lifecycle";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { mediaRadius } from "@/shared/theme/media-radius";
+
+// The 0.3.2 declarations use a legacy native-method mixin; its runtime remains an ordinary React component.
+const MaskedView =
+  NativeMaskedView as unknown as ComponentType<MaskedViewProps>;
 
 /** Optional sports artwork keeps its fixed slot and native lifecycle; absent or failed artwork uses the nominal fallback. */
 export interface SportingMediaProps {
@@ -138,22 +146,69 @@ export function SportingMedia({
     return logo;
   }
   const atmosphere = available ? (
-    <BlurredArtwork
+    <SportingAtmosphere
       key={image.attemptKey}
       testID="sporting-logo-atmosphere"
       uri={uri}
-      resizeMode="contain"
-      blurRadius={tokens.sporting.coverBlur}
       onError={image.onError}
-      style={[
-        StyleSheet.absoluteFill,
-        {
-          opacity: tokens.sporting.standingsCard.atmosphereOpacity,
-        },
-      ]}
     />
   ) : null;
   return renderWithAtmosphere(logo, atmosphere);
+}
+
+/** Optional same-crest light; its own decode failure removes only this decoration unless the caller shares failure ownership. */
+export function SportingAtmosphere({
+  uri,
+  onError,
+  testID,
+}: Readonly<{
+  uri: string;
+  onError?: () => void;
+  testID?: string;
+}>) {
+  const image = useNativeImageLifecycle(uri);
+  const atmosphereMaskId = useId();
+  if (image.status === "failed") {
+    return null;
+  }
+  // Spread the blurred bitmap beneath an alpha fade; only the separate foreground retains recognizable artwork.
+  return (
+    <MaskedView
+      accessible={false}
+      pointerEvents="none"
+      style={StyleSheet.absoluteFill}
+      maskElement={
+        <Svg accessible={false} width="100%" height="100%">
+          <Defs>
+            <RadialGradient
+              id={atmosphereMaskId}
+              cx="50%"
+              cy="50%"
+              rx="50%"
+              ry="50%"
+            >
+              <Stop offset="0" stopColor="black" stopOpacity={1} />
+              <Stop offset="1" stopColor="black" stopOpacity={0} />
+            </RadialGradient>
+          </Defs>
+          <Rect width="100%" height="100%" fill={`url(#${atmosphereMaskId})`} />
+        </Svg>
+      }
+    >
+      <BlurredArtwork
+        key={image.attemptKey}
+        testID={testID}
+        uri={uri}
+        resizeMode="contain"
+        blurRadius={tokens.sporting.atmosphere.blur}
+        onError={() => {
+          image.onError();
+          onError?.();
+        }}
+        style={styles.atmosphere}
+      />
+    </MaskedView>
+  );
 }
 
 /** Decorative cover inputs preserve the current source and its accepted tint without introducing fallback artwork. */
@@ -189,6 +244,11 @@ export function SportingCover({ uri, primary }: Readonly<SportingCoverProps>) {
 }
 
 const styles = StyleSheet.create({
+  atmosphere: {
+    ...StyleSheet.absoluteFill,
+    opacity: tokens.sporting.atmosphere.opacity,
+    transform: [{ scale: tokens.sporting.atmosphere.scale }],
+  },
   artwork: {
     ...StyleSheet.absoluteFill,
     alignItems: "center",

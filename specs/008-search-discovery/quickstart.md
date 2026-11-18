@@ -65,12 +65,12 @@ Search has no pull-to-refresh or refresh button. Qualify active first-read skele
 For the current intrinsic sheets, select representative short and long option catalogues on the required native
 platforms, distributing both themes and enlarged system text across the changed compositions. A short choice fits its content; overflow
 stops at native available height and scrolls to the final choice or both filter actions. The
-floating tab capsule must not cover a row or action. Open a choice from a dirty filter draft,
+floating tab capsule must not cover a row or action: Search filter/choice sheets present through the ordinary parent Stack above Tabs on both platforms. Open a choice from a dirty filter draft,
 select and return, then exercise close, OS back, reset and apply: the existing RHF draft, applied
 criteria and selected Search tab retain their established semantics. Reach the final rows and
 actions through native scrolling, including keyboard dismissal before opening filters. This
 qualifies actual reachability and shared row anatomy separately from JavaScript navigation tests;
-JavaScript navigation checks do not establish native sheet geometry.
+JavaScript navigation checks do not establish native sheet geometry. Before Search entry, an unrelated ordinary route starts no Search-options read. Enter Search, retain text/applied criteria and a dirty RHF draft, then open detail/support and return: the mounted visit and its existing options-read lifetime remain intact, without an extra read solely from Back. Genuinely unmount Search, then start a new visit: RHF, criteria and catalogue initialization reset. Pause its new options read with prior cache available; old cached success must not initialize the new selection before that read settles. Native presentations keep their own insets without the presenting capsule reservation.
 
 Use deterministic Jest scenarios with actual Query/session owners and controlled HTTP for late old text/filter/account/bypass responses and superseded append cancellation. Verify one infinite Query with `pageParam`, authorized pages/cursor retained after final failure, with initial/full-reread data masked by Error but next-page failure retaining rows/controls/scroller and compact footer Retry. Verify exact failed-cursor Retry appends deduplicated rows without parallel reads or a page-zero restart. Hold an initial no-data Retry through Query pending: keep the same card with actual button progress. Pause it and run unrelated background work: no false loader. Switch tabs while Retry runs, then return during the attempt, after success and after repeat failure; observe the same native operation/result. New criteria and A → guest → B reject old work while same-owner text/filter/RHF context remains. No write or sporting opening is replayed; actual SDK/foreground/network boundaries keep their own native owners.
 

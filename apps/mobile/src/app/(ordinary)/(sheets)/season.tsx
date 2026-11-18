@@ -1,6 +1,6 @@
 import { PersonalSeasonScreen } from "@/features/following/screens/personal-season-screen";
 
-/** Choices consume the current Home scope; no account identity or callback is accepted from route parameters. */
+/** The ordinary modal consumes Home's current scope without route-supplied identity or callbacks. */
 export default function SeasonRoute() {
   return <PersonalSeasonScreen />;
 }
