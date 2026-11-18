@@ -68,18 +68,10 @@ export function MatchScreen({
                 (!data.streamUrl && contribution.canPropose) ? (
                   <MatchContributionAction
                     entry={contribution}
-                    contextColor={
-                      data.match.pool.classification.division?.color
-                    }
-                    contextGradient={
-                      data.match.pool.classification.division?.gradient
-                    }
+                    contextColor={division?.color}
+                    contextGradient={division?.gradient}
                     contextForeground={
-                      data.match.pool.classification.division
-                        ? divisionTextColor(
-                            data.match.pool.classification.division.color,
-                          )
-                        : undefined
+                      division ? divisionTextColor(division.color) : undefined
                     }
                   />
                 ) : undefined
@@ -120,6 +112,7 @@ export function MatchScreen({
     return () => subscription.remove();
   }, [focused, matchId, refetch]);
   const data = match.data;
+  const division = data?.match.pool.classification.division;
   const [document, setDocument] = useState<{
     matchId: string;
     kind: MatchDocumentKindEnum;
@@ -168,6 +161,7 @@ export function MatchScreen({
     ) : undefined;
   return (
     <Page
+      canvasTint={failed ? undefined : division?.color}
       header={
         data && !failed ? (
           <MatchPageHeader

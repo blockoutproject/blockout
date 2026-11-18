@@ -17,6 +17,7 @@ export type SportingInitialRead = Pick<
 export interface SportingInitialCompositionProps {
   detail: SportingInitialRead;
   follow?: SportingInitialRead;
+  canvasTint?: string;
   header: ReactNode;
   loading: ReactNode;
   children: ReactNode;
@@ -26,6 +27,7 @@ export interface SportingInitialCompositionProps {
 export function SportingInitialComposition({
   detail,
   follow,
+  canvasTint,
   header,
   loading,
   children,
@@ -52,7 +54,7 @@ export function SportingInitialComposition({
   }
 
   return (
-    <Page fullBleed>
+    <Page fullBleed canvasTint={blocked ? undefined : canvasTint}>
       <View
         style={[styles.content, blocked && styles.hidden]}
         pointerEvents={blocked ? "none" : "auto"}

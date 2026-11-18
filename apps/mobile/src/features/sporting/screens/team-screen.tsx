@@ -52,6 +52,7 @@ function TeamPage({
   const team = useQuery(queries.team(teamId));
   const [selected, setSelected] = useState<string>();
   const data = team.data;
+  const divisionColor = data?.team.classification.division?.color;
   const tabs = [
     { id: "upcoming", label: "À venir" },
     { id: "completed", label: "Terminés" },
@@ -72,17 +73,14 @@ function TeamPage({
       season={data.team.season}
       clubId={data.team.club?.id}
     >
-      {renderFollow?.(
-        data.team.team,
-        data.team.season,
-        data.team.classification.division?.color,
-      )}
+      {renderFollow?.(data.team.team, data.team.season, divisionColor)}
     </SportingIdentity>
   ) : undefined;
   return (
     <SportingInitialComposition
       detail={team}
       follow={initialFollow}
+      canvasTint={divisionColor}
       header={
         <PageHeader
           title="L’équipe"
@@ -97,7 +95,7 @@ function TeamPage({
         <PagedTabs
           selected={tab ?? "upcoming"}
           onSelect={setSelected}
-          contextColor={data.team.classification.division?.color}
+          contextColor={divisionColor}
           header={
             data && (
               <SportingPageHeader

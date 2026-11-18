@@ -20,9 +20,9 @@ export interface ContextColors {
 export const appearanceColors = {
   light: {
     canvas: "#FCFCFD",
-    // Leave the leading edge on the opaque canvas used by sticky calendar dates.
-    canvasGradient:
-      "radial-gradient(ellipse 70% 105% at 100% 5%, #7E8FB211, #7E8FB200)",
+    canvasHighlight: "#7E8FB2",
+    canvasHighlightAlpha: "11",
+    canvasTintAlpha: "11",
     surface: reference.white,
     subtle: "#2021240F",
     // Soft grouped surface approved through the native moderation review; its designated-library projection is tracked by F08.
@@ -84,8 +84,9 @@ export const appearanceColors = {
   },
   dark: {
     canvas: "#0D0D0E",
-    canvasGradient:
-      "radial-gradient(ellipse 70% 105% at 100% 5%, #7885A517, #7885A500)",
+    canvasHighlight: "#7885A5",
+    canvasHighlightAlpha: "17",
+    canvasTintAlpha: "26",
     surface: "#19191A",
     subtle: "#FFFFFF14",
     insetSurface: "#FFFFFF08",

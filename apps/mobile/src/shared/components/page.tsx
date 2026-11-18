@@ -46,6 +46,8 @@ export interface PageProps extends PropsWithChildren {
   edges?: SafeAreaViewProps["edges"];
   /** Pinned shared chrome overlays the scrolling viewport. */
   header?: ReactNode;
+  /** Validated six-digit hex accent for the page's subdued canvas highlight. */
+  canvasTint?: string;
   /** A composed pager supplies its own overlay header and consumes the shared top safe area. */
   fullBleed?: boolean;
   /** A native modal covers the tab capsule and keeps its own complete safe-area reservation. */
@@ -58,9 +60,16 @@ export function Page({
   edges,
   accessibilityViewIsModal,
   header,
+  canvasTint,
   fullBleed = false,
 }: Readonly<PageProps>) {
   const { colors } = useTheme();
+  const highlight = canvasTint ?? colors.canvasHighlight;
+  const alpha = canvasTint
+    ? colors.canvasTintAlpha
+    : colors.canvasHighlightAlpha;
+  // Keep the leading edge on the opaque base shared with sticky calendar dates.
+  const canvasGradient = `radial-gradient(ellipse 70% 105% at 100% 5%, ${highlight}${alpha}, ${highlight}00)`;
   const bottomContentInset = useBottomContentInset();
   const safeArea = useSafeAreaInsets();
   const activeEdges: EdgeRecord = Array.isArray(edges)
@@ -91,7 +100,7 @@ export function Page({
         styles.page,
         {
           backgroundColor: colors.canvas,
-          backgroundImage: colors.canvasGradient,
+          backgroundImage: canvasGradient,
           paddingTop: ownsTop && !overlay ? tokens.spacing.sm : 0,
         },
       ]}

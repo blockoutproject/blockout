@@ -425,7 +425,7 @@ function CalendarPoolHeader({
   const division = pool.classification.division;
   const accent = division?.color ?? context.primary;
   const foreground = division ? divisionTextColor(accent) : context.onAction;
-  // LegendList advances the shared row by its tallest cell, so the tint must reach the date edge.
+  // The banner fills the row reserved by the date so each pool keeps the same match insets.
   const dateHeight =
     styles.dateHeading.paddingTop +
     styles.dateHeading.gap +
@@ -536,6 +536,7 @@ const styles = StyleSheet.create({
   },
   groupInset: { padding: tokens.spacing.xs, paddingBottom: 0 },
   pool: {
+    flexGrow: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.md,
