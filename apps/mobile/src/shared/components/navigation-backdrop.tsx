@@ -4,6 +4,7 @@ import { useNavigation } from "expo-router";
 import {
   createContext,
   useContext,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -12,7 +13,7 @@ import {
   type RefObject,
   type ComponentProps,
 } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { AccessibilityInfo, Platform, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedProps,
   useAnimatedStyle,
@@ -80,6 +81,39 @@ function SoftNavigationEdgeOptions() {
   return null;
 }
 
+function useReducedTransparency(enabled: boolean) {
+  const [reduced, setReduced] = useState(true);
+  useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
+    let acceptInitialRead = true;
+    const subscription = AccessibilityInfo.addEventListener(
+      "reduceTransparencyChanged",
+      (value) => {
+        acceptInitialRead = false;
+        setReduced(value);
+      },
+    );
+    void AccessibilityInfo.isReduceTransparencyEnabled().then(
+      (value) => {
+        if (acceptInitialRead) {
+          setReduced(value);
+        }
+      },
+      () => {
+        // Keep the existing material if the system setting is unavailable.
+      },
+    );
+    return () => {
+      acceptInitialRead = false;
+      subscription.remove();
+    };
+  }, [enabled]);
+  return reduced;
+}
+
 /** Reveals native blur with scroll; a hidden resting view removes the material's tint. */
 export function NavigationBackdrop({
   target,
@@ -137,7 +171,10 @@ export function PageViewport({
   const top = useContext(NavigationSafeAreaContext);
   const scrollOffset = useSharedValue(0);
   const [height, setHeight] = useState(0);
-  const useSoftEdge = nativeScrollEdge && supportsSoftNavigationEdge;
+  const canUseSoftEdge = nativeScrollEdge && supportsSoftNavigationEdge;
+  // UIKit's reduced-transparency edge only protects the status area above the custom header.
+  const reducedTransparency = useReducedTransparency(canUseSoftEdge);
+  const useSoftEdge = canUseSoftEdge && !reducedTransparency;
   return (
     <View style={styles.fill}>
       {useSoftEdge && <SoftNavigationEdgeOptions />}
