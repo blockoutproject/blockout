@@ -1,8 +1,10 @@
 import type { ViewInstance } from "react-native";
 import { BlurTargetView, BlurView } from "expo-blur";
+import { useNavigation } from "expo-router";
 import {
   createContext,
   useContext,
+  useLayoutEffect,
   useRef,
   useState,
   type ReactElement,
@@ -19,10 +21,15 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import { ScrollViewMarker } from "react-native-screens/experimental";
+import { stackScreenOptions } from "@/shared/native/stack-screen-options";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
 const AnimatedBlurView = Animated.createAnimatedComponent(BlurView);
+const supportsSoftNavigationEdge =
+  Platform.OS === "ios" && Number.parseInt(String(Platform.Version), 10) >= 26;
+const softScrollEdge = { top: "soft" } as const;
+const NativeNavigationEdgeContext = createContext(false);
 
 /** Measured pinned chrome clearance; scroll containers reserve it inside their content. */
 export const NavigationInsetContext = createContext(0);
@@ -43,14 +50,34 @@ export function useNavigationInset() {
 export function NavigationScrollMarker({
   children,
 }: Readonly<{ children: ReactElement }>) {
+  const useSoftEdge = useContext(NativeNavigationEdgeContext);
   if (Platform.OS !== "ios") {
     return children;
   }
   return (
-    <ScrollViewMarker style={styles.fill} scrollEdgeEffects={{ top: "hidden" }}>
+    <ScrollViewMarker
+      style={styles.fill}
+      scrollEdgeEffects={
+        useSoftEdge ? softScrollEdge : stackScreenOptions.scrollEdgeEffects
+      }
+    >
       {children}
     </ScrollViewMarker>
   );
+}
+
+function SoftNavigationEdgeOptions() {
+  const navigation = useNavigation();
+  useLayoutEffect(() => {
+    // Stack reapplies its option on attachment; keep it aligned with the mounted scroller.
+    navigation.setOptions({ scrollEdgeEffects: softScrollEdge });
+    return () => {
+      navigation.setOptions({
+        scrollEdgeEffects: stackScreenOptions.scrollEdgeEffects,
+      });
+    };
+  }, [navigation]);
+  return null;
 }
 
 /** Reveals native blur with scroll; a hidden resting view removes the material's tint. */
@@ -99,26 +126,35 @@ export function NavigationBackdrop({
 export function PageViewport({
   header,
   children,
+  nativeScrollEdge = false,
 }: Readonly<{
   header: ReactNode;
   children: ReactNode;
+  /** Only the main route viewport owns Stack options. An overlay may sit above a pager. */
+  nativeScrollEdge?: boolean;
 }>) {
   const target = useRef<ViewInstance>(null);
   const top = useContext(NavigationSafeAreaContext);
   const scrollOffset = useSharedValue(0);
   const [height, setHeight] = useState(0);
+  const useSoftEdge = nativeScrollEdge && supportsSoftNavigationEdge;
   return (
     <View style={styles.fill}>
+      {useSoftEdge && <SoftNavigationEdgeOptions />}
       <NavigationInsetContext value={height}>
         <NavigationScrollOffsetContext value={scrollOffset}>
           <BlurTargetView ref={target} style={styles.fill}>
-            {children}
+            <NativeNavigationEdgeContext value={useSoftEdge}>
+              {children}
+            </NativeNavigationEdgeContext>
           </BlurTargetView>
           <View
             style={[styles.header, { paddingTop: top }]}
             onLayout={({ nativeEvent }) => setHeight(nativeEvent.layout.height)}
           >
-            <NavigationBackdrop target={target} scrollOffset={scrollOffset} />
+            {!useSoftEdge && (
+              <NavigationBackdrop target={target} scrollOffset={scrollOffset} />
+            )}
             {header}
           </View>
         </NavigationScrollOffsetContext>

@@ -131,7 +131,9 @@ export function Page({
           <PageCanvasBackingContext value={canvasBacking}>
             <BottomContentInsetContext value={inset}>
               {header ? (
-                <PageViewport header={header}>{children}</PageViewport>
+                <PageViewport header={header} nativeScrollEdge>
+                  {children}
+                </PageViewport>
               ) : (
                 children
               )}
