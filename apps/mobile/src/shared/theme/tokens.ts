@@ -262,7 +262,14 @@ export const tokens = {
   motion: {
     slow: 480,
     // UI Library Motion / Navigation 3194:109; selection remains immediate while its decoration follows.
-    navigation: { duration: 280, iconScale: 1.04, iconLift: 1 },
+    navigation: {
+      duration: 280,
+      iconScale: 1.04,
+      iconLift: 1,
+      accentEntryDuration: 330,
+      accentReturnDuration: 420,
+      accentReturnInkDuration: 140,
+    },
   },
   sporting: {
     headerMinHeight: 72,

@@ -19,10 +19,12 @@ import {
 import Animated, {
   Easing,
   ReduceMotion,
+  contrastColor,
   interpolateColor,
   useAnimatedStyle,
   useDerivedValue,
   withTiming,
+  type DerivedValue,
 } from "react-native-reanimated";
 import {
   Tabs,
@@ -55,18 +57,65 @@ import {
 import { BottomContentInsetContext } from "@/shared/components/bottom-content-inset";
 import { ProOffer } from "@/features/pro";
 
+interface SelectionInk {
+  light: string;
+  dark: string;
+  lightMix: DerivedValue<number>;
+}
+
 /** Native presentations cover the retained capsule; its measured clearance keeps the presenting page stable. */
 export default function TabsLayout() {
   const session = useAccountSession();
   const { colors, membership } = useTheme();
   const insets = useSafeAreaInsets();
   const { fontScale } = useWindowDimensions();
+  // Read the live setting instead of Reanimated's system preference captured at startup.
   const reducedMotion = useReducedMotion();
   const [selectionLayout, setSelectionLayout] = useState<LayoutRectangle>();
   const selectedRouteKey = useSelectedTabRouteKey();
   const [accent, setAccent] = useState<NavigationAccentSelection>();
-  const selection =
-    accent && accent.routeKey === selectedRouteKey ? accent : membership;
+  const currentAccent =
+    accent?.routeKey === selectedRouteKey ? accent : undefined;
+  const { fill, content } = currentAccent ?? membership;
+  const hasAccent = !!currentAccent;
+  const fillDuration = hasAccent
+    ? tokens.motion.navigation.accentEntryDuration
+    : tokens.motion.navigation.accentReturnDuration;
+  const animatedFill = useDerivedValue(() =>
+    reducedMotion
+      ? fill
+      : withTiming(fill, {
+          duration: fillDuration,
+          easing: Easing.inOut(Easing.quad),
+          reduceMotion: ReduceMotion.Never,
+        }),
+  );
+  const lightTarget = contrastColor(fill) === "white";
+  // On return, the visible fill sets the ink target only when it crosses the contrast threshold.
+  const lightInkTarget = useDerivedValue(() =>
+    hasAccent || reducedMotion
+      ? lightTarget
+      : contrastColor(animatedFill.value) === "white",
+  );
+  const lightMix = useDerivedValue<number>(() => {
+    const target = lightInkTarget.value ? 1 : 0;
+    return reducedMotion
+      ? target
+      : withTiming(target, {
+          duration: hasAccent
+            ? fillDuration
+            : tokens.motion.navigation.accentReturnInkDuration,
+          easing: hasAccent
+            ? Easing.in(Easing.cubic)
+            : Easing.inOut(Easing.quad),
+          reduceMotion: ReduceMotion.Never,
+        });
+  });
+  const selectionInk = {
+    light: lightTarget ? content : "#FFFFFF",
+    dark: lightTarget ? "#000000" : content,
+    lightMix,
+  };
   const [navigationHeight, setNavigationHeight] = useState(0);
   const target = useRef<ViewInstance>(null);
   const guest = session.status === "guest";
@@ -98,7 +147,7 @@ export default function TabsLayout() {
               }
             }}
             layout={selectionLayout}
-            selectedFill={selection.fill}
+            selectedFill={animatedFill}
             reducedMotion={reducedMotion}
             style={{
               marginBottom: insets.bottom + tokens.spacing.sm,
@@ -109,7 +158,7 @@ export default function TabsLayout() {
             <TabTrigger name="index" href={homeHref} asChild>
               <TabButton
                 label="Accueil"
-                selectedColor={selection.content}
+                selectionInk={selectionInk}
                 icon={House}
                 hidden={guest}
                 style={columns}
@@ -120,7 +169,7 @@ export default function TabsLayout() {
             <TabTrigger name="search" href="/search" asChild>
               <TabButton
                 label="Rechercher"
-                selectedColor={selection.content}
+                selectionInk={selectionInk}
                 icon={Search}
                 style={columns}
                 reducedMotion={reducedMotion}
@@ -130,7 +179,7 @@ export default function TabsLayout() {
             <TabTrigger name="notifications" href="/notifications" asChild>
               <TabButton
                 label="Notifications"
-                selectedColor={selection.content}
+                selectionInk={selectionInk}
                 icon={Bell}
                 hidden={guest}
                 style={columns}
@@ -141,7 +190,7 @@ export default function TabsLayout() {
             <TabTrigger name="profile" href="/profile" asChild>
               <TabButton
                 label="Profil"
-                selectedColor={selection.content}
+                selectionInk={selectionInk}
                 icon={UserRound}
                 style={columns}
                 reducedMotion={reducedMotion}
@@ -159,7 +208,7 @@ export default function TabsLayout() {
 interface NavigationCapsuleProps extends ComponentPropsWithRef<typeof View> {
   target: RefObject<ViewInstance | null>;
   layout?: LayoutRectangle;
-  selectedFill: string;
+  selectedFill: DerivedValue<string>;
   reducedMotion: boolean;
 }
 
@@ -218,7 +267,7 @@ interface TabButtonProps extends Omit<TabTriggerSlotProps, "ref"> {
   label: string;
   icon: LucideIcon;
   hidden?: boolean;
-  selectedColor: string;
+  selectionInk: SelectionInk;
   reducedMotion: boolean;
   onFocusedLayout: (layout: LayoutRectangle | undefined) => void;
 }
@@ -232,7 +281,7 @@ function TabButton({
   style,
   onLayout,
   reducedMotion,
-  selectedColor,
+  selectionInk: { light, dark, lightMix },
   onFocusedLayout,
   ...props
 }: Readonly<TabButtonProps>) {
@@ -248,11 +297,15 @@ function TabButton({
     withTiming(isFocused ? 1 : 0, {
       duration: reducedMotion ? 0 : tokens.motion.navigation.duration,
       easing: Easing.out(Easing.cubic),
-      reduceMotion: ReduceMotion.System,
+      reduceMotion: ReduceMotion.Never,
     }),
   );
   const labelStyle = useAnimatedStyle(() => ({
-    color: interpolateColor(focus.value, [0, 1], [colors.text, selectedColor]),
+    color: interpolateColor(
+      focus.value,
+      [0, 1],
+      [colors.text, interpolateColor(lightMix.value, [0, 1], [dark, light])],
+    ),
   }));
   const iconStyle = useAnimatedStyle(() => ({
     transform: [
@@ -261,7 +314,12 @@ function TabButton({
     ],
   }));
   const inactiveStyle = useAnimatedStyle(() => ({ opacity: 1 - focus.value }));
-  const activeStyle = useAnimatedStyle(() => ({ opacity: focus.value }));
+  const lightStyle = useAnimatedStyle(() => ({
+    opacity: focus.value * lightMix.value,
+  }));
+  const darkStyle = useAnimatedStyle(() => ({
+    opacity: focus.value * (1 - lightMix.value),
+  }));
   return (
     <Pressable
       {...props}
@@ -305,12 +363,11 @@ function TabButton({
             size={tokens.size.icon.lg}
           />
         </Animated.View>
-        <Animated.View style={[StyleSheet.absoluteFill, activeStyle]}>
-          <Icon
-            accessible={false}
-            color={selectedColor}
-            size={tokens.size.icon.lg}
-          />
+        <Animated.View style={[StyleSheet.absoluteFill, lightStyle]}>
+          <Icon accessible={false} color={light} size={tokens.size.icon.lg} />
+        </Animated.View>
+        <Animated.View style={[StyleSheet.absoluteFill, darkStyle]}>
+          <Icon accessible={false} color={dark} size={tokens.size.icon.lg} />
         </Animated.View>
       </Animated.View>
       <Animated.Text style={[styles.label, labelStyle]}>{label}</Animated.Text>
