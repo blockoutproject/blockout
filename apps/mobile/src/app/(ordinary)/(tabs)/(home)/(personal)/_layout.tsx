@@ -1,14 +1,13 @@
-import { Redirect } from "expo-router";
+import { Redirect, Stack } from "expo-router";
 import { useAccountSession } from "@/features/accounts/current-account";
 import { StartupAccessGate } from "@/features/access/screens/access-gate-screen";
 import { useAgeDeclaration } from "@/features/advertising/age-declaration-provider";
-import { PersonalSeasonProvider } from "@/features/following/components/personal-season-provider";
-import { PersonalNavigation } from "@/features/following/screens/personal-navigation";
+import { stackScreenOptions } from "@/shared/native/stack-screen-options";
 
-/** Direct season entries retain Home behind the native contextual route. */
+/** Direct Home entries retain its index in the tab's native history. */
 export const unstable_settings = { anchor: "index" };
 
-/** Preserves Home's existing age/session entry guards before mounting its single private season owner. */
+/** Preserves Home's age/session entry guards; the ordinary Stack owns its shared season presentation. */
 export default function HomeLayout() {
   const age = useAgeDeclaration();
   const session = useAccountSession();
@@ -21,9 +20,5 @@ export default function HomeLayout() {
   if (session.status === "guest") {
     return <Redirect href="/search" />;
   }
-  return (
-    <PersonalSeasonProvider>
-      <PersonalNavigation />
-    </PersonalSeasonProvider>
-  );
+  return <Stack screenOptions={stackScreenOptions} />;
 }

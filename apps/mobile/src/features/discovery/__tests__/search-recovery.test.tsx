@@ -16,7 +16,7 @@ import {
 import { layoutNativeTabs } from "@/shared/native/test-support/tab-view-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { router, Stack } from "expo-router";
+import { router } from "expo-router";
 import { Text } from "react-native";
 import ClubRoute from "@/app/(ordinary)/(tabs)/(discovery,home,notifications,profile)/clubs/[clubId]";
 import SupportLayout from "@/app/(recovery)/support/_layout";
@@ -33,7 +33,7 @@ import {
   userEvent,
   waitFor,
 } from "@testing-library/react-native";
-import SearchLayout from "@/app/(ordinary)/(tabs)/(discovery)/search/_layout";
+import { SearchJourneyLayout } from "../test-support/search-journey-layout";
 import { SearchScreen } from "../screens/search-screen";
 import { createDiscoveryContext } from "../api/discovery-context";
 import { SearchFilters } from "../components/search-filters";
@@ -193,11 +193,8 @@ afterEach(async () => {
 async function renderSearch() {
   const result = await renderRouter(
     {
-      _layout: () => (
-        <Stack screenOptions={{ headerShown: false, animation: "none" }} />
-      ),
-      "search/_layout": SearchLayout,
-      "search/index": SearchScreen,
+      _layout: SearchJourneyLayout,
+      search: SearchScreen,
       "search/(sheets)/filters": SearchFilters,
       "search/(sheets)/choice": SearchFilterChoice,
       "clubs/[clubId]": ClubRoute,

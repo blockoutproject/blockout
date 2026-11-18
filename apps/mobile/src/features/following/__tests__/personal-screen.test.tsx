@@ -18,9 +18,13 @@ import { AccessibilityInfo, Linking, View } from "react-native";
 import { getGetMyAccountQueryKey } from "../../../../.generated/mobile";
 import type { PersonalMatchCalendarResponse } from "../../../../.generated/schemas/index.zod";
 import { renderRouter } from "expo-router/testing-library";
-import { PersonalSeasonProvider } from "../components/personal-season-provider";
-import { PersonalNavigation } from "../screens/personal-navigation";
+import { Stack } from "expo-router";
 import { PersonalSeasonScreen } from "../screens/personal-season-screen";
+import {
+  PersonalSeasonProvider,
+  usePersonalSeasonScope,
+} from "../components/personal-season-provider";
+import { sheetScreenOptions } from "@/shared/components/sheet";
 import {
   useEffect,
   useState,
@@ -175,24 +179,36 @@ function SessionBinding({ children }: Readonly<PropsWithChildren>) {
   return children;
 }
 
-/** Keeps the single product season owner above both real native routes; other sporting navigation remains a command boundary. */
-function PersonalLayout() {
+/** Keeps real seasonal admission in the focused feature Stack; root age-entry policy has its own integration tests. */
+function PersonalJourneyStack() {
+  const scope = usePersonalSeasonScope();
+  const canChoose = Boolean(
+    scope?.usable && !scope.blocked && scope.season.options.data,
+  );
   return (
-    <PersonalSeasonProvider>
-      <PersonalNavigation />
-    </PersonalSeasonProvider>
+    <Stack screenOptions={{ headerShown: false, animation: "none" }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Protected guard={canChoose}>
+        <Stack.Screen name="(sheets)/season" options={sheetScreenOptions} />
+      </Stack.Protected>
+    </Stack>
   );
 }
 
-/** Provides real session, admission, advertising, Query and route owners for Home and its season surface. */
+/** Provides real feature/query/session owners without activating unrelated installation-age or root-route behavior. */
 async function mount(extra?: ReactNode) {
   return renderRouter(
     {
       _layout: {
-        default: PersonalLayout,
-        unstable_settings: { anchor: "index" },
+        default: () => (
+          <PersonalSeasonProvider>
+            <PersonalJourneyStack />
+          </PersonalSeasonProvider>
+        ),
+        unstable_settings: { anchor: "(tabs)" },
       },
-      index: () => (
+      "(tabs)/_layout": () => <Stack />,
+      "(tabs)/index": () => (
         <>
           <PersonalScreen />
           {extra}
@@ -328,6 +344,50 @@ beforeEach(() => {
   proposed = older;
   following = false;
   mockFocus.focused = true;
+});
+
+it("returns Home to Upcoming when its business UUID changes under the same native principal", async () => {
+  // Given: the same season exists for both accounts, so only the business identity changes.
+  const user = userEvent.setup();
+  await mount();
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
+  await layoutNativeTabs();
+  await user.press(screen.getByRole("tab", { name: "Terminés" }));
+  expect(
+    screen.getByRole("tab", { name: "Terminés", selected: true }),
+  ).toBeOnTheScreen();
+  const replacementAccountId = "00000000-0000-4000-8000-000000000005";
+  mockFetch.mockImplementation((url, request) => {
+    if (url.endsWith("/accounts/me")) {
+      return Promise.resolve(
+        Response.json({ ...profile, accountId: replacementAccountId }),
+      );
+    }
+    // Both accounts expose the same valid calendar fixture; the actual request still targets its current UUID.
+    return transport(url.replace(replacementAccountId, accountId), request);
+  });
+
+  // When
+  await act(() =>
+    client.refetchQueries({ queryKey: getGetMyAccountQueryKey(), exact: true }),
+  );
+  await waitFor(() => expect(session.accountId).toBe(replacementAccountId));
+  await screen.findByRole("button", {
+    name: "Saison des suivis",
+    disabled: false,
+  });
+
+  // Then
+  expect(session.subject).toBe("auth0|synthetic");
+  expect(
+    screen.getByRole("tab", { name: "À venir", selected: true }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("button", { name: "Saison des suivis" }),
+  ).toHaveAccessibilityValue({ text: older.label });
 });
 
 it("opens support from Home without changing personal data", async () => {

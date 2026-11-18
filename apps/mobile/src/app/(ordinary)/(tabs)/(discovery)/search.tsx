@@ -1,6 +1,6 @@
 import { SearchScreen } from "@/features/discovery/screens/search-screen";
 
-/** Keeps public discovery inside F12's existing ordinary admission group. */
+/** Public discovery retains its tab while the ordinary Stack presents contextual sheets. */
 export default function SearchRoute() {
   return <SearchScreen />;
 }

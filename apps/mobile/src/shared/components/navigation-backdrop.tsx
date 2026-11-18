@@ -5,11 +5,12 @@ import {
   useContext,
   useRef,
   useState,
+  type ReactElement,
   type ReactNode,
   type RefObject,
   type ComponentProps,
 } from "react";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedProps,
   useAnimatedStyle,
@@ -17,6 +18,7 @@ import Animated, {
   useSharedValue,
   type SharedValue,
 } from "react-native-reanimated";
+import { ScrollViewMarker } from "react-native-screens/experimental";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
@@ -35,6 +37,20 @@ export const NavigationScrollOffsetContext =
 /** Reads only layout clearance, independently of feature selection and scroll position. */
 export function useNavigationInset() {
   return useContext(NavigationInsetContext);
+}
+
+/** Configures new iOS scrollers; Stack applies the same edge policy when reattaching routes. */
+export function NavigationScrollMarker({
+  children,
+}: Readonly<{ children: ReactElement }>) {
+  if (Platform.OS !== "ios") {
+    return children;
+  }
+  return (
+    <ScrollViewMarker style={styles.fill} scrollEdgeEffects={{ top: "hidden" }}>
+      {children}
+    </ScrollViewMarker>
+  );
 }
 
 /** Reveals native blur with scroll; a hidden resting view removes the material's tint. */
@@ -57,7 +73,10 @@ export function NavigationBackdrop({
     opacity: progress.get() > 0 ? 1 : 0,
   }));
   const material = useAnimatedProps(() => ({
-    intensity: Math.max(1, progress.get() * tokens.blur.navigation.intensity),
+    intensity: Math.max(
+      1,
+      progress.get() * tokens.blur.navigation.headerIntensity,
+    ),
   }));
   return (
     <Animated.View

@@ -232,6 +232,7 @@ export const tokens = {
   blur: {
     navigation: {
       intensity: 100,
+      headerIntensity: 85,
       androidReduction: 2.8125,
       tint: {
         light: "systemThickMaterialLight" as const,
@@ -262,6 +263,7 @@ export const tokens = {
     coverBlur: 20,
     coverOpacity: 0.32,
     coverVeilOpacity: 0.28,
+    atmosphere: { blur: 14, scale: 3, opacity: 1 },
     // Product Design compact official standings row 4502:39958.
     standingsRowMinHeight: 68,
     standingsRankWidth: 28,
@@ -279,14 +281,15 @@ export const tokens = {
       podiumRankHeight: 36,
       podiumIdentityMinHeight: 48,
       nameMinHeight: 40,
-      atmosphereHeight: 136,
-      rowAtmosphereWidth: 150,
-      atmosphereOpacity: 0.28,
+      atmosphereHeight: 220,
+      atmosphereWidth: 300,
+      atmosphereLeft: -135,
+      atmosphereTop: -105,
       tintOpacity: 0.16,
       performanceHeight: 3,
     },
-    haloSize: 120,
-    haloTop: -26,
+    haloSize: 220,
+    haloTop: -82,
   } as const,
   // Select the bundled static face explicitly so approved weights stay consistent across platforms.
   typography: {

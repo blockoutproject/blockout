@@ -1,6 +1,6 @@
 import { SearchFilters } from "@/features/discovery/components/search-filters";
 
-/** Native presentation of the visit's independent, unapplied filter draft. */
+/** Presents the visit's unapplied filter draft above the ordinary tab navigator. */
 export default function SearchFiltersRoute() {
   return <SearchFilters />;
 }

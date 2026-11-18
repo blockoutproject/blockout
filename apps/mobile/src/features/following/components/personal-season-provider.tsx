@@ -27,48 +27,22 @@ export interface PersonalSeasonScope {
 
 const PersonalSeasonContext = createContext<PersonalSeasonScope | null>(null);
 
-/** Scopes Home's shared choice to the native principal and business account UUID. */
+/** Retains Home's choice by native principal and business UUID; unrelated destinations can pause season reads. */
 export function PersonalSeasonProvider({
   children,
-}: Readonly<PropsWithChildren>) {
+  enabled = true,
+}: Readonly<PropsWithChildren<{ enabled?: boolean }>>) {
   const session = useAccountSession();
   const profile = useCurrentAccount();
   const owner = captureFollowingOwner(session);
-  return owner ? (
-    <SeasonScope
-      key={`${owner.subject}:${owner.accountId}`}
-      owner={owner}
-      profile={profile}
-    >
-      {children}
-    </SeasonScope>
-  ) : (
-    <PersonalSeasonContext value={null}>{children}</PersonalSeasonContext>
-  );
-}
-
-/** Reads the current shared scope; absent identity supplies no private choice or former account data. */
-export function usePersonalSeasonScope() {
-  return useContext(PersonalSeasonContext);
-}
-
-/** Keeps native credentials and admission around the sole choice; Query withdraws refused options across remounts. */
-function SeasonScope({
-  owner,
-  profile,
-  children,
-}: Readonly<
-  PropsWithChildren<{
-    owner: FollowingOwner;
-    profile: ReturnType<typeof useCurrentAccount>;
-  }>
->) {
-  const { getCredentials } = useAccountSession();
+  const { getCredentials } = session;
   const admission = useOrdinaryRequest();
-  const usable =
+  const usable = Boolean(
+    owner &&
     admission.admitted &&
     profile.data?.accountId === owner.accountId &&
-    !isAccessDenied(profile.error);
+    !isAccessDenied(profile.error),
+  );
   const bypass = Boolean(admission.bypass);
 
   /** Prepares only a current original-owner request after native credentials and current F12 admission. */
@@ -86,7 +60,7 @@ function SeasonScope({
     });
   }
 
-  const season = usePersonalSeason(owner, request, usable, bypass);
+  const season = usePersonalSeason(owner, request, enabled && usable, bypass);
   const refused =
     isAccessDenied(season.options.error) ||
     (season.options.error instanceof ApiError &&
@@ -94,18 +68,27 @@ function SeasonScope({
   const blocked = isAccessDenied(profile.error) || refused;
   return (
     <PersonalSeasonContext
-      value={{
-        owner,
-        profile,
-        season,
-        request,
-        admitted: admission.admitted,
-        usable,
-        blocked,
-        bypass,
-      }}
+      value={
+        owner
+          ? {
+              owner,
+              profile,
+              season,
+              request,
+              admitted: admission.admitted,
+              usable,
+              blocked,
+              bypass,
+            }
+          : null
+      }
     >
       {children}
     </PersonalSeasonContext>
   );
+}
+
+/** Reads the current shared scope; absent identity supplies no private choice or former account data. */
+export function usePersonalSeasonScope() {
+  return useContext(PersonalSeasonContext);
 }

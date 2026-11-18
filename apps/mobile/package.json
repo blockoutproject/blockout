@@ -26,6 +26,7 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/slider": "5.2.1",
     "@react-native-google-mobile-ads/facebook": "17.3.1",
+    "@react-native-masked-view/masked-view": "0.3.2",
     "@sentry/react-native": "~8.28.0",
     "@tanstack/react-query": "5.104.3",
     "expo": "58.0.26",
@@ -59,7 +60,7 @@
     "react-native-google-mobile-ads": "17.4.0",
     "react-native-keyboard-controller": "1.22.7",
     "react-native-maps": "1.27.2",
-    "react-native-pager-view": "9.0.7",
+    "react-native-pager-view": "9.0.9",
     "react-native-pdf": "7.0.5",
     "react-native-purchases": "10.13.0",
     "react-native-purchases-ui": "10.13.0",
@@ -88,7 +89,8 @@
   "expo": {
     "install": {
       "exclude": [
-        "react-native-maps"
+        "react-native-maps",
+        "react-native-pager-view"
       ]
     }
   }

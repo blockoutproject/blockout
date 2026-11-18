@@ -1,3 +1,4 @@
+import { stackScreenOptions } from "@/shared/native/stack-screen-options";
 import { ScreenState } from "@/shared/components/screen-state";
 import { PageHeader } from "@/shared/components/page-header";
 import { Page, PageScrollView } from "@/shared/components/page";
@@ -9,7 +10,7 @@ import { useOperationalAdmission } from "@/features/access/queries/use-access-ad
 /** Collection operations retain F12's current minimum-version/identity admission independently of ordinary access. */
 export default function CollectionLayout() {
   return useOperationalAdmission() ? (
-    <Stack screenOptions={{ headerShown: false }} />
+    <Stack screenOptions={stackScreenOptions} />
   ) : (
     <Page header={<PageHeader title="Collectes" />}>
       <PageScrollView>

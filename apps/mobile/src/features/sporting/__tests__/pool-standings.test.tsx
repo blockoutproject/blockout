@@ -442,7 +442,7 @@ it("keeps an admitted pool calendar usable after its standings refresh fails", a
   ).toBe(false);
 });
 
-it("numbers Team cards without printed ranks, another read or team emphasis", async () => {
+it("numbers Team cards without printed ranks, a standings refetch or team emphasis", async () => {
   // Given
   const user = userEvent.setup();
   table.rows = table.rows.map(({ sourceName, team, statistics }) => ({
@@ -478,7 +478,10 @@ it("numbers Team cards without printed ranks, another read or team emphasis", as
   ).toBeOnTheScreen();
   expect(screen.queryByRole("link", { name: /Unmatched/ })).toBeNull();
   expect(screen.queryByRole("link", { selected: true })).toBeNull();
-  expect(mockFetch).toHaveBeenCalledTimes(reads);
+  const requestedPaths = mockFetch.mock.calls
+    .slice(reads)
+    .map(([url]) => new URL(url).pathname);
+  expect(requestedPaths).not.toContain(`/pools/${pool.pool.id}/standings`);
 });
 
 it("keeps Pool row numbers through the 2–1–3 card layout even with irregular printed ranks", async () => {

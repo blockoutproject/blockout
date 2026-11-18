@@ -1,5 +1,6 @@
 import {
   PageViewport,
+  NavigationScrollMarker,
   useNavigationInset,
   NavigationSafeAreaContext,
   NavigationScrollOffsetContext,
@@ -181,24 +182,26 @@ export function PageScrollView({
     );
   }
   return (
-    <Animated.ScrollView
-      alwaysBounceVertical={!!props.refreshControl}
-      {...props}
-      ref={scroll}
-      scrollEventThrottle={props.scrollEventThrottle ?? 16}
-      refreshControl={refreshControl}
-      {...hiddenScrollIndicators}
-      contentContainerStyle={[
-        styles.scrollContent,
-        contentContainerStyle,
-        {
-          paddingTop: inset + (typeof padding === "number" ? padding : 0),
-        },
-      ]}
-    >
-      {children}
-      <BottomContentSpacer />
-    </Animated.ScrollView>
+    <NavigationScrollMarker>
+      <Animated.ScrollView
+        alwaysBounceVertical={!!props.refreshControl}
+        {...props}
+        ref={scroll}
+        scrollEventThrottle={props.scrollEventThrottle ?? 16}
+        refreshControl={refreshControl}
+        {...hiddenScrollIndicators}
+        contentContainerStyle={[
+          styles.scrollContent,
+          contentContainerStyle,
+          {
+            paddingTop: inset + (typeof padding === "number" ? padding : 0),
+          },
+        ]}
+      >
+        {children}
+        <BottomContentSpacer />
+      </Animated.ScrollView>
+    </NavigationScrollMarker>
   );
 }
 
