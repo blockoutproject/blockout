@@ -10,7 +10,7 @@ import {
 } from "@/features/following/components/personal-season-provider";
 import { useAgeDeclaration } from "@/features/advertising/age-declaration-provider";
 
-/** Native direct links retain the ordinary caller behind contextual sheets. */
+/** A direct link to a contextual sheet keeps the default tab stack underneath. */
 export const unstable_settings = { anchor: "(tabs)" };
 
 /** Public admission is resolved above; account prerequisites stay inside their destination. */
@@ -43,55 +43,29 @@ function OrdinaryStack() {
   const canChooseSeason = Boolean(
     scope?.usable && !scope.blocked && scope.season.options.data,
   );
+  const contextualSheetOptions = {
+    ...sheetScreenOptions,
+    contentStyle: { backgroundColor: colors.surface },
+  };
   return (
     <Stack screenOptions={stackScreenOptions}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen
         name="search/(sheets)/filters"
-        options={{
-          ...sheetScreenOptions,
-          contentStyle: { backgroundColor: colors.surface },
-        }}
+        options={contextualSheetOptions}
       />
       <Stack.Screen
         name="search/(sheets)/choice"
-        options={{
-          ...sheetScreenOptions,
-          contentStyle: { backgroundColor: colors.surface },
-        }}
+        options={contextualSheetOptions}
       />
       <Stack.Protected guard={canChooseSeason}>
-        <Stack.Screen
-          name="(sheets)/season"
-          options={{
-            ...sheetScreenOptions,
-            contentStyle: { backgroundColor: colors.surface },
-          }}
-        />
+        <Stack.Screen name="(sheets)/season" options={contextualSheetOptions} />
       </Stack.Protected>
-      <Stack.Screen
-        name="privacy"
-        options={{
-          ...sheetScreenOptions,
-          sheetAllowedDetents: "fitToContents",
-          contentStyle: { backgroundColor: colors.surface },
-        }}
-      />
-      <Stack.Screen
-        name="privacy-age"
-        options={{
-          ...sheetScreenOptions,
-          sheetAllowedDetents: "fitToContents",
-          contentStyle: { backgroundColor: colors.surface },
-        }}
-      />
+      <Stack.Screen name="privacy" options={contextualSheetOptions} />
+      <Stack.Screen name="privacy-age" options={contextualSheetOptions} />
       <Stack.Screen
         name="sign-in-invitation"
-        options={{
-          ...sheetScreenOptions,
-          sheetAllowedDetents: "fitToContents",
-          contentStyle: { backgroundColor: colors.surface },
-        }}
+        options={contextualSheetOptions}
       />
     </Stack>
   );

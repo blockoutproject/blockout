@@ -87,7 +87,11 @@ export function PersonalScreen() {
   }
   if (authenticated) {
     return (
-      <PersonalSpace key={session.subject} scope={scope} profile={profile} />
+      <PersonalSpace
+        key={`${session.subject}:${scope?.owner.accountId ?? ""}`}
+        scope={scope}
+        profile={profile}
+      />
     );
   }
   return (
