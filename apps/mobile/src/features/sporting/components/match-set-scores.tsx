@@ -9,8 +9,6 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { MatchSurface } from "./match-surface";
 import { SportingLogo } from "./sporting-identity";
 
-const scoreHaloSize = tokens.sporting.atmosphere.crestSize;
-
 /** Accepted set sequence and its original home/away identities; missing detail never becomes zeros. */
 export interface MatchSetScoresProps {
   match: MatchSummaryResponse;
@@ -126,7 +124,11 @@ function MatchScoreTeam({
         renderWithAtmosphere={(logo, halo) => (
           <>
             {halo && (
-              <View pointerEvents="none" accessible={false} style={styles.halo}>
+              <View
+                pointerEvents="none"
+                accessible={false}
+                style={StyleSheet.absoluteFill}
+              >
                 {halo}
               </View>
             )}
@@ -161,12 +163,6 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.tight,
     paddingTop: tokens.spacing.md,
     paddingBottom: tokens.sporting.setTeamBottom,
-  },
-  halo: {
-    position: "absolute",
-    width: scoreHaloSize,
-    height: scoreHaloSize,
-    top: tokens.spacing.md + (tokens.sporting.setLogo - scoreHaloSize) / 2,
   },
   name: {
     ...tokens.typography.setTeam,

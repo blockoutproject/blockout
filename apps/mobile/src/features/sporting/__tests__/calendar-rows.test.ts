@@ -2,7 +2,7 @@ import type { MatchDayResponse } from "../../../../.generated/schemas/index.zod"
 import { calendarRows } from "../model/calendar-rows";
 import { matchDetail, sportingId } from "../test-support/consultation-data";
 
-it("keeps every encounter individually addressable between sticky day headings and pool headings", () => {
+it("places a first match beside each sticky date and keeps all encounters addressable", () => {
   // Given
   const first = matchDetail().match;
   const second = { ...first, id: "00000000-0000-4000-8000-000000000002" };
@@ -28,17 +28,14 @@ it("keeps every encounter individually addressable between sticky day headings a
   const rows = calendarRows(days, false);
 
   // Then
-  expect(
-    rows.filter((row) => row.kind !== "space").map((row) => row.kind),
-  ).toEqual([
+  expect(rows.map((row) => row.kind)).toEqual([
     "date",
-    "pool",
     "match",
+    "space",
     "match",
-    "pool",
+    "space",
     "match",
     "date",
-    "pool",
     "match",
   ]);
   expect(
