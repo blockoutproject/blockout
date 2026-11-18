@@ -399,7 +399,11 @@ const styles = StyleSheet.create({
   },
   atmosphere: {
     position: "absolute",
-    top: tokens.sporting.standingsCard.atmosphereTop,
+    top:
+      tokens.spacing.sm +
+      (tokens.sporting.standingsCard.podiumIdentityMinHeight -
+        tokens.sporting.standingsCard.atmosphereHeight) /
+        2,
     left: tokens.sporting.standingsCard.atmosphereLeft,
     width: tokens.sporting.standingsCard.atmosphereWidth,
     height: tokens.sporting.standingsCard.atmosphereHeight,

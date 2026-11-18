@@ -167,7 +167,7 @@ export function SportingMedia({
       key={image.attemptKey}
       testID="sporting-logo-atmosphere"
       uri={uri}
-      horizontal={atmosphereLayout === "horizontal"}
+      layout={atmosphereLayout}
       onError={identityPlate ? undefined : image.onError}
     />
   ) : null;
@@ -179,12 +179,12 @@ export function SportingAtmosphere({
   uri,
   onError,
   testID,
-  horizontal = false,
+  layout,
 }: Readonly<{
   uri: string;
   onError?: () => void;
   testID?: string;
-  horizontal?: boolean;
+  layout: "horizontal" | "podium" | "crest";
 }>) {
   const image = useNativeImageLifecycle(uri);
   const id = useId();
@@ -192,6 +192,8 @@ export function SportingAtmosphere({
   if (image.status === "failed") {
     return null;
   }
+  const horizontal = layout === "horizontal";
+  const atmosphere = tokens.sporting.atmosphere;
   const fade = `${id}-fade`;
   const mask = `${id}-mask`;
   const secondary = `${id}-secondary`;
@@ -206,7 +208,7 @@ export function SportingAtmosphere({
             <RadialGradient
               id={id}
               cx={horizontal ? "40%" : "50%"}
-              cy={horizontal ? "30%" : "50%"}
+              cy="50%"
               rx={horizontal ? "80%" : "50%"}
               ry={horizontal ? "85%" : "50%"}
             >
@@ -222,7 +224,7 @@ export function SportingAtmosphere({
                 <RadialGradient
                   id={secondary}
                   cx="65%"
-                  cy="30%"
+                  cy="50%"
                   rx="80%"
                   ry="85%"
                 >
@@ -253,16 +255,26 @@ export function SportingAtmosphere({
         testID={testID}
         uri={uri}
         resizeMode="contain"
-        blurRadius={tokens.sporting.atmosphere.blur}
+        blurRadius={atmosphere.blur}
         onError={() => {
           image.onError();
           onError?.();
         }}
-        style={styles.atmosphere}
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            transform: [
+              {
+                scale:
+                  layout === "crest" ? atmosphere.crestScale : atmosphere.scale,
+              },
+            ],
+          },
+        ]}
       />
     </MaskedView>
   );
-  if (!horizontal) {
+  if (layout === "podium") {
     return maskedArtwork;
   }
   // MaskedView's legacy native manager does not apply the Fabric blend mode.
@@ -271,9 +283,9 @@ export function SportingAtmosphere({
       accessible={false}
       pointerEvents="none"
       style={[
-        styles.horizontalAtmosphere,
+        horizontal ? styles.horizontalAtmosphere : StyleSheet.absoluteFill,
         {
-          opacity: tokens.sporting.atmosphere.horizontal.opacity[scheme],
+          opacity: atmosphere.opacity[scheme],
           mixBlendMode: scheme === "dark" ? "screen" : "normal",
         },
       ]}
@@ -321,12 +333,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     bottom: 0,
-    width: tokens.sporting.atmosphere.horizontal.width,
-  },
-  atmosphere: {
-    ...StyleSheet.absoluteFill,
-    opacity: tokens.sporting.atmosphere.opacity,
-    transform: [{ scale: tokens.sporting.atmosphere.scale }],
+    width: tokens.sporting.atmosphere.horizontalWidth,
   },
   artwork: {
     ...StyleSheet.absoluteFill,

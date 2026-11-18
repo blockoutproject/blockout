@@ -284,8 +284,10 @@ export const tokens = {
     atmosphere: {
       blur: 14,
       scale: 3,
-      opacity: 1,
-      horizontal: { width: 150, opacity: { light: 0.28, dark: 0.34 } },
+      opacity: { light: 0.34, dark: 0.42 },
+      horizontalWidth: 150,
+      crestSize: 112,
+      crestScale: 2,
     },
     clubTeam: { minHeight: 114, railWidth: 66, logoSize: 44 },
     // Product Design compact official standings row 4502:39958.
@@ -308,12 +310,9 @@ export const tokens = {
       atmosphereHeight: 220,
       atmosphereWidth: 300,
       atmosphereLeft: -135,
-      atmosphereTop: -105,
       tintOpacity: 0.16,
       performanceHeight: 3,
     },
-    haloSize: 220,
-    haloTop: -82,
   } as const,
   // Select the bundled static face explicitly so approved weights stay consistent across platforms.
   typography: {
