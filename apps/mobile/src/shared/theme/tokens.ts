@@ -266,6 +266,7 @@ export const tokens = {
       duration: 280,
       iconScale: 1.04,
       iconLift: 1,
+      accentEntryDuration: 330,
       accentDuration: 420,
       accentInkDuration: 140,
     },

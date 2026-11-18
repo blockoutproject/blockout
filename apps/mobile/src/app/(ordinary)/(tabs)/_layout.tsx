@@ -73,25 +73,35 @@ export default function TabsLayout() {
   const [selectionLayout, setSelectionLayout] = useState<LayoutRectangle>();
   const selectedRouteKey = useSelectedTabRouteKey();
   const [accent, setAccent] = useState<NavigationAccentSelection>();
-  const { fill, content } =
-    accent && accent.routeKey === selectedRouteKey ? accent : membership;
+  const currentAccent =
+    accent?.routeKey === selectedRouteKey ? accent : undefined;
+  const { fill, content } = currentAccent ?? membership;
+  const hasAccent = !!currentAccent;
+  const fillDuration = hasAccent
+    ? tokens.motion.navigation.accentEntryDuration
+    : tokens.motion.navigation.accentDuration;
   const animatedFill = useDerivedValue(() =>
     reducedMotion
       ? fill
       : withTiming(fill, {
-          duration: tokens.motion.navigation.accentDuration,
+          duration: fillDuration,
           easing: Easing.inOut(Easing.quad),
           reduceMotion: ReduceMotion.System,
         }),
   );
-  // Keep the ink blend short and start it where the displayed fill changes contrast.
+  // Ink settles with the division fill on entry. The return keeps its contrast-triggered blend.
   const lightMix = useDerivedValue<number>(() => {
-    const target = contrastColor(animatedFill.value) === "white" ? 1 : 0;
+    const background = hasAccent ? fill : animatedFill.value;
+    const target = contrastColor(background) === "white" ? 1 : 0;
     return reducedMotion
       ? target
       : withTiming(target, {
-          duration: tokens.motion.navigation.accentInkDuration,
-          easing: Easing.inOut(Easing.quad),
+          duration: hasAccent
+            ? fillDuration
+            : tokens.motion.navigation.accentInkDuration,
+          easing: hasAccent
+            ? Easing.in(Easing.cubic)
+            : Easing.inOut(Easing.quad),
           reduceMotion: ReduceMotion.System,
         });
   });
