@@ -19,10 +19,12 @@ import {
 import Animated, {
   Easing,
   ReduceMotion,
+  contrastColor,
   interpolateColor,
   useAnimatedStyle,
   useDerivedValue,
   withTiming,
+  type DerivedValue,
 } from "react-native-reanimated";
 import {
   Tabs,
@@ -55,6 +57,12 @@ import {
 import { BottomContentInsetContext } from "@/shared/components/bottom-content-inset";
 import { ProOffer } from "@/features/pro";
 
+interface SelectionInk {
+  light: string;
+  dark: string;
+  isLight: DerivedValue<boolean>;
+}
+
 /** Native presentations cover the retained capsule; its measured clearance keeps the presenting page stable. */
 export default function TabsLayout() {
   const session = useAccountSession();
@@ -65,8 +73,27 @@ export default function TabsLayout() {
   const [selectionLayout, setSelectionLayout] = useState<LayoutRectangle>();
   const selectedRouteKey = useSelectedTabRouteKey();
   const [accent, setAccent] = useState<NavigationAccentSelection>();
-  const selection =
+  const { fill, content } =
     accent && accent.routeKey === selectedRouteKey ? accent : membership;
+  const animatedFill = useDerivedValue(() =>
+    reducedMotion
+      ? fill
+      : withTiming(fill, {
+          duration: tokens.motion.navigation.duration,
+          easing: Easing.out(Easing.cubic),
+          reduceMotion: ReduceMotion.System,
+        }),
+  );
+  // Follow the displayed fill so dark and light ink switch where contrast allows it.
+  const isLight = useDerivedValue(
+    () => contrastColor(animatedFill.value) === "white",
+  );
+  const lightTarget = contrastColor(fill) === "white";
+  const selectionInk = {
+    light: lightTarget ? content : "#FFFFFF",
+    dark: lightTarget ? "#000000" : content,
+    isLight,
+  };
   const [navigationHeight, setNavigationHeight] = useState(0);
   const target = useRef<ViewInstance>(null);
   const guest = session.status === "guest";
@@ -98,7 +125,7 @@ export default function TabsLayout() {
               }
             }}
             layout={selectionLayout}
-            selectedFill={selection.fill}
+            selectedFill={animatedFill}
             reducedMotion={reducedMotion}
             style={{
               marginBottom: insets.bottom + tokens.spacing.sm,
@@ -109,7 +136,7 @@ export default function TabsLayout() {
             <TabTrigger name="index" href={homeHref} asChild>
               <TabButton
                 label="Accueil"
-                selectedColor={selection.content}
+                selectionInk={selectionInk}
                 icon={House}
                 hidden={guest}
                 style={columns}
@@ -120,7 +147,7 @@ export default function TabsLayout() {
             <TabTrigger name="search" href="/search" asChild>
               <TabButton
                 label="Rechercher"
-                selectedColor={selection.content}
+                selectionInk={selectionInk}
                 icon={Search}
                 style={columns}
                 reducedMotion={reducedMotion}
@@ -130,7 +157,7 @@ export default function TabsLayout() {
             <TabTrigger name="notifications" href="/notifications" asChild>
               <TabButton
                 label="Notifications"
-                selectedColor={selection.content}
+                selectionInk={selectionInk}
                 icon={Bell}
                 hidden={guest}
                 style={columns}
@@ -141,7 +168,7 @@ export default function TabsLayout() {
             <TabTrigger name="profile" href="/profile" asChild>
               <TabButton
                 label="Profil"
-                selectedColor={selection.content}
+                selectionInk={selectionInk}
                 icon={UserRound}
                 style={columns}
                 reducedMotion={reducedMotion}
@@ -159,7 +186,7 @@ export default function TabsLayout() {
 interface NavigationCapsuleProps extends ComponentPropsWithRef<typeof View> {
   target: RefObject<ViewInstance | null>;
   layout?: LayoutRectangle;
-  selectedFill: string;
+  selectedFill: DerivedValue<string>;
   reducedMotion: boolean;
 }
 
@@ -218,7 +245,7 @@ interface TabButtonProps extends Omit<TabTriggerSlotProps, "ref"> {
   label: string;
   icon: LucideIcon;
   hidden?: boolean;
-  selectedColor: string;
+  selectionInk: SelectionInk;
   reducedMotion: boolean;
   onFocusedLayout: (layout: LayoutRectangle | undefined) => void;
 }
@@ -232,7 +259,7 @@ function TabButton({
   style,
   onLayout,
   reducedMotion,
-  selectedColor,
+  selectionInk: { light, dark, isLight },
   onFocusedLayout,
   ...props
 }: Readonly<TabButtonProps>) {
@@ -252,7 +279,11 @@ function TabButton({
     }),
   );
   const labelStyle = useAnimatedStyle(() => ({
-    color: interpolateColor(focus.value, [0, 1], [colors.text, selectedColor]),
+    color: interpolateColor(
+      focus.value,
+      [0, 1],
+      [colors.text, isLight.value ? light : dark],
+    ),
   }));
   const iconStyle = useAnimatedStyle(() => ({
     transform: [
@@ -261,7 +292,12 @@ function TabButton({
     ],
   }));
   const inactiveStyle = useAnimatedStyle(() => ({ opacity: 1 - focus.value }));
-  const activeStyle = useAnimatedStyle(() => ({ opacity: focus.value }));
+  const lightStyle = useAnimatedStyle(() => ({
+    opacity: isLight.value ? focus.value : 0,
+  }));
+  const darkStyle = useAnimatedStyle(() => ({
+    opacity: isLight.value ? 0 : focus.value,
+  }));
   return (
     <Pressable
       {...props}
@@ -305,12 +341,11 @@ function TabButton({
             size={tokens.size.icon.lg}
           />
         </Animated.View>
-        <Animated.View style={[StyleSheet.absoluteFill, activeStyle]}>
-          <Icon
-            accessible={false}
-            color={selectedColor}
-            size={tokens.size.icon.lg}
-          />
+        <Animated.View style={[StyleSheet.absoluteFill, lightStyle]}>
+          <Icon accessible={false} color={light} size={tokens.size.icon.lg} />
+        </Animated.View>
+        <Animated.View style={[StyleSheet.absoluteFill, darkStyle]}>
+          <Icon accessible={false} color={dark} size={tokens.size.icon.lg} />
         </Animated.View>
       </Animated.View>
       <Animated.Text style={[styles.label, labelStyle]}>{label}</Animated.Text>

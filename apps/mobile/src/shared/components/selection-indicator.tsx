@@ -4,6 +4,7 @@ import Animated, {
   ReduceMotion,
   useAnimatedStyle,
   withTiming,
+  type DerivedValue,
 } from "react-native-reanimated";
 import { tokens } from "@/shared/theme/tokens";
 
@@ -12,7 +13,8 @@ export interface SelectionIndicatorProps {
   layout?: LayoutRectangle;
   reducedMotion: boolean;
   radius?: number;
-  fill: string;
+  /** The capsule shares the animated fill with its foreground to preserve contrast. */
+  fill: string | DerivedValue<string>;
   borderColor?: string;
 }
 
@@ -34,6 +36,7 @@ export function SelectionIndicator({
       reduceMotion: ReduceMotion.System,
     };
     return {
+      backgroundColor: typeof fill === "string" ? fill : fill.value,
       left: withTiming(layout.x, timing),
       top: withTiming(layout.y, timing),
       width: withTiming(layout.width, timing),
@@ -50,7 +53,6 @@ export function SelectionIndicator({
       style={[
         styles.indicator,
         {
-          backgroundColor: fill,
           borderRadius: radius,
           borderColor,
           borderWidth: borderColor ? tokens.border.thin : 0,
