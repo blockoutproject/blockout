@@ -1,3 +1,4 @@
+import { stackScreenOptions } from "@/shared/native/stack-screen-options";
 import { Stack } from "expo-router";
 import { SearchVisitProvider } from "@/features/discovery/forms/search-visit";
 import { sheetScreenOptions } from "@/shared/components/sheet";
@@ -11,7 +12,7 @@ export default function SearchLayout() {
   const { colors } = useTheme();
   return (
     <SearchVisitProvider>
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={stackScreenOptions}>
         <Stack.Screen name="index" />
         <Stack.Screen
           name="(sheets)/filters"

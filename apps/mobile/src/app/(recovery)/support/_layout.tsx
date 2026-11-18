@@ -1,3 +1,4 @@
+import { stackScreenOptions } from "@/shared/native/stack-screen-options";
 import { Stack, useGlobalSearchParams } from "expo-router";
 import { useAccessAdmission } from "@/features/access/queries/use-access-admission";
 import { SupportJourney } from "@/features/support/screens/support-journey";
@@ -18,7 +19,7 @@ export default function SupportLayout() {
       admitted={admitted}
       origin={{ ...params, screen: params.originScreen }}
     >
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={stackScreenOptions}>
         <Stack.Screen name="index" />
         <Stack.Screen
           name="choice"
