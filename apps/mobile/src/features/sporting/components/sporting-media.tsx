@@ -262,7 +262,9 @@ export function SportingAtmosphere({
       />
     </MaskedView>
   );
-  if (!horizontal) return maskedArtwork;
+  if (!horizontal) {
+    return maskedArtwork;
+  }
   // MaskedView's legacy native manager does not apply the Fabric blend mode.
   return (
     <View
