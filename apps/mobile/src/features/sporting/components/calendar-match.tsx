@@ -33,6 +33,9 @@ export function CalendarMatch({
   const sporting = useSportingNavigation(active);
   const division = match.pool.classification.division;
   const accent = division?.color ?? context.primary;
+  const borderColor = division
+    ? `${accent}${colors.contextBorderAlpha}`
+    : colors.border;
   const foreground = division ? divisionTextColor(accent) : context.onAction;
   const schedule = formatSportingSchedule(match.schedule, displayTimeZone);
   const result = match.result;
@@ -64,9 +67,7 @@ export function CalendarMatch({
       style={({ pressed }) => [
         styles.card,
         {
-          borderColor: division
-            ? `${accent}${colors.contextBorderAlpha}`
-            : colors.border,
+          borderColor,
           backgroundColor: colors.raised,
           opacity: pressed ? tokens.opacity.pressed : 1,
         },
@@ -96,9 +97,7 @@ export function CalendarMatch({
                 styles.team,
                 index > 0 && {
                   borderTopWidth: tokens.border.thin,
-                  borderColor: division
-                    ? `${accent}${colors.contextBorderAlpha}`
-                    : colors.border,
+                  borderColor,
                 },
               ]}
             >

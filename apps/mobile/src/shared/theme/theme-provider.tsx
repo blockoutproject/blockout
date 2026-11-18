@@ -24,6 +24,7 @@ export interface Theme {
   colors: typeof appearanceColors.light;
   context: ContextColors;
   membership: typeof membershipColors.light;
+  proAccent: boolean;
 }
 
 /** Owners supply current presentation inputs; unknown/inactive Pro is represented by the default false. */
@@ -55,6 +56,7 @@ export function ThemeProvider({
         scheme,
         colors,
         context: context[scheme],
+        proAccent,
         membership: proAccent
           ? membershipColors.pro[scheme]
           : membershipColors[scheme],

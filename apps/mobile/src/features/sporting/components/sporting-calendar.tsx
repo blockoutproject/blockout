@@ -3,6 +3,7 @@ import {
   PageScrollView,
   PageContent,
   pageContentStyle,
+  usePageCanvasBacking,
 } from "@/shared/components/page";
 import { type LegendListRef } from "@legendapp/list/react-native";
 import {
@@ -20,11 +21,16 @@ import {
   type PropsWithChildren,
   type ReactNode,
 } from "react";
-import { AppState, StyleSheet, Text, View } from "react-native";
+import {
+  AppState,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import type {
   MatchCalendarResponse,
   MatchPoolGroupResponse,
-  MatchSummaryResponse,
 } from "../../../../.generated/schemas/index.zod";
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { Button } from "@/shared/components/button";
@@ -279,7 +285,7 @@ export function SportingCalendarView({
         ) : undefined
       }
       refreshControl={refreshControl}
-      renderItem={({ item }) => {
+      renderItem={({ item, index }) => {
         if (item.kind === "space") {
           return null;
         }
@@ -287,10 +293,18 @@ export function SportingCalendarView({
           return <CalendarDate date={item.date} stacked={stacked} />;
         }
         if (item.kind === "pool") {
-          return <CalendarPoolHeader group={item.group} />;
+          return (
+            <CalendarPoolHeader
+              group={item.group}
+              besideDate={!stacked && rows[index - 1]?.kind === "date"}
+            />
+          );
         }
         return (
-          <CalendarGroupPart match={item.match} last={item.last}>
+          <CalendarGroupPart
+            divisionColor={item.match.pool.classification.division?.color}
+            last={item.last}
+          >
             <View
               style={[
                 styles.match,
@@ -334,6 +348,7 @@ function CalendarDate({
   stacked,
 }: Readonly<{ date: string; stacked: boolean }>) {
   const { colors } = useTheme();
+  const backgroundColor = usePageCanvasBacking();
   const value = new Date(`${date}T12:00:00Z`);
   return (
     <View
@@ -342,7 +357,7 @@ function CalendarDate({
       accessibilityLabel={formatSportingDay(date)}
       style={[
         styles.dateHeading,
-        { backgroundColor: colors.canvas },
+        { backgroundColor },
         stacked && styles.stackedDate,
       ]}
     >
@@ -356,36 +371,49 @@ function CalendarDate({
   );
 }
 
-/** Reuses one pool outline across separate header and encounter cells, with rounded ends only. */
+/** Extends the shadow past each interior join, where the cell clips it to a continuous side edge. */
 function CalendarGroupPart({
-  match,
+  divisionColor,
   first,
   last,
   children,
 }: Readonly<
   PropsWithChildren<{
-    match: MatchSummaryResponse;
+    divisionColor?: string;
     first?: boolean;
     last?: boolean;
   }>
 >) {
   const { colors } = useTheme();
-  const division = match.pool.classification.division;
+  const tint =
+    divisionColor && `${divisionColor}${colors.sportingSurfaceAlpha}`;
   return (
     <View
       style={[
-        styles.groupPart,
-        first && styles.groupStart,
-        last && styles.groupEnd,
-        {
-          backgroundColor: colors.surface,
-          borderColor: division
-            ? `${division.color}${tokens.sporting.borderAlpha}`
-            : colors.border,
-        },
+        styles.groupClip,
+        first && styles.groupClipStart,
+        last && styles.groupClipEnd,
       ]}
     >
-      {children}
+      <View
+        style={[
+          styles.groupPart,
+          first ? styles.groupStart : styles.groupContinueAbove,
+          last ? styles.groupEnd : styles.groupContinueBelow,
+          {
+            backgroundColor: colors.surface,
+            backgroundImage: tint
+              ? `linear-gradient(${tint}, ${tint})`
+              : undefined,
+            borderColor: divisionColor
+              ? `${divisionColor}${colors.contextBorderAlpha}`
+              : colors.border,
+            boxShadow: colors.cardShadow,
+          },
+        ]}
+      >
+        {children}
+      </View>
     </View>
   );
 }
@@ -393,15 +421,26 @@ function CalendarGroupPart({
 /** Pool headings retain a two-line name, full accessible label and nominal media slot without inventing a division. */
 function CalendarPoolHeader({
   group,
-}: Readonly<{ group: MatchPoolGroupResponse }>) {
+  besideDate,
+}: Readonly<{ group: MatchPoolGroupResponse; besideDate: boolean }>) {
   const { context } = useTheme();
+  const { fontScale, scale } = useWindowDimensions();
   const pool = group.matches[0].pool;
   const division = pool.classification.division;
   const accent = division?.color ?? context.primary;
   const foreground = division ? divisionTextColor(accent) : context.onAction;
+  // The banner fills the row reserved by the date so each pool keeps the same match insets.
+  const dateHeight =
+    styles.dateHeading.paddingTop +
+    styles.dateHeading.gap +
+    (Math.ceil(styles.date.lineHeight * fontScale * scale) +
+      2 * Math.ceil(styles.dateMeta.lineHeight * fontScale * scale)) /
+      scale;
   return (
-    <CalendarGroupPart match={group.matches[0]} first>
-      <View style={styles.groupInset}>
+    <CalendarGroupPart divisionColor={division?.color} first>
+      <View
+        style={[styles.groupInset, besideDate && { minHeight: dateHeight }]}
+      >
         <View style={[styles.pool, { backgroundColor: accent }]}>
           {division ? (
             <>
@@ -447,6 +486,9 @@ const monthFormat = new Intl.DateTimeFormat("fr-FR", {
   month: "short",
 });
 
+const groupShadowGutter = tokens.elevation.cardShadowBlurRadius;
+const groupShadowOverlap = 2 * groupShadowGutter;
+
 const styles = StyleSheet.create({
   stateControls: { paddingBottom: 0 },
   sceneHeader: { gap: tokens.spacing.lg, marginBottom: tokens.spacing.lg },
@@ -463,6 +505,16 @@ const styles = StyleSheet.create({
   },
   date: { ...tokens.typography.headingXl },
   dateMeta: { ...tokens.typography.metadata },
+  groupClip: {
+    overflow: "hidden",
+    marginHorizontal: -groupShadowGutter,
+    paddingHorizontal: groupShadowGutter,
+  },
+  groupClipStart: {
+    marginTop: -groupShadowGutter,
+    paddingTop: groupShadowGutter,
+  },
+  groupClipEnd: { paddingBottom: tokens.layout.list.gap },
   groupPart: {
     borderLeftWidth: tokens.border.thin,
     borderRightWidth: tokens.border.thin,
@@ -477,10 +529,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: tokens.border.thin,
     borderBottomLeftRadius: tokens.radius.panel,
     borderBottomRightRadius: tokens.radius.panel,
-    marginBottom: tokens.spacing.md,
+  },
+  groupContinueAbove: {
+    marginTop: -groupShadowOverlap,
+    paddingTop: groupShadowOverlap,
+  },
+  groupContinueBelow: {
+    marginBottom: -groupShadowOverlap,
+    paddingBottom: groupShadowOverlap,
   },
   groupInset: { padding: tokens.spacing.xs, paddingBottom: 0 },
   pool: {
+    flexGrow: 1,
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.md,

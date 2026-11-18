@@ -155,7 +155,7 @@ function NavigationCapsule({
   style,
   ...props
 }: Readonly<NavigationCapsuleProps>) {
-  const { scheme, membership } = useTheme();
+  const { scheme, colors, membership } = useTheme();
   return (
     <SafeAreaView
       {...props}
@@ -164,7 +164,12 @@ function NavigationCapsule({
       style={[style, styles.navigation]}
     >
       <ProOffer />
-      <View style={[styles.capsule, { borderColor: membership.border }]}>
+      <View
+        style={[
+          styles.capsule,
+          { borderColor: membership.border, boxShadow: colors.capsuleShadow },
+        ]}
+      >
         <BlurView
           pointerEvents="none"
           blurTarget={target}
@@ -179,6 +184,7 @@ function NavigationCapsule({
             layout={layout}
             reducedMotion={reducedMotion}
             radius={tokens.radius.panelInset}
+            fill={membership.fill}
           />
           {children}
         </View>

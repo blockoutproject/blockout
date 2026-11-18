@@ -22,11 +22,13 @@ export function ProfileIdentity({
   membershipStatus,
   photo,
 }: Readonly<ProfileIdentityProps>) {
-  const { colors } = useTheme();
+  const { colors, membership, proAccent } = useTheme();
   const uri = account.hasPhoto ? (photo.data ?? undefined) : undefined;
   return (
     <IdentityCard
       artworkBackgroundColor={colors.mediaPlaceholder}
+      borderColor={proAccent ? membership.border : undefined}
+      railBackgroundColor={proAccent && uri ? membership.fill : undefined}
       atmosphere={
         uri ? (
           <IdentityAtmosphere

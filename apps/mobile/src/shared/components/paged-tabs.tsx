@@ -46,6 +46,8 @@ export interface PagedTabsProps {
   tabs: readonly PagedTab[];
   selected: string;
   onSelect: (id: string) => void;
+  /** A single division may tint its local tab selection. */
+  contextColor?: string;
   /** Replaces all native scroll geometry when the shared reading scope changes, retaining visited admission. */
   resetKey?: string;
   /** Page navigation remains pinned above the tab rail. */
@@ -63,6 +65,7 @@ export function PagedTabs({
   tabs,
   selected,
   onSelect,
+  contextColor,
   resetKey,
   header,
   collapsibleHeader,
@@ -141,6 +144,7 @@ export function PagedTabs({
             <NavigationTabBar
               {...props}
               reducedMotion={reducedMotion}
+              contextColor={contextColor}
               onTabPress={
                 reducedMotion
                   ? (id) => pager.current?.jumpToTab(id, false)

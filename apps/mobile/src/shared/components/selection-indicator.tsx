@@ -5,7 +5,6 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
 } from "react-native-reanimated";
-import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 
 /** The owner supplies a selected child's native rectangle in the same borderless coordinate space. */
@@ -13,6 +12,8 @@ export interface SelectionIndicatorProps {
   layout?: LayoutRectangle;
   reducedMotion: boolean;
   radius?: number;
+  fill: string;
+  borderColor?: string;
 }
 
 /** Animates measured bounds directly on the UI thread on both platforms; reduced motion settles immediately. */
@@ -20,8 +21,9 @@ export function SelectionIndicator({
   layout,
   reducedMotion,
   radius = tokens.radius.control,
+  fill,
+  borderColor,
 }: Readonly<SelectionIndicatorProps>) {
-  const { membership } = useTheme();
   const animated = useAnimatedStyle(() => {
     if (!layout) {
       return {};
@@ -48,8 +50,10 @@ export function SelectionIndicator({
       style={[
         styles.indicator,
         {
-          backgroundColor: membership.fill,
+          backgroundColor: fill,
           borderRadius: radius,
+          borderColor,
+          borderWidth: borderColor ? tokens.border.thin : 0,
         },
         animated,
       ]}

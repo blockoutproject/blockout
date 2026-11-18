@@ -6,7 +6,6 @@ import { PageViewport } from "@/shared/components/navigation-backdrop";
 import { ScreenState } from "@/shared/components/screen-state";
 import { ErrorState } from "@/shared/components/state-card";
 import { hasReadError } from "@/shared/components/read-feedback";
-import { useTheme } from "@/shared/theme/theme-provider";
 
 /** An existing Query result supplies indispensable data and safe read recovery, never a copied cache. */
 export type SportingInitialRead = Pick<
@@ -18,6 +17,7 @@ export type SportingInitialRead = Pick<
 export interface SportingInitialCompositionProps {
   detail: SportingInitialRead;
   follow?: SportingInitialRead;
+  canvasTint?: string;
   header: ReactNode;
   loading: ReactNode;
   children: ReactNode;
@@ -27,11 +27,11 @@ export interface SportingInitialCompositionProps {
 export function SportingInitialComposition({
   detail,
   follow,
+  canvasTint,
   header,
   loading,
   children,
 }: Readonly<SportingInitialCompositionProps>) {
-  const { colors } = useTheme();
   const reads = follow ? [detail, follow] : [detail];
   const unresolved = reads.filter(
     (read) => read.data === undefined || hasReadError(read),
@@ -54,7 +54,7 @@ export function SportingInitialComposition({
   }
 
   return (
-    <Page fullBleed>
+    <Page fullBleed canvasTint={blocked ? undefined : canvasTint}>
       <View
         style={[styles.content, blocked && styles.hidden]}
         pointerEvents={blocked ? "none" : "auto"}
@@ -64,9 +64,7 @@ export function SportingInitialComposition({
         {children}
       </View>
       {blocked && (
-        <View
-          style={[StyleSheet.absoluteFill, { backgroundColor: colors.canvas }]}
-        >
+        <View style={StyleSheet.absoluteFill}>
           <PageViewport header={header}>
             <PageScrollView>
               {failed || retrying ? (

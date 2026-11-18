@@ -51,6 +51,7 @@ function PoolPage({
   const pool = useQuery(queries.pool(poolId));
   const [tab, setTab] = useState("standings");
   const data = pool.data;
+  const divisionColor = data?.pool.classification.division?.color;
   const identity = data ? (
     <SportingIdentity
       identity={data.pool.pool}
@@ -61,11 +62,7 @@ function PoolPage({
         .filter(Boolean)
         .join(" · ")}
     >
-      {renderFollow?.(
-        data.pool.pool,
-        data.pool.season,
-        data.pool.classification.division?.color,
-      )}
+      {renderFollow?.(data.pool.pool, data.pool.season, divisionColor)}
     </SportingIdentity>
   ) : undefined;
   const tabs = [
@@ -78,6 +75,7 @@ function PoolPage({
     <SportingInitialComposition
       detail={pool}
       follow={initialFollow}
+      canvasTint={divisionColor}
       header={
         <PageHeader
           title="La poule"
@@ -92,6 +90,7 @@ function PoolPage({
         <PagedTabs
           selected={tab}
           onSelect={setTab}
+          contextColor={divisionColor}
           header={
             data && (
               <SportingPageHeader

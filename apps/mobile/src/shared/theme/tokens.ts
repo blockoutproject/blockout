@@ -6,6 +6,8 @@ import { Platform, type TextStyle } from "react-native";
  * Typography/layout/effects: sibling foundation pages 7:4–7:6; control nodes are linked by quickstart.
  */
 const reference = { white: "#FFFFFF", neutral900: "#171717" };
+const cardShadowBlurRadius = 12;
+const cardShadowGeometry = `0px 4px ${cardShadowBlurRadius}px`;
 
 /** Sporting owners supply both approved appearances; the theme never derives division colors. */
 export interface ContextColors {
@@ -20,6 +22,10 @@ export interface ContextColors {
 export const appearanceColors = {
   light: {
     canvas: "#FCFCFD",
+    canvasHighlight: "#7E8FB2",
+    canvasTintStart: 0.025,
+    canvasHighlightEnd: 0.05,
+    canvasTintEnd: 0.05,
     surface: reference.white,
     subtle: "#2021240F",
     // Soft grouped surface approved through the native moderation review; its designated-library projection is tracked by F08.
@@ -50,7 +56,10 @@ export const appearanceColors = {
     inverse: reference.neutral900,
     onInverse: "#F7F7F8",
     contextBorderAlpha: "4D",
+    sportingSurfaceAlpha: "0C",
     border: "#20212424",
+    cardShadow: `${cardShadowGeometry} #181C2E20`,
+    capsuleShadow: "0px 5px 16px #14192426",
     text: "#1C1C1E",
     accentPrimary: reference.neutral900,
     secondaryText: "#62646A",
@@ -78,6 +87,10 @@ export const appearanceColors = {
   },
   dark: {
     canvas: "#0D0D0E",
+    canvasHighlight: "#7885A5",
+    canvasTintStart: 0.05,
+    canvasHighlightEnd: 0.075,
+    canvasTintEnd: 0.1,
     surface: "#19191A",
     subtle: "#FFFFFF14",
     insetSurface: "#FFFFFF08",
@@ -102,7 +115,10 @@ export const appearanceColors = {
     inverse: "#F7F7F8",
     onInverse: reference.neutral900,
     contextBorderAlpha: "6B",
+    sportingSurfaceAlpha: "1C",
     border: "#FFFFFF2E",
+    cardShadow: `${cardShadowGeometry} #00000065`,
+    capsuleShadow: "0px 5px 16px #00000080",
     text: "#F7F7F8",
     accentPrimary: "#F1F1F2",
     secondaryText: "#B8B8BC",
@@ -240,15 +256,13 @@ export const tokens = {
       },
     },
   },
-  elevation: { offsetX: 0, offsetY: 4, blur: 10 },
+  elevation: { offsetX: 0, offsetY: 4, blur: 10, cardShadowBlurRadius },
   motion: {
     slow: 480,
     // UI Library Motion / Navigation 3194:109; selection remains immediate while its decoration follows.
     navigation: { duration: 280, iconScale: 1.04, iconLift: 1 },
   },
-  // Product Design 977:174 / 977:251 / 980:324; Context border/default resolves to #RRGGBB4D.
   sporting: {
-    borderAlpha: "4D",
     headerMinHeight: 72,
     teamMinHeight: 64,
     dateMinWidth: 120,

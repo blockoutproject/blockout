@@ -326,8 +326,8 @@ export function PresentationForm({
             styles.context,
             styles.divisionContext,
             {
-              backgroundColor: `${previewColor}14`,
-              borderColor: `${previewColor}4D`,
+              backgroundColor: `${previewColor}${colors.sportingSurfaceAlpha}`,
+              borderColor: `${previewColor}${colors.contextBorderAlpha}`,
             },
           ]}
         >

@@ -29,6 +29,7 @@ export function ProOffer() {
         {
           backgroundColor: colors.surface,
           borderColor: premium.border,
+          boxShadow: colors.cardShadow,
           opacity: pressed ? tokens.opacity.pressed : 1,
         },
       ]}
@@ -41,7 +42,6 @@ export function ProOffer() {
         <Text style={[tokens.typography.label, { color: premium.fill }]}>
           Pro
         </Text>
-        <View style={[styles.separator, { backgroundColor: colors.border }]} />
       </View>
       <View style={styles.benefit}>
         <Text
@@ -82,7 +82,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: tokens.spacing.sm,
   },
-  separator: { width: tokens.border.thin, height: tokens.size.icon.md },
   benefit: {
     flexDirection: "row",
     flexGrow: 1,
