@@ -27,7 +27,7 @@ export interface SportingLogoProps {
   presentation?: SportingMediaProps["presentation"];
   /** Places one admitted foreground logo and its optional same-image atmosphere in an owning card. */
   renderWithAtmosphere?: SportingMediaProps["renderWithAtmosphere"];
-  atmosphereLayout?: SportingMediaProps["atmosphereLayout"];
+  atmosphere?: SportingMediaProps["atmosphere"];
 }
 
 /** Native image failure keeps a readable identity; known resource restriction withdraws foreground and atmosphere. */
@@ -37,7 +37,7 @@ export function SportingLogo({
   size = tokens.size.media.row,
   presentation,
   renderWithAtmosphere,
-  atmosphereLayout,
+  atmosphere,
 }: Readonly<SportingLogoProps>) {
   const logo = useSportingLogo(identity, kind);
   return (
@@ -51,7 +51,7 @@ export function SportingLogo({
       loading={logo.loading}
       error={logo.error}
       renderWithAtmosphere={renderWithAtmosphere}
-      atmosphereLayout={atmosphereLayout}
+      atmosphere={atmosphere}
     />
   );
 }
@@ -73,10 +73,8 @@ export function SportingArtwork({
 }
 
 /** Common profile inputs; follow/actions remain supplied by their owner once available. */
-export interface SportingIdentityProps extends Omit<
-  SportingLogoProps,
-  "kind" | "renderWithAtmosphere" | "atmosphereLayout" | "presentation"
-> {
+export interface SportingIdentityProps {
+  identity: SportingIdentityResponse;
   kind: "club" | "team" | "pool";
   classification?: SportingClassificationResponse;
   season?: SportingSeasonResponse;

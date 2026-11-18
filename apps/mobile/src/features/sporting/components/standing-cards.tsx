@@ -226,7 +226,10 @@ function StandingCard({
       identity={row.team}
       kind="team"
       size={podium ? tokens.size.media.row : tokens.size.media.match}
-      atmosphereLayout={podium ? "podium" : "horizontal"}
+      atmosphere={{
+        layout: podium ? "podium" : "horizontal",
+        withdrawLogoOnError: true,
+      }}
       renderWithAtmosphere={renderCard}
     />
   ) : (
@@ -234,7 +237,6 @@ function StandingCard({
       identity={{ name: row.sourceName }}
       kind="team"
       size={podium ? tokens.size.media.row : tokens.size.media.match}
-      atmosphereLayout={podium ? "podium" : "horizontal"}
       renderWithAtmosphere={renderCard}
     />
   );

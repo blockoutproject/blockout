@@ -2,6 +2,5 @@
 export {
   SportingEntityCard,
   SportingEntityCardLoading,
-  entityBadgeSize,
   type SportingEntityCardProps,
 } from "./components/sporting-entity-card";

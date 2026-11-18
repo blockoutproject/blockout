@@ -26,6 +26,8 @@ import { mediaRadius } from "@/shared/theme/media-radius";
 const MaskedView =
   NativeMaskedView as unknown as ComponentType<MaskedViewProps>;
 
+type AtmosphereLayout = "horizontal" | "podium" | "crest";
+
 /** Optional sports artwork keeps its fixed slot and native lifecycle; absent or failed artwork uses the nominal fallback. */
 export interface SportingMediaProps {
   identity: Pick<SportingIdentityResponse, "name" | "shortName">;
@@ -39,8 +41,12 @@ export interface SportingMediaProps {
   presentation?: "logo" | "entity" | "identity";
   /** The owner places both layers. A failed sharp source withdraws its decoration as well. */
   renderWithAtmosphere?: (logo: ReactNode, atmosphere: ReactNode) => ReactNode;
-  /** Podium keeps its existing unrestricted light; horizontal cards share one tapered layer. */
-  atmosphereLayout?: "horizontal" | "podium";
+  atmosphere?: Readonly<{
+    layout?: AtmosphereLayout;
+    testID?: string;
+    /** Standings retain their paired fallback if either native image fails. */
+    withdrawLogoOnError?: boolean;
+  }>;
 }
 
 /** Keeps native media beneath its skeleton without remounting the caller's card. */
@@ -53,7 +59,7 @@ export function SportingMedia({
   size = tokens.size.media.row,
   presentation = "logo",
   renderWithAtmosphere,
-  atmosphereLayout = "horizontal",
+  atmosphere,
 }: Readonly<SportingMediaProps>) {
   /** Keeps the native image, loading skeleton and absent-artwork fallback in the same media slot. */
   function renderArtwork() {
@@ -162,20 +168,20 @@ export function SportingMedia({
   if (!renderWithAtmosphere) {
     return logo;
   }
-  const atmosphere = available ? (
+  const halo = available ? (
     <SportingAtmosphere
       key={image.attemptKey}
-      testID="sporting-logo-atmosphere"
+      testID={atmosphere?.testID ?? "sporting-logo-atmosphere"}
       uri={uri}
-      layout={atmosphereLayout}
-      onError={identityPlate ? undefined : image.onError}
+      layout={atmosphere?.layout ?? "horizontal"}
+      onError={atmosphere?.withdrawLogoOnError ? image.onError : undefined}
     />
   ) : null;
-  return renderWithAtmosphere(logo, atmosphere);
+  return renderWithAtmosphere(logo, halo);
 }
 
 /** Optional same-crest light; decoration has its own native decoding unless the consumer shares failure ownership. */
-export function SportingAtmosphere({
+function SportingAtmosphere({
   uri,
   onError,
   testID,
@@ -184,7 +190,7 @@ export function SportingAtmosphere({
   uri: string;
   onError?: () => void;
   testID?: string;
-  layout: "horizontal" | "podium" | "crest";
+  layout: AtmosphereLayout;
 }>) {
   const image = useNativeImageLifecycle(uri);
   const id = useId();

@@ -1,6 +1,7 @@
 import { genderLabel, formatLabel } from "../classification-presentation";
 import { divisionTextColor } from "../presentation";
 import { SportingLogo } from "./sporting-identity";
+import { SportingMedia } from "./sporting-media";
 import type { ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ChevronRight } from "lucide-react-native";
@@ -15,7 +16,7 @@ import { LoadingGroup } from "@/shared/components/loading-group";
 import { Skeleton } from "@/shared/components/skeleton";
 
 /** Entity Card metadata uses a 24-point badge minimum; its loading representation shares this owner. */
-export const entityBadgeSize = 24;
+const entityBadgeSize = 24;
 
 /** Current public sporting summary slots; omitted facts remain absent and opening belongs to the caller. */
 export interface SportingEntityCardProps {
@@ -63,11 +64,13 @@ export function SportingEntityCard({
           { id: "gender", label: gender },
         ]
   ).filter(({ label }) => label !== undefined);
-  const label = clubTeam
-    ? identity.name
-    : [identity.name, subtitle, ...metadata.map(({ label }) => label)]
-        .filter(Boolean)
-        .join(", ");
+  const label = [
+    identity.name,
+    clubTeam ? division?.name : subtitle,
+    ...metadata.map(({ label }) => label),
+  ]
+    .filter(Boolean)
+    .join(", ");
   const outline =
     division && !clubTeam
       ? `${division.color}${colors.contextBorderAlpha}`
@@ -206,20 +209,28 @@ export function SportingEntityCard({
     );
   }
 
-  const logoIdentity =
-    kind === "pool"
-      ? (division ?? { ...identity, logoUrl: undefined })
-      : identity;
-  return (
+  const logoIdentity = kind === "pool" ? division : identity;
+  const logoSize = clubTeam
+    ? tokens.sporting.clubTeam.logoSize
+    : tokens.size.media.entity;
+  return logoIdentity ? (
     <SportingLogo
       identity={logoIdentity}
       kind={kind === "pool" ? "division" : kind}
-      size={
-        clubTeam ? tokens.sporting.clubTeam.logoSize : tokens.size.media.entity
-      }
+      size={logoSize}
       presentation="entity"
       renderWithAtmosphere={renderCard}
     />
+  ) : (
+    renderCard(
+      <SportingMedia
+        identity={identity}
+        kind="division"
+        size={logoSize}
+        presentation="entity"
+      />,
+      null,
+    )
   );
 }
 

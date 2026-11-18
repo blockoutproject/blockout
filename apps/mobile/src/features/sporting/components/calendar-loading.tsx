@@ -105,6 +105,13 @@ function PoolGroupSkeleton({
 }>) {
   const { colors } = useTheme();
   const { fontScale } = useWindowDimensions();
+  const scoreHeight = completed
+    ? Math.max(
+        tokens.sporting.scoreSize,
+        tokens.typography.navigation.lineHeight * fontScale +
+          2 * tokens.spacing.xs,
+      )
+    : undefined;
   return (
     <View
       style={[
@@ -140,8 +147,8 @@ function PoolGroupSkeleton({
           )}
           <View style={styles.fixtureContent}>
             <View style={styles.teams}>
-              <TeamSkeleton continuation score={completed} />
-              <TeamSkeleton divided score={completed} />
+              <TeamSkeleton continuation scoreHeight={scoreHeight} />
+              <TeamSkeleton divided scoreHeight={scoreHeight} />
             </View>
             {!completed && (
               <View
@@ -167,11 +174,11 @@ function PoolGroupSkeleton({
 function TeamSkeleton({
   divided = false,
   continuation = false,
-  score,
+  scoreHeight,
 }: Readonly<{
   divided?: boolean;
   continuation?: boolean;
-  score: boolean;
+  scoreHeight?: number;
 }>) {
   const { colors } = useTheme();
   return (
@@ -193,10 +200,10 @@ function TeamSkeleton({
         <TextSkeleton width="90%" />
         {continuation && <TextSkeleton width="65%" />}
       </View>
-      {score && (
+      {scoreHeight !== undefined && (
         <Skeleton
           width={tokens.sporting.scoreSize}
-          height={tokens.sporting.scoreSize}
+          height={scoreHeight}
           radius={tokens.radius.sm}
         />
       )}

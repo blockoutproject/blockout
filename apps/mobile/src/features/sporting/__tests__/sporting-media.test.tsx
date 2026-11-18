@@ -218,8 +218,44 @@ it("removes decorative artwork after a native decoding error event", async () =>
   ).not.toBeOnTheScreen();
 });
 
+it("retains the logo when its optional atmosphere fails to decode", async () => {
+  // Given
+  const uri = "https://api.example.invalid/logos/team.png";
+  const identity = { name: "Volley des Rives" };
+  await render(
+    <ThemeProvider>
+      <SportingMedia
+        identity={identity}
+        kind="team"
+        uri={uri}
+        renderWithAtmosphere={(logo, halo) => (
+          <View>
+            {halo}
+            {logo}
+          </View>
+        )}
+      />
+    </ThemeProvider>,
+  );
+  const crest = screen.getByRole("image", { name: `Logo : ${identity.name}` });
+  await fireEvent(crest, "display");
+
+  // When
+  await fireEvent(screen.getByTestId("sporting-logo-atmosphere"), "error", {
+    nativeEvent: { error: "Atmosphere decoding failed" },
+  });
+
+  // Then
+  expect(
+    screen.queryByTestId("sporting-logo-atmosphere"),
+  ).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("image", { name: `Logo : ${identity.name}`, busy: false }),
+  ).toBeOnTheScreen();
+});
+
 it.each(["foreground", "atmosphere"] as const)(
-  "removes both same-logo card layers after a native %s decoding failure",
+  "keeps the paired standings fallback after a native %s decoding failure",
   async (failedLayer) => {
     // Given
     const uri = "data:image/png;base64,c3ludGhldGljLWxvZ28=";
@@ -230,6 +266,7 @@ it.each(["foreground", "atmosphere"] as const)(
           identity={identity}
           kind="team"
           uri={uri}
+          atmosphere={{ withdrawLogoOnError: true }}
           renderWithAtmosphere={(logo, atmosphere) => (
             <View>
               {atmosphere}

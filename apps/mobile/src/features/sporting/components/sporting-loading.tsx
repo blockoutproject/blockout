@@ -61,6 +61,10 @@ export function SportingMatchLoading() {
 function MatchSummarySkeleton() {
   const { colors } = useTheme();
   const { fontScale } = useWindowDimensions();
+  const scoreHeight = Math.max(
+    tokens.sporting.scoreSize,
+    tokens.typography.heading.lineHeight * fontScale + 2 * tokens.spacing.tight,
+  );
   return (
     <MatchSurface>
       <View style={styles.pool}>
@@ -97,7 +101,7 @@ function MatchSummarySkeleton() {
             </View>
             <Skeleton
               width={tokens.sporting.scoreSize}
-              height={tokens.sporting.scoreSize}
+              height={scoreHeight}
               shape="rectangle"
             />
           </View>

@@ -21,6 +21,7 @@ import ProfileLayout, {
 } from "@/app/(ordinary)/(tabs)/(profile)/profile/_layout";
 import { useBottomContentInset } from "@/shared/components/bottom-content-inset";
 import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
+import { NavigationAccent } from "@/shared/components/navigation-accent";
 import { defaultOffering } from "../test-support/offering";
 import { sheetScreenOptions } from "@/shared/components/sheet";
 import {
@@ -71,6 +72,15 @@ jest.mock("react-native-purchases-ui", () => {
   };
 });
 jest.mock("@sentry/react-native", () => ({ captureException: jest.fn() }));
+// Expose the paint sent to the native indicator without depending on native layout or animation.
+jest.mock("@/shared/components/selection-indicator", () => {
+  const { Text } = jest.requireActual("react-native");
+  return {
+    SelectionIndicator: ({ fill }: { fill: string }) => (
+      <Text>{`Selected capsule fill: ${fill}`}</Text>
+    ),
+  };
+});
 jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
 }));
@@ -201,7 +211,12 @@ async function openJourney(initialUrl = "/search") {
       "(ordinary)/(tabs)/(discovery,home,notifications,profile)/pools/[poolId]":
         () => <Text>Pool destination</Text>,
       "(ordinary)/(tabs)/(discovery,home,notifications,profile)/teams/[teamId]":
-        () => <Text>Team destination</Text>,
+        () => (
+          <>
+            <Text>Team destination</Text>
+            <NavigationAccent color="#C74750" />
+          </>
+        ),
       "(ordinary)/(tabs)/(discovery,home,notifications,profile)/matches/[matchId]":
         () => <Text>Match destination</Text>,
       "(ordinary)/invitation": () => <Text>Invitation destination</Text>,
@@ -563,3 +578,32 @@ it.each(["/search/filters", "/invitation"])(
     expect(screen.getByText("Bottom clearance: 72")).toBeVisible();
   },
 );
+
+it("retains the selected Team paint beneath an invitation and clears it when leaving Team", async () => {
+  // Given
+  await openJourney(`/teams/${entityId}`);
+  const fill = "Selected capsule fill: #C74750";
+  expect(await screen.findByText(fill)).toBeVisible();
+
+  // When
+  await act(() => router.push("/invitation"));
+
+  // Then
+  expect(screen.getByText("Invitation destination")).toBeVisible();
+  expect(
+    screen.getByText(fill, { includeHiddenElements: true }),
+  ).toBeOnTheScreen();
+
+  // When
+  await act(() => router.back());
+
+  // Then
+  expect(await screen.findByText(fill)).toBeVisible();
+
+  // When
+  await act(() => router.back());
+
+  // Then
+  expect(await screen.findByText("Search destination")).toBeVisible();
+  expect(screen.queryByText(fill, { includeHiddenElements: true })).toBeNull();
+});

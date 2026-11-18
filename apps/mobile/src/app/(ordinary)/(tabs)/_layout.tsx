@@ -47,8 +47,11 @@ import { useTheme } from "@/shared/theme/theme-provider";
 import { tokens } from "@/shared/theme/tokens";
 import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 import { SelectionIndicator } from "@/shared/components/selection-indicator";
-import { NavigationAccentContext } from "@/shared/components/navigation-accent";
-import type { TabSelection } from "@/shared/components/tabs";
+import {
+  NavigationAccentContext,
+  useSelectedTabRouteKey,
+  type NavigationAccentSelection,
+} from "@/shared/components/navigation-accent";
 import { BottomContentInsetContext } from "@/shared/components/bottom-content-inset";
 import { ProOffer } from "@/features/pro";
 
@@ -60,8 +63,10 @@ export default function TabsLayout() {
   const { fontScale } = useWindowDimensions();
   const reducedMotion = useReducedMotion();
   const [selectionLayout, setSelectionLayout] = useState<LayoutRectangle>();
-  const [accent, setAccent] = useState<TabSelection>();
-  const selection = accent ?? membership;
+  const selectedRouteKey = useSelectedTabRouteKey();
+  const [accent, setAccent] = useState<NavigationAccentSelection>();
+  const selection =
+    accent && accent.routeKey === selectedRouteKey ? accent : membership;
   const [navigationHeight, setNavigationHeight] = useState(0);
   const target = useRef<ViewInstance>(null);
   const guest = session.status === "guest";
@@ -80,7 +85,7 @@ export default function TabsLayout() {
         options={{ backBehavior: "history" }}
       >
         <BlurTargetView ref={target} style={styles.tabs}>
-          <NavigationAccentContext value={setAccent}>
+          <NavigationAccentContext value={{ selectedRouteKey, setAccent }}>
             <TabSlot />
           </NavigationAccentContext>
         </BlurTargetView>
