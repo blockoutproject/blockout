@@ -14,11 +14,28 @@ import { mockAuth0 } from "@/features/accounts/test-support/native-auth0";
 import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import { ApplicationAccessProvider } from "@/features/access/queries/use-application-access";
 import { applicationAccessResponse } from "@/shared/api/test-support/application-access";
+import { AccountFeedbackProvider } from "@/features/accounts/test-support/account-feedback-provider";
+import { AdvertisingProviders } from "@/features/advertising/test-support/advertising-providers";
 import { NotificationItem } from "../components/notification-item";
 import { notificationResponse } from "../test-support/notification-data";
 
 jest.mock("@/features/onboarding/initialize-v2-installation", () => ({
   initializeV2Installation: jest.fn(),
+}));
+jest.mock("@react-native-async-storage/async-storage", () =>
+  jest.requireActual(
+    "@react-native-async-storage/async-storage/jest/async-storage-mock",
+  ),
+);
+jest.mock("react-native-purchases", () => ({
+  __esModule: true,
+  default: jest.requireActual("@/features/pro/test-support/native-purchases")
+    .mockPurchases,
+}));
+jest.mock("expo-router", () => ({
+  ...jest.requireActual("expo-router"),
+  useRouter: () => ({ push: jest.fn() }),
+  useNavigation: () => ({ isFocused: () => true }),
 }));
 jest.mock("react-native-auth0", () => {
   jest.requireActual("react-native").NativeModules.A0Auth0 = jest.requireActual(
@@ -70,7 +87,11 @@ function Providers({ children }: Readonly<PropsWithChildren>) {
     <QueryClientProvider client={client}>
       <ThemeProvider>
         <ApplicationAccessProvider>
-          <AccountSessionProvider>{children}</AccountSessionProvider>
+          <AccountSessionProvider>
+            <AccountFeedbackProvider>
+              <AdvertisingProviders>{children}</AdvertisingProviders>
+            </AccountFeedbackProvider>
+          </AccountSessionProvider>
         </ApplicationAccessProvider>
       </ThemeProvider>
     </QueryClientProvider>
@@ -101,7 +122,7 @@ it("preserves the supplied message without inventing editorial or reading intent
 
   // Then
   expect(screen.getByText(title)).toBeOnTheScreen();
-  expect(screen.getByRole("link")).toHaveAccessibleName(
+  expect(screen.getByRole("link", { name: /non lue$/ })).toHaveAccessibleName(
     `${title} Poule A. Nantes, Score domicile : 3. Tours, Score extérieur : 1. 24 oct. 2026 à 03h02 — non lue`,
   );
   expect(screen.getByText("3")).toBeOnTheScreen();
@@ -146,6 +167,9 @@ it.each([
     // Then
     expect(screen.getByText(row.title)).toBeOnTheScreen();
     expect(screen.getAllByText("Nom indisponible")).toHaveLength(2);
+    expect(
+      screen.queryByRole("link", { name: "Voir l’équipe Nom indisponible" }),
+    ).toBeNull();
     expect(
       screen.getByRole("link", { name: /Nom indisponible.*non lue$/ }),
     ).toBeOnTheScreen();

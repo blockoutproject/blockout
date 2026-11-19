@@ -372,6 +372,9 @@ it("announces each namesake with its available public context", async () => {
       "Volley, Club public, 2026/2027, 6 × 6, Féminin",
     ),
   ).toBeOnTheScreen();
+  expect(
+    screen.getByRole("link", { name: "Voir le club Club public" }),
+  ).toBeOnTheScreen();
 
   // When
   await user.press(screen.getByRole("tab", { name: "Poules" }));
@@ -390,6 +393,22 @@ it("announces each namesake with its available public context", async () => {
   expect(
     mockFetch.mock.calls.some(([url]) => String(url).includes("/logo")),
   ).toBe(false);
+});
+
+it("opens a team's associated club independently of the team link", async () => {
+  // Given
+  const user = userEvent.setup();
+  await renderSearch();
+  await user.press(screen.getByRole("tab", { name: "Équipes" }));
+
+  // When
+  await user.press(
+    await screen.findByRole("link", { name: "Voir le club Club public" }),
+  );
+
+  // Then
+  expect(screen).toHavePathname(`/clubs/${secondId}`);
+  expect(await screen.findByText("Volley Niort")).toBeOnTheScreen();
 });
 
 it.each(["network", "schema", "http"])(

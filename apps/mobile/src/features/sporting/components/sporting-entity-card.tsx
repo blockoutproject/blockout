@@ -21,6 +21,7 @@ import { tokens } from "@/shared/theme/tokens";
 import { LoadingGroup } from "@/shared/components/loading-group";
 import { Skeleton } from "@/shared/components/skeleton";
 import { TextSkeleton } from "@/shared/components/text-skeleton";
+import { SportingLink } from "../link";
 
 /** Entity Card metadata uses a 24-point badge minimum; its loading representation shares this owner. */
 const entityBadgeSize = 24;
@@ -31,10 +32,13 @@ export interface SportingEntityCardProps {
   identity: SportingIdentityResponse;
   city?: string;
   subtitle?: string;
+  club?: SportingIdentityResponse;
   classification?: SportingClassificationResponse;
   season?: SportingSeasonResponse;
   layout?: "discovery" | "club-team";
-  /** Makes the whole card an accessible link with the approved disclosure; the caller owns exact navigation. */
+  /** A retained scene owns continued navigation from its club link. */
+  active?: boolean;
+  /** Opens the card's primary identity. A separately linked club owns only its own row. */
   onPress?: () => void;
 }
 
@@ -44,13 +48,18 @@ export function SportingEntityCard({
   identity,
   city,
   subtitle,
+  club,
   classification,
   season,
   onPress,
   layout = "discovery",
+  active = true,
 }: Readonly<SportingEntityCardProps>) {
   const { colors } = useTheme();
   const clubTeam = layout === "club-team";
+  const linkedClub =
+    onPress && !clubTeam && club?.name.trim() ? club : undefined;
+  const supportingText = club?.name ?? subtitle;
   const division = classification?.division;
   const divisionContent = division
     ? divisionTextColor(division.color)
@@ -73,7 +82,7 @@ export function SportingEntityCard({
   ).filter(({ label }) => label !== undefined);
   const label = [
     identity.name,
-    clubTeam ? division?.name : subtitle,
+    clubTeam ? division?.name : supportingText,
     ...metadata.map(({ label }) => label),
   ]
     .filter(Boolean)
@@ -132,7 +141,6 @@ export function SportingEntityCard({
   function renderCard(logo: ReactNode, atmosphere: ReactNode) {
     const content = (
       <>
-        {atmosphere}
         {clubTeam ? (
           <>
             <View style={styles.clubRail}>{logo}</View>
@@ -168,14 +176,14 @@ export function SportingEntityCard({
                 >
                   {identity.name}
                 </Text>
-                {subtitle && (
+                {!linkedClub && supportingText && (
                   <Text
                     style={[
                       tokens.typography.metadata,
                       { color: colors.secondaryText },
                     ]}
                   >
-                    {subtitle}
+                    {supportingText}
                   </Text>
                 )}
               </View>
@@ -184,30 +192,59 @@ export function SportingEntityCard({
             {badges}
           </>
         )}
-        <View
-          pointerEvents="none"
-          accessible={false}
-          style={[
-            StyleSheet.absoluteFill,
-            styles.edge,
-            { borderColor: outline },
-          ]}
-        />
       </>
     );
+    const border = (
+      <View
+        pointerEvents="none"
+        accessible={false}
+        style={[StyleSheet.absoluteFill, styles.edge, { borderColor: outline }]}
+      />
+    );
+    const primary = {
+      accessible: true,
+      accessibilityRole: "link" as const,
+      accessibilityLabel: label,
+      onPress,
+    };
+    if (linkedClub) {
+      return (
+        <View style={style}>
+          {atmosphere}
+          <Pressable {...primary}>{content}</Pressable>
+          <SportingLink
+            kind="club"
+            id={linkedClub.id}
+            label={`Voir le club ${linkedClub.name}`}
+            active={active}
+            style={styles.relatedClub}
+          >
+            <Text
+              style={[styles.relatedClubName, { color: colors.secondaryText }]}
+            >
+              {linkedClub.name}
+            </Text>
+            <ChevronRight
+              accessible={false}
+              size={tokens.size.icon.sm}
+              color={colors.icon}
+            />
+          </SportingLink>
+          {border}
+        </View>
+      );
+    }
     return onPress ? (
-      <Pressable
-        accessible
-        accessibilityRole="link"
-        accessibilityLabel={label}
-        onPress={onPress}
-        style={style}
-      >
+      <Pressable {...primary} style={style}>
+        {atmosphere}
         {content}
+        {border}
       </Pressable>
     ) : (
       <View accessible accessibilityLabel={label} style={style}>
+        {atmosphere}
         {content}
+        {border}
       </View>
     );
   }
@@ -326,7 +363,9 @@ function EntityCardSkeleton({
             />
             <View style={styles.name}>
               <TextSkeleton role="navigation" />
-              {kind !== "club" && <TextSkeleton role="metadata" width="75%" />}
+              {kind !== "club" && kind !== "team" && (
+                <TextSkeleton role="metadata" width="75%" />
+              )}
             </View>
             <Skeleton
               width={tokens.size.icon.sm}
@@ -338,6 +377,17 @@ function EntityCardSkeleton({
               <Skeleton key={width} width={width} height={badgeHeight} />
             ))}
           </View>
+          {kind === "team" && (
+            <View style={styles.relatedClub}>
+              <View style={styles.relatedClubName}>
+                <TextSkeleton role="metadata" width="72%" />
+              </View>
+              <Skeleton
+                width={tokens.size.icon.sm}
+                height={tokens.size.icon.sm}
+              />
+            </View>
+          )}
         </>
       )}
       <View
@@ -393,6 +443,14 @@ const styles = StyleSheet.create({
     gap: tokens.spacing.md,
   },
   name: { flex: 1, minWidth: 0, gap: tokens.spacing.xs },
+  relatedClub: {
+    minHeight: tokens.touch.minimum,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: tokens.spacing.lg,
+    gap: tokens.spacing.sm,
+  },
+  relatedClubName: { ...tokens.typography.metadata, flex: 1, minWidth: 0 },
   metadata: {
     flexDirection: "row",
     flexWrap: "wrap",

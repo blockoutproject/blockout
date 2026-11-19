@@ -1,16 +1,10 @@
-import { useSportingNavigation } from "../navigation";
 import { CircleAlert } from "lucide-react-native";
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  useWindowDimensions,
-} from "react-native";
+import { StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import type { MatchSummaryResponse } from "../../../../.generated/schemas/index.zod";
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { divisionTextColor } from "../presentation";
+import { SportingLink } from "../link";
 import { formatSportingSchedule } from "../model/sporting-time";
 import { SportingLogo } from "./sporting-identity";
 import { calendarStyles } from "./calendar-styles";
@@ -31,7 +25,6 @@ export function CalendarMatch({
 }: Readonly<CalendarMatchProps>) {
   const { colors, context } = useTheme();
   const { fontScale } = useWindowDimensions();
-  const sporting = useSportingNavigation(active);
   const division = match.pool.classification.division;
   const accent = division?.color ?? context.primary;
   const borderColor = division
@@ -60,18 +53,13 @@ export function CalendarMatch({
   } else {
     status = undefined;
   }
+  const encounter = `${match.home.name} — ${match.away.name}`;
+  const matchLabel = `Ouvrir le match ${encounter}, ${hasScore ? `${result.homeSets} à ${result.awaySets}` : schedule.time}${status ? `, ${status}` : ""}${result?.specialLabel ? `, ${result.specialLabel}` : ""}`;
   return (
-    <Pressable
-      accessibilityRole="link"
-      accessibilityLabel={`Ouvrir le match ${match.home.name} — ${match.away.name}, ${hasScore ? `${result.homeSets} à ${result.awaySets}` : schedule.time}${status ? `, ${status}` : ""}${result?.specialLabel ? `, ${result.specialLabel}` : ""}`}
-      onPress={() => void sporting.navigate("match", match.id)}
-      style={({ pressed }) => [
+    <View
+      style={[
         calendarStyles.matchCard,
-        {
-          borderColor,
-          backgroundColor: colors.raised,
-          opacity: pressed ? tokens.opacity.pressed : 1,
-        },
+        { borderColor, backgroundColor: colors.raised },
       ]}
     >
       {status && (
@@ -96,32 +84,57 @@ export function CalendarMatch({
               key={team.id}
               style={[
                 calendarStyles.matchTeam,
+                styles.matchTeamLinks,
                 index > 0 && {
                   borderTopWidth: tokens.border.thin,
                   borderColor,
                 },
               ]}
             >
-              <SportingLogo
-                identity={team}
+              <SportingLink
                 kind="team"
-                size={tokens.size.media.match}
-              />
-              <Text style={[styles.name, { color: colors.text }]}>
-                {team.name}
-              </Text>
+                id={team.id}
+                label={`Ouvrir l’équipe ${team.name}`}
+                active={active}
+                style={styles.teamLink}
+              >
+                <SportingLogo
+                  identity={team}
+                  kind="team"
+                  size={tokens.size.media.match}
+                />
+                <Text style={[styles.name, { color: colors.text }]}>
+                  {team.name}
+                </Text>
+              </SportingLink>
               {hasScore && (
-                <View style={[styles.scoreCell, { backgroundColor: accent }]}>
-                  <Text style={[styles.score, { color: foreground }]}>
-                    {score}
-                  </Text>
-                </View>
+                <SportingLink
+                  kind="match"
+                  id={match.id}
+                  label={
+                    index === 0
+                      ? matchLabel
+                      : `Score extérieur : ${score}, ouvrir le match ${encounter}`
+                  }
+                  active={active}
+                  style={styles.scoreLink}
+                >
+                  <View style={[styles.scoreCell, { backgroundColor: accent }]}>
+                    <Text style={[styles.score, { color: foreground }]}>
+                      {score}
+                    </Text>
+                  </View>
+                </SportingLink>
               )}
             </View>
           ))}
         </View>
         {!hasScore && (
-          <View
+          <SportingLink
+            kind="match"
+            id={match.id}
+            label={matchLabel}
+            active={active}
             style={[
               calendarStyles.matchTime,
               {
@@ -133,7 +146,7 @@ export function CalendarMatch({
             <Text style={[styles.timeText, { color: foreground }]}>
               {match.schedule.instant ? schedule.time : "À définir"}
             </Text>
-          </View>
+          </SportingLink>
         )}
       </View>
       {result?.specialLabel && (
@@ -141,11 +154,27 @@ export function CalendarMatch({
           {result.specialLabel}
         </Text>
       )}
-    </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  matchTeamLinks: { paddingVertical: 0 },
+  teamLink: {
+    flex: 1,
+    minWidth: 0,
+    alignSelf: "stretch",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: tokens.spacing.sm,
+    gap: tokens.spacing.sm,
+  },
+  scoreLink: {
+    minWidth: tokens.touch.minimum,
+    paddingVertical: tokens.spacing.sm,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   status: {
     flexDirection: "row",
     gap: tokens.spacing.tight,

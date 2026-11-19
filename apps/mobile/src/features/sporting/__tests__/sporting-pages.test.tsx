@@ -1809,7 +1809,7 @@ it("keeps match identities and independent missing sections without a zero score
       name: "Home · Score domicile : indisponible",
     }),
   );
-  await user.press(screen.getByRole("link", { name: "Poule : Pool" }));
+  await user.press(screen.getByRole("link", { name: "Pool" }));
 
   // Then
   expect(mockPush).toHaveBeenCalledWith({
@@ -1820,6 +1820,7 @@ it("keeps match identities and independent missing sections without a zero score
     pathname: "/pools/[poolId]",
     params: { poolId: sportingId },
   });
+  expect(screen.getByRole("link", { name: "Poule : Pool" })).toBeOnTheScreen();
   expect(screen.getByText("Heure à définir")).toBeOnTheScreen();
   expect(screen.getByText("À venir")).toBeOnTheScreen();
   expect(screen.getByLabelText("Lieu : -")).toBeOnTheScreen();
@@ -2054,11 +2055,20 @@ it("keeps a sharp Score crest when its same-source decorative light fails", asyn
   await fireEvent(atmosphere, "error", {
     nativeEvent: { error: "Decorative image decoding failed" },
   });
+  await userEvent.press(
+    screen.getByRole("link", {
+      name: `Ouvrir l’équipe ${match.match.home.name}`,
+    }),
+  );
 
   // Then
   expect(
     screen.queryByTestId(`match-score-atmosphere-${match.match.home.id}`),
   ).not.toBeOnTheScreen();
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: "/teams/[teamId]",
+    params: { teamId: match.match.home.id },
+  });
   expect(
     screen.getByRole("image", {
       name: `Logo : ${match.match.home.name}`,

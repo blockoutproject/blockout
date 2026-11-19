@@ -30,15 +30,22 @@ export function NotificationLoading() {
               <TextSkeleton width={198} />
               <TextSkeleton width={128} role="metadata" />
             </View>
+            <View style={styles.disclosure} />
             <View style={styles.status} />
           </View>
           <View style={styles.body}>
-            <TextSkeleton width={260} />
+            <View style={styles.match}>
+              <View style={styles.teamCopy}>
+                <TextSkeleton width={260} />
+              </View>
+              <View style={styles.disclosure} />
+            </View>
             {[188, 164].map((width) => (
               <View key={width} style={styles.participant}>
                 <View style={styles.teamCopy}>
                   <TextSkeleton width={width} />
                 </View>
+                <View style={styles.disclosure} />
                 <Skeleton width={scoreSize} height={scoreSize} />
               </View>
             ))}
@@ -56,14 +63,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: tokens.spacing.sm,
     padding: tokens.spacing.md,
+    minHeight: tokens.touch.minimum + 2 * tokens.spacing.md,
   },
   identity: { flex: 1, minWidth: 0, gap: tokens.spacing.optical },
+  disclosure: { width: tokens.size.icon.sm },
   status: { width: tokens.size.icon.md },
-  body: { gap: tokens.spacing.sm, padding: tokens.spacing.md },
+  body: {
+    gap: tokens.spacing.sm,
+    paddingHorizontal: tokens.spacing.md,
+    paddingBottom: tokens.spacing.md,
+  },
+  match: {
+    minHeight: tokens.touch.minimum,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: tokens.spacing.sm,
+  },
   teamCopy: { flex: 1, minWidth: 0 },
   participant: {
     flexDirection: "row",
     alignItems: "center",
     gap: tokens.spacing.sm,
+    minHeight: tokens.touch.minimum,
   },
 });

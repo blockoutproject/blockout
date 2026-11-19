@@ -118,6 +118,7 @@ export function SearchScene({
   return (
     <SearchResults
       resource={resource}
+      active={active}
       onOpen={({ kind, identity }) => {
         Keyboard.dismiss();
         void sportingNavigation.navigate(kind, identity.id);

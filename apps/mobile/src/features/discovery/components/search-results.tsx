@@ -16,6 +16,7 @@ export interface SearchResultsProps {
   resource: SearchResult["kind"];
   items: readonly SearchResult[];
   loading: boolean;
+  active: boolean;
   examples?: boolean;
   heading?: ReactElement;
   emptyComponent?: ReactElement | null;
@@ -30,6 +31,7 @@ export function SearchResults({
   resource,
   items,
   loading,
+  active,
   examples = false,
   heading,
   emptyComponent,
@@ -80,7 +82,11 @@ export function SearchResults({
       contentContainerStyle={styles.listContent}
       ItemSeparatorComponent={ListSeparator}
       renderItem={({ item }) => (
-        <SportingEntityCard {...item} onPress={() => onOpen(item)} />
+        <SportingEntityCard
+          {...item}
+          active={active}
+          onPress={() => onOpen(item)}
+        />
       )}
     />
   );

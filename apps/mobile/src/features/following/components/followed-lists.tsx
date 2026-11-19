@@ -163,7 +163,7 @@ function followedItems(
         return {
           kind: "team",
           identity: team,
-          subtitle: club?.name,
+          club,
           season,
           classification,
         };
@@ -394,6 +394,7 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
             <View style={styles.card}>
               <SportingEntityCard
                 {...row.item}
+                active={props.active}
                 onPress={() =>
                   void sporting.navigate(row.item.kind, row.item.identity.id)
                 }

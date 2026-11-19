@@ -176,13 +176,15 @@ it("updates retained match detail to the current phone zone on foreground return
   expect(mockFetch).toHaveBeenCalledTimes(requests + 1);
 });
 
-it("keeps the summary pool heading informational instead of inventing a navigation control", async () => {
+it("keeps the contribution context pool heading informational", async () => {
   // Given
   const match = matchDetail().match;
   mockFetch.mockResolvedValue(Response.json(applicationAccessResponse()));
 
   // When
-  await render(<MatchSummary match={match} />, { wrapper: Providers });
+  await render(<MatchSummary match={match} presentation="context" />, {
+    wrapper: Providers,
+  });
 
   // Then
   expect(screen.getByText(match.pool.pool.name)).toBeOnTheScreen();

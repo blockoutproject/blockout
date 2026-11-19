@@ -231,7 +231,7 @@ it.each([
   },
 );
 
-it("opens the exact match while keeping final special notation and supplied totals", async () => {
+it("opens the exact teams and match independently while keeping final special notation", async () => {
   // Given
   const match: MatchSummaryResponse = {
     ...matchDetail().match,
@@ -249,17 +249,23 @@ it("opens the exact match while keeping final special notation and supplied tota
   });
 
   // When
-  await userEvent.press(
+  const user = userEvent.setup();
+  await user.press(screen.getByRole("link", { name: "Ouvrir l’équipe Home" }));
+  await user.press(screen.getByRole("link", { name: "Ouvrir l’équipe Away" }));
+  await user.press(
     screen.getByRole("link", {
       name: /Ouvrir le match Home — Away, 3 à 0, Forfait/,
     }),
   );
+  await user.press(screen.getByRole("link", { name: /Score extérieur : 0/ }));
 
   // Then
-  expect(mockPush).toHaveBeenCalledWith({
-    pathname: "/matches/[matchId]",
-    params: { matchId: sportingId },
-  });
+  expect(mockPush.mock.calls).toEqual([
+    [{ pathname: "/teams/[teamId]", params: { teamId: match.home.id } }],
+    [{ pathname: "/teams/[teamId]", params: { teamId: match.away.id } }],
+    [{ pathname: "/matches/[matchId]", params: { matchId: match.id } }],
+    [{ pathname: "/matches/[matchId]", params: { matchId: match.id } }],
+  ]);
   expect(screen.getByText("Forfait")).toBeOnTheScreen();
   expect(screen.queryByText("Résultat indisponible")).not.toBeOnTheScreen();
 });
@@ -281,6 +287,9 @@ it("keeps a nominal calendar logo without inventing a missing division or readin
   );
   await layoutNativeTabs();
   await screen.findByRole("link", { name: /Ouvrir le match Home — Away/ });
+  await userEvent.press(
+    screen.getByRole("link", { name: "Poule sans division" }),
+  );
 
   // Then: the shared media slot remains meaningful without a fabricated classification or logo read.
   expect(
@@ -290,11 +299,38 @@ it("keeps a nominal calendar logo without inventing a missing division or readin
     screen.getByRole("header", { name: "Poule sans division" }),
   ).toBeOnTheScreen();
   expect(screen.queryByText(/Féminin|Masculin|Mixte/)).toBeNull();
+  expect(mockPush).toHaveBeenCalledWith({
+    pathname: "/pools/[poolId]",
+    params: { poolId: pool.pool.id },
+  });
   expect(
     mockFetch.mock.calls
       .map(([url]) => new URL(url).pathname)
       .filter((path) => path !== "/application-access"),
   ).toEqual(["/matches"]);
+});
+
+it("keeps the current Pool heading readable without linking back to the same destination", async () => {
+  // Given
+  const { pool } = calendar.days[0].pools[0].matches[0].pool;
+
+  // When
+  await render(
+    <CalendarTab>
+      <SportingCalendar selection={{ poolId: pool.id, category: "upcoming" }} />
+    </CalendarTab>,
+    { wrapper: Providers },
+  );
+  await layoutNativeTabs();
+
+  // Then
+  expect(
+    await screen.findByRole("header", { name: pool.name }),
+  ).toBeOnTheScreen();
+  expect(screen.queryByRole("link", { name: pool.name })).not.toBeOnTheScreen();
+  expect(
+    screen.getByRole("link", { name: /Ouvrir le match Home — Away/ }),
+  ).toBeOnTheScreen();
 });
 
 it("retains loaded calendar data and its active context through native font-size changes without a reread", async () => {

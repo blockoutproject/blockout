@@ -11,7 +11,7 @@ import {
   type UseInfiniteQueryResult,
 } from "@tanstack/react-query";
 import { useNavigation } from "expo-router";
-import { RefreshCw } from "lucide-react-native";
+import { ChevronRight, RefreshCw } from "lucide-react-native";
 import {
   useEffect,
   useMemo,
@@ -45,6 +45,7 @@ import {
   formatSportingDay,
 } from "../model/sporting-time";
 import { genderLabel } from "../classification-presentation";
+import { SportingLink } from "../link";
 
 import { CalendarMatch } from "./calendar-match";
 import { SportingLogo } from "./sporting-identity";
@@ -76,6 +77,7 @@ export function SportingCalendar({
       key={hashKey(queryKey)}
       calendar={calendar}
       category={selection.category}
+      currentPoolId={selection.poolId}
       active={active}
       onRefresh={refresh}
     >
@@ -104,6 +106,8 @@ export interface SportingCalendarViewProps {
   };
   /** The loading structure is known from the selected calendar before any matches arrive. */
   category: CalendarSelection["category"];
+  /** The open Pool's own calendar already represents this destination. */
+  currentPoolId?: string;
   active?: boolean;
   onRefresh: (timeZone: string) => Promise<unknown>;
   emptyState?: ReactNode;
@@ -115,6 +119,7 @@ export interface SportingCalendarViewProps {
 export function SportingCalendarView({
   calendar,
   category,
+  currentPoolId,
   active = true,
   onRefresh,
   emptyState,
@@ -313,7 +318,11 @@ export function SportingCalendarView({
         );
         return item.first ? (
           <View>
-            <CalendarPoolHeader pool={item.match.pool} />
+            <CalendarPoolHeader
+              pool={item.match.pool}
+              linked={item.match.pool.pool.id !== currentPoolId}
+              active={active}
+            />
             {match}
           </View>
         ) : (
@@ -424,34 +433,60 @@ function CalendarGroupPart({
 /** Pool headings retain a two-line name, full accessible label and nominal media slot without inventing a division. */
 function CalendarPoolHeader({
   pool,
-}: Readonly<{ pool: MatchSummaryResponse["pool"] }>) {
+  linked,
+  active,
+}: Readonly<{
+  pool: MatchSummaryResponse["pool"];
+  linked: boolean;
+  active: boolean;
+}>) {
   const { colors } = useTheme();
   const division = pool.classification.division;
+  const content = (
+    <>
+      {division ? (
+        <SportingLogo identity={division} kind="division" />
+      ) : (
+        <SportingMedia identity={pool.pool} kind="division" />
+      )}
+      <View style={calendarStyles.poolCopy}>
+        <Text
+          accessibilityRole="header"
+          accessibilityLabel={pool.pool.name}
+          numberOfLines={2}
+          ellipsizeMode="tail"
+          style={[styles.poolName, { color: colors.text }]}
+        >
+          {pool.pool.name}
+        </Text>
+        <Text style={[styles.metadata, { color: colors.secondaryText }]}>
+          {[division?.name, genderLabel(pool.classification.gender)]
+            .filter(Boolean)
+            .join(" ")}
+        </Text>
+      </View>
+    </>
+  );
   return (
     <CalendarGroupPart divisionColor={division?.color} first>
-      <View style={calendarStyles.poolHeading}>
-        {division ? (
-          <SportingLogo identity={division} kind="division" />
-        ) : (
-          <SportingMedia identity={pool.pool} kind="division" />
-        )}
-        <View style={calendarStyles.poolCopy}>
-          <Text
-            accessibilityRole="header"
-            accessibilityLabel={pool.pool.name}
-            numberOfLines={2}
-            ellipsizeMode="tail"
-            style={[styles.poolName, { color: colors.text }]}
-          >
-            {pool.pool.name}
-          </Text>
-          <Text style={[styles.metadata, { color: colors.secondaryText }]}>
-            {[division?.name, genderLabel(pool.classification.gender)]
-              .filter(Boolean)
-              .join(" ")}
-          </Text>
-        </View>
-      </View>
+      {linked ? (
+        <SportingLink
+          kind="pool"
+          id={pool.pool.id}
+          label={pool.pool.name}
+          active={active}
+          style={calendarStyles.poolHeading}
+        >
+          {content}
+          <ChevronRight
+            accessible={false}
+            size={tokens.size.icon.sm}
+            color={colors.icon}
+          />
+        </SportingLink>
+      ) : (
+        <View style={calendarStyles.poolHeading}>{content}</View>
+      )}
     </CalendarGroupPart>
   );
 }
