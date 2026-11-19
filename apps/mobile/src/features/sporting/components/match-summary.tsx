@@ -202,7 +202,7 @@ export function MatchSummary({
   );
 }
 
-/** Reserves the public summary bands and both team rows with one loading announcement. */
+/** Reserves the pool, schedule and teams without implying a match status. */
 export function MatchSummaryLoading() {
   const { colors } = useTheme();
   const media = (
@@ -221,11 +221,8 @@ export function MatchSummaryLoading() {
             <TextSkeleton width="85%" />
           </View>
         </View>
-        <View style={[styles.metadata, { backgroundColor: colors.subtle }]}>
-          <TextSkeleton role="metadata" width="24%" />
-          <View style={[styles.copy, styles.date]}>
-            <TextSkeleton role="metadata" width="65%" />
-          </View>
+        <View style={[styles.metadata, { justifyContent: "flex-end" }]}>
+          <TextSkeleton role="metadata" width="48%" />
         </View>
         {(["home", "away"] as const).map((side) => (
           <Fragment key={side}>
