@@ -78,7 +78,10 @@ export function SourcePreparationScreen({
             )}
           </FeedbackLayout>
         )}
-        <PageContent style={blocked ? styles.hidden : undefined}>
+        <PageContent
+          reveal={!blocked}
+          style={blocked ? styles.hidden : undefined}
+        >
           <SourceCandidateForm
             key={visitKey}
             source={

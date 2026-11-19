@@ -7,23 +7,38 @@ import type {
 import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { SportingLink } from "../link";
-import { MatchSurface } from "./match-surface";
+import { MatchSurface, type MatchSurfaceProps } from "./match-surface";
 import { SportingLogo } from "./sporting-identity";
 
 /** Accepted set sequence and its original home/away identities; missing detail never becomes zeros. */
 export interface MatchSetScoresProps {
   match: MatchSummaryResponse;
   sets?: MatchSetsResponse;
+  revealIndex?: MatchSurfaceProps["revealIndex"];
+}
+
+export function hasMatchSetScores(
+  match: MatchSummaryResponse,
+  sets: MatchSetsResponse | undefined,
+) {
+  return Boolean(match.result || sets);
 }
 
 /** Approved Set Scores pattern; no empty score panel before any result or set detail is accepted. */
-export function MatchSetScores({ match, sets }: Readonly<MatchSetScoresProps>) {
+export function MatchSetScores({
+  match,
+  sets,
+  revealIndex,
+}: Readonly<MatchSetScoresProps>) {
   const { colors } = useTheme();
-  if (!match.result && !sets) {
+  if (!hasMatchSetScores(match, sets)) {
     return null;
   }
   return (
-    <MatchSurface division={match.pool.classification.division}>
+    <MatchSurface
+      division={match.pool.classification.division}
+      revealIndex={revealIndex}
+    >
       <View style={styles.content}>
         <Text
           accessibilityRole="header"

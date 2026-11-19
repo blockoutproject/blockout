@@ -4,6 +4,11 @@ import {
   NavigationSafeAreaContext,
 } from "./navigation-backdrop";
 import { hiddenScrollIndicators } from "@/shared/native/scroll-indicators";
+import {
+  InitialContentRevealItem,
+  PageContentRevealScope,
+  useInitialContentReveal,
+} from "./initial-content-reveal";
 import { useNativeSplashLayout } from "@/shared/native/native-splash-handoff";
 import {
   createContext,
@@ -107,6 +112,11 @@ export function Page({
     accessibilityViewIsModal ? 0 : bottomContentInset,
     ownsBottom ? safeArea.bottom : 0,
   );
+  const content = accessibilityViewIsModal ? (
+    children
+  ) : (
+    <PageContentRevealScope>{children}</PageContentRevealScope>
+  );
   return (
     <SafeAreaView
       edges={{
@@ -135,10 +145,10 @@ export function Page({
             <BottomContentInsetContext value={inset}>
               {header ? (
                 <PageViewport header={header} headerMinHeight={headerMinHeight}>
-                  {children}
+                  {content}
                 </PageViewport>
               ) : (
-                children
+                content
               )}
             </BottomContentInsetContext>
           </PageCanvasBackingContext>
@@ -163,8 +173,28 @@ export const pageContentStyle = StyleSheet.create({
 }).content;
 
 /** Bounded sections share page insets and spacing without owning scrolling, data or feedback. */
-export function PageContent({ style, ...props }: ViewProps) {
-  return <View {...props} style={[pageInsets, styles.sections, style]} />;
+export function PageContent({
+  style,
+  reveal,
+  ...props
+}: ViewProps & {
+  /** Supplies readiness for a bounded body that presents as one group. */
+  reveal?: boolean;
+}) {
+  const contentStyle = [pageInsets, styles.sections, style];
+  return reveal === undefined ? (
+    <View {...props} style={contentStyle} />
+  ) : (
+    <RevealedPageContent {...props} style={contentStyle} ready={reveal} />
+  );
+}
+
+function RevealedPageContent({
+  ready,
+  ...props
+}: ViewProps & { ready: boolean }) {
+  useInitialContentReveal(ready);
+  return <InitialContentRevealItem {...props} index={ready ? 0 : undefined} />;
 }
 
 /** Native scrolling with a growing useful area; callers compose content or ScreenState explicitly. */

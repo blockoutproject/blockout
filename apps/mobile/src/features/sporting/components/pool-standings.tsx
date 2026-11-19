@@ -15,6 +15,10 @@ import Animated, {
 import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { Button } from "@/shared/components/button";
 import { SelectionIndicator } from "@/shared/components/selection-indicator";
+import {
+  InitialContentRevealItem,
+  useInitialContentReveal,
+} from "@/shared/components/initial-content-reveal";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
 import { ScreenState } from "@/shared/components/screen-state";
 import { EmptyState } from "@/shared/components/state-card";
@@ -93,6 +97,7 @@ export function PoolStandings({
   const failed =
     hasReadError(standings) || data?.availability === "unavailable";
   const ready = active && data !== undefined && !failed;
+  useInitialContentReveal(ready && hasRows);
   useEffect(() => {
     if (ready) {
       onReady?.();
@@ -220,14 +225,16 @@ export function PoolStandings({
       <PageContent style={styles.content}>
         <View style={styles.standings}>
           {headerRow}
-          <StandingTable
-            rows={data.rows}
-            columns={columns}
-            layout={layout}
-            active={active}
-            highlightTeamId={highlightTeamId}
-            divisionColor={divisionColor}
-          />
+          <InitialContentRevealItem index={ready ? 0 : undefined}>
+            <StandingTable
+              rows={data.rows}
+              columns={columns}
+              layout={layout}
+              active={active}
+              highlightTeamId={highlightTeamId}
+              divisionColor={divisionColor}
+            />
+          </InitialContentRevealItem>
         </View>
       </PageContent>
     </PageScrollView>

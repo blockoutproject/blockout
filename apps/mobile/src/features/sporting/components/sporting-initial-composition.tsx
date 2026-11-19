@@ -2,6 +2,7 @@ import { startTransition, useCallback, useState, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { Page, PageContent, PageScrollView } from "@/shared/components/page";
+import { InitialContentRevealScope } from "@/shared/components/initial-content-reveal";
 import { PageViewport } from "@/shared/components/navigation-backdrop";
 import { ScreenState } from "@/shared/components/screen-state";
 import { ErrorState } from "@/shared/components/state-card";
@@ -98,7 +99,9 @@ export function SportingInitialComposition({
         accessibilityElementsHidden={blocked}
         importantForAccessibility={blocked ? "no-hide-descendants" : "auto"}
       >
-        {children}
+        <InitialContentRevealScope active={!blocked}>
+          {children}
+        </InitialContentRevealScope>
       </View>
       {blocked && (
         <View style={StyleSheet.absoluteFill}>

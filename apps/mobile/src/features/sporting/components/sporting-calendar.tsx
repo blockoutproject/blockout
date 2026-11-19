@@ -240,6 +240,7 @@ export function SportingCalendarView({
       bounces={rows.length > 0}
       contentContainerStyle={pageContentStyle}
       data={rows}
+      revealItem={(row) => row.kind === "match"}
       onScroll={({ nativeEvent }) => {
         if (showRows) {
           offset.current = nativeEvent.contentOffset.y;

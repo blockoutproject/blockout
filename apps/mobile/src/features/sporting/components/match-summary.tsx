@@ -10,7 +10,7 @@ import { LoadingGroup } from "@/shared/components/loading-group";
 import { Skeleton } from "@/shared/components/skeleton";
 import { TextSkeleton } from "@/shared/components/text-skeleton";
 import { formatSportingSchedule } from "../model/sporting-time";
-import { MatchSurface } from "./match-surface";
+import { MatchSurface, type MatchSurfaceProps } from "./match-surface";
 import { SportingArtwork, SportingLogo } from "./sporting-identity";
 import { SportingMedia } from "./sporting-media";
 import { DivisionPaint } from "./division-paint";
@@ -22,6 +22,7 @@ export interface MatchSummaryProps {
   displayTimeZone?: string;
   /** Contribution context keeps identities/time and known scores informational; summary retains sporting navigation. */
   presentation?: "summary" | "context";
+  revealIndex?: MatchSurfaceProps["revealIndex"];
 }
 
 /** Shares accepted pool/team facts and their nominal media slots between consultation and informational contribution context. */
@@ -29,6 +30,7 @@ export function MatchSummary({
   match,
   displayTimeZone,
   presentation = "summary",
+  revealIndex,
 }: Readonly<MatchSummaryProps>) {
   /** Explains the accepted incomplete result without inventing a final score. */
   function unavailableResultLabel() {
@@ -91,7 +93,11 @@ export function MatchSummary({
     </>
   );
   return (
-    <MatchSurface division={division} raised={!contextual}>
+    <MatchSurface
+      division={division}
+      raised={!contextual}
+      revealIndex={revealIndex}
+    >
       {contextual ? (
         <View
           style={[styles.pool, styles.contextPool, { backgroundColor: accent }]}

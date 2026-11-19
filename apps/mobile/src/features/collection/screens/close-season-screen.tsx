@@ -55,7 +55,10 @@ export function CloseSeasonScreen({
             )}
           </FeedbackLayout>
         )}
-        <PageContent style={blocked ? styles.hidden : undefined}>
+        <PageContent
+          reveal={!blocked}
+          style={blocked ? styles.hidden : undefined}
+        >
           <CloseSeasonForm
             key={visitKey}
             season={season.data}

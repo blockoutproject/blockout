@@ -109,7 +109,7 @@ export function AdministrationScreen({
         {blocked && !pending ? (
           <ScreenState>{content}</ScreenState>
         ) : (
-          <PageContent>{content}</PageContent>
+          <PageContent reveal={!blocked}>{content}</PageContent>
         )}
       </PageScrollView>
     </Page>

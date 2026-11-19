@@ -96,7 +96,10 @@ export function ContributionScreen({
             )}
           </FeedbackLayout>
         )}
-        <PageContent style={blocked ? styles.hidden : undefined}>
+        <PageContent
+          reveal={!blocked}
+          style={blocked ? styles.hidden : undefined}
+        >
           {match.data && !hasReadError(match) && (
             <MatchSummary match={match.data.match} presentation="context" />
           )}

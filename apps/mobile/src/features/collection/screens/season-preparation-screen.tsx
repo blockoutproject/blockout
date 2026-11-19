@@ -61,7 +61,7 @@ export function SeasonPreparationScreen({
         {blockingState ? (
           <FeedbackLayout>{blockingState}</FeedbackLayout>
         ) : (
-          <PageContent>
+          <PageContent reveal>
             {authority.enabled && season.data && (
               <>
                 <Text

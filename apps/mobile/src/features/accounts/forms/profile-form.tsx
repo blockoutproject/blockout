@@ -231,6 +231,7 @@ export function ProfileForm({
     <FormScrollView refreshControl={refreshControl}>
       {readFeedback}
       <PageContent
+        reveal={!readFeedback && !disabled}
         style={readFeedback ? styles.hidden : undefined}
         accessibilityElementsHidden={!!readFeedback}
         importantForAccessibility={

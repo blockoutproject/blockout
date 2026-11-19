@@ -23,7 +23,7 @@ export function SupportScreen() {
   return (
     <Page header={<SupportHeader />}>
       <FormScrollView>
-        <PageContent>
+        <PageContent reveal={!mutation.isSuccess}>
           {!mutation.isSuccess && context.screen && (
             <Surface>
               <Text

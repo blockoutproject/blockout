@@ -223,6 +223,7 @@ function ErasureConfirmation({
     <>
       {readFeedback}
       <PageContent
+        reveal={!readFeedback && !unavailable}
         style={[styles.content, readFeedback ? styles.hidden : undefined]}
         accessibilityElementsHidden={!!readFeedback}
         importantForAccessibility={

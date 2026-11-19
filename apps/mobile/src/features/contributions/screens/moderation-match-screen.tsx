@@ -19,6 +19,10 @@ import {
   pageContentStyle,
 } from "@/shared/components/page";
 import { FormScrollView } from "@/shared/components/form-scroll-view";
+import {
+  InitialContentRevealItem,
+  useInitialContentReveal,
+} from "@/shared/components/initial-content-reveal";
 import { PagedTabs } from "@/shared/components/paged-tabs";
 import { PageHeader } from "@/shared/components/page-header";
 import { hasReadError, ReadFeedback } from "@/shared/components/read-feedback";
@@ -255,6 +259,7 @@ function ActiveScene({
       ? editing.account
       : editing.query;
   const blocked = !current || hasReadError(requiredRead);
+  useInitialContentReveal(active && !blocked);
   const initialLoading = !hasReadError(requiredRead) && requiredRead.isLoading;
   const FeedbackLayout = initialLoading ? View : ScreenState;
 
@@ -304,7 +309,10 @@ function ActiveScene({
             {renderReadState()}
           </FeedbackLayout>
         )}
-        <View style={[styles.content, blocked && styles.hidden]}>
+        <InitialContentRevealItem
+          index={active && !blocked ? 0 : undefined}
+          style={[styles.content, blocked && styles.hidden]}
+        >
           {confirmed && (
             <Text
               accessibilityLiveRegion="polite"
@@ -343,7 +351,7 @@ function ActiveScene({
               />
             )}
           </ModerationPublicationForm>
-        </View>
+        </InitialContentRevealItem>
       </View>
     </FormScrollView>
   );

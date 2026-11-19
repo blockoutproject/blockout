@@ -11,10 +11,14 @@ import { useRouter } from "expo-router";
 import Constants from "expo-constants";
 import { SquarePen } from "lucide-react-native";
 import { IconButton } from "@/shared/components/icon-button";
+import {
+  InitialContentRevealItem,
+  useInitialContentReveal,
+} from "@/shared/components/initial-content-reveal";
 import type { ReactNode } from "react";
 import type { AccountResponse } from "../../../../.generated/schemas/index.zod";
 import { useProfilePhoto } from "../api/use-profile-editing";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text } from "react-native";
 import { useActionFeedback } from "@/shared/components/action-feedback";
 import { Button } from "@/shared/components/button";
 import { AdministrationEntry } from "@/features/access/entry";
@@ -113,82 +117,81 @@ export function ProfileScreen({
   }
 
   const blockingContent = readFeedback();
-  if (blockingContent) {
-    return (
-      <Page
-        header={
-          <ProfileHeader
-            onEdit={
-              admitted && connected && account.data
-                ? () => router.push("/profile/edit")
-                : undefined
-            }
-          />
-        }
-      >
-        <PageScrollView>{blockingContent}</PageScrollView>
-      </Page>
-    );
-  }
   return (
-    <ProfileContent
-      key={`${session.subject}:${account.data?.accountId ?? "guest"}`}
-      refreshControl={
-        connected ? (
-          <DataRefreshControl
-            enabled={!saving}
-            fetching={account.isFetching}
-            onRefresh={refresh}
-          />
-        ) : undefined
+    <Page
+      header={
+        <ProfileHeader
+          onEdit={
+            admitted && connected && account.data
+              ? () => router.push("/profile/edit")
+              : undefined
+          }
+          disabled={!blockingContent && !account.isSuccess}
+        />
       }
-      account={connected ? (account.data ?? undefined) : undefined}
-      disabled={!account.isSuccess}
-      onEdit={() => router.push("/profile/edit")}
-      onSignIn={() => router.push("/sign-in")}
     >
-      <AdministrationEntry />
-      <View style={styles.group}>
-        <Text
-          accessibilityRole="header"
-          style={[tokens.typography.label, { color: colors.secondaryText }]}
+      {blockingContent ? (
+        <PageScrollView>{blockingContent}</PageScrollView>
+      ) : (
+        <ProfileContent
+          key={`${session.subject}:${account.data?.accountId ?? "guest"}`}
+          refreshControl={
+            connected ? (
+              <DataRefreshControl
+                enabled={!saving}
+                fetching={account.isFetching}
+                onRefresh={refresh}
+              />
+            ) : undefined
+          }
+          account={connected ? (account.data ?? undefined) : undefined}
+          disabled={!account.isSuccess}
+          onSignIn={() => router.push("/sign-in")}
         >
-          Informations légales
-        </Text>
-        <ProfileLegalLinks />
-      </View>
-      <View style={styles.group}>
-        <Text
-          accessibilityRole="header"
-          style={[tokens.typography.label, { color: colors.secondaryText }]}
-        >
-          Mon compte
-        </Text>
-        {proEntry}
-        {privacyEntry}
-      </View>
-      {connected && (
-        <View style={styles.actions}>
-          <Button
-            label="Se déconnecter"
-            variant="secondary"
-            fullWidth
-            onPress={() => void signOut()}
-            loading={session.operation === "signing-out"}
-          />
-          <Button
-            label="Supprimer mon compte"
-            variant="destructive"
-            fullWidth
-            disabled={!account.isSuccess}
-            onPress={() => router.push("/profile/erase")}
-          />
-        </View>
+          <AdministrationEntry />
+          <InitialContentRevealItem index={1} style={styles.group}>
+            <Text
+              accessibilityRole="header"
+              style={[tokens.typography.label, { color: colors.secondaryText }]}
+            >
+              Informations légales
+            </Text>
+            <ProfileLegalLinks />
+          </InitialContentRevealItem>
+          <InitialContentRevealItem index={2} style={styles.group}>
+            <Text
+              accessibilityRole="header"
+              style={[tokens.typography.label, { color: colors.secondaryText }]}
+            >
+              Mon compte
+            </Text>
+            {proEntry}
+            {privacyEntry}
+          </InitialContentRevealItem>
+          {connected && (
+            <InitialContentRevealItem index={3} style={styles.actions}>
+              <Button
+                label="Se déconnecter"
+                variant="secondary"
+                fullWidth
+                onPress={() => void signOut()}
+                loading={session.operation === "signing-out"}
+              />
+              <Button
+                label="Supprimer mon compte"
+                variant="destructive"
+                fullWidth
+                disabled={!account.isSuccess}
+                onPress={() => router.push("/profile/erase")}
+              />
+            </InitialContentRevealItem>
+          )}
+          <Text style={[styles.version, { color: colors.secondaryText }]}>
+            Version {Constants.expoConfig?.version}
+          </Text>
+        </ProfileContent>
       )}
-      <Text style={[styles.version, { color: colors.secondaryText }]}>
-        Version {Constants.expoConfig?.version}
-      </Text>
-    </ProfileContent>
+    </Page>
   );
 }
 
@@ -197,14 +200,12 @@ function ProfileContent({
   refreshControl,
   account,
   disabled,
-  onEdit,
   onSignIn,
   children,
 }: Readonly<{
   refreshControl: PageScrollViewProps["refreshControl"];
   account?: AccountResponse;
   disabled: boolean;
-  onEdit: () => void;
   onSignIn: () => void;
   children: ReactNode;
 }>) {
@@ -212,26 +213,20 @@ function ProfileContent({
     account?.accountId ?? "",
     !!account?.hasPhoto && !disabled,
   );
+  useInitialContentReveal(true);
   return (
-    <Page
-      header={
-        <ProfileHeader
-          onEdit={account ? onEdit : undefined}
-          disabled={disabled}
-        />
-      }
-    >
-      <PageScrollView refreshControl={refreshControl}>
-        <PageContent>
+    <PageScrollView refreshControl={refreshControl}>
+      <PageContent>
+        <InitialContentRevealItem index={0}>
           {account ? (
             <ProfileIdentity account={account} photo={photo} />
           ) : (
             <ProfileSignIn onSignIn={onSignIn} />
           )}
-          {children}
-        </PageContent>
-      </PageScrollView>
-    </Page>
+        </InitialContentRevealItem>
+        {children}
+      </PageContent>
+    </PageScrollView>
   );
 }
 

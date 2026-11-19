@@ -9,7 +9,7 @@ import { tokens } from "@/shared/theme/tokens";
 import { useTheme } from "@/shared/theme/theme-provider";
 import { useSportingTransition } from "@/features/advertising/use-sporting-transition";
 import { safeWebsite } from "./contact-link";
-import { MatchSurface } from "./match-surface";
+import { MatchSurface, type MatchSurfaceProps } from "./match-surface";
 import { divisionTextColor } from "../presentation";
 
 /** Current public match projection and optional owner-supplied header action; published addresses retain their exact version. */
@@ -21,6 +21,17 @@ export interface MatchLinksProps {
   primaryAction?: ReactNode;
   /** F08 supplies a separate exact-version report action for a non-owned contributed URL. */
   reportAction?: ReactNode;
+  revealIndex?: MatchSurfaceProps["revealIndex"];
+}
+
+/** A link or explicit action makes the card part of the Match presentation order. */
+export function matchLinksContent(
+  streamUrl: MatchDetailResponse["streamUrl"],
+  action: ReactNode,
+  primaryAction: ReactNode,
+) {
+  const url = safeWebsite(streamUrl);
+  return url || action || primaryAction ? { url } : undefined;
 }
 
 /** Offers an available HTTP(S) destination or an explicit empty card with the supplied action, without inferring live status or replay. */
@@ -29,15 +40,20 @@ export function MatchLinks({
   action,
   primaryAction,
   reportAction,
+  revealIndex,
 }: Readonly<MatchLinksProps>) {
   const { colors } = useTheme();
-  const url = safeWebsite(detail.streamUrl);
-  if (!url && !action && !primaryAction) {
+  const content = matchLinksContent(detail.streamUrl, action, primaryAction);
+  if (!content) {
     return null;
   }
+  const { url } = content;
   const target = `${detail.match.id}:${detail.streamContributionId ?? "professional"}:${url}`;
   return (
-    <MatchSurface division={detail.match.pool.classification.division}>
+    <MatchSurface
+      division={detail.match.pool.classification.division}
+      revealIndex={revealIndex}
+    >
       <View style={styles.content}>
         <View style={styles.header}>
           <Text

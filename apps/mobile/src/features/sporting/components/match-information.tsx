@@ -15,7 +15,7 @@ import {
   safeWebsite,
 } from "./contact-link";
 import { matchDocumentLabels } from "../api/match-document";
-import { MatchSurface } from "./match-surface";
+import { MatchSurface, type MatchSurfaceProps } from "./match-surface";
 
 /** Independent current match facts and explicitly offered document actions. */
 export interface MatchInformationProps {
@@ -23,6 +23,7 @@ export interface MatchInformationProps {
   displayTimeZone?: string;
   /** An explicit document opening uses the screen-owned full-screen reader. */
   onDocumentOpen(kind: MatchDocumentKindEnum): void;
+  revealIndex?: MatchSurfaceProps["revealIndex"];
 }
 
 /** Approved information order: division, schedule, referees, pool, venue and qualified source. */
@@ -30,6 +31,7 @@ export function MatchInformation({
   detail,
   displayTimeZone,
   onDocumentOpen,
+  revealIndex,
 }: Readonly<MatchInformationProps>) {
   const sporting = useSportingNavigation();
   const { colors } = useTheme();
@@ -43,7 +45,7 @@ export function MatchInformation({
     .filter(Boolean)
     .join(" · ");
   return (
-    <MatchSurface division={division}>
+    <MatchSurface division={division} revealIndex={revealIndex}>
       <View style={styles.heading}>
         <Text
           accessibilityRole="header"

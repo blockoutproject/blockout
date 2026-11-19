@@ -346,6 +346,7 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
       accessibilityRole="list"
       accessibilityLabel="Équipes et poules suivies"
       data={rows}
+      revealItem={(row) => row.kind === "item"}
       keyExtractor={(row) => row.key}
       removeClippedSubviews={false}
       alwaysBounceVertical

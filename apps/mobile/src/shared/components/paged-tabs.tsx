@@ -36,6 +36,7 @@ import {
 import { NavigationTabBar } from "./navigation-tab-bar";
 import { PageScrollContext } from "./page-scroll-binding";
 import { PagedTabHeaderOffsetContext } from "./paged-tab-context";
+import { InitialContentRevealScope } from "./initial-content-reveal";
 import { tokens } from "@/shared/theme/tokens";
 import { useReducedMotion } from "@/shared/theme/use-reduced-motion";
 
@@ -421,24 +422,31 @@ export function PagedTabs({
             onMomentumScrollEnd={settle}
           >
             {tabs.map((tab, index) => (
-              <TabScene
-                key={JSON.stringify([tab.id, tab.resetKey])}
-                scene={scenes[index]}
-                index={index}
-                command={command}
-                collapse={chromeOffset}
+              <InitialContentRevealScope
+                key={tab.id}
                 active={index === selectedIndex}
-                visited={index === selectedIndex || visited.has(tab.id)}
-                preview={tab.preview}
-                width={width}
-                height={height}
-                contentInset={contentInset}
-                stickyInset={stickyInset}
-                headerHeight={headerHeight}
-                minContentHeight={minContentHeight}
+                resetKey={tab.resetKey}
+                tabId={tab.id}
               >
-                {tab.content}
-              </TabScene>
+                <TabScene
+                  key={tab.resetKey}
+                  scene={scenes[index]}
+                  index={index}
+                  command={command}
+                  collapse={chromeOffset}
+                  active={index === selectedIndex}
+                  visited={index === selectedIndex || visited.has(tab.id)}
+                  preview={tab.preview}
+                  width={width}
+                  height={height}
+                  contentInset={contentInset}
+                  stickyInset={stickyInset}
+                  headerHeight={headerHeight}
+                  minContentHeight={minContentHeight}
+                >
+                  {tab.content}
+                </TabScene>
+              </InitialContentRevealScope>
             ))}
           </Animated.ScrollView>
         </NavigationScrollMarker>

@@ -26,6 +26,7 @@ import { createQueryClient } from "@/shared/query/query-client";
 import { initializeSentry } from "@/shared/observability/sentry";
 import { ThemeProvider, useTheme } from "@/shared/theme/theme-provider";
 import { ActionFeedbackProvider } from "@/shared/components/action-feedback";
+import { ContentMotionPreference } from "@/shared/components/initial-content-reveal";
 import { hasReadError } from "@/shared/components/read-feedback";
 import { ProProvider, usePro } from "@/features/pro";
 import {
@@ -121,7 +122,9 @@ function ThemedNavigation({
     <ThemeProvider proAccent={state.status === "active"}>
       <ActionFeedbackProvider scopeKey={session.subject ?? "guest"}>
         <AgeDeclarationProvider enabled={discovery.complete} privacy={privacy}>
-          <Navigation registration={registration} />
+          <ContentMotionPreference>
+            <Navigation registration={registration} />
+          </ContentMotionPreference>
         </AgeDeclarationProvider>
       </ActionFeedbackProvider>
     </ThemeProvider>

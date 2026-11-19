@@ -254,6 +254,7 @@ function PresentationScreenContent({
           </FeedbackLayout>
         )}
         <PageContent
+          reveal={!blocked}
           style={blocked ? styles.hidden : undefined}
           accessibilityElementsHidden={blocked}
           importantForAccessibility={blocked ? "no-hide-descendants" : "auto"}

@@ -5,6 +5,7 @@ import { DataRefreshControl } from "@/shared/components/data-refresh-control";
 import { PageHeader } from "@/shared/components/page-header";
 import { NavigationAccent } from "@/shared/components/navigation-accent";
 import { Page, PageScrollView, PageContent } from "@/shared/components/page";
+import { useInitialContentReveal } from "@/shared/components/initial-content-reveal";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { AppState } from "react-native";
@@ -17,11 +18,17 @@ import {
 } from "../components/sporting-actions";
 import { MatchSummary, MatchSummaryLoading } from "../components/match-summary";
 import { MatchPageHeader } from "../components/match-page-header";
-import { MatchSetScores } from "../components/match-set-scores";
+import {
+  hasMatchSetScores,
+  MatchSetScores,
+} from "../components/match-set-scores";
 import { MatchInformation } from "../components/match-information";
-import type { MatchDocumentKindEnum } from "../../../../.generated/schemas/index.zod";
+import type {
+  MatchDetailResponse,
+  MatchDocumentKindEnum,
+} from "../../../../.generated/schemas/index.zod";
 import { MatchDocumentReader } from "../components/match-document-reader";
-import { MatchLinks } from "../components/match-links";
+import { matchLinksContent, MatchLinks } from "../components/match-links";
 import { divisionTextColor } from "../presentation";
 import { currentSportingTimeZone } from "../model/sporting-time";
 
@@ -37,57 +44,6 @@ export function MatchScreen({
   matchId,
   focused = true,
 }: Readonly<MatchScreenProps>) {
-  /** A required Match or public-link ownership failure replaces its dependent summary and actions. */
-  function renderMatchContent() {
-    if (blockingState) {
-      if (!failed && match.isPending) {
-        return <PageContent>{blockingState}</PageContent>;
-      }
-      return <ScreenState>{blockingState}</ScreenState>;
-    }
-    return (
-      <PageContent>
-        {data && (
-          <>
-            <MatchSummary
-              match={data.match}
-              displayTimeZone={displayTimeZone}
-            />
-            <MatchSetScores match={data.match} sets={data.sets} />
-            <MatchLinks
-              detail={data}
-              reportAction={<ContributionReportEntry entry={contribution} />}
-              action={
-                contribution.hasProposals && !contribution.ownsPublic ? (
-                  <MatchContributionAction entry={contribution} header />
-                ) : undefined
-              }
-              primaryAction={
-                contribution.publicOwnershipUnknown ||
-                contribution.ownsPublic ||
-                (!data.streamUrl && contribution.canPropose) ? (
-                  <MatchContributionAction
-                    entry={contribution}
-                    contextColor={division?.color}
-                    contextGradient={division?.gradient}
-                    contextForeground={
-                      division ? divisionTextColor(division.color) : undefined
-                    }
-                  />
-                ) : undefined
-              }
-            />
-            <MatchInformation
-              onDocumentOpen={(kind) => setDocument({ matchId, kind })}
-              detail={data}
-              displayTimeZone={displayTimeZone}
-            />
-          </>
-        )}
-      </PageContent>
-    );
-  }
-
   const [displayTimeZone, setDisplayTimeZone] = useState(
     currentSportingTimeZone,
   );
@@ -193,7 +149,20 @@ export function MatchScreen({
           ) : undefined
         }
       >
-        {renderMatchContent()}
+        {blockingState ? (
+          !failed && match.isPending ? (
+            <PageContent>{blockingState}</PageContent>
+          ) : (
+            <ScreenState>{blockingState}</ScreenState>
+          )
+        ) : data ? (
+          <MatchContent
+            detail={data}
+            displayTimeZone={displayTimeZone}
+            contribution={contribution}
+            onDocumentOpen={(kind) => setDocument({ matchId, kind })}
+          />
+        ) : null}
       </PageScrollView>
       {focused && documentAvailable && document && (
         <MatchDocumentReader
@@ -204,5 +173,63 @@ export function MatchScreen({
         />
       )}
     </Page>
+  );
+}
+
+function MatchContent({
+  detail,
+  displayTimeZone,
+  contribution,
+  onDocumentOpen,
+}: Readonly<{
+  detail: MatchDetailResponse;
+  displayTimeZone: string;
+  contribution: ReturnType<typeof useMatchContributionAction>;
+  onDocumentOpen(kind: MatchDocumentKindEnum): void;
+}>) {
+  useInitialContentReveal(true);
+  const division = detail.match.pool.classification.division;
+  const action = contribution.hasProposals && !contribution.ownsPublic && (
+    <MatchContributionAction entry={contribution} header />
+  );
+  const primaryAction = (contribution.publicOwnershipUnknown ||
+    contribution.ownsPublic ||
+    (!detail.streamUrl && contribution.canPropose)) && (
+    <MatchContributionAction
+      entry={contribution}
+      contextColor={division?.color}
+      contextGradient={division?.gradient}
+      contextForeground={
+        division ? divisionTextColor(division.color) : undefined
+      }
+    />
+  );
+  const linksIndex = hasMatchSetScores(detail.match, detail.sets) ? 2 : 1;
+  const hasLinks = Boolean(
+    matchLinksContent(detail.streamUrl, action, primaryAction),
+  );
+
+  return (
+    <PageContent>
+      <MatchSummary
+        match={detail.match}
+        displayTimeZone={displayTimeZone}
+        revealIndex={0}
+      />
+      <MatchSetScores match={detail.match} sets={detail.sets} revealIndex={1} />
+      <MatchLinks
+        detail={detail}
+        reportAction={<ContributionReportEntry entry={contribution} />}
+        action={action || undefined}
+        primaryAction={primaryAction || undefined}
+        revealIndex={linksIndex}
+      />
+      <MatchInformation
+        onDocumentOpen={onDocumentOpen}
+        detail={detail}
+        displayTimeZone={displayTimeZone}
+        revealIndex={linksIndex + (hasLinks ? 1 : 0)}
+      />
+    </PageContent>
   );
 }

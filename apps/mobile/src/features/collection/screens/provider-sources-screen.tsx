@@ -73,7 +73,10 @@ export function ProviderSourcesScreen({
             )}
           </FeedbackLayout>
         )}
-        <PageContent style={blocked ? styles.hidden : undefined}>
+        <PageContent
+          reveal={!blocked}
+          style={blocked ? styles.hidden : undefined}
+        >
           <ProviderPreparationForm
             key={visitKey}
             season={sources.data ? season.data : null}
