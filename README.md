@@ -285,14 +285,15 @@ Native projects are generated and ignored. After changing native dependencies or
 
 ### Native UI checks
 
-Install [agent-device](https://oss.callstack.com/agent-device/docs/installation) once on each execution host with the platform tools above:
+Install [agent-device](https://agent-device.dev/docs/installation) once on each execution host with the platform tools above:
 
 ```sh
-npm install --global agent-device@0.21.31
+npm install --global agent-device@0.21.39
 agent-device doctor
+agent-device --version
 ```
 
-The [official skill](.agents/skills/agent-device/SKILL.md) is copied unchanged from [Callstack v0.21.31](https://github.com/callstack/agent-device/tree/v0.21.31/skills/agent-device), with its [MIT license](.agents/skills/agent-device/LICENSE).
+The [official skill](.agents/skills/agent-device/SKILL.md) is copied unchanged from [Callstack v0.21.39](https://github.com/callstack/agent-device/tree/v0.21.39/skills/agent-device), with its [MIT license](.agents/skills/agent-device/LICENSE).
 
 Shared native UI follows the [F13 theme and component boundaries](specs/003-shared-quality/plan.md#native-ui-and-approved-design). The [native validation guide](specs/003-shared-quality/quickstart.md#native-ui-and-approved-design) owns Figma comparison and accessibility scenarios.
 
