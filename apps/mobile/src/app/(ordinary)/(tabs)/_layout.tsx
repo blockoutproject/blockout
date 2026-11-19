@@ -223,6 +223,22 @@ function NavigationCapsule({
   ...props
 }: Readonly<NavigationCapsuleProps>) {
   const { scheme, colors, membership } = useTheme();
+  const indicatorFrame = useAnimatedStyle(() => {
+    if (!layout) {
+      return {};
+    }
+    const transition = {
+      duration: reducedMotion ? 0 : tokens.motion.navigation.duration,
+      easing: Easing.out(Easing.cubic),
+      reduceMotion: ReduceMotion.Never,
+    };
+    return {
+      left: withTiming(layout.x, transition),
+      top: withTiming(layout.y, transition),
+      width: withTiming(layout.width, transition),
+      height: withTiming(layout.height, transition),
+    };
+  });
   return (
     <SafeAreaView
       {...props}
@@ -248,8 +264,7 @@ function NavigationCapsule({
         />
         <View style={styles.row}>
           <SelectionIndicator
-            layout={layout}
-            reducedMotion={reducedMotion}
+            style={layout ? indicatorFrame : undefined}
             fill={selectedFill}
           />
           {children}

@@ -62,7 +62,7 @@ type FollowedRow =
       item: FollowedItem;
     };
 
-const disclosureEasing = Easing.bezier(0.2, 0.7, 0.2, 1);
+const disclosureEasing = Easing.bezier(...tokens.motion.compact.easing);
 
 /** Keeps a closing section in the list until its height reaches zero. */
 function useFollowedDisclosure(reducedMotion: boolean) {
@@ -83,7 +83,7 @@ function useFollowedDisclosure(reducedMotion: boolean) {
       withTiming(
         expanded ? 1 : 0,
         {
-          duration: reducedMotion ? 0 : tokens.motion.compact,
+          duration: reducedMotion ? 0 : tokens.motion.compact.duration,
           easing: disclosureEasing,
           reduceMotion: ReduceMotion.Never,
         },
@@ -362,12 +362,12 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
         const list = lists[row.resource];
         const section = disclosure[row.resource];
         if (row.kind === "heading") {
+          const label =
+            row.resource === "team" ? "Équipes suivies" : "Poules suivies";
           return (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={
-                row.resource === "team" ? "Équipes suivies" : "Poules suivies"
-              }
+              accessibilityLabel={label}
               accessibilityState={{ expanded: section.expanded }}
               onPress={section.toggle}
               style={styles.heading}
@@ -379,7 +379,7 @@ export function FollowedLists(props: Readonly<FollowedListsProps>) {
                   { color: colors.text },
                 ]}
               >
-                {row.resource === "team" ? "Équipes suivies" : "Poules suivies"}
+                {label}
               </Text>
               <DisclosureChevron expanded={section.expanded} />
             </Pressable>

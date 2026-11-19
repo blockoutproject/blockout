@@ -26,7 +26,7 @@ export function DisclosureChevron({
         rotate: withTiming(expanded ? "180deg" : "0deg", {
           duration: reducedMotion ? 0 : tokens.motion.navigation.duration,
           easing: Easing.out(Easing.cubic),
-          reduceMotion: ReduceMotion.System,
+          reduceMotion: ReduceMotion.Never,
         }),
       },
     ],

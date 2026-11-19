@@ -233,7 +233,12 @@ export function SportingEntityCard({
   return usesDivisionAtmosphere
     ? renderCard(
         logo,
-        division && <SportingDivisionAtmosphere division={division} />,
+        division && (
+          <SportingDivisionAtmosphere
+            division={division}
+            presentation="entity"
+          />
+        ),
       )
     : logo;
 }

@@ -77,16 +77,20 @@ export function SportingArtwork({
 /** Resolves the team's division image independently of its foreground crest. */
 export function SportingDivisionAtmosphere({
   division,
-  render,
+  presentation,
 }: Readonly<{
   division: SportingDivisionResponse;
-  render?: (uri: string) => ReactNode;
+  presentation: "identity" | "entity";
 }>) {
   const { uri } = useSportingLogo(division, "division");
   if (!uri) {
     return null;
   }
-  return render ? render(uri) : <SportingAtmosphere uri={uri} />;
+  return presentation === "identity" ? (
+    renderIdentityAtmosphere(uri)
+  ) : (
+    <SportingAtmosphere uri={uri} />
+  );
 }
 
 function renderIdentityAtmosphere(uri: string) {
@@ -148,7 +152,7 @@ export function SportingIdentity({
       ? division && (
           <SportingDivisionAtmosphere
             division={division}
-            render={renderIdentityAtmosphere}
+            presentation="identity"
           />
         )
       : logo.uri && !logo.error && renderIdentityAtmosphere(logo.uri);

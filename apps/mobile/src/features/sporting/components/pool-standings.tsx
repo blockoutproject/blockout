@@ -37,8 +37,8 @@ const layoutSize = tokens.size.control.compact;
 const layoutInset = (tokens.touch.minimum - layoutSize) / 2;
 const layoutStep = tokens.touch.minimum + tokens.spacing.xs;
 const layoutTransition = {
-  duration: tokens.motion.compact,
-  easing: Easing.bezier(0.2, 0.7, 0.2, 1),
+  duration: tokens.motion.compact.duration,
+  easing: Easing.bezier(...tokens.motion.compact.easing),
   reduceMotion: ReduceMotion.Never,
 };
 
@@ -79,9 +79,9 @@ export function PoolStandings({
   const layoutProgress = useDerivedValue(() =>
     reducedMotion ? layoutTarget : withTiming(layoutTarget, layoutTransition),
   );
-  const indicatorX = useDerivedValue(
-    () => layoutInset + layoutProgress.value * layoutStep,
-  );
+  const indicatorPosition = useAnimatedStyle(() => ({
+    left: layoutInset + layoutProgress.value * layoutStep,
+  }));
   const cardsInk = useAnimatedStyle(() => ({
     opacity: 1 - layoutProgress.value,
   }));
@@ -107,13 +107,7 @@ export function PoolStandings({
         accessibilityLabel="Présentation du classement"
       >
         <SelectionIndicator
-          layout={{
-            x: indicatorX,
-            y: layoutInset,
-            width: layoutSize,
-            height: layoutSize,
-          }}
-          reducedMotion={reducedMotion}
+          style={[styles.layoutIndicator, indicatorPosition]}
           fill={selectedFill}
           radius={tokens.radius.control}
         />
@@ -426,6 +420,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  layoutIndicator: { top: layoutInset, width: layoutSize, height: layoutSize },
   row: {
     flexDirection: "row",
     alignItems: "center",
