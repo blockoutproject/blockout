@@ -10,18 +10,50 @@ import { useOpenProPaywall } from "../use-open-pro-paywall";
 
 /** Keeps the shared guest invitation; connected entries use the existing native Pro owner. */
 export function ProEntry() {
-  const { colors } = useTheme();
+  const { colors, membership } = useTheme();
+  const { state } = usePro();
   const open = useOpenProPaywall();
   const account = useAccountSession();
   const router = useRouter();
-  const session = account;
   const guest = account.status === "guest";
   const available =
-    guest || (account.status === "authenticated" && session.accountId !== null);
+    guest || (account.status === "authenticated" && account.accountId !== null);
+  const active = state.status === "active";
+  const membershipLabel =
+    active || state.status === "inactive"
+      ? active
+        ? "Compte Pro"
+        : "Compte gratuit"
+      : undefined;
   return (
     <EntryRow
       label="Blockout Pro"
       disabled={!available}
+      accessibilityValue={
+        membershipLabel ? { text: membershipLabel } : undefined
+      }
+      labelAccessory={
+        membershipLabel && (
+          <View
+            style={[
+              styles.badge,
+              {
+                backgroundColor: active ? membership.fill : colors.subtle,
+                borderColor: active ? membership.border : colors.border,
+              },
+            ]}
+          >
+            <Text
+              style={[
+                tokens.typography.metadata,
+                { color: active ? membership.content : colors.secondaryText },
+              ]}
+            >
+              {membershipLabel}
+            </Text>
+          </View>
+        )
+      }
       icon={
         <Image
           accessible={false}
@@ -41,36 +73,6 @@ export function ProEntry() {
   );
 }
 
-/** Shows only current SDK-established membership; unknown rights never imply a free account. */
-export function ProProfileBadge() {
-  const { state } = usePro();
-  const { colors, membership } = useTheme();
-  if (state.status !== "active" && state.status !== "inactive") {
-    return null;
-  }
-  const active = state.status === "active";
-  return (
-    <View
-      style={[
-        styles.badge,
-        {
-          backgroundColor: active ? membership.fill : colors.subtle,
-          borderColor: active ? membership.border : colors.border,
-        },
-      ]}
-    >
-      <Text
-        style={[
-          tokens.typography.metadata,
-          { color: active ? membership.content : colors.secondaryText },
-        ]}
-      >
-        {active ? "Compte Pro" : "Compte gratuit"}
-      </Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   icon: {
     width: tokens.size.icon.md,
@@ -78,7 +80,7 @@ const styles = StyleSheet.create({
     borderRadius: tokens.media.radius.compact,
   },
   badge: {
-    alignSelf: "flex-start",
+    flexShrink: 1,
     borderWidth: tokens.border.thin,
     borderRadius: tokens.radius.sm,
     paddingVertical: tokens.spacing.xs,

@@ -1,5 +1,4 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import { Text } from "react-native";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
 import {
   ProfileIdentity,
@@ -19,21 +18,18 @@ function Identity(props: Readonly<ProfileIdentityProps>) {
 it("keeps known profile information while its optional foreground loads and fails", async () => {
   // Given
   const account = accountResponse({ hasPhoto: true });
-  const membershipStatus = <Text>Compte Pro</Text>;
 
   // When
   const view = await render(
     <Identity
       account={account}
       photo={{ data: undefined, isFetching: true }}
-      membershipStatus={membershipStatus}
     />,
   );
 
   // Then
   expect(screen.getByText(account.username)).toBeOnTheScreen();
   expect(screen.getByText(account.email)).toBeOnTheScreen();
-  expect(screen.getByText("Compte Pro")).toBeOnTheScreen();
   expect(
     screen.getByRole("image", { name: "Photo de profil", busy: true }),
   ).toBeOnTheScreen();
@@ -43,7 +39,6 @@ it("keeps known profile information while its optional foreground loads and fail
     <Identity
       account={account}
       photo={{ data: "data:image/png;base64,cGhvdG8=", isFetching: false }}
-      membershipStatus={membershipStatus}
     />,
   );
   const foreground = screen.getByRole("image", {
@@ -72,7 +67,6 @@ it("keeps known profile information while its optional foreground loads and fail
   expect(screen.getByTestId("profile-photo-atmosphere")).toBeOnTheScreen();
   expect(screen.getByText(account.username)).toBeOnTheScreen();
   expect(screen.getByText(account.email)).toBeOnTheScreen();
-  expect(screen.getByText("Compte Pro")).toBeOnTheScreen();
 });
 
 it("keeps the displayed photo when only its decorative background fails", async () => {

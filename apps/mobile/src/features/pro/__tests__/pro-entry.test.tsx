@@ -30,7 +30,6 @@ import { createQueryClient } from "@/shared/query/query-client";
 import { ThemeProvider } from "@/shared/theme/theme-provider";
 import { initializeV2Installation } from "@/features/onboarding/initialize-v2-installation";
 import { mockPurchases } from "../test-support/native-purchases";
-import { ProProfileBadge } from "../components/pro-entry";
 import * as proSessionModule from "../pro-session";
 import { customerInfo, entitlement } from "../test-support/customer-info";
 import { prepareProNativeIO } from "../test-support/pro-harness";
@@ -273,7 +272,7 @@ it("shows membership only from verified current-session rights and clears it whe
   try {
     await mount(
       <ProProvider>
-        <ProProfileBadge />
+        <ProProfileEntry />
       </ProProvider>,
     );
     await screen.findByText("Session: authenticated");
@@ -299,6 +298,12 @@ it("shows membership only from verified current-session rights and clears it whe
     await act(() => read.resolve(inactive));
     // Then
     expect(await screen.findByText("Compte gratuit")).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", {
+        name: "Blockout Pro",
+        value: { text: "Compte gratuit" },
+      }),
+    ).toBeOnTheScreen();
     expect(screen.queryByText("Compte Pro")).not.toBeOnTheScreen();
     // Given
     const right = entitlement();
@@ -315,6 +320,12 @@ it("shows membership only from verified current-session rights and clears it whe
     });
     // Then
     expect(await screen.findByText("Compte Pro")).toBeOnTheScreen();
+    expect(
+      screen.getByRole("button", {
+        name: "Blockout Pro",
+        value: { text: "Compte Pro" },
+      }),
+    ).toBeOnTheScreen();
     expect(screen.queryByText("Compte gratuit")).not.toBeOnTheScreen();
     // When
     await act(() => account.clearCredentials());

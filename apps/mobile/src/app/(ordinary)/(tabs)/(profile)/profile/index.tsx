@@ -1,5 +1,5 @@
 import { PrivacyEntry } from "@/features/privacy/components/privacy-sheet";
-import { ProProfileBadge, ProProfileEntry } from "@/features/pro/presentation";
+import { ProProfileEntry } from "@/features/pro/presentation";
 import { useAccessAdmission } from "@/features/access/queries/use-access-admission";
 import { ProfileScreen } from "@/features/accounts/screens/profile-screen";
 
@@ -14,7 +14,6 @@ export default function ProfileRoute() {
         </ProProfileEntry>
       }
       privacyEntry={null}
-      membershipStatus={<ProProfileBadge />}
     />
   );
 }

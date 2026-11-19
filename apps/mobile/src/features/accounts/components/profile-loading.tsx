@@ -65,13 +65,12 @@ export function ProfileLoading({
   );
 }
 
-/** Profile identity has its own membership, name and email slots inside the shared identity frame. */
+/** Reserves the photo, name and email in the shared identity frame. */
 function ProfileIdentitySkeleton() {
   const { colors } = useTheme();
   const { fontScale } = useWindowDimensions();
   return (
     <IdentityCard
-      railBackgroundColor={colors.skeletonHeader}
       artworkBackgroundColor={colors.skeleton}
       artwork={
         <Skeleton
@@ -82,21 +81,8 @@ function ProfileIdentitySkeleton() {
         />
       }
     >
-      <View style={styles.identity}>
-        <Skeleton
-          width={
-            72 * fontScale + 2 * (tokens.spacing.tight + tokens.border.thin)
-          }
-          height={
-            tokens.typography.metadata.lineHeight * fontScale +
-            tokens.spacing.xs * 2 +
-            tokens.border.thin * 2
-          }
-          shape="rectangle"
-        />
-        <TextSkeleton role="title" width={126 * fontScale} />
-        <TextSkeleton role="label" width={132 * fontScale} />
-      </View>
+      <TextSkeleton role="title" width={126 * fontScale} />
+      <TextSkeleton role="label" width={132 * fontScale} />
     </IdentityCard>
   );
 }
@@ -141,7 +127,6 @@ const styles = StyleSheet.create({
   body: { gap: tokens.spacing.lg },
   group: { gap: tokens.spacing.md },
   legalLinks: { gap: tokens.spacing.sm },
-  identity: { gap: tokens.spacing.sm },
   version: { alignItems: "center" },
   form: { gap: tokens.layout.form.gap },
   field: { gap: tokens.layout.form.labelGap },

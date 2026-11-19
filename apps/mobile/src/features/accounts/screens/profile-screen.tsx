@@ -40,7 +40,6 @@ export interface ProfileScreenProps {
   admitted: boolean;
   proEntry: ReactNode;
   privacyEntry: ReactNode;
-  membershipStatus?: ReactNode;
 }
 
 /** Admits the authorized account overview independently of its optional photo; account/session failures own whole-page recovery. */
@@ -48,7 +47,6 @@ export function ProfileScreen({
   admitted,
   proEntry,
   privacyEntry,
-  membershipStatus,
 }: Readonly<ProfileScreenProps>) {
   const session = useAccountSession();
   const account = useCurrentAccount();
@@ -146,7 +144,6 @@ export function ProfileScreen({
       }
       account={connected ? (account.data ?? undefined) : undefined}
       disabled={!account.isSuccess}
-      membershipStatus={membershipStatus}
       onEdit={() => router.push("/profile/edit")}
       onSignIn={() => router.push("/sign-in")}
     >
@@ -200,7 +197,6 @@ function ProfileContent({
   refreshControl,
   account,
   disabled,
-  membershipStatus,
   onEdit,
   onSignIn,
   children,
@@ -208,7 +204,6 @@ function ProfileContent({
   refreshControl: PageScrollViewProps["refreshControl"];
   account?: AccountResponse;
   disabled: boolean;
-  membershipStatus?: ReactNode;
   onEdit: () => void;
   onSignIn: () => void;
   children: ReactNode;
@@ -229,11 +224,7 @@ function ProfileContent({
       <PageScrollView refreshControl={refreshControl}>
         <PageContent>
           {account ? (
-            <ProfileIdentity
-              account={account}
-              photo={photo}
-              membershipStatus={membershipStatus}
-            />
+            <ProfileIdentity account={account} photo={photo} />
           ) : (
             <ProfileSignIn onSignIn={onSignIn} />
           )}
